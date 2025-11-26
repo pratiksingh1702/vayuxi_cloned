@@ -1,5 +1,8 @@
+// lib/core/providers/auth_provider.dart
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:shared_preferences/shared_preferences.dart';
+import '../../profile_page/userModel/userModel.dart';
+
 import '../service/auth_client.dart';
 
 class AuthState {
@@ -7,7 +10,7 @@ class AuthState {
   final bool isLoggedIn;
   final bool otpVerified;
   final String? errorMessage;
-  final Map<String, dynamic>? user;
+  final User? user;
 
   AuthState({
     this.isLoading = false,
@@ -22,14 +25,13 @@ class AuthState {
     bool? isLoggedIn,
     bool? otpVerified,
     String? errorMessage,
-
-    Map<String, dynamic>? user,
+    User? user,
   }) {
     return AuthState(
       isLoading: isLoading ?? this.isLoading,
       isLoggedIn: isLoggedIn ?? this.isLoggedIn,
       otpVerified: otpVerified ?? this.otpVerified,
-      errorMessage: errorMessage,
+      errorMessage: errorMessage ?? this.errorMessage,
       user: user ?? this.user,
     );
   }
@@ -37,62 +39,112 @@ class AuthState {
 
 class AuthNotifier extends StateNotifier<AuthState> {
   AuthNotifier() : super(AuthState()) {
-    checkLogin(); // ✅ Auto-check login on provider initialization
+    checkLogin();
   }
-
 
   Future<void> checkLogin() async {
     final prefs = await SharedPreferences.getInstance();
     final token = prefs.getString('auth_token');
-    print("lllllllllllllllllllllllllllll");
-    print(token);
+
     if (token != null && token.isNotEmpty) {
-      state = state.copyWith(isLoggedIn: true, otpVerified: true);
+      try {
+        final userData = await AuthAPI.getCurrentUser();
+        final user = User.fromJson(userData);
+        state = state.copyWith(
+          isLoggedIn: true,
+          otpVerified: true,
+          user: user,
+        );
+      } catch (e) {
+        await logout();
+      }
     }
   }
 
-  /// ✅ Save token after login
   Future<void> saveLogin(String token) async {
+    print("savvvvvvvvvve");
     final prefs = await SharedPreferences.getInstance();
     await prefs.setString('auth_token', token);
-    state = state.copyWith(isLoggedIn: true, otpVerified: true);
   }
-
   Future<void> loginWithOtp(String email, String otp) async {
     state = state.copyWith(isLoading: true, errorMessage: null);
     try {
       final res = await AuthAPI.verifyLoginOtp(email, otp);
-
-      // ✅ Extract token from API response
       final token = res['token']?['token'];
-      if (token != null) {
-        await saveLogin(token); // <-- Save token to SharedPreferences
-      }
 
-      state = state.copyWith(
-        isLoading: false,
-        isLoggedIn: true,
-        otpVerified: true,
-        user: res['user'],
-      );
+      if (token != null) {
+        await saveLogin(token);
+        checkLogin();
+      }
     } catch (e) {
-      state = state.copyWith(isLoading: false, errorMessage: e.toString());
+      state = state.copyWith(
+          isLoading: false,
+          errorMessage: e.toString()
+      );
+    }
+  }
+  Future<void> logout() async {
+    try {
+      await AuthAPI.logout();
+    } catch (e) {
+      print('Logout error: $e');
+    } finally {
+      final prefs = await SharedPreferences.getInstance();
+      await prefs.remove('auth_token');
+      state = AuthState(isLoggedIn: false);
     }
   }
 
+  Future<void> logoutAll() async {
+    try {
+      await AuthAPI.logoutAll();
+    } catch (e) {
+      print('Logout all error: $e');
+    } finally {
+      final prefs = await SharedPreferences.getInstance();
+      await prefs.remove('auth_token');
+      state = AuthState(isLoggedIn: false);
+    }
+  }
 
-  Future<void> logout() async {
-    await AuthAPI.logout();
-    state = AuthState(isLoggedIn: false);
+  Future<void> updateUser(User user, Map<String, dynamic> updateData) async {
+    state = state.copyWith(isLoading: true);
+    try {
+      final res = await AuthAPI.updateUser(user.id, updateData);
+      final updatedUser = User.fromJson(res['user'] ?? res);
+      state = state.copyWith(
+        isLoading: false,
+        user: updatedUser,
+      );
+    } catch (e) {
+      state = state.copyWith(
+        isLoading: false,
+        errorMessage: e.toString(),
+      );
+      rethrow;
+    }
   }
 
   Future<void> fetchCurrentUser() async {
+    state = state.copyWith(isLoading: true);
     try {
       final res = await AuthAPI.getCurrentUser();
-      state = state.copyWith(user: res, isLoggedIn: true);
-    } catch (_) {
-      state = AuthState();
+      final user = User.fromJson(res);
+      state = state.copyWith(
+        isLoading: false,
+        user: user,
+        isLoggedIn: true,
+      );
+    } catch (e) {
+      state = state.copyWith(
+        isLoading: false,
+        errorMessage: e.toString(),
+      );
     }
+  }
+
+  void setUser(User user) {
+    state = state.copyWith(user: user);
   }
 }
 

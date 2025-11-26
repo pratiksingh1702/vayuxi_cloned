@@ -1,13 +1,16 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:untitled2/core/utlis/colors/colors.dart';
+import 'package:untitled2/core/utlis/widgets/custom_appBar.dart';
+import '../../../../../core/utlis/widgets/buttons.dart';
+import '../../../../../core/utlis/widgets/fields/custom_textField.dart';
+import '../../../../../core/utlis/widgets/fields/phone_number_field.dart';
 import '../../../../../typeProvider/type_provider.dart';
 import '../model/manpower_model.dart';
 import '../service/manPowerProvider.dart';
 
-
 class EditManpowerScreen extends ConsumerStatefulWidget {
   final ManpowerModel manpower;
-
   const EditManpowerScreen({super.key, required this.manpower});
 
   @override
@@ -17,11 +20,10 @@ class EditManpowerScreen extends ConsumerStatefulWidget {
 class _EditManpowerScreenState extends ConsumerState<EditManpowerScreen> {
   final _formKey = GlobalKey<FormState>();
 
-  // Controllers
   late TextEditingController _fullNameController;
   late TextEditingController _designationController;
   late TextEditingController _phoneController;
-
+  // late TextEditingController _aadhaarController;
   late TextEditingController _panController;
   late TextEditingController _bankController;
   late TextEditingController _ifscController;
@@ -38,20 +40,19 @@ class _EditManpowerScreenState extends ConsumerState<EditManpowerScreen> {
   @override
   void initState() {
     super.initState();
-
     final m = widget.manpower;
 
     _fullNameController = TextEditingController(text: m.fullName);
     _designationController = TextEditingController(text: m.designation);
     _phoneController = TextEditingController(text: m.phoneNumber ?? "");
-
+    // _aadhaarController = TextEditingController(text: m.aadharNumber ?? "");
     _panController = TextEditingController(text: m.panNumber ?? "");
     _bankController = TextEditingController(text: m.bankAccountNumber ?? "");
     _ifscController = TextEditingController(text: m.ifscCode ?? "");
     _epfController = TextEditingController(text: m.epfNumber ?? "");
     _uanController = TextEditingController(text: m.uanNumber ?? "");
     _esicController = TextEditingController(text: m.esicNumber ?? "");
-    _salaryController = TextEditingController(text: m.salary.toString() ?? "");
+    _salaryController = TextEditingController(text: m.salary.toString());
     _remarksController = TextEditingController(text: m.remarks ?? "");
     _payBasic = m.payBasics ?? "monthly";
 
@@ -62,17 +63,14 @@ class _EditManpowerScreenState extends ConsumerState<EditManpowerScreen> {
   Future<void> _pickDate(BuildContext context, bool isDOB) async {
     final picked = await showDatePicker(
       context: context,
-      initialDate: DateTime.now(),
+      initialDate: isDOB ? (_dob ?? DateTime(1990)) : (_doj ?? DateTime.now()),
       firstDate: DateTime(1950),
       lastDate: DateTime(2100),
     );
     if (picked != null) {
       setState(() {
-        if (isDOB) {
-          _dob = picked;
-        } else {
-          _doj = picked;
-        }
+        if (isDOB) _dob = picked;
+        else _doj = picked;
       });
     }
   }
@@ -92,7 +90,7 @@ class _EditManpowerScreenState extends ConsumerState<EditManpowerScreen> {
       "fullName": _fullNameController.text,
       "designation": _designationController.text,
       "phoneNumber": _phoneController.text,
-
+      // "aadharNumber": _aadhaarController.text,
       "panNumber": _panController.text,
       "bankAccountNumber": _bankController.text,
       "ifscCode": _ifscController.text,
@@ -107,9 +105,8 @@ class _EditManpowerScreenState extends ConsumerState<EditManpowerScreen> {
     };
 
     try {
-      await ref
-          .read(manpowerProvider.notifier)
-          .updateManpower(widget.manpower.id!, data,manpowerType);
+      await ref.read(manpowerProvider.notifier).updateManpower(
+          widget.manpower.id!, data, manpowerType);
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(content: Text("✅ Manpower updated successfully")),
       );
@@ -124,83 +121,185 @@ class _EditManpowerScreenState extends ConsumerState<EditManpowerScreen> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: const Color(0xFFBFE2FA),
-      appBar: AppBar(
-        title: const Text("Edit Employee Details"),
-        backgroundColor: const Color(0xFFBFE2FA),
-        elevation: 0,
-      ),
+      backgroundColor: AppColors.lightBlue,
+      appBar: CustomAppBar(title: "Edit Employee Details"),
       body: SingleChildScrollView(
         padding: const EdgeInsets.all(12),
         child: Form(
           key: _formKey,
           child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              _buildTextField("Full Name*", _fullNameController, true),
-              _buildTextField("Designation*", _designationController, true),
-              _buildTextField("Phone Number", _phoneController, false),
-
-              _buildTextField("PAN Number", _panController, false),
-              _buildTextField("Bank Account Number", _bankController, false),
-              _buildTextField("IFSC Code", _ifscController, false),
-              _buildTextField("EPF Number", _epfController, false),
-              _buildTextField("UAN Number", _uanController, false),
-              _buildTextField("ESIC Number", _esicController, false),
+              // Using CustomTextField for all text fields
+              CustomTextField(
+                label: "Full Name",
+                controller: _fullNameController,
+                isRequired: true,
+              ),
+              CustomTextField(
+                label: "Designation",
+                controller: _designationController,
+                isRequired: true,
+              ),
+              // Using PhoneInputField for phone number
+              PhoneInputField(
+                controller: _phoneController,
+              ),
+              // CustomTextField(
+              //   label: "Aadhar Number",
+              //   controller: _aadhaarController,
+              //   isRequired: false,
+              //   keyboardType: TextInputType.number,
+              // ),
+              CustomTextField(
+                label: "PAN Number",
+                controller: _panController,
+                isRequired: false,
+              ),
+              CustomTextField(
+                label: "Bank Account Number",
+                controller: _bankController,
+                isRequired: false,
+                keyboardType: TextInputType.number,
+              ),
+              CustomTextField(
+                label: "IFSC Code",
+                controller: _ifscController,
+                isRequired: false,
+              ),
+              CustomTextField(
+                label: "EPF Number",
+                controller: _epfController,
+                isRequired: false,
+                keyboardType: TextInputType.number,
+              ),
+              CustomTextField(
+                label: "UAN Number",
+                controller: _uanController,
+                isRequired: false,
+                keyboardType: TextInputType.number,
+              ),
+              CustomTextField(
+                label: "ESIC Number",
+                controller: _esicController,
+                isRequired: false,
+                keyboardType: TextInputType.number,
+              ),
 
               Row(
                 children: [
-                  Expanded(child: _buildDatePicker("Date of Birth", _dob, true)),
+                  Expanded(
+                    child: _buildDatePicker("Date of Birth", _dob, true),
+                  ),
                   const SizedBox(width: 8),
-                  Expanded(child: _buildDatePicker("Date of Joining", _doj, false)),
+                  Expanded(
+                    child: _buildDatePicker("Date of Joining", _doj, false),
+                  ),
                 ],
               ),
 
               const SizedBox(height: 10),
-              DropdownButtonFormField<String>(
-                value: _payBasic,
-                items: const [
-                  DropdownMenuItem(value: "monthly", child: Text("Monthly")),
-                  DropdownMenuItem(value: "daily", child: Text("Daily")),
+              Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  const Text(
+                    "Pay Basics",
+                    style: TextStyle(
+                      fontSize: 14,
+                      fontWeight: FontWeight.w600,
+                      color: Colors.black87,
+                    ),
+                  ),
+                  const SizedBox(height: 6),
+                  Container(
+                    decoration: BoxDecoration(
+                      color: Colors.white,
+                      borderRadius: BorderRadius.circular(12),
+                      border: Border.all(color: Colors.blue.shade200, width: 1.5),
+                      boxShadow: [
+                        BoxShadow(
+                          color: Colors.blue.withOpacity(0.1),
+                          blurRadius: 4,
+                          offset: const Offset(0, 2),
+                        ),
+                      ],
+                    ),
+                    child: DropdownButtonHideUnderline(
+                      child: DropdownButtonFormField<String>(
+                        value: _payBasic,
+                        isExpanded: true,
+                        decoration: InputDecoration(
+                          contentPadding:
+                          const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
+                          border: InputBorder.none,
+                        ),
+                        icon: const Icon(Icons.keyboard_arrow_down_rounded,
+                            color: Colors.black54),
+                        items: const [
+                          DropdownMenuItem(
+                            value: "monthly",
+                            child: Text("Monthly"),
+                          ),
+                          DropdownMenuItem(
+                            value: "daily",
+                            child: Text("Daily"),
+                          ),
+                          DropdownMenuItem(
+                            value: "yearly",
+                            child: Text("Yearly"),
+                          ),
+                        ],
+                        onChanged: (val) {
+                          setState(() {
+                            _payBasic = val!;
+                          });
+                        },
+                        dropdownColor: Colors.white,
+                        style: const TextStyle(
+                          fontSize: 15,
+                          color: Colors.black87,
+                          fontWeight: FontWeight.w500,
+                        ),
+                      ),
+                    ),
+                  ),
                 ],
-                onChanged: (val) => setState(() => _payBasic = val!),
-                decoration: const InputDecoration(labelText: "Pay Basics*"),
               ),
-              const SizedBox(height: 10),
-              _buildTextField("Salary*", _salaryController, true,
-                  keyboard: TextInputType.number),
-              _buildTextField("Remarks", _remarksController, false),
 
+              const SizedBox(height: 10),
+              CustomTextField(
+                label: "Salary",
+                controller: _salaryController,
+                isRequired: true,
+                keyboardType: TextInputType.number,
+              ),
+              CustomTextField(
+                label: "Remarks",
+                controller: _remarksController,
+                isRequired: false,
+                maxLines: 3,
+              ),
               const SizedBox(height: 20),
+
               Row(
                 children: [
-                  Expanded(
-                    child: ElevatedButton(
-                      onPressed: _updateManpower,
-                      style: ElevatedButton.styleFrom(
-                        backgroundColor: Colors.blue,
-                        shape: RoundedRectangleBorder(
-                          borderRadius: BorderRadius.circular(30),
-                        ),
-                      ),
-                      child: const Text("Update & Save"),
-                    ),
+                  RoundedButton(
+                    text: "Back",
+                    color: Colors.black,
+                    textColor: Colors.black,
+                    isOutlined: true,
+                    onPressed: () => Navigator.pop(context),
                   ),
-                  const SizedBox(width: 10),
-                  Expanded(
-                    child: ElevatedButton(
-                      onPressed: () => Navigator.pop(context),
-                      style: ElevatedButton.styleFrom(
-                        backgroundColor: Colors.white,
-                        foregroundColor: Colors.black,
-                        shape: RoundedRectangleBorder(
-                          borderRadius: BorderRadius.circular(30),
-                        ),
-                      ),
-                      child: const Text("Back"),
-                    ),
+                  const SizedBox(width: 12),
+                  RoundedButton(
+                    text: "Save & Submit",
+                    color: Colors.green,
+                    textColor: Colors.white,
+                    onPressed: _updateManpower,
                   ),
                 ],
-              ),
+              )
+
             ],
           ),
         ),
@@ -208,38 +307,58 @@ class _EditManpowerScreenState extends ConsumerState<EditManpowerScreen> {
     );
   }
 
-  Widget _buildTextField(String label, TextEditingController controller,
-      bool required, {TextInputType keyboard = TextInputType.text}) {
-    return Padding(
-      padding: const EdgeInsets.symmetric(vertical: 6),
-      child: TextFormField(
-        controller: controller,
-        keyboardType: keyboard,
-        decoration: InputDecoration(
-          labelText: label,
-          border: OutlineInputBorder(borderRadius: BorderRadius.circular(10)),
-        ),
-        validator: required
-            ? (value) => value == null || value.isEmpty
-            ? "$label is required"
-            : null
-            : null,
-      ),
-    );
-  }
-
   Widget _buildDatePicker(String label, DateTime? date, bool isDOB) {
-    return InkWell(
-      onTap: () => _pickDate(context, isDOB),
-      child: InputDecorator(
-        decoration: InputDecoration(
-          labelText: label,
-          border: OutlineInputBorder(borderRadius: BorderRadius.circular(10)),
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Text(
+          label,
+          style: const TextStyle(
+            fontSize: 14,
+            fontWeight: FontWeight.w600,
+            color: Colors.black87,
+          ),
         ),
-        child: Text(date != null
-            ? "${date.day}-${date.month}-${date.year}"
-            : "Select Date"),
-      ),
+        const SizedBox(height: 6),
+        GestureDetector(
+          onTap: () => _pickDate(context, isDOB),
+          child: Container(
+            padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 14),
+            decoration: BoxDecoration(
+              color: Colors.white,
+              borderRadius: BorderRadius.circular(12),
+              border: Border.all(color: Colors.blue.shade200, width: 1.5),
+              boxShadow: [
+                BoxShadow(
+                  color: Colors.blue.withOpacity(0.08),
+                  blurRadius: 4,
+                  offset: const Offset(0, 2),
+                ),
+              ],
+            ),
+            child: Row(
+              mainAxisAlignment: MainAxisAlignment.spaceBetween,
+              children: [
+                Text(
+                  date != null
+                      ? "${date.day}-${date.month}-${date.year}"
+                      : "Input Text",
+                  style: TextStyle(
+                    fontSize: 15,
+                    color: date != null ? Colors.black87 : Colors.grey.shade500,
+                    fontWeight: FontWeight.w500,
+                  ),
+                ),
+                const Icon(
+                  Icons.calendar_today_rounded,
+                  color: Color(0xFF007BFF),
+                  size: 20,
+                ),
+              ],
+            ),
+          ),
+        ),
+      ],
     );
   }
 }

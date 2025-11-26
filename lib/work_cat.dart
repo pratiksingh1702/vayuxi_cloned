@@ -1,13 +1,14 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
-import 'package:untitled2/features/auth/service/auth_client.dart';
+import 'package:untitled2/core/utlis/colors/colors.dart';
+import 'package:untitled2/core/utlis/widgets/card.dart';
+import 'package:untitled2/core/utlis/widgets/custom_appBar.dart';
 import 'package:untitled2/typeProvider/type_provider.dart';
-
 import 'core/router/routes.dart';
 import 'features/auth/provider/auth_provider.dart';
-
-
+import 'features/modules/screen/device_id.dart';
+import 'features/noti_system/noti_providers/noti_provider.dart';
 
 class WorkCategoryScreen extends ConsumerStatefulWidget {
   const WorkCategoryScreen({super.key});
@@ -19,19 +20,40 @@ class WorkCategoryScreen extends ConsumerStatefulWidget {
 class _WorkCategoryScreenState extends ConsumerState<WorkCategoryScreen> {
   String? selectedImage;
 
-  void handlePress(String imageId) {
-    setState(() {
-      selectedImage = imageId;
-    });
-    final typeNotifier = ref.read(typeProvider.notifier);
+  Future<void> handlePress({
+    required String id,
+    required String title,
+    required String imagePath,
+  }) async {
+    setState(() => selectedImage = id);
 
-    if (imageId == "mechanical") {
+    final typeNotifier = ref.read(typeProvider.notifier);
+    await ref
+        .read(notificationsStateProvider.notifier)
+        .sendInstantNotification(
+          title: 'Hello!',
+          body: '${id} as a type has been set for further progess in app. Enjoy 😊',
+        );
+    await ref
+        .read(notificationsStateProvider.notifier)
+        .scheduleDailyNotification(
+          title: 'Morning Reminder',
+          body: 'Good morning! Time to start your day.',
+          hour: 23,
+          minute: 00,
+        );
+    print("notification sent");
+
+    if (id == "mechanical") {
       typeNotifier.setType("mechanical_work");
-    } else if (imageId == "insulation") {
+    } else if (id == "insulation") {
       typeNotifier.setType("insulation_work");
     }
 
-    context.push(Routes.selectModule);
+    context.push(
+      Routes.selectModule,
+      extra: {"title": title, "image": imagePath}, // 🔥 send dynamic values
+    );
   }
 
   @override
@@ -39,111 +61,108 @@ class _WorkCategoryScreenState extends ConsumerState<WorkCategoryScreen> {
     final authState = ref.watch(authProvider);
     final user = authState.user;
 
-    // ✅ ProtectedRoute Logic
     if (!authState.isLoggedIn) {
       Future.microtask(() => context.go(Routes.login));
     }
 
     return Scaffold(
-      backgroundColor: const Color(0xFFCFE8FA),
+      backgroundColor: AppColors.lightBlue,
+      appBar: CustomAppBar(title: "Select Category"),
       body: SafeArea(
         child: Padding(
-          padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 40),
+          padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 24),
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              // Top Row with Profile Image and Welcome Text
-              Row(
-                mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                children: [
-                  GestureDetector(
-                    onTap: () => context.push(Routes.profile),
-                    child: CircleAvatar(
-                      radius: 49,
-                      backgroundImage:
-                     NetworkImage("https://plus.unsplash.com/premium_photo-1690552678496-fda53292def5?q=80&w=764&auto=format&fit=crop&ixlib=rb-4.1.0&ixid=M3wxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8fA%3D%3D")
+            children: [      
 
-                      as ImageProvider,
+              /// 🔹 Category Grid
+              Expanded(
+                child: GridView.count(
+                  crossAxisCount: 2,
+                  crossAxisSpacing: 18,
+                  mainAxisSpacing: 18,
+                  children: [
+                    CompanyCard(
+
+                      imagePath: "assets/images/Gemini_Generated_Image_pi2r7npi2r7npi2r.png",
+                      companyName: "Mechanichal Work",
+                      onTap: () => handlePress(
+                        id: "mechanical",
+                        title: "Mechanical Work",
+                        imagePath:
+                            "https://images.unsplash.com/photo-1503387762-592deb58ef4e?w=600",
+                      ),
                     ),
-                  ),
-                  // SizedBox(
-                  //   width: MediaQuery.of(context).size.width * 0.65,
-                  //   child: Text.rich(
-                  //     TextSpan(
-                  //       text: "Welcome, ",
-                  //       style: const TextStyle(
-                  //           fontSize: 22, fontWeight: FontWeight.bold),
-                  //       children: [
-                  //         TextSpan(
-                  //           text: (user?.fullName ?? "").toUpperCase(),
-                  //           style: const TextStyle(color: Color(0xFF1B6DCE)),
-                  //         )
-                  //       ],
-                  //     ),
-                  //   ),
-                  // ),
-                ],
+                    CompanyCard(
+
+                      imagePath: "assets/images/Gemini_Generated_Image_pi2r7npi2r7npi2r.png",
+                      companyName: "Insulation Work",
+                      onTap: () => handlePress(
+                        id: "insulation",
+                        title: "Insulation Work",
+                        imagePath:
+                        "https://images.unsplash.com/photo-1581092795360-fd1ca04f0952?w=600",
+                      ),
+                    ),
+                    // _buildCategoryCard(
+                    //   title: "Mechanical Work",
+                    //   subtitle: "Piping • Welding",
+                    //   icon: Icons.build_circle,
+                    //   imagePath:
+                    //       "https://images.unsplash.com/photo-1503387762-592deb58ef4e?w=600",
+                    //   isSelected: selectedImage == "mechanical",
+                    //   onTap: () => handlePress(
+                    //     id: "mechanical",
+                    //     title: "Mechanical Work",
+                    //     imagePath:
+                    //         "https://images.unsplash.com/photo-1503387762-592deb58ef4e?w=600",
+                    //   ),
+                    // ),
+                    // _buildCategoryCard(
+                    //   title: "Insulation Work",
+                    //   subtitle: "Heat • Cooling",
+                    //   icon: Icons.ac_unit,
+                    //   imagePath:
+                    //       "https://images.unsplash.com/photo-1581092795360-fd1ca04f0952?w=600",
+                    //   isSelected: selectedImage == "insulation",
+                    //   onTap: () => handlePress(
+                    //     id: "insulation",
+                    //     title: "Insulation Work",
+                    //     imagePath:
+                    //         "https://images.unsplash.com/photo-1581092795360-fd1ca04f0952?w=600",
+                    //   ),
+                    // ),
+                  ],
+                ),
               ),
 
               const SizedBox(height: 20),
 
-              // Company Name
-              // if (user?.companyName != null)
-              //   Center(
-              //     child: Text(
-              //       user!.companyName!,
-              //       style: const TextStyle(
-              //           fontSize: 22, fontWeight: FontWeight.bold),
-              //     ),
-              //   ),
-
-              const SizedBox(height: 10),
-
-              // GST Number
-              // if (user?.gstNumber != null)
-              //   Center(
-              //     child: Text(
-              //       user!.gstNumber!,
-              //       style: const TextStyle(fontSize: 16),
-              //     ),
-              //   ),
-
-              const SizedBox(height: 30),
-
-              const Text(
-                "Select Work Category",
-                style: TextStyle(fontSize: 22, fontWeight: FontWeight.w500),
-              ),
-
-              const SizedBox(height: 30),
-
-              // Category Buttons
-              Row(
-                mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                children: [
-                  _buildCategoryButton(
-                    title: "Mechanical Work",
-                    imagePath: 'https://plus.unsplash.com/premium_photo-1690552678496-fda53292def5?q=80&w=764&auto=format&fit=crop&ixlib=rb-4.1.0&ixid=M3wxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8fA%3D%3D',
-                    isSelected: selectedImage == "mechanical",
-                    onTap: () => handlePress("mechanical"),
+              /// 🔹 Refresh User Button
+              SizedBox(
+                width: double.infinity,
+                child: ElevatedButton.icon(
+                  onPressed: () async {
+                    Navigator.push(
+                      context,
+                      MaterialPageRoute(
+                        builder: (context) => const DeviceOtpScreen(),
+                      ),
+                    );
+                  },
+                  icon: const Icon(Icons.refresh_rounded, size: 20),
+                  label: const Text("Refresh User Info"),
+                  style: ElevatedButton.styleFrom(
+                    padding: const EdgeInsets.symmetric(vertical: 16),
+                    shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(14),
+                    ),
+                    backgroundColor: const Color(0xFF2563EB),
+                    foregroundColor: Colors.white,
+                    elevation: 3,
                   ),
-                  _buildCategoryButton(
-                    title: "Insulation Work",
-                    imagePath: 'https://plus.unsplash.com/premium_photo-1690552678496-fda53292def5?q=80&w=764&auto=format&fit=crop&ixlib=rb-4.1.0&ixid=M3wxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8fA%3D%3D',
-                    isSelected: selectedImage == "insulation",
-                    onTap: () => handlePress("insulation"),
-                  ),
-                ],
+                ),
               ),
-              ElevatedButton(
-                onPressed: () async {
-                  await ref.read(authProvider.notifier).fetchCurrentUser();
-                  final user = ref.read(authProvider).user;
-                  print("Current User: $user");
-                },
-                child: const Text("Get Current User"),
-              )
-
             ],
           ),
         ),
@@ -151,28 +170,116 @@ class _WorkCategoryScreenState extends ConsumerState<WorkCategoryScreen> {
     );
   }
 
-  Widget _buildCategoryButton({
+  Widget _buildCategoryCard({
     required String title,
+    required String subtitle,
+    required IconData icon,
     required String imagePath,
     required bool isSelected,
     required VoidCallback onTap,
   }) {
     return GestureDetector(
       onTap: onTap,
-      child: Container(
-        width: MediaQuery.of(context).size.width * 0.44,
+      child: AnimatedContainer(
+        duration: const Duration(milliseconds: 950),
+        curve: Curves.easeInOut,
         decoration: BoxDecoration(
+          borderRadius: BorderRadius.circular(18),
           border: Border.all(
-              color: isSelected ? const Color(0xFF005E71) : Colors.transparent,
-              width: 2),
-          borderRadius: BorderRadius.circular(12),
+            color: isSelected ? const Color(0xFF2563EB) : Colors.transparent,
+            width: 2,
+          ),
+          boxShadow: [
+            BoxShadow(
+              color: Colors.black.withOpacity(0.07),
+              blurRadius: 10,
+              offset: const Offset(0, 4),
+            ),
+          ],
         ),
         child: ClipRRect(
-          borderRadius: BorderRadius.circular(12),
-          child: Image.network(
-            imagePath,
-            height: 109,
-            fit: BoxFit.cover,
+          borderRadius: BorderRadius.circular(16),
+          child: Stack(
+            children: [
+              /// 🔹 Hero for smooth transition
+              Hero(
+                tag: title,
+                flightShuttleBuilder:
+                    (
+                      flightContext,
+                      animation,
+                      flightDirection,
+                      fromHeroContext,
+                      toHeroContext,
+                    ) {
+                      return ScaleTransition(
+                        scale: Tween<double>(begin: 1.0, end: 1.0).animate(
+                          CurvedAnimation(
+                            parent: animation,
+                            curve: Curves.easeInOutCubic,
+                          ),
+                        ),
+                        child: toHeroContext.widget,
+                      );
+                    },
+                // ✅ unique tag (use title or custom id)
+                child: Image.network(
+                  imagePath,
+                  fit: BoxFit.cover,
+                  width: double.infinity,
+                  height: double.infinity,
+                ),
+              ),
+              Container(
+                decoration: BoxDecoration(
+                  gradient: LinearGradient(
+                    colors: [
+                      Colors.black.withOpacity(0.05),
+                      Colors.black.withOpacity(0.65),
+                    ],
+                    begin: Alignment.topCenter,
+                    end: Alignment.bottomCenter,
+                  ),
+                ),
+              ),
+              Align(
+                alignment: Alignment.bottomLeft,
+                child: Padding(
+                  padding: const EdgeInsets.all(14),
+                  child: Row(
+                    crossAxisAlignment: CrossAxisAlignment.end,
+                    children: [
+                      Icon(icon, color: Colors.white, size: 28),
+                      const SizedBox(width: 8),
+                      Flexible(
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          mainAxisSize: MainAxisSize.min,
+                          children: [
+                            Text(
+                              title,
+                              style: const TextStyle(
+                                fontSize: 16,
+                                fontWeight: FontWeight.w700,
+                                color: Colors.white,
+                              ),
+                            ),
+                            Text(
+                              subtitle,
+                              style: TextStyle(
+                                fontSize: 13,
+                                fontWeight: FontWeight.w400,
+                                color: Colors.grey[300],
+                              ),
+                            ),
+                          ],
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+              ),
+            ],
           ),
         ),
       ),

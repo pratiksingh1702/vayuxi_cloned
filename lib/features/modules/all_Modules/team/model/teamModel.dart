@@ -1,11 +1,8 @@
-import '../../Manpower Details/model/manpower_model.dart';
-
-
 class TeamModel {
   final String id;
   final String teamName;
-  final ManpowerModel? teamLead;
-  final List<ManpowerModel> teamMembers;
+  final String? teamLeadId;
+  final List<String> teamMemberIds;
   final String company;
   final bool isDeleted;
   final String type;
@@ -15,11 +12,11 @@ class TeamModel {
   TeamModel({
     required this.id,
     required this.teamName,
-    this.teamLead,
-    required this.teamMembers,
+    this.teamLeadId,
+    required this.teamMemberIds,
     required this.company,
     required this.isDeleted,
-     required this.type,
+    required this.type,
     this.createdAt,
     this.updatedAt,
   });
@@ -28,11 +25,9 @@ class TeamModel {
     return TeamModel(
       id: json['_id'] ?? '',
       teamName: json['teamName'] ?? '',
-      teamLead: json['teamLead'] != null ? ManpowerModel.fromJson(json['teamLead']) : null,
-      teamMembers: (json['teamMembers'] as List<dynamic>? ?? [])
-          .map((e) => ManpowerModel.fromJson(e))
-          .toList(),
-      company: json['company'] ?? '',
+      teamLeadId: json['teamLead']?.toString(),
+      teamMemberIds: (json['teamMembers'] as List<dynamic>? ?? []).map((e) => e.toString()).toList(),
+      company: json['company']?.toString() ?? '',
       isDeleted: json['isDeleted'] ?? false,
       type: json['type'] ?? '',
       createdAt: json['createdAt'],
@@ -44,8 +39,8 @@ class TeamModel {
     return {
       '_id': id,
       'teamName': teamName,
-      'teamLead': teamLead?.toJson(),
-      'teamMembers': teamMembers.map((e) => e.toJson()).toList(),
+      'teamLead': teamLeadId,
+      'teamMembers': teamMemberIds,
       'company': company,
       'isDeleted': isDeleted,
       'type': type,
