@@ -43,6 +43,7 @@ class _SummaryScreenState extends ConsumerState<SummaryScreen>{
     super.initState();
     DioClient.init();
     _generateYearOptions(2025);
+    _fetchSummary();
   }
 
   void _generateYearOptions(int startYear) {

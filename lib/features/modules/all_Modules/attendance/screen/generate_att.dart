@@ -34,22 +34,7 @@ class _GenerateAttendanceSheetScreenState
   DateTime? startDate;
   DateTime? endDate;
 
-  void _showDateRangePicker() {
-    showDialog(
-      context: context,
-      builder: (context) => DateRangePickerDialog(
-        startDate: startDate,
-        endDate: endDate,
-      ),
-    ).then((value) {
-      if (value != null) {
-        setState(() {
-          startDate = value['startDate'];
-          endDate = value['endDate'];
-        });
-      }
-    });
-  }
+
   Future<bool> _requestPermissions() async {
     if (Platform.isAndroid) {
       if (await Permission.manageExternalStorage.isGranted) {
@@ -101,7 +86,7 @@ class _GenerateAttendanceSheetScreenState
   }
 
 
-  Future<void> _generateAndSaveCSV() async {
+  Future<void> generateAndSaveCSV() async {
     if (startDate == null || endDate == null) {
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(content: Text("Please select a date range")),
@@ -195,7 +180,7 @@ class _GenerateAttendanceSheetScreenState
 
     if (savePath != null) {
       final File file = File(savePath);
-      await file.writeAsBytes(csvBytes); // Fix: writeAsString instead of writeAsBytes
+      await file.writeAsString(csvBytes as String); // Fix: writeAsString instead of writeAsBytes
       return file.path;
     } else {
       throw Exception('User cancelled file save');
@@ -208,77 +193,28 @@ class _GenerateAttendanceSheetScreenState
       appBar: CustomAppBar(
           title:"Generate Attendance Sheet"
       ),
-      body: BottomButtonWrapper(
+      body: CornerClippedScreenSimple(
         child: Padding(
           padding: const EdgeInsets.all(16),
           child: Column(
             children: [
               // Date Range Selection Card
-              InkWell(
-                onTap: _showDateRangePicker,
-                borderRadius: BorderRadius.circular(16),
-                child: Container(
-                  width: double.infinity,
-                  padding: const EdgeInsets.all(20),
-                  decoration: BoxDecoration(
-                    color: Colors.white,
-                    borderRadius: BorderRadius.circular(16),
-                    border: Border.all(color: Colors.grey.shade300),
-                  ),
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      const Text(
-                        "Select Date Range",
-                        style: TextStyle(
-                          fontSize: 18,
-                          fontWeight: FontWeight.w600,
-                        ),
-                      ),
-                      const SizedBox(height: 8),
-                      Text(
-                        startDate != null && endDate != null
-                            ? '${DateFormat('dd/MM/yyyy').format(startDate!)} - ${DateFormat('dd/MM/yyyy').format(endDate!)}'
-                            : "Tap to select date range",
-                        style: TextStyle(
-                          fontSize: 16,
-                          color: startDate != null && endDate != null
-                              ? Colors.black
-                              : Colors.grey,
-                          fontWeight: FontWeight.w500,
-                        ),
-                      ),
-                      if (startDate != null && endDate != null) ...[
-                        const SizedBox(height: 8),
-                        Text(
-                          '${endDate!.difference(startDate!).inDays + 1} days selected',
-                          style: TextStyle(
-                            color: Colors.blue.shade700,
-                            fontSize: 14,
-                          ),
-                        ),
-                      ],
-                    ],
-                  ),
-                ),
+              DateRangePickerDialog(
+                startDate: startDate,
+                endDate: endDate,
+                onDownload:  (start, end) {
+                  setState(() {
+                    startDate = start;
+                    endDate = end;
+                  });
+                  generateAndSaveCSV();
+                },
               ),
 
-              const SizedBox(height: 40),
+              const SizedBox(height: 20),
 
               // Generate Button
-              ElevatedButton.icon(
-                icon: const Icon(Icons.download_rounded),
-                label: const Text("Generate & Save CSV"),
-                style: ElevatedButton.styleFrom(
-                  padding: const EdgeInsets.symmetric(vertical: 16, horizontal: 24),
-                  backgroundColor: Colors.blue.shade700,
-                  foregroundColor: Colors.white,
-                  shape: RoundedRectangleBorder(
-                    borderRadius: BorderRadius.circular(12),
-                  ),
-                ),
-                onPressed: _generateAndSaveCSV,
-              )
+
             ],
           ),
         ),
@@ -289,11 +225,15 @@ class _GenerateAttendanceSheetScreenState
 class DateRangePickerDialog extends StatefulWidget {
   final DateTime? startDate;
   final DateTime? endDate;
+  final void Function(DateTime start, DateTime end) onDownload;
+
+
 
   const DateRangePickerDialog({
     super.key,
     this.startDate,
     this.endDate,
+    required this.onDownload,
   });
 
   @override
@@ -305,6 +245,7 @@ class _DateRangePickerDialogState extends State<DateRangePickerDialog> {
   DateTime? _end;
   DateTime _focused = DateTime.now();
 
+
   @override
   void initState() {
     super.initState();
@@ -314,178 +255,157 @@ class _DateRangePickerDialogState extends State<DateRangePickerDialog> {
 
   @override
   Widget build(BuildContext context) {
-    return Dialog(
-      insetPadding: const EdgeInsets.all(16),
-      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
-      child: Container(
-        padding: const EdgeInsets.all(20),
-        decoration: BoxDecoration(
-          borderRadius: BorderRadius.circular(20),
-          color: Colors.white,
-        ),
-        child: Column(
-          mainAxisSize: MainAxisSize.min,
+    return Column(
+      mainAxisSize: MainAxisSize.min,
+      children: [
+
+
+
+        // DATE RANGE ROW
+        Row(
           children: [
-            // HEADER LIKE IMAGE
-            const Text(
-              "Select Date Range",
-              style: TextStyle(
-                fontSize: 20,
-                fontWeight: FontWeight.w700,
+            Expanded(
+              child: _dateBox(
+                "From",
+                _start != null
+                    ? DateFormat("dd/MM/yyyy").format(_start!)
+                    : "Input Text",
               ),
             ),
-            const SizedBox(height: 20),
-
-            // DATE RANGE ROW
-            Row(
-              children: [
-                Expanded(
-                  child: _dateBox(
-                    "From",
-                    _start != null
-                        ? DateFormat("dd/MM/yyyy").format(_start!)
-                        : "Input Text",
-                  ),
-                ),
-                const SizedBox(width: 16),
-                Expanded(
-                  child: _dateBox(
-                    "To",
-                    _end != null
-                        ? DateFormat("dd/MM/yyyy").format(_end!)
-                        : "Input Text",
-                  ),
-                ),
-              ],
-            ),
-            const SizedBox(height: 20),
-
-            // CALENDAR CONTAINER LIKE IMAGE
-            Container(
-              padding: const EdgeInsets.all(12),
-              decoration: BoxDecoration(
-                color: const Color(0xffF7F9FC),
-                borderRadius: BorderRadius.circular(16),
-              ),
-              child: TableCalendar(
-                firstDay: DateTime(2000),
-                lastDay: DateTime(2100),
-                focusedDay: _focused,
-                calendarFormat: CalendarFormat.month,
-                availableCalendarFormats: const {CalendarFormat.month: "Month"},
-                rangeSelectionMode: RangeSelectionMode.toggledOn,
-                rangeStartDay: _start,
-                rangeEndDay: _end,
-
-                // SELECT LOGIC
-                onDaySelected: (selectedDay, focusedDay) {
-                  setState(() {
-                    if (_start == null || (_start != null && _end != null)) {
-                      _start = selectedDay;
-                      _end = null;
-                    } else if (selectedDay.isAfter(_start!)) {
-                      _end = selectedDay;
-                    }
-                    _focused = focusedDay;
-                  });
-                },
-                onPageChanged: (fd) => setState(() => _focused = fd),
-
-                // STYLES MATCHING IMAGE
-                calendarStyle: CalendarStyle(
-                  todayDecoration: BoxDecoration(
-                    color: Colors.blue.withOpacity(0.15),
-                    shape: BoxShape.circle,
-                  ),
-                  selectedDecoration: const BoxDecoration(
-                    color: Colors.blue,
-                    shape: BoxShape.circle,
-                  ),
-                  rangeStartDecoration: const BoxDecoration(
-                    color: Colors.blue,
-                    shape: BoxShape.circle,
-                  ),
-                  rangeEndDecoration: const BoxDecoration(
-                    color: Colors.blue,
-                    shape: BoxShape.circle,
-                  ),
-                  withinRangeDecoration: BoxDecoration(
-                    color: Colors.blue.withOpacity(0.15),
-                    shape: BoxShape.circle,
-                  ),
-                  defaultDecoration: const BoxDecoration(
-                    shape: BoxShape.circle,
-                  ),
-                ),
-
-                headerStyle: HeaderStyle(
-                  titleCentered: true,
-                  titleTextStyle: const TextStyle(
-                    fontSize: 16,
-                    fontWeight: FontWeight.w600,
-                  ),
-                  formatButtonVisible: false,
-                  leftChevronIcon: const Icon(Icons.chevron_left),
-                  rightChevronIcon: const Icon(Icons.chevron_right),
-                ),
-
-                daysOfWeekStyle: const DaysOfWeekStyle(
-                  weekdayStyle: TextStyle(
-                    fontSize: 13,
-                    fontWeight: FontWeight.w600,
-                  ),
-                  weekendStyle: TextStyle(
-                    fontSize: 13,
-                    fontWeight: FontWeight.w600,
-                  ),
-                ),
+            const SizedBox(width: 16),
+            Expanded(
+              child: _dateBox(
+                "To",
+                _end != null
+                    ? DateFormat("dd/MM/yyyy").format(_end!)
+                    : "Input Text",
               ),
             ),
-
-            const SizedBox(height: 20),
-
-            // BUTTON ROW (LIKE BACK / DOWNLOAD)
-            Row(
-              children: [
-                Expanded(
-                  child: ElevatedButton(
-                    style: ElevatedButton.styleFrom(
-                      elevation: 0,
-                      backgroundColor: const Color(0xffF2F3F5),
-                      foregroundColor: Colors.black,
-                      padding: const EdgeInsets.symmetric(vertical: 14),
-                      shape: RoundedRectangleBorder(
-                        borderRadius: BorderRadius.circular(12),
-                      ),
-                    ),
-                    onPressed: () => Navigator.pop(context),
-                    child: const Text("Back"),
-                  ),
-                ),
-                const SizedBox(width: 16),
-                Expanded(
-                  child: ElevatedButton(
-                    style: ElevatedButton.styleFrom(
-                      backgroundColor: Colors.blue,
-                      padding: const EdgeInsets.symmetric(vertical: 14),
-                      shape: RoundedRectangleBorder(
-                        borderRadius: BorderRadius.circular(12),
-                      ),
-                    ),
-                    onPressed: (_start != null && _end != null)
-                        ? () => Navigator.pop(context, {
-                      'startDate': _start,
-                      'endDate': _end,
-                    })
-                        : null,
-                    child: const Text("Download"),
-                  ),
-                ),
-              ],
-            )
           ],
         ),
-      ),
+        const SizedBox(height: 20),
+
+        // CALENDAR CONTAINER LIKE IMAGE
+        Container(
+          padding: const EdgeInsets.all(12),
+          decoration: BoxDecoration(
+            color: const Color(0xffF7F9FC),
+            borderRadius: BorderRadius.circular(16),
+          ),
+          child: TableCalendar(
+            firstDay: DateTime(2000),
+            lastDay: DateTime(2100),
+            focusedDay: _focused,
+            calendarFormat: CalendarFormat.month,
+            availableCalendarFormats: const {CalendarFormat.month: "Month"},
+            rangeSelectionMode: RangeSelectionMode.toggledOn,
+            rangeStartDay: _start,
+            rangeEndDay: _end,
+
+            // SELECT LOGIC
+            onDaySelected: (selectedDay, focusedDay) {
+              setState(() {
+                if (_start == null || (_start != null && _end != null)) {
+                  _start = selectedDay;
+                  _end = null;
+                } else if (selectedDay.isAfter(_start!)) {
+                  _end = selectedDay;
+                }
+                _focused = focusedDay;
+              });
+            },
+            onPageChanged: (fd) => setState(() => _focused = fd),
+
+            // STYLES MATCHING IMAGE
+            calendarStyle: CalendarStyle(
+              todayDecoration: BoxDecoration(
+                color: Colors.blue.withOpacity(0.15),
+                shape: BoxShape.circle,
+              ),
+              selectedDecoration: const BoxDecoration(
+                color: Colors.blue,
+                shape: BoxShape.circle,
+              ),
+              rangeStartDecoration: const BoxDecoration(
+                color: Colors.blue,
+                shape: BoxShape.circle,
+              ),
+              rangeEndDecoration: const BoxDecoration(
+                color: Colors.blue,
+                shape: BoxShape.circle,
+              ),
+              withinRangeDecoration: BoxDecoration(
+                color: Colors.blue.withOpacity(0.15),
+                shape: BoxShape.circle,
+              ),
+              defaultDecoration: const BoxDecoration(
+                shape: BoxShape.circle,
+              ),
+            ),
+
+            headerStyle: HeaderStyle(
+              titleCentered: true,
+              titleTextStyle: const TextStyle(
+                fontSize: 16,
+                fontWeight: FontWeight.w600,
+              ),
+              formatButtonVisible: false,
+              leftChevronIcon: const Icon(Icons.chevron_left),
+              rightChevronIcon: const Icon(Icons.chevron_right),
+            ),
+
+            daysOfWeekStyle: const DaysOfWeekStyle(
+              weekdayStyle: TextStyle(
+                fontSize: 13,
+                fontWeight: FontWeight.w600,
+              ),
+              weekendStyle: TextStyle(
+                fontSize: 13,
+                fontWeight: FontWeight.w600,
+              ),
+            ),
+          ),
+        ),
+
+        const SizedBox(height: 20),
+
+        // BUTTON ROW (LIKE BACK / DOWNLOAD)
+        Row(
+          children: [
+            Expanded(
+              child: ElevatedButton(
+                style: ElevatedButton.styleFrom(
+                  elevation: 0,
+                  backgroundColor: Colors.white,
+                  foregroundColor: Colors.black,
+                  padding: const EdgeInsets.symmetric(vertical: 14),
+                  shape: RoundedRectangleBorder(
+                    borderRadius: BorderRadius.circular(12),
+                  ),
+                ),
+                onPressed: () => Navigator.pop(context),
+                child: const Text("Back"),
+              ),
+            ),
+            const SizedBox(width: 16),
+            Expanded(
+              child: ElevatedButton(
+                style: ElevatedButton.styleFrom(
+                  backgroundColor: Colors.blue,
+                  padding: const EdgeInsets.symmetric(vertical: 14),
+                  shape: RoundedRectangleBorder(
+                    borderRadius: BorderRadius.circular(12),
+                  ),
+                ),
+                onPressed: (_start != null && _end != null)
+                    ? () => widget.onDownload(_start!,_end!)
+                    : null,
+                child: const Text("Download"),
+              ),
+            ),
+          ],
+        )
+      ],
     );
   }
 

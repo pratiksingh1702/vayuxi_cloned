@@ -305,7 +305,7 @@ class _ExpenseFormScreenState extends ConsumerState<ExpenseFormScreen> {
                         // Description Field
                         CustomTextField(
                           label: "Description",
-                          isRequired: true,
+
                           maxLines: 3,
                           controller: _descriptionController,
                           hint: "Enter expense description",

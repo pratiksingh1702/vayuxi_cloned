@@ -4,8 +4,9 @@ import 'package:untitled2/core/utlis/colors/colors.dart';
 import 'package:untitled2/core/utlis/widgets/custom_appBar.dart';
 import '../../../../../core/utlis/widgets/fields/custom_textField.dart';
 import '../../../../../core/utlis/widgets/fields/phone_number_field.dart';
+import '../../../../../core/utlis/widgets/fields/searchableDropdown.dart';
 import '../../../../../typeProvider/type_provider.dart';
-import '../service/manPowerService.dart';
+
 import '../service/manPowerProvider.dart';
 
 
@@ -33,9 +34,36 @@ class _NewManpowerScreenState extends ConsumerState<NewManpowerScreen> {
   final _salaryController = TextEditingController();
   final _remarksController = TextEditingController();
 
+  // Designation options (same as React Native)
+  final List<String> _designationOptions = [
+    "Manager",
+    "Team Leader",
+    "Team Member",
+    "Director",
+    "Supervisor",
+    "Engineer",
+    "Executive Engineer",
+    "Welder",
+    "Fitter",
+    "Rigger",
+    "Helper",
+    "Legger",
+    "Fabricator",
+    "Foreman",
+    "Site Supervisor",
+    "CTO",
+    "CEO",
+    "Senior Manager",
+    "Assistant General Manager",
+    "General Manager",
+    "Grinderman",
+    "Cutter",
+  ];
+
   DateTime? _dob;
   DateTime? _doj;
   String _payBasic = "monthly";
+  String? _selectedDesignation;
 
   Future<void> _pickDate(BuildContext context, bool isDOB) async {
     final picked = await showDatePicker(
@@ -72,6 +100,7 @@ class _NewManpowerScreenState extends ConsumerState<NewManpowerScreen> {
     _dob = null;
     _doj = null;
     _payBasic = "monthly";
+    _selectedDesignation = null;
   }
 
   Future<void> _saveManpower() async {
@@ -87,7 +116,7 @@ class _NewManpowerScreenState extends ConsumerState<NewManpowerScreen> {
 
     final data = {
       "fullName": _fullNameController.text,
-      "designation": _designationController.text,
+      "designation": _selectedDesignation ?? _designationController.text,
       "phoneNumber": _phoneController.text,
       "aadharNumber": _aadhaarController.text,
       "panNumber": _panController.text,
@@ -128,55 +157,118 @@ class _NewManpowerScreenState extends ConsumerState<NewManpowerScreen> {
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              // Using CustomTextField for all text fields
+              // Full Name
               CustomTextField(
                 label: "Full Name",
                 controller: _fullNameController,
                 isRequired: true,
               ),
-              CustomTextField(
-                label: "Designation",
-                controller: _designationController,
-                isRequired: true,
+
+              // Designation with SearchableDropdown
+              const SizedBox(height: 16),
+              Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  const Text(
+                    "Designation",
+                    style: TextStyle(
+                      fontSize: 14,
+                      fontWeight: FontWeight.w600,
+                      color: Colors.black87,
+                    ),
+                  ),
+                  const SizedBox(height: 6),
+                  SearchableDropdown(
+                    data: _designationOptions,
+                    onSelect: (value) {
+                      setState(() {
+                        _selectedDesignation = value;
+                      });
+                    },
+                    placeholder: "Search Designation",
+                    value: _selectedDesignation,
+                    containerDecoration: BoxDecoration(
+                      color: Colors.white,
+                      borderRadius: BorderRadius.circular(12),
+                      border: Border.all(
+                        color: const Color(0xFF197278),
+                        width: 1,
+                      ),
+                    ),
+                    inputDecoration: const InputDecoration(
+                      hintText: "Search Designation",
+                      contentPadding: EdgeInsets.symmetric(
+                        horizontal: 16,
+                        vertical: 14,
+                      ),
+                      border: InputBorder.none,
+                      focusedBorder: InputBorder.none,
+                      enabledBorder: InputBorder.none,
+                    ),
+                  ),
+                ],
               ),
-              // Using PhoneInputField for phone number
+
+              // Phone Number
+              const SizedBox(height: 16),
               PhoneInputField(
                 controller: _phoneController,
               ),
+
+              // Aadhar Number
+              const SizedBox(height: 16),
               CustomTextField(
                 label: "Aadhar Number",
                 controller: _aadhaarController,
                 isRequired: false,
                 keyboardType: TextInputType.number,
               ),
+
+              // PAN Number
+              const SizedBox(height: 16),
               CustomTextField(
                 label: "PAN Number",
                 controller: _panController,
                 isRequired: false,
               ),
+
+              // Bank Account Number
+              const SizedBox(height: 16),
               CustomTextField(
                 label: "Bank Account Number",
                 controller: _bankController,
                 isRequired: false,
                 keyboardType: TextInputType.number,
               ),
+
+              // IFSC Code
+              const SizedBox(height: 16),
               CustomTextField(
                 label: "IFSC Code",
                 controller: _ifscController,
                 isRequired: false,
               ),
+
+              // EPF Number
+              const SizedBox(height: 16),
               CustomTextField(
                 label: "EPF Number",
                 controller: _epfController,
                 isRequired: false,
                 keyboardType: TextInputType.number,
               ),
+
+              // UAN Number
+              const SizedBox(height: 16),
               CustomTextField(
                 label: "UAN Number",
                 controller: _uanController,
                 isRequired: false,
                 keyboardType: TextInputType.number,
               ),
+
+              // ESIC Number
+              const SizedBox(height: 16),
               CustomTextField(
                 label: "ESIC Number",
                 controller: _esicController,
@@ -184,6 +276,8 @@ class _NewManpowerScreenState extends ConsumerState<NewManpowerScreen> {
                 keyboardType: TextInputType.number,
               ),
 
+              // Date of Birth and Date of Joining
+              const SizedBox(height: 16),
               Row(
                 children: [
                   Expanded(
@@ -196,7 +290,8 @@ class _NewManpowerScreenState extends ConsumerState<NewManpowerScreen> {
                 ],
               ),
 
-              const SizedBox(height: 10),
+              // Pay Basics Dropdown
+              const SizedBox(height: 16),
               Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
@@ -226,25 +321,29 @@ class _NewManpowerScreenState extends ConsumerState<NewManpowerScreen> {
                       child: DropdownButtonFormField<String>(
                         value: _payBasic,
                         isExpanded: true,
-                        decoration: InputDecoration(
+                        decoration: const InputDecoration(
                           contentPadding:
-                          const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
+                          EdgeInsets.symmetric(horizontal: 16, vertical: 14),
                           border: InputBorder.none,
                         ),
                         icon: const Icon(Icons.keyboard_arrow_down_rounded,
                             color: Colors.black54),
                         items: const [
                           DropdownMenuItem(
-                            value: "monthly",
-                            child: Text("Monthly"),
-                          ),
-                          DropdownMenuItem(
                             value: "daily",
                             child: Text("Daily"),
                           ),
                           DropdownMenuItem(
+                            value: "monthly",
+                            child: Text("Monthly"),
+                          ),
+                          DropdownMenuItem(
                             value: "yearly",
                             child: Text("Yearly"),
+                          ),
+                          DropdownMenuItem(
+                            value: "fixed",
+                            child: Text("Fixed"),
                           ),
                         ],
                         onChanged: (val) {
@@ -264,21 +363,26 @@ class _NewManpowerScreenState extends ConsumerState<NewManpowerScreen> {
                 ],
               ),
 
-              const SizedBox(height: 10),
+              // Salary
+              const SizedBox(height: 16),
               CustomTextField(
                 label: "Salary",
                 controller: _salaryController,
                 isRequired: true,
                 keyboardType: TextInputType.number,
               ),
+
+              // Remarks
+              const SizedBox(height: 16),
               CustomTextField(
                 label: "Remarks",
                 controller: _remarksController,
                 isRequired: false,
                 maxLines: 3,
               ),
-              const SizedBox(height: 20),
 
+              // Buttons
+              const SizedBox(height: 20),
               Row(
                 children: [
                   Expanded(
@@ -387,5 +491,4 @@ class _NewManpowerScreenState extends ConsumerState<NewManpowerScreen> {
       ],
     );
   }
-
 }

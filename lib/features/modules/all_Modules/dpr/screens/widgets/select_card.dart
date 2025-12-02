@@ -14,6 +14,9 @@ class SelectCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final width = MediaQuery.of(context).size.width;
+    final fontSize = width * 0.04; // ~4% of width → clean responsiveness
+
     return Card(
       elevation: 0,
       color: Colors.white,
@@ -32,11 +35,14 @@ class SelectCard extends StatelessWidget {
 
               Text(
                 label,
-                style: const TextStyle(
-                  fontSize: 16,
+                textAlign: TextAlign.center,
+                style: TextStyle(
+                  fontSize: fontSize,
                   fontWeight: FontWeight.w600,
                   color: Colors.black87,
                 ),
+                maxLines: 2,
+                overflow: TextOverflow.ellipsis,
               ),
             ],
           ),

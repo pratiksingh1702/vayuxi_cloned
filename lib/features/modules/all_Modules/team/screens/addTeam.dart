@@ -90,7 +90,7 @@ class _AddTeamScreenState extends ConsumerState<AddTeamScreen> {
                       label: "Team Name",
                       isRequired: true,
                       controller: _teamNameController,
-                      hint: "Placeholder",
+                      hint: "Add Team Name",
                     ),
                     const SizedBox(height: 20),
 

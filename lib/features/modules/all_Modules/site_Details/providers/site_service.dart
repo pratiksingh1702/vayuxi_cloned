@@ -75,8 +75,32 @@ class SiteAPI {
   }
 
   static Future<Map<String, dynamic>> createSite(
-      Map<String, dynamic> data, String type) async {
-    final res = await dio.post("/site?type=$type", data: FormData.fromMap(data));
-    return res.data;
+      FormData formData,
+      String type
+      ) async {
+    try {
+      final res = await dio.post(
+        "/site?type=$type",
+        data: formData,
+        options: Options(
+          validateStatus: (status) {
+            return status! < 500; // Don't throw for 4xx errors
+          },
+        ),
+      );
+
+      if (res.statusCode! >= 400) {
+        throw DioException(
+          response: res,
+          requestOptions: res.requestOptions,
+          type: DioExceptionType.badResponse,
+        );
+      }
+
+      return res.data;
+    } on DioException catch (e) {
+      // Re-throw to be handled in saveSite method
+      rethrow;
+    }
   }
 }
