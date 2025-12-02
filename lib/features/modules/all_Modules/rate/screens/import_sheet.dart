@@ -3,19 +3,22 @@ import 'package:dio/dio.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:file_picker/file_picker.dart';
+import 'package:untitled2/core/utlis/colors/colors.dart';
+import 'package:untitled2/core/utlis/widgets/image_clipped.dart';
 import 'package:untitled2/features/modules/all_Modules/rate/data/rateApi.dart';
 import 'package:untitled2/features/modules/all_Modules/site_Details/repository/siteModel.dart';
+import 'package:untitled2/typeProvider/type_provider.dart';
 
+import '../../../../../core/utlis/widgets/custom_appBar.dart';
 import '../../../../../core/utlis/widgets/file_upload.dart';
+import '../../site_Details/providers/site_current_provider.dart';
 
 class ImportCsvScreen extends ConsumerStatefulWidget {
-  final SiteModel site;
-  final String type;
+
 
   const ImportCsvScreen({
     super.key,
-    required this.site,
-    required this.type,
+
   });
 
   @override
@@ -32,7 +35,7 @@ class _ImportCsvScreenState extends ConsumerState<ImportCsvScreen> {
     try {
       FilePickerResult? result = await FilePicker.platform.pickFiles(
         type: FileType.custom,
-        allowedExtensions: ['csv'],
+        allowedExtensions: ['csv','xlsx','pdf'],
         allowMultiple: false,
       );
 
@@ -53,6 +56,9 @@ class _ImportCsvScreenState extends ConsumerState<ImportCsvScreen> {
       _showError('Please select a CSV file first');
       return;
     }
+    final type=ref.read(typeProvider);
+    final siteId=ref.read(selectedSiteIdProvider);
+
 
     setState(() {
       _isLoading = true;
@@ -70,8 +76,8 @@ class _ImportCsvScreenState extends ConsumerState<ImportCsvScreen> {
 
       final result = await RateApiClient().uploadCsv(
         formData,
-        widget.type,
-        widget.site.id,
+        type!,
+        siteId!,
       );
 
       setState(() {
@@ -130,159 +136,77 @@ class _ImportCsvScreenState extends ConsumerState<ImportCsvScreen> {
 
   @override
   Widget build(BuildContext context) {
+    final type=ref.read(typeProvider);
+    final site=ref.read(currentSiteProvider);
+
     return Scaffold(
-      appBar: AppBar(
-        title: const Text('Import CSV'),
-        backgroundColor: Colors.blue,
-        foregroundColor: Colors.white,
+      backgroundColor: AppColors.lightBlue,
+      appBar: CustomAppBar(
+        title: 'Import CSV',
+
       ),
-      body: Padding(
-        padding: const EdgeInsets.all(16.0),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-
-
-            const SizedBox(height: 24),
-
-            // File Selection Section
-            UploadBox(
-              title: 'Select CSV File',
-              subtitle: _selectedFileName ?? 'No file selected',
-              buttonText: _selectedFileName == null ? 'Choose CSV File' : 'Change File',
-              onPressed: _pickCsvFile,
-            ),
-
-            const SizedBox(height: 24),
-
-            // Upload Button
-            SizedBox(
-              width: double.infinity,
-              child: ElevatedButton(
-                onPressed: _isLoading ? null : _uploadCsv,
-                style: ElevatedButton.styleFrom(
-                  backgroundColor: Colors.blue,
-                  foregroundColor: Colors.white,
-                  padding: const EdgeInsets.symmetric(vertical: 16),
-                  disabledBackgroundColor: Colors.blue.withOpacity(0.5),
-                  elevation: 0
-                ),
-                child: _isLoading
-                    ? const Row(
-                  mainAxisAlignment: MainAxisAlignment.center,
-                  children: [
-                    SizedBox(
-                      width: 16,
-                      height: 16,
-                      child: CircularProgressIndicator(
-                        strokeWidth: 2,
-                        valueColor: AlwaysStoppedAnimation<Color>(Colors.white),
-                      ),
-                    ),
-                    SizedBox(width: 8),
-                    Text('Uploading...'),
-                  ],
-                )
-                    : const Row(
-                  mainAxisAlignment: MainAxisAlignment.center,
-                  children: [
-                    Icon(Icons.cloud_upload),
-                    SizedBox(width: 8),
-                    Text('Upload CSV'),
-                  ],
-                ),
+      body: CornerClippedScreenSimple(
+        child: Padding(
+          padding: const EdgeInsets.all(16.0),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+        
+        
+              const SizedBox(height: 24),
+        
+              // File Selection Section
+              UploadBox(
+                title: 'Select CSV File',
+                subtitle: _selectedFileName ?? 'No file selected',
+                buttonText: _selectedFileName == null ? 'Choose CSV File' : 'Change File',
+                onPressed: _pickCsvFile,
               ),
-            ),
-
-            const SizedBox(height: 16),
-            // Instructions
-            Card(
-              child: Padding(
-                padding: const EdgeInsets.all(16.0),
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Text(
-                      'Import Rates from CSV',
-                      style: Theme.of(context).textTheme.titleLarge?.copyWith(
-                        fontWeight: FontWeight.bold,
-                      ),
-                    ),
-                    const SizedBox(height: 8),
-                    const Text(
-                      'Select a CSV file with the following columns:',
-                      style: TextStyle(fontSize: 14),
-                    ),
-                    const SizedBox(height: 8),
-                    const Text(
-                      '• SR.NO\n• DESCRIPTION\n• UOM\n• RATE\n• REMARKS',
-                      style: TextStyle(fontSize: 12, color: Colors.grey),
-                    ),
-                    const SizedBox(height: 8),
-                    Text(
-                      'Site: ${widget.site.siteName}',
-                      style: const TextStyle(
-                        fontWeight: FontWeight.w500,
-                        color: Colors.blue,
-                      ),
-                    ),
-                    Text(
-                      'Type: ${widget.type.replaceAll('_', ' ').toUpperCase()}',
-                      style: const TextStyle(
-                        fontWeight: FontWeight.w500,
-                        color: Colors.blue,
-                      ),
-                    ),
-                  ],
-                ),
-              ),
-            ),
-
-            // Status Message
-            if (_uploadStatus.isNotEmpty)
-              Container(
+        
+              const SizedBox(height: 24),
+        
+              // Upload Button
+              SizedBox(
                 width: double.infinity,
-                padding: const EdgeInsets.all(12),
-                decoration: BoxDecoration(
-                  color: _uploadStatus.contains('successfully')
-                      ? Colors.green.withOpacity(0.1)
-                      : Colors.red.withOpacity(0.1),
-                  borderRadius: BorderRadius.circular(8),
-                  border: Border.all(
-                    color: _uploadStatus.contains('successfully')
-                        ? Colors.green
-                        : Colors.red,
+                child: ElevatedButton(
+                  onPressed: _isLoading ? null : _uploadCsv,
+                  style: ElevatedButton.styleFrom(
+                    backgroundColor: Colors.blue,
+                    foregroundColor: Colors.white,
+                    padding: const EdgeInsets.symmetric(vertical: 16),
+                    disabledBackgroundColor: Colors.blue.withOpacity(0.5),
+                    elevation: 0
                   ),
-                ),
-                child: Text(
-                  _uploadStatus,
-                  style: TextStyle(
-                    color: _uploadStatus.contains('successfully')
-                        ? Colors.green
-                        : Colors.red,
-                    fontWeight: FontWeight.w500,
-                  ),
-                  textAlign: TextAlign.center,
-                ),
-              ),
-
-            const Spacer(),
-
-            // Help Text
-            const Card(
-              color: Colors.blueAccent,
-              child: Padding(
-                padding: EdgeInsets.all(12.0),
-                child: Text(
-                  '💡 Tip: Download the current rates as CSV first to see the expected format. You can then modify it and upload the updated version.',
-                  style: TextStyle(
-                    color: Colors.white,
-                    fontSize: 12,
+                  child: _isLoading
+                      ? const Row(
+                    mainAxisAlignment: MainAxisAlignment.center,
+                    children: [
+                      SizedBox(
+                        width: 16,
+                        height: 16,
+                        child: CircularProgressIndicator(
+                          strokeWidth: 2,
+                          valueColor: AlwaysStoppedAnimation<Color>(Colors.white),
+                        ),
+                      ),
+                      SizedBox(width: 8),
+                      Text('Uploading...'),
+                    ],
+                  )
+                      : const Row(
+                    mainAxisAlignment: MainAxisAlignment.center,
+                    children: [
+                      Icon(Icons.cloud_upload),
+                      SizedBox(width: 8),
+                      Text('Upload CSV'),
+                    ],
                   ),
                 ),
               ),
-            ),
-          ],
+        
+        
+            ],
+          ),
         ),
       ),
     );

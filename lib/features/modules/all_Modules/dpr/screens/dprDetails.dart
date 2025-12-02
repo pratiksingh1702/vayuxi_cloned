@@ -548,7 +548,7 @@ class _DprDetailScreenState extends ConsumerState<DprDetailScreen> {
         onDelete: () => _deleteMaterial(piping.id),
         onRemark: () => _showRemarkDialog(piping.id, piping.remarks ?? ''),
         onEdit: () => _navigateToEdit(piping.id),
-        onAdd: () => _copyMaterial(piping.id),
+        onAdd: () => _copyMaterial(piping.id), isEditable: false,
       );
     }).toList();
   }
@@ -586,7 +586,7 @@ class _DprDetailScreenState extends ConsumerState<DprDetailScreen> {
         onRemark: () => _showRemarkDialog(equipment.id, equipment.remarks ?? ''),
         onQtyChanged: (val) => _updateCardInput(equipment.id, 'quantity', val),
         onFloorChanged: (val) => _updateCardInput(equipment.id, 'floor', val),
-        onTonChanged: (val) => _updateCardInput(equipment.id, 'ton', val),
+        onTonChanged: (val) => _updateCardInput(equipment.id, 'ton', val), isEditable: false,
       );
     }).toList();
   }

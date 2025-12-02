@@ -5,6 +5,7 @@ import 'package:untitled2/core/utlis/colors/colors.dart';
 import 'package:untitled2/core/utlis/widgets/custom_appBar.dart';
 import '../../../../../../../core/utlis/widgets/fields/custom_textField.dart';
 import '../../../../../../../core/utlis/widgets/file_upload.dart';
+import '../../../../../../../core/utlis/widgets/image_clipped.dart';
 import '../../../models/moc.dart';
 import '../../../providers/mocProvider.dart';
 import 'package:file_picker/file_picker.dart';
@@ -234,95 +235,97 @@ class _AddMOCPageState extends ConsumerState<AddMOCPage> {
 
       appBar:CustomAppBar(title: "Add MOC"),
       backgroundColor: AppColors.lightBlue,
-      body: Padding(
-        padding: const EdgeInsets.all(16.0),
-        child: Form(
-          key: _formKey,
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.stretch,
-            children: [
-              // Name Field
-              CustomTextField(
-                label: 'MOC Name',
-                hint: 'Enter MOC name (e.g., Stainless Steel, HDPE)',
-                isRequired: true,
-                TextSize: 16,
-                controller: _nameController,
-                keyboardType: TextInputType.text,
-              ),
-              const SizedBox(height: 24),
-
-              // Image Upload Section
-
-
-              UploadBox(
-                title: _selectedImagePath != null ? 'Image Selected' : 'Upload MOC Image',
-                subtitle: _selectedImagePath != null
-                    ? _selectedImagePath!
-                    : 'Select an image for this MOC material',
-                buttonText: _selectedImagePath != null ? 'Change Image' : 'Select Image',
-                onPressed: _handleImageSelection,
-              ),
-
-              if (_selectedImagePath != null) ...[
-                const SizedBox(height: 8),
-                Text(
-                  'Selected: $_selectedImagePath',
-                  style: const TextStyle(
-                    fontSize: 12,
-                    color: Colors.green,
-                    fontStyle: FontStyle.italic,
+      body: CornerClippedScreenSimple(
+        child: Padding(
+          padding: const EdgeInsets.all(16.0),
+          child: Form(
+            key: _formKey,
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.stretch,
+              children: [
+                // Name Field
+                CustomTextField(
+                  label: 'MOC Name',
+                  hint: 'Enter MOC name (e.g., Stainless Steel, HDPE)',
+                  isRequired: true,
+                  TextSize: 16,
+                  controller: _nameController,
+                  keyboardType: TextInputType.text,
+                ),
+                const SizedBox(height: 24),
+        
+                // Image Upload Section
+        
+        
+                UploadBox(
+                  title: _selectedImagePath != null ? 'Image Selected' : 'Upload MOC Image',
+                  subtitle: _selectedImagePath != null
+                      ? _selectedImagePath!
+                      : 'Select an image for this MOC material',
+                  buttonText: _selectedImagePath != null ? 'Change Image' : 'Select Image',
+                  onPressed: _handleImageSelection,
+                ),
+        
+                if (_selectedImagePath != null) ...[
+                  const SizedBox(height: 8),
+                  Text(
+                    'Selected: $_selectedImagePath',
+                    style: const TextStyle(
+                      fontSize: 12,
+                      color: Colors.green,
+                      fontStyle: FontStyle.italic,
+                    ),
                   ),
+                ],
+                const SizedBox(height: 32),
+        
+                // Submit Button
+                ElevatedButton(
+                  onPressed: _isSubmitting ? null : _submitForm,
+                  style: ElevatedButton.styleFrom(
+                    backgroundColor: Colors.blue,
+                    foregroundColor: Colors.white,
+                    padding: const EdgeInsets.symmetric(vertical: 16),
+                    shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(12),
+                    ),
+                  ),
+                  child: _isSubmitting
+                      ? const Row(
+                    mainAxisAlignment: MainAxisAlignment.center,
+                    children: [
+                      SizedBox(
+                        width: 16,
+                        height: 16,
+                        child: CircularProgressIndicator(
+                          strokeWidth: 2,
+                          valueColor: AlwaysStoppedAnimation<Color>(Colors.white),
+                        ),
+                      ),
+                      SizedBox(width: 8),
+                      Text('Adding MOC...'),
+                    ],
+                  )
+                      : const Text(
+                    'Save MOC',
+                    style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
+                  ),
+                ),
+                const SizedBox(height: 12),
+        
+                // Cancel Button
+                OutlinedButton(
+                  onPressed: _isSubmitting ? null : () => Navigator.of(context).pop(),
+                  style: OutlinedButton.styleFrom(
+                    padding: const EdgeInsets.symmetric(vertical: 16),
+                    shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(12),
+                    ),
+                  ),
+                  child: const Text('Cancel'),
                 ),
               ],
-              const SizedBox(height: 32),
-
-              // Submit Button
-              ElevatedButton(
-                onPressed: _isSubmitting ? null : _submitForm,
-                style: ElevatedButton.styleFrom(
-                  backgroundColor: Colors.blue,
-                  foregroundColor: Colors.white,
-                  padding: const EdgeInsets.symmetric(vertical: 16),
-                  shape: RoundedRectangleBorder(
-                    borderRadius: BorderRadius.circular(12),
-                  ),
-                ),
-                child: _isSubmitting
-                    ? const Row(
-                  mainAxisAlignment: MainAxisAlignment.center,
-                  children: [
-                    SizedBox(
-                      width: 16,
-                      height: 16,
-                      child: CircularProgressIndicator(
-                        strokeWidth: 2,
-                        valueColor: AlwaysStoppedAnimation<Color>(Colors.white),
-                      ),
-                    ),
-                    SizedBox(width: 8),
-                    Text('Adding MOC...'),
-                  ],
-                )
-                    : const Text(
-                  'Save MOC',
-                  style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
-                ),
-              ),
-              const SizedBox(height: 12),
-
-              // Cancel Button
-              OutlinedButton(
-                onPressed: _isSubmitting ? null : () => Navigator.of(context).pop(),
-                style: OutlinedButton.styleFrom(
-                  padding: const EdgeInsets.symmetric(vertical: 16),
-                  shape: RoundedRectangleBorder(
-                    borderRadius: BorderRadius.circular(12),
-                  ),
-                ),
-                child: const Text('Cancel'),
-              ),
-            ],
+            ),
           ),
         ),
       ),

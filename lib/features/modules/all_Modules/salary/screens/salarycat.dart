@@ -1,7 +1,11 @@
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
+import 'package:untitled2/core/utlis/colors/colors.dart';
 import 'package:untitled2/core/utlis/widgets/buttons.dart';
 import 'package:untitled2/core/utlis/widgets/custom_appBar.dart';
+import 'package:untitled2/core/utlis/widgets/image_clipped.dart';
+
+import 'download_all.dart';
 
 class CategoryScreen extends StatefulWidget {
   const CategoryScreen({super.key});
@@ -23,56 +27,149 @@ class _CategoryScreenState extends State<CategoryScreen> {
     return translations[key] ?? key;
   }
 
+  @override
   Widget build(BuildContext context) {
     return Scaffold(
+      backgroundColor: AppColors.lightBlue,
       appBar: CustomAppBar(title: "Select category"),
-      body: Column(
-        children: [
-          // Select Module Options
-          Expanded(
-            child: Padding(
-              padding: const EdgeInsets.only(top: 10),
-              child: Column(
+      body: CornerClippedScreenSimple(
+        child: Column(
+          children: [
+            // GridView for category options
+            Expanded(
+              child: Padding(
+                padding: const EdgeInsets.all(16.0),
+                child: GridView.count(
+                  crossAxisCount: 2, // 2 cards per row
+                  crossAxisSpacing: 16,
+                  mainAxisSpacing: 16,
+                  childAspectRatio: 0.9, // Adjust aspect ratio for better appearance
+                  children: [
+                    SelectCard(
+                      icon: Icon(
+                        Icons.person,
+                        size: 48,
+                        color: Colors.blue,
+                      ),
+                      label: t('download_individual'),
+                      onTap: () => context.push('/salary/individual'),
+                    ),
+                    SelectCard(
+                      icon: Icon(
+                        Icons.factory_rounded,
+                        size: 48,
+                        color: Colors.green,
+                      ),
+                      label: t('download_site_wise'),
+                      onTap: () => context.push('/site-list/siteSalary'),
+                    ),
+                    SelectCard(
+                      icon: Icon(
+                        Icons.check_box,
+                        size: 48,
+                        color: Colors.orange,
+                      ),
+                      label: t('download_all'),
+                      onTap: () {
+                        Navigator.push(
+                          context,
+                          MaterialPageRoute(builder: (context) => const SelectRangeScreen()),
+                        );
+                      },
+                    ),
+                    // You can add more cards here if needed
+                    // SelectCard(
+                    //   icon: Icon(
+                    //     Icons.download,
+                    //     size: 48,
+                    //     color: Colors.purple,
+                    //   ),
+                    //   label: 'Another Option',
+                    //   onTap: () {
+                    //     // Add your onTap functionality
+                    //   },
+                    // ),
+                  ],
+                ),
+              ),
+            ),
+            // Back Button at the very bottom
+            Padding(
+              padding: const EdgeInsets.all(20.0),
+              child: Row(
+                mainAxisAlignment: MainAxisAlignment.start,
                 children: [
-                  const SizedBox(height: 12),
-                  SelectModule(
-                    icon: Icons.person,
-                    label: t('download_individual'),
-                    onTap: () => context.push('/salary/individual'),
-                  ),
-                  const SizedBox(height: 12),
-                  SelectModule(
-                    icon: Icons.factory_rounded,
-                    label: t('download_site_wise'),
-                    onTap: () => context.push('/site-list/siteSalary'),
-                  ),
-                  const SizedBox(height: 12),
-                  SelectModule(
-                    icon: Icons.check_box,
-                    label: t('download_all'),
-                    onTap: () => context.push('/salary-Module/work'),
+                  RoundedButton(
+                    text: "Back",
+                    color: Colors.white,
+                    textColor: Colors.black,
+                    onPressed: () => context.pop(),
                   ),
                 ],
               ),
             ),
-          ),
-          // Back Button at the very bottom
-          Row(
-            mainAxisAlignment: MainAxisAlignment.start,
-            children: [
-              Padding(
-                padding: const EdgeInsets.all(20.0),
-                child:RoundedButton(text: "Back",
-                    color: Colors.white, textColor: Colors.black, onPressed: () => context.pop()),
-              ),
-            ],
-          ),
-        ],
+          ],
+        ),
       ),
     );
   }
-
 }
+
+// Select Card Widget (Your provided component)
+class SelectCard extends StatelessWidget {
+  final Widget icon;
+  final String label;
+  final VoidCallback onTap;
+
+  const SelectCard({
+    super.key,
+    required this.icon,
+    required this.label,
+    required this.onTap,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    return Card(
+      elevation: 0,
+      color: Colors.white,
+      shape: RoundedRectangleBorder(
+        borderRadius: BorderRadius.circular(16),
+      ),
+      child: InkWell(
+        onTap: onTap,
+        borderRadius: BorderRadius.circular(16),
+        child: Container(
+          padding: const EdgeInsets.all(16),
+          child: Column(
+            mainAxisAlignment: MainAxisAlignment.center,
+            children: [
+              Expanded(
+                child: Center(
+                  child: icon,
+                ),
+              ),
+              const SizedBox(height: 8),
+              Text(
+                label,
+                style: const TextStyle(
+                  fontSize: 16,
+                  fontWeight: FontWeight.w600,
+                  color: Colors.black87,
+                ),
+                textAlign: TextAlign.center,
+                maxLines: 2,
+                overflow: TextOverflow.ellipsis,
+              ),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+}
+
+// Keep the existing utility widgets (they might be used elsewhere)
 
 // Custom KeyboardAwareScrollView widget
 class KeyboardAwareScrollView extends StatelessWidget {
@@ -172,7 +269,7 @@ class DynamicMenu extends StatelessWidget {
   }
 }
 
-// Select Module Widget
+// Select Module Widget (Keeping for backward compatibility)
 class SelectModule extends StatelessWidget {
   final IconData icon;
   final String label;
@@ -195,11 +292,10 @@ class SelectModule extends StatelessWidget {
         decoration: BoxDecoration(
           color: Colors.white,
           borderRadius: BorderRadius.circular(8),
-
         ),
         child: Row(
           children: [
-            Icon(icon, size: 20,color: Colors.blue,),
+            Icon(icon, size: 20, color: Colors.blue),
             const SizedBox(width: 12),
             Expanded(
               child: Text(

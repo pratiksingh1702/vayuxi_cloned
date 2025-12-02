@@ -16,10 +16,11 @@ class DynamicItemCard extends StatelessWidget {
   final Function(String) onLengthChanged;
   final Function(String) onFloorChanged;
   final Function(String) onMocChanged;
-  final VoidCallback onDelete;
+  final VoidCallback? onDelete;
   final VoidCallback onRemark;
-  final VoidCallback onEdit;
-  final VoidCallback onAdd;
+  final VoidCallback? onEdit;
+  final VoidCallback? onAdd;
+  final bool isEditable;
 
   const DynamicItemCard({
     required this.quantity,
@@ -37,10 +38,11 @@ class DynamicItemCard extends StatelessWidget {
     required this.onLengthChanged,
     required this.onFloorChanged,
     required this.onMocChanged,
-    required this.onDelete,
+    this.onDelete,
     required this.onRemark,
-    required this.onEdit,
-    required this.onAdd,
+    this.onEdit,
+    this.onAdd,
+    required this.isEditable,
     super.key,
   });
 
@@ -48,20 +50,17 @@ class DynamicItemCard extends StatelessWidget {
   Widget build(BuildContext context) {
     return Container(
       margin: const EdgeInsets.only(bottom: 12),
-      padding: EdgeInsets.all(5),
+      padding: const EdgeInsets.all(5),
       decoration: BoxDecoration(
         color: Colors.white,
         borderRadius: BorderRadius.circular(14),
-
       ),
-
       child: Row(
         crossAxisAlignment: CrossAxisAlignment.center,
         children: [
           // ───────── LEFT COLUMN (50% width) - NAME & IMAGE
           Expanded(
             child: Column(
-
               mainAxisAlignment: MainAxisAlignment.end,
               children: [
                 // Material Name
@@ -80,8 +79,6 @@ class DynamicItemCard extends StatelessWidget {
                   Image.network(
                     image!,
                     height: 200,
-
-
                     fit: BoxFit.contain,
                     errorBuilder: (context, error, stackTrace) {
                       return Container(
@@ -95,16 +92,9 @@ class DynamicItemCard extends StatelessWidget {
                       );
                     },
                   ),
-
-
-
-                // Remark Button
-
               ],
             ),
           ),
-
-
 
           // ───────── RIGHT COLUMN (50% width) - INPUT FIELDS
           Expanded(
@@ -127,7 +117,8 @@ class DynamicItemCard extends StatelessWidget {
                     ),
                   ),
                 ),
-                SizedBox(height: 10,),
+                const SizedBox(height: 10),
+
                 // 2x2 Grid of Blue Input Fields
                 Row(
                   children: [
@@ -151,47 +142,54 @@ class DynamicItemCard extends StatelessWidget {
                 Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-
                     _blueBox(lengthLabel, length, onLengthChanged),
                   ],
                 ),
 
-
-                // Action Buttons
-                // Row(
-                //   children: [
-                //     Expanded(
-                //       child: ElevatedButton.icon(
-                //         onPressed: onAdd,
-                //         icon: const Icon(Icons.copy, size: 16),
-                //         label: const Text("Copy"),
-                //         style: ElevatedButton.styleFrom(
-                //           backgroundColor: Colors.green,
-                //           foregroundColor: Colors.white,
-                //           padding: const EdgeInsets.symmetric(vertical: 8),
-                //         ),
-                //       ),
-                //     ),
-                //     const SizedBox(width: 8),
-                //     Expanded(
-                //       child: ElevatedButton.icon(
-                //         onPressed: onEdit,
-                //         icon: const Icon(Icons.edit, size: 16),
-                //         label: const Text("Edit"),
-                //         style: ElevatedButton.styleFrom(
-                //           backgroundColor: Colors.blue,
-                //           foregroundColor: Colors.white,
-                //           padding: const EdgeInsets.symmetric(vertical: 8),
-                //         ),
-                //       ),
-                //     ),
-                //     const SizedBox(width: 8),
-                //     IconButton(
-                //       onPressed: onDelete,
-                //       icon: const Icon(Icons.delete, color: Colors.red),
-                //     ),
-                //   ],
-                // ),
+                // Action Buttons - Only show when editable
+                if (isEditable && (onAdd != null || onEdit != null || onDelete != null))
+                  Padding(
+                    padding: const EdgeInsets.only(top: 12),
+                    child: Row(
+                      children: [
+                        if (onAdd != null) ...[
+                          Expanded(
+                            child: ElevatedButton.icon(
+                              onPressed: onAdd,
+                              icon: const Icon(Icons.copy, size: 16),
+                              label: const Text("Copy"),
+                              style: ElevatedButton.styleFrom(
+                                backgroundColor: Colors.green,
+                                foregroundColor: Colors.white,
+                                padding: const EdgeInsets.symmetric(vertical: 8),
+                              ),
+                            ),
+                          ),
+                          const SizedBox(width: 8),
+                        ],
+                        if (onEdit != null) ...[
+                          Expanded(
+                            child: ElevatedButton.icon(
+                              onPressed: onEdit,
+                              icon: const Icon(Icons.edit, size: 16),
+                              label: const Text("Edit"),
+                              style: ElevatedButton.styleFrom(
+                                backgroundColor: Colors.blue,
+                                foregroundColor: Colors.white,
+                                padding: const EdgeInsets.symmetric(vertical: 8),
+                              ),
+                            ),
+                          ),
+                          const SizedBox(width: 8),
+                        ],
+                        if (onDelete != null)
+                          IconButton(
+                            onPressed: onDelete,
+                            icon: const Icon(Icons.delete, color: Colors.red),
+                          ),
+                      ],
+                    ),
+                  ),
               ],
             ),
           ),
@@ -207,9 +205,10 @@ class DynamicItemCard extends StatelessWidget {
       onChanged: onChanged,
       textAlign: TextAlign.center,
       style: const TextStyle(color: Colors.white, fontSize: 14),
+      enabled: isEditable, // Disable when not editable
       decoration: InputDecoration(
         filled: true,
-        fillColor: const Color(0xFFD0EAFD),
+        fillColor: isEditable ? const Color(0xFFD0EAFD) : Colors.grey[300],
         border: OutlineInputBorder(
           borderRadius: BorderRadius.circular(8),
           borderSide: BorderSide.none,

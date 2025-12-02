@@ -1,9 +1,8 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-
 import 'core/api/syncManager.dart';
-
 import 'core/router/app_router.dart';
+import 'custom_slider.dart';
 
 class MyApp extends ConsumerStatefulWidget {
   const MyApp({super.key});
@@ -16,8 +15,7 @@ class _MyAppState extends ConsumerState<MyApp> {
   @override
   void initState() {
     super.initState();
-    // ✅ Just accessing the provider will initialize it
-    ref.read(syncManagerProvider);
+    ref.read(syncManagerProvider); // init provider
   }
 
   @override
@@ -31,6 +29,14 @@ class _MyAppState extends ConsumerState<MyApp> {
       theme: ThemeData(
         primarySwatch: Colors.blue,
         scaffoldBackgroundColor: const Color(0xFFCFE8FA),
+
+        /// 🔥 GLOBAL PAGE TRANSITION
+        pageTransitionsTheme: const PageTransitionsTheme(
+          builders: {
+            TargetPlatform.android: SlidePageTransitionsBuilder(),
+            TargetPlatform.iOS: SlidePageTransitionsBuilder(),
+          },
+        ),
       ),
     );
   }

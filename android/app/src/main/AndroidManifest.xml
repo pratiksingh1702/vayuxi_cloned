@@ -23,7 +23,7 @@
 
 
     <application
-        android:label="untitled2"
+        android:label="Vayuxi"
         android:name="${applicationName}"
         android:icon="@mipmap/ic_launcher"
         android:requestLegacyExternalStorage="true">

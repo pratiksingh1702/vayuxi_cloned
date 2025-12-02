@@ -1,11 +1,18 @@
 import 'package:flutter/material.dart';
 import 'package:dio/dio.dart';
+import 'package:go_router/go_router.dart';
+import 'package:pin_code_fields/pin_code_fields.dart';
 import '../../../core/api/dio.dart';
 import '../../auth/service/auth_client.dart';
 import 'package:cookie_jar/cookie_jar.dart';
 import 'package:dio_cookie_manager/dio_cookie_manager.dart';
+
+import 'device_id_helper.dart';
+
 class DeviceOtpScreen extends StatefulWidget {
-  const DeviceOtpScreen({super.key});
+  final String? redirectRoute;
+
+  const DeviceOtpScreen({super.key, this.redirectRoute});
 
   @override
   State<DeviceOtpScreen> createState() => _DeviceOtpScreenState();
@@ -54,13 +61,25 @@ class _DeviceOtpScreenState extends State<DeviceOtpScreen> {
 
       final String newDeviceId = res["deviceId"]?.toString() ?? '';
 
-      // Save device ID to cookies
+      // Save device ID to cookies (your existing logic)
       await DioClient.setDeviceIdCookie(newDeviceId);
 
+      // ALSO save deviceId to SharedPreferences (required)
+      await DevicePrefs.saveDeviceId(newDeviceId);
+      if (!mounted) return;
+
+      // 🔥 If redirect route exists → go there directly
+      if (widget.redirectRoute != null) {
+        context.pushReplacement(widget.redirectRoute!);
+        return;
+      }
+
+      // Default fallback
+      Navigator.pop(context);
 
       setState(() {
         deviceId = newDeviceId;
-        message = "Device Verified! Device ID saved to cookies.";
+        message = "Device Verified! Saved to cookies & SharedPreferences.";
       });
     } catch (e) {
       setState(() {
@@ -98,49 +117,132 @@ class _DeviceOtpScreenState extends State<DeviceOtpScreen> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: AppBar(
-        title: const Text("Device OTP Verification"),
-      ),
-      body: SingleChildScrollView( // Added to prevent overflow
+      appBar: AppBar(title: const Text("Device OTP Verification")),
+      body: SingleChildScrollView(
         padding: const EdgeInsets.all(20),
         child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            TextField(
-              controller: deviceController,
-              decoration: const InputDecoration(
-                labelText: "Device Name / Device Identifier",
+            // --- Generate OTP Button ---
+            SizedBox(
+              width: double.infinity,
+              child: FilledButton.icon(
+                onPressed: loading ? null : generateOtp,
+                icon: loading
+                    ? const SizedBox(
+                        height: 16,
+                        width: 16,
+                        child: CircularProgressIndicator(
+                          strokeWidth: 2,
+                          color: Colors.white,
+                        ),
+                      )
+                    : const Icon(Icons.lock_open),
+                label: const Text("Generate Device OTP"),
               ),
-            ),
-            const SizedBox(height: 20),
-
-            ElevatedButton(
-              onPressed: loading ? null : generateOtp,
-              child: const Text("Generate Device OTP"),
             ),
 
             const SizedBox(height: 30),
 
-            TextField(
-              controller: otpController,
-              decoration: const InputDecoration(
-                labelText: "Enter OTP",
+            // --- OTP Card ---
+            Card(
+              elevation: 2,
+              shape: RoundedRectangleBorder(
+                borderRadius: BorderRadius.circular(12),
+              ),
+              child: Padding(
+                padding: const EdgeInsets.all(20),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    const Text(
+                      "Enter OTP",
+                      style: TextStyle(
+                        fontSize: 18,
+                        fontWeight: FontWeight.bold,
+                      ),
+                    ),
+
+                    const SizedBox(height: 15),
+
+                    LayoutBuilder(
+                      builder: (context, constraints) {
+                        return Container(
+                          width: constraints.maxWidth,
+                          padding: const EdgeInsets.symmetric(horizontal: 10),
+                          child: PinCodeTextField(
+                            length: 6,
+                            appContext: context,
+                            controller: otpController,
+                            keyboardType: TextInputType.number,
+                            animationType: AnimationType.fade,
+                            cursorColor: Colors.black,
+                            textStyle: const TextStyle(
+                              fontSize: 20,
+                              fontWeight: FontWeight.w600,
+                            ),
+
+                            pinTheme: PinTheme(
+                              shape: PinCodeFieldShape.box,
+                              borderRadius: BorderRadius.circular(10),
+                              fieldHeight: 55,
+                              fieldWidth: MediaQuery.of(context).size.width / 9, // FIXED
+                              activeColor: Colors.blue,
+                              selectedColor: Colors.blue,
+                              inactiveColor: Colors.grey.shade400,
+                              activeFillColor: Colors.white,
+                              selectedFillColor: Colors.white,
+                              inactiveFillColor: Colors.grey.shade200,
+                              borderWidth: 1.4,
+                            ),
+
+
+                            enableActiveFill: true,
+                            animationDuration: const Duration(
+                              milliseconds: 200,
+                            ),
+                            onChanged: (_) {},
+                            autoDisposeControllers: false,
+                            backgroundColor: Colors.transparent,
+                          ),
+                        );
+                      },
+                    ),
+
+                    const SizedBox(height: 20),
+
+                    SizedBox(
+                      width: double.infinity,
+                      child: FilledButton(
+                        onPressed: loading ? null : verifyOtp,
+                        child: loading
+                            ? const SizedBox(
+                                height: 16,
+                                width: 16,
+                                child: CircularProgressIndicator(
+                                  strokeWidth: 2,
+                                  color: Colors.white,
+                                ),
+                              )
+                            : const Text("Verify OTP"),
+                      ),
+                    ),
+                  ],
+                ),
               ),
             ),
-            const SizedBox(height: 20),
 
-            ElevatedButton(
-              onPressed: loading ? null : verifyOtp,
-              child: const Text("Verify OTP"),
-            ),
+            const SizedBox(height: 25),
 
-            const SizedBox(height: 30),
             if (message != null)
-              Padding(
-                padding: const EdgeInsets.symmetric(vertical: 10),
+              Center(
                 child: Text(
                   message!,
                   style: TextStyle(
-                    color: message!.contains("Failed") ? Colors.red : Colors.blue,
+                    color: message!.contains("Failed")
+                        ? Colors.red
+                        : Colors.blue,
+                    fontWeight: FontWeight.w600,
                   ),
                   textAlign: TextAlign.center,
                 ),
@@ -152,37 +254,38 @@ class _DeviceOtpScreenState extends State<DeviceOtpScreen> {
                 padding: const EdgeInsets.all(16),
                 decoration: BoxDecoration(
                   color: Colors.green[50],
-                  borderRadius: BorderRadius.circular(8),
+                  borderRadius: BorderRadius.circular(12),
                   border: Border.all(color: Colors.green),
                 ),
                 child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.center,
                   children: [
                     const Text(
-                      "Your Device ID:",
-                      style: TextStyle(fontWeight: FontWeight.bold),
+                      "Your Device ID",
+                      style: TextStyle(
+                        fontWeight: FontWeight.bold,
+                        fontSize: 16,
+                      ),
                     ),
                     const SizedBox(height: 8),
                     Text(
                       deviceId!,
                       style: const TextStyle(
                         color: Colors.green,
-                        fontWeight: FontWeight.w600,
+                        fontWeight: FontWeight.bold,
                         fontSize: 16,
                       ),
                       textAlign: TextAlign.center,
                     ),
-                    const SizedBox(height: 8),
+                    const SizedBox(height: 10),
                     Text(
-                      "✅ Device ID has been saved to cookies and will be sent with all future requests",
-                      style: TextStyle(
-                        color: Colors.green[700],
-                        fontSize: 12,
-                      ),
+                      "Device ID saved to cookies & will be sent with future requests",
+                      style: TextStyle(fontSize: 12, color: Colors.green[700]),
                       textAlign: TextAlign.center,
                     ),
                   ],
                 ),
-              )
+              ),
           ],
         ),
       ),

@@ -5,6 +5,8 @@ import 'package:untitled2/core/utlis/colors/colors.dart';
 import 'package:untitled2/core/utlis/widgets/buttons.dart';
 import 'package:untitled2/core/utlis/widgets/custom_appBar.dart';
 import 'package:untitled2/typeProvider/type_provider.dart';
+import '../../../../../core/utlis/widgets/custom.dart';
+import '../../../../../core/utlis/widgets/image_clipped.dart';
 import '../model/expense_model.dart';
 import '../service/expense_service.dart';
 import 'genericFormScreen.dart';
@@ -261,234 +263,241 @@ class _ExpenseListScreenState extends ConsumerState<ExpenseListScreen> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: AppColors.lightBlue,
-      appBar: CustomAppBar(title: "Expense List"),
-      body: SafeArea(
-        child: Column(
-          children: [
-            // Date Range Filter Section
-            Container(
-              margin: const EdgeInsets.all(16),
-              padding: const EdgeInsets.all(16),
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Row(
+      body: NestedScrollView(
+        headerSliverBuilder: (context, innerBoxIsScrolled) {
+          return [
+            CustomSliverAppBar(title: "Expense List"),
+          ];
+        },
+        body: CornerClippedScreenSimple(
+          child: SafeArea(
+            child: Column(
+              children: [
+                // Date Range Filter Section
+                Container(
+                  margin: const EdgeInsets.all(16),
+                  padding: const EdgeInsets.all(16),
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
-                      // Start Date
-                      Expanded(
-                        child: Column(
-                          crossAxisAlignment: CrossAxisAlignment.start,
-                          children: [
-                            Text("Start Date", style: TextStyle(fontSize: 16)),
-                            Container(
-                              decoration: BoxDecoration(
-                                color: Colors.grey.shade50,
-                                borderRadius: BorderRadius.circular(12),
-                                border: Border.all(color: Colors.grey.shade300),
-                              ),
-                              padding: const EdgeInsets.symmetric(
-                                horizontal: 12,
-                                vertical: 12,
-                              ),
-                              child: GestureDetector(
-                                onTap: () async {
-                                  final date = await showDatePicker(
-                                    context: context,
-                                    initialDate: startDate ?? DateTime.now(),
-                                    firstDate: DateTime(2020),
-                                    lastDate: DateTime.now(),
-                                  );
-                                  if (date != null) {
-                                    setState(() => startDate = date);
-                                    _fetchExpenses();
-                                  }
-                                },
-                                child: Row(
-                                  children: [
-                                    const Icon(
-                                      Icons.calendar_today,
-                                      size: 18,
-                                      color: Colors.grey,
-                                    ),
-                                    const SizedBox(width: 8),
-                                    Expanded(
-                                      child: Text(
-                                        startDate != null
-                                            ? "${startDate!.day}/${startDate!.month}/${startDate!.year}"
-                                            : "Start Date",
-                                        style: TextStyle(
-                                          fontSize: 14,
-                                          color: startDate != null
-                                              ? Colors.black
-                                              : Colors.grey,
-                                        ),
-                                      ),
-                                    ),
-                                  ],
-                                ),
-                              ),
-                            ),
-                          ],
-                        ),
-                      ),
-                      const SizedBox(width: 12),
-                      // End Date
-                      Expanded(
-                        child: Column(
-                          crossAxisAlignment: CrossAxisAlignment.start,
-                          children: [
-                            Text("End Date", style: TextStyle(fontSize: 16)),
-                            Container(
-                              decoration: BoxDecoration(
-                                color: Colors.grey.shade50,
-                                borderRadius: BorderRadius.circular(12),
-                                border: Border.all(color: Colors.grey.shade300),
-                              ),
-                              padding: const EdgeInsets.symmetric(
-                                horizontal: 12,
-                                vertical: 12,
-                              ),
-                              child: GestureDetector(
-                                onTap: () async {
-                                  final date = await showDatePicker(
-                                    context: context,
-                                    initialDate: endDate ?? DateTime.now(),
-                                    firstDate: DateTime(2020),
-                                    lastDate: DateTime.now(),
-                                  );
-                                  if (date != null) {
-                                    setState(() => endDate = date);
-                                    _fetchExpenses();
-                                  }
-                                },
-                                child: Row(
-                                  children: [
-                                    const Icon(
-                                      Icons.calendar_today,
-                                      size: 18,
-                                      color: Colors.grey,
-                                    ),
-                                    const SizedBox(width: 8),
-                                    Expanded(
-                                      child: Text(
-                                        endDate != null
-                                            ? "${endDate!.day}/${endDate!.month}/${endDate!.year}"
-                                            : "End Date",
-                                        style: TextStyle(
-                                          fontSize: 14,
-                                          color: endDate != null
-                                              ? Colors.black
-                                              : Colors.grey,
-                                        ),
-                                      ),
-                                    ),
-                                  ],
-                                ),
-                              ),
-                            ),
-                          ],
-                        ),
-                      ),
-                    ],
-                  ),
-                  if (startDate != null || endDate != null) ...[
-                    const SizedBox(height: 12),
-                    Row(
-                      mainAxisAlignment: MainAxisAlignment.end,
-                      children: [
-                        TextButton(
-                          onPressed: _clearDateFilter,
-                          child: const Text(
-                            "Clear Filter",
-                            style: TextStyle(color: Colors.red),
-                          ),
-                        ),
-                      ],
-                    ),
-                  ],
-                ],
-              ),
-            ),
-
-            // Expense List
-            Expanded(
-              child: isLoading
-                  ? const Center(child: CircularProgressIndicator())
-                  : expenseList.isEmpty
-                  ? Center(
-                      child: Column(
-                        mainAxisAlignment: MainAxisAlignment.center,
+                      Row(
                         children: [
-                          Icon(
-                            Icons.receipt_long,
-                            size: 100,
-                            color: Colors.grey[400],
+                          // Start Date
+                          Expanded(
+                            child: Column(
+                              crossAxisAlignment: CrossAxisAlignment.start,
+                              children: [
+                                Text("Start Date", style: TextStyle(fontSize: 16)),
+                                Container(
+                                  decoration: BoxDecoration(
+                                    color: Colors.grey.shade50,
+                                    borderRadius: BorderRadius.circular(12),
+                                    border: Border.all(color: Colors.grey.shade300),
+                                  ),
+                                  padding: const EdgeInsets.symmetric(
+                                    horizontal: 12,
+                                    vertical: 12,
+                                  ),
+                                  child: GestureDetector(
+                                    onTap: () async {
+                                      final date = await showDatePicker(
+                                        context: context,
+                                        initialDate: startDate ?? DateTime.now(),
+                                        firstDate: DateTime(2020),
+                                        lastDate: DateTime.now(),
+                                      );
+                                      if (date != null) {
+                                        setState(() => startDate = date);
+                                        _fetchExpenses();
+                                      }
+                                    },
+                                    child: Row(
+                                      children: [
+                                        const Icon(
+                                          Icons.calendar_today,
+                                          size: 18,
+                                          color: Colors.grey,
+                                        ),
+                                        const SizedBox(width: 8),
+                                        Expanded(
+                                          child: Text(
+                                            startDate != null
+                                                ? "${startDate!.day}/${startDate!.month}/${startDate!.year}"
+                                                : "Start Date",
+                                            style: TextStyle(
+                                              fontSize: 14,
+                                              color: startDate != null
+                                                  ? Colors.black
+                                                  : Colors.grey,
+                                            ),
+                                          ),
+                                        ),
+                                      ],
+                                    ),
+                                  ),
+                                ),
+                              ],
+                            ),
                           ),
-                          const SizedBox(height: 16),
-                          const Text(
-                            "No expenses found",
-                            style: TextStyle(fontSize: 16, color: Colors.grey),
+                          const SizedBox(width: 12),
+                          // End Date
+                          Expanded(
+                            child: Column(
+                              crossAxisAlignment: CrossAxisAlignment.start,
+                              children: [
+                                Text("End Date", style: TextStyle(fontSize: 16)),
+                                Container(
+                                  decoration: BoxDecoration(
+                                    color: Colors.grey.shade50,
+                                    borderRadius: BorderRadius.circular(12),
+                                    border: Border.all(color: Colors.grey.shade300),
+                                  ),
+                                  padding: const EdgeInsets.symmetric(
+                                    horizontal: 12,
+                                    vertical: 12,
+                                  ),
+                                  child: GestureDetector(
+                                    onTap: () async {
+                                      final date = await showDatePicker(
+                                        context: context,
+                                        initialDate: endDate ?? DateTime.now(),
+                                        firstDate: DateTime(2020),
+                                        lastDate: DateTime.now(),
+                                      );
+                                      if (date != null) {
+                                        setState(() => endDate = date);
+                                        _fetchExpenses();
+                                      }
+                                    },
+                                    child: Row(
+                                      children: [
+                                        const Icon(
+                                          Icons.calendar_today,
+                                          size: 18,
+                                          color: Colors.grey,
+                                        ),
+                                        const SizedBox(width: 8),
+                                        Expanded(
+                                          child: Text(
+                                            endDate != null
+                                                ? "${endDate!.day}/${endDate!.month}/${endDate!.year}"
+                                                : "End Date",
+                                            style: TextStyle(
+                                              fontSize: 14,
+                                              color: endDate != null
+                                                  ? Colors.black
+                                                  : Colors.grey,
+                                            ),
+                                          ),
+                                        ),
+                                      ],
+                                    ),
+                                  ),
+                                ),
+                              ],
+                            ),
                           ),
                         ],
                       ),
-                    )
-                  : ListView.builder(
-                      padding: const EdgeInsets.symmetric(horizontal: 10),
-                      itemCount: expenseList.length,
-                      itemBuilder: (context, index) {
-                        final expense = expenseList[index];
-                        return _ExpenseCard(
-                          expense: expense,
-                          onEdit: () => _navigateToEditExpense(expense),
-                        );
-                      },
-                    ),
-            ),
-
-            // Buttons
-            Padding(
-              padding: const EdgeInsets.all(10),
-              child: Column(
-                children: [
-                  if (expenseList.isNotEmpty) ...[
-
-                    Row(
-                      children: [
-                        Expanded(
-                          child: RoundedButton(
-                            text: "Back",
-                            color: Colors.white,
-                            textColor: Colors.black,
-                            onPressed: () => Navigator.pop(context),
-                          ),
+                      if (startDate != null || endDate != null) ...[
+                        const SizedBox(height: 12),
+                        Row(
+                          mainAxisAlignment: MainAxisAlignment.end,
+                          children: [
+                            TextButton(
+                              onPressed: _clearDateFilter,
+                              child: const Text(
+                                "Clear Filter",
+                                style: TextStyle(color: Colors.red),
+                              ),
+                            ),
+                          ],
                         ),
-                        const SizedBox(width: 10),
-                        Expanded(
-                          child: RoundedButton(
-                            text: "View Options",
-                            color: Colors.blue,
-                            textColor: Colors.white,
-                            onPressed: () => _showViewOptionsModal(),
-                          ),
+                      ],
+                    ],
+                  ),
+                ),
+
+                // Expense List with loader only for the list area
+                Expanded(
+                  child: isLoading
+                      ? const Center(child: CircularProgressIndicator())
+                      : expenseList.isEmpty
+                      ? Center(
+                    child: Column(
+                      mainAxisAlignment: MainAxisAlignment.center,
+                      children: [
+                        Icon(
+                          Icons.receipt_long,
+                          size: 100,
+                          color: Colors.grey[400],
+                        ),
+                        const SizedBox(height: 16),
+                        const Text(
+                          "No expenses found",
+                          style: TextStyle(fontSize: 16, color: Colors.grey),
                         ),
                       ],
                     ),
-                  ] else ...[
-                    ElevatedButton(
-                      onPressed: _showCategoryModal,
-                      child: const Text("Add Expense"),
-                    ),
-                    const SizedBox(height: 10),
-                    OutlinedButton(
-                      onPressed: () => Navigator.pop(context),
-                      child: const Text("Back"),
-                    ),
-                  ],
-                ],
-              ),
+                  )
+                      : ListView.builder(
+                    padding: const EdgeInsets.symmetric(horizontal: 10),
+                    itemCount: expenseList.length,
+                    itemBuilder: (context, index) {
+                      final expense = expenseList[index];
+                      return _ExpenseCard(
+                        expense: expense,
+                        onEdit: () => _navigateToEditExpense(expense),
+                      );
+                    },
+                  ),
+                ),
+
+                // Buttons (always visible)
+                Padding(
+                  padding: const EdgeInsets.all(10),
+                  child: Column(
+                    children: [
+                      if (expenseList.isNotEmpty) ...[
+                        Row(
+                          children: [
+                            Expanded(
+                              child: RoundedButton(
+                                text: "Back",
+                                color: Colors.white,
+                                textColor: Colors.black,
+                                onPressed: () => Navigator.pop(context),
+                              ),
+                            ),
+                            const SizedBox(width: 10),
+                            Expanded(
+                              child: RoundedButton(
+                                text: "View Options",
+                                color: Colors.blue,
+                                textColor: Colors.white,
+                                onPressed: _showViewOptionsModal,
+                              ),
+                            ),
+                          ],
+                        ),
+                      ] else if (!isLoading) ...[
+                        // Only show these buttons when not loading and list is empty
+                        ElevatedButton(
+                          onPressed: _showCategoryModal,
+                          child: const Text("Add Expense"),
+                        ),
+                        const SizedBox(height: 10),
+                        OutlinedButton(
+                          onPressed: () => Navigator.pop(context),
+                          child: const Text("Back"),
+                        ),
+                      ],
+                    ],
+                  ),
+                ),
+              ],
             ),
-          ],
+          ),
         ),
       ),
     );
@@ -603,7 +612,7 @@ class _CategoryModal extends StatelessWidget {
           ),
           const SizedBox(height: 16),
           ...categories.map(
-            (category) => ListTile(
+                (category) => ListTile(
               title: Text(_formatCategoryName(category)),
               onTap: () => onCategorySelected(category),
             ),

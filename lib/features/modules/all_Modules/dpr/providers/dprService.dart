@@ -123,12 +123,12 @@ class DprApi {
   // ----------------------------
   static Future<void> updateDprMaterialQty({
     required Map<String, dynamic> data,
-    required String siteId,
+    required String mechanicalID,
     required String materialId,
   }) async {
     try {
       final response = await DioClient.dio.post(
-        "/site/$siteId/team/$materialId/dpr-mechanical/qty",
+        "/site/$mechanicalID/team/$materialId/dpr-mechanical/qty",
         data: data,
         options: Options(
           headers: {"Content-Type": "application/json"},
@@ -141,12 +141,32 @@ class DprApi {
       if (response.statusCode != 200) {
         throw Exception("Failed to update DPR material qty. Status: ${response.statusCode}");
       }
-    } catch (e, stack) {
-      print("❌ Error updating DPR material qty: $e");
-      print(stack);
-      rethrow;
-    }
-    Future<Map<String, dynamic>> fetchMaterialById({
+    }  catch (e, stack) {
+  if (e is DioException) {
+  final status = e.response?.statusCode;
+  final url = e.requestOptions.uri.toString();
+  final method = e.requestOptions.method;
+  final data = e.response?.data;
+  final msg = e.message;
+
+  print("🔥 DPR MATERIAL QTY UPDATE FAILED");
+  print("👉 URL: $url");
+  print("👉 METHOD: $method");
+  print("👉 STATUS: $status");
+  print("👉 BACKEND RESPONSE: ${data ?? 'No response body'}");
+  print("👉 DIO MESSAGE: $msg");
+  print("👉 STACK:");
+  print(stack);
+
+  throw Exception("DPR Qty Update failed — status $status — response: $data");
+  }
+
+  print("❌ UNKNOWN ERROR: $e");
+  print(stack);
+  rethrow;
+  }
+
+  Future<Map<String, dynamic>> fetchMaterialById({
       required String mechanicalId,
       required String editDprId,
     }) async {

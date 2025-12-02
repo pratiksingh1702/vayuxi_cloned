@@ -46,22 +46,88 @@ class AuthAPI {
   // EXISTING METHODS (UNTOUCHED)
   // -----------------------------------------------------
 
+
   static Future<Map<String, dynamic>> signup(Map<String, dynamic> data) async {
-    final res = await dio.post("/auth/signup", data: data);
-    return res.data;
+    try {
+      print("🚀 SIGNUP API - Sending data: $data");
+
+      // Remove null values like React Native does
+      final cleanData = Map<String, dynamic>.from(data);
+      cleanData.removeWhere((key, value) => value == null);
+
+      final res = await dio.post(
+        "/auth/signup", // Make sure path matches
+        data: cleanData,
+        options: Options(
+          headers: {
+            'Content-Type': 'application/json',
+          },
+        ),
+      );
+
+      print("✅ SIGNUP API - Success: ${res.statusCode}");
+      print("📦 SIGNUP API - Response: ${res.data}");
+
+      return res.data;
+    } on DioException catch (e) {
+      print("❌ SIGNUP API - Dio Error: ${e.message}");
+      print("❌ SIGNUP API - Response: ${e.response?.data}");
+      print("❌ SIGNUP API - Status: ${e.response?.statusCode}");
+
+      // Extract error message like React Native
+      final errorData = e.response?.data;
+      String errorMessage = "Registration failed";
+
+      if (errorData is Map) {
+        errorMessage = errorData['message'] ??
+            errorData['error'] ??
+            "Registration failed";
+      } else if (errorData is String) {
+        errorMessage = errorData;
+      }
+
+      throw Exception(errorMessage);
+    } catch (e) {
+      print("❌ SIGNUP API - General Error: $e");
+      rethrow;
+    }
   }
 
+  // Also update your OTP methods to match React Native
   static Future<Map<String, dynamic>> generateEmailOtp(String email) async {
-    final res =
-    await dio.post("/auth/generate-email-otp", data: {"email": email});
-    return res.data;
+    try {
+      final res = await dio.post(
+          "/auth/generate-email-otp",
+          data: {"email": email}
+      );
+      return res.data;
+    } on DioException catch (e) {
+      final errorData = e.response?.data;
+      String errorMessage = "Failed to send OTP";
+
+      if (errorData is Map) {
+        errorMessage = errorData['message'] ?? errorData['error'] ?? errorMessage;
+      }
+      throw Exception(errorMessage);
+    }
   }
 
-  static Future<Map<String, dynamic>> verifyEmailOtp(
-      String email, String otp) async {
-    final res = await dio
-        .post("/auth/verify-email-otp", data: {"email": email, "otp": otp});
-    return res.data;
+  static Future<Map<String, dynamic>> verifyEmailOtp(String email, String otp) async {
+    try {
+      final res = await dio.post(
+          "/auth/verify-email-otp",
+          data: {"email": email, "otp": otp}
+      );
+      return res.data;
+    } on DioException catch (e) {
+      final errorData = e.response?.data;
+      String errorMessage = "OTP verification failed";
+
+      if (errorData is Map) {
+        errorMessage = errorData['message'] ?? errorData['error'] ?? errorMessage;
+      }
+      throw Exception(errorMessage);
+    }
   }
 
   static Future<Map<String, dynamic>> generateLoginOtp(String email) async {

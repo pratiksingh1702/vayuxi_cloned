@@ -4,9 +4,12 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:image_picker/image_picker.dart';
 import 'package:untitled2/core/utlis/colors/colors.dart';
+import 'package:untitled2/core/utlis/widgets/Button_wrapper.dart';
 import 'package:untitled2/core/utlis/widgets/custom_appBar.dart';
+import 'package:untitled2/typeProvider/type_provider.dart';
 
 import '../../../../../core/utlis/widgets/buttons.dart';
+import '../../../../../core/utlis/widgets/custom.dart';
 import '../../../../../core/utlis/widgets/fields/custom_textField.dart';
 import '../../../../../core/utlis/widgets/fields/phone_number_field.dart';
 import '../../../../../core/utlis/widgets/file_upload.dart';
@@ -33,9 +36,12 @@ class _SiteDetailScreenState extends ConsumerState<SiteDetailScreen> {
   late TextEditingController phoneController;
   late TextEditingController emailController;
   late TextEditingController documentNumberController;
+  late TextEditingController dateController;
 
   File? selectedImage;
   bool isLoading = false;
+  DateTime selectedDate = DateTime.now();
+
 
   @override
   void initState() {
@@ -52,6 +58,7 @@ class _SiteDetailScreenState extends ConsumerState<SiteDetailScreen> {
     documentNumberController = TextEditingController(
       text: site?.documentNumber ?? "",
     );
+    dateController = TextEditingController(text: selectedDate.toString());
   }
 
   Future<void> pickImage() async {
@@ -59,6 +66,22 @@ class _SiteDetailScreenState extends ConsumerState<SiteDetailScreen> {
     final pickedFile = await picker.pickImage(source: ImageSource.gallery);
     if (pickedFile != null) {
       setState(() => selectedImage = File(pickedFile.path));
+    }
+  }
+
+  Future<void> _selectDate() async {
+    final DateTime? picked = await showDatePicker(
+      context: context,
+      initialDate: DateTime.now(),
+      firstDate: DateTime(2000),
+      lastDate: DateTime(2100),
+    );
+
+    if (picked != null) {
+      final formattedDate = "${picked.day}/${picked.month}/${picked.year}";
+      setState(() {
+        dateController.text = formattedDate;
+      });
     }
   }
 
@@ -75,6 +98,7 @@ class _SiteDetailScreenState extends ConsumerState<SiteDetailScreen> {
         "gstNo": gstNoController.text,
         "emailId": emailController.text,
         "documentNumber": documentNumberController.text,
+        "selectedDate": dateController.text, // Add date to form data
         "company": widget.site?.company ?? "",
         "type": widget.site?.type ?? "mechanical_work",
       });
@@ -92,7 +116,8 @@ class _SiteDetailScreenState extends ConsumerState<SiteDetailScreen> {
       }
 
       if (widget.site == null) {
-        // await SiteAPI.createSite(formData);
+        final type = ref.read(typeProvider);
+        await SiteAPI.createSite(formData as Map<String, dynamic>, type!);
       } else {
         await SiteAPI.updateSite(widget.site!.id, formData);
       }
@@ -118,98 +143,110 @@ class _SiteDetailScreenState extends ConsumerState<SiteDetailScreen> {
     final site = widget.site;
 
     return Scaffold(
-      backgroundColor: AppColors.lightBlue,
-      appBar: CustomAppBar(title: site?.siteName ?? "New Site"),
-      body: SingleChildScrollView(
-        physics: const BouncingScrollPhysics(),
-        padding: const EdgeInsets.all(16),
-        child: Form(
-          key: _formKey,
-          child: Column(
-            children: [
-              // Image Upload
-              Align(
-                alignment: Alignment.topLeft,
-                child: Text("Upload Image"
-                ,
-                style: TextStyle(
-                  fontSize: 22,
-                  fontWeight: FontWeight.w500,
-                  color: Colors.black87,
-                ),)
-                ,
+      body: NestedScrollView(
+        headerSliverBuilder: (context, innerBoxIsScrolled) {
+          return [CustomSliverAppBar(title: site?.siteName ?? "New Site")];
+        },
+        body: BottomButtonWrapper(
+          customButtons: [
+            CustomButton(
+              button: RoundedButton(
+                text: "Save & Submit",
+                color: Colors.blue,
+                textColor: Colors.white,
+                onPressed: saveSite,
               ),
-              UploadBox(
-                title: "Rate.XLS",
-                subtitle: "Upload file\nXLS, CSV, HTML (MAX 10MB)",
-                buttonText: "Choose File",
-                onPressed: () {
-                  pickImage(); // reuse your existing image picker logic here
-                },
-              ),
-
-              const SizedBox(height: 24),
-
-
-              const SizedBox(height: 12),
-              CustomTextField(
-                label: "Site Name",
-                controller: siteNameController,
-                TextSize: 22,
-              ),
-              CustomTextField(label: "GST Number", controller: gstNoController,TextSize: 22,),
-              CustomTextField(
-                label: "Address",
-                controller: addressController,
-                TextSize: 22,
-                maxLines: 3,
-              ),
-
-              const SizedBox(height: 24),
-
-              CustomTextField(
-                label: "Contact Person",
-                controller: contactPersonController,
-                TextSize: 22,
-              ),
-              PhoneInputField(controller: phoneController),
-              CustomTextField(
-                label: "Email ID",
-                controller: emailController,
-                keyboardType: TextInputType.emailAddress,
-                TextSize: 22,
-              ),
-
-
-              const SizedBox(height: 12),
-              CustomTextField(
-                label: "AMC Number",
-                controller: documentNumberController,
-                TextSize: 22,
-              ),
-
-              const SizedBox(height: 28),
-
-              Row(
+            ),
+          ],
+          child: SingleChildScrollView(
+            physics: const BouncingScrollPhysics(),
+            padding: const EdgeInsets.all(16),
+            child: Form(
+              key: _formKey,
+              child: Column(
                 children: [
-                  RoundedButton(
-                    text: "Back",
-                    color: Colors.black,
-                    textColor: Colors.black,
-                    isOutlined: true,
-                    onPressed: () => Navigator.pop(context),
+                  // Image Upload
+                  Align(
+                    alignment: Alignment.topLeft,
+                    child: Text(
+                      "Upload Image",
+                      style: TextStyle(
+                        fontSize: 22,
+                        fontWeight: FontWeight.w500,
+                        color: Colors.black87,
+                      ),
+                    ),
                   ),
-                  const SizedBox(width: 12),
-                  RoundedButton(
-                    text: "Save & Submit",
-                    color: Colors.blue,
-                    textColor: Colors.white,
-                    onPressed: saveSite,
+                  UploadBox(
+                    title: "Select Site Image",
+                    subtitle: "Upload file (XLS, CSV, HTML (MAX 10MB))",
+                    buttonText: "Choose File",
+                    onPressed: () {
+                      pickImage(); // reuse your existing image picker logic here
+                    },
                   ),
-                ],
-              )
 
-            ],
+                  const SizedBox(height: 24),
+
+                  const SizedBox(height: 12),
+                  CustomTextField(
+                    label: "Site Name",
+                    controller: siteNameController,
+                    TextSize: 22,
+                  ),
+                  CustomTextField(
+                    label: "GST Number",
+                    controller: gstNoController,
+                    TextSize: 22,
+                  ),
+                  CustomTextField(
+                    label: "Address",
+                    controller: addressController,
+                    TextSize: 22,
+                    maxLines: 3,
+                  ),
+
+                  const SizedBox(height: 24),
+
+                  CustomTextField(
+                    label: "Contact Person",
+                    controller: contactPersonController,
+                    TextSize: 22,
+                  ),
+                  PhoneInputField(controller: phoneController),
+                  CustomTextField(
+                    label: "Email ID",
+                    controller: emailController,
+                    keyboardType: TextInputType.emailAddress,
+                    TextSize: 22,
+                  ),
+
+                  const SizedBox(height: 12),
+
+                  // Date Selection Field
+                  GestureDetector(
+                    onTap: _selectDate,
+                    child: AbsorbPointer(
+                      child: CustomTextField(
+                        label: "Select Date",
+                        controller: dateController,
+                        TextSize: 22,
+                        prefixIcon: Icon(Icons.calendar_today, color: Colors.grey[600]),
+                        hint: "DD/MM/YYYY",
+                      ),
+                    ),
+                  ),
+
+                  CustomTextField(
+                    label: "AMC Number",
+                    controller: documentNumberController,
+                    TextSize: 22,
+                  ),
+
+                  const SizedBox(height: 28),
+                ],
+              ),
+            ),
           ),
         ),
       ),

@@ -2,7 +2,11 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:untitled2/core/utlis/colors/colors.dart';
+import 'package:untitled2/core/utlis/widgets/Button_wrapper.dart';
 import 'package:untitled2/core/utlis/widgets/custom_appBar.dart';
+import 'package:untitled2/features/modules/all_Modules/dpr/screens/widgets/size_Selection.dart';
+import '../../../../../../core/utlis/widgets/buttons.dart';
+import '../../../../../../core/utlis/widgets/custom.dart';
 import '../../models/floorModel.dart';
 import '../../providers/floorProvider.dart';
 
@@ -82,125 +86,112 @@ class _FloorSelectionPageState extends ConsumerState<FloorSelectionPage> {
     final filteredFloors = _getFilteredFloors(floorState.floorList);
 
     return Scaffold(
-      backgroundColor: AppColors.lightBlue,
-      appBar:CustomAppBar(title: "Select Floor"),
-      body: Column(
-        children: [
-          // Search Bar
-          if (widget.showSearch)
-            Padding(
-              padding: const EdgeInsets.all(16),
-              child: TextField(
-                controller: _searchController,
-                decoration: InputDecoration(
-                  hintText: 'Search floors...',
-                  prefixIcon: const Icon(Icons.search),
-                  border: OutlineInputBorder(
-                    borderRadius: BorderRadius.circular(12),
-                  ),
-                  suffixIcon: _searchQuery.isNotEmpty
-                      ? IconButton(
-                    icon: const Icon(Icons.clear),
-                    onPressed: () {
-                      _searchController.clear();
-                      setState(() {
-                        _searchQuery = '';
-                      });
-                    },
-                  )
-                      : null,
-                ),
-                onChanged: (value) {
-                  setState(() {
-                    _searchQuery = value;
-                  });
-                },
-              ),
-            ),
 
-          // Floors Grid
-          Expanded(
-            child: floorState.isLoading
-                ? const Center(child: CircularProgressIndicator())
-                : floorState.error != null
-                ? Center(
-              child: Column(
-                mainAxisAlignment: MainAxisAlignment.center,
-                children: [
-                  Text('Error: ${floorState.error}'),
-                  const SizedBox(height: 16),
-                  ElevatedButton(
-                    onPressed: () {
-                      ref.read(floorProvider.notifier).loadFloors();
-                    },
-                    child: const Text('Retry'),
-                  ),
-                ],
-              ),
-            )
-                : filteredFloors.isEmpty
-                ? Center(
-              child: Column(
-                mainAxisAlignment: MainAxisAlignment.center,
-                children: [
-                  const Icon(Icons.search_off, size: 64, color: Colors.grey),
-                  const SizedBox(height: 16),
-                  Text(
-                    _searchQuery.isEmpty
-                        ? 'No floors available'
-                        : 'No floors found for "$_searchQuery"',
-                    style: const TextStyle(fontSize: 16),
-                  ),
-                ],
-              ),
-            )
-                : Padding(
-              padding: const EdgeInsets.all(16),
-              child: GridView.builder(
-                gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
-                  crossAxisCount: 2,
-                  crossAxisSpacing: 16,
-                  mainAxisSpacing: 16,
-                  childAspectRatio: 0.9,
-                ),
-                itemCount: filteredFloors.length,
-                itemBuilder: (context, index) {
-                  final floor = filteredFloors[index];
-                  return FloorCard(
-                    floor: floor,
-                    isSelected: selectedFloor?.id == floor.id,
-                    showEditButton: widget.showEditOptions,
-                    onTap: () {
-                      ref.read(floorProvider.notifier).selectFloor(floor);
-                      if (widget.onFloorSelected != null) {
-                        widget.onFloorSelected!(floor);
-                      }
-                      // If this is a selection screen, pop back
-                      if (widget.onFloorSelected != null) {
-                        Navigator.push(
-                          context,
-                          MaterialPageRoute(
-                            builder: (context) => AddDescriptionScreen(
-                              siteId:widget.siteId,
-                              teamId: widget.teamId,
-                              teamName: widget.teamName,
-                            ),
-                          ),
-                        );
-                      }
-                    },
-                    onEdit: () {
-                      _showAddEditFloorDialog(context, floor: floor);
-                    },
-                    onDelete: () {
-                      _showDeleteConfirmationDialog(context, floor);
-                    },
+      body: NestedScrollView(
+        headerSliverBuilder: (context, innerBoxIsScrolled) {
+          return [
+            CustomSliverAppBar(title: "Floor List"),
+          ];
+        },
+        body: BottomButtonWrapper(
+          customButtons: [
+            CustomButton(
+              button: RoundedButton(
+                text: "Save & Continue",
+                color:  Colors.blue,
+                textColor: Colors.white,
+                onPressed: (){selectedFloor == null
+                    ? null
+                    :
+                  Navigator.push(
+                    context,
+                    MaterialPageRoute(
+                      builder: (context) => SizeSelectionPage(),
+                    ),
                   );
                 },
               ),
-            ),
+            )
+          ],
+          child: Column(
+            children: [
+              // your search bar + grid stays untouched
+              Expanded(
+                child: floorState.isLoading
+                    ? const Center(child: CircularProgressIndicator())
+                    : floorState.error != null
+                    ? Center(
+                  child: Column(
+                    mainAxisAlignment: MainAxisAlignment.center,
+                    children: [
+                      Text('Error: ${floorState.error}'),
+                      const SizedBox(height: 16),
+                      ElevatedButton(
+                        onPressed: () {
+                          ref.read(floorProvider.notifier).loadFloors();
+                        },
+                        child: const Text('Retry'),
+                      ),
+                    ],
+                  ),
+                )
+                    : filteredFloors.isEmpty
+                    ? Center(
+                  child: Column(
+                    mainAxisAlignment: MainAxisAlignment.center,
+                    children: [
+                      const Icon(Icons.search_off,
+                          size: 64, color: Colors.grey),
+                      const SizedBox(height: 16),
+                      Text(
+                        _searchQuery.isEmpty
+                            ? 'No floors available'
+                            : 'No floors found for "$_searchQuery"',
+                        style: const TextStyle(fontSize: 16),
+                      ),
+                    ],
+                  ),
+                )
+                    : Padding(
+                  padding: const EdgeInsets.all(16),
+                  child: GridView.builder(
+                    gridDelegate:
+                    const SliverGridDelegateWithFixedCrossAxisCount(
+                      crossAxisCount: 2,
+                      crossAxisSpacing: 16,
+                      mainAxisSpacing: 16,
+                      childAspectRatio: 0.9,
+                    ),
+                    itemCount: filteredFloors.length,
+                    itemBuilder: (context, index) {
+                      final floor = filteredFloors[index];
+                      return FloorCard(
+                        floor: floor,
+                        isSelected: selectedFloor?.id == floor.id,
+                        showEditButton: widget.showEditOptions,
+                        onTap: () {
+                          // JUST select. Nothing else.
+                          ref
+                              .read(floorProvider.notifier)
+                              .selectFloor(floor);
+                        },
+                        onEdit: () {
+                          _showAddEditFloorDialog(context,
+                              floor: floor);
+                        },
+                        onDelete: () {
+                          _showDeleteConfirmationDialog(
+                              context, floor);
+                        },
+                      );
+                    },
+                  ),
+                ),
+              ),
+            ],
           ),
-        ],
+        ),
+
       ),
     );
   }
@@ -255,7 +246,7 @@ class _FloorSelectionPageState extends ConsumerState<FloorSelectionPage> {
 
               if (name.isEmpty || code.isEmpty || image.isEmpty) {
                 ScaffoldMessenger.of(context).showSnackBar(
-                  const SnackBar(content: Text('Please fill all fields')),
+                  const SnackBar(content: Text('Please fill all fields'),behavior: SnackBarBehavior.floating,),
                 );
                 return;
               }

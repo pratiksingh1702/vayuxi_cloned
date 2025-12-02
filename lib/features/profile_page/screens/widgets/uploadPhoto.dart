@@ -26,7 +26,7 @@ class UploadPhotoButton extends StatelessWidget {
               width: size,
               height: size,
               decoration: BoxDecoration(
-                shape: BoxShape.circle,
+                shape: BoxShape.rectangle,
                 border: Border.all(
                   color: Colors.grey.shade400,
                   width: 2,
@@ -77,7 +77,7 @@ class UploadPhotoButton extends StatelessWidget {
     }
 
     if (imagePath!.startsWith('http')) {
-      return ClipOval(
+      return ClipRect(
         child: Image.network(
           imagePath!,
           fit: BoxFit.cover,

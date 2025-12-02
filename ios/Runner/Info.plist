@@ -2,9 +2,26 @@
 <!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
 <plist version="1.0">
 <dict>
+
 	<key>CFBundleDevelopmentRegion</key>
+	<key>NSCameraUsageDescription</key>
+    <string>This app requires camera access.</string>
+    <key>NSPhotoLibraryUsageDescription</key>
+    <string>This app requires photo library access.</string>
+    <key>NSPhotoLibraryAddUsageDescription</key>
+    <string>This app saves photos to your library.</string>
+    <key>NSMicrophoneUsageDescription</key>
+    <string>This app uses the microphone.</string>
 	<string>$(DEVELOPMENT_LANGUAGE)</string>
+	<key>NSDocumentsFolderUsageDescription</key>
+    <string>This app needs access to files.</string>
+    <key>NSUserTrackingUsageDescription</key>
+    <string>This app tracks usage for better experience.</string>
+    <key>FirebaseAppDelegateProxyEnabled</key>
+    <true/>
 	<key>CFBundleDisplayName</key>
+	<string>Vayuxi</string>
+    <string>This app uses your location.</string>
 	<string>Untitled2</string>
 	<key>CFBundleExecutable</key>
 	<string>$(EXECUTABLE_NAME)</string>
@@ -13,7 +30,7 @@
 	<key>CFBundleInfoDictionaryVersion</key>
 	<string>6.0</string>
 	<key>CFBundleName</key>
-	<string>untitled2</string>
+	<string>Vayuxi</string>
 	<key>CFBundlePackageType</key>
 	<string>APPL</string>
 	<key>CFBundleShortVersionString</key>

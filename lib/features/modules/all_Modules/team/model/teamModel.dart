@@ -8,6 +8,7 @@ class TeamModel {
   final String type;
   final String? createdAt;
   final String? updatedAt;
+  final String? teamLeadImage; // New field
 
   TeamModel({
     required this.id,
@@ -19,6 +20,7 @@ class TeamModel {
     required this.type,
     this.createdAt,
     this.updatedAt,
+    this.teamLeadImage,
   });
 
   factory TeamModel.fromJson(Map<String, dynamic> json) {
@@ -32,6 +34,7 @@ class TeamModel {
       type: json['type'] ?? '',
       createdAt: json['createdAt'],
       updatedAt: json['updatedAt'],
+      teamLeadImage: json['teamLeadImage']?.toString(), // Safely handle nullable field
     );
   }
 
@@ -46,6 +49,7 @@ class TeamModel {
       'type': type,
       'createdAt': createdAt,
       'updatedAt': updatedAt,
+      'teamLeadImage': teamLeadImage, // Include it in JSON
     };
   }
 }

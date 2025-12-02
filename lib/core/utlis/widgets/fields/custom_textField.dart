@@ -8,6 +8,8 @@ class CustomTextField extends StatelessWidget {
   final double? TextSize;
   final TextEditingController? controller;
   final TextInputType keyboardType;
+  final Widget? prefixIcon;
+  final String? Function(String?)? validator;
 
   const CustomTextField({
     super.key,
@@ -16,8 +18,10 @@ class CustomTextField extends StatelessWidget {
     this.isRequired = false,
     this.maxLines = 1,
     this.controller,
-    this.TextSize=14,
+    this.TextSize = 14,
     this.keyboardType = TextInputType.text,
+    this.prefixIcon,
+    this.validator,
   });
 
   @override
@@ -30,12 +34,10 @@ class CustomTextField extends StatelessWidget {
           RichText(
             text: TextSpan(
               text: label,
-
               style: TextStyle(
-                fontSize:TextSize,
+                fontSize: TextSize,
                 fontWeight: FontWeight.w500,
                 color: Colors.black87,
-
               ),
               children: [
                 if (isRequired)
@@ -47,7 +49,7 @@ class CustomTextField extends StatelessWidget {
             ),
           ),
           const SizedBox(height: 6),
-          TextField(
+          TextFormField(
             controller: controller,
             keyboardType: keyboardType,
             maxLines: maxLines,
@@ -55,6 +57,7 @@ class CustomTextField extends StatelessWidget {
               hintText: hint ?? 'Input Text',
               filled: true,
               fillColor: Colors.white,
+              prefixIcon: prefixIcon,
               contentPadding:
               const EdgeInsets.symmetric(horizontal: 12, vertical: 14),
               border: OutlineInputBorder(
@@ -70,6 +73,19 @@ class CustomTextField extends StatelessWidget {
                 borderSide: const BorderSide(color: Colors.blueAccent),
               ),
             ),
+            validator: (value) {
+              // required validation
+              if (isRequired && (value == null || value.trim().isEmpty)) {
+                return 'This field is required';
+              }
+
+              // user custom validation
+              if (validator != null) {
+                return validator!(value);
+              }
+
+              return null;
+            },
           ),
         ],
       ),

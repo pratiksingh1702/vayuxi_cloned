@@ -1,0 +1,103 @@
+import 'package:flutter/material.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
+import '../../../../../core/utlis/colors/colors.dart';
+import '../../../../../core/utlis/widgets/custom_appBar.dart';
+import '../../site_Details/providers/site_current_provider.dart';
+import '../models/inventory_Model.dart';
+import '../provider/inventory_provider.dart';
+import 'edit_inventory.dart';
+
+
+class InventoryListScreen extends ConsumerStatefulWidget {
+  const InventoryListScreen({super.key});
+
+  @override
+  ConsumerState<InventoryListScreen> createState() => _InventoryListScreenState();
+}
+
+class _InventoryListScreenState extends ConsumerState<InventoryListScreen> {
+  String _search = "";
+
+  @override
+  Widget build(BuildContext context) {
+    final siteId = ref.watch(selectedSiteIdProvider);
+    final inventoryAsync = ref.watch(allInventoryProvider(siteId!));
+
+    return Scaffold(
+      appBar: CustomAppBar(title: "Inventory List"),
+      backgroundColor: AppColors.lightBlue,
+      body: Column(
+        children: [
+          // ----- SEARCH -----
+          Padding(
+            padding: const EdgeInsets.all(12),
+            child: TextField(
+              decoration: InputDecoration(
+                hintText: "Search item...",
+                prefixIcon: const Icon(Icons.search),
+                fillColor: Colors.white,
+                filled: true,
+
+                border: OutlineInputBorder(
+                  borderRadius: BorderRadius.circular(38),
+                  borderSide: BorderSide.none,
+                ),
+              ),
+              onChanged: (v) => setState(() => _search = v.trim().toLowerCase()),
+            ),
+          ),
+
+          Expanded(
+            child: inventoryAsync.when(
+              loading: () => const Center(child: CircularProgressIndicator()),
+              error: (e, _) => Center(child: Text("Failed to load inventory")),
+              data: (inventoryList) {
+                final filtered = inventoryList.where((item) {
+                  return item.itemName.toLowerCase().contains(_search);
+                }).toList();
+
+                if (filtered.isEmpty) {
+                  return const Center(child: Text("No inventory found"));
+                }
+
+                return ListView.builder(
+                  itemCount: filtered.length,
+                  itemBuilder: (_, i) {
+                    final inventory = filtered[i];
+
+                    return Card(
+                      elevation: 0,
+                      color: Colors.white,
+                      margin: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+                      child: ListTile(
+                        title: Text(inventory.itemName),
+                        subtitle: Text(
+                          "Qty: ${inventory.totalQuantityAdded} | Min: ${inventory.minimumStockLevel} | UOM: ${inventory.uom}",
+                        ),
+                        trailing: const Icon(Icons.mode_edit_outline_outlined),
+                        onTap: () async {
+                          final updated = await Navigator.push(
+                            context,
+                            MaterialPageRoute(
+                              builder: (_) => EditInventoryScreen(inventory: inventory),
+                            ),
+                          );
+
+                          if (updated == true) {
+                            // 🔥 Refresh API
+                            ref.invalidate(allInventoryProvider);
+                          }
+
+                        },
+                      ),
+                    );
+                  },
+                );
+              },
+            ),
+          )
+        ],
+      ),
+    );
+  }
+}

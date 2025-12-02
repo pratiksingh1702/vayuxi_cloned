@@ -18,7 +18,7 @@ class CustomAppBar extends StatelessWidget implements PreferredSizeWidget {
 
         image: DecorationImage(
           image: AssetImage(
-            "assets/images/Firefly_A seamless pattern on a white background, featuring various simple, breathable, blue  303856.jpg",
+            "assets/images/Firefly_A seamless pattern on a white background, featuring various simple, breathable, blue  303856.webp",
           ),
           fit: BoxFit.cover,
         ),
@@ -35,12 +35,19 @@ class CustomAppBar extends StatelessWidget implements PreferredSizeWidget {
           bottom: 10,
         ),
         child: Center(
-          child: Text(
-            title,
-            style: const TextStyle(
-              fontSize: 20,
-              fontWeight: FontWeight.bold,
-              color: Colors.black,
+          child: Padding(
+            padding: const EdgeInsets.all(8.0),
+            child: Text(
+              title,
+              maxLines: 1,
+              textAlign: TextAlign.center,
+              overflow: TextOverflow.ellipsis,
+              style: const TextStyle(
+                fontSize: 20,
+
+                fontWeight: FontWeight.bold,
+                color: Colors.black,
+              ),
             ),
           ),
         ),

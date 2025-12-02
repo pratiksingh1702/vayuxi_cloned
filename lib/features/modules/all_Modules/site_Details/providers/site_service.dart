@@ -1,3 +1,5 @@
+import 'dart:io';
+
 import 'package:dio/dio.dart';
 
 import '../../../../../core/api/dio.dart';
@@ -41,6 +43,36 @@ class SiteAPI {
     }
   }
 
+  static Future<void> uploadFile(File file, String type, {String? siteId}) async {
+    final formData = FormData.fromMap({
+      'file': await MultipartFile.fromFile(
+        file.path,
+        filename: file.path.split('/').last,
+      ),
+    });
+
+    try {
+      final response = await dio.post(
+        '/site/ocr',
+        queryParameters: {
+          "type": type,
+          if (siteId != null) "siteId": siteId,
+        },
+        data: formData,
+        options: Options(
+          headers: {
+            'Content-Type': 'multipart/form-data',
+          },
+        ),
+      );
+
+      print('Response: ${response.data}');
+      return response.data; // Consider returning the response data
+    } catch (e) {
+      print('Error: $e');
+      rethrow; // Consider rethrowing to handle errors at call site
+    }
+  }
 
   static Future<Map<String, dynamic>> createSite(
       Map<String, dynamic> data, String type) async {

@@ -7,6 +7,7 @@ import 'package:untitled2/core/utlis/widgets/custom_appBar.dart';
 import 'package:untitled2/features/modules/all_Modules/dpr/screens/widgets/moc_selection_page.dart';
 import '../../../../../core/utlis/widgets/buttons.dart';
 import '../../../../../core/utlis/widgets/custom.dart';
+import '../../../../../core/utlis/widgets/image_clipped.dart';
 import '../../../../../typeProvider/type_provider.dart';
 import '../../site_Details/repository/siteModel.dart';
 
@@ -33,12 +34,29 @@ class _DprTeamScreenState extends ConsumerState<DprTeamScreen> {
   @override
   void initState() {
     super.initState();
-    _refreshTeams();
+
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      final selectedTeam = ref.read(selectedTeamProvider);
+      if (selectedTeam != null) {
+        context.pushReplacement('/moc-selection', extra: {
+          'siteId': widget.site.id,
+          'teamId': selectedTeam.id,
+          'teamName': selectedTeam.teamName,
+        });
+
+      } else {
+        // Load teams only if team is not preselected
+        final type = ref.read(typeProvider);
+        ref.read(teamProvider.notifier).getTeams(type!, widget.site.id);
+      }
+    });
   }
+
 
   @override
   Widget build(BuildContext context) {
     final teamState = ref.watch(teamProvider);
+
 
     return Scaffold(
       backgroundColor: AppColors.lightBlue,
@@ -46,130 +64,147 @@ class _DprTeamScreenState extends ConsumerState<DprTeamScreen> {
       body: NestedScrollView(
         headerSliverBuilder: (context, innerBoxIsScrolled) {
           return [
-            CustomSliverAppBar(title: "Employee List"),
+            CustomSliverAppBar(title: "Select Your Team"),
           ];
         },
 
-        body: teamState.when(
-          data: (teams) => Column(
-            children: [
-              // Teams grid with expanded to take available space
-              Expanded(
-                child: LiquidPullToRefresh(
-                  onRefresh: _refreshTeams,
-                  height: 200,
-                  backgroundColor: Colors.blue,
-                  color: Colors.white,
-                  animSpeedFactor: 2.0,
-                  showChildOpacityTransition: true,
-                  child: GridView.builder(
-                    padding: const EdgeInsets.all(12),
-                    gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
-                      crossAxisCount: 2,
-                      crossAxisSpacing: 12,
-                      mainAxisSpacing: 12,
-                      childAspectRatio: 1.2,
-                    ),
-                    itemCount: teams.length,
-                    itemBuilder: (context, index) {
-                      final team = teams[index];
-                      return InkWell(
-                        onTap: () {
-                          // Navigator.push(
-                          //   context,
-                          //   MaterialPageRoute(
-                          //     builder: (context) => AddDescriptionScreen(
-                          //       siteId: widget.site.id,
-                          //       teamId: team.id,
-                          //       teamName: team.teamName,
-                          //     ),
-                          //   ),
-                          // );
-                          Navigator.push(
-                            context,
-                            MaterialPageRoute(
-                              builder: (context) => MOCSelectionPage(
-                                siteId: widget.site.id,
-                                teamId: team.id,
-                                teamName: team.teamName,
-                                onMOCSelected: (selectedMOC) {
-                                  print('Selected MOC: ${selectedMOC.name}');
-                                },
+        body: CornerClippedScreenSimple(
+          child: teamState.when(
+            data: (teams) => Column(
+              children: [
+                // Teams grid with expanded to take available space
+                Expanded(
+                  child: LiquidPullToRefresh(
+                    onRefresh: _refreshTeams,
+                    height: 200,
+                    backgroundColor: Colors.blue,
+                    color: Colors.white,
+                    animSpeedFactor: 2.0,
+                    showChildOpacityTransition: true,
+                    child: GridView.builder(
+                      padding: const EdgeInsets.all(12),
+                      gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
+                        crossAxisCount: 2,
+                        crossAxisSpacing: 12,
+                        mainAxisSpacing: 12,
+                        childAspectRatio: 1.2,
+                      ),
+                      itemCount: teams.length,
+                      itemBuilder: (context, index) {
+                        final team = teams[index];
+                        return InkWell(
+                          onTap: () {
+                            ref.read(selectedTeamIdProvider.notifier).state = team.id;
+                            // Navigator.push(
+                            //   context,
+                            //   MaterialPageRoute(
+                            //     builder: (context) => AddDescriptionScreen(
+                            //       siteId: widget.site.id,
+                            //       teamId: team.id,
+                            //       teamName: team.teamName,
+                            //     ),
+                            //   ),
+                            // );
+                            Navigator.push(
+                              context,
+                              MaterialPageRoute(
+                                builder: (context) => MOCSelectionPage(
+                                  siteId: widget.site.id,
+                                  teamId: team.id,
+                                  teamName: team.teamName,
+                                  onMOCSelected: (selectedMOC) {
+                                    print('Selected MOC: ${selectedMOC.name}');
+                                  },
+                                ),
                               ),
-                            ),
-                          );
-
-                        },
-                        child: Card(
-                          color: Colors.white,
-                          elevation: 0,
-                          shape: RoundedRectangleBorder(
-                            borderRadius: BorderRadius.circular(12),
-                          ),
-                          child: Padding(
-                            padding: const EdgeInsets.all(12),
+                            );
+          
+                          },
+                          child: Container(
+                            decoration: BoxDecoration(
+                              color: Colors.white,
+                              borderRadius: BorderRadius.circular(16),),
                             child: Column(
                               mainAxisAlignment: MainAxisAlignment.center,
                               children: [
+                                ClipOval(
+                                  child: team.teamLeadImage != null && team.teamLeadImage!.isNotEmpty
+                                      ? Image.network(
+                                    team.teamLeadImage!,
+                                    height: 80,
+                                    width: 80,
+                                    fit: BoxFit.cover,
+                                    errorBuilder: (context, error, stackTrace) {
+                                      return Image.asset(
+                                        "assets/images/default.webp"
+                                        ,
+                                        fit: BoxFit.cover,
+                                      );
+                                    },
+                                  )
+                                      : Image.asset(
+                                    "assets/images/default.webp"
+                                    ,
+                                    height: 80,
+                                    width: 80,
+                                    fit: BoxFit.cover,
+                                  ),
+                                )
+                                ,
+                                const SizedBox(height: 10),
                                 Text(
                                   team.teamName,
-                                  textAlign: TextAlign.center,
                                   style: const TextStyle(
-                                    fontSize: 16,
-                                    fontWeight: FontWeight.bold,
+                                    fontWeight: FontWeight.w600,
+                                    fontSize: 15,
                                   ),
-                                ),
-                                const SizedBox(height: 8),
-                                Text(
-                                  "Members: ${team.teamMemberIds.length}",
-                                  style: const TextStyle(fontSize: 12),
                                 ),
                               ],
                             ),
                           ),
-                        ),
-                      );
-                    },
+                        );
+                      },
+                    ),
                   ),
                 ),
-              ),
-              // Back button at the bottom
-              Container(
-                width: double.infinity,
-                padding: const EdgeInsets.all(16),
-                child: RoundedButton(
-                  text: "Back",
-                  color: Colors.white,
-                  textColor: Colors.black,
-                  onPressed: () {
-                    context.pop();
-                  },
+                // Back button at the bottom
+                Container(
                   width: double.infinity,
+                  padding: const EdgeInsets.all(16),
+                  child: RoundedButton(
+                    text: "Back",
+                    color: Colors.white,
+                    textColor: Colors.black,
+                    onPressed: () {
+                      context.pop();
+                    },
+                    width: double.infinity,
+                  ),
                 ),
-              ),
-            ],
-          ),
-          loading: () => const Center(child: CircularProgressIndicator()),
-          error: (err, _) => Column(
-            children: [
-              Expanded(
-                child: Center(child: Text("Error: $err")),
-              ),
-              // Back button at the bottom even in error state
-              Container(
-                width: double.infinity,
-                padding: const EdgeInsets.all(16),
-                child: RoundedButton(
-                  text: "Back",
-                  color: Colors.white,
-                  textColor: Colors.black,
-                  onPressed: () {
-                    context.pop();
-                  },
+              ],
+            ),
+            loading: () => const Center(child: CircularProgressIndicator()),
+            error: (err, _) => Column(
+              children: [
+                Expanded(
+                  child: Center(child: Text("Error: $err")),
+                ),
+                // Back button at the bottom even in error state
+                Container(
                   width: double.infinity,
+                  padding: const EdgeInsets.all(16),
+                  child: RoundedButton(
+                    text: "Back",
+                    color: Colors.white,
+                    textColor: Colors.black,
+                    onPressed: () {
+                      context.pop();
+                    },
+                    width: double.infinity,
+                  ),
                 ),
-              ),
-            ],
+              ],
+            ),
           ),
         ),
       ),

@@ -5,6 +5,7 @@ import 'package:untitled2/core/utlis/colors/colors.dart';
 import 'package:untitled2/core/utlis/widgets/custom_appBar.dart';
 import '../../../../../../../core/utlis/widgets/fields/custom_textField.dart';
 import '../../../../../../../core/utlis/widgets/file_upload.dart';
+import '../../../../../../../core/utlis/widgets/image_clipped.dart';
 import '../../../models/floorModel.dart';
 import '../../../providers/floorProvider.dart';
 import 'package:file_picker/file_picker.dart';
@@ -367,175 +368,177 @@ class _AddFloorPageState extends ConsumerState<AddFloorPage> {
         title: "Add Floor",
 
       ),
-      body: Padding(
-        padding: const EdgeInsets.all(16.0),
-        child: SingleChildScrollView(
-          child: Form(
-            key: _formKey,
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.stretch,
-              children: [
-                // Data Mode Info Card
-                if (floorState.useMockData)
-                  Card(
-                    color: Colors.orange.shade50,
-                    child: Padding(
-                      padding: const EdgeInsets.all(12.0),
+      body: CornerClippedScreenSimple(
+        child: Padding(
+          padding: const EdgeInsets.all(16.0),
+          child: SingleChildScrollView(
+            child: Form(
+              key: _formKey,
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.stretch,
+                children: [
+                  // Data Mode Info Card
+                  if (floorState.useMockData)
+                    Card(
+                      color: Colors.orange.shade50,
+                      child: Padding(
+                        padding: const EdgeInsets.all(12.0),
+                        child: Row(
+                          children: [
+                            Icon(Icons.info, color: Colors.orange.shade700),
+                            const SizedBox(width: 8),
+                            Expanded(
+                              child: Text(
+                                'In mock data mode. Your floors will be saved to device storage.',
+                                style: TextStyle(
+                                  fontSize: 12,
+                                  color: Colors.orange.shade800,
+                                ),
+                              ),
+                            ),
+                          ],
+                        ),
+                      ),
+                    ),
+            
+                  const SizedBox(height: 16),
+            
+                  // Name Field
+                  CustomTextField(
+                    label: 'Floor Name',
+                    hint: 'Enter floor name (e.g., Ground, First, Terrace)',
+                    isRequired: true,
+                    TextSize: 16,
+                    controller: _nameController,
+                    keyboardType: TextInputType.text,
+            
+                  ),
+                  const SizedBox(height: 16),
+            
+                  // Code Field
+                  CustomTextField(
+                    label: 'Floor Code',
+                    hint: 'Enter unique code (e.g., ground, first, terrace)',
+                    isRequired: true,
+                    TextSize: 16,
+                    controller: _codeController,
+                    keyboardType: TextInputType.text,
+            
+                  ),
+                  const SizedBox(height: 24),
+            
+                  // Image Upload Section
+                  Text(
+                    'Floor Image *',
+                    style: TextStyle(
+                      fontSize: 16,
+                      fontWeight: FontWeight.w500,
+                      color: Colors.black87,
+                    ),
+                  ),
+                  const SizedBox(height: 8),
+            
+                  UploadBox(
+                    title: _selectedImagePath != null ? 'Floor Image Selected' : 'Upload Floor Image',
+                    subtitle: _selectedImagePath != null
+                        ? _selectedImagePath!
+                        : 'Select an image for this floor',
+                    buttonText: _selectedImagePath != null ? 'Change Image' : 'Select Image',
+                    onPressed: _handleImageSelection,
+                  ),
+            
+                  if (_selectedImagePath != null) ...[
+                    const SizedBox(height: 8),
+                    Container(
+                      padding: const EdgeInsets.all(8),
+                      decoration: BoxDecoration(
+                        color: Colors.green.shade50,
+                        borderRadius: BorderRadius.circular(8),
+                        border: Border.all(color: Colors.green.shade100),
+                      ),
                       child: Row(
                         children: [
-                          Icon(Icons.info, color: Colors.orange.shade700),
+                          Icon(Icons.check_circle, color: Colors.green.shade600, size: 16),
                           const SizedBox(width: 8),
                           Expanded(
                             child: Text(
-                              'In mock data mode. Your floors will be saved to device storage.',
+                              'Selected: $_selectedImagePath',
                               style: TextStyle(
                                 fontSize: 12,
-                                color: Colors.orange.shade800,
+                                color: Colors.green.shade700,
+                                fontStyle: FontStyle.italic,
                               ),
                             ),
                           ),
                         ],
                       ),
                     ),
-                  ),
-          
-                const SizedBox(height: 16),
-          
-                // Name Field
-                CustomTextField(
-                  label: 'Floor Name',
-                  hint: 'Enter floor name (e.g., Ground, First, Terrace)',
-                  isRequired: true,
-                  TextSize: 16,
-                  controller: _nameController,
-                  keyboardType: TextInputType.text,
-          
-                ),
-                const SizedBox(height: 16),
-          
-                // Code Field
-                CustomTextField(
-                  label: 'Floor Code',
-                  hint: 'Enter unique code (e.g., ground, first, terrace)',
-                  isRequired: true,
-                  TextSize: 16,
-                  controller: _codeController,
-                  keyboardType: TextInputType.text,
-          
-                ),
-                const SizedBox(height: 24),
-          
-                // Image Upload Section
-                Text(
-                  'Floor Image *',
-                  style: TextStyle(
-                    fontSize: 16,
-                    fontWeight: FontWeight.w500,
-                    color: Colors.black87,
-                  ),
-                ),
-                const SizedBox(height: 8),
-          
-                UploadBox(
-                  title: _selectedImagePath != null ? 'Floor Image Selected' : 'Upload Floor Image',
-                  subtitle: _selectedImagePath != null
-                      ? _selectedImagePath!
-                      : 'Select an image for this floor',
-                  buttonText: _selectedImagePath != null ? 'Change Image' : 'Select Image',
-                  onPressed: _handleImageSelection,
-                ),
-          
-                if (_selectedImagePath != null) ...[
-                  const SizedBox(height: 8),
-                  Container(
-                    padding: const EdgeInsets.all(8),
-                    decoration: BoxDecoration(
-                      color: Colors.green.shade50,
-                      borderRadius: BorderRadius.circular(8),
-                      border: Border.all(color: Colors.green.shade100),
-                    ),
-                    child: Row(
-                      children: [
-                        Icon(Icons.check_circle, color: Colors.green.shade600, size: 16),
-                        const SizedBox(width: 8),
-                        Expanded(
-                          child: Text(
-                            'Selected: $_selectedImagePath',
-                            style: TextStyle(
-                              fontSize: 12,
-                              color: Colors.green.shade700,
-                              fontStyle: FontStyle.italic,
+                  ],
+                  const SizedBox(height: 32),
+            
+                  // Action Buttons
+                  Row(
+                    children: [
+                      Expanded(
+                        child: ElevatedButton(
+                          onPressed: _isSubmitting ? null : _submitForm,
+                          style: ElevatedButton.styleFrom(
+                            backgroundColor: Colors.blue,
+                            foregroundColor: Colors.white,
+                            padding: const EdgeInsets.symmetric(vertical: 16),
+                            shape: RoundedRectangleBorder(
+                              borderRadius: BorderRadius.circular(12),
                             ),
                           ),
+                          child: _isSubmitting
+                              ? const Row(
+                            mainAxisAlignment: MainAxisAlignment.center,
+                            children: [
+                              SizedBox(
+                                width: 16,
+                                height: 16,
+                                child: CircularProgressIndicator(
+                                  strokeWidth: 2,
+                                  valueColor: AlwaysStoppedAnimation<Color>(Colors.white),
+                                ),
+                              ),
+                              SizedBox(width: 8),
+                              Text('Adding Floor...'),
+                            ],
+                          )
+                              : const Text(
+                            'Save Floor',
+                            style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
+                          ),
                         ),
-                      ],
+                      ),
+                      const SizedBox(width: 12),
+                      IconButton(
+                        onPressed: _isSubmitting ? null : _clearForm,
+                        style: IconButton.styleFrom(
+                          backgroundColor: Colors.grey.shade200,
+                          padding: const EdgeInsets.all(16),
+                        ),
+                        icon: const Icon(Icons.clear_all, color: Colors.grey),
+                        tooltip: 'Clear Form',
+                      ),
+                    ],
+                  ),
+                  const SizedBox(height: 12),
+            
+                  // Cancel Button
+                  OutlinedButton(
+                    onPressed: _isSubmitting ? null : () => Navigator.of(context).pop(),
+                    style: OutlinedButton.styleFrom(
+                      padding: const EdgeInsets.symmetric(vertical: 16),
+                      shape: RoundedRectangleBorder(
+                        borderRadius: BorderRadius.circular(12),
+                      ),
                     ),
+                    child: const Text('Cancel'),
                   ),
                 ],
-                const SizedBox(height: 32),
-          
-                // Action Buttons
-                Row(
-                  children: [
-                    Expanded(
-                      child: ElevatedButton(
-                        onPressed: _isSubmitting ? null : _submitForm,
-                        style: ElevatedButton.styleFrom(
-                          backgroundColor: Colors.blue,
-                          foregroundColor: Colors.white,
-                          padding: const EdgeInsets.symmetric(vertical: 16),
-                          shape: RoundedRectangleBorder(
-                            borderRadius: BorderRadius.circular(12),
-                          ),
-                        ),
-                        child: _isSubmitting
-                            ? const Row(
-                          mainAxisAlignment: MainAxisAlignment.center,
-                          children: [
-                            SizedBox(
-                              width: 16,
-                              height: 16,
-                              child: CircularProgressIndicator(
-                                strokeWidth: 2,
-                                valueColor: AlwaysStoppedAnimation<Color>(Colors.white),
-                              ),
-                            ),
-                            SizedBox(width: 8),
-                            Text('Adding Floor...'),
-                          ],
-                        )
-                            : const Text(
-                          'Save Floor',
-                          style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
-                        ),
-                      ),
-                    ),
-                    const SizedBox(width: 12),
-                    IconButton(
-                      onPressed: _isSubmitting ? null : _clearForm,
-                      style: IconButton.styleFrom(
-                        backgroundColor: Colors.grey.shade200,
-                        padding: const EdgeInsets.all(16),
-                      ),
-                      icon: const Icon(Icons.clear_all, color: Colors.grey),
-                      tooltip: 'Clear Form',
-                    ),
-                  ],
-                ),
-                const SizedBox(height: 12),
-          
-                // Cancel Button
-                OutlinedButton(
-                  onPressed: _isSubmitting ? null : () => Navigator.of(context).pop(),
-                  style: OutlinedButton.styleFrom(
-                    padding: const EdgeInsets.symmetric(vertical: 16),
-                    shape: RoundedRectangleBorder(
-                      borderRadius: BorderRadius.circular(12),
-                    ),
-                  ),
-                  child: const Text('Cancel'),
-                ),
-              ],
+              ),
             ),
           ),
         ),

@@ -37,7 +37,7 @@ class MockMOCData {
       MOC(
         id: "SS",
         name: "SS",
-        imageUrl: "assets/stepper/image.png",
+        imageUrl: "assets/stepper/image.webp",
         createdAt: DateTime.now(),
 
         isPredefined: true, // Mark as predefined mock data
@@ -45,7 +45,7 @@ class MockMOCData {
       MOC(
         id: "MS",
         name: "MS",
-        imageUrl: "assets/stepper/ms.png",
+        imageUrl: "assets/stepper/ms.webp",
         createdAt: DateTime.now(),
 
         isPredefined: true,
@@ -53,7 +53,7 @@ class MockMOCData {
       MOC(
         id: "MSPT",
         name: "MSPT",
-        imageUrl: "assets/stepper/mspt.png",
+        imageUrl: "assets/stepper/mspt.webp",
         createdAt: DateTime.now(),
 
         isPredefined: true,
@@ -61,7 +61,7 @@ class MockMOCData {
       MOC(
         id: "GLR",
         name: "GLR",
-        imageUrl: "assets/stepper/glr.png",
+        imageUrl: "assets/stepper/glr.webp",
         createdAt: DateTime.now(),
 
         isPredefined: true,
@@ -69,7 +69,7 @@ class MockMOCData {
       MOC(
         id: "HDPE",
         name: "HDPE",
-        imageUrl: "assets/stepper/hdpe.png",
+        imageUrl: "assets/stepper/hdpe.webp",
         createdAt: DateTime.now(),
 
         isPredefined: true,
@@ -77,14 +77,14 @@ class MockMOCData {
       MOC(
         id: "PPFRP_1",
         name: "PPFRP",
-        imageUrl: "assets/stepper/ppfrp.png",
+        imageUrl: "assets/stepper/ppfrp.webp",
         createdAt: DateTime.now(),
         isPredefined: true,
       ),
       MOC(
         id: "Rubber_Lined",
         name: "Rubber Lined",
-        imageUrl: "assets/stepper/rubber.png",
+        imageUrl: "assets/stepper/rubber.webp",
         createdAt: DateTime.now(),
 
         isPredefined: true,
@@ -92,7 +92,7 @@ class MockMOCData {
       MOC(
         id: "HDPE_FRP",
         name: "HDPE FRP",
-        imageUrl: "assets/stepper/hdpefrp.png",
+        imageUrl: "assets/stepper/hdpefrp.webp",
         createdAt: DateTime.now(),
 
         isPredefined: true,
@@ -100,7 +100,7 @@ class MockMOCData {
       MOC(
         id: "PVDF",
         name: "PVDF",
-        imageUrl: "assets/stepper/pvdf.png",
+        imageUrl: "assets/stepper/pvdf.webp",
         createdAt: DateTime.now(),
 
         isPredefined: true,
@@ -108,7 +108,7 @@ class MockMOCData {
       MOC(
         id: "Graphite",
         name: "Graphite",
-        imageUrl: "assets/stepper/graphte.png",
+        imageUrl: "assets/stepper/graphte.webp",
         createdAt: DateTime.now(),
 
         isPredefined: true,
@@ -116,7 +116,7 @@ class MockMOCData {
       MOC(
         id: "CS",
         name: "CS",
-        imageUrl: "assets/stepper/cs.png",
+        imageUrl: "assets/stepper/cs.webp",
         createdAt: DateTime.now(),
 
         isPredefined: true,
@@ -124,7 +124,7 @@ class MockMOCData {
       MOC(
         id: "Aluminium",
         name: "Aluminium",
-        imageUrl: "assets/stepper/aluminium.png",
+        imageUrl: "assets/stepper/aluminium.webp",
         createdAt: DateTime.now(),
 
         isPredefined: true,
@@ -132,7 +132,7 @@ class MockMOCData {
       MOC(
         id: "FRP_1",
         name: "FRP",
-        imageUrl: "assets/stepper/frp.png",
+        imageUrl: "assets/stepper/frp.webp",
         createdAt: DateTime.now(),
 
         isPredefined: true,
@@ -140,14 +140,14 @@ class MockMOCData {
       MOC(
         id: "Duplex",
         name: "Duplex",
-        imageUrl: "assets/stepper/duplex.png",
+        imageUrl: "assets/stepper/duplex.webp",
         createdAt: DateTime.now(),
         isPredefined: true,
       ),
       MOC(
         id: "PTFE",
         name: "PTFE",
-        imageUrl: "assets/stepper/ptfe.png",
+        imageUrl: "assets/stepper/ptfe.webp",
         createdAt: DateTime.now(),
 
         isPredefined: true,
@@ -155,7 +155,7 @@ class MockMOCData {
       MOC(
         id: "Hastelloy",
         name: "Hastelloy",
-        imageUrl: "assets/stepper/hastely.png",
+        imageUrl: "assets/stepper/hastely.webp",
         createdAt: DateTime.now(),
 
         isPredefined: true,
@@ -163,7 +163,7 @@ class MockMOCData {
       MOC(
         id: "PP",
         name: "PP",
-        imageUrl: "assets/stepper/pp.png",
+        imageUrl: "assets/stepper/pp.webp",
         createdAt: DateTime.now(),
 
         isPredefined: true,
@@ -171,7 +171,7 @@ class MockMOCData {
       MOC(
         id: "SS316",
         name: "SS316",
-        imageUrl: "assets/stepper/ss316.png",
+        imageUrl: "assets/stepper/ss316.webp",
         createdAt: DateTime.now(),
 
         isPredefined: true,
@@ -179,7 +179,7 @@ class MockMOCData {
       MOC(
         id: "SS304",
         name: "SS304",
-        imageUrl: "assets/stepper/ss304.png",
+        imageUrl: "assets/stepper/ss304.webp",
         createdAt: DateTime.now(),
 
         isPredefined: true,
@@ -187,7 +187,7 @@ class MockMOCData {
       MOC(
         id: "PPFRP_2",
         name: "PPFRP",
-        imageUrl: "assets/stepper/ppfrp2.png",
+        imageUrl: "assets/stepper/ppfrp2.webp",
         createdAt: DateTime.now(),
 
         isPredefined: true,
@@ -195,7 +195,7 @@ class MockMOCData {
       MOC(
         id: "FRP_2",
         name: "FRP",
-        imageUrl: "assets/stepper/frp2.png",
+        imageUrl: "assets/stepper/frp2.webp",
         createdAt: DateTime.now(),
 
         isPredefined: true,

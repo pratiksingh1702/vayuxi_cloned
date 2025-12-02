@@ -4,7 +4,9 @@ import 'package:untitled2/core/utlis/widgets/buttons.dart';
 import 'package:untitled2/core/utlis/widgets/custom_appBar.dart';
 
 import '../../../../../core/utlis/colors/colors.dart';
+import '../../../../../core/utlis/widgets/Button_wrapper.dart';
 import '../../../../../core/utlis/widgets/card.dart';
+import '../../../../../core/utlis/widgets/custom.dart';
 import '../providers/siteProvider.dart';
 import '../providers/site_current_provider.dart';
 import '../repository/siteModel.dart';
@@ -20,44 +22,43 @@ class SiteListScreen extends ConsumerStatefulWidget {
 
 class _SiteListScreenState extends ConsumerState<SiteListScreen> {
   @override
-  void initState() {
-    super.initState();
-    print("🚀 SiteListScreen initState");
-    WidgetsBinding.instance.addPostFrameCallback((_) {
-      print("🔄 Starting site fetch");
-      ref.read(siteProvider.notifier).fetchSites();
-    });
-  }
-
-  @override
   Widget build(BuildContext context) {
     print("🏗️ Building SiteListScreen");
 
+    final selectedSiteId = ref.watch(selectedSiteIdProvider);
+    final currentSite = ref.watch(currentSiteProvider);
+
+    // 🚀 If user already selected a site earlier → skip this page completely
+    if (selectedSiteId != null && currentSite != null) {
+      print("➡️ Auto-navigating to saved site: ${currentSite.siteName}");
+
+      // Return the redirect widget immediately (no Navigator.push)
+      return widget.pageBuilder(currentSite);
+    }
+
+    // ⬇️ Otherwise build normal site list UI
     return Scaffold(
-      appBar: const CustomAppBar(title: "Select Site"),
-      body: Stack(
+      body: NestedScrollView(
+        headerSliverBuilder: (context, innerBoxIsScrolled) {
+          return [
+            CustomSliverAppBar(title: "Select Site"),
+          ];
+        },
+        body: _buildMainBody(),
+      ),
+    );
+  }
+
+  Widget _buildMainBody() {
+    return BottomButtonWrapper(
+      child: Stack(
         children: [
           Positioned.fill(
             child: Consumer(
               builder: (context, ref, child) {
                 final siteState = ref.watch(siteProvider);
-                print(
-                  "📊 SiteState: isLoading=${siteState.isLoading}, sites=${siteState.sites.length}, error=${siteState.error}",
-                );
-
                 return _buildBody(siteState);
               },
-            ),
-          ),
-          Positioned(
-            bottom: 20,
-            left: 20,
-            child: RoundedButton(
-              text: "Back",
-              color: Colors.white,
-              textColor: Colors.black,
-
-              onPressed: () => Navigator.pop(context),
             ),
           ),
         ],
@@ -140,11 +141,13 @@ class _SiteListScreenState extends ConsumerState<SiteListScreen> {
           print("🏢 Building card for site: ${site.siteName} (index: $index)");
           return CompanyCard(
             imagePath:
-                'assets/images/Gemini_Generated_Image_pi2r7npi2r7npi2r.png',
+                'assets/images/Gemini_Generated_Image_pi2r7npi2r7npi2r.webp',
             companyName: site.siteName ?? 'Unknown Site',
             onTap: () {
               print("👆 Tapped on site: ${site.siteName}");
               ref.read(selectedSiteIdProvider.notifier).state = site.id;
+              final ew=ref.read(currentSiteProvider);
+              print(ew?.siteName);
 
               Navigator.push(
                 context,

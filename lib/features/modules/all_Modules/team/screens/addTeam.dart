@@ -11,15 +11,16 @@ import '../../../../../core/utlis/widgets/custom_appBar.dart';
 import '../../../../../typeProvider/type_provider.dart';
 import '../../Manpower Details/model/manpower_model.dart';
 import '../../Manpower Details/service/manPowerProvider.dart';
+import '../../site_Details/providers/site_current_provider.dart';
 import '../../site_Details/repository/siteModel.dart';
 import '../model/teamModel.dart';
 import '../provider/teamProvider.dart';
 import '../../../../../core/utlis/widgets/fields/custom_textField.dart';
 
 class AddTeamScreen extends ConsumerStatefulWidget {
-  final SiteModel site;
 
-  const AddTeamScreen({super.key, required this.site});
+
+  const AddTeamScreen({super.key});
 
   @override
   ConsumerState<AddTeamScreen> createState() => _AddTeamScreenState();
@@ -57,6 +58,8 @@ class _AddTeamScreenState extends ConsumerState<AddTeamScreen> {
   Widget build(BuildContext context) {
     final type = ref.watch(typeProvider);
     final manpowerState = ref.watch(manpowerProvider);
+    final siteId=ref.read(selectedSiteIdProvider);
+
 
     if (manpowerState.isLoading) {
       return const Scaffold(
@@ -196,7 +199,7 @@ class _AddTeamScreenState extends ConsumerState<AddTeamScreen> {
                       items: (String filter, LoadProps? props) {
                         return manpowerState.manpowerList
                             .where((m) => m.fullName
-                            .toLowerCase()
+                            ?.toLowerCase()
                             .contains(filter.toLowerCase()) ?? false)
                             .toList();
                       },
@@ -282,18 +285,18 @@ class _AddTeamScreenState extends ConsumerState<AddTeamScreen> {
                               final formData = FormData.fromMap({
                                 "teamName": _teamNameController.text,
                                 "teamLead": _selectedLead?.id ?? "",
-                                "teamMembers":
-                                _selectedMembers.map((m) => m.id).toList(),
+                                "teamMembers": _selectedMembers.map((m) => m.id).toList(),
                                 if (_selectedImage != null)
                                   "file": await MultipartFile.fromFile(
-                                  _selectedImage!.path,
-                                  filename: "profile.jpg",
-                                ),
+                                    _selectedImage!.path,
+                                    filename: "team_profile.jpg",
+                                  ),
                               });
+
 
                               await ref.read(teamProvider.notifier).createTeam(
                                 type: type!,
-                                siteId: widget.site.id,
+                                siteId: siteId!,
                                 formData: formData,
                               );
                               Navigator.pop(context);

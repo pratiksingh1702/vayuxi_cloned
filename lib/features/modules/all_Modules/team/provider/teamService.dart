@@ -65,8 +65,9 @@ class TeamApi {
       } else {
         throw Exception("Failed to create team");
       }
-    } catch (e) {
-      rethrow;
+    }on DioException catch (e) {
+      print("Dio error: ${e.response?.statusCode}");
+      print("Dio response: ${e.response?.data}");
     }
   }
 

@@ -8,14 +8,15 @@ class DynamicItemCard2 extends StatelessWidget {
   final String floor;
   final String ton;
   final String meter;
-  final VoidCallback onAdd;
-  final VoidCallback onEdit;
+  final VoidCallback? onAdd;
+  final VoidCallback? onEdit;
   final Function(String) onMocChanged;
-  final VoidCallback onDelete;
+  final VoidCallback? onDelete;
   final VoidCallback onRemark;
   final Function(String) onQtyChanged;
   final Function(String) onFloorChanged;
   final Function(String) onTonChanged;
+  final bool isEditable;
 
   const DynamicItemCard2({
     required this.title,
@@ -25,14 +26,15 @@ class DynamicItemCard2 extends StatelessWidget {
     required this.floor,
     required this.ton,
     required this.meter,
-    required this.onAdd,
-    required this.onEdit,
+    this.onAdd,
+    this.onEdit,
     required this.onMocChanged,
-    required this.onDelete,
+    this.onDelete,
     required this.onRemark,
     required this.onQtyChanged,
     required this.onFloorChanged,
     required this.onTonChanged,
+    required this.isEditable,
     super.key,
   });
 
@@ -136,41 +138,50 @@ class DynamicItemCard2 extends StatelessWidget {
                   ],
                 ),
 
-                // Action Buttons (commented out like in DynamicItemCard)
-                // Row(
-                //   children: [
-                //     Expanded(
-                //       child: ElevatedButton.icon(
-                //         onPressed: onAdd,
-                //         icon: const Icon(Icons.copy, size: 16),
-                //         label: const Text("Copy"),
-                //         style: ElevatedButton.styleFrom(
-                //           backgroundColor: Colors.green,
-                //           foregroundColor: Colors.white,
-                //           padding: const EdgeInsets.symmetric(vertical: 8),
-                //         ),
-                //       ),
-                //     ),
-                //     const SizedBox(width: 8),
-                //     Expanded(
-                //       child: ElevatedButton.icon(
-                //         onPressed: onEdit,
-                //         icon: const Icon(Icons.edit, size: 16),
-                //         label: const Text("Edit"),
-                //         style: ElevatedButton.styleFrom(
-                //           backgroundColor: Colors.blue,
-                //           foregroundColor: Colors.white,
-                //           padding: const EdgeInsets.symmetric(vertical: 8),
-                //         ),
-                //       ),
-                //     ),
-                //     const SizedBox(width: 8),
-                //     IconButton(
-                //       onPressed: onDelete,
-                //       icon: const Icon(Icons.delete, color: Colors.red),
-                //     ),
-                //   ],
-                // ),
+                // Action Buttons - Only show when editable
+                if (isEditable && (onAdd != null || onEdit != null || onDelete != null))
+                  Padding(
+                    padding: const EdgeInsets.only(top: 12),
+                    child: Row(
+                      children: [
+                        if (onAdd != null) ...[
+                          Expanded(
+                            child: ElevatedButton.icon(
+                              onPressed: onAdd,
+                              icon: const Icon(Icons.copy, size: 16),
+                              label: const Text("Copy"),
+                              style: ElevatedButton.styleFrom(
+                                backgroundColor: Colors.green,
+                                foregroundColor: Colors.white,
+                                padding: const EdgeInsets.symmetric(vertical: 8),
+                              ),
+                            ),
+                          ),
+                          const SizedBox(width: 8),
+                        ],
+                        if (onEdit != null) ...[
+                          Expanded(
+                            child: ElevatedButton.icon(
+                              onPressed: onEdit,
+                              icon: const Icon(Icons.edit, size: 16),
+                              label: const Text("Edit"),
+                              style: ElevatedButton.styleFrom(
+                                backgroundColor: Colors.blue,
+                                foregroundColor: Colors.white,
+                                padding: const EdgeInsets.symmetric(vertical: 8),
+                              ),
+                            ),
+                          ),
+                          const SizedBox(width: 8),
+                        ],
+                        if (onDelete != null)
+                          IconButton(
+                            onPressed: onDelete,
+                            icon: const Icon(Icons.delete, color: Colors.red),
+                          ),
+                      ],
+                    ),
+                  ),
               ],
             ),
           ),
@@ -179,16 +190,17 @@ class DynamicItemCard2 extends StatelessWidget {
     );
   }
 
-  // ───────── Blue Input Field with White Hint Text (exact same as DynamicItemCard)
+  // ───────── Blue Input Field with White Hint Text
   Widget _blueBox(String hintText, String value, Function(String) onChanged) {
     return TextField(
       controller: TextEditingController(text: value),
       onChanged: onChanged,
       textAlign: TextAlign.center,
       style: const TextStyle(color: Colors.white, fontSize: 14),
+      enabled: isEditable, // Disable when not editable
       decoration: InputDecoration(
         filled: true,
-        fillColor: const Color(0xFFD0EAFD),
+        fillColor: isEditable ? const Color(0xFFD0EAFD) : Colors.grey[300],
         border: OutlineInputBorder(
           borderRadius: BorderRadius.circular(8),
           borderSide: BorderSide.none,

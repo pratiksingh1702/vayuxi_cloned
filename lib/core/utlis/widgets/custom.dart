@@ -16,12 +16,17 @@ class CustomSliverAppBar extends StatelessWidget {
       flexibleSpace: LayoutBuilder(
         builder: (context, constraints) {
           return FlexibleSpaceBar(
-            title: Text(
-              title,
-              style: const TextStyle(
-                color: Colors.black,
-                fontWeight: FontWeight.bold,
-                fontSize: 18,
+            title: Padding(
+              padding: const EdgeInsets.all(8.0),
+              child: Text(
+                title,
+                maxLines: 1,
+                overflow: TextOverflow.ellipsis,
+                style: const TextStyle(
+                  color: Colors.black,
+                  fontWeight: FontWeight.bold,
+                  fontSize: 15,
+                ),
               ),
             ),
             centerTitle: true,
@@ -33,7 +38,7 @@ class CustomSliverAppBar extends StatelessWidget {
                   decoration: const BoxDecoration(
                     image: DecorationImage(
                       image: AssetImage(
-                        "assets/images/Firefly_A seamless pattern on a white background, featuring various simple, breathable, blue  303856.jpg",
+                        "assets/images/Firefly_A seamless pattern on a white background, featuring various simple, breathable, blue  303856.webp",
                       ),
                       fit: BoxFit.cover,
                     ),

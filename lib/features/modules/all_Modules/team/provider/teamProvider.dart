@@ -59,7 +59,7 @@ class TeamNotifier extends StateNotifier<AsyncValue<List<TeamModel>>> {
         data: formData,
       );
 
-      await getTeams(type, siteId);
+
     } catch (e, st) {
       state = AsyncValue.error(e, st);
     }

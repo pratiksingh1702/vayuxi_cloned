@@ -5,14 +5,15 @@ import 'package:liquid_pull_to_refresh/liquid_pull_to_refresh.dart';
 import 'package:untitled2/core/utlis/widgets/buttons.dart';
 import '../../../../../core/utlis/widgets/custom_appBar.dart';
 import '../../../../../typeProvider/type_provider.dart';
+import '../../site_Details/providers/site_current_provider.dart';
 import '../../site_Details/repository/siteModel.dart';
 import '../provider/teamProvider.dart';
 import 'editTeam.dart';
 
 class TeamListPage extends ConsumerStatefulWidget {
-  final SiteModel site;
 
-  const TeamListPage({super.key, required this.site});
+
+  const TeamListPage({super.key});
 
   @override
   ConsumerState<TeamListPage> createState() => _TeamListPageState();
@@ -21,7 +22,8 @@ class TeamListPage extends ConsumerStatefulWidget {
 class _TeamListPageState extends ConsumerState<TeamListPage> {
   Future<void> _refreshTeams() async {
     final type = ref.read(typeProvider);
-    await ref.read(teamProvider.notifier).getTeams(type!,widget.site.id);
+    final siteId = ref.read(selectedSiteIdProvider);
+    await ref.read(teamProvider.notifier).getTeams(type!,siteId!);
   }
 
   @override
@@ -33,6 +35,8 @@ class _TeamListPageState extends ConsumerState<TeamListPage> {
   @override
   Widget build(BuildContext context) {
     final teamState = ref.watch(teamProvider);
+    final site=ref.read(currentSiteProvider);
+
 
     return Scaffold(
       backgroundColor: const Color(0xFFEAF3FB), // soft blue background
@@ -54,11 +58,13 @@ class _TeamListPageState extends ConsumerState<TeamListPage> {
                   ),
                   itemBuilder: (context, index) {
                     final team = teams[index];
+                    print(team.teamName);
+                    print(team.teamLeadImage);
                     return GestureDetector(
                       onTap: (){
                         Navigator.push(
                           context,
-                          MaterialPageRoute(builder: (context) => EditTeamScreen(site:widget.site, team: team)),
+                          MaterialPageRoute(builder: (context) => EditTeamScreen(site:site!, team: team)),
                         );
                       },
                       child: Container(
@@ -72,13 +78,29 @@ class _TeamListPageState extends ConsumerState<TeamListPage> {
                           mainAxisAlignment: MainAxisAlignment.center,
                           children: [
                             ClipOval(
-                              child: Image.asset(
-                                "assets/images/WhatsApp Image 2025-11-03 at 23.45.34_52e9b781.jpg", // Replace with your image
+                              child: team.teamLeadImage != null && team.teamLeadImage!.isNotEmpty
+                                  ? Image.network(
+                                team.teamLeadImage!,
+                                height: 80,
+                                width: 80,
+                                fit: BoxFit.cover,
+                                errorBuilder: (context, error, stackTrace) {
+                                  return Image.asset(
+                                    "assets/images/default.jpg"
+                                    ,
+                                    fit: BoxFit.cover,
+                                  );
+                                },
+                              )
+                                  : Image.asset(
+                                "assets/images/default.jpg"
+                                ,
                                 height: 80,
                                 width: 80,
                                 fit: BoxFit.cover,
                               ),
-                            ),
+                            )
+,
                             const SizedBox(height: 10),
                             Text(
                               team.teamName,
@@ -107,13 +129,7 @@ class _TeamListPageState extends ConsumerState<TeamListPage> {
                         onPressed: () => context.pop()),
                   ),
                   SizedBox(width: 10,),
-                  Expanded(
-                    child: RoundedButton(
-                        text: "Add Team",
-                        color: Colors.blue,
-                        textColor: Colors.white,
-                        onPressed: () => context.push("/add-team", extra:widget.site)),
-                  ),
+
 
                 ],
               ),

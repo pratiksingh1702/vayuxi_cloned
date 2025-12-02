@@ -70,10 +70,10 @@ class DprNotifier extends StateNotifier<DprState> {
   }
 
   // Update DPR material qty
-  Future<void> updateMaterialQty({required Map<String, dynamic> data, required String siteId, required String materialId}) async {
+  Future<void> updateMaterialQty({required Map<String, dynamic> data, required String mechanicalID, required String materialId}) async {
     try {
       state = state.copyWith(isLoading: true, error: null);
-      await DprApi.updateDprMaterialQty(data: data, siteId: siteId, materialId: materialId);
+      await DprApi.updateDprMaterialQty(data: data, mechanicalID: mechanicalID, materialId: materialId);
       state = state.copyWith(isLoading: false);
     } catch (e) {
       state = state.copyWith(isLoading: false, error: e.toString());

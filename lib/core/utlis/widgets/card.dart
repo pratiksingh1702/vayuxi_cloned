@@ -26,7 +26,7 @@ class CompanyCard extends StatelessWidget {
         ),
 
         child: Column(
-          mainAxisSize: MainAxisSize.min,
+
           crossAxisAlignment: CrossAxisAlignment.center,
           children: [
             Container(
@@ -38,7 +38,7 @@ class CompanyCard extends StatelessWidget {
                 ),
                 child: Image.asset(
                   imagePath,
-                  height: 120,
+                  height: 100,
                   width: double.infinity,
                   fit: BoxFit.cover,
                 ),
@@ -52,7 +52,7 @@ class CompanyCard extends StatelessWidget {
                 maxLines: 1,
                 overflow: TextOverflow.values.first,
                 style: const TextStyle(
-                  fontSize: 16,
+                  fontSize: 18,
                   fontWeight: FontWeight.w600,
                 ),
               ),

@@ -9,6 +9,7 @@ import '../../../../../../../core/utlis/colors/colors.dart';
 import '../../../../../../../core/utlis/widgets/custom_appBar.dart';
 import '../../../../../../../core/utlis/widgets/fields/custom_textField.dart';
 import '../../../../../../../core/utlis/widgets/file_upload.dart';
+import '../../../../../../../core/utlis/widgets/image_clipped.dart';
 import '../../../../rate/data/rate_provider.dart';
 import '../../../../site_Details/providers/site_current_provider.dart';
 import '../../../providers/dpr_material_provider.dart';
@@ -213,31 +214,33 @@ class _PersistDPRScreenState extends ConsumerState<PersistDPRScreen> {
         title: widget.editDprId != null ? 'Edit Material' : 'Add Material',
 
       ),
-      body: state.isLoading
-          ? const Center(child: CircularProgressIndicator())
-          : SingleChildScrollView(
-        padding: const EdgeInsets.all(16),
-        child: Form(
-          key: _formKey,
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              // Material Name Field
-              _buildMaterialNameField(),
-              const SizedBox(height: 20),
-
-              // UOM Field
-              _buildUOMField(),
-              const SizedBox(height: 20),
-
-
-              // Image Upload
-              _buildImageUpload(),
-              const SizedBox(height: 30),
-
-              // Buttons
-              _buildActionButtons(),
-            ],
+      body: CornerClippedScreenSimple(
+        child: state.isLoading
+            ? const Center(child: CircularProgressIndicator())
+            : SingleChildScrollView(
+          padding: const EdgeInsets.all(16),
+          child: Form(
+            key: _formKey,
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                // Material Name Field
+                _buildMaterialNameField(),
+                const SizedBox(height: 20),
+        
+                // UOM Field
+                _buildUOMField(),
+                const SizedBox(height: 20),
+        
+        
+                // Image Upload
+                _buildImageUpload(),
+                const SizedBox(height: 30),
+        
+                // Buttons
+                _buildActionButtons(),
+              ],
+            ),
           ),
         ),
       ),

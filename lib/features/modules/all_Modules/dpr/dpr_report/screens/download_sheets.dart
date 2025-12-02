@@ -1,5 +1,6 @@
 import 'dart:io';
 import 'dart:typed_data';
+import 'dart:math';
 import 'package:dio/dio.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
@@ -21,19 +22,68 @@ class SheetDownloadPage extends ConsumerStatefulWidget {
 class _SheetDownloadPageState extends ConsumerState<SheetDownloadPage> {
   bool isLoading = false;
 
-  /// Converts ANY response type into Uint8List (binary file bytes)
-  Uint8List _extractBytes(dynamic response) {
-    if (response is Uint8List) return response;
+  /// Extracts bytes from API response
+  Uint8List _extractBytesFromResponse(dynamic response) {
+    print('Response type: ${response.runtimeType}');
 
+    // If response is Dio Response object
+    if (response is Response) {
+      return _extractBytesFromResponse(response.data);
+    }
+
+    // If response is a Map (JSON)
+    if (response is Map<String, dynamic>) {
+      print('Response keys: ${response.keys.toList()}');
+
+      // Check if it has a "data" field
+      if (response.containsKey('data')) {
+        final data = response['data'];
+
+        // If data is a base64 string
+        if (data is String) {
+          print('Found base64 data string, length: ${data.length}');
+          print('Data starts with: ${data.substring(0, min(50, data.length))}...');
+
+          try {
+            // Decode the base64 string
+            final bytes = base64.decode(data.trim());
+            print('Successfully decoded base64 to ${bytes.length} bytes');
+            return bytes;
+          } catch (e) {
+            print('Failed to decode base64: $e');
+            throw Exception('Failed to decode base64 data: $e');
+          }
+        }
+
+        // If data is already bytes
+        if (data is Uint8List) return data;
+        if (data is List<int>) return Uint8List.fromList(data);
+      }
+
+      // Check all string values for base64
+      for (final value in response.values) {
+        if (value is String && value.contains('UEsDB')) {
+          try {
+            return base64.decode(value.trim());
+          } catch (_) {
+            continue;
+          }
+        }
+      }
+
+      throw Exception('No valid file data found in response. Keys: ${response.keys}');
+    }
+
+    // If response is already bytes
+    if (response is Uint8List) return response;
     if (response is List<int>) return Uint8List.fromList(response);
 
-    if (response is String) return base64.decode(response.trim());
-
-    if (response is Map<String, dynamic>) {
-      final data = response["data"];
-      if (data is Uint8List) return data;
-      if (data is List<int>) return Uint8List.fromList(data);
-      if (data is String) return base64.decode(data.trim());
+    // If response is a base64 string
+    if (response is String) {
+      if (response.contains('UEsDB')) {
+        return base64.decode(response.trim());
+      }
+      throw Exception('Response is string but not base64');
     }
 
     throw Exception("Unsupported response format: ${response.runtimeType}");
@@ -41,25 +91,62 @@ class _SheetDownloadPageState extends ConsumerState<SheetDownloadPage> {
 
   Future<void> handleDownload({
     required Future<dynamic> Function() apiCall,
-    required String fileName,
+    required String defaultFileName,
     required String extension,
   }) async {
     try {
       setState(() => isLoading = true);
 
-      final response = await apiCall();
-      final fileBytes = _extractBytes(response);
+      // Call the API
+      final rawResponse = await apiCall();
+      print('Raw response received');
+      print(rawResponse);
 
-      if (fileBytes.isEmpty) throw Exception("Empty file received");
 
-      final fullName = "$fileName.$extension";
 
-      final savePath = await FilePicker.platform.saveFile(
-        dialogTitle: "Save File",
-        fileName: fullName,
-        lockParentWindow: true,
-        bytes: fileBytes,
-      );
+      // Extract bytes from response
+      final fileBytes = _extractBytesFromResponse(rawResponse);
+
+      if (fileBytes.isEmpty) {
+        throw Exception("Empty file received (0 bytes)");
+      }
+
+      // Try to get filename from response if available
+      String? fileNameFromResponse;
+      if (rawResponse is Map<String, dynamic> && rawResponse.containsKey('fileName')) {
+        fileNameFromResponse = rawResponse['fileName'];
+        print('Filename from response: $fileNameFromResponse');
+      }
+
+      // Use filename from response or default
+      final fileName = fileNameFromResponse ?? "$defaultFileName.$extension";
+
+      // Save the file
+      String? savePath;
+
+      if (Platform.isAndroid || Platform.isIOS) {
+        // For mobile, use FilePicker with bytes
+        savePath = await FilePicker.platform.saveFile(
+          dialogTitle: "Save Excel File",
+          fileName: fileName,
+          lockParentWindow: true,
+          bytes: rawResponse,
+        );
+        final file = File(savePath!);
+        await file.writeAsBytes(rawResponse, flush: true);
+      } else {
+        // For web/desktop
+        savePath = await FilePicker.platform.saveFile(
+          dialogTitle: "Save Excel File",
+          fileName: fileName,
+          lockParentWindow: true,
+        );
+
+        if (savePath != null) {
+          final file = File(savePath);
+          await file.writeAsBytes(rawResponse, flush: true);
+        }
+      }
 
       if (savePath == null) {
         ScaffoldMessenger.of(context).showSnackBar(
@@ -68,19 +155,28 @@ class _SheetDownloadPageState extends ConsumerState<SheetDownloadPage> {
         return;
       }
 
-      await File(savePath).writeAsBytes(fileBytes);
-
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text("Saved: $savePath")),
-      );
-    } catch (e) {
+      // Show success message
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
-          content: Text("Download failed: $e"),
-          backgroundColor: Colors.red,
+          content: Text("File saved: ${fileNameFromResponse ?? fileName}"),
+          backgroundColor: Colors.green,
+          duration: const Duration(seconds: 2),
         ),
       );
+
+      print('File saved successfully: $savePath');
+
+    } catch (e, stackTrace) {
       print("Download error: $e");
+      print("Stack trace: $stackTrace");
+
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text("Download failed: ${e.toString()}"),
+          backgroundColor: Colors.red,
+          duration: const Duration(seconds: 3),
+        ),
+      );
     } finally {
       setState(() => isLoading = false);
     }
@@ -92,9 +188,10 @@ class _SheetDownloadPageState extends ConsumerState<SheetDownloadPage> {
     required VoidCallback onTap,
   }) {
     return SelectCard(
-        icon: Icon(icon),
-        label: label, onTap:
-    onTap);
+      icon: Icon(icon),
+      label: label,
+      onTap: onTap,
+    );
   }
 
   @override
@@ -102,6 +199,19 @@ class _SheetDownloadPageState extends ConsumerState<SheetDownloadPage> {
     const fromDate = "2025-01-01";
     const toDate = "2025-12-31";
     final siteId = ref.watch(selectedSiteIdProvider);
+
+    if (siteId == null) {
+      return Scaffold(
+        backgroundColor: AppColors.lightBlue,
+        appBar: CustomAppBar(title: "DPR Sheet"),
+        body: const Center(
+          child: Text(
+            "Please select a site first",
+            style: TextStyle(fontSize: 18, color: Colors.red),
+          ),
+        ),
+      );
+    }
 
     return Scaffold(
       backgroundColor: AppColors.lightBlue,
@@ -122,11 +232,11 @@ class _SheetDownloadPageState extends ConsumerState<SheetDownloadPage> {
                 icon: Icons.straighten,
                 onTap: () => handleDownload(
                   apiCall: () => DprApi.fetchMeasurementSheet(
-                    siteId: siteId!,
+                    siteId: siteId,
                     fromDate: fromDate,
                     toDate: toDate,
                   ),
-                  fileName: "measurement_sheet",
+                  defaultFileName: "measurement_sheet",
                   extension: "xlsx",
                 ),
               ),
@@ -135,11 +245,11 @@ class _SheetDownloadPageState extends ConsumerState<SheetDownloadPage> {
                 icon: Icons.calculate,
                 onTap: () => handleDownload(
                   apiCall: () => DprApi.fetchMeasurementCalculationSheet(
-                    siteId: siteId!,
+                    siteId: siteId,
                     fromDate: fromDate,
                     toDate: toDate,
                   ),
-                  fileName: "calculation_sheet",
+                  defaultFileName: "calculation_sheet",
                   extension: "xlsx",
                 ),
               ),
@@ -148,11 +258,11 @@ class _SheetDownloadPageState extends ConsumerState<SheetDownloadPage> {
                 icon: Icons.summarize,
                 onTap: () => handleDownload(
                   apiCall: () => DprApi.fetchSummarySheet(
-                    siteId: siteId!,
+                    siteId: siteId,
                     fromDate: fromDate,
                     toDate: toDate,
                   ),
-                  fileName: "summary_sheet",
+                  defaultFileName: "summary_sheet",
                   extension: "xlsx",
                 ),
               ),
@@ -161,11 +271,11 @@ class _SheetDownloadPageState extends ConsumerState<SheetDownloadPage> {
                 icon: Icons.receipt_long,
                 onTap: () => handleDownload(
                   apiCall: () => DprApi.fetchInvoiceSheet(
-                    siteId: siteId!,
+                    siteId: siteId,
                     fromDate: fromDate,
                     toDate: toDate,
                   ),
-                  fileName: "invoice_sheet",
+                  defaultFileName: "invoice_sheet",
                   extension: "xlsx",
                 ),
               ),
@@ -175,7 +285,11 @@ class _SheetDownloadPageState extends ConsumerState<SheetDownloadPage> {
           if (isLoading)
             Container(
               color: Colors.black54,
-              child: const Center(child: CircularProgressIndicator()),
+              child: const Center(
+                child: CircularProgressIndicator(
+                  valueColor: AlwaysStoppedAnimation<Color>(Colors.white),
+                ),
+              ),
             ),
         ],
       ),

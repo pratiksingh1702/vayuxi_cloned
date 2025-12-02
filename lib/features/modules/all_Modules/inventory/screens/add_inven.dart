@@ -1,507 +1,335 @@
-// screens/inventory/bulk_upload_screen.dart
-import 'dart:io';
-
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import 'package:file_picker/file_picker.dart';
-import 'package:path_provider/path_provider.dart';
-import 'package:csv/csv.dart';
-import 'package:untitled2/features/modules/all_Modules/site_Details/providers/site_current_provider.dart';
+import 'package:untitled2/core/utlis/colors/colors.dart';
+import 'package:untitled2/core/utlis/widgets/custom_appBar.dart';
+import '../../../../../core/utlis/widgets/custom_dropdown.dart';
+import '../../../../../core/utlis/widgets/fields/custom_textField.dart';
+import '../../site_Details/providers/site_current_provider.dart';
 import '../models/inventory_Model.dart';
 import '../provider/inventory_provider.dart';
 
-class BulkUploadScreen extends ConsumerStatefulWidget {
-  final String siteId;
-  final String siteName;
-
-  const BulkUploadScreen({
-    Key? key,
-    required this.siteId,
-    required this.siteName,
-  }) : super(key: key);
+class CreateInventoryScreen extends ConsumerStatefulWidget {
+  const CreateInventoryScreen({Key? key}) : super(key: key);
 
   @override
-  ConsumerState<BulkUploadScreen> createState() => _BulkUploadScreenState();
+  ConsumerState<CreateInventoryScreen> createState() => _CreateInventoryScreenState();
 }
 
-class _BulkUploadScreenState extends ConsumerState<BulkUploadScreen> {
-  File? _selectedFile;
-  bool _isUploading = false;
-  String _uploadStatus = '';
-  List<String> _errors = [];
+class _CreateInventoryScreenState extends ConsumerState<CreateInventoryScreen> {
+  final _formKey = GlobalKey<FormState>();
+  final _itemNameController = TextEditingController();
+  final _quantityController = TextEditingController();
+  final _minStockController = TextEditingController();
+  final _uomController = TextEditingController();
+  final _remarksController = TextEditingController();
+
+  String? _selectedCategoryId;
+  String? _selectedSubcategoryId;
+  String? _selectedItemId;
+  bool _createNewItem = false;
+  List<Subcategory> _filteredSubcategories = [];
 
   @override
-  Widget build(BuildContext context) {
-    return Scaffold(
-      appBar: AppBar(
-        title: const Text('Bulk Upload Inventory'),
-        backgroundColor: Colors.blue[700],
-        foregroundColor: Colors.white,
-        actions: [
-
-        ],
-      ),
-      body: SingleChildScrollView(
-        child: Padding(
-          padding: const EdgeInsets.all(16.0),
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              // Site Info
-              Card(
-                child: Padding(
-                  padding: const EdgeInsets.all(16.0),
-                  child: Row(
-                    children: [
-                      const Icon(Icons.location_on, color: Colors.blue),
-                      const SizedBox(width: 12),
-                      Column(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        children: [
-                          Text(
-                            'Site: ${widget.siteName}',
-                            style: const TextStyle(
-                              fontSize: 16,
-                              fontWeight: FontWeight.bold,
-                            ),
-                          ),
-                          Text(
-                            'ID: ${widget.siteId}',
-                            style: TextStyle(
-                              fontSize: 12,
-                              color: Colors.grey[600],
-                            ),
-                          ),
-                        ],
-                      ),
-                    ],
-                  ),
-                ),
-              ),
-        
-              const SizedBox(height: 24),
-        
-              // Upload Section
-              Card(
-                elevation: 2,
-                child: Padding(
-                  padding: const EdgeInsets.all(20.0),
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      const Text(
-                        'Upload CSV File',
-                        style: TextStyle(
-                          fontSize: 18,
-                          fontWeight: FontWeight.bold,
-                        ),
-                      ),
-                      const SizedBox(height: 16),
-        
-                      // File Selection
-                      Container(
-                        width: double.infinity,
-                        padding: const EdgeInsets.all(20),
-                        decoration: BoxDecoration(
-                          border: Border.all(
-                            color: Colors.grey.shade300,
-                            width: 2,
-                          ),
-                          borderRadius: BorderRadius.circular(12),
-                          color: Colors.grey.shade50,
-                        ),
-                        child: Column(
-                          children: [
-                            Icon(
-                              Icons.cloud_upload,
-                              size: 48,
-                              color: Colors.blue.shade400,
-                            ),
-                            const SizedBox(height: 12),
-                            Text(
-                              _selectedFile?.path.split('/').last ??
-                                  'No file selected',
-                              style: TextStyle(
-                                fontSize: 16,
-                                color: _selectedFile != null
-                                    ? Colors.green.shade700
-                                    : Colors.grey.shade600,
-                                fontWeight: FontWeight.w500,
-                              ),
-                              textAlign: TextAlign.center,
-                            ),
-                            const SizedBox(height: 16),
-                            Row(
-                              mainAxisAlignment: MainAxisAlignment.spaceEvenly,
-                              children: [
-                                ElevatedButton.icon(
-                                  icon: const Icon(Icons.attach_file),
-                                  label: const Text('Select CSV File'),
-                                  onPressed: _selectCSVFile,
-                                  style: ElevatedButton.styleFrom(
-                                    backgroundColor: Colors.blue.shade600,
-                                    foregroundColor: Colors.white,
-                                  ),
-                                ),
-                                if (_selectedFile != null)
-                                  ElevatedButton.icon(
-                                    icon: const Icon(Icons.delete),
-                                    label: const Text('Remove'),
-                                    onPressed: _removeFile,
-                                    style: ElevatedButton.styleFrom(
-                                      backgroundColor: Colors.red.shade600,
-                                      foregroundColor: Colors.white,
-                                    ),
-                                  ),
-                              ],
-                            ),
-                          ],
-                        ),
-                      ),
-        
-                      const SizedBox(height: 20),
-        
-                      // Upload Button
-                      SizedBox(
-                        width: double.infinity,
-                        child: ElevatedButton.icon(
-                          icon: _isUploading
-                              ? const SizedBox(
-                            width: 16,
-                            height: 16,
-                            child: CircularProgressIndicator(
-                              strokeWidth: 2,
-                              valueColor: AlwaysStoppedAnimation<Color>(Colors.white),
-                            ),
-                          )
-                              : const Icon(Icons.upload),
-                          label: Text(
-                            _isUploading ? 'Uploading...' : 'Upload Inventory',
-                          ),
-                          onPressed: _isUploading || _selectedFile == null
-                              ? null
-                              : _uploadInventory,
-                          style: ElevatedButton.styleFrom(
-                            backgroundColor: Colors.green.shade600,
-                            foregroundColor: Colors.white,
-                            padding: const EdgeInsets.symmetric(vertical: 16),
-                            textStyle: const TextStyle(fontSize: 16),
-                          ),
-                        ),
-                      ),
-                    ],
-                  ),
-                ),
-              ),
-        
-        
-              // Status & Errors
-              if (_uploadStatus.isNotEmpty) _buildStatus(),
-              if (_errors.isNotEmpty) _buildErrors(),
-        
-        
-        
-              // Quick Actions
-              _buildQuickActions(),
-            ],
-          ),
-        ),
-      ),
-    );
+  void dispose() {
+    _itemNameController.dispose();
+    _quantityController.dispose();
+    _minStockController.dispose();
+    _uomController.dispose();
+    _remarksController.dispose();
+    super.dispose();
   }
 
-  Widget _buildInstructions() {
-    return const Card(
-      child: Padding(
-        padding: EdgeInsets.all(16.0),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Text(
-              'CSV Format Instructions',
-              style: TextStyle(
-                fontSize: 16,
-                fontWeight: FontWeight.bold,
-                color: Colors.blue,
-              ),
-            ),
-            SizedBox(height: 12),
-            Text('• Required Fields: itemName, quantity, minimumStockLevel'),
-            Text('• Optional Fields: categoryName, subcategoryName, remarks'),
-            Text('• File must be in CSV format'),
-            Text('• Maximum file size: 10MB'),
-            SizedBox(height: 8),
-            Text(
-              'Download the sample CSV template to get started.',
-              style: TextStyle(fontStyle: FontStyle.italic),
-            ),
-          ],
-        ),
-      ),
-    );
-  }
+  // ---------------- Category & Subcategory ----------------
+  Future<void> _onCategoryChanged(String? categoryId) async {
+    setState(() {
+      _selectedCategoryId = categoryId;
+      _selectedSubcategoryId = null;
+      _filteredSubcategories = [];
+    });
 
-  Widget _buildStatus() {
-    return Card(
-      color: _uploadStatus.contains('successful')
-          ? Colors.green.shade50
-          : Colors.blue.shade50,
-      child: Padding(
-        padding: const EdgeInsets.all(16.0),
-        child: Row(
-          children: [
-            Icon(
-              _uploadStatus.contains('successful')
-                  ? Icons.check_circle
-                  : Icons.info,
-              color: _uploadStatus.contains('successful')
-                  ? Colors.green
-                  : Colors.blue,
-            ),
-            const SizedBox(width: 12),
-            Expanded(
-              child: Text(
-                _uploadStatus,
-                style: TextStyle(
-                  color: _uploadStatus.contains('successful')
-                      ? Colors.green.shade800
-                      : Colors.blue.shade800,
-                  fontWeight: FontWeight.w500,
-                ),
-              ),
-            ),
-          ],
-        ),
-      ),
-    );
-  }
+    if (categoryId == null) return;
 
-  Widget _buildErrors() {
-    return Card(
-      color: Colors.red.shade50,
-      child: Padding(
-        padding: const EdgeInsets.all(16.0),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Row(
-              children: [
-                const Icon(Icons.error, color: Colors.red),
-                const SizedBox(width: 8),
-                const Text(
-                  'Upload Errors',
-                  style: TextStyle(
-                    fontWeight: FontWeight.bold,
-                    color: Colors.red,
-                  ),
-                ),
-              ],
-            ),
-            const SizedBox(height: 8),
-            ..._errors.map((error) => Padding(
-              padding: const EdgeInsets.symmetric(vertical: 2.0),
-              child: Text('• $error'),
-            )),
-          ],
-        ),
-      ),
-    );
-  }
-
-  Widget _buildQuickActions() {
-    return Card(
-      child: Padding(
-        padding: const EdgeInsets.all(16.0),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            const Text(
-              'Quick Actions',
-              style: TextStyle(
-                fontSize: 16,
-                fontWeight: FontWeight.bold,
-              ),
-            ),
-            const SizedBox(height: 12),
-            Row(
-              children: [
-
-                const SizedBox(width: 12),
-                Expanded(
-                  child: OutlinedButton.icon(
-                    icon: const Icon(Icons.list),
-                    label: const Text('View Inventory'),
-                    onPressed: () {
-                      Navigator.pop(context);
-                    },
-                    style: OutlinedButton.styleFrom(
-                      foregroundColor: Colors.green,
-                      padding: const EdgeInsets.symmetric(vertical: 12),
-                    ),
-                  ),
-                ),
-              ],
-            ),
-          ],
-        ),
-      ),
-    );
-  }
-
-  Future<void> _selectCSVFile() async {
     try {
-      FilePickerResult? result = await FilePicker.platform.pickFiles(
-        type: FileType.custom,
-        allowedExtensions: ['csv'],
-        allowMultiple: false,
-      );
-
-      if (result != null && result.files.single.path != null) {
-        setState(() {
-          _selectedFile = File(result.files.single.path!);
-          _uploadStatus = '';
-          _errors = [];
-        });
+      final siteId = ref.read(selectedSiteIdProvider);
+      if (siteId != null) {
+        final subcategories = await ref
+            .read(subcategoriesProvider((siteId: siteId, categoryId: categoryId)).future);
+        if (mounted) {
+          setState(() {
+            _filteredSubcategories = subcategories;
+          });
+        }
       }
     } catch (e) {
-      _showError('Error selecting file: $e');
+      debugPrint('Error loading subcategories: $e');
     }
   }
 
-// Create sample CSV directly in the app
-  Future<void> _createSampleCSV() async {
+  void _onSubcategoryChanged(String? subcategoryId) {
+    setState(() {
+      _selectedSubcategoryId = subcategoryId;
+    });
+  }
+
+  // ---------------- Item ----------------
+  void _onItemChanged(String? itemId) {
+    setState(() {
+      _selectedItemId = itemId;
+      _createNewItem = itemId == 'new';
+    });
+  }
+
+  // ---------------- Submit Form ----------------
+  Future<void> _submitForm() async {
+    final siteId = ref.read(selectedSiteIdProvider);
+    if (siteId == null) return;
+
+    if (!_formKey.currentState!.validate()) return;
+    if (_selectedCategoryId == null || _selectedSubcategoryId == null || _selectedItemId == null) return;
+    if (_createNewItem && _itemNameController.text.trim().isEmpty) return;
+
     try {
-      // Create sample CSV data
-      final List<List<dynamic>> csvData = [
-        ['itemName', 'quantity', 'minimumStockLevel', 'categoryName', 'subcategoryName', 'uom', 'remarks'],
-
-        ['Cement Bags 50kg', '100', '20', 'Construction Materials', 'Cement', 'Bags', 'OPC Grade 43'],
-      ];
-
-
-      // Convert to CSV string
-      final csvString = const ListToCsvConverter().convert(csvData);
-
-      // Get temporary directory
-      final tempDir = await getTemporaryDirectory();
-      final sampleFile = File('${tempDir.path}/inventory_sample_${DateTime.now().millisecondsSinceEpoch}.csv');
-
-      // Write CSV to file
-      await sampleFile.writeAsString(csvString);
-
-      // Set this as selected file
-      setState(() {
-        _selectedFile = sampleFile;
-        _uploadStatus = 'Sample CSV created! Ready to upload.';
-        _errors = [];
-      });
-
-      // Show success message
-      ScaffoldMessenger.of(context).showSnackBar(
+      final overlay = ScaffoldMessenger.of(context);
+      overlay.showSnackBar(
         const SnackBar(
-          content: Text('Sample CSV created successfully!'),
-          backgroundColor: Colors.green,
+          content: Row(
+            children: [
+              SizedBox(width: 20, height: 20, child: CircularProgressIndicator(strokeWidth: 2)),
+              SizedBox(width: 12),
+              Text('Creating inventory...'),
+            ],
+          ),
+          duration: Duration(seconds: 30),
         ),
       );
 
-    } catch (e) {
-      _showError('Error creating sample CSV: $e');
-    }
-  }
-  void _removeFile() {
-    setState(() {
-      _selectedFile = null;
-      _uploadStatus = '';
-      _errors = [];
-    });
-  }
+      String finalItemId = _selectedItemId!;
 
-  Future<void> _uploadInventory() async {
-    if (_selectedFile == null) return;
+      if (_createNewItem) {
+        final newItem = await ref.read(createItemProvider((
+        siteId: siteId,
+        name: _itemNameController.text.trim(),
+        categoryId: _selectedCategoryId!,
+        subcategoryId: _selectedSubcategoryId!,
+        )).future);
 
-    setState(() {
-      _isUploading = true;
-      _uploadStatus = '';
-      _errors = [];
-    });
-
-    try {
-      final siteId=ref.watch(selectedSiteIdProvider);
-      print(siteId);
-      final result = await ref.read(bulkUploadProvider({
-        'siteId': siteId,
-        'file': _selectedFile!,
-      }));
-
-      setState(() {
-        _uploadStatus = 'Upload successful! ${result?.success} items imported. '
-            '${result?.failed} items failed.';
-        _errors = result.errors;
-      });
-
-      if (result.failed == 0) {
-        // Show success dialog
-        _showSuccessDialog(result as BulkUploadResult);
+        finalItemId = newItem.id;
+        ref.invalidate(itemsProvider((siteId: siteId)));
       }
+
+      await ref.read(addUpdateInventoryStockProvider((
+      siteId: siteId,
+      itemId: finalItemId,
+      categoryId: _selectedCategoryId!,
+      subcategoryId: _selectedSubcategoryId!,
+      totalQuantityAdded: double.parse(_quantityController.text),
+      minimumStockLevel: double.parse(_minStockController.text),
+      uom: _uomController.text.trim(),
+      remarks: _remarksController.text.trim().isNotEmpty ? _remarksController.text.trim() : null,
+      )).future);
+
+      overlay.hideCurrentSnackBar();
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('Inventory created successfully!')),
+      );
+
+      _formKey.currentState!.reset();
+      setState(() {
+        _selectedCategoryId = null;
+        _selectedSubcategoryId = null;
+        _selectedItemId = null;
+        _filteredSubcategories = [];
+        _createNewItem = false;
+      });
     } catch (e) {
-      print("uploading failes 😢😢${e}");
-      setState(() {
-        _uploadStatus = 'Upload failed!';
-        _errors = ['Error: $e'];
-      });
-    } finally {
-      setState(() {
-        _isUploading = false;
-      });
+      ScaffoldMessenger.of(context).hideCurrentSnackBar();
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text('Failed to create inventory: ${e.toString()}')),
+      );
     }
   }
 
-  void _showSuccessDialog(BulkUploadResult result) {
-    showDialog(
-      context: context,
-      builder: (context) => AlertDialog(
-        title: const Row(
-          children: [
-            Icon(Icons.check_circle, color: Colors.green),
-            SizedBox(width: 8),
-            Text('Upload Successful'),
-          ],
-        ),
-        content: Column(
-          mainAxisSize: MainAxisSize.min,
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Text('✅ ${result.success} items imported successfully'),
-            if (result.failed > 0) ...[
-              const SizedBox(height: 8),
-              Text('❌ ${result.failed} items failed to import'),
+  // ---------------- UI ----------------
+  @override
+  Widget build(BuildContext context) {
+    final siteId = ref.watch(selectedSiteIdProvider);
+    final categoriesAsync = ref.watch(categoriesProvider(siteId!));
+    final itemsAsync = ref.watch(itemsProvider((siteId: siteId)));
+
+    return Scaffold(
+      appBar: CustomAppBar(title: "Create Inventory"),
+      backgroundColor: AppColors.lightBlue,
+      body: Padding(
+        padding: const EdgeInsets.all(16),
+        child: Form(
+          key: _formKey,
+          child: ListView(
+            children: [
+              _buildItemDropdown(itemsAsync),
+              if (_createNewItem) ...[
+                const SizedBox(height: 16),
+                _buildItemNameField(),
+              ],
+              const SizedBox(height: 16),
+              _buildCategoryDropdown(categoriesAsync),
+              const SizedBox(height: 16),
+              _buildSubcategoryDropdown(),
+              const SizedBox(height: 16),
+              Row(
+                children: [
+                  Expanded(child: _buildQuantityField()),
+                  const SizedBox(width: 16),
+                  Expanded(child: _buildUOMField()),
+                ],
+              ),
+              const SizedBox(height: 16),
+              _buildMinStockField(),
+              const SizedBox(height: 16),
+              _buildRemarksField(),
+              const SizedBox(height: 24),
+              ElevatedButton(
+                onPressed: _submitForm,
+                style: ElevatedButton.styleFrom(
+                  backgroundColor: Colors.blue.shade700,
+                  padding: const EdgeInsets.symmetric(vertical: 16),
+                  shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
+                ),
+                child: const Text('Add Inventory Stock', style: TextStyle(fontSize: 16,color: Colors.white)),
+              ),
             ],
-          ],
+          ),
         ),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.pop(context),
-            child: const Text('OK'),
-          ),
-          ElevatedButton(
-            onPressed: () {
-              Navigator.pop(context);
-              Navigator.pop(context); // Go back to inventory list
-            },
-            child: const Text('View Inventory'),
-          ),
-        ],
       ),
     );
   }
 
-
-  void _showError(String message) {
-    ScaffoldMessenger.of(context).showSnackBar(
-      SnackBar(
-        content: Text(message),
-        backgroundColor: Colors.red,
+  // ---------------- Widgets ----------------
+  Widget _buildItemDropdown(AsyncValue<List<InventoryItem>> itemsAsync) {
+    return itemsAsync.when(
+      loading: () => const Padding(
+        padding: EdgeInsets.symmetric(vertical: 12),
+        child: Center(child: CircularProgressIndicator(strokeWidth: 2)),
       ),
+      error: (err, _) => Text('Failed to load items', style: TextStyle(color: Colors.red)),
+      data: (items) => CustomDropdownField<String>(
+        label: 'Item',
+        isRequired: true,
+        value: _selectedItemId,
+        items: [
+          const DropdownMenuItem(value: null, child: Text('Select Item')),
+          ...items.map((item) => DropdownMenuItem(value: item.id, child: Text(item.name))),
+          const DropdownMenuItem(
+            value: 'new',
+            child: Row(children: [Icon(Icons.add, size: 18), SizedBox(width: 8), Text('Create New Item')]),
+          ),
+        ],
+        onChanged: _onItemChanged,
+      )
+
+    );
+  }
+
+  Widget _buildCategoryDropdown(AsyncValue<List<Category>> categoriesAsync) {
+    return categoriesAsync.when(
+      loading: () => const Padding(
+        padding: EdgeInsets.symmetric(vertical: 12),
+        child: Center(child: CircularProgressIndicator(strokeWidth: 2)),
+      ),
+      error: (err, _) => Text('Failed to load categories', style: TextStyle(color: Colors.red)),
+      data: (categories) =>CustomDropdownField<String>(
+        label: 'Category',
+        isRequired: true,
+        value: _selectedCategoryId,
+        items: [
+          const DropdownMenuItem(value: null, child: Text('Select Category')),
+          ...categories.map((c) => DropdownMenuItem(value: c.id, child: Text(c.name))),
+        ],
+        onChanged: _onCategoryChanged,
+      )
+      ,
+    );
+  }
+
+  Widget _buildSubcategoryDropdown() {
+    return _selectedCategoryId == null
+        ? const Text('Select a category first', style: TextStyle(color: Colors.grey))
+        :CustomDropdownField<String>(
+      label: 'Subcategory',
+      isRequired: true,
+      value: _selectedSubcategoryId,
+      items: [
+        const DropdownMenuItem(value: null, child: Text('Select Subcategory')),
+        ..._filteredSubcategories.map((s) => DropdownMenuItem(value: s.id, child: Text(s.name))),
+      ],
+      onChanged: _onSubcategoryChanged,
+    );
+  }
+
+  Widget _buildItemNameField() {
+    return TextFormField(
+      controller: _itemNameController,
+      decoration: const InputDecoration(
+        labelText: 'New Item Name *',
+        border: OutlineInputBorder(),
+        prefixIcon: Icon(Icons.inventory_2_outlined),
+      ),
+      validator: (v) => (_createNewItem && (v == null || v.trim().isEmpty)) ? 'Enter item name' : null,
+    );
+  }
+
+  Widget _buildQuantityField() {
+    return CustomTextField(
+      label: 'Quantity',
+      isRequired: true,
+      controller: _quantityController,
+      keyboardType: TextInputType.number,
+      prefixIcon: const Icon(Icons.format_list_numbered),
+      validator: (v) {
+        if (v == null || v.isEmpty) return 'Enter quantity';
+        if (double.tryParse(v) == null) return 'Enter valid number';
+        if (double.parse(v) <= 0) return 'Must be > 0';
+        return null;
+      },
+    );
+
+  }
+
+  Widget _buildUOMField() {
+    return CustomTextField(
+      label: 'Unit of Measure',
+      isRequired: true,
+      controller: _uomController,
+      prefixIcon: const Icon(Icons.safety_check),
+      validator: (v) {
+        if (v == null || v.trim().isEmpty) return 'Enter UOM';
+        return null;
+      },
+    );
+  }
+
+  Widget _buildMinStockField() {
+    return CustomTextField(
+      label: 'Minimum Stock Level',
+      isRequired: true,
+      controller: _minStockController,
+      keyboardType: TextInputType.number,
+      prefixIcon: const Icon(Icons.warning_amber),
+      validator: (v) {
+        if (v == null || v.trim().isEmpty) return 'Enter minimum stock';
+        final parsed = double.tryParse(v);
+        if (parsed == null) return 'Enter valid number';
+        if (parsed < 0) return 'Cannot be negative';
+        return null;
+      },
+    );
+  }
+
+  Widget _buildRemarksField() {
+    return CustomTextField(
+      label: 'Remarks',
+      controller: _remarksController,
+      maxLines: 3,
+      hint: 'Optional',
     );
   }
 }

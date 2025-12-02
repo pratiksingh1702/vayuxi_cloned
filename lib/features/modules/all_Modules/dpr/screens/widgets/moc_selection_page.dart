@@ -2,7 +2,11 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:untitled2/core/utlis/colors/colors.dart';
+import 'package:untitled2/core/utlis/widgets/Button_wrapper.dart';
+import 'package:untitled2/core/utlis/widgets/buttons.dart';
 import 'package:untitled2/core/utlis/widgets/custom_appBar.dart';
+import '../../../../../../core/utlis/widgets/custom.dart';
+import '../../../../../../core/utlis/widgets/image_clipped.dart';
 import '../../models/moc.dart';
 import '../../providers/mocProvider.dart';
 
@@ -47,53 +51,24 @@ class _MOCSelectionPageState extends ConsumerState<MOCSelectionPage> {
     final selectedMOC = ref.watch(selectedMOCProvider);
 
     return Scaffold(
-      backgroundColor: AppColors.lightBlue,
-      appBar: CustomAppBar(title: "Select MOC"),
-      body: mocState.isLoading
-          ? const Center(child: CircularProgressIndicator())
-          : mocState.error != null
-          ? Center(
-        child: Column(
-          mainAxisAlignment: MainAxisAlignment.center,
-          children: [
-            Text('Error: ${mocState.error}'),
-            const SizedBox(height: 16),
-            ElevatedButton(
-              onPressed: () {
-                ref.read(mocProvider.notifier).loadMOCs();
-              },
-              child: const Text('Retry'),
-            ),
-          ],
-        ),
-      )
-          : mocState.error != null
-          ? const Center(
-        child: Text('No materials available'),
-      )
-          : Padding(
-        padding: const EdgeInsets.all(16),
-        child: GridView.builder(
-          gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
-            crossAxisCount: 2,
-            crossAxisSpacing: 16,
-            mainAxisSpacing: 16,
-            childAspectRatio: 0.9,
-          ),
-          itemCount: mocs.length,
-          itemBuilder: (context, index) {
-            final moc = mocs[index];
-            return MOCCard(
-              moc: moc,
-              isSelected: selectedMOC?.id == moc.id,
-              showEditButton: widget.showEditOptions,
-              onTap: () {
-                ref.read(mocProvider.notifier).select(moc);
-                if (widget.onMOCSelected != null) {
-                  widget.onMOCSelected!(moc);
-                }
-                // If this is a selection screen, pop back
-                if (widget.onMOCSelected != null) {
+
+      body: NestedScrollView(
+        headerSliverBuilder: (context, innerBoxIsScrolled) {
+          return [
+            CustomSliverAppBar(title: "Choose MOC"),
+          ];
+        },
+        body: CornerClippedScreenSimple(
+          child: BottomButtonWrapper(
+              customButtons: [
+            CustomButton(
+              button: RoundedButton(
+                text: "Save & Continue",
+                color: Colors.blue,
+                textColor: Colors.white,
+                onPressed:(){ selectedMOC == null
+                    ? null
+                    :
                   Navigator.push(
                     context,
                     MaterialPageRoute(
@@ -101,22 +76,70 @@ class _MOCSelectionPageState extends ConsumerState<MOCSelectionPage> {
                         teamName: widget.teamName,
                         teamId: widget.teamId,
                         siteId: widget.siteId,
-                        onFloorSelected: (selectedFloor) {
-                          print('Selected Floor: ${selectedFloor.name}');
-                        },
                       ),
                     ),
                   );
-                }
-              },
-              onEdit: () {
-                _showAddEditMOCDialog(context, moc: moc);
-              },
-              onDelete: () {
-                _showDeleteConfirmationDialog(context, moc);
-              },
-            );
-          },
+                },
+              ),
+            ),
+          ],
+
+              child: mocState.isLoading
+                ? const Center(child: CircularProgressIndicator())
+                : mocState.error != null
+                ? Center(
+              child: Column(
+                mainAxisAlignment: MainAxisAlignment.center,
+                children: [
+                  Text('Error: ${mocState.error}'),
+                  const SizedBox(height: 16),
+                  ElevatedButton(
+                    onPressed: () {
+                      ref.read(mocProvider.notifier).loadMOCs();
+                    },
+                    child: const Text('Retry'),
+                  ),
+                ],
+              ),
+            )
+                : mocState.error != null
+                ? const Center(
+              child: Text('No materials available'),
+            )
+                : Padding(
+              padding: const EdgeInsets.all(16),
+              child: GridView.builder(
+                gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
+                  crossAxisCount: 2,
+                  crossAxisSpacing: 16,
+                  mainAxisSpacing: 16,
+                  childAspectRatio: 0.9,
+                ),
+                itemCount: mocs.length,
+                itemBuilder: (context, index) {
+                  final moc = mocs[index];
+                  return MOCCard(
+                    moc: moc,
+                    isSelected: selectedMOC?.id == moc.id,
+                    showEditButton: widget.showEditOptions,
+                    onTap: () {
+                      ref.read(mocProvider.notifier).select(moc);
+                      if (widget.onMOCSelected != null) {
+                        widget.onMOCSelected!(moc);
+                      }
+
+                    },
+                    onEdit: () {
+                      _showAddEditMOCDialog(context, moc: moc);
+                    },
+                    onDelete: () {
+                      _showDeleteConfirmationDialog(context, moc);
+                    },
+                  );
+                },
+              ),
+            ),
+          ),
         ),
       ),
     );
