@@ -1,6 +1,12 @@
 // screens/expense/expense_list_screen.dart
+import 'dart:io';
+import 'dart:typed_data';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:file_picker/file_picker.dart';
+import 'package:path_provider/path_provider.dart';
+import 'package:share_plus/share_plus.dart';
+import 'package:open_file/open_file.dart';
 import 'package:untitled2/core/utlis/colors/colors.dart';
 import 'package:untitled2/core/utlis/widgets/buttons.dart';
 import 'package:untitled2/core/utlis/widgets/custom_appBar.dart';
@@ -23,8 +29,7 @@ class ExpenseListScreen extends ConsumerStatefulWidget {
 class _ExpenseListScreenState extends ConsumerState<ExpenseListScreen> {
   List<ExpenseModel> expenseList = [];
   bool isLoading = false;
-  DateTime? startDate;
-  DateTime? endDate;
+  bool isDownloading = false;
 
   @override
   void initState() {
@@ -39,8 +44,6 @@ class _ExpenseListScreenState extends ConsumerState<ExpenseListScreen> {
       final response = await ExpenseAPI.fetchExpenses(
         type: type!,
         siteId: widget.siteId,
-        startDate: startDate,
-        endDate: endDate,
       );
 
       setState(() {
@@ -50,12 +53,389 @@ class _ExpenseListScreenState extends ConsumerState<ExpenseListScreen> {
       });
     } catch (e) {
       debugPrint("Error fetching expenses: $e");
-      ScaffoldMessenger.of(
-        context,
-      ).showSnackBar(SnackBar(content: Text("Failed to load expenses")));
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text("Failed to load expenses")),
+      );
     } finally {
       setState(() => isLoading = false);
     }
+  }
+
+  // Share/Download Dialog for CSV
+  void _showShareOrDownloadDialog() {
+    showModalBottomSheet(
+      context: context,
+      shape: const RoundedRectangleBorder(
+        borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
+      ),
+      builder: (context) {
+        return Padding(
+          padding: const EdgeInsets.fromLTRB(20, 16, 20, 24),
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              // ─── Drag Handle ───
+              Container(
+                width: 40,
+                height: 4,
+                margin: const EdgeInsets.only(bottom: 16),
+                decoration: BoxDecoration(
+                  color: Colors.grey.shade400,
+                  borderRadius: BorderRadius.circular(4),
+                ),
+              ),
+
+              // ─── Title ───
+              const Text(
+                "Expense Report",
+                style: TextStyle(
+                  fontSize: 18,
+                  fontWeight: FontWeight.w600,
+                ),
+              ),
+              const SizedBox(height: 6),
+              const Text(
+                "What would you like to do?",
+                style: TextStyle(color: Colors.grey),
+              ),
+
+              const SizedBox(height: 20),
+
+              // ─── Actions ───
+              _ActionTile(
+                icon: Icons.share_rounded,
+                color: Colors.blue,
+                title: "Share",
+                subtitle: "Send CSV file via apps",
+                onTap: () {
+                  Navigator.pop(context);
+                  _downloadAndShareCSV();
+                },
+              ),
+
+              const SizedBox(height: 12),
+
+              _ActionTile(
+                icon: Icons.download_rounded,
+                color: Colors.green,
+                title: "Download",
+                subtitle: "Save CSV to your device",
+                onTap: () {
+                  Navigator.pop(context);
+                  _downloadCSVFile();
+                },
+              ),
+
+              const SizedBox(height: 16),
+
+              // ─── Cancel ───
+              TextButton(
+                onPressed: () => Navigator.pop(context),
+                child: const Text(
+                  "Cancel",
+                  style: TextStyle(fontSize: 16),
+                ),
+              ),
+            ],
+          ),
+        );
+      },
+    );
+  }
+
+  // Action Tile Widget
+  Widget _ActionTile({
+    required IconData icon,
+    required Color color,
+    required String title,
+    required String subtitle,
+    required VoidCallback onTap,
+  }) {
+    return ListTile(
+      contentPadding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+      leading: Container(
+        width: 48,
+        height: 48,
+        decoration: BoxDecoration(
+          color: color.withOpacity(0.1),
+          borderRadius: BorderRadius.circular(12),
+        ),
+        child: Icon(icon, color: color, size: 24),
+      ),
+      title: Text(
+        title,
+        style: const TextStyle(
+          fontSize: 16,
+          fontWeight: FontWeight.w500,
+        ),
+      ),
+      subtitle: Text(
+        subtitle,
+        style: const TextStyle(
+          fontSize: 13,
+          color: Colors.grey,
+        ),
+      ),
+      trailing: const Icon(Icons.chevron_right_rounded, color: Colors.grey),
+      onTap: onTap,
+    );
+  }
+
+  // Generate CSV and share directly
+  Future<void> _downloadAndShareCSV() async {
+    try {
+      setState(() {
+        isLoading = true;
+        isDownloading = true;
+      });
+
+      // First generate CSV data
+      final csvData = await _generateCSVData();
+      if (csvData.isEmpty) return;
+
+      // Convert CSV string to bytes
+      final bytes = Uint8List.fromList(csvData.codeUnits);
+
+      // Save to temporary directory for sharing
+      final tempDir = await getTemporaryDirectory();
+      final timestamp = DateTime.now().millisecondsSinceEpoch;
+      final fileName = 'expense_report_$timestamp.csv';
+      final tempPath = '${tempDir.path}/$fileName';
+      final tempFile = File(tempPath);
+
+      await tempFile.writeAsBytes(bytes, flush: true);
+      debugPrint('💾 Temporary CSV saved for sharing: $tempPath');
+
+      // Share the file
+      await Share.shareXFiles(
+        [XFile(tempPath, mimeType: 'text/csv')],
+        text: 'Expense Report - ${widget.siteId}',
+        subject: 'Expense Report CSV',
+      );
+
+      // Clean up temp file after a delay
+      Future.delayed(const Duration(seconds: 30), () {
+        if (tempFile.existsSync()) {
+          tempFile.deleteSync();
+          debugPrint('🗑️ Temporary file deleted: $tempPath');
+        }
+      });
+
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text("CSV file ready for sharing"),
+          backgroundColor: Colors.green,
+        ),
+      );
+
+    } catch (e) {
+      debugPrint('❌ Share CSV failed: $e');
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text("Failed to share: ${e.toString()}"),
+          backgroundColor: Colors.red,
+        ),
+      );
+    } finally {
+      setState(() {
+        isLoading = false;
+        isDownloading = false;
+      });
+    }
+  }
+
+  // Download CSV file to device
+  Future<void> _downloadCSVFile() async {
+    try {
+      setState(() {
+        isLoading = true;
+        isDownloading = true;
+      });
+
+      // Generate CSV data
+      final csvData = await _generateCSVData();
+      if (csvData.isEmpty) return;
+
+      // Convert to bytes
+      final bytes = Uint8List.fromList(csvData.codeUnits);
+
+      if (Platform.isAndroid || Platform.isIOS) {
+        await _saveMobileCSV(bytes);
+      } else {
+        await _saveDesktopCSV(bytes);
+      }
+
+    } catch (e) {
+      debugPrint('❌ Download CSV failed: $e');
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text("Download failed: ${e.toString()}"),
+          backgroundColor: Colors.red,
+        ),
+      );
+    } finally {
+      setState(() {
+        isLoading = false;
+        isDownloading = false;
+      });
+    }
+  }
+
+  // Generate CSV data (internal method)
+  Future<String> _generateCSVData() async {
+    try {
+      final type = ref.read(typeProvider);
+      debugPrint('🔄 Generating CSV for type: $type');
+
+      // Date formatting function
+      String formatDate(DateTime dt) {
+        final isoString = dt.toIso8601String();
+        return isoString.split("T")[0];
+      }
+
+      final now = DateTime.now();
+      final thirtyDaysAgo = DateTime(now.year, now.month, now.day - 30);
+
+      debugPrint('   Start Date: ${formatDate(thirtyDaysAgo)}');
+      debugPrint('   End Date: ${formatDate(now)}');
+
+      final response = await ExpenseAPI.generateExpenseCSV(
+        serviceType: type!,
+        type: type,
+        siteId: widget.siteId,
+        startDate: formatDate(thirtyDaysAgo),
+        endDate: formatDate(now),
+      );
+
+      if (response.isEmpty) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(
+            content: Text("No data found for the selected dates"),
+            backgroundColor: Colors.orange,
+          ),
+        );
+        return '';
+      }
+
+      return response;
+    } catch (e) {
+      debugPrint('❌ CSV generation error: $e');
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: const Text("Sorry, Failed to generate CSV, might be a internal error"),
+          behavior: SnackBarBehavior.floating,
+          backgroundColor: Colors.red,
+        ),
+      );
+      return '';
+    }
+  }
+
+  // Save CSV on mobile devices
+  Future<void> _saveMobileCSV(Uint8List bytes) async {
+    try {
+      final timestamp = DateTime.now().millisecondsSinceEpoch;
+      final defaultFileName = 'expense_report_$timestamp.csv';
+
+      final String? outputPath = await FilePicker.platform.saveFile(
+        dialogTitle: 'Save CSV File',
+        fileName: defaultFileName,
+        bytes: bytes,
+      );
+
+      if (outputPath != null) {
+        debugPrint('💾 CSV saved to: $outputPath');
+
+        // Try to open the saved file
+        final result = await OpenFile.open(outputPath);
+        debugPrint('📂 Open file result: ${result.type} - ${result.message}');
+
+        // Show success message with open and share options
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                const Text('✅ CSV file saved successfully!'),
+                const SizedBox(height: 8),
+                Row(
+                  children: [
+                    Expanded(
+                      child: ElevatedButton.icon(
+                        onPressed: () => OpenFile.open(outputPath),
+                        icon: const Icon(Icons.open_in_new, size: 16),
+                        label: const Text('Open'),
+                      ),
+                    ),
+                    const SizedBox(width: 8),
+                    Expanded(
+                      child: ElevatedButton.icon(
+                        onPressed: () async {
+                          await Share.shareXFiles(
+                            [XFile(outputPath, mimeType: 'text/csv')],
+                            text: 'Expense Report CSV',
+                          );
+                        },
+                        icon: const Icon(Icons.share, size: 16),
+                        label: const Text('Share'),
+                      ),
+                    ),
+                  ],
+                ),
+              ],
+            ),
+            backgroundColor: Colors.green,
+            duration: const Duration(seconds: 8),
+          ),
+        );
+      } else {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(
+            content: Text('Save operation canceled.'),
+            backgroundColor: Colors.orange,
+          ),
+        );
+      }
+    } catch (e) {
+      debugPrint('❌ Mobile CSV save error: $e');
+      rethrow;
+    }
+  }
+
+  // Save CSV on desktop
+  Future<void> _saveDesktopCSV(Uint8List bytes) async {
+    final timestamp = DateTime.now().millisecondsSinceEpoch;
+    final fileName = 'expense_report_$timestamp.csv';
+
+    final path = await FilePicker.platform.saveFile(
+      dialogTitle: 'Save CSV File',
+      fileName: fileName,
+    );
+
+    if (path == null) return;
+
+    final file = File(path);
+    await file.writeAsBytes(bytes, flush: true);
+
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(
+        content: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Text('✅ CSV saved: $path'),
+            const SizedBox(height: 8),
+            ElevatedButton(
+              onPressed: () => OpenFile.open(path),
+              child: const Text('Open File'),
+            ),
+          ],
+        ),
+        backgroundColor: Colors.green,
+        duration: const Duration(seconds: 8),
+      ),
+    );
   }
 
   void _showCategoryModal() {
@@ -65,18 +445,6 @@ class _ExpenseListScreenState extends ConsumerState<ExpenseListScreen> {
         onCategorySelected: (category) {
           Navigator.pop(context);
           _navigateToAddExpense(category);
-        },
-      ),
-    );
-  }
-
-  void _showViewOptionsModal() {
-    showModalBottomSheet(
-      context: context,
-      builder: (context) => _ViewOptionsModal(
-        onOptionSelected: (option) {
-          Navigator.pop(context);
-          _handleViewOption(option);
         },
       ),
     );
@@ -101,7 +469,7 @@ class _ExpenseListScreenState extends ConsumerState<ExpenseListScreen> {
       MaterialPageRoute(
         builder: (context) => ExpenseFormScreen(
           siteId: widget.siteId,
-          expenseType: expense.expenseType,
+          expenseType: expense.expenseType!,
           expenseId: expense.id,
           expense: expense,
         ),
@@ -110,154 +478,6 @@ class _ExpenseListScreenState extends ConsumerState<ExpenseListScreen> {
       // Refresh the list when returning from form
       _fetchExpenses();
     });
-  }
-
-  void _handleViewOption(String option) {
-    switch (option) {
-      case 'add':
-        _showCategoryModal();
-        break;
-      case 'csv':
-        _generateCSV();
-        break;
-      case 'filter':
-        _showDateFilter();
-        break;
-    }
-  }
-
-  Future<void> _generateCSV() async {
-    try {
-      final type = ref.read(typeProvider);
-
-      print('🔄 Generating CSV for type: $type');
-
-      // Use the exact same date formatting as React Native
-      String formatDate(DateTime dt) {
-        final isoString = dt.toIso8601String();
-        return isoString.split("T")[0]; // Extract YYYY-MM-DD part only
-      }
-
-      final now = DateTime.now();
-      final thirtyDaysAgo = DateTime(now.year, now.month, now.day - 30);
-
-      // Debug prints to verify dates
-      print('   Raw Start Date: $thirtyDaysAgo');
-      print('   Raw End Date: $now');
-      print('   Formatted Start Date: ${formatDate(thirtyDaysAgo)}');
-      print('   Formatted End Date: ${formatDate(now)}');
-
-      final response = await ExpenseAPI.generateExpenseCSV(
-        serviceType: type!,
-        type: type,
-        siteId: widget.siteId,
-        startDate: formatDate(thirtyDaysAgo),
-        endDate: formatDate(now),
-      );
-
-      if (response.isNotEmpty) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text("CSV generated successfully")),
-        );
-        _handleCSVDownload(response);
-      } else {
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text("No data found for the selected dates")),
-        );
-      }
-    } catch (e) {
-      print('❌ CSV generation error: $e');
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text("Failed to generate CSV: ${e.toString()}")),
-      );
-    }
-  }
-
-  // Optional: Handle CSV file download
-  void _handleCSVDownload(String response) {
-    // If the API returns a file URL or CSV data, handle it here
-    // You might need to implement file download logic based on your API response
-    print('📄 CSV Response: $response');
-  }
-
-  void _showDateFilter() {
-    showDialog(
-      context: context,
-      builder: (context) => AlertDialog(
-        title: const Text("Filter by Date"),
-        content: Column(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            ListTile(
-              title: const Text("Start Date"),
-              subtitle: Text(
-                startDate != null
-                    ? "${startDate!.day}/${startDate!.month}/${startDate!.year}"
-                    : "Not set",
-              ),
-              onTap: () async {
-                final date = await showDatePicker(
-                  context: context,
-                  initialDate: DateTime.now(),
-                  firstDate: DateTime(2020),
-                  lastDate: DateTime.now(),
-                );
-                if (date != null) {
-                  setState(() => startDate = date);
-                }
-              },
-            ),
-            ListTile(
-              title: const Text("End Date"),
-              subtitle: Text(
-                endDate != null
-                    ? "${endDate!.day}/${endDate!.month}/${endDate!.year}"
-                    : "Not set",
-              ),
-              onTap: () async {
-                final date = await showDatePicker(
-                  context: context,
-                  initialDate: DateTime.now(),
-                  firstDate: DateTime(2020),
-                  lastDate: DateTime.now(),
-                );
-                if (date != null) {
-                  setState(() => endDate = date);
-                }
-              },
-            ),
-          ],
-        ),
-        actions: [
-          TextButton(
-            onPressed: () {
-              setState(() {
-                startDate = null;
-                endDate = null;
-              });
-              Navigator.pop(context);
-              _fetchExpenses();
-            },
-            child: const Text("Clear"),
-          ),
-          TextButton(
-            onPressed: () {
-              Navigator.pop(context);
-              _fetchExpenses();
-            },
-            child: const Text("Apply"),
-          ),
-        ],
-      ),
-    );
-  }
-
-  void _clearDateFilter() {
-    setState(() {
-      startDate = null;
-      endDate = null;
-    });
-    _fetchExpenses();
   }
 
   @override
@@ -269,235 +489,102 @@ class _ExpenseListScreenState extends ConsumerState<ExpenseListScreen> {
             CustomSliverAppBar(title: "Expense List"),
           ];
         },
-        body: CornerClippedScreenSimple(
-          child: SafeArea(
-            child: Column(
-              children: [
-                // Date Range Filter Section
-                Container(
-                  margin: const EdgeInsets.all(16),
-                  padding: const EdgeInsets.all(16),
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      Row(
+        body: Stack(
+          children: [
+            CornerClippedScreenSimple(
+              child: SafeArea(
+                child: Column(
+                  children: [
+                    // Top buttons: Edit and Generate CSV
+
+
+                    // Expense List with loader only for the list area
+                    Expanded(
+                      child: isLoading
+                          ? const Center(child: CircularProgressIndicator())
+                          : expenseList.isEmpty
+                          ? Center(
+                        child: Column(
+                          mainAxisAlignment: MainAxisAlignment.center,
+                          children: [
+                            Icon(
+                              Icons.receipt_long,
+                              size: 100,
+                              color: Colors.grey[400],
+                            ),
+                            const SizedBox(height: 16),
+                            const Text(
+                              "No expenses found",
+                              style: TextStyle(fontSize: 16, color: Colors.grey),
+                            ),
+                          ],
+                        ),
+                      )
+                          : ListView.builder(
+                        padding: const EdgeInsets.symmetric(horizontal: 10),
+                        itemCount: expenseList.length,
+                        itemBuilder: (context, index) {
+                          final expense = expenseList[index];
+                          return _ExpenseCard(
+                            expense: expense,
+                            onEdit: () => _navigateToEditExpense(expense),
+                          );
+                        },
+                      ),
+                    ),
+
+                    // Bottom buttons: Back and Add Expense
+                    Padding(
+                      padding: const EdgeInsets.all(16),
+                      child: Column(
                         children: [
-                          // Start Date
-                          Expanded(
-                            child: Column(
-                              crossAxisAlignment: CrossAxisAlignment.start,
-                              children: [
-                                Text("Start Date", style: TextStyle(fontSize: 16)),
-                                Container(
-                                  decoration: BoxDecoration(
-                                    color: Colors.grey.shade50,
-                                    borderRadius: BorderRadius.circular(12),
-                                    border: Border.all(color: Colors.grey.shade300),
-                                  ),
-                                  padding: const EdgeInsets.symmetric(
-                                    horizontal: 12,
-                                    vertical: 12,
-                                  ),
-                                  child: GestureDetector(
-                                    onTap: () async {
-                                      final date = await showDatePicker(
-                                        context: context,
-                                        initialDate: startDate ?? DateTime.now(),
-                                        firstDate: DateTime(2020),
-                                        lastDate: DateTime.now(),
-                                      );
-                                      if (date != null) {
-                                        setState(() => startDate = date);
-                                        _fetchExpenses();
-                                      }
-                                    },
-                                    child: Row(
-                                      children: [
-                                        const Icon(
-                                          Icons.calendar_today,
-                                          size: 18,
-                                          color: Colors.grey,
-                                        ),
-                                        const SizedBox(width: 8),
-                                        Expanded(
-                                          child: Text(
-                                            startDate != null
-                                                ? "${startDate!.day}/${startDate!.month}/${startDate!.year}"
-                                                : "Start Date",
-                                            style: TextStyle(
-                                              fontSize: 14,
-                                              color: startDate != null
-                                                  ? Colors.black
-                                                  : Colors.grey,
-                                            ),
-                                          ),
-                                        ),
-                                      ],
-                                    ),
-                                  ),
+                          Row(
+                            children: [
+                              Expanded(
+                                child: RoundedButton(
+                                  text: "Back",
+                                  color: Colors.white,
+                                  textColor: Colors.black,
+                                  onPressed: () => Navigator.pop(context),
                                 ),
-                              ],
-                            ),
-                          ),
-                          const SizedBox(width: 12),
-                          // End Date
-                          Expanded(
-                            child: Column(
-                              crossAxisAlignment: CrossAxisAlignment.start,
-                              children: [
-                                Text("End Date", style: TextStyle(fontSize: 16)),
-                                Container(
-                                  decoration: BoxDecoration(
-                                    color: Colors.grey.shade50,
-                                    borderRadius: BorderRadius.circular(12),
-                                    border: Border.all(color: Colors.grey.shade300),
-                                  ),
-                                  padding: const EdgeInsets.symmetric(
-                                    horizontal: 12,
-                                    vertical: 12,
-                                  ),
-                                  child: GestureDetector(
-                                    onTap: () async {
-                                      final date = await showDatePicker(
-                                        context: context,
-                                        initialDate: endDate ?? DateTime.now(),
-                                        firstDate: DateTime(2020),
-                                        lastDate: DateTime.now(),
-                                      );
-                                      if (date != null) {
-                                        setState(() => endDate = date);
-                                        _fetchExpenses();
-                                      }
-                                    },
-                                    child: Row(
-                                      children: [
-                                        const Icon(
-                                          Icons.calendar_today,
-                                          size: 18,
-                                          color: Colors.grey,
-                                        ),
-                                        const SizedBox(width: 8),
-                                        Expanded(
-                                          child: Text(
-                                            endDate != null
-                                                ? "${endDate!.day}/${endDate!.month}/${endDate!.year}"
-                                                : "End Date",
-                                            style: TextStyle(
-                                              fontSize: 14,
-                                              color: endDate != null
-                                                  ? Colors.black
-                                                  : Colors.grey,
-                                            ),
-                                          ),
-                                        ),
-                                      ],
-                                    ),
-                                  ),
+                              ),
+                              const SizedBox(width: 10),
+                              Expanded(
+                                child: RoundedButton(
+                                  text: "Sheet",
+                                  color: Colors.blue,
+                                  textColor: Colors.white,
+                                  onPressed: _showShareOrDownloadDialog,
                                 ),
-                              ],
-                            ),
+                              ),
+                            ],
                           ),
                         ],
                       ),
-                      if (startDate != null || endDate != null) ...[
-                        const SizedBox(height: 12),
-                        Row(
-                          mainAxisAlignment: MainAxisAlignment.end,
-                          children: [
-                            TextButton(
-                              onPressed: _clearDateFilter,
-                              child: const Text(
-                                "Clear Filter",
-                                style: TextStyle(color: Colors.red),
-                              ),
-                            ),
-                          ],
-                        ),
-                      ],
-                    ],
-                  ),
-                ),
-
-                // Expense List with loader only for the list area
-                Expanded(
-                  child: isLoading
-                      ? const Center(child: CircularProgressIndicator())
-                      : expenseList.isEmpty
-                      ? Center(
-                    child: Column(
-                      mainAxisAlignment: MainAxisAlignment.center,
-                      children: [
-                        Icon(
-                          Icons.receipt_long,
-                          size: 100,
-                          color: Colors.grey[400],
-                        ),
-                        const SizedBox(height: 16),
-                        const Text(
-                          "No expenses found",
-                          style: TextStyle(fontSize: 16, color: Colors.grey),
-                        ),
-                      ],
                     ),
-                  )
-                      : ListView.builder(
-                    padding: const EdgeInsets.symmetric(horizontal: 10),
-                    itemCount: expenseList.length,
-                    itemBuilder: (context, index) {
-                      final expense = expenseList[index];
-                      return _ExpenseCard(
-                        expense: expense,
-                        onEdit: () => _navigateToEditExpense(expense),
-                      );
-                    },
-                  ),
+                  ],
                 ),
-
-                // Buttons (always visible)
-                Padding(
-                  padding: const EdgeInsets.all(10),
+              ),
+            ),
+            // Loading overlay for CSV download
+            if (isDownloading)
+              Container(
+                color: Colors.black54,
+                child: Center(
                   child: Column(
+                    mainAxisSize: MainAxisSize.min,
                     children: [
-                      if (expenseList.isNotEmpty) ...[
-                        Row(
-                          children: [
-                            Expanded(
-                              child: RoundedButton(
-                                text: "Back",
-                                color: Colors.white,
-                                textColor: Colors.black,
-                                onPressed: () => Navigator.pop(context),
-                              ),
-                            ),
-                            const SizedBox(width: 10),
-                            Expanded(
-                              child: RoundedButton(
-                                text: "View Options",
-                                color: Colors.blue,
-                                textColor: Colors.white,
-                                onPressed: _showViewOptionsModal,
-                              ),
-                            ),
-                          ],
-                        ),
-                      ] else if (!isLoading) ...[
-                        // Only show these buttons when not loading and list is empty
-                        ElevatedButton(
-                          onPressed: _showCategoryModal,
-                          child: const Text("Add Expense"),
-                        ),
-                        const SizedBox(height: 10),
-                        OutlinedButton(
-                          onPressed: () => Navigator.pop(context),
-                          child: const Text("Back"),
-                        ),
-                      ],
+                      const CircularProgressIndicator(color: Colors.white),
+                      const SizedBox(height: 16),
+                      Text(
+                        isDownloading ? 'Downloading CSV...' : 'Loading...',
+                        style: const TextStyle(color: Colors.white, fontSize: 16),
+                      ),
                     ],
                   ),
                 ),
-              ],
-            ),
-          ),
+              ),
+          ],
         ),
       ),
     );
@@ -508,10 +595,27 @@ class _ExpenseCard extends StatelessWidget {
   final ExpenseModel expense;
   final VoidCallback onEdit;
 
-  const _ExpenseCard({required this.expense, required this.onEdit});
+  const _ExpenseCard({
+    required this.expense,
+    required this.onEdit,
+  });
 
   @override
   Widget build(BuildContext context) {
+    final description =
+    (expense.description == null || expense.description!.isEmpty)
+        ? "null"
+        : expense.description!;
+
+    final category =
+    (expense.expenseType == null || expense.expenseType!.isEmpty)
+        ? "null"
+        : expense.expenseType!;
+
+    final amountText = expense.amount == null
+        ? "null"
+        : "₹${expense.amount!.toStringAsFixed(2)}";
+
     return Card(
       margin: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
       shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
@@ -528,9 +632,7 @@ class _ExpenseCard extends StatelessWidget {
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
                   Text(
-                    expense.description.isNotEmpty
-                        ? expense.description
-                        : "Not available",
+                    description,
                     style: const TextStyle(fontSize: 14),
                   ),
                   const SizedBox(height: 4),
@@ -546,9 +648,7 @@ class _ExpenseCard extends StatelessWidget {
                       ),
                       const SizedBox(width: 10),
                       Text(
-                        expense.expenseType.isNotEmpty
-                            ? expense.expenseType
-                            : "Not available",
+                        category,
                         style: const TextStyle(
                           fontWeight: FontWeight.bold,
                           fontSize: 16,
@@ -565,11 +665,13 @@ class _ExpenseCard extends StatelessWidget {
               crossAxisAlignment: CrossAxisAlignment.end,
               children: [
                 Text(
-                  "₹${expense.rateInRs.toStringAsFixed(2)}",
-                  style: const TextStyle(
+                  amountText,
+                  style: TextStyle(
                     fontWeight: FontWeight.bold,
                     fontSize: 16,
-                    color: Colors.green,
+                    color: expense.amount == null
+                        ? Colors.grey
+                        : Colors.green,
                   ),
                 ),
                 IconButton(
@@ -629,48 +731,5 @@ class _CategoryModal extends StatelessWidget {
 
   String _formatCategoryName(String category) {
     return category.replaceAll('_', ' ').toUpperCase();
-  }
-}
-
-class _ViewOptionsModal extends StatelessWidget {
-  final Function(String) onOptionSelected;
-
-  const _ViewOptionsModal({required this.onOptionSelected});
-
-  @override
-  Widget build(BuildContext context) {
-    return Container(
-      padding: const EdgeInsets.all(16),
-      child: Column(
-        mainAxisSize: MainAxisSize.min,
-        children: [
-          const Text(
-            "View Options",
-            style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
-          ),
-          const SizedBox(height: 16),
-          ListTile(
-            leading: const Icon(Icons.add),
-            title: const Text("Add Expense"),
-            onTap: () => onOptionSelected('add'),
-          ),
-          ListTile(
-            leading: const Icon(Icons.file_download),
-            title: const Text("Generate CSV"),
-            onTap: () => onOptionSelected('csv'),
-          ),
-          ListTile(
-            leading: const Icon(Icons.filter_alt),
-            title: const Text("Filter by Date"),
-            onTap: () => onOptionSelected('filter'),
-          ),
-          const SizedBox(height: 16),
-          OutlinedButton(
-            onPressed: () => Navigator.pop(context),
-            child: const Text("Cancel"),
-          ),
-        ],
-      ),
-    );
   }
 }

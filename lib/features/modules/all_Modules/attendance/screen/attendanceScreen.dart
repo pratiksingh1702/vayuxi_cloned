@@ -26,9 +26,7 @@ class _AttendanceScreenState extends ConsumerState<AttendanceScreen> {
   DateTime _selectedDate = DateTime.now();
   bool _isFirstOTEntry = true; // Track if this is the first OT entry
   double? _firstOTValue; // Store the first OT value
-  bool _isEditMode = false; // Track edit mode
-  bool _isFirstTimeCurrentDate =
-      true; // Track if it's first time for current date
+  bool _isEditMode = false; // Track edit mode for non-today dates
 
   final List<Map<String, dynamic>> absentOptions = [
     {"label": "P", "value": "P"},
@@ -51,6 +49,13 @@ class _AttendanceScreenState extends ConsumerState<AttendanceScreen> {
     _loadManpower();
   }
 
+  @override
+  void dispose() {
+    // Reset edit mode when leaving screen
+    _isEditMode = false;
+    super.dispose();
+  }
+
   Future<void> _loadManpower() async {
     setState(() => isLoading = true);
     final type = ref.read(typeProvider);
@@ -65,16 +70,8 @@ class _AttendanceScreenState extends ConsumerState<AttendanceScreen> {
       _isFirstOTEntry = true; // Reset on new data load
       _firstOTValue = null;
 
-      // AUTO-ENABLE EDIT MODE: Only for first time on current date
-      final isCurrentDate = _isToday(_selectedDate);
-      if (_isFirstTimeCurrentDate && isCurrentDate) {
-        _isEditMode = true;
-        _isFirstTimeCurrentDate =
-            false; // Mark that we've used the first-time privilege
-      } else {
-        _isEditMode =
-            false; // Disable edit mode for date changes or non-current dates
-      }
+      // IMPORTANT: Do NOT disable edit mode when loading new date
+      // Edit mode should persist until user explicitly turns it off
     });
   }
 
@@ -86,7 +83,23 @@ class _AttendanceScreenState extends ConsumerState<AttendanceScreen> {
         date.day == now.day;
   }
 
+  // Check if current date is editable (always true for today, requires edit mode for other dates)
+  bool get _isEditable => _isToday(_selectedDate) || _isEditMode;
+
   Future<void> _selectDate(BuildContext context) async {
+    // Allow date selection ONLY when edit mode is ON for non-today dates
+    if (!_isToday(_selectedDate) && !_isEditMode) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text("Click 'Edit' to modify attendance for ${_formatDate(_selectedDate)}"),
+          backgroundColor: Colors.orange,
+          duration: const Duration(seconds: 2),
+          behavior: SnackBarBehavior.floating,
+        ),
+      );
+      return;
+    }
+
     final picked = await showDatePicker(
       context: context,
       initialDate: _selectedDate,
@@ -97,28 +110,12 @@ class _AttendanceScreenState extends ConsumerState<AttendanceScreen> {
     if (picked != null && picked != _selectedDate) {
       setState(() => _selectedDate = picked);
       _loadManpower();
-
-      // Show message if trying to edit past date without clicking edit
-      if (!_isToday(picked)) {
-        WidgetsBinding.instance.addPostFrameCallback((_) {
-          ScaffoldMessenger.of(context).showSnackBar(
-            const SnackBar(
-              content: Text(
-                "Click 'Edit' to modify attendance for selected date",
-              ),
-              backgroundColor: Colors.orange,
-              duration: Duration(seconds: 3),
-              behavior: SnackBarBehavior.floating,
-            ),
-          );
-        });
-      }
     }
   }
 
   void _toggleAllPresent() {
-    if (!_isEditMode) {
-      _showEditModeRequiredMessage();
+    if (!_isEditable) {
+      _showEditRequiredMessage();
       return;
     }
 
@@ -132,15 +129,15 @@ class _AttendanceScreenState extends ConsumerState<AttendanceScreen> {
       ref
           .read(attendanceNotifierProvider.notifier)
           .updateEmployee(
-            i,
-            attendanceList[i].copyWith(totalHours: 8.0, status: "present"),
-          );
+        i,
+        attendanceList[i].copyWith(totalHours: 8.0, status: "present"),
+      );
     }
   }
 
   void _toggleAllAbsent() {
-    if (!_isEditMode) {
-      _showEditModeRequiredMessage();
+    if (!_isEditable) {
+      _showEditRequiredMessage();
       return;
     }
 
@@ -154,27 +151,66 @@ class _AttendanceScreenState extends ConsumerState<AttendanceScreen> {
       ref
           .read(attendanceNotifierProvider.notifier)
           .updateEmployee(
-            i,
-            attendanceList[i].copyWith(totalHours: 0.0, status: "absent"),
-          );
+        i,
+        attendanceList[i].copyWith(totalHours: 0.0, status: "absent"),
+      );
     }
   }
 
-  void _showEditModeRequiredMessage() {
-    ScaffoldMessenger.of(context).showSnackBar(
-      const SnackBar(
-        content: Text("Please enable edit mode to make changes"),
-        backgroundColor: Colors.orange,
-        duration: Duration(seconds: 2),
-        behavior: SnackBarBehavior.floating,
-      ),
-    );
+  void _showEditRequiredMessage() {
+    if (_isToday(_selectedDate)) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text("You can edit today's attendance directly"),
+          backgroundColor: Colors.green,
+          duration: Duration(seconds: 2),
+          behavior: SnackBarBehavior.floating,
+        ),
+      );
+    } else {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text("Please enable edit mode to make changes"),
+          backgroundColor: Colors.orange,
+          duration: Duration(seconds: 2),
+          behavior: SnackBarBehavior.floating,
+        ),
+      );
+    }
+  }
+
+  void _toggleEditMode() {
+    setState(() {
+      _isEditMode = !_isEditMode;
+    });
+
+    if (_isEditMode) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text(_isToday(_selectedDate)
+              ? "Edit mode enabled - You can now modify today's attendance and change date"
+              : "Edit mode enabled - You can now modify attendance for ${_formatDate(_selectedDate)}"),
+          backgroundColor: Colors.green,
+          duration: const Duration(seconds: 2),
+          behavior: SnackBarBehavior.floating,
+        ),
+      );
+    } else {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text("Edit mode disabled"),
+          backgroundColor: Colors.grey,
+          duration: const Duration(seconds: 1),
+          behavior: SnackBarBehavior.floating,
+        ),
+      );
+    }
   }
 
   // New method to handle OT logic
   void _handleOTChange(int index, double newOTValue) {
-    if (!_isEditMode) {
-      _showEditModeRequiredMessage();
+    if (!_isEditable) {
+      _showEditRequiredMessage();
       return;
     }
 
@@ -196,7 +232,7 @@ class _AttendanceScreenState extends ConsumerState<AttendanceScreen> {
       _isFirstOTEntry = false;
 
       // Show confirmation snackbar
-      _showOTConfirmationSnackbar(newOTValue);
+      _showOTConfirmationDialog(newOTValue);
     }
 
     // Update the specific employee's OT
@@ -205,35 +241,109 @@ class _AttendanceScreenState extends ConsumerState<AttendanceScreen> {
         .updateEmployee(index, employee.copyWith(ot: newOTValue));
   }
 
-  void _showOTConfirmationSnackbar(double otValue) {
-    ScaffoldMessenger.of(context).showSnackBar(
-      SnackBar(
-        content: Row(
-          children: [
-            Expanded(
-              child: Text(
-                'Apply $otValue hours OT to all employees?',
-                style: TextStyle(fontSize: 16),
-              ),
+  void _showOTConfirmationDialog(double otValue) {
+    showDialog(
+      context: context,
+      barrierDismissible: false, // ❌ don't allow tap outside
+      builder: (context) {
+        return Dialog(
+          shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(16),
+          ),
+          child: Padding(
+            padding: const EdgeInsets.all(20),
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                // 🔥 Icon
+                Container(
+                  padding: const EdgeInsets.all(12),
+                  decoration: BoxDecoration(
+                    color: Colors.blue.withOpacity(0.1),
+                    shape: BoxShape.circle,
+                  ),
+                  child: Icon(
+                    Icons.access_time_filled,
+                    size: 36,
+                    color: Colors.blue.shade700,
+                  ),
+                ),
+
+                const SizedBox(height: 16),
+
+                // 🔥 Title
+                const Text(
+                  "Apply Overtime?",
+                  style: TextStyle(
+                    fontSize: 18,
+                    fontWeight: FontWeight.bold,
+                  ),
+                ),
+
+                const SizedBox(height: 8),
+
+                // 🔥 Message
+                Text(
+                  "Apply $otValue hours OT to all eligible employees?",
+                  textAlign: TextAlign.center,
+                  style: TextStyle(
+                    fontSize: 14,
+                    color: Colors.grey.shade700,
+                  ),
+                ),
+
+                const SizedBox(height: 20),
+
+                // 🔥 Actions
+                Row(
+                  children: [
+                    Expanded(
+                      child: OutlinedButton(
+                        onPressed: () {
+                          Navigator.pop(context);
+                        },
+                        style: OutlinedButton.styleFrom(
+                          foregroundColor: Colors.grey.shade700,
+                          side: BorderSide(color: Colors.grey.shade400),
+                          shape: RoundedRectangleBorder(
+                            borderRadius: BorderRadius.circular(10),
+                          ),
+                        ),
+                        child: const Text("Cancel"),
+                      ),
+                    ),
+                    const SizedBox(width: 12),
+                    Expanded(
+                      child: ElevatedButton(
+                        onPressed: () {
+                          Navigator.pop(context);
+                          _applyOTToAll(otValue);
+                        },
+                        style: ElevatedButton.styleFrom(
+                          backgroundColor: Colors.blue.shade700,
+                          shape: RoundedRectangleBorder(
+                            borderRadius: BorderRadius.circular(10),
+                          ),
+                        ),
+                        child: const Text("Apply"
+                          ,style: TextStyle(
+                              color: Colors.white
+                          ),),
+                      ),
+                    ),
+                  ],
+                ),
+              ],
             ),
-          ],
-        ),
-        duration: Duration(seconds: 5),
-        action: SnackBarAction(
-          label: 'Apply to All',
-          textColor: Colors.white,
-          onPressed: () {
-            _applyOTToAll(otValue);
-          },
-        ),
-        backgroundColor: Colors.blue.shade700,
-        behavior: SnackBarBehavior.floating,
-      ),
+          ),
+        );
+      },
     );
   }
 
+
   void _applyOTToAll(double otValue) {
-    if (!_isEditMode) return;
+    if (!_isEditable) return;
 
     final attendanceList = ref.read(attendanceNotifierProvider).value ?? [];
 
@@ -259,14 +369,16 @@ class _AttendanceScreenState extends ConsumerState<AttendanceScreen> {
   }
 
   Future<void> _submitAttendance() async {
-    if (!_isEditMode) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(
-          content: Text("Please enable edit mode to save attendance"),
-          backgroundColor: Colors.orange,
-          behavior: SnackBarBehavior.floating,
-        ),
-      );
+    if (!_isEditable) {
+      if (!_isToday(_selectedDate)) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(
+            content: Text("Please enable edit mode to save attendance"),
+            backgroundColor: Colors.orange,
+            behavior: SnackBarBehavior.floating,
+          ),
+        );
+      }
       return;
     }
 
@@ -323,11 +435,11 @@ class _AttendanceScreenState extends ConsumerState<AttendanceScreen> {
         await ref
             .read(attendanceNotifierProvider.notifier)
             .updateMultipleAttendance(
-              payload: payload,
-              type: type!,
-              siteId: siteId!,
-              date: currentDate,
-            );
+          payload: payload,
+          type: type!,
+          siteId: siteId!,
+          date: currentDate,
+        );
         print('✅ Successfully updated attendance records');
       } catch (updateError) {
         print('⚠️ Update failed, trying create: $updateError');
@@ -336,10 +448,10 @@ class _AttendanceScreenState extends ConsumerState<AttendanceScreen> {
         await ref
             .read(attendanceNotifierProvider.notifier)
             .postMultipleAttendance(
-              payload: payload,
-              type: type!,
-              siteId: siteId!,
-            );
+          payload: payload,
+          type: type!,
+          siteId: siteId!,
+        );
         print('✅ Successfully created attendance records');
       }
 
@@ -351,17 +463,20 @@ class _AttendanceScreenState extends ConsumerState<AttendanceScreen> {
         ),
       );
 
-      // Optionally disable edit mode after successful save
-      setState(() {
-        _isEditMode = false;
-      });
+      // IMPORTANT: Do NOT disable edit mode after saving
+      // Edit mode should persist until user explicitly turns it off
+
+      // Reset OT tracking for next operation
+      _isFirstOTEntry = true;
+      _firstOTValue = null;
+
     } catch (e) {
       print('❌ Submission error: $e');
 
       String errorMessage = "Error saving attendance";
       if (e.toString().contains("Attendance already exists")) {
         errorMessage =
-            "Attendance for this date already exists. Please update instead.";
+        "Attendance for this date already exists. Please update instead.";
       }
 
       ScaffoldMessenger.of(context).showSnackBar(
@@ -378,32 +493,6 @@ class _AttendanceScreenState extends ConsumerState<AttendanceScreen> {
 
   String _formatDate(DateTime d) => "${d.day}/${d.month}/${d.year}";
 
-  void _toggleEditMode() {
-    setState(() {
-      _isEditMode = !_isEditMode;
-    });
-
-    if (_isEditMode) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(
-          content: Text("Edit mode enabled - You can now modify attendance"),
-          backgroundColor: Colors.green,
-          duration: Duration(seconds: 2),
-          behavior: SnackBarBehavior.floating,
-        ),
-      );
-    } else {
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(
-          content: Text("Edit mode disabled"),
-          backgroundColor: Colors.grey,
-          duration: Duration(seconds: 1),
-          behavior: SnackBarBehavior.floating,
-        ),
-      );
-    }
-  }
-
   @override
   Widget build(BuildContext context) {
     final attendanceState = ref.watch(attendanceNotifierProvider);
@@ -417,8 +506,8 @@ class _AttendanceScreenState extends ConsumerState<AttendanceScreen> {
         customButtons: [
           CustomButton(
             button: RoundedButton(
-              text: "Save Attendance",
-              color: _isEditMode ? Colors.blue : Colors.grey,
+              text: "Save",
+              color: _isEditable ? Colors.blue : Colors.grey,
               textColor: Colors.white,
               width: 200,
               onPressed: _submitAttendance,
@@ -428,232 +517,274 @@ class _AttendanceScreenState extends ConsumerState<AttendanceScreen> {
         child: isLoading
             ? const Center(child: CircularProgressIndicator())
             : attendanceState.when(
-                data: (attendanceList) => Padding(
-                  padding: const EdgeInsets.all(5),
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      // Site Name and Date Row
-                      Row(
-                        mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                        children: [
-                          Container(
-                            width: MediaQuery.of(context).size.width * 0.3,
+          data: (attendanceList) => Padding(
+            padding: const EdgeInsets.all(5),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                // Site Name and Date Row
+                Row(
+                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                  children: [
+                    Container(
+                      width: MediaQuery.of(context).size.width * 0.3,
+                      child: Text(
+                        site!.siteName,
+                        maxLines: 1,
+                        overflow: TextOverflow.values.first,
+                        style: const TextStyle(
+                          fontSize: 18,
+                          fontWeight: FontWeight.bold,
+                        ),
+                      ),
+                    ),
+                    // Date selector
+                    GestureDetector(
+                      onTap: () => _selectDate(context),
+                      child: Container(
+                        padding: const EdgeInsets.symmetric(
+                          horizontal: 12,
+                          vertical: 6,
+                        ),
+                        decoration: BoxDecoration(
+                          color: _isEditable
+                              ? Colors.blue.shade50
+                              : Colors.transparent,
+                          borderRadius: BorderRadius.circular(8),
+                          border: Border.all(
+                            color: _isEditable
+                                ? Colors.blue.shade200
+                                : Colors.transparent,
+                          ),
+                        ),
+                        child: Row(
+                          children: [
+                            const SizedBox(width: 6),
+                            Text(
+                              _formatDate(_selectedDate),
+                              style: TextStyle(
+                                fontSize: 16,
+                                fontWeight: FontWeight.w600,
+                                color: _isEditable
+                                    ? Colors.blue
+                                    : Colors.grey,
+                              ),
+                            ),
+                            if (_isEditable)
+                              const SizedBox(width: 6),
+
+                            if(_isEditable)
+                              Icon(
+                                Icons.calendar_today,
+                                size: 16,
+                                color: _isEditable
+                                    ? Colors.blue
+                                    : Colors.grey,
+                              ),
+                          ],
+                        ),
+                      ),
+                    ),
+                  ],
+                ),
+
+                const SizedBox(height: 8),
+
+                // Edit Mode Button and Action Buttons
+                Row(
+                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                  children: [
+                    // Edit Button (always shown)
+                    GestureDetector(
+                      onTap: _toggleEditMode,
+                      child: Container(
+                        padding: const EdgeInsets.symmetric(
+                          horizontal: 16,
+                          vertical: 8,
+                        ),
+                        decoration: BoxDecoration(
+                          color: _isEditMode ? Colors.blue.shade100 : Colors.white,
+                          borderRadius: BorderRadius.circular(20),
+                          border: Border.all(
+                            color: _isEditMode ? Colors.blue.shade700 : Colors.grey.shade400,
+                            width: 2,
+                          ),
+                        ),
+                        child: Row(
+                          children: [
+                            Icon(
+                              _isEditMode ? Icons.edit_off : Icons.edit,
+                              size: 16,
+                              color: _isEditMode ? Colors.blue.shade700 : Colors.grey.shade700,
+                            ),
+                            const SizedBox(width: 6),
+                            Text(
+                              _isEditMode ? "Editing" : "Edit",
+                              style: TextStyle(
+                                color: _isEditMode ? Colors.blue.shade700 : Colors.grey.shade700,
+                                fontWeight: FontWeight.bold,
+                                fontSize: 13,
+                              ),
+                            ),
+                          ],
+                        ),
+                      ),
+                    ),
+
+                    // Action Buttons (All Present / All Absent)
+                    Row(
+                      children: [
+                        // All Absent Button
+                        GestureDetector(
+                          onTap: _toggleAllAbsent,
+                          child: Container(
+                            padding: const EdgeInsets.symmetric(
+                              horizontal: 16,
+                              vertical: 8,
+                            ),
+                            decoration: BoxDecoration(
+                              color: allAbsent
+                                  ? Colors.red
+                                  : Colors.red.withOpacity(0.3),
+                              borderRadius: BorderRadius.circular(20),
+                              border: Border.all(color: Colors.red),
+                            ),
                             child: Text(
-                              site!.siteName,
-                              maxLines: 1,
-                              overflow: TextOverflow.values.first,
-                              style: const TextStyle(
-                                fontSize: 18,
+                              "All Absent",
+                              style: TextStyle(
+                                color: allAbsent
+                                    ? Colors.white
+                                    : Colors.red,
                                 fontWeight: FontWeight.bold,
                               ),
                             ),
                           ),
-                          // Make date clickable
-                          GestureDetector(
-                            onTap: () => _selectDate(context),
-                            child: Container(
-                              padding: const EdgeInsets.symmetric(
-                                horizontal: 12,
-                                vertical: 6,
-                              ),
-                              decoration: BoxDecoration(
-                                color: Colors.blue.shade50,
-                                borderRadius: BorderRadius.circular(8),
-                                border: Border.all(color: Colors.blue.shade200),
-                              ),
-                              child: Row(
-                                children: [
-                                  const Icon(
-                                    Icons.calendar_today,
-                                    size: 16,
-                                    color: Colors.blue,
-                                  ),
-                                  const SizedBox(width: 6),
-                                  Text(
-                                    _formatDate(_selectedDate),
-                                    style: const TextStyle(
-                                      fontSize: 16,
-                                      fontWeight: FontWeight.w600,
-                                      color: Colors.blue,
-                                    ),
-                                  ),
-                                ],
+                        ),
+                        const SizedBox(width: 8),
+                        // All Present Button
+                        GestureDetector(
+                          onTap: _toggleAllPresent,
+                          child: Container(
+                            padding: const EdgeInsets.symmetric(
+                              horizontal: 16,
+                              vertical: 8,
+                            ),
+                            decoration: BoxDecoration(
+                              color: allPresent
+                                  ? Colors.green
+                                  : Colors.green.withOpacity(0.3),
+                              borderRadius: BorderRadius.circular(20),
+                              border: Border.all(color: Colors.green),
+                            ),
+                            child: Text(
+                              "All Present",
+                              style: TextStyle(
+                                color: allPresent
+                                    ? Colors.white
+                                    : Colors.green,
+                                fontWeight: FontWeight.bold,
                               ),
                             ),
                           ),
-                        ],
-                      ),
-
-                      const SizedBox(height: 8),
-
-                      // Edit Mode Button
-                      Row(
-                        mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                        children: [
-                          GestureDetector(
-                            onTap: _toggleEditMode,
-                            child: Container(
-                              padding: const EdgeInsets.symmetric(
-                                horizontal: 16,
-                                vertical: 8,
-                              ),
-                              decoration: BoxDecoration(
-                                color: _isEditMode ? Colors.blue : Colors.grey,
-                                borderRadius: BorderRadius.circular(20),
-                                border: Border.all(
-                                  color: _isEditMode
-                                      ? Colors.blue.shade700
-                                      : Colors.grey.shade600,
-                                ),
-                              ),
-                              child: Row(
-                                children: [
-                                  Icon(
-                                    _isEditMode ? Icons.edit_off : Icons.edit,
-                                    size: 16,
-                                    color: Colors.white,
-                                  ),
-                                  const SizedBox(width: 6),
-                                  Text(
-                                    _isEditMode ? "Editing" : "Edit",
-                                    style: const TextStyle(
-                                      color: Colors.white,
-                                      fontWeight: FontWeight.bold,
-                                    ),
-                                  ),
-                                ],
-                              ),
-                            ),
-                          ),
-                          Row(
-                            mainAxisAlignment: MainAxisAlignment.end,
-                            children: [
-                              GestureDetector(
-                                onTap: _toggleAllPresent,
-                                child: Container(
-                                  padding: const EdgeInsets.symmetric(
-                                    horizontal: 16,
-                                    vertical: 8,
-                                  ),
-                                  decoration: BoxDecoration(
-                                    color: allPresent
-                                        ? Colors.green
-                                        : Colors.green.withOpacity(0.3),
-                                    borderRadius: BorderRadius.circular(20),
-                                    border: Border.all(color: Colors.green),
-                                  ),
-                                  child: Text(
-                                    "All Present",
-                                    style: TextStyle(
-                                      color: allPresent
-                                          ? Colors.white
-                                          : Colors.green,
-                                      fontWeight: FontWeight.bold,
-                                    ),
-                                  ),
-                                ),
-                              ),
-                            ],
-                          ),
-                        ],
-                      ),
-
-                      const SizedBox(height: 10),
-
-                      // Info message for first-time current date editing
-                      if (_isEditMode &&
-                          _isToday(_selectedDate) &&
-                          _isFirstTimeCurrentDate)
-                        Container(
-                          width: double.infinity,
-                          padding: const EdgeInsets.symmetric(
-                            horizontal: 12,
-                            vertical: 8,
-                          ),
-                          decoration: BoxDecoration(
-                            color: Colors.green.shade50,
-                            borderRadius: BorderRadius.circular(8),
-                            border: Border.all(color: Colors.green.shade200),
-                          ),
-                          child: Row(
-                            children: [
-                              Icon(
-                                Icons.info_outline,
-                                color: Colors.green.shade700,
-                                size: 16,
-                              ),
-                              const SizedBox(width: 8),
-                              Expanded(
-                                child: Text(
-                                  "First-time editing for today's date enabled automatically",
-                                  style: TextStyle(
-                                    color: Colors.green.shade700,
-                                    fontSize: 12,
-                                  ),
-                                ),
-                              ),
-                            ],
-                          ),
                         ),
+                      ],
+                    ),
+                  ],
+                ),
 
-                      const SizedBox(height: 20),
+                const SizedBox(height: 20),
 
-                      // Attendance List
-                      Expanded(
-                        child: ListView.builder(
-                          itemCount: attendanceList.length,
-                          itemBuilder: (context, i) {
-                            final emp = attendanceList[i];
-                            return AttendanceCard(
-                              name: emp.manpower.fullName ?? "Unnamed",
-                              status: emp.status,
-                              totalHours: emp.totalHours,
-                              otValue: emp.ot,
-                              absentOptions: absentOptions,
-                              otOptions: otOptions,
-                              isEditMode: _isEditMode, // Pass edit mode to card
-                              onAbsentChange: (v) {
-                                if (!_isEditMode) {
-                                  _showEditModeRequiredMessage();
-                                  return;
-                                }
-
-                                double hours = 0;
-                                String st = "absent";
-
-                                if (v == "P") {
-                                  hours = 8;
-                                  st = "present";
-                                } else if (v is double && v > 0) {
-                                  hours = v;
-                                  st = "present";
-                                }
-
-                                ref
-                                    .read(attendanceNotifierProvider.notifier)
-                                    .updateEmployee(
-                                      i,
-                                      emp.copyWith(
-                                        totalHours: hours,
-                                        status: st,
-                                      ),
-                                    );
-                              },
-                              onOtChange: (v) => _handleOTChange(i, v),
-                            );
-                          },
+                // Status indicator
+                Container(
+                  padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+                  decoration: BoxDecoration(
+                    color: _isEditable ? Colors.green.shade50 : Colors.grey.shade50,
+                    borderRadius: BorderRadius.circular(8),
+                    border: Border.all(
+                      color: _isEditable ? Colors.green.shade200 : Colors.grey.shade300,
+                    ),
+                  ),
+                  child: Row(
+                    children: [
+                      Icon(
+                        _isEditable ? Icons.edit : Icons.visibility,
+                        size: 16,
+                        color: _isEditable ? Colors.green : Colors.grey,
+                      ),
+                      const SizedBox(width: 8),
+                      Text(
+                        _isEditable
+                            ? (_isToday(_selectedDate)
+                            ? "Editing today's attendance"
+                            : "Editing attendance for ${_formatDate(_selectedDate)}")
+                            : (_isToday(_selectedDate)
+                            ? "Viewing today's attendance"
+                            : "Viewing attendance for ${_formatDate(_selectedDate)}"),
+                        style: TextStyle(
+                          color: _isEditable ? Colors.green.shade800 : Colors.grey.shade700,
+                          fontWeight: FontWeight.w500,
+                          fontSize: 12,
                         ),
                       ),
-
-                      // Bottom Buttons
                     ],
                   ),
                 ),
 
-                error: (e, s) => Center(child: Text("Error: $e")),
-                loading: () => const Center(child: CircularProgressIndicator()),
-              ),
+                const SizedBox(height: 20),
+
+                // Attendance List
+                Expanded(
+                  child: ListView.builder(
+                    itemCount: attendanceList.length,
+                    itemBuilder: (context, i) {
+                      final emp = attendanceList[i];
+                      return AttendanceCard(
+                        name: emp.manpower.fullName ?? "Unnamed",
+                        status: emp.status,
+                        totalHours: emp.totalHours,
+                        otValue: emp.ot,
+                        absentOptions: absentOptions,
+                        otOptions: otOptions,
+                        isEditMode: _isEditable, // Pass editable state to card
+                        onAbsentChange: (v) {
+                          if (!_isEditable) {
+                            _showEditRequiredMessage();
+                            return;
+                          }
+
+                          double hours = 0;
+                          String st = "absent";
+
+                          if (v == "P") {
+                            hours = 8;
+                            st = "present";
+                          } else if (v is double && v > 0) {
+                            hours = v;
+                            st = "present";
+                          }
+
+                          ref
+                              .read(attendanceNotifierProvider.notifier)
+                              .updateEmployee(
+                            i,
+                            emp.copyWith(
+                              totalHours: hours,
+                              status: st,
+                            ),
+                          );
+                        },
+                        onOtChange: (v) => _handleOTChange(i, v),
+                      );
+                    },
+                  ),
+                ),
+              ],
+            ),
+          ),
+
+          error: (e, s) => Center(child: Text("Error: $e")),
+          loading: () => const Center(child: CircularProgressIndicator()),
+        ),
       ),
     );
   }
@@ -690,105 +821,253 @@ class AttendanceCard extends StatefulWidget {
 class _AttendanceCardState extends State<AttendanceCard> {
   late bool _present;
   late double _hours;
+  late double _otHours;
 
   @override
   void initState() {
     super.initState();
     _present = widget.status != "absent";
     _hours = widget.totalHours;
+    _otHours = widget.otValue;
   }
 
   @override
   void didUpdateWidget(AttendanceCard oldWidget) {
     super.didUpdateWidget(oldWidget);
     if (oldWidget.status != widget.status ||
-        oldWidget.totalHours != widget.totalHours) {
+        oldWidget.totalHours != widget.totalHours ||
+        oldWidget.otValue != widget.otValue) {
       setState(() {
         _present = widget.status != "absent";
         _hours = widget.totalHours;
+        _otHours = widget.otValue;
       });
     }
   }
 
+  double get _totalHours => _present ? _hours + _otHours : 0;
+
+  void toggleAttendance() {
+    if (!widget.isEditMode) return;
+
+    setState(() {
+      _present = !_present;
+      // If marking absent, set hours to 0 and OT to 0
+      if (!_present) {
+        _hours = 0;
+        _otHours = 0;
+      }
+    });
+
+    widget.onAbsentChange(_present ? "P" : "A");
+    // Also trigger OT change if marking absent
+    if (!_present) {
+      widget.onOtChange(0);
+    }
+  }
+
+  void setPresent(bool value) {
+    if (!widget.isEditMode) return;
+
+    setState(() {
+      _present = value;
+      if (!_present) {
+        _hours = 0;
+        _otHours = 0;
+      }
+    });
+
+    widget.onAbsentChange(value ? "P" : "A");
+    if (!value) widget.onOtChange(0);
+  }
+
+
   @override
   Widget build(BuildContext context) {
-    final effectiveOTValue =
-        (widget.status == "absent" || widget.totalHours < 8.0)
-        ? 0.0
-        : widget.otValue;
+    final effectiveOTValue = _present ? _otHours : 0.0;
+    Color cardColor = _present ? Colors.green.shade50 : Colors.red.shade50;
 
-    return Container(
-      margin: const EdgeInsets.only(bottom: 12),
-      padding: const EdgeInsets.all(12),
-      decoration: BoxDecoration(
-        color: Colors.white,
-        borderRadius: BorderRadius.circular(10),
-      ),
-
-      child: Row(
-        crossAxisAlignment: CrossAxisAlignment.center,
-        mainAxisAlignment: MainAxisAlignment.spaceBetween,
-        children: [
-          Expanded(
-            child: Text(
-              widget.name,
-              maxLines: 1,
-              overflow: TextOverflow.ellipsis,
-              style: const TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
-            ),
+    return InkWell(
+      onTap: widget.isEditMode ? toggleAttendance : null,
+      borderRadius: BorderRadius.circular(10),
+      splashColor: widget.isEditMode
+          ? (_present ? Colors.green.withOpacity(0.2) : Colors.red.withOpacity(0.2))
+          : null,
+      highlightColor: widget.isEditMode
+          ? (_present ? Colors.green.withOpacity(0.1) : Colors.red.withOpacity(0.1))
+          : null,
+      child: Container(
+        margin: const EdgeInsets.only(bottom: 12),
+        padding: const EdgeInsets.all(12),
+        decoration: BoxDecoration(
+          color: cardColor,
+          borderRadius: BorderRadius.circular(10),
+          border: Border.all(
+            color: _present ? Colors.green : Colors.red,
+            width: 1,
           ),
+          boxShadow: [
+            BoxShadow(
+              color: Colors.grey.shade100,
+              blurRadius: 4,
+              offset: const Offset(0, 2),
+            ),
+          ],
+        ),
+        child: Row(
+          crossAxisAlignment: CrossAxisAlignment.center,
+          mainAxisAlignment: MainAxisAlignment.spaceBetween,
+          children: [
+            Expanded(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Container(
+                    child: Row(
+                      children: [
+                        Container(
+                          constraints: const BoxConstraints(maxWidth: 140),
+                          child: Text(
+                            widget.name,
+                            maxLines: 1,
+                            overflow: TextOverflow.ellipsis,
+                            style: const TextStyle(
+                              fontSize: 16,
+                              fontWeight: FontWeight.bold,
+                            ),
+                          ),
+                        ),
+                        const SizedBox(width: 8),
+                        // Status Badge
+                        Container(
+                          padding: const EdgeInsets.symmetric(
+                            horizontal: 8,
+                            vertical: 2,
+                          ),
+                          decoration: BoxDecoration(
+                            color: _present
+                                ? Colors.green.withOpacity(0.1)
+                                : Colors.red.withOpacity(0.1),
+                            borderRadius: BorderRadius.circular(12),
+                            border: Border.all(
+                              color: _present
+                                  ? Colors.green.withOpacity(0.3)
+                                  : Colors.red.withOpacity(0.3),
+                              width: 1,
+                            ),
+                          ),
+                          child: Row(
+                            mainAxisSize: MainAxisSize.min,
+                            children: [
+                              Icon(
+                                _present ? Icons.check_circle : Icons.cancel,
+                                size: 12,
+                                color: _present ? Colors.green : Colors.red,
+                              ),
+                              const SizedBox(width: 4),
+                              Text(
+                                _present ? "Present" : "Absent",
+                                style: TextStyle(
+                                  fontSize: 10,
+                                  fontWeight: FontWeight.w600,
+                                  color: _present ? Colors.green : Colors.red,
+                                ),
+                              ),
+                            ],
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+                  const SizedBox(height: 4),
+                  // Total hours indicator (Present hours + OT hours)
+                  Row(
+                    children: [
+                      Icon(
+                        Icons.access_time,
+                        size: 12,
+                        color: Colors.grey.shade600,
+                      ),
+                      const SizedBox(width: 4),
+                      Text(
+                        _present
+                            ? "${_totalHours.toStringAsFixed(1)}h"
+                            : "0 hours",
+                        style: TextStyle(
+                          fontSize: 11,
+                          color: Colors.grey.shade600,
+                        ),
+                      ),
+                    ],
+                  ),
+                ],
+              ),
+            ),
 
-          const SizedBox(height: 12),
+            const SizedBox(width: 12),
 
-          /// PRESENT/ABSENT + HOURS
-          Column(
-            mainAxisAlignment: MainAxisAlignment.spaceBetween,
-            children: [
-              Container(
-                padding: const EdgeInsets.all(3),
-                decoration: BoxDecoration(
-                  color: Colors.grey.shade300,
-                  borderRadius: BorderRadius.circular(12.0),
-                ),
-                child: Row(
+            /// PRESENT/ABSENT + HOURS + OT
+            Column(
+              mainAxisAlignment: MainAxisAlignment.spaceBetween,
+              crossAxisAlignment: CrossAxisAlignment.end,
+              children: [
+                Row(
                   children: [
-                    _buildPAButton(),
-                    const SizedBox(width: 5),
+                    // P/A Button
+                    Container(
+                      padding: const EdgeInsets.all(2),
+                      decoration: BoxDecoration(
+                        color: Colors.grey.shade100,
+                        borderRadius: BorderRadius.circular(8.0),
+                      ),
+                      child: _buildPAButton(),
+                    ),
+                    const SizedBox(width: 8),
+                    // Hours Dropdown
                     _buildHoursDropdown(),
                   ],
                 ),
-              ),
-              const SizedBox(height: 10),
-              Container(
-                padding: const EdgeInsets.all(3),
-                decoration: BoxDecoration(
-                  color: Colors.grey.shade300,
-                  borderRadius: BorderRadius.circular(12.0),
-                ),
-                child: Row(
+                const SizedBox(height: 8),
+                // OT Section
+                Row(
                   children: [
                     Container(
                       padding: const EdgeInsets.symmetric(
-                        horizontal: 15,
+                        horizontal: 10,
                         vertical: 4,
                       ),
                       decoration: BoxDecoration(
-                        color: Colors.orange,
+                        color: _present
+                            ? Colors.orange.withOpacity(0.9)
+                            : Colors.orange.withOpacity(0.3),
                         borderRadius: BorderRadius.circular(6),
+                        boxShadow: _present
+                            ? [
+                          BoxShadow(
+                            color: Colors.orange.withOpacity(0.2),
+                            blurRadius: 2,
+                            offset: const Offset(0, 1),
+                          ),
+                        ]
+                            : null,
                       ),
-                      child: const Text(
+                      child: Text(
                         "OT",
-                        style: TextStyle(color: Colors.white),
+                        style: TextStyle(
+                          color: _present ? Colors.white : Colors.grey,
+                          fontSize: 12,
+                          fontWeight: FontWeight.bold,
+                        ),
                       ),
                     ),
                     const SizedBox(width: 5),
                     _buildOTDropdown(effectiveOTValue),
                   ],
                 ),
-              ),
-            ],
-          ),
-        ],
+              ],
+            ),
+          ],
+        ),
       ),
     );
   }
@@ -796,10 +1075,15 @@ class _AttendanceCardState extends State<AttendanceCard> {
   Widget _buildPAButton() {
     return Container(
       decoration: BoxDecoration(
-        color: Colors.grey.shade200,
-        borderRadius: BorderRadius.circular(8),
+        color: Colors.white,
+        borderRadius: BorderRadius.circular(6),
       ),
-      child: Row(children: [_segment("P", true), _segment("A", false)]),
+      child: Row(
+        children: [
+          _segment("P", true),
+          _segment("A", false),
+        ],
+      ),
     );
   }
 
@@ -807,25 +1091,26 @@ class _AttendanceCardState extends State<AttendanceCard> {
     final active = _present == value;
 
     return GestureDetector(
-      onTap: widget.isEditMode
-          ? () {
-              setState(() => _present = value);
-              widget.onAbsentChange(value ? "P" : "A");
-            }
-          : null,
+      behavior: HitTestBehavior.opaque,
+      onTap: widget.isEditMode ? () => setPresent(value) : null,
       child: Container(
-        padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+        padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
         decoration: BoxDecoration(
           color: active
               ? (value ? Colors.green : Colors.red)
               : Colors.transparent,
-          borderRadius: BorderRadius.circular(6),
+          borderRadius: BorderRadius.circular(5),
         ),
         child: Text(
           label,
           style: TextStyle(
-            color: active ? Colors.white : (value ? Colors.green : Colors.red),
-            fontWeight: FontWeight.bold,
+            color: active
+                ? Colors.white
+                : value
+                ? Colors.green.withOpacity(0.6)
+                : Colors.red.withOpacity(0.6),
+            fontWeight: active ? FontWeight.bold : FontWeight.normal,
+            fontSize: active ? 13 : 10,
           ),
         ),
       ),
@@ -833,64 +1118,108 @@ class _AttendanceCardState extends State<AttendanceCard> {
   }
 
   Widget _buildHoursDropdown() {
-    return Container(
-      height: 35,
-      padding: const EdgeInsets.symmetric(horizontal: 3),
-      decoration: BoxDecoration(
-        color: Colors.blue.shade50,
-        borderRadius: BorderRadius.circular(6),
-      ),
-      child: DropdownButtonHideUnderline(
-        child: DropdownButton<double>(
-          value: _hours,
-          items: widget.absentOptions
-              .where((e) => e["value"] is double)
-              .map(
-                (e) => DropdownMenuItem<double>(
-                  value: e["value"],
-                  child: Text(e["label"].toString()),
+    // If absent, only show 0 as option
+    final hoursOptions = _present
+        ? widget.absentOptions.where((e) => e["value"] is double).toList()
+        : [{"value": 0.0, "label": "0h"}];
+
+    return MouseRegion(
+      cursor: widget.isEditMode
+          ? SystemMouseCursors.click
+          : SystemMouseCursors.basic,
+      child: Container(
+        height: 30,
+        padding: const EdgeInsets.symmetric(horizontal: 3),
+        decoration: BoxDecoration(
+          color: _present ? Colors.blue.shade50 : Colors.grey.shade200,
+          borderRadius: BorderRadius.circular(6),
+          border: Border.all(
+            color: _present ? Colors.blue.shade100 : Colors.grey.shade300,
+            width: 1,
+          ),
+        ),
+        child: DropdownButtonHideUnderline(
+          child: DropdownButton<double>(
+            value: _hours,
+            iconSize: 16,
+            isDense: true,
+            items: hoursOptions
+                .map(
+                  (e) => DropdownMenuItem<double>(
+                value: e["value"],
+                child: Text(
+                  e["label"].toString(),
+                  style: TextStyle(
+                    fontSize: 12,
+                    color: _present ? Colors.black : Colors.grey,
+                  ),
                 ),
-              )
-              .toList(),
-          onChanged: widget.isEditMode
-              ? (v) {
-                  if (v != null) {
-                    setState(() => _hours = v);
-                    widget.onAbsentChange(v);
-                  }
-                }
-              : null,
+              ),
+            )
+                .toList(),
+            onChanged: widget.isEditMode && _present
+                ? (v) {
+              if (v != null) {
+                setState(() => _hours = v);
+                widget.onAbsentChange(v);
+              }
+            }
+                : null,
+          ),
         ),
       ),
     );
   }
 
   Widget _buildOTDropdown(double effectiveOTValue) {
-    return Container(
-      height: 35,
-      padding: const EdgeInsets.symmetric(horizontal: 3),
-      decoration: BoxDecoration(
-        color: Colors.orange.shade50,
-        borderRadius: BorderRadius.circular(6),
-      ),
-      child: DropdownButtonHideUnderline(
-        child: DropdownButton<double>(
-          value: effectiveOTValue,
-          items: widget.otOptions
-              .map(
-                (e) => DropdownMenuItem<double>(
-                  value: e["value"],
-                  child: Text(e["label"].toString()),
+    // If absent, only show 0 as option
+    final otOptions = _present
+        ? widget.otOptions
+        : [{"value": 0.0, "label": "0h"}];
+
+    return MouseRegion(
+      cursor: widget.isEditMode
+          ? SystemMouseCursors.click
+          : SystemMouseCursors.basic,
+      child: Container(
+        height: 30,
+        padding: const EdgeInsets.symmetric(horizontal: 3),
+        decoration: BoxDecoration(
+          color: _present ? Colors.orange.shade50 : Colors.grey.shade200,
+          borderRadius: BorderRadius.circular(6),
+          border: Border.all(
+            color: _present ? Colors.orange.shade100 : Colors.grey.shade300,
+            width: 1,
+          ),
+        ),
+        child: DropdownButtonHideUnderline(
+          child: DropdownButton<double>(
+            value: effectiveOTValue,
+            iconSize: 16,
+            isDense: true,
+            items: otOptions
+                .map(
+                  (e) => DropdownMenuItem<double>(
+                value: e["value"],
+                child: Text(
+                  e["label"].toString(),
+                  style: TextStyle(
+                    fontSize: 12,
+                    color: _present ? Colors.black : Colors.grey,
+                  ),
                 ),
-              )
-              .toList(),
-          onChanged: widget.isEditMode
-              ? (v) {
-                  if (v != null) {
-                    widget.onOtChange(v);
-                  }
-                }
-              : null,
+              ),
+            )
+                .toList(),
+            onChanged: widget.isEditMode && _present
+                ? (v) {
+              if (v != null) {
+                setState(() => _otHours = v);
+                widget.onOtChange(v);
+              }
+            }
+                : null,
+          ),
         ),
       ),
     );

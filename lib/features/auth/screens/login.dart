@@ -204,9 +204,9 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
 
                         ),
                         children: const [
-                          TextSpan(text: "Congrats there!! "),
+                          TextSpan(text: "Congrats! There are "),
                           TextSpan(
-                            text: "70 Million",
+                            text: "70 Million+",
                             style: TextStyle(
                               color: Colors.blue,
                               fontWeight: FontWeight.bold,
@@ -363,6 +363,27 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
                     ),
                   ),
                   const SizedBox(height: 20),
+                  SizedBox(
+                    width: double.infinity,
+                    height: 48,
+                    child: OutlinedButton(
+                      onPressed: () => context.push('/manpower-login'),
+                      style: OutlinedButton.styleFrom(
+                        shape: RoundedRectangleBorder(
+                          borderRadius: BorderRadius.circular(12),
+                        ),
+                        side: const BorderSide(color: Colors.blue),
+                      ),
+                      child: const Text(
+                        "Login as Manpower",
+                        style: TextStyle(
+                          fontSize: 16,
+                          fontWeight: FontWeight.w600,
+                          color: Colors.blue,
+                        ),
+                      ),
+                    ),
+                  ),
 
                   // Terms and Privacy Policy
                   Container(

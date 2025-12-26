@@ -1,4 +1,5 @@
 import 'dart:io';
+import 'package:dio/dio.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:image_picker/image_picker.dart';
@@ -6,6 +7,7 @@ import 'package:untitled2/core/utlis/colors/colors.dart';
 import 'package:untitled2/core/utlis/widgets/custom_appBar.dart';
 import 'package:untitled2/core/utlis/widgets/image_clipped.dart';
 import '../../../core/utlis/widgets/fields/custom_textField.dart';
+import '../../../core/utlis/widgets/file_upload.dart';
 import '../../../core/widgets/user/toggle_input.dart';
 import '../../auth/provider/auth_provider.dart';
 import 'package:untitled2/features/profile_page/screens/widgets/loader.dart';
@@ -124,17 +126,20 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
   }
 
   Future<void> _handleImagePick(bool isProfile) async {
-    final picker = ImagePicker();
-    final pickedFile = await picker.pickImage(source: ImageSource.gallery);
+    final helper = ImageUploadHelper(context);
+    final file = await helper.pickAndCropImage(
+      enableCropping: true,
+      cropTitle: isProfile ? 'Crop Profile Photo' : 'Crop Company Logo',
+    );
 
-    if (pickedFile != null) {
+    if (file != null) {
       setState(() {
         if (isProfile) {
-          _profileImageFile = File(pickedFile.path);
-          _formValues['profilePhoto'] = pickedFile.path;
+          _profileImageFile = file;
+          _formValues['profilePhoto'] = file.path;
         } else {
-          _companyLogoFile = File(pickedFile.path);
-          _formValues['companyLogo'] = pickedFile.path;
+          _companyLogoFile = file;
+          _formValues['companyLogo'] = file.path;
         }
       });
     }
@@ -154,7 +159,8 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
 
   Future<void> _submitForm() async {
     if (!_formKey.currentState!.validate()) return;
-    if (_formValues['selectService'].isEmpty) {
+
+    if ((_formValues['selectService'] as List).isEmpty) {
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(content: Text('Select at least one service')),
       );
@@ -164,48 +170,66 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
     try {
       final userNotifier = ref.read(userNotifierProvider.notifier);
 
-      // Prepare update data
-      final updateData = <String, dynamic>{};
+      final formData = FormData();
 
-      // Handle file uploads
+      // Files
       if (_profileImageFile != null) {
-        updateData['profilePhoto'] = _profileImageFile;
+        formData.files.add(
+          MapEntry(
+            'profilePhoto',
+            await MultipartFile.fromFile(
+              _profileImageFile!.path,
+              filename: 'profile.jpg',
+            ),
+          ),
+        );
       }
+
       if (_companyLogoFile != null) {
-        updateData['companyLogo'] = _companyLogoFile;
+        formData.files.add(
+          MapEntry(
+            'companyLogo',
+            await MultipartFile.fromFile(
+              _companyLogoFile!.path,
+              filename: 'company.jpg',
+            ),
+          ),
+        );
       }
 
-      // Split full name into first and last name
+      // Name split
       final nameParts = _fullNameController.text.trim().split(' ');
-      final firstName = nameParts[0];
-      final lastName = nameParts.length > 1 ? nameParts.sublist(1).join(' ') : '';
+      final firstName = nameParts.first;
+      final lastName =
+      nameParts.length > 1 ? nameParts.sublist(1).join(' ') : '';
 
-      // Add other fields
-      updateData.addAll({
-        'firstName': firstName,
-        'lastName': lastName,
-        'fullName': _fullNameController.text.trim(),
-        'phoneNumber': _phoneNumberController.text.trim(),
-        'email': _emailController.text.trim(),
-        'aadhaarCard': _aadhaarController.text.trim(),
-        'gstNumber': _gstController.text.trim(),
-        'company': {
-          'name': _companyNameController.text.trim(),
-          'logo': _formValues['companyLogo'],
-        },
-        'address': _addressController.text.trim(),
-        'other': _otherController.text.trim(),
-        'selectedServices': _formValues['selectService'],
-      });
+      // Fields (MATCH RN EXACTLY)
+      formData.fields.addAll([
+        MapEntry('firstName', firstName),
+        MapEntry('lastName', lastName),
+        MapEntry('phoneNumber', _phoneNumberController.text.trim()),
+        MapEntry('email', _emailController.text.trim()),
+        MapEntry('aadhaarCard', _aadhaarController.text.trim()),
+        MapEntry('gstNumber', _gstController.text.trim()),
+        MapEntry('company', _companyNameController.text.trim()),
+        MapEntry('address', _addressController.text.trim()),
+        MapEntry('other', _otherController.text.trim()),
+      ]);
 
-      await userNotifier.updateUser(updateData);
+      // selectedServices (REPEAT KEY — VERY IMPORTANT)
+      for (final service in _formValues['selectService']) {
+        formData.fields.add(MapEntry('selectedServices', service));
+      }
+
+      await userNotifier.updateUser(formData);
 
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(content: Text('Profile updated successfully')),
       );
     } catch (e) {
+      print(e);
       ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text('Failed to update profile: $e')),
+        SnackBar(content: Text(e.toString())),
       );
     }
   }
@@ -258,10 +282,42 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
                   crossAxisAlignment: CrossAxisAlignment.center,
                   children: [
                     // Profile photo
-                    UploadPhotoButton(
-                      size: 200,
-                      imagePath: _formValues['profilePhoto'],
-                      onPressed: () => _handleImagePick(true),
+                    GestureDetector(
+                      onTap: () => _handleImagePick(true),
+                      child: Stack(
+                        children: [
+                          CircleAvatar(
+                            radius: 60,
+                            backgroundImage: _profileImageFile != null
+                                ? FileImage(_profileImageFile!)
+                                : (_formValues['profilePhoto'] != null &&
+                                _formValues['profilePhoto'].isNotEmpty)
+                                ? NetworkImage(_formValues['profilePhoto'])
+                                : null,
+                            child: _profileImageFile == null &&
+                                (_formValues['profilePhoto'] == null ||
+                                    _formValues['profilePhoto'].isEmpty)
+                                ? const Icon(Icons.person, size: 60)
+                                : null,
+                          ),
+                          Positioned(
+                            bottom: 0,
+                            right: 0,
+                            child: Container(
+                              padding: const EdgeInsets.all(4),
+                              decoration: const BoxDecoration(
+                                color: Colors.blue,
+                                shape: BoxShape.circle,
+                              ),
+                              child: const Icon(
+                                Icons.camera_alt,
+                                size: 20,
+                                color: Colors.white,
+                              ),
+                            ),
+                          ),
+                        ],
+                      ),
                     ),
                     const SizedBox(height: 20),
 
@@ -320,11 +376,44 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
                       ),
                     ),
                     const SizedBox(height: 8),
-                    UploadPhotoButton(
-                      size: 100,
-                      imagePath: _formValues['companyLogo'],
-                      onPressed: () => _handleImagePick(false),
-                      isCompanyLogo: true,
+                    const Align(
+                      alignment: Alignment.centerLeft,
+                      child: Text(
+                        'Company Logo',
+                        style: TextStyle(
+                          fontWeight: FontWeight.w600,
+                          fontSize: 14,
+                        ),
+                      ),
+                    ),
+                    const SizedBox(height: 8),
+                    GestureDetector(
+                      onTap: () => _handleImagePick(false),
+                      child: Container(
+                        height: 100,
+                        width: 100,
+                        decoration: BoxDecoration(
+                          color: Colors.grey[200],
+                          borderRadius: BorderRadius.circular(12),
+                          border: Border.all(color: Colors.grey.shade400),
+                        ),
+                        child: _companyLogoFile != null
+                            ? ClipRRect(
+                          borderRadius: BorderRadius.circular(12),
+                          child: Image.file(_companyLogoFile!, fit: BoxFit.cover),
+                        )
+                            : Column(
+                          mainAxisAlignment: MainAxisAlignment.center,
+                          children: const [
+                            Icon(Icons.business, size: 40, color: Colors.grey),
+                            SizedBox(height: 6),
+                            Text(
+                              "Upload Logo",
+                              style: TextStyle(color: Colors.grey),
+                            ),
+                          ],
+                        ),
+                      ),
                     ),
                     const SizedBox(height: 15),
 

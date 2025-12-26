@@ -34,7 +34,27 @@ class RateApiClient {
       return _handleError(e);
     }
   }
+   Future<void> delete(String siteId, String rateId) async {
+    try {
 
+
+      final response = await _dio.delete(
+        '/site/$siteId/rate/$rateId',
+       
+        options: Options(
+          headers: {
+            'Content-Type': 'multipart/form-data',
+          },
+        ),
+      );
+
+      print("✅ Status Code: ${response.statusCode}");
+      print("✅ Response Data: ${response.data}");
+    } catch (e) {
+      print("❌ Update Error: $e");
+      rethrow;
+    }
+  }
   // Fetch single rate by ID
   Future<Map<String, dynamic>> fetchRateById(String siteId, String rateId) async {
     try {

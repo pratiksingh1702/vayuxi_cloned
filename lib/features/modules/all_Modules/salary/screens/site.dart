@@ -1,8 +1,10 @@
 import 'dart:io';
+import 'package:http/http.dart';
 import 'dart:typed_data';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:file_picker/file_picker.dart';
+import 'package:http/http.dart' as http;
 import 'package:permission_handler/permission_handler.dart';
 import 'package:pdf/pdf.dart';
 import 'package:pdf/widgets.dart' as pw;
@@ -12,16 +14,15 @@ import 'package:untitled2/core/utlis/widgets/custom_appBar.dart';
 import 'package:untitled2/core/utlis/widgets/image_clipped.dart';
 import 'package:untitled2/features/modules/all_Modules/Manpower%20Details/service/manPowerProvider.dart';
 import 'package:untitled2/features/modules/all_Modules/site_Details/repository/siteModel.dart';
+import 'package:untitled2/features/profile_page/userModel/userModel.dart';
 import 'package:untitled2/typeProvider/type_provider.dart';
+import '../../../../profile_page/provider/userProvider.dart';
 import '../service-provider/salaryClient.dart';
 
 class SiteSalaryScreen extends ConsumerStatefulWidget {
   final SiteModel siteModel;
 
-  const SiteSalaryScreen({
-    super.key,
-    required this.siteModel,
-  });
+  const SiteSalaryScreen({super.key, required this.siteModel});
 
   @override
   ConsumerState<SiteSalaryScreen> createState() => _SiteScreenState();
@@ -73,7 +74,7 @@ class _SiteScreenState extends ConsumerState<SiteSalaryScreen> {
     final currentYear = DateTime.now().year;
     yearOptions = List.generate(
       currentYear - startYear + 1,
-          (index) => (currentYear - index).toString(),
+      (index) => (currentYear - index).toString(),
     );
   }
 
@@ -162,7 +163,9 @@ class _SiteScreenState extends ConsumerState<SiteSalaryScreen> {
       context: context,
       builder: (BuildContext context) => AlertDialog(
         title: const Text("Permission Required"),
-        content: const Text("Storage permission is required to save salary slip files."),
+        content: const Text(
+          "Storage permission is required to save salary slip files.",
+        ),
         actions: [
           TextButton(
             onPressed: () => Navigator.pop(context),
@@ -190,9 +193,42 @@ class _SiteScreenState extends ConsumerState<SiteSalaryScreen> {
       num = -num;
     }
 
-    final units = ["", "One", "Two", "Three", "Four", "Five", "Six", "Seven", "Eight", "Nine"];
-    final teens = ["Ten", "Eleven", "Twelve", "Thirteen", "Fourteen", "Fifteen", "Sixteen", "Seventeen", "Eighteen", "Nineteen"];
-    final tens = ["", "", "Twenty", "Thirty", "Forty", "Fifty", "Sixty", "Seventy", "Eighty", "Ninety"];
+    final units = [
+      "",
+      "One",
+      "Two",
+      "Three",
+      "Four",
+      "Five",
+      "Six",
+      "Seven",
+      "Eight",
+      "Nine",
+    ];
+    final teens = [
+      "Ten",
+      "Eleven",
+      "Twelve",
+      "Thirteen",
+      "Fourteen",
+      "Fifteen",
+      "Sixteen",
+      "Seventeen",
+      "Eighteen",
+      "Nineteen",
+    ];
+    final tens = [
+      "",
+      "",
+      "Twenty",
+      "Thirty",
+      "Forty",
+      "Fifty",
+      "Sixty",
+      "Seventy",
+      "Eighty",
+      "Ninety",
+    ];
 
     String convert(int n) {
       if (n < 10) return units[n];
@@ -237,9 +273,71 @@ class _SiteScreenState extends ConsumerState<SiteSalaryScreen> {
         (deductions['lwf'] ?? 0).toDouble() +
         (deductions['advance'] ?? 0).toDouble());
   }
+  Future<pw.MemoryImage?> _loadCompanyLogo(String? imageUrl) async {
+    if (imageUrl == null || imageUrl.isEmpty) return null;
 
+    try {
+      print('''
+========== 🖼️ LOGO DEBUG START ==========
+URL: $imageUrl
+Valid URL: ${imageUrl.startsWith('http')}
+''');
+
+      if (!imageUrl.startsWith('http')) {
+        print('❌ Not a valid HTTP URL');
+        return null;
+      }
+
+      final response = await http.get(
+        Uri.parse(imageUrl),
+        headers: {
+          'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36',
+        },
+      ).timeout(const Duration(seconds: 10));
+
+      print('StatusCode: ${response.statusCode}');
+      print('Bytes received: ${response.bodyBytes.length}');
+
+      if (response.statusCode != 200) {
+        print('❌ HTTP ${response.statusCode}');
+        return null;
+      }
+
+      if (response.bodyBytes.isEmpty) {
+        print('❌ Empty response body');
+        return null;
+      }
+
+      // Validate it's actually an image
+      final bytes = response.bodyBytes;
+      if (bytes.length < 4) {
+        print('❌ Too small to be a valid image');
+        return null;
+      }
+
+      // Try to create the MemoryImage with better error handling
+      try {
+        final memoryImage = pw.MemoryImage(bytes);
+        print('✅ Logo loaded successfully');
+        return memoryImage;
+      } catch (e) {
+        print('❌ Failed to create MemoryImage: $e');
+        return null;
+      }
+    } catch (e) {
+      print('❌ Logo download failed: $e');
+      return null;
+    } finally {
+      print('========== 🖼️ LOGO DEBUG END ==========\n');
+    }
+  }
   // Generate individual employee PDF
-  Future<Uint8List> _generateEmployeePDF(Map<String, dynamic> employee, Map<String, dynamic> salaryData) async {
+  Future<Uint8List> _generateEmployeePDF(
+      Map<String, dynamic> employee,
+      Map<String, dynamic> salaryData,
+      String? companyName,
+      String? companyLogoPath,
+  ) async {
     // Load fonts
     final regularFont = pw.Font.ttf(
       await rootBundle.load("assets/fonts/NotoSans-Regular.ttf"),
@@ -253,9 +351,23 @@ class _SiteScreenState extends ConsumerState<SiteSalaryScreen> {
 
     final pdf = pw.Document();
 
+    pw.MemoryImage? companyLogo;
+    bool logoLoaded = false;
+    if (companyLogoPath != null && companyLogoPath.isNotEmpty) {
+      try {
+        companyLogo = await _loadCompanyLogo(companyLogoPath);
+        logoLoaded = companyLogo != null;
+        print('🖼️ Logo loaded: $logoLoaded');
+      } catch (e) {
+        print('⚠️ Logo loading error: $e');
+        companyLogo = null;
+      }
+    }
+
     final manpower = salaryData['manpowerDetails'] ?? {};
     final company = salaryData['companyDetails'] ?? {};
     final earnings = salaryData['earnings'] ?? {};
+    print("================${earnings}=========");
     final deductions = salaryData['deductions'] ?? {};
 
     final monthName = monthMap.keys.elementAt((selectedMonth ?? 1) - 1);
@@ -279,7 +391,13 @@ class _SiteScreenState extends ConsumerState<SiteSalaryScreen> {
     final normalStyle = pw.TextStyle(font: regularFont, fontSize: 11);
     final boldStyle = pw.TextStyle(font: boldFont, fontSize: 11);
     final tableHeaderStyle = pw.TextStyle(font: boldFont, fontSize: 11);
-    final italicStyle = pw.TextStyle(font: italicFont, fontSize: 13, fontStyle: pw.FontStyle.italic);
+    final italicStyle = pw.TextStyle(
+      font: italicFont,
+      fontSize: 13,
+      fontStyle: pw.FontStyle.italic,
+    );
+    final user = ref.read(currentUserProvider);
+
 
     pdf.addPage(
       pw.Page(
@@ -292,14 +410,22 @@ class _SiteScreenState extends ConsumerState<SiteSalaryScreen> {
               pw.Row(
                 mainAxisAlignment: pw.MainAxisAlignment.spaceBetween,
                 children: [
-                  pw.Container(
-                    height: 60,
-                    width: 60,
-                    color: PdfColors.grey.shade(300),
-                    child: pw.Center(
+                  if (companyLogo != null)
+                    pw.Container(
+                      height: 60,
+                      width: 60,
+                      child: pw.Image(companyLogo, fit: pw.BoxFit.contain),
+                    )
+                  else
+                    pw.Container(
+                      height: 60,
+                      width: 60,
+                      alignment: pw.Alignment.center,
+                      decoration: pw.BoxDecoration(
+                        border: pw.Border.all(),
+                      ),
                       child: pw.Text('LOGO', style: boldStyle),
                     ),
-                  ),
                   pw.Expanded(
                     child: pw.Column(
                       mainAxisAlignment: pw.MainAxisAlignment.center,
@@ -311,7 +437,7 @@ class _SiteScreenState extends ConsumerState<SiteSalaryScreen> {
                         ),
                         pw.SizedBox(height: 4),
                         pw.Text(
-                          'B-101, KRISHNA KUNJ B, RAMJANWADI, VAPI, VALSAD, GUJARAT, 396191',
+                          user?.address??"No Address",
                           style: pw.TextStyle(font: regularFont, fontSize: 12),
                           textAlign: pw.TextAlign.center,
                         ),
@@ -325,120 +451,201 @@ class _SiteScreenState extends ConsumerState<SiteSalaryScreen> {
 
               // Employee Information Table
               pw.Table(
-                border: pw.TableBorder.all(),
                 columnWidths: {
                   0: const pw.FlexColumnWidth(1.2),
-                  1: const pw.FlexColumnWidth(1.5),
-                  2: const pw.FlexColumnWidth(1.2),
-                  3: const pw.FlexColumnWidth(1.5),
-                  4: const pw.FlexColumnWidth(1.2),
-                  5: const pw.FlexColumnWidth(1.5),
+                  1: const pw.FlexColumnWidth(2),
+                  2: const pw.FlexColumnWidth(1.6),
+                  3: const pw.FlexColumnWidth(2),
+                  4: const pw.FlexColumnWidth(1.4),
+                  5: const pw.FlexColumnWidth(1.8),
                 },
                 children: [
-                  _buildTableRow(['Pay Slip:', '', 'Pay Slip for Month:', '$monthName $selectedYear', 'D.O.B.:', _formatDate(manpower['dateOfBirth'])], regularFont, boldFont),
-                  _buildTableRow(['Emp Code:', manpower['employeeCode'] ?? '', 'Employee Name:', manpower['fullName'] ?? '', 'Designation:', manpower['designation'] ?? ''], regularFont, boldFont),
-                  _buildTableRow(['Aadhar No:', manpower['aaddharNumber'] ?? '', 'Department:', manpower['type'] ?? 'N/A', 'DOJ:', _formatDate(manpower['dateOfJoining'])], regularFont, boldFont),
-                  _buildTableRow(['ESIC No:', manpower['esicNumber'] ?? '', 'UAN No:', manpower['uanNumber'] ?? '', 'Total Days:', '${(salaryData['presentDays'] ?? 0) + (salaryData['absentDays'] ?? 0)}'], regularFont, boldFont),
-                  _buildTableRow(['EPF ID:', manpower['epfNumber'] ?? '', 'Emp PAN No:', manpower['panNumber'] ?? 'N/A', 'Days Present:', '${salaryData['presentDays'] ?? 0}'], regularFont, boldFont),
+                  _infoRow(
+                    'Pay Slip:', '12',
+                    'Pay Slip for Month:', '$monthName $selectedYear',
+                    'D.O.B.:', _formatDate(manpower['dateOfBirth']),
+                    regularFont, boldFont,
+                  ),
+                  _infoRow(
+                    'Emp Code:', manpower['employeeCode'] ?? '',
+                    'Employee Name:', manpower['fullName'] ?? '',
+                    'Designation:', manpower['designation'] ?? '',
+                    regularFont, boldFont,
+                  ),
+                  _infoRow(
+                    'Aadhar No:', manpower['aaddharNumber'] ?? '',
+                    'Department:', manpower['type'] ?? 'N/A',
+                    'DOJ:', _formatDate(manpower['dateOfJoining']),
+                    regularFont, boldFont,
+                  ),
+                  _infoRow(
+                    'ESIC No:', manpower['esicNumber'] ?? '',
+                    'UAN No:', manpower['uanNumber'] ?? '',
+                    'Total Days:',
+                    '${(salaryData['presentDays'] ?? 0) + (salaryData['absentDays'] ?? 0)}',
+                    regularFont, boldFont,
+                  ),
+                  _infoRow(
+                    'EPF No:', manpower['epfNumber'] ?? '',
+                    'Emp PAN No:', manpower['panNumber'] ?? 'N/A',
+                    'Days Present:', '${salaryData['presentDays'] ?? 0}',
+                    regularFont, boldFont,
+                  ),
                 ],
               ),
+
 
               pw.SizedBox(height: 15),
 
               // Salary Table
-              pw.Table(
-                border: pw.TableBorder.all(),
-                columnWidths: {
-                  0: const pw.FlexColumnWidth(2),
-                  1: const pw.FlexColumnWidth(1.5),
-                  2: const pw.FlexColumnWidth(2),
-                  3: const pw.FlexColumnWidth(1.5),
-                },
+              pw.Column(
+                crossAxisAlignment: pw.CrossAxisAlignment.stretch,
                 children: [
-                  // Table Header
-                  pw.TableRow(
+                  // Main Salary Table
+                  pw.Table(
+                    border: pw.TableBorder.all(),
+                    columnWidths: {
+                      0: const pw.FlexColumnWidth(2),
+                      1: const pw.FlexColumnWidth(1.5),
+                      2: const pw.FlexColumnWidth(2),
+                      3: const pw.FlexColumnWidth(1.5),
+                    },
                     children: [
-                      pw.Padding(
-                        padding: const pw.EdgeInsets.all(6),
-                        child: pw.Text('EARNING', style: tableHeaderStyle),
+                      // Table Header
+                      pw.TableRow(
+                        children: [
+                          pw.Padding(
+                            padding: const pw.EdgeInsets.all(6),
+                            child: pw.Text('EARNING', style: tableHeaderStyle),
+                          ),
+                          pw.Padding(
+                            padding: const pw.EdgeInsets.all(6),
+                            child: pw.Text('Amount', style: tableHeaderStyle),
+                          ),
+                          pw.Padding(
+                            padding: const pw.EdgeInsets.all(6),
+                            child: pw.Text(
+                              'Deduction & Recoveries',
+                              style: tableHeaderStyle,
+                            ),
+                          ),
+                          pw.Padding(
+                            padding: const pw.EdgeInsets.all(6),
+                            child: pw.Text('Amount', style: tableHeaderStyle),
+                          ),
+                        ],
                       ),
-                      pw.Padding(
-                        padding: const pw.EdgeInsets.all(6),
-                        child: pw.Text('Amount', style: tableHeaderStyle),
+
+                      // Earnings and Deductions rows
+                      ..._buildSalaryRows(
+                        earnings,
+                        deductions,
+                        regularFont,
+                        currencySymbol,
                       ),
-                      pw.Padding(
-                        padding: const pw.EdgeInsets.all(6),
-                        child: pw.Text('Deduction & Recoveries', style: tableHeaderStyle),
+
+                      // Total Earnings row
+                      pw.TableRow(
+                        children: [
+                          pw.Padding(
+                            padding: const pw.EdgeInsets.all(6),
+                            child: pw.Text(
+                              'Amount Total:',
+                              style: boldStyle,
+                              textAlign: pw.TextAlign.right,
+                            ),
+                          ),
+                          pw.Padding(
+                            padding: const pw.EdgeInsets.all(6),
+                            child: pw.Text(
+                              '$currencySymbol${totalEarnings.toStringAsFixed(2)}',
+                              style: boldStyle,
+                            ),
+                          ),
+                          pw.Padding(
+                            padding: const pw.EdgeInsets.all(6),
+                            child: pw.Text(
+                              'Amount Total:',
+                              style: boldStyle,
+                              textAlign: pw.TextAlign.right,
+                            ),
+                          ),
+                          pw.Padding(
+                            padding: const pw.EdgeInsets.all(6),
+                            child: pw.Text(
+                              '$currencySymbol${totalDeductions.toStringAsFixed(2)}',
+                              style: boldStyle,
+                            ),
+                          ),
+                        ],
                       ),
-                      pw.Padding(
-                        padding: const pw.EdgeInsets.all(6),
-                        child: pw.Text('Amount', style: tableHeaderStyle),
+
+                      // Monthly CTC and Net Pay row
+                      pw.TableRow(
+                        children: [
+                          pw.Padding(
+                            padding: const pw.EdgeInsets.all(6),
+                            child: pw.Text(
+                              'MONTHLY CTC:',
+                              style: boldStyle,
+                              textAlign: pw.TextAlign.right,
+                            ),
+                          ),
+                          pw.Padding(
+                            padding: const pw.EdgeInsets.all(6),
+                            child: pw.Text(
+                              '$currencySymbol${monthlyCTC.toStringAsFixed(2)}',
+                              style: boldStyle,
+                            ),
+                          ),
+                          pw.Padding(
+                            padding: const pw.EdgeInsets.all(6),
+                            child: pw.Text(
+                              'Net Pay:',
+                              style: boldStyle,
+                              textAlign: pw.TextAlign.right,
+                            ),
+                          ),
+                          pw.Padding(
+                            padding: const pw.EdgeInsets.all(6),
+                            child: pw.Text(
+                              '$currencySymbol${netPay.toStringAsFixed(2)}',
+                              style: boldStyle,
+                            ),
+                          ),
+                        ],
                       ),
                     ],
                   ),
 
-                  // Earnings and Deductions rows
-                  ..._buildSalaryRows(earnings, deductions, regularFont, currencySymbol),
-
-                  // Total Earnings row
-                  pw.TableRow(
+                  // Second Table for Net Pay in words (no borders)
+                  pw.Table(
+                    // Only show left, right, and bottom borders
+                    // No top border since it attaches to the main table above
+                    border: const pw.TableBorder(
+                      left: pw.BorderSide(width: 1),
+                      right: pw.BorderSide(width: 1),
+                      bottom: pw.BorderSide(width: 1),
+                    ),
+                    columnWidths: {
+                      // Single column that spans the full width
+                      0: const pw.FlexColumnWidth(1),
+                    },
                     children: [
-                      pw.Padding(
-                        padding: const pw.EdgeInsets.all(6),
-                        child: pw.Text('Amount Total:', style: boldStyle, textAlign: pw.TextAlign.right),
-                      ),
-                      pw.Padding(
-                        padding: const pw.EdgeInsets.all(6),
-                        child: pw.Text('$currencySymbol${totalEarnings.toStringAsFixed(2)}', style: boldStyle),
-                      ),
-                      pw.Padding(
-                        padding: const pw.EdgeInsets.all(6),
-                        child: pw.Text('Amount Total:', style: boldStyle, textAlign: pw.TextAlign.right),
-                      ),
-                      pw.Padding(
-                        padding: const pw.EdgeInsets.all(6),
-                        child: pw.Text('$currencySymbol${totalDeductions.toStringAsFixed(2)}', style: boldStyle),
+                      pw.TableRow(
+                        children: [
+                          pw.Padding(
+                            padding: const pw.EdgeInsets.all(6),
+                            child: pw.Text(
+                              'Net Pay: $amountInWords',
+                              style: italicStyle,
+                            ),
+                          ),
+                        ],
                       ),
                     ],
                   ),
 
-                  // Monthly CTC and Net Pay row
-                  pw.TableRow(
-                    children: [
-                      pw.Padding(
-                        padding: const pw.EdgeInsets.all(6),
-                        child: pw.Text('MONTHLY CTC:', style: boldStyle, textAlign: pw.TextAlign.right),
-                      ),
-                      pw.Padding(
-                        padding: const pw.EdgeInsets.all(6),
-                        child: pw.Text('$currencySymbol${monthlyCTC.toStringAsFixed(2)}', style: boldStyle),
-                      ),
-                      pw.Padding(
-                        padding: const pw.EdgeInsets.all(6),
-                        child: pw.Text('Net Pay:', style: boldStyle, textAlign: pw.TextAlign.right),
-                      ),
-                      pw.Padding(
-                        padding: const pw.EdgeInsets.all(6),
-                        child: pw.Text('$currencySymbol${netPay.toStringAsFixed(2)}', style: boldStyle),
-                      ),
-                    ],
-                  ),
-
-                  // Net Pay in words row
-                  pw.TableRow(
-                    children: [
-                      pw.Padding(
-                        padding: const pw.EdgeInsets.all(6),
-                        child: pw.Text(
-                          'Net Pay: $amountInWords',
-                          style: italicStyle,
-                        ),
-                      ),
-                      pw.Container(),
-                      pw.Container(),
-                      pw.Container(),
-                    ],
-                  ),
                 ],
               ),
 
@@ -464,11 +671,85 @@ class _SiteScreenState extends ConsumerState<SiteSalaryScreen> {
       ),
     );
 
+    try {
+      return pdf.save();
+
+    } catch (e) {
+      print('❌ PDF save failed: $e');
+      return await _generateFallbackPDF(
+        employee,
+        salaryData,
+        companyName,
+        regularFont,
+        boldFont,
+        italicFont,
+      );
+    }
+    }
+  pw.TableRow _infoRow(
+      String l1, String v1,
+      String l2, String v2,
+      String l3, String v3,
+      pw.Font regular,
+      pw.Font bold,
+      ) {
+    return pw.TableRow(
+      children: [
+        _cell(l1, bold),
+        _cell(v1, regular),
+        _cell(l2, bold),
+        _cell(v2, regular),
+        _cell(l3, bold),
+        _cell(v3, regular),
+      ],
+    );
+  }
+
+  pw.Widget _cell(String text, pw.Font font) {
+    return pw.Padding(
+      padding: const pw.EdgeInsets.symmetric(vertical: 1),
+      child: pw.Text(
+        text,
+        style: pw.TextStyle(font: font, fontSize: 8),
+      ),
+    );
+  }
+
+  Future<Uint8List> _generateFallbackPDF(
+      Map<String, dynamic> employee,
+      Map<String, dynamic> salaryData,
+      String? companyName,
+      pw.Font regularFont,
+      pw.Font boldFont,
+      pw.Font italicFont,
+      ) async {
+    final pdf = pw.Document();
+
+    pdf.addPage(
+      pw.Page(
+        margin: const pw.EdgeInsets.all(20),
+        build: (context) {
+          return pw.Column(
+            children: [
+              pw.Text('Salary Slip - Fallback Version', style: pw.TextStyle(font: boldFont, fontSize: 16)),
+              pw.SizedBox(height: 20),
+              pw.Text('Employee: ${employee["fullName"]}'),
+              pw.Text('Generated without company logo due to technical issues.'),
+            ],
+          );
+        },
+      ),
+    );
+
     return pdf.save();
   }
 
   // Helper methods for PDF generation
-  pw.TableRow _buildTableRow(List<String> cells, pw.Font regularFont, pw.Font boldFont) {
+  pw.TableRow _buildTableRow(
+    List<String> cells,
+    pw.Font regularFont,
+    pw.Font boldFont,
+  ) {
     return pw.TableRow(
       children: cells.map((cell) {
         return pw.Padding(
@@ -483,16 +764,17 @@ class _SiteScreenState extends ConsumerState<SiteSalaryScreen> {
       }).toList(),
     );
   }
-
-  List<pw.TableRow> _buildSalaryRows(Map<String, dynamic> earnings, Map<String, dynamic> deductions, pw.Font regularFont, String currencySymbol) {
+  List<pw.TableRow> _buildSalaryRows(
+      Map<String, dynamic> earnings,
+      Map<String, dynamic> deductions,
+      pw.Font regularFont,
+      String currencySymbol,
+      ) {
     final earningItems = [
       {'label': 'Basic', 'amount': earnings['basic'] ?? 0},
       {'label': 'H.R.A', 'amount': earnings['hra'] ?? 0},
-      {'label': 'D.A', 'amount': earnings['da'] ?? 0},
-      {'label': 'Special Allowance', 'amount': earnings['specialAllowance'] ?? 0},
-      {'label': 'Travel Allowance', 'amount': earnings['travelAllowance'] ?? 0},
-      {'label': 'Medical Allowance', 'amount': earnings['medicalAllowance'] ?? 0},
       {'label': 'OT', 'amount': earnings['ot'] ?? 0},
+      {'label': 'DA', 'amount': earnings['da'] ?? 0},
     ];
 
     final deductionItems = [
@@ -503,36 +785,28 @@ class _SiteScreenState extends ConsumerState<SiteSalaryScreen> {
       {'label': 'ADVANCE', 'amount': deductions['advance'] ?? 0},
     ];
 
-    // Filter out zero values
-    final nonZeroEarnings = earningItems.where((item) => (item['amount'] as num) > 0).toList();
-    final nonZeroDeductions = deductionItems.where((item) => (item['amount'] as num) > 0).toList();
+    final maxRows = earningItems.length > deductionItems.length
+        ? earningItems.length
+        : deductionItems.length;
 
-    final maxRows = nonZeroEarnings.length > nonZeroDeductions.length ? nonZeroEarnings.length : nonZeroDeductions.length;
     final rows = <pw.TableRow>[];
 
     for (int i = 0; i < maxRows; i++) {
-      final earn = i < nonZeroEarnings.length ? nonZeroEarnings[i] : {'label': '', 'amount': 0};
-      final ded = i < nonZeroDeductions.length ? nonZeroDeductions[i] : {'label': '', 'amount': 0};
+      final earn = i < earningItems.length
+          ? earningItems[i]
+          : {'label': '', 'amount': 0};
+
+      final ded = i < deductionItems.length
+          ? deductionItems[i]
+          : {'label': '', 'amount': 0};
 
       rows.add(
         pw.TableRow(
           children: [
-            pw.Padding(
-              padding: const pw.EdgeInsets.all(6),
-              child: pw.Text(earn['label'], style: pw.TextStyle(font: regularFont, fontSize: 11)),
-            ),
-            pw.Padding(
-              padding: const pw.EdgeInsets.all(6),
-              child: pw.Text('$currencySymbol${(earn['amount'] as num).toStringAsFixed(2)}', style: pw.TextStyle(font: regularFont, fontSize: 11)),
-            ),
-            pw.Padding(
-              padding: const pw.EdgeInsets.all(6),
-              child: pw.Text(ded['label'], style: pw.TextStyle(font: regularFont, fontSize: 11)),
-            ),
-            pw.Padding(
-              padding: const pw.EdgeInsets.all(6),
-              child: pw.Text('$currencySymbol${(ded['amount'] as num).toStringAsFixed(2)}', style: pw.TextStyle(font: regularFont, fontSize: 11)),
-            ),
+            _Newcell(earn['label'], regularFont),
+            _cellAmount(earn['amount'], currencySymbol, regularFont),
+            _cell(ded['label'], regularFont),
+            _cellAmount(ded['amount'], currencySymbol, regularFont),
           ],
         ),
       );
@@ -540,6 +814,27 @@ class _SiteScreenState extends ConsumerState<SiteSalaryScreen> {
 
     return rows;
   }
+  pw.Widget _Newcell(String text, pw.Font font) {
+    return pw.Padding(
+      padding: const pw.EdgeInsets.symmetric(vertical: 4, horizontal: 6),
+      child: pw.Text(
+        text,
+        style: pw.TextStyle(font: font, fontSize: 10),
+      ),
+    );
+  }
+
+  pw.Widget _cellAmount(num amount, String currency, pw.Font font) {
+    return pw.Padding(
+      padding: const pw.EdgeInsets.symmetric(vertical: 4, horizontal: 6),
+      child: pw.Text(
+        '$currency${amount.toStringAsFixed(2)}',
+        style: pw.TextStyle(font: font, fontSize: 10),
+      ),
+    );
+  }
+
+
 
   String _formatDate(String? dateString) {
     if (dateString == null) return '';
@@ -552,33 +847,86 @@ class _SiteScreenState extends ConsumerState<SiteSalaryScreen> {
   }
 
   // Download individual employee PDF
-  Future<void> _handleGenerateSinglePDF(Map<String, dynamic> employee, int index) async {
+  // Download individual employee PDF
+  Future<void> _handleGenerateSinglePDF(
+    Map<String, dynamic> employee,
+    int index,
+  ) async {
     if (mounted) setState(() => isDownloading = true);
 
     try {
       final employeeSalary = workData.firstWhere(
-            (data) => data["manpowerDetails"]["_id"] == employee["_id"],
+        (data) => data["manpowerDetails"]["_id"] == employee["_id"],
         orElse: () => {},
       );
 
       if (employeeSalary.isEmpty) {
-        _showAlert("No Data", "No salary data found for ${employee["fullName"]}");
+        _showAlert(
+          "No Data",
+          "No salary data found for ${employee["fullName"]}",
+        );
         return;
       }
+      await ref.read(userNotifierProvider.notifier).getCurrentUser();
+
+      final user = ref.read(currentUserProvider);
+
+      print('''
+==================== 🔥 USER AFTER FETCH 🔥 ====================
+${user?.toJson()}
+===============================================================
+''');
+
+
+      final companyName = user?.company?.name;
+      final companyLogo = user?.company?.logo;
+
+      print('''
+==================== 🏢 COMPANY DEBUG START 🏢 ====================
+User exists        : ${user != null}
+Company exists     : ${user?.company != null}
+
+Company Name       : $companyName
+Name is NULL       : ${companyName == null}
+Name is EMPTY      : ${companyName?.isEmpty ?? true}
+
+Company Logo       : $companyLogo
+Logo is NULL       : ${companyLogo == null}
+Logo is EMPTY      : ${companyLogo?.isEmpty ?? true}
+
+Logo looks like URL: ${companyLogo?.startsWith('http') ?? false}
+===============================================================
+''');
 
       if (await _requestPermissions()) {
-        final pdfBytes = await _generateEmployeePDF(employee, employeeSalary);
+        // Pass company data to PDF generation
+        final pdfBytes = await _generateEmployeePDF(
+          employee,
+          employeeSalary,
+          companyName,
+          companyLogo,
+        );
 
         final monthName = monthMap.keys.elementAt(selectedMonth! - 1);
         final String? savePath = await FilePicker.platform.saveFile(
           dialogTitle: 'Save Salary Slip',
-          fileName: 'Salary_${employee["fullName"]}_${monthName}_$selectedYear.pdf',
+          fileName:
+              'Salary_${employee["fullName"]}_${monthName}_$selectedYear.pdf',
           lockParentWindow: true,
           bytes: pdfBytes,
         );
 
         if (savePath != null) {
-          _showAlert("Success", "Salary slip saved for ${employee["fullName"]}");
+          _showAlert(
+            "Success",
+            "Salary slip saved for ${employee["fullName"]}",
+          );
+       // ✅ IMPORTANT
+
+          _showAlert(
+            "Success",
+            "Salary slip saved for ${employee["fullName"]}",
+          );
         } else {
           _showAlert("Cancelled", "Save cancelled for ${employee["fullName"]}");
         }
@@ -592,6 +940,10 @@ class _SiteScreenState extends ConsumerState<SiteSalaryScreen> {
   }
 
   // Download all PDFs
+// Replace the _handleDownloadAllPDFs method with this improved version
+
+// Replace the _handleDownloadAllPDFs method with this improved version
+
   Future<void> _handleDownloadAllPDFs() async {
     if (workData.isEmpty) {
       _showAlert("No Data", "No salary data available to generate PDFs.");
@@ -602,9 +954,191 @@ class _SiteScreenState extends ConsumerState<SiteSalaryScreen> {
 
     try {
       if (await _requestPermissions()) {
-        int successCount = 0;
+        // Step 1: Ask user to select download directory ONCE
+        String? selectedDirectory = await FilePicker.platform.getDirectoryPath(
+          dialogTitle: 'Select folder to save all salary slips',
+          lockParentWindow: true,
+        );
 
-        for (var employee in manpowerDataList) {
+        if (selectedDirectory == null) {
+          _showAlert("Cancelled", "Download cancelled. No location selected.");
+          if (mounted) setState(() => isDownloading = false);
+          return;
+        }
+
+        // Step 2: Show progress dialog
+        int totalFiles = workData.length;
+        int currentFile = 0;
+        int successCount = 0;
+        int failedCount = 0;
+
+        // Show progress dialog with real-time updates
+        if (!mounted) return;
+
+        showDialog(
+          context: context,
+          barrierDismissible: false,
+          builder: (BuildContext dialogContext) {
+            return StreamBuilder<int>(
+              stream: Stream.periodic(const Duration(milliseconds: 100), (count) => count),
+              builder: (context, snapshot) {
+                return AlertDialog(
+                  title: Row(
+                    children: [
+                      Icon(
+                        currentFile == totalFiles
+                            ? Icons.check_circle
+                            : Icons.download,
+                        color: currentFile == totalFiles
+                            ? Colors.green
+                            : Colors.blue,
+                      ),
+                      const SizedBox(width: 8),
+                      Text(
+                        currentFile == totalFiles
+                            ? 'Download Complete!'
+                            : 'Downloading Salary Slips',
+                      ),
+                    ],
+                  ),
+                  content: Column(
+                    mainAxisSize: MainAxisSize.min,
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text(
+                        'Progress: $currentFile / $totalFiles',
+                        style: const TextStyle(
+                          fontSize: 16,
+                          fontWeight: FontWeight.bold,
+                        ),
+                      ),
+                      const SizedBox(height: 16),
+                      LinearProgressIndicator(
+                        value: totalFiles > 0 ? currentFile / totalFiles : 0,
+                        backgroundColor: Colors.grey[300],
+                        valueColor: const AlwaysStoppedAnimation<Color>(Colors.blue),
+                        minHeight: 8,
+                      ),
+                      const SizedBox(height: 16),
+                      if (currentFile < totalFiles && currentFile < manpowerDataList.length)
+                        Container(
+                          padding: const EdgeInsets.all(12),
+                          decoration: BoxDecoration(
+                            color: Colors.blue.shade50,
+                            borderRadius: BorderRadius.circular(8),
+                          ),
+                          child: Row(
+                            children: [
+                              const SizedBox(
+                                width: 16,
+                                height: 16,
+                                child: CircularProgressIndicator(
+                                  strokeWidth: 2,
+                                ),
+                              ),
+                              const SizedBox(width: 12),
+                              Expanded(
+                                child: Text(
+                                  'Processing: ${manpowerDataList[currentFile]["fullName"] ?? "Unknown"}',
+                                  style: TextStyle(
+                                    fontSize: 14,
+                                    color: Colors.grey[800],
+                                    fontWeight: FontWeight.w500,
+                                  ),
+                                ),
+                              ),
+                            ],
+                          ),
+                        ),
+                      if (currentFile == totalFiles)
+                        Container(
+                          padding: const EdgeInsets.all(12),
+                          decoration: BoxDecoration(
+                            color: Colors.green.shade50,
+                            borderRadius: BorderRadius.circular(8),
+                          ),
+                          child: Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              Row(
+                                children: [
+                                  Icon(Icons.check_circle,
+                                      color: Colors.green[700], size: 20),
+                                  const SizedBox(width: 8),
+                                  Text(
+                                    'All files downloaded successfully!',
+                                    style: TextStyle(
+                                      fontSize: 14,
+                                      color: Colors.green[700],
+                                      fontWeight: FontWeight.bold,
+                                    ),
+                                  ),
+                                ],
+                              ),
+                              const SizedBox(height: 8),
+                              Text(
+                                '✓ Success: $successCount files',
+                                style: const TextStyle(
+                                  fontSize: 13,
+                                  color: Colors.green,
+                                ),
+                              ),
+                              if (failedCount > 0)
+                                Text(
+                                  '✗ Failed: $failedCount files',
+                                  style: const TextStyle(
+                                    fontSize: 13,
+                                    color: Colors.red,
+                                  ),
+                                ),
+                              const SizedBox(height: 4),
+                              Text(
+                                'Location: $selectedDirectory',
+                                style: TextStyle(
+                                  fontSize: 12,
+                                  color: Colors.grey[600],
+                                  fontStyle: FontStyle.italic,
+                                ),
+                              ),
+                            ],
+                          ),
+                        ),
+                    ],
+                  ),
+                  actions: [
+                    if (currentFile == totalFiles)
+                      TextButton(
+                        onPressed: () {
+                          Navigator.pop(dialogContext);
+                        },
+                        style: TextButton.styleFrom(
+                          backgroundColor: Colors.blue,
+                          foregroundColor: Colors.white,
+                          padding: const EdgeInsets.symmetric(
+                            horizontal: 24,
+                            vertical: 12,
+                          ),
+                        ),
+                        child: const Text('Close'),
+                      ),
+                  ],
+                );
+              },
+            );
+          },
+        );
+
+        // Step 3: Generate and save all PDFs
+        for (int i = 0; i < manpowerDataList.length; i++) {
+          final employee = manpowerDataList[i];
+
+          // Update progress
+          if (mounted) {
+            setState(() {
+              currentFile = i;
+            });
+          }
+
           final employeeSalary = workData.firstWhere(
                 (data) => data["manpowerDetails"]["_id"] == employee["_id"],
             orElse: () => {},
@@ -612,35 +1146,61 @@ class _SiteScreenState extends ConsumerState<SiteSalaryScreen> {
 
           if (employeeSalary.isNotEmpty) {
             try {
-              final pdfBytes = await _generateEmployeePDF(employee, employeeSalary);
-              final monthName = monthMap.keys.elementAt(selectedMonth! - 1);
-              final fileName = 'Salary_${employee["fullName"]}_${monthName}_$selectedYear.pdf';
+              await ref.read(userNotifierProvider.notifier).getCurrentUser();
+              final user = ref.read(currentUserProvider);
 
-              final String? savePath = await FilePicker.platform.saveFile(
-                dialogTitle: 'Save Salary Slip - ${employee["fullName"]}',
-                fileName: fileName,
-                lockParentWindow: true,
-                bytes: pdfBytes,
+              final companyName = user?.company?.name;
+              final companyLogo = user?.company?.logo;
+
+              final effectiveCompanyName =
+                  companyName ?? widget.siteModel.siteName ?? 'MY COMPANY';
+              final effectiveCompanyLogo = companyLogo;
+
+              final pdfBytes = await _generateEmployeePDF(
+                employee,
+                employeeSalary,
+                effectiveCompanyName,
+                effectiveCompanyLogo,
               );
 
-              if (savePath != null) {
-                successCount++;
-              }
+              final monthName = monthMap.keys.elementAt(selectedMonth! - 1);
+              final fileName =
+                  'Salary_${employee["fullName"]}_${monthName}_$selectedYear.pdf';
+
+              // Save file to selected directory
+              final filePath = '$selectedDirectory/$fileName';
+              final file = File(filePath);
+              await file.writeAsBytes(pdfBytes);
+
+              successCount++;
             } catch (e) {
-              debugPrint("Error generating PDF for ${employee["fullName"]}: $e");
+              debugPrint(
+                "Error generating PDF for ${employee["fullName"]}: $e",
+              );
+              failedCount++;
             }
+          } else {
+            failedCount++;
           }
         }
 
-        _showAlert("Complete", "Successfully generated $successCount out of ${workData.length} PDFs");
+        // Update final progress
+        if (mounted) {
+          setState(() {
+            currentFile = totalFiles;
+          });
+        }
+
+        // Wait a moment to show the completion message
+        await Future.delayed(const Duration(milliseconds: 500));
       }
     } catch (e) {
+      Navigator.pop(context); // Close progress dialog on error
       _showAlert("Error", "Failed to generate PDFs: $e");
     } finally {
       if (mounted) setState(() => isDownloading = false);
     }
   }
-
   void _showAlert(String title, String message) {
     showDialog(
       context: context,
@@ -720,10 +1280,7 @@ class _SiteScreenState extends ConsumerState<SiteSalaryScreen> {
           DropdownButtonFormField<String>(
             value: value,
             items: items
-                .map((item) => DropdownMenuItem(
-              value: item,
-              child: Text(item),
-            ))
+                .map((item) => DropdownMenuItem(value: item, child: Text(item)))
                 .toList(),
             onChanged: onChanged,
             decoration: InputDecoration(
@@ -766,8 +1323,9 @@ class _SiteScreenState extends ConsumerState<SiteSalaryScreen> {
       itemCount: manpowerDataList.length,
       itemBuilder: (context, index) {
         final employee = manpowerDataList[index];
-        final hasSalaryData = workData.any((data) =>
-        data["manpowerDetails"]["_id"] == employee["_id"]);
+        final hasSalaryData = workData.any(
+          (data) => data["manpowerDetails"]["_id"] == employee["_id"],
+        );
 
         return Card(
           color: Colors.white,
@@ -788,24 +1346,15 @@ class _SiteScreenState extends ConsumerState<SiteSalaryScreen> {
                 color: Colors.white,
                 shape: BoxShape.circle,
               ),
-              child: Icon(
-                Icons.person,
-                color: Theme.of(context).primaryColor,
-              ),
+              child: Icon(Icons.person, color: Theme.of(context).primaryColor),
             ),
             title: Text(
               employee["fullName"] ?? "Unknown",
-              style: const TextStyle(
-                fontSize: 16,
-                fontWeight: FontWeight.w600,
-              ),
+              style: const TextStyle(fontSize: 16, fontWeight: FontWeight.w600),
             ),
             subtitle: Text(
               employee["designation"] ?? "No Designation",
-              style: TextStyle(
-                fontSize: 14,
-                color: Colors.grey[600],
-              ),
+              style: TextStyle(fontSize: 14, color: Colors.grey[600]),
             ),
             trailing: _buildPdfIndicator(hasSalaryData),
             onTap: hasSalaryData && !isDownloading
@@ -852,23 +1401,31 @@ class _SiteScreenState extends ConsumerState<SiteSalaryScreen> {
       child: Column(
         children: [
           ElevatedButton(
-            onPressed: workData.isNotEmpty && !isDownloading ? _handleDownloadAllPDFs : null,
+            onPressed: workData.isNotEmpty && !isDownloading
+                ? _handleDownloadAllPDFs
+                : null,
             style: ElevatedButton.styleFrom(
               backgroundColor: Colors.blue,
               minimumSize: const Size.fromHeight(50),
             ),
             child: isDownloading
-                ? const SizedBox(height: 20, width: 20, child: CircularProgressIndicator(color: Colors.white))
+                ? const SizedBox(
+                    height: 20,
+                    width: 20,
+                    child: CircularProgressIndicator(color: Colors.white),
+                  )
                 : const Text(
-              "Download All",
-              style: TextStyle(color: Colors.white),
-            ),
+                    "Download All",
+                    style: TextStyle(color: Colors.white),
+                  ),
           ),
           const SizedBox(height: 10),
           OutlinedButton(
-            onPressed: isDownloading ? null : () {
-              Navigator.pushNamed(context, "/salary-Module/siteList");
-            },
+            onPressed: isDownloading
+                ? null
+                : () {
+                    Navigator.pushNamed(context, "/salary-Module/siteList");
+                  },
             style: OutlinedButton.styleFrom(
               minimumSize: const Size.fromHeight(50),
             ),

@@ -26,53 +26,56 @@ class ManEntrySelectCardGrid extends StatelessWidget {
       appBar: CustomAppBar(title:"Select Card"),
       body: BottomButtonWrapper(
         onBackPressed: (){Navigator.pop(context);},
-        child: GridView.count(
-          physics: const NeverScrollableScrollPhysics(),
-          shrinkWrap: true,
-          crossAxisCount: 2,
-          mainAxisSpacing: 20,
-          crossAxisSpacing: 20,
-          childAspectRatio: 1,
-          children: [
-            SelectCard(
-              icon: Image.asset(
-                "assets/images/Gemini_Generated_Image_pi2r7npi2r7npi2r.webp",
+        child: Container(
+          padding: const EdgeInsets.symmetric(horizontal: 16), // Add side padding
+          child: GridView.count(
+            physics: const NeverScrollableScrollPhysics(),
+            shrinkWrap: true,
+            crossAxisCount: 2,
+            mainAxisSpacing: 12, // Reduced vertical space between cards
+            crossAxisSpacing: 10, // Reduced horizontal space between cards
+            childAspectRatio: 1,
+            children: [
+              SelectCard(
+                icon: Image.asset(
+                  "assets/images/icons/manual_entry.webp",
 
-                height: 120,
-                width: double.infinity,
-                fit: BoxFit.cover,
+                  height: 120,
+                  width: double.infinity,
+                  fit: BoxFit.cover,
 
+                ),
+                label: "Manual Entry",
+                onTap: () {
+                  Navigator.push(
+                    context,
+                    MaterialPageRoute(builder: (context) =>NewManpowerScreen() ),
+                  );
+
+                },
               ),
-              label: "Manual Entry",
-              onTap: () {
-                Navigator.push(
-                  context,
-                  MaterialPageRoute(builder: (context) =>NewManpowerScreen() ),
-                );
+              SelectCard(
+                icon: Image.asset(
+                  "assets/images/icons/import_sheet.webp",
 
-              },
-            ),
-            SelectCard(
-              icon: Image.asset(
-                "assets/images/Gemini_Generated_Image_pi2r7npi2r7npi2r.webp",
+                  height: 120,
+                  width: double.infinity,
+                  fit: BoxFit.cover,
 
-                height: 120,
-                width: double.infinity,
-                fit: BoxFit.cover,
+                ),
+                label: "Import Sheet",
+                onTap: () {
 
+                  Navigator.push(
+                    context,
+                    MaterialPageRoute(builder: (context) =>ManImportCsvScreen() ),
+                  );
+
+                },
               ),
-              label: "Import Sheet",
-              onTap: () {
 
-                Navigator.push(
-                  context,
-                  MaterialPageRoute(builder: (context) =>ManImportCsvScreen() ),
-                );
-
-              },
-            ),
-
-          ],
+            ],
+          ),
         ),
       ),
     );

@@ -28,7 +28,7 @@ class DprSelectCardGrid extends StatelessWidget {
           children: [
             SelectCard(
               icon: Image.asset(
-                "assets/images/Gemini_Generated_Image_pi2r7npi2r7npi2r.png",
+                "assets/images/icons/view.webp",
         
                 height: 120,
                 width: double.infinity,
@@ -46,7 +46,7 @@ class DprSelectCardGrid extends StatelessWidget {
             ),
             SelectCard(
               icon: Image.asset(
-                "assets/images/Gemini_Generated_Image_pi2r7npi2r7npi2r.png",
+                "assets/images/icons/add.webp",
         
                 height: 120,
                 width: double.infinity,

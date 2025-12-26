@@ -26,52 +26,55 @@ class TeamSelectCardGrid extends StatelessWidget {
       appBar: CustomAppBar(title:"Select Card"),
       body: BottomButtonWrapper(
         onBackPressed: (){Navigator.pop(context);},
-        child: GridView.count(
-          physics: const NeverScrollableScrollPhysics(),
-          shrinkWrap: true,
-          crossAxisCount: 2,
-          mainAxisSpacing: 20,
-          crossAxisSpacing: 20,
-          childAspectRatio: 1,
-          children: [
-            SelectCard(
-              icon: Image.asset(
-                "assets/images/Gemini_Generated_Image_pi2r7npi2r7npi2r.webp",
+        child: Container(
+          padding: const EdgeInsets.symmetric(horizontal: 16), // Add side padding
+          child: GridView.count(
+            physics: const NeverScrollableScrollPhysics(),
+            shrinkWrap: true,
+            crossAxisCount: 2,
+            mainAxisSpacing: 12, // Reduced vertical space between cards
+            crossAxisSpacing: 10, // Reduced horizontal space between cards
+            childAspectRatio: 1,
+            children: [
+              SelectCard(
+                icon: Image.asset(
+                  "assets/images/icons/view.webp",
 
-                height: 120,
-                width: double.infinity,
-                fit: BoxFit.cover,
 
+                  width: double.infinity,
+                  fit: BoxFit.cover,
+
+                ),
+                label: "View",
+                onTap: () {
+                  Navigator.push(
+                    context,
+                    MaterialPageRoute(builder: (context) =>TeamListPage() ),
+                  );
+
+                },
               ),
-              label: "View",
-              onTap: () {
-                Navigator.push(
-                  context,
-                  MaterialPageRoute(builder: (context) =>TeamListPage() ),
-                );
+              SelectCard(
+                icon: Image.asset(
+                  "assets/images/icons/add.webp",
 
-              },
-            ),
-            SelectCard(
-              icon: Image.asset(
-                "assets/images/Gemini_Generated_Image_pi2r7npi2r7npi2r.webp",
+                  height: 120,
+                  width: double.infinity,
+                  fit: BoxFit.cover,
 
-                height: 120,
-                width: double.infinity,
-                fit: BoxFit.cover,
+                ),
+                label: "add",
+                onTap: () {
+                  Navigator.push(
+                    context,
+                    MaterialPageRoute(builder: (context) =>AddTeamScreen() ),
+                  );
 
+                },
               ),
-              label: "add",
-              onTap: () {
-                Navigator.push(
-                  context,
-                  MaterialPageRoute(builder: (context) =>AddTeamScreen() ),
-                );
 
-              },
-            ),
-
-          ],
+            ],
+          ),
         ),
       ),
     );

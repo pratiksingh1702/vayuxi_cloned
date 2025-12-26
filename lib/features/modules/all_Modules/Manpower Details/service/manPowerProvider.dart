@@ -55,26 +55,57 @@ class ManpowerNotifier extends StateNotifier<ManpowerState> {
     }
   }
 
-  /// Add manpower
-  Future<void> addManpower(String type, Map<String, dynamic> data) async {
+  Future<ManpowerModel?> addManpower(String type, Map<String, dynamic> data) async {
     try {
-      await ManpowerAPI.postManpower(type, data);
-      await fetchManpower(type); // Refresh list
+      final response = await ManpowerAPI.postManpower(type, data);
+
+      // Check if response was successful and has data
+      if (response["success"] == true && response["data"] != null) {
+        // Parse the created manpower from response
+        final createdManpower = ManpowerModel.fromJson(response["data"]);
+
+        // Refresh list
+        await fetchManpower(type);
+
+        // Return the created manpower
+        return createdManpower;
+      }
+
+      return null;
     } catch (e) {
       state = state.copyWith(error: e.toString());
+      return null;
     }
   }
+
 
   /// Update manpower
-  Future<void> updateManpower(String id, Map<String, dynamic> data, String type) async {
+  Future<ManpowerModel?> updateManpower(
+      String id,
+      Map<String, dynamic> data,
+      String type
+      ) async {
     try {
-      await ManpowerAPI.updateManpower(id, data);
-      await fetchManpower(type); // Refresh list
+      final response = await ManpowerAPI.updateManpower(id, data);
+
+      // Check if response was successful and has data
+      if (response["success"] == true && response["data"] != null) {
+        // Parse the updated manpower from response
+        final updatedManpower = ManpowerModel.fromJson(response["data"]);
+
+        // Refresh list
+        await fetchManpower(type);
+
+        // Return the updated manpower
+        return updatedManpower;
+      }
+
+      return null;
     } catch (e) {
       state = state.copyWith(error: e.toString());
+      return null;
     }
   }
-
   /// Mark manpower as left
   Future<void> leftManpower(String id, Map<String, dynamic> data, String type) async {
     try {

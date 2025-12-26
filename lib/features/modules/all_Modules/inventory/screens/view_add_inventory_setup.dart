@@ -18,51 +18,54 @@ class ViewAddInventorySetup extends StatelessWidget {
     return Scaffold(
       backgroundColor: AppColors.lightBlue,
       appBar: CustomAppBar(title:"Select Card"),
-      body: GridView.count(
-        physics: const NeverScrollableScrollPhysics(),
-        shrinkWrap: true,
-        crossAxisCount: 2,
-        mainAxisSpacing: 20,
-        crossAxisSpacing: 20,
-        childAspectRatio: 1,
-        children: [
-          SelectCard(
-            icon: Image.asset(
-              "assets/images/Gemini_Generated_Image_pi2r7npi2r7npi2r.png",
+      body: Container(
+        padding: const EdgeInsets.symmetric(horizontal: 16), // Add side padding
+        child: GridView.count(
+          physics: const NeverScrollableScrollPhysics(),
+          shrinkWrap: true,
+          crossAxisCount: 2,
+          mainAxisSpacing: 12, // Reduced vertical space between cards
+          crossAxisSpacing: 10, // Reduced horizontal space between cards
+          childAspectRatio: 1,
+          children: [
+            SelectCard(
+              icon: Image.asset(
+                "assets/images/icons/view.webp",
 
-              height: 120,
-              width: double.infinity,
-              fit: BoxFit.cover,
+                height: 120,
+                width: double.infinity,
+                fit: BoxFit.cover,
 
+              ),
+              label: "View",
+              onTap: () {
+                Navigator.push(
+                  context,
+                  MaterialPageRoute(builder: (context) => InventoryListScreen()),
+                );
+                print("implementing");
+              },
             ),
-            label: "View",
-            onTap: () {
-              Navigator.push(
-                context,
-                MaterialPageRoute(builder: (context) => InventoryListScreen()),
-              );
-              print("implementing");
-            },
-          ),
-          SelectCard(
-            icon: Image.asset(
-              "assets/images/Gemini_Generated_Image_pi2r7npi2r7npi2r.png",
+            SelectCard(
+              icon: Image.asset(
+                "assets/images/icons/add.webp",
 
-              height: 120,
-              width: double.infinity,
-              fit: BoxFit.cover,
+                height: 120,
+                width: double.infinity,
+                fit: BoxFit.cover,
 
+              ),
+              label: "Add",
+              onTap: () {
+                Navigator.push(
+                  context,
+                  MaterialPageRoute(builder: (context) =>AddInventorySelection() ),
+                );
+              },
             ),
-            label: "add",
-            onTap: () {
-              Navigator.push(
-                context,
-                MaterialPageRoute(builder: (context) =>AddInventorySelection() ),
-              );
-            },
-          ),
 
-        ],
+          ],
+        ),
       ),
     );
   }

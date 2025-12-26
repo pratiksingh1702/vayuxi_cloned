@@ -156,12 +156,12 @@ class CompanyCard extends StatelessWidget {
             Container(
               padding: EdgeInsets.all(size.height * 0.01),
               child: ClipRRect(
-                borderRadius: BorderRadius.circular(12),
+                borderRadius: BorderRadius.circular(5),
                 child: Image.asset(
                   imagePath,
                   height: cardImageHeight,
                   width: double.infinity,
-                  fit: BoxFit.cover,
+                  fit: BoxFit.fill,
                 ),
               ),
             ),

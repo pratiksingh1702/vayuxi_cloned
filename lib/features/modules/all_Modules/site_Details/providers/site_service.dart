@@ -21,6 +21,7 @@ class SiteAPI {
     }
   }
 
+
   static Future<void> updateSite(String siteId, FormData data) async {
     try {
 
@@ -28,6 +29,26 @@ class SiteAPI {
       final response = await dio.put(
         '/site/$siteId',
         data: data,
+        options: Options(
+          headers: {
+            'Content-Type': 'multipart/form-data',
+          },
+        ),
+      );
+
+      print("✅ Status Code: ${response.statusCode}");
+      print("✅ Response Data: ${response.data}");
+    } catch (e) {
+      print("❌ Update Error: $e");
+      rethrow;
+    }
+  }
+  static Future<void> delete(String siteId) async {
+    try {
+
+
+      final response = await dio.delete(
+        '/site/$siteId',
         options: Options(
           headers: {
             'Content-Type': 'multipart/form-data',

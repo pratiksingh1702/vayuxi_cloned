@@ -63,7 +63,7 @@ class _MOCSelectionPageState extends ConsumerState<MOCSelectionPage> {
               customButtons: [
             CustomButton(
               button: RoundedButton(
-                text: "Save & Continue",
+                text: "Save & Submit",
                 color: Colors.blue,
                 textColor: Colors.white,
                 onPressed:(){ selectedMOC == null

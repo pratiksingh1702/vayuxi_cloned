@@ -85,6 +85,7 @@ class ExpenseAPI {
     required String siteId,
     required String startDate,
     required String endDate,
+    String expenseType="material_tools",
   }) async {
     try {
       // Validate required parameters
@@ -97,7 +98,7 @@ class ExpenseAPI {
       final encodedServiceType = Uri.encodeComponent(serviceType);
 
       // Construct URL with all required parameters
-      final url = "/site/$siteId/expenses/generate-expenses?type=material_tools&serviceType=$encodedServiceType&startDate=${Uri.encodeComponent(startDate)}&endDate=${Uri.encodeComponent(endDate)}";
+      final url = "/site/$siteId/expenses/generate-expenses?type=$expenseType&serviceType=$encodedServiceType&startDate=${Uri.encodeComponent(startDate)}&endDate=${Uri.encodeComponent(endDate)}";
 
       print('📊 Generating CSV with URL: $url');
 

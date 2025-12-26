@@ -666,7 +666,7 @@ class InventoryApi {
   Future<Uint8List> generateReport({
     required String siteId,
     required DateTime fromDate,
-    required DateTime toDate,
+
   }) async {
     try {
       final response = await dio.get(
@@ -675,7 +675,7 @@ class InventoryApi {
           'format': 'excel',
           'siteId': siteId,
           'fromDate': fromDate.toIso8601String().split('T')[0],
-          'toDate': toDate.toIso8601String().split('T')[0],
+
         },
         options: Options(
           responseType: ResponseType.bytes, // 🔥 IMPORTANT

@@ -314,12 +314,12 @@ final dailyUsageProvider = FutureProvider.family<List<InventoryUsage>, ({String 
 
 // 25. Generate report provider (Excel metadata)
 final generateReportProvider =
-FutureProvider.family<Uint8List, ({String siteId, DateTime from, DateTime to})>((ref, args) async {
+FutureProvider.family<Uint8List, ({String siteId, DateTime from})>((ref, args) async {
   final api = ref.read(inventoryApiProvider);
   return api.generateReport(
     siteId: args.siteId,
     fromDate: args.from,
-    toDate: args.to,
+
   );
 });
 

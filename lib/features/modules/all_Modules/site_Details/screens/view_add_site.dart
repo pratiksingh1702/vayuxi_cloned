@@ -19,48 +19,51 @@ class SiteSelectCardGrid extends ConsumerWidget {
       appBar: CustomAppBar(title: "Select Card"),
       body: BottomButtonWrapper(
         onBackPressed: () => Navigator.pop(context),
-        child: GridView.count(
-          physics: const NeverScrollableScrollPhysics(),
-          shrinkWrap: true,
-          crossAxisCount: 2,
-          mainAxisSpacing: 20,
-          crossAxisSpacing: 20,
-          childAspectRatio: 1,
-          children: [
-            // ---------------- VIEW ----------------
-            SelectCard(
-              icon: Image.asset(
-                "assets/images/Gemini_Generated_Image_pi2r7npi2r7npi2r.webp",
-                height: 120,
-                width: double.infinity,
-                fit: BoxFit.cover,
-              ),
-              label: "View",
-              onTap: () {
-                // ❗ Reset previously selected site
-                ref.read(selectedSiteIdProvider.notifier).state = null;
+        child: Container(
+          padding: const EdgeInsets.symmetric(horizontal: 16), // Add side padding
+          child: GridView.count(
+            physics: const NeverScrollableScrollPhysics(),
+            shrinkWrap: true,
+            crossAxisCount: 2,
+            mainAxisSpacing: 12, // Reduced vertical space between cards
+            crossAxisSpacing: 10, // Reduced horizontal space between cards
+            childAspectRatio: 1,
+            children: [
+              // ---------------- VIEW ----------------
+              SelectCard(
+                icon: Image.asset(
+                  "assets/images/icons/view.webp",
+                  height: 120,
+                  width: double.infinity,
+                  fit: BoxFit.cover,
+                ),
+                label: "View",
+                onTap: () {
+                  // ❗ Reset previously selected site
+                  ref.read(selectedSiteIdProvider.notifier).state = null;
 
-                context.push("/site-list/site");
-              },
-            ),
-
-            // ---------------- ADD ----------------
-            SelectCard(
-              icon: Image.asset(
-                "assets/images/Gemini_Generated_Image_pi2r7npi2r7npi2r.webp",
-                height: 120,
-                width: double.infinity,
-                fit: BoxFit.cover,
+                  context.push("/site-list/site");
+                },
               ),
-              label: "add",
-              onTap: () {
-                Navigator.push(
-                  context,
-                  MaterialPageRoute(builder: (context) => SiteEntrySelectCardGrid()),
-                );
-              },
-            ),
-          ],
+
+              // ---------------- ADD ----------------
+              SelectCard(
+                icon: Image.asset(
+                  "assets/images/icons/add.webp",
+                  height: 120,
+                  width: double.infinity,
+                  fit: BoxFit.cover,
+                ),
+                label: "add",
+                onTap: () {
+                  Navigator.push(
+                    context,
+                    MaterialPageRoute(builder: (context) => SiteEntrySelectCardGrid()),
+                  );
+                },
+              ),
+            ],
+          ),
         ),
       ),
     );

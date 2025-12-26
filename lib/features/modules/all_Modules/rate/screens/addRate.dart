@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:go_router/go_router.dart';
 import 'package:untitled2/core/utlis/colors/colors.dart';
 import 'package:untitled2/features/modules/all_Modules/site_Details/providers/site_current_provider.dart';
 import '../../../../../core/utlis/widgets/buttons.dart';
@@ -127,6 +128,7 @@ class _AddRateScreenState extends ConsumerState<AddRateScreen> {
         // Navigate back after successful save
         if (mounted) {
           Navigator.pop(context);
+          context.push("/site-list/rate");
         }
       }
     } catch (e) {

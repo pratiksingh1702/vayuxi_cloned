@@ -25,97 +25,104 @@ class MOCCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return InkWell(
-      onTap: onTap,
-      child: Card(
-        elevation: 0,
-        color: Colors.white,
-        shape: RoundedRectangleBorder(
-          borderRadius: BorderRadius.circular(12),
-          side: BorderSide(
-            color: isSelected ? Colors.blue : Colors.grey.shade300,
-            width: isSelected ? 2 : 1,
+    return Padding(
+      padding: const EdgeInsets.all(8.0),
+      child: InkWell(
+        onTap: onTap,
+        child: Card(
+          elevation: 0,
+          color: Colors.white,
+          shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(12),
+            side: BorderSide(
+              color: isSelected ? Colors.blue : Colors.grey.shade300,
+              width: isSelected ? 2 : 1,
+            ),
           ),
-        ),
-        child: Padding(
-          padding: const EdgeInsets.all(8.0),
-          child: Stack(
-            children: [
-              Center(
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.center,
-                  mainAxisAlignment: MainAxisAlignment.center,
-                  children: [
-                    // MOC Image
-                    _buildImage(),
+          child: Padding(
+            padding: const EdgeInsets.all(12.0),
+            child: Stack(
+              children: [
+                Center(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.center,
+                    mainAxisAlignment: MainAxisAlignment.center,
+                    children: [
+                      // MOC Image
+                      _buildImage(),
 
 
 
-                    // MOC Name
-                    Expanded(
-                      child: Text(
-                        moc.name,
-                        textAlign: TextAlign.center,
-                        style: const TextStyle(
-                          fontSize: 16,
-                          fontWeight: FontWeight.w600,
-                        ),
-                        maxLines: 2,
-                        overflow: TextOverflow.ellipsis,
-                      ),
-                    ),
+                      // MOC Name
+                      Expanded(
+                        child: Text(
 
-                    const SizedBox(height: 4),
-
-
-                  ],
-                ),
-              ),
-
-              // Edit/Delete buttons (conditionally shown)
-              if (showEditButton) ...[
-                Positioned(
-                  top: 0,
-                  right: 8,
-                  child: PopupMenuButton<String>(
-                    icon: const Icon(Icons.more_vert, size: 20),
-                    onSelected: (value) {
-                      if (value == 'edit' && onEdit != null) {
-                        onEdit!();
-                      } else if (value == 'delete' && onDelete != null) {
-                        onDelete!();
-                      }
-                    },
-                    itemBuilder: (BuildContext context) => [
-                      const PopupMenuItem<String>(
-                        value: 'edit',
-                        child: Row(
-                          children: [
-                            Icon(Icons.edit, size: 18),
-                            SizedBox(width: 8),
-                            Text('Edit'),
-                          ],
+                          moc.name,
+                          textAlign: TextAlign.center,
+                          style: const TextStyle(
+                            fontSize: 12,
+                            fontWeight: FontWeight.w600,
+                          ),
+                          maxLines: 1,
+                          overflow: TextOverflow.ellipsis,
                         ),
                       ),
-                      const PopupMenuItem<String>(
-                        value: 'delete',
-                        child: Row(
-                          children: [
-                            Icon(Icons.delete, size: 18, color: Colors.red),
-                            SizedBox(width: 8),
-                            Text('Delete', style: TextStyle(color: Colors.red)),
-                          ],
-                        ),
-                      ),
+
+                      const SizedBox(height: 4),
+
+
                     ],
                   ),
                 ),
+
+                // Edit/Delete buttons (conditionally shown)
+                if (showEditButton) ...[
+                  Positioned(
+                    top: 0,
+                    right: 8,
+                    child: PopupMenuButton<String>(
+                      icon: const Icon(Icons.more_vert, size: 20),
+                      onSelected: (value) {
+                        if (value == 'edit' && onEdit != null) {
+                          onEdit!();
+                        } else if (value == 'delete' && onDelete != null) {
+                          onDelete!();
+                        }
+                      },
+                      itemBuilder: (BuildContext context) => [
+                        const PopupMenuItem<String>(
+                          value: 'edit',
+                          child: Row(
+                            children: [
+                              Icon(Icons.edit, size: 18),
+                              SizedBox(width: 8),
+                              Text('Edit'),
+                            ],
+                          ),
+                        ),
+                        const PopupMenuItem<String>(
+                          value: 'delete',
+                          child: Row(
+                            children: [
+                              Icon(Icons.delete, size: 18, color: Colors.red),
+                              SizedBox(width: 8),
+                              Text('Delete', style: TextStyle(color: Colors.red)),
+                            ],
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+
+                ],
               ],
-            ],
+            ),
           ),
         ),
+
       ),
     );
+
   }
   Widget _buildImage() {
     final img = moc.imageUrl;

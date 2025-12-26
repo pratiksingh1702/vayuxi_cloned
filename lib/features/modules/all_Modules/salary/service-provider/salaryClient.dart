@@ -53,7 +53,7 @@ class SalaryAPI {
 
 
   /// Fetch Salary by Employee
-  static Future<Map<String, dynamic>> fetchSalaryByEmployee({
+  static Future<List<Map<String, dynamic>>> fetchSalaryByEmployee({
     required String type,
     required String month,
     required String year,
@@ -66,8 +66,14 @@ class SalaryAPI {
         'year': year,
       },
     );
-    return res.data;
+
+    if (res.data is List) {
+      return List<Map<String, dynamic>>.from(res.data);
+    }
+
+    return [];
   }
+
 
   /// Fetch Site Salary Employees
   static Future<Map<String, dynamic>> fetchSiteSalaryEmployees({

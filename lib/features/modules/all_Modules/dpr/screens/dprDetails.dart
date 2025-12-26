@@ -3,6 +3,8 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:intl/intl.dart';
 import 'package:untitled2/features/modules/all_Modules/dpr/screens/widgets/dynamic_item_card.dart';
 import 'package:untitled2/features/modules/all_Modules/dpr/screens/widgets/dynamic_item_card2.dart';
+import 'package:untitled2/core/utlis/widgets/custom_appBar.dart';
+import '../../../../../core/utlis/widgets/custom.dart';
 import '../models/dprModel.dart';
 import '../providers/dpr.dart';
 
@@ -36,16 +38,31 @@ class _DprDetailScreenState extends ConsumerState<DprDetailScreen> {
   bool _pipeFittingOn = false;
   bool _equipmentOn = false;
   bool _editMode = false;
+  bool _globalEditMode = false;
+  bool _showPipingMaterials = true;
+  bool _showEquipmentMaterials = true;
   String _inputValue = '';
+
+  DateTime _selectedDate = DateTime.now();
+  bool _isToday = true;
 
   final List<Map<String, dynamic>> _cardInputs = [];
   final Set<String> _pendingUpdates = {};
   final Set<String> _isUpdating = {};
+  bool _isSubmitting = false;
 
   @override
   void initState() {
     super.initState();
     _initializeData();
+    _isToday = _isDateToday(_selectedDate);
+  }
+
+  bool _isDateToday(DateTime date) {
+    final now = DateTime.now();
+    return date.year == now.year &&
+        date.month == now.month &&
+        date.day == now.day;
   }
 
   void _initializeData() {
@@ -99,6 +116,7 @@ class _DprDetailScreenState extends ConsumerState<DprDetailScreen> {
       _cardInputs.add(baseData);
     }
   }
+
   void _handleMocChange(String value) {
     setState(() {
       _moc = value;
@@ -123,33 +141,149 @@ class _DprDetailScreenState extends ConsumerState<DprDetailScreen> {
     });
   }
 
+  bool get _isEditable => _isToday || _globalEditMode;
+
+  void _toggleGlobalEditMode() {
+    setState(() {
+      _globalEditMode = !_globalEditMode;
+    });
+
+    if (_globalEditMode) {
+      _showSnackBar(
+        _isToday
+            ? "Edit mode enabled - You can now modify today's DPR and change date"
+            : "Edit mode enabled - You can now modify DPR for ${_formatDate(_selectedDate)}",
+        isError: false,
+      );
+    } else {
+      _showSnackBar("Edit mode disabled", isError: false);
+    }
+  }
+
+  String _formatDate(DateTime d) => "${d.day}/${d.month}/${d.year}";
+
+  void _showSnackBar(String message, {bool isError = false}) {
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(
+        content: Text(message),
+        backgroundColor: isError ? Colors.red[700] : Colors.green[700],
+        behavior: SnackBarBehavior.floating,
+        duration: const Duration(seconds: 2),
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
+        margin: const EdgeInsets.all(16),
+      ),
+    );
+  }
+
   bool _hasFieldsChanged() {
     return _moc != _originalMoc ||
         _size != _originalSize ||
         _floor != _originalFloor ||
-        _plant != _originalPlant;
+        _plant != _originalPlant ||
+        _inputValue != widget.dpr.dprName;
   }
 
-  void _handleSubmitFields() {
-    if (!_hasFieldsChanged()) return;
+  Future<void> _handleSubmitFields() async {
+    if (!_isEditable) {
+      _showEditRequiredMessage();
+      return;
+    }
 
-    final updateData = {
-      'moc': _moc,
-      'size': _size,
-      'location': _floor,
-      'plant': _plant,
-    };
+    if (!_hasFieldsChanged() && _cardInputs.isEmpty) {
+      _showSnackBar("No changes to save", isError: true);
+      return;
+    }
 
-    ref.read(dprProvider.notifier).updateDprWork(
-      data: updateData,
-      mechanicalId: widget.dpr.id!,
-    );
+    if (_isSubmitting) return;
 
-    // Navigate back
-    Navigator.pop(context);
+    setState(() => _isSubmitting = true);
+
+    try {
+      final updateData = {
+        'dprName': _inputValue,
+        'moc': _moc,
+        'size': _size,
+        'location': _floor,
+        'plant': _plant,
+      };
+
+      await ref.read(dprProvider.notifier).updateDprWork(
+        data: updateData,
+        mechanicalId: widget.dpr.id!,
+      );
+
+      // Update pending material changes
+      for (final materialId in _pendingUpdates) {
+        await _performMaterialUpdate(materialId);
+      }
+
+      _showSnackBar('DPR updated successfully! ✓');
+
+      if (!_isToday) {
+        setState(() {
+          _globalEditMode = false;
+        });
+      }
+
+      // Navigate back after success
+      Navigator.pop(context, true);
+    } catch (e) {
+      _showSnackBar('Failed to save DPR: $e', isError: true);
+    } finally {
+      setState(() => _isSubmitting = false);
+    }
+  }
+
+  void _showEditRequiredMessage() {
+    if (_isToday) {
+      _showSnackBar("You can edit today's DPR directly", isError: true);
+    } else {
+      _showSnackBar("Please enable edit mode to make changes", isError: true);
+    }
+  }
+
+  void _handleToggleChange(bool isPiping, bool newValue) {
+    setState(() {
+      if (isPiping) {
+        _pipeFittingOn = newValue;
+        if (!newValue) {
+          _showPipingMaterials = false;
+        } else {
+          if (widget.dpr.piping.isNotEmpty) {
+            _showPipingMaterials = true;
+          }
+        }
+      } else {
+        _equipmentOn = newValue;
+        if (!newValue) {
+          _showEquipmentMaterials = false;
+        } else {
+          if (widget.dpr.equipment.isNotEmpty) {
+            _showEquipmentMaterials = true;
+          }
+        }
+      }
+    });
+  }
+
+  void _toggleMaterialVisibility(bool isPiping) {
+    if (isPiping) {
+      setState(() {
+        _showPipingMaterials = !_showPipingMaterials;
+      });
+    } else {
+      setState(() {
+        _showEquipmentMaterials = !_showEquipmentMaterials;
+      });
+    }
   }
 
   void _updateCardInput(String id, String field, String value) {
+    if (!_isEditable) {
+      _showEditRequiredMessage();
+      return;
+    }
+
     setState(() {
       _isUpdating.add(id);
 
@@ -169,7 +303,7 @@ class _DprDetailScreenState extends ConsumerState<DprDetailScreen> {
     });
   }
 
-  void _performMaterialUpdate(String materialId) {
+  Future<void> _performMaterialUpdate(String materialId) async {
     final input = _cardInputs.firstWhere(
           (input) => input['id'] == materialId,
       orElse: () => {},
@@ -187,13 +321,21 @@ class _DprDetailScreenState extends ConsumerState<DprDetailScreen> {
       if (input.containsKey('ton')) 'weight': input['ton'] ?? '0',
     };
 
-    // Call your API here
-    print('Updating material: $formData');
-
-    setState(() {
-      _isUpdating.remove(materialId);
-      _pendingUpdates.remove(materialId);
-    });
+    try {
+      // Call your API here
+      print('Updating material: $formData');
+      // Uncomment when you have the actual API call
+      // await ref.read(dprProvider.notifier).updateMaterial(formData);
+    } catch (e) {
+      print('Error updating material: $e');
+    } finally {
+      if (mounted) {
+        setState(() {
+          _isUpdating.remove(materialId);
+          _pendingUpdates.remove(materialId);
+        });
+      }
+    }
   }
 
   void _showRemarkDialog(String materialId, String currentRemark) {
@@ -211,11 +353,13 @@ class _DprDetailScreenState extends ConsumerState<DprDetailScreen> {
   void _updateRemark(String materialId, String remark) {
     // Implement remark update logic
     print('Updating remark for $materialId: $remark');
+    _showSnackBar('Remark saved for material');
   }
 
   void _copyMaterial(String materialId) {
     // Implement copy material logic
     print('Copying material: $materialId');
+    _showSnackBar('Material copied');
   }
 
   void _deleteMaterial(String materialId) {
@@ -234,6 +378,7 @@ class _DprDetailScreenState extends ConsumerState<DprDetailScreen> {
               Navigator.pop(context);
               // Implement delete logic
               print('Deleting material: $materialId');
+              _showSnackBar('Material deleted');
             },
             child: const Text('Delete'),
           ),
@@ -244,143 +389,394 @@ class _DprDetailScreenState extends ConsumerState<DprDetailScreen> {
 
   @override
   Widget build(BuildContext context) {
-    final dprState = ref.watch(dprProvider);
+    final hasPipingMaterials = widget.dpr.piping.isNotEmpty;
+    final hasEquipmentMaterials = widget.dpr.equipment.isNotEmpty;
+    final shouldShowPiping = _pipeFittingOn && _showPipingMaterials && hasPipingMaterials;
+    final shouldShowEquipment = _equipmentOn && _showEquipmentMaterials && hasEquipmentMaterials;
 
     return Scaffold(
-      backgroundColor: const Color(0xFFCFE8FA),
-      body: SafeArea(
-        child: SingleChildScrollView( // 🔹 Wrap everything to make whole screen scrollable
-          physics: const BouncingScrollPhysics(),
-          child: Padding(
-            padding: const EdgeInsets.all(10),
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                _buildHeader(),
-                const SizedBox(height: 10),
-                _buildDateSection(),
-                const SizedBox(height: 20),
-                _buildDprNameSection(),
-                const SizedBox(height: 20),
-                _buildInputFields(),
-                const SizedBox(height: 20),
-                _buildToggleSection(),
-                const SizedBox(height: 20),
+      backgroundColor: Colors.grey[50],
+      body: NestedScrollView(
+        headerSliverBuilder: (context, innerBoxIsScrolled) {
+          return [const CustomSliverAppBar(title: "Add DPR")];
+        },
+        body: Padding(
+          padding: const EdgeInsets.only(bottom: 80), // Space for the bottom button
+          child: SingleChildScrollView(
+            physics: const BouncingScrollPhysics(),
+            child: Padding(
+              padding: const EdgeInsets.all(6),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Row(
+                    mainAxisAlignment: MainAxisAlignment.end,
+                    children: [
+                      _buildEditModeButton(),
+                    ],
+                  ),
+                  const SizedBox(height: 16),
+                  _buildDateSection(),
+                  const SizedBox(height: 16),
+                  _buildDprInfoCard(),
+                  const SizedBox(height: 16),
+                  _buildToggleSection(),
+                  const SizedBox(height: 16),
 
-                // 🧩 Fix: Remove Expanded and make list inside shrink-wrapped container
-                _buildMaterialsSection(),
-                const SizedBox(height: 20),
+                  // Materials Section
+                  Column(
+                    children: [
+                      // Piping materials toggle card
+                      if (_pipeFittingOn && hasPipingMaterials)
+                        _buildMaterialToggleCard(
+                          'Pipe Fitting Materials',
+                          widget.dpr.piping.length,
+                          _showPipingMaterials,
+                              () => _toggleMaterialVisibility(true),
+                        ),
 
-                _buildButtonsSection(),
-                const SizedBox(height: 30),
-              ],
+                      // Piping materials list
+                      if (shouldShowPiping)
+                        ..._buildPipingMaterials(),
+
+                      // Equipment materials toggle card
+                      if (_equipmentOn && hasEquipmentMaterials)
+                        _buildMaterialToggleCard(
+                          'Equipment Materials',
+                          widget.dpr.equipment.length,
+                          _showEquipmentMaterials,
+                              () => _toggleMaterialVisibility(false),
+                        ),
+
+                      // Equipment materials list
+                      if (shouldShowEquipment)
+                        ..._buildEquipmentMaterials(),
+
+                      // Show empty state if no materials but toggles are on
+                      if (_pipeFittingOn && !hasPipingMaterials)
+                        _buildEmptyMaterialsCard('No piping materials available'),
+
+                      if (_equipmentOn && !hasEquipmentMaterials)
+                        _buildEmptyMaterialsCard('No equipment materials available'),
+                    ],
+                  ),
+
+                  const SizedBox(height: 100),
+                ],
+              ),
             ),
           ),
         ),
       ),
+      bottomNavigationBar: _buildBottomButton(),
     );
   }
 
-  Widget _buildHeader() {
+  Widget _buildBottomButton() {
     return Container(
-      padding: const EdgeInsets.symmetric(vertical: 10),
+      padding: const EdgeInsets.all(16),
+      color: Colors.white,
       child: Row(
-        mainAxisAlignment: MainAxisAlignment.spaceBetween,
         children: [
           Expanded(
-            child: Text(
-              widget.teamName!,
-              style: const TextStyle(
-                fontSize: 18,
-                fontWeight: FontWeight.bold,
+            child: ElevatedButton(
+              onPressed: _isSubmitting ? null : _handleSubmitFields,
+              style: ElevatedButton.styleFrom(
+                backgroundColor: _isEditable ? const Color(0xFF1B6DCE) : Colors.grey,
+                foregroundColor: Colors.white,
+                padding: const EdgeInsets.symmetric(vertical: 16),
+                shape: RoundedRectangleBorder(
+                  borderRadius: BorderRadius.circular(12),
+                ),
               ),
-              textAlign: TextAlign.center,
+              child: _isSubmitting
+                  ? const SizedBox(
+                width: 20,
+                height: 20,
+                child: CircularProgressIndicator(
+                  strokeWidth: 2,
+                  valueColor: AlwaysStoppedAnimation<Color>(Colors.white),
+                ),
+              )
+                  : const Text(
+                'Save',
+                style: TextStyle(
+                  fontSize: 16,
+                  fontWeight: FontWeight.w600,
+                ),
+              ),
             ),
           ),
-          const Icon(Icons.menu), // Menu icon
         ],
       ),
     );
   }
 
+  Widget _buildEmptyMaterialsCard(String message) {
+    return Container(
+      margin: const EdgeInsets.only(bottom: 12),
+      padding: const EdgeInsets.all(20),
+      decoration: BoxDecoration(
+        color: Colors.white,
+        borderRadius: BorderRadius.circular(12),
+        border: Border.all(color: Colors.grey[200]!),
+      ),
+      child: Column(
+        children: [
+          Icon(
+            Icons.inventory_2_outlined,
+            size: 40,
+            color: Colors.grey[400],
+          ),
+          const SizedBox(height: 12),
+          Text(
+            message,
+            style: TextStyle(
+              color: Colors.grey[600],
+              fontSize: 14,
+              fontWeight: FontWeight.w500,
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildMaterialToggleCard(
+      String title,
+      int count,
+      bool isExpanded,
+      VoidCallback onToggle,
+      ) {
+    return GestureDetector(
+      onTap: onToggle,
+      child: Container(
+        margin: const EdgeInsets.only(bottom: 12),
+        padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+        decoration: BoxDecoration(
+          color: Colors.white,
+          borderRadius: BorderRadius.circular(12),
+          border: Border.all(color: Colors.blue.shade100),
+          boxShadow: [
+            BoxShadow(
+              color: Colors.black.withOpacity(0.05),
+              blurRadius: 6,
+              offset: const Offset(0, 2),
+            ),
+          ],
+        ),
+        child: Row(
+          mainAxisAlignment: MainAxisAlignment.spaceBetween,
+          children: [
+            Row(
+              children: [
+                Icon(
+                  isExpanded ? Icons.expand_less : Icons.expand_more,
+                  color: Colors.blue,
+                  size: 20,
+                ),
+                const SizedBox(width: 8),
+                Text(
+                  title,
+                  style: const TextStyle(
+                    fontSize: 14,
+                    fontWeight: FontWeight.w600,
+                    color: Colors.blue,
+                  ),
+                ),
+                const SizedBox(width: 8),
+                Container(
+                  padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
+                  decoration: BoxDecoration(
+                    color: Colors.blue.shade50,
+                    borderRadius: BorderRadius.circular(12),
+                  ),
+                  child: Text(
+                    '$count',
+                    style: const TextStyle(
+                      fontSize: 12,
+                      fontWeight: FontWeight.w600,
+                      color: Colors.blue,
+                    ),
+                  ),
+                ),
+              ],
+            ),
+            Text(
+              isExpanded ? 'Hide' : 'Show',
+              style: TextStyle(
+                fontSize: 12,
+                color: Colors.grey[600],
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
   Widget _buildDateSection() {
-    return Column(
-      children: [
-        const Text(
-          'Daily Report',
-          style: TextStyle(fontSize: 16, fontWeight: FontWeight.w400),
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+      decoration: BoxDecoration(
+        gradient: LinearGradient(
+          colors: [Colors.blue[50]!, Colors.blue[100]!],
         ),
-        Text(
-          DateFormat('EEE, MMM d, yyyy').format(DateTime.now()),
-          style: const TextStyle(fontSize: 16, fontWeight: FontWeight.w400),
+        borderRadius: BorderRadius.circular(12),
+      ),
+      child: Row(
+        mainAxisAlignment: MainAxisAlignment.spaceBetween,
+        children: [
+          const Row(
+            children: [
+              SizedBox(width: 8),
+              Text(
+                'Daily Report',
+                style: TextStyle(fontSize: 15, fontWeight: FontWeight.w600),
+              ),
+            ],
+          ),
+          Container(
+            padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+            decoration: BoxDecoration(
+              color: Colors.blue.shade50,
+              borderRadius: BorderRadius.circular(8),
+              border: Border.all(
+                color: Colors.blue.shade200,
+                width: 1,
+              ),
+            ),
+            child: Row(
+              children: [
+                const SizedBox(width: 6),
+                Text(
+                  _formatDate(_selectedDate),
+                  style: const TextStyle(
+                    fontSize: 14,
+                    fontWeight: FontWeight.w600,
+                    color: Colors.blue,
+                  ),
+                ),
+              ],
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildEditModeButton() {
+    return GestureDetector(
+      onTap: _toggleGlobalEditMode,
+      child: Container(
+        padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+        decoration: BoxDecoration(
+          borderRadius: BorderRadius.circular(20),
+          border: Border.all(color: Colors.blue.shade700),
         ),
-      ],
+        child: Row(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Text(
+              _globalEditMode ? "Editing" : "Edit",
+              style: const TextStyle(
+                color: Colors.blue,
+                fontWeight: FontWeight.bold,
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  Widget _buildDprInfoCard() {
+    return Container(
+      decoration: BoxDecoration(
+        color: Colors.white,
+        borderRadius: BorderRadius.circular(16),
+        boxShadow: [
+          BoxShadow(
+            color: Colors.black.withOpacity(0.05),
+            blurRadius: 10,
+            offset: const Offset(0, 4),
+          ),
+        ],
+      ),
+      child: Padding(
+        padding: const EdgeInsets.all(6),
+        child: Column(
+          children: [
+            _buildDprNameSection(),
+            const SizedBox(height: 16),
+            _buildInputFields(),
+          ],
+        ),
+      ),
     );
   }
 
   Widget _buildDprNameSection() {
     return Row(
-      mainAxisAlignment: MainAxisAlignment.spaceBetween,
       children: [
         Expanded(
-          flex: 3,
           child: _editMode
               ? TextField(
             controller: TextEditingController(text: _inputValue),
             onChanged: (value) => _inputValue = value,
+            style: const TextStyle(fontSize: 16, fontWeight: FontWeight.w600),
             decoration: InputDecoration(
               border: OutlineInputBorder(
-                borderRadius: BorderRadius.circular(6),
+                borderRadius: BorderRadius.circular(10),
+                borderSide: BorderSide(color: Colors.grey[300]!),
               ),
-              contentPadding: const EdgeInsets.all(8),
+              focusedBorder: OutlineInputBorder(
+                borderRadius: BorderRadius.circular(10),
+                borderSide: const BorderSide(color: Color(0xFF1B6DCE), width: 2),
+              ),
+              contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
+              hintText: 'Enter DPR Name',
+              prefixIcon: const Icon(Icons.edit_document, size: 20),
             ),
           )
-              : Text(
-            _inputValue,
-            style: const TextStyle(
-              fontSize: 16,
-              fontWeight: FontWeight.bold,
+              : Container(
+            padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
+            decoration: BoxDecoration(
+              color: Colors.grey[100],
+              borderRadius: BorderRadius.circular(10),
+            ),
+            child: Row(
+              children: [
+                Icon(Icons.description, color: Colors.grey[700], size: 20),
+                const SizedBox(width: 12),
+                Expanded(
+                  child: Text(
+                    _inputValue,
+                    style: const TextStyle(fontSize: 16, fontWeight: FontWeight.w600),
+                  ),
+                ),
+              ],
             ),
           ),
         ),
-        const SizedBox(width: 10),
-        SizedBox(
-          width: 80,
-          child: ElevatedButton(
+        const SizedBox(width: 12),
+        Container(
+          decoration: BoxDecoration(
+            color: _editMode ? Colors.green[50] : Colors.blue[50],
+            borderRadius: BorderRadius.circular(10),
+          ),
+          child: IconButton(
             onPressed: () {
-              if (_editMode) {
-                ref.read(dprProvider.notifier).updateDprWork(
-                  data: {
-                    'dprName': _inputValue,
-                    'moc': _moc,
-                    'size': _size,
-                    'location': _floor,
-                    'plant': _plant,
-                  },
-                  mechanicalId: widget.dpr.id!,
-                );
-                setState(() {
-                  _editMode = false;
-                });
-              } else {
-                setState(() {
-                  _editMode = true;
-                });
+              if (_editMode && _inputValue.trim().isEmpty) {
+                _showSnackBar('Please enter DPR name', isError: true);
+                return;
               }
+              setState(() => _editMode = !_editMode);
             },
-            style: ElevatedButton.styleFrom(
-              backgroundColor: const Color(0xFF007BFF),
-              shape: RoundedRectangleBorder(
-                borderRadius: BorderRadius.circular(20),
-              ),
-              padding: const EdgeInsets.symmetric(vertical: 6),
-            ),
-            child: Text(
-              _editMode ? 'Save' : 'Edit',
-              style: const TextStyle(
-                color: Colors.white,
-                fontWeight: FontWeight.w600,
-              ),
+            icon: Icon(
+              _editMode ? Icons.check_circle : Icons.edit_rounded,
+              color: _editMode ? Colors.green[700] : Colors.blue[700],
+              size: 24,
             ),
           ),
         ),
@@ -393,48 +789,51 @@ class _DprDetailScreenState extends ConsumerState<DprDetailScreen> {
       children: [
         Row(
           children: [
-            Expanded(
-              child: _buildInputField('MOC', _moc, _handleMocChange),
-            ),
-            const SizedBox(width: 10),
-            Expanded(
-              child: _buildInputField('Size in Inches', _size, _handleSizeChange),
-            ),
+            Expanded(child: _buildCompactInputField('Plant', _plant, _handlePlantChange, Icons.factory)),
+            const SizedBox(width: 12),
+            Expanded(child: _buildCompactInputField('Location', _floor, _handleFloorChange, Icons.location_on)),
+            const SizedBox(width: 12),
+            Expanded(child: _buildCompactInputField('MOC', _moc, _handleMocChange, Icons.category)),
+            const SizedBox(width: 12),
+            Expanded(child: _buildCompactInputField('Size', _size, _handleSizeChange, Icons.straighten)),
           ],
-        ),
-        const SizedBox(height: 20),
-        Row(
-          children: [
-            Expanded(
-              child: _buildInputField('Plant', _plant, _handlePlantChange),
-            ),
-            const SizedBox(width: 10),
-            Expanded(
-              child: _buildInputField('Location', _floor, _handleFloorChange),
-            ),
-          ],
-        ),
+        )
       ],
     );
   }
 
-  Widget _buildInputField(String label, String value, Function(String) onChanged) {
+  Widget _buildCompactInputField(String label, String value, Function(String) onChanged, IconData icon) {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        Text(
-          label,
-          style: const TextStyle(fontWeight: FontWeight.w500),
+        Padding(
+          padding: const EdgeInsets.only(bottom: 6),
+          child: Text(
+            label,
+            style: TextStyle(fontSize: 12, fontWeight: FontWeight.w600, color: Colors.grey[700]),
+          ),
         ),
-        const SizedBox(height: 4),
-        TextField(
-          controller: TextEditingController(text: value),
-          onChanged: onChanged,
-          decoration: InputDecoration(
-            border: OutlineInputBorder(
-              borderRadius: BorderRadius.circular(8),
+        SizedBox(
+          height: 44,
+          child: TextFormField(
+            controller: TextEditingController(text: value),
+            onChanged: onChanged,
+            textAlign: TextAlign.center,
+            style: const TextStyle(fontSize: 14, fontWeight: FontWeight.w500),
+            decoration: InputDecoration(
+              isDense: true,
+              contentPadding: const EdgeInsets.symmetric(vertical: 2, horizontal: 2),
+              filled: true,
+              fillColor: const Color(0xFFE3F2FD),
+              border: OutlineInputBorder(
+                borderRadius: BorderRadius.circular(10),
+                borderSide: BorderSide.none,
+              ),
+              focusedBorder: OutlineInputBorder(
+                borderRadius: BorderRadius.circular(10),
+                borderSide: const BorderSide(color: Color(0xFF1B6DCE), width: 2),
+              ),
             ),
-            contentPadding: const EdgeInsets.all(12),
           ),
         ),
       ],
@@ -442,85 +841,99 @@ class _DprDetailScreenState extends ConsumerState<DprDetailScreen> {
   }
 
   Widget _buildToggleSection() {
-    return Row(
-      children: [
-        Expanded(
-          child: _buildToggleCard('Pipe Fitting', _pipeFittingOn, (value) {
-            setState(() {
-              _pipeFittingOn = value;
-            });
-          }),
-        ),
-        const SizedBox(width: 10),
-        Expanded(
-          child: _buildToggleCard('Equipment', _equipmentOn, (value) {
-            setState(() {
-              _equipmentOn = value;
-            });
-          }),
-        ),
-      ],
-    );
-  }
-
-  Widget _buildToggleCard(String title, bool value, Function(bool) onChanged) {
-    return Container(
-      padding: const EdgeInsets.all(10),
-      decoration: BoxDecoration(
-        color: const Color(0xFF1B6DCE),
-        borderRadius: BorderRadius.circular(8),
-      ),
-      child: Row(
-        mainAxisAlignment: MainAxisAlignment.spaceBetween,
-        children: [
-          Text(
-            title,
-            style: const TextStyle(
-              color: Colors.white,
-              fontWeight: FontWeight.bold,
-            ),
-          ),
-          Switch(
-            value: value,
-            onChanged: onChanged,
-            activeColor: Colors.white,
-          ),
-        ],
-      ),
-    );
-  }
-
-  Widget _buildMaterialsSection() {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        const Text(
-          'Material Usage',
-          style: TextStyle(fontSize: 16, fontWeight: FontWeight.w400),
-        ),
-        const SizedBox(height: 10),
-        ListView(
-          physics: const NeverScrollableScrollPhysics(), // prevent nested scrolls
-          shrinkWrap: true, // 🔹 allow it to fit inside SingleChildScrollView
+        Row(
           children: [
-            if (_pipeFittingOn) ..._buildPipingMaterials(),
-            if (_equipmentOn) ..._buildEquipmentMaterials(),
+            Expanded(
+              child: _buildToggleCard(
+                'Pipe Fitting',
+                Icons.plumbing_rounded,
+                _pipeFittingOn,
+                false,
+                    (value) => _handleToggleChange(true, value),
+              ),
+            ),
+            const SizedBox(width: 12),
+            Expanded(
+              child: _buildToggleCard(
+                'Equipment',
+                Icons.precision_manufacturing_rounded,
+                _equipmentOn,
+                false,
+                    (value) => _handleToggleChange(false, value),
+              ),
+            ),
           ],
         ),
       ],
     );
   }
 
+  Widget _buildToggleCard(
+      String title,
+      IconData ico,
+      bool value,
+      bool isLoading,
+      Function(bool) onChanged,
+      ) {
+    return GestureDetector(
+      onTap: isLoading ? null : () => onChanged(!value),
+      child: AnimatedContainer(
+        duration: const Duration(milliseconds: 200),
+        padding: const EdgeInsets.symmetric(vertical: 15, horizontal: 5),
+        decoration: BoxDecoration(
+          gradient: value
+              ? const LinearGradient(
+            colors: [Color(0xFF1B6DCE), Color(0xFF1565C0)],
+          )
+              : null,
+          color: value ? null : Colors.white,
+          borderRadius: BorderRadius.circular(14),
+          border: Border.all(
+            color: value ? const Color(0xFF1B6DCE) : Colors.grey[300]!,
+            width: value ? 2 : 1.5,
+          ),
+          boxShadow: value
+              ? [
+            BoxShadow(
+              color: const Color(0xFF1B6DCE).withOpacity(0.4),
+              blurRadius: 12,
+              offset: const Offset(0, 4),
+            ),
+          ]
+              : null,
+        ),
+        child: Column(
+          children: [
+            if (isLoading)
+              SizedBox(
+                width: 28,
+                height: 28,
+                child: CircularProgressIndicator(
+                  strokeWidth: 3,
+                  color: value ? Colors.white : const Color(0xFF1B6DCE),
+                ),
+              ),
+            Text(
+              title,
+              textAlign: TextAlign.center,
+              style: TextStyle(
+                fontSize: 13,
+                fontWeight: FontWeight.w700,
+                color: value ? Colors.white : const Color(0xFF1B6DCE),
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
   List<Widget> _buildPipingMaterials() {
     if (widget.dpr.piping.isEmpty) {
-      return [
-        const Center(
-          child: Text(
-            'No data available',
-            style: TextStyle(color: Colors.grey, fontSize: 16),
-          ),
-        ),
-      ];
+      return [];
     }
 
     return widget.dpr.piping.map((piping) {
@@ -529,40 +942,41 @@ class _DprDetailScreenState extends ConsumerState<DprDetailScreen> {
         orElse: () => {},
       );
 
-      return DynamicItemCard(
-        quantity: input['quantity'] ?? '0',
-        size: input['size'] ?? '',
-        length: input['length'] ?? '0',
-        floor: input['floor'] ?? '',
-        moc: input['moc'] ?? '',
-        image: piping.image,
-        sizeLabel: 'Size (if applicable)',
-        lengthLabel: piping.materialName,
-        sizePlaceholder: 'inch',
-        lengthPlaceholder: piping.uom,
-        onQtyChanged: (val) => _updateCardInput(piping.id, 'quantity', val),
-        onSizeChanged: (val) => _updateCardInput(piping.id, 'size', val),
-        onLengthChanged: (val) => _updateCardInput(piping.id, 'length', val),
-        onFloorChanged: (val) => _updateCardInput(piping.id, 'floor', val),
-        onMocChanged: (val) => _updateCardInput(piping.id, 'moc', val),
-        onDelete: () => _deleteMaterial(piping.id),
-        onRemark: () => _showRemarkDialog(piping.id, piping.remarks ?? ''),
-        onEdit: () => _navigateToEdit(piping.id),
-        onAdd: () => _copyMaterial(piping.id), isEditable: false,
+      return Padding(
+        key: ValueKey('piping_${piping.id}'),
+        padding: const EdgeInsets.only(bottom: 12),
+        child: _MaterialCardWrapper(
+          isUpdating: _isUpdating.contains(piping.id),
+          child: DynamicItemCard(
+            quantity: input['quantity'] ?? '0',
+            size: input['size'] ?? '',
+            length: input['length'] ?? '0',
+            floor: input['floor'] ?? '',
+            moc: input['moc'] ?? '',
+            image: piping.image,
+            sizeLabel: 'Size (if applicable)',
+            lengthLabel: piping.materialName,
+            sizePlaceholder: 'inch',
+            lengthPlaceholder: piping.uom,
+            onQtyChanged: (val) => _updateCardInput(piping.id, 'quantity', val),
+            onSizeChanged: (val) => _updateCardInput(piping.id, 'size', val),
+            onLengthChanged: (val) => _updateCardInput(piping.id, 'length', val),
+            onFloorChanged: (val) => _updateCardInput(piping.id, 'floor', val),
+            onMocChanged: (val) => _updateCardInput(piping.id, 'moc', val),
+            onDelete: () => _deleteMaterial(piping.id),
+            onRemark: () => _showRemarkDialog(piping.id, piping.remarks ?? ''),
+            onEdit: () => _navigateToEdit(piping.id),
+            onAdd: () => _copyMaterial(piping.id),
+            isEditable: _isEditable,
+          ),
+        ),
       );
     }).toList();
   }
 
   List<Widget> _buildEquipmentMaterials() {
     if (widget.dpr.equipment.isEmpty) {
-      return [
-        const Center(
-          child: Text(
-            'No data available',
-            style: TextStyle(color: Colors.grey, fontSize: 16),
-          ),
-        ),
-      ];
+      return [];
     }
 
     return widget.dpr.equipment.map((equipment) {
@@ -571,22 +985,30 @@ class _DprDetailScreenState extends ConsumerState<DprDetailScreen> {
         orElse: () => {},
       );
 
-      return DynamicItemCard2(
-        title: equipment.materialName,
-        quantity: input['quantity'] ?? '0',
-        image: equipment.image,
-        moc: input['moc'] ?? '',
-        floor: input['floor'] ?? '',
-        ton: input['ton'] ?? '0',
-        meter: equipment.uom,
-        onAdd: () => _copyMaterial(equipment.id),
-        onEdit: () => _navigateToEdit(equipment.id),
-        onMocChanged: (val) => _updateCardInput(equipment.id, 'moc', val),
-        onDelete: () => _deleteMaterial(equipment.id),
-        onRemark: () => _showRemarkDialog(equipment.id, equipment.remarks ?? ''),
-        onQtyChanged: (val) => _updateCardInput(equipment.id, 'quantity', val),
-        onFloorChanged: (val) => _updateCardInput(equipment.id, 'floor', val),
-        onTonChanged: (val) => _updateCardInput(equipment.id, 'ton', val), isEditable: false,
+      return Padding(
+        key: ValueKey('equipment_${equipment.id}'),
+        padding: const EdgeInsets.only(bottom: 12),
+        child: _MaterialCardWrapper(
+          isUpdating: _isUpdating.contains(equipment.id),
+          child: DynamicItemCard2(
+            title: equipment.materialName,
+            quantity: input['quantity'] ?? '0',
+            image: equipment.image,
+            moc: input['moc'] ?? '',
+            floor: input['floor'] ?? '',
+            ton: input['ton'] ?? '0',
+            meter: equipment.uom,
+            onAdd: () => _copyMaterial(equipment.id),
+            onEdit: () => _navigateToEdit(equipment.id),
+            onMocChanged: (val) => _updateCardInput(equipment.id, 'moc', val),
+            onDelete: () => _deleteMaterial(equipment.id),
+            onRemark: () => _showRemarkDialog(equipment.id, equipment.remarks ?? ''),
+            onQtyChanged: (val) => _updateCardInput(equipment.id, 'quantity', val),
+            onFloorChanged: (val) => _updateCardInput(equipment.id, 'floor', val),
+            onTonChanged: (val) => _updateCardInput(equipment.id, 'ton', val),
+            isEditable: _isEditable,
+          ),
+        ),
       );
     }).toList();
   }
@@ -594,41 +1016,68 @@ class _DprDetailScreenState extends ConsumerState<DprDetailScreen> {
   void _navigateToEdit(String materialId) {
     // Navigate to edit screen
     print('Navigate to edit: $materialId');
+    _showSnackBar('Edit functionality coming soon');
   }
+}
 
-  Widget _buildButtonsSection() {
-    return Column(
+// Wrapper for material cards with update overlay
+class _MaterialCardWrapper extends StatelessWidget {
+  final bool isUpdating;
+  final Widget child;
+
+  const _MaterialCardWrapper({
+    required this.isUpdating,
+    required this.child,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    return Stack(
       children: [
-        ElevatedButton(
-          onPressed: () {
-            // Navigate to add product/service
-          },
-          child: const Text('Add Product/Service'),
-        ),
-        const SizedBox(height: 10),
-        Row(
-          children: [
-            Expanded(
-              child: ElevatedButton(
-                onPressed: _handleSubmitFields,
-                style: ElevatedButton.styleFrom(
-                  backgroundColor: const Color(0xFF1B6DCE),
-                ),
-                child: const Text(
-                  'Submit',
-                  style: TextStyle(color: Colors.white),
+        child,
+        if (isUpdating)
+          Positioned.fill(
+            child: Container(
+              decoration: BoxDecoration(
+                color: Colors.black45,
+                borderRadius: BorderRadius.circular(12),
+              ),
+              child: Center(
+                child: Container(
+                  padding: const EdgeInsets.all(12),
+                  decoration: BoxDecoration(
+                    color: Colors.white,
+                    borderRadius: BorderRadius.circular(12),
+                    boxShadow: [
+                      BoxShadow(
+                        color: Colors.black.withOpacity(0.2),
+                        blurRadius: 8,
+                        offset: const Offset(0, 2),
+                      ),
+                    ],
+                  ),
+                  child: const Column(
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      SizedBox(
+                        width: 24,
+                        height: 24,
+                        child: CircularProgressIndicator(strokeWidth: 2.5),
+                      ),
+                      SizedBox(height: 8),
+                      Text(
+                        'Updating...',
+                        style: TextStyle(
+                          fontSize: 12,
+                          fontWeight: FontWeight.w500,
+                        ),
+                      ),
+                    ],
+                  ),
                 ),
               ),
             ),
-            const SizedBox(width: 10),
-            Expanded(
-              child: OutlinedButton(
-                onPressed: () => Navigator.pop(context),
-                child: const Text('Back'),
-              ),
-            ),
-          ],
-        ),
+          ),
       ],
     );
   }
@@ -661,25 +1110,32 @@ class _RemarkDialogState extends State<RemarkDialog> {
   @override
   Widget build(BuildContext context) {
     return AlertDialog(
+      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
       title: const Text('Add Remark'),
       content: TextField(
         controller: _controller,
         maxLines: 3,
-        decoration: const InputDecoration(
-          border: OutlineInputBorder(),
-          hintText: 'Enter your remark...',
+        decoration: InputDecoration(
+          hintText: 'Enter remark...',
+          border: OutlineInputBorder(
+            borderRadius: BorderRadius.circular(10),
+          ),
         ),
       ),
       actions: [
         TextButton(
           onPressed: () => Navigator.pop(context),
-          child: const Text('Cancel'),
+          child: Text('Cancel', style: TextStyle(color: Colors.grey[600])),
         ),
         ElevatedButton(
           onPressed: () {
             widget.onSave(_controller.text);
             Navigator.pop(context);
           },
+          style: ElevatedButton.styleFrom(
+            backgroundColor: const Color(0xFF1B6DCE),
+            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
+          ),
           child: const Text('Save'),
         ),
       ],

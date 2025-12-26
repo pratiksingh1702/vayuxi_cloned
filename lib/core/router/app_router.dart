@@ -8,6 +8,7 @@ import 'package:untitled2/features/modules/all_Modules/summary/screens/summaru_s
 
 import '../../features/auth/provider/auth_provider.dart';
 import '../../features/auth/screens/login.dart';
+import '../../features/auth/screens/manpower_login_Screen.dart';
 import '../../features/auth/screens/sign_up.dart';
 import '../../features/auth/screens/splash_screen.dart';
 import '../../features/modules/all_Modules/Manpower Details/model/manpower_model.dart';
@@ -40,6 +41,7 @@ import '../../features/modules/all_Modules/inventory/screens/report/daily_usage.
 import '../../features/modules/all_Modules/inventory/screens/view_add_inventory_setup.dart';
 import '../../features/modules/all_Modules/more/help.dart';
 import '../../features/modules/all_Modules/more/language.dart';
+import '../../features/modules/all_Modules/more/more.dart';
 import '../../features/modules/all_Modules/more/subscription.dart';
 import '../../features/modules/all_Modules/more/themes.dart';
 import '../../features/modules/all_Modules/more/upcoming.dart';
@@ -68,40 +70,40 @@ final appRouterProvider = Provider<GoRouter>((ref) {
     debugLogDiagnostics: true,
 
     redirect: (context, state) {
-      // Use watch to listen to state changes
       final authState = ref.watch(authProvider);
       final isLoading = authState.isLoading;
       final loggedIn = authState.isLoggedIn;
 
       final loggingIn = state.matchedLocation == Routes.login;
       final registering = state.matchedLocation == '/register';
+      final manpowerLoggingIn = state.matchedLocation == '/manpower-login';
 
       final atSplash = state.matchedLocation == Routes.splash;
-      final atWorkCategory = state.matchedLocation == Routes.workCategory;
 
       print('🔄 ROUTER REDIRECT - isLoading: $isLoading, loggedIn: $loggedIn, location: ${state.matchedLocation}');
 
       // If still loading, stay at splash
       if (isLoading && !atSplash) {
-        print('🔄 ROUTER REDIRECT - Still loading, redirecting to splash');
         return Routes.splash;
       }
 
-      // If not loading and not logged in, go to login
-      // If not loading and not logged in, allow only login or register
-      if (!isLoading && !loggedIn && !(loggingIn || registering)) {
-        print('🔄 ROUTER REDIRECT - Not logged in, redirecting to login');
+      // Define public routes that don't require authentication
+      final publicRoutes = [
+        Routes.login,
+        '/register',
+        '/manpower-login',
+      ];
+
+      // If not loading and not logged in, only allow access to public routes
+      if (!isLoading && !loggedIn && !publicRoutes.contains(state.matchedLocation)) {
         return Routes.login;
       }
 
-
-      // If logged in and at login/splash, go to work category
-      if (!isLoading && loggedIn && (loggingIn || atSplash)) {
-        print('🔄 ROUTER REDIRECT - Logged in, redirecting to work category');
+      // If logged in and trying to access login/splash, go to appropriate destination
+      if (!isLoading && loggedIn && (loggingIn || manpowerLoggingIn || atSplash)) {
         return Routes.workCategory;
       }
 
-      print('🔄 ROUTER REDIRECT - No redirect needed');
       return null;
     },
     routes: [
@@ -113,6 +115,11 @@ final appRouterProvider = Provider<GoRouter>((ref) {
       GoRoute(
         path: Routes.login,
         builder: (context, state) => const LoginScreen(),
+      ),
+      GoRoute(
+        path: '/manpower-login',
+        name: 'manpower-login',
+        builder: (context, state) => const ManpowerLoginScreen(),
       ),
       GoRoute(
         path: Routes.workCategory,
@@ -185,8 +192,8 @@ final appRouterProvider = Provider<GoRouter>((ref) {
       GoRoute(
         path: '/analysis',
         name: 'analysis',
-        // builder: (context, state) => const AudioUploadScreen(),
-        builder: (context, state) =>  TtsTestPage(),
+        builder: (context, state) => const AudioUploadAnalysisScreen(),
+        // builder: (context, state) =>  TtsTestPage(),
       ),
       GoRoute(
         path: '/moc-selection',
@@ -247,9 +254,9 @@ final appRouterProvider = Provider<GoRouter>((ref) {
         },
       ),
       GoRoute(
-        path: '/upcoming-updatea',
+        path: '/upcoming-update',
         builder: (context, state) {
-          return Updates();
+          return ConstructionSiteScreen();
 
 
         },

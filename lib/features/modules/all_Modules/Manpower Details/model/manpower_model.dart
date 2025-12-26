@@ -1,9 +1,10 @@
+import 'dart:convert';
+
 class ManpowerModel {
   final String? id;
   final String? fullName;
   final String? designation;
   final String? employeeCode;
-
   final String? phoneNumber;
   final String? panNumber;
   final String? dateOfBirth;
@@ -13,19 +14,21 @@ class ManpowerModel {
   final String? epfNumber;
   final String? uanNumber;
   final String? esicNumber;
-
   final String? payBasics;
   final double? salary;
-
   final String? remarks;
   final bool? isDeleted;
   final String? company;
   final bool? isLeft;
   final String? reason;
   final String? type;
-
   final String? createdAt;
   final String? updatedAt;
+
+  // New fields
+  final String? loginEmail;
+  final String? loginPassword;
+  final bool? isLoginEnabled;
 
   ManpowerModel({
     this.id,
@@ -51,18 +54,17 @@ class ManpowerModel {
     this.type,
     this.createdAt,
     this.updatedAt,
+    this.loginEmail,  // New
+    this.loginPassword,
+    this.isLoginEnabled// New
   });
 
-  /// -----------------------------
-  /// From JSON (Safe, Error-Proof)
-  /// -----------------------------
   factory ManpowerModel.fromJson(Map<String, dynamic> json) {
     return ManpowerModel(
       id: json['_id']?.toString(),
       fullName: json['fullName']?.toString(),
       designation: json['designation']?.toString(),
       employeeCode: json['employeeCode']?.toString(),
-
       phoneNumber: json['phoneNumber']?.toString(),
       panNumber: json['panNumber']?.toString(),
       dateOfBirth: json['dateOfBirth']?.toString(),
@@ -72,11 +74,8 @@ class ManpowerModel {
       epfNumber: json['epfNumber']?.toString(),
       uanNumber: json['uanNumber']?.toString(),
       esicNumber: json['esicNumber']?.toString(),
-
       payBasics: json['payBasics']?.toString(),
-
-      salary: _toDouble(json['salary']), // safe parsing
-
+      salary: _toDouble(json['salary']),
       remarks: json['remarks']?.toString(),
       isDeleted: _toBool(json['isDeleted']),
       company: json['company']?.toString(),
@@ -85,12 +84,12 @@ class ManpowerModel {
       type: json['type']?.toString(),
       createdAt: json['createdAt']?.toString(),
       updatedAt: json['updatedAt']?.toString(),
+      loginEmail: json['loginEmail']?.toString(),  // New
+      loginPassword: json['loginPassword']?.toString(),  // New
+      isLoginEnabled: _toBool(json['isLoginEnabled']),
     );
   }
 
-  /// -----------------------------
-  /// To JSON
-  /// -----------------------------
   Map<String, dynamic> toJson() {
     return {
       "_id": id,
@@ -116,12 +115,12 @@ class ManpowerModel {
       "type": type,
       "createdAt": createdAt,
       "updatedAt": updatedAt,
+      "loginEmail": loginEmail,  // New
+      "loginPassword": loginPassword,  // New
+      "isLoginEnabled": isLoginEnabled,
     };
   }
 
-  /// -----------------------------
-  /// Helpers (to avoid crashes)
-  /// -----------------------------
   static double? _toDouble(dynamic value) {
     if (value == null) return null;
     if (value is double) return value;

@@ -70,7 +70,10 @@ class _CategoryScreenState extends State<CategoryScreen> {
                         color: Colors.orange,
                       ),
                       label: t('download_all'),
+
                       onTap: () {
+
+
                         Navigator.push(
                           context,
                           MaterialPageRoute(builder: (context) => const SelectRangeScreen()),

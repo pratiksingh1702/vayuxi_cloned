@@ -27,8 +27,13 @@ class TeamModel {
     return TeamModel(
       id: json['_id'] ?? '',
       teamName: json['teamName'] ?? '',
-      teamLeadId: json['teamLead']?.toString(),
-      teamMemberIds: (json['teamMembers'] as List<dynamic>? ?? []).map((e) => e.toString()).toList(),
+      teamLeadId :json['teamLead'] is Map
+          ? json['teamLead']['_id']
+          : json['teamLead'],
+        teamMemberIds : (json['teamMembers'] as List)
+            .map((e) => e is Map ? e['_id'] : e)
+            .cast<String>()
+            .toList(),
       company: json['company']?.toString() ?? '',
       isDeleted: json['isDeleted'] ?? false,
       type: json['type'] ?? '',

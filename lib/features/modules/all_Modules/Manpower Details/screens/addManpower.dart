@@ -1,7 +1,9 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:go_router/go_router.dart';
 import 'package:untitled2/core/utlis/colors/colors.dart';
 import 'package:untitled2/core/utlis/widgets/custom_appBar.dart';
+import 'package:untitled2/features/modules/all_Modules/Manpower%20Details/screens/widgets/popup.dart';
 import '../../../../../core/utlis/widgets/fields/custom_textField.dart';
 import '../../../../../core/utlis/widgets/fields/phone_number_field.dart';
 import '../../../../../core/utlis/widgets/fields/searchableDropdown.dart';
@@ -9,6 +11,9 @@ import '../../../../../typeProvider/type_provider.dart';
 
 import '../service/manPowerProvider.dart';
 
+
+
+import 'dart:math'; // Add this import for generating random OTP
 
 class NewManpowerScreen extends ConsumerStatefulWidget {
   const NewManpowerScreen({super.key});
@@ -34,7 +39,11 @@ class _NewManpowerScreenState extends ConsumerState<NewManpowerScreen> {
   final _salaryController = TextEditingController();
   final _remarksController = TextEditingController();
 
-  // Designation options (same as React Native)
+  // New controllers for login credentials
+  final _emailController = TextEditingController();
+  final _otpController = TextEditingController();
+
+  // Designation options
   final List<String> _designationOptions = [
     "Manager",
     "Team Leader",
@@ -64,6 +73,17 @@ class _NewManpowerScreenState extends ConsumerState<NewManpowerScreen> {
   DateTime? _doj;
   String _payBasic = "monthly";
   String? _selectedDesignation;
+
+  // New state variables for login credentials toggle
+  bool _enableLoginCredentials = false;
+  String _generatedOtp = "";
+
+  // Generate random 6-digit OTP
+  void _generateOtp() {
+    final random = Random();
+    _generatedOtp = (100000 + random.nextInt(900000)).toString();
+    _otpController.text = _generatedOtp;
+  }
 
   Future<void> _pickDate(BuildContext context, bool isDOB) async {
     final picked = await showDatePicker(
@@ -97,10 +117,14 @@ class _NewManpowerScreenState extends ConsumerState<NewManpowerScreen> {
     _esicController.clear();
     _salaryController.clear();
     _remarksController.clear();
+    _emailController.clear();
+    _otpController.clear();
     _dob = null;
     _doj = null;
     _payBasic = "monthly";
     _selectedDesignation = null;
+    _enableLoginCredentials = false;
+    _generatedOtp = "";
   }
 
   Future<void> _saveManpower() async {
@@ -132,12 +156,34 @@ class _NewManpowerScreenState extends ConsumerState<NewManpowerScreen> {
       "remarks": _remarksController.text,
     };
 
+    // Add login credentials if enabled
+    if (_enableLoginCredentials && _emailController.text.isNotEmpty) {
+      data["loginEmail"] = _emailController.text;
+      data["loginPassword"] = _otpController.text;
+      data["isLoginEnabled"] = true;
+    }else{
+      data["isLoginEnabled"] = false;
+    }
+
     try {
-      await ref.read(manpowerProvider.notifier).addManpower(manpowerType, data);
+     final createdManpower= await ref.read(manpowerProvider.notifier).addManpower(manpowerType, data);
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(content: Text("✅ Manpower added successfully")),
       );
+      if (_enableLoginCredentials && _emailController.text.isNotEmpty) {
+        final employeeCode = createdManpower?.employeeCode ?? "N/A";
+
+        await showDialog(
+          context: context,
+          builder: (context) => LoginCredentialsPopup(
+            employeeCode: employeeCode,  // Pass employee code instead of email
+            password: _otpController.text,
+          ),
+        );
+      }
+
       Navigator.pop(context);
+      context.push("/manpower");
     } catch (e) {
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(content: Text("❌ Error: $e")),
@@ -215,6 +261,96 @@ class _NewManpowerScreenState extends ConsumerState<NewManpowerScreen> {
                 controller: _phoneController,
               ),
 
+              // Login Credentials Toggle
+              const SizedBox(height: 16),
+              Container(
+                padding: const EdgeInsets.all(12),
+                decoration: BoxDecoration(
+                  color: Colors.white,
+                  borderRadius: BorderRadius.circular(12),
+                  border: Border.all(color: Colors.blue.shade200, width: 1.5),
+                ),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Row(
+                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                      children: [
+                        const Text(
+                          "Enable Login Credentials",
+                          style: TextStyle(
+                            fontSize: 14,
+                            fontWeight: FontWeight.w600,
+                            color: Colors.black87,
+                          ),
+                        ),
+                        Switch(
+                          value: _enableLoginCredentials,
+                          onChanged: (value) {
+                            setState(() {
+                              _enableLoginCredentials = value;
+                              if (value) {
+                                _generateOtp();
+                              } else {
+                                _emailController.clear();
+                                _otpController.clear();
+                                _generatedOtp = "";
+                              }
+                            });
+                          },
+                          activeColor: Colors.blue,
+                        ),
+                      ],
+                    ),
+                    if (_enableLoginCredentials) ...[
+                      const SizedBox(height: 12),
+                      CustomTextField(
+                        label: "Login Email",
+                        controller: _emailController,
+                        isRequired: true,
+                        keyboardType: TextInputType.emailAddress,
+                      ),
+                      const SizedBox(height: 12),
+                      Row(
+                        children: [
+                          Expanded(
+                            child: CustomTextField(
+                              label: "OTP Password",
+                              controller: _otpController,
+                              isRequired: true,
+
+                            ),
+                          ),
+                          const SizedBox(width: 8),
+                          ElevatedButton(
+                            onPressed: _generateOtp,
+                            style: ElevatedButton.styleFrom(
+                              backgroundColor: Colors.blue,
+                              shape: RoundedRectangleBorder(
+                                borderRadius: BorderRadius.circular(8),
+                              ),
+                            ),
+                            child: const Text(
+                              "Regenerate",
+                              style: TextStyle(color: Colors.white),
+                            ),
+                          ),
+                        ],
+                      ),
+                      const SizedBox(height: 8),
+                      Text(
+                        "OTP will be used as initial password",
+                        style: TextStyle(
+                          fontSize: 12,
+                          color: Colors.grey[600],
+                        ),
+                      ),
+                    ],
+                  ],
+                ),
+              ),
+
+              // Rest of your form fields...
               // Aadhar Number
               const SizedBox(height: 16),
               CustomTextField(

@@ -27,7 +27,7 @@ class AddInventorySelection extends StatelessWidget {
         children: [
           SelectCard(
             icon: Image.asset(
-              "assets/images/Gemini_Generated_Image_pi2r7npi2r7npi2r.png",
+              "assets/images/icons/manual_entry.webp",
 
               height: 120,
               width: double.infinity,
@@ -45,7 +45,7 @@ class AddInventorySelection extends StatelessWidget {
           ),
           SelectCard(
             icon: Image.asset(
-              "assets/images/Gemini_Generated_Image_pi2r7npi2r7npi2r.png",
+              "assets/images/icons/import_sheet.webp",
 
               height: 120,
               width: double.infinity,

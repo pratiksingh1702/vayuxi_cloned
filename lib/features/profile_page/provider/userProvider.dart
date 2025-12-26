@@ -71,60 +71,91 @@ class UserNotifier extends StateNotifier<UserState> {
   }
 
   /// Update user profile
-  Future<void> updateUser(Map<String, dynamic> updateData) async {
+  Future<void> updateUser(FormData updateData) async {
     try {
       state = state.copyWith(isLoading: true, error: null);
 
-
       final currentUser = state.user;
-
       if (currentUser == null) {
         throw Exception('No user logged in');
       }
 
-      final updatedUserData = await AuthAPI.updateUser(currentUser.id, updateData);
-      final updatedUser = User.fromJson(updatedUserData['data'] ?? updatedUserData);
+      final response = await AuthAPI.updateUser(
+        currentUser.id,
+        updateData,
+      );
 
-      state = state.copyWith(user: updatedUser, isLoading: false);
+      // 🔒 HARD RESPONSE VALIDATION
+      final rawUser =
+          response['user'] ??
+              response['data'] ??
+              response;
 
+      if (rawUser is! Map<String, dynamic>) {
+        throw Exception(
+          response['message'] ?? 'Invalid server response',
+        );
+      }
+
+    getCurrentUser();
     } on DioException catch (e) {
-      final errorMessage = e.response?.data?['message'] ?? e.message ?? 'Failed to update user';
-      state = state.copyWith(error: errorMessage, isLoading: false);
+      final data = e.response?.data;
+
+      String errorMessage = 'Failed to update user';
+
+      if (data is Map<String, dynamic>) {
+        errorMessage =
+            data['message'] ??
+                data['error'] ??
+                errorMessage;
+      } else if (data is String) {
+        errorMessage = data;
+      } else {
+        errorMessage = e.message ?? errorMessage;
+      }
+
+      state = state.copyWith(
+        error: errorMessage,
+        isLoading: false,
+      );
     } catch (e) {
-      state = state.copyWith(error: e.toString(), isLoading: false);
+      state = state.copyWith(
+        error: e.toString(),
+        isLoading: false,
+      );
     }
   }
 
   /// Update specific user fields
-  Future<void> updateUserPartial({
-    String? fullName,
-    String? phoneNumber,
-    String? profilePhoto,
-    String? aadhaarCard,
-    String? gstNumber,
-    Company? company,
-    String? address,
-    String? other,
-    List<String>? selectedServices,
-    String? firstName,
-    String? lastName,
-  }) async {
-    final updateData = <String, dynamic>{};
-
-    if (fullName != null) updateData['fullName'] = fullName;
-    if (phoneNumber != null) updateData['phoneNumber'] = phoneNumber;
-    if (profilePhoto != null) updateData['profilePhoto'] = profilePhoto;
-    if (aadhaarCard != null) updateData['aadhaarCard'] = aadhaarCard;
-    if (gstNumber != null) updateData['gstNumber'] = gstNumber;
-    if (company != null) updateData['company'] = company.toJson();
-    if (address != null) updateData['address'] = address;
-    if (other != null) updateData['other'] = other;
-    if (selectedServices != null) updateData['selectedServices'] = selectedServices;
-    if (firstName != null) updateData['firstName'] = firstName;
-    if (lastName != null) updateData['lastName'] = lastName;
-
-    await updateUser(updateData);
-  }
+  // Future<void> updateUserPartial({
+  //   String? fullName,
+  //   String? phoneNumber,
+  //   String? profilePhoto,
+  //   String? aadhaarCard,
+  //   String? gstNumber,
+  //   Company? company,
+  //   String? address,
+  //   String? other,
+  //   List<String>? selectedServices,
+  //   String? firstName,
+  //   String? lastName,
+  // }) async {
+  //   final updateData = <String, dynamic>{};
+  //
+  //   if (fullName != null) updateData['fullName'] = fullName;
+  //   if (phoneNumber != null) updateData['phoneNumber'] = phoneNumber;
+  //   if (profilePhoto != null) updateData['profilePhoto'] = profilePhoto;
+  //   if (aadhaarCard != null) updateData['aadhaarCard'] = aadhaarCard;
+  //   if (gstNumber != null) updateData['gstNumber'] = gstNumber;
+  //   if (company != null) updateData['company'] = company.toJson();
+  //   if (address != null) updateData['address'] = address;
+  //   if (other != null) updateData['other'] = other;
+  //   if (selectedServices != null) updateData['selectedServices'] = selectedServices;
+  //   if (firstName != null) updateData['firstName'] = firstName;
+  //   if (lastName != null) updateData['lastName'] = lastName;
+  //
+  //   await updateUser(updateData);
+  // }
 
   /// Clear error
   void clearError() {

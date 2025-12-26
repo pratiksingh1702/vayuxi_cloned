@@ -1,4 +1,4 @@
-package com.example.untitled2
+package com.vayuxi.erp
 
 import io.flutter.embedding.android.FlutterActivity
 

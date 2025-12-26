@@ -1,6 +1,6 @@
 import 'dart:io';
 import 'package:excel/excel.dart';
-import 'package:open_filex/open_filex.dart';
+
 import 'package:path_provider/path_provider.dart';
 
 Future<void> exportToExcel(List<Map<String, dynamic>> manpowerList) async {
@@ -54,8 +54,6 @@ Future<void> exportToExcel(List<Map<String, dynamic>> manpowerList) async {
 
     print("✅ File saved at $filePath");
 
-    // 📌 Open file
-    await OpenFilex.open(filePath);
 
   } catch (e) {
     print("❌ Error exporting: $e");

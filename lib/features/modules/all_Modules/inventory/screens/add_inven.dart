@@ -2,11 +2,12 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:untitled2/core/utlis/colors/colors.dart';
 import 'package:untitled2/core/utlis/widgets/custom_appBar.dart';
-import '../../../../../core/utlis/widgets/custom_dropdown.dart';
 import '../../../../../core/utlis/widgets/fields/custom_textField.dart';
+import '../../../../../core/utlis/widgets/fields/searchableDropdown.dart';
 import '../../site_Details/providers/site_current_provider.dart';
 import '../models/inventory_Model.dart';
 import '../provider/inventory_provider.dart';
+
 
 class CreateInventoryScreen extends ConsumerStatefulWidget {
   const CreateInventoryScreen({Key? key}) : super(key: key);
@@ -17,21 +18,25 @@ class CreateInventoryScreen extends ConsumerStatefulWidget {
 
 class _CreateInventoryScreenState extends ConsumerState<CreateInventoryScreen> {
   final _formKey = GlobalKey<FormState>();
-  final _itemNameController = TextEditingController();
   final _quantityController = TextEditingController();
   final _minStockController = TextEditingController();
   final _uomController = TextEditingController();
   final _remarksController = TextEditingController();
 
+  String? _selectedItemName;
+  String? _selectedCategoryName;
+  String? _selectedSubcategoryName;
+
+  String? _selectedItemId;
   String? _selectedCategoryId;
   String? _selectedSubcategoryId;
-  String? _selectedItemId;
-  bool _createNewItem = false;
+
   List<Subcategory> _filteredSubcategories = [];
+  List<InventoryItem> _allItems = [];
+  List<Category> _allCategories = [];
 
   @override
   void dispose() {
-    _itemNameController.dispose();
     _quantityController.dispose();
     _minStockController.dispose();
     _uomController.dispose();
@@ -39,44 +44,150 @@ class _CreateInventoryScreenState extends ConsumerState<CreateInventoryScreen> {
     super.dispose();
   }
 
-  // ---------------- Category & Subcategory ----------------
-  Future<void> _onCategoryChanged(String? categoryId) async {
-    setState(() {
-      _selectedCategoryId = categoryId;
-      _selectedSubcategoryId = null;
-      _filteredSubcategories = [];
-    });
+  // ---------------- Item Selection ----------------
+  Future<void> _onItemSelected(String itemName) async {
+    final siteId = ref.read(selectedSiteIdProvider);
+    if (siteId == null) return;
 
-    if (categoryId == null) return;
-
+    // Check if item exists
+    InventoryItem? existingItem;
     try {
-      final siteId = ref.read(selectedSiteIdProvider);
-      if (siteId != null) {
+      existingItem = _allItems.firstWhere(
+            (item) => item.name.toLowerCase() == itemName.toLowerCase(),
+      );
+    } catch (e) {
+      existingItem = null;
+    }
+
+    if (existingItem != null) {
+      // Existing item selected
+      setState(() {
+        _selectedItemName = itemName;
+        _selectedItemId = existingItem!.id;
+      });
+    } else {
+      // New item - will be created on submit
+      setState(() {
+        _selectedItemName = itemName;
+        _selectedItemId = null;
+      });
+    }
+  }
+
+  // ---------------- Category Selection ----------------
+  Future<void> _onCategorySelected(String categoryName) async {
+    final siteId = ref.read(selectedSiteIdProvider);
+    if (siteId == null) return;
+
+    // Check if category exists
+    Category? existingCategory;
+    try {
+      existingCategory = _allCategories.firstWhere(
+            (cat) => cat.name.toLowerCase() == categoryName.toLowerCase(),
+      );
+    } catch (e) {
+      existingCategory = null;
+    }
+
+    if (existingCategory != null) {
+      // Existing category
+      setState(() {
+        _selectedCategoryName = categoryName;
+        _selectedCategoryId = existingCategory!.id;
+        _selectedSubcategoryName = null;
+        _selectedSubcategoryId = null;
+        _filteredSubcategories = [];
+      });
+
+      // Load subcategories
+      try {
         final subcategories = await ref
-            .read(subcategoriesProvider((siteId: siteId, categoryId: categoryId)).future);
+            .read(subcategoriesProvider((siteId: siteId, categoryId: existingCategory.id)).future);
         if (mounted) {
           setState(() {
             _filteredSubcategories = subcategories;
           });
         }
+      } catch (e) {
+        debugPrint('Error loading subcategories: $e');
       }
-    } catch (e) {
-      debugPrint('Error loading subcategories: $e');
+    } else {
+      // New category - create it
+      try {
+        _showLoadingSnackBar('Creating category...');
+
+        final newCategory = await ref.read(createCategoryProvider((
+        siteId: siteId,
+        name: categoryName,
+        )).future);
+
+        setState(() {
+          _selectedCategoryName = categoryName;
+          _selectedCategoryId = newCategory.id;
+          _selectedSubcategoryName = null;
+          _selectedSubcategoryId = null;
+          _filteredSubcategories = [];
+        });
+
+        // Refresh categories list
+        ref.invalidate(categoriesProvider(siteId));
+
+        _hideLoadingSnackBar();
+        _showSuccessSnackBar('Category created successfully!');
+      } catch (e) {
+        _hideLoadingSnackBar();
+        _showErrorSnackBar('Failed to create category: ${e.toString()}');
+      }
     }
   }
 
-  void _onSubcategoryChanged(String? subcategoryId) {
-    setState(() {
-      _selectedSubcategoryId = subcategoryId;
-    });
-  }
+  // ---------------- Subcategory Selection ----------------
+  Future<void> _onSubcategorySelected(String subcategoryName) async {
+    final siteId = ref.read(selectedSiteIdProvider);
+    if (siteId == null || _selectedCategoryId == null) return;
 
-  // ---------------- Item ----------------
-  void _onItemChanged(String? itemId) {
-    setState(() {
-      _selectedItemId = itemId;
-      _createNewItem = itemId == 'new';
-    });
+    // Check if subcategory exists
+    Subcategory? existingSubcategory;
+    try {
+      existingSubcategory = _filteredSubcategories.firstWhere(
+            (subcat) => subcat.name.toLowerCase() == subcategoryName.toLowerCase(),
+      );
+    } catch (e) {
+      existingSubcategory = null;
+    }
+
+    if (existingSubcategory != null) {
+      // Existing subcategory
+      setState(() {
+        _selectedSubcategoryName = subcategoryName;
+        _selectedSubcategoryId = existingSubcategory!.id;
+      });
+    } else {
+      // New subcategory - create it
+      try {
+        _showLoadingSnackBar('Creating subcategory...');
+
+        final newSubcategory = await ref.read(createSubcategoryProvider((
+        siteId: siteId,
+        name: subcategoryName,
+        categoryId: _selectedCategoryId!,
+        )).future);
+
+        setState(() {
+          _selectedSubcategoryName = subcategoryName;
+          _selectedSubcategoryId = newSubcategory.id;
+        });
+
+        // Refresh subcategories list
+        ref.invalidate(subcategoriesProvider((siteId: siteId, categoryId: _selectedCategoryId!)));
+
+        _hideLoadingSnackBar();
+        _showSuccessSnackBar('Subcategory created successfully!');
+      } catch (e) {
+        _hideLoadingSnackBar();
+        _showErrorSnackBar('Failed to create subcategory: ${e.toString()}');
+      }
+    }
   }
 
   // ---------------- Submit Form ----------------
@@ -85,30 +196,30 @@ class _CreateInventoryScreenState extends ConsumerState<CreateInventoryScreen> {
     if (siteId == null) return;
 
     if (!_formKey.currentState!.validate()) return;
-    if (_selectedCategoryId == null || _selectedSubcategoryId == null || _selectedItemId == null) return;
-    if (_createNewItem && _itemNameController.text.trim().isEmpty) return;
+
+    if (_selectedItemName == null || _selectedItemName!.trim().isEmpty) {
+      _showErrorSnackBar('Please select or create an item');
+      return;
+    }
+    if (_selectedCategoryId == null) {
+      _showErrorSnackBar('Please select or create a category');
+      return;
+    }
+    if (_selectedSubcategoryId == null) {
+      _showErrorSnackBar('Please select or create a subcategory');
+      return;
+    }
 
     try {
-      final overlay = ScaffoldMessenger.of(context);
-      overlay.showSnackBar(
-        const SnackBar(
-          content: Row(
-            children: [
-              SizedBox(width: 20, height: 20, child: CircularProgressIndicator(strokeWidth: 2)),
-              SizedBox(width: 12),
-              Text('Creating inventory...'),
-            ],
-          ),
-          duration: Duration(seconds: 30),
-        ),
-      );
+      _showLoadingSnackBar('Creating inventory...');
 
-      String finalItemId = _selectedItemId!;
+      String finalItemId = _selectedItemId ?? '';
 
-      if (_createNewItem) {
+      // Create new item if needed
+      if (finalItemId.isEmpty) {
         final newItem = await ref.read(createItemProvider((
         siteId: siteId,
-        name: _itemNameController.text.trim(),
+        name: _selectedItemName!,
         categoryId: _selectedCategoryId!,
         subcategoryId: _selectedSubcategoryId!,
         )).future);
@@ -117,6 +228,7 @@ class _CreateInventoryScreenState extends ConsumerState<CreateInventoryScreen> {
         ref.invalidate(itemsProvider((siteId: siteId)));
       }
 
+      // Add inventory stock
       await ref.read(addUpdateInventoryStockProvider((
       siteId: siteId,
       itemId: finalItemId,
@@ -128,25 +240,61 @@ class _CreateInventoryScreenState extends ConsumerState<CreateInventoryScreen> {
       remarks: _remarksController.text.trim().isNotEmpty ? _remarksController.text.trim() : null,
       )).future);
 
-      overlay.hideCurrentSnackBar();
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Inventory created successfully!')),
-      );
+      _hideLoadingSnackBar();
+      _showSuccessSnackBar('Inventory created successfully!');
 
+      // Reset form
       _formKey.currentState!.reset();
+      _quantityController.clear();
+      _minStockController.clear();
+      _uomController.clear();
+      _remarksController.clear();
+
       setState(() {
+        _selectedItemName = null;
+        _selectedCategoryName = null;
+        _selectedSubcategoryName = null;
+        _selectedItemId = null;
         _selectedCategoryId = null;
         _selectedSubcategoryId = null;
-        _selectedItemId = null;
         _filteredSubcategories = [];
-        _createNewItem = false;
       });
     } catch (e) {
-      ScaffoldMessenger.of(context).hideCurrentSnackBar();
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text('Failed to create inventory: ${e.toString()}')),
-      );
+      _hideLoadingSnackBar();
+      _showErrorSnackBar('Failed to create inventory: ${e.toString()}');
     }
+  }
+
+  // ---------------- Snackbar Helpers ----------------
+  void _showLoadingSnackBar(String message) {
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(
+        content: Row(
+          children: [
+            const SizedBox(width: 20, height: 20, child: CircularProgressIndicator(strokeWidth: 2)),
+            const SizedBox(width: 12),
+            Text(message),
+          ],
+        ),
+        duration: const Duration(seconds: 30),
+      ),
+    );
+  }
+
+  void _hideLoadingSnackBar() {
+    ScaffoldMessenger.of(context).hideCurrentSnackBar();
+  }
+
+  void _showSuccessSnackBar(String message) {
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(content: Text(message), backgroundColor: Colors.green),
+    );
+  }
+
+  void _showErrorSnackBar(String message) {
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(content: Text(message), backgroundColor: Colors.red),
+    );
   }
 
   // ---------------- UI ----------------
@@ -165,15 +313,11 @@ class _CreateInventoryScreenState extends ConsumerState<CreateInventoryScreen> {
           key: _formKey,
           child: ListView(
             children: [
-              _buildItemDropdown(itemsAsync),
-              if (_createNewItem) ...[
-                const SizedBox(height: 16),
-                _buildItemNameField(),
-              ],
+              _buildItemSearchableDropdown(itemsAsync),
               const SizedBox(height: 16),
-              _buildCategoryDropdown(categoriesAsync),
+              _buildCategorySearchableDropdown(categoriesAsync),
               const SizedBox(height: 16),
-              _buildSubcategoryDropdown(),
+              _buildSubcategorySearchableDropdown(),
               const SizedBox(height: 16),
               Row(
                 children: [
@@ -194,7 +338,7 @@ class _CreateInventoryScreenState extends ConsumerState<CreateInventoryScreen> {
                   padding: const EdgeInsets.symmetric(vertical: 16),
                   shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
                 ),
-                child: const Text('Add Inventory Stock', style: TextStyle(fontSize: 16,color: Colors.white)),
+                child: const Text('Add Inventory Stock', style: TextStyle(fontSize: 16, color: Colors.white)),
               ),
             ],
           ),
@@ -203,80 +347,115 @@ class _CreateInventoryScreenState extends ConsumerState<CreateInventoryScreen> {
     );
   }
 
-  // ---------------- Widgets ----------------
-  Widget _buildItemDropdown(AsyncValue<List<InventoryItem>> itemsAsync) {
-    return itemsAsync.when(
-      loading: () => const Padding(
-        padding: EdgeInsets.symmetric(vertical: 12),
-        child: Center(child: CircularProgressIndicator(strokeWidth: 2)),
-      ),
-      error: (err, _) => Text('Failed to load items', style: TextStyle(color: Colors.red)),
-      data: (items) => CustomDropdownField<String>(
-        label: 'Item',
-        isRequired: true,
-        value: _selectedItemId,
-        items: [
-          const DropdownMenuItem(value: null, child: Text('Select Item')),
-          ...items.map((item) => DropdownMenuItem(value: item.id, child: Text(item.name))),
-          const DropdownMenuItem(
-            value: 'new',
-            child: Row(children: [Icon(Icons.add, size: 18), SizedBox(width: 8), Text('Create New Item')]),
+  // ---------------- Searchable Dropdown Widgets ----------------
+  Widget _buildItemSearchableDropdown(AsyncValue<List<InventoryItem>> itemsAsync) {
+    final items = itemsAsync.value ?? const <InventoryItem>[];
+    final isLoading = itemsAsync.isLoading;
+
+    if (items.isNotEmpty) {
+      _allItems = items;
+    }
+
+    final itemNames = _allItems.map((item) => item.name).toList();
+
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        const Text(
+          'Item *',
+          style: TextStyle(
+            fontSize: 14,
+            fontWeight: FontWeight.w500,
+            color: Color(0xFF124559),
           ),
-        ],
-        onChanged: _onItemChanged,
-      )
+        ),
+        const SizedBox(height: 8),
 
-    );
-  }
-
-  Widget _buildCategoryDropdown(AsyncValue<List<Category>> categoriesAsync) {
-    return categoriesAsync.when(
-      loading: () => const Padding(
-        padding: EdgeInsets.symmetric(vertical: 12),
-        child: Center(child: CircularProgressIndicator(strokeWidth: 2)),
-      ),
-      error: (err, _) => Text('Failed to load categories', style: TextStyle(color: Colors.red)),
-      data: (categories) =>CustomDropdownField<String>(
-        label: 'Category',
-        isRequired: true,
-        value: _selectedCategoryId,
-        items: [
-          const DropdownMenuItem(value: null, child: Text('Select Category')),
-          ...categories.map((c) => DropdownMenuItem(value: c.id, child: Text(c.name))),
-        ],
-        onChanged: _onCategoryChanged,
-      )
-      ,
-    );
-  }
-
-  Widget _buildSubcategoryDropdown() {
-    return _selectedCategoryId == null
-        ? const Text('Select a category first', style: TextStyle(color: Colors.grey))
-        :CustomDropdownField<String>(
-      label: 'Subcategory',
-      isRequired: true,
-      value: _selectedSubcategoryId,
-      items: [
-        const DropdownMenuItem(value: null, child: Text('Select Subcategory')),
-        ..._filteredSubcategories.map((s) => DropdownMenuItem(value: s.id, child: Text(s.name))),
+        IgnorePointer(
+          ignoring: isLoading,
+          child: Opacity(
+            opacity: isLoading ? 0.6 : 1,
+            child: SearchableDropdown(
+              data: itemNames,
+              value: _selectedItemName,
+              placeholder: isLoading
+                  ? 'Loading items...'
+                  : 'Search or create item...',
+              onSelect: _onItemSelected,
+            ),
+          ),
+        ),
       ],
-      onChanged: _onSubcategoryChanged,
     );
   }
 
-  Widget _buildItemNameField() {
-    return TextFormField(
-      controller: _itemNameController,
-      decoration: const InputDecoration(
-        labelText: 'New Item Name *',
-        border: OutlineInputBorder(),
-        prefixIcon: Icon(Icons.inventory_2_outlined),
-      ),
-      validator: (v) => (_createNewItem && (v == null || v.trim().isEmpty)) ? 'Enter item name' : null,
+  Widget _buildCategorySearchableDropdown(AsyncValue<List<Category>> categoriesAsync) {
+    final categories = categoriesAsync.value ?? const <Category>[];
+    final isLoading = categoriesAsync.isLoading;
+
+    if (categories.isNotEmpty) {
+      _allCategories = categories;
+    }
+
+    final categoryNames = _allCategories.map((cat) => cat.name).toList();
+
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        const Text(
+          'Category *',
+          style: TextStyle(
+            fontSize: 14,
+            fontWeight: FontWeight.w500,
+            color: Color(0xFF124559),
+          ),
+        ),
+        const SizedBox(height: 8),
+
+        IgnorePointer(
+          ignoring: isLoading,
+          child: Opacity(
+            opacity: isLoading ? 0.6 : 1,
+            child: SearchableDropdown(
+              data: categoryNames,
+              value: _selectedCategoryName,
+              placeholder: isLoading
+                  ? 'Loading categories...'
+                  : 'Search or create category...',
+              onSelect: _onCategorySelected,
+            ),
+          ),
+        ),
+      ],
     );
   }
 
+  Widget _buildSubcategorySearchableDropdown() {
+    if (_selectedCategoryId == null) {
+      return const Text('Select a category first', style: TextStyle(color: Colors.grey));
+    }
+
+    final subcategoryNames = _filteredSubcategories.map((subcat) => subcat.name).toList();
+
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        const Text(
+          'Subcategory *',
+          style: TextStyle(fontSize: 14, fontWeight: FontWeight.w500, color: Color(0xFF124559)),
+        ),
+        const SizedBox(height: 8),
+        SearchableDropdown(
+          data: subcategoryNames,
+          value: _selectedSubcategoryName,
+          placeholder: "Search or create subcategory...",
+          onSelect: _onSubcategorySelected,
+        ),
+      ],
+    );
+  }
+
+  // ---------------- Other Fields ----------------
   Widget _buildQuantityField() {
     return CustomTextField(
       label: 'Quantity',
@@ -291,7 +470,6 @@ class _CreateInventoryScreenState extends ConsumerState<CreateInventoryScreen> {
         return null;
       },
     );
-
   }
 
   Widget _buildUOMField() {

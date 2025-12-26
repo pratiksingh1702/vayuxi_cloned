@@ -97,7 +97,7 @@ class _FloorSelectionPageState extends ConsumerState<FloorSelectionPage> {
           customButtons: [
             CustomButton(
               button: RoundedButton(
-                text: "Save & Continue",
+                text: "Save & Submit",
                 color:  Colors.blue,
                 textColor: Colors.white,
                 onPressed: (){selectedFloor == null

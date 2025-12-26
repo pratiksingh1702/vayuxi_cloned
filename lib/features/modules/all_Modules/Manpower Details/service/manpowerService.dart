@@ -1,3 +1,5 @@
+import 'dart:io';
+
 import 'package:dio/dio.dart';
 import '../../../../../core/api/dio.dart';
 
@@ -80,7 +82,80 @@ class ManpowerAPI {
       };
     }
   }
+  static Future<Map<String, dynamic>> uploadManpowerBulk(FormData formData) async {
+    try {
+      print('📤 Uploading manpower file...');
+      print('📊 FormData fields: ${formData.fields.length}');
+      print('📁 FormData files: ${formData.files.length}');
+      print('📦 FormData: ${formData.files}');
 
+
+      final response = await DioClient.dio.post(
+        '/manpower/bulk-upload', // Make sure the endpoint is correct
+        data: formData,
+        options: Options(
+          headers: {
+
+            'Accept': 'application/json',
+          },
+        ),
+      );
+
+      print('✅ Upload successful: ${response.statusCode}');
+      print('📦 Response: ${response.data}');
+
+      return {
+        'success': true,
+        'data': response.data,
+        'message': response.data['message'] ?? 'Upload successful',
+        'statusCode': response.statusCode,
+      };
+    } on DioException catch (e) {
+      print('❌ DioException: ${e.type}');
+      print('❌ Message: ${e.message}');
+      print('❌ Response: ${e.response?.data}');
+      print('❌ Status code: ${e.response?.statusCode}');
+      print('❌ Headers: ${e.response?.headers}');
+
+      String errorMessage = 'Upload failed';
+
+      if (e.response != null) {
+        if (e.response!.data != null) {
+          try {
+            // Try to parse error message from response
+            if (e.response!.data is Map) {
+              errorMessage = e.response!.data['message'] ??
+                  e.response!.data['error'] ??
+                  'Upload failed';
+            } else if (e.response!.data is String) {
+              errorMessage = e.response!.data;
+            }
+          } catch (parseError) {
+            errorMessage = 'Server error: ${e.response!.statusCode}';
+          }
+        } else {
+          errorMessage = 'Server error: ${e.response!.statusCode}';
+        }
+      } else if (e.message != null) {
+        errorMessage = e.message!;
+      }
+
+      return {
+        'success': false,
+        'error': 'Upload Error',
+        'message': errorMessage,
+        'statusCode': e.response?.statusCode,
+      };
+    } catch (e, stack) {
+      print('❌ Unexpected error: $e');
+      print('❌ Stack trace: $stack');
+      return {
+        'success': false,
+        'error': 'Unexpected Error',
+        'message': e.toString()
+      };
+    }
+  }
   /// Mark manpower as left
   static Future<Map<String, dynamic>> leftManpower(
       String id, dynamic data) async {

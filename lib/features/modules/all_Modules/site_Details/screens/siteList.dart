@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:untitled2/core/utlis/widgets/buttons.dart';
 import 'package:untitled2/core/utlis/widgets/custom_appBar.dart';
+import 'package:untitled2/features/modules/all_Modules/site_Details/screens/site_entry_select_page.dart';
 
 import '../../../../../core/utlis/colors/colors.dart';
 import '../../../../../core/utlis/widgets/Button_wrapper.dart';
@@ -22,19 +23,32 @@ class SiteListScreen extends ConsumerStatefulWidget {
 
 class _SiteListScreenState extends ConsumerState<SiteListScreen> {
   @override
+  void initState() {
+    super.initState();
+
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      final selectedSiteId = ref.read(selectedSiteIdProvider);
+      final currentSite = ref.read(currentSiteProvider);
+
+      if (selectedSiteId != null && currentSite != null) {
+        Navigator.push(
+          context,
+          MaterialPageRoute(
+            builder: (_) => widget.pageBuilder(currentSite),
+          ),
+        );
+      }
+    });
+  }
+
+  @override
   Widget build(BuildContext context) {
     print("🏗️ Building SiteListScreen");
 
     final selectedSiteId = ref.watch(selectedSiteIdProvider);
     final currentSite = ref.watch(currentSiteProvider);
 
-    // 🚀 If user already selected a site earlier → skip this page completely
-    if (selectedSiteId != null && currentSite != null) {
-      print("➡️ Auto-navigating to saved site: ${currentSite.siteName}");
 
-      // Return the redirect widget immediately (no Navigator.push)
-      return widget.pageBuilder(currentSite);
-    }
 
     // ⬇️ Otherwise build normal site list UI
     return Scaffold(
@@ -51,12 +65,29 @@ class _SiteListScreenState extends ConsumerState<SiteListScreen> {
 
   Widget _buildMainBody() {
     return BottomButtonWrapper(
+      customButtons: [
+        CustomButton(
+          button: RoundedButton(
+            text: "Add",
+            color: Colors.blue,
+            textColor: Colors.white,
+            onPressed: () {
+              Navigator.push(
+                context,
+                MaterialPageRoute(builder: (context) =>SiteEntrySelectCardGrid()),
+              );
+            },
+          ),
+        ),
+      ],
       child: Stack(
         children: [
           Positioned.fill(
             child: Consumer(
               builder: (context, ref, child) {
                 final siteState = ref.watch(siteProvider);
+                print("👀 Watching site state");
+                print(siteState);
                 return _buildBody(siteState);
               },
             ),
@@ -138,10 +169,11 @@ class _SiteListScreenState extends ConsumerState<SiteListScreen> {
         itemCount: siteState.sites.length,
         itemBuilder: (context, index) {
           final site = siteState.sites[index];
+          print(site.siteImage);
           print("🏢 Building card for site: ${site.siteName} (index: $index)");
           return CompanyCard(
             imagePath:
-                'assets/images/Gemini_Generated_Image_pi2r7npi2r7npi2r.webp',
+                site.siteImage ?? '',
             companyName: site.siteName ?? 'Unknown Site',
             onTap: () {
               print("👆 Tapped on site: ${site.siteName}");

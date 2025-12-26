@@ -6,6 +6,7 @@ import 'package:file_picker/file_picker.dart';
 import 'package:untitled2/core/utlis/colors/colors.dart';
 import 'package:untitled2/core/utlis/widgets/image_clipped.dart';
 import 'package:untitled2/features/modules/all_Modules/rate/data/rateApi.dart';
+import 'package:untitled2/features/modules/all_Modules/rate/screens/rate.dart';
 import 'package:untitled2/features/modules/all_Modules/site_Details/repository/siteModel.dart';
 import 'package:untitled2/typeProvider/type_provider.dart';
 
@@ -96,6 +97,10 @@ class _ImportCsvScreenState extends ConsumerState<ImportCsvScreen> {
             backgroundColor: Colors.green,
           ),
         );
+        Navigator.push(
+          context,
+          MaterialPageRoute(builder: (context) =>RateScreen() ),
+        );
 
         // Optionally navigate back after successful upload
         Future.delayed(const Duration(seconds: 2), () {
@@ -136,8 +141,6 @@ class _ImportCsvScreenState extends ConsumerState<ImportCsvScreen> {
 
   @override
   Widget build(BuildContext context) {
-    final type=ref.read(typeProvider);
-    final site=ref.read(currentSiteProvider);
 
     return Scaffold(
       backgroundColor: AppColors.lightBlue,

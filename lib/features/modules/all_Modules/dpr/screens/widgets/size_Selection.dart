@@ -19,6 +19,7 @@ class SizeSelectionPage extends ConsumerWidget {
     );
 
     return Scaffold(
+      resizeToAvoidBottomInset: false,
       appBar: CustomAppBar(title: "Enter Size"),
       body: BottomButtonWrapper(
         customButtons: [

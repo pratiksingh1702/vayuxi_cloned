@@ -2,6 +2,7 @@ import 'dart:io';
 import 'package:dio/dio.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:go_router/go_router.dart';
 import 'package:image_picker/image_picker.dart';
 import 'package:untitled2/core/utlis/colors/colors.dart';
 import 'package:untitled2/core/utlis/widgets/Button_wrapper.dart';
@@ -64,12 +65,18 @@ class _SiteDetailScreenState extends ConsumerState<SiteDetailScreen> {
   }
 
   Future<void> pickImage() async {
-    final picker = ImagePicker();
-    final pickedFile = await picker.pickImage(source: ImageSource.gallery);
-    if (pickedFile != null) {
-      setState(() => selectedImage = File(pickedFile.path));
+    final helper = ImageUploadHelper(context);
+    final file = await helper.pickAndCropImage(
+      enableCropping: true,
+      cropTitle: 'Crop Site Image',
+    );
+
+    if (file != null) {
+      setState(() => selectedImage = file);
     }
   }
+
+
 
   Future<void> _selectDate() async {
     final DateTime? picked = await showDatePicker(
@@ -110,15 +117,18 @@ class _SiteDetailScreenState extends ConsumerState<SiteDetailScreen> {
 
       // Validate image
 
-      formData.files.add(
-        MapEntry(
-          "file",
-          await MultipartFile.fromFile(
-            selectedImage!.path,
-            filename: selectedImage!.path.split('/').last,
+      if (selectedImage != null) {
+        formData.files.add(
+          MapEntry(
+            "file",
+            await MultipartFile.fromFile(
+              selectedImage!.path,
+              filename: selectedImage!.path.split('/').last,
+            ),
           ),
-        ),
-      );
+        );
+      }
+
 
       if (widget.site == null) {
         final type = ref.read(typeProvider);
@@ -136,6 +146,7 @@ class _SiteDetailScreenState extends ConsumerState<SiteDetailScreen> {
       ref.read(siteProvider.notifier).fetchSites();
       if (mounted) {
         Navigator.pop(context, true);
+        context.push("/site-list/site");
       }
     } on ValidationException catch (e) {
       // Show validation errors to user
@@ -205,31 +216,16 @@ class _SiteDetailScreenState extends ConsumerState<SiteDetailScreen> {
     if (siteNameController.text.isEmpty) {
       throw ValidationException('Site name is required');
     }
-    if (addressController.text.isEmpty) {
-      throw ValidationException('Address is required');
-    }
-    if (contactPersonController.text.isEmpty) {
-      throw ValidationException('Contact person is required');
-    }
-    if (phoneController.text.isEmpty) {
-      throw ValidationException('Phone number is required');
-    }
 
-    // Validate phone number format
-    final phoneDigits = phoneController.text.replaceAll(RegExp(r'\D'), '');
-    if (phoneDigits.length != 10) {
-      throw ValidationException('Please enter a valid 10-digit phone number');
-    }
+
+
 
     // Validate email if provided
-    if (emailController.text.isNotEmpty && !EmailValidator.validate(emailController.text)) {
+    if ( !EmailValidator.validate(emailController.text)&&emailController.text.isNotEmpty) {
       throw ValidationException('Please enter a valid email address');
     }
 
-    // Validate GST format if provided
-    if (gstNoController.text.isNotEmpty && !_isValidGST(gstNoController.text)) {
-      throw ValidationException('Please enter a valid GST number');
-    }
+
   }
 
 // Handle Dio errors
@@ -403,14 +399,21 @@ class _SiteDetailScreenState extends ConsumerState<SiteDetailScreen> {
                       ),
                     ),
                   ),
-                  UploadBox(
-                    title: "Select Site Image",
-                    subtitle: "Upload file (XLS, CSV, HTML (MAX 10MB))",
-                    buttonText: "Choose File",
-                    onPressed: () {
-                      pickImage(); // reuse your existing image picker logic here
-                    },
-                  ),
+                UploadBox(
+                  title: "Select Site Image",
+                  subtitle: "Tap to select and crop image",
+                  buttonText: "Choose File",
+                  onPressed: pickImage,
+                  selectedFile: selectedImage,
+                  previewWidget: selectedImage != null
+                      ? UploadBoxPreview(
+                    file: selectedImage!,
+                    isImage: true,
+                    onRemove: () => setState(() => selectedImage = null),
+                    onEdit: pickImage,
+                  )
+                      : null,
+                ),
 
                   const SizedBox(height: 24),
 

@@ -44,10 +44,7 @@ class _AddExpenseScreenState extends ConsumerState<AddExpenseScreen> {
           expenseType: category,
         ),
       ),
-    ).then((_) {
-      // Navigate back to expense list or previous screen when done
-      Navigator.pop(context);
-    });
+    );
   }
 
   @override

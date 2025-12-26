@@ -12,10 +12,16 @@ class SelectCard extends StatelessWidget {
     required this.onTap,
   });
 
+  // Helper function to capitalize first letter
+  String _capitalize(String text) {
+    if (text.isEmpty) return text;
+    return text[0].toUpperCase() + text.substring(1);
+  }
+
   @override
   Widget build(BuildContext context) {
     final width = MediaQuery.of(context).size.width;
-    final fontSize = width * 0.04; // ~4% of width → clean responsiveness
+
 
     return Card(
       elevation: 0,
@@ -27,21 +33,29 @@ class SelectCard extends StatelessWidget {
         onTap: onTap,
         borderRadius: BorderRadius.circular(16),
         child: Container(
-          padding: const EdgeInsets.all(2),
+          padding: const EdgeInsets.all(6),
           child: Column(
             mainAxisAlignment: MainAxisAlignment.center,
             children: [
-              Expanded(child: icon),
+              SizedBox(
+                height: 100,
+                width: 100,
+                child: Center(
+                  child: icon,
+                ),
+              ),
+
+              const SizedBox(height: 12),
 
               Text(
-                label,
+                _capitalize(label), // Capitalize first letter here
                 textAlign: TextAlign.center,
                 style: TextStyle(
-                  fontSize: fontSize,
+
                   fontWeight: FontWeight.w600,
                   color: Colors.black87,
                 ),
-                maxLines: 2,
+                maxLines: 1,
                 overflow: TextOverflow.ellipsis,
               ),
             ],

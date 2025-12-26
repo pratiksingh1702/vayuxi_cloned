@@ -3,8 +3,10 @@ import 'package:dio/dio.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:image_picker/image_picker.dart';
+import 'package:image_cropper/image_cropper.dart';
 import 'package:dropdown_search/dropdown_search.dart';
 import 'package:untitled2/core/utlis/colors/colors.dart';
+import 'package:untitled2/core/utlis/widgets/buttons.dart';
 
 import '../../../../../core/utlis/widgets/custom_appBar.dart';
 import '../../../../../typeProvider/type_provider.dart';
@@ -33,6 +35,7 @@ class _EditTeamScreenState extends ConsumerState<EditTeamScreen> {
   List<ManpowerModel> _selectedMembers = [];
   File? _selectedImage;
   String? _currentImageUrl;
+  bool _isDataInitialized = false;
 
   final ImagePicker _picker = ImagePicker();
 
@@ -50,42 +53,186 @@ class _EditTeamScreenState extends ConsumerState<EditTeamScreen> {
     // Pre-fill team name
     _teamNameController.text = widget.team.teamName;
 
-    // // Store current image URL
-    // _currentImageUrl = widget.team.teamImage;
+    // Store current image URL
+    _currentImageUrl = widget.team.teamLeadImage;
 
-    // Note: Team lead and members will be set after manpower data is loaded
+    debugPrint('📋 Initializing Edit Team Form:');
+    debugPrint('   Team Name: ${widget.team.teamName}');
+    debugPrint('   Team Lead ID: ${widget.team.teamLeadId}');
+    debugPrint('   Team Member IDs: ${widget.team.teamMemberIds}');
+    debugPrint('   Team Image: ${widget.team.teamLeadImage}');
   }
 
   void _preFillTeamData(List<ManpowerModel> manpowerList) {
+    if (_isDataInitialized) return;
+
+    debugPrint('🔄 Pre-filling team data...');
+    debugPrint('   Available manpower count: ${manpowerList.length}');
+
     // Pre-fill team lead
-    if (widget.team.teamLeadId != null) {
+    if (widget.team.teamLeadId != null && widget.team.teamLeadId!.isNotEmpty) {
       try {
         _selectedLead = manpowerList.firstWhere(
               (m) => m.id == widget.team.teamLeadId,
         );
+        debugPrint('✅ Team lead found: ${_selectedLead?.fullName} (${_selectedLead?.id})');
       } catch (e) {
-        // If team lead not found, set to null
         _selectedLead = null;
+        debugPrint('❌ Team lead not found with ID: ${widget.team.teamLeadId}');
+        debugPrint('   Available IDs: ${manpowerList.map((m) => m.id).join(", ")}');
       }
     }
 
     // Pre-fill team members
     if (widget.team.teamMemberIds.isNotEmpty) {
       _selectedMembers = manpowerList.where((member) {
-        // Handle both object and string ID formats
-        return (widget.team.teamMemberIds).contains(member.id);
-            }).toList();
+        bool isSelected = widget.team.teamMemberIds.contains(member.id);
+        if (isSelected) {
+          debugPrint('✅ Team member found: ${member.fullName} (${member.id})');
+        }
+        return isSelected;
+      }).toList();
+
+      debugPrint('   Total members selected: ${_selectedMembers.length}');
+
+      // Check for missing members
+      final foundIds = _selectedMembers.map((m) => m.id).toSet();
+      final missingIds = widget.team.teamMemberIds.where((id) => !foundIds.contains(id));
+      if (missingIds.isNotEmpty) {
+        debugPrint('⚠️ Some team members not found in manpower list: $missingIds');
+      }
     }
 
+    _isDataInitialized = true;
     setState(() {});
   }
-  Future<void> _pickImage() async {
-    final pickedFile = await _picker.pickImage(source: ImageSource.gallery);
-    if (pickedFile != null) {
-      setState(() {
-        _selectedImage = File(pickedFile.path);
-        _currentImageUrl = null; // Clear the URL when new image is selected
-      });
+
+  Future<void> _cropImage(File imageFile) async {
+    try {
+      final croppedFile = await ImageCropper().cropImage(
+        sourcePath: imageFile.path,
+        compressFormat: ImageCompressFormat.jpg,
+        compressQuality: 90,
+        uiSettings: [
+          AndroidUiSettings(
+            toolbarTitle: 'Crop Team Profile',
+            toolbarColor: Colors.black,
+            toolbarWidgetColor: Colors.white,
+            initAspectRatio: CropAspectRatioPreset.original,
+            lockAspectRatio: false,
+            hideBottomControls: false,
+            showCropGrid: true,
+            cropGridRowCount: 3,
+            cropGridColumnCount: 3,
+            cropGridColor: Colors.white.withOpacity(0.5),
+            cropFrameColor: Colors.blueAccent,
+            cropGridStrokeWidth: 1,
+            cropFrameStrokeWidth: 2,
+            activeControlsWidgetColor: Colors.blueAccent,
+            aspectRatioPresets: [
+              CropAspectRatioPreset.original,
+              CropAspectRatioPreset.square,
+              CropAspectRatioPreset.ratio3x2,
+              CropAspectRatioPreset.ratio4x3,
+              CropAspectRatioPreset.ratio16x9,
+            ],
+          ),
+          IOSUiSettings(
+            title: 'Crop Team Profile',
+            minimumAspectRatio: 0.1,
+            aspectRatioPresets: [
+              CropAspectRatioPreset.original,
+              CropAspectRatioPreset.square,
+              CropAspectRatioPreset.ratio3x2,
+              CropAspectRatioPreset.ratio4x3,
+              CropAspectRatioPreset.ratio16x9,
+            ],
+            resetAspectRatioEnabled: true,
+            aspectRatioLockEnabled: false,
+            rotateButtonsHidden: false,
+            rotateClockwiseButtonHidden: false,
+          ),
+          WebUiSettings(
+            context: context,
+            presentStyle: WebPresentStyle.dialog,
+            size: const CropperSize(
+              width: 520,
+              height: 520,
+            ),
+            viewwMode: WebViewMode.mode_1,
+          ),
+        ],
+      );
+
+      if (croppedFile != null) {
+        setState(() {
+          _selectedImage = File(croppedFile.path);
+          _currentImageUrl = null; // Clear the URL when new image is selected
+        });
+      }
+    } catch (e) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text('Error cropping image: ${e.toString()}'),
+            backgroundColor: Colors.red,
+          ),
+        );
+      }
+    }
+  }
+
+  Future<void> _showImageSourceDialog() async {
+    return showDialog(
+      context: context,
+      builder: (BuildContext context) {
+        return AlertDialog(
+          title: const Text('Choose Image Source'),
+          content: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              ListTile(
+                leading: const Icon(Icons.photo_library, color: Colors.blue),
+                title: const Text('Gallery'),
+                onTap: () {
+                  Navigator.pop(context);
+                  _pickImageFromSource(ImageSource.gallery);
+                },
+              ),
+              ListTile(
+                leading: const Icon(Icons.camera_alt, color: Colors.blue),
+                title: const Text('Camera'),
+                onTap: () {
+                  Navigator.pop(context);
+                  _pickImageFromSource(ImageSource.camera);
+                },
+              ),
+            ],
+          ),
+        );
+      },
+    );
+  }
+
+  Future<void> _pickImageFromSource(ImageSource source) async {
+    try {
+      final pickedFile = await _picker.pickImage(
+        source: source,
+        imageQuality: 100,
+      );
+
+      if (pickedFile != null) {
+        await _cropImage(File(pickedFile.path));
+      }
+    } catch (e) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text('Error picking image: ${e.toString()}'),
+            backgroundColor: Colors.red,
+          ),
+        );
+      }
     }
   }
 
@@ -98,15 +245,16 @@ class _EditTeamScreenState extends ConsumerState<EditTeamScreen> {
         if (_selectedImage != null)
           "file": await MultipartFile.fromFile(
             _selectedImage!.path,
-            filename: "profile.jpg",
+            filename: "team_profile.jpg",
           ),
       });
-      final type=ref.read(typeProvider);
+      final type = ref.read(typeProvider);
 
       await ref.read(teamProvider.notifier).updateTeam(
         siteId: widget.site.id,
         teamId: widget.team.id,
-        formData: formData, type: type!,
+        formData: formData,
+        type: type!,
       );
 
       if (mounted) {
@@ -116,13 +264,18 @@ class _EditTeamScreenState extends ConsumerState<EditTeamScreen> {
   }
 
   @override
+  void dispose() {
+    _teamNameController.dispose();
+    super.dispose();
+  }
+
+  @override
   Widget build(BuildContext context) {
     final type = ref.watch(typeProvider);
     final manpowerState = ref.watch(manpowerProvider);
 
     // Pre-fill data when manpower is loaded
-    if (manpowerState.manpowerList.isNotEmpty &&
-        (_selectedLead == null || _selectedMembers.isEmpty)) {
+    if (manpowerState.manpowerList.isNotEmpty && !_isDataInitialized) {
       WidgetsBinding.instance.addPostFrameCallback((_) {
         _preFillTeamData(manpowerState.manpowerList);
       });
@@ -147,250 +300,312 @@ class _EditTeamScreenState extends ConsumerState<EditTeamScreen> {
         padding: const EdgeInsets.all(5),
         child: Form(
           key: _formKey,
-          child: ListView(
+          child: Column(
             children: [
-              // --- Team Name Field ---
-              CustomTextField(
-                label: "Team Name",
-                isRequired: true,
-                controller: _teamNameController,
-                hint: "Enter team name",
-              ),
-              const SizedBox(height: 20),
+              Expanded(
+                child: ListView(
+                  children: [
+                    // --- Team Name Field ---
+                    CustomTextField(
+                      label: "Team Name",
+                      isRequired: true,
+                      controller: _teamNameController,
+                      hint: "Enter team name",
+                    ),
+                    const SizedBox(height: 20),
 
-              // --- Upload Profile Section ---
-              Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  const Text(
-                    "Team Profile",
-                    style: TextStyle(
-                      fontSize: 14,
-                      fontWeight: FontWeight.w600,
-                      color: Colors.black87,
-                    ),
-                  ),
-                  const SizedBox(height: 10),
-                  GestureDetector(
-                    onTap: _pickImage,
-                    child: Container(
-                      height: 130,
-                      width: 120,
-                      decoration: BoxDecoration(
-                        color: Colors.grey[200],
-                        borderRadius: BorderRadius.circular(12),
-                        border: Border.all(color: Colors.grey.shade400),
-                      ),
-                      child: _selectedImage != null
-                          ? ClipRRect(
-                        borderRadius: BorderRadius.circular(12),
-                        child: Image.file(
-                          _selectedImage!,
-                          fit: BoxFit.cover,
-                        ),
-                      )
-                          : _currentImageUrl != null && _currentImageUrl!.isNotEmpty
-                          ? ClipRRect(
-                        borderRadius: BorderRadius.circular(12),
-                        child: Image.network(
-                          _currentImageUrl!,
-                          fit: BoxFit.cover,
-                          errorBuilder: (context, error, stackTrace) {
-                            return _buildPlaceholderImage();
-                          },
-                          loadingBuilder: (context, child, loadingProgress) {
-                            if (loadingProgress == null) return child;
-                            return const Center(
-                              child: CircularProgressIndicator(),
-                            );
-                          },
-                        ),
-                      )
-                          : _buildPlaceholderImage(),
-                    ),
-                  ),
-                  if (_currentImageUrl != null && _currentImageUrl!.isNotEmpty)
-                    Padding(
-                      padding: const EdgeInsets.only(top: 8.0),
-                      child: Text(
-                        "Current image",
-                        style: TextStyle(
-                          fontSize: 12,
-                          color: Colors.grey[600],
-                        ),
-                      ),
-                    ),
-                ],
-              ),
-
-              const SizedBox(height: 30),
-
-              // --- Team Lead Card ---
-              Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  const Text(
-                    "Team Lead",
-                    style: TextStyle(
-                      fontWeight: FontWeight.w600,
-                      fontSize: 14,
-                    ),
-                  ),
-                  const SizedBox(height: 10),
-                  DropdownSearch<ManpowerModel>(
-                    selectedItem: _selectedLead,
-                    itemAsString: (m) => m.fullName ?? 'Unknown',
-                    items: (String filter, LoadProps? props) {
-                      return manpowerState.manpowerList
-                          .where((m) => m.fullName != null &&
-                          m.fullName!.toLowerCase().contains(filter.toLowerCase()))
-                          .toList();
-                    },
-                    compareFn: (a, b) => a.id == b.id,
-                    onChanged: (selected) {
-                      setState(() {
-                        _selectedLead = selected;
-                      });
-                    },
-                    popupProps: const PopupProps.modalBottomSheet(),
-                    decoratorProps: const DropDownDecoratorProps(
-                      decoration: InputDecoration(
-                        hintText: "Select Team Lead",
-                        filled: true,
-                        fillColor: Colors.white,
-                        contentPadding: EdgeInsets.symmetric(
-                          horizontal: 12,
-                          vertical: 14,
-                        ),
-                        border: OutlineInputBorder(
-                          borderRadius: BorderRadius.all(Radius.circular(8)),
-                          borderSide: BorderSide.none,
-                        ),
-                      ),
-                    ),
-                  ),
-                ],
-              ),
-
-              const SizedBox(height: 20),
-
-              // --- Team Members Card ---
-              Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  const Text(
-                    "Team Members",
-                    style: TextStyle(
-                      fontWeight: FontWeight.w600,
-                      fontSize: 14,
-                    ),
-                  ),
-                  const SizedBox(height: 10),
-                  DropdownSearch<ManpowerModel>.multiSelection(
-                    items: (String filter, LoadProps? props) {
-                      return manpowerState.manpowerList
-                          .where((m) => m.fullName != null &&
-                          m.fullName!.toLowerCase().contains(filter.toLowerCase()))
-                          .toList();
-                    },
-                    selectedItems: _selectedMembers,
-                    itemAsString: (m) => m.fullName ?? 'Unknown',
-                    compareFn: (a, b) => a.id == b.id,
-                    popupProps: PopupPropsMultiSelection.modalBottomSheet(
-                      showSearchBox: true,
-                      searchFieldProps: TextFieldProps(
-                        decoration: InputDecoration(
-                          hintText: 'Search Members',
-                          contentPadding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
-                          border: OutlineInputBorder(
-                            borderRadius: BorderRadius.circular(8),
-                            borderSide: BorderSide.none,
+                    // --- Upload Profile Section ---
+                    Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        const Text(
+                          "Team Profile",
+                          style: TextStyle(
+                            fontSize: 14,
+                            fontWeight: FontWeight.w600,
+                            color: Colors.black87,
                           ),
-                          filled: true,
-                          fillColor: Colors.grey[100],
                         ),
-                      ),
-                      title: const Padding(
-                        padding: EdgeInsets.all(8.0),
-                        child: Text(
-                          "Select Team Members",
-                          style: TextStyle(fontWeight: FontWeight.bold),
+                        const SizedBox(height: 10),
+                        GestureDetector(
+                          onTap: _showImageSourceDialog,
+                          child: Container(
+                            height: 130,
+                            width: 120,
+                            decoration: BoxDecoration(
+                              color: Colors.grey[200],
+                              borderRadius: BorderRadius.circular(12),
+                              border: Border.all(color: Colors.grey.shade400),
+                            ),
+                            child: _selectedImage != null
+                                ? Stack(
+                              children: [
+                                ClipRRect(
+                                  borderRadius: BorderRadius.circular(12),
+                                  child: Image.file(
+                                    _selectedImage!,
+                                    fit: BoxFit.cover,
+                                    width: double.infinity,
+                                    height: double.infinity,
+                                  ),
+                                ),
+                                Positioned(
+                                  top: 5,
+                                  right: 5,
+                                  child: GestureDetector(
+                                    onTap: () {
+                                      setState(() {
+                                        _selectedImage = null;
+                                      });
+                                    },
+                                    child: Container(
+                                      padding: const EdgeInsets.all(4),
+                                      decoration: const BoxDecoration(
+                                        color: Colors.red,
+                                        shape: BoxShape.circle,
+                                      ),
+                                      child: const Icon(
+                                        Icons.close,
+                                        size: 16,
+                                        color: Colors.white,
+                                      ),
+                                    ),
+                                  ),
+                                ),
+                              ],
+                            )
+                                : _currentImageUrl != null &&
+                                _currentImageUrl!.isNotEmpty
+                                ? Stack(
+                              children: [
+                                ClipRRect(
+                                  borderRadius:
+                                  BorderRadius.circular(12),
+                                  child: Image.network(
+                                    _currentImageUrl!,
+                                    fit: BoxFit.cover,
+                                    width: double.infinity,
+                                    height: double.infinity,
+                                    errorBuilder: (context, error,
+                                        stackTrace) {
+                                      return _buildPlaceholderImage();
+                                    },
+                                    loadingBuilder: (context, child,
+                                        loadingProgress) {
+                                      if (loadingProgress == null) {
+                                        return child;
+                                      }
+                                      return const Center(
+                                        child:
+                                        CircularProgressIndicator(),
+                                      );
+                                    },
+                                  ),
+                                ),
+                                Positioned(
+                                  top: 5,
+                                  right: 5,
+                                  child: GestureDetector(
+                                    onTap: () {
+                                      setState(() {
+                                        _currentImageUrl = null;
+                                      });
+                                    },
+                                    child: Container(
+                                      padding:
+                                      const EdgeInsets.all(4),
+                                      decoration: const BoxDecoration(
+                                        color: Colors.red,
+                                        shape: BoxShape.circle,
+                                      ),
+                                      child: const Icon(
+                                        Icons.close,
+                                        size: 16,
+                                        color: Colors.white,
+                                      ),
+                                    ),
+                                  ),
+                                ),
+                              ],
+                            )
+                                : _buildPlaceholderImage(),
+                          ),
                         ),
-                      ),
+                      ],
                     ),
-                    onChanged: (values) {
-                      setState(() {
-                        _selectedMembers = values;
-                      });
-                    },
-                    decoratorProps: const DropDownDecoratorProps(
-                      decoration: InputDecoration(
-                        hintText: "Select Team Members",
-                        filled: true,
-                        fillColor: Colors.white,
-                        contentPadding: EdgeInsets.symmetric(horizontal: 12, vertical: 14),
-                        border: OutlineInputBorder(
-                          borderRadius: BorderRadius.all(Radius.circular(8)),
-                          borderSide: BorderSide.none,
-                        ),
-                      ),
-                    ),
-                    validator: (values) {
-                      if (values == null || values.isEmpty) {
-                        return "Select at least one member";
-                      }
-                      return null;
-                    },
-                  ),
-                ],
-              ),
 
-              const SizedBox(height: 40),
+                    const SizedBox(height: 30),
+
+                    // --- Team Lead Card ---
+                    Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        const Text(
+                          "Team Lead",
+                          style: TextStyle(
+                            fontWeight: FontWeight.w600,
+                            fontSize: 14,
+                          ),
+                        ),
+                        const SizedBox(height: 10),
+                        DropdownSearch<ManpowerModel>(
+                          selectedItem: _selectedLead,
+                          itemAsString: (m) => m.fullName ?? 'Unknown',
+                          items: (String filter, LoadProps? props) {
+                            return manpowerState.manpowerList
+                                .where((m) =>
+                            m.fullName != null &&
+                                m.fullName!
+                                    .toLowerCase()
+                                    .contains(filter.toLowerCase()))
+                                .toList();
+                          },
+                          compareFn: (a, b) => a.id == b.id,
+                          onChanged: (selected) {
+                            setState(() {
+                              _selectedLead = selected;
+                            });
+                          },
+                          popupProps: const PopupProps.modalBottomSheet(
+                            showSearchBox: true,
+                            searchFieldProps: TextFieldProps(
+                              decoration: InputDecoration(
+                                hintText: 'Search Team Lead',
+                                contentPadding: EdgeInsets.symmetric(
+                                    horizontal: 12, vertical: 10),
+                              ),
+                            ),
+                          ),
+                          decoratorProps: const DropDownDecoratorProps(
+                            decoration: InputDecoration(
+                              hintText: "Select Team Lead",
+                              filled: true,
+                              fillColor: Colors.white,
+                              contentPadding: EdgeInsets.symmetric(
+                                horizontal: 12,
+                                vertical: 14,
+                              ),
+                              border: OutlineInputBorder(
+                                borderRadius:
+                                BorderRadius.all(Radius.circular(8)),
+                                borderSide: BorderSide.none,
+                              ),
+                            ),
+                          ),
+                        ),
+                      ],
+                    ),
+
+                    const SizedBox(height: 20),
+
+                    // --- Team Members Card ---
+                    Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        const Text(
+                          "Team Members",
+                          style: TextStyle(
+                            fontWeight: FontWeight.w600,
+                            fontSize: 14,
+                          ),
+                        ),
+                        const SizedBox(height: 10),
+                        DropdownSearch<ManpowerModel>.multiSelection(
+                          items: (String filter, LoadProps? props) {
+                            return manpowerState.manpowerList
+                                .where((m) =>
+                            m.fullName
+                                ?.toLowerCase()
+                                .contains(filter.toLowerCase()) ??
+                                false)
+                                .toList();
+                          },
+                          selectedItems: _selectedMembers,
+                          itemAsString: (m) => m.fullName ?? 'Unknown',
+                          compareFn: (a, b) => a.id == b.id,
+                          popupProps:
+                          PopupPropsMultiSelection.modalBottomSheet(
+                            showSearchBox: true,
+                            searchFieldProps: TextFieldProps(
+                              decoration: InputDecoration(
+                                hintText: 'Search Members',
+                                contentPadding: const EdgeInsets.symmetric(
+                                    horizontal: 12, vertical: 10),
+                                border: OutlineInputBorder(
+                                  borderRadius: BorderRadius.circular(8),
+                                  borderSide: BorderSide.none,
+                                ),
+                                filled: true,
+                                fillColor: Colors.grey[100],
+                              ),
+                            ),
+                            title: const Padding(
+                              padding: EdgeInsets.all(8.0),
+                              child: Text(
+                                "Select Team Members",
+                                style: TextStyle(fontWeight: FontWeight.bold),
+                              ),
+                            ),
+                          ),
+                          onChanged: (values) {
+                            setState(() {
+                              _selectedMembers = values;
+                            });
+                          },
+                          decoratorProps: const DropDownDecoratorProps(
+                            decoration: InputDecoration(
+                              hintText: "Select Team Members",
+                              filled: true,
+                              fillColor: Colors.white,
+                              contentPadding: EdgeInsets.symmetric(
+                                  horizontal: 12, vertical: 14),
+                              border: OutlineInputBorder(
+                                borderRadius:
+                                BorderRadius.all(Radius.circular(8)),
+                                borderSide: BorderSide.none,
+                              ),
+                            ),
+                          ),
+                          validator: (values) {
+                            if (values == null || values.isEmpty) {
+                              return "Select at least one member";
+                            }
+                            return null;
+                          },
+                        ),
+                      ],
+                    ),
+
+                    const SizedBox(height: 40),
+                  ],
+                ),
+              ),
 
               // --- Action Buttons ---
-              Row(
-                mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                children: [
-                  Expanded(
-                    child: OutlinedButton(
-                      onPressed: () => Navigator.pop(context),
-                      style: OutlinedButton.styleFrom(
-                        padding: const EdgeInsets.symmetric(vertical: 14),
-                        side: const BorderSide(color: Colors.black54),
-                        shape: RoundedRectangleBorder(
-                          borderRadius: BorderRadius.circular(10),
-                        ),
-                      ),
-                      child: const Text(
-                        "Cancel",
-                        style: TextStyle(
-                          color: Colors.black87,
-                          fontWeight: FontWeight.w600,
-                        ),
+              Padding(
+                padding: const EdgeInsets.only(bottom: 10, top: 10),
+                child: Row(
+                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                  children: [
+                    Expanded(
+                      child: RoundedButton(
+                        text: "Back",
+                        color: Colors.white,
+                        textColor: Colors.black,
+                        onPressed: () => Navigator.pop(context),
                       ),
                     ),
-                  ),
-                  const SizedBox(width: 10),
-                  Expanded(
-                    child: ElevatedButton(
-                      onPressed: _submitForm,
-                      style: ElevatedButton.styleFrom(
-                        backgroundColor: Colors.blueAccent,
-                        padding: const EdgeInsets.symmetric(vertical: 14),
-                        shape: RoundedRectangleBorder(
-                          borderRadius: BorderRadius.circular(10),
-                        ),
-                      ),
-                      child: const Text(
-                        "Update Team",
-                        style: TextStyle(
-                          fontSize: 16,
-                          fontWeight: FontWeight.w600,
-                        ),
+                    const SizedBox(width: 10),
+                    Expanded(
+                      child: RoundedButton(
+                        text: "Update Team",
+                        color: Colors.blueAccent,
+                        textColor: Colors.white,
+                        onPressed: _submitForm,
                       ),
                     ),
-                  ),
-                ],
+                  ],
+                ),
               ),
             ],
           ),

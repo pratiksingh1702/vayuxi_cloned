@@ -330,21 +330,25 @@ class _RegisterScreenState extends ConsumerState<RegisterScreen> {
                 // --- Toggle Buttons for Login/Register ---
                 Row(
                   children: [
-                    RoundedButton(
-                      text: "Login",
-                      color: Colors.blue,
-                      textColor: Colors.blue,
-                      isOutlined: true,
-                      onPressed: () {
-                        Navigator.of(context).pop();
-                      },
+                    Expanded(
+                      child: RoundedButton(
+                        text: "Login",
+                        color: Colors.blue,
+                        textColor: Colors.blue,
+                        isOutlined: true,
+                        onPressed: () {
+                          Navigator.of(context).pop();
+                        },
+                      ),
                     ),
                     const SizedBox(width: 10),
-                    RoundedButton(
-                      text: "Register",
-                      color: Colors.blue,
-                      textColor: Colors.white,
-                      onPressed: () {},
+                    Expanded(
+                      child: RoundedButton(
+                        text: "Register",
+                        color: Colors.blue,
+                        textColor: Colors.white,
+                        onPressed: () {},
+                      ),
                     ),
                   ],
                 ),
@@ -386,48 +390,34 @@ class _RegisterScreenState extends ConsumerState<RegisterScreen> {
                 Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    Row(
-                      children: [
-                        Expanded(
-                          child: _buildTextField(
-                            "E-Mail ID*",
-                            emailController,
-                            validator: _validateEmail,
-                            keyboardType: TextInputType.emailAddress,
-                          ),
-                        ),
-                        const SizedBox(width: 10),
-                        // Verify Button - FIXED CONDITION
-                        SizedBox(
-                          height: 56, // Match text field height
-                          child: ElevatedButton(
-                            onPressed: _isSendingOtp
-                                ? null  // Disable if loading OR email is invalid
-                                : _sendOtp,
-                            style: ElevatedButton.styleFrom(
-                              backgroundColor: _isEmailVerified ? Colors.green : Colors.blue,
-                              shape: RoundedRectangleBorder(
-                                borderRadius: BorderRadius.circular(10),
-                              ),
-                              padding: const EdgeInsets.symmetric(horizontal: 16),
+                    _buildTextField(
+                      "E-Mail ID*",
+                      emailController,
+                      validator: _validateEmail,
+                      keyboardType: TextInputType.emailAddress,
+                      suffixIcon: Padding(
+                        padding: const EdgeInsets.only(right: 4), // Add some right padding
+                        child: IconButton(
+                          onPressed: _isSendingOtp
+                              ? null
+                              : _sendOtp,
+                          icon: _isSendingOtp
+                              ? const SizedBox(
+                            width: 20,
+                            height: 20,
+                            child: CircularProgressIndicator(
+                              strokeWidth: 2,
+                              color: Colors.blue,
                             ),
-                            child: _isSendingOtp
-                                ? const SizedBox(
-                              width: 20,
-                              height: 20,
-                              child: CircularProgressIndicator(
-                                strokeWidth: 2,
-                                color: Colors.white,
-                              ),
-                            )
-                                : Icon(
-                              _isEmailVerified ? Icons.check : Icons.send,
-                              color: Colors.white,
-                              size: 20,
-                            ),
+                          )
+                              : Icon(
+                            _isEmailVerified ? Icons.check_circle : Icons.send,
+                            color: _isEmailVerified ? Colors.green : Colors.blue,
                           ),
+                          padding: const EdgeInsets.all(0), // Remove default padding
+                          constraints: const BoxConstraints(), // Remove min size constraints
                         ),
-                      ],
+                      ),
                     ),
                     if (_isEmailVerified)
                       Padding(
@@ -555,6 +545,7 @@ class _RegisterScreenState extends ConsumerState<RegisterScreen> {
       TextEditingController controller, {
         String? Function(String?)? validator,
         TextInputType keyboardType = TextInputType.text,
+        Widget? suffixIcon, // Add suffixIcon parameter
       }) {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
@@ -568,9 +559,8 @@ class _RegisterScreenState extends ConsumerState<RegisterScreen> {
           ),
         ),
         const SizedBox(height: 5),
-        TextFormField(
+        TextField(
           controller: controller,
-          validator: validator,
           keyboardType: keyboardType,
           decoration: InputDecoration(
             contentPadding: const EdgeInsets.symmetric(horizontal: 14, vertical: 14),
@@ -581,6 +571,7 @@ class _RegisterScreenState extends ConsumerState<RegisterScreen> {
               borderRadius: BorderRadius.circular(10),
               borderSide: BorderSide(color: Colors.grey.shade400),
             ),
+            suffixIcon: suffixIcon, // Use the passed suffixIcon
             errorBorder: OutlineInputBorder(
               borderRadius: BorderRadius.circular(10),
               borderSide: const BorderSide(color: Colors.red),

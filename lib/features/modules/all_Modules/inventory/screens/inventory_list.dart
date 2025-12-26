@@ -1,10 +1,13 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:untitled2/core/utlis/widgets/Button_wrapper.dart';
 import '../../../../../core/utlis/colors/colors.dart';
+import '../../../../../core/utlis/widgets/buttons.dart';
 import '../../../../../core/utlis/widgets/custom_appBar.dart';
 import '../../site_Details/providers/site_current_provider.dart';
 import '../models/inventory_Model.dart';
 import '../provider/inventory_provider.dart';
+import 'add_inven.dart';
 import 'edit_inventory.dart';
 
 
@@ -26,77 +29,93 @@ class _InventoryListScreenState extends ConsumerState<InventoryListScreen> {
     return Scaffold(
       appBar: CustomAppBar(title: "Inventory List"),
       backgroundColor: AppColors.lightBlue,
-      body: Column(
-        children: [
-          // ----- SEARCH -----
-          Padding(
-            padding: const EdgeInsets.all(12),
-            child: TextField(
-              decoration: InputDecoration(
-                hintText: "Search item...",
-                prefixIcon: const Icon(Icons.search),
-                fillColor: Colors.white,
-                filled: true,
+      body: BottomButtonWrapper(
+        customButtons: [
+          CustomButton(button:RoundedButton(
+            text: "Add",
+            color: Colors.blue,
+            textColor: Colors.white,
+            onPressed: () {
+              Navigator.push(
+                context,
+                MaterialPageRoute(builder: (context) =>CreateInventoryScreen()),
+              );
+            },
+          ))
 
-                border: OutlineInputBorder(
-                  borderRadius: BorderRadius.circular(38),
-                  borderSide: BorderSide.none,
-                ),
-              ),
-              onChanged: (v) => setState(() => _search = v.trim().toLowerCase()),
-            ),
-          ),
-
-          Expanded(
-            child: inventoryAsync.when(
-              loading: () => const Center(child: CircularProgressIndicator()),
-              error: (e, _) => Center(child: Text("Failed to load inventory")),
-              data: (inventoryList) {
-                final filtered = inventoryList.where((item) {
-                  return item.itemName.toLowerCase().contains(_search);
-                }).toList();
-
-                if (filtered.isEmpty) {
-                  return const Center(child: Text("No inventory found"));
-                }
-
-                return ListView.builder(
-                  itemCount: filtered.length,
-                  itemBuilder: (_, i) {
-                    final inventory = filtered[i];
-
-                    return Card(
-                      elevation: 0,
-                      color: Colors.white,
-                      margin: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
-                      child: ListTile(
-                        title: Text(inventory.itemName),
-                        subtitle: Text(
-                          "Qty: ${inventory.totalQuantityAdded} | Min: ${inventory.minimumStockLevel} | UOM: ${inventory.uom}",
-                        ),
-                        trailing: const Icon(Icons.mode_edit_outline_outlined),
-                        onTap: () async {
-                          final updated = await Navigator.push(
-                            context,
-                            MaterialPageRoute(
-                              builder: (_) => EditInventoryScreen(inventory: inventory),
-                            ),
-                          );
-
-                          if (updated == true) {
-                            // 🔥 Refresh API
-                            ref.invalidate(allInventoryProvider);
-                          }
-
-                        },
-                      ),
-                    );
-                  },
-                );
-              },
-            ),
-          )
         ],
+        child: Column(
+          children: [
+            // ----- SEARCH -----
+            Padding(
+              padding: const EdgeInsets.all(12),
+              child: TextField(
+                decoration: InputDecoration(
+                  hintText: "Search item...",
+                  prefixIcon: const Icon(Icons.search),
+                  fillColor: Colors.white,
+                  filled: true,
+
+                  border: OutlineInputBorder(
+                    borderRadius: BorderRadius.circular(38),
+                    borderSide: BorderSide.none,
+                  ),
+                ),
+                onChanged: (v) => setState(() => _search = v.trim().toLowerCase()),
+              ),
+            ),
+
+            Expanded(
+              child: inventoryAsync.when(
+                loading: () => const Center(child: CircularProgressIndicator()),
+                error: (e, _) => Center(child: Text("Failed to load inventory")),
+                data: (inventoryList) {
+                  final filtered = inventoryList.where((item) {
+                    return item.itemName.toLowerCase().contains(_search);
+                  }).toList();
+
+                  if (filtered.isEmpty) {
+                    return const Center(child: Text("No inventory found"));
+                  }
+
+                  return ListView.builder(
+                    itemCount: filtered.length,
+                    itemBuilder: (_, i) {
+                      final inventory = filtered[i];
+
+                      return Card(
+                        elevation: 0,
+                        color: Colors.white,
+                        margin: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+                        child: ListTile(
+                          title: Text(inventory.itemName),
+                          subtitle: Text(
+                            "Qty: ${inventory.totalQuantityAdded} | Min: ${inventory.minimumStockLevel} | UOM: ${inventory.uom}",
+                          ),
+                          trailing: const Icon(Icons.mode_edit_outline_outlined),
+                          onTap: () async {
+                            final updated = await Navigator.push(
+                              context,
+                              MaterialPageRoute(
+                                builder: (_) => EditInventoryScreen(inventory: inventory),
+                              ),
+                            );
+
+                            if (updated == true) {
+                              // 🔥 Refresh API
+                              ref.invalidate(allInventoryProvider);
+                            }
+
+                          },
+                        ),
+                      );
+                    },
+                  );
+                },
+              ),
+            )
+          ],
+        ),
       ),
     );
   }

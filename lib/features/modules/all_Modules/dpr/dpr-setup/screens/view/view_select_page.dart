@@ -29,7 +29,7 @@ class ViewSelectCardGrid extends StatelessWidget {
           children: [
             SelectCard(
               icon: Image.asset(
-                "assets/images/Gemini_Generated_Image_pi2r7npi2r7npi2r.png",
+                "assets/images/Gemini_Generated_Image_pi2r7npi2r7npi2r.webp",
         
                 height: 120,
                 width: double.infinity,
@@ -46,7 +46,7 @@ class ViewSelectCardGrid extends StatelessWidget {
             ),
             SelectCard(
               icon: Image.asset(
-                "assets/images/Gemini_Generated_Image_pi2r7npi2r7npi2r.png",
+                "assets/images/Gemini_Generated_Image_pi2r7npi2r7npi2r.webp",
         
                 height: 120,
                 width: double.infinity,
@@ -63,7 +63,7 @@ class ViewSelectCardGrid extends StatelessWidget {
             ),
             SelectCard(
               icon: Image.asset(
-                "assets/images/Gemini_Generated_Image_pi2r7npi2r7npi2r.png",
+                "assets/images/icons/dpr_setup.webp",
         
                 height: 120,
                 width: double.infinity,

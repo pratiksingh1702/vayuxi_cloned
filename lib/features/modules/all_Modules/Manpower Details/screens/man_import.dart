@@ -3,6 +3,7 @@ import 'package:dio/dio.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:file_picker/file_picker.dart';
+import 'package:untitled2/features/modules/all_Modules/Manpower%20Details/service/manpowerService.dart';
 import 'package:untitled2/features/modules/all_Modules/rate/data/rateApi.dart';
 import 'package:untitled2/features/modules/all_Modules/site_Details/repository/siteModel.dart';
 import 'package:untitled2/typeProvider/type_provider.dart';
@@ -32,32 +33,68 @@ class _ManImportCsvScreenState extends ConsumerState<ManImportCsvScreen> {
 
   Future<void> _pickCsvFile() async {
     try {
-      FilePickerResult? result = await FilePicker.platform.pickFiles(
+      final result = await FilePicker.platform.pickFiles(
         type: FileType.custom,
-        allowedExtensions: ['csv'],
+        allowedExtensions: ['xlsx'],
         allowMultiple: false,
+        withData: false, // ✅ REQUIRED so path is real
       );
 
-      if (result != null && result.files.isNotEmpty) {
-        setState(() {
-          _selectedFile = result.files.first;
-          _selectedFileName = _selectedFile!.name;
-          _uploadStatus = '';
-        });
+
+      if (result == null || result.files.isEmpty) {
+        _showError("No file selected");
+        return;
       }
+
+      final file = result.files.first;
+      print(file.path);
+
+      if (file.path == null || file.path!.isEmpty) {
+        _showError("Invalid file path. Pick from local storage, not cloud.");
+        return;
+      }
+
+      final realFile = File(file.path!);
+
+      if (!realFile.existsSync()) {
+        _showError("Selected file does not exist on device.");
+        return;
+      }
+
+      setState(() {
+        _selectedFile = file;
+        _selectedFileName = file.name;
+        _uploadStatus = '';
+      });
+
+      debugPrint("✅ Picked File Path: ${file.path}");
     } catch (e) {
-      _showError('Error picking file: $e');
+      _showError("File pick error: $e");
     }
   }
 
   Future<void> _uploadCsv() async {
     if (_selectedFile == null) {
-      _showError('Please select a CSV file first');
+      _showError('Please select a file first');
       return;
     }
-    final type=ref.read(typeProvider);
+
+    final path = _selectedFile!.path;
+
+    if (path == null || path.isEmpty) {
+      _showError("Invalid file path. Re-pick the file.");
+      return;
+    }
+
+    final file = File(path);
+    print(file.path);
+    print(path);
 
 
+    if (!file.existsSync()) {
+      _showError("File not found on device.");
+      return;
+    }
 
     setState(() {
       _isLoading = true;
@@ -65,51 +102,36 @@ class _ManImportCsvScreenState extends ConsumerState<ManImportCsvScreen> {
     });
 
     try {
-      // Create FormData with the file
       final formData = FormData.fromMap({
         'file': await MultipartFile.fromFile(
-          _selectedFile!.path!,
+          file.path,
           filename: _selectedFile!.name,
         ),
       });
 
-      // final result = await RateApiClient().uploadCsv(
-      //   formData,
-      //   type!,
-      //   siteId!,
-      // );
+      final result = await ManpowerAPI.uploadManpowerBulk(formData);
 
-      setState(() {
-        _isLoading = false;
-      });
+      setState(() => _isLoading = false);
 
-      if (true) {
-        setState(() {
-          _uploadStatus = 'CSV imported successfully!';
-        });
+      if (result['success'] == true) {
+        _uploadStatus = "Upload successful";
 
-        // Show success message
         ScaffoldMessenger.of(context).showSnackBar(
           const SnackBar(
-            content: Text('CSV imported successfully'),
+            content: Text('XLSX imported successfully'),
             backgroundColor: Colors.green,
           ),
         );
 
-        // Optionally navigate back after successful upload
         Future.delayed(const Duration(seconds: 2), () {
-          if (mounted) {
-            Navigator.pop(context, true); // Return true to indicate refresh needed
-          }
+          if (mounted) Navigator.pop(context, true);
         });
       } else {
-        // _showError('Upload failed: ${result['error']}');
+        _showError(result['message'] ?? "Upload failed");
       }
     } catch (e) {
-      setState(() {
-        _isLoading = false;
-      });
-      _showError('Upload error: $e');
+      setState(() => _isLoading = false);
+      _showError("Upload error: $e");
     }
   }
 
@@ -141,7 +163,7 @@ class _ManImportCsvScreenState extends ConsumerState<ManImportCsvScreen> {
     return Scaffold(
       backgroundColor: AppColors.lightBlue,
       appBar: CustomAppBar(
-        title: 'Import CSV',
+        title: 'Import Manpower',
 
       ),
       body: Padding(
@@ -155,9 +177,9 @@ class _ManImportCsvScreenState extends ConsumerState<ManImportCsvScreen> {
 
             // File Selection Section
             UploadBox(
-              title: 'Select CSV File',
+              title: 'Select XLSX File',
               subtitle: _selectedFileName ?? 'No file selected',
-              buttonText: _selectedFileName == null ? 'Choose CSV File' : 'Change File',
+              buttonText: _selectedFileName == null ? 'Choose XLSX File' : 'Change File',
               onPressed: _pickCsvFile,
             ),
 
@@ -196,7 +218,7 @@ class _ManImportCsvScreenState extends ConsumerState<ManImportCsvScreen> {
                   children: [
                     Icon(Icons.cloud_upload),
                     SizedBox(width: 8),
-                    Text('Upload CSV'),
+                    Text('Upload XLSX'),
                   ],
                 ),
               ),

@@ -1,54 +1,92 @@
-// models/expense_model.dart
 class ExpenseModel {
-  final String id;
-  final String hardwareShopName;
-  final String expenseType;
-  final double rateInRs;
+  final String? id;
+  final String? expenseType;
+  final String? description;
+  final DateTime? date;
+  final double? amount;
+  final String? remarks;
   final String? invoiceNumber;
+  final String? hardwareShopName;
+  final int? quantity;
+  final String? month;
+  final int? year;
+  final String? place;
+  final String? manpowerId;
+  final String? siteId;
   final DateTime? createdAt;
   final DateTime? updatedAt;
-  final String description; // Add this
-  final String remarks; // Add this
-  final DateTime date; // Add this
 
   ExpenseModel({
-    required this.id,
-    required this.hardwareShopName,
-    required this.expenseType,
+    this.id,
+    this.expenseType,
+    this.description,
+    this.date,
+    this.amount,
+    this.remarks,
     this.invoiceNumber,
-    required this.rateInRs,
+    this.hardwareShopName,
+    this.quantity,
+    this.month,
+    this.year,
+    this.place,
+    this.manpowerId,
+    this.siteId,
     this.createdAt,
     this.updatedAt,
-    required this.description, // Add to constructor
-    required this.remarks, // Add to constructor
-    required this.date, // Add to constructor
   });
 
   factory ExpenseModel.fromJson(Map<String, dynamic> json) {
     return ExpenseModel(
-      id: json['_id'] ?? '',
-      hardwareShopName: json['hardwareShopName'] ?? '',
-      expenseType: json['expenseType'] ?? '',
-      invoiceNumber: json['invoiceNumber'] ?? '',
-      rateInRs: (json['rateInRs'] ?? 0).toDouble(),
+      id: json['_id']?.toString(),
+      expenseType: json['expenseType']?.toString(),
+      description: json['description']?.toString(),
+      date: json['date'] != null ? DateTime.parse(json['date']) : null,
+      amount: _toDouble(json['amount']),
+      remarks: json['remarks']?.toString(),
+      invoiceNumber: json['invoiceNumber']?.toString(),
+      hardwareShopName: json['hardwareShop']?.toString(),
+      quantity: _toInt(json['quantity']),
+      month: json['month']?.toString(),
+      year: _toInt(json['year']),
+      place: json['place']?.toString(),
+      manpowerId: json['manpowerId']?.toString(),
+      siteId: json['siteId']?.toString(),
       createdAt: json['createdAt'] != null ? DateTime.parse(json['createdAt']) : null,
       updatedAt: json['updatedAt'] != null ? DateTime.parse(json['updatedAt']) : null,
-      description: json['description'] ?? '', // Add this
-      remarks: json['remarks'] ?? '', // Add this
-      date: json['date'] != null ? DateTime.parse(json['date']) : DateTime.now(), // Add this
     );
   }
 
-  // Optional: Add a toJson method for API calls
   Map<String, dynamic> toJson() {
     return {
       'expenseType': expenseType,
       'description': description,
-      'invoiceNumber': invoiceNumber,
-      'date': date.toIso8601String(),
-      'rateInRs': rateInRs,
+      'date': date?.toIso8601String(),
+      'amount': amount,
       'remarks': remarks,
-      'hardwareShopName': hardwareShopName,
+      'invoiceNumber': invoiceNumber,
+      'hardwareShop': hardwareShopName,
+      'quantity': quantity,
+      'month': month,
+      'year': year,
+      'place': place,
+      'manpowerId': manpowerId,
+      'siteId': siteId,
     };
+  }
+
+  static double? _toDouble(dynamic value) {
+    if (value == null) return null;
+    if (value is double) return value;
+    if (value is int) return value.toDouble();
+    if (value is String) return double.tryParse(value);
+    return null;
+  }
+
+  static int? _toInt(dynamic value) {
+    if (value == null) return null;
+    if (value is int) return value;
+    if (value is double) return value.toInt();
+    if (value is String) return int.tryParse(value);
+    return null;
   }
 }

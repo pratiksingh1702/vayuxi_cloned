@@ -441,26 +441,72 @@ class InventoryUsage {
   });
 
   factory InventoryUsage.fromJson(Map<String, dynamic> json) {
+    // Inventory
+    String inventoryId = '';
+    Inventory? inventoryObj;
+
+    if (json['inventory'] is String) {
+      inventoryId = json['inventory'];
+    } else if (json['inventory'] is Map<String, dynamic>) {
+      inventoryId = json['inventory']['_id'] ?? '';
+      inventoryObj = Inventory.fromJson(json['inventory']);
+    }
+
+    // Item
+    String itemId = '';
+    String itemName = '';
+    InventoryItem? itemObj;
+
+    if (json['item'] is String) {
+      itemId = json['item'];
+    } else if (json['item'] is Map<String, dynamic>) {
+      itemId = json['item']['_id'] ?? '';
+      itemName = json['item']['name'] ?? '';
+      itemObj = InventoryItem.fromJson(json['item']);
+    }
+
+    // Category
+    Category? categoryObj;
+    String? categoryName;
+
+    if (json['category'] is Map<String, dynamic>) {
+      categoryObj = Category.fromJson(json['category']);
+      categoryName = json['category']['name'];
+    }
+
+    // Subcategory
+    Subcategory? subcategoryObj;
+    String? subcategoryName;
+
+    if (json['subcategory'] is Map<String, dynamic>) {
+      subcategoryObj = Subcategory.fromJson(json['subcategory']);
+      subcategoryName = json['subcategory']['name'];
+    }
+
     return InventoryUsage(
       id: json['_id'] ?? '',
-      inventoryId: json['inventory']?['_id'] ?? json['inventory'] ?? '',
-      itemId: json['item']?['_id'] ?? json['item'] ?? '',
+      inventoryId: inventoryId,
+      itemId: itemId,
       companyId: json['company'] ?? '',
       siteId: json['site'] ?? '',
       quantityUsed: (json['quantityUsed'] ?? 0).toDouble(),
-      usageDate: DateTime.parse(json['usageDate'] ?? DateTime.now().toIso8601String()),
+      usageDate: DateTime.parse(
+        json['usageDate'] ?? DateTime.now().toIso8601String(),
+      ),
       remarks: json['remarks'],
-      usedById: json['usedBy']?['_id'] ?? json['usedBy'] ?? '',
+      usedById: json['usedBy'] is Map
+          ? json['usedBy']['_id'] ?? ''
+          : json['usedBy'] ?? '',
       isDeleted: json['isDeleted'] ?? false,
-      categoryName: json['category']?['name'] ?? json['inventory']?['category']?['name'],
-      subcategoryName: json['subcategory']?['name'] ?? json['inventory']?['subcategory']?['name'],
-      itemName: json['item']?['name'] ?? json['inventory']?['item']?['name'] ?? '',
-      usedByName: json['usedBy']?['name'],
-      usedByEmail: json['usedBy']?['email'],
-      inventory: json['inventory'] is Map ? Inventory.fromJson(json['inventory']) : null,
-      item: json['item'] is Map ? InventoryItem.fromJson(json['item']) : null,
-      category: json['category'] is Map ? Category.fromJson(json['category']) : null,
-      subcategory: json['subcategory'] is Map ? Subcategory.fromJson(json['subcategory']) : null,
+
+      inventory: inventoryObj,
+      item: itemObj,
+      category: categoryObj,
+      subcategory: subcategoryObj,
+
+      categoryName: categoryName,
+      subcategoryName: subcategoryName,
+      itemName: itemName,
     );
   }
 

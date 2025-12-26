@@ -80,7 +80,7 @@ class DprNotifier extends StateNotifier<DprState> {
     }
   }
 
-  // Copy DPR material
+
   Future<void> copyMaterial({required String siteId, required String materialId}) async {
     try {
       state = state.copyWith(isLoading: true, error: null);
@@ -114,35 +114,35 @@ class DprNotifier extends StateNotifier<DprState> {
   // }
 
   // Fetch sheets (measurement, calculation, summary, invoice)
-  Future<void> fetchMeasurementSheet({required String siteId, required String fromDate, required String toDate}) async {
-    try {
-      state = state.copyWith(isLoading: true, error: null);
-      final data = await DprApi.fetchMeasurementSheet(siteId: siteId, fromDate: fromDate, toDate: toDate);
-      state = state.copyWith(isLoading: false, data: data);
-    } catch (e) {
-      state = state.copyWith(isLoading: false, error: e.toString());
-    }
-  }
-
-  Future<void> fetchSummarySheet({required String siteId, required String fromDate, required String toDate}) async {
-    try {
-      state = state.copyWith(isLoading: true, error: null);
-      final data = await DprApi.fetchSummarySheet(siteId: siteId, fromDate: fromDate, toDate: toDate);
-      state = state.copyWith(isLoading: false, data: data);
-    } catch (e) {
-      state = state.copyWith(isLoading: false, error: e.toString());
-    }
-  }
-
-  Future<void> fetchInvoiceSheet({required String siteId, required String fromDate, required String toDate}) async {
-    try {
-      state = state.copyWith(isLoading: true, error: null);
-      final data = await DprApi.fetchInvoiceSheet(siteId: siteId, fromDate: fromDate, toDate: toDate);
-      state = state.copyWith(isLoading: false, data: data);
-    } catch (e) {
-      state = state.copyWith(isLoading: false, error: e.toString());
-    }
-  }
+  // Future<void> fetchMeasurementSheet({required String siteId, required String fromDate, required String toDate}) async {
+  //   try {
+  //     state = state.copyWith(isLoading: true, error: null);
+  //     final data = await DprApi.fetchMeasurementSheet(siteId: siteId, fromDate: fromDate, toDate: toDate);
+  //     state = state.copyWith(isLoading: false, data: data);
+  //   } catch (e) {
+  //     state = state.copyWith(isLoading: false, error: e.toString());
+  //   }
+  // }
+  //
+  // Future<void> fetchSummarySheet({required String siteId, required String fromDate, required String toDate}) async {
+  //   try {
+  //     state = state.copyWith(isLoading: true, error: null);
+  //     final data = await DprApi.fetchSummarySheet(siteId: siteId, fromDate: fromDate, toDate: toDate);
+  //     state = state.copyWith(isLoading: false, data: data);
+  //   } catch (e) {
+  //     state = state.copyWith(isLoading: false, error: e.toString());
+  //   }
+  // }
+  //
+  // Future<void> fetchInvoiceSheet({required String siteId, required String fromDate, required String toDate}) async {
+  //   try {
+  //     state = state.copyWith(isLoading: true, error: null);
+  //     final data = await DprApi.fetchInvoiceSheet(siteId: siteId, fromDate: fromDate, toDate: toDate);
+  //     state = state.copyWith(isLoading: false, data: data);
+  //   } catch (e) {
+  //     state = state.copyWith(isLoading: false, error: e.toString());
+  //   }
+  // }
 }
 
 // Provider

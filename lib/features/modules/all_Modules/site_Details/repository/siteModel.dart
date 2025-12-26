@@ -6,13 +6,14 @@ class SiteModel {
   final String gstNo;
   final String phoneNumber;
   final String emailId;
-  final String? documentDate; // Nullable since it can be null
+  final String? documentDate; // nullable
   final String documentNumber;
   final bool isDeleted;
   final String company;
   final String type;
   final String createdAt;
   final String updatedAt;
+  final String? siteImage; // ✅ OPTIONAL FIELD
 
   SiteModel({
     required this.id,
@@ -29,9 +30,9 @@ class SiteModel {
     required this.type,
     required this.createdAt,
     required this.updatedAt,
+    this.siteImage, // ✅ optional
   });
 
-  /// ✅ Convert JSON to SiteModel
   factory SiteModel.fromJson(Map<String, dynamic> json) {
     return SiteModel(
       id: json['_id'] ?? '',
@@ -41,17 +42,17 @@ class SiteModel {
       gstNo: json['gstNo'] ?? '',
       phoneNumber: json['phoneNumber'] ?? '',
       emailId: json['emailId'] ?? '',
-      documentDate: json['documentDate'], // Can be null
+      documentDate: json['documentDate'],
       documentNumber: json['documentNumber'] ?? '',
       isDeleted: json['isDeleted'] ?? false,
       company: json['company'] ?? '',
       type: json['type'] ?? '',
       createdAt: json['createdAt'] ?? '',
       updatedAt: json['updatedAt'] ?? '',
+      siteImage: json['siteImage'], // ✅ safely mapped
     );
   }
 
-  /// ✅ Convert SiteModel to JSON
   Map<String, dynamic> toJson() {
     return {
       '_id': id,
@@ -68,6 +69,7 @@ class SiteModel {
       'type': type,
       'createdAt': createdAt,
       'updatedAt': updatedAt,
+      'siteImage': siteImage, // ✅ included
     };
   }
 }

@@ -132,4 +132,43 @@ class EquipmentItem {
     designation: [],
     remarks: null,
   );
+  EquipmentItem copyWith({
+    String? id,
+    String? materialName,
+    String? image,
+    double? qty,
+    String? uom,
+    double? length,
+    double? rmt,
+    double? diameter,
+    double? weight,
+    double? power,
+    double? actualRate,
+    double? rate,
+    String? moc,
+    String? size,
+    String? location,
+    String? plant,
+    List<String>? designation,
+  }) {
+    return EquipmentItem(
+      id: id ?? this.id,
+      materialName: materialName ?? this.materialName,
+      image: image ?? this.image,
+      qty: qty ?? this.qty,
+      uom: uom ?? this.uom,
+      length: length ?? this.length,
+      rmt: rmt ?? this.rmt,
+      diameter: diameter ?? this.diameter,
+      weight: weight ?? this.weight,
+      power: power ?? this.power,
+      actualRate: actualRate ?? this.actualRate,
+      rate: rate ?? this.rate,
+      moc: moc ?? this.moc,
+      size: size ?? this.size,
+      location: location ?? this.location,
+      plant: plant ?? this.plant,
+      designation: designation ?? this.designation,
+    );
+  }
 }

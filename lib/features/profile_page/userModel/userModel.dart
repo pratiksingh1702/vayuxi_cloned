@@ -13,7 +13,7 @@ class User {
   final String? firstName;
   final String? lastName;
 
-  User({
+  const User({
     required this.id,
     required this.email,
     required this.fullName,
@@ -29,21 +29,22 @@ class User {
     this.lastName,
   });
 
+  /// 🔐 SAFE JSON PARSER (NO RUNTIME CRASHES)
   factory User.fromJson(Map<String, dynamic> json) {
     return User(
-      id: json['_id'] ?? json['id'] ?? '',
-      email: json['email'] ?? '',
-      fullName: json['fullName'] ?? '',
-      phoneNumber: json['phoneNumber'] ?? '',
-      profilePhoto: json['profilePhoto'],
-      aadhaarCard: json['aadhaarCard'],
-      gstNumber: json['gstNumber'],
-      company: json['company'] != null ? Company.fromJson(json['company']) : null,
-      address: json['address'],
-      other: json['other'],
-      selectedServices: List<String>.from(json['selectedServices'] ?? []),
-      firstName: json['firstName'],
-      lastName: json['lastName'],
+      id: _parseString(json['_id'] ?? json['id']),
+      email: _parseString(json['email']),
+      fullName: _parseString(json['fullName']),
+      phoneNumber: _parseString(json['phoneNumber']),
+      profilePhoto: _parseNullableString(json['profilePhoto']),
+      aadhaarCard: _parseNullableString(json['aadhaarCard']),
+      gstNumber: _parseNullableString(json['gstNumber']),
+      company: _parseCompany(json['company']),
+      address: _parseNullableString(json['address']),
+      other: _parseNullableString(json['other']),
+      selectedServices: _parseStringList(json['selectedServices']),
+      firstName: _parseNullableString(json['firstName']),
+      lastName: _parseNullableString(json['lastName']),
     );
   }
 
@@ -102,12 +103,15 @@ class Company {
   final String? name;
   final String? logo;
 
-  Company({this.name, this.logo});
+  const Company({
+    this.name,
+    this.logo,
+  });
 
   factory Company.fromJson(Map<String, dynamic> json) {
     return Company(
-      name: json['name'],
-      logo: json['logo'],
+      name: _parseNullableString(json['name']),
+      logo: _parseNullableString(json['logo']),
     );
   }
 
@@ -128,3 +132,42 @@ class Company {
     );
   }
 }
+String _parseString(dynamic value) {
+  if (value == null) return '';
+  return value.toString();
+}
+
+String? _parseNullableString(dynamic value) {
+  if (value == null) return null;
+  return value.toString();
+}
+
+List<String> _parseStringList(dynamic value) {
+  if (value is List) {
+    return value.map((e) => e.toString()).toList();
+  }
+
+  if (value is Map) {
+    return value.keys.map((e) => e.toString()).toList();
+  }
+
+  if (value is String) {
+    return value
+        .split(',')
+        .map((e) => e.trim())
+        .where((e) => e.isNotEmpty)
+        .toList();
+  }
+
+  return [];
+}
+
+Company? _parseCompany(dynamic value) {
+  if (value is Map<String, dynamic>) {
+    return Company.fromJson(value);
+  }
+
+  // backend sometimes sends only company ID (string)
+  return null;
+}
+

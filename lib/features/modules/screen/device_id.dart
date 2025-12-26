@@ -11,36 +11,45 @@ import 'device_id_helper.dart';
 
 class DeviceOtpScreen extends StatefulWidget {
   final String? redirectRoute;
+  final Map<String, dynamic>? redirectExtraData;
 
-  const DeviceOtpScreen({super.key, this.redirectRoute});
+  const DeviceOtpScreen({
+    super.key,
+    this.redirectRoute,
+    this.redirectExtraData,
+  });
 
   @override
   State<DeviceOtpScreen> createState() => _DeviceOtpScreenState();
 }
 
 class _DeviceOtpScreenState extends State<DeviceOtpScreen> {
-  final TextEditingController deviceController = TextEditingController();
   final TextEditingController otpController = TextEditingController();
 
   bool loading = false;
-  String? deviceId;
+  bool otpSent = false;
   String? message;
+  bool isSuccess = false;
 
   Future<void> generateOtp() async {
     setState(() {
       loading = true;
       message = null;
+      isSuccess = false;
     });
 
     try {
       final res = await AuthAPI.generateDeviceOtp();
 
       setState(() {
-        message = res["message"] ?? "OTP sent!";
+        otpSent = true;
+        message = res["message"] ?? "OTP sent to your email";
+        isSuccess = true;
       });
     } catch (e) {
       setState(() {
-        message = "Failed: $e";
+        message = "Failed to send OTP. Please try again.";
+        isSuccess = false;
       });
     }
 
@@ -48,10 +57,18 @@ class _DeviceOtpScreenState extends State<DeviceOtpScreen> {
   }
 
   Future<void> verifyOtp() async {
+    if (otpController.text.trim().length != 6) {
+      setState(() {
+        message = "Please enter a valid 6-digit OTP";
+        isSuccess = false;
+      });
+      return;
+    }
+
     setState(() {
       loading = true;
       message = null;
-      deviceId = null;
+      isSuccess = false;
     });
 
     try {
@@ -61,231 +78,238 @@ class _DeviceOtpScreenState extends State<DeviceOtpScreen> {
 
       final String newDeviceId = res["deviceId"]?.toString() ?? '';
 
-      // Save device ID to cookies (your existing logic)
       await DioClient.setDeviceIdCookie(newDeviceId);
-
-      // ALSO save deviceId to SharedPreferences (required)
       await DevicePrefs.saveDeviceId(newDeviceId);
+
       if (!mounted) return;
 
-      // 🔥 If redirect route exists → go there directly
-      if (widget.redirectRoute != null) {
-        context.pushReplacement(widget.redirectRoute!);
+      final targetTabIndex = widget.redirectExtraData?['targetTabIndex'] as int?;
+
+      if (targetTabIndex != null) {
+        Navigator.pop(context, targetTabIndex);
         return;
       }
 
-      // Default fallback
-      Navigator.pop(context);
+      if (widget.redirectRoute != null) {
+        if (widget.redirectExtraData != null) {
+          context.pushReplacement(
+            widget.redirectRoute!,
+            extra: widget.redirectExtraData,
+          );
+        } else {
+          context.pushReplacement(widget.redirectRoute!);
+        }
+        return;
+      }
 
-      setState(() {
-        deviceId = newDeviceId;
-        message = "Device Verified! Saved to cookies & SharedPreferences.";
-      });
+      Navigator.pop(context);
     } catch (e) {
       setState(() {
-        message = "Verification failed: $e";
+        message = "Invalid OTP. Please try again.";
+        isSuccess = false;
       });
     }
 
     setState(() => loading = false);
   }
 
-  // Future<void> _saveDeviceIdToCookie(String deviceId) async {
-  //   try {
-  //     final dio = Dio();
-  //     final cookieJar = CookieJar();
-  //
-  //     // Create device ID cookie
-  //     final deviceCookie = Cookie('deviceId', deviceId)
-  //       ..path = '/'
-  //       ..maxAge = 365 * 24 * 60 * 60 // 1 year
-  //       ..httpOnly = false
-  //       ..secure = true;
-  //
-  //     // Save to cookie jar
-  //     await cookieJar.saveFromResponse(
-  //       Uri.parse("https://be-vayuxi-chi.vercel.app"),
-  //       [deviceCookie],
-  //     );
-  //
-  //     print("✅ Device ID saved to cookie: $deviceId");
-  //   } catch (e) {
-  //     print("❌ Failed to save device ID to cookie: $e");
-  //   }
-  // }
-
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: AppBar(title: const Text("Device OTP Verification")),
-      body: SingleChildScrollView(
-        padding: const EdgeInsets.all(20),
+      backgroundColor: Colors.grey[50],
+      appBar: AppBar(
+        title: const Text("Device Verification"),
+        centerTitle: true,
+        elevation: 0,
+        backgroundColor: Colors.transparent,
+      ),
+      body: SafeArea(
         child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            // --- Generate OTP Button ---
-            SizedBox(
-              width: double.infinity,
-              child: FilledButton.icon(
-                onPressed: loading ? null : generateOtp,
-                icon: loading
-                    ? const SizedBox(
-                        height: 16,
-                        width: 16,
-                        child: CircularProgressIndicator(
-                          strokeWidth: 2,
-                          color: Colors.white,
-                        ),
-                      )
-                    : const Icon(Icons.lock_open),
-                label: const Text("Generate Device OTP"),
-              ),
-            ),
-
-            const SizedBox(height: 30),
-
-            // --- OTP Card ---
-            Card(
-              elevation: 2,
-              shape: RoundedRectangleBorder(
-                borderRadius: BorderRadius.circular(12),
-              ),
-              child: Padding(
-                padding: const EdgeInsets.all(20),
+            Expanded(
+              child: SingleChildScrollView(
+                padding: const EdgeInsets.all(24),
                 child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    const Text(
-                      "Enter OTP",
-                      style: TextStyle(
-                        fontSize: 18,
+                    const SizedBox(height: 20),
+
+                    // Icon
+                    Container(
+                      padding: const EdgeInsets.all(20),
+                      decoration: BoxDecoration(
+                        color: Colors.blue[50],
+                        shape: BoxShape.circle,
+                      ),
+                      child: Icon(
+                        otpSent ? Icons.mark_email_read : Icons.security,
+                        size: 64,
+                        color: Colors.blue[700],
+                      ),
+                    ),
+
+                    const SizedBox(height: 24),
+
+                    // Title
+                    Text(
+                      otpSent ? "Enter Verification Code" : "Verify Your Device",
+                      style: const TextStyle(
+                        fontSize: 24,
                         fontWeight: FontWeight.bold,
                       ),
                     ),
 
-                    const SizedBox(height: 15),
+                    const SizedBox(height: 12),
 
-                    LayoutBuilder(
-                      builder: (context, constraints) {
-                        return Container(
-                          width: constraints.maxWidth,
-                          padding: const EdgeInsets.symmetric(horizontal: 10),
-                          child: PinCodeTextField(
-                            length: 6,
-                            appContext: context,
-                            controller: otpController,
-                            keyboardType: TextInputType.number,
-                            animationType: AnimationType.fade,
-                            cursorColor: Colors.black,
-                            textStyle: const TextStyle(
-                              fontSize: 20,
-                              fontWeight: FontWeight.w600,
-                            ),
-
-                            pinTheme: PinTheme(
-                              shape: PinCodeFieldShape.box,
-                              borderRadius: BorderRadius.circular(10),
-                              fieldHeight: 55,
-                              fieldWidth: MediaQuery.of(context).size.width / 9, // FIXED
-                              activeColor: Colors.blue,
-                              selectedColor: Colors.blue,
-                              inactiveColor: Colors.grey.shade400,
-                              activeFillColor: Colors.white,
-                              selectedFillColor: Colors.white,
-                              inactiveFillColor: Colors.grey.shade200,
-                              borderWidth: 1.4,
-                            ),
-
-
-                            enableActiveFill: true,
-                            animationDuration: const Duration(
-                              milliseconds: 200,
-                            ),
-                            onChanged: (_) {},
-                            autoDisposeControllers: false,
-                            backgroundColor: Colors.transparent,
-                          ),
-                        );
-                      },
+                    // Subtitle
+                    Text(
+                      otpSent
+                          ? "We've sent a 6-digit code to your email"
+                          : "Tap the button below to receive a verification code",
+                      style: TextStyle(
+                        fontSize: 15,
+                        color: Colors.grey[600],
+                      ),
+                      textAlign: TextAlign.center,
                     ),
+
+                    const SizedBox(height: 40),
+
+                    // OTP Input (only show after OTP is sent)
+                    if (otpSent) ...[
+                      PinCodeTextField(
+                        length: 6,
+                        appContext: context,
+                        controller: otpController,
+                        keyboardType: TextInputType.number,
+                        animationType: AnimationType.fade,
+                        cursorColor: Colors.blue[700],
+                        textStyle: const TextStyle(
+                          fontSize: 24,
+                          fontWeight: FontWeight.bold,
+                        ),
+                        pinTheme: PinTheme(
+                          shape: PinCodeFieldShape.box,
+                          borderRadius: BorderRadius.circular(12),
+                          fieldHeight: 56,
+                          fieldWidth: 48,
+                          activeColor: Colors.blue[700],
+                          selectedColor: Colors.blue[700],
+                          inactiveColor: Colors.grey[300],
+                          activeFillColor: Colors.white,
+                          selectedFillColor: Colors.blue[50],
+                          inactiveFillColor: Colors.white,
+                          borderWidth: 2,
+                        ),
+                        enableActiveFill: true,
+                        animationDuration: const Duration(milliseconds: 200),
+                        onChanged: (_) {},
+                        autoDisposeControllers: false,
+                        backgroundColor: Colors.transparent,
+                      ),
+
+                      const SizedBox(height: 24),
+
+                      // Resend OTP
+                      TextButton.icon(
+                        onPressed: loading ? null : generateOtp,
+                        icon: const Icon(Icons.refresh, size: 18),
+                        label: const Text("Didn't receive code? Resend"),
+                        style: TextButton.styleFrom(
+                          foregroundColor: Colors.blue[700],
+                        ),
+                      ),
+                    ],
 
                     const SizedBox(height: 20),
 
-                    SizedBox(
-                      width: double.infinity,
-                      child: FilledButton(
-                        onPressed: loading ? null : verifyOtp,
-                        child: loading
-                            ? const SizedBox(
-                                height: 16,
-                                width: 16,
-                                child: CircularProgressIndicator(
-                                  strokeWidth: 2,
-                                  color: Colors.white,
+                    // Message
+                    if (message != null)
+                      Container(
+                        padding: const EdgeInsets.symmetric(
+                          horizontal: 16,
+                          vertical: 12,
+                        ),
+                        decoration: BoxDecoration(
+                          color: isSuccess ? Colors.green[50] : Colors.red[50],
+                          borderRadius: BorderRadius.circular(12),
+                          border: Border.all(
+                            color: isSuccess
+                                ? Colors.green[200]!
+                                : Colors.red[200]!,
+                          ),
+                        ),
+                        child: Row(
+                          children: [
+                            Icon(
+                              isSuccess ? Icons.check_circle : Icons.error,
+                              color: isSuccess ? Colors.green[700] : Colors.red[700],
+                              size: 20,
+                            ),
+                            const SizedBox(width: 12),
+                            Expanded(
+                              child: Text(
+                                message!,
+                                style: TextStyle(
+                                  color: isSuccess
+                                      ? Colors.green[900]
+                                      : Colors.red[900],
+                                  fontSize: 14,
                                 ),
-                              )
-                            : const Text("Verify OTP"),
+                              ),
+                            ),
+                          ],
+                        ),
                       ),
-                    ),
                   ],
                 ),
               ),
             ),
 
-            const SizedBox(height: 25),
-
-            if (message != null)
-              Center(
-                child: Text(
-                  message!,
-                  style: TextStyle(
-                    color: message!.contains("Failed")
-                        ? Colors.red
-                        : Colors.blue,
-                    fontWeight: FontWeight.w600,
+            // Bottom Button
+            Container(
+              padding: const EdgeInsets.all(24),
+              decoration: BoxDecoration(
+                color: Colors.white,
+                boxShadow: [
+                  BoxShadow(
+                    color: Colors.black.withOpacity(0.05),
+                    blurRadius: 10,
+                    offset: const Offset(0, -5),
                   ),
-                  textAlign: TextAlign.center,
+                ],
+              ),
+              child: SizedBox(
+                width: double.infinity,
+                height: 52,
+                child: FilledButton(
+                  onPressed: loading
+                      ? null
+                      : (otpSent ? verifyOtp : generateOtp),
+                  style: FilledButton.styleFrom(
+                    backgroundColor: Colors.blue[700],
+                    shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(12),
+                    ),
+                  ),
+                  child: loading
+                      ? const SizedBox(
+                    height: 20,
+                    width: 20,
+                    child: CircularProgressIndicator(
+                      strokeWidth: 2.5,
+                      color: Colors.white,
+                    ),
+                  )
+                      : Text(
+                    otpSent ? "Verify Code" : "Send Verification Code",
+                    style: const TextStyle(
+                      fontSize: 16,
+                      fontWeight: FontWeight.w600,
+                    ),
+                  ),
                 ),
               ),
-
-            if (deviceId != null)
-              Container(
-                margin: const EdgeInsets.only(top: 20),
-                padding: const EdgeInsets.all(16),
-                decoration: BoxDecoration(
-                  color: Colors.green[50],
-                  borderRadius: BorderRadius.circular(12),
-                  border: Border.all(color: Colors.green),
-                ),
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.center,
-                  children: [
-                    const Text(
-                      "Your Device ID",
-                      style: TextStyle(
-                        fontWeight: FontWeight.bold,
-                        fontSize: 16,
-                      ),
-                    ),
-                    const SizedBox(height: 8),
-                    Text(
-                      deviceId!,
-                      style: const TextStyle(
-                        color: Colors.green,
-                        fontWeight: FontWeight.bold,
-                        fontSize: 16,
-                      ),
-                      textAlign: TextAlign.center,
-                    ),
-                    const SizedBox(height: 10),
-                    Text(
-                      "Device ID saved to cookies & will be sent with future requests",
-                      style: TextStyle(fontSize: 12, color: Colors.green[700]),
-                      textAlign: TextAlign.center,
-                    ),
-                  ],
-                ),
-              ),
+            ),
           ],
         ),
       ),
