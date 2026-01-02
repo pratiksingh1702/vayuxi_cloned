@@ -39,9 +39,11 @@ class TeamSelectCardGrid extends StatelessWidget {
               SelectCard(
                 icon: Image.asset(
                   "assets/images/icons/view.webp",
+                  height: 90,
+                  width: 90,
 
 
-                  width: double.infinity,
+
                   fit: BoxFit.cover,
 
                 ),

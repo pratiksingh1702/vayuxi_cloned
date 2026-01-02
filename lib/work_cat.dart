@@ -29,19 +29,33 @@ class _WorkCategoryScreenState extends ConsumerState<WorkCategoryScreen> {
     setState(() => selectedImage = id);
 
     final typeNotifier = ref.read(typeProvider.notifier);
+    // Send instant notification
     await ref
         .read(notificationsStateProvider.notifier)
         .sendInstantNotification(
       title: 'Hello!',
-      body: '${id} as a type has been set for further progess in app. Enjoy 😊',
+      body: '${id} as a type has been set for further progress in app. Enjoy 😊',
     );
+
+// Morning notification at 07:30
     await ref
         .read(notificationsStateProvider.notifier)
         .scheduleDailyNotification(
-      title: 'Morning Reminder',
-      body: 'Good morning! Time to start your day.',
-      hour: 23,
-      minute: 00,
+      title: '🌅 Morning Reminder',
+      body: 'Takes 1 min — update today\'s attendance.',
+      hour: 7,
+      minute: 30,
+    );
+
+
+// Evening notification at 19:30
+    await ref
+        .read(notificationsStateProvider.notifier)
+        .scheduleDailyNotification(
+      title: '🌇 Evening Reminder',
+      body: 'Quick close: attendance, expenses, inventory & work update.',
+      hour: 19,
+      minute: 30,
     );
     print("notification sent");
 

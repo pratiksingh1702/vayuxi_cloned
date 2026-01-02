@@ -78,33 +78,32 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
     }
 
     setState(() => otpButtonLoading = true);
-    print("im in ui to check login");
 
     try {
       await ref
           .read(authProvider.notifier)
           .loginWithOtp(emailController.text.trim(), otp);
 
-      final authState = ref.read(authProvider);
-
-      if (authState.isLoggedIn) {
-        _showSuccessSnackBar("Login successful!");
-        // Don't navigate here - the router will handle it automatically
-      } else {
-        _showErrorSnackBar(
-          authState.errorMessage ?? "Login failed. Please try again",
-        );
-      }
+      // ❌ DO NOTHING AFTER THIS
+      // AuthNotifier will:
+      // - update auth state
+      // - trigger subscription check
+      // - open Razorpay if needed
+      // - router will redirect
     } catch (e) {
+      if (!mounted) return;
+
       _showErrorSnackBar(
         e.toString().contains('Invalid OTP')
             ? "Invalid OTP. Please check and try again"
             : "OTP verification failed. Please try again",
       );
-    } finally {
-      if (mounted) setState(() => otpButtonLoading = false);
     }
+
+    // ❌ NO finally block
+    // ❌ NO setState(false)
   }
+
 
   void _showErrorSnackBar(String message) {
     ScaffoldMessenger.of(context).showSnackBar(

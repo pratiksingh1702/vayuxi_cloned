@@ -25,6 +25,27 @@ class TeamNotifier extends StateNotifier<AsyncValue<List<TeamModel>>> {
     }
   }
 
+  Future<void> deleteTeam({
+    required String siteId,
+    required String teamId,
+    required String type,
+  }) async {
+    try {
+      state = const AsyncValue.loading();
+
+      await TeamApi.deleteTeam(
+        siteId: siteId,
+        teamId: teamId,
+      );
+
+      // 🔄 Refresh list after delete
+      await getTeams(type, siteId);
+    } catch (e, st) {
+      state = AsyncValue.error(e, st);
+      rethrow;
+    }
+  }
+
   Future<void> updateTeam({
     required String siteId,
     required String teamId,
@@ -58,8 +79,6 @@ class TeamNotifier extends StateNotifier<AsyncValue<List<TeamModel>>> {
         type: type,
         data: formData,
       );
-
-
     } catch (e, st) {
       state = AsyncValue.error(e, st);
     }
@@ -78,27 +97,51 @@ FutureProvider.family<TeamModel, Map<String, String>>((ref, params) async {
 });
 
 /// ------------------------------------------------------------
-/// SELECTED TEAM ID PROVIDER
+/// TEAM DROPDOWN & SELECTION (MATCHES SITE PATTERN)
 /// ------------------------------------------------------------
-/// Stores only the selected team's ID.
+
+/// Stores the dropdown value (can be null or "none")
+final teamDropdownValueProvider = StateProvider<TeamModel?>((ref) => null);
+
+/// Stores only the selected team's ID
 final selectedTeamIdProvider = StateProvider<String?>((ref) => null);
 
+/// Manages team selection with clear() method
+class SelectedTeamNotifier extends StateNotifier<TeamModel?> {
+  SelectedTeamNotifier(this.ref) : super(null);
+  final Ref ref;
 
-/// ------------------------------------------------------------
-/// SELECTED TEAM PROVIDER (AUTO RETURNS TeamModel)
-/// ------------------------------------------------------------
-/// Returns full TeamModel based on selectedTeamId + teamProvider list.
-final selectedTeamProvider = Provider<TeamModel?>((ref) {
-  final selectedId = ref.watch(selectedTeamIdProvider);
+  void select(TeamModel team) {
+    state = team;
+    ref.read(selectedTeamIdProvider.notifier).state = team.id;
+    ref.read(teamDropdownValueProvider.notifier).state = team;
+  }
+
+  void clear() {
+    state = null;
+    ref.read(selectedTeamIdProvider.notifier).state = null;
+    ref.read(teamDropdownValueProvider.notifier).state = null;
+  }
+}
+
+final selectedTeamProvider =
+StateNotifierProvider<SelectedTeamNotifier, TeamModel?>(
+      (ref) => SelectedTeamNotifier(ref),
+);
+
+/// Auto-derives selected team from list & selected ID
+final currentTeamProvider = Provider<TeamModel?>((ref) {
   final teamState = ref.watch(teamProvider);
+  final selectedId = ref.watch(selectedTeamIdProvider);
 
   return teamState.when(
     data: (teams) {
-      if (selectedId == null) return null;
-      return teams.firstWhere(
-            (t) => t.id == selectedId,
-
-      );
+      if (selectedId == null || teams.isEmpty) return null;
+      try {
+        return teams.firstWhere((team) => team.id == selectedId);
+      } catch (e) {
+        return null;
+      }
     },
     loading: () => null,
     error: (_, __) => null,

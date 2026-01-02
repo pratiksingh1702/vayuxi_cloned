@@ -523,6 +523,10 @@ class _AttendanceScreenState extends ConsumerState<AttendanceScreen> {
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
                 // Site Name and Date Row
+                // Updated date display section - Only show box and calendar icon in edit mode
+
+// Replace the date selector section (around line 431-470) with this:
+
                 Row(
                   mainAxisAlignment: MainAxisAlignment.spaceBetween,
                   children: [
@@ -538,23 +542,20 @@ class _AttendanceScreenState extends ConsumerState<AttendanceScreen> {
                         ),
                       ),
                     ),
-                    // Date selector
+                    // Date selector - Only show box/icon in edit mode
                     GestureDetector(
-                      onTap: () => _selectDate(context),
-                      child: Container(
+                      onTap: _isEditMode ? () => _selectDate(context) : null,
+                      child: _isEditMode
+                          ? Container(
                         padding: const EdgeInsets.symmetric(
                           horizontal: 12,
                           vertical: 6,
                         ),
                         decoration: BoxDecoration(
-                          color: _isEditable
-                              ? Colors.blue.shade50
-                              : Colors.transparent,
+                          color: Colors.blue.shade50,
                           borderRadius: BorderRadius.circular(8),
                           border: Border.all(
-                            color: _isEditable
-                                ? Colors.blue.shade200
-                                : Colors.transparent,
+                            color: Colors.blue.shade200,
                           ),
                         ),
                         child: Row(
@@ -562,26 +563,27 @@ class _AttendanceScreenState extends ConsumerState<AttendanceScreen> {
                             const SizedBox(width: 6),
                             Text(
                               _formatDate(_selectedDate),
-                              style: TextStyle(
+                              style: const TextStyle(
                                 fontSize: 16,
                                 fontWeight: FontWeight.w600,
-                                color: _isEditable
-                                    ? Colors.blue
-                                    : Colors.grey,
+                                color: Colors.blue,
                               ),
                             ),
-                            if (_isEditable)
-                              const SizedBox(width: 6),
-
-                            if(_isEditable)
-                              Icon(
-                                Icons.calendar_today,
-                                size: 16,
-                                color: _isEditable
-                                    ? Colors.blue
-                                    : Colors.grey,
-                              ),
+                            const SizedBox(width: 6),
+                            const Icon(
+                              Icons.calendar_today,
+                              size: 16,
+                              color: Colors.blue,
+                            ),
                           ],
+                        ),
+                      )
+                          : Text(
+                        _formatDate(_selectedDate),
+                        style: TextStyle(
+                          fontSize: 16,
+                          fontWeight: FontWeight.w600,
+                          color: Colors.grey.shade700,
                         ),
                       ),
                     ),
@@ -694,43 +696,7 @@ class _AttendanceScreenState extends ConsumerState<AttendanceScreen> {
 
                 const SizedBox(height: 20),
 
-                // Status indicator
-                Container(
-                  padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
-                  decoration: BoxDecoration(
-                    color: _isEditable ? Colors.green.shade50 : Colors.grey.shade50,
-                    borderRadius: BorderRadius.circular(8),
-                    border: Border.all(
-                      color: _isEditable ? Colors.green.shade200 : Colors.grey.shade300,
-                    ),
-                  ),
-                  child: Row(
-                    children: [
-                      Icon(
-                        _isEditable ? Icons.edit : Icons.visibility,
-                        size: 16,
-                        color: _isEditable ? Colors.green : Colors.grey,
-                      ),
-                      const SizedBox(width: 8),
-                      Text(
-                        _isEditable
-                            ? (_isToday(_selectedDate)
-                            ? "Editing today's attendance"
-                            : "Editing attendance for ${_formatDate(_selectedDate)}")
-                            : (_isToday(_selectedDate)
-                            ? "Viewing today's attendance"
-                            : "Viewing attendance for ${_formatDate(_selectedDate)}"),
-                        style: TextStyle(
-                          color: _isEditable ? Colors.green.shade800 : Colors.grey.shade700,
-                          fontWeight: FontWeight.w500,
-                          fontSize: 12,
-                        ),
-                      ),
-                    ],
-                  ),
-                ),
 
-                const SizedBox(height: 20),
 
                 // Attendance List
                 Expanded(

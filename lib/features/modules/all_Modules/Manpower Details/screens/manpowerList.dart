@@ -11,6 +11,7 @@ import '../../../../../core/utlis/widgets/image_clipped.dart';
 import '../../../../../typeProvider/type_provider.dart';
 import '../model/manpower_model.dart';
 import '../service/manPowerProvider.dart';
+import '../service/manpowerService.dart';
 import '../util/ViewExcel.dart';
 
 class ManpowerListScreen extends ConsumerStatefulWidget {
@@ -33,6 +34,80 @@ class _ManpowerListScreenState extends ConsumerState<ManpowerListScreen> {
       }
     });
   }
+  Future<void> _confirmLeftManpower(
+      BuildContext context,
+      ManpowerModel manpower,
+      ) async {
+    final reasonController = TextEditingController();
+
+    final confirm = await showDialog<bool>(
+      context: context,
+      builder: (context) => AlertDialog(
+        title: const Text("Mark Manpower as Left"),
+        content: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            const Text(
+              "Optional: Mention reason for leaving",
+              style: TextStyle(fontSize: 14),
+            ),
+            const SizedBox(height: 12),
+            TextField(
+              controller: reasonController,
+              maxLines: 3,
+              decoration: const InputDecoration(
+                hintText: "Reason (optional)",
+                border: OutlineInputBorder(),
+              ),
+            ),
+          ],
+        ),
+        actions: [
+          // ❌ Cancel
+          TextButton(
+            onPressed: () => Navigator.pop(context, false),
+            child: const Text("Cancel"),
+          ),
+
+          // ⏭ Skip
+          TextButton(
+            onPressed: () => Navigator.pop(context, true),
+            child: const Text("Skip"),
+          ),
+
+          // ✅ Submit
+          ElevatedButton(
+            onPressed: () => Navigator.pop(context, true),
+            child: const Text("Mark Left"),
+          ),
+        ],
+      ),
+    );
+
+    if (confirm == true) {
+      _markManpowerLeft(
+        manpower.id!,
+        reasonController.text.trim(),
+      );
+    }
+  }
+  Future<void> _markManpowerLeft(String id, String reason) async {
+    final type = ref.read(typeProvider);
+    if (type == null) return;
+
+    final data = {
+      "reason": reason.isEmpty ? "Not specified" : reason,
+    };
+
+    await ref
+        .read(manpowerProvider.notifier)
+        .leftManpower(id, data, type);
+
+    ScaffoldMessenger.of(context).showSnackBar(
+      const SnackBar(content: Text("✅ Manpower marked as left")),
+    );
+  }
+
 
   @override
   Widget build(BuildContext context) {
@@ -111,14 +186,37 @@ class _ManpowerListScreenState extends ConsumerState<ManpowerListScreen> {
                           manpower.employeeCode ?? "",
                           style: TextStyle(color: Colors.grey.shade700),
                         ),
-                        trailing: IconButton(
+                        trailing: Row(
+                          mainAxisSize: MainAxisSize.min,
+                          mainAxisAlignment: MainAxisAlignment.end,
+                          children: [
+                            // ✏️ Edit
+                            IconButton(
+                              icon: const Icon(Icons.edit, color: Colors.blue),
+                              onPressed: () {
+                                context.push('/edit-manpower', extra: manpower);
+                              },
+                            ),
 
-                          onPressed: () {
-                            context.push('/edit-manpower',
-                                extra: manpower);
-                          },
-                          icon: const Icon(Icons.edit),
+                            // 🚪 Mark Left
+                            IconButton(
+                              icon: const Icon(Icons.person_off, color: Colors.orange),
+                              onPressed: () {
+                                _confirmLeftManpower(context, manpower);
+                              },
+                            ),
+
+                            // 🗑 Delete
+                            IconButton(
+                              icon: const Icon(Icons.delete, color: Colors.red),
+                              onPressed: () {
+                                _confirmDelete(context, manpower.id!);
+                              },
+                            ),
+                          ],
                         ),
+
+
                       ),
                     );
                   },
@@ -232,4 +330,52 @@ class _ManpowerListScreenState extends ConsumerState<ManpowerListScreen> {
       ),
     );
   }
+  Future<void> _confirmDelete(BuildContext context, String manpowerId) async {
+    final confirm = await showDialog<bool>(
+      context: context,
+      builder: (context) => AlertDialog(
+        title: const Text("Delete Manpower"),
+        content: const Text(
+          "Are you sure you want to delete this manpower?\nThis action cannot be undone.",
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(context, false),
+            child: const Text("Cancel"),
+          ),
+          ElevatedButton(
+            style: ElevatedButton.styleFrom(backgroundColor: Colors.red),
+            onPressed: () => Navigator.pop(context, true),
+            child: const Text("Delete"),
+          ),
+        ],
+      ),
+    );
+
+    if (confirm == true) {
+      _deleteManpower(context, manpowerId);
+    }
+  }
+  Future<void> _deleteManpower(BuildContext context, String manpowerId) async {
+    final res = await ManpowerAPI.deleteManpower(manpowerId);
+
+    if (res['success'] == true) {
+      // 🔥 REFRESH LIST
+      final type = ref.read(typeProvider);
+      ref.read(manpowerProvider.notifier).fetchManpower(type!);
+
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text("✅ Manpower deleted")),
+      );
+    } else {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text(res['message'] ?? "Delete failed"),
+          backgroundColor: Colors.red,
+        ),
+      );
+    }
+  }
+
+
 }

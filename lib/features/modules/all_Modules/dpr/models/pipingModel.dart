@@ -1,22 +1,65 @@
-class PipingItem {
+import 'package:hive/hive.dart';
+
+part 'pipingModel.g.dart';
+
+@HiveType(typeId: 0)
+class PipingItem extends HiveObject {
+  @HiveField(0)
   final String id;
-  final String materialName;
-  final String image;
-  final double qty;
-  final String uom;
-  final double length;
-  final double rmt;
-  final double diameter;
-  final double weight;
-  final double power;
-  final double actualRate;
-  final double rate;
-  final String moc;
-  final String size;
-  final String location;
-  final String plant;
-  final List<String> designation;
-  final String? remarks;
+
+  @HiveField(1)
+  String materialName;
+
+  @HiveField(2)
+  String image;
+
+  @HiveField(3)
+  double qty;
+
+  @HiveField(4)
+  String uom;
+
+  @HiveField(5)
+  double length;
+
+  @HiveField(6)
+  double rmt;
+
+  @HiveField(7)
+  double diameter;
+
+  @HiveField(8)
+  double weight;
+
+  @HiveField(9)
+  double power;
+
+  @HiveField(10)
+  double actualRate;
+
+  @HiveField(11)
+  double rate;
+
+  @HiveField(12)
+  String moc;
+
+  @HiveField(13)
+  String size;
+
+  @HiveField(14)
+  String location;
+
+  @HiveField(15)
+  String plant;
+
+  @HiveField(16)
+  List<String> designation;
+
+  @HiveField(17)
+  String calculationCategory;
+
+  @HiveField(18)
+  String remarks; // Add this field
 
   PipingItem({
     required this.id,
@@ -36,102 +79,60 @@ class PipingItem {
     required this.location,
     required this.plant,
     required this.designation,
-    this.remarks
+    required this.calculationCategory,
+    this.remarks = '', // Initialize with empty string
   });
 
+  // Factory constructor from JSON
   factory PipingItem.fromJson(Map<String, dynamic> json) {
-    // Safe parsing helper functions
-    double safeDouble(dynamic value) {
-      if (value == null) return 0.0;
-      if (value is double) return value;
-      if (value is int) return value.toDouble();
-      if (value is String) {
-        // Handle empty strings or invalid numbers
-        final cleaned = value.trim();
-        if (cleaned.isEmpty) return 0.0;
-        return double.tryParse(cleaned) ?? 0.0;
-      }
-      return 0.0;
-    }
-
-    String safeString(dynamic value) {
-      if (value == null) return '';
-      if (value is String) return value.trim();
-      return value.toString().trim();
-    }
-
-    List<String> safeStringList(dynamic value) {
-      if (value == null) return [];
-      if (value is List) {
-        return value.whereType<String>().map((e) => e.trim()).toList();
-      }
-      return [];
-    }
-
     return PipingItem(
-      id: safeString(json['_id']),
-      materialName: safeString(json['materialName']),
-      image: safeString(json['image']),
-      qty: safeDouble(json['qty']),
-      uom: safeString(json['uom']),
-      length: safeDouble(json['length']),
-      rmt: safeDouble(json['rmt']),
-      diameter: safeDouble(json['diameter']),
-      weight: safeDouble(json['weight']),
-      power: safeDouble(json['power']),
-      actualRate: safeDouble(json['actualRate']),
-      rate: safeDouble(json['rate']),
-      moc: safeString(json['moc']),
-      size: safeString(json['size']),
-      location: safeString(json['location']),
-      plant: safeString(json['plant']),
-      designation: safeStringList(json['designation']),
-      remarks: json['remarks'] != null ? safeString(json['remarks']) : null,
+      id: json['_id'] ?? json['id'] ?? '',
+      materialName: json['materialName'] ?? '',
+      image: json['image'] ?? '',
+      qty: (json['qty'] ?? 0).toDouble(),
+      uom: json['uom'] ?? '',
+      length: (json['length'] ?? 0).toDouble(),
+      rmt: (json['rmt'] ?? 0).toDouble(),
+      diameter: (json['diameter'] ?? 0).toDouble(),
+      weight: (json['weight'] ?? 0).toDouble(),
+      power: (json['power'] ?? 0).toDouble(),
+      actualRate: (json['actualRate'] ?? 0).toDouble(),
+      rate: (json['rate'] ?? 0).toDouble(),
+      moc: json['moc'] ?? '',
+      size: json['size'] ?? '',
+      location: json['location'] ?? '',
+      plant: json['plant'] ?? '',
+      designation: List<String>.from(json['designation'] ?? []),
+      calculationCategory: json['calculationCategory'] ?? '',
+      remarks: json['remarks'] ?? '',
     );
   }
 
-  Map<String, dynamic> toJson() => {
-    '_id': id,
-    'materialName': materialName,
-    'image': image,
-    'qty': qty,
-    'uom': uom,
-    'length': length,
-    'rmt': rmt,
-    'diameter': diameter,
-    'weight': weight,
-    'power': power,
-    'actualRate': actualRate,
-    'rate': rate,
-    'moc': moc,
-    'size': size,
-    'location': location,
-    'plant': plant,
-    'designation': designation,
-    'remarks': remarks,
-  };
+  // Empty constructor
+  factory PipingItem.empty() {
+    return PipingItem(
+      id: '',
+      materialName: '',
+      image: '',
+      qty: 0,
+      uom: '',
+      length: 0,
+      rmt: 0,
+      diameter: 0,
+      weight: 0,
+      power: 0,
+      actualRate: 0,
+      rate: 0,
+      moc: '',
+      size: '',
+      location: '',
+      plant: '',
+      designation: [],
+      calculationCategory: '',
+      remarks: '',
+    );
+  }
 
-  // Helper method for empty instance
-  factory PipingItem.empty() => PipingItem(
-    id: '',
-    materialName: '',
-    image: '',
-    qty: 0.0,
-    uom: '',
-    length: 0.0,
-    rmt: 0.0,
-    diameter: 0.0,
-    weight: 0.0,
-    power: 0.0,
-    actualRate: 0.0,
-    rate: 0.0,
-    moc: '',
-    size: '',
-    location: '',
-    plant: '',
-    designation: [],
-    remarks: null,
-  );
   PipingItem copyWith({
     String? id,
     String? materialName,
@@ -150,6 +151,8 @@ class PipingItem {
     String? location,
     String? plant,
     List<String>? designation,
+    String? calculationCategory,
+    String? remarks, // Add this to copyWith
   }) {
     return PipingItem(
       id: id ?? this.id,
@@ -169,6 +172,8 @@ class PipingItem {
       location: location ?? this.location,
       plant: plant ?? this.plant,
       designation: designation ?? this.designation,
+      calculationCategory: calculationCategory ?? this.calculationCategory,
+      remarks: remarks ?? this.remarks, // Add this line
     );
   }
 }

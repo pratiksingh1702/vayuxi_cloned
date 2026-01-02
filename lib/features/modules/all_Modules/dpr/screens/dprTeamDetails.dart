@@ -14,11 +14,13 @@ class DprWorkScreen extends ConsumerStatefulWidget {
   final String siteId;
   final String teamId;
   final String name;
+  final Widget Function(BuildContext context, DprModel dpr)? pageBuilder;
 
   const DprWorkScreen({
     required this.siteId,
     required this.teamId,
     required this.name,
+    this.pageBuilder,
     super.key,
   });
 
@@ -201,16 +203,27 @@ class _DprWorkScreenState extends ConsumerState<DprWorkScreen> {
                       ),
                       label: dpr.dprName,
                       onTap: () {
-                        Navigator.push(
-                          context,
-                          MaterialPageRoute(
-                            builder: (_) => DprDetailScreen(
-                              dpr: dpr,
-                              teamName: widget.name,
+                        if (widget.pageBuilder != null) {
+                          Navigator.push(
+                            context,
+                            MaterialPageRoute(
+                              builder: (context) => widget.pageBuilder!(context, dpr),
                             ),
-                          ),
-                        );
+                          );
+                        } else {
+                          // ✅ DEFAULT behavior (unchanged)
+                          Navigator.push(
+                            context,
+                            MaterialPageRoute(
+                              builder: (_) => DprDetailScreen(
+                                dpr: dpr,
+                                teamName: widget.name,
+                              ),
+                            ),
+                          );
+                        }
                       },
+
                     );
                   },
                 );

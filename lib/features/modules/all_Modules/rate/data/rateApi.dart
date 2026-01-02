@@ -34,27 +34,50 @@ class RateApiClient {
       return _handleError(e);
     }
   }
-   Future<void> delete(String siteId, String rateId) async {
+  Future<Map<String, dynamic>> deleteRate(
+      String siteId,
+      String rateId,
+      ) async {
     try {
-
-
       final response = await _dio.delete(
         '/site/$siteId/rate/$rateId',
-       
         options: Options(
           headers: {
-            'Content-Type': 'multipart/form-data',
+            'Accept': 'application/json',
           },
         ),
       );
 
-      print("✅ Status Code: ${response.statusCode}");
-      print("✅ Response Data: ${response.data}");
+      return {
+        'success': true,
+        'data': response.data,
+        'statusCode': response.statusCode,
+      };
+    } on DioException catch (e) {
+      String message = 'Failed to delete rate';
+
+      if (e.response?.data is Map) {
+        message =
+            e.response?.data['message'] ??
+                e.response?.data['error'] ??
+                message;
+      } else if (e.message != null) {
+        message = e.message!;
+      }
+
+      return {
+        'success': false,
+        'message': message,
+        'statusCode': e.response?.statusCode,
+      };
     } catch (e) {
-      print("❌ Update Error: $e");
-      rethrow;
+      return {
+        'success': false,
+        'message': e.toString(),
+      };
     }
   }
+
   // Fetch single rate by ID
   Future<Map<String, dynamic>> fetchRateById(String siteId, String rateId) async {
     try {

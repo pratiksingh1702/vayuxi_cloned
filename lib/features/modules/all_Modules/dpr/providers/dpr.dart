@@ -81,13 +81,28 @@ class DprNotifier extends StateNotifier<DprState> {
   }
 
 
-  Future<void> copyMaterial({required String siteId, required String materialId}) async {
+// In your DPR provider (dprProvider)
+  Future<Map<String, dynamic>> copyMaterial({
+    required String type,
+    required String materialId
+  }) async {
     try {
       state = state.copyWith(isLoading: true, error: null);
-      await DprApi.copyDprMaterial(siteId: siteId, materialId: materialId);
+
+      // Call the API and get the response
+      final response = await DprApi.copyDprMaterial(
+          type: type,
+          materialId: materialId
+      );
+
       state = state.copyWith(isLoading: false);
+
+      // Return the response so it can be used in the UI
+      return response;
+
     } catch (e) {
       state = state.copyWith(isLoading: false, error: e.toString());
+      rethrow;
     }
   }
 

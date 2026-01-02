@@ -14,13 +14,20 @@ class DioClient {
     connectTimeout: const Duration(seconds: 100),
     receiveTimeout: const Duration(seconds: 100),
   ));
+  static final dioV2 = Dio(BaseOptions(
+    baseUrl: "https://be-vayuxi-chi.vercel.app/api/v2",
+    connectTimeout: const Duration(seconds: 30),
+    receiveTimeout: const Duration(seconds: 30),
+  ));
 
   static Future<void> init() async {
     cookieJar = PersistCookieJar(
-        storage: FileStorage(await _cookiePath()),
+      storage: FileStorage(await _cookiePath()),
     );
 
+    // Add cookie manager to both instances
     dio.interceptors.add(CookieManager(cookieJar));
+    dioV2.interceptors.add(CookieManager(cookieJar));
 
     Future<void> debugAllCookies() async {
       print("🔍 DEBUG - All Cookies:");
@@ -41,6 +48,7 @@ class DioClient {
         print("   Error: $e");
       }
     }
+
     Map<String, dynamic> _safeJson(Map data) {
       final result = <String, dynamic>{};
 
@@ -66,8 +74,8 @@ class DioClient {
       return result;
     }
 
-
-    dio.interceptors.add(InterceptorsWrapper(
+    // Create interceptor wrapper
+    final interceptor = InterceptorsWrapper(
       onRequest: (options, handler) async {
         final prefs = await SharedPreferences.getInstance();
         final token = prefs.getString('auth_token');
@@ -153,8 +161,6 @@ class DioClient {
           jsonData = _safeJson(requestOptions.data);
         }
 
-
-
         // Only queue network errors, not server errors
         List<Map<String, String>> _extractFiles(FormData formData) {
           return formData.files.map((f) {
@@ -205,8 +211,13 @@ class DioClient {
 
         return handler.next(response);
       },
-    ));
+    );
+
+    // Add interceptor to both dio instances
+    dio.interceptors.add(interceptor);
+    dioV2.interceptors.add(interceptor);
   }
+
   static Future<String> _cookiePath() async {
     print("😊😊😊😊😊😊😊😊😊😊😊😊");
     final dir = await getApplicationDocumentsDirectory();
@@ -232,7 +243,6 @@ class DioClient {
       print("❌ Failed to set device ID cookie: $e");
     }
   }
-
 
   // Helper method to get current device ID from cookies
   static Future<String?> getDeviceId() async {

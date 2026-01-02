@@ -35,19 +35,50 @@ class DprMaterialService {
       final response = await DioClient.dio.post(
         "/mechnical/$mechanicalId",
         data: data,
-        options: Options(extra: {"withCredentials": true}),
+        options: Options(
+          extra: {"withCredentials": true},
+          validateStatus: (status) => true, // 👈 DON'T auto-throw
+        ),
       );
+
+      print("✅ RESPONSE STATUS: ${response.statusCode}");
+      print("📦 RESPONSE DATA: ${response.data}");
 
       if (response.statusCode == 200 || response.statusCode == 201) {
         return response.data;
-      } else {
-        throw Exception("Failed to post material. Status: ${response.statusCode}");
       }
-    } catch (e) {
-      print("❌ Error posting material: $e");
+
+      // Backend responded but with error
+      throw Exception(
+        "Server Error ${response.statusCode}: ${response.data}",
+      );
+    } on DioException catch (e) {
+      // 🔥 THIS is where real debugging happens
+      print("❌ DIO ERROR");
+
+      print("➡️ URL: ${e.requestOptions.uri}");
+      print("➡️ METHOD: ${e.requestOptions.method}");
+
+      if (e.response != null) {
+        print("🚨 STATUS CODE: ${e.response?.statusCode}");
+        print("🚨 RESPONSE DATA: ${e.response?.data}");
+        print("🚨 HEADERS: ${e.response?.headers}");
+      } else {
+        print("⚠️ NO RESPONSE FROM SERVER");
+      }
+
+      print("📛 ERROR TYPE: ${e.type}");
+      print("📛 ERROR MESSAGE: ${e.message}");
+
+      rethrow;
+    } catch (e, stack) {
+      // Non-Dio error (logic, parsing, etc.)
+      print("❌ UNEXPECTED ERROR: $e");
+      print("📍 STACK TRACE:\n$stack");
       rethrow;
     }
   }
+
 
   // Update material
   static Future<Map<String, dynamic>> updateMaterial({

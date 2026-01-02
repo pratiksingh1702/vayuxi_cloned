@@ -38,8 +38,8 @@ class SelectCard extends StatelessWidget {
             mainAxisAlignment: MainAxisAlignment.center,
             children: [
               SizedBox(
-                height: 100,
-                width: 100,
+                height: 70,
+                width: 70,
                 child: Center(
                   child: icon,
                 ),

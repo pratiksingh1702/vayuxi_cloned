@@ -1,12 +1,9 @@
-// lib/data/piping_materials_data.dart
-
-
 import '../pipingModel.dart';
 
 class PipingMaterialsData {
   static final List<PipingItem> materials = [
     PipingItem(
-      id: '694d5780bc4295c2c445685b',
+      id: '6950b367d5e7fb761548d914',
       materialName: 'Pipe Erection / Fittings',
       image: 'assets/images/piping/pipe_erection_fittings.webp',
       qty: 1,
@@ -23,9 +20,10 @@ class PipingMaterialsData {
       location: 'sector 23',
       plant: 'plant',
       designation: ['piping'],
+      calculationCategory: 'B',
     ),
     PipingItem(
-      id: '694d5780bc4295c2c445685c',
+      id: '6950b367d5e7fb761548d915',
       materialName: 'Joints Welding / Fitting',
       image: 'assets/images/piping/joints_welding_fitting.webp',
       qty: 1,
@@ -42,9 +40,10 @@ class PipingMaterialsData {
       location: 'sector 23',
       plant: 'plant',
       designation: ['piping'],
+      calculationCategory: 'B',
     ),
     PipingItem(
-      id: '694d5780bc4295c2c445685d',
+      id: '6950b367d5e7fb761548d916',
       materialName: 'Elbow 90 Joint / Fitting',
       image: 'assets/images/piping/elbow_90_joint_fitting.webp',
       qty: 1,
@@ -61,9 +60,10 @@ class PipingMaterialsData {
       location: 'sector 23',
       plant: 'plant',
       designation: ['piping'],
+      calculationCategory: 'B',
     ),
     PipingItem(
-      id: '694d5780bc4295c2c445685e',
+      id: '6950b367d5e7fb761548d917',
       materialName: 'Flange Joints / Fitting',
       image: 'assets/images/piping/flange_joints_fitting.webp',
       qty: 1,
@@ -80,9 +80,10 @@ class PipingMaterialsData {
       location: 'sector 23',
       plant: 'plant',
       designation: ['piping'],
+      calculationCategory: 'B',
     ),
     PipingItem(
-      id: '694d5780bc4295c2c445685f',
+      id: '6950b367d5e7fb761548d918',
       materialName: 'Tee Joints / Fitting',
       image: 'assets/images/piping/tee_joints_fitting.webp',
       qty: 1,
@@ -99,9 +100,10 @@ class PipingMaterialsData {
       location: 'sector 23',
       plant: 'plant',
       designation: ['piping'],
+      calculationCategory: 'B',
     ),
     PipingItem(
-      id: '694d5780bc4295c2c4456860',
+      id: '6950b367d5e7fb761548d919',
       materialName: 'Reducer Joints / Fitting',
       image: 'assets/images/piping/reducer_joints_fitting.webp',
       qty: 1,
@@ -118,9 +120,10 @@ class PipingMaterialsData {
       location: 'sector 23',
       plant: 'plant',
       designation: ['piping'],
+      calculationCategory: 'B',
     ),
     PipingItem(
-      id: '694d5780bc4295c2c4456861',
+      id: '6950b367d5e7fb761548d91a',
       materialName: 'Valve Fitting',
       image: 'assets/images/piping/valve_fitting.webp',
       qty: 1,
@@ -137,9 +140,10 @@ class PipingMaterialsData {
       location: 'sector 23',
       plant: 'plant',
       designation: ['piping'],
+      calculationCategory: 'B',
     ),
     PipingItem(
-      id: '694d5780bc4295c2c4456862',
+      id: '6950b367d5e7fb761548d91b',
       materialName: 'Blind Fabrication And Fitting',
       image: 'assets/images/piping/blind_fabrication_and_fitting.webp',
       qty: 1,
@@ -156,9 +160,10 @@ class PipingMaterialsData {
       location: 'sector 23',
       plant: 'plant',
       designation: ['piping'],
+      calculationCategory: 'B',
     ),
     PipingItem(
-      id: '694d5780bc4295c2c4456863',
+      id: '6950b367d5e7fb761548d91c',
       materialName: 'U Clamp Fitting',
       image: 'assets/images/piping/u_clamp_fitting.webp',
       qty: 1,
@@ -175,9 +180,10 @@ class PipingMaterialsData {
       location: 'sector 23',
       plant: 'plant',
       designation: ['piping'],
+      calculationCategory: 'A',
     ),
     PipingItem(
-      id: '694d5780bc4295c2c4456864',
+      id: '6950b367d5e7fb761548d91d',
       materialName: 'Support Fabrication And Erection',
       image: 'assets/images/piping/support_fabrication_and_erection.webp',
       qty: 1,
@@ -194,9 +200,10 @@ class PipingMaterialsData {
       location: 'sector 23',
       plant: 'plant',
       designation: ['piping'],
+      calculationCategory: 'A',
     ),
     PipingItem(
-      id: '694d5780bc4295c2c4456865',
+      id: '6950b367d5e7fb761548d91e',
       materialName: 'Miter Fabrication',
       image: 'assets/images/piping/miter_fabrication.webp',
       qty: 1,
@@ -213,9 +220,10 @@ class PipingMaterialsData {
       location: 'sector 23',
       plant: 'plant',
       designation: ['piping'],
+      calculationCategory: 'B',
     ),
     PipingItem(
-      id: '694d5780bc4295c2c4456866',
+      id: '6950b367d5e7fb761548d91f',
       materialName: 'Plate Cutting',
       image: 'assets/images/piping/plate_cutting.webp',
       qty: 1,
@@ -232,9 +240,10 @@ class PipingMaterialsData {
       location: 'sector 23',
       plant: 'plant',
       designation: ['piping'],
+      calculationCategory: 'A',
     ),
     PipingItem(
-      id: '694d5780bc4295c2c4456867',
+      id: '6950b367d5e7fb761548d920',
       materialName: 'Plate Welding',
       image: 'assets/images/piping/plate_welding.webp',
       qty: 1,
@@ -251,9 +260,10 @@ class PipingMaterialsData {
       location: 'sector 23',
       plant: 'plant',
       designation: ['piping'],
+      calculationCategory: 'A',
     ),
     PipingItem(
-      id: '694d5780bc4295c2c4456868',
+      id: '6950b367d5e7fb761548d921',
       materialName: 'Shoe Support Fabrication And Erection',
       image: 'assets/images/piping/shoe_support_fabrication_and_erection.webp',
       qty: 1,
@@ -270,9 +280,10 @@ class PipingMaterialsData {
       location: 'sector 23',
       plant: 'plant',
       designation: ['piping'],
+      calculationCategory: 'B',
     ),
     PipingItem(
-      id: '694d5780bc4295c2c4456869',
+      id: '6950b367d5e7fb761548d922',
       materialName: 'Shoe Support Dismantling',
       image: 'assets/images/piping/shoe_support_dismantling.webp',
       qty: 1,
@@ -289,9 +300,10 @@ class PipingMaterialsData {
       location: 'sector 23',
       plant: 'plant',
       designation: ['piping'],
+      calculationCategory: 'B',
     ),
     PipingItem(
-      id: '694d5780bc4295c2c445686a',
+      id: '6950b367d5e7fb761548d923',
       materialName: 'Pneumatic Testing',
       image: 'assets/images/piping/pneumatic_testing.webp',
       qty: 1,
@@ -308,7 +320,7 @@ class PipingMaterialsData {
       location: 'sector 23',
       plant: 'plant',
       designation: ['piping'],
+      calculationCategory: 'A',
     ),
   ];
-
 }

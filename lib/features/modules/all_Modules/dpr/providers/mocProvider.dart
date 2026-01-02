@@ -289,16 +289,23 @@ class MOCNotifier extends StateNotifier<MOCState> {
   }
 
   Future<void> delete(String id) async {
+    // Find the MOC to delete
     final moc = getById(id);
-    if (moc == null || moc.isPredefined) {
-      throw Exception("Cannot delete predefined MOC.");
+    if (moc == null) {
+      throw Exception("MOC not found.");
     }
 
-    final updated = state.userMOCs.where((m) => m.id != id).toList();
-    state = state.copyWith(userMOCs: updated);
-    await MOCLocalStorage.saveUserMOCs(updated);
+    if (moc.isPredefined) {
+      // Delete from mockMOCs if it's predefined
+      final updatedMock = state.mockMOCs.where((m) => m.id != id).toList();
+      state = state.copyWith(mockMOCs: updatedMock);
+    } else {
+      // Delete from userMOCs if it's user-created
+      final updatedUser = state.userMOCs.where((m) => m.id != id).toList();
+      state = state.copyWith(userMOCs: updatedUser);
+      await MOCLocalStorage.saveUserMOCs(updatedUser);
+    }
   }
-
   MOC? getById(String id) {
     try {
       return state.all.firstWhere((e) => e.id == id);

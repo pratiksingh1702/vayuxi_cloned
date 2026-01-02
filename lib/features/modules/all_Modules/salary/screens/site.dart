@@ -5,19 +5,25 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:file_picker/file_picker.dart';
 import 'package:http/http.dart' as http;
+import 'package:media_scanner/media_scanner.dart';
+import 'package:open_file/open_file.dart';
+import 'package:path_provider/path_provider.dart';
 import 'package:permission_handler/permission_handler.dart';
 import 'package:pdf/pdf.dart';
 import 'package:pdf/widgets.dart' as pw;
 import 'package:flutter/services.dart';
 import 'package:untitled2/core/utlis/colors/colors.dart';
+import 'package:untitled2/core/utlis/widgets/Button_wrapper.dart';
 import 'package:untitled2/core/utlis/widgets/custom_appBar.dart';
 import 'package:untitled2/core/utlis/widgets/image_clipped.dart';
 import 'package:untitled2/features/modules/all_Modules/Manpower%20Details/service/manPowerProvider.dart';
 import 'package:untitled2/features/modules/all_Modules/site_Details/repository/siteModel.dart';
 import 'package:untitled2/features/profile_page/userModel/userModel.dart';
 import 'package:untitled2/typeProvider/type_provider.dart';
+import '../../../../../core/utlis/widgets/buttons.dart';
 import '../../../../profile_page/provider/userProvider.dart';
 import '../service-provider/salaryClient.dart';
+import 'package:download_path_provider/download_path_provider.dart';
 
 class SiteSalaryScreen extends ConsumerStatefulWidget {
   final SiteModel siteModel;
@@ -868,8 +874,13 @@ Valid URL: ${imageUrl.startsWith('http')}
         return;
       }
       await ref.read(userNotifierProvider.notifier).getCurrentUser();
-
       final user = ref.read(currentUserProvider);
+
+      final companyName = user?.company?.name;
+      final companyLogo = user?.company?.logo;
+
+
+
 
       print('''
 ==================== 🔥 USER AFTER FETCH 🔥 ====================
@@ -878,8 +889,6 @@ ${user?.toJson()}
 ''');
 
 
-      final companyName = user?.company?.name;
-      final companyLogo = user?.company?.logo;
 
       print('''
 ==================== 🏢 COMPANY DEBUG START 🏢 ====================
@@ -939,12 +948,42 @@ Logo looks like URL: ${companyLogo?.startsWith('http') ?? false}
     }
   }
 
+
+  Future<String> _getDownloadsPath() async {
+    if (Platform.isAndroid) {
+      final status = await Permission.storage.request();
+      if (!status.isGranted) {
+        throw Exception("Storage permission denied");
+      }
+
+      final directory = Directory('/storage/emulated/0/Download');
+      if (!await directory.exists()) {
+        throw Exception("Downloads directory not found");
+      }
+      return directory.path;
+    }
+
+    if (Platform.isIOS) {
+      // iOS does NOT allow global Downloads access
+      final directory = await getApplicationDocumentsDirectory();
+      return directory.path;
+    }
+
+    // Windows / macOS / Linux
+    final directory = await getDownloadsDirectory();
+    if (directory == null) {
+      throw Exception("Unable to access Downloads directory");
+    }
+    return directory.path;
+  }
+
   // Download all PDFs
 // Replace the _handleDownloadAllPDFs method with this improved version
 
 // Replace the _handleDownloadAllPDFs method with this improved version
-
   Future<void> _handleDownloadAllPDFs() async {
+    void Function(VoidCallback fn)? dialogSetState;
+
     if (workData.isEmpty) {
       _showAlert("No Data", "No salary data available to generate PDFs.");
       return;
@@ -954,11 +993,29 @@ Logo looks like URL: ${companyLogo?.startsWith('http') ?? false}
 
     try {
       if (await _requestPermissions()) {
-        // Step 1: Ask user to select download directory ONCE
-        String? selectedDirectory = await FilePicker.platform.getDirectoryPath(
-          dialogTitle: 'Select folder to save all salary slips',
-          lockParentWindow: true,
-        );
+        // Step 1: Calculate available PDFs first
+        List<Map<String, dynamic>> availableEmployees = [];
+        for (var employee in manpowerDataList) {
+          final employeeSalary = workData.firstWhere(
+                (data) => data["manpowerDetails"]["_id"] == employee["_id"],
+            orElse: () => {},
+          );
+          if (employeeSalary.isNotEmpty) {
+            availableEmployees.add(employee);
+          }
+        }
+
+        if (availableEmployees.isEmpty) {
+          _showAlert("No Data", "No salary slips available for the selected period.");
+          if (mounted) setState(() => isDownloading = false);
+          return;
+        }
+
+        // Step 2: Ask user to select download directory ONCE
+        final directory = await DownloadPathProvider();
+        print(directory.getDownloadPath());
+        String? selectedDirectory = await directory.getDownloadPath();
+        print(selectedDirectory);
 
         if (selectedDirectory == null) {
           _showAlert("Cancelled", "Download cancelled. No location selected.");
@@ -966,38 +1023,81 @@ Logo looks like URL: ${companyLogo?.startsWith('http') ?? false}
           return;
         }
 
-        // Step 2: Show progress dialog
-        int totalFiles = workData.length;
+        // ✅ FIX 1: Verify directory permissions
+        if (!await _verifyDirectoryPermissions(selectedDirectory)) {
+          _showAlert(
+            "Permission Denied",
+            "The selected folder is read-only or you don't have permission to write to it. Please select a different location.",
+          );
+          if (mounted) setState(() => isDownloading = false);
+          return;
+        }
+
+        // Step 3: Show progress dialog with real-time updates
+        int totalAvailable = availableEmployees.length;
         int currentFile = 0;
         int successCount = 0;
         int failedCount = 0;
+        String currentEmployeeName = "";
+        List<String> failedEmployees = [];
+        String? lastSuccessfulFilePath; // Track last successful download
 
-        // Show progress dialog with real-time updates
         if (!mounted) return;
 
         showDialog(
           context: context,
           barrierDismissible: false,
           builder: (BuildContext dialogContext) {
-            return StreamBuilder<int>(
-              stream: Stream.periodic(const Duration(milliseconds: 100), (count) => count),
-              builder: (context, snapshot) {
+            return StatefulBuilder(
+              builder: (context, setDialogState) {
+                dialogSetState = setDialogState;
+                bool isComplete = currentFile >= totalAvailable;
+                double progress = totalAvailable > 0 ? currentFile / totalAvailable : 0;
+
                 return AlertDialog(
+                  shape: RoundedRectangleBorder(
+                    borderRadius: BorderRadius.circular(16),
+                  ),
+                  contentPadding: const EdgeInsets.all(24),
                   title: Row(
                     children: [
-                      Icon(
-                        currentFile == totalFiles
-                            ? Icons.check_circle
-                            : Icons.download,
-                        color: currentFile == totalFiles
-                            ? Colors.green
-                            : Colors.blue,
+                      Container(
+                        padding: const EdgeInsets.all(8),
+                        decoration: BoxDecoration(
+                          color: isComplete
+                              ? Colors.green.shade50
+                              : Colors.blue.shade50,
+                          borderRadius: BorderRadius.circular(8),
+                        ),
+                        child: Icon(
+                          isComplete ? Icons.check_circle : Icons.download,
+                          color: isComplete ? Colors.green : Colors.blue,
+                          size: 24,
+                        ),
                       ),
-                      const SizedBox(width: 8),
-                      Text(
-                        currentFile == totalFiles
-                            ? 'Download Complete!'
-                            : 'Downloading Salary Slips',
+                      const SizedBox(width: 12),
+                      Expanded(
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            Text(
+                              isComplete ? 'Download Complete!' : 'Downloading Salary Slips',
+                              style: const TextStyle(
+                                fontSize: 18,
+                                fontWeight: FontWeight.bold,
+                              ),
+                            ),
+                            const SizedBox(height: 2),
+                            Text(
+                              '$currentFile of $totalAvailable available',
+                              style: TextStyle(
+                                fontSize: 13,
+                                color: Colors.grey[600],
+                                fontWeight: FontWeight.normal,
+                              ),
+                            ),
+                          ],
+                        ),
                       ),
                     ],
                   ),
@@ -1005,121 +1105,273 @@ Logo looks like URL: ${companyLogo?.startsWith('http') ?? false}
                     mainAxisSize: MainAxisSize.min,
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
-                      Text(
-                        'Progress: $currentFile / $totalFiles',
-                        style: const TextStyle(
-                          fontSize: 16,
-                          fontWeight: FontWeight.bold,
+                      // Progress percentage
+                      Row(
+                        mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                        children: [
+                          Text(
+                            '${(progress * 100).toStringAsFixed(0)}%',
+                            style: TextStyle(
+                              fontSize: 24,
+                              fontWeight: FontWeight.bold,
+                              color: isComplete ? Colors.green : Colors.blue,
+                            ),
+                          ),
+                          Text(
+                            '$successCount success, $failedCount failed',
+                            style: TextStyle(
+                              fontSize: 13,
+                              color: Colors.grey[700],
+                            ),
+                          ),
+                        ],
+                      ),
+                      const SizedBox(height: 12),
+
+                      // Progress bar
+                      ClipRRect(
+                        borderRadius: BorderRadius.circular(8),
+                        child: LinearProgressIndicator(
+                          value: progress,
+                          backgroundColor: Colors.grey[200],
+                          valueColor: AlwaysStoppedAnimation<Color>(
+                            isComplete ? Colors.green : Colors.blue,
+                          ),
+                          minHeight: 12,
                         ),
                       ),
-                      const SizedBox(height: 16),
-                      LinearProgressIndicator(
-                        value: totalFiles > 0 ? currentFile / totalFiles : 0,
-                        backgroundColor: Colors.grey[300],
-                        valueColor: const AlwaysStoppedAnimation<Color>(Colors.blue),
-                        minHeight: 8,
-                      ),
-                      const SizedBox(height: 16),
-                      if (currentFile < totalFiles && currentFile < manpowerDataList.length)
+                      const SizedBox(height: 20),
+
+                      // Current file being processed
+                      if (!isComplete && currentEmployeeName.isNotEmpty)
                         Container(
-                          padding: const EdgeInsets.all(12),
+                          padding: const EdgeInsets.all(16),
                           decoration: BoxDecoration(
-                            color: Colors.blue.shade50,
-                            borderRadius: BorderRadius.circular(8),
+                            gradient: LinearGradient(
+                              colors: [
+                                Colors.blue.shade50,
+                                Colors.blue.shade100,
+                              ],
+                              begin: Alignment.topLeft,
+                              end: Alignment.bottomRight,
+                            ),
+                            borderRadius: BorderRadius.circular(12),
+                            border: Border.all(
+                              color: Colors.blue.shade200,
+                              width: 1,
+                            ),
                           ),
                           child: Row(
                             children: [
-                              const SizedBox(
-                                width: 16,
-                                height: 16,
+                              SizedBox(
+                                width: 20,
+                                height: 20,
                                 child: CircularProgressIndicator(
-                                  strokeWidth: 2,
+                                  strokeWidth: 2.5,
+                                  valueColor: AlwaysStoppedAnimation<Color>(
+                                    Colors.blue.shade700,
+                                  ),
                                 ),
                               ),
                               const SizedBox(width: 12),
                               Expanded(
-                                child: Text(
-                                  'Processing: ${manpowerDataList[currentFile]["fullName"] ?? "Unknown"}',
-                                  style: TextStyle(
-                                    fontSize: 14,
-                                    color: Colors.grey[800],
-                                    fontWeight: FontWeight.w500,
-                                  ),
+                                child: Column(
+                                  crossAxisAlignment: CrossAxisAlignment.start,
+                                  children: [
+                                    Text(
+                                      'Processing...',
+                                      style: TextStyle(
+                                        fontSize: 11,
+                                        color: Colors.grey[600],
+                                        fontWeight: FontWeight.w500,
+                                      ),
+                                    ),
+                                    const SizedBox(height: 2),
+                                    Text(
+                                      currentEmployeeName,
+                                      style: TextStyle(
+                                        fontSize: 14,
+                                        color: Colors.blue.shade900,
+                                        fontWeight: FontWeight.w600,
+                                      ),
+                                      maxLines: 1,
+                                      overflow: TextOverflow.ellipsis,
+                                    ),
+                                  ],
                                 ),
                               ),
                             ],
                           ),
                         ),
-                      if (currentFile == totalFiles)
+
+                      // Completion summary
+                      if (isComplete)
                         Container(
-                          padding: const EdgeInsets.all(12),
+                          padding: const EdgeInsets.all(16),
                           decoration: BoxDecoration(
-                            color: Colors.green.shade50,
-                            borderRadius: BorderRadius.circular(8),
+                            gradient: LinearGradient(
+                              colors: [
+                                Colors.green.shade50,
+                                Colors.green.shade100,
+                              ],
+                              begin: Alignment.topLeft,
+                              end: Alignment.bottomRight,
+                            ),
+                            borderRadius: BorderRadius.circular(12),
+                            border: Border.all(
+                              color: Colors.green.shade200,
+                              width: 1,
+                            ),
                           ),
                           child: Column(
                             crossAxisAlignment: CrossAxisAlignment.start,
                             children: [
                               Row(
                                 children: [
-                                  Icon(Icons.check_circle,
-                                      color: Colors.green[700], size: 20),
+                                  Icon(
+                                    Icons.check_circle,
+                                    color: Colors.green[700],
+                                    size: 20,
+                                  ),
                                   const SizedBox(width: 8),
-                                  Text(
-                                    'All files downloaded successfully!',
-                                    style: TextStyle(
-                                      fontSize: 14,
-                                      color: Colors.green[700],
-                                      fontWeight: FontWeight.bold,
+                                  Expanded(
+                                    child: Text(
+                                      'All available files downloaded!',
+                                      style: TextStyle(
+                                        fontSize: 14,
+                                        color: Colors.green[800],
+                                        fontWeight: FontWeight.bold,
+                                      ),
                                     ),
                                   ),
                                 ],
                               ),
-                              const SizedBox(height: 8),
-                              Text(
-                                '✓ Success: $successCount files',
-                                style: const TextStyle(
-                                  fontSize: 13,
-                                  color: Colors.green,
-                                ),
+                              const SizedBox(height: 12),
+                              _buildSummaryRow(
+                                Icons.check_circle_outline,
+                                'Successfully downloaded',
+                                '$successCount files',
+                                Colors.green,
                               ),
-                              if (failedCount > 0)
-                                Text(
-                                  '✗ Failed: $failedCount files',
-                                  style: const TextStyle(
-                                    fontSize: 13,
-                                    color: Colors.red,
-                                  ),
+                              if (failedCount > 0) ...[
+                                const SizedBox(height: 6),
+                                _buildSummaryRow(
+                                  Icons.error_outline,
+                                  'Failed to download',
+                                  '$failedCount files',
+                                  Colors.red,
                                 ),
-                              const SizedBox(height: 4),
-                              Text(
-                                'Location: $selectedDirectory',
-                                style: TextStyle(
-                                  fontSize: 12,
-                                  color: Colors.grey[600],
-                                  fontStyle: FontStyle.italic,
+                              ],
+                              const SizedBox(height: 12),
+                              Container(
+                                padding: const EdgeInsets.all(8),
+                                decoration: BoxDecoration(
+                                  color: Colors.white,
+                                  borderRadius: BorderRadius.circular(8),
+                                ),
+                                child: Row(
+                                  children: [
+                                    Icon(
+                                      Icons.folder_open,
+                                      size: 16,
+                                      color: Colors.grey[600],
+                                    ),
+                                    const SizedBox(width: 6),
+                                    Expanded(
+                                      child: Text(
+                                        selectedDirectory,
+                                        style: TextStyle(
+                                          fontSize: 11,
+                                          color: Colors.grey[700],
+                                          fontStyle: FontStyle.italic,
+                                        ),
+                                        maxLines: 2,
+                                        overflow: TextOverflow.ellipsis,
+                                      ),
+                                    ),
+                                  ],
                                 ),
                               ),
                             ],
                           ),
                         ),
+
+                      // Failed employees list
+                      if (isComplete && failedEmployees.isNotEmpty) ...[
+                        const SizedBox(height: 12),
+                        ExpansionTile(
+                          tilePadding: EdgeInsets.zero,
+                          title: Text(
+                            'View failed downloads (${failedEmployees.length})',
+                            style: TextStyle(
+                              fontSize: 13,
+                              color: Colors.red[700],
+                              fontWeight: FontWeight.w600,
+                            ),
+                          ),
+                          children: [
+                            Container(
+                              constraints: const BoxConstraints(maxHeight: 120),
+                              child: ListView.builder(
+                                shrinkWrap: true,
+                                itemCount: failedEmployees.length,
+                                itemBuilder: (context, index) {
+                                  return Padding(
+                                    padding: const EdgeInsets.symmetric(
+                                      vertical: 4,
+                                      horizontal: 8,
+                                    ),
+                                    child: Row(
+                                      children: [
+                                        Icon(
+                                          Icons.warning_amber_rounded,
+                                          size: 14,
+                                          color: Colors.red[400],
+                                        ),
+                                        const SizedBox(width: 8),
+                                        Expanded(
+                                          child: Text(
+                                            failedEmployees[index],
+                                            style: TextStyle(
+                                              fontSize: 12,
+                                              color: Colors.grey[700],
+                                            ),
+                                          ),
+                                        ),
+                                      ],
+                                    ),
+                                  );
+                                },
+                              ),
+                            ),
+                          ],
+                        ),
+                      ],
                     ],
                   ),
                   actions: [
-                    if (currentFile == totalFiles)
-                      TextButton(
-                        onPressed: () {
-                          Navigator.pop(dialogContext);
-                        },
-                        style: TextButton.styleFrom(
-                          backgroundColor: Colors.blue,
-                          foregroundColor: Colors.white,
-                          padding: const EdgeInsets.symmetric(
-                            horizontal: 24,
-                            vertical: 12,
+                    if (isComplete)
+                      SizedBox(
+                        width: double.infinity,
+                        child: ElevatedButton(
+                          onPressed: () => Navigator.pop(dialogContext),
+                          style: ElevatedButton.styleFrom(
+                            backgroundColor: Colors.green,
+                            foregroundColor: Colors.white,
+                            padding: const EdgeInsets.symmetric(vertical: 14),
+                            shape: RoundedRectangleBorder(
+                              borderRadius: BorderRadius.circular(10),
+                            ),
+                            elevation: 0,
+                          ),
+                          child: const Text(
+                            'Done',
+                            style: TextStyle(
+                              fontSize: 16,
+                              fontWeight: FontWeight.w600,
+                            ),
                           ),
                         ),
-                        child: const Text('Close'),
                       ),
                   ],
                 );
@@ -1128,14 +1380,25 @@ Logo looks like URL: ${companyLogo?.startsWith('http') ?? false}
           },
         );
 
-        // Step 3: Generate and save all PDFs
-        for (int i = 0; i < manpowerDataList.length; i++) {
-          final employee = manpowerDataList[i];
+        while (dialogSetState == null) {
+          await Future.delayed(const Duration(milliseconds: 10));
+        }
 
-          // Update progress
+        // Step 4: Generate and save all available PDFs
+        await ref.read(userNotifierProvider.notifier).getCurrentUser();
+        final user = ref.read(currentUserProvider);
+
+        final companyName = user?.company?.name;
+        final companyLogo = user?.company?.logo;
+
+        for (int i = 0; i < availableEmployees.length; i++) {
+          final employee = availableEmployees[i];
+
+          // Update dialog state
           if (mounted) {
-            setState(() {
+            dialogSetState?.call(() {
               currentFile = i;
+              currentEmployeeName = employee["fullName"] ?? "Unknown";
             });
           }
 
@@ -1144,62 +1407,301 @@ Logo looks like URL: ${companyLogo?.startsWith('http') ?? false}
             orElse: () => {},
           );
 
-          if (employeeSalary.isNotEmpty) {
-            try {
-              await ref.read(userNotifierProvider.notifier).getCurrentUser();
-              final user = ref.read(currentUserProvider);
+          try {
+            final effectiveCompanyName =
+                companyName ?? widget.siteModel.siteName ?? 'MY COMPANY';
+            final effectiveCompanyLogo = companyLogo;
 
-              final companyName = user?.company?.name;
-              final companyLogo = user?.company?.logo;
+            final pdfBytes = await _generateEmployeePDF(
+              employee,
+              employeeSalary,
+              effectiveCompanyName,
+              effectiveCompanyLogo,
+            );
 
-              final effectiveCompanyName =
-                  companyName ?? widget.siteModel.siteName ?? 'MY COMPANY';
-              final effectiveCompanyLogo = companyLogo;
+            final monthName = monthMap.keys.elementAt(selectedMonth! - 1);
+            final fileName =
+                'Salary_${employee["fullName"]}_${monthName}_$selectedYear.pdf';
 
-              final pdfBytes = await _generateEmployeePDF(
-                employee,
-                employeeSalary,
-                effectiveCompanyName,
-                effectiveCompanyLogo,
-              );
+            // Save file to selected directory
 
-              final monthName = monthMap.keys.elementAt(selectedMonth! - 1);
-              final fileName =
-                  'Salary_${employee["fullName"]}_${monthName}_$selectedYear.pdf';
+            final filePath = '${selectedDirectory}/$fileName';
+            await File(filePath).writeAsBytes(pdfBytes);
+            await MediaScanner.loadMedia(path: filePath);
 
-              // Save file to selected directory
-              final filePath = '$selectedDirectory/$fileName';
-              final file = File(filePath);
-              await file.writeAsBytes(pdfBytes);
 
-              successCount++;
-            } catch (e) {
-              debugPrint(
-                "Error generating PDF for ${employee["fullName"]}: $e",
-              );
-              failedCount++;
-            }
-          } else {
+            successCount++;
+            lastSuccessfulFilePath = filePath; // Track last successful file
+          } catch (e) {
+            debugPrint(
+              "Error generating PDF for ${employee["fullName"]}: $e",
+            );
             failedCount++;
+            failedEmployees.add(employee["fullName"] ?? "Unknown");
+          }
+
+          // Update progress in dialog
+          if (mounted) {
+            dialogSetState?.call(() {
+              currentFile = i + 1;
+            });
           }
         }
 
-        // Update final progress
+        // Mark as complete
         if (mounted) {
-          setState(() {
-            currentFile = totalFiles;
+          dialogSetState?.call(() {
+            currentFile = totalAvailable;
+            currentEmployeeName = "";
           });
-        }
 
-        // Wait a moment to show the completion message
-        await Future.delayed(const Duration(milliseconds: 500));
-      }
+      }}
     } catch (e) {
-      Navigator.pop(context); // Close progress dialog on error
+      if (Navigator.canPop(context)) {
+        Navigator.pop(context);
+      }
+      print("Failed to generate PDFs: $e");
       _showAlert("Error", "Failed to generate PDFs: $e");
     } finally {
       if (mounted) setState(() => isDownloading = false);
     }
+  }
+
+// ✅ Helper method to verify directory permissions
+  Future<bool> _verifyDirectoryPermissions(String directoryPath) async {
+    try {
+      final directory = Directory(directoryPath);
+
+      // Check if directory exists
+      if (!await directory.exists()) {
+        return false;
+      }
+
+      // Try to create a temporary test file
+      final testFilePath = '$directoryPath/.test_write_permission_${DateTime.now().millisecondsSinceEpoch}.tmp';
+      final testFile = File(testFilePath);
+
+      try {
+        await testFile.writeAsString('test');
+        await testFile.delete();
+        return true;
+      } catch (e) {
+        debugPrint("Write permission test failed: $e");
+        return false;
+      }
+    } catch (e) {
+      debugPrint("Directory permission check failed: $e");
+      return false;
+    }
+  }
+
+
+// ✅ Helper method to open folder with platform-specific handling
+  Future<void> _openFolder(String directoryPath, String? sampleFilePath) async {
+    try {
+      // Android-specific handling: Open a file instead of directory
+      if (Platform.isAndroid) {
+        if (sampleFilePath != null && await File(sampleFilePath).exists()) {
+          // Open the PDF file directly - this will show it in the correct folder
+          final fileResult = await OpenFile.open(sampleFilePath);
+          if (fileResult.type == ResultType.done) {
+            return; // Successfully opened file
+          }
+        }
+
+        // Fallback: Try opening parent directory (usually just opens Downloads)
+        await OpenFile.open(directoryPath);
+        return;
+      }
+
+      // Desktop platforms: Use platform-specific commands
+      if (Platform.isWindows) {
+        // Windows: Use explorer to open and select the folder
+        await Process.run('explorer', [directoryPath]);
+        return;
+      } else if (Platform.isMacOS) {
+        // macOS: Use open command
+        await Process.run('open', [directoryPath]);
+        return;
+      } else if (Platform.isLinux) {
+        // Linux: Use xdg-open
+        await Process.run('xdg-open', [directoryPath]);
+        return;
+      }
+
+      // Generic fallback for other platforms
+      await OpenFile.open(directoryPath);
+
+    } catch (e) {
+      debugPrint("Failed to open folder: $e");
+      // Show a helpful message
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text(
+                Platform.isAndroid
+                    ? 'Files saved to:\n$directoryPath\n\nTip: Use a file manager app to browse.'
+                    : 'Could not open folder automatically. Files saved to:\n$directoryPath'
+            ),
+            duration: const Duration(seconds: 5),
+            action: Platform.isAndroid && sampleFilePath != null
+                ? SnackBarAction(
+              label: 'VIEW FILE',
+              onPressed: () => OpenFile.open(sampleFilePath),
+            )
+                : null,
+          ),
+        );
+      }
+    }
+  }
+// ✅ Helper method to verify directory permissions
+
+// // ✅ Helper method to open folder with fallback options
+//   Future<void> _openFolder(String directoryPath, String? sampleFilePath) async {
+//     print('🔍 [DEBUG] Starting _openFolder with directory: $directoryPath');
+//     print('📁 [DEBUG] Sample file path: ${sampleFilePath ?? "null"}');
+//
+//     try {
+//       // Method 1: Try opening the directory directly
+//       print('1️⃣ [DEBUG] Attempting Method 1: Open directory via OpenFile plugin');
+//       final result = await OpenFile.open(directoryPath);
+//       print('📄 [DEBUG] OpenFile result type: ${result.type}');
+//       print('📄 [DEBUG] OpenFile message: ${result.message}');
+//
+//
+//       if (result.type == ResultType.done) {
+//         print('✅ [DEBUG] Method 1 SUCCESS: Directory opened successfully');
+//         return; // Successfully opened
+//       } else {
+//         print('❌ [DEBUG] Method 1 FAILED: Could not open directory directly');
+//       }
+//
+//       // Method 2: If directory open failed, try opening a sample file from the directory
+//       if (sampleFilePath != null) {
+//         print('2️⃣ [DEBUG] Attempting Method 2: Open sample file via OpenFile plugin');
+//         print('📄 [DEBUG] Checking if sample file exists: $sampleFilePath');
+//
+//         final fileExists = await File(sampleFilePath).exists();
+//         print('📄 [DEBUG] Sample file exists: $fileExists');
+//
+//         if (fileExists) {
+//           final fileResult = await OpenFile.open(sampleFilePath);
+//           print('📄 [DEBUG] Sample file open result type: ${fileResult.type}');
+//           print('📄 [DEBUG] Sample file open message: ${fileResult.message}');
+//
+//           if (fileResult.type == ResultType.done) {
+//             print('✅ [DEBUG] Method 2 SUCCESS: Sample file opened successfully');
+//             return; // Successfully opened file (which shows the folder)
+//           } else {
+//             print('❌ [DEBUG] Method 2 FAILED: Could not open sample file');
+//           }
+//         } else {
+//           print('⚠️ [DEBUG] Sample file does not exist, skipping Method 2');
+//         }
+//       } else {
+//         print('⚠️ [DEBUG] No sample file path provided, skipping Method 2');
+//       }
+//
+//       // Method 3: Platform-specific fallback using Process.run
+//       print('3️⃣ [DEBUG] Attempting Method 3: Platform-specific command');
+//       print('📄 [DEBUG] Platform: ${Platform.operatingSystem}');
+//
+//       if (Platform.isWindows) {
+//         print('💻 [DEBUG] Running Windows explorer command');
+//         final processResult = await Process.run('explorer', [directoryPath]);
+//         print('📄 [DEBUG] Process exit code: ${processResult.exitCode}');
+//         print('📄 [DEBUG] Process stdout: ${processResult.stdout}');
+//         print('📄 [DEBUG] Process stderr: ${processResult.stderr}');
+//
+//         if (processResult.exitCode == 0) {
+//           print('✅ [DEBUG] Method 3 SUCCESS: Explorer opened folder');
+//         } else {
+//           print('❌ [DEBUG] Method 3 FAILED: Explorer command failed');
+//         }
+//
+//       } else if (Platform.isMacOS) {
+//         print('🍎 [DEBUG] Running macOS open command');
+//         final processResult = await Process.run('open', [directoryPath]);
+//         print('📄 [DEBUG] Process exit code: ${processResult.exitCode}');
+//         print('📄 [DEBUG] Process stdout: ${processResult.stdout}');
+//         print('📄 [DEBUG] Process stderr: ${processResult.stderr}');
+//
+//         if (processResult.exitCode == 0) {
+//           print('✅ [DEBUG] Method 3 SUCCESS: Open command executed');
+//         } else {
+//           print('❌ [DEBUG] Method 3 FAILED: Open command failed');
+//         }
+//
+//       } else if (Platform.isLinux) {
+//         print('🐧 [DEBUG] Running Linux xdg-open command');
+//         final processResult = await Process.run('xdg-open', [directoryPath]);
+//         print('📄 [DEBUG] Process exit code: ${processResult.exitCode}');
+//         print('📄 [DEBUG] Process stdout: ${processResult.stdout}');
+//         print('📄 [DEBUG] Process stderr: ${processResult.stderr}');
+//
+//         if (processResult.exitCode == 0) {
+//           print('✅ [DEBUG] Method 3 SUCCESS: xdg-open command executed');
+//         } else {
+//           print('❌ [DEBUG] Method 3 FAILED: xdg-open command failed');
+//         }
+//       } else {
+//         print('⚠️ [DEBUG] Platform not supported for Method 3: ${Platform.operatingSystem}');
+//       }
+//
+//     } catch (e) {
+//       print('🚨 [DEBUG] EXCEPTION CAUGHT in _openFolder');
+//       print('🚨 [DEBUG] Exception type: ${e.runtimeType}');
+//       print('🚨 [DEBUG] Exception message: $e');
+//       print('🚨 [DEBUG] Stack trace: ${e.toString()}');
+//
+//       debugPrint("Failed to open folder: $e");
+//
+//       // Show a message if all methods fail
+//       if (mounted) {
+//         print('📱 [DEBUG] Scaffold is mounted, showing SnackBar error message');
+//         ScaffoldMessenger.of(context).showSnackBar(
+//           SnackBar(
+//             content: Text('Could not open folder automatically. Files saved to:\n$directoryPath'),
+//             duration: const Duration(seconds: 4),
+//           ),
+//         );
+//       } else {
+//         print('⚠️ [DEBUG] Scaffold not mounted, cannot show SnackBar');
+//       }
+//     }
+//
+//     print('🔚 [DEBUG] _openFolder function completed');
+//   }
+  Widget _buildSummaryRow(
+      IconData icon,
+      String label,
+      String value,
+      Color color,
+      ) {
+    return Row(
+      children: [
+        Icon(icon, size: 16, color: color),
+        const SizedBox(width: 8),
+        Expanded(
+          child: Text(
+            label,
+            style: TextStyle(
+              fontSize: 12,
+              color: Colors.grey[700],
+            ),
+          ),
+        ),
+        Text(
+          value,
+          style: TextStyle(
+            fontSize: 12,
+            fontWeight: FontWeight.w600,
+            color: color,
+          ),
+        ),
+      ],
+    );
   }
   void _showAlert(String title, String message) {
     showDialog(
@@ -1395,53 +1897,27 @@ Logo looks like URL: ${companyLogo?.startsWith('http') ?? false}
     );
   }
 
-  Widget _buildActionButtons() {
-    return Padding(
-      padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 10),
-      child: Column(
-        children: [
-          ElevatedButton(
-            onPressed: workData.isNotEmpty && !isDownloading
-                ? _handleDownloadAllPDFs
-                : null,
-            style: ElevatedButton.styleFrom(
-              backgroundColor: Colors.blue,
-              minimumSize: const Size.fromHeight(50),
-            ),
-            child: isDownloading
-                ? const SizedBox(
-                    height: 20,
-                    width: 20,
-                    child: CircularProgressIndicator(color: Colors.white),
-                  )
-                : const Text(
-                    "Download All",
-                    style: TextStyle(color: Colors.white),
-                  ),
-          ),
-          const SizedBox(height: 10),
-          OutlinedButton(
-            onPressed: isDownloading
-                ? null
-                : () {
-                    Navigator.pushNamed(context, "/salary-Module/siteList");
-                  },
-            style: OutlinedButton.styleFrom(
-              minimumSize: const Size.fromHeight(50),
-            ),
-            child: const Text("Back"),
-          ),
-        ],
-      ),
-    );
-  }
+
 
   @override
   Widget build(BuildContext context) {
     return Scaffold(
       backgroundColor: AppColors.lightBlue,
       appBar: CustomAppBar(title: widget.siteModel.siteName),
-      body: CornerClippedScreenSimple(
+      body: BottomButtonWrapper(
+        customButtons: [
+          if (!isLoading) CustomButton(
+            button: RoundedButton(
+              text: isDownloading ? 'Saving..' : 'Save All',
+              color: isDownloading  ? const Color(0xFF1B6DCE) : Colors.grey,
+              textColor: Colors.white,
+              onPressed: workData.isNotEmpty && !isDownloading
+            ? _handleDownloadAllPDFs
+                : (){},
+              isOutlined: false,
+            ),
+          ),
+        ],
         child: Column(
           children: [
             _buildMonthYearSelector(),
@@ -1460,7 +1936,7 @@ Logo looks like URL: ${companyLogo?.startsWith('http') ?? false}
                 ),
               ),
             Expanded(child: _buildEmployeeList()),
-            if (!isLoading) _buildActionButtons(),
+
           ],
         ),
       ),

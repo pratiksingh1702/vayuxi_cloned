@@ -10,6 +10,7 @@ import 'package:path_provider/path_provider.dart' as path_provider;
 import 'app.dart';
 import 'core/api/dio.dart';
 import 'core/api/requestQueue.dart';
+import 'features/modules/all_Modules/dpr/models/hive_storage_service.dart';
 import 'features/modules/all_Modules/site_Details/repository/siteHive/siteHiveService.dart';
 import 'features/modules/all_Modules/site_Details/repository/siteHive/siteLocalStorage.dart';
 import 'features/noti_system/noti_services/bg_handler.dart';
@@ -25,6 +26,8 @@ void main() async {
   await Hive.initFlutter(appDocDir.path);
 
   Hive.registerAdapter(SiteModelHiveAdapter());
+  // Initialize Hive
+  await HiveStorageService.init();
 
   await SiteHiveStorage.init();
   await RequestQueue.init();
@@ -39,11 +42,8 @@ void main() async {
   await fcm.initialize();
 
   runApp(
-    DevicePreview(
-      enabled: !kReleaseMode, // 🔥 DEBUG ONLY
-      builder: (context) => const ProviderScope(
-        child: MyApp(),
-      ),
+    const ProviderScope(
+      child: MyApp(),
     ),
   );
 }

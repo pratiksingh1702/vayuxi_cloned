@@ -36,22 +36,25 @@ class _DprTeamScreenState extends ConsumerState<DprTeamScreen> {
     super.initState();
 
     WidgetsBinding.instance.addPostFrameCallback((_) {
-      final selectedTeam = ref.read(selectedTeamProvider);
-      if (selectedTeam != null) {
+      final selectedTeamId = ref.read(selectedTeamIdProvider);
+      final currentTeam = ref.read(currentTeamProvider);
+      print("Selected Team ID: $selectedTeamId");
+      print("Current Team: ${currentTeam?.teamName}");
+
+      if (selectedTeamId != null && currentTeam != null) {
+        // Team is preselected, navigate to next screen
         context.pushReplacement('/moc-selection', extra: {
           'siteId': widget.site.id,
-          'teamId': selectedTeam.id,
-          'teamName': selectedTeam.teamName,
+          'teamId': currentTeam.id,
+          'teamName': currentTeam.teamName,
         });
-
       } else {
-        // Load teams only if team is not preselected
+        // No team preselected, load teams for selection
         final type = ref.read(typeProvider);
         ref.read(teamProvider.notifier).getTeams(type!, widget.site.id);
       }
     });
   }
-
 
   @override
   Widget build(BuildContext context) {

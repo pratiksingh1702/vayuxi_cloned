@@ -8,7 +8,9 @@ class ExpenseModel {
   final String? invoiceNumber;
   final String? hardwareShopName;
   final int? quantity;
-  final String? month;
+  final String? uom;
+  final double? rate;
+  final double? balance;
   final int? year;
   final String? place;
   final String? manpowerId;
@@ -26,7 +28,9 @@ class ExpenseModel {
     this.invoiceNumber,
     this.hardwareShopName,
     this.quantity,
-    this.month,
+    this.uom,
+    this.rate,
+    this.balance,
     this.year,
     this.place,
     this.manpowerId,
@@ -46,7 +50,9 @@ class ExpenseModel {
       invoiceNumber: json['invoiceNumber']?.toString(),
       hardwareShopName: json['hardwareShop']?.toString(),
       quantity: _toInt(json['quantity']),
-      month: json['month']?.toString(),
+      uom: json['uom']?.toString(),
+      rate: _toDouble(json['rate']),
+      balance: _toDouble(json['balance']),
       year: _toInt(json['year']),
       place: json['place']?.toString(),
       manpowerId: json['manpowerId']?.toString(),
@@ -66,7 +72,9 @@ class ExpenseModel {
       'invoiceNumber': invoiceNumber,
       'hardwareShop': hardwareShopName,
       'quantity': quantity,
-      'month': month,
+      'uom': uom,
+      'rate': rate,
+      'balance': balance,
       'year': year,
       'place': place,
       'manpowerId': manpowerId,

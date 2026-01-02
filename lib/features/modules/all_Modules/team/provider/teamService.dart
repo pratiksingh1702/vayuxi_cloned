@@ -92,4 +92,24 @@ class TeamApi {
       rethrow;
     }
   }
+  // Delete team
+  static Future<void> deleteTeam({
+    required String siteId,
+    required String teamId,
+  }) async {
+    try {
+      final response = await DioClient.dio.delete(
+        "/site/$siteId/team/$teamId",
+      );
+
+      if (response.statusCode != 200 && response.statusCode != 204) {
+        throw Exception("Failed to delete team");
+      }
+    } on DioException catch (e) {
+      print("❌ Delete Team Dio error: ${e.response?.statusCode}");
+      print("❌ Response: ${e.response?.data}");
+      rethrow;
+    }
+  }
+
 }

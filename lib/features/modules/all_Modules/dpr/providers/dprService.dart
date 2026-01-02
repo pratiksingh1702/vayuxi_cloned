@@ -4,7 +4,6 @@ import 'package:dio/dio.dart';
 import '../../../../../core/api/dio.dart';
 import '../models/dprModel.dart';
 
-
 class DprApi {
   // ----------------------------
   // 1. Fetch DPR Work List
@@ -28,7 +27,8 @@ class DprApi {
             .toList();
       } else {
         throw Exception(
-            "Failed to fetch DPR work. Status: ${response.statusCode}");
+          "Failed to fetch DPR work. Status: ${response.statusCode}",
+        );
       }
     } catch (e, stack) {
       print("❌ Error fetching DPR work: $e");
@@ -56,7 +56,8 @@ class DprApi {
         return DprModel.fromJson(response.data);
       } else {
         throw Exception(
-            "Failed to fetch DPR work by ID. Status: ${response.statusCode}");
+          "Failed to fetch DPR work by ID. Status: ${response.statusCode}",
+        );
       }
     } catch (e, stack) {
       print("❌ Error fetching DPR by ID: $e");
@@ -87,7 +88,8 @@ class DprApi {
         return DprModel.fromJson(response.data);
       } else {
         throw Exception(
-            "Failed to post DPR work. Status: ${response.statusCode}");
+          "Failed to post DPR work. Status: ${response.statusCode}",
+        );
       }
     } catch (e, stack) {
       print("❌ Error posting DPR: $e");
@@ -113,10 +115,36 @@ class DprApi {
 
       if (response.statusCode != 200) {
         throw Exception(
-            "Failed to update DPR work. Status: ${response.statusCode}");
+          "Failed to update DPR work. Status: ${response.statusCode}",
+        );
       }
     } catch (e, stack) {
-      print("❌ Error updating DPR: $e");
+      if (e is DioException) {
+        print("❌ DIO ERROR");
+        print("Type: ${e.type}");
+        print("Message: ${e.message}");
+
+        if (e.response != null) {
+          print("Status Code: ${e.response?.statusCode}");
+          print("Status Message: ${e.response?.statusMessage}");
+          print("Response Headers: ${e.response?.headers}");
+          print("Response Data:");
+          printFormattedJson(e.response?.data);
+        } else {
+          print("No response received from server");
+        }
+
+        if (e.requestOptions != null) {
+          print("Request URL: ${e.requestOptions.uri}");
+          print("Request Method: ${e.requestOptions.method}");
+          print("Request Headers: ${e.requestOptions.headers}");
+          print("Request Data: ${e.requestOptions.data}");
+        }
+      } else {
+        print("❌ UNKNOWN ERROR: $e");
+      }
+
+      print("STACK TRACE:");
       print(stack);
       rethrow;
     }
@@ -143,8 +171,9 @@ class DprApi {
       printFormattedJson(response.data);
 
       if (response.statusCode != 200) {
-        throw Exception("Failed to update DPR material qty. Status: ${response
-            .statusCode}");
+        throw Exception(
+          "Failed to update DPR material qty. Status: ${response.statusCode}",
+        );
       }
     } catch (e, stack) {
       if (e is DioException) {
@@ -164,7 +193,8 @@ class DprApi {
         print(stack);
 
         throw Exception(
-            "DPR Qty Update failed — status $status — response: $data");
+          "DPR Qty Update failed — status $status — response: $data",
+        );
       }
 
       print("❌ UNKNOWN ERROR: $e");
@@ -187,7 +217,8 @@ class DprApi {
         return response.data;
       } else {
         throw Exception(
-            "Failed to fetch material. Status: ${response.statusCode}");
+          "Failed to fetch material. Status: ${response.statusCode}",
+        );
       }
     } catch (e) {
       print("❌ Error fetching material: $e");
@@ -211,13 +242,45 @@ class DprApi {
         return response.data;
       } else {
         throw Exception(
-            "Failed to post material. Status: ${response.statusCode}");
+          "Failed to post material. Status: ${response.statusCode}",
+        );
       }
     } catch (e) {
       print("❌ Error posting material: $e");
       rethrow;
     }
   }
+  Future<Map<String, dynamic>> deleteMaterial({
+    required FormData data,
+    required String mechanicalId,
+  }) async {
+    try {
+      final response = await DioClient.dio.delete(
+        "/mechnical/$mechanicalId",
+        data: data,
+        options: Options(
+          extra: {"withCredentials": true},
+          validateStatus: (s) => true,
+        ),
+      );
+
+      print("🗑 DELETE STATUS: ${response.statusCode}");
+      print("🗑 DELETE RESPONSE: ${response.data}");
+
+      if (response.statusCode == 200 || response.statusCode == 201) {
+        return response.data;
+      }
+
+      throw Exception("Delete failed: ${response.statusCode} ${response.data}");
+    } on DioException catch (e) {
+      print("❌ DELETE DIO ERROR");
+      print("➡️ ${e.requestOptions.uri}");
+      print("➡️ ${e.response?.statusCode}");
+      print("➡️ ${e.response?.data}");
+      rethrow;
+    }
+  }
+
 
   // Update material
   Future<Map<String, dynamic>> updateMaterial({
@@ -235,7 +298,8 @@ class DprApi {
         return response.data;
       } else {
         throw Exception(
-            "Failed to update material. Status: ${response.statusCode}");
+          "Failed to update material. Status: ${response.statusCode}",
+        );
       }
     } catch (e) {
       print("❌ Error updating material: $e");
@@ -243,28 +307,63 @@ class DprApi {
     }
   }
 
-
   // ----------------------------
   // 6. Copy DPR Material
   // ----------------------------
-  static Future<void> copyDprMaterial({
-    required String siteId,
+  // In your DprApi class
+  static Future<Map<String, dynamic>> copyDprMaterial({
+    required String type,
     required String materialId,
   }) async {
     try {
       final response = await DioClient.dio.put(
-        "/site/$siteId/team/$materialId/dpr-mechanical/copy",
+        "/mechnical-copy/$materialId",
+        queryParameters: {"type": type},
         options: Options(extra: {"withCredentials": true}),
       );
 
-      printFormattedJson(response.data);
-
-      if (response.statusCode != 200) {
-        throw Exception(
-            "Failed to copy DPR material. Status: ${response.statusCode}");
+      if (response.statusCode == 200) {
+        print("✅ DPR material copied successfully");
+        printFormattedJson(response.data);
+        return response.data;
       }
-    } catch (e, stack) {
-      print("❌ Error copying DPR material: $e");
+
+      // Non-200 but no DioException (rare, but possible)
+      throw DioException(
+        requestOptions: response.requestOptions,
+        response: response,
+        message: "Unexpected status code",
+      );
+    }
+
+    // 🔴 Dio-specific errors (network / backend / timeout)
+    on DioException catch (e, stack) {
+      final status = e.response?.statusCode;
+      final path = e.requestOptions.path;
+      final method = e.requestOptions.method;
+
+      print("❌ DPR COPY FAILED (DioException)");
+      print("➡️ $method $path");
+      print("📟 Status Code: $status");
+
+      if (e.response?.data != null) {
+        print("📦 Response Data:");
+        printFormattedJson(e.response!.data);
+      }
+
+      print("🧨 Error Type: ${e.type}");
+      print("📝 Message: ${e.message}");
+      print("📌 Stack Trace:");
+      print(stack);
+
+      rethrow;
+    }
+
+    // 🔴 Any other unexpected error
+    catch (e, stack) {
+      print("❌ DPR COPY FAILED (Unknown Error)");
+      print("📝 Error: $e");
+      print("📌 Stack Trace:");
       print(stack);
       rethrow;
     }
@@ -273,70 +372,83 @@ class DprApi {
   // ----------------------------
   // 7. Sheet Handlers
   // ----------------------------
- static Future<Uint8List> fetchMeasurementSheet({
+  static Future<Uint8List> fetchMeasurementSheet({
     required String siteId,
     required String fromDate,
     required String toDate,
-    required String format, // 'excel' or 'pdf'
-  }) =>
-      _fetchSheet(
-        "/site/$siteId/team/123/dpr-mechanical/measurment-sheet-dpr",
-        fromDate,
-        toDate,
-        format,
-      );
+    required String format,
+    required String workType, // 'mechanical' or 'insulation'
+  }) => _fetchSheet(
+    siteId,
+    "measurement",
+    fromDate,
+    toDate,
+    format,
+    workType,
+  );
 
   static Future<Uint8List> fetchMeasurementCalculationSheet({
     required String siteId,
     required String fromDate,
     required String toDate,
     required String format,
-  }) =>
-      _fetchSheet(
-        "/site/$siteId/team/123/dpr-mechanical/abstract-sheet",
-        fromDate,
-        toDate,
-        format,
-      );
+    required String workType,
+  }) => _fetchSheet(
+    siteId,
+    "abstract",
+    fromDate,
+    toDate,
+    format,
+    workType,
+  );
 
-  static
-  Future<Uint8List> fetchSummarySheet({
+  static Future<Uint8List> fetchSummarySheet({
     required String siteId,
     required String fromDate,
     required String toDate,
     required String format,
-  }) =>
-      _fetchSheet(
-        "/site/$siteId/team/123/dpr-mechanical/summery-sheet",
-        fromDate,
-        toDate,
-        format,
-      );
+    required String workType,
+  }) => _fetchSheet(
+    siteId,
+    "summary",
+    fromDate,
+    toDate,
+    format,
+    workType,
+  );
 
- static Future<Uint8List> fetchInvoiceSheet({
+  static Future<Uint8List> fetchInvoiceSheet({
     required String siteId,
     required String fromDate,
     required String toDate,
     required String format,
-  }) =>
-      _fetchSheet(
-        "/site/$siteId/team/123/dpr-mechanical/invoice-sheet",
-        fromDate,
-        toDate,
-        format,
-      );
+    required String workType,
+  }) => _fetchSheet(
+    siteId,
+    "invoice",
+    fromDate,
+    toDate,
+    format,
+    workType,
+  );
 
- static Future<Uint8List> _fetchSheet(String path,
+  static Future<Uint8List> _fetchSheet(
+      String siteId,
+      String sheetType,
       String fromDate,
       String toDate,
-      String format,) async {
+      String format,
+      String workType,
+      ) async {
     try {
-      final response = await DioClient.dio.get(
-        "$path",
+      final String apiWorkType = _convertWorkTypeForApi(workType);
+      final response = await DioClient.dioV2.get(
+        "/site/$siteId/sheets/$sheetType",
         queryParameters: {
           "fromDate": fromDate,
           "toDate": toDate,
-          "format": format, // Add format parameter
+          "format": format,
+          "workType": apiWorkType,
         },
         options: Options(extra: {"withCredentials": true}),
       );
@@ -348,11 +460,13 @@ class DprApi {
           return base64Decode(response.data["data"]);
         } else {
           throw Exception(
-              "Invalid response format: expected {data: base64String}");
+            "Invalid response format: expected {data: base64String}",
+          );
         }
       } else {
         throw Exception(
-            "Failed to fetch sheet. Status: ${response.statusCode}");
+          "Failed to fetch sheet. Status: ${response.statusCode}",
+        );
       }
     } catch (e, stack) {
       print("❌ Error fetching sheet: $e");
@@ -360,21 +474,39 @@ class DprApi {
       rethrow;
     }
   }
+  static String _convertWorkTypeForApi(String uiWorkType) {
+    switch (uiWorkType) {
+      case 'mechanical_work':
+        return 'mechanical';
+      case 'insulation_work':
+        return 'insulation';
+      default:
+      // If it's already in API format, return as-is
+      // This provides backward compatibility
+        if (uiWorkType == 'mechanical' || uiWorkType == 'insulation') {
+          return uiWorkType;
+        }
+        throw ArgumentError('Invalid workType: $uiWorkType. '
+            'Expected: mechanical_work, insulation_work, mechanical, or insulation');
+    }
+  }
 }
+
 // ----------------------------
 // Helper: Pretty-print JSON
 // ----------------------------
-  void printFormattedJson(dynamic data) {
-    if (data == null) return;
-    const encoder = JsonEncoder.withIndent('  ');
-    try {
-      if (data is List || data is Map) {
-        print("📄 Response Data:\n${encoder.convert(data)}");
-      } else {
-        print("📄 Response Data: $data");
-      }
-    } catch (e) {
-      print("⚠️ Error printing JSON: $e");
-      print(data);
+void printFormattedJson(dynamic data) {
+  if (data == null) return;
+  const encoder = JsonEncoder.withIndent('  ');
+  try {
+    if (data is List || data is Map) {
+      print("📄 Response Data:\n${encoder.convert(data)}");
+    } else {
+      print("📄 Response Data: $data");
     }
+  } catch (e) {
+    print("⚠️ Error printing JSON: $e");
+    print(data);
   }
+}
+

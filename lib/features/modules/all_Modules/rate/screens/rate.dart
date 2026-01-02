@@ -351,25 +351,45 @@ Widget rateTile(BuildContext context, Rate rate, SiteModel site, WidgetRef ref) 
           // Right side: Rate with UOM and edit button
           Column(
             children: [
+              Row(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  // ✏️ Edit
+                  IconButton(
+                    icon: const Icon(Icons.edit, color: Colors.blue),
+                    onPressed: () async {
+                      final result = await Navigator.push(
+                        context,
+                        MaterialPageRoute(
+                          builder: (_) => EditRateScreen(site: site, rate: rate),
+                        ),
+                      );
 
-              // Edit icon
-              GestureDetector(
-                onTap: () async {
-                  final result = await Navigator.push(
-                    context,
-                    MaterialPageRoute(
-                      builder: (_) => EditRateScreen(site: site, rate: rate),
-                    ),
-                  );
-                  // Refresh if updated
-                  if (result == true && type != null) {
-                    notifier.fetchRate(type, site.id);
-                  }
-                },
-                child: const Icon(Icons.edit, color: Colors.blue),
+                      if (result == true && type != null) {
+                        notifier.fetchRate(type, site.id);
+                      }
+                    },
+                  ),
+
+                  // 🗑 Delete
+                  IconButton(
+                    icon: const Icon(Icons.delete_outline, color: Colors.red),
+                    onPressed: () {
+                      _confirmDeleteRate(
+                        context,
+                        rate.id,
+                        notifier,
+                        type!,
+                        site.id,
+                      );
+                    },
+                  ),
+                ],
               ),
-              const SizedBox(width: 8),
-              // Rate in rounded box
+
+              const SizedBox(height: 6),
+
+              // 💰 Rate badge
               Container(
                 padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
                 decoration: BoxDecoration(
@@ -378,15 +398,74 @@ Widget rateTile(BuildContext context, Rate rate, SiteModel site, WidgetRef ref) 
                 ),
                 child: Text(
                   '₹${rate.rate.toStringAsFixed(0)} / ${rate.uom}',
-                  style: const TextStyle(
-                    fontWeight: FontWeight.bold,
-                  ),
+                  style: const TextStyle(fontWeight: FontWeight.bold),
                 ),
               ),
             ],
           ),
+
         ],
       ),
     ),
   );
+}
+Future<void> _confirmDeleteRate(
+    BuildContext context,
+    String rateId,
+    RateNotifier notifier,
+    String type,
+    String siteId,
+    ) async {
+  final confirm = await showDialog<bool>(
+    context: context,
+    builder: (_) => AlertDialog(
+      title: const Text("Delete Rate"),
+      content: const Text(
+        "Are you sure you want to delete this rate?\n\n"
+            "This action cannot be undone.",
+      ),
+      actions: [
+        TextButton(
+          onPressed: () => Navigator.pop(context, false),
+          child: const Text("Cancel"),
+        ),
+        ElevatedButton(
+          style: ElevatedButton.styleFrom(backgroundColor: Colors.red),
+          onPressed: () => Navigator.pop(context, true),
+          child: const Text("Delete"),
+        ),
+      ],
+    ),
+  );
+
+  if (confirm == true) {
+    _deleteRate(context, rateId, notifier, type, siteId);
+  }
+}
+Future<void> _deleteRate(
+    BuildContext context,
+    String rateId,
+    RateNotifier notifier,
+    String type,
+    String siteId,
+    ) async {
+  try {
+    final res = await RateApiClient().deleteRate(siteId,rateId);
+
+    if (res['success'] == true) {
+      notifier.fetchRate(type, siteId);
+
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text("✅ Rate deleted")),
+      );
+    } else {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text(res['message'] ?? "Delete failed")),
+      );
+    }
+  } catch (e) {
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(content: Text("Error deleting rate: $e")),
+    );
+  }
 }

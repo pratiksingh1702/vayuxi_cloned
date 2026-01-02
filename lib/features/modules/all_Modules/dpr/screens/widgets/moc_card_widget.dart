@@ -78,42 +78,63 @@ class MOCCard extends StatelessWidget {
                 // Edit/Delete buttons (conditionally shown)
                 if (showEditButton) ...[
                   Positioned(
-                    top: 0,
+                    top: 8,
                     right: 8,
-                    child: PopupMenuButton<String>(
-                      icon: const Icon(Icons.more_vert, size: 20),
-                      onSelected: (value) {
-                        if (value == 'edit' && onEdit != null) {
-                          onEdit!();
-                        } else if (value == 'delete' && onDelete != null) {
-                          onDelete!();
-                        }
-                      },
-                      itemBuilder: (BuildContext context) => [
-                        const PopupMenuItem<String>(
-                          value: 'edit',
-                          child: Row(
-                            children: [
-                              Icon(Icons.edit, size: 18),
-                              SizedBox(width: 8),
-                              Text('Edit'),
-                            ],
+                    child: Row(
+                      mainAxisSize: MainAxisSize.min,
+                      children: [
+                        // Edit Icon
+                        GestureDetector(
+                          onTap: onEdit,
+                          child: Container(
+                            padding: const EdgeInsets.all(4),
+                            decoration: BoxDecoration(
+                              color: Colors.white,
+                              shape: BoxShape.circle,
+                              boxShadow: [
+                                BoxShadow(
+                                  color: Colors.black.withOpacity(0.2),
+                                  blurRadius: 2,
+                                  offset: const Offset(0, 1),
+                                ),
+                              ],
+                            ),
+                            child: const Icon(
+                              Icons.edit,
+                              size: 16,
+                              color: Colors.blue,
+                            ),
                           ),
                         ),
-                        const PopupMenuItem<String>(
-                          value: 'delete',
-                          child: Row(
-                            children: [
-                              Icon(Icons.delete, size: 18, color: Colors.red),
-                              SizedBox(width: 8),
-                              Text('Delete', style: TextStyle(color: Colors.red)),
-                            ],
+
+                        const SizedBox(width: 4),
+
+                        // Delete Icon
+                        GestureDetector(
+                          onTap: onDelete,
+                          child: Container(
+                            padding: const EdgeInsets.all(4),
+                            decoration: BoxDecoration(
+                              color: Colors.white,
+                              shape: BoxShape.circle,
+                              boxShadow: [
+                                BoxShadow(
+                                  color: Colors.black.withOpacity(0.2),
+                                  blurRadius: 2,
+                                  offset: const Offset(0, 1),
+                                ),
+                              ],
+                            ),
+                            child: const Icon(
+                              Icons.delete,
+                              size: 16,
+                              color: Colors.red,
+                            ),
                           ),
                         ),
                       ],
                     ),
                   ),
-
                 ],
               ],
             ),

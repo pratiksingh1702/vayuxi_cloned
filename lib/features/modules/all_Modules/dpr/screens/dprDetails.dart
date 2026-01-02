@@ -936,14 +936,17 @@ class _DprDetailScreenState extends ConsumerState<DprDetailScreen> {
       return [];
     }
 
-    return widget.dpr.piping.map((piping) {
+    return widget.dpr.piping.asMap().entries.map((entry) {
+      final index = entry.key;
+      final piping = entry.value;
+
       final input = _cardInputs.firstWhere(
             (input) => input['id'] == piping.id,
         orElse: () => {},
       );
 
       return Padding(
-        key: ValueKey('piping_${piping.id}'),
+        key: ValueKey('piping_${piping.id}_$index'),
         padding: const EdgeInsets.only(bottom: 12),
         child: _MaterialCardWrapper(
           isUpdating: _isUpdating.contains(piping.id),
@@ -979,14 +982,17 @@ class _DprDetailScreenState extends ConsumerState<DprDetailScreen> {
       return [];
     }
 
-    return widget.dpr.equipment.map((equipment) {
+    return widget.dpr.equipment.asMap().entries.map((entry) {
+      final index = entry.key;
+      final equipment = entry.value;
+
       final input = _cardInputs.firstWhere(
             (input) => input['id'] == equipment.id,
         orElse: () => {},
       );
 
       return Padding(
-        key: ValueKey('equipment_${equipment.id}'),
+        key: ValueKey('equipment_${equipment.id}_$index'),
         padding: const EdgeInsets.only(bottom: 12),
         child: _MaterialCardWrapper(
           isUpdating: _isUpdating.contains(equipment.id),
@@ -1006,7 +1012,7 @@ class _DprDetailScreenState extends ConsumerState<DprDetailScreen> {
             onQtyChanged: (val) => _updateCardInput(equipment.id, 'quantity', val),
             onFloorChanged: (val) => _updateCardInput(equipment.id, 'floor', val),
             onTonChanged: (val) => _updateCardInput(equipment.id, 'ton', val),
-            isEditable: _isEditable,
+            isEditable: _isEditable, onMeterChanged: (String p1) {  },
           ),
         ),
       );

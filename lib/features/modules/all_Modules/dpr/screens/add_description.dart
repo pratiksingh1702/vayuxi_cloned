@@ -22,6 +22,7 @@ import '../models/equipmentModel.dart';
 import '../models/pipingModel.dart';
 import '../providers/dpr.dart';
 import '../providers/selectedSize_provider.dart';
+import 'material_sync_util.dart';
 
 class AddDescriptionScreen extends ConsumerStatefulWidget {
   final String? workId;
@@ -46,6 +47,7 @@ class _AddDescriptionScreenState extends ConsumerState<AddDescriptionScreen>
   late TeamModel team;
 
   String? _mechanicalId;
+  String? _selectedDprId;
 
   bool _pipeFittingOn = true;
   bool _equipmentOn = true;
@@ -62,6 +64,9 @@ class _AddDescriptionScreenState extends ConsumerState<AddDescriptionScreen>
   bool _isDisposed = false;
   bool _initialDataLoaded = false;
   bool _autoCreateAttempted = false;
+
+  List<DprModel> _dprListForSelectedDate = [];
+  bool _isLoadingDprList = false;
 
   @override
   bool get wantKeepAlive => true;
@@ -96,7 +101,7 @@ class _AddDescriptionScreenState extends ConsumerState<AddDescriptionScreen>
   void _initializeData() {
     siteId = ref.read(selectedSiteIdProvider)!;
     teamId = ref.read(selectedTeamIdProvider)!;
-    team = ref.read(selectedTeamProvider)!;
+    team = ref.read(currentTeamProvider)!;
     _mocController.text = ref.read(selectedMOCProvider)!.name;
     _floorController.text = ref.read(selectedFloorProvider)!.name;
     _sizeController.text = ref.read(selectedSizeProvider)!;
@@ -109,10 +114,33 @@ class _AddDescriptionScreenState extends ConsumerState<AddDescriptionScreen>
 
     try {
       if (widget.workId != null) {
+        // If workId is provided, load that specific DPR
         _mechanicalId = widget.workId;
         await _fetchDprWorkById();
       } else {
-        await _autoCreateDprWork();
+        // Check if today's date
+        if (_isToday(_selectedDate)) {
+          // For today's date, always create a new DPR
+          await _autoCreateDprWork();
+        } else {
+          // For other dates, fetch DPR list
+          await _fetchDprListForDate(_selectedDate);
+
+          if (_dprListForSelectedDate.isNotEmpty) {
+            await _loadDprWork(_dprListForSelectedDate.first);
+          } else {
+            // No DPR found for selected date
+            setState(() {
+              _mechanicalId = null;
+              _selectedDprId = null;
+              _dprNameController.text = 'New DPR Entry';
+              _pipeFittingOn = false;
+              _equipmentOn = false;
+              _showPipingMaterials = false;
+              _showEquipmentMaterials = false;
+            });
+          }
+        }
       }
     } catch (e) {
       if (mounted && !_isDisposed) {
@@ -126,6 +154,62 @@ class _AddDescriptionScreenState extends ConsumerState<AddDescriptionScreen>
           _initialDataLoaded = true;
         });
       }
+    }
+  }
+  Future<void> _fetchDprListForDate(DateTime date) async {
+    if (_isDisposed) return;
+
+    setState(() => _isLoadingDprList = true);
+
+    try {
+      final List<DprModel> allDprs = await DprApi.fetchDprWork(
+        siteId: siteId,
+        teamId: teamId,
+      );
+
+      _dprListForSelectedDate = allDprs.where((dpr) {
+        final dprDate = dpr.updatedAt;
+        return dprDate.year == date.year &&
+            dprDate.month == date.month &&
+            dprDate.day == date.day;
+      }).toList();
+
+      print('Found ${_dprListForSelectedDate.length} DPR(s) for ${_formatDate(date)}');
+    } catch (e) {
+      print('Error fetching DPR list: $e');
+      _dprListForSelectedDate = [];
+    } finally {
+      if (mounted && !_isDisposed) {
+        setState(() => _isLoadingDprList = false);
+      }
+    }
+  }
+
+  Future<void> _loadDprWork(DprModel dpr) async {
+    if (_isDisposed) return;
+
+    _mechanicalId = dpr.id;
+    _selectedDprId = dpr.id;
+
+    _dprNameController.text = dpr.dprName;
+    _mocController.text = dpr.moc;
+    _sizeController.text = dpr.size;
+    _floorController.text = dpr.location;
+    _plantController.text = dpr.plant;
+
+    await _fetchDprWorkById();
+
+    if (mounted && !_isDisposed) {
+      setState(() {
+        if (dpr.piping.isNotEmpty) {
+          _pipeFittingOn = true;
+          _showPipingMaterials = true;
+        }
+        if (dpr.equipment.isNotEmpty) {
+          _equipmentOn = true;
+          _showEquipmentMaterials = true;
+        }
+      });
     }
   }
 
@@ -156,10 +240,13 @@ class _AddDescriptionScreenState extends ConsumerState<AddDescriptionScreen>
 
       if (response != null && response.id != null) {
         _mechanicalId = response.id;
+        _selectedDprId = response.id;
+        await _fetchDprWorkById();
 
         print('Auto-created DPR work with ID: $_mechanicalId');
 
-        // Set flags to show materials
+        _dprListForSelectedDate.add(response);
+
         if (mounted) {
           setState(() {
             _pipeFittingOn = true;
@@ -184,6 +271,56 @@ class _AddDescriptionScreenState extends ConsumerState<AddDescriptionScreen>
       }
     }
   }
+  String materialKey(String name, String designation) {
+    return '${designation.toLowerCase()}::${name.trim().toLowerCase()}';
+  }
+
+  void _syncLocalMaterialsWithServer(DprModel dpr) {
+    // ---- SYNC USING CENTRAL SERVICE ----
+    final mergedPiping = MaterialSyncService.syncPiping(
+      local: ref.read(pipingMaterialsProvider),
+      server: dpr.piping,
+    );
+
+    final mergedEquipment = MaterialSyncService.syncEquipment(
+      local: ref.read(equipmentMaterialsProvider),
+      server: dpr.equipment,
+    );
+
+    // ---- UPDATE PROVIDERS ----
+    ref.read(pipingMaterialsProvider.notifier).state = mergedPiping;
+    ref.read(equipmentMaterialsProvider.notifier).state = mergedEquipment;
+
+    // ---- DEBUG LOGS (OPTIONAL BUT USEFUL) ----
+    print('----- AFTER SYNC (LOCAL STATE) -----');
+
+    for (final p in mergedPiping) {
+      print({
+        'type': 'piping',
+        'id': p.id,
+        'name': p.materialName,
+        'qty': p.qty,
+        'length': p.length,
+        'uom': p.uom,
+        'remarks': p.remarks,
+      });
+    }
+
+    for (final e in mergedEquipment) {
+      print({
+        'type': 'equipment',
+        'id': e.id,
+        'name': e.materialName,
+        'qty': e.qty,
+        'weight': e.weight,
+        'uom': e.uom,
+        'remarks': e.remarks,
+      });
+    }
+
+    print('-----------------------------------');
+  }
+
 
   Future<void> _fetchDprWorkById() async {
     if (_isDisposed || _mechanicalId == null) return;
@@ -205,15 +342,14 @@ class _AddDescriptionScreenState extends ConsumerState<AddDescriptionScreen>
 
       if (dprState.data != null && dprState.data is DprModel) {
         final dprWork = dprState.data as DprModel;
+        _syncLocalMaterialsWithServer(dprWork);
 
-        // Update controllers
         _dprNameController.text = dprWork.dprName ?? 'New DPR Entry';
         _mocController.text = dprWork.moc ?? _mocController.text;
         _sizeController.text = dprWork.size ?? _sizeController.text;
         _floorController.text = dprWork.location ?? _floorController.text;
         _plantController.text = dprWork.plant ?? _plantController.text;
 
-        // Auto-show materials based on what's available
         if (mounted) {
           setState(() {
             if (dprWork.piping.isNotEmpty) {
@@ -276,37 +412,29 @@ class _AddDescriptionScreenState extends ConsumerState<AddDescriptionScreen>
 
     if (picked != null && picked != _selectedDate) {
       setState(() => _selectedDate = picked);
-      if (_mechanicalId != null) {
-        _fetchDprWorkById();
+
+      // Check if selected date is today
+      if (_isToday(picked)) {
+        // For today, always create new DPR
+        await _autoCreateDprWork();
+      } else {
+        // For other dates, fetch existing DPRs
+        await _fetchDprListForDate(picked);
+
+        if (_dprListForSelectedDate.isNotEmpty) {
+          await _loadDprWork(_dprListForSelectedDate.first);
+        } else {
+          setState(() {
+            _mechanicalId = null;
+            _selectedDprId = null;
+            _dprNameController.text = 'New DPR Entry';
+            _pipeFittingOn = false;
+            _equipmentOn = false;
+            _showPipingMaterials = false;
+            _showEquipmentMaterials = false;
+          });
+        }
       }
-    }
-  }
-
-  void _toggleGlobalEditMode() {
-    setState(() {
-      _globalEditMode = !_globalEditMode;
-    });
-
-    if (_globalEditMode) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(
-          content: Text(_isToday(_selectedDate)
-              ? "Edit mode enabled - You can now modify today's DPR and change date"
-              : "Edit mode enabled - You can now modify DPR for ${_formatDate(_selectedDate)}"),
-          backgroundColor: Colors.green,
-          duration: const Duration(seconds: 2),
-          behavior: SnackBarBehavior.floating,
-        ),
-      );
-    } else {
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(
-          content: Text("Edit mode disabled"),
-          backgroundColor: Colors.grey,
-          duration: Duration(seconds: 1),
-          behavior: SnackBarBehavior.floating,
-        ),
-      );
     }
   }
 
@@ -379,7 +507,6 @@ class _AddDescriptionScreenState extends ConsumerState<AddDescriptionScreen>
   Widget build(BuildContext context) {
     super.build(context);
 
-    // Watch the providers for materials
     final pipingMaterials = ref.watch(pipingMaterialsProvider);
     final equipmentMaterials = ref.watch(equipmentMaterialsProvider);
 
@@ -387,6 +514,14 @@ class _AddDescriptionScreenState extends ConsumerState<AddDescriptionScreen>
     final hasEquipmentMaterials = equipmentMaterials.isNotEmpty;
     final shouldShowPiping = _pipeFittingOn && _showPipingMaterials && hasPipingMaterials;
     final shouldShowEquipment = _equipmentOn && _showEquipmentMaterials && hasEquipmentMaterials;
+
+    // Only show dropdown when:
+    // 1. In edit mode
+    // 2. Not today's date
+    // 3. DPR list exists for selected date
+    final shouldShowDropdown = _globalEditMode &&
+
+        _dprListForSelectedDate.isNotEmpty;
 
     return Scaffold(
       backgroundColor: Colors.grey[50],
@@ -429,54 +564,45 @@ class _AddDescriptionScreenState extends ConsumerState<AddDescriptionScreen>
                       const SizedBox(height: 16),
                       _buildDateSection(),
                       const SizedBox(height: 16),
-                      _buildDprInfoCard(),
+                      _buildDprInfoCard(shouldShowDropdown),
                       const SizedBox(height: 16),
                       _buildToggleSection(),
                       const SizedBox(height: 16),
 
+                      Column(
+                        children: [
+                          if (_pipeFittingOn && hasPipingMaterials)
+                            _buildMaterialToggleCard(
+                              'Pipe Fitting Materials',
+                              pipingMaterials.length,
+                              _showPipingMaterials,
+                                  () => _toggleMaterialVisibility(true),
+                            ),
 
+                          if (shouldShowPiping)
+                            ..._buildPipingMaterials(pipingMaterials),
 
+                          if (_equipmentOn && hasEquipmentMaterials)
+                            _buildMaterialToggleCard(
+                              'Equipment Materials',
+                              equipmentMaterials.length,
+                              _showEquipmentMaterials,
+                                  () => _toggleMaterialVisibility(false),
+                            ),
 
-                        Column(
-                          children: [
-                            // Piping materials toggle card
-                            if (_pipeFittingOn && hasPipingMaterials)
-                              _buildMaterialToggleCard(
-                                'Pipe Fitting Materials',
-                                pipingMaterials.length,
-                                _showPipingMaterials,
-                                    () => _toggleMaterialVisibility(true),
-                              ),
+                          if (shouldShowEquipment)
+                            ..._buildEquipmentMaterials(equipmentMaterials),
 
-                            // Piping materials list
-                            if (shouldShowPiping)
-                              ..._buildPipingMaterials(pipingMaterials),
+                          if (_pipeFittingOn && !hasPipingMaterials)
+                            _buildEmptyMaterialsCard('No piping materials available'),
 
-                            // Equipment materials toggle card
-                            if (_equipmentOn && hasEquipmentMaterials)
-                              _buildMaterialToggleCard(
-                                'Equipment Materials',
-                                equipmentMaterials.length,
-                                _showEquipmentMaterials,
-                                    () => _toggleMaterialVisibility(false),
-                              ),
+                          if (_equipmentOn && !hasEquipmentMaterials)
+                            _buildEmptyMaterialsCard('No equipment materials available'),
 
-                            // Equipment materials list
-                            if (shouldShowEquipment)
-                              ..._buildEquipmentMaterials(equipmentMaterials),
-
-                            // Show empty state if no materials but toggles are on
-                            if (_pipeFittingOn && !hasPipingMaterials)
-                              _buildEmptyMaterialsCard('No piping materials available'),
-
-                            if (_equipmentOn && !hasEquipmentMaterials)
-                              _buildEmptyMaterialsCard('No equipment materials available'),
-
-                            // Show initial instruction if nothing is loaded yet
-                            if (!_pipeFittingOn && !_equipmentOn && _initialDataLoaded)
-                              _buildEmptyState('Materials will appear here once loaded', Icons.downloading),
-                          ],
-                        ),
+                          if (!_pipeFittingOn && !_equipmentOn && _initialDataLoaded)
+                            _buildEmptyState('Materials will appear here once loaded', Icons.downloading),
+                        ],
+                      ),
 
                       const SizedBox(height: 100),
                     ],
@@ -746,7 +872,7 @@ class _AddDescriptionScreenState extends ConsumerState<AddDescriptionScreen>
     );
   }
 
-  Widget _buildDprInfoCard() {
+  Widget _buildDprInfoCard(bool shouldShowDropdown) {
     return Container(
       decoration: BoxDecoration(
         color: Colors.white,
@@ -763,7 +889,7 @@ class _AddDescriptionScreenState extends ConsumerState<AddDescriptionScreen>
         padding: const EdgeInsets.all(6),
         child: Column(
           children: [
-            _buildDprNameSection(),
+            _buildDprNameSection(shouldShowDropdown),
             const SizedBox(height: 16),
             _buildInputFields(),
           ],
@@ -772,7 +898,115 @@ class _AddDescriptionScreenState extends ConsumerState<AddDescriptionScreen>
     );
   }
 
-  Widget _buildDprNameSection() {
+  Widget _buildDprNameSection(bool shouldShowDropdown) {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        if (shouldShowDropdown)
+          _buildDprDropdown()
+        else
+          _buildRegularDprNameField(),
+      ],
+    );
+  }
+  Widget _buildDprDropdown() {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        const Text(
+          'Select DPR',
+          style: TextStyle(
+            fontSize: 12,
+            fontWeight: FontWeight.w600,
+            color: Colors.grey,
+          ),
+        ),
+        const SizedBox(height: 4),
+        Container(
+          decoration: BoxDecoration(
+            color: Colors.white,
+            borderRadius: BorderRadius.circular(10),
+            border: Border.all(color: Colors.grey[300]!),
+          ),
+          child: _isLoadingDprList
+              ? Padding(
+            padding: const EdgeInsets.symmetric(vertical: 16),
+            child: Center(
+              child: SizedBox(
+                width: 20,
+                height: 20,
+                child: CircularProgressIndicator(strokeWidth: 2),
+              ),
+            ),
+          )
+              : DropdownButtonHideUnderline(
+            child: DropdownButton<String>(
+              value: _selectedDprId,
+              isExpanded: true,
+              icon: const Icon(Icons.arrow_drop_down, color: Colors.blue),
+              elevation: 16,
+              style: const TextStyle(
+                fontSize: 16,
+                fontWeight: FontWeight.w600,
+                color: Colors.black,
+              ),
+              hint: const Text('Select DPR'),
+              onChanged: (String? newValue) {
+                if (newValue != null) {
+                  final selectedDpr = _dprListForSelectedDate
+                      .firstWhere((dpr) => dpr.id == newValue);
+                  _loadDprWork(selectedDpr);
+                }
+              },
+              items: _dprListForSelectedDate.map<DropdownMenuItem<String>>((DprModel dpr) {
+                return DropdownMenuItem<String>(
+                  value: dpr.id,
+                  child: Padding(
+                    padding: const EdgeInsets.symmetric(horizontal: 8),
+                    child: Text(
+                      dpr.dprName,
+                      maxLines: 1,
+                      overflow: TextOverflow.ellipsis,
+                    ),
+                  ),
+                );
+              }).toList(),
+            ),
+          ),
+        ),
+        const SizedBox(height: 8),
+        Row(
+          children: [
+            Expanded(
+              child: Text(
+                '${_dprListForSelectedDate.length} DPR(s) found for ${_formatDate(_selectedDate)}',
+                style: TextStyle(
+                  fontSize: 11,
+                  color: Colors.grey[600],
+                  fontStyle: FontStyle.italic,
+                ),
+              ),
+            ),
+            if (_isEditable)
+              TextButton.icon(
+                onPressed: () async {
+                  await _autoCreateDprWork();
+                  await _fetchDprListForDate(_selectedDate);
+                },
+                icon: const Icon(Icons.add, size: 16),
+                label: const Text('New DPR'),
+                style: TextButton.styleFrom(
+                  padding: const EdgeInsets.symmetric(horizontal: 8),
+                  minimumSize: Size.zero,
+                ),
+              ),
+          ],
+        ),
+      ],
+    );
+  }
+
+  Widget _buildRegularDprNameField() {
     return Row(
       children: [
         Expanded(
@@ -815,26 +1049,27 @@ class _AddDescriptionScreenState extends ConsumerState<AddDescriptionScreen>
           ),
         ),
         const SizedBox(width: 12),
-        Container(
-          decoration: BoxDecoration(
-            color: _editMode ? Colors.green[50] : Colors.blue[50],
-            borderRadius: BorderRadius.circular(10),
-          ),
-          child: IconButton(
-            onPressed: () {
-              if (_editMode && _dprNameController.text.trim().isEmpty) {
-                _showSnackBar('Please enter DPR name', isError: true);
-                return;
-              }
-              setState(() => _editMode = !_editMode);
-            },
-            icon: Icon(
-              _editMode ? Icons.check_circle : Icons.edit_rounded,
-              color: _editMode ? Colors.green[700] : Colors.blue[700],
-              size: 24,
+        if (_editMode)
+          Container(
+            decoration: BoxDecoration(
+              color: Colors.green[50],
+              borderRadius: BorderRadius.circular(10),
+            ),
+            child: IconButton(
+              onPressed: () {
+                if (_editMode && _dprNameController.text.trim().isEmpty) {
+                  _showSnackBar('Please enter DPR name', isError: true);
+                  return;
+                }
+                setState(() => _editMode = !_editMode);
+              },
+              icon: Icon(
+                _editMode ? Icons.check_circle : Icons.edit_rounded,
+                color: _editMode ? Colors.green[700] : Colors.blue[700],
+                size: 24,
+              ),
             ),
           ),
-        ),
       ],
     );
   }
@@ -988,18 +1223,24 @@ class _AddDescriptionScreenState extends ConsumerState<AddDescriptionScreen>
   List<Widget> _buildPipingMaterials(List<PipingItem> materials) {
     return materials.map((material) {
       return Padding(
-        key: ValueKey('piping_${material.id}'),
+        key: ValueKey(
+          material.id.isNotEmpty
+              ? 'piping_${material.id}'
+              : 'piping_${material.materialName}',
+        ),
+
         padding: const EdgeInsets.only(bottom: 12),
         child: MaterialCardWrapper(
-          isUpdating: false, // Simplified - remove update tracking
+          isUpdating: false,
           child: DynamicItemCard(
             quantity: material.qty.toString(),
             size: _sizeController.text,
-            length: material.length.toString(),
+            length: "",
             floor: _floorController.text,
             moc:  _mocController.text,
             image: material.image,
             sizeLabel: 'Size',
+            remark: material.remarks,
             lengthLabel: material.materialName,
             sizePlaceholder: _sizeController.text,
             lengthPlaceholder: material.uom,
@@ -1019,24 +1260,31 @@ class _AddDescriptionScreenState extends ConsumerState<AddDescriptionScreen>
   List<Widget> _buildEquipmentMaterials(List<EquipmentItem> materials) {
     return materials.map((material) {
       return Padding(
-        key: ValueKey('equipment_${material.id}'),
+        key: ValueKey(
+          material.id.isNotEmpty
+              ? 'equipment_${material.id}'
+              : 'equipment_${material.materialName}',
+        ),
+
         padding: const EdgeInsets.only(bottom: 12),
         child: MaterialCardWrapper(
-          isUpdating: false, // Simplified - remove update tracking
+          isUpdating: false,
           child: DynamicItemCard2(
             title: material.materialName,
             quantity: material.qty.toString(),
             image: material.image,
             floor: _floorController.text,
             moc:  _mocController.text,
+            size: _sizeController.text,
             ton: material.weight.toString(),
             meter: material.uom,
+            remark: material.remarks,
             onMocChanged: (val) => _onEquipmentFieldChanged(material.id, 'moc', val),
             onQtyChanged: (val) => _onEquipmentFieldChanged(material.id, 'quantity', val),
             onFloorChanged: (val) => _onEquipmentFieldChanged(material.id, 'floor', val),
             onTonChanged: (val) => _onEquipmentFieldChanged(material.id, 'ton', val),
             isEditable: _isEditable,
-            onRemark: () => _showRemarkDialog(material.id, material.remarks ?? '', isPiping: false),
+            onRemark: () => _showRemarkDialog(material.id, material.remarks ?? '', isPiping: false), onMeterChanged: (String p1) {  },
           ),
         ),
       );
@@ -1082,20 +1330,37 @@ class _AddDescriptionScreenState extends ConsumerState<AddDescriptionScreen>
     );
   }
 
-  void _updateMaterialRemark(String materialId, String remark, {bool isPiping = true}) {
-    // In a real app, you would update this in your state management
-    // For now, just show a snackbar
-    _showSnackBar('Remark saved for material');
-  }
-
   void _onPipingFieldChanged(String materialId, String field, String value) {
     if (!_isEditable) {
       _showEditRequiredMessage();
       return;
     }
 
-    // In a real app, you would update the material in your state management
-    // For now, just print the change
+    final pipingMaterials = ref.read(pipingMaterialsProvider);
+    final updatedMaterials = pipingMaterials.map((material) {
+      if (material.id == materialId) {
+        switch (field) {
+          case 'quantity':
+            return material.copyWith(qty: material.qty);
+          case 'size':
+          // Size is handled globally via _sizeController
+            return material;
+          case 'length':
+            return material.copyWith(length: double.tryParse(value) ?? material.length);
+          case 'floor':
+          // Floor is handled globally via _floorController
+            return material;
+          case 'moc':
+          // MOC is handled globally via _mocController
+            return material;
+          default:
+            return material;
+        }
+      }
+      return material;
+    }).toList();
+
+    ref.read(pipingMaterialsProvider.notifier).state = updatedMaterials;
     print('Piping material $materialId: $field changed to $value');
   }
 
@@ -1105,9 +1370,90 @@ class _AddDescriptionScreenState extends ConsumerState<AddDescriptionScreen>
       return;
     }
 
-    // In a real app, you would update the material in your state management
-    // For now, just print the change
+    final equipmentMaterials = ref.read(equipmentMaterialsProvider);
+    final updatedMaterials = equipmentMaterials.map((material) {
+      if (material.id == materialId) {
+        switch (field) {
+          case 'quantity':
+            return material.copyWith(qty: material.qty);
+          case 'ton':
+            return material.copyWith(weight: double.tryParse(value) ?? material.weight);
+          case 'floor':
+          // Floor is handled globally via _floorController
+            return material;
+          case 'moc':
+          // MOC is handled globally via _mocController
+            return material;
+          default:
+            return material;
+        }
+      }
+      return material;
+    }).toList();
+
+    ref.read(equipmentMaterialsProvider.notifier).state = updatedMaterials;
     print('Equipment material $materialId: $field changed to $value');
+  }
+
+  void _updateMaterialRemark(String materialId, String remark, {bool isPiping = true}) {
+    if (isPiping) {
+      final pipingMaterials = ref.read(pipingMaterialsProvider);
+      final updatedMaterials = pipingMaterials.map((material) {
+        if (material.id == materialId) {
+          return material.copyWith(remarks: remark);
+        }
+        return material;
+      }).toList();
+      ref.read(pipingMaterialsProvider.notifier).state = updatedMaterials;
+    } else {
+      final equipmentMaterials = ref.read(equipmentMaterialsProvider);
+      final updatedMaterials = equipmentMaterials.map((material) {
+        if (material.id == materialId) {
+          return material.copyWith(remarks: remark);
+        }
+        return material;
+      }).toList();
+      ref.read(equipmentMaterialsProvider.notifier).state = updatedMaterials;
+    }
+
+    _showSnackBar('Remark saved for material');
+  }
+  void _toggleGlobalEditMode() {
+    setState(() {
+      _globalEditMode = !_globalEditMode;
+    });
+
+    if (_globalEditMode) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text(_isToday(_selectedDate)
+              ? "Edit mode enabled - You can now modify today's DPR and change date"
+              : "Edit mode enabled - You can now modify DPR for ${_formatDate(_selectedDate)}"),
+          backgroundColor: Colors.green,
+          duration: const Duration(seconds: 2),
+          behavior: SnackBarBehavior.floating,
+        ),
+      );
+
+      // When enabling edit mode for non-today dates, fetch DPR list
+
+        _fetchDprListForDate(_selectedDate);
+
+    } else {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text("Edit mode disabled"),
+          backgroundColor: Colors.grey,
+          duration: Duration(seconds: 1),
+          behavior: SnackBarBehavior.floating,
+        ),
+      );
+
+      // If disabling edit mode and date is today, refresh to new DPR
+      if (_isToday(_selectedDate)) {
+        _autoCreateDprWork();
+      }
+    }
   }
 
   Future<void> _handleSubmitFields() async {
@@ -1117,10 +1463,6 @@ class _AddDescriptionScreenState extends ConsumerState<AddDescriptionScreen>
       _showEditRequiredMessage();
       return;
     }
-
-
-
-
 
     if (_isSubmitting) return;
 
@@ -1134,6 +1476,47 @@ class _AddDescriptionScreenState extends ConsumerState<AddDescriptionScreen>
         }
       }
 
+      // Get current piping and equipment materials from providers
+      final pipingMaterials = ref.read(pipingMaterialsProvider);
+      final equipmentMaterials = ref.read(equipmentMaterialsProvider);
+
+      // Transform piping materials to API format
+      final pipingData = pipingMaterials.map((material) {
+        return {
+          'id': material.id,
+          'materialName': material.materialName,
+          'qty': material.qty, // Send as integer, not double
+          'size': _sizeController.text.trim(),
+          'length': material.length, // Keep as number
+          'uom': material.uom,
+          'location': _floorController.text.trim(),
+          'moc': _mocController.text.trim(),
+          'calculationCategory': material.calculationCategory, // Required field
+          'designation': ['piping'],
+          // Don't send the image field - it's a local asset path
+          if (material.remarks != null && material.remarks!.isNotEmpty)
+            'remarks': material.remarks,
+        };
+      }).toList();
+
+      // Transform equipment materials to API format
+      final equipmentData = equipmentMaterials.map((material) {
+        return {
+          'id': material.id,
+          'materialName': material.materialName,
+          'qty': material.qty, // Send as integer, not double
+          'weight': material.weight, // Keep as number
+          'uom': material.uom,
+          'location': _floorController.text.trim(),
+          'moc': _mocController.text.trim(),
+          'calculationCategory': material.calculationCategory, // Required field
+          'designation': ['equipment'],
+          // Don't send the image field - it's a local asset path
+          if (material.remarks != null && material.remarks!.isNotEmpty)
+            'remarks': material.remarks,
+        };
+      }).toList();
+
       final updateData = {
         'dprName': _dprNameController.text.trim(),
         'moc': _mocController.text.trim(),
@@ -1141,20 +1524,49 @@ class _AddDescriptionScreenState extends ConsumerState<AddDescriptionScreen>
         'location': _floorController.text.trim(),
         'plant': _plantController.text.trim(),
         'date': _selectedDate.toIso8601String(),
+        if (pipingData.isNotEmpty) 'piping': pipingData,
+        if (equipmentData.isNotEmpty) 'equipment': equipmentData,
       };
+
+      print('Sending update data: ${updateData}');
+
+      print('----- BEFORE SAVE (PROVIDER STATE) -----');
+
+      for (final p in pipingMaterials) {
+        print({
+          'type': 'piping',
+          'id': p.id,
+          'name': p.materialName,
+          'qty': p.qty,
+          'length': p.length,
+          'uom': p.uom,
+          'remarks': p.remarks,
+        });
+      }
+
+      for (final e in equipmentMaterials) {
+        print({
+          'type': 'equipment',
+          'id': e.id,
+          'name': e.materialName,
+          'qty': e.qty,
+          'weight': e.weight,
+          'uom': e.uom,
+          'remarks': e.remarks,
+        });
+      }
+
+      print('---------------------------------------');
 
       await ref.read(dprProvider.notifier).updateDprWork(
         data: updateData,
         mechanicalId: _mechanicalId!,
       );
 
-
       WidgetsBinding.instance.addPostFrameCallback((_) {
         if (mounted && !_isDisposed) {
-          // Pop until we reach the team route
           int count = 0;
-          if(!_globalEditMode)Navigator.of(context).popUntil((_) => count++ >= 4);
-
+          if(!_globalEditMode) Navigator.of(context).popUntil((_) => count++ >= 4);
 
           if (!_isToday(_selectedDate)) {
             setState(() {
@@ -1166,6 +1578,7 @@ class _AddDescriptionScreenState extends ConsumerState<AddDescriptionScreen>
 
     } catch (e) {
       if (mounted && !_isDisposed) {
+        print('Error details: $e');
         _showSnackBar('Failed to save DPR: $e', isError: true);
       }
     } finally {
@@ -1174,7 +1587,6 @@ class _AddDescriptionScreenState extends ConsumerState<AddDescriptionScreen>
       }
     }
   }
-
   @override
   void dispose() {
     _isDisposed = true;

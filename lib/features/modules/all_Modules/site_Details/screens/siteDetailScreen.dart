@@ -359,6 +359,64 @@ class _SiteDetailScreenState extends ConsumerState<SiteDetailScreen> {
     final gstRegex = RegExp(r'^[0-9]{2}[A-Z]{5}[0-9]{4}[A-Z]{1}[1-9A-Z]{1}Z[0-9A-Z]{1}$');
     return gstRegex.hasMatch(gst.toUpperCase());
   }
+  Future<void> _confirmDeleteSite() async {
+    final confirm = await showDialog<bool>(
+      context: context,
+      builder: (context) => AlertDialog(
+        title: const Text("Delete Site"),
+        content: const Text(
+          "Are you sure you want to delete this site?\n\n"
+              "This action cannot be undone and all related data may be lost.",
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(context, false),
+            child: const Text("Cancel"),
+          ),
+          ElevatedButton(
+            style: ElevatedButton.styleFrom(
+              backgroundColor: Colors.red,
+            ),
+            onPressed: () => Navigator.pop(context, true),
+            child: const Text("Delete"),
+          ),
+        ],
+      ),
+    );
+
+    if (confirm == true) {
+      _deleteSite();
+    }
+  }
+  Future<void> _deleteSite() async {
+    try {
+      setState(() => isLoading = true);
+
+      await SiteAPI.delete(widget.site!.id);
+
+      // refresh list
+      ref.read(siteProvider.notifier).fetchSites();
+
+      if (!mounted) return;
+
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text("✅ Site deleted successfully")),
+      );
+
+      Navigator.pop(context); // leave detail screen
+
+
+    } on DioException catch (e) {
+      final msg = _handleDioError(e);
+      _showSnackBar(msg, isError: true);
+    } catch (e) {
+      _showSnackBar("Failed to delete site", isError: true);
+    } finally {
+      if (mounted) setState(() => isLoading = false);
+    }
+  }
+
+
 
   @override
   Widget build(BuildContext context) {
@@ -387,7 +445,30 @@ class _SiteDetailScreenState extends ConsumerState<SiteDetailScreen> {
               key: _formKey,
               child: Column(
                 children: [
+                  if (widget.site != null) ...[
+                    Container(
+                      width: double.infinity,
+                      margin: const EdgeInsets.only(bottom: 16),
+                      child: OutlinedButton.icon(
+                        icon: const Icon(Icons.delete_outline, color: Colors.red),
+                        label: const Text(
+                          "Delete Site",
+                          style: TextStyle(color: Colors.red, fontSize: 16),
+                        ),
+                        style: OutlinedButton.styleFrom(
+                          side: const BorderSide(color: Colors.red),
+                          padding: const EdgeInsets.symmetric(vertical: 14),
+                          shape: RoundedRectangleBorder(
+                            borderRadius: BorderRadius.circular(12),
+                          ),
+                        ),
+                        onPressed: _confirmDeleteSite,
+                      ),
+                    ),
+                  ],
+
                   // Image Upload
+
                   Align(
                     alignment: Alignment.topLeft,
                     child: Text(

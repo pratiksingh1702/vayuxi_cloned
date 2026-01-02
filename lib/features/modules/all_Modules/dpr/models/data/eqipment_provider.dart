@@ -1,7 +1,6 @@
-// lib/providers/equipment_materials_provider.dart
-
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../equipmentModel.dart';
+import '../hive_storage_service.dart';
 import 'equipment_material_data.dart';
 
 // Provider for all equipment materials with state
@@ -10,33 +9,58 @@ final equipmentMaterialsProvider = StateNotifierProvider<EquipmentMaterialsNotif
 });
 
 class EquipmentMaterialsNotifier extends StateNotifier<List<EquipmentItem>> {
-  EquipmentMaterialsNotifier() : super(EquipmentMaterialsData.materials);
+  EquipmentMaterialsNotifier() : super([]) {
+    _loadMaterials();
+  }
+
+  // Load materials from Hive
+  Future<void> _loadMaterials() async {
+    try {
+      final materials = await HiveStorageService.getAllEquipmentMaterials();
+      if (materials.isEmpty) {
+        // If no data in Hive, load from default data
+        state = EquipmentMaterialsData.materials;
+        // Save default data to Hive
+        await HiveStorageService.saveAllEquipmentMaterials(state);
+      } else {
+        state = materials;
+      }
+    } catch (e) {
+      print('Error loading equipment materials: $e');
+      state = EquipmentMaterialsData.materials;
+    }
+  }
 
   // Add a new equipment material
-  void addEquipmentMaterial(EquipmentItem material) {
+  Future<void> addEquipmentMaterial(EquipmentItem material) async {
     state = [...state, material];
+    await HiveStorageService.addEquipmentMaterial(material);
   }
 
   // Edit an existing equipment material
-  void editEquipmentMaterial(String id, EquipmentItem updatedMaterial) {
-    state = state.map((material) {
+  Future<void> editEquipmentMaterial(String id, EquipmentItem updatedMaterial) async {
+    final newState = state.map((material) {
       if (material.id == id) {
         return updatedMaterial;
       }
       return material;
     }).toList();
+
+    state = newState;
+    await HiveStorageService.updateEquipmentMaterial(id, updatedMaterial);
   }
 
   // Delete an equipment material
-  void deleteEquipmentMaterial(String id) {
+  Future<void> deleteEquipmentMaterial(String id) async {
     state = state.where((material) => material.id != id).toList();
+    await HiveStorageService.deleteEquipmentMaterial(id);
   }
 
   // Update specific fields of a material
-  void updateEquipmentMaterialField(String id, Map<String, dynamic> updates) {
-    state = state.map((material) {
+  Future<void> updateEquipmentMaterialField(String id, Map<String, dynamic> updates) async {
+    final updatedMaterials = state.map((material) {
       if (material.id == id) {
-        return material.copyWith(
+        final updatedMaterial = material.copyWith(
           materialName: updates['materialName'] ?? material.materialName,
           qty: updates['qty'] ?? material.qty,
           uom: updates['uom'] ?? material.uom,
@@ -54,13 +78,25 @@ class EquipmentMaterialsNotifier extends StateNotifier<List<EquipmentItem>> {
           designation: updates['designation'] ?? material.designation,
           image: updates['image'] ?? material.image,
         );
+
+        // Update in Hive
+        HiveStorageService.updateEquipmentMaterial(id, updatedMaterial);
+
+        return updatedMaterial;
       }
       return material;
     }).toList();
+
+    state = updatedMaterials;
+  }
+
+  // Refresh materials from storage
+  Future<void> refreshMaterials() async {
+    await _loadMaterials();
   }
 }
 
-// Provider to get a specific equipment material by ID
+// Other providers remain the same...
 final equipmentMaterialByIdProvider = Provider.family<EquipmentItem?, String>((ref, id) {
   final materials = ref.watch(equipmentMaterialsProvider);
   try {
@@ -70,7 +106,6 @@ final equipmentMaterialByIdProvider = Provider.family<EquipmentItem?, String>((r
   }
 });
 
-// Provider to filter equipment materials by search query
 final filteredEquipmentMaterialsProvider = Provider.family<List<EquipmentItem>, String>((ref, query) {
   final materials = ref.watch(equipmentMaterialsProvider);
   if (query.isEmpty) return materials;
@@ -83,7 +118,6 @@ final filteredEquipmentMaterialsProvider = Provider.family<List<EquipmentItem>, 
   }).toList();
 });
 
-// Provider to get equipment materials count
 final equipmentMaterialsCountProvider = Provider<int>((ref) {
   final materials = ref.watch(equipmentMaterialsProvider);
   return materials.length;

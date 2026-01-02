@@ -471,6 +471,7 @@ class _InventorySelectionPageState
       backgroundColor: AppColors.lightBlue,
       appBar: CustomAppBar(title: "Inventory usage"),
       body: BottomButtonWrapper(
+
         child: SingleChildScrollView(
           child: Padding(
             padding: const EdgeInsets.all(16),

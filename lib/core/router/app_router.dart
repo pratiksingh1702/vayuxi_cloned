@@ -7,6 +7,7 @@ import 'package:untitled2/features/modules/all_Modules/summary/screens/summaru_s
 
 
 import '../../features/auth/provider/auth_provider.dart';
+import '../../features/auth/screens/TrialScreen.dart';
 import '../../features/auth/screens/login.dart';
 import '../../features/auth/screens/manpower_login_Screen.dart';
 import '../../features/auth/screens/sign_up.dart';
@@ -33,6 +34,7 @@ import '../../features/modules/all_Modules/dpr/screens/dprTeamPage.dart';
 import '../../features/modules/all_Modules/dpr/screens/widgets/moc_selection_page.dart';
 import '../../features/modules/all_Modules/expense/screens/add-exp/add_expense.dart';
 import '../../features/modules/all_Modules/expense/screens/expense_screen.dart';
+import '../../features/modules/all_Modules/expense/screens/view_sheet.dart';
 import '../../features/modules/all_Modules/inventory/screens/add_bulk_inven.dart';
 import '../../features/modules/all_Modules/inventory/screens/add_inven.dart';
 import '../../features/modules/all_Modules/inventory/screens/inv_usage/inv_usage.dart';
@@ -55,6 +57,8 @@ import '../../features/modules/all_Modules/site_Details/screens/view_add_site.da
 import '../../features/modules/all_Modules/team/screens/addTeam.dart';
 import '../../features/modules/all_Modules/team/screens/teamsList.dart';
 import '../../features/modules/all_Modules/team/screens/view_add.dart';
+import '../../features/pricing/Screens/subsciption_screen.dart';
+import '../../features/pricing/providers/razorpay_provider.dart';
 import '../../features/profile_page/screens/profilePage.dart';
 import '../../features/modules/screen/module_screen.dart';
 import '../../features/modules/screen/module_detail.dart';
@@ -79,33 +83,65 @@ final appRouterProvider = Provider<GoRouter>((ref) {
       final manpowerLoggingIn = state.matchedLocation == '/manpower-login';
 
       final atSplash = state.matchedLocation == Routes.splash;
+      final atTrial = state.matchedLocation == '/trial';
 
-      print('🔄 ROUTER REDIRECT - isLoading: $isLoading, loggedIn: $loggedIn, location: ${state.matchedLocation}');
+      print(
+        '🔄 ROUTER REDIRECT - isLoading: $isLoading, loggedIn: $loggedIn, location: ${state.matchedLocation}',
+      );
 
-      // If still loading, stay at splash
+      // 1️⃣ EXISTING: If still loading, stay at splash
       if (isLoading && !atSplash) {
         return Routes.splash;
       }
 
-      // Define public routes that don't require authentication
+      // 2️⃣ EXISTING: Public routes
       final publicRoutes = [
         Routes.login,
         '/register',
         '/manpower-login',
       ];
 
-      // If not loading and not logged in, only allow access to public routes
+      // 3️⃣ EXISTING: Not logged in → force login
       if (!isLoading && !loggedIn && !publicRoutes.contains(state.matchedLocation)) {
         return Routes.login;
       }
 
-      // If logged in and trying to access login/splash, go to appropriate destination
+      // 🔥 NEW: Logged in → check subscription
+      if (loggedIn) {
+        final subscriptionAsync = ref.watch(currentSubscriptionProvider);
+
+        return subscriptionAsync.when(
+          loading: () => null, // wait silently
+          error: (_, __) {
+            // fail-safe: no subscription → trial
+            if (!atTrial) return '/trial';
+            return null;
+          },
+          data: (subscription) {
+            // 🚫 NO SUBSCRIPTION → FORCE TRIAL
+            if (!subscription.hasSubscription && !atTrial) {
+              return '/trial';
+            }
+
+            // ✅ HAS SUBSCRIPTION → NORMAL FLOW
+            if (subscription.hasSubscription &&
+                (loggingIn || manpowerLoggingIn || atSplash || atTrial)) {
+              return Routes.workCategory;
+            }
+
+            return null;
+          },
+        );
+      }
+
+      // 4️⃣ EXISTING: Logged in & hitting login/splash
       if (!isLoading && loggedIn && (loggingIn || manpowerLoggingIn || atSplash)) {
         return Routes.workCategory;
       }
 
       return null;
     },
+
     routes: [
       GoRoute(
         path: Routes.splash,
@@ -136,9 +172,12 @@ final appRouterProvider = Provider<GoRouter>((ref) {
       GoRoute(
         path: '/site-list/:module',
         builder: (context, state) {
-          final module = state.pathParameters['module'] ?? 'details';
+          final module = state.pathParameters['module'] ?? 'site';
+
+          final bool show = module == 'site';
 
           return SiteListScreen(
+            show: show,
             pageBuilder: (site) {
               switch (module) {
                 case 'rate':
@@ -152,7 +191,7 @@ final appRouterProvider = Provider<GoRouter>((ref) {
                 case 'siteSalary':
                   return SiteSalaryScreen(siteModel: site);
                 case 'expense':
-                  return ExpenseListScreen(siteId: site.id);
+                  return ExpenseEntrySelectCardGrid();
                   case 'addMoc':
                   return DprSelectCardGrid();
                 case 'dprReport':
@@ -184,6 +223,11 @@ final appRouterProvider = Provider<GoRouter>((ref) {
         name: 'register',
         builder: (context, state) => const RegisterScreen(),
       ),
+      GoRoute(
+        path: '/trial',
+        builder: (context, state) => const TrialScreen(),
+      ),
+
       GoRoute(
         path: '/site',
         name: 'site',
@@ -264,7 +308,7 @@ final appRouterProvider = Provider<GoRouter>((ref) {
       GoRoute(
         path: '/subscription',
         builder: (context, state) {
-          return GetPremiumScreen();
+          return SubscriptionScreen();
 
 
         },

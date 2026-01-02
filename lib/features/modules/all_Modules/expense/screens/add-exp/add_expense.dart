@@ -111,7 +111,7 @@ class _CategoryGrid extends StatelessWidget {
         'color': Colors.blue,
       },
       {
-        'type': 'Miscllaneous',
+        'type': 'miscellaneous',
         'icon': Icons.miscellaneous_services,
         'color': Colors.blue,
       },

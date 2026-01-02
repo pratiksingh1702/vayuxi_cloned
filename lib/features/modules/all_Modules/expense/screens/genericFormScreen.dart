@@ -4,15 +4,18 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:untitled2/core/utlis/colors/colors.dart';
 import 'package:untitled2/core/utlis/widgets/Button_wrapper.dart';
 import 'package:untitled2/core/utlis/widgets/custom_appBar.dart';
-
+import 'package:untitled2/features/modules/all_Modules/rate/data/rateApi.dart';
 import 'package:untitled2/features/modules/all_Modules/site_Details/providers/site_current_provider.dart';
 import 'package:untitled2/typeProvider/type_provider.dart';
 import '../../../../../core/utlis/widgets/buttons.dart';
 import '../../../../../core/utlis/widgets/fields/custom_textField.dart';
+import '../../../../../core/utlis/widgets/fields/searchableDropdown.dart';
+
 import '../../Manpower Details/model/manpower_model.dart';
 import '../../Manpower Details/service/manPowerProvider.dart';
 import '../model/expense_model.dart';
 import '../service/expense_service.dart';
+
 
 class ExpenseFormScreen extends ConsumerStatefulWidget {
   final String siteId;
@@ -44,7 +47,9 @@ class _ExpenseFormScreenState extends ConsumerState<ExpenseFormScreen> {
   final _invoiceNumberController = TextEditingController();
   final _hardwareShopController = TextEditingController();
   final _quantityController = TextEditingController(text: "1");
-  final _monthController = TextEditingController();
+  final _rateController = TextEditingController();
+  final _balanceController = TextEditingController();
+  String? _selectedUOM;
 
   // Travel specific
   final _placeController = TextEditingController();
@@ -56,34 +61,43 @@ class _ExpenseFormScreenState extends ConsumerState<ExpenseFormScreen> {
   bool _isLoading = false;
   bool get _isEditing => widget.expenseId != null;
 
-  // Month options for dropdown
-  final List<String> _months = [
-    'January',
-    'February',
-    'March',
-    'April',
-    'May',
-    'June',
-    'July',
-    'August',
-    'September',
-    'October',
-    'November',
-    'December'
-  ];
+  // UOM list
+  List<String> _uomList = [];
+  bool _isLoadingUOM = false;
 
   @override
   void initState() {
     super.initState();
-    // Set current date
     _selectedDate = DateTime.now();
     _loadExpenseData();
+
     // Fetch manpower for advance dropdown
     if (widget.expenseType == 'advance') {
       _fetchManpower();
     }
+
+    // Fetch UOM for material & tools
+    if (widget.expenseType == 'material_tools') {
+      _fetchUOM();
+    }
   }
 
+  Future<void> _fetchUOM() async {
+    setState(() => _isLoadingUOM = true);
+    try {
+      final uomData = await RateApiClient().getRateUOM();
+      setState(() {
+        _uomList = uomData.map((item) => item['name'].toString()).toList();
+      });
+    } catch (e) {
+      print('Error fetching UOM: $e');
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text("Failed to load UOM options: $e")),
+      );
+    } finally {
+      setState(() => _isLoadingUOM = false);
+    }
+  }
   void _loadExpenseData() {
     if (_isEditing && widget.expense != null) {
       final expense = widget.expense!;
@@ -91,7 +105,6 @@ class _ExpenseFormScreenState extends ConsumerState<ExpenseFormScreen> {
       _remarksController.text = expense.remarks ?? '';
       _selectedDate = expense.date;
 
-      // Load amount if exists
       if (expense.amount != null) {
         _amountController.text = expense.amount!.toString();
       }
@@ -106,13 +119,18 @@ class _ExpenseFormScreenState extends ConsumerState<ExpenseFormScreen> {
       if (expense.quantity != null) {
         _quantityController.text = expense.quantity!.toString();
       }
-      if (expense.month != null) {
-        _monthController.text = expense.month!;
+      if (expense.rate != null) {
+        _rateController.text = expense.rate!.toString();
+      }
+      if (expense.balance != null) {
+        _balanceController.text = expense.balance!.toString();
+      }
+      if (expense.uom != null) {
+        _selectedUOM = expense.uom;
       }
       if (expense.place != null) {
         _placeController.text = expense.place!;
       }
-      // Note: For manpower, we would need to fetch and match from API
     }
   }
 
@@ -139,7 +157,7 @@ class _ExpenseFormScreenState extends ConsumerState<ExpenseFormScreen> {
       'food': 'Food',
       'accommodation': 'Accommodation',
       'advance': 'Advance',
-      'Miscllaneous': 'Miscellaneous',
+      'miscellaneous': 'miscellaneous',
     };
     return names[type] ?? type;
   }
@@ -159,7 +177,6 @@ class _ExpenseFormScreenState extends ConsumerState<ExpenseFormScreen> {
   }
 
   Map<String, dynamic> _buildExpenseData() {
-    // Base data for all types
     final baseData = {
       'expenseType': widget.expenseType,
       'description': _descriptionController.text.trim(),
@@ -167,7 +184,6 @@ class _ExpenseFormScreenState extends ConsumerState<ExpenseFormScreen> {
       'remarks': _remarksController.text.trim(),
     };
 
-    // Add type-specific fields
     switch (widget.expenseType) {
       case 'material_tools':
         return {
@@ -175,7 +191,9 @@ class _ExpenseFormScreenState extends ConsumerState<ExpenseFormScreen> {
           'invoiceNumber': _invoiceNumberController.text.trim(),
           'hardwareShop': _hardwareShopController.text.trim(),
           'quantity': _quantityController.text.isNotEmpty ? int.parse(_quantityController.text) : 1,
-          'month': _monthController.text.trim(),
+          'rate': _rateController.text.isNotEmpty ? double.parse(_rateController.text) : 0.0,
+          'balance': _balanceController.text.isNotEmpty ? double.parse(_balanceController.text) : 0.0,
+          'uom': _selectedUOM ?? '',
           'year': DateTime.now().year,
         };
 
@@ -189,13 +207,12 @@ class _ExpenseFormScreenState extends ConsumerState<ExpenseFormScreen> {
       case 'food':
       case 'accommodation':
       case 'advance':
-      case 'Miscllaneous':
+      case 'miscellaneous':
         final data = {
           ...baseData,
           'amount': _amountController.text.isNotEmpty ? double.parse(_amountController.text) : 0.0,
         };
 
-        // Add manpower ID for advance if selected
         if (widget.expenseType == 'advance' && _selectedManpower != null) {
           data['manpowerId'] = _selectedManpower!.id as Object;
         }
@@ -220,6 +237,14 @@ class _ExpenseFormScreenState extends ConsumerState<ExpenseFormScreen> {
     if (widget.expenseType != 'material_tools' && _amountController.text.isEmpty) {
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(content: Text("Please enter amount")),
+      );
+      return;
+    }
+
+    // Validate UOM for material & tools
+    if (widget.expenseType == 'material_tools' && (_selectedUOM == null || _selectedUOM!.isEmpty)) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text("Please select UOM")),
       );
       return;
     }
@@ -311,8 +336,8 @@ class _ExpenseFormScreenState extends ConsumerState<ExpenseFormScreen> {
         return _buildAccommodationFields();
       case 'advance':
         return _buildAdvanceFields();
-      case 'Miscllaneous':
-        return _buildMiscellaneousFields();
+      case 'miscellaneous':
+        return _buildmiscellaneousFields();
       default:
         return _buildCommonFields();
     }
@@ -417,45 +442,57 @@ class _ExpenseFormScreenState extends ConsumerState<ExpenseFormScreen> {
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
                   const Text(
-                    "Month*",
+                    "UOM*",
                     style: TextStyle(
                       fontWeight: FontWeight.bold,
                       fontSize: 14,
                     ),
                   ),
                   const SizedBox(height: 4),
-                  Container(
-                    padding: const EdgeInsets.symmetric(horizontal: 12),
+                  _isLoadingUOM
+                      ? Container(
+                    height: 50,
                     decoration: BoxDecoration(
                       color: Colors.white,
                       borderRadius: BorderRadius.circular(8),
                       border: Border.all(color: Colors.grey.shade300),
                     ),
-                    child: DropdownButtonHideUnderline(
-                      child: DropdownButton<String>(
-                        value: _monthController.text.isNotEmpty ? _monthController.text : null,
-                        isExpanded: true,
-                        hint: const Text("Select Month"),
-                        items: _months.map((String month) {
-                          return DropdownMenuItem<String>(
-                            value: month,
-                            child: Text(month),
-                          );
-                        }).toList(),
-                        onChanged: (String? newValue) {
-                          if (newValue != null) {
-                            setState(() {
-                              _monthController.text = newValue;
-                            });
-                          }
-                        },
-                      ),
+                    child: const Center(child: Text("Loading...")),
+                  )
+                      : SearchableDropdown(
+                    data: _uomList,
+                    value: _selectedUOM,
+                    placeholder: "Select UOM",
+                    onSelect: (value) {
+                      setState(() {
+                        _selectedUOM = value;
+                      });
+                    },
+                    containerDecoration: BoxDecoration(
+                      color: Colors.white,
+                      borderRadius: BorderRadius.circular(8),
+                      border: Border.all(color: Colors.grey.shade300),
                     ),
                   ),
                 ],
               ),
             ),
           ],
+        ),
+        const SizedBox(height: 16),
+        CustomTextField(
+          label: "Rate (Rs.)",
+          isRequired: true,
+          controller: _rateController,
+          hint: "0.00",
+          keyboardType: TextInputType.number,
+        ),
+        const SizedBox(height: 16),
+        CustomTextField(
+          label: "Invoice Balance (Rs.)",
+          controller: _balanceController,
+          hint: "0.00",
+          keyboardType: TextInputType.number,
         ),
         const SizedBox(height: 16),
         CustomTextField(
@@ -569,7 +606,6 @@ class _ExpenseFormScreenState extends ConsumerState<ExpenseFormScreen> {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        // Manpower Selection Dropdown
         Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
@@ -652,7 +688,7 @@ class _ExpenseFormScreenState extends ConsumerState<ExpenseFormScreen> {
     );
   }
 
-  Widget _buildMiscellaneousFields() {
+  Widget _buildmiscellaneousFields() {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
@@ -712,7 +748,8 @@ class _ExpenseFormScreenState extends ConsumerState<ExpenseFormScreen> {
     _invoiceNumberController.dispose();
     _hardwareShopController.dispose();
     _quantityController.dispose();
-    _monthController.dispose();
+    _rateController.dispose();
+    _balanceController.dispose();
     _placeController.dispose();
     super.dispose();
   }
@@ -757,7 +794,6 @@ class _ExpenseFormScreenState extends ConsumerState<ExpenseFormScreen> {
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  // Date Field (Common for all types)
                   const Text(
                     "Select Date*",
                     style: TextStyle(
@@ -799,8 +835,6 @@ class _ExpenseFormScreenState extends ConsumerState<ExpenseFormScreen> {
                     ),
                   ),
                   const SizedBox(height: 20),
-
-                  // Dynamic Form Fields
                   Expanded(
                     child: SingleChildScrollView(
                       child: _buildFormFields(),
@@ -816,5 +850,3 @@ class _ExpenseFormScreenState extends ConsumerState<ExpenseFormScreen> {
     );
   }
 }
-
-// expense_model.dart - Update with new fields

@@ -1,12 +1,9 @@
-// lib/data/equipment_materials_data.dart
-
 import '../equipmentModel.dart';
-
 
 class EquipmentMaterialsData {
   static final List<EquipmentItem> materials = [
     EquipmentItem(
-      id: '694d5780bc4295c2c445686b',
+      id: '6950b367d5e7fb761548d927',
       materialName: 'Reactor,Tank,Equipment Erection & Alignment',
       image: 'assets/images/equipment/reactortankequipment_erection_alignment.webp',
       qty: 1,
@@ -23,9 +20,10 @@ class EquipmentMaterialsData {
       location: 'sector 23',
       plant: 'plant',
       designation: ['equipment'],
+      calculationCategory: 'A',
     ),
     EquipmentItem(
-      id: '694d5780bc4295c2c445686c',
+      id: '6950b367d5e7fb761548d928',
       materialName: 'Reactor,Tank,Equipment Dismantling',
       image: 'assets/images/equipment/reactortankequipment_dismantling.webp',
       qty: 1,
@@ -42,9 +40,10 @@ class EquipmentMaterialsData {
       location: 'sector 23',
       plant: 'plant',
       designation: ['equipment'],
+      calculationCategory: 'A',
     ),
     EquipmentItem(
-      id: '694d5780bc4295c2c445686d',
+      id: '6950b367d5e7fb761548d929',
       materialName: 'HDPE Scrubber Erection & Alignment',
       image: 'assets/images/equipment/hdpe_scrubber_erection_alignment.webp',
       qty: 1,
@@ -61,9 +60,10 @@ class EquipmentMaterialsData {
       location: 'sector 23',
       plant: 'plant',
       designation: ['equipment'],
+      calculationCategory: 'C',
     ),
     EquipmentItem(
-      id: '694d5780bc4295c2c445686e',
+      id: '6950b367d5e7fb761548d92a',
       materialName: 'HDPE Scrubber Dismantling',
       image: 'assets/images/equipment/hdpe_scrubber_dismantling.webp',
       qty: 1,
@@ -80,9 +80,10 @@ class EquipmentMaterialsData {
       location: 'sector 23',
       plant: 'plant',
       designation: ['equipment'],
+      calculationCategory: 'C',
     ),
     EquipmentItem(
-      id: '694d5780bc4295c2c445686f',
+      id: '6950b367d5e7fb761548d92b',
       materialName: 'Condensor Erection & Alignment',
       image: 'assets/images/equipment/condensor_erection_alignment.webp',
       qty: 1,
@@ -99,9 +100,10 @@ class EquipmentMaterialsData {
       location: 'sector 23',
       plant: 'plant',
       designation: ['equipment'],
+      calculationCategory: 'B',
     ),
     EquipmentItem(
-      id: '694d5780bc4295c2c4456870',
+      id: '6950b367d5e7fb761548d92c',
       materialName: 'Condensor Dismantling',
       image: 'assets/images/equipment/condensor_dismantling.webp',
       qty: 1,
@@ -118,9 +120,10 @@ class EquipmentMaterialsData {
       location: 'sector 23',
       plant: 'plant',
       designation: ['equipment'],
+      calculationCategory: 'B',
     ),
     EquipmentItem(
-      id: '694d5780bc4295c2c4456871',
+      id: '6950b367d5e7fb761548d92d',
       materialName: 'Pump/Motor/Frame Position Erection',
       image: 'assets/images/equipment/pumpmotorframe_position_erection.webp',
       qty: 1,
@@ -137,9 +140,10 @@ class EquipmentMaterialsData {
       location: 'sector 23',
       plant: 'plant',
       designation: ['equipment'],
+      calculationCategory: 'A',
     ),
     EquipmentItem(
-      id: '694d5780bc4295c2c4456872',
+      id: '6950b367d5e7fb761548d92e',
       materialName: 'Pump/Motor/Frame Position Dismantling',
       image: 'assets/images/equipment/pumpmotorframe_position_dismantling.webp',
       qty: 1,
@@ -156,9 +160,10 @@ class EquipmentMaterialsData {
       location: 'sector 23',
       plant: 'plant',
       designation: ['equipment'],
+      calculationCategory: 'A',
     ),
     EquipmentItem(
-      id: '694d5780bc4295c2c4456873',
+      id: '6950b367d5e7fb761548d92f',
       materialName: 'Pump/Motor/Frame Fabrication',
       image: 'assets/images/equipment/pumpmotorframe_fabrication.webp',
       qty: 1,
@@ -175,9 +180,10 @@ class EquipmentMaterialsData {
       location: 'sector 23',
       plant: 'plant',
       designation: ['equipment'],
+      calculationCategory: 'A',
     ),
     EquipmentItem(
-      id: '694d5780bc4295c2c4456874',
+      id: '6950b367d5e7fb761548d930',
       materialName: 'Gear Box Erection',
       image: 'assets/images/equipment/gear_box_erection.webp',
       qty: 1,
@@ -194,9 +200,10 @@ class EquipmentMaterialsData {
       location: 'sector 23',
       plant: 'plant',
       designation: ['equipment'],
+      calculationCategory: 'A',
     ),
     EquipmentItem(
-      id: '694d5780bc4295c2c4456875',
+      id: '6950b367d5e7fb761548d931',
       materialName: 'Gear Box Dismantling',
       image: 'assets/images/equipment/gear_box_dismantling.webp',
       qty: 1,
@@ -213,9 +220,10 @@ class EquipmentMaterialsData {
       location: 'sector 23',
       plant: 'plant',
       designation: ['equipment'],
+      calculationCategory: 'A',
     ),
     EquipmentItem(
-      id: '694d5780bc4295c2c4456876',
+      id: '6950b367d5e7fb761548d932',
       materialName: 'PPERP Blower Alignment & Erection',
       image: 'assets/images/equipment/pperp_blower_alignment_erection.webp',
       qty: 1,
@@ -232,9 +240,10 @@ class EquipmentMaterialsData {
       location: 'sector 23',
       plant: 'plant',
       designation: ['equipment'],
+      calculationCategory: 'A',
     ),
     EquipmentItem(
-      id: '694d5780bc4295c2c4456877',
+      id: '6950b367d5e7fb761548d933',
       materialName: 'PPERP Blower Dismantling',
       image: 'assets/images/equipment/pperp_blower_dismantling.webp',
       qty: 1,
@@ -251,9 +260,10 @@ class EquipmentMaterialsData {
       location: 'sector 23',
       plant: 'plant',
       designation: ['equipment'],
+      calculationCategory: 'A',
     ),
     EquipmentItem(
-      id: '694d5780bc4295c2c4456878',
+      id: '6950b367d5e7fb761548d934',
       materialName: 'Structure Fabrication & Erection',
       image: 'assets/images/equipment/structure_fabrication_erection.webp',
       qty: 1,
@@ -270,9 +280,10 @@ class EquipmentMaterialsData {
       location: 'sector 23',
       plant: 'plant',
       designation: ['equipment'],
+      calculationCategory: 'A',
     ),
     EquipmentItem(
-      id: '694d5780bc4295c2c4456879',
+      id: '6950b367d5e7fb761548d935',
       materialName: 'Structure Dismantling',
       image: 'assets/images/equipment/structure_dismantling.webp',
       qty: 1,
@@ -289,7 +300,7 @@ class EquipmentMaterialsData {
       location: 'sector 23',
       plant: 'plant',
       designation: ['equipment'],
+      calculationCategory: 'A',
     ),
   ];
-
 }

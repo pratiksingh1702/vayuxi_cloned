@@ -1,3 +1,4 @@
+import 'package:dio/dio.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:untitled2/core/utlis/widgets/buttons.dart';
@@ -10,12 +11,14 @@ import '../../../../../core/utlis/widgets/card.dart';
 import '../../../../../core/utlis/widgets/custom.dart';
 import '../providers/siteProvider.dart';
 import '../providers/site_current_provider.dart';
+import '../providers/site_service.dart';
 import '../repository/siteModel.dart';
 
 class SiteListScreen extends ConsumerStatefulWidget {
   final Widget Function(SiteModel site) pageBuilder;
+  final bool show;
 
-  const SiteListScreen({super.key, required this.pageBuilder});
+  const SiteListScreen({super.key, required this.pageBuilder,this.show=false});
 
   @override
   ConsumerState<SiteListScreen> createState() => _SiteListScreenState();
@@ -40,6 +43,54 @@ class _SiteListScreenState extends ConsumerState<SiteListScreen> {
       }
     });
   }
+  Future<void> _confirmAndDeleteSite(SiteModel site) async {
+    final confirm = await showDialog<bool>(
+      context: context,
+      builder: (context) => AlertDialog(
+        title: const Text("Delete Site"),
+        content: Text(
+          "Are you sure you want to delete '${site.siteName}'?\n\n"
+              "This action cannot be undone.",
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(context, false),
+            child: const Text("Cancel"),
+          ),
+          ElevatedButton(
+            style: ElevatedButton.styleFrom(backgroundColor: Colors.red),
+            onPressed: () => Navigator.pop(context, true),
+            child: const Text("Delete"),
+          ),
+        ],
+      ),
+    );
+
+    if (confirm != true) return;
+
+    try {
+      await SiteAPI.delete(site.id);
+
+      ref.read(siteProvider.notifier).fetchSites();
+
+      if (!mounted) return;
+
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text("✅ ${site.siteName} deleted successfully"),
+          behavior: SnackBarBehavior.floating,
+        ),
+      );
+    } on DioException catch (e) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text("❌ Failed to delete site"),
+          backgroundColor: Colors.red[100],
+        ),
+      );
+    }
+  }
+
 
   @override
   Widget build(BuildContext context) {
@@ -66,7 +117,7 @@ class _SiteListScreenState extends ConsumerState<SiteListScreen> {
   Widget _buildMainBody() {
     return BottomButtonWrapper(
       customButtons: [
-        CustomButton(
+       if(widget.show) CustomButton(
           button: RoundedButton(
             text: "Add",
             color: Colors.blue,
@@ -96,6 +147,7 @@ class _SiteListScreenState extends ConsumerState<SiteListScreen> {
       ),
     );
   }
+
 
   Widget _buildBody(SiteState siteState) {
     // Show loading only when truly loading and no data
@@ -188,6 +240,8 @@ class _SiteListScreenState extends ConsumerState<SiteListScreen> {
                 ),
               );
             },
+            onDelete: () => _confirmAndDeleteSite(site),
+            show: widget.show,
           );
         },
       ),

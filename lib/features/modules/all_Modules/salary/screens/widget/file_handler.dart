@@ -4,6 +4,7 @@ import 'dart:typed_data';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:file_picker/file_picker.dart';
+import 'package:media_scanner/media_scanner.dart';
 import 'package:path_provider/path_provider.dart';
 import 'package:permission_handler/permission_handler.dart';
 import 'package:share_plus/share_plus.dart';
@@ -152,6 +153,7 @@ class FileHandler {
           final fileToSave = File(filePath);
 
           await fileToSave.writeAsBytes(file.fileBytes);
+          await MediaScanner.loadMedia(path: filePath);
           savedPaths.add(filePath);
           successCount++;
 

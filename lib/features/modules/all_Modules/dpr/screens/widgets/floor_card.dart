@@ -89,65 +89,66 @@ class FloorCard extends StatelessWidget {
             ),
 
             // Edit button
-            if (showEditButton)
+            if (showEditButton) ...[
               Positioned(
                 top: 8,
                 right: 8,
-                child: Container(
-                  decoration: BoxDecoration(
-                    color: Colors.white,
-                    shape: BoxShape.circle,
-                    boxShadow: [
-                      BoxShadow(
-                        color: Colors.black.withOpacity(0.1),
-                        blurRadius: 4,
-                        spreadRadius: 1,
-                      ),
-                    ],
-                  ),
-                  child: IconButton(
-                    icon: const Icon(Icons.more_vert, size: 20),
-                    padding: EdgeInsets.zero,
-                    constraints: const BoxConstraints(),
-                    onPressed: () {
-                      showMenu(
-                        context: context,
-                        position: RelativeRect.fromLTRB(
-                          0,
-                          0,
-                          0,
-                          0,
+                child: Row(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    // Edit Icon
+                    GestureDetector(
+                      onTap: onEdit,
+                      child: Container(
+                        padding: const EdgeInsets.all(4),
+                        decoration: BoxDecoration(
+                          color: Colors.white,
+                          shape: BoxShape.circle,
+                          boxShadow: [
+                            BoxShadow(
+                              color: Colors.black.withOpacity(0.2),
+                              blurRadius: 2,
+                              offset: const Offset(0, 1),
+                            ),
+                          ],
                         ),
-                        items: [
-                          PopupMenuItem(
-                            onTap: onEdit,
-                            child: const Row(
-                              children: [
-                                Icon(Icons.edit, size: 18, color: Colors.blue),
-                                SizedBox(width: 8),
-                                Text('Edit'),
-                              ],
+                        child: const Icon(
+                          Icons.edit,
+                          size: 16,
+                          color: Colors.blue,
+                        ),
+                      ),
+                    ),
+
+                    const SizedBox(width: 4),
+
+                    // Delete Icon
+                    GestureDetector(
+                      onTap: onDelete,
+                      child: Container(
+                        padding: const EdgeInsets.all(4),
+                        decoration: BoxDecoration(
+                          color: Colors.white,
+                          shape: BoxShape.circle,
+                          boxShadow: [
+                            BoxShadow(
+                              color: Colors.black.withOpacity(0.2),
+                              blurRadius: 2,
+                              offset: const Offset(0, 1),
                             ),
-                          ),
-                          PopupMenuItem(
-                            onTap: onDelete,
-                            child: const Row(
-                              children: [
-                                Icon(Icons.delete, size: 18, color: Colors.red),
-                                SizedBox(width: 8),
-                                Text(
-                                  'Delete',
-                                  style: TextStyle(color: Colors.red),
-                                ),
-                              ],
-                            ),
-                          ),
-                        ],
-                      );
-                    },
-                  ),
+                          ],
+                        ),
+                        child: const Icon(
+                          Icons.delete,
+                          size: 16,
+                          color: Colors.red,
+                        ),
+                      ),
+                    ),
+                  ],
                 ),
               ),
+            ],
 
           ],
         ),

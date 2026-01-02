@@ -38,6 +38,13 @@ class _NewManpowerScreenState extends ConsumerState<NewManpowerScreen> {
   final _esicController = TextEditingController();
   final _salaryController = TextEditingController();
   final _remarksController = TextEditingController();
+  final _daController = TextEditingController();
+  final _specialAllowanceController = TextEditingController();
+  final _travelAllowanceController = TextEditingController();
+  final _medicalAllowanceController = TextEditingController();
+
+  bool _isPfApplicable = true;
+
 
   // New controllers for login credentials
   final _emailController = TextEditingController();
@@ -153,8 +160,17 @@ class _NewManpowerScreenState extends ConsumerState<NewManpowerScreen> {
       "dateOfJoining": _doj?.toIso8601String(),
       "payBasics": _payBasic,
       "salary": double.tryParse(_salaryController.text) ?? 0,
+
+      // ✅ NEW FIELDS
+      "dearnessAllowance": double.tryParse(_daController.text) ?? 0,
+      "specialAllowance": double.tryParse(_specialAllowanceController.text) ?? 0,
+      "travelAllowance": double.tryParse(_travelAllowanceController.text) ?? 0,
+      "medicalAllowance": double.tryParse(_medicalAllowanceController.text) ?? 0,
+      "pfApplicable": _isPfApplicable,
+
       "remarks": _remarksController.text,
     };
+
 
     // Add login credentials if enabled
     if (_enableLoginCredentials && _emailController.text.isNotEmpty) {
@@ -425,6 +441,37 @@ class _NewManpowerScreenState extends ConsumerState<NewManpowerScreen> {
                   ),
                 ],
               ),
+              const SizedBox(height: 16),
+              Container(
+                padding: const EdgeInsets.all(12),
+                decoration: BoxDecoration(
+                  color: Colors.white,
+                  borderRadius: BorderRadius.circular(12),
+                  border: Border.all(color: Colors.blue.shade200, width: 1.5),
+                ),
+                child: Row(
+                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                  children: [
+                    const Text(
+                      "PF Applicable",
+                      style: TextStyle(
+                        fontSize: 14,
+                        fontWeight: FontWeight.w600,
+                      ),
+                    ),
+                    Switch(
+                      value: _isPfApplicable,
+                      activeColor: Colors.blue,
+                      onChanged: (val) {
+                        setState(() {
+                          _isPfApplicable = val;
+                        });
+                      },
+                    ),
+                  ],
+                ),
+              ),
+
 
               // Pay Basics Dropdown
               const SizedBox(height: 16),
@@ -507,6 +554,36 @@ class _NewManpowerScreenState extends ConsumerState<NewManpowerScreen> {
                 isRequired: true,
                 keyboardType: TextInputType.number,
               ),
+              const SizedBox(height: 20),
+
+              const SizedBox(height: 12),
+              CustomTextField(
+                label: "Dearness Allowance (DA)",
+                controller: _daController,
+                keyboardType: TextInputType.number,
+              ),
+
+              const SizedBox(height: 12),
+              CustomTextField(
+                label: "Special Allowance",
+                controller: _specialAllowanceController,
+                keyboardType: TextInputType.number,
+              ),
+
+              const SizedBox(height: 12),
+              CustomTextField(
+                label: "Travel Allowance",
+                controller: _travelAllowanceController,
+                keyboardType: TextInputType.number,
+              ),
+
+              const SizedBox(height: 12),
+              CustomTextField(
+                label: "Medical Allowance",
+                controller: _medicalAllowanceController,
+                keyboardType: TextInputType.number,
+              ),
+
 
               // Remarks
               const SizedBox(height: 16),

@@ -88,17 +88,14 @@ class ExpenseAPI {
     String expenseType="material_tools",
   }) async {
     try {
-      // Validate required parameters
-      if (siteId.isEmpty || serviceType.isEmpty || type.isEmpty) {
-        throw ArgumentError('siteId, serviceType, and type cannot be empty');
-      }
+
 
       // Encode parameters
       final encodedType = Uri.encodeComponent(type);
       final encodedServiceType = Uri.encodeComponent(serviceType);
 
       // Construct URL with all required parameters
-      final url = "/site/$siteId/expenses/generate-expenses?type=$expenseType&serviceType=$encodedServiceType&startDate=${Uri.encodeComponent(startDate)}&endDate=${Uri.encodeComponent(endDate)}";
+      final url = "/site/$siteId/expenses/generate-expenses?type=$type&serviceType=$encodedServiceType&startDate=${Uri.encodeComponent(startDate)}&endDate=${Uri.encodeComponent(endDate)}";
 
       print('📊 Generating CSV with URL: $url');
 

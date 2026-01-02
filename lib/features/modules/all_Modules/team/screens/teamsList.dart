@@ -66,12 +66,12 @@ class _TeamListPageState extends ConsumerState<TeamListPage> {
                   child: GridView.builder(
                     itemCount: teams.length,
                     gridDelegate:
-                        const SliverGridDelegateWithFixedCrossAxisCount(
-                          crossAxisCount: 2,
-                          mainAxisSpacing: 16,
-                          crossAxisSpacing: 16,
-                          childAspectRatio: 0.9,
-                        ),
+                    const SliverGridDelegateWithFixedCrossAxisCount(
+                      crossAxisCount: 2,
+                      mainAxisSpacing: 16,
+                      crossAxisSpacing: 16,
+                      childAspectRatio: 0.9,
+                    ),
                     itemBuilder: (context, index) {
                       final team = teams[index];
                       print(team.teamName);
@@ -86,55 +86,76 @@ class _TeamListPageState extends ConsumerState<TeamListPage> {
                             ),
                           );
                         },
-                        child: Container(
-                          decoration: BoxDecoration(
-                            color: Colors.white,
-                            borderRadius: BorderRadius.circular(16),
-                          ),
-                          child: Column(
-                            mainAxisAlignment: MainAxisAlignment.center,
-                            children: [
-                              ClipOval(
-                                child:
-                                    team.teamLeadImage != null &&
+                        child: Card(
+                          color: Colors.white,
+
+                          child: Stack(
+                            children: [Center(
+                              child: Column(
+                                mainAxisAlignment: MainAxisAlignment.center,
+                                children: [
+                                  ClipOval(
+                                    child: team.teamLeadImage != null &&
                                         team.teamLeadImage!.isNotEmpty
-                                    ? Image.network(
-                                        team.teamLeadImage!,
-                                        height: 80,
-                                        width: 80,
-                                        fit: BoxFit.cover,
-                                        errorBuilder:
-                                            (context, error, stackTrace) {
-                                              return Image.asset(
-                                                "assets/images/default.jpg",
-                                                fit: BoxFit.cover,
-                                              );
-                                            },
-                                      )
-                                    : Image.asset(
-                                        "assets/images/default.jpg",
-                                        height: 80,
-                                        width: 80,
-                                        fit: BoxFit.cover,
-                                      ),
+                                        ? Image.network(
+                                      team.teamLeadImage!,
+                                      height: 80,
+                                      width: 80,
+                                      fit: BoxFit.cover,
+                                      errorBuilder: (_, __, ___) {
+                                        return Image.asset(
+                                          "assets/images/default.jpg",
+                                          height: 80,
+                                          width: 80,
+                                          fit: BoxFit.cover,
+                                        );
+                                      },
+                                    )
+                                        : Image.asset(
+                                      "assets/images/default.jpg",
+                                      height: 80,
+                                      width: 80,
+                                      fit: BoxFit.cover,
+                                    ),
+                                  ),
+                                  const SizedBox(height: 10),
+                                  Text(
+                                    team.teamName,
+                                    style: const TextStyle(
+                                      fontWeight: FontWeight.w600,
+                                      fontSize: 15,
+                                    ),
+                                  ),
+                                ],
                               ),
-                              const SizedBox(height: 10),
-                              Text(
-                                team.teamName,
-                                style: const TextStyle(
-                                  fontWeight: FontWeight.w600,
-                                  fontSize: 15,
+                            ),
+                              Positioned(
+                                top: 8,
+                                right: 8,
+                                child: GestureDetector(
+                                  onTap: () {
+                                    _confirmDeleteTeam(context, team.id);
+                                  },
+                                  child: Container(
+                                    padding: const EdgeInsets.all(6),
+                                    decoration: BoxDecoration(
+                                      color: Colors.red.withOpacity(0.9),
+                                      shape: BoxShape.circle,
+                                    ),
+                                    child: const Icon(
+                                      Icons.delete,
+                                      color: Colors.white,
+                                      size: 18,
+                                    ),
+                                  ),
                                 ),
-                              ),
-                            ],
+                              ),]
                           ),
                         ),
                       );
                     },
                   ),
                 ),
-
-                // Back button
               ],
             ),
           ),
@@ -143,5 +164,58 @@ class _TeamListPageState extends ConsumerState<TeamListPage> {
         ),
       ),
     );
+  }
+
+  Future<void> _confirmDeleteTeam(BuildContext context, String teamId) async {
+    final confirm = await showDialog<bool>(
+      context: context,
+      builder: (context) => AlertDialog(
+        title: const Text("Delete Team"),
+        content: const Text(
+          "Are you sure you want to delete this team?\nThis action cannot be undone.",
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(context, false),
+            child: const Text("Cancel"),
+          ),
+          ElevatedButton(
+            style: ElevatedButton.styleFrom(backgroundColor: Colors.red),
+            onPressed: () => Navigator.pop(context, true),
+            child: const Text("Delete"),
+          ),
+        ],
+      ),
+    );
+
+    if (confirm == true) {
+      _deleteTeam(context, teamId);
+    }
+  }
+
+  Future<void> _deleteTeam(BuildContext context, String teamId) async {
+    final type = ref.read(typeProvider);
+    final siteId = ref.read(selectedSiteIdProvider);
+
+    if (type == null || siteId == null) return;
+
+    try {
+      await ref.read(teamProvider.notifier).deleteTeam(
+        siteId: siteId,
+        teamId: teamId,
+        type: type,
+      );
+
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text("✅ Team deleted successfully")),
+      );
+    } catch (e) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text("❌ Failed to delete team"),
+          backgroundColor: Colors.red,
+        ),
+      );
+    }
   }
 }

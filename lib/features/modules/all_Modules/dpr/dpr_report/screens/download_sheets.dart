@@ -12,10 +12,12 @@ import 'package:untitled2/core/utlis/widgets/custom_appBar.dart';
 import 'package:untitled2/features/modules/all_Modules/dpr/screens/widgets/select_card.dart';
 import 'package:untitled2/features/modules/all_Modules/site_Details/providers/site_current_provider.dart';
 import 'package:untitled2/features/modules/all_Modules/team/provider/teamProvider.dart';
+import 'package:untitled2/typeProvider/type_provider.dart';
 import '../../../../../../core/utlis/widgets/date_picker.dart';
 import '../../providers/dpr.dart';
 import '../../providers/dprService.dart';
 import '../../screens/dprTeamDetails.dart';
+import '../../screens/workTeamList.dart';
 
 class SheetDownloadPage extends ConsumerStatefulWidget {
   const SheetDownloadPage({super.key});
@@ -314,6 +316,10 @@ class _SheetDownloadPageState extends ConsumerState<SheetDownloadPage> {
 
       await tempFile.writeAsBytes(bytes, flush: true);
       debugPrint('💾 Temporary file saved for sharing: $tempPath');
+      debugPrint(
+        String.fromCharCodes(bytes.take(10)),
+      );
+
 
       final mimeType = _selectedFormat == 'pdf'
           ? 'application/pdf'
@@ -520,6 +526,7 @@ class _SheetDownloadPageState extends ConsumerState<SheetDownloadPage> {
   @override
   Widget build(BuildContext context) {
     final siteId = ref.watch(selectedSiteIdProvider);
+    final type=ref.read(typeProvider)!;
 
     if (siteId == null) {
       return Scaffold(
@@ -696,7 +703,7 @@ class _SheetDownloadPageState extends ConsumerState<SheetDownloadPage> {
                             siteId: siteId,
                             fromDate: fromDate,
                             toDate: toDate,
-                            format: format,
+                            format: format, workType: type,
                           ),
                       defaultFileName: "measurement_sheet",
                     ),
@@ -709,7 +716,7 @@ class _SheetDownloadPageState extends ConsumerState<SheetDownloadPage> {
                             siteId: siteId,
                             fromDate: fromDate,
                             toDate: toDate,
-                            format: format,
+                            format: format, workType: type,
                           ),
                       defaultFileName: "Abstract sheet",
                     ),
@@ -722,7 +729,7 @@ class _SheetDownloadPageState extends ConsumerState<SheetDownloadPage> {
                             siteId: siteId,
                             fromDate: fromDate,
                             toDate: toDate,
-                            format: format,
+                            format: format, workType:type,
                           ),
                       defaultFileName: "summary_sheet",
                     ),
@@ -735,7 +742,7 @@ class _SheetDownloadPageState extends ConsumerState<SheetDownloadPage> {
                             siteId: siteId,
                             fromDate: fromDate,
                             toDate: toDate,
-                            format: format,
+                            format: format, workType:type,
                           ),
                       defaultFileName: "invoice_sheet",
                     ),
@@ -745,21 +752,31 @@ class _SheetDownloadPageState extends ConsumerState<SheetDownloadPage> {
                       onTap: () async {
                         final sid = ref.read(selectedSiteIdProvider);
                         final tid = ref.read(selectedTeamIdProvider);
+
+                        if (sid == null ) {
+                          ScaffoldMessenger.of(context).showSnackBar(
+                            const SnackBar(
+                              content: Text(
+                                "Please select a site home screen drop-downs",
+                              ),
+                              backgroundColor: Colors.orange,
+                              behavior: SnackBarBehavior.floating,
+                              duration: Duration(seconds: 2),
+                            ),
+                          );
+                          return; // ← THIS IS THE IMPORTANT LINE
+                        }
+
                         Navigator.push(
                           context,
                           MaterialPageRoute(
-                            builder: (context) => DprWorkScreen(
-                              siteId: sid!,
-                              teamId: tid!,
-                              name: '',
-                            ),
+                            builder: (context) =>WorkTeamListPage(),
                           ),
                         );
-                        ref.read(dprProvider.notifier).fetchDprWork(
-                          siteId: sid!,
-                          teamId: tid!,
-                        );
+
+
                       },
+
                     ),
                   ],
                 ),

@@ -11,7 +11,7 @@ import '../repository/siteHive/siteLocalStorage.dart';
 import '../repository/siteModel.dart';
 
 final siteDropdownValueProvider = StateProvider<SiteModel?>((ref) => null);
-final teamDropdownValueProvider = StateProvider<TeamModel?>((ref) => null);
+
 
 final selectedSiteIdProvider = StateProvider<String?>((ref) => null);
 
@@ -53,10 +53,11 @@ class ModuleScreenSyncNotifier extends Notifier<void> {
 
   void syncDropdownToGlobal() {
     final siteDropdown = ref.read(siteDropdownValueProvider);
+    final teamDropdown = ref.read(teamDropdownValueProvider);
 
     print("[SYNC] Site Dropdown: ${siteDropdown?.siteName}");
+    print("[SYNC] Team Dropdown: ${teamDropdown?.teamName}");
     print("🫂🫂");
-
 
     // 🔥 SITE
     if (siteDropdown == null) {
@@ -64,8 +65,11 @@ class ModuleScreenSyncNotifier extends Notifier<void> {
       ref.read(selectedSiteProvider.notifier).clear();
     }
 
-    // 🔥 TEAM
-
+    // 🔥 TEAM (Same pattern as site)
+    if (teamDropdown == null) {
+      ref.read(selectedTeamIdProvider.notifier).state = null;
+      ref.read(selectedTeamProvider.notifier).clear();
+    }
   }
 }
 

@@ -4,10 +4,15 @@ import 'package:cached_network_image/cached_network_image.dart';
 import 'package:untitled2/core/utlis/colors/colors.dart';
 import 'package:untitled2/core/utlis/widgets/custom_appBar.dart';
 import 'package:untitled2/features/modules/all_Modules/site_Details/providers/site_current_provider.dart';
+import 'package:untitled2/typeProvider/type_provider.dart';
 
 import '../../models/data/eqipment_provider.dart';
 import '../../models/data/piping_provider.dart';
+import '../../models/dprModel.dart';
+import '../../models/equipmentModel.dart';
+import '../../models/pipingModel.dart';
 import '../../providers/dpr.dart';
+import '../material_sync_util.dart';
 import 'dynamic_item_card.dart';
 import 'dynamic_item_card2.dart';
 import 'edit_material.dart';
@@ -16,12 +21,15 @@ class AllMaterialsScreen extends ConsumerStatefulWidget {
   final String? siteId;
   final String? teamId;
   final String? teamName;
+  final DprModel dpr;
 
   const AllMaterialsScreen({
     this.siteId,
     this.teamId,
     this.teamName,
+    required this.dpr,
     super.key,
+
   });
 
   @override
@@ -30,11 +38,30 @@ class AllMaterialsScreen extends ConsumerStatefulWidget {
 
 class _AllMaterialsScreenState extends ConsumerState<AllMaterialsScreen> with SingleTickerProviderStateMixin {
   late TabController _tabController;
+  bool _synced = false;
+
 
   @override
   void initState() {
     super.initState();
     _tabController = TabController(length: 2, vsync: this);
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      final mergedPiping = MaterialSyncService.syncPiping(
+        local: ref.read(pipingMaterialsProvider),
+        server: widget.dpr.piping,
+      );
+
+      final mergedEquipment = MaterialSyncService.syncEquipment(
+        local: ref.read(equipmentMaterialsProvider),
+        server: widget.dpr.equipment,
+      );
+
+
+      ref.read(pipingMaterialsProvider.notifier)
+          .setMaterials(mergedPiping);
+      ref.read(equipmentMaterialsProvider.notifier).state = mergedEquipment;
+    });
+
   }
 
   @override
@@ -51,6 +78,7 @@ class _AllMaterialsScreenState extends ConsumerState<AllMaterialsScreen> with Si
   @override
   Widget build(BuildContext context) {
     // Get piping and equipment materials directly from providers
+
     final pipingMaterials = ref.watch(pipingMaterialsProvider);
     final equipmentMaterials = ref.watch(equipmentMaterialsProvider);
 
@@ -160,22 +188,31 @@ class _AllMaterialsScreenState extends ConsumerState<AllMaterialsScreen> with Si
             padding: const EdgeInsets.all(8.0),
             itemCount: materials.length,
             itemBuilder: (context, index) {
-              final material = materials[index];
-              return category == 'piping'
-                  ? _buildPipingCard(material, color)
-                  : _buildEquipmentCard(material, color);
+              if (category == 'piping') {
+                final material = materials[index] as PipingItem;
+                return _buildPipingCard(material, color);
+              } else {
+                final material = materials[index] as EquipmentItem;
+                return _buildEquipmentCard(material, color);
+              }
             },
           ),
+
         ),
       ],
     );
   }
 
-  Widget _buildPipingCard(dynamic material, Color color) {
+  Widget _buildPipingCard(PipingItem material, Color color)
+  {
     final materialName = _getMaterialName(material, 'piping');
     final uom = _getUOM(material, 'piping');
+    print(material.materialName);
+    print(material.image);
     final imageUrl = _getImageUrl(material, 'piping');
     final dprName = _getDPRName(material, 'piping');
+    print(imageUrl);
+    print("❤️❤️❤️❤️❤️❤️❤️");
 
     return DynamicItemCard(
       quantity: "0", // Default quantity
@@ -227,7 +264,8 @@ class _AllMaterialsScreenState extends ConsumerState<AllMaterialsScreen> with Si
     );
   }
 
-  Widget _buildEquipmentCard(dynamic material, Color color) {
+  Widget _buildEquipmentCard(EquipmentItem material, Color color)
+  {
     final materialName = _getMaterialName(material, 'equipment');
     final uom = _getUOM(material, 'equipment');
     final imageUrl = _getImageUrl(material, 'equipment');
@@ -265,7 +303,7 @@ class _AllMaterialsScreenState extends ConsumerState<AllMaterialsScreen> with Si
       onTonChanged: (value) {
         _updateEquipmentMaterial(material, 'ton', value);
       },
-      isEditable: true, // You can make this dynamic based on user role
+      isEditable: true, onMeterChanged: (String p1) {  }, // You can make this dynamic based on user role
     );
   }
 
@@ -453,7 +491,13 @@ class _AllMaterialsScreenState extends ConsumerState<AllMaterialsScreen> with Si
 
               if (category == 'piping') {
                 final piping=ref.read(pipingMaterialsProvider.notifier);
-                piping.deletePipingMaterial(material.id);
+                ref.read(pipingMaterialsProvider.notifier)
+                    .deletePipingMaterialFromServer(
+                  materialId: material.id,
+                  mechanicalId: widget.dpr.id!,
+                // if required
+                );
+
               } else{
                 final equipment=ref.read(equipmentMaterialsProvider.notifier);
                 equipment.deleteEquipmentMaterial(material.id);
@@ -536,37 +580,118 @@ class _AllMaterialsScreenState extends ConsumerState<AllMaterialsScreen> with Si
       ),
     );
   }
-
   void _duplicateMaterial(dynamic material, String category) async {
     try {
       print('Duplicating ${category} material: ${material.id}');
 
       // Get the provider instance
       final dprNotifier = ref.read(dprProvider.notifier);
-      final siteId=ref.read(selectedSiteIdProvider)!;
+      final type = ref.read(typeProvider);
+
+      if (type == null) {
+        print('Type is null, cannot duplicate material');
+        return;
+      }
 
       // Call the copyMaterial method
-      await dprNotifier.copyMaterial(
-        siteId: siteId, // Assuming material has siteId
+      final response = await dprNotifier.copyMaterial(
+        type: type,
         materialId: material.id,
       );
 
-      // Optional: Show success message or refresh data
       print('Material duplicated successfully');
 
-      // If you need to refresh the current DPR data after duplication:
-      // await dprNotifier.fetchDprById(
-      //   siteId: material.siteId,
-      //   teamId: material.teamId,
-      //   workId: material.workId,
-      // );
+      // Check if response contains copied material data
+      if (response is Map && response.containsKey('copiedMaterial')) {
+        final copiedMaterial = response['copiedMaterial'];
+        final materialType = response['materialType'] ?? category.toLowerCase();
+
+        // Add the copied material to the appropriate provider based on type
+        _addCopiedMaterialToProvider(copiedMaterial, materialType, material.id,material);
+        // Optional: Show success message
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text('${material.materialName} duplicated successfully'),
+            backgroundColor: Colors.green,
+          ),
+        );
+      }
 
     } catch (e) {
       print('Error duplicating material: $e');
-      // You might want to show an error snackbar here
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text('Failed to duplicate material: ${e.toString()}'),
+          backgroundColor: Colors.red,
+        ),
+      );
     }
   }
 
+  void _addCopiedMaterialToProvider(Map<String, dynamic> copiedMaterial, String materialType, String originalMaterialId, dynamic originalMaterial, ) {
+    switch (materialType.toLowerCase()) {
+      case 'piping':
+        final pipingMaterial = PipingItem(
+          id: copiedMaterial['_id'] ?? '',
+          materialName: copiedMaterial['materialName'] ?? '',
+          image:  originalMaterial.image,
+          qty: (copiedMaterial['qty'] ?? 0).toDouble(),
+          length: (copiedMaterial['length'] ?? 0).toDouble(),
+          rmt: (copiedMaterial['rmt'] ?? 0).toDouble(),
+          diameter: (copiedMaterial['diameter'] ?? 0).toDouble(),
+          weight: (copiedMaterial['weight'] ?? 0).toDouble(),
+          power: (copiedMaterial['power'] ?? 0).toDouble(),
+          uom: copiedMaterial['uom'] ?? '',
+          actualRate: (copiedMaterial['actualRate'] ?? 0).toDouble(),
+          designation: List<String>.from(copiedMaterial['designation'] ?? []),
+          moc: copiedMaterial['moc'] ?? '',
+          size: copiedMaterial['size'] ?? '',
+          location: copiedMaterial['location'] ?? '',
+          plant: copiedMaterial['plant'] ?? '',
+          rate: (copiedMaterial['rate'] ?? 0).toDouble(),
+          calculationCategory: '',
+        );
+
+        ref.read(pipingMaterialsProvider.notifier).addPipingMaterialAfter(
+            pipingMaterial,
+            originalMaterialId
+        );
+        print('Added duplicated piping material after original');
+        break;
+
+      case 'equipment':
+        final equipmentMaterial = EquipmentItem(
+          id: copiedMaterial['_id'] ?? '',
+          materialName: copiedMaterial['materialName'] ?? '',
+          image: copiedMaterial['image'] ?? '',
+          qty: (copiedMaterial['qty'] ?? 0).toDouble(),
+          length: (copiedMaterial['length'] ?? 0).toDouble(),
+          rmt: (copiedMaterial['rmt'] ?? 0).toDouble(),
+          diameter: (copiedMaterial['diameter'] ?? 0).toDouble(),
+          weight: (copiedMaterial['weight'] ?? 0).toDouble(),
+          power: (copiedMaterial['power'] ?? 0).toDouble(),
+          uom: copiedMaterial['uom'] ?? '',
+          actualRate: (copiedMaterial['actualRate'] ?? 0).toDouble(),
+          designation: List<String>.from(copiedMaterial['designation'] ?? []),
+          moc: copiedMaterial['moc'] ?? '',
+          size: copiedMaterial['size'] ?? '',
+          location: copiedMaterial['location'] ?? '',
+          plant: copiedMaterial['plant'] ?? '',
+          rate: (copiedMaterial['rate'] ?? 0).toDouble(),
+          calculationCategory: '',
+        );
+
+        // ref.read(equipmentMaterialsProvider.notifier).addEquipmentMaterialAfter(
+        //     equipmentMaterial,
+        //     originalMaterialId
+        // );
+        print('Added duplicated equipment material after original');
+        break;
+
+      default:
+        print('Unknown material type: $materialType');
+    }
+  }
   void _addNewMaterial(BuildContext context, String category) {
     // Navigate to add new material screen
     print('Adding new ${category} material');
@@ -625,22 +750,3 @@ class _AllMaterialsScreenState extends ConsumerState<AllMaterialsScreen> with Si
   }
 }
 
-// Navigation Helper
-extension AllMaterialsNavigation on BuildContext {
-  void navigateToAllMaterials({
-    required String siteId,
-    required String teamId,
-    String? teamName,
-  }) {
-    Navigator.push(
-      this,
-      MaterialPageRoute(
-        builder: (context) => AllMaterialsScreen(
-          siteId: siteId,
-          teamId: teamId,
-          teamName: teamName,
-        ),
-      ),
-    );
-  }
-}

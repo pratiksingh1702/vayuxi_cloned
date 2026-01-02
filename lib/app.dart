@@ -5,6 +5,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'core/api/syncManager.dart';
 import 'core/router/app_router.dart';
 import 'custom_slider.dart';
+import 'features/pricing/providers/razorpay_provider.dart';
 
 class MyApp extends ConsumerStatefulWidget {
   const MyApp({super.key});
@@ -18,6 +19,7 @@ class _MyAppState extends ConsumerState<MyApp> {
   void initState() {
     super.initState();
     ref.read(syncManagerProvider);
+    ref.read(paymentNotifierProvider.notifier).initializeRazorpay();
   }
 
   @override

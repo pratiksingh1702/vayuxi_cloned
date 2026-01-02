@@ -1,10 +1,52 @@
 import 'dart:io';
 
 import 'package:dio/dio.dart';
+import 'package:flutter/cupertino.dart';
 import '../../../../../core/api/dio.dart';
 
 class ManpowerAPI {
   static final dio = DioClient.dio;
+  /// Delete manpower by ID
+  static Future<Map<String, dynamic>> deleteManpower(String id) async {
+    try {
+      final res = await dio.delete("/manpower/$id");
+
+      return {
+        "success": true,
+        "data": res.data,
+        "statusCode": res.statusCode,
+      };
+    } on DioException catch (e) {
+      String errorMessage = "Delete failed";
+
+      if (e.response != null) {
+        if (e.response!.data is Map) {
+          errorMessage =
+              e.response!.data['message'] ??
+                  e.response!.data['error'] ??
+                  errorMessage;
+        } else if (e.response!.data is String) {
+          errorMessage = e.response!.data;
+        }
+      } else if (e.message != null) {
+        errorMessage = e.message!;
+      }
+
+      return {
+        "success": false,
+        "error": "Delete Error",
+        "message": errorMessage,
+        "statusCode": e.response?.statusCode,
+      };
+    } catch (e) {
+      return {
+        "success": false,
+        "error": "Unexpected Error",
+        "message": e.toString(),
+      };
+    }
+  }
+
 
   /// Fetch manpower list by type
   static Future<Map<String, dynamic>> fetchManpower(String type) async {
@@ -13,15 +55,48 @@ class ManpowerAPI {
         "/manpower",
         queryParameters: {"type": type},
       );
+
       return {
         "success": true,
         "data": res.data,
       };
-    } catch (e) {
+    } on DioException catch (e, stackTrace) {
+      // 🔥 FULL ERROR LOG
+      debugPrint("❌ DIO ERROR");
+      debugPrint("➡️ URL: ${e.requestOptions.uri}");
+      debugPrint("➡️ Method: ${e.requestOptions.method}");
+      debugPrint("➡️ Query: ${e.requestOptions.queryParameters}");
+      debugPrint("➡️ Status Code: ${e.response?.statusCode}");
+      debugPrint("➡️ Response Data: ${e.response?.data}");
+      debugPrint("➡️ Headers: ${e.response?.headers}");
+      debugPrint("➡️ Error Type: ${e.type}");
+      debugPrint("➡️ Message: ${e.message}");
+      debugPrint("➡️ StackTrace:\n$stackTrace");
+
       return {
         "success": false,
         "data": null,
-        "error": e.toString(),
+        "error": {
+          "type": e.type.toString(),
+          "statusCode": e.response?.statusCode,
+          "message": e.message,
+          "response": e.response?.data,
+          "path": e.requestOptions.path,
+        },
+      };
+    } catch (e, stackTrace) {
+      // 🔥 NON-DIO ERROR
+      debugPrint("❌ UNKNOWN ERROR");
+      debugPrint("➡️ Error: $e");
+      debugPrint("➡️ StackTrace:\n$stackTrace");
+
+      return {
+        "success": false,
+        "data": null,
+        "error": {
+          "type": "Unknown",
+          "message": e.toString(),
+        },
       };
     }
   }

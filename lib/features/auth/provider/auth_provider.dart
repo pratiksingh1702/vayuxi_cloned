@@ -7,6 +7,7 @@ import '../../modules/all_Modules/Manpower Details/model/manpower_model.dart';
 import '../../profile_page/userModel/userModel.dart';
 
 import '../service/auth_client.dart';
+import '../service/guard.dart';
 
 // Updated AuthState class in auth_provider.dart
 class AuthState {
@@ -46,8 +47,9 @@ class AuthState {
 }
 
 class AuthNotifier extends StateNotifier<AuthState> {
-  AuthNotifier() : super(AuthState()) {
-    // Initialize auth state immediately
+  final Ref ref;
+
+  AuthNotifier(this.ref) : super(AuthState()) {
     _initializeAuthState();
   }
   Future<void> _initializeAuthState() async {
@@ -69,6 +71,8 @@ class AuthNotifier extends StateNotifier<AuthState> {
             role: 'manpower',
             manpower: manpower,
           );
+
+
           print("🔐 AUTH INIT - Manpower found, logged in as manpower");
         } else if (role == 'user') {
           // User login (existing logic)
@@ -186,6 +190,7 @@ class AuthNotifier extends StateNotifier<AuthState> {
     await prefs.setString('auth_role', 'manpower');
     // Save manpower data for quick access
     await prefs.setString('manpower_data', json.encode(manpower.toJson()));
+
   }
 
   Future<void> _clearAuthData() async {
@@ -233,6 +238,8 @@ class AuthNotifier extends StateNotifier<AuthState> {
         manpower: manpower,
         errorMessage: null,
       );
+
+
     } catch (e) {
       print("🔐 MANPOWER LOGIN - Error: $e");
       state = state.copyWith(
@@ -271,6 +278,7 @@ class AuthNotifier extends StateNotifier<AuthState> {
         user: user,
         errorMessage: null,
       );
+
     } catch (e) {
       print("🔐 USER LOGIN WITH OTP - Error: $e");
       state = state.copyWith(
@@ -484,4 +492,4 @@ class AuthNotifier extends StateNotifier<AuthState> {
 }
 
 final authProvider =
-StateNotifierProvider<AuthNotifier, AuthState>((ref) => AuthNotifier());
+StateNotifierProvider<AuthNotifier, AuthState>((ref) => AuthNotifier(ref));

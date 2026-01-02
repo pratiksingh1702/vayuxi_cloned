@@ -648,6 +648,11 @@ class _ModuleScreenState extends ConsumerState<ModuleScreen> {
         ),
         child: teamState.when(
           data: (teams) {
+            final uniqueTeams = teams.fold(<String, TeamModel>{}, (map, team) {
+              map[team.id] = team;
+              return map;
+            }).values.toList();
+
             final noneTeam = TeamModel(
               id: "none",
               teamName: "None",
@@ -657,17 +662,16 @@ class _ModuleScreenState extends ConsumerState<ModuleScreen> {
               type: '',
             );
 
-            final dropdownTeams = [noneTeam, ...teams];
+            final dropdownList = [noneTeam, ...uniqueTeams];
             final currentSelectedTeam = _selectedTeam != null
-                ? dropdownTeams.firstWhere((team) => team.id == _selectedTeam!.id, orElse: () => noneTeam)
+                ? dropdownList.firstWhere((team) => team.id == _selectedTeam!.id, orElse: () => noneTeam)
                 : noneTeam;
 
             return DropdownButton<TeamModel>(
               value: currentSelectedTeam,
               isExpanded: true,
               underline: const SizedBox(),
-              hint: const Text('Select Team'),
-              items: dropdownTeams.map((team) {
+              items: dropdownList.map((team) {
                 return DropdownMenuItem<TeamModel>(
                   value: team,
                   child: Text(
@@ -678,22 +682,22 @@ class _ModuleScreenState extends ConsumerState<ModuleScreen> {
                   ),
                 );
               }).toList(),
-              onChanged: _selectedSite != null
-                  ? (TeamModel? newTeam) {
+              onChanged: (TeamModel? newTeam) {
                 if (newTeam == null || newTeam.id == "none") {
                   _onTeamChanged(null);
+                  ref.read(teamDropdownValueProvider.notifier).state = null;
                   ref.read(selectedTeamIdProvider.notifier).state = null;
                 } else {
                   _onTeamChanged(newTeam);
+                  ref.read(teamDropdownValueProvider.notifier).state = newTeam;
                   ref.read(selectedTeamIdProvider.notifier).state = newTeam.id;
                 }
-              }
-                  : null,
+              },
             );
           },
           loading: () => const Padding(
             padding: EdgeInsets.symmetric(vertical: 12),
-            child: Center(child: Text("Select Site First")),
+            child: Center(child: Text("Loading teams...")),
           ),
           error: (error, stack) => const Padding(
             padding: EdgeInsets.symmetric(vertical: 12),
@@ -703,6 +707,7 @@ class _ModuleScreenState extends ConsumerState<ModuleScreen> {
       ),
     );
   }
+
 }
 
 class ModuleItem {

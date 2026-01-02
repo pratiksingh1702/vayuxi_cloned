@@ -9,6 +9,8 @@ class DynamicItemCard extends StatefulWidget {
   final String? image;
   final String sizeLabel;
   final String lengthLabel;
+  final String? remark;
+
   final String sizePlaceholder;
   final String lengthPlaceholder;
   final Function(String) onQtyChanged;
@@ -19,7 +21,7 @@ class DynamicItemCard extends StatefulWidget {
   final VoidCallback? onDelete;
   final VoidCallback onRemark;
   final VoidCallback? onEdit;
-  final VoidCallback? onCopy; // NEW: Copy callback
+  final VoidCallback? onCopy;
   final VoidCallback? onAdd;
   final bool isEditable;
 
@@ -40,9 +42,10 @@ class DynamicItemCard extends StatefulWidget {
     required this.onFloorChanged,
     required this.onMocChanged,
     this.onDelete,
+    this.remark,
     required this.onRemark,
     this.onEdit,
-    this.onCopy, // NEW: Copy callback parameter
+    this.onCopy,
     this.onAdd,
     required this.isEditable,
     super.key,
@@ -58,14 +61,13 @@ class _DynamicItemCardState extends State<DynamicItemCard>
   // Controllers to preserve state
   late TextEditingController _quantityController;
   late TextEditingController _sizeController;
-  late TextEditingController _lengthController;
+  late TextEditingController _lengthController; // ✅ Using lengthController for length/UOM
   late TextEditingController _floorController;
   late TextEditingController _mocController;
-  late TextEditingController _uomController;
-  late FocusNode _uomFocusNode;
+  late FocusNode _lengthFocusNode; // ✅ Renamed from _uomFocusNode
 
   @override
-  bool get wantKeepAlive => true; // This preserves state when widget is hidden
+  bool get wantKeepAlive => true;
 
   @override
   void initState() {
@@ -73,12 +75,11 @@ class _DynamicItemCardState extends State<DynamicItemCard>
     // Initialize controllers with current values
     _quantityController = TextEditingController(text: widget.quantity);
     _sizeController = TextEditingController(text: widget.size);
-    _lengthController = TextEditingController(text: widget.length);
+    _lengthController = TextEditingController(text: widget.length); // ✅ Initialize with length
     _floorController = TextEditingController(text: widget.floor);
     _mocController = TextEditingController(text: widget.moc);
-    _uomController = TextEditingController(text: "");
 
-    _uomFocusNode = FocusNode();
+    _lengthFocusNode = FocusNode();
 
     // Listen for changes and propagate to parent
     _quantityController.addListener(_onQuantityChanged);
@@ -116,43 +117,105 @@ class _DynamicItemCardState extends State<DynamicItemCard>
   }
 
   void _onQuantityChanged() {
+    print('🔵 Quantity changed: ${_quantityController.text}');
     if (_quantityController.text != widget.quantity) {
       widget.onQtyChanged(_quantityController.text);
     }
   }
 
   void _onSizeChanged() {
+    print('🔵 Size changed: ${_sizeController.text}');
     if (_sizeController.text != widget.size) {
       widget.onSizeChanged(_sizeController.text);
     }
   }
 
   void _onLengthChanged() {
+    print('🔵 Length changed: ${_lengthController.text}');
     if (_lengthController.text != widget.length) {
       widget.onLengthChanged(_lengthController.text);
     }
   }
 
   void _onFloorChanged() {
+    print('🔵 Floor changed: ${_floorController.text}');
     if (_floorController.text != widget.floor) {
       widget.onFloorChanged(_floorController.text);
     }
   }
 
   void _onMocChanged() {
+    print('🔵 MOC changed: ${_mocController.text}');
     if (_mocController.text != widget.moc) {
       widget.onMocChanged(_mocController.text);
     }
   }
 
+  Widget buildSmartImage({
+    required String? image,
+    double height = 100,
+    double width = double.infinity,
+    BoxFit fit = BoxFit.contain,
+  }) {
+    if (image == null || image.isEmpty) {
+      print("emptyyyyyyyyyyyyyyyyyyyyyyyy");
+      return _imagePlaceholder(height, width);
+    }
+    final isAsset = image.startsWith('assets/');
+    final isNetwork = image.startsWith('http://') || image.startsWith('https://');
+
+    print('🖼️ Image URL: $image');
+    print('🌐 Is Network: $isNetwork');
+    print('📦 Is Asset: $isAsset');
+
+
+    return SizedBox(
+      height: height,
+      width: width,
+      child: isNetwork
+          ? Image.network(
+        image,
+        fit: fit,
+        errorBuilder: (_, __, ___) =>
+            _imagePlaceholder(height, width),
+        loadingBuilder: (context, child, loadingProgress) {
+          if (loadingProgress == null) return child;
+          return const Center(child: CircularProgressIndicator(strokeWidth: 2));
+        },
+      )
+          : Image.asset(
+        image,
+        fit: fit,
+        errorBuilder: (_, __, ___) =>
+            _imagePlaceholder(height, width),
+      ),
+    );
+  }
+
+  Widget _imagePlaceholder(double height, double width) {
+    return Container(
+      height: height,
+      width: width,
+      decoration: BoxDecoration(
+        color: Colors.grey[200],
+        borderRadius: BorderRadius.circular(8),
+      ),
+      child: const Icon(
+        Icons.image_not_supported,
+        color: Colors.grey,
+        size: 32,
+      ),
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
-    super.build(context); // Required for AutomaticKeepAliveClientMixin
+    super.build(context);
 
     return GestureDetector(
       onTap: () {
         if (widget.isEditable) {
-          _uomFocusNode.requestFocus();
+          _lengthFocusNode.requestFocus();
         }
       },
       child: Container(
@@ -174,26 +237,37 @@ class _DynamicItemCardState extends State<DynamicItemCard>
                     fontWeight: FontWeight.w600,
                   ),
                 ),
-                InkWell(
-                  onTap: widget.onRemark,
-                  child: Container(
-                    padding: const EdgeInsets.symmetric(horizontal: 4, vertical: 4),
-                    decoration: BoxDecoration(
-                      color: const Color(0xFFD0EAFD),
-                      border: Border.all(color: Colors.black),
-                      borderRadius: BorderRadius.circular(4),
+                Column(
+                  crossAxisAlignment: CrossAxisAlignment.end,
+                  children: [
+                    InkWell(
+                      onTap: widget.onRemark,
+                      child: Container(
+                        constraints: BoxConstraints(
+                          maxWidth: 50, // Adjust this value as needed
+                        ),
+                        padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 4),
+                        decoration: BoxDecoration(
+                          color: const Color(0xFFD0EAFD),
+                          border: Border.all(color: Colors.black),
+                          borderRadius: BorderRadius.circular(4),
+                        ),
+                        child: Text(
+                          widget.remark?.isNotEmpty == true ? widget.remark! : 'Remark',
+                          style: const TextStyle(fontSize: 9, fontWeight: FontWeight.w600),
+                          overflow: TextOverflow.ellipsis,
+                          maxLines: 1,
+                        ),
+                      ),
                     ),
-                    child: const Text(
-                      "Remark",
-                      style: TextStyle(fontSize: 8),
-                    ),
-                  ),
-                ),
+                  ],
+                )
+
               ],
             ),
             Row(
               children: [
-                // ───────── LEFT COLUMN (50% width) - NAME & IMAGE
+                // LEFT COLUMN - IMAGE
                 Expanded(
                   child: Container(
                     padding: const EdgeInsets.all(13),
@@ -202,25 +276,10 @@ class _DynamicItemCardState extends State<DynamicItemCard>
                       mainAxisAlignment: MainAxisAlignment.start,
                       children: [
                         const SizedBox(height: 12),
-                        // ✅ BOUNDED IMAGE (NO Expanded)
                         if (widget.image != null)
-                          SizedBox(
+                          buildSmartImage(
+                            image: widget.image,
                             height: 100,
-                            width: double.infinity,
-                            child: Image.asset(
-                              widget.image!,
-                              fit: BoxFit.contain,
-                              errorBuilder: (context, error, stackTrace) {
-                                print(error);
-                                return Container(
-                                  decoration: BoxDecoration(
-                                    color: Colors.grey[200],
-                                    borderRadius: BorderRadius.circular(8),
-                                  ),
-                                  child: const Icon(Icons.image, color: Colors.grey),
-                                );
-                              },
-                            ),
                           ),
 
                         if (widget.isEditable &&
@@ -229,7 +288,6 @@ class _DynamicItemCardState extends State<DynamicItemCard>
                             padding: const EdgeInsets.only(top: 12),
                             child: Row(
                               children: [
-                                // Edit button
                                 if (widget.onEdit != null) ...[
                                   Expanded(
                                     child: IconButton(
@@ -249,7 +307,6 @@ class _DynamicItemCardState extends State<DynamicItemCard>
                                   const SizedBox(width: 8),
                                 ],
 
-                                // Copy button
                                 if (widget.onCopy != null) ...[
                                   Expanded(
                                     child: IconButton(
@@ -269,7 +326,6 @@ class _DynamicItemCardState extends State<DynamicItemCard>
                                   const SizedBox(width: 8),
                                 ],
 
-                                // Delete button
                                 if (widget.onDelete != null)
                                   Expanded(
                                     child: IconButton(
@@ -290,17 +346,14 @@ class _DynamicItemCardState extends State<DynamicItemCard>
                             ),
                           ),
                       ],
-
                     ),
-
                   ),
                 ),
-                // ───────── RIGHT COLUMN (50% width) - INPUT FIELDS
+                // RIGHT COLUMN - INPUT FIELDS
                 Flexible(
                   fit: FlexFit.loose,
                   child: Column(
                     children: [
-                      // 2x2 Grid of Blue Input Fields
                       Row(
                         children: [
                           Expanded(child: _blueBox("Floor", _floorController)),
@@ -317,15 +370,13 @@ class _DynamicItemCardState extends State<DynamicItemCard>
                         ],
                       ),
                       const SizedBox(height: 12),
-                      // Length Field with Label
+                      // ✅ Length Field (UOM) - NOW USING _lengthController
                       Column(
                         crossAxisAlignment: CrossAxisAlignment.start,
                         children: [
-                          _blueBox("UOM", _uomController, isUOM: true, focusNode: _uomFocusNode),
+                          _blueBox("UOM", _lengthController, isUOM: true, focusNode: _lengthFocusNode),
                         ],
                       ),
-                      // Action Buttons - Only show when editable
-
                     ],
                   ),
                 ),
@@ -337,13 +388,10 @@ class _DynamicItemCardState extends State<DynamicItemCard>
     );
   }
 
-  // ───────── Blue Input Field with White Hint Text
-  Widget _blueBox(String label, TextEditingController controller, {bool isUOM = false, FocusNode? focusNode}
-      ) {
+  Widget _blueBox(String label, TextEditingController controller, {bool isUOM = false, FocusNode? focusNode}) {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        // Label
         Padding(
           padding: const EdgeInsets.only(bottom: 4),
           child: Text(
@@ -355,7 +403,6 @@ class _DynamicItemCardState extends State<DynamicItemCard>
             ),
           ),
         ),
-        // Input field
         SizedBox(
           height: isUOM ? 60 : 23,
           child: TextFormField(
@@ -397,14 +444,12 @@ class _DynamicItemCardState extends State<DynamicItemCard>
 
   @override
   void dispose() {
-    // Clean up controllers
     _quantityController.dispose();
     _sizeController.dispose();
     _lengthController.dispose();
     _floorController.dispose();
     _mocController.dispose();
-    _uomController.dispose();
-    _uomFocusNode.dispose();
+    _lengthFocusNode.dispose();
     super.dispose();
   }
 }

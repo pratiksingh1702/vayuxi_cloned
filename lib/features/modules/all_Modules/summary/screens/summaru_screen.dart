@@ -1,3 +1,4 @@
+import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:untitled2/core/api/dio.dart';
 import 'package:untitled2/core/utlis/colors/colors.dart';
@@ -6,6 +7,7 @@ import 'package:untitled2/features/modules/all_Modules/summary/screens/profit.da
 import 'package:untitled2/features/modules/all_Modules/summary/screens/profit_loss_fusion.dart';
 import 'package:untitled2/typeProvider/type_provider.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:shimmer/shimmer.dart';
 import '../service/summaryService.dart';
 
 import 'loss.dart';
@@ -24,7 +26,9 @@ class _SummaryScreenState extends ConsumerState<SummaryScreen> {
   String? selectedYear;
   bool isLoading = false;
   List<dynamic> dataList = [];
-  List<SiteModel> allSites = []; // Store all sites
+  List<SiteModel> allSites = [];
+  Timer? _debounceTimer;
+  final Map<String, List<dynamic>> _dataCache = {};
 
   final Map<String, int> monthMap = const {
     'January': 1,
@@ -48,31 +52,48 @@ class _SummaryScreenState extends ConsumerState<SummaryScreen> {
     super.initState();
     DioClient.init();
     _generateYearOptions(2025);
-    _fetchSites(); // Fetch all sites first
+
     // Set default values
     final now = DateTime.now();
-    setState(() {
-      selectedMonth = now.month;
-      selectedYear = now.year.toString();
-    });
-    WidgetsBinding.instance.addPostFrameCallback((_) {
-      _fetchSummary();
-    });
+    selectedMonth = now.month;
+    selectedYear = now.year.toString();
+
+    // Fetch both sites and summary in parallel
+    _initializeData();
   }
 
   void _generateYearOptions(int startYear) {
     final currentYear = DateTime.now().year;
-    final years = [
+    yearOptions = [
       for (var y = currentYear; y >= startYear; y--) y.toString(),
     ];
-    setState(() => yearOptions = years);
+  }
+
+  // Initialize both sites and summary data in parallel
+  Future<void> _initializeData() async {
+    setState(() => isLoading = true);
+
+    try {
+      // Fetch sites first
+      await _fetchSites();
+      // Then fetch summary
+      await _fetchSummary();
+    } catch (e) {
+      debugPrint("❌ Error initializing data: $e");
+      final emptyData = _createEmptyDataForAllSites();
+      setState(() => dataList = emptyData);
+    } finally {
+      setState(() => isLoading = false);
+    }
   }
 
   // Fetch all sites
   Future<void> _fetchSites() async {
     try {
       final sites = ref.read(siteProvider).sites;
-      setState(() => allSites = sites);
+      // Sort once when fetching
+      sites.sort((a, b) => a.siteName.compareTo(b.siteName));
+      allSites = sites;
     } catch (e) {
       debugPrint("❌ Error fetching sites: $e");
     }
@@ -80,6 +101,13 @@ class _SummaryScreenState extends ConsumerState<SummaryScreen> {
 
   Future<void> _fetchSummary() async {
     if (selectedMonth == null || selectedYear == null) return;
+
+    // Check cache first
+    final cacheKey = '$selectedMonth-$selectedYear';
+    if (_dataCache.containsKey(cacheKey)) {
+      setState(() => dataList = _dataCache[cacheKey]!);
+      return;
+    }
 
     setState(() => isLoading = true);
     final type = ref.read(typeProvider);
@@ -93,6 +121,10 @@ class _SummaryScreenState extends ConsumerState<SummaryScreen> {
 
       // Merge fetched data with all sites
       final mergedData = _mergeDataWithAllSites(data);
+
+      // Cache the result
+      _dataCache[cacheKey] = mergedData;
+
       setState(() => dataList = mergedData);
     } catch (e) {
       debugPrint("❌ Error fetching summary: $e");
@@ -116,7 +148,7 @@ class _SummaryScreenState extends ConsumerState<SummaryScreen> {
       }
     }
 
-    // Create merged list
+    // Create merged list (sites are already sorted)
     final List<dynamic> mergedList = [];
 
     for (final site in allSites) {
@@ -139,9 +171,7 @@ class _SummaryScreenState extends ConsumerState<SummaryScreen> {
       }
     }
 
-    // Sort by site name alphabetically
-    mergedList.sort((a, b) => (a['siteName'] ?? '').compareTo(b['siteName'] ?? ''));
-
+    // No need to sort - allSites is already sorted
     return mergedList;
   }
 
@@ -160,10 +190,21 @@ class _SummaryScreenState extends ConsumerState<SummaryScreen> {
       });
     }
 
-    // Sort by site name alphabetically
-    emptyData.sort((a, b) => (a['siteName'] ?? '').compareTo(b['siteName'] ?? ''));
-
+    // No need to sort - allSites is already sorted
     return emptyData;
+  }
+
+  void _debouncedFetchSummary() {
+    _debounceTimer?.cancel();
+    _debounceTimer = Timer(const Duration(milliseconds: 300), () {
+      _fetchSummary();
+    });
+  }
+
+  @override
+  void dispose() {
+    _debounceTimer?.cancel();
+    super.dispose();
   }
 
   @override
@@ -204,7 +245,7 @@ class _SummaryScreenState extends ConsumerState<SummaryScreen> {
                         onChanged: (value) {
                           final monthNum = monthMap[value]!;
                           setState(() => selectedMonth = monthNum);
-                          _fetchSummary();
+                          _debouncedFetchSummary();
                         },
                       ),
                     ),
@@ -235,7 +276,7 @@ class _SummaryScreenState extends ConsumerState<SummaryScreen> {
                             .toList(),
                         onChanged: (value) {
                           setState(() => selectedYear = value);
-                          _fetchSummary();
+                          _debouncedFetchSummary();
                         },
                       ),
                     ),
@@ -246,8 +287,12 @@ class _SummaryScreenState extends ConsumerState<SummaryScreen> {
           ),
 
           if (isLoading)
-            const Expanded(
-              child: Center(child: CircularProgressIndicator(color: Colors.blue)),
+            Expanded(
+              child: ListView.builder(
+                padding: const EdgeInsets.only(bottom: 20),
+                itemCount: 6,
+                itemBuilder: (context, index) => _buildShimmerCard(),
+              ),
             )
           else
             Expanded(
@@ -304,28 +349,82 @@ class _SummaryScreenState extends ConsumerState<SummaryScreen> {
                         color: isProfit ? Colors.green : Colors.red,
                         size: 28,
                       ),
-                        onTap: () {
-                          final route = MaterialPageRoute(
-                            builder: (_) => profitPercentage == 0
-                                ? _buildZeroProfitScreen(item, defaultMonth ?? '')
-                                : FinancialReportScreen(
-                              siteName: siteName,
-                              income: (item['income'] ?? 0.0).toDouble(),
-                              expenses: (item['expenses'] ?? 0.0).toDouble(),
-                              profit: (item['profit'] ?? 0.0).toDouble(),
-                              profitPercentage: profitPercentage,
-                              month: defaultMonth ?? '',
-                              year: selectedYear ?? '',
-                            ),
-                          );
-                          Navigator.push(context, route);
-                        },
+                      onTap: () {
+                        final route = MaterialPageRoute(
+                          builder: (_) => profitPercentage == 0
+                              ? _buildZeroProfitScreen(item, defaultMonth ?? '')
+                              : FinancialReportScreen(
+                            siteName: siteName,
+                            income: (item['income'] ?? 0.0).toDouble(),
+                            expenses: (item['expenses'] ?? 0.0).toDouble(),
+                            profit: (item['profit'] ?? 0.0).toDouble(),
+                            profitPercentage: profitPercentage,
+                            month: defaultMonth ?? '',
+                            year: selectedYear ?? '',
+                          ),
+                        );
+                        Navigator.push(context, route);
+                      },
                     ),
                   );
                 },
               ),
             ),
         ],
+      ),
+    );
+  }
+
+  Widget _buildShimmerCard() {
+    return Card(
+      margin: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+      color: Colors.white,
+      elevation: 2,
+      child: Shimmer.fromColors(
+        baseColor: Colors.grey[300]!,
+        highlightColor: Colors.grey[100]!,
+        child: ListTile(
+          contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+          title: Container(
+            height: 16,
+            width: double.infinity,
+            decoration: BoxDecoration(
+              color: Colors.white,
+              borderRadius: BorderRadius.circular(4),
+            ),
+          ),
+          subtitle: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              const SizedBox(height: 8),
+              Container(
+                height: 14,
+                width: 120,
+                decoration: BoxDecoration(
+                  color: Colors.white,
+                  borderRadius: BorderRadius.circular(4),
+                ),
+              ),
+              const SizedBox(height: 4),
+              Container(
+                height: 12,
+                width: 180,
+                decoration: BoxDecoration(
+                  color: Colors.white,
+                  borderRadius: BorderRadius.circular(4),
+                ),
+              ),
+            ],
+          ),
+          trailing: Container(
+            height: 28,
+            width: 28,
+            decoration: const BoxDecoration(
+              color: Colors.white,
+              shape: BoxShape.circle,
+            ),
+          ),
+        ),
       ),
     );
   }

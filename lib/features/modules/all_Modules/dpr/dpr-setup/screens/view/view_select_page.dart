@@ -6,9 +6,11 @@ import 'package:untitled2/core/utlis/widgets/custom_appBar.dart';
 import 'package:untitled2/features/modules/all_Modules/dpr/screens/widgets/floor_selection_page.dart';
 import 'package:untitled2/features/modules/all_Modules/dpr/screens/widgets/moc_selection_page.dart';
 
+import '../../../screens/dprTeamDetails.dart';
 import '../../../screens/widgets/all_material.dart';
 import '../../../screens/widgets/select_card.dart';
 import '../../../dpr_report/screens/download_sheets.dart';
+import '../../../screens/workTeamList.dart';
 
 class ViewSelectCardGrid extends StatelessWidget {
   const ViewSelectCardGrid({super.key});
@@ -29,7 +31,7 @@ class ViewSelectCardGrid extends StatelessWidget {
           children: [
             SelectCard(
               icon: Image.asset(
-                "assets/images/Gemini_Generated_Image_pi2r7npi2r7npi2r.webp",
+                "assets/images/icons/moc.webp",
         
                 height: 120,
                 width: double.infinity,
@@ -46,7 +48,7 @@ class ViewSelectCardGrid extends StatelessWidget {
             ),
             SelectCard(
               icon: Image.asset(
-                "assets/images/Gemini_Generated_Image_pi2r7npi2r7npi2r.webp",
+                "assets/images/icons/floor.webp",
         
                 height: 120,
                 width: double.infinity,
@@ -63,7 +65,7 @@ class ViewSelectCardGrid extends StatelessWidget {
             ),
             SelectCard(
               icon: Image.asset(
-                "assets/images/icons/dpr_setup.webp",
+                "assets/images/icons/dpr_setup_icon.webp",
         
                 height: 120,
                 width: double.infinity,
@@ -72,13 +74,31 @@ class ViewSelectCardGrid extends StatelessWidget {
               ),
               label: "DPR Screen",
               onTap: () {
-        
-        
-        
+
                 Navigator.push(
                   context,
-                  MaterialPageRoute(builder: (context) => AllMaterialsScreen()),
+                  MaterialPageRoute(
+                    builder: (_) => WorkTeamListPage(
+                      pageBuilder: (context, siteId, teamId, teamName) {
+                        return DprWorkScreen(
+                          siteId: siteId,
+                          teamId: teamId,
+                          name: teamName,
+                          pageBuilder: (context, dpr) {
+                            return AllMaterialsScreen(
+                              dpr: dpr,
+                              siteId: siteId,
+                              teamId: teamId,
+                              teamName: teamName,
+                            );
+                          },
+                        );
+                      },
+                    )
+                    ,
+                  ),
                 );
+
               },
             ),
           ],
