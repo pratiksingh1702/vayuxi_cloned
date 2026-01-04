@@ -27,7 +27,7 @@ void main() async {
 
   Hive.registerAdapter(SiteModelHiveAdapter());
   // Initialize Hive
-  await HiveStorageService.init();
+  // await HiveStorageService.init();
 
   await SiteHiveStorage.init();
   await RequestQueue.init();

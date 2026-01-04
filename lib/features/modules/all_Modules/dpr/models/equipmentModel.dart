@@ -1,67 +1,25 @@
-import 'package:hive/hive.dart';
-
-part 'equipmentModel.g.dart';
-
-@HiveType(typeId: 1)
-class EquipmentItem extends HiveObject {
-  @HiveField(0)
+class EquipmentItem {
   final String id;
+  final String materialName;
+  final String image;
+  final double qty;
+  final String uom;
+  final double length;
+  final double rmt;
+  final double diameter;
+  final double weight;
+  final double power;
+  final double actualRate;
+  final double rate;
+  final String moc;
+  final String size;
+  final String location;
+  final String plant;
+  final List<String> designation;
+  final String calculationCategory;
+  final String remarks;
 
-  @HiveField(1)
-  String materialName;
-
-  @HiveField(2)
-  String image;
-
-  @HiveField(3)
-  double qty;
-
-  @HiveField(4)
-  String uom;
-
-  @HiveField(5)
-  double length;
-
-  @HiveField(6)
-  double rmt;
-
-  @HiveField(7)
-  double diameter;
-
-  @HiveField(8)
-  double weight;
-
-  @HiveField(9)
-  double power;
-
-  @HiveField(10)
-  double actualRate;
-
-  @HiveField(11)
-  double rate;
-
-  @HiveField(12)
-  String moc;
-
-  @HiveField(13)
-  String size;
-
-  @HiveField(14)
-  String location;
-
-  @HiveField(15)
-  String plant;
-
-  @HiveField(16)
-  List<String> designation;
-
-  @HiveField(17)
-  String calculationCategory;
-
-  @HiveField(18)
-  String remarks; // Add this field
-
-  EquipmentItem({
+  const EquipmentItem({
     required this.id,
     required this.materialName,
     required this.image,
@@ -80,10 +38,9 @@ class EquipmentItem extends HiveObject {
     required this.plant,
     required this.designation,
     required this.calculationCategory,
-    this.remarks = '', // Initialize with empty string
+    this.remarks = '',
   });
 
-  // Factory constructor from JSON
   factory EquipmentItem.fromJson(Map<String, dynamic> json) {
     return EquipmentItem(
       id: json['_id'] ?? json['id'] ?? '',
@@ -102,34 +59,9 @@ class EquipmentItem extends HiveObject {
       size: json['size'] ?? '',
       location: json['location'] ?? '',
       plant: json['plant'] ?? '',
-      designation: List<String>.from(json['designation'] ?? []),
+      designation: List<String>.from(json['designation'] ?? const []),
       calculationCategory: json['calculationCategory'] ?? '',
       remarks: json['remarks'] ?? '',
-    );
-  }
-
-  // Empty constructor
-  factory EquipmentItem.empty() {
-    return EquipmentItem(
-      id: '',
-      materialName: '',
-      image: '',
-      qty: 0,
-      uom: '',
-      length: 0,
-      rmt: 0,
-      diameter: 0,
-      weight: 0,
-      power: 0,
-      actualRate: 0,
-      rate: 0,
-      moc: '',
-      size: '',
-      location: '',
-      plant: '',
-      designation: [],
-      calculationCategory: '',
-      remarks: '',
     );
   }
 
@@ -152,7 +84,7 @@ class EquipmentItem extends HiveObject {
     String? plant,
     List<String>? designation,
     String? calculationCategory,
-    String? remarks, // Add this to copyWith
+    String? remarks,
   }) {
     return EquipmentItem(
       id: id ?? this.id,
@@ -172,8 +104,31 @@ class EquipmentItem extends HiveObject {
       location: location ?? this.location,
       plant: plant ?? this.plant,
       designation: designation ?? this.designation,
-      calculationCategory: calculationCategory ?? this.calculationCategory,
-      remarks: remarks ?? this.remarks, // Add this line
+      calculationCategory:
+      calculationCategory ?? this.calculationCategory,
+      remarks: remarks ?? this.remarks,
     );
   }
+
+  static EquipmentItem empty() => const EquipmentItem(
+    id: '',
+    materialName: '',
+    image: '',
+    qty: 0,
+    uom: '',
+    length: 0,
+    rmt: 0,
+    diameter: 0,
+    weight: 0,
+    power: 0,
+    actualRate: 0,
+    rate: 0,
+    moc: '',
+    size: '',
+    location: '',
+    plant: '',
+    designation: [],
+    calculationCategory: '',
+    remarks: '',
+  );
 }

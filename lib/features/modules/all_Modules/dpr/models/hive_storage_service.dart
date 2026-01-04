@@ -14,12 +14,12 @@ class HiveStorageService {
     Hive.init(appDocumentDir.path);
 
     // Register adapters
-    if (!Hive.isAdapterRegistered(0)) {
-      Hive.registerAdapter(PipingItemAdapter());
-    }
-    if (!Hive.isAdapterRegistered(1)) {
-      Hive.registerAdapter(EquipmentItemAdapter());
-    }
+    // if (!Hive.isAdapterRegistered(0)) {
+    //   Hive.registerAdapter(PipingItemAdapter());
+    // }
+    // if (!Hive.isAdapterRegistered(1)) {
+    //   Hive.registerAdapter(EquipmentItemAdapter());
+    // }
 
     // Open boxes
     await Hive.openBox<PipingItem>(_pipingBoxName);

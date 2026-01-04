@@ -14,8 +14,8 @@ StateNotifierProvider<PipingMaterialsNotifier, List<PipingItem>>(
       (ref) => PipingMaterialsNotifier(),
 );
 class PipingMaterialsNotifier extends StateNotifier<List<PipingItem>> {
-  PipingMaterialsNotifier()
-      : super(List<PipingItem>.from(PipingMaterialsData.materials));
+  PipingMaterialsNotifier() : super(const []);
+
 
   void setMaterials(List<PipingItem> materials) {
     state = List<PipingItem>.unmodifiable(materials);

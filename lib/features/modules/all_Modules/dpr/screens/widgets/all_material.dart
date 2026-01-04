@@ -1,73 +1,132 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import 'package:cached_network_image/cached_network_image.dart';
 import 'package:untitled2/core/utlis/colors/colors.dart';
 import 'package:untitled2/core/utlis/widgets/custom_appBar.dart';
 import 'package:untitled2/features/modules/all_Modules/site_Details/providers/site_current_provider.dart';
-import 'package:untitled2/typeProvider/type_provider.dart';
 
+import '../../dpr-setup/screens/add/add_material.dart';
 import '../../models/data/eqipment_provider.dart';
 import '../../models/data/piping_provider.dart';
-import '../../models/dprModel.dart';
 import '../../models/equipmentModel.dart';
 import '../../models/pipingModel.dart';
-import '../../providers/dpr.dart';
-import '../material_sync_util.dart';
+import '../../providers/material_service.dart';
 import 'dynamic_item_card.dart';
 import 'dynamic_item_card2.dart';
 import 'edit_material.dart';
 
 class AllMaterialsScreen extends ConsumerStatefulWidget {
-  final String? siteId;
-  final String? teamId;
-  final String? teamName;
-  final DprModel dpr;
-
   const AllMaterialsScreen({
-    this.siteId,
-    this.teamId,
-    this.teamName,
-    required this.dpr,
     super.key,
-
   });
 
   @override
   ConsumerState<AllMaterialsScreen> createState() => _AllMaterialsScreenState();
 }
 
-class _AllMaterialsScreenState extends ConsumerState<AllMaterialsScreen> with SingleTickerProviderStateMixin {
+class _AllMaterialsScreenState extends ConsumerState<AllMaterialsScreen>
+    with SingleTickerProviderStateMixin {
   late TabController _tabController;
-  bool _synced = false;
-
+  bool _isLoading = false;
+  bool _isInitialized = false;
+  final DefaultMaterialService _materialService = DefaultMaterialService();
+  String? siteId;
 
   @override
   void initState() {
     super.initState();
     _tabController = TabController(length: 2, vsync: this);
-    WidgetsBinding.instance.addPostFrameCallback((_) {
-      final mergedPiping = MaterialSyncService.syncPiping(
-        local: ref.read(pipingMaterialsProvider),
-        server: widget.dpr.piping,
-      );
 
-      final mergedEquipment = MaterialSyncService.syncEquipment(
-        local: ref.read(equipmentMaterialsProvider),
-        server: widget.dpr.equipment,
-      );
-
-
-      ref.read(pipingMaterialsProvider.notifier)
-          .setMaterials(mergedPiping);
-      ref.read(equipmentMaterialsProvider.notifier).state = mergedEquipment;
+    WidgetsBinding.instance.addPostFrameCallback((_) async {
+      siteId = ref.read(selectedSiteIdProvider);
+      await _initializeMaterials();
     });
-
   }
 
   @override
   void dispose() {
     _tabController.dispose();
     super.dispose();
+  }
+
+  /// Initialize materials from the Default Material API
+  Future<void> _initializeMaterials() async {
+    if (_isInitialized || siteId == null) return;
+
+    setState(() => _isLoading = true);
+
+    try {
+      final materials = await _materialService.getDefaultMaterials(
+        siteId: siteId,
+      );
+
+      final pipingMaterials = materials.whereType<PipingItem>().toList();
+      final equipmentMaterials = materials.whereType<EquipmentItem>().toList();
+
+      ref.read(pipingMaterialsProvider.notifier).setMaterials(pipingMaterials);
+      ref.read(equipmentMaterialsProvider.notifier).setMaterials(equipmentMaterials);
+
+      _isInitialized = true;
+
+      debugPrint('✅ Loaded ${pipingMaterials.length} piping materials');
+      debugPrint('✅ Loaded ${equipmentMaterials.length} equipment materials');
+    } catch (e, st) {
+      debugPrint('❌ Failed to initialize materials: $e');
+      debugPrintStack(stackTrace: st);
+
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text('Failed to load materials: ${e.toString()}'),
+            backgroundColor: Colors.red,
+          ),
+        );
+      }
+    } finally {
+      if (mounted) {
+        setState(() => _isLoading = false);
+      }
+    }
+  }
+
+  /// Refresh materials from server
+  Future<void> _refreshMaterials() async {
+    setState(() => _isLoading = true);
+
+    try {
+      final materials = await _materialService.getDefaultMaterials(
+        siteId: siteId,
+      );
+
+      final pipingMaterials = materials.whereType<PipingItem>().toList();
+      final equipmentMaterials = materials.whereType<EquipmentItem>().toList();
+
+      ref.read(pipingMaterialsProvider.notifier).setMaterials(pipingMaterials);
+      ref.read(equipmentMaterialsProvider.notifier).setMaterials(equipmentMaterials);
+
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(
+            content: Text('Materials refreshed successfully'),
+            backgroundColor: Colors.green,
+          ),
+        );
+      }
+    } catch (e) {
+      debugPrint('❌ Failed to refresh materials: $e');
+
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text('Failed to refresh: ${e.toString()}'),
+            backgroundColor: Colors.red,
+          ),
+        );
+      }
+    } finally {
+      if (mounted) {
+        setState(() => _isLoading = false);
+      }
+    }
   }
 
   String _cleanImageUrl(String url) {
@@ -77,20 +136,27 @@ class _AllMaterialsScreenState extends ConsumerState<AllMaterialsScreen> with Si
 
   @override
   Widget build(BuildContext context) {
-    // Get piping and equipment materials directly from providers
-
     final pipingMaterials = ref.watch(pipingMaterialsProvider);
     final equipmentMaterials = ref.watch(equipmentMaterialsProvider);
+
+    final bool needsSetupDpr =
+        !_isLoading &&
+            _isInitialized &&
+            pipingMaterials.isEmpty &&
+            equipmentMaterials.isEmpty;
 
     return Scaffold(
       backgroundColor: AppColors.lightBlue,
       appBar: CustomAppBar(
-        title: widget.teamName ?? 'All Materials',
+        title: 'All Materials',
       ),
-      body: SafeArea(
+      body: _isLoading && !_isInitialized
+          ? const Center(child: CircularProgressIndicator())
+          : needsSetupDpr
+          ? _buildSetupDprState()
+          : SafeArea(
         child: Column(
           children: [
-            // Tab Bar
             Container(
               color: Colors.white,
               child: TabBar(
@@ -111,12 +177,13 @@ class _AllMaterialsScreenState extends ConsumerState<AllMaterialsScreen> with Si
               ),
             ),
 
-            // Content
+            if (_isLoading && _isInitialized)
+              const LinearProgressIndicator(),
+
             Expanded(
               child: TabBarView(
                 controller: _tabController,
                 children: [
-                  // Piping Materials Tab
                   _buildMaterialsTab(
                     materials: pipingMaterials,
                     icon: Icons.precision_manufacturing,
@@ -124,8 +191,6 @@ class _AllMaterialsScreenState extends ConsumerState<AllMaterialsScreen> with Si
                     emptyMessage: 'No piping materials found',
                     category: 'piping',
                   ),
-
-                  // Equipment Materials Tab
                   _buildMaterialsTab(
                     materials: equipmentMaterials,
                     icon: Icons.build,
@@ -142,6 +207,174 @@ class _AllMaterialsScreenState extends ConsumerState<AllMaterialsScreen> with Si
     );
   }
 
+  Widget _buildSetupDprState() {
+    return Center(
+      child: Padding(
+        padding: const EdgeInsets.all(24),
+        child: Column(
+          mainAxisAlignment: MainAxisAlignment.center,
+          children: [
+            const Icon(Icons.settings, size: 72, color: Colors.blueGrey),
+            const SizedBox(height: 24),
+
+            const Text(
+              'Setup DPR Required',
+              style: TextStyle(fontSize: 22, fontWeight: FontWeight.bold),
+              textAlign: TextAlign.center,
+            ),
+
+            const SizedBox(height: 12),
+
+            const Text(
+              'Default materials are not configured for this site.\n\n'
+                  'You must set up DPR materials before creating or managing DPRs.',
+              textAlign: TextAlign.center,
+              style: TextStyle(color: Colors.black54, fontSize: 16),
+            ),
+
+            const SizedBox(height: 32),
+
+            ElevatedButton.icon(
+              icon: const Icon(Icons.playlist_add),
+              label: const Text('Setup DPR Materials'),
+              onPressed: _showSetupDprDialog,
+              style: ElevatedButton.styleFrom(
+                padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 14),
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  /// Show setup DPR dialog with options
+  Future<void> _showSetupDprDialog() async {
+    String selectedDesignation = 'both';
+    bool isApplied = false;
+
+    final result = await showDialog<Map<String, dynamic>>(
+      context: context,
+      builder: (context) => StatefulBuilder(
+        builder: (context, setDialogState) => AlertDialog(
+          title: const Text('Setup DPR Materials'),
+          content: Column(
+            mainAxisSize: MainAxisSize.min,
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              const Text(
+                'Select material type to setup:',
+                style: TextStyle(fontWeight: FontWeight.bold),
+              ),
+              const SizedBox(height: 12),
+
+              RadioListTile<String>(
+                title: const Text('Both (Piping + Equipment)'),
+                value: 'both',
+                groupValue: selectedDesignation,
+                onChanged: (value) {
+                  setDialogState(() => selectedDesignation = value!);
+                },
+              ),
+              RadioListTile<String>(
+                title: const Text('Piping Only'),
+                value: 'piping',
+                groupValue: selectedDesignation,
+                onChanged: (value) {
+                  setDialogState(() => selectedDesignation = value!);
+                },
+              ),
+              RadioListTile<String>(
+                title: const Text('Equipment Only'),
+                value: 'equipment',
+                groupValue: selectedDesignation,
+                onChanged: (value) {
+                  setDialogState(() => selectedDesignation = value!);
+                },
+              ),
+
+              const Divider(height: 24),
+
+              CheckboxListTile(
+                title: const Text('Apply to all sites'),
+                subtitle: const Text('Make these materials available across all sites'),
+                value: isApplied,
+                onChanged: (value) {
+                  setDialogState(() => isApplied = value ?? false);
+                },
+                controlAffinity: ListTileControlAffinity.leading,
+              ),
+            ],
+          ),
+          actions: [
+            TextButton(
+              onPressed: () => Navigator.pop(context),
+              child: const Text('Cancel'),
+            ),
+            ElevatedButton(
+              onPressed: () => Navigator.pop(context, {
+                'designation': selectedDesignation,
+                'isApplied': isApplied,
+              }),
+              child: const Text('Setup'),
+            ),
+          ],
+        ),
+      ),
+    );
+
+    if (result != null) {
+      await _handleSetupDpr(
+        designation: result['designation'],
+        isApplied: result['isApplied'],
+      );
+    }
+  }
+
+  Future<void> _handleSetupDpr({
+    required String designation,
+    required bool isApplied,
+  }) async {
+    if (siteId == null) return;
+
+    setState(() => _isLoading = true);
+
+    try {
+      await _materialService.setupDpr(
+        siteId: siteId!,
+        designation: designation,
+        isApplied: isApplied,
+      );
+
+      await _refreshMaterials();
+
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text(
+              'DPR materials initialized successfully'
+                  '${isApplied ? ' and applied to all sites' : ''}',
+            ),
+            backgroundColor: Colors.green,
+          ),
+        );
+      }
+    } catch (e) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text('Setup failed: $e'),
+            backgroundColor: Colors.red,
+          ),
+        );
+      }
+    } finally {
+      if (mounted) {
+        setState(() => _isLoading = false);
+      }
+    }
+  }
+
   Widget _buildMaterialsTab({
     required List<dynamic> materials,
     required IconData icon,
@@ -150,16 +383,13 @@ class _AllMaterialsScreenState extends ConsumerState<AllMaterialsScreen> with Si
     required String category,
   }) {
     if (materials.isEmpty) {
-      return _buildEmptyState(
-        icon: icon,
-        message: emptyMessage,
-        color: color,
+      return _buildSetupDprState(
+
       );
     }
 
     return Column(
       children: [
-        // Header with counts
         Padding(
           padding: const EdgeInsets.all(8.0),
           child: Row(
@@ -172,138 +402,183 @@ class _AllMaterialsScreenState extends ConsumerState<AllMaterialsScreen> with Si
                   color: color,
                 ),
               ),
-              IconButton(
-                icon: Icon(Icons.filter_list, color: color),
-                onPressed: () {
-                  _showFilterOptions(context, category);
-                },
+              Row(
+                children: [
+                  IconButton(
+                    icon: Icon(Icons.filter_list, color: color),
+                    onPressed: () => _showFilterOptions(context, category),
+                    tooltip: 'Filter',
+                  ),
+                  IconButton(
+                    icon: const Icon(Icons.delete_sweep, color: Colors.red),
+                    onPressed: materials.isEmpty
+                        ? null
+                        : () => _bulkDeleteMaterials(category),
+                    tooltip: 'Bulk Delete All',
+                  ),
+                  IconButton(
+                    icon: Icon(Icons.add_circle, color: color),
+                    onPressed: () => _addNewMaterial(category),
+                    tooltip: 'Add Material',
+                  ),
+                ],
               ),
             ],
           ),
         ),
 
-        // Materials List
         Expanded(
-          child: ListView.builder(
-            padding: const EdgeInsets.all(8.0),
-            itemCount: materials.length,
-            itemBuilder: (context, index) {
-              if (category == 'piping') {
-                final material = materials[index] as PipingItem;
-                return _buildPipingCard(material, color);
-              } else {
-                final material = materials[index] as EquipmentItem;
-                return _buildEquipmentCard(material, color);
-              }
-            },
+          child: RefreshIndicator(
+            onRefresh: _refreshMaterials,
+            child: ListView.builder(
+              padding: const EdgeInsets.all(8.0),
+              itemCount: materials.length,
+              itemBuilder: (context, index) {
+                if (category == 'piping') {
+                  final material = materials[index] as PipingItem;
+                  return _buildPipingCard(material, color);
+                } else {
+                  final material = materials[index] as EquipmentItem;
+                  return _buildEquipmentCard(material, color);
+                }
+              },
+            ),
           ),
-
         ),
       ],
     );
   }
 
-  Widget _buildPipingCard(PipingItem material, Color color)
-  {
-    final materialName = _getMaterialName(material, 'piping');
-    final uom = _getUOM(material, 'piping');
-    print(material.materialName);
-    print(material.image);
-    final imageUrl = _getImageUrl(material, 'piping');
-    final dprName = _getDPRName(material, 'piping');
-    print(imageUrl);
-    print("❤️❤️❤️❤️❤️❤️❤️");
+  /// Bulk delete all materials in a category
+  Future<void> _bulkDeleteMaterials(String category) async {
+    final materials = category == 'piping'
+        ? ref.read(pipingMaterialsProvider)
+        : ref.read(equipmentMaterialsProvider);
+
+    if (materials.isEmpty) return;
+
+    final confirmed = await showDialog<bool>(
+      context: context,
+      builder: (context) => AlertDialog(
+        title: const Text('Bulk Delete Confirmation'),
+        content: Text(
+          'Are you sure you want to delete ALL ${materials.length} '
+              '${category == 'piping' ? 'piping' : 'equipment'} materials?\n\n'
+              'This action cannot be undone.',
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(context, false),
+            child: const Text('Cancel'),
+          ),
+          TextButton(
+            onPressed: () => Navigator.pop(context, true),
+            style: TextButton.styleFrom(foregroundColor: Colors.red),
+            child: const Text('Delete All'),
+          ),
+        ],
+      ),
+    );
+
+    if (confirmed != true) return;
+
+    setState(() => _isLoading = true);
+
+    try {
+      if (category == 'piping') {
+        final List<PipingItem> materials =
+        ref.read(pipingMaterialsProvider);
+
+        final ids = materials.map((m) => m.id).toList();
+        await _materialService.bulkDelete(ids);
+        ref.read(pipingMaterialsProvider.notifier).setMaterials([]);
+      } else {
+        final List<EquipmentItem> materials =
+        ref.read(equipmentMaterialsProvider);
+
+        final ids = materials.map((m) => m.id).toList();
+        await _materialService.bulkDelete(ids);
+        ref.read(equipmentMaterialsProvider.notifier).setMaterials([]);
+      }
+
+
+      await _refreshMaterials();
+
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text('Successfully deleted  materials'),
+            backgroundColor: Colors.green,
+          ),
+        );
+      }
+    } catch (e) {
+      debugPrint('❌ Failed to bulk delete: $e');
+
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text('Bulk delete failed: ${e.toString()}'),
+            backgroundColor: Colors.red,
+          ),
+        );
+      }
+    } finally {
+      if (mounted) {
+        setState(() => _isLoading = false);
+      }
+    }
+  }
+
+  Widget _buildPipingCard(PipingItem material, Color color) {
+    final imageUrl = _cleanImageUrl(material.image);
 
     return DynamicItemCard(
-      quantity: "0", // Default quantity
-      size: _getSize(material, 'piping'),
-      length: _getLength(material, 'piping'),
-      floor: _getFloor(material, 'piping'),
-      moc: _getMOC(material, 'piping'),
+      quantity: material.qty.toString(),
+      size: material.size,
+      length: material.length.toString(),
+      floor: '',
+      moc: material.moc,
       image: imageUrl.isNotEmpty ? imageUrl : null,
       sizeLabel: "Size",
-      lengthLabel: materialName,
-      sizePlaceholder: "Enter size",
-      lengthPlaceholder: uom,
-      onQtyChanged: (value) {
-        // Handle quantity change
-        _updatePipingMaterial(material, 'quantity', value);
-      },
-      onSizeChanged: (value) {
-        // Handle size change
-        _updatePipingMaterial(material, 'size', value);
-      },
-      onLengthChanged: (value) {
-        // Handle length change
-        _updatePipingMaterial(material, 'length', value);
-      },
-      onFloorChanged: (value) {
-        // Handle floor change
-        _updatePipingMaterial(material, 'floor', value);
-      },
-      onMocChanged: (value) {
-        // Handle MOC change
-        _updatePipingMaterial(material, 'moc', value);
-      },
-      onDelete: () {
-        _deleteMaterial(material, 'piping');
-      },
-      onRemark: () {
-        _showRemarksDialog(context, material, 'piping');
-      },
-      onEdit: () {
-        _editMaterial(material, 'piping');
-      },
-      onCopy: () {
-        _duplicateMaterial(material, 'piping');
-      },
-      onAdd: () {
-        _duplicateMaterial(material, 'piping');
-      },
-      isEditable: true, // You can make this dynamic based on user role
+      lengthLabel: material.materialName,
+      sizePlaceholder: material.uom,
+      lengthPlaceholder: material.uom,
+      onQtyChanged: (value) => _updatePipingField(material.id, 'qty', value),
+      onSizeChanged: (value) => _updatePipingField(material.id, 'size', value),
+      onLengthChanged: (value) => _updatePipingField(material.id, 'length', value),
+      onFloorChanged: (value) => _updatePipingField(material.id, 'floor', value),
+      onMocChanged: (value) => _updatePipingField(material.id, 'moc', value),
+      onDelete: () => _deleteMaterial(material.id, material.materialName, 'piping'),
+      onRemark: () => _showRemarksDialog(material, 'piping'),
+      onEdit: () => _editMaterial(material, 'piping'),
+      onCopy: () => _copyMaterial(material, 'piping'),
+      onAdd: () => _copyMaterial(material, 'piping'),
+      isEditable: true,
     );
   }
 
-  Widget _buildEquipmentCard(EquipmentItem material, Color color)
-  {
-    final materialName = _getMaterialName(material, 'equipment');
-    final uom = _getUOM(material, 'equipment');
-    final imageUrl = _getImageUrl(material, 'equipment');
-    final dprName = _getDPRName(material, 'equipment');
+  Widget _buildEquipmentCard(EquipmentItem material, Color color) {
+    final imageUrl = _cleanImageUrl(material.image);
 
     return DynamicItemCard2(
-      title: materialName,
-      quantity: "0", // Default quantity
+      title: material.materialName,
+      quantity: material.qty.toString(),
       image: imageUrl.isNotEmpty ? imageUrl : null,
-      moc: _getMOC(material, 'equipment'),
-      floor: _getFloor(material, 'equipment'),
-      ton: _getTon(material, 'equipment'),
-      meter: _getMeter(material, 'equipment'),
-      onAdd: () {
-        _duplicateMaterial(material, 'equipment');
-      },
-      onEdit: () {
-        _editMaterial(material, 'equipment');
-      },
-      onMocChanged: (value) {
-        _updateEquipmentMaterial(material, 'moc', value);
-      },
-      onDelete: () {
-        _deleteMaterial(material, 'equipment');
-      },
-      onRemark: () {
-        _showRemarksDialog(context, material, 'equipment');
-      },
-      onQtyChanged: (value) {
-        _updateEquipmentMaterial(material, 'quantity', value);
-      },
-      onFloorChanged: (value) {
-        _updateEquipmentMaterial(material, 'floor', value);
-      },
-      onTonChanged: (value) {
-        _updateEquipmentMaterial(material, 'ton', value);
-      },
-      isEditable: true, onMeterChanged: (String p1) {  }, // You can make this dynamic based on user role
+      moc: material.moc,
+      floor: '',
+      ton: material.weight.toString(),
+      meter: material.length.toString(),
+      onAdd: () => _copyMaterial(material.id, 'equipment'),
+      onEdit: () => _editMaterial(material, 'equipment'),
+      onMocChanged: (value) => _updateEquipmentField(material.id, 'moc', value),
+      onDelete: () => _deleteMaterial(material.id, material.materialName, 'equipment'),
+      onRemark: () => _showRemarksDialog(material, 'equipment'),
+      onQtyChanged: (value) => _updateEquipmentField(material.id, 'qty', value),
+      onFloorChanged: (value) => _updateEquipmentField(material.id, 'floor', value),
+      onTonChanged: (value) => _updateEquipmentField(material.id, 'weight', value),
+      onMeterChanged: (value) => _updateEquipmentField(material.id, 'length', value),
+      isEditable: true,
     );
   }
 
@@ -311,6 +586,7 @@ class _AllMaterialsScreenState extends ConsumerState<AllMaterialsScreen> with Si
     required IconData icon,
     required String message,
     required Color color,
+    required String category,
   }) {
     return Center(
       child: Column(
@@ -326,10 +602,7 @@ class _AllMaterialsScreenState extends ConsumerState<AllMaterialsScreen> with Si
           ),
           const SizedBox(height: 8),
           ElevatedButton.icon(
-            onPressed: () {
-              // Add new material
-              _addNewMaterial(context, color == Colors.blue ? 'piping' : 'equipment');
-            },
+            onPressed: () => _addNewMaterial(category),
             icon: Icon(Icons.add, color: color),
             label: Text(
               'Add New Material',
@@ -344,186 +617,197 @@ class _AllMaterialsScreenState extends ConsumerState<AllMaterialsScreen> with Si
     );
   }
 
-  // Helper methods to extract properties from material objects
-  String _getMaterialName(dynamic material, String category) {
+  Future<void> _updatePipingField(String id, String field, String value) async {
     try {
+      final updates = {field: _parseValue(field, value)};
+      await ref.read(pipingMaterialsProvider.notifier).updatePipingMaterialField(id, updates);
+    } catch (e) {
+      debugPrint('❌ Failed to update piping field: $e');
+    }
+  }
+
+  Future<void> _updateEquipmentField(String id, String field, String value) async {
+    try {
+      final updates = {field: _parseValue(field, value)};
+      await ref.read(equipmentMaterialsProvider.notifier).updateEquipmentMaterialField(id, updates);
+    } catch (e) {
+      debugPrint('❌ Failed to update equipment field: $e');
+    }
+  }
+
+  dynamic _parseValue(String field, String value) {
+    if (field == 'qty' || field == 'length' || field == 'weight' || field == 'diameter' || field == 'power') {
+      return double.tryParse(value) ?? 0.0;
+    }
+    return value;
+  }
+
+  void _editMaterial(dynamic material, String category) {
+    if (material is PipingItem) {
+      Navigator.of(context).push(
+        MaterialPageRoute(
+          builder: (_) => PersistDPRScreen(
+            editMaterialId: material.id,
+            designation: 'piping',
+            pipingMaterial: material,
+          ),
+        ),
+      ).then((_) {
+        _refreshMaterials();
+      });
+    } else if (material is EquipmentItem) {
+      Navigator.of(context).push(
+        MaterialPageRoute(
+          builder: (_) => PersistDPRScreen(
+            editMaterialId: material.id,
+            designation: 'equipment',
+            equipmentMaterial: material,
+          ),
+        ),
+      ).then((_) {
+        _refreshMaterials();
+      });
+    }
+
+  }
+
+  Future<void> _copyMaterial(dynamic material, String category) async {
+    try {
+      final materialId = material.id;
+      debugPrint('🔄 Copying material: $materialId');
+
       if (category == 'piping') {
-        return material.materialName?.toString() ?? 'Unknown Piping Material';
-      } else if (category == 'equipment') {
-        return material.materialName?.toString() ?? 'Unknown Equipment';
+        final materials = ref.read(pipingMaterialsProvider);
+        final original = materials.firstWhere((m) => m.id == materialId);
+
+        await _materialService.createMaterial(
+          materialName: '${original.materialName}',
+          uom: original.uom,
+          calculationCategory: original.calculationCategory,
+          designation: 'piping',
+          siteId: siteId,
+          isApplied: false,
+        );
+      } else {
+        final materials = ref.read(equipmentMaterialsProvider);
+        final original = materials.firstWhere((m) => m.id == materialId);
+
+        await _materialService.createMaterial(
+          materialName: '${original.materialName} (Copy)',
+          uom: original.uom,
+          calculationCategory: original.calculationCategory,
+          designation: 'equipment',
+          siteId: siteId,
+          isApplied: false,
+        );
+      }
+
+      await _refreshMaterials();
+
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(
+            content: Text('Material copied successfully'),
+            backgroundColor: Colors.green,
+          ),
+        );
       }
     } catch (e) {
-      // Handle the error silently
-    }
-    return 'Unknown Material';
-  }
+      debugPrint('❌ Failed to copy material: $e');
 
-  String _getUOM(dynamic material, String category) {
-    try {
-      if (category == 'piping') {
-        return material.uom?.toString() ?? 'N/A';
-      } else if (category == 'equipment') {
-        return material.uom?.toString() ?? 'N/A';
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text('Failed to copy: ${e.toString()}'),
+            backgroundColor: Colors.red,
+          ),
+        );
       }
-    } catch (e) {
-      // Handle the error silently
-    }
-    return 'N/A';
-  }
-
-  String _getImageUrl(dynamic material, String category) {
-    try {
-      if (category == 'piping') {
-        return _cleanImageUrl(material.image?.toString() ?? '');
-      } else if (category == 'equipment') {
-        return _cleanImageUrl(material.image?.toString() ?? '');
-      }
-    } catch (e) {
-      // Handle the error silently
-    }
-    return '';
-  }
-
-  String _getDPRName(dynamic material, String category) {
-    try {
-      if (material.dprName != null) {
-        return material.dprName.toString();
-      } else if (material.dpr != null) {
-        return material.dpr.toString();
-      } else if (material.parentDprName != null) {
-        return material.parentDprName.toString();
-      }
-    } catch (e) {
-      // Handle the error silently
-    }
-    return 'Unknown DPR';
-  }
-
-  String _getSize(dynamic material, String category) {
-    try {
-      if (category == 'piping') {
-        return material.size?.toString() ?? '';
-      }
-    } catch (e) {
-      // Handle the error silently
-    }
-    return '';
-  }
-
-  String _getLength(dynamic material, String category) {
-    try {
-      if (category == 'piping') {
-        return material.length?.toString() ?? '';
-      }
-    } catch (e) {
-      // Handle the error silently
-    }
-    return '';
-  }
-
-  String _getFloor(dynamic material, String category) {
-    try {
-      return material.floor?.toString() ?? '';
-    } catch (e) {
-      return '';
     }
   }
 
-  String _getMOC(dynamic material, String category) {
-    try {
-      return material.moc?.toString() ?? '';
-    } catch (e) {
-      return '';
-    }
-  }
-
-  String _getTon(dynamic material, String category) {
-    try {
-      if (category == 'equipment') {
-        return material.ton?.toString() ?? '';
-      }
-    } catch (e) {
-      return '';
-    }
-    return '';
-  }
-
-  String _getMeter(dynamic material, String category) {
-    try {
-      if (category == 'equipment') {
-        return material.meter?.toString() ?? '';
-      }
-    } catch (e) {
-      return '';
-    }
-    return '';
-  }
-
-  // Material CRUD operations
-  void _updatePipingMaterial(dynamic material, String field, String value) {
-    // Update the material in your state management
-    print('Updating piping material: ${material.id} - $field: $value');
-    // Add your update logic here
-  }
-
-  void _updateEquipmentMaterial(dynamic material, String field, String value) {
-    // Update the material in your state management
-    print('Updating equipment material: ${material.id} - $field: $value');
-    // Add your update logic here
-  }
-
-  void _deleteMaterial(dynamic material, String category) {
-    showDialog(
+  Future<void> _deleteMaterial(String materialId, String materialName, String category) async {
+    final confirmed = await showDialog<bool>(
       context: context,
       builder: (context) => AlertDialog(
         title: const Text('Delete Material'),
-        content: Text('Are you sure you want to delete "${_getMaterialName(material, category)}"? This action cannot be undone.'),
+        content: Text(
+          'Are you sure you want to delete "$materialName"?\n\nThis action cannot be undone.',
+        ),
         actions: [
           TextButton(
-            onPressed: () => Navigator.pop(context),
+            onPressed: () => Navigator.pop(context, false),
             child: const Text('Cancel'),
           ),
           TextButton(
-            onPressed: () {
-              final notifier = category == 'piping'
-                  ? ref.read(pipingMaterialsProvider.notifier)
-                  : ref.read(equipmentMaterialsProvider.notifier);
-
-              if (category == 'piping') {
-                final piping=ref.read(pipingMaterialsProvider.notifier);
-                ref.read(pipingMaterialsProvider.notifier)
-                    .deletePipingMaterialFromServer(
-                  materialId: material.id,
-                  mechanicalId: widget.dpr.id!,
-                // if required
-                );
-
-              } else{
-                final equipment=ref.read(equipmentMaterialsProvider.notifier);
-                equipment.deleteEquipmentMaterial(material.id);
-              }
-
-              Navigator.pop(context);
-              ScaffoldMessenger.of(context).showSnackBar(
-                SnackBar(
-                  content: Text('$category material deleted successfully'),
-                  backgroundColor: Colors.red,
-                ),
-              );
-            },
-            child: const Text('Delete', style: TextStyle(color: Colors.red)),
+            onPressed: () => Navigator.pop(context, true),
+            child: const Text(
+              'Delete',
+              style: TextStyle(color: Colors.red),
+            ),
           ),
         ],
       ),
     );
+
+    if (confirmed != true) return;
+
+    try {
+      await _materialService.deleteMaterial(materialId);
+
+      if (category == 'piping') {
+        final notifier = ref.read(pipingMaterialsProvider.notifier);
+        final materials = ref.read(pipingMaterialsProvider);
+        notifier.setMaterials(materials.where((m) => m.id != materialId).toList());
+      } else {
+        final notifier = ref.read(equipmentMaterialsProvider.notifier);
+        final materials = ref.read(equipmentMaterialsProvider);
+        notifier.setMaterials(materials.where((m) => m.id != materialId).toList());
+      }
+
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(
+            content: Text('Material deleted successfully'),
+            backgroundColor: Colors.red,
+          ),
+        );
+      }
+    } catch (e) {
+      debugPrint('❌ Failed to delete material: $e');
+
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text('Failed to delete: ${e.toString()}'),
+            backgroundColor: Colors.red,
+          ),
+        );
+      }
+    }
   }
 
-  void _showRemarksDialog(BuildContext context, dynamic material, String category) {
+  void _addNewMaterial(String category) {
+    Navigator.of(context).push(
+      MaterialPageRoute(
+        builder: (context) => PersistDPRScreen(
+          designation: category,
+        ),
+      ),
+    ).then((_) {
+      _refreshMaterials();
+    });
+  }
+
+  void _showRemarksDialog(dynamic material, String category) {
+    final remarksController = TextEditingController(text: material.remarks ?? '');
+
     showDialog(
       context: context,
       builder: (context) => AlertDialog(
-        title: Text('Remarks for ${_getMaterialName(material, category)}'),
+        title: Text('Remarks for ${material.materialName}'),
         content: TextField(
+          controller: remarksController,
           maxLines: 5,
           decoration: const InputDecoration(
             hintText: 'Enter your remarks here...',
@@ -537,7 +821,11 @@ class _AllMaterialsScreenState extends ConsumerState<AllMaterialsScreen> with Si
           ),
           TextButton(
             onPressed: () {
-              // Save remarks logic
+              if (category == 'piping') {
+                _updatePipingField(material.id, 'remarks', remarksController.text);
+              } else {
+                _updateEquipmentField(material.id, 'remarks', remarksController.text);
+              }
               Navigator.pop(context);
             },
             child: const Text('Save'),
@@ -545,156 +833,6 @@ class _AllMaterialsScreenState extends ConsumerState<AllMaterialsScreen> with Si
         ],
       ),
     );
-  }
-
-  void _editMaterial(dynamic material, String category) {
-    // Extract material ID based on your model structure
-    String materialId;
-
-    try {
-      // Try different possible property names for ID
-      if (material.id != null) {
-        materialId = material.id.toString();
-      } else if (material.materialId != null) {
-        materialId = material.materialId.toString();
-      } else if (material.code != null) {
-        materialId = material.code.toString();
-      } else {
-        // Generate a fallback ID
-        materialId = '${category}_${DateTime.now().millisecondsSinceEpoch}';
-      }
-    } catch (e) {
-      materialId = '${category}_${DateTime.now().millisecondsSinceEpoch}';
-    }
-
-    // Navigate to edit screen
-    Navigator.of(context).push(
-      MaterialPageRoute(
-        builder: (context) => EditMaterialScreen(
-          material: material,
-          category: category,
-          materialId: materialId,
-          siteId: widget.siteId,
-          teamId: widget.teamId,
-        ),
-      ),
-    );
-  }
-  void _duplicateMaterial(dynamic material, String category) async {
-    try {
-      print('Duplicating ${category} material: ${material.id}');
-
-      // Get the provider instance
-      final dprNotifier = ref.read(dprProvider.notifier);
-      final type = ref.read(typeProvider);
-
-      if (type == null) {
-        print('Type is null, cannot duplicate material');
-        return;
-      }
-
-      // Call the copyMaterial method
-      final response = await dprNotifier.copyMaterial(
-        type: type,
-        materialId: material.id,
-      );
-
-      print('Material duplicated successfully');
-
-      // Check if response contains copied material data
-      if (response is Map && response.containsKey('copiedMaterial')) {
-        final copiedMaterial = response['copiedMaterial'];
-        final materialType = response['materialType'] ?? category.toLowerCase();
-
-        // Add the copied material to the appropriate provider based on type
-        _addCopiedMaterialToProvider(copiedMaterial, materialType, material.id,material);
-        // Optional: Show success message
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
-            content: Text('${material.materialName} duplicated successfully'),
-            backgroundColor: Colors.green,
-          ),
-        );
-      }
-
-    } catch (e) {
-      print('Error duplicating material: $e');
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(
-          content: Text('Failed to duplicate material: ${e.toString()}'),
-          backgroundColor: Colors.red,
-        ),
-      );
-    }
-  }
-
-  void _addCopiedMaterialToProvider(Map<String, dynamic> copiedMaterial, String materialType, String originalMaterialId, dynamic originalMaterial, ) {
-    switch (materialType.toLowerCase()) {
-      case 'piping':
-        final pipingMaterial = PipingItem(
-          id: copiedMaterial['_id'] ?? '',
-          materialName: copiedMaterial['materialName'] ?? '',
-          image:  originalMaterial.image,
-          qty: (copiedMaterial['qty'] ?? 0).toDouble(),
-          length: (copiedMaterial['length'] ?? 0).toDouble(),
-          rmt: (copiedMaterial['rmt'] ?? 0).toDouble(),
-          diameter: (copiedMaterial['diameter'] ?? 0).toDouble(),
-          weight: (copiedMaterial['weight'] ?? 0).toDouble(),
-          power: (copiedMaterial['power'] ?? 0).toDouble(),
-          uom: copiedMaterial['uom'] ?? '',
-          actualRate: (copiedMaterial['actualRate'] ?? 0).toDouble(),
-          designation: List<String>.from(copiedMaterial['designation'] ?? []),
-          moc: copiedMaterial['moc'] ?? '',
-          size: copiedMaterial['size'] ?? '',
-          location: copiedMaterial['location'] ?? '',
-          plant: copiedMaterial['plant'] ?? '',
-          rate: (copiedMaterial['rate'] ?? 0).toDouble(),
-          calculationCategory: '',
-        );
-
-        ref.read(pipingMaterialsProvider.notifier).addPipingMaterialAfter(
-            pipingMaterial,
-            originalMaterialId
-        );
-        print('Added duplicated piping material after original');
-        break;
-
-      case 'equipment':
-        final equipmentMaterial = EquipmentItem(
-          id: copiedMaterial['_id'] ?? '',
-          materialName: copiedMaterial['materialName'] ?? '',
-          image: copiedMaterial['image'] ?? '',
-          qty: (copiedMaterial['qty'] ?? 0).toDouble(),
-          length: (copiedMaterial['length'] ?? 0).toDouble(),
-          rmt: (copiedMaterial['rmt'] ?? 0).toDouble(),
-          diameter: (copiedMaterial['diameter'] ?? 0).toDouble(),
-          weight: (copiedMaterial['weight'] ?? 0).toDouble(),
-          power: (copiedMaterial['power'] ?? 0).toDouble(),
-          uom: copiedMaterial['uom'] ?? '',
-          actualRate: (copiedMaterial['actualRate'] ?? 0).toDouble(),
-          designation: List<String>.from(copiedMaterial['designation'] ?? []),
-          moc: copiedMaterial['moc'] ?? '',
-          size: copiedMaterial['size'] ?? '',
-          location: copiedMaterial['location'] ?? '',
-          plant: copiedMaterial['plant'] ?? '',
-          rate: (copiedMaterial['rate'] ?? 0).toDouble(),
-          calculationCategory: '',
-        );
-
-        // ref.read(equipmentMaterialsProvider.notifier).addEquipmentMaterialAfter(
-        //     equipmentMaterial,
-        //     originalMaterialId
-        // );
-        print('Added duplicated equipment material after original');
-        break;
-
-      default:
-        print('Unknown material type: $materialType');
-    }
-  }
-  void _addNewMaterial(BuildContext context, String category) {
-    // Navigate to add new material screen
-    print('Adding new ${category} material');
   }
 
   void _showFilterOptions(BuildContext context, String category) {
@@ -711,10 +849,10 @@ class _AllMaterialsScreenState extends ConsumerState<AllMaterialsScreen> with Si
               style: const TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
             ),
             const SizedBox(height: 16),
-            _buildFilterOption('By DPR', Icons.folder_open),
             _buildFilterOption('By MOC', Icons.category),
             _buildFilterOption('By Floor', Icons.construction),
-            _buildFilterOption('By Status', Icons.flag),
+            _buildFilterOption('By Calculation Category', Icons.calculate),
+            _buildFilterOption('By UOM', Icons.straighten),
             const SizedBox(height: 16),
             Row(
               children: [
@@ -744,9 +882,8 @@ class _AllMaterialsScreenState extends ConsumerState<AllMaterialsScreen> with Si
       title: Text(title),
       trailing: const Icon(Icons.chevron_right),
       onTap: () {
-        // Implement filter logic
+        // TODO: Implement filter logic
       },
     );
   }
 }
-

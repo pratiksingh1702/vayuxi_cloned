@@ -174,7 +174,7 @@ class _DynamicItemCard2State extends State<DynamicItemCard2>
                     if (widget.image != null && widget.image!.isNotEmpty)
                       Padding(
                         padding: const EdgeInsets.all(12),
-                        child: Image.network(
+                        child: Image.asset(
                           widget.image!,
                           height: 100,
                           errorBuilder: (_, __, ___) =>

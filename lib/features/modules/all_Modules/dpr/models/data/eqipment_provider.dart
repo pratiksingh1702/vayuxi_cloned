@@ -10,7 +10,10 @@ final equipmentMaterialsProvider = StateNotifierProvider<EquipmentMaterialsNotif
 
 class EquipmentMaterialsNotifier extends StateNotifier<List<EquipmentItem>> {
   EquipmentMaterialsNotifier() : super([]) {
-    _loadMaterials();
+
+  }
+  void setMaterials(List<EquipmentItem> materials) {
+    state = List<EquipmentItem>.unmodifiable(materials);
   }
 
   // Load materials from Hive

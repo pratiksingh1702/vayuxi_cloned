@@ -76,23 +76,10 @@ class AddSelectCardGrid extends StatelessWidget {
                 Navigator.push(
                   context,
                   MaterialPageRoute(
-                    builder: (_) => WorkTeamListPage(
-                      pageBuilder: (context, siteId, teamId, teamName) {
-                        return DprWorkScreen(
-                          siteId: siteId,
-                          teamId: teamId,
-                          name: teamName,
-                          pageBuilder: (context, dpr) {
-                            return PersistDPRScreen(
-                              dpr: dpr,
-                              siteId: siteId,
-                              teamId: teamId,
+                    builder: (_) => PersistDPRScreen(
 
-                            );
-                          },
-                        );
-                      },
-                    )
+
+                            )
                     ,
                   ),
                 );

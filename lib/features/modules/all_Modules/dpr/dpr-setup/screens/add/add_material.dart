@@ -1,11 +1,9 @@
 // lib/screens/persist_dpr_screen.dart
 import 'dart:io';
 
-import 'package:dio/dio.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import 'package:image_picker/image_picker.dart';
-import 'package:untitled2/features/modules/all_Modules/dpr/models/dprModel.dart';
+
 import 'package:untitled2/features/modules/all_Modules/rate/data/rateApi.dart';
 import 'package:untitled2/typeProvider/type_provider.dart';
 import '../../../../../../../core/utlis/colors/colors.dart';
@@ -15,30 +13,23 @@ import '../../../../../../../core/utlis/widgets/file_upload.dart';
 import '../../../../../../../core/utlis/widgets/image_clipped.dart';
 import '../../../../rate/data/rate_provider.dart';
 import '../../../../site_Details/providers/site_current_provider.dart';
-import '../../../providers/dpr_material_provider.dart';
+import '../../../models/equipmentModel.dart';
+import '../../../models/pipingModel.dart';
+import '../../../providers/material_service.dart';
+
 
 class PersistDPRScreen extends ConsumerStatefulWidget {
-  final String? siteId;
-  final String? teamId;
-  final String? editDprId;
-
-  final String? insulationId;
+  final String? editMaterialId;
   final String? designation;
-  final String? workId;
-  final String? type;
-  final DprModel dpr;
+  final PipingItem? pipingMaterial;
+  final EquipmentItem? equipmentMaterial;
 
   const PersistDPRScreen({
     super.key,
-    this.siteId,
-    this.teamId,
-    this.editDprId,
-
-    this.insulationId,
+    this.editMaterialId,
     this.designation,
-    this.workId,
-    required this.dpr,
-    this.type,
+    this.pipingMaterial,
+    this.equipmentMaterial,
   });
 
   @override
@@ -49,67 +40,81 @@ class _PersistDPRScreenState extends ConsumerState<PersistDPRScreen> {
   final _formKey = GlobalKey<FormState>();
   final _materialNameController = TextEditingController();
   final _uomController = TextEditingController();
+  String? siteId = '';
 
   String? _calculationCategory;
   String? _imagePath;
   List<String> _allUOM = [];
   String? _expandedCategory;
-  late String _mechanicalId;
 
+  // Fields from documentation
+  String? _selectedDesignation;
+  bool _isApplied = false;
 
-  // Calculation categories data
+  // Calculation categories
   final List<CalculationCategory> _calculationCategories = [
     CalculationCategory(
       id: "A",
-      label: "Per Item",
-      description: "Price per unit",
+      label: "Category A",
+      description: "Length-based calculations",
       fullDetails: CategoryDetails(
-        title: "Per Item Calculation",
-        formula: "Rate × Quantity",
+        title: "Category A - Length-based Calculations",
+        formula: "Rate × Length",
         rateList: [
-          RateItem(desc: "Structure Fabrication & Erection", uom: "kg", rate: "₹105"),
+          RateItem(desc: "U Clamp Fitting", uom: "NOS", rate: "Category A rate"),
+          RateItem(desc: "Support Fabrication", uom: "NOS", rate: "Category A rate"),
+          RateItem(desc: "Plate Cutting", uom: "RMT", rate: "Category A rate"),
+          RateItem(desc: "Plate Welding", uom: "RMT", rate: "Category A rate"),
         ],
         howItWorks: [
           "Select the rate for the specific material",
-          "Multiply rate by quantity of work done",
+          "Multiply rate by length of work done",
+          "Used for linear measurements like pipes, plates, etc.",
         ],
-        example: "Example: 100 kg × ₹105 = ₹10,500",
+        example: "Example: 10 meters × Category A rate = Total amount",
       ),
     ),
     CalculationCategory(
       id: "B",
-      label: "Per Item Measurement",
-      description: "Price based on measurement",
+      label: "Category B",
+      description: "Quantity-based calculations",
       fullDetails: CategoryDetails(
-        title: "Per Item Measurement Calculation",
-        formula: "Rate × Measurement × Quantity",
+        title: "Category B - Quantity-based Calculations",
+        formula: "Rate × Quantity",
         rateList: [
-          RateItem(desc: "Pipe Erection", uom: "inch dia", rate: "₹50"),
+          RateItem(desc: "Pipe Erection", uom: "MTR", rate: "Category B rate"),
+          RateItem(desc: "Joints Welding", uom: "NOS", rate: "Category B rate"),
+          RateItem(desc: "Elbow 90 Joint", uom: "NOS", rate: "Category B rate"),
+          RateItem(desc: "Flange Joints", uom: "NOS", rate: "Category B rate"),
         ],
         howItWorks: [
-          "Multiply rate by measurement (e.g., diameter)",
-          "Then multiply by quantity",
+          "Select the rate for the specific material",
+          "Multiply rate by quantity of items",
+          "Used for countable items like joints, fittings, valves, etc.",
         ],
-        example: "Example: 6 inch × ₹50 × 10 pipes = ₹3,000",
+        example: "Example: 5 joints × Category B rate = Total amount",
       ),
     ),
     CalculationCategory(
       id: "C",
-      label: "Per Item Range",
-      description: "Price based on range brackets",
+      label: "Category C",
+      description: "Special calculations (diameter, weight, power)",
       fullDetails: CategoryDetails(
-        title: "Per Item Range Calculation",
-        formula: "Bracket Rate × Quantity",
+        title: "Category C - Special Calculations",
+        formula: "Rate × Special Parameter × Quantity",
         rateList: [
-          RateItem(desc: "Pump Erection", uom: "0–5 HP", rate: "₹1000"),
-          RateItem(desc: "Pump Erection", uom: "6–10 HP", rate: "₹2000"),
-          RateItem(desc: "Pump Erection", uom: "10+ HP", rate: "₹10000"),
+          RateItem(desc: "HDPE Scrubber", uom: "DIAMETER", rate: "Category C rate"),
+          RateItem(desc: "Equipment", uom: "TON", rate: "Category C rate"),
+          RateItem(desc: "Pump/Motor", uom: "HP", rate: "Category C rate"),
+          RateItem(desc: "Structure", uom: "KG", rate: "Category C rate"),
         ],
         howItWorks: [
           "Select the appropriate rate bracket",
-          "Multiply bracket rate by quantity",
+          "Multiply by special parameter (HP, TON, DIAMETER, KG)",
+          "Then multiply by quantity",
+          "Used for equipment with special measurements",
         ],
-        example: "Example: 8 HP Pump × ₹2,000 × 3 units = ₹6,000",
+        example: "Example: 8 HP Pump × Category C rate × 3 units = Total amount",
       ),
     ),
   ];
@@ -117,34 +122,52 @@ class _PersistDPRScreenState extends ConsumerState<PersistDPRScreen> {
   @override
   void initState() {
     super.initState();
-    _mechanicalId =   widget.dpr.id!;
 
+    // Initialize designation
+    _selectedDesignation = widget.designation ?? 'piping';
 
     WidgetsBinding.instance.addPostFrameCallback((_) {
       _initializeData();
     });
   }
 
-  void _initializeData() async {
-
+  Future<void> _initializeData() async {
+    // Fetch UOM list
     final uomList = await RateApiClient().getRateUOM();
     setState(() {
       _allUOM = uomList.map<String>((item) => item['name'].toString()).toList();
     });
 
-    final siteId = ref.watch(selectedSiteIdProvider);
-    final type = ref.read(typeProvider);
-    ref.read(rateNotifierProvider.notifier).fetchRate(type!, siteId!);
+    // Get site ID from provider
+    siteId = ref.read(selectedSiteIdProvider);
 
-    if (widget.editDprId != null && _mechanicalId
- != null) {
-      ref.read(dprMaterialProvider.notifier).fetchMaterialById(
-        mechanicalId: _mechanicalId
-!,
-        editDprId: widget.editDprId!,
-      );
+    // Load material data if editing or if material data is provided
+    if (widget.pipingMaterial != null) {
+      _prefillFromPiping(widget.pipingMaterial!);
+    } else if (widget.equipmentMaterial != null) {
+      _prefillFromEquipment(widget.equipmentMaterial!);
     }
+
   }
+
+
+
+  void _prefillFromPiping(PipingItem material) {
+    _materialNameController.text = material.materialName;
+    _uomController.text = material.uom;
+    _calculationCategory = material.calculationCategory;
+    _selectedDesignation = 'piping';
+    _imagePath = material.image;
+  }
+
+  void _prefillFromEquipment(EquipmentItem material) {
+    _materialNameController.text = material.materialName;
+    _uomController.text = material.uom;
+    _calculationCategory = material.calculationCategory;
+    _selectedDesignation = 'equipment';
+    _imagePath = material.image;
+  }
+
 
   @override
   void dispose() {
@@ -155,98 +178,89 @@ class _PersistDPRScreenState extends ConsumerState<PersistDPRScreen> {
 
   Future<void> _submitForm() async {
     if (!_formKey.currentState!.validate()) return;
+
+    // Validate required fields
     if (_calculationCategory == null || _calculationCategory!.isEmpty) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(
-          content: Text("Please select a calculation category"),
-          backgroundColor: Colors.red,
-        ),
-      );
+      _showError("Please select a calculation category");
+      return;
+    }
+
+    if (_selectedDesignation == null || _selectedDesignation!.isEmpty) {
+      _showError("Please select material designation");
+      return;
+    }
+
+    if (siteId == null || siteId!.isEmpty) {
+      _showError("Site ID is required");
       return;
     }
 
     try {
-      final formData = FormData();
-      final type = ref.read(typeProvider);
+      final service = DefaultMaterialService();
 
-      // Add text fields
-      if (type == "insulation_work") {
-        formData.fields.add(MapEntry('name', _materialNameController.text));
-      } else {
-        formData.fields.add(MapEntry('materialName', _materialNameController.text));
+      // Handle file upload if new image is selected
+      File? imageFile;
+      if (_imagePath != null && !_imagePath!.startsWith('http') && _imagePath!.isNotEmpty) {
+        imageFile = File(_imagePath!);
       }
 
-      formData.fields.add(MapEntry('uom', _extractUOMValue(_uomController.text)));
-      formData.fields.add(MapEntry('calculationCategory', _calculationCategory ?? ''));
-
-      // Add image if exists
-      if (_imagePath != null && !_imagePath!.startsWith('http')) {
-        formData.files.add(MapEntry(
-          'file',
-          await MultipartFile.fromFile(_imagePath!),
-        ));
-      } else if (_imagePath != null) {
-        formData.fields.add(MapEntry('file', _imagePath!));
-      } else {
-        formData.fields.add(MapEntry('file', ''));
-      }
-
-      // Add ID if editing
-      if (widget.editDprId != null) {
-        formData.fields.add(MapEntry('_id', widget.editDprId!));
-      }
-
-      // Submit based on type and mode
-      if (widget.editDprId != null) {
-        // Update
-        if (type == "insulation_work") {
-          // Call insulation update
-        } else {
-          await ref.read(dprMaterialProvider.notifier).updateMaterial(
-            data: formData,
-            mechanicalId: _mechanicalId
-!,
-          );
-        }
-      } else {
-        // Create
-        if (type == "insulation_work") {
-          // Call insulation create
-        } else {
-          await ref.read(dprMaterialProvider.notifier).postMaterial(
-            data: formData,
-            mechanicalId: _mechanicalId
-!,
-          );
-        }
-      }
-
-      if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
-            content: Text(widget.editDprId != null
-                ? 'Material updated successfully'
-                : 'Material created successfully'),
-            backgroundColor: Colors.green,
-          ),
+      if (widget.editMaterialId != null) {
+        // UPDATE EXISTING MATERIAL
+        await service.updateMaterial(
+          id: widget.editMaterialId!,
+          materialName: _materialNameController.text,
+          uom: _uomController.text,
+          calculationCategory: _calculationCategory!,
+          isApplied: _isApplied,
+          image: imageFile,
         );
-        Navigator.of(context).pop();
+
+        _showSuccess('Material updated successfully');
+      } else {
+        // CREATE NEW MATERIAL
+        await service.createMaterial(
+          materialName: _materialNameController.text,
+          uom: _uomController.text,
+          calculationCategory: _calculationCategory!,
+          designation: _selectedDesignation!,
+          siteId: siteId,
+          isApplied: _isApplied,
+          image: imageFile,
+        );
+
+        _showSuccess('Material created successfully');
+      }
+
+      // Navigate back on success
+      if (mounted) {
+        Navigator.of(context).pop(true);
       }
     } catch (e) {
-      if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
-            content: Text('Error: ${e.toString()}'),
-            backgroundColor: Colors.red,
-          ),
-        );
-      }
+      debugPrint('Error submitting form: $e');
+      _showError('Error: ${e.toString()}');
     }
   }
 
-  String _extractUOMValue(String uomString) {
-    final match = RegExp(r'\((.*?)\)').firstMatch(uomString);
-    return match?.group(1) ?? uomString;
+  void _showError(String message) {
+    if (mounted) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text(message),
+          backgroundColor: Colors.red,
+        ),
+      );
+    }
+  }
+
+  void _showSuccess(String message) {
+    if (mounted) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text(message),
+          backgroundColor: Colors.green,
+        ),
+      );
+    }
   }
 
   void _openUOMBottomSheet() {
@@ -271,36 +285,15 @@ class _PersistDPRScreenState extends ConsumerState<PersistDPRScreen> {
     );
   }
 
-  void _toggleKnowMore(String categoryId) {
-    setState(() {
-      _expandedCategory = _expandedCategory == categoryId ? null : categoryId;
-    });
-  }
-
   @override
   Widget build(BuildContext context) {
-    final state = ref.watch(dprMaterialProvider);
-
-    // Pre-fill form when data is loaded
-    if (state.materialData != null && _materialNameController.text.isEmpty) {
-      final material = state.materialData!;
-      _materialNameController.text = material['materialName'] ?? material['name'] ?? '';
-      _uomController.text = material['uom'] ?? '';
-      _calculationCategory = material['calculationCategory'] ?? '';
-      _imagePath = material['image'] is List
-          ? material['image']?.first
-          : material['image'] ?? '';
-    }
-
     return Scaffold(
       backgroundColor: AppColors.lightBlue,
       appBar: CustomAppBar(
-        title: widget.editDprId != null ? 'Edit Material' : 'Add Material',
+        title: widget.editMaterialId != null ? 'Edit Material' : 'Add Material',
       ),
       body: CornerClippedScreenSimple(
-        child: state.isLoading
-            ? const Center(child: CircularProgressIndicator())
-            : SingleChildScrollView(
+        child: SingleChildScrollView(
           padding: const EdgeInsets.all(16),
           child: Form(
             key: _formKey,
@@ -313,6 +306,14 @@ class _PersistDPRScreenState extends ConsumerState<PersistDPRScreen> {
 
                 // UOM Field
                 _buildUOMField(),
+                const SizedBox(height: 20),
+
+                // Material Designation Field
+                _buildDesignationField(),
+                const SizedBox(height: 20),
+
+                // isApplied Toggle
+                _buildIsAppliedField(),
                 const SizedBox(height: 20),
 
                 // Calculation Category Section
@@ -366,7 +367,7 @@ class _PersistDPRScreenState extends ConsumerState<PersistDPRScreen> {
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
         Text(
-          'Unit of Measurement',
+          'Unit of Measurement (UOM)',
           style: Theme.of(context).textTheme.titleMedium?.copyWith(
             fontSize: 18,
             color: Colors.black,
@@ -388,7 +389,7 @@ class _PersistDPRScreenState extends ConsumerState<PersistDPRScreen> {
                 Expanded(
                   child: Text(
                     _uomController.text.isEmpty
-                        ? "Select UOM"
+                        ? "Select UOM (e.g., MTR, NOS, TON, KG, HP, DIAMETER)"
                         : _uomController.text,
                     style: TextStyle(
                       color: _uomController.text.isEmpty
@@ -414,16 +415,119 @@ class _PersistDPRScreenState extends ConsumerState<PersistDPRScreen> {
     );
   }
 
+  Widget _buildDesignationField() {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Text(
+          'Material Type',
+          style: Theme.of(context).textTheme.titleMedium?.copyWith(
+            fontSize: 18,
+            color: Colors.black,
+            fontWeight: FontWeight.w500,
+          ),
+        ),
+        const SizedBox(height: 8),
+        Container(
+          padding: const EdgeInsets.symmetric(horizontal: 12),
+          decoration: BoxDecoration(
+            color: Colors.white,
+            borderRadius: BorderRadius.circular(8),
+            border: Border.all(color: Colors.grey),
+          ),
+          child: DropdownButtonHideUnderline(
+            child: DropdownButton<String>(
+              value: _selectedDesignation,
+              isExpanded: true,
+              hint: const Text('Select material type'),
+              items: const [
+                DropdownMenuItem(
+                  value: 'piping',
+                  child: Text('Piping Materials'),
+                ),
+                DropdownMenuItem(
+                  value: 'equipment',
+                  child: Text('Equipment Materials'),
+                ),
+              ],
+              onChanged: (value) {
+                setState(() {
+                  _selectedDesignation = value;
+                });
+              },
+            ),
+          ),
+        ),
+      ],
+    );
+  }
+
+  Widget _buildIsAppliedField() {
+    return Container(
+      padding: const EdgeInsets.all(12),
+      decoration: BoxDecoration(
+        color: Colors.white,
+        borderRadius: BorderRadius.circular(8),
+        border: Border.all(color: Colors.grey.shade300),
+      ),
+      child: Row(
+        children: [
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  'Apply to all sites in company',
+                  style: Theme.of(context).textTheme.titleMedium?.copyWith(
+                    fontSize: 16,
+                    fontWeight: FontWeight.w500,
+                  ),
+                ),
+                const SizedBox(height: 4),
+                Text(
+                  _isApplied
+                      ? 'This material will be available for ALL sites in your company'
+                      : 'This material will only be available for the current site',
+                  style: TextStyle(
+                    fontSize: 12,
+                    color: Colors.grey.shade600,
+                  ),
+                ),
+              ],
+            ),
+          ),
+          Switch(
+            value: _isApplied,
+            onChanged: (value) {
+              setState(() {
+                _isApplied = value;
+              });
+            },
+            activeColor: Colors.blue,
+          ),
+        ],
+      ),
+    );
+  }
+
   Widget _buildCalculationCategorySection() {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
         Text(
-          'How is Price Determined?',
+          'Calculation Category',
           style: Theme.of(context).textTheme.titleMedium?.copyWith(
             fontSize: 18,
             color: Colors.black,
             fontWeight: FontWeight.w500,
+          ),
+        ),
+        const SizedBox(height: 4),
+        Text(
+          'Determines how price is calculated for this material',
+          style: TextStyle(
+            fontSize: 12,
+            color: Colors.grey.shade600,
           ),
         ),
         const SizedBox(height: 10),
@@ -489,12 +593,25 @@ class _PersistDPRScreenState extends ConsumerState<PersistDPRScreen> {
 
                           // Category label
                           Expanded(
-                            child: Text(
-                              category.label,
-                              style: const TextStyle(
-                                fontSize: 16,
-                                fontWeight: FontWeight.w600,
-                              ),
+                            child: Column(
+                              crossAxisAlignment: CrossAxisAlignment.start,
+                              children: [
+                                Text(
+                                  category.label,
+                                  style: const TextStyle(
+                                    fontSize: 16,
+                                    fontWeight: FontWeight.w600,
+                                  ),
+                                ),
+                                const SizedBox(height: 2),
+                                Text(
+                                  category.description,
+                                  style: const TextStyle(
+                                    fontSize: 12,
+                                    color: Colors.grey,
+                                  ),
+                                ),
+                              ],
                             ),
                           ),
 
@@ -546,33 +663,52 @@ class _PersistDPRScreenState extends ConsumerState<PersistDPRScreen> {
                             style: const TextStyle(
                               fontWeight: FontWeight.w600,
                               fontSize: 14,
-
                             ),
                           ),
+                          const SizedBox(height: 8),
 
                           // Formula
-                          Text(
-                            category.fullDetails.formula,
-                            style: const TextStyle(
-                              fontSize: 13,
-                              color: Color(0xFF1B6DCE),
-
+                          Container(
+                            padding: const EdgeInsets.all(8),
+                            decoration: BoxDecoration(
+                              color: Colors.blue.shade50,
+                              borderRadius: BorderRadius.circular(4),
+                            ),
+                            child: Text(
+                              "Formula: ${category.fullDetails.formula}",
+                              style: const TextStyle(
+                                fontSize: 13,
+                                color: Color(0xFF1B6DCE),
+                                fontWeight: FontWeight.w500,
+                              ),
                             ),
                           ),
+                          const SizedBox(height: 8),
 
-                          // Rate list
+                          // Rate list examples
+                          const Text(
+                            "Example Materials:",
+                            style: TextStyle(
+                              fontWeight: FontWeight.w600,
+                              fontSize: 14,
+                            ),
+                          ),
+                          const SizedBox(height: 4),
                           ...category.fullDetails.rateList.map((rateItem) =>
-                              Text(
-                                "${rateItem.desc} → ${rateItem.uom} → ${rateItem.rate}",
-                                style: const TextStyle(
-                                  fontSize: 12,
+                              Padding(
+                                padding: const EdgeInsets.only(bottom: 2),
+                                child: Text(
+                                  "• ${rateItem.desc} (${rateItem.uom}) - ${rateItem.rate}",
+                                  style: const TextStyle(
+                                    fontSize: 12,
+                                  ),
                                 ),
                               )),
 
                           // How It Works
                           const SizedBox(height: 8),
                           const Text(
-                            "How It Works",
+                            "How It Works:",
                             style: TextStyle(
                               fontWeight: FontWeight.w600,
                               fontSize: 14,
@@ -593,11 +729,19 @@ class _PersistDPRScreenState extends ConsumerState<PersistDPRScreen> {
                           ),
 
                           // Example
-                          const SizedBox(height: 6),
-                          Text(
-                            category.fullDetails.example,
-                            style: const TextStyle(
-                              fontSize: 12,
+                          const SizedBox(height: 8),
+                          Container(
+                            padding: const EdgeInsets.all(8),
+                            decoration: BoxDecoration(
+                              color: Colors.green.shade50,
+                              borderRadius: BorderRadius.circular(4),
+                            ),
+                            child: Text(
+                              category.fullDetails.example,
+                              style: const TextStyle(
+                                fontSize: 12,
+                                color: Colors.green,
+                              ),
                             ),
                           ),
                         ],
@@ -624,24 +768,37 @@ class _PersistDPRScreenState extends ConsumerState<PersistDPRScreen> {
       ],
     );
   }
+  void _toggleKnowMore(String categoryId) {
+    setState(() {
+      _expandedCategory = _expandedCategory == categoryId ? null : categoryId;
+    });
+  }
 
   Widget _buildImageUpload() {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
         Text(
-          'Photo',
+          'Material Image (Optional)',
           style: Theme.of(context).textTheme.titleMedium?.copyWith(
             fontSize: 18,
             color: Colors.black,
             fontWeight: FontWeight.w500,
           ),
         ),
+        const SizedBox(height: 4),
+        Text(
+          'Upload image for easy identification',
+          style: TextStyle(
+            fontSize: 12,
+            color: Colors.grey.shade600,
+          ),
+        ),
         const SizedBox(height: 8),
 
         UploadBox(
           title: 'Upload Image',
-          subtitle: 'Supported formats: JPG, PNG',
+          subtitle: 'Supported formats: JPG, PNG, Max 5MB',
           buttonText: 'Choose Image',
 
           onPressed: () async {
@@ -691,31 +848,19 @@ class _PersistDPRScreenState extends ConsumerState<PersistDPRScreen> {
     );
   }
 
-
   Widget _buildActionButtons() {
-    final state = ref.watch(dprMaterialProvider);
-
     return Column(
       children: [
         SizedBox(
           width: double.infinity,
           child: ElevatedButton(
-            onPressed: state.isLoading ? null : _submitForm,
+            onPressed: _submitForm,
             style: ElevatedButton.styleFrom(
               backgroundColor: Colors.blue,
               padding: const EdgeInsets.symmetric(vertical: 16),
             ),
-            child: state.isLoading
-                ? const SizedBox(
-              height: 20,
-              width: 20,
-              child: CircularProgressIndicator(
-                strokeWidth: 2,
-                valueColor: AlwaysStoppedAnimation<Color>(Colors.white),
-              ),
-            )
-                : const Text(
-              'Save & Submit',
+            child: const Text(
+              'Save Material',
               style: TextStyle(
                 color: Colors.white,
                 fontWeight: FontWeight.bold,
@@ -734,7 +879,7 @@ class _PersistDPRScreenState extends ConsumerState<PersistDPRScreen> {
               side: const BorderSide(color: Colors.blue),
             ),
             child: const Text(
-              'Back',
+              'Cancel',
               style: TextStyle(
                 color: Colors.blue,
                 fontSize: 16,
