@@ -20,10 +20,15 @@ import '../service/expense_service.dart';
 
 class ExpenseReportScreen extends ConsumerStatefulWidget {
   final String siteId;
+  final DateTime? selectedStartDate;
+  final DateTime? selectedEndDate;
+
 
   const ExpenseReportScreen({
     super.key,
     required this.siteId,
+    this.selectedStartDate,
+    this.selectedEndDate,
   });
 
   @override
@@ -38,7 +43,7 @@ class _ExpenseReportScreenState extends ConsumerState<ExpenseReportScreen> {
   bool isDownloading = false;
 
   final List<Map<String, dynamic>> expenseTypes = [
-    {'value': '', 'label': 'All Expenses', 'icon': Icons.receipt_long},
+
     {'value': 'material_tools', 'label': 'Material & Tools', 'icon': Icons.build},
     {'value': 'travelling', 'label': 'Travelling', 'icon': Icons.directions_car},
     {'value': 'food', 'label': 'Food', 'icon': Icons.restaurant},
@@ -49,10 +54,8 @@ class _ExpenseReportScreenState extends ConsumerState<ExpenseReportScreen> {
   @override
   void initState() {
     super.initState();
-    // Default to last 30 days
-    final now = DateTime.now();
-    _selectedEndDate = DateTime(now.year, now.month, now.day);
-    _selectedStartDate = DateTime(now.year, now.month, now.day - 30);
+    _selectedStartDate = widget.selectedStartDate;
+    _selectedEndDate = widget.selectedEndDate;
   }
 
   Future<void> _showDatePicker(BuildContext context, {required bool isStartDate}) async {

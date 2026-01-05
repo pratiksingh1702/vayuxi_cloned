@@ -20,7 +20,9 @@ import '../../screens/dprTeamDetails.dart';
 import '../../screens/workTeamList.dart';
 
 class SheetDownloadPage extends ConsumerStatefulWidget {
-  const SheetDownloadPage({super.key});
+  final DateTime? selectedStartDate;
+  final DateTime? selectedEndDate;
+  const SheetDownloadPage({super.key,this.selectedEndDate,this.selectedStartDate});
 
   @override
   ConsumerState<SheetDownloadPage> createState() => _SheetDownloadPageState();
@@ -32,6 +34,13 @@ class _SheetDownloadPageState extends ConsumerState<SheetDownloadPage> {
   DateTime? _selectedStartDate;
   DateTime? _selectedEndDate;
   String _selectedFormat = 'excel';
+
+  @override
+  void initState() {
+    super.initState();
+    _selectedStartDate = widget.selectedStartDate;
+    _selectedEndDate = widget.selectedEndDate;
+  }
 
   // Show format selection dialog
   void _showFormatSelectionDialog({

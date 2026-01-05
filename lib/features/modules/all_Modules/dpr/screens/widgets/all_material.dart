@@ -14,6 +14,22 @@ import 'dynamic_item_card.dart';
 import 'dynamic_item_card2.dart';
 import 'edit_material.dart';
 
+import 'package:flutter/material.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:untitled2/core/utlis/colors/colors.dart';
+import 'package:untitled2/core/utlis/widgets/custom_appBar.dart';
+import 'package:untitled2/features/modules/all_Modules/site_Details/providers/site_current_provider.dart';
+
+import '../../dpr-setup/screens/add/add_material.dart';
+import '../../models/data/eqipment_provider.dart';
+import '../../models/data/piping_provider.dart';
+import '../../models/equipmentModel.dart';
+import '../../models/pipingModel.dart';
+import '../../providers/material_service.dart';
+import 'dynamic_item_card.dart';
+import 'dynamic_item_card2.dart';
+import 'edit_material.dart';
+
 class AllMaterialsScreen extends ConsumerStatefulWidget {
   const AllMaterialsScreen({
     super.key,
@@ -30,6 +46,10 @@ class _AllMaterialsScreenState extends ConsumerState<AllMaterialsScreen>
   bool _isInitialized = false;
   final DefaultMaterialService _materialService = DefaultMaterialService();
   String? siteId;
+
+  // Selection mode state
+  bool _isSelectionMode = false;
+  Set<String> _selectedMaterialIds = {};
 
   @override
   void initState() {
@@ -134,6 +154,120 @@ class _AllMaterialsScreenState extends ConsumerState<AllMaterialsScreen>
     return url.trim().replaceAll(RegExp(r'%20+$'), '').replaceAll(RegExp(r'\s+$'), '');
   }
 
+  /// Toggle selection mode
+  void _toggleSelectionMode(String category) {
+    setState(() {
+      _isSelectionMode = !_isSelectionMode;
+      if (!_isSelectionMode) {
+        _selectedMaterialIds.clear();
+      }
+    });
+  }
+
+  /// Toggle individual material selection
+  void _toggleMaterialSelection(String materialId) {
+    setState(() {
+      if (_selectedMaterialIds.contains(materialId)) {
+        _selectedMaterialIds.remove(materialId);
+      } else {
+        _selectedMaterialIds.add(materialId);
+      }
+    });
+  }
+
+  /// Select all materials in current category
+  void _selectAllMaterials(List<dynamic> materials) {
+    setState(() {
+      for (var material in materials) {
+        _selectedMaterialIds.add(material.id);
+      }
+    });
+  }
+
+  /// Delete selected materials
+  Future<void> _deleteSelectedMaterials(String category) async {
+    if (_selectedMaterialIds.isEmpty) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text('No materials selected'),
+          backgroundColor: Colors.orange,
+        ),
+      );
+      return;
+    }
+
+    final confirmed = await showDialog<bool>(
+      context: context,
+      builder: (context) => AlertDialog(
+        title: const Text('Delete Selected Materials'),
+        content: Text(
+          'Are you sure you want to delete ${_selectedMaterialIds.length} selected materials?\n\n'
+              'This action cannot be undone.',
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(context, false),
+            child: const Text('Cancel'),
+          ),
+          TextButton(
+            onPressed: () => Navigator.pop(context, true),
+            style: TextButton.styleFrom(foregroundColor: Colors.red),
+            child: const Text('Delete'),
+          ),
+        ],
+      ),
+    );
+
+    if (confirmed != true) return;
+
+    setState(() => _isLoading = true);
+
+    try {
+      await _materialService.bulkDelete(_selectedMaterialIds.toList());
+
+      if (category == 'piping') {
+        final materials = ref.read(pipingMaterialsProvider);
+        ref.read(pipingMaterialsProvider.notifier).setMaterials(
+          materials.where((m) => !_selectedMaterialIds.contains(m.id)).toList(),
+        );
+      } else {
+        final materials = ref.read(equipmentMaterialsProvider);
+        ref.read(equipmentMaterialsProvider.notifier).setMaterials(
+          materials.where((m) => !_selectedMaterialIds.contains(m.id)).toList(),
+        );
+      }
+
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text('Successfully deleted ${_selectedMaterialIds.length} materials'),
+            backgroundColor: Colors.green,
+          ),
+        );
+      }
+
+      setState(() {
+        _selectedMaterialIds.clear();
+        _isSelectionMode = false;
+      });
+    } catch (e) {
+      debugPrint('❌ Failed to bulk delete: $e');
+
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text('Bulk delete failed: ${e.toString()}'),
+            backgroundColor: Colors.red,
+          ),
+        );
+      }
+    } finally {
+      if (mounted) {
+        setState(() => _isLoading = false);
+      }
+    }
+  }
+
   @override
   Widget build(BuildContext context) {
     final pipingMaterials = ref.watch(pipingMaterialsProvider);
@@ -148,7 +282,9 @@ class _AllMaterialsScreenState extends ConsumerState<AllMaterialsScreen>
     return Scaffold(
       backgroundColor: AppColors.lightBlue,
       appBar: CustomAppBar(
-        title: 'All Materials',
+        title: _isSelectionMode
+            ? '${_selectedMaterialIds.length} Selected'
+            : 'All Materials',
       ),
       body: _isLoading && !_isInitialized
           ? const Center(child: CircularProgressIndicator())
@@ -383,9 +519,7 @@ class _AllMaterialsScreenState extends ConsumerState<AllMaterialsScreen>
     required String category,
   }) {
     if (materials.isEmpty) {
-      return _buildSetupDprState(
-
-      );
+      return _buildSetupDprState();
     }
 
     return Column(
@@ -396,7 +530,9 @@ class _AllMaterialsScreenState extends ConsumerState<AllMaterialsScreen>
             mainAxisAlignment: MainAxisAlignment.spaceBetween,
             children: [
               Text(
-                'Total ${category == 'piping' ? 'Piping' : 'Equipment'}: ${materials.length}',
+                _isSelectionMode
+                    ? '${_selectedMaterialIds.length} / ${materials.length} selected'
+                    : 'Total ${category == 'piping' ? 'Piping' : 'Equipment'}: ${materials.length}',
                 style: TextStyle(
                   fontWeight: FontWeight.bold,
                   color: color,
@@ -404,23 +540,46 @@ class _AllMaterialsScreenState extends ConsumerState<AllMaterialsScreen>
               ),
               Row(
                 children: [
-                  IconButton(
-                    icon: Icon(Icons.filter_list, color: color),
-                    onPressed: () => _showFilterOptions(context, category),
-                    tooltip: 'Filter',
-                  ),
-                  IconButton(
-                    icon: const Icon(Icons.delete_sweep, color: Colors.red),
-                    onPressed: materials.isEmpty
-                        ? null
-                        : () => _bulkDeleteMaterials(category),
-                    tooltip: 'Bulk Delete All',
-                  ),
-                  IconButton(
-                    icon: Icon(Icons.add_circle, color: color),
-                    onPressed: () => _addNewMaterial(category),
-                    tooltip: 'Add Material',
-                  ),
+                  if (_isSelectionMode) ...[
+                    IconButton(
+                      icon: const Icon(Icons.close),
+                      onPressed: () => _toggleSelectionMode(''),
+                    ),
+                    TextButton(
+                      onPressed: () => _selectAllMaterials(materials),
+                      child: const Text('Select All'),
+                    ),
+                    const SizedBox(width: 8),
+                    ElevatedButton.icon(
+                      icon: const Icon(Icons.delete_sweep, size: 18),
+                      label: const Text('Delete'),
+                      onPressed: _selectedMaterialIds.isEmpty
+                          ? null
+                          : () => _deleteSelectedMaterials(category),
+                      style: ElevatedButton.styleFrom(
+                        backgroundColor: Colors.red,
+                        foregroundColor: Colors.white,
+                      ),
+                    ),
+                  ] else ...[
+                    IconButton(
+                      icon: Icon(Icons.filter_list, color: color),
+                      onPressed: () => _showFilterOptions(context, category),
+                      tooltip: 'Filter',
+                    ),
+                    IconButton(
+                      icon: const Icon(Icons.delete_sweep, color: Colors.red),
+                      onPressed: materials.isEmpty
+                          ? null
+                          : () => _toggleSelectionMode(category),
+                      tooltip: 'Select Items',
+                    ),
+                    IconButton(
+                      icon: Icon(Icons.add_circle, color: color),
+                      onPressed: () => _addNewMaterial(category),
+                      tooltip: 'Add Material',
+                    ),
+                  ],
                 ],
               ),
             ],
@@ -449,171 +608,177 @@ class _AllMaterialsScreenState extends ConsumerState<AllMaterialsScreen>
     );
   }
 
-  /// Bulk delete all materials in a category
-  Future<void> _bulkDeleteMaterials(String category) async {
-    final materials = category == 'piping'
-        ? ref.read(pipingMaterialsProvider)
-        : ref.read(equipmentMaterialsProvider);
-
-    if (materials.isEmpty) return;
-
-    final confirmed = await showDialog<bool>(
-      context: context,
-      builder: (context) => AlertDialog(
-        title: const Text('Bulk Delete Confirmation'),
-        content: Text(
-          'Are you sure you want to delete ALL ${materials.length} '
-              '${category == 'piping' ? 'piping' : 'equipment'} materials?\n\n'
-              'This action cannot be undone.',
-        ),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.pop(context, false),
-            child: const Text('Cancel'),
-          ),
-          TextButton(
-            onPressed: () => Navigator.pop(context, true),
-            style: TextButton.styleFrom(foregroundColor: Colors.red),
-            child: const Text('Delete All'),
-          ),
-        ],
-      ),
-    );
-
-    if (confirmed != true) return;
-
-    setState(() => _isLoading = true);
-
-    try {
-      if (category == 'piping') {
-        final List<PipingItem> materials =
-        ref.read(pipingMaterialsProvider);
-
-        final ids = materials.map((m) => m.id).toList();
-        await _materialService.bulkDelete(ids);
-        ref.read(pipingMaterialsProvider.notifier).setMaterials([]);
-      } else {
-        final List<EquipmentItem> materials =
-        ref.read(equipmentMaterialsProvider);
-
-        final ids = materials.map((m) => m.id).toList();
-        await _materialService.bulkDelete(ids);
-        ref.read(equipmentMaterialsProvider.notifier).setMaterials([]);
-      }
-
-
-      await _refreshMaterials();
-
-      if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
-            content: Text('Successfully deleted  materials'),
-            backgroundColor: Colors.green,
-          ),
-        );
-      }
-    } catch (e) {
-      debugPrint('❌ Failed to bulk delete: $e');
-
-      if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
-            content: Text('Bulk delete failed: ${e.toString()}'),
-            backgroundColor: Colors.red,
-          ),
-        );
-      }
-    } finally {
-      if (mounted) {
-        setState(() => _isLoading = false);
-      }
-    }
-  }
-
   Widget _buildPipingCard(PipingItem material, Color color) {
     final imageUrl = _cleanImageUrl(material.image);
+    final isSelected = _selectedMaterialIds.contains(material.id);
 
-    return DynamicItemCard(
-      quantity: material.qty.toString(),
-      size: material.size,
-      length: material.length.toString(),
-      floor: '',
-      moc: material.moc,
-      image: imageUrl.isNotEmpty ? imageUrl : null,
-      sizeLabel: "Size",
-      lengthLabel: material.materialName,
-      sizePlaceholder: material.uom,
-      lengthPlaceholder: material.uom,
-      onQtyChanged: (value) => _updatePipingField(material.id, 'qty', value),
-      onSizeChanged: (value) => _updatePipingField(material.id, 'size', value),
-      onLengthChanged: (value) => _updatePipingField(material.id, 'length', value),
-      onFloorChanged: (value) => _updatePipingField(material.id, 'floor', value),
-      onMocChanged: (value) => _updatePipingField(material.id, 'moc', value),
-      onDelete: () => _deleteMaterial(material.id, material.materialName, 'piping'),
-      onRemark: () => _showRemarksDialog(material, 'piping'),
-      onEdit: () => _editMaterial(material, 'piping'),
-      onCopy: () => _copyMaterial(material, 'piping'),
-      onAdd: () => _copyMaterial(material, 'piping'),
-      isEditable: true,
+    return Stack(
+      children: [
+        Opacity(
+          opacity: _isSelectionMode && !isSelected ? 0.5 : 1.0,
+          child: DynamicItemCard(
+            quantity: material.qty.toString(),
+            size: material.size,
+            length: material.length.toString(),
+            floor: '',
+            moc: material.moc,
+            image: imageUrl.isNotEmpty ? imageUrl : null,
+            sizeLabel: "Size",
+            lengthLabel: material.materialName,
+            sizePlaceholder: material.uom,
+            lengthPlaceholder: material.uom,
+            onQtyChanged: _isSelectionMode
+                ? (_) {}
+                : (value) => _updatePipingField(material.id, 'qty', value),
+            onSizeChanged: _isSelectionMode
+                ? (_) {}
+                : (value) => _updatePipingField(material.id, 'size', value),
+            onLengthChanged: _isSelectionMode
+                ? (_) {}
+                : (value) => _updatePipingField(material.id, 'length', value),
+            onFloorChanged: _isSelectionMode
+                ? (_) {}
+                : (value) => _updatePipingField(material.id, 'floor', value),
+            onMocChanged: _isSelectionMode
+                ? (_) {}
+                : (value) => _updatePipingField(material.id, 'moc', value),
+            onDelete: _isSelectionMode
+                ? null
+                : () => _deleteMaterial(material.id, material.materialName, 'piping'),
+            onRemark: _isSelectionMode
+                ? () {}
+                : () => _showRemarksDialog(material, 'piping'),
+            onEdit: _isSelectionMode
+                ? null
+                : () => _editMaterial(material, 'piping'),
+            onCopy: _isSelectionMode
+                ? null
+                : () => _copyMaterial(material, 'piping'),
+            onAdd: _isSelectionMode
+                ? null
+                : () => _copyMaterial(material, 'piping'),
+            isEditable: !_isSelectionMode,
+          ),
+        ),
+        if (_isSelectionMode)
+          Positioned(
+            top: 8,
+            right: 8,
+            child: GestureDetector(
+              onTap: () => _toggleMaterialSelection(material.id),
+              child: Container(
+                width: 32,
+                height: 32,
+                decoration: BoxDecoration(
+                  shape: BoxShape.circle,
+                  color: isSelected ? Colors.red : Colors.white,
+                  border: Border.all(
+                    color: Colors.red,
+                    width: 2,
+                  ),
+                  boxShadow: [
+                    BoxShadow(
+                      color: Colors.black.withOpacity(0.2),
+                      blurRadius: 4,
+                      offset: const Offset(0, 2),
+                    ),
+                  ],
+                ),
+                child: isSelected
+                    ? const Icon(
+                  Icons.check,
+                  color: Colors.white,
+                  size: 20,
+                )
+                    : null,
+              ),
+            ),
+          ),
+      ],
     );
   }
 
   Widget _buildEquipmentCard(EquipmentItem material, Color color) {
     final imageUrl = _cleanImageUrl(material.image);
+    final isSelected = _selectedMaterialIds.contains(material.id);
 
-    return DynamicItemCard2(
-      title: material.materialName,
-      quantity: material.qty.toString(),
-      image: imageUrl.isNotEmpty ? imageUrl : null,
-      moc: material.moc,
-      floor: '',
-      ton: material.weight.toString(),
-      meter: material.length.toString(),
-      onAdd: () => _copyMaterial(material.id, 'equipment'),
-      onEdit: () => _editMaterial(material, 'equipment'),
-      onMocChanged: (value) => _updateEquipmentField(material.id, 'moc', value),
-      onDelete: () => _deleteMaterial(material.id, material.materialName, 'equipment'),
-      onRemark: () => _showRemarksDialog(material, 'equipment'),
-      onQtyChanged: (value) => _updateEquipmentField(material.id, 'qty', value),
-      onFloorChanged: (value) => _updateEquipmentField(material.id, 'floor', value),
-      onTonChanged: (value) => _updateEquipmentField(material.id, 'weight', value),
-      onMeterChanged: (value) => _updateEquipmentField(material.id, 'length', value),
-      isEditable: true,
-    );
-  }
-
-  Widget _buildEmptyState({
-    required IconData icon,
-    required String message,
-    required Color color,
-    required String category,
-  }) {
-    return Center(
-      child: Column(
-        mainAxisAlignment: MainAxisAlignment.center,
-        children: [
-          Icon(icon, size: 64, color: Colors.grey),
-          const SizedBox(height: 16),
-          Text(
-            message,
-            style: Theme.of(context).textTheme.bodyLarge?.copyWith(
-              color: Colors.grey,
+    return Stack(
+      children: [
+        Opacity(
+          opacity: _isSelectionMode && !isSelected ? 0.5 : 1.0,
+          child: DynamicItemCard2(
+            title: material.materialName,
+            quantity: material.qty.toString(),
+            image: imageUrl.isNotEmpty ? imageUrl : null,
+            moc: material.moc,
+            floor: '',
+            ton: material.weight.toString(),
+            meter: material.length.toString(),
+            onAdd: _isSelectionMode
+                ? null
+                : () => _copyMaterial(material.id, 'equipment'),
+            onEdit: _isSelectionMode
+                ? null
+                : () => _editMaterial(material, 'equipment'),
+            onMocChanged: _isSelectionMode
+                ? (_) {}
+                : (value) => _updateEquipmentField(material.id, 'moc', value),
+            onDelete: _isSelectionMode
+                ? null
+                : () => _deleteMaterial(material.id, material.materialName, 'equipment'),
+            onRemark: _isSelectionMode
+                ? () {}
+                : () => _showRemarksDialog(material, 'equipment'),
+            onQtyChanged: _isSelectionMode
+                ? (_) {}
+                : (value) => _updateEquipmentField(material.id, 'qty', value),
+            onFloorChanged: _isSelectionMode
+                ? (_) {}
+                : (value) => _updateEquipmentField(material.id, 'floor', value),
+            onTonChanged: _isSelectionMode
+                ? (_) {}
+                : (value) => _updateEquipmentField(material.id, 'weight', value),
+            onMeterChanged: _isSelectionMode
+                ? (_) {}
+                : (value) => _updateEquipmentField(material.id, 'length', value),
+            isEditable: !_isSelectionMode,
+          ),
+        ),
+        if (_isSelectionMode)
+          Positioned(
+            top: 8,
+            right: 8,
+            child: GestureDetector(
+              onTap: () => _toggleMaterialSelection(material.id),
+              child: Container(
+                width: 32,
+                height: 32,
+                decoration: BoxDecoration(
+                  shape: BoxShape.circle,
+                  color: isSelected ? Colors.red: Colors.white,
+                  border: Border.all(
+                    color: Colors.red,
+                    width: 2,
+                  ),
+                  boxShadow: [
+                    BoxShadow(
+                      color: Colors.black.withOpacity(0.2),
+                      blurRadius: 4,
+                      offset: const Offset(0, 2),
+                    ),
+                  ],
+                ),
+                child: isSelected
+                    ? const Icon(
+                  Icons.check,
+                  color: Colors.white,
+                  size: 20,
+                )
+                    : null,
+              ),
             ),
           ),
-          const SizedBox(height: 8),
-          ElevatedButton.icon(
-            onPressed: () => _addNewMaterial(category),
-            icon: Icon(Icons.add, color: color),
-            label: Text(
-              'Add New Material',
-              style: TextStyle(color: color),
-            ),
-            style: ElevatedButton.styleFrom(
-              backgroundColor: color.withOpacity(0.1),
-            ),
-          ),
-        ],
-      ),
+      ],
     );
   }
 
@@ -668,7 +833,6 @@ class _AllMaterialsScreenState extends ConsumerState<AllMaterialsScreen>
         _refreshMaterials();
       });
     }
-
   }
 
   Future<void> _copyMaterial(dynamic material, String category) async {

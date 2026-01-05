@@ -37,11 +37,13 @@ class _NewManpowerScreenState extends ConsumerState<NewManpowerScreen> {
   final _uanController = TextEditingController();
   final _esicController = TextEditingController();
   final _salaryController = TextEditingController();
+  final _basicSalaryController = TextEditingController();
   final _remarksController = TextEditingController();
   final _daController = TextEditingController();
   final _specialAllowanceController = TextEditingController();
   final _travelAllowanceController = TextEditingController();
   final _medicalAllowanceController = TextEditingController();
+  final _hra = TextEditingController();
 
   bool _isPfApplicable = true;
 
@@ -123,6 +125,7 @@ class _NewManpowerScreenState extends ConsumerState<NewManpowerScreen> {
     _uanController.clear();
     _esicController.clear();
     _salaryController.clear();
+    _basicSalaryController.clear();
     _remarksController.clear();
     _emailController.clear();
     _otpController.clear();
@@ -135,7 +138,7 @@ class _NewManpowerScreenState extends ConsumerState<NewManpowerScreen> {
   }
 
   Future<void> _saveManpower() async {
-    if (!_formKey.currentState!.validate()) return;
+    // if (!_formKey.currentState!.validate()) return;
 
     final manpowerType = ref.read(typeProvider);
     if (manpowerType == null) {
@@ -159,7 +162,9 @@ class _NewManpowerScreenState extends ConsumerState<NewManpowerScreen> {
       "dateOfBirth": _dob?.toIso8601String(),
       "dateOfJoining": _doj?.toIso8601String(),
       "payBasics": _payBasic,
-      "salary": double.tryParse(_salaryController.text) ?? 0,
+      "Salary": double.tryParse(_salaryController.text) ?? 0,
+      "basicSalary":double.tryParse(_basicSalaryController.text) ?? 0,
+      "hra":_hra.text,
 
       // ✅ NEW FIELDS
       "dearnessAllowance": double.tryParse(_daController.text) ?? 0,
@@ -555,11 +560,25 @@ class _NewManpowerScreenState extends ConsumerState<NewManpowerScreen> {
                 keyboardType: TextInputType.number,
               ),
               const SizedBox(height: 20),
+              CustomTextField(
+                label: "Basic Salary",
+                controller: _basicSalaryController,
+                isRequired: true,
+                keyboardType: TextInputType.number,
+              ),
+              const SizedBox(height: 20),
 
               const SizedBox(height: 12),
               CustomTextField(
                 label: "Dearness Allowance (DA)",
                 controller: _daController,
+                keyboardType: TextInputType.number,
+              ),
+
+              const SizedBox(height: 12),
+              CustomTextField(
+                label: "Home Rent Allowance (HRA)",
+                controller: _hra,
                 keyboardType: TextInputType.number,
               ),
 

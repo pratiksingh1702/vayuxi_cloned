@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:untitled2/core/utlis/colors/colors.dart';
 import '../provider/auth_provider.dart';
 
 class SplashScreen extends ConsumerStatefulWidget {
@@ -21,14 +22,19 @@ class _SplashScreenState extends ConsumerState<SplashScreen> {
 
   @override
   Widget build(BuildContext context) {
-    return const Scaffold(
+    return Scaffold(
+      backgroundColor: AppColors.lightBlue,
       body: Center(
         child: Column(
           mainAxisAlignment: MainAxisAlignment.center,
           children: [
-            CircularProgressIndicator(),
-            SizedBox(height: 16),
-            Text('Loading...'),
+            Image.asset(
+              "assets/images/adaptive-icon.png",
+              width: 700,
+              height: 700,
+            ),
+
+            const Text('Getting you there ....'),
           ],
         ),
       ),

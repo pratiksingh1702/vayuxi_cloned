@@ -11,6 +11,7 @@ import 'package:untitled2/features/modules/all_Modules/site_Details/providers/si
 import 'package:untitled2/features/modules/all_Modules/site_Details/screens/siteDetailScreen.dart';
 import 'package:untitled2/features/modules/all_Modules/site_Details/screens/siteList.dart';
 
+import '../../../../../core/utlis/widgets/date_picker_Screen.dart';
 import '../../dpr/screens/widgets/select_card.dart';
 import 'download_sheet.dart';
 import 'expense_screen.dart';
@@ -42,7 +43,8 @@ class ExpenseEntrySelectCardGrid extends ConsumerWidget{
             children: [
               SelectCard(
                 icon: Image.asset(
-                  "assets/images/icons/manual_entry.webp",
+
+                  "assets/images/icons/import_sheet.webp",
 
                   height: 120,
                   width: double.infinity,
@@ -53,14 +55,21 @@ class ExpenseEntrySelectCardGrid extends ConsumerWidget{
                 onTap: () {
                   Navigator.push(
                     context,
-                    MaterialPageRoute(builder: (context) =>ExpenseReportScreen(siteId: site!,) ),
+                    MaterialPageRoute(builder: (context) =>
+                    DateRangeSelectionScreen(onDatesSelected: (DateTime startDate, DateTime endDate) {
+                      Navigator.push(
+                        context,
+                        MaterialPageRoute(builder: (context) =>ExpenseReportScreen(siteId: site!,selectedStartDate: startDate,selectedEndDate: endDate) ),
+                      );
+                    },)),
+
                   );
 
                 },
               ),
               SelectCard(
                 icon: Image.asset(
-                  "assets/images/icons/import_sheet.webp",
+                  "assets/images/icons/manual_entry.webp",
 
                   height: 120,
                   width: double.infinity,

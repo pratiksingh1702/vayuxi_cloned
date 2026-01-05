@@ -286,7 +286,10 @@ class _BeautifulDatePickerState extends State<BeautifulDatePicker> {
 }
 
 class DailyUsagePage extends ConsumerStatefulWidget {
-  const DailyUsagePage({super.key});
+  final DateTime? selectedStartDate;
+  final DateTime? selectedEndDate;
+
+  const DailyUsagePage({super.key,this.selectedStartDate,this.selectedEndDate});
 
   @override
   ConsumerState<DailyUsagePage> createState() => _DailyUsagePageState();
@@ -297,6 +300,12 @@ class _DailyUsagePageState extends ConsumerState<DailyUsagePage> {
   DateTime? _selectedEndDate;
   bool isLoading = false;
   bool isDownloading = false;
+  @override
+  void initState() {
+    super.initState();
+    _selectedStartDate = widget.selectedStartDate;
+    _selectedEndDate = widget.selectedEndDate;
+  }
 
   // Function to show BeautifulDatePicker for start date
   Future<void> _showStartDatePicker() async {

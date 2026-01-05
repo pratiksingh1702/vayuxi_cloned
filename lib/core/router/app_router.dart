@@ -64,6 +64,7 @@ import '../../features/modules/screen/module_screen.dart';
 import '../../features/modules/screen/module_detail.dart';
 import '../../work_cat.dart';
 import '../../core/router/routes.dart';
+import '../utlis/widgets/date_picker_Screen.dart';
 import 'go_router_refresh.dart';
 final appRouterProvider = Provider<GoRouter>((ref) {
   final authState = ref.watch(authProvider);
@@ -195,13 +196,19 @@ final appRouterProvider = Provider<GoRouter>((ref) {
                   case 'addMoc':
                   return DprSelectCardGrid();
                 case 'dprReport':
-                  return SheetDownloadPage();
+                  return DateRangeSelectionScreen(onDatesSelected: (DateTime startDate, DateTime endDate) {    Navigator.push(
+                    context,
+                    MaterialPageRoute(builder: (context) => SheetDownloadPage(selectedStartDate: startDate,selectedEndDate: endDate,)),
+                  ); },);
                   case 'inv-entry':
                     return InventorySelectionPage();
                 case 'inv-setup':
                   return ViewAddInventorySetup();
                   case 'inv-Report':
-                  return DailyUsagePage();
+                  return  DateRangeSelectionScreen(onDatesSelected: (DateTime startDate, DateTime endDate) {    Navigator.push(
+                    context,
+                    MaterialPageRoute(builder: (context) => DailyUsagePage(selectedStartDate: startDate,selectedEndDate: endDate,)),
+                  ); },);
 
                 case 'att-sheet':
                   return GenerateAttendanceSheetScreen();
@@ -324,7 +331,8 @@ final appRouterProvider = Provider<GoRouter>((ref) {
       GoRoute(
         path: '/help',
         builder: (context, state) {
-          return HelpCenterScreen();
+          // return HelpCenterScreen();
+          return DateRangeSelectionScreen(onDatesSelected: (DateTime startDate, DateTime endDate) {  },);
 
 
         },
