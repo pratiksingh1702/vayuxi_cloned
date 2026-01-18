@@ -38,6 +38,8 @@ class _SiteDetailScreenState extends ConsumerState<SiteDetailScreen> {
   late TextEditingController emailController;
   late TextEditingController documentNumberController;
   late TextEditingController dateController;
+  late TextEditingController shippingAddressController;
+
 
   File? selectedImage;
   bool isLoading = false;
@@ -59,10 +61,32 @@ class _SiteDetailScreenState extends ConsumerState<SiteDetailScreen> {
     documentNumberController = TextEditingController(
       text: site?.documentNumber ?? "",
     );
-    final selectedformattedDate = "${selectedDate.day}/${selectedDate.month}/${selectedDate.year}";
+print(_formatDocumentDate(site?.documentDate));
 
-    dateController = TextEditingController(text: selectedformattedDate);
+
+    dateController = TextEditingController(
+      text: _formatDocumentDate(site?.documentDate),
+    );
+    shippingAddressController =
+        TextEditingController(text: site?.shippingAddress ?? "");
+
   }
+  String _formatDocumentDate(String? documentDate) {
+    try {
+      if (documentDate == null || documentDate.isEmpty) {
+        final now = DateTime.now();
+        return "${now.day}/${now.month}/${now.year}";
+      }
+
+      final parsed = DateTime.parse(documentDate); // expects ISO
+      return "${parsed.day}/${parsed.month}/${parsed.year}";
+    } catch (_) {
+      // fallback if backend sends garbage
+      final now = DateTime.now();
+      return "${now.day}/${now.month}/${now.year}";
+    }
+  }
+
 
   Future<void> pickImage() async {
     final helper = ImageUploadHelper(context);
@@ -105,6 +129,7 @@ class _SiteDetailScreenState extends ConsumerState<SiteDetailScreen> {
       final formData = FormData.fromMap({
         "siteName": siteNameController.text.trim(),
         "address": addressController.text.trim(),
+        "shippingAddress": shippingAddressController.text.trim(), // ✅ NEW
         "contactPerson": contactPersonController.text.trim(),
         "phoneNumber": phoneController.text.trim(),
         "gstNo": gstNoController.text.trim(),
@@ -114,6 +139,7 @@ class _SiteDetailScreenState extends ConsumerState<SiteDetailScreen> {
         "company": widget.site?.company ?? "",
         "type": widget.site?.type ?? "mechanical_work",
       });
+
 
       // Validate image
 
@@ -515,6 +541,13 @@ class _SiteDetailScreenState extends ConsumerState<SiteDetailScreen> {
                     TextSize: 22,
                     maxLines: 3,
                   ),
+                  CustomTextField(
+                    label: "Shipping Address",
+                    controller: shippingAddressController,
+                    TextSize: 22,
+                    maxLines: 3,
+                  ),
+
 
                   const SizedBox(height: 24),
 

@@ -63,8 +63,38 @@ class SiteAPI {
       rethrow;
     }
   }
+  static Future<void> bulkDeleteSites(List<String> siteIds) async {
+    if (siteIds.isEmpty) {
+      throw Exception("Bulk delete called with empty ID list");
+    }
 
-  static Future<void> uploadFile(File file, String type, {String? siteId}) async {
+    try {
+      final response = await dio.post(
+        '/site/bulk-delete',
+        data: {
+          "ids": siteIds,
+        },
+        options: Options(
+          headers: {
+            'Content-Type': 'application/json',
+          },
+        ),
+      );
+
+      print("✅ Status Code: ${response.statusCode}");
+      print("✅ Response Data: ${response.data}");
+    } catch (e) {
+      print("❌ Bulk Delete Error: $e");
+      rethrow;
+    }
+  }
+
+
+  static Future<dynamic> uploadFile(
+      File file,
+      String type, {
+        String? siteId,
+      }) async {
     final formData = FormData.fromMap({
       'file': await MultipartFile.fromFile(
         file.path,
@@ -76,24 +106,51 @@ class SiteAPI {
       final response = await dio.post(
         '/site/ocr',
         queryParameters: {
-          "type": type,
-          if (siteId != null) "siteId": siteId,
+          'type': type,
+          if (siteId != null) 'siteId': siteId,
         },
         data: formData,
-        options: Options(
-          headers: {
-            'Content-Type': 'multipart/form-data',
-          },
-        ),
       );
 
-      print('Response: ${response.data}');
-      return response.data; // Consider returning the response data
-    } catch (e) {
-      print('Error: $e');
-      rethrow; // Consider rethrowing to handle errors at call site
+      return response.data;
+    }on DioException catch (e) {
+      String errorMessage = 'Upload failed. Please try again.';
+
+      try {
+        final data = e.response?.data;
+
+        if (data != null) {
+          if (data is Map<String, dynamic>) {
+            final backendMessage =
+                data['message'] ??
+                    data['error'] ??
+                    data['detail'] ??
+                    data['description'];
+
+            if (backendMessage is String && backendMessage.isNotEmpty) {
+              errorMessage = backendMessage;
+            } else if (backendMessage is List) {
+              errorMessage = backendMessage.join(', ');
+            }
+          } else if (data is String && data.isNotEmpty) {
+            errorMessage = data;
+          }
+        }
+
+        // Debug only (never show to user)
+        print('Dio status: ${e.response?.statusCode}');
+        print('Dio response: ${e.response?.data}');
+      } catch (parseError) {
+        print('Error parsing backend message: $parseError');
+      }
+
+      throw Exception(errorMessage);
+    }
+    catch (e) {
+      throw Exception('Unexpected error occurred.');
     }
   }
+
 
   static Future<Map<String, dynamic>> createSite(
       FormData formData,

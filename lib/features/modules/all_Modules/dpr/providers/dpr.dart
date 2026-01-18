@@ -36,15 +36,25 @@ class DprNotifier extends StateNotifier<DprState> {
   }
 
   // Fetch DPR by ID
-  Future<void> fetchDprById({required String siteId, required String teamId, required String workId}) async {
+  Future<DprModel?> fetchDprById({
+    required String siteId,
+    required String teamId,
+    required String workId,
+  }) async {
     try {
       state = state.copyWith(isLoading: true, error: null);
-      final DprModel dpr = await DprApi.fetchDprWorkById(siteId: siteId, teamId: teamId, workId: workId);
-      state = state.copyWith(isLoading: false, data: dpr);
+
+      final dpr =
+      await DprApi.fetchDprWorkById(siteId: siteId, teamId: teamId, workId: workId);
+
+      state = state.copyWith(isLoading: false); // ✅ DO NOT TOUCH data
+      return dpr; // ✅ return DPR directly
     } catch (e) {
       state = state.copyWith(isLoading: false, error: e.toString());
+      return null;
     }
   }
+
 
   // Post DPR work
   Future<void> postDprWork({required Map<String, dynamic> data, required String siteId, required String teamId}) async {
@@ -82,29 +92,32 @@ class DprNotifier extends StateNotifier<DprState> {
 
 
 // In your DPR provider (dprProvider)
-  Future<Map<String, dynamic>> copyMaterial({
-    required String type,
-    required String materialId
-  }) async {
-    try {
-      state = state.copyWith(isLoading: true, error: null);
-
-      // Call the API and get the response
-      final response = await DprApi.copyDprMaterial(
-          type: type,
-          materialId: materialId
-      );
-
-      state = state.copyWith(isLoading: false);
-
-      // Return the response so it can be used in the UI
-      return response;
-
-    } catch (e) {
-      state = state.copyWith(isLoading: false, error: e.toString());
-      rethrow;
-    }
-  }
+//   Future<Map<String, dynamic>> copyMterial({
+//    required String siteId,
+//     required String teamId,
+//     required String materialId
+//   }) async {
+//     try {
+//       state = state.copyWith(isLoading: true, error: null);
+//
+//       // Call the API and get the response
+//       final response = await DprApi.copyDprMaterial(
+//
+//           materialId: materialId,
+//           siteId: teamId,
+//           teamId: siteId,
+//       );
+//
+//       state = state.copyWith(isLoading: false);
+//
+//       // Return the response so it can be used in the UI
+//       return response;
+//
+//     } catch (e) {
+//       state = state.copyWith(isLoading: false, error: e.toString());
+//       rethrow;
+//     }
+//   }
 
   // Post DPR material
   // Future<void> postMaterial({required FormData data, required String mechanicalId}) async {

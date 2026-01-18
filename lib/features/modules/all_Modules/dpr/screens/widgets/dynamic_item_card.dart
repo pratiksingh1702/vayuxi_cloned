@@ -64,6 +64,8 @@ class _DynamicItemCardState extends State<DynamicItemCard>
   late TextEditingController _lengthController; // ✅ Using lengthController for length/UOM
   late TextEditingController _floorController;
   late TextEditingController _mocController;
+  bool _isEditingLength = false;
+
   late FocusNode _lengthFocusNode; // ✅ Renamed from _uomFocusNode
 
   @override
@@ -80,6 +82,19 @@ class _DynamicItemCardState extends State<DynamicItemCard>
     _mocController = TextEditingController(text: widget.moc);
 
     _lengthFocusNode = FocusNode();
+
+    _lengthFocusNode.addListener(() {
+      _isEditingLength = _lengthFocusNode.hasFocus;
+
+      // OPTIONAL: clean formatting on blur
+      if (!_lengthFocusNode.hasFocus) {
+        final val = double.tryParse(_lengthController.text);
+        if (val != null && val % 1 == 0) {
+          _lengthController.text = val.toInt().toString();
+        }
+      }
+    });
+
 
     // Listen for changes and propagate to parent
     _quantityController.addListener(_onQuantityChanged);
@@ -102,10 +117,12 @@ class _DynamicItemCardState extends State<DynamicItemCard>
         widget.size != _sizeController.text) {
       _sizeController.text = widget.size;
     }
-    if (widget.length != oldWidget.length &&
+    if (!_isEditingLength &&
+        widget.length != oldWidget.length &&
         widget.length != _lengthController.text) {
       _lengthController.text = widget.length;
     }
+
     if (widget.floor != oldWidget.floor &&
         widget.floor != _floorController.text) {
       _floorController.text = widget.floor;

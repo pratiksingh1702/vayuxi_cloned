@@ -5,6 +5,8 @@ import 'package:intl/intl.dart';
 import 'package:cached_network_image/cached_network_image.dart';
 import 'package:untitled2/core/utlis/widgets/Button_wrapper.dart';
 import 'package:untitled2/core/utlis/widgets/custom_appBar.dart';
+import 'package:untitled2/features/modules/all_Modules/dpr/models/data/equipment_material_data.dart';
+import 'package:untitled2/features/modules/all_Modules/dpr/models/data/piping_material_data.dart';
 import 'package:untitled2/features/modules/all_Modules/dpr/providers/dprService.dart';
 import 'package:untitled2/features/modules/all_Modules/dpr/providers/floorProvider.dart';
 import 'package:untitled2/features/modules/all_Modules/dpr/providers/mocProvider.dart';
@@ -15,19 +17,22 @@ import 'package:untitled2/features/modules/all_Modules/team/model/teamModel.dart
 import 'package:untitled2/core/utlis/widgets/buttons.dart';
 import 'package:untitled2/core/utlis/widgets/custom.dart';
 import 'package:untitled2/features/modules/all_Modules/team/provider/teamProvider.dart';
+import '../../../../../core/utlis/common_functions.dart';
+import '../dpr-setup/screens/add/add_material.dart';
 import '../models/data/eqipment_provider.dart';
 import '../models/data/piping_provider.dart';
 import '../models/dprModel.dart';
 import '../models/equipmentModel.dart';
 import '../models/pipingModel.dart';
 import '../providers/dpr.dart';
+import '../providers/material_service.dart';
 import '../providers/selectedSize_provider.dart';
 import 'material_sync_util.dart';
 
 class AddDescriptionScreen extends ConsumerStatefulWidget {
-  final String? workId;
+  final DprModel? work;
 
-  const AddDescriptionScreen({super.key, this.workId});
+  const AddDescriptionScreen({super.key, this.work});
 
   @override
   ConsumerState<AddDescriptionScreen> createState() => _AddDescriptionScreenState();
@@ -67,21 +72,135 @@ class _AddDescriptionScreenState extends ConsumerState<AddDescriptionScreen>
 
   List<DprModel> _dprListForSelectedDate = [];
   bool _isLoadingDprList = false;
+  bool get isCreatingDpr => _mechanicalId == null;
+  bool get isEditingDpr => _mechanicalId != null;
+  bool get isEditing => _mechanicalId != null;
+
+
 
   @override
   bool get wantKeepAlive => true;
 
+  // @override
+  // void initState() {
+  //   super.initState();
+  //   WidgetsBinding.instance.addObserver(this);
+  //   _initializeControllers();
+  //   _initializeData();
+  //
+  //   WidgetsBinding.instance.addPostFrameCallback((_) {
+  //     _loadInitialData();
+  //   });
+  // }
   @override
   void initState() {
     super.initState();
+
     WidgetsBinding.instance.addObserver(this);
     _initializeControllers();
     _initializeData();
 
+    if (widget.work != null) {
+      _mechanicalId = widget.work!.id;
+    }
+
     WidgetsBinding.instance.addPostFrameCallback((_) {
-      _loadInitialData();
+      loadScreenState();
     });
   }
+
+  Future<void> loadScreenState() async {
+    ref.read(pipingMaterialsProvider.notifier).clear();
+    ref.read(equipmentMaterialsProvider.notifier).clear();
+
+    if (_mechanicalId != null) {
+      // 🔵 EDITING DPR
+      await _loadDprMaterials();
+    } else {
+      // 🟢 CREATING DPR
+      await _loadDefaultMaterials();
+    }
+  }
+  Future<void> _loadDefaultMaterials() async {
+    final service = DefaultMaterialService();
+
+    final materials = await service.getDefaultMaterials(
+      siteId: siteId,
+
+    );
+
+    ref.read(pipingMaterialsProvider.notifier).setMaterials(
+      materials.whereType<PipingItem>().toList(),
+    );
+
+    ref.read(equipmentMaterialsProvider.notifier).setMaterials(
+      materials.whereType<EquipmentItem>().toList(),
+    );
+  }
+  Future<void> _loadDprMaterials() async {
+    final dpr = await ref.read(dprProvider.notifier).fetchDprById(
+      siteId: siteId,
+      teamId: teamId,
+      workId: _mechanicalId!,
+    );
+
+    if (dpr == null) return;
+    final mergedPiping = MaterialSyncService.syncPiping(
+      local: PipingMaterialsData.materials,
+      server: dpr.piping,
+    );
+
+    final mergedEquipment = MaterialSyncService.syncEquipment(
+      local: EquipmentMaterialsData.materials,
+      server: dpr.equipment,
+    );
+
+    ref.read(pipingMaterialsProvider.notifier).setMaterials(mergedPiping);
+    ref.read(equipmentMaterialsProvider.notifier).setMaterials(mergedEquipment);
+
+    _dprNameController.text = dpr.dprName;
+    _mocController.text = dpr.moc;
+    _sizeController.text = dpr.size;
+    _floorController.text = dpr.location;
+    _plantController.text = dpr.plant;
+  }
+
+  Future<void> _loadMaterialsForEditing() async {
+    final dpr = await ref.read(dprProvider.notifier).fetchDprById(
+      siteId: siteId,
+      teamId: teamId,
+      workId: _mechanicalId!,
+    );
+
+    if (dpr == null) return;
+
+    ref.read(pipingMaterialsProvider.notifier).setMaterials(dpr.piping);
+    ref.read(equipmentMaterialsProvider.notifier).setMaterials(dpr.equipment);
+
+    _dprNameController.text = dpr.dprName;
+    _mocController.text = dpr.moc;
+    _sizeController.text = dpr.size;
+    _floorController.text = dpr.location;
+    _plantController.text = dpr.plant;
+  }
+
+  Future<void> _loadMaterialsForCreate() async {
+    final service = DefaultMaterialService();
+
+    final materials = await service.getDefaultMaterials(
+      siteId: siteId,
+      designation: 'both',
+    );
+
+    ref.read(pipingMaterialsProvider.notifier).setMaterials(
+      materials.whereType<PipingItem>().toList(),
+    );
+
+    ref.read(equipmentMaterialsProvider.notifier).setMaterials(
+      materials.whereType<EquipmentItem>().toList(),
+    );
+  }
+
 
   @override
   void didChangeAppLifecycleState(AppLifecycleState state) {
@@ -102,9 +221,8 @@ class _AddDescriptionScreenState extends ConsumerState<AddDescriptionScreen>
     siteId = ref.read(selectedSiteIdProvider)!;
     teamId = ref.read(selectedTeamIdProvider)!;
     team = ref.read(currentTeamProvider)!;
-    _mocController.text = ref.read(selectedMOCProvider)!.name;
-    _floorController.text = ref.read(selectedFloorProvider)!.name;
-    _sizeController.text = ref.read(selectedSizeProvider)!;
+    _mocController.text =(widget.work==null? ref.read(selectedMOCProvider)!.name:widget.work?.moc)??"";_floorController.text = (widget.work==null?ref.read(selectedFloorProvider)!.name:widget.work?.location)??"";
+    _sizeController.text = (widget.work==null?ref.read(selectedSizeProvider)!:widget.work?.size)??"";
   }
 
   Future<void> _loadInitialData() async {
@@ -113,9 +231,9 @@ class _AddDescriptionScreenState extends ConsumerState<AddDescriptionScreen>
     if (mounted) setState(() => _isLoadingMaterials = true);
 
     try {
-      if (widget.workId != null) {
+      if (widget.work != null) {
         // If workId is provided, load that specific DPR
-        _mechanicalId = widget.workId;
+        _mechanicalId = widget.work?.id;
         await _fetchDprWorkById();
       } else {
         // Check if today's date
@@ -127,6 +245,8 @@ class _AddDescriptionScreenState extends ConsumerState<AddDescriptionScreen>
           await _fetchDprListForDate(_selectedDate);
 
           if (_dprListForSelectedDate.isNotEmpty) {
+            ref.read(pipingMaterialsProvider.notifier).clear();
+            ref.read(equipmentMaterialsProvider.notifier).clear();
             await _loadDprWork(_dprListForSelectedDate.first);
           } else {
             // No DPR found for selected date
@@ -145,7 +265,9 @@ class _AddDescriptionScreenState extends ConsumerState<AddDescriptionScreen>
     } catch (e) {
       if (mounted && !_isDisposed) {
         print('Error loading initial data: $e');
-        _showSnackBar('Failed to load DPR data: $e', isError: true);
+        final message = extractBackendError(e);
+        _showSnackBar('Failed to load DPR work: $message', isError: true);
+
       }
     } finally {
       if (mounted && !_isDisposed) {
@@ -173,10 +295,19 @@ class _AddDescriptionScreenState extends ConsumerState<AddDescriptionScreen>
             dprDate.month == date.month &&
             dprDate.day == date.day;
       }).toList();
+      _showSnackBar(
+        _dprListForSelectedDate.isNotEmpty
+            ? 'Found ${_dprListForSelectedDate.length} DPR(s) for ${_formatDate(date)}'
+            : 'No DPR found for ${_formatDate(date)}. Create a new DPR.',
+      );
+
 
       print('Found ${_dprListForSelectedDate.length} DPR(s) for ${_formatDate(date)}');
     } catch (e) {
+      final message = extractBackendError(e);
+      _showSnackBar('Error fetching DPR list: $message', isError: true);
       print('Error fetching DPR list: $e');
+
       _dprListForSelectedDate = [];
     } finally {
       if (mounted && !_isDisposed) {
@@ -216,6 +347,12 @@ class _AddDescriptionScreenState extends ConsumerState<AddDescriptionScreen>
   Future<void> _autoCreateDprWork() async {
     if (_isDisposed || _autoCreateAttempted) return;
 
+    // final designation = await _askDprDesignation();
+    // if (designation == null || designation.isEmpty) {
+    //   _showSnackBar('DPR creation cancelled', isError: true);
+    //   return;
+    // }
+
     _autoCreateAttempted = true;
     if (mounted) setState(() => _isCreatingWork = true);
 
@@ -226,7 +363,7 @@ class _AddDescriptionScreenState extends ConsumerState<AddDescriptionScreen>
         'location': _floorController.text.trim(),
         'size': _sizeController.text.trim(),
         'moc': _mocController.text.trim(),
-        'designation': ['piping', 'equipment'],
+        'designation': ["piping","equipment"],
         'date': _selectedDate.toIso8601String(),
       };
 
@@ -263,7 +400,8 @@ class _AddDescriptionScreenState extends ConsumerState<AddDescriptionScreen>
     } catch (e) {
       if (mounted && !_isDisposed) {
         print('Error auto-creating DPR work: $e');
-        _showSnackBar('Failed to create DPR work: $e', isError: true);
+        final message = extractBackendError(e);
+        _showSnackBar('Failed to load DPR work: $message', isError: true);
       }
     } finally {
       if (mounted && !_isDisposed) {
@@ -274,103 +412,129 @@ class _AddDescriptionScreenState extends ConsumerState<AddDescriptionScreen>
   String materialKey(String name, String designation) {
     return '${designation.toLowerCase()}::${name.trim().toLowerCase()}';
   }
+  Future<List<String>?> _askDprDesignation() async {
+    return showDialog<List<String>>(
+      context: context,
+      barrierDismissible: false,
+      builder: (context) {
+        return AlertDialog(
+          title: const Text('Select DPR Work Type'),
+          content: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              ListTile(
+                leading: const Icon(Icons.precision_manufacturing),
+                title: const Text('Piping'),
+                onTap: () {
+                  Navigator.pop(context, ['piping']);
+                },
+              ),
+              ListTile(
+                leading: const Icon(Icons.build),
+                title: const Text('Equipment'),
+                onTap: () {
+                  Navigator.pop(context, ['equipment']);
+                },
+              ),
+              const Divider(),
+              ListTile(
+                leading: const Icon(Icons.layers),
+                title: const Text('Both (Piping + Equipment)'),
+                onTap: () {
+                  Navigator.pop(context, ['piping', 'equipment']);
+                },
+              ),
+            ],
+          ),
+        );
+      },
+    );
+  }
+
 
   void _syncLocalMaterialsWithServer(DprModel dpr) {
+    print('🔄 SYNCING MATERIALS FOR DPR: ${dpr.id}');
+
     // ---- SYNC USING CENTRAL SERVICE ----
     final mergedPiping = MaterialSyncService.syncPiping(
-      local: ref.read(pipingMaterialsProvider),
+      local: PipingMaterialsData.materials,
       server: dpr.piping,
     );
 
     final mergedEquipment = MaterialSyncService.syncEquipment(
-      local: ref.read(equipmentMaterialsProvider),
+      local: EquipmentMaterialsData.materials,
       server: dpr.equipment,
     );
 
     // ---- UPDATE PROVIDERS ----
-    ref.read(pipingMaterialsProvider.notifier).state = mergedPiping;
-    ref.read(equipmentMaterialsProvider.notifier).state = mergedEquipment;
+    ref.read(pipingMaterialsProvider.notifier).setMaterials(mergedPiping);
+    ref.read(equipmentMaterialsProvider.notifier).setMaterials(mergedEquipment);
 
-    // ---- DEBUG LOGS (OPTIONAL BUT USEFUL) ----
-    print('----- AFTER SYNC (LOCAL STATE) -----');
+    // ---- VERIFY UOM IS PRESERVED ----
+    print('📋 VERIFYING UOM AFTER SYNC:');
 
-    for (final p in mergedPiping) {
-      print({
-        'type': 'piping',
-        'id': p.id,
-        'name': p.materialName,
-        'qty': p.qty,
-        'length': p.length,
-        'uom': p.uom,
-        'remarks': p.remarks,
-      });
+    final pipingState = ref.read(pipingMaterialsProvider);
+    print('Piping materials count: ${pipingState.length}');
+    for (final p in pipingState) {
+      print('  → ${p.materialName}: UOM = ${p.uom}, Length = ${p.length}');
     }
 
-    for (final e in mergedEquipment) {
-      print({
-        'type': 'equipment',
-        'id': e.id,
-        'name': e.materialName,
-        'qty': e.qty,
-        'weight': e.weight,
-        'uom': e.uom,
-        'remarks': e.remarks,
-      });
+    final equipmentState = ref.read(equipmentMaterialsProvider);
+    print('Equipment materials count: ${equipmentState.length}');
+    for (final e in equipmentState) {
+      print('  → ${e.materialName}: UOM = ${e.uom}, Weight = ${e.weight}');
     }
-
-    print('-----------------------------------');
-  }
-
+  }/**/
 
   Future<void> _fetchDprWorkById() async {
     if (_isDisposed || _mechanicalId == null) return;
+    ref.read(pipingMaterialsProvider.notifier).clear();
+    ref.read(equipmentMaterialsProvider.notifier).clear();
+
 
     if (mounted) setState(() => _isLoadingMaterials = true);
 
     try {
       print('Fetching DPR work with ID: $_mechanicalId');
 
-      await ref.read(dprProvider.notifier).fetchDprById(
+      final dprWork = await ref.read(dprProvider.notifier).fetchDprById(
         siteId: siteId,
         teamId: teamId,
         workId: _mechanicalId!,
       );
 
-      if (_isDisposed) return;
+      if (dprWork == null) return;
 
-      final dprState = ref.read(dprProvider);
 
-      if (dprState.data != null && dprState.data is DprModel) {
-        final dprWork = dprState.data as DprModel;
-        _syncLocalMaterialsWithServer(dprWork);
 
-        _dprNameController.text = dprWork.dprName ?? 'New DPR Entry';
-        _mocController.text = dprWork.moc ?? _mocController.text;
-        _sizeController.text = dprWork.size ?? _sizeController.text;
-        _floorController.text = dprWork.location ?? _floorController.text;
-        _plantController.text = dprWork.plant ?? _plantController.text;
 
-        if (mounted) {
-          setState(() {
-            if (dprWork.piping.isNotEmpty) {
-              _pipeFittingOn = true;
-              _showPipingMaterials = true;
-            }
-            if (dprWork.equipment.isNotEmpty) {
-              _equipmentOn = true;
-              _showEquipmentMaterials = true;
-            }
-          });
-        }
+      _syncLocalMaterialsWithServer(dprWork);
 
-        print('Fetched DPR work successfully with ${dprWork.piping.length} piping and ${dprWork.equipment.length} equipment materials');
-      } else {
-        throw Exception('Invalid DPR data format received');
+      _dprNameController.text = dprWork.dprName ?? 'New DPR Entry';
+      _mocController.text = dprWork.moc ?? _mocController.text;
+      _sizeController.text = dprWork.size ?? _sizeController.text;
+      _floorController.text = dprWork.location ?? _floorController.text;
+      _plantController.text = dprWork.plant ?? _plantController.text;
+
+      if (mounted) {
+        setState(() {
+          if (dprWork.piping.isNotEmpty) {
+            _pipeFittingOn = true;
+            _showPipingMaterials = true;
+          }
+          if (dprWork.equipment.isNotEmpty) {
+            _equipmentOn = true;
+            _showEquipmentMaterials = true;
+          }
+        });
       }
-    } catch (e) {
+
+      print('Fetched DPR work successfully with ${dprWork.piping.length} piping and ${dprWork.equipment.length} equipment materials');
+        } catch (e) {
       if (mounted && !_isDisposed) {
         print('Error fetching DPR work: $e');
-        _showSnackBar('Failed to load DPR work: $e', isError: true);
+        final message = extractBackendError(e);
+        _showSnackBar('Failed to load DPR work: $message', isError: true);
       }
     } finally {
       if (mounted && !_isDisposed) {
@@ -389,20 +553,6 @@ class _AddDescriptionScreenState extends ConsumerState<AddDescriptionScreen>
   bool get _isEditable => _isToday(_selectedDate) || _globalEditMode;
 
   Future<void> _selectDate(BuildContext context) async {
-    if (!_globalEditMode) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(
-          content: Text(_isToday(_selectedDate)
-              ? "Click 'Edit' to change date"
-              : "Click 'Edit' to modify DPR for ${_formatDate(_selectedDate)}"),
-          backgroundColor: Colors.orange,
-          duration: const Duration(seconds: 2),
-          behavior: SnackBarBehavior.floating,
-        ),
-      );
-      return;
-    }
-
     final picked = await showDatePicker(
       context: context,
       initialDate: _selectedDate,
@@ -410,33 +560,31 @@ class _AddDescriptionScreenState extends ConsumerState<AddDescriptionScreen>
       lastDate: DateTime.now(),
     );
 
-    if (picked != null && picked != _selectedDate) {
-      setState(() => _selectedDate = picked);
+    if (picked == null || picked == _selectedDate) return;
 
-      // Check if selected date is today
-      if (_isToday(picked)) {
-        // For today, always create new DPR
-        await _autoCreateDprWork();
-      } else {
-        // For other dates, fetch existing DPRs
-        await _fetchDprListForDate(picked);
+    setState(() {
+      _selectedDate = picked;
+    });
 
-        if (_dprListForSelectedDate.isNotEmpty) {
-          await _loadDprWork(_dprListForSelectedDate.first);
-        } else {
-          setState(() {
-            _mechanicalId = null;
-            _selectedDprId = null;
-            _dprNameController.text = 'New DPR Entry';
-            _pipeFittingOn = false;
-            _equipmentOn = false;
-            _showPipingMaterials = false;
-            _showEquipmentMaterials = false;
-          });
-        }
-      }
+    // Fetch DPRs for selected date
+    await _fetchDprListForDate(picked);
+
+    if (_dprListForSelectedDate.isNotEmpty) {
+      // 🔵 EDITING: DPR exists for this date
+      _mechanicalId = _dprListForSelectedDate.first.id;
+      _selectedDprId = _mechanicalId;
+    } else {
+      // 🟢 CREATING: No DPR for this date
+      _mechanicalId = null;
+      _selectedDprId = null;
+
+      _dprNameController.text = 'New DPR Entry';
     }
+
+    // 🔑 SINGLE SOURCE OF TRUTH
+    await loadScreenState();
   }
+
 
   String _formatDate(DateTime d) => "${d.day}/${d.month}/${d.year}";
 
@@ -479,6 +627,110 @@ class _AddDescriptionScreenState extends ConsumerState<AddDescriptionScreen>
       });
     }
   }
+
+ // _________MATERIAL  FUNCTIONS_______ //
+  Future<void> _deleteDprMaterial(String materialId, bool isPiping) async {
+    if (!_isEditable) {
+      _showEditRequiredMessage();
+      return;
+    }
+
+    try {
+      await DprApi().deleteMaterial(
+        mechanicalId: _mechanicalId!,
+        materialId: materialId,
+
+      );
+
+      if (isPiping) {
+        final materials = ref.read(pipingMaterialsProvider);
+         ref.read(pipingMaterialsProvider.notifier).setMaterials(
+           materials.where((m) => m.id != materialId).toList(),
+       );
+      } else {
+        final materials = ref.read(equipmentMaterialsProvider);
+         ref.read(equipmentMaterialsProvider.notifier).setMaterials(
+           materials.where((m) => m.id != materialId).toList(),
+         );
+      }
+
+      _showSnackBar('Material deleted');
+    } catch (e) {
+      final message = extractBackendError(e);
+
+      _showSnackBar('Delete failed: $message', isError: true);
+    }
+  }
+  Future<void> _copyDprMaterial(String materialId,) async {
+    try {
+      await DprApi.copyDprMaterial(
+        dprId: _mechanicalId!,
+        matId: materialId,
+
+      );
+
+      await _fetchDprWorkById(); // re-sync server state
+      _showSnackBar('Material copied');
+    } catch (e) {
+      final message = extractBackendError(e);
+
+      _showSnackBar('Copy failed: $message', isError: true);
+    }
+  }
+  void _editDprMaterial(dynamic material, String catgory) {
+    if (!_isEditable) {
+      _showEditRequiredMessage();
+      return;
+    }
+
+    if (material is PipingItem) {
+      Navigator.of(context)
+          .push(
+        MaterialPageRoute(
+          builder: (_) => PersistDPRScreen(
+            editMaterialId: material.id,
+            designation: 'piping',
+            pipingMaterial: material,
+
+            // 🔴 DPR CONTEXT (this is the difference)
+            isDpr: true,
+            dprId: _mechanicalId!,
+            siteId: siteId,
+            teamId: teamId,
+          ),
+        ),
+      )
+          .then((_) async {
+        await _fetchDprWorkById(); // ✅ DPR refresh, not default materials
+      });
+    }
+
+    else if (material is EquipmentItem) {
+      Navigator.of(context)
+          .push(
+        MaterialPageRoute(
+          builder: (_) => PersistDPRScreen(
+            editMaterialId: material.id,
+            designation: 'equipment',
+            equipmentMaterial: material,
+
+            // 🔴 DPR CONTEXT
+            isDpr: true,
+            dprId: _mechanicalId!,
+            siteId: siteId,
+            teamId: teamId,
+          ),
+        ),
+      )
+          .then((_) async {
+        await _fetchDprWorkById();
+      });
+    }
+  }
+
+
+
+
 
   void _showEditRequiredMessage() {
     if (_isToday(_selectedDate)) {
@@ -704,8 +956,11 @@ class _AddDescriptionScreenState extends ConsumerState<AddDescriptionScreen>
                     ),
                   ),
                 ),
+
+
               ],
             ),
+            _buildAddDprMaterialButton(),
             Text(
               isExpanded ? 'Hide' : 'Show',
               style: TextStyle(
@@ -718,6 +973,46 @@ class _AddDescriptionScreenState extends ConsumerState<AddDescriptionScreen>
       ),
     );
   }
+  Widget _buildAddDprMaterialButton() {
+    return InkWell(
+      borderRadius: BorderRadius.circular(20),
+      onTap: () async {
+        if (_mechanicalId == null) {
+          _showSnackBar('DPR not created yet', isError: true);
+          return;
+        }
+
+        final result = await Navigator.of(context).push(
+          MaterialPageRoute(
+            builder: (_) => PersistDPRScreen(
+              isDpr: true,                 // 🔴 critical
+              dprId: _mechanicalId!,       // 🔴 DPR ID
+              siteId: siteId,
+              teamId: teamId,
+            ),
+          ),
+        );
+
+        // Re-fetch DPR after add
+        if (result == true) {
+          await _fetchDprWorkById();
+        }
+      },
+      child: Container(
+        padding: const EdgeInsets.all(6),
+        decoration: BoxDecoration(
+          color: const Color(0xFF1B6DCE),
+          shape: BoxShape.circle,
+        ),
+        child: const Icon(
+          Icons.add,
+          size: 18,
+          color: Colors.white,
+        ),
+      ),
+    );
+  }
+
 
   Widget _buildLoadingCard(String title, String subtitle) {
     return Container(
@@ -903,12 +1198,15 @@ class _AddDescriptionScreenState extends ConsumerState<AddDescriptionScreen>
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
         if (shouldShowDropdown)
-          _buildDprDropdown()
-        else
-          _buildRegularDprNameField(),
+          _buildDprDropdown(),
+
+        const SizedBox(height: 8),
+
+        _buildRegularDprNameField(),
       ],
     );
   }
+
   Widget _buildDprDropdown() {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
@@ -951,13 +1249,29 @@ class _AddDescriptionScreenState extends ConsumerState<AddDescriptionScreen>
                 color: Colors.black,
               ),
               hint: const Text('Select DPR'),
-              onChanged: (String? newValue) {
-                if (newValue != null) {
-                  final selectedDpr = _dprListForSelectedDate
-                      .firstWhere((dpr) => dpr.id == newValue);
-                  _loadDprWork(selectedDpr);
-                }
+              // onChanged: (String? newValue) {
+              //   if (newValue != null) {
+              //     ref.read(pipingMaterialsProvider.notifier).clear();
+              //     ref.read(equipmentMaterialsProvider.notifier).clear();
+              //     final selectedDpr = _dprListForSelectedDate
+              //         .firstWhere((dpr) => dpr.id == newValue);
+              //     _loadDprWork(selectedDpr);
+              //   }
+              // },
+              onChanged: (String? newValue) async {
+                if (newValue == null) return;
+                final dpr = _dprListForSelectedDate
+                       .firstWhere((dpr) => dpr.id == newValue);
+                  _dprNameController.text = dpr.dprName;
+                _mocController.text = dpr.moc;
+                _sizeController.text = dpr.size;
+                _floorController.text = dpr.location;
+                _plantController.text = dpr.plant;
+
+                _mechanicalId = newValue;
+                await loadScreenState();
               },
+
               items: _dprListForSelectedDate.map<DropdownMenuItem<String>>((DprModel dpr) {
                 return DropdownMenuItem<String>(
                   value: dpr.id,
@@ -1235,7 +1549,9 @@ class _AddDescriptionScreenState extends ConsumerState<AddDescriptionScreen>
           child: DynamicItemCard(
             quantity: material.qty.toString(),
             size: _sizeController.text,
-            length: "",
+            length: (material.length == null || material.length == 0)
+                ? ""
+                : material.length.toString(),
             floor: _floorController.text,
             moc:  _mocController.text,
             image: material.image,
@@ -1250,6 +1566,11 @@ class _AddDescriptionScreenState extends ConsumerState<AddDescriptionScreen>
             onFloorChanged: (val) => _onPipingFieldChanged(material.id, 'floor', val),
             onMocChanged: (val) => _onPipingFieldChanged(material.id, 'moc', val),
             isEditable: _isEditable,
+            onCopy: () => _copyDprMaterial(material.id),
+            onAdd: () => _copyDprMaterial(material.id),
+            onDelete: ()=>_deleteDprMaterial(material.id, true),
+            onEdit: ()=>_editDprMaterial(material,""),
+
             onRemark: () => _showRemarkDialog(material.id, material.remarks ?? '', isPiping: true),
           ),
         ),
@@ -1283,7 +1604,14 @@ class _AddDescriptionScreenState extends ConsumerState<AddDescriptionScreen>
             onQtyChanged: (val) => _onEquipmentFieldChanged(material.id, 'quantity', val),
             onFloorChanged: (val) => _onEquipmentFieldChanged(material.id, 'floor', val),
             onTonChanged: (val) => _onEquipmentFieldChanged(material.id, 'ton', val),
+            onCopy: () => _copyDprMaterial(material.id),
+            onAdd: () => _copyDprMaterial(material.id),
+            onEdit: ()=>_editDprMaterial(material,""),
+            onDelete: ()=>_deleteDprMaterial(material.id, false),
+
             isEditable: _isEditable,
+
+
             onRemark: () => _showRemarkDialog(material.id, material.remarks ?? '', isPiping: false), onMeterChanged: (String p1) {  },
           ),
         ),
@@ -1469,16 +1797,60 @@ class _AddDescriptionScreenState extends ConsumerState<AddDescriptionScreen>
     setState(() => _isSubmitting = true);
 
     try {
-      if (_mechanicalId == null) {
-        await _autoCreateDprWork();
-        if (_mechanicalId == null) {
-          throw Exception('Failed to create DPR work');
-        }
-      }
+
+      // if (_mechanicalId == null) {
+      //   await _autoCreateDprWork();
+      //   if (_mechanicalId == null) {
+      //     throw Exception('Failed to create DPR work');
+      //   }
+      // }
 
       // Get current piping and equipment materials from providers
       final pipingMaterials = ref.read(pipingMaterialsProvider);
       final equipmentMaterials = ref.read(equipmentMaterialsProvider);
+      List<String> dprDesignation = [];
+
+      if (pipingMaterials.isNotEmpty) {
+        dprDesignation.add('piping');
+      }
+
+      if (equipmentMaterials.isNotEmpty) {
+        dprDesignation.add('equipment');
+      }
+
+
+      debugPrint("🟦 RAW PIPING MATERIALS (${pipingMaterials.length})");
+      for (final m in pipingMaterials) {
+        debugPrint("""
+🧱 PIPING
+  id: ${m.id}
+  name: ${m.materialName}
+  qty: ${m.qty}
+  size: ${m.size}
+  length: ${m.length}
+  uom: ${m.uom}
+  moc: ${m.moc}
+  calcCat: ${m.calculationCategory}
+  remarks: ${m.remarks}
+""");
+      }
+
+      debugPrint("🟩 RAW EQUIPMENT MATERIALS (${equipmentMaterials.length})");
+      for (final m in equipmentMaterials) {
+        debugPrint("""
+🔩 EQUIPMENT
+  id: ${m.id}
+  name: ${m.materialName}
+  qty: ${m.qty}
+  weight: ${m.weight}
+  length: ${m.length}
+  uom: ${m.uom}
+  moc: ${m.moc}
+  calcCat: ${m.calculationCategory}
+  remarks: ${m.remarks}
+""");
+      }
+
 
       // Transform piping materials to API format
       final pipingData = pipingMaterials.map((material) {
@@ -1489,6 +1861,7 @@ class _AddDescriptionScreenState extends ConsumerState<AddDescriptionScreen>
           'size': _sizeController.text.trim(),
           'length': material.length, // Keep as number
           'uom': material.uom,
+          'actualRate': material.actualRate,
           'location': _floorController.text.trim(),
           'moc': _mocController.text.trim(),
           'calculationCategory': material.calculationCategory, // Required field
@@ -1507,6 +1880,7 @@ class _AddDescriptionScreenState extends ConsumerState<AddDescriptionScreen>
           'qty': material.qty, // Send as integer, not double
           'weight': material.weight, // Keep as number
           'uom': material.uom,
+          'actualRate': material.actualRate,
           'location': _floorController.text.trim(),
           'moc': _mocController.text.trim(),
           'calculationCategory': material.calculationCategory, // Required field
@@ -1524,6 +1898,9 @@ class _AddDescriptionScreenState extends ConsumerState<AddDescriptionScreen>
         'location': _floorController.text.trim(),
         'plant': _plantController.text.trim(),
         'date': _selectedDate.toIso8601String(),
+        if (_mechanicalId == null && dprDesignation.isNotEmpty)
+          'designation': dprDesignation,
+
         if (pipingData.isNotEmpty) 'piping': pipingData,
         if (equipmentData.isNotEmpty) 'equipment': equipmentData,
       };
@@ -1557,29 +1934,50 @@ class _AddDescriptionScreenState extends ConsumerState<AddDescriptionScreen>
       }
 
       print('---------------------------------------');
+      if (_mechanicalId == null) {
+        await ref.read(dprProvider.notifier).postDprWork(
+               data: updateData,
+          siteId: ref.read(selectedSiteIdProvider)!,
+          teamId: ref.read(selectedTeamIdProvider)!,
 
-      await ref.read(dprProvider.notifier).updateDprWork(
-        data: updateData,
-        mechanicalId: _mechanicalId!,
-      );
+             );
+      } else {
+        await ref.read(dprProvider.notifier).updateDprWork(
+          data: updateData,
+          mechanicalId: _mechanicalId!,
+        );
+      }
+
+
+
+ // await ref.read(dprProvider.notifier).postDprWork(
+ //        data: updateData,
+ //   siteId: ref.read(selectedSiteIdProvider)!,
+ //   teamId: ref.read(selectedTeamIdProvider)!,
+ //
+ //      );
 
       WidgetsBinding.instance.addPostFrameCallback((_) {
         if (mounted && !_isDisposed) {
           int count = 0;
-          if(!_globalEditMode) Navigator.of(context).popUntil((_) => count++ >= 4);
 
-          if (!_isToday(_selectedDate)) {
-            setState(() {
-              _globalEditMode = false;
-            });
+          // Only pop if you're NOT in global edit mode
+          if (!_globalEditMode) {
+            Navigator.of(context).popUntil((_) => count++ >= 4);
           }
+          _showSnackBar("Successfully Saved");
+
+          // ❌ DO NOT auto-disable edit mode for past dates
         }
       });
+
 
     } catch (e) {
       if (mounted && !_isDisposed) {
         print('Error details: $e');
-        _showSnackBar('Failed to save DPR: $e', isError: true);
+        final message = extractBackendError(e);
+
+        _showSnackBar('Failed to save DPR: $message', isError: true);
       }
     } finally {
       if (mounted && !_isDisposed) {

@@ -13,6 +13,7 @@ import '../../site_Details/repository/siteModel.dart';
 
 import '../../team/provider/teamProvider.dart';
 import '../../team/screens/teamsList.dart';
+import '../dpr_insu/screens/step_insulation_screen.dart';
 import '../providers/dpr.dart';
 import 'add_description.dart';
 
@@ -38,12 +39,22 @@ class _DprTeamScreenState extends ConsumerState<DprTeamScreen> {
     WidgetsBinding.instance.addPostFrameCallback((_) {
       final selectedTeamId = ref.read(selectedTeamIdProvider);
       final currentTeam = ref.read(currentTeamProvider);
+      final dropdown = ref.read(teamDropdownValueProvider);
+
+      print(
+          (dropdown?.id != null && dropdown!.id!.isNotEmpty)
+              ? dropdown!.id
+              : 'ID missing'
+      );
+
+
+
       print("Selected Team ID: $selectedTeamId");
       print("Current Team: ${currentTeam?.teamName}");
 
-      if (selectedTeamId != null && currentTeam != null) {
+      if (selectedTeamId != null && currentTeam != null && dropdown!=null) {
         // Team is preselected, navigate to next screen
-        context.pushReplacement('/moc-selection', extra: {
+        context.push('/moc-selection', extra: {
           'siteId': widget.site.id,
           'teamId': currentTeam.id,
           'teamName': currentTeam.teamName,
@@ -98,30 +109,41 @@ class _DprTeamScreenState extends ConsumerState<DprTeamScreen> {
                         return InkWell(
                           onTap: () {
                             ref.read(selectedTeamIdProvider.notifier).state = team.id;
-                            // Navigator.push(
-                            //   context,
-                            //   MaterialPageRoute(
-                            //     builder: (context) => AddDescriptionScreen(
-                            //       siteId: widget.site.id,
-                            //       teamId: team.id,
-                            //       teamName: team.teamName,
-                            //     ),
-                            //   ),
-                            // );
-                            Navigator.push(
-                              context,
-                              MaterialPageRoute(
-                                builder: (context) => MOCSelectionPage(
-                                  siteId: widget.site.id,
-                                  teamId: team.id,
-                                  teamName: team.teamName,
-                                  onMOCSelected: (selectedMOC) {
-                                    print('Selected MOC: ${selectedMOC.name}');
-                                  },
+
+                            final type = ref.read(typeProvider);
+
+                            if (type == "mechanical_work") {
+                              Navigator.push(
+                                context,
+                                MaterialPageRoute(
+                                  builder: (_) => MOCSelectionPage(
+                                    siteId: widget.site.id,
+                                    teamId: team.id,
+                                    teamName: team.teamName,
+                                    onMOCSelected: (selectedMOC) {
+                                      print('Selected MOC: ${selectedMOC.name}');
+                                    },
+                                  ),
                                 ),
-                              ),
-                            );
-          
+                              );
+                            }
+                            else if (type == "insulation_work") {
+                              Navigator.push(
+                                context,
+                                MaterialPageRoute(
+                                  builder: (_) => StepInsulationScreen(
+                                    siteId: 'site123',
+                                    teamId: 'team456',
+                                    name: 'Project Name',
+                                    teamName: 'Team ABC',
+                                  ),
+                                ),
+                              );
+                            }
+                            else {
+                              debugPrint("❌ Unknown work type: $type");
+                            }
+
                           },
                           child: Container(
                             decoration: BoxDecoration(

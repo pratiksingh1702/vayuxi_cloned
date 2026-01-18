@@ -46,6 +46,64 @@ class ManpowerAPI {
       };
     }
   }
+  static Future<Map<String, dynamic>> bulkDeleteManpower(
+      List<String> manpowerIds,
+      ) async {
+    if (manpowerIds.isEmpty) {
+      return {
+        "success": false,
+        "message": "Manpower IDs list cannot be empty",
+      };
+    }
+
+    try {
+      final res = await dio.post(
+        "/manpower/bulk-delete",
+        data: {
+          "ids": manpowerIds,
+        },
+        options: Options(
+          headers: {
+            "Content-Type": "application/json",
+            "Accept": "application/json",
+          },
+        ),
+      );
+
+      return {
+        "success": true,
+        "data": res.data,
+        "statusCode": res.statusCode,
+      };
+    } on DioException catch (e) {
+      String errorMessage = "Bulk delete failed";
+
+      if (e.response?.data is Map) {
+        errorMessage =
+            e.response?.data['message'] ??
+                e.response?.data['error'] ??
+                errorMessage;
+      } else if (e.response?.data is String) {
+        errorMessage = e.response!.data;
+      } else if (e.message != null) {
+        errorMessage = e.message!;
+      }
+
+      return {
+        "success": false,
+        "error": "Bulk Delete Error",
+        "message": errorMessage,
+        "statusCode": e.response?.statusCode,
+      };
+    } catch (e) {
+      return {
+        "success": false,
+        "error": "Unexpected Error",
+        "message": e.toString(),
+      };
+    }
+  }
+
 
 
   /// Fetch manpower list by type
@@ -157,17 +215,23 @@ class ManpowerAPI {
       };
     }
   }
-  static Future<Map<String, dynamic>> uploadManpowerBulk(FormData formData) async {
+  static Future<Map<String, dynamic>> uploadManpowerBulk(FormData formData,String type) async {
     try {
       print('📤 Uploading manpower file...');
       print('📊 FormData fields: ${formData.fields.length}');
       print('📁 FormData files: ${formData.files.length}');
       print('📦 FormData: ${formData.files}');
+      final mappedType = mapManpowerType(type);
+
+      print('📤 Uploading manpower file...');
+      print('📌 Final type sent: $mappedType');
+
 
 
       final response = await DioClient.dio.post(
         '/manpower/bulk-upload', // Make sure the endpoint is correct
         data: formData,
+        queryParameters: {"type": mappedType},
         options: Options(
           headers: {
 
@@ -283,3 +347,20 @@ class ManpowerAPI {
     }
   }
 }
+String mapManpowerType(String rawType) {
+  switch (rawType) {
+    case 'mechanical':
+    case 'mechanical_work':
+      return 'mechanical_work';
+
+    case 'insulation':
+    case 'insulation_work':
+      return 'insulation_work';
+
+    default:
+      throw Exception(
+        "Invalid manpower type: $rawType. Allowed: mechanical_work, insulation_work",
+      );
+  }
+}
+

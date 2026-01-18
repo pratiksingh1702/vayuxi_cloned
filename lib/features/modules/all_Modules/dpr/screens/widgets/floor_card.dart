@@ -166,7 +166,7 @@ class FloorCard extends StatelessWidget {
     if (img.startsWith('http')) {
       return Image.network(
         img,
-        fit: BoxFit.cover,
+        fit: BoxFit.fitHeight,
         errorBuilder: (_, __, ___) => _fallbackIcon(),
       );
     }
@@ -175,7 +175,7 @@ class FloorCard extends StatelessWidget {
     if (img.startsWith('/') || img.contains('storage')) {
       return Image.file(
         File(img),
-        fit: BoxFit.cover,
+        fit: BoxFit.fitHeight,
         errorBuilder: (_, __, ___) => _fallbackIcon(),
       );
     }

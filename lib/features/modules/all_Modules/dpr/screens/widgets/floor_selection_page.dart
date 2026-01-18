@@ -4,6 +4,9 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:untitled2/core/utlis/colors/colors.dart';
 import 'package:untitled2/core/utlis/widgets/Button_wrapper.dart';
 import 'package:untitled2/core/utlis/widgets/custom_appBar.dart';
+import 'package:untitled2/features/modules/all_Modules/dpr/dpr-setup/screens/add/add_floor.dart';
+import 'package:untitled2/features/modules/all_Modules/dpr/screens/widgets/size_Selection.dart';
+import 'package:untitled2/features/modules/all_Modules/site_Details/providers/site_current_provider.dart';
 import '../../../../../../core/utlis/widgets/buttons.dart';
 import '../../../../../../core/utlis/widgets/custom.dart';
 import '../../models/floorModel.dart';
@@ -19,7 +22,7 @@ class FloorSelectionPage extends ConsumerStatefulWidget {
   final bool showSearch;
   final bool showOnlyActive;
   final bool ordered;
-  final String? siteId; // Add these parameters
+  final String? siteId;
   final String? teamId;
   final String? teamName;
 
@@ -45,12 +48,16 @@ class _FloorSelectionPageState extends ConsumerState<FloorSelectionPage> {
   final TextEditingController _searchController = TextEditingController();
   String _searchQuery = '';
 
+  // Selection mode state
+  bool _isSelectionMode = false;
+  Set<String> _selectedFloorIds = {};
+
   @override
   void initState() {
     super.initState();
-    // Load Floors when page initializes
     WidgetsBinding.instance.addPostFrameCallback((_) {
-      ref.read(floorProvider.notifier).loadFloors();
+      final siteId = ref.read(selectedSiteIdProvider);
+      ref.read(floorProvider.notifier).fetchBySite(siteId!);
     });
   }
 
@@ -60,28 +67,109 @@ class _FloorSelectionPageState extends ConsumerState<FloorSelectionPage> {
     super.dispose();
   }
 
-  List<Floor> _getFilteredFloors(List<Floor> allFloors) {
-    List<Floor> filtered = widget.showOnlyActive
-        ? allFloors.where((floor) => floor.isActive).toList()
-        : allFloors;
+  List<Floor> _getFilteredFloors(List<Floor> floors) {
+    if (_searchQuery.isEmpty) return floors;
 
-    if (widget.ordered) {
-      filtered = ref
-          .read(floorProvider.notifier)
-          .orderedFloors
-          .where((floor) => filtered.contains(floor))
-          .toList();
+    return floors
+        .where((f) =>
+        f.name.toLowerCase().contains(_searchQuery.toLowerCase()))
+        .toList();
+  }
+
+  /// Toggle selection mode
+  void _toggleSelectionMode() {
+    setState(() {
+      _isSelectionMode = !_isSelectionMode;
+      if (!_isSelectionMode) {
+        _selectedFloorIds.clear();
+      }
+    });
+  }
+
+  /// Toggle individual floor selection
+  void _toggleFloorSelection(String floorId) {
+    setState(() {
+      if (_selectedFloorIds.contains(floorId)) {
+        _selectedFloorIds.remove(floorId);
+      } else {
+        _selectedFloorIds.add(floorId);
+      }
+    });
+  }
+
+  /// Select all floors
+  void _selectAllFloors(List<Floor> floors) {
+    setState(() {
+      for (var floor in floors) {
+        _selectedFloorIds.add(floor.id);
+      }
+    });
+  }
+
+  /// Delete selected floors
+  Future<void> _deleteSelectedFloors() async {
+    if (_selectedFloorIds.isEmpty) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text('No floors selected'),
+          backgroundColor: Colors.orange,
+        ),
+      );
+      return;
     }
 
-    if (_searchQuery.isNotEmpty) {
-      filtered = filtered
-          .where((floor) =>
-      floor.name.toLowerCase().contains(_searchQuery.toLowerCase()) ||
-          floor.code.toLowerCase().contains(_searchQuery.toLowerCase()))
-          .toList();
-    }
+    final confirmed = await showDialog<bool>(
+      context: context,
+      builder: (context) => AlertDialog(
+        title: const Text('Delete Selected Floors'),
+        content: Text(
+          'Are you sure you want to delete ${_selectedFloorIds.length} selected floors?\n\n'
+              'This action cannot be undone.',
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(context, false),
+            child: const Text('Cancel'),
+          ),
+          TextButton(
+            onPressed: () => Navigator.pop(context, true),
+            style: TextButton.styleFrom(foregroundColor: Colors.red),
+            child: const Text('Delete'),
+          ),
+        ],
+      ),
+    );
 
-    return filtered;
+    if (confirmed != true) return;
+
+    try {
+      await ref.read(floorApiProvider).bulkDeleteFloor(ids:_selectedFloorIds.toList());
+
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text('Successfully deleted ${_selectedFloorIds.length} floors'),
+            backgroundColor: Colors.green,
+          ),
+        );
+      }
+      final siteId = ref.read(selectedSiteIdProvider);
+      ref.read(floorProvider.notifier).fetchBySite(siteId!);
+
+      setState(() {
+        _selectedFloorIds.clear();
+        _isSelectionMode = false;
+      });
+    } catch (e) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text('Bulk delete failed: ${e.toString()}'),
+            backgroundColor: Colors.red,
+          ),
+        );
+      }
+    }
   }
 
   void _showSizeInputDialog(BuildContext context) {
@@ -112,7 +200,6 @@ class _FloorSelectionPageState extends ConsumerState<FloorSelectionPage> {
               mainAxisSize: MainAxisSize.min,
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                // Header
                 Row(
                   children: [
                     Container(
@@ -155,8 +242,6 @@ class _FloorSelectionPageState extends ConsumerState<FloorSelectionPage> {
                   ],
                 ),
                 const SizedBox(height: 24),
-
-                // Size input field
                 TextField(
                   controller: sizeController,
                   focusNode: sizeFocusNode,
@@ -198,10 +283,7 @@ class _FloorSelectionPageState extends ConsumerState<FloorSelectionPage> {
                     style: TextStyle(fontSize: 12, color: Colors.grey),
                   ),
                 ),
-
                 const SizedBox(height: 28),
-
-                // Action buttons
                 Row(
                   children: [
                     Expanded(
@@ -228,7 +310,6 @@ class _FloorSelectionPageState extends ConsumerState<FloorSelectionPage> {
                             _saveSizeAndNavigate(
                                 context, sizeController.text.trim());
                           } else {
-                            // Show error
                             ScaffoldMessenger.of(context).showSnackBar(
                               const SnackBar(
                                 content: Text('Please enter a size'),
@@ -277,14 +358,8 @@ class _FloorSelectionPageState extends ConsumerState<FloorSelectionPage> {
   }
 
   void _saveSizeAndNavigate(BuildContext context, String size) {
-    // Save the size (you might want to save it to a provider or state)
-    // For now, just navigate to next page
-    Navigator.pop(context); // Close the dialog
-
-    // You can save the size to a provider here if needed
+    Navigator.pop(context);
     ref.read(selectedSizeProvider.notifier).state = size;
-
-    // Navigate to description page
     Navigator.push(
       context,
       MaterialPageRoute(
@@ -297,7 +372,7 @@ class _FloorSelectionPageState extends ConsumerState<FloorSelectionPage> {
   Widget build(BuildContext context) {
     final floorState = ref.watch(floorProvider);
     final selectedFloor = ref.watch(selectedFloorProvider);
-    final filteredFloors = _getFilteredFloors(floorState.floorList);
+    final filteredFloors = _getFilteredFloors(floorState.floors);
 
     return Scaffold(
       body: NestedScrollView(
@@ -308,27 +383,32 @@ class _FloorSelectionPageState extends ConsumerState<FloorSelectionPage> {
         },
         body: BottomButtonWrapper(
           customButtons: [
-            CustomButton(
-              button: RoundedButton(
-                text: "Save & Submit",
-                color: Colors.blue,
-                textColor: Colors.white,
-                onPressed: () {
-                  if (selectedFloor == null) {
-                    ScaffoldMessenger.of(context).showSnackBar(
-                      const SnackBar(
-                        content: Text('Please select a floor first'),
-                        backgroundColor: Colors.orange,
-                        behavior: SnackBarBehavior.floating,
+            if (!widget.showEditOptions)
+              CustomButton(
+                button: RoundedButton(
+                  text: "Save & Submit",
+                  color: Colors.blue,
+                  textColor: Colors.white,
+                  onPressed: () {
+                    if (selectedFloor == null) {
+                      ScaffoldMessenger.of(context).showSnackBar(
+                        const SnackBar(
+                          content: Text('Please select a floor first'),
+                          backgroundColor: Colors.orange,
+                          behavior: SnackBarBehavior.floating,
+                        ),
+                      );
+                      return;
+                    }
+                    Navigator.push(
+                      context,
+                      MaterialPageRoute(
+                        builder: (context) => SizeSelectionPage(),
                       ),
                     );
-                    return;
-                  }
-                  // Show the size input dialog
-                  _showSizeInputDialog(context);
-                },
-              ),
-            )
+                  },
+                ),
+              )
           ],
           child: Column(
             children: [
@@ -362,6 +442,50 @@ class _FloorSelectionPageState extends ConsumerState<FloorSelectionPage> {
                     },
                   ),
                 ),
+
+              // Bulk delete controls
+              if (widget.showEditOptions && filteredFloors.isNotEmpty)
+                Padding(
+                  padding: const EdgeInsets.symmetric(horizontal: 16.0),
+                  child: Row(
+                    mainAxisAlignment: MainAxisAlignment.end,
+                    children: [
+                      if (_isSelectionMode) ...[
+                        IconButton(
+                          icon: const Icon(Icons.close),
+                          onPressed: _toggleSelectionMode,
+                          tooltip: 'Cancel',
+                        ),
+                        TextButton(
+                          onPressed: () => _selectAllFloors(filteredFloors),
+                          child: const Text('Select All'),
+                        ),
+                        const SizedBox(width: 8),
+                        ElevatedButton.icon(
+                          icon: const Icon(Icons.delete_sweep, size: 18),
+                          label: const Text('Delete'),
+                          onPressed: _selectedFloorIds.isEmpty
+                              ? null
+                              : _deleteSelectedFloors,
+                          style: ElevatedButton.styleFrom(
+                            backgroundColor: Colors.red,
+                            foregroundColor: Colors.white,
+                          ),
+                        ),
+                      ] else ...[
+                        IconButton(
+                          icon: const Icon(
+                            Icons.delete_sweep,
+                            color: Colors.red,
+                          ),
+                          onPressed: _toggleSelectionMode,
+                          tooltip: 'Select Floors to Delete',
+                        ),
+                      ],
+                    ],
+                  ),
+                ),
+
               Expanded(
                 child: floorState.isLoading
                     ? const Center(child: CircularProgressIndicator())
@@ -376,7 +500,7 @@ class _FloorSelectionPageState extends ConsumerState<FloorSelectionPage> {
                         onPressed: () {
                           ref
                               .read(floorProvider.notifier)
-                              .loadFloors();
+                              .fetchBySite(widget.siteId!);
                         },
                         child: const Text('Retry'),
                       ),
@@ -413,25 +537,90 @@ class _FloorSelectionPageState extends ConsumerState<FloorSelectionPage> {
                     itemCount: filteredFloors.length,
                     itemBuilder: (context, index) {
                       final floor = filteredFloors[index];
-                      return FloorCard(
-                        floor: floor,
-                        isSelected:
-                        selectedFloor?.id == floor.id,
-                        showEditButton: widget.showEditOptions,
-                        onTap: () {
-                          // JUST select. Nothing else.
-                          ref
-                              .read(floorProvider.notifier)
-                              .selectFloor(floor);
-                        },
-                        onEdit: () {
-                          _showAddEditFloorDialog(context,
-                              floor: floor);
-                        },
-                        onDelete: () {
-                          _showDeleteConfirmationDialog(
-                              context, floor);
-                        },
+                      final isSelected =
+                      _selectedFloorIds.contains(floor.id);
+
+                      return Stack(
+                        children: [
+                          Opacity(
+                            opacity: _isSelectionMode && !isSelected
+                                ? 0.5
+                                : 1.0,
+                            child: FloorCard(
+                              floor: floor,
+                              isSelected: !widget.showEditOptions
+                                  ? selectedFloor?.id == floor.id
+                                  : false,
+                              showEditButton: widget.showEditOptions &&
+                                  !_isSelectionMode,
+                              onTap: () {
+                                if (_isSelectionMode) {
+                                  _toggleFloorSelection(floor.id);
+                                } else {
+                                  ref
+                                      .read(floorProvider.notifier)
+                                      .select(floor);
+                                }
+                              },
+                              onEdit: _isSelectionMode
+                                  ? null
+                                  : () {
+                                Navigator.push(
+                                  context,
+                                  MaterialPageRoute(
+                                    builder: (_) =>
+                                        AddFloorPage(
+                                            floor: floor),
+                                  ),
+                                );
+                              },
+                              onDelete: _isSelectionMode
+                                  ? null
+                                  : () {
+                                _showDeleteConfirmationDialog(
+                                    context, floor);
+                              },
+                            ),
+                          ),
+                          if (_isSelectionMode)
+                            Positioned(
+                              top: 8,
+                              right: 8,
+                              child: GestureDetector(
+                                onTap: () =>
+                                    _toggleFloorSelection(floor.id),
+                                child: Container(
+                                  width: 32,
+                                  height: 32,
+                                  decoration: BoxDecoration(
+                                    shape: BoxShape.circle,
+                                    color: isSelected
+                                        ? Colors.red
+                                        : Colors.white,
+                                    border: Border.all(
+                                      color: Colors.red,
+                                      width: 2,
+                                    ),
+                                    boxShadow: [
+                                      BoxShadow(
+                                        color: Colors.black
+                                            .withOpacity(0.2),
+                                        blurRadius: 4,
+                                        offset: const Offset(0, 2),
+                                      ),
+                                    ],
+                                  ),
+                                  child: isSelected
+                                      ? const Icon(
+                                    Icons.check,
+                                    color: Colors.white,
+                                    size: 20,
+                                  )
+                                      : null,
+                                ),
+                              ),
+                            ),
+                        ],
                       );
                     },
                   ),
@@ -440,88 +629,6 @@ class _FloorSelectionPageState extends ConsumerState<FloorSelectionPage> {
             ],
           ),
         ),
-      ),
-    );
-  }
-
-  void _showAddEditFloorDialog(BuildContext context, {Floor? floor}) {
-    final nameController = TextEditingController(text: floor?.name);
-    final codeController = TextEditingController(text: floor?.code);
-    final imageController = TextEditingController(text: floor?.image);
-
-    showDialog(
-      context: context,
-      builder: (context) => AlertDialog(
-        title: Text(floor == null ? 'Add Floor' : 'Edit Floor'),
-        content: Column(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            TextField(
-              controller: nameController,
-              decoration: const InputDecoration(
-                labelText: 'Floor Name',
-                hintText: 'e.g., Ground Floor, First Floor',
-              ),
-            ),
-            const SizedBox(height: 16),
-            TextField(
-              controller: codeController,
-              decoration: const InputDecoration(
-                labelText: 'Floor Code',
-                hintText: 'e.g., ground, first, basement',
-              ),
-            ),
-            const SizedBox(height: 16),
-            TextField(
-              controller: imageController,
-              decoration: const InputDecoration(
-                labelText: 'Image Path/URL',
-                hintText: 'assets/dpr/floor/groundfloor.png',
-              ),
-            ),
-          ],
-        ),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.pop(context),
-            child: const Text('Cancel'),
-          ),
-          ElevatedButton(
-            onPressed: () {
-              final name = nameController.text.trim();
-              final code = codeController.text.trim();
-              final image = imageController.text.trim();
-
-              if (name.isEmpty || code.isEmpty || image.isEmpty) {
-                ScaffoldMessenger.of(context).showSnackBar(
-                  const SnackBar(
-                    content: Text('Please fill all fields'),
-                    behavior: SnackBarBehavior.floating,
-                  ),
-                );
-                return;
-              }
-
-              final updatedFloor = Floor(
-                id: floor?.id ?? code, // Use code as ID for new floors
-                name: name,
-                code: code,
-                image: image,
-                createdAt: floor?.createdAt ?? DateTime.now(),
-                updatedAt: DateTime.now(),
-              );
-
-              if (floor == null) {
-                ref.read(floorProvider.notifier).addFloor(updatedFloor);
-              } else {
-                ref.read(floorProvider.notifier).updateFloor(updatedFloor);
-              }
-
-              Navigator.pop(context);
-            },
-            child: Text(floor == null ? 'Add' : 'Update'),
-          ),
-        ],
       ),
     );
   }
@@ -540,7 +647,7 @@ class _FloorSelectionPageState extends ConsumerState<FloorSelectionPage> {
           ElevatedButton(
             style: ElevatedButton.styleFrom(backgroundColor: Colors.red),
             onPressed: () {
-              ref.read(floorProvider.notifier).deleteFloor(floor.id);
+              ref.read(floorProvider.notifier).delete(floor.id);
               Navigator.pop(context);
             },
             child:

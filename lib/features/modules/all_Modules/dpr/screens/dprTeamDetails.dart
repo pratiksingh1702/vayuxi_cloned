@@ -8,19 +8,22 @@ import '../models/dprModel.dart';
 import 'package:intl/intl.dart';
 
 import '../providers/dpr.dart';
+import 'add_description.dart';
 import 'dprDetails.dart';
 
 class DprWorkScreen extends ConsumerStatefulWidget {
   final String siteId;
   final String teamId;
   final String name;
-  final Widget Function(BuildContext context, DprModel dpr)? pageBuilder;
+  final DateTime? selectedStartDate;
+  final DateTime? selectedEndDate;
 
   const DprWorkScreen({
     required this.siteId,
     required this.teamId,
     required this.name,
-    this.pageBuilder,
+    this.selectedEndDate,this.selectedStartDate,
+
     super.key,
   });
 
@@ -29,12 +32,17 @@ class DprWorkScreen extends ConsumerStatefulWidget {
 }
 
 class _DprWorkScreenState extends ConsumerState<DprWorkScreen> {
-  String selectedDate = DateFormat('yyyy-MM-dd').format(DateTime.now());
+  DateTime? selectedDate;
+  DateTime? _selectedStartDate;
+  DateTime? _selectedEndDate;
+
 
   @override
   void initState() {
     super.initState();
     Future.microtask(() {
+      _selectedStartDate = widget.selectedStartDate;
+      _selectedEndDate = widget.selectedEndDate;
       ref.read(dprProvider.notifier).fetchDprWork(
         siteId: widget.siteId,
         teamId: widget.teamId,
@@ -45,41 +53,73 @@ class _DprWorkScreenState extends ConsumerState<DprWorkScreen> {
 
   void clearDateFilter() {
     setState(() {
-      selectedDate = '';
+      selectedDate = null;
     });
   }
+
 
   void pickDate() async {
     final picked = await showDatePicker(
       context: context,
-      initialDate: selectedDate.isNotEmpty
-          ? DateTime.parse(selectedDate)
-          : DateTime.now(),
+      initialDate: selectedDate ?? DateTime.now(),
       firstDate: DateTime(2000),
       lastDate: DateTime(2100),
     );
 
     if (picked != null) {
       setState(() {
-        selectedDate = DateFormat('yyyy-MM-dd').format(picked);
+        selectedDate = picked;
       });
     }
   }
 
+
   @override
   Widget build(BuildContext context) {
     final dprState = ref.watch(dprProvider);
-
     List<DprModel> filteredList = [];
     if (dprState.data != null) {
-      filteredList = (dprState.data as List<DprModel>)
-          .where((dpr) {
-        if (selectedDate.isEmpty) return true;
-        final dprDate = DateFormat('yyyy-MM-dd').format(dpr.createdAt);
-        return dprDate == selectedDate;
-      })
-          .toList();
+      final list = dprState.data as List<DprModel>;
+
+      filteredList = list.where((dpr) {
+        final dprDate = DateTime(
+          dpr.createdAt.year,
+          dpr.createdAt.month,
+          dpr.createdAt.day,
+        );
+
+        // 🔥 PRIORITY 1: RANGE FILTER
+        if (_selectedStartDate != null && _selectedEndDate != null) {
+          final start = DateTime(
+            _selectedStartDate!.year,
+            _selectedStartDate!.month,
+            _selectedStartDate!.day,
+          );
+          final end = DateTime(
+            _selectedEndDate!.year,
+            _selectedEndDate!.month,
+            _selectedEndDate!.day,
+          );
+
+          return !dprDate.isBefore(start) && !dprDate.isAfter(end);
+        }
+
+        // 🔥 PRIORITY 2: SINGLE DATE FILTER
+        if (selectedDate != null) {
+          final selected = DateTime(
+            selectedDate!.year,
+            selectedDate!.month,
+            selectedDate!.day,
+          );
+
+          return dprDate == selected;
+        }
+
+        // 🔥 PRIORITY 3: NO FILTER
+        return true;
+      }).toList();
     }
+
 
     return Scaffold(
       appBar: CustomAppBar(
@@ -106,19 +146,25 @@ class _DprWorkScreenState extends ConsumerState<DprWorkScreen> {
                           border: Border.all(color: Colors.grey.shade400),
                         ),
                         child: Text(
-                          selectedDate.isEmpty
-                              ? 'Select Date'
-                              : selectedDate,
+                          _selectedStartDate != null && _selectedEndDate != null
+                              ? '${DateFormat('yyyy-MM-dd').format(_selectedStartDate!)}'
+                              ' → ${DateFormat('yyyy-MM-dd').format(_selectedEndDate!)}'
+                              : selectedDate != null
+                              ? DateFormat('yyyy-MM-dd').format(selectedDate!)
+                              : 'Select Date',
                           style: const TextStyle(fontSize: 16),
                         ),
+
+
                       ),
                     ),
                   ),
-                  if (selectedDate.isNotEmpty)
-                    IconButton(
-                      icon: const Icon(Icons.clear),
-                      onPressed: clearDateFilter,
-                    ),
+        if (selectedDate != null)
+    IconButton(
+      icon: const Icon(Icons.clear),
+      onPressed: clearDateFilter,
+    ),
+
                 ],
               ),
             ),
@@ -149,84 +195,78 @@ class _DprWorkScreenState extends ConsumerState<DprWorkScreen> {
                 }
 
 
-                return GridView.builder(
+                return ListView.builder(
                   padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 8),
-                  gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
-                    crossAxisCount: 2,
-                    crossAxisSpacing: 12,
-                    mainAxisSpacing: 12,
-                    childAspectRatio: 0.9,
-                  ),
                   itemCount: filteredList.length,
                   itemBuilder: (context, index) {
                     final dpr = filteredList[index];
-                    return SelectCard(
-                      icon: Container(
-                        width: double.infinity,
-                        padding: const EdgeInsets.all(12),
-                        decoration: BoxDecoration(
-                          color: Colors.blue.shade50,
-                          borderRadius: BorderRadius.circular(12),
-                        ),
-                        child: Column(
-                          mainAxisAlignment: MainAxisAlignment.center,
-                          children: [
-                            Icon(
-                              Icons.description,
-                              size: 32,
-                              color: Colors.blue.shade700,
-                            ),
-                            const SizedBox(height: 4),
-                            Text(
-                              dpr.location ?? 'No Location',
-                              style: TextStyle(
-                                fontSize: 10,
-                                fontWeight: FontWeight.w500,
-                                color: Colors.blue.shade600,
-                              ),
-                              textAlign: TextAlign.center,
-                              maxLines: 1,
-                              overflow: TextOverflow.ellipsis,
-                            ),
-                            const SizedBox(height: 4),
-                            Text(
-                              'Size: ${dpr.size ?? 'N/A'}',
-                              style: TextStyle(
-                                fontSize: 10,
-                                color: Colors.blue.shade600,
-                              ),
-                              maxLines: 1,
-                              overflow: TextOverflow.ellipsis,
-                            ),
-                          ],
-                        ),
-                      ),
-                      label: dpr.dprName,
-                      onTap: () {
-                        if (widget.pageBuilder != null) {
-                          Navigator.push(
-                            context,
-                            MaterialPageRoute(
-                              builder: (context) => widget.pageBuilder!(context, dpr),
-                            ),
-                          );
-                        } else {
-                          // ✅ DEFAULT behavior (unchanged)
-                          Navigator.push(
-                            context,
-                            MaterialPageRoute(
-                              builder: (_) => DprDetailScreen(
-                                dpr: dpr,
-                                teamName: widget.name,
-                              ),
-                            ),
-                          );
-                        }
-                      },
 
+                    return Card(
+                      margin: const EdgeInsets.only(bottom: 10),
+                      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                      elevation: 0,
+                      color: Colors.white,
+                      child: ListTile(
+                        leading: Container(
+                          padding: const EdgeInsets.all(10),
+                          decoration: BoxDecoration(
+                            color: Colors.blue.shade50,
+                            borderRadius: BorderRadius.circular(10),
+                          ),
+                          child: Icon(
+                            Icons.description,
+                            color: Colors.blue.shade700,
+                            size: 22,
+                          ),
+                        ),
+
+                        // 🔹 MAIN NAME
+                        title: Text(
+                          dpr.dprName,
+                          style: const TextStyle(
+                            fontSize: 14,
+                            fontWeight: FontWeight.w600,
+                          ),
+                          maxLines: 1,
+                          overflow: TextOverflow.ellipsis,
+                        ),
+
+                        // 🔹 SMALL INFO TEXT
+                        subtitle: Padding(
+                          padding: const EdgeInsets.only(top: 4),
+                          child: Text(
+                            'Size: ${dpr.size ?? 'N/A'}  •  '
+                                'MOC: ${dpr.moc ?? 'N/A'}  •  '
+                                'Floor: ${dpr.location ?? 'N/A'}',
+                            style: TextStyle(
+                              fontSize: 11,
+                              color: Colors.grey.shade600,
+                            ),
+                            maxLines: 2,
+                            overflow: TextOverflow.ellipsis,
+                          ),
+                        ),
+
+                        trailing: const Icon(
+                          Icons.arrow_forward_ios,
+                          size: 14,
+                          color: Colors.grey,
+                        ),
+
+                        onTap: () {
+                          print("❤️❤️❤️❤️❤️❤️❤️ ${dpr.id}");
+                          Navigator.push(
+                            context,
+                            MaterialPageRoute(
+                              builder: (_) => AddDescriptionScreen(work: dpr),
+                            ),
+                          );
+                        },
+                      ),
                     );
                   },
                 );
+
               }),
             ),
 

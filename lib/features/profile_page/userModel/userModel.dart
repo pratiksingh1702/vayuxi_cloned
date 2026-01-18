@@ -100,38 +100,86 @@ class User {
 }
 
 class Company {
+  final String? id;
   final String? name;
   final String? logo;
 
+  // 🔹 Bank / Legal Details
+  final String? bankName;
+  final String? accountNumber;
+  final String? ifscCode;
+  final String? branch;
+  final String? panNumber;
+  final String? digitalSignature;
+
   const Company({
+    this.id,
     this.name,
     this.logo,
+    this.bankName,
+    this.accountNumber,
+    this.ifscCode,
+    this.branch,
+    this.panNumber,
+    this.digitalSignature,
   });
 
+  /// 🔐 SAFE JSON PARSER
   factory Company.fromJson(Map<String, dynamic> json) {
     return Company(
+      id: _parseNullableString(json['_id'] ?? json['id']),
       name: _parseNullableString(json['name']),
       logo: _parseNullableString(json['logo']),
+      bankName: _parseNullableString(json['bankName']),
+      accountNumber: _parseNullableString(json['accountNumber']),
+      ifscCode: _parseNullableString(json['ifscCode']),
+      branch: _parseNullableString(json['branch']),
+      panNumber: _parseNullableString(json['panNumber']),
+      digitalSignature: _parseNullableString(json['digitalSignature']),
     );
   }
 
+  /// 🔁 JSON SERIALIZER
   Map<String, dynamic> toJson() {
     return {
+      'id': id,
       'name': name,
       'logo': logo,
+      'bankName': bankName,
+      'accountNumber': accountNumber,
+      'ifscCode': ifscCode,
+      'branch': branch,
+      'panNumber': panNumber,
+      'digitalSignature': digitalSignature,
     };
   }
 
+  /// 🧬 COPY WITH
   Company copyWith({
+    String? id,
     String? name,
     String? logo,
+    String? bankName,
+    String? accountNumber,
+    String? ifscCode,
+    String? branch,
+    String? panNumber,
+    String? digitalSignature,
   }) {
     return Company(
+      id: id ?? this.id,
       name: name ?? this.name,
       logo: logo ?? this.logo,
+      bankName: bankName ?? this.bankName,
+      accountNumber: accountNumber ?? this.accountNumber,
+      ifscCode: ifscCode ?? this.ifscCode,
+      branch: branch ?? this.branch,
+      panNumber: panNumber ?? this.panNumber,
+      digitalSignature: digitalSignature ?? this.digitalSignature,
     );
   }
 }
+
 String _parseString(dynamic value) {
   if (value == null) return '';
   return value.toString();

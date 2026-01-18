@@ -589,6 +589,7 @@ class _ModuleScreenState extends ConsumerState<ModuleScreen> {
       type: '',
       createdAt: '',
       updatedAt: '',
+      shippingAddress:''
     );
 
     final dropdownList = [noneSite, ...uniqueSites];

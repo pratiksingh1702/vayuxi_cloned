@@ -35,6 +35,14 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
   final TextEditingController _companyNameController = TextEditingController();
   final TextEditingController _addressController = TextEditingController();
   final TextEditingController _otherController = TextEditingController();
+  final TextEditingController _bankNameController = TextEditingController();
+  final TextEditingController _accountNumberController = TextEditingController();
+  final TextEditingController _ifscCodeController = TextEditingController();
+  final TextEditingController _branchController = TextEditingController();
+  final TextEditingController _panController = TextEditingController();
+  File? _digitalSignatureFile;
+
+
 
   final List<String> _serviceKeys = [
     'mechanical_work',
@@ -79,6 +87,13 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
       'other': '',
       'companyLogo': '',
       'selectService': <String>[],
+      'bankName': '',
+      'accountNumber': '',
+      'ifscCode': '',
+      'branch': '',
+      'panNumber': '',
+      'digitalSignature': '',
+
     };
   }
 
@@ -92,6 +107,21 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
   void _loadCurrentLanguage() {
     _selectedLangLabel = 'English';
   }
+  Future<void> _pickDigitalSignature() async {
+    final helper = ImageUploadHelper(context);
+    final file = await helper.pickAndCropImage(
+      enableCropping: false,
+      cropTitle: 'Upload Digital Signature',
+    );
+
+    if (file != null) {
+      setState(() {
+        _digitalSignatureFile = file;
+        _formValues['digitalSignature'] = file.path;
+      });
+    }
+  }
+
 
   void _populateFormFields(User user) {
     // Set text controllers
@@ -103,6 +133,14 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
     _companyNameController.text = user.company?.name ?? '';
     _addressController.text = user.address ?? '';
     _otherController.text = user.other ?? '';
+    _bankNameController.text = user.company?.bankName ?? '';
+    _accountNumberController.text = user.company?.accountNumber ?? '';
+    _ifscCodeController.text = user.company?.ifscCode ?? '';
+    _branchController.text = user.company?.branch ?? '';
+    _panController.text = user.company?.panNumber ?? '';
+
+    _formValues['digitalSignature'] = user.company?.digitalSignature ?? '';
+
 
     // Set form values
     setState(() {
@@ -121,6 +159,7 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
         'address': user.address ?? '',
         'other': user.other ?? '',
         'selectService': List<String>.from(user.selectedServices),
+
       };
     });
   }
@@ -196,6 +235,20 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
           ),
         );
       }
+      if (_digitalSignatureFile != null) {
+        formData.files.add(
+          MapEntry(
+            'digitalSignature',
+            await MultipartFile.fromFile(
+              _digitalSignatureFile!.path,
+              filename: 'signature.png',
+            ),
+          ),
+        );
+      }
+
+
+
 
       // Name split
       final nameParts = _fullNameController.text.trim().split(' ');
@@ -214,6 +267,11 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
         MapEntry('company', _companyNameController.text.trim()),
         MapEntry('address', _addressController.text.trim()),
         MapEntry('other', _otherController.text.trim()),
+        MapEntry('bankName', _bankNameController.text.trim()),
+        MapEntry('accountNumber', _accountNumberController.text.trim()),
+        MapEntry('ifscCode', _ifscCodeController.text.trim()),
+        MapEntry('branch', _branchController.text.trim()),
+        MapEntry('panNumber', _panController.text.trim()),
       ]);
 
       // selectedServices (REPEAT KEY — VERY IMPORTANT)
@@ -254,6 +312,12 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
     _companyNameController.dispose();
     _addressController.dispose();
     _otherController.dispose();
+    _bankNameController.dispose();
+    _accountNumberController.dispose();
+    _ifscCodeController.dispose();
+    _branchController.dispose();
+    _panController.dispose();
+
     super.dispose();
   }
 
@@ -416,6 +480,95 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
                       ),
                     ),
                     const SizedBox(height: 15),
+                    const SizedBox(height: 15),
+                    const Align(
+                      alignment: Alignment.centerLeft,
+                      child: Text(
+                        'Bank Details',
+                        style: TextStyle(fontSize: 15, fontWeight: FontWeight.bold),
+                      ),
+                    ),
+
+                    CustomTextField(
+                      controller: _bankNameController,
+                      label: 'Bank Name',
+                      hint: 'Enter bank name',
+                    ),
+
+                    CustomTextField(
+                      controller: _accountNumberController,
+                      label: 'Account Number',
+                      hint: 'Enter account number',
+                      keyboardType: TextInputType.number,
+                    ),
+
+                    CustomTextField(
+                      controller: _ifscCodeController,
+                      label: 'IFSC Code',
+                      hint: 'Enter IFSC code',
+                    ),
+
+                    CustomTextField(
+                      controller: _branchController,
+                      label: 'Branch',
+                      hint: 'Enter branch name',
+                    ),
+
+                    CustomTextField(
+                      controller: _panController,
+                      label: 'PAN Number',
+                      hint: 'Enter PAN number',
+                    ),
+                    const SizedBox(height: 15),
+                    const Align(
+                      alignment: Alignment.centerLeft,
+                      child: Text(
+                        'Digital Signature',
+                        style: TextStyle(fontWeight: FontWeight.w600),
+                      ),
+                    ),
+                    const SizedBox(height: 8),
+
+                    GestureDetector(
+                      onTap: _pickDigitalSignature,
+                      child: Container(
+                        height: 100,
+                        width: 180,
+                        decoration: BoxDecoration(
+                          border: Border.all(color: Colors.grey.shade400),
+                          borderRadius: BorderRadius.circular(10),
+                          color: Colors.grey.shade100,
+                        ),
+                        child: _digitalSignatureFile != null
+                            ? ClipRRect(
+                          borderRadius: BorderRadius.circular(10),
+                          child: Image.file(
+                            _digitalSignatureFile!,
+                            fit: BoxFit.cover,
+                          ),
+                        )
+                            : _formValues['digitalSignature'] != null &&
+                            _formValues['digitalSignature'].isNotEmpty
+                            ? ClipRRect(
+                          borderRadius: BorderRadius.circular(10),
+                          child: Image.network(
+                            _formValues['digitalSignature'],
+                            fit: BoxFit.cover,
+                          ),
+                        )
+                            : Column(
+                          mainAxisAlignment: MainAxisAlignment.center,
+                          children: const [
+                            Icon(Icons.draw, size: 30, color: Colors.grey),
+                            SizedBox(height: 6),
+                            Text('Upload Signature'),
+                          ],
+                        ),
+                      ),
+                    ),
+
+
+
 
                     // Services
                     const Align(

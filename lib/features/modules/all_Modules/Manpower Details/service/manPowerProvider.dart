@@ -59,8 +59,7 @@ class ManpowerNotifier extends StateNotifier<ManpowerState> {
     try {
       final response = await ManpowerAPI.postManpower(type, data);
 
-      // Check if response was successful and has data
-      if (response["success"] == true && response["data"] != null) {
+
         // Parse the created manpower from response
         final createdManpower = ManpowerModel.fromJson(response["data"]);
 
@@ -69,12 +68,12 @@ class ManpowerNotifier extends StateNotifier<ManpowerState> {
 
         // Return the created manpower
         return createdManpower;
-      }
 
-      return null;
+
+
     } catch (e) {
       state = state.copyWith(error: e.toString());
-      return null;
+      throw Exception(e.toString());
     }
   }
 

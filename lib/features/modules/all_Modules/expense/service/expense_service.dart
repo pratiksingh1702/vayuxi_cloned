@@ -29,6 +29,53 @@ class ExpenseAPI {
     );
     return response.data;
   }
+// Bulk delete expenses
+  static Future<void> bulkDeleteExpenses({
+    required List<String> expenseIds,
+  }) async {
+    if (expenseIds.isEmpty) {
+      throw Exception("No expense IDs provided for bulk delete");
+    }
+
+    try {
+      final response = await dio.post(
+        "/expenses/bulk-delete",
+        data: {
+          "ids": expenseIds,
+        },
+        options: Options(
+          headers: {
+            "Content-Type": "application/json",
+          },
+        ),
+      );
+
+      if (response.statusCode != 200 && response.statusCode != 204) {
+        throw Exception(
+          "Bulk expense delete failed: ${response.statusCode} ${response.data}",
+        );
+      }
+
+      print("✅ Bulk expense delete successful");
+      print("🗑 Deleted IDs: $expenseIds");
+    } on DioException catch (e, stack) {
+      final status = e.response?.statusCode;
+      final data = e.response?.data;
+
+      print("❌ BULK DELETE EXPENSE FAILED");
+      print("➡️ POST /expenses/bulk-delete");
+      print("📟 STATUS: $status");
+      print("📦 RESPONSE: $data");
+      print(stack);
+
+      rethrow;
+    } catch (e, stack) {
+      print("❌ UNEXPECTED BULK DELETE ERROR");
+      print("📝 ERROR: $e");
+      print(stack);
+      rethrow;
+    }
+  }
 
   // Create expense
   static Future<Map<String, dynamic>> createExpense({

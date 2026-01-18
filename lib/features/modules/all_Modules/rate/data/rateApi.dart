@@ -77,6 +77,58 @@ class RateApiClient {
       };
     }
   }
+  Future<Map<String, dynamic>> bulkDeleteRates(List<String> rateIds) async {
+    if (rateIds.isEmpty) {
+      return {
+        'success': false,
+        'message': 'Rate IDs list cannot be empty',
+      };
+    }
+
+    try {
+      final response = await _dio.post(
+        '/rate/bulk-delete',
+        data: {
+          "ids": rateIds,
+        },
+        options: Options(
+          headers: {
+            'Content-Type': 'application/json',
+            'Accept': 'application/json',
+          },
+        ),
+      );
+
+      return {
+        'success': true,
+        'data': response.data,
+        'statusCode': response.statusCode,
+      };
+    } on DioException catch (e) {
+      String message = 'Failed to bulk delete rates';
+
+      if (e.response?.data is Map) {
+        message =
+            e.response?.data['message'] ??
+                e.response?.data['error'] ??
+                message;
+      } else if (e.message != null) {
+        message = e.message!;
+      }
+
+      return {
+        'success': false,
+        'message': message,
+        'statusCode': e.response?.statusCode,
+      };
+    } catch (e) {
+      return {
+        'success': false,
+        'message': e.toString(),
+      };
+    }
+  }
+
 
   // Fetch single rate by ID
   Future<Map<String, dynamic>> fetchRateById(String siteId, String rateId) async {

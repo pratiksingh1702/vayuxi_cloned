@@ -101,7 +101,7 @@ class SiteModelHive {
       company: company,
       type: type,
       createdAt: createdAt,
-      updatedAt: updatedAt,
+      updatedAt: updatedAt, shippingAddress: '',
     );
   }
 

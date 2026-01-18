@@ -20,9 +20,13 @@ class PipingMaterialsNotifier extends StateNotifier<List<PipingItem>> {
   void setMaterials(List<PipingItem> materials) {
     state = List<PipingItem>.unmodifiable(materials);
   }
+  void setFromServer(List<PipingItem> serverMaterials) {
+    state = List.unmodifiable(serverMaterials);
+  }
+  void clear() => state = const [];
 
   // Load materials from Hive
-  Future<void> _loadMaterials() async {
+  Future<void> loadMaterials() async {
     try {
       final materials = await HiveStorageService.getAllPipingMaterials();
       if (materials.isEmpty) {
@@ -75,32 +79,32 @@ class PipingMaterialsNotifier extends StateNotifier<List<PipingItem>> {
   }
 
   // Delete a piping material
-  Future<void> deletePipingMaterialFromServer({
-    required String materialId,
-    required String mechanicalId,
-    // if backend really needs it
-  }) async {
-    try {
-      final formData = FormData.fromMap({
-        "_id": materialId,
-      });
-      // 1️⃣ Call server
-      await DprApi().deleteMaterial(
-        mechanicalId: mechanicalId,
-        data: formData,
-      );
-
-      // 2️⃣ Remove from state (UI)
-      state = state.where((m) => m.id != materialId).toList();
-
-      // 3️⃣ Remove from Hive (cache)
-      await HiveStorageService.deletePipingMaterial(materialId);
-    } catch (e) {
-      // DO NOT mutate state if server delete fails
-      print("❌ Failed to delete material from server: $e");
-      rethrow;
-    }
-  }
+  // Future<void> deletePipingMaterialFromServer({
+  //   required String materialId,
+  //   required String mechanicalId,
+  //   // if backend really needs it
+  // }) async {
+  //   try {
+  //     final formData = FormData.fromMap({
+  //       "_id": materialId,
+  //     });
+  //     // 1️⃣ Call server
+  //     await DprApi().deleteMaterial(
+  //       mechanicalId: mechanicalId,
+  //       data: formData,
+  //     );
+  //
+  //     // 2️⃣ Remove from state (UI)
+  //     state = state.where((m) => m.id != materialId).toList();
+  //
+  //     // 3️⃣ Remove from Hive (cache)
+  //     await HiveStorageService.deletePipingMaterial(materialId);
+  //   } catch (e) {
+  //     // DO NOT mutate state if server delete fails
+  //     print("❌ Failed to delete material from server: $e");
+  //     rethrow;
+  //   }
+  // }
 
 
   // Update specific fields of a material
@@ -139,7 +143,7 @@ class PipingMaterialsNotifier extends StateNotifier<List<PipingItem>> {
 
   // Refresh materials from storage
   Future<void> refreshMaterials() async {
-    await _loadMaterials();
+    await loadMaterials();
   }
 }
 

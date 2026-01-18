@@ -1,12 +1,14 @@
 // lib/screens/persist_dpr_screen.dart
 import 'dart:io';
 
+import 'package:dio/dio.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import 'package:untitled2/features/modules/all_Modules/rate/data/rateApi.dart';
 import 'package:untitled2/typeProvider/type_provider.dart';
 import '../../../../../../../core/utlis/colors/colors.dart';
+import '../../../../../../../core/utlis/common_functions.dart';
 import '../../../../../../../core/utlis/widgets/custom_appBar.dart';
 import '../../../../../../../core/utlis/widgets/fields/custom_textField.dart';
 import '../../../../../../../core/utlis/widgets/file_upload.dart';
@@ -15,6 +17,7 @@ import '../../../../rate/data/rate_provider.dart';
 import '../../../../site_Details/providers/site_current_provider.dart';
 import '../../../models/equipmentModel.dart';
 import '../../../models/pipingModel.dart';
+import '../../../providers/dprService.dart';
 import '../../../providers/material_service.dart';
 
 
@@ -23,6 +26,11 @@ class PersistDPRScreen extends ConsumerStatefulWidget {
   final String? designation;
   final PipingItem? pipingMaterial;
   final EquipmentItem? equipmentMaterial;
+  final bool isDpr;
+  final String dprId;
+  final String? siteId;
+  final String? teamId;
+
 
   const PersistDPRScreen({
     super.key,
@@ -30,6 +38,10 @@ class PersistDPRScreen extends ConsumerStatefulWidget {
     this.designation,
     this.pipingMaterial,
     this.equipmentMaterial,
+    this.isDpr=false,
+    this.dprId="",
+    this.siteId,
+    this.teamId
   });
 
   @override
@@ -55,69 +67,70 @@ class _PersistDPRScreenState extends ConsumerState<PersistDPRScreen> {
   final List<CalculationCategory> _calculationCategories = [
     CalculationCategory(
       id: "A",
-      label: "Category A",
-      description: "Length-based calculations",
+      label: "Per Item (Fixed Rate)",
+      description: "Quantity × Fixed Rate",
       fullDetails: CategoryDetails(
-        title: "Category A - Length-based Calculations",
-        formula: "Rate × Length",
+        title: "Option A: Quantity × Rate",
+        formula: "Total Cost = Quantity × Rate",
         rateList: [
-          RateItem(desc: "U Clamp Fitting", uom: "NOS", rate: "Category A rate"),
-          RateItem(desc: "Support Fabrication", uom: "NOS", rate: "Category A rate"),
-          RateItem(desc: "Plate Cutting", uom: "RMT", rate: "Category A rate"),
-          RateItem(desc: "Plate Welding", uom: "RMT", rate: "Category A rate"),
+          RateItem(
+            desc: "Structure Fabrication & Erection",
+            uom: "kg",
+            rate: "₹105",
+          ),
         ],
         howItWorks: [
-          "Select the rate for the specific material",
-          "Multiply rate by length of work done",
-          "Used for linear measurements like pipes, plates, etc.",
+          "Every unit has a fixed cost",
+          "Total = Quantity × Rate",
         ],
-        example: "Example: 10 meters × Category A rate = Total amount",
+        example: "20 kg × ₹105 = ₹2100",
       ),
     ),
+
     CalculationCategory(
       id: "B",
-      label: "Category B",
-      description: "Quantity-based calculations",
+      label: "Per Item × Measurement",
+      description: "Qty × Size × Rate",
       fullDetails: CategoryDetails(
-        title: "Category B - Quantity-based Calculations",
-        formula: "Rate × Quantity",
+        title: "Option B: Qty × Size × Rate",
+        formula: "Total = Qty × Size × Rate",
         rateList: [
-          RateItem(desc: "Pipe Erection", uom: "MTR", rate: "Category B rate"),
-          RateItem(desc: "Joints Welding", uom: "NOS", rate: "Category B rate"),
-          RateItem(desc: "Elbow 90 Joint", uom: "NOS", rate: "Category B rate"),
-          RateItem(desc: "Flange Joints", uom: "NOS", rate: "Category B rate"),
+          RateItem(
+            desc: "Pipe Erection",
+            uom: "inch dia",
+            rate: "₹50",
+          ),
         ],
         howItWorks: [
-          "Select the rate for the specific material",
-          "Multiply rate by quantity of items",
-          "Used for countable items like joints, fittings, valves, etc.",
+          "Cost depends on pipe length (Qty)",
+          "Cost depends on pipe size (inch dia)",
+          "Formula: Qty × Size × Rate",
         ],
-        example: "Example: 5 joints × Category B rate = Total amount",
+        example: "10 × 2 × 50 = ₹1000",
       ),
     ),
+
     CalculationCategory(
       id: "C",
-      label: "Category C",
-      description: "Special calculations (diameter, weight, power)",
+      label: "Per Item × Rate by Range",
+      description: "Rate varies by range",
       fullDetails: CategoryDetails(
-        title: "Category C - Special Calculations",
-        formula: "Rate × Special Parameter × Quantity",
+        title: "Option C: Rate × Range",
+        formula: "Total = Qty × Selected Rate",
         rateList: [
-          RateItem(desc: "HDPE Scrubber", uom: "DIAMETER", rate: "Category C rate"),
-          RateItem(desc: "Equipment", uom: "TON", rate: "Category C rate"),
-          RateItem(desc: "Pump/Motor", uom: "HP", rate: "Category C rate"),
-          RateItem(desc: "Structure", uom: "KG", rate: "Category C rate"),
+          RateItem(desc: "Pump Erection (0–5 HP)", uom: "HP", rate: "₹1000"),
+          RateItem(desc: "Pump Erection (6–10 HP)", uom: "HP", rate: "₹2000"),
+          RateItem(desc: "Pump Erection (10+ HP)", uom: "HP", rate: "₹10000"),
         ],
         howItWorks: [
-          "Select the appropriate rate bracket",
-          "Multiply by special parameter (HP, TON, DIAMETER, KG)",
-          "Then multiply by quantity",
-          "Used for equipment with special measurements",
+          "Rate depends on HP bracket",
+          "Total = Qty × Rate",
         ],
-        example: "Example: 8 HP Pump × Category C rate × 3 units = Total amount",
+        example: "4 Pumps (7 HP) → 2000 × 4 = ₹8000",
       ),
     ),
   ];
+
 
   @override
   void initState() {
@@ -179,7 +192,6 @@ class _PersistDPRScreenState extends ConsumerState<PersistDPRScreen> {
   Future<void> _submitForm() async {
     if (!_formKey.currentState!.validate()) return;
 
-    // Validate required fields
     if (_calculationCategory == null || _calculationCategory!.isEmpty) {
       _showError("Please select a calculation category");
       return;
@@ -190,56 +202,115 @@ class _PersistDPRScreenState extends ConsumerState<PersistDPRScreen> {
       return;
     }
 
-    if (siteId == null || siteId!.isEmpty) {
-      _showError("Site ID is required");
-      return;
-    }
-
     try {
-      final service = DefaultMaterialService();
-
-      // Handle file upload if new image is selected
+      // Handle image
       File? imageFile;
-      if (_imagePath != null && !_imagePath!.startsWith('http') && _imagePath!.isNotEmpty) {
+      if (_imagePath != null &&
+          _imagePath!.isNotEmpty &&
+          !_imagePath!.startsWith('http')) {
         imageFile = File(_imagePath!);
       }
 
-      if (widget.editMaterialId != null) {
-        // UPDATE EXISTING MATERIAL
-        await service.updateMaterial(
-          id: widget.editMaterialId!,
-          materialName: _materialNameController.text,
-          uom: _uomController.text,
-          calculationCategory: _calculationCategory!,
-          isApplied: _isApplied,
-          image: imageFile,
-        );
+      /// -------------------------------
+      /// 🔴 DPR MATERIAL FLOW
+      /// -------------------------------
+      if (widget.isDpr == true) {
+        if (widget.dprId == null || widget.dprId!.isEmpty) {
+          _showError("DPR ID missing");
+          return;
+        }
 
-        _showSuccess('Material updated successfully');
-      } else {
-        // CREATE NEW MATERIAL
-        await service.createMaterial(
-          materialName: _materialNameController.text,
-          uom: _uomController.text,
-          calculationCategory: _calculationCategory!,
-          designation: _selectedDesignation!,
-          siteId: siteId,
-          isApplied: _isApplied,
-          image: imageFile,
-        );
+        final isEdit = widget.editMaterialId != null;
 
-        _showSuccess('Material created successfully');
+        final formData = FormData.fromMap({
+          "materialName": _materialNameController.text.trim(),
+          "uom": _uomController.text.trim(),
+
+          // ✅ only send _id when updating
+          if (isEdit) "_id": widget.editMaterialId,
+
+          if (imageFile != null)
+            "file": await MultipartFile.fromFile(
+              imageFile.path,
+              filename: imageFile.path.split('/').last,
+            ),
+        });
+
+        if (isEdit) {
+          // ✅ UPDATE DPR MATERIAL (material ID, not DPR ID)
+          await DprApi().updateMaterial(
+            mechanicalId: widget.dprId, // 🔥 FIX
+            data: formData,
+          );
+
+          _showSuccess('DPR material updated successfully');
+        } else {
+          // ✅ CREATE DPR MATERIAL
+          await DprApi.addMechanicalMaterial(
+            dprId: widget.dprId!,
+            materialName: _materialNameController.text.trim(),
+            uom: _uomController.text.trim(),
+            file: imageFile,
+          );
+
+          _showSuccess('DPR material added successfully');
+        }
       }
 
-      // Navigate back on success
+
+      /// -------------------------------
+      /// 🔵 DEFAULT MATERIAL FLOW
+      /// -------------------------------
+      else {
+        if (siteId == null || siteId!.isEmpty) {
+          _showError("Site ID is required");
+          return;
+        }
+
+        final service = DefaultMaterialService();
+
+        if (widget.editMaterialId != null) {
+          // UPDATE DEFAULT MATERIAL
+          await service.updateMaterial(
+            id: widget.editMaterialId!,
+            materialName: _materialNameController.text.trim(),
+            uom: _uomController.text.trim(),
+            calculationCategory: _calculationCategory!,
+            isApplied: _isApplied,
+            image: imageFile,
+          );
+
+          _showSuccess('Material updated successfully');
+        } else {
+          // CREATE DEFAULT MATERIAL
+          await service.createMaterial(
+            materialName: _materialNameController.text.trim(),
+            uom: _uomController.text.trim(),
+            calculationCategory: _calculationCategory!,
+            designation: _selectedDesignation!,
+            siteId: siteId,
+            isApplied: _isApplied,
+            image: imageFile,
+          );
+
+          _showSuccess('Material created successfully');
+        }
+      }
+
+      // Close screen and notify caller
       if (mounted) {
         Navigator.of(context).pop(true);
       }
-    } catch (e) {
-      debugPrint('Error submitting form: $e');
-      _showError('Error: ${e.toString()}');
+    } catch (e, st) {
+      debugPrint('❌ Submit failed: $e');
+      debugPrintStack(stackTrace: st);
+
+      final message = extractBackendError(e);
+      _showError(message);
     }
+
   }
+
 
   void _showError(String message) {
     if (mounted) {

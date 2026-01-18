@@ -3,18 +3,19 @@ class MOC {
   final String name;
   final String? description;
   final String? imageUrl;
-  final bool isPredefined; // true = mock, false = user
+  final bool isPredefined; // derived locally
   final DateTime createdAt;
 
-  MOC({
+  const MOC({
     required this.id,
     required this.name,
     this.description,
     this.imageUrl,
     this.isPredefined = false,
-    DateTime? createdAt,
-  }) : createdAt = createdAt ?? DateTime.now();
+    required this.createdAt,
+  });
 
+  /// COPY
   MOC copyWith({
     String? id,
     String? name,
@@ -33,20 +34,24 @@ class MOC {
     );
   }
 
+  /// FROM API JSON
   factory MOC.fromJson(Map<String, dynamic> json) {
     return MOC(
-      id: json['id'],
-      name: json['name'],
+      id: json['_id'] ?? json['id'] ?? '',
+      name: json['name'] ?? '',
       description: json['description'],
-      imageUrl: json['imageUrl'],
-      isPredefined: json['isPredefined'] ?? false,
-      createdAt: DateTime.parse(json['createdAt']),
+      imageUrl: json['imageUrl'] ?? json['image'],
+      isPredefined: json['isPredefined'] ?? false, // fallback if backend adds later
+      createdAt: json['createdAt'] != null
+          ? DateTime.parse(json['createdAt'])
+          : DateTime.now(),
     );
   }
 
+  /// TO JSON (for local use, not multipart)
   Map<String, dynamic> toJson() {
     return {
-      'id': id,
+      '_id': id,
       'name': name,
       'description': description,
       'imageUrl': imageUrl,

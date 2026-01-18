@@ -1,344 +1,175 @@
 // providers/moc_provider.dart
-import 'dart:convert';
-
+import 'dart:io';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import 'package:shared_preferences/shared_preferences.dart';
 import '../models/moc.dart';
 
-// MOC State
+import 'moc_service.dart';
 
-// Local Storage Service for MOCs
-
-
-class MOCLocalStorage {
-  static const String key = "user_mocs";
-
-  static Future<List<MOC>> loadUserMOCs() async {
-    final prefs = await SharedPreferences.getInstance();
-    final raw = prefs.getString(key);
-
-    if (raw == null) return [];
-
-    final List<dynamic> decoded = jsonDecode(raw);
-    return decoded.map((e) => MOC.fromJson(e)).toList();
-  }
-
-  static Future<void> saveUserMOCs(List<MOC> list) async {
-    final prefs = await SharedPreferences.getInstance();
-    final encoded = jsonEncode(list.map((e) => e.toJson()).toList());
-    await prefs.setString(key, encoded);
-  }
-}
-
-// Mock Data Generator for MOCs
-class MockMOCData {
-  static final List<MOC> mockList=
-    [
-      MOC(
-        id: "SS",
-        name: "SS",
-        imageUrl: "assets/stepper/image.webp",
-        createdAt: DateTime.now(),
-
-        isPredefined: true, // Mark as predefined mock data
-      ),
-      MOC(
-        id: "MS",
-        name: "MS",
-        imageUrl: "assets/stepper/ms.webp",
-        createdAt: DateTime.now(),
-
-        isPredefined: true,
-      ),
-      MOC(
-        id: "MSPT",
-        name: "MSPT",
-        imageUrl: "assets/stepper/mspt.webp",
-        createdAt: DateTime.now(),
-
-        isPredefined: true,
-      ),
-      MOC(
-        id: "GLR",
-        name: "GLR",
-        imageUrl: "assets/stepper/glr.webp",
-        createdAt: DateTime.now(),
-
-        isPredefined: true,
-      ),
-      MOC(
-        id: "HDPE",
-        name: "HDPE",
-        imageUrl: "assets/stepper/hdpe.webp",
-        createdAt: DateTime.now(),
-
-        isPredefined: true,
-      ),
-      MOC(
-        id: "PPFRP_1",
-        name: "PPFRP",
-        imageUrl: "assets/stepper/ppfrp.webp",
-        createdAt: DateTime.now(),
-        isPredefined: true,
-      ),
-      MOC(
-        id: "Rubber_Lined",
-        name: "Rubber Lined",
-        imageUrl: "assets/stepper/rubber.webp",
-        createdAt: DateTime.now(),
-
-        isPredefined: true,
-      ),
-      MOC(
-        id: "HDPE_FRP",
-        name: "HDPE FRP",
-        imageUrl: "assets/stepper/hdpefrp.webp",
-        createdAt: DateTime.now(),
-
-        isPredefined: true,
-      ),
-      MOC(
-        id: "PVDF",
-        name: "PVDF",
-        imageUrl: "assets/stepper/pvdf.webp",
-        createdAt: DateTime.now(),
-
-        isPredefined: true,
-      ),
-      MOC(
-        id: "Graphite",
-        name: "Graphite",
-        imageUrl: "assets/stepper/graphte.webp",
-        createdAt: DateTime.now(),
-
-        isPredefined: true,
-      ),
-      MOC(
-        id: "CS",
-        name: "CS",
-        imageUrl: "assets/stepper/cs.webp",
-        createdAt: DateTime.now(),
-
-        isPredefined: true,
-      ),
-      MOC(
-        id: "Aluminium",
-        name: "Aluminium",
-        imageUrl: "assets/stepper/aluminium.webp",
-        createdAt: DateTime.now(),
-
-        isPredefined: true,
-      ),
-      MOC(
-        id: "FRP_1",
-        name: "FRP",
-        imageUrl: "assets/stepper/frp.webp",
-        createdAt: DateTime.now(),
-
-        isPredefined: true,
-      ),
-      MOC(
-        id: "Duplex",
-        name: "Duplex",
-        imageUrl: "assets/stepper/duplex.webp",
-        createdAt: DateTime.now(),
-        isPredefined: true,
-      ),
-      MOC(
-        id: "PTFE",
-        name: "PTFE",
-        imageUrl: "assets/stepper/ptfe.webp",
-        createdAt: DateTime.now(),
-
-        isPredefined: true,
-      ),
-      MOC(
-        id: "Hastelloy",
-        name: "Hastelloy",
-        imageUrl: "assets/stepper/hastely.webp",
-        createdAt: DateTime.now(),
-
-        isPredefined: true,
-      ),
-      MOC(
-        id: "PP",
-        name: "PP",
-        imageUrl: "assets/stepper/pp.webp",
-        createdAt: DateTime.now(),
-
-        isPredefined: true,
-      ),
-      MOC(
-        id: "SS316",
-        name: "SS316",
-        imageUrl: "assets/stepper/ss316.webp",
-        createdAt: DateTime.now(),
-
-        isPredefined: true,
-      ),
-      MOC(
-        id: "SS304",
-        name: "SS304",
-        imageUrl: "assets/stepper/ss304.webp",
-        createdAt: DateTime.now(),
-
-        isPredefined: true,
-      ),
-      MOC(
-        id: "PPFRP_2",
-        name: "PPFRP",
-        imageUrl: "assets/stepper/ppfrp2.webp",
-        createdAt: DateTime.now(),
-
-        isPredefined: true,
-      ),
-      MOC(
-        id: "FRP_2",
-        name: "FRP",
-        imageUrl: "assets/stepper/frp2.webp",
-        createdAt: DateTime.now(),
-
-        isPredefined: true,
-      ),
-    ];
-  }
-
-
-
-
+/// STATE
 class MOCState {
-  final List<MOC> userMOCs;
-  final List<MOC> mockMOCs;
-  final MOC? selectedMOC;
+  final List<MOC> mocs;
+  final MOC? selected;
   final bool isLoading;
   final String? error;
 
   const MOCState({
-    this.userMOCs = const [],
-    this.mockMOCs = const [],
-    this.selectedMOC,
+    this.mocs = const [],
+    this.selected,
     this.isLoading = false,
     this.error,
   });
 
-  List<MOC> get all => [...mockMOCs, ...userMOCs]; // ALWAYS COMBINED
-
   MOCState copyWith({
-    List<MOC>? userMOCs,
-    List<MOC>? mockMOCs,
-    MOC? selectedMOC,
+    List<MOC>? mocs,
+    MOC? selected,
     bool? isLoading,
     String? error,
   }) {
     return MOCState(
-      userMOCs: userMOCs ?? this.userMOCs,
-      mockMOCs: mockMOCs ?? this.mockMOCs,
-      selectedMOC: selectedMOC ?? this.selectedMOC,
+      mocs: mocs ?? this.mocs,
+      selected: selected ?? this.selected,
       isLoading: isLoading ?? this.isLoading,
-      error: error ?? this.error,
+      error: error,
     );
   }
 }
 
+/// NOTIFIER
 class MOCNotifier extends StateNotifier<MOCState> {
-  MOCNotifier() : super(const MOCState());
+  final MocApi api;
 
-  Future<void> loadMOCs() async {
-    state = state.copyWith(isLoading: true);
+  MOCNotifier(this.api) : super(const MOCState());
+
+  /// FETCH
+  Future<void> fetchBySite(String siteId) async {
+    state = state.copyWith(isLoading: true, error: null);
 
     try {
-      final user = await MOCLocalStorage.loadUserMOCs();
-      final mock = MockMOCData.mockList;
+      final res = await api.getMocBySite(siteId: siteId);
+
+      if (res.data is! List) {
+        throw Exception("Expected List from MOC API");
+      }
+
+      final List list = res.data;
+
+      final mocs = list
+          .where((e) => e is Map<String, dynamic>)
+          .map((e) => MOC.fromJson(e))
+          .toList();
 
       state = state.copyWith(
-        userMOCs: user,
-        mockMOCs: mock,
+        mocs: mocs,
         isLoading: false,
       );
     } catch (e) {
       state = state.copyWith(
-        mockMOCs: MockMOCData.mockList,
         isLoading: false,
-        error: "Failed to load: $e",
+        error: e.toString(),
       );
     }
   }
 
-  void select(MOC moc) {
-    state = state.copyWith(selectedMOC: moc);
-  }
+  /// CREATE
+  Future<void> create({
+    required String name,
+    required String siteId,
+    bool? isApplied,
+    File? image,
+  }) async {
+    state = state.copyWith(isLoading: true);
 
-  Future<void> add(MOC moc) async {
-    final updated = [...state.userMOCs, moc.copyWith(isPredefined: false)];
+    try {
+      final res = await api.createMoc(
+        name: name,
+        siteId: siteId,
+        isApplied: isApplied,
+        image: image,
+      );
 
-    state = state.copyWith(userMOCs: updated);
-    await MOCLocalStorage.saveUserMOCs(updated);
-  }
+      final moc = MOC.fromJson(res.data['data'] ?? res.data);
 
-  Future<void> update(MOC moc) async {
-    if (moc.isPredefined) {
-      final updatedMock =
-      state.mockMOCs.map((m) => m.id == moc.id ? moc : m).toList();
-      state = state.copyWith(mockMOCs: updatedMock);
-    } else {
-      final updatedUser =
-      state.userMOCs.map((m) => m.id == moc.id ? moc : m).toList();
-      state = state.copyWith(userMOCs: updatedUser);
-      await MOCLocalStorage.saveUserMOCs(updatedUser);
+      state = state.copyWith(
+        mocs: [...state.mocs, moc],
+        isLoading: false,
+      );
+    } catch (e) {
+      state = state.copyWith(isLoading: false, error: e.toString());
     }
   }
 
-  Future<void> delete(String id) async {
-    // Find the MOC to delete
-    final moc = getById(id);
-    if (moc == null) {
-      throw Exception("MOC not found.");
-    }
+  /// UPDATE
+  Future<void> update({
+    required String mocId,
+    String? name,
+    bool? isApplied,
+    File? image,
+  }) async {
+    state = state.copyWith(isLoading: true);
 
-    if (moc.isPredefined) {
-      // Delete from mockMOCs if it's predefined
-      final updatedMock = state.mockMOCs.where((m) => m.id != id).toList();
-      state = state.copyWith(mockMOCs: updatedMock);
-    } else {
-      // Delete from userMOCs if it's user-created
-      final updatedUser = state.userMOCs.where((m) => m.id != id).toList();
-      state = state.copyWith(userMOCs: updatedUser);
-      await MOCLocalStorage.saveUserMOCs(updatedUser);
+    try {
+      final res = await api.updateMoc(
+        mocId: mocId,
+        name: name,
+        isApplied: isApplied,
+        image: image,
+      );
+
+      final updated = MOC.fromJson(res.data['data'] ?? res.data);
+
+      state = state.copyWith(
+        mocs: state.mocs
+            .map((m) => m.id == updated.id ? updated : m)
+            .toList(),
+        isLoading: false,
+      );
+    } catch (e) {
+      state = state.copyWith(isLoading: false, error: e.toString());
     }
   }
+
+  /// DELETE
+  Future<void> delete(String mocId) async {
+    state = state.copyWith(isLoading: true);
+
+    try {
+      await api.deleteMoc(mocId: mocId);
+
+      state = state.copyWith(
+        mocs: state.mocs.where((m) => m.id != mocId).toList(),
+        isLoading: false,
+      );
+    } catch (e) {
+      state = state.copyWith(isLoading: false, error: e.toString());
+    }
+  }
+
+  /// SELECT
+  void select(MOC? moc) {
+    state = state.copyWith(selected: moc);
+  }
+
+  /// GET BY ID
   MOC? getById(String id) {
     try {
-      return state.all.firstWhere((e) => e.id == id);
+      return state.mocs.firstWhere((m) => m.id == id);
     } catch (_) {
       return null;
     }
   }
-
-  List<MOC> search(String term) {
-    if (term.isEmpty) return state.all;
-    return state.all
-        .where((m) => m.name.toLowerCase().contains(term.toLowerCase()))
-        .toList();
-  }
 }
 
-// Providers
-final mocProvider =
-StateNotifierProvider<MOCNotifier, MOCState>((ref) => MOCNotifier());
+final mocApiProvider = Provider<MocApi>((ref) => MocApi());
 
-final mocListProvider = Provider<List<MOC>>(
-      (ref) => ref.watch(mocProvider).all,
+final mocProvider =
+StateNotifierProvider<MOCNotifier, MOCState>(
+      (ref) => MOCNotifier(ref.read(mocApiProvider)),
 );
 
-final selectedMOCProvider = Provider<MOC?>((ref) {
-  return ref.watch(mocProvider).selectedMOC;
-});
+final mocListProvider = Provider<List<MOC>>(
+      (ref) => ref.watch(mocProvider).mocs,
+);
 
-
-final userMOCsProvider = Provider<List<MOC>>((ref) {
-  return ref.watch(mocProvider).userMOCs;
-});
-
-final predefinedMOCsProvider = Provider<List<MOC>>((ref) {
-  return ref.watch(mocProvider).mockMOCs;
-});
+final selectedMOCProvider = Provider<MOC?>(
+      (ref) => ref.watch(mocProvider).selected,
+);

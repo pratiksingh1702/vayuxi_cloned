@@ -108,8 +108,9 @@ class _ManImportCsvScreenState extends ConsumerState<ManImportCsvScreen> {
           filename: _selectedFile!.name,
         ),
       });
+      final type =ref.read(typeProvider);
 
-      final result = await ManpowerAPI.uploadManpowerBulk(formData);
+      final result = await ManpowerAPI.uploadManpowerBulk(formData,type!);
 
       setState(() => _isLoading = false);
 

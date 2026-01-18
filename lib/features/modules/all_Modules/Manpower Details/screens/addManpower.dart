@@ -4,6 +4,7 @@ import 'package:go_router/go_router.dart';
 import 'package:untitled2/core/utlis/colors/colors.dart';
 import 'package:untitled2/core/utlis/widgets/custom_appBar.dart';
 import 'package:untitled2/features/modules/all_Modules/Manpower%20Details/screens/widgets/popup.dart';
+import '../../../../../core/utlis/common_functions.dart';
 import '../../../../../core/utlis/widgets/fields/custom_textField.dart';
 import '../../../../../core/utlis/widgets/fields/phone_number_field.dart';
 import '../../../../../core/utlis/widgets/fields/searchableDropdown.dart';
@@ -147,6 +148,36 @@ class _NewManpowerScreenState extends ConsumerState<NewManpowerScreen> {
       );
       return;
     }
+    // 🔴 Snackbar validations (hard stop)
+    if (_fullNameController.text.trim().isEmpty) {
+      _showSnack("Full name is required");
+      return;
+    }
+
+    final designation =
+        _selectedDesignation?.trim() ?? _designationController.text.trim();
+    if (designation.isEmpty) {
+      _showSnack("Designation is required");
+      return;
+    }
+
+    final salary = double.tryParse(_salaryController.text);
+    if (salary == null || salary <= 0) {
+      _showSnack("Salary must be greater than 0");
+      return;
+    }
+
+    final basicSalary = double.tryParse(_basicSalaryController.text);
+    if (basicSalary == null || basicSalary <= 0) {
+      _showSnack("Basic salary must be greater than 0");
+      return;
+    }
+
+    if (basicSalary > salary) {
+      _showSnack("Basic salary cannot be greater than total salary");
+      return;
+    }
+
 
     final data = {
       "fullName": _fullNameController.text,
@@ -162,7 +193,7 @@ class _NewManpowerScreenState extends ConsumerState<NewManpowerScreen> {
       "dateOfBirth": _dob?.toIso8601String(),
       "dateOfJoining": _doj?.toIso8601String(),
       "payBasics": _payBasic,
-      "Salary": double.tryParse(_salaryController.text) ?? 0,
+      "salary": double.tryParse(_salaryController.text) ?? 0,
       "basicSalary":double.tryParse(_basicSalaryController.text) ?? 0,
       "hra":_hra.text,
 
@@ -206,11 +237,21 @@ class _NewManpowerScreenState extends ConsumerState<NewManpowerScreen> {
       Navigator.pop(context);
       context.push("/manpower");
     } catch (e) {
+      final message=extractBackendError(e);
       ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text("❌ Error: $e")),
+        SnackBar(content: Text("❌ Error: $message")),
       );
     }
   }
+  void _showSnack(String message) {
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(
+        content: Text(message),
+        backgroundColor: Colors.red,
+      ),
+    );
+  }
+
 
   @override
   Widget build(BuildContext context) {

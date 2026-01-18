@@ -22,6 +22,10 @@ class ManpowerListScreen extends ConsumerStatefulWidget {
 }
 
 class _ManpowerListScreenState extends ConsumerState<ManpowerListScreen> {
+  // Selection mode state
+  bool _isSelectionMode = false;
+  Set<String> _selectedManpowerIds = {};
+
   @override
   void initState() {
     super.initState();
@@ -34,6 +38,126 @@ class _ManpowerListScreenState extends ConsumerState<ManpowerListScreen> {
       }
     });
   }
+
+  /// Toggle selection mode
+  void _toggleSelectionMode() {
+    setState(() {
+      _isSelectionMode = !_isSelectionMode;
+      if (!_isSelectionMode) {
+        _selectedManpowerIds.clear();
+      }
+    });
+  }
+
+  /// Toggle individual manpower selection
+  void _toggleManpowerSelection(String manpowerId) {
+    setState(() {
+      if (_selectedManpowerIds.contains(manpowerId)) {
+        _selectedManpowerIds.remove(manpowerId);
+      } else {
+        _selectedManpowerIds.add(manpowerId);
+      }
+    });
+  }
+
+  /// Select all manpower
+  void _selectAllManpower(List<ManpowerModel> manpowerList) {
+    setState(() {
+      for (var manpower in manpowerList) {
+        if (manpower.id != null) {
+          _selectedManpowerIds.add(manpower.id!);
+        }
+      }
+    });
+  }
+
+  /// Delete selected manpower
+  Future<void> _deleteSelectedManpower() async {
+    if (_selectedManpowerIds.isEmpty) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text('No manpower selected'),
+          backgroundColor: Colors.orange,
+        ),
+      );
+      return;
+    }
+
+    final confirmed = await showDialog<bool>(
+      context: context,
+      builder: (context) => AlertDialog(
+        title: const Text('Delete Selected Manpower'),
+        content: Text(
+          'Are you sure you want to delete ${_selectedManpowerIds.length} selected manpower records?\n\n'
+              'This action cannot be undone.',
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(context, false),
+            child: const Text('Cancel'),
+          ),
+          TextButton(
+            onPressed: () => Navigator.pop(context, true),
+            style: TextButton.styleFrom(foregroundColor: Colors.red),
+            child: const Text('Delete'),
+          ),
+        ],
+      ),
+    );
+
+    if (confirmed != true) return;
+
+    try {
+      final result = await ManpowerAPI.bulkDeleteManpower(
+        _selectedManpowerIds.toList(),
+      );
+
+      if (result['success'] == true) {
+        // Refresh manpower list
+        final type = ref.read(typeProvider);
+        if (type != null) {
+          ref.read(manpowerProvider.notifier).fetchManpower(type);
+        }
+
+        if (mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(
+              content: Text(
+                'Successfully deleted ${_selectedManpowerIds.length} manpower records',
+              ),
+              backgroundColor: Colors.green,
+            ),
+          );
+        }
+
+        setState(() {
+          _selectedManpowerIds.clear();
+          _isSelectionMode = false;
+        });
+      } else {
+        if (mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(
+              content: Text(result['message'] ?? 'Failed to delete manpower'),
+              backgroundColor: Colors.red,
+            ),
+          );
+        }
+      }
+    } catch (e) {
+      debugPrint('❌ Failed to bulk delete: $e');
+
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text('Bulk delete failed: ${e.toString()}'),
+            backgroundColor: Colors.red,
+          ),
+        );
+      }
+    }
+  }
+
   Future<void> _confirmLeftManpower(
       BuildContext context,
       ManpowerModel manpower,
@@ -91,6 +215,7 @@ class _ManpowerListScreenState extends ConsumerState<ManpowerListScreen> {
       );
     }
   }
+
   Future<void> _markManpowerLeft(String id, String reason) async {
     final type = ref.read(typeProvider);
     if (type == null) return;
@@ -99,237 +224,250 @@ class _ManpowerListScreenState extends ConsumerState<ManpowerListScreen> {
       "reason": reason.isEmpty ? "Not specified" : reason,
     };
 
-    await ref
-        .read(manpowerProvider.notifier)
-        .leftManpower(id, data, type);
+    await ref.read(manpowerProvider.notifier).leftManpower(id, data, type);
 
     ScaffoldMessenger.of(context).showSnackBar(
       const SnackBar(content: Text("✅ Manpower marked as left")),
     );
   }
 
-
   @override
   Widget build(BuildContext context) {
     final manpowerState = ref.watch(manpowerProvider);
+    final manpowerList = manpowerState.manpowerList;
 
     return Scaffold(
-
-
       body: NestedScrollView(
         headerSliverBuilder: (context, innerBoxIsScrolled) {
           return [
-            CustomSliverAppBar(title: "View Manpower Details"),
+            CustomSliverAppBar(
+              title: _isSelectionMode
+                  ? '${_selectedManpowerIds.length} Selected'
+                  : "View Manpower Details",
+            ),
           ];
         },
-
         body: BottomButtonWrapper(
           customButtons: [
             CustomButton(
-                button: RoundedButton
-                  (text: "View Sheet",
-                    color: Colors.blue,
-                    textColor: Colors.white,
-                    onPressed: () async {
-                      await exportToExcel(manpowerState
-                                              .manpowerList
-                                              .map((m) => m.toJson())
-                                              .toList());
-                                          ScaffoldMessenger.of(context)
-                                              .showSnackBar(const SnackBar(
-                                              content: Text(
-                                                  "✅ Excel saved in Downloads folder")));
-                    }))
+              button: RoundedButton(
+                text: "View Sheet",
+                color: Colors.blue,
+                textColor: Colors.white,
+                onPressed: () async {
+                  await exportToExcel(
+                    manpowerState.manpowerList.map((m) => m.toJson()).toList(),
+                  );
+                  ScaffoldMessenger.of(context).showSnackBar(
+                    const SnackBar(
+                      content: Text("✅ Excel saved in Downloads folder"),
+                    ),
+                  );
+                },
+              ),
+            ),
           ],
-
           child: manpowerState.isLoading
               ? const Center(child: CircularProgressIndicator())
               : manpowerState.manpowerList.isEmpty
               ? const Center(
             child: Text(
               "No manpower found",
-              style:
-              TextStyle(fontSize: 18, fontWeight: FontWeight.w500),
+              style: TextStyle(
+                fontSize: 18,
+                fontWeight: FontWeight.w500,
+              ),
             ),
           )
               : Column(
             mainAxisAlignment: MainAxisAlignment.start,
             children: [
+              // Top action bar with selection controls
+              if (manpowerList.isNotEmpty)
+                Row(
+                  mainAxisAlignment: MainAxisAlignment.end,
+                  children: [
+
+                    Row(
+                      children: [
+                        if (_isSelectionMode) ...[
+                          IconButton(
+                            icon: const Icon(Icons.close),
+                            onPressed: _toggleSelectionMode,
+                            tooltip: 'Cancel',
+                          ),
+                          TextButton(
+                            onPressed: () => _selectAllManpower(
+                              manpowerList,
+                            ),
+                            child: const Text('Select All'),
+                          ),
+                          const SizedBox(width: 8),
+                          ElevatedButton.icon(
+                            icon: const Icon(
+                              Icons.delete_sweep,
+                              size: 18,
+                            ),
+                            label: const Text('Delete'),
+                            onPressed: _selectedManpowerIds.isEmpty
+                                ? null
+                                : _deleteSelectedManpower,
+                            style: ElevatedButton.styleFrom(
+                              backgroundColor: Colors.red,
+                              foregroundColor: Colors.white,
+                            ),
+                          ),
+                        ] else ...[
+                          IconButton(
+                            icon: const Icon(
+                              Icons.delete_sweep,
+                              color: Colors.red,
+                            ),
+                            onPressed: manpowerList.isEmpty
+                                ? null
+                                : _toggleSelectionMode,
+                            tooltip: 'Select Manpower to Delete',
+                          ),
+                        ],
+                      ],
+                    ),
+                  ],
+                ),
+
               // Employee List
               Expanded(
                 child: ListView.builder(
-                  padding:  const EdgeInsets.symmetric(horizontal: 16),
-
+                  padding: const EdgeInsets.symmetric(horizontal: 16),
                   itemCount: manpowerState.manpowerList.length,
                   itemBuilder: (context, index) {
                     final ManpowerModel manpower =
                     manpowerState.manpowerList[index];
-                    return Container(
-                      margin: const EdgeInsets.symmetric(vertical: 2),
-                      decoration: BoxDecoration(
-                        color: Colors.white,
-                        border: Border.all(color: Colors.blue),
-                        borderRadius: BorderRadius.circular(8),
+                    final isSelected = _selectedManpowerIds.contains(
+                      manpower.id,
+                    );
 
-                      ),
-                      child: ListTile(
-
-                        leading: Icon(Icons.person_2_outlined,color: Colors.blue,),
-                        title: Text(
-                          manpower.fullName!,
-                          style: const TextStyle(
-                            fontWeight: FontWeight.bold,
-                            fontSize: 16,
-                          ),
-                        ),
-                        subtitle: Text(
-                          manpower.employeeCode ?? "",
-                          style: TextStyle(color: Colors.grey.shade700),
-                        ),
-                        trailing: Row(
-                          mainAxisSize: MainAxisSize.min,
-                          mainAxisAlignment: MainAxisAlignment.end,
-                          children: [
-                            // ✏️ Edit
-                            IconButton(
-                              icon: const Icon(Icons.edit, color: Colors.blue),
-                              onPressed: () {
-                                context.push('/edit-manpower', extra: manpower);
-                              },
-                            ),
-
-                            // 🚪 Mark Left
-                            IconButton(
-                              icon: const Icon(Icons.person_off, color: Colors.orange),
-                              onPressed: () {
-                                _confirmLeftManpower(context, manpower);
-                              },
-                            ),
-
-                            // 🗑 Delete
-                            IconButton(
-                              icon: const Icon(Icons.delete, color: Colors.red),
-                              onPressed: () {
-                                _confirmDelete(context, manpower.id!);
-                              },
-                            ),
-                          ],
-                        ),
-
-
-                      ),
+                    return _buildManpowerTile(
+                      manpower,
+                      isSelected,
                     );
                   },
                 ),
               ),
-
-              // Footer Buttons
-              // Container(
-              //   padding: const EdgeInsets.symmetric(
-              //       horizontal: 16, vertical: 14),
-              //   decoration: BoxDecoration(
-              //     color: Colors.white,
-              //     borderRadius: const BorderRadius.vertical(
-              //         top: Radius.circular(24)),
-              //     boxShadow: [
-              //       BoxShadow(
-              //         color: Colors.black12.withOpacity(0.1),
-              //         blurRadius: 12,
-              //         offset: const Offset(0, -4),
-              //       ),
-              //     ],
-              //   ),
-              //   child: Column(
-              //     children: [
-              //       // Add Manpower Button
-              //       SizedBox(
-              //         width: double.infinity,
-              //         child: ElevatedButton.icon(
-              //           style: ElevatedButton.styleFrom(
-              //             backgroundColor: Colors.blue.shade700,
-              //             padding:
-              //             const EdgeInsets.symmetric(vertical: 16),
-              //             shape: RoundedRectangleBorder(
-              //               borderRadius: BorderRadius.circular(30),
-              //             ),
-              //           ),
-              //           icon: const Icon(Icons.add_circle,
-              //               color: Colors.white),
-              //           label: const Text(
-              //             "Add Manpower Details",
-              //             style: TextStyle(
-              //                 fontSize: 16,
-              //                 fontWeight: FontWeight.w600,
-              //               color: Colors.white
-              //             ),
-              //           ),
-              //           onPressed: () {
-              //             context.push('/manpower/addDetails');
-              //           },
-              //         ),
-              //       ),
-              //       const SizedBox(height: 12),
-              //
-              //       // Row of Buttons
-              //       Row(
-              //         children: [
-              //           Expanded(
-              //             child: OutlinedButton.icon(
-              //               style: OutlinedButton.styleFrom(
-              //                 padding: const EdgeInsets.symmetric(
-              //                     vertical: 14),
-              //                 side: const BorderSide(
-              //                     color: Colors.black54),
-              //                 shape: RoundedRectangleBorder(
-              //                   borderRadius: BorderRadius.circular(30),
-              //                 ),
-              //               ),
-              //               icon: const Icon(Icons.arrow_back),
-              //               label: const Text("Back"),
-              //               onPressed: () => Navigator.pop(context),
-              //             ),
-              //           ),
-              //           const SizedBox(width: 12),
-              //           Expanded(
-              //             child: ElevatedButton.icon(
-              //               style: ElevatedButton.styleFrom(
-              //                 backgroundColor: Colors.teal,
-              //                 padding: const EdgeInsets.symmetric(
-              //                     vertical: 14),
-              //                 shape: RoundedRectangleBorder(
-              //                   borderRadius: BorderRadius.circular(30),
-              //                 ),
-              //               ),
-              //               icon: const Icon(Icons.table_chart,
-              //                   color: Colors.white),
-              //               label: const Text("View Sheet",style: TextStyle(
-              //                 color: Colors.white
-              //               ),),
-              //               onPressed: () async {
-              //                 await exportToExcel(manpowerState
-              //                     .manpowerList
-              //                     .map((m) => m.toJson())
-              //                     .toList());
-              //                 ScaffoldMessenger.of(context)
-              //                     .showSnackBar(const SnackBar(
-              //                     content: Text(
-              //                         "✅ Excel saved in Downloads folder")));
-              //               },
-              //             ),
-              //           ),
-              //
-              //
-              //         ],
-              //       ),
-              //     ],
-              //   ),
-              // ),
             ],
           ),
         ),
       ),
     );
   }
+
+  Widget _buildManpowerTile(ManpowerModel manpower, bool isSelected) {
+    return Stack(
+      children: [
+        Opacity(
+          opacity: _isSelectionMode && !isSelected ? 0.5 : 1.0,
+          child: Container(
+            margin: const EdgeInsets.symmetric(vertical: 2),
+            decoration: BoxDecoration(
+              color: Colors.white,
+              border: Border.all(color: Colors.blue),
+              borderRadius: BorderRadius.circular(8),
+            ),
+            child: ListTile(
+              onTap: _isSelectionMode
+                  ? () => _toggleManpowerSelection(manpower.id!)
+                  : null,
+              leading: const Icon(
+                Icons.person_2_outlined,
+                color: Colors.blue,
+              ),
+              title: Text(
+                manpower.fullName!,
+                style: const TextStyle(
+                  fontWeight: FontWeight.bold,
+                  fontSize: 16,
+                ),
+              ),
+              subtitle: Text(
+                manpower.employeeCode ?? "",
+                style: TextStyle(color: Colors.grey.shade700),
+              ),
+              trailing: _isSelectionMode
+                  ? null
+                  : Row(
+                mainAxisSize: MainAxisSize.min,
+                mainAxisAlignment: MainAxisAlignment.end,
+                children: [
+                  // ✏️ Edit
+                  IconButton(
+                    icon: const Icon(Icons.edit, color: Colors.blue),
+                    onPressed: () {
+                      context.push('/edit-manpower', extra: manpower);
+                    },
+                  ),
+
+                  // 🚪 Mark Left
+                  IconButton(
+                    icon: const Icon(
+                      Icons.person_off,
+                      color: Colors.orange,
+                    ),
+                    onPressed: () {
+                      _confirmLeftManpower(context, manpower);
+                    },
+                  ),
+
+                  // 🗑 Delete
+                  IconButton(
+                    icon: const Icon(Icons.delete, color: Colors.red),
+                    onPressed: () {
+                      _confirmDelete(context, manpower.id!);
+                    },
+                  ),
+                ],
+              ),
+            ),
+          ),
+        ),
+
+        // Selection checkbox overlay
+        if (_isSelectionMode)
+          Positioned(
+            top: 8,
+            right: 8,
+            child: GestureDetector(
+              onTap: () => _toggleManpowerSelection(manpower.id!),
+              child: Container(
+                width: 32,
+                height: 32,
+                decoration: BoxDecoration(
+                  shape: BoxShape.circle,
+                  color: isSelected ? Colors.red : Colors.white,
+                  border: Border.all(
+                    color: Colors.red,
+                    width: 2,
+                  ),
+                  boxShadow: [
+                    BoxShadow(
+                      color: Colors.black.withOpacity(0.2),
+                      blurRadius: 4,
+                      offset: const Offset(0, 2),
+                    ),
+                  ],
+                ),
+                child: isSelected
+                    ? const Icon(
+                  Icons.check,
+                  color: Colors.white,
+                  size: 20,
+                )
+                    : null,
+              ),
+            ),
+          ),
+      ],
+    );
+  }
+
   Future<void> _confirmDelete(BuildContext context, String manpowerId) async {
     final confirm = await showDialog<bool>(
       context: context,
@@ -356,6 +494,7 @@ class _ManpowerListScreenState extends ConsumerState<ManpowerListScreen> {
       _deleteManpower(context, manpowerId);
     }
   }
+
   Future<void> _deleteManpower(BuildContext context, String manpowerId) async {
     final res = await ManpowerAPI.deleteManpower(manpowerId);
 
@@ -376,6 +515,4 @@ class _ManpowerListScreenState extends ConsumerState<ManpowerListScreen> {
       );
     }
   }
-
-
 }

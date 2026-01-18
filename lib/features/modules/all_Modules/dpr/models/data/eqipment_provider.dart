@@ -17,7 +17,7 @@ class EquipmentMaterialsNotifier extends StateNotifier<List<EquipmentItem>> {
   }
 
   // Load materials from Hive
-  Future<void> _loadMaterials() async {
+  Future<void> loadMaterials() async {
     try {
       final materials = await HiveStorageService.getAllEquipmentMaterials();
       if (materials.isEmpty) {
@@ -33,6 +33,7 @@ class EquipmentMaterialsNotifier extends StateNotifier<List<EquipmentItem>> {
       state = EquipmentMaterialsData.materials;
     }
   }
+  void clear() => state = const [];
 
   // Add a new equipment material
   Future<void> addEquipmentMaterial(EquipmentItem material) async {
@@ -95,7 +96,7 @@ class EquipmentMaterialsNotifier extends StateNotifier<List<EquipmentItem>> {
 
   // Refresh materials from storage
   Future<void> refreshMaterials() async {
-    await _loadMaterials();
+    await loadMaterials();
   }
 }
 

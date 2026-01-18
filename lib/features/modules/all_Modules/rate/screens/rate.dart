@@ -20,9 +20,8 @@ import '../domain/rateModel.dart';
 import 'addRate.dart';
 import 'editRate.dart';
 import 'import_sheet.dart';
+
 class RateScreen extends ConsumerStatefulWidget {
-
-
   const RateScreen({super.key});
 
   @override
@@ -30,50 +29,215 @@ class RateScreen extends ConsumerStatefulWidget {
 }
 
 class _RateScreenState extends ConsumerState<RateScreen> {
+  // Selection mode state
+  bool _isSelectionMode = false;
+  Set<String> _selectedRateIds = {};
+
   @override
   void initState() {
     super.initState();
     // Fetch rates when screen opens
     WidgetsBinding.instance.addPostFrameCallback((_) {
-
       final type = ref.read(typeProvider);
-      final siteId=ref.read(selectedSiteIdProvider);
+      final siteId = ref.read(selectedSiteIdProvider);
       if (type != null) {
         ref.read(rateNotifierProvider.notifier).fetchRate(type, siteId!);
       }
     });
   }
 
+  /// Toggle selection mode
+  void _toggleSelectionMode() {
+    setState(() {
+      _isSelectionMode = !_isSelectionMode;
+      if (!_isSelectionMode) {
+        _selectedRateIds.clear();
+      }
+    });
+  }
+
+  /// Toggle individual rate selection
+  void _toggleRateSelection(String rateId) {
+    setState(() {
+      if (_selectedRateIds.contains(rateId)) {
+        _selectedRateIds.remove(rateId);
+      } else {
+        _selectedRateIds.add(rateId);
+      }
+    });
+  }
+
+  /// Select all rates
+  void _selectAllRates(List<Rate> rates) {
+    setState(() {
+      for (var rate in rates) {
+        _selectedRateIds.add(rate.id);
+      }
+    });
+  }
+
+  /// Delete selected rates
+  Future<void> _deleteSelectedRates() async {
+    if (_selectedRateIds.isEmpty) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text('No rates selected'),
+          backgroundColor: Colors.orange,
+        ),
+      );
+      return;
+    }
+
+    final confirmed = await showDialog<bool>(
+      context: context,
+      builder: (context) => AlertDialog(
+        title: const Text('Delete Selected Rates'),
+        content: Text(
+          'Are you sure you want to delete ${_selectedRateIds.length} selected rates?\n\n'
+              'This action cannot be undone.',
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(context, false),
+            child: const Text('Cancel'),
+          ),
+          TextButton(
+            onPressed: () => Navigator.pop(context, true),
+            style: TextButton.styleFrom(foregroundColor: Colors.red),
+            child: const Text('Delete'),
+          ),
+        ],
+      ),
+    );
+
+    if (confirmed != true) return;
+
+    try {
+      final result = await RateApiClient().bulkDeleteRates(_selectedRateIds.toList());
+
+      if (result['success'] == true) {
+        // Refresh rates list
+        final type = ref.read(typeProvider);
+        final siteId = ref.read(selectedSiteIdProvider);
+        if (type != null && siteId != null) {
+          ref.read(rateNotifierProvider.notifier).fetchRate(type, siteId);
+        }
+
+        if (mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(
+              content: Text('Successfully deleted ${_selectedRateIds.length} rates'),
+              backgroundColor: Colors.green,
+            ),
+          );
+        }
+
+        setState(() {
+          _selectedRateIds.clear();
+          _isSelectionMode = false;
+        });
+      } else {
+        if (mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(
+              content: Text(result['message'] ?? 'Failed to delete rates'),
+              backgroundColor: Colors.red,
+            ),
+          );
+        }
+      }
+    } catch (e) {
+      debugPrint('❌ Failed to bulk delete: $e');
+
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text('Bulk delete failed: ${e.toString()}'),
+            backgroundColor: Colors.red,
+          ),
+        );
+      }
+    }
+  }
+
   @override
   Widget build(BuildContext context) {
     final state = ref.watch(rateNotifierProvider);
-    final site=ref.read(currentSiteProvider);
+    final site = ref.read(currentSiteProvider);
+    final rates = state.data ?? [];
 
     return Scaffold(
-
       body: NestedScrollView(
         headerSliverBuilder: (context, innerBoxIsScrolled) {
           return [
-            CustomSliverAppBar(title: "Rates"),
+            CustomSliverAppBar(
+              title: _isSelectionMode
+                  ? '${_selectedRateIds.length} Selected'
+                  : "Rates",
+            ),
           ];
         },
         body: BottomButtonWrapper(
           customButtons: [
             CustomButton(
-                button: RoundedButton(
-                    text: "View Sheet",
-                    color: Colors.blue,
-                    textColor: Colors.white,
-                    onPressed: (){
-                      final type = ref.read(typeProvider);
-                      if (type != null) {
-                        saveCsvWithDialog(context, type, site!.id);
-                      }
-                    })
-            )
+              button: RoundedButton(
+                text: "View Sheet",
+                color: Colors.blue,
+                textColor: Colors.white,
+                onPressed: () {
+                  final type = ref.read(typeProvider);
+                  if (type != null) {
+                    saveCsvWithDialog(context, type, site!.id);
+                  }
+                },
+              ),
+            ),
           ],
           child: Column(
             children: [
+              // Top action bar with selection controls
+              if (rates.isNotEmpty)
+                Row(
+                  mainAxisAlignment: MainAxisAlignment.end,
+                  children: [
+
+                    Row(
+                      children: [
+                        if (_isSelectionMode) ...[
+                          IconButton(
+                            icon: const Icon(Icons.close),
+                            onPressed: _toggleSelectionMode,
+                            tooltip: 'Cancel',
+                          ),
+                          TextButton(
+                            onPressed: () => _selectAllRates(rates),
+                            child: const Text('Select All'),
+                          ),
+                          const SizedBox(width: 8),
+                          ElevatedButton.icon(
+                            icon: const Icon(Icons.delete_sweep, size: 18),
+                            label: const Text('Delete'),
+                            onPressed: _selectedRateIds.isEmpty
+                                ? null
+                                : _deleteSelectedRates,
+                            style: ElevatedButton.styleFrom(
+                              backgroundColor: Colors.red,
+                              foregroundColor: Colors.white,
+                            ),
+                          ),
+                        ] else ...[
+                          IconButton(
+                            icon: const Icon(Icons.delete_sweep, color: Colors.red),
+                            onPressed: rates.isEmpty ? null : _toggleSelectionMode,
+                            tooltip: 'Select Rates to Delete',
+                          ),
+                        ],
+                      ],
+                    ),
+                  ],
+                ),
+
+              // Rates list
               Expanded(
                 child: state.loading
                     ? const Center(child: CircularProgressIndicator())
@@ -85,7 +249,15 @@ class _RateScreenState extends ConsumerState<RateScreen> {
                   itemCount: state.data!.length,
                   itemBuilder: (context, index) {
                     final rate = state.data![index];
-                    return rateTile(context, rate, site!, ref);
+                    final isSelected = _selectedRateIds.contains(rate.id);
+
+                    return _buildRateTile(
+                      context,
+                      rate,
+                      site!,
+                      ref,
+                      isSelected,
+                    );
                   },
                 ),
               ),
@@ -93,166 +265,171 @@ class _RateScreenState extends ConsumerState<RateScreen> {
           ),
         ),
       ),
-      // Floating Action Button for refresh
-      // bottomNavigationBar: Container(
-      //   padding: const EdgeInsets.symmetric(vertical: 12, horizontal: 16),
-      //   decoration: const BoxDecoration(
-      //     color: Colors.white,
-      //     boxShadow: [
-      //       BoxShadow(
-      //         color: Colors.black12,
-      //         blurRadius: 6,
-      //         offset: Offset(0, -2),
-      //       ),
-      //     ],
-      //   ),
-      //   child: Row(
-      //     mainAxisAlignment: MainAxisAlignment.spaceEvenly,
-      //     children: [
-      //       _bottomButton(
-      //         icon: Icons.download,
-      //         label: "Save CSV",
-      //         onTap: () {
-      //           final type = ref.read(typeProvider);
-      //           if (type != null) {
-      //             saveCsvWithDialog(context, type, site!.id);
-      //           }
-      //         },
-      //       ),
-      //       // _bottomButton(
-      //       //   icon: Icons.upload,
-      //       //   label: "Import CSV",
-      //       //   onTap: () {
-      //       //     final type = ref.read(typeProvider);
-      //       //     if (type != null) {
-      //       //       Navigator.push(context,
-      //       //         MaterialPageRoute(
-      //       //           builder: (_) => ImportCsvScreen(site: site!, type: type),
-      //       //         ),
-      //       //       );
-      //       //     }
-      //       //   },
-      //       // ),
-      //       // _bottomButton(
-      //       //   icon: Icons.add,
-      //       //   label: "Add Rate",
-      //       //   onTap: () {
-      //       //     Navigator.push(context,
-      //       //       MaterialPageRoute(
-      //       //         builder: (_) => AddRateScreen(site:site!),
-      //       //       ),
-      //       //     );
-      //       //   },
-      //       // ),
-      //     ],
-      //   ),
-      // ),
-
     );
   }
-  Widget _bottomButton({required IconData icon, required String label, required VoidCallback onTap}) {
-    return GestureDetector(
-      onTap: onTap,
-      child: Column(
-        mainAxisSize: MainAxisSize.min,
-        children: [
-          Icon(icon, size: 26, color: Colors.blue),
-          const SizedBox(height: 4),
-          Text(
-            label,
-            style: const TextStyle(
-              fontSize: 12,
-              fontWeight: FontWeight.w500,
+
+  Widget _buildRateTile(
+      BuildContext context,
+      Rate rate,
+      SiteModel site,
+      WidgetRef ref,
+      bool isSelected,
+      ) {
+    final type = ref.read(typeProvider);
+    final notifier = ref.read(rateNotifierProvider.notifier);
+
+    return Stack(
+      children: [
+        Opacity(
+          opacity: _isSelectionMode && !isSelected ? 0.5 : 1.0,
+          child: Card(
+            elevation: 0,
+            color: Colors.white,
+            margin: const EdgeInsets.symmetric(horizontal: 16, vertical: 6),
+            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+            child: InkWell(
+              onTap: _isSelectionMode
+                  ? () => _toggleRateSelection(rate.id)
+                  : null,
+              borderRadius: BorderRadius.circular(12),
+              child: Padding(
+                padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 12),
+                child: Row(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    // Left side: Service name (multi-line)
+                    Expanded(
+                      child: SizedBox(
+                        width: 100,
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          mainAxisAlignment: MainAxisAlignment.center,
+                          children: [
+                            Text(
+                              rate.serviceName,
+                              maxLines: 2,
+                              overflow: TextOverflow.ellipsis,
+                              style: const TextStyle(
+                                fontSize: 16,
+                                fontWeight: FontWeight.w500,
+                              ),
+                            ),
+
+                          ],
+                        ),
+                      ),
+                    ),
+
+                    // Right side: Rate with UOM and edit button
+                    if (!_isSelectionMode)
+                      Column(
+                        children: [
+                          Row(
+                            mainAxisSize: MainAxisSize.min,
+                            children: [
+                              // ✏️ Edit
+                              IconButton(
+                                icon: const Icon(Icons.edit, color: Colors.blue),
+                                onPressed: () async {
+                                  final result = await Navigator.push(
+                                    context,
+                                    MaterialPageRoute(
+                                      builder: (_) => EditRateScreen(
+                                        site: site,
+                                        rate: rate,
+                                      ),
+                                    ),
+                                  );
+
+                                  if (result == true && type != null) {
+                                    notifier.fetchRate(type, site.id);
+                                  }
+                                },
+                              ),
+
+                              // 🗑 Delete
+                              IconButton(
+                                icon: const Icon(
+                                  Icons.delete_outline,
+                                  color: Colors.red,
+                                ),
+                                onPressed: () {
+                                  _confirmDeleteRate(
+                                    context,
+                                    rate.id,
+                                    notifier,
+                                    type!,
+                                    site.id,
+                                  );
+                                },
+                              ),
+                            ],
+                          ),
+
+                          const SizedBox(height: 6),
+
+                          // 💰 Rate badge
+                          Container(
+                            padding: const EdgeInsets.symmetric(
+                              horizontal: 12,
+                              vertical: 6,
+                            ),
+                            decoration: BoxDecoration(
+                              color: const Color(0xFFEFEFEF),
+                              borderRadius: BorderRadius.circular(20),
+                            ),
+                            child: Text(
+                              '₹${rate.rate.toStringAsFixed(0)} / ${rate.uom}',
+                              style: const TextStyle(fontWeight: FontWeight.bold),
+                            ),
+                          ),
+                        ],
+                      ),
+                  ],
+                ),
+              ),
             ),
           ),
-        ],
-      ),
+        ),
+
+        // Selection checkbox overlay
+        if (_isSelectionMode)
+          Positioned(
+            top: 8,
+            right: 8,
+            child: GestureDetector(
+              onTap: () => _toggleRateSelection(rate.id),
+              child: Container(
+                width: 32,
+                height: 32,
+                decoration: BoxDecoration(
+                  shape: BoxShape.circle,
+                  color: isSelected ? Colors.red : Colors.white,
+                  border: Border.all(
+                    color: Colors.red,
+                    width: 2,
+                  ),
+                  boxShadow: [
+                    BoxShadow(
+                      color: Colors.black.withOpacity(0.2),
+                      blurRadius: 4,
+                      offset: const Offset(0, 2),
+                    ),
+                  ],
+                ),
+                child: isSelected
+                    ? const Icon(
+                  Icons.check,
+                  color: Colors.white,
+                  size: 20,
+                )
+                    : null,
+              ),
+            ),
+          ),
+      ],
     );
   }
-
-
-  // void _showCsvOptionsBottomSheet(BuildContext context, WidgetRef ref) {
-  //   final type = ref.read(typeProvider);
-  //
-  //   showModalBottomSheet(
-  //     context: context,
-  //     shape: const RoundedRectangleBorder(
-  //       borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
-  //     ),
-  //     builder: (context) => Container(
-  //       padding: const EdgeInsets.all(24),
-  //       child: Column(
-  //         mainAxisSize: MainAxisSize.min,
-  //         children: [
-  //           // Header
-  //           Text(
-  //             'CSV Options',
-  //             style: Theme.of(context).textTheme.titleLarge?.copyWith(
-  //               fontWeight: FontWeight.bold,
-  //             ),
-  //           ),
-  //           const SizedBox(height: 16),
-  //
-  //           // Save CSV Button
-  //           ListTile(
-  //             leading: const Icon(Icons.download, color: Colors.blue),
-  //             title: const Text('Save CSV'),
-  //             subtitle: const Text('Download current rates as CSV file'),
-  //             onTap: () {
-  //               Navigator.pop(context);
-  //               if (type != null) {
-  //                 saveCsvWithDialog(context, type, site!.id);
-  //               }
-  //             },
-  //           ),
-  //
-  //           // Import CSV Button
-  //           ListTile(
-  //             leading: const Icon(Icons.upload, color: Colors.green),
-  //             title: const Text('Import CSV'),
-  //             subtitle: const Text('Upload CSV file to update rates'),
-  //             onTap: () {
-  //               Navigator.pop(context);
-  //               if (type != null) {
-  //                 Navigator.push(
-  //                   context,
-  //                   MaterialPageRoute(
-  //                     builder: (context) => ImportCsvScreen(site: widget.site, type: type),
-  //                   ),
-  //                 );
-  //               }
-  //             },
-  //           ),
-  //           ListTile(
-  //             leading: const Icon(Icons.upload, color: Colors.green),
-  //             title: const Text('Add Rate'),
-  //             subtitle: const Text('Add any new product and service'),
-  //             onTap: () {
-  //               Navigator.pop(context);
-  //               if (type != null) {
-  //                 Navigator.push(
-  //                   context,
-  //                   MaterialPageRoute(builder: (context) => AddRateScreen(site: widget.site)),
-  //                 );
-  //               }
-  //             },
-  //           ),
-  //
-  //           const SizedBox(height: 8),
-  //
-  //           // Close button
-  //           SizedBox(
-  //             width: double.infinity,
-  //             child: OutlinedButton(
-  //               onPressed: () => Navigator.pop(context),
-  //               child: const Text('Close'),
-  //             ),
-  //           ),
-  //         ],
-  //       ),
-  //     ),
-  //   );
-  // }
 
   Future<void> saveCsvWithDialog(BuildContext context, String type, String siteId) async {
     final result = await RateApiClient().getCsv(type, siteId);
@@ -307,108 +484,6 @@ class _RateScreenState extends ConsumerState<RateScreen> {
   }
 }
 
-Widget rateTile(BuildContext context, Rate rate, SiteModel site, WidgetRef ref) {
-  final type = ref.read(typeProvider);
-  final notifier = ref.read(rateNotifierProvider.notifier);
-
-  return Card(
-    elevation: 0,
-    color: Colors.white,
-    margin: const EdgeInsets.symmetric(horizontal: 16, vertical: 6),
-    shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
-    child: Padding(
-      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 12),
-      child: Row(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          // Left side: Service name (multi-line)
-          Expanded(
-            child: Container(
-              width: 100,
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Text(
-                    rate.serviceName,
-                    maxLines: 1,
-
-                    overflow: TextOverflow.ellipsis,
-                    style: const TextStyle(fontSize: 16, fontWeight: FontWeight.w500),
-                  ),
-                  Text(
-                    rate.site.siteName,
-                    maxLines: 1,
-
-
-                    overflow: TextOverflow.ellipsis,
-                    style: const TextStyle(fontSize: 16, fontWeight: FontWeight.w500),
-                  ),
-                ],
-              ),
-            ),
-          ),
-
-          // Right side: Rate with UOM and edit button
-          Column(
-            children: [
-              Row(
-                mainAxisSize: MainAxisSize.min,
-                children: [
-                  // ✏️ Edit
-                  IconButton(
-                    icon: const Icon(Icons.edit, color: Colors.blue),
-                    onPressed: () async {
-                      final result = await Navigator.push(
-                        context,
-                        MaterialPageRoute(
-                          builder: (_) => EditRateScreen(site: site, rate: rate),
-                        ),
-                      );
-
-                      if (result == true && type != null) {
-                        notifier.fetchRate(type, site.id);
-                      }
-                    },
-                  ),
-
-                  // 🗑 Delete
-                  IconButton(
-                    icon: const Icon(Icons.delete_outline, color: Colors.red),
-                    onPressed: () {
-                      _confirmDeleteRate(
-                        context,
-                        rate.id,
-                        notifier,
-                        type!,
-                        site.id,
-                      );
-                    },
-                  ),
-                ],
-              ),
-
-              const SizedBox(height: 6),
-
-              // 💰 Rate badge
-              Container(
-                padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
-                decoration: BoxDecoration(
-                  color: const Color(0xFFEFEFEF),
-                  borderRadius: BorderRadius.circular(20),
-                ),
-                child: Text(
-                  '₹${rate.rate.toStringAsFixed(0)} / ${rate.uom}',
-                  style: const TextStyle(fontWeight: FontWeight.bold),
-                ),
-              ),
-            ],
-          ),
-
-        ],
-      ),
-    ),
-  );
-}
 Future<void> _confirmDeleteRate(
     BuildContext context,
     String rateId,
@@ -442,6 +517,7 @@ Future<void> _confirmDeleteRate(
     _deleteRate(context, rateId, notifier, type, siteId);
   }
 }
+
 Future<void> _deleteRate(
     BuildContext context,
     String rateId,
@@ -450,7 +526,7 @@ Future<void> _deleteRate(
     String siteId,
     ) async {
   try {
-    final res = await RateApiClient().deleteRate(siteId,rateId);
+    final res = await RateApiClient().deleteRate(siteId, rateId);
 
     if (res['success'] == true) {
       notifier.fetchRate(type, siteId);

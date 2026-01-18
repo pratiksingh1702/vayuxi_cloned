@@ -2,6 +2,7 @@ class SiteModel {
   final String id;
   final String siteName;
   final String address;
+  final String? shippingAddress;
   final String contactPerson;
   final String gstNo;
   final String phoneNumber;
@@ -11,6 +12,7 @@ class SiteModel {
   final bool isDeleted;
   final String company;
   final String type;
+
   final String createdAt;
   final String updatedAt;
   final String? siteImage; // ✅ OPTIONAL FIELD
@@ -19,6 +21,7 @@ class SiteModel {
     required this.id,
     required this.siteName,
     required this.address,
+    required this.shippingAddress,
     required this.contactPerson,
     required this.gstNo,
     required this.phoneNumber,
@@ -38,6 +41,7 @@ class SiteModel {
       id: json['_id'] ?? '',
       siteName: json['siteName'] ?? '',
       address: json['address'] ?? '',
+      shippingAddress: json['shippingAddress'],
       contactPerson: json['contactPerson'] ?? '',
       gstNo: json['gstNo'] ?? '',
       phoneNumber: json['phoneNumber'] ?? '',

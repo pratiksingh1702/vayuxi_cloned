@@ -111,5 +111,52 @@ class TeamApi {
       rethrow;
     }
   }
+  static Future<void> bulkDeleteTeams({
+    required List<String> teamIds,
+  }) async {
+    if (teamIds.isEmpty) {
+      throw Exception("No team IDs provided for bulk delete");
+    }
+
+    try {
+      final response = await DioClient.dio.post(
+        "/team/bulk-delete",
+        data: {
+          "ids": teamIds,
+        },
+        options: Options(
+          headers: {
+            "Content-Type": "application/json",
+          },
+        ),
+      );
+
+      if (response.statusCode != 200 && response.statusCode != 204) {
+        throw Exception(
+          "Bulk delete failed: ${response.statusCode} ${response.data}",
+        );
+      }
+
+      print("✅ Bulk team delete successful");
+      print("📦 Deleted IDs: $teamIds");
+    } on DioException catch (e, stack) {
+      final status = e.response?.statusCode;
+      final data = e.response?.data;
+
+      print("❌ BULK DELETE TEAM FAILED");
+      print("➡️ POST /team/bulk-delete");
+      print("📟 STATUS: $status");
+      print("📦 RESPONSE: $data");
+      print(stack);
+
+      rethrow;
+    } catch (e, stack) {
+      print("❌ UNEXPECTED BULK DELETE ERROR");
+      print("📝 ERROR: $e");
+      print(stack);
+      rethrow;
+    }
+  }
+
 
 }

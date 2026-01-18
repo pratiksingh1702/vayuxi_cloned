@@ -1,8 +1,11 @@
 // screens/add_moc_page.dart
+import 'dart:io';
+
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:untitled2/core/utlis/colors/colors.dart';
 import 'package:untitled2/core/utlis/widgets/custom_appBar.dart';
+import 'package:untitled2/features/modules/all_Modules/site_Details/providers/site_current_provider.dart';
 import '../../../../../../../core/utlis/widgets/fields/custom_textField.dart';
 import '../../../../../../../core/utlis/widgets/file_upload.dart';
 import '../../../../../../../core/utlis/widgets/image_clipped.dart';
@@ -11,7 +14,8 @@ import '../../../providers/mocProvider.dart';
 import 'package:file_picker/file_picker.dart';
 
 class AddMOCPage extends ConsumerStatefulWidget {
-  const AddMOCPage({super.key});
+  final MOC? moc;
+  const AddMOCPage({super.key,this.moc});
 
   @override
   ConsumerState<AddMOCPage> createState() => _AddMOCPageState();
@@ -20,213 +24,96 @@ class AddMOCPage extends ConsumerStatefulWidget {
 class _AddMOCPageState extends ConsumerState<AddMOCPage> {
   final _formKey = GlobalKey<FormState>();
   final _nameController = TextEditingController();
-  final _imagePathController = TextEditingController();
+  String? _existingImageUrl; // backend image
+  File? _selectedImage;      // newly picked image
+  bool _isApplied = false;
+
+
 
   bool _isSubmitting = false;
-  String? _selectedImagePath;
+  @override
+  void initState() {
+    super.initState();
+
+    final moc = widget.moc;
+    if (moc != null) {
+      _nameController.text = moc.name;
+
+      // Handle image (URL or local)
+      if (moc.imageUrl != null && moc.imageUrl!.isNotEmpty) {
+        _existingImageUrl = moc.imageUrl!;
+      }
+    }
+  }
+
 
   @override
   void dispose() {
     _nameController.dispose();
-    _imagePathController.dispose();
     super.dispose();
   }
+  Future<void> _pickImage() async {
+    final helper = ImageUploadHelper(context);
 
-  void _handleImageSelection() {
-    // Simulate image selection - you can integrate with image_picker for actual functionality
-    showDialog(
-      context: context,
-      builder: (context) => AlertDialog(
-        title: const Text('Select Image Source'),
-        content: Column(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            ListTile(
-              leading: const Icon(Icons.photo_library),
-              title: const Text('From Gallery'),
-              onTap: () {
-                Navigator.pop(context);
-                _simulateGalleryPick();
-              },
-            ),
-            ListTile(
-              leading: const Icon(Icons.photo_camera),
-              title: const Text('Take Photo'),
-              onTap: () {
-                Navigator.pop(context);
-                _simulateCameraCapture();
-              },
-            ),
-            ListTile(
-              leading: const Icon(Icons.folder),
-              title: const Text('Enter Path Manually'),
-              onTap: () {
-                Navigator.pop(context);
-                _showManualPathDialog();
-              },
-            ),
-          ],
-        ),
-      ),
+    final file = await helper.pickAndCropImage(
+      enableCropping: true,
+      cropTitle: 'Crop MOC Image',
     );
-  }
-  Future<void> _simulateGalleryPick() async {
-    try {
-      FilePickerResult? result = await FilePicker.platform.pickFiles(
-        type: FileType.image,
-        allowMultiple: false,
 
-      );
-
-      if (result != null && result.files.single.path != null) {
-        PlatformFile file = result.files.single;
-
-        setState(() {
-          _selectedImagePath = file.path!;
-          _imagePathController.text = file.path!;
-        });
-
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
-            content: Text('Floor image selected: ${file.name}'),
-            backgroundColor: Colors.green,
-          ),
-        );
-      } else {
-        // User canceled the picker
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(
-            content: Text('Image selection canceled'),
-            backgroundColor: Colors.orange,
-          ),
-        );
-      }
-    } catch (e) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(
-          content: Text('Error picking image: $e'),
-          backgroundColor: Colors.red,
-        ),
-      );
+    if (file != null) {
+      setState(() {
+        _selectedImage = file;
+      });
     }
   }
 
-  void _simulateCameraCapture() {
-    // Simulate camera capture - replace with actual image_picker implementation
-    setState(() {
-      _selectedImagePath = 'assets/stepper/captured_moc.png';
-      _imagePathController.text = 'assets/stepper/captured_moc.png';
-    });
 
-    ScaffoldMessenger.of(context).showSnackBar(
-      const SnackBar(
-        content: Text('Photo captured from camera'),
-        backgroundColor: Colors.green,
-      ),
-    );
-  }
 
-  void _showManualPathDialog() {
-    showDialog(
-      context: context,
-      builder: (context) => AlertDialog(
-        title: const Text('Enter Image Path'),
-        content: TextField(
-          controller: _imagePathController,
-          decoration: const InputDecoration(
-            hintText: 'e.g., assets/stepper/example.png',
-            border: OutlineInputBorder(),
-          ),
-        ),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.pop(context),
-            child: const Text('Cancel'),
-          ),
-          TextButton(
-            onPressed: () {
-              setState(() {
-                _selectedImagePath = _imagePathController.text.trim();
-              });
-              Navigator.pop(context);
-            },
-            child: const Text('Save'),
-          ),
-        ],
-      ),
-    );
-  }
 
-  String _generateMOCId(String name) {
-    // Generate ID from name (convert to uppercase, remove spaces)
-    return name.trim().toUpperCase().replaceAll(' ', '_');
-  }
+
 
   Future<void> _submitForm() async {
     if (!_formKey.currentState!.validate()) return;
 
-    setState(() {
-      _isSubmitting = true;
-    });
+    setState(() => _isSubmitting = true);
 
     try {
-      final mocName = _nameController.text.trim();
-      final mocId = _generateMOCId(mocName);
-      final imagePath = _imagePathController.text.trim();
+      final siteID = ref.read(selectedSiteIdProvider)!;
+      final name = _nameController.text.trim();
 
-      // Check if MOC with generated ID already exists
-      final existingMOC = ref.read(mocProvider.notifier).getById(mocId);
-      if (existingMOC != null) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
-            content: Text('MOC with ID "$mocId" already exists!'),
-            backgroundColor: Colors.red,
-          ),
+      if (widget.moc == null) {
+        // ================= CREATE =================
+        if (_selectedImage == null) {
+          throw 'Image required';
+        }
+
+        await ref.read(mocProvider.notifier).create(
+          name: name,
+          siteId: siteID,
+          isApplied: _isApplied,
+          image: _selectedImage!,
         );
-        setState(() {
-          _isSubmitting = false;
-        });
-        return;
+      } else {
+        // ================= UPDATE =================
+        await ref.read(mocProvider.notifier).update(
+          mocId: widget.moc!.id,
+          name: name,
+          isApplied: _isApplied,
+          image: _selectedImage, // nullable
+        );
       }
 
-      final newMOC = MOC(
-        id: mocId,
-        name: mocName,
-        imageUrl: imagePath,
-
-        createdAt: DateTime.now(),
-
-      );
-
-      await ref.read(mocProvider.notifier).add(newMOC);
-
-      if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
-            content: Text('${newMOC.name} added successfully!'),
-            backgroundColor: Colors.green,
-          ),
-        );
-
-        Navigator.of(context).pop();
-      }
+      if (!mounted) return;
+      Navigator.pop(context, true);
     } catch (e) {
-      if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
-            content: Text('Error adding MOC: $e'),
-            backgroundColor: Colors.red,
-          ),
-        );
-      }
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text(e.toString()), backgroundColor: Colors.red),
+      );
     } finally {
-      if (mounted) {
-        setState(() {
-          _isSubmitting = false;
-        });
-      }
+      setState(() => _isSubmitting = false);
     }
   }
+
 
   @override
   Widget build(BuildContext context) {
@@ -252,32 +139,33 @@ class _AddMOCPageState extends ConsumerState<AddMOCPage> {
                   controller: _nameController,
                   keyboardType: TextInputType.text,
                 ),
+                _buildIsAppliedField(),
                 const SizedBox(height: 24),
         
                 // Image Upload Section
-        
-        
+
                 UploadBox(
-                  title: _selectedImagePath != null ? 'Image Selected' : 'Upload MOC Image',
-                  subtitle: _selectedImagePath != null
-                      ? _selectedImagePath!
-                      : 'Select an image for this MOC material',
-                  buttonText: _selectedImagePath != null ? 'Change Image' : 'Select Image',
-                  onPressed: _handleImageSelection,
+                  title: 'MOC Image',
+                  subtitle: 'Tap to change image',
+                  buttonText: 'Change Image',
+                  onPressed: _pickImage,
+                  previewWidget: (_selectedImage != null || _existingImageUrl != null)
+                      ? UploadBoxPreview(
+                    file: _selectedImage,
+                    source: _existingImageUrl,
+                    isImage: true,
+                    onRemove: () {
+                      setState(() {
+                        _selectedImage = null;
+                        _existingImageUrl = null;
+                      });
+                    },
+                    onEdit: _pickImage,
+                  )
+                      : null,
                 ),
-        
-                if (_selectedImagePath != null) ...[
-                  const SizedBox(height: 8),
-                  Text(
-                    'Selected: $_selectedImagePath',
-                    style: const TextStyle(
-                      fontSize: 12,
-                      color: Colors.green,
-                      fontStyle: FontStyle.italic,
-                    ),
-                  ),
-                ],
-                const SizedBox(height: 32),
+
+
         
                 // Submit Button
                 ElevatedButton(
@@ -328,6 +216,53 @@ class _AddMOCPageState extends ConsumerState<AddMOCPage> {
             ),
           ),
         ),
+      ),
+    );
+  }
+  Widget _buildIsAppliedField() {
+    return Container(
+      padding: const EdgeInsets.all(12),
+      decoration: BoxDecoration(
+        color: Colors.white,
+        borderRadius: BorderRadius.circular(8),
+        border: Border.all(color: Colors.grey.shade300),
+      ),
+      child: Row(
+        children: [
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  'Apply to all sites in company',
+                  style: Theme.of(context).textTheme.titleMedium?.copyWith(
+                    fontSize: 16,
+                    fontWeight: FontWeight.w500,
+                  ),
+                ),
+                const SizedBox(height: 4),
+                Text(
+                  _isApplied
+                      ? 'This moc will be available for ALL sites in your company'
+                      : 'This moc will only be available for the current site',
+                  style: TextStyle(
+                    fontSize: 12,
+                    color: Colors.grey.shade600,
+                  ),
+                ),
+              ],
+            ),
+          ),
+          Switch(
+            value: _isApplied,
+            onChanged: (value) {
+              setState(() {
+                _isApplied = value;
+              });
+            },
+            activeColor: Colors.blue,
+          ),
+        ],
       ),
     );
   }

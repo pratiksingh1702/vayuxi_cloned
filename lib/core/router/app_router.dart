@@ -28,6 +28,10 @@ import '../../features/modules/all_Modules/dpr/dpr-setup/screens/add/add_floor.d
 import '../../features/modules/all_Modules/dpr/dpr-setup/screens/add/add_moc.dart';
 import '../../features/modules/all_Modules/dpr/dpr-setup/screens/add/select_page.dart';
 import '../../features/modules/all_Modules/dpr/dpr-setup/screens/view_add.dart';
+import '../../features/modules/all_Modules/dpr/dpr_insu/screens/cladding_selection.dart';
+import '../../features/modules/all_Modules/dpr/dpr_insu/screens/dpr_insu.dart';
+import '../../features/modules/all_Modules/dpr/dpr_insu/screens/lagging_Selection.dart';
+import '../../features/modules/all_Modules/dpr/dpr_insu/screens/testing.dart';
 import '../../features/modules/all_Modules/dpr/dpr_report/screens/download_sheets.dart';
 import '../../features/modules/all_Modules/dpr/screens/dprTeamDetails.dart';
 import '../../features/modules/all_Modules/dpr/screens/dprTeamPage.dart';
@@ -371,6 +375,53 @@ final appRouterProvider = Provider<GoRouter>((ref) {
           return ModuleDetailScreen(moduleName: moduleName);
         },
       ),
+      GoRoute(
+        path: '/dpr-insu-review',
+        name: 'dpr-screen-insu',
+        builder: (context, state) {
+          final data = state.extra as Map<String, dynamic>;
+          return AddInsulationDescriptionScreen();
+          // return DprInsulationScreen(
+          //   siteId: data['siteId'],
+          //   teamId: data['teamId'],
+          //   siteName: data['siteName'],
+          //   teamName: data['teamName'],
+          // );
+        },
+      ),
+
+
+
+      GoRoute(
+        path: '/lagging-material',
+        name: 'lagging-material',
+        builder: (context, state) {
+          final data = state.extra as Map<String, dynamic>;
+          return LaggingMaterialScreen(
+            siteId: data['siteId'],
+            teamId: data['teamId'],
+            siteName: data['siteName'],
+            teamName: data['teamName'],
+            layerIndex: data['layerIndex'],
+          );
+        },
+      ),
+
+      GoRoute(
+        path: '/cladding',
+        name: 'cladding',
+        builder: (context, state) {
+          final data = state.extra as Map<String, dynamic>;
+          return CladdingScreen(
+            siteId: data['siteId'],
+            teamId: data['teamId'],
+            siteName: data['siteName'],
+            teamName: data['teamName'],
+          );
+        },
+      ),
+
+
     ],
   );
 });

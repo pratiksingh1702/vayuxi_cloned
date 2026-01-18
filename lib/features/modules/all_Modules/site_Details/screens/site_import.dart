@@ -68,12 +68,16 @@ class _SiteImportCsvScreenState extends ConsumerState<SiteImportCsvScreen> {
     });
 
     try {
-      await SiteAPI.uploadFile(
-        File(_selectedFile!.path!), // Convert to File object
-        type!, // e.g., 'image', 'document', etc.
-
+      final response = await SiteAPI.uploadFile(
+        File(_selectedFile!.path!),
+        type!,
+        siteId: siteId,
       );
+
       ref.read(siteProvider.notifier).fetchSites();
+
+      if (!mounted) return;
+
 
 
 
@@ -81,15 +85,32 @@ class _SiteImportCsvScreenState extends ConsumerState<SiteImportCsvScreen> {
         _isLoading = false;
       });
       ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text("✅ Site saved successfully!"),behavior: SnackBarBehavior.floating,),
+        SnackBar(
+          content: Text(
+            response['message'] ?? 'Upload successful',
+          ),
+          backgroundColor: Colors.green,
+          behavior: SnackBarBehavior.floating,
+        ),
       );
+
 
 
     } catch (e) {
       setState(() {
         _isLoading = false;
       });
-      _showError('Upload error: $e');
+      if (!mounted) return;
+
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text(
+            e.toString().replaceFirst('Exception: ', ''),
+          ),
+          backgroundColor: Colors.red,
+          behavior: SnackBarBehavior.floating,
+        ),
+      );
     }
   }
 

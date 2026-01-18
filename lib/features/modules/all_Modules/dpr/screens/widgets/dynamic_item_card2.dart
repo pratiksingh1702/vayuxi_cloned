@@ -186,27 +186,66 @@ class _DynamicItemCard2State extends State<DynamicItemCard2>
                         (widget.onEdit != null ||
                             widget.onCopy != null ||
                             widget.onDelete != null))
-                      Row(
-                        children: [
-                          if (widget.onEdit != null)
-                            IconButton(
-                              onPressed: widget.onEdit,
-                              icon: const Icon(Icons.edit, size: 18),
-                              color: Colors.blue,
-                            ),
-                          if (widget.onCopy != null)
-                            IconButton(
-                              onPressed: widget.onCopy,
-                              icon: const Icon(Icons.copy, size: 18),
-                              color: Colors.green,
-                            ),
-                          if (widget.onDelete != null)
-                            IconButton(
-                              onPressed: widget.onDelete,
-                              icon: const Icon(Icons.delete, size: 18),
-                              color: Colors.red,
-                            ),
-                        ],
+                      Padding(
+                        padding: const EdgeInsets.only(top: 12),
+                        child: Row(
+                          children: [
+                            if (widget.onEdit != null) ...[
+                              Expanded(
+                                child: IconButton(
+                                  onPressed: widget.onEdit,
+                                  icon: const Icon(Icons.edit, size: 18),
+                                  color: Colors.blue,
+                                  style: IconButton.styleFrom(
+                                    padding: const EdgeInsets.all(6),
+                                    minimumSize: const Size(0, 32),
+                                    side: const BorderSide(color: Colors.blue, width: 1.5),
+                                    shape: RoundedRectangleBorder(
+                                      borderRadius: BorderRadius.circular(6),
+                                    ),
+                                  ),
+                                ),
+                              ),
+                              const SizedBox(width: 8),
+                            ],
+
+                            if (widget.onCopy != null) ...[
+                              Expanded(
+                                child: IconButton(
+                                  onPressed: widget.onCopy,
+                                  icon: const Icon(Icons.copy, size: 18),
+                                  color: Colors.green,
+                                  style: IconButton.styleFrom(
+                                    padding: const EdgeInsets.all(6),
+                                    minimumSize: const Size(0, 32),
+                                    side: const BorderSide(color: Colors.green, width: 1.5),
+                                    shape: RoundedRectangleBorder(
+                                      borderRadius: BorderRadius.circular(6),
+                                    ),
+                                  ),
+                                ),
+                              ),
+                              const SizedBox(width: 8),
+                            ],
+
+                            if (widget.onDelete != null)
+                              Expanded(
+                                child: IconButton(
+                                  onPressed: widget.onDelete,
+                                  icon: const Icon(Icons.delete, size: 18),
+                                  color: Colors.red,
+                                  style: IconButton.styleFrom(
+                                    padding: const EdgeInsets.all(6),
+                                    minimumSize: const Size(0, 32),
+                                    side: const BorderSide(color: Colors.red, width: 1.5),
+                                    shape: RoundedRectangleBorder(
+                                      borderRadius: BorderRadius.circular(6),
+                                    ),
+                                  ),
+                                ),
+                              ),
+                          ],
+                        ),
                       ),
                   ],
                 ),

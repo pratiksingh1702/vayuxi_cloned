@@ -13,19 +13,18 @@ import 'dprTeamDetails.dart';
 
 
 class WorkTeamListPage extends ConsumerStatefulWidget {
-  final Widget Function(
-      BuildContext context,
-      String siteId,
-      String teamId,
-      String teamName,
-      )? pageBuilder;
-  const WorkTeamListPage({this.pageBuilder,super.key});
+  final DateTime? selectedStartDate;
+  final DateTime? selectedEndDate;
+
+  const WorkTeamListPage({super.key,this.selectedEndDate,this.selectedStartDate});
 
   @override
   ConsumerState<WorkTeamListPage> createState() => _WorkTeamListPageState();
 }
 
 class _WorkTeamListPageState extends ConsumerState<WorkTeamListPage> {
+  DateTime? _selectedStartDate;
+  DateTime? _selectedEndDate;
   Future<void> _refreshTeams() async {
     final type = ref.read(typeProvider);
     final siteId = ref.read(selectedSiteIdProvider);
@@ -35,6 +34,8 @@ class _WorkTeamListPageState extends ConsumerState<WorkTeamListPage> {
   @override
   void initState() {
     super.initState();
+    _selectedStartDate = widget.selectedStartDate;
+    _selectedEndDate = widget.selectedEndDate;
     _refreshTeams();
   }
 
@@ -69,21 +70,7 @@ class _WorkTeamListPageState extends ConsumerState<WorkTeamListPage> {
                       print(team.teamLeadImage);
                       return GestureDetector(
                           onTap: () {
-                            // ✅ If a custom pageBuilder is provided, use it
-                            if (widget.pageBuilder != null) {
-                              Navigator.push(
-                                context,
-                                MaterialPageRoute(
-                                  builder: (context) => widget.pageBuilder!(
-                                    context,
-                                    site!.id,
-                                    team.id,
-                                    team.teamName,
-                                  ),
-                                ),
-                              );
-                              return;
-                            }
+                            ref.read(selectedTeamIdProvider.notifier).state = team.id;
 
                             // ✅ Default behaviour (unchanged)
                             Navigator.push(
@@ -93,6 +80,8 @@ class _WorkTeamListPageState extends ConsumerState<WorkTeamListPage> {
                                   siteId: site!.id,
                                   teamId: team.id,
                                   name: team.teamName,
+                                  selectedEndDate: widget.selectedEndDate,
+                                  selectedStartDate: widget.selectedStartDate,
                                 ),
                               ),
                             );

@@ -7,12 +7,14 @@ import 'package:untitled2/core/api/requestQueueModel.dart';
 import 'package:cookie_jar/cookie_jar.dart';
 import 'package:dio_cookie_manager/dio_cookie_manager.dart';
 
+import '../utlis/common_functions.dart';
+
 class DioClient {
   static late CookieJar cookieJar;
   static final Dio dio = Dio(BaseOptions(
     baseUrl: "https://be-vayuxi-chi.vercel.app/api/v1",
-    connectTimeout: const Duration(seconds: 100),
-    receiveTimeout: const Duration(seconds: 100),
+    connectTimeout: const Duration(seconds: 100000),
+    receiveTimeout: const Duration(seconds: 100000),
   ));
   static final dioV2 = Dio(BaseOptions(
     baseUrl: "https://be-vayuxi-chi.vercel.app/api/v2",
@@ -214,6 +216,49 @@ class DioClient {
     );
 
     // Add interceptor to both dio instances
+    dio.interceptors.add(
+      InterceptorsWrapper(
+        onError: (DioException e, handler) {
+          // 🔥 INTERNAL LOG (keep this)
+          print("❌ TECH ERROR: ${e.type}");
+          print("❌ TECH DETAILS: ${e.error}");
+          print("❌ TECH RESPONSE: ${e.response?.data}");
+
+          // 🎯 USER-FRIENDLY MESSAGE ONLY
+          final cleanMessage = extractBackendError(e);
+          print(cleanMessage);
+
+          // 🚫 Replace technical error with clean message
+          final transformedError = DioException(
+            requestOptions: e.requestOptions,
+            response: e.response,
+            type: e.type,
+            error: cleanMessage,
+          );
+
+          return handler.next(transformedError);
+        },
+      ),
+    );
+
+// same for dioV2
+    dioV2.interceptors.add(
+      InterceptorsWrapper(
+        onError: (DioException e, handler) {
+          final cleanMessage = extractBackendError(e);
+
+          return handler.next(
+            DioException(
+              requestOptions: e.requestOptions,
+              response: e.response,
+              type: e.type,
+              error: cleanMessage,
+            ),
+          );
+        },
+      ),
+    );
+
     dio.interceptors.add(interceptor);
     dioV2.interceptors.add(interceptor);
   }

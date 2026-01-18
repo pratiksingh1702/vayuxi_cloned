@@ -1,4 +1,5 @@
 import 'dart:convert';
+import 'dart:io';
 import 'dart:typed_data';
 import 'package:dio/dio.dart';
 import '../../../../../core/api/dio.dart';
@@ -251,13 +252,16 @@ class DprApi {
     }
   }
   Future<Map<String, dynamic>> deleteMaterial({
-    required FormData data,
+
     required String mechanicalId,
+    required String materialId,
   }) async {
     try {
       final response = await DioClient.dio.delete(
         "/mechnical/$mechanicalId",
-        data: data,
+        data: FormData.fromMap({
+          "_id": materialId,
+        }),
         options: Options(
           extra: {"withCredentials": true},
           validateStatus: (s) => true,
@@ -291,83 +295,325 @@ class DprApi {
       final response = await DioClient.dio.patch(
         "/mechnical/$mechanicalId",
         data: data,
-        options: Options(extra: {"withCredentials": true}),
+        options: Options(
+          extra: {"withCredentials": true},
+          validateStatus: (status) => status != null,
+        ),
       );
 
       if (response.statusCode == 200) {
         return response.data;
-      } else {
-        throw Exception(
-          "Failed to update material. Status: ${response.statusCode}",
-        );
       }
-    } catch (e) {
-      print("❌ Error updating material: $e");
+
+      // 🔴 Backend responded but with error status
+      throw DioException(
+        requestOptions: response.requestOptions,
+        response: response,
+        message: "Update failed with status ${response.statusCode}",
+      );
+    }
+
+    // 🔴 Dio-specific errors (THIS IS WHAT YOU WANT)
+    on DioException catch (e, stack) {
+      final status = e.response?.statusCode;
+      final path = e.requestOptions.path;
+      final method = e.requestOptions.method;
+      final responseData = e.response?.data;
+
+      print("❌ UPDATE MATERIAL FAILED");
+      print("➡️ REQUEST: $method $path");
+      print("📟 STATUS CODE: $status");
+
+      if (responseData != null) {
+        print("📦 BACKEND RESPONSE:");
+        try {
+          printFormattedJson(responseData);
+        } catch (_) {
+          print(responseData);
+        }
+      } else {
+        print("📦 NO RESPONSE BODY");
+      }
+
+      print("🧨 DIO ERROR TYPE: ${e.type}");
+      print("📝 MESSAGE: ${e.message}");
+
+      print("📌 STACK TRACE:");
+      print(stack);
+
+      rethrow;
+    }
+
+    // 🔴 Any non-Dio error (logic, parsing, etc.)
+    catch (e, stack) {
+      print("❌ UPDATE MATERIAL FAILED (UNKNOWN ERROR)");
+      print("📝 ERROR: $e");
+      print("📌 STACK TRACE:");
+      print(stack);
       rethrow;
     }
   }
+
+  static Future<Map<String, dynamic>> addMechanicalMaterial({
+    required String dprId,
+    required String materialName,
+    required String uom,
+    File? file,
+  }) async {
+    try {
+      final formData = FormData.fromMap({
+        "materialName": materialName,
+        "uom": uom,
+        if (file != null)
+          "file": await MultipartFile.fromFile(
+            file.path,
+            filename: file.path.split('/').last,
+          ),
+      });
+
+      final response = await DioClient.dio.post(
+        "/mechnical/$dprId",
+        data: formData,
+        options: Options(
+          headers: {
+            "Content-Type": "multipart/form-data",
+            "Accept": "application/json",
+          },
+          extra: {"withCredentials": true},
+        ),
+      );
+
+      if (response.statusCode == 200 || response.statusCode == 201) {
+        print("✅ Mechanical material created successfully");
+        printFormattedJson(response.data);
+        return {
+          "success": true,
+          "data": response.data,
+          "statusCode": response.statusCode,
+        };
+      }
+
+      throw DioException(
+        requestOptions: response.requestOptions,
+        response: response,
+        message: "Unexpected status code ${response.statusCode}",
+      );
+    }
+
+    // Dio-level errors
+    on DioException catch (e, stack) {
+      print("❌ MECHANICAL CREATE FAILED");
+      print("➡️ ${e.requestOptions.method} ${e.requestOptions.path}");
+      print("📟 Status: ${e.response?.statusCode}");
+
+      if (e.response?.data != null) {
+        print("📦 Response:");
+        printFormattedJson(e.response!.data);
+      }
+
+      print("🧨 Dio Error Type: ${e.type}");
+      print("📝 Message: ${e.message}");
+      print(stack);
+
+      rethrow;
+    }
+
+    // Anything else
+    catch (e, stack) {
+      print("❌ MECHANICAL CREATE FAILED (Unknown)");
+      print("📝 Error: $e");
+      print(stack);
+      rethrow;
+    }
+  }
+
 
   // ----------------------------
   // 6. Copy DPR Material
   // ----------------------------
   // In your DprApi class
   static Future<Map<String, dynamic>> copyDprMaterial({
-    required String type,
-    required String materialId,
+    required String dprId,
+    required String matId,
+
   }) async {
     try {
       final response = await DioClient.dio.put(
-        "/mechnical-copy/$materialId",
-        queryParameters: {"type": type},
-        options: Options(extra: {"withCredentials": true}),
+        "/site/$dprId/team/$matId/dpr-mechanical/copy",
+
+        options: Options(
+          headers: {
+            "Content-Type": "multipart/form-data",
+            "Accept": "application/json",
+          },
+          extra: {"withCredentials": true},
+        ),
       );
 
       if (response.statusCode == 200) {
-        print("✅ DPR material copied successfully");
+        print("✅ DPR mechanical copied successfully");
         printFormattedJson(response.data);
         return response.data;
       }
 
-      // Non-200 but no DioException (rare, but possible)
       throw DioException(
         requestOptions: response.requestOptions,
         response: response,
-        message: "Unexpected status code",
+        message: "Unexpected status code ${response.statusCode}",
       );
     }
 
-    // 🔴 Dio-specific errors (network / backend / timeout)
+    // Dio-level errors
     on DioException catch (e, stack) {
-      final status = e.response?.statusCode;
-      final path = e.requestOptions.path;
-      final method = e.requestOptions.method;
-
-      print("❌ DPR COPY FAILED (DioException)");
-      print("➡️ $method $path");
-      print("📟 Status Code: $status");
+      print("❌ DPR MECHANICAL COPY FAILED");
+      print("➡️ ${e.requestOptions.method} ${e.requestOptions.path}");
+      print("📟 Status: ${e.response?.statusCode}");
 
       if (e.response?.data != null) {
-        print("📦 Response Data:");
+        print("📦 Response:");
         printFormattedJson(e.response!.data);
       }
 
-      print("🧨 Error Type: ${e.type}");
+      print("🧨 Dio Error Type: ${e.type}");
       print("📝 Message: ${e.message}");
-      print("📌 Stack Trace:");
       print(stack);
 
       rethrow;
     }
 
-    // 🔴 Any other unexpected error
+    // Anything else
     catch (e, stack) {
-      print("❌ DPR COPY FAILED (Unknown Error)");
+      print("❌ DPR MECHANICAL COPY FAILED (Unknown)");
       print("📝 Error: $e");
-      print("📌 Stack Trace:");
       print(stack);
       rethrow;
     }
   }
+  static Future<List<DprModel>> fetchInsulationDprWork({
+    required String siteId,
+    required String teamId,
+  }) async {
+    final response = await DioClient.dio.get(
+      "/site/$siteId/team/$teamId/dpr-insulation",
+      options: Options(extra: {"withCredentials": true}),
+    );
+
+    if (response.statusCode == 200) {
+      return (response.data as List)
+          .map((e) => DprModel.fromJson(e))
+          .toList();
+    }
+    throw Exception("Failed to fetch insulation DPR list");
+  }
+  static Future<DprModel> fetchInsulationDprById({
+    required String insulationId,
+  }) async {
+    final response = await DioClient.dio.get(
+      "/insulation/$insulationId",
+      options: Options(extra: {"withCredentials": true}),
+    );
+
+    if (response.statusCode == 200) {
+      return DprModel.fromJson(response.data);
+    }
+    throw Exception("Failed to fetch insulation DPR by ID");
+  }
+  static Future<DprModel> postInsulationDpr({
+    required Map<String, dynamic> data,
+    required String siteId,
+    required String teamId,
+  }) async {
+    final response = await DioClient.dio.post(
+      "/site/$siteId/team/$teamId/dpr-insulation",
+      data: data,
+      options: Options(extra: {"withCredentials": true}),
+    );
+
+    if (response.statusCode == 200 || response.statusCode == 201) {
+      return DprModel.fromJson(response.data);
+    }
+    throw Exception("Failed to create insulation DPR");
+  }
+  static Future<void> updateInsulationDprHeader({
+    required Map<String, dynamic> data,
+    required String insulationId,
+  }) async {
+    final response = await DioClient.dio.put(
+      "/dpr-update/$insulationId",
+      data: data,
+      options: Options(extra: {"withCredentials": true}),
+    );
+
+    if (response.statusCode != 200) {
+      throw Exception("Failed to update insulation DPR header");
+    }
+  }
+  static Future<Map<String, dynamic>> updateInsulationMaterial({
+    required FormData data,
+    required String insulationId,
+  }) async {
+    final response = await DioClient.dio.put(
+      "/insulation/$insulationId",
+      data: data,
+      options: Options(
+        headers: {"Content-Type": "multipart/form-data"},
+        extra: {"withCredentials": true},
+      ),
+    );
+
+    if (response.statusCode == 200) {
+      return response.data;
+    }
+    throw Exception("Failed to update insulation material");
+  }
+  static Future<Map<String, dynamic>> addInsulationMaterial({
+    required FormData data,
+    required String insulationId,
+    required String designation, // piping / equipment
+  }) async {
+    final response = await DioClient.dio.post(
+      "/dpr-insulation-update/$insulationId",
+      data: data,
+      queryParameters: {"designation": designation},
+      options: Options(
+        headers: {"Content-Type": "multipart/form-data"},
+        extra: {"withCredentials": true},
+      ),
+    );
+
+    if (response.statusCode == 200 || response.statusCode == 201) {
+      return response.data;
+    }
+    throw Exception("Failed to add insulation material");
+  }
+  static Future<Map<String, dynamic>> copyInsulationMaterial({
+    required String insulationId,
+    required String materialId,
+  }) async {
+    final response = await DioClient.dio.post(
+      "/site/$insulationId/team/$materialId/dpr-insulation/copy",
+      options: Options(extra: {"withCredentials": true}),
+    );
+
+    if (response.statusCode == 200) {
+      return response.data;
+    }
+    throw Exception("Failed to copy insulation material");
+  }
+  static Future<void> deleteInsulationMaterial({
+    required String insulationId,
+    required String materialId,
+  }) async {
+    final response = await DioClient.dio.delete(
+      "/dpr-insulation-update/$insulationId/item/$materialId",
+      options: Options(extra: {"withCredentials": true}),
+    );
+
+    if (response.statusCode != 200) {
+      throw Exception("Failed to delete insulation material");
+    }
+  }
+
 
   // ----------------------------
   // 7. Sheet Handlers

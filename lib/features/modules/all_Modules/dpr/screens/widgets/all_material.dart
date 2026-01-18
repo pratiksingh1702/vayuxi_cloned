@@ -46,6 +46,8 @@ class _AllMaterialsScreenState extends ConsumerState<AllMaterialsScreen>
   bool _isInitialized = false;
   final DefaultMaterialService _materialService = DefaultMaterialService();
   String? siteId;
+  bool _isSetupCompleted = false;
+
 
   // Selection mode state
   bool _isSelectionMode = false;
@@ -78,6 +80,7 @@ class _AllMaterialsScreenState extends ConsumerState<AllMaterialsScreen>
       final materials = await _materialService.getDefaultMaterials(
         siteId: siteId,
       );
+      _isSetupCompleted = true;
 
       final pipingMaterials = materials.whereType<PipingItem>().toList();
       final equipmentMaterials = materials.whereType<EquipmentItem>().toList();
@@ -275,9 +278,13 @@ class _AllMaterialsScreenState extends ConsumerState<AllMaterialsScreen>
 
     final bool needsSetupDpr =
         !_isLoading &&
-            _isInitialized &&
+            !_isSetupCompleted;
+    final bool isEmptyAfterDelete =
+        !_isLoading &&
+            _isSetupCompleted &&
             pipingMaterials.isEmpty &&
             equipmentMaterials.isEmpty;
+
 
     return Scaffold(
       backgroundColor: AppColors.lightBlue,
@@ -290,7 +297,9 @@ class _AllMaterialsScreenState extends ConsumerState<AllMaterialsScreen>
           ? const Center(child: CircularProgressIndicator())
           : needsSetupDpr
           ? _buildSetupDprState()
-          : SafeArea(
+          : isEmptyAfterDelete
+          ? _buildSetupDprState()
+          :SafeArea(
         child: Column(
           children: [
             Container(
@@ -342,6 +351,33 @@ class _AllMaterialsScreenState extends ConsumerState<AllMaterialsScreen>
       ),
     );
   }
+  Widget _buildEmptyMaterialsState() {
+    return Center(
+      child: Column(
+        mainAxisAlignment: MainAxisAlignment.center,
+        children: [
+          const Icon(Icons.inventory_2_outlined, size: 72, color: Colors.grey),
+          const SizedBox(height: 16),
+          const Text(
+            'No materials found',
+            style: TextStyle(fontSize: 20, fontWeight: FontWeight.bold),
+          ),
+          const SizedBox(height: 8),
+          const Text(
+            'You have deleted all materials.\nAdd a new one to continue.',
+            textAlign: TextAlign.center,
+            style: TextStyle(color: Colors.black54),
+          ),
+          const SizedBox(height: 24),
+          ElevatedButton.icon(
+            icon: const Icon(Icons.add),
+            label: const Text('Add Material'),
+            onPressed: () => _addNewMaterial('piping'), // or show choice dialog
+          ),
+        ],
+      ),
+    );
+  }
 
   Widget _buildSetupDprState() {
     return Center(
@@ -350,39 +386,107 @@ class _AllMaterialsScreenState extends ConsumerState<AllMaterialsScreen>
         child: Column(
           mainAxisAlignment: MainAxisAlignment.center,
           children: [
-            const Icon(Icons.settings, size: 72, color: Colors.blueGrey),
+            const Icon(
+              Icons.inventory_2_outlined,
+              size: 72,
+              color: Colors.blueGrey,
+            ),
             const SizedBox(height: 24),
 
             const Text(
-              'Setup DPR Required',
-              style: TextStyle(fontSize: 22, fontWeight: FontWeight.bold),
+              'No Materials Found',
+              style: TextStyle(
+                fontSize: 22,
+                fontWeight: FontWeight.bold,
+              ),
               textAlign: TextAlign.center,
             ),
 
             const SizedBox(height: 12),
 
             const Text(
-              'Default materials are not configured for this site.\n\n'
-                  'You must set up DPR materials before creating or managing DPRs.',
+              'Either DPR materials are not set up yet\n'
+                  'or all materials have been deleted.\n\n'
+                  'You can set up default DPR materials\n'
+                  'or directly add a new material.',
               textAlign: TextAlign.center,
-              style: TextStyle(color: Colors.black54, fontSize: 16),
+              style: TextStyle(
+                color: Colors.black54,
+                fontSize: 16,
+              ),
             ),
 
             const SizedBox(height: 32),
 
-            ElevatedButton.icon(
-              icon: const Icon(Icons.playlist_add),
-              label: const Text('Setup DPR Materials'),
-              onPressed: _showSetupDprDialog,
-              style: ElevatedButton.styleFrom(
-                padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 14),
-              ),
+            // ✅ PRIMARY ACTIONS
+            Column(
+              children: [
+                ElevatedButton.icon(
+                  icon: const Icon(Icons.playlist_add),
+                  label: const Text('Setup DPR Materials'),
+                  onPressed: _showSetupDprDialog,
+                  style: ElevatedButton.styleFrom(
+                    padding: const EdgeInsets.symmetric(
+                      horizontal: 24,
+                      vertical: 14,
+                    ),
+                  ),
+                ),
+
+                const SizedBox(height: 12),
+
+                OutlinedButton.icon(
+                  icon: const Icon(Icons.add),
+                  label: const Text('Add Material Manually'),
+                  onPressed: () => _showAddMaterialSheet()
+                  , // or show chooser
+                  style: OutlinedButton.styleFrom(
+                    padding: const EdgeInsets.symmetric(
+                      horizontal: 24,
+                      vertical: 14,
+                    ),
+                  ),
+                ),
+              ],
             ),
           ],
         ),
       ),
     );
   }
+  void _showAddMaterialSheet() {
+    showModalBottomSheet(
+      context: context,
+      shape: const RoundedRectangleBorder(
+        borderRadius: BorderRadius.vertical(top: Radius.circular(16)),
+      ),
+      builder: (_) => SafeArea(
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            ListTile(
+              leading: const Icon(Icons.precision_manufacturing),
+              title: const Text('Add Piping Material'),
+              onTap: () {
+                Navigator.pop(context);
+                _addNewMaterial('piping');
+              },
+            ),
+            ListTile(
+              leading: const Icon(Icons.build),
+              title: const Text('Add Equipment Material'),
+              onTap: () {
+                Navigator.pop(context);
+                _addNewMaterial('equipment');
+              },
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
+
 
   /// Show setup DPR dialog with options
   Future<void> _showSetupDprDialog() async {
@@ -481,6 +585,10 @@ class _AllMaterialsScreenState extends ConsumerState<AllMaterialsScreen>
         designation: designation,
         isApplied: isApplied,
       );
+
+
+      _isSetupCompleted = true; // ✅ IMPORTANT
+
 
       await _refreshMaterials();
 
@@ -726,6 +834,9 @@ class _AllMaterialsScreenState extends ConsumerState<AllMaterialsScreen>
             onDelete: _isSelectionMode
                 ? null
                 : () => _deleteMaterial(material.id, material.materialName, 'equipment'),
+            onCopy: _isSelectionMode
+                ? null
+                : () => _copyMaterial(material, 'equipment'),
             onRemark: _isSelectionMode
                 ? () {}
                 : () => _showRemarksDialog(material, 'equipment'),

@@ -281,61 +281,33 @@ class ImageUploadHelper {
 // Preview Widget Builder
 // ============================================
 class UploadBoxPreview extends StatelessWidget {
-  final File file;
+  final File? file;
+  final String? source; // network url OR local path OR asset
   final VoidCallback onRemove;
   final VoidCallback onEdit;
   final bool isImage;
 
   const UploadBoxPreview({
     super.key,
-    required this.file,
+    this.file,
+    this.source,
     required this.onRemove,
     required this.onEdit,
     this.isImage = true,
-  });
+  }) : assert(file != null || source != null,
+  'Either file or source must be provided');
 
   @override
   Widget build(BuildContext context) {
     return Stack(
       children: [
-        // Preview Content
-        if (isImage)
-          ClipRRect(
-            borderRadius: BorderRadius.circular(20),
-            child: Image.file(
-              file,
-              fit: BoxFit.cover,
-              width: double.infinity,
-              height: double.infinity,
-            ),
-          )
-        else
-          Container(
-            decoration: BoxDecoration(
-              borderRadius: BorderRadius.circular(20),
-              color: Colors.grey[100],
-            ),
-            child: Column(
-              mainAxisAlignment: MainAxisAlignment.center,
-              children: [
-                Icon(Icons.insert_drive_file,
-                    size: 48, color: Colors.grey[600]),
-                const SizedBox(height: 8),
-                Text(
-                  file.path.split('/').last,
-                  maxLines: 2,
-                  textAlign: TextAlign.center,
-                  overflow: TextOverflow.ellipsis,
-                  style: TextStyle(
-                    fontSize: 14,
-                    color: Colors.grey[800],
-                  ),
-                ),
-              ],
-            ),
-          ),
+        // ================= PREVIEW =================
+        ClipRRect(
+          borderRadius: BorderRadius.circular(20),
+          child: _buildPreview(),
+        ),
 
-        // Overlay
+        // ================= OVERLAY =================
         if (isImage)
           Container(
             decoration: BoxDecoration(
@@ -344,15 +316,15 @@ class UploadBoxPreview extends StatelessWidget {
                 begin: Alignment.topCenter,
                 end: Alignment.bottomCenter,
                 colors: [
-                  Colors.black.withOpacity(0.3),
+                  Colors.black.withOpacity(0.25),
                   Colors.transparent,
-                  Colors.black.withOpacity(0.5),
+                  Colors.black.withOpacity(0.4),
                 ],
               ),
             ),
           ),
 
-        // Remove button
+        // ================= REMOVE =================
         Positioned(
           top: 10,
           right: 10,
@@ -364,16 +336,12 @@ class UploadBoxPreview extends StatelessWidget {
                 color: Colors.red,
                 shape: BoxShape.circle,
               ),
-              child: const Icon(
-                Icons.close,
-                size: 20,
-                color: Colors.white,
-              ),
+              child: const Icon(Icons.close, size: 20, color: Colors.white),
             ),
           ),
         ),
 
-        // Edit/Change button
+        // ================= EDIT =================
         Positioned(
           bottom: 15,
           left: 0,
@@ -384,7 +352,6 @@ class UploadBoxPreview extends StatelessWidget {
               icon: const Icon(Icons.edit, size: 18),
               label: Text(isImage ? 'Change Image' : 'Change File'),
               style: ElevatedButton.styleFrom(
-                elevation: 2,
                 backgroundColor: Colors.blue,
                 foregroundColor: Colors.white,
                 shape: RoundedRectangleBorder(
@@ -396,6 +363,77 @@ class UploadBoxPreview extends StatelessWidget {
           ),
         ),
       ],
+    );
+  }
+
+  // ================= IMAGE RESOLVER =================
+  Widget _buildPreview() {
+    if (!isImage) {
+      return _filePreview();
+    }
+
+    if (file != null) {
+      return Image.file(
+        file!,
+        fit: BoxFit.cover,
+        width: double.infinity,
+        height: double.infinity,
+      );
+    }
+
+    if (source != null && source!.startsWith('http')) {
+      return Image.network(
+        source!,
+        fit: BoxFit.cover,
+        width: double.infinity,
+        height: double.infinity,
+        errorBuilder: (_, __, ___) => _fallback(),
+      );
+    }
+
+    if (source != null) {
+      return Image.file(
+        File(source!),
+        fit: BoxFit.cover,
+        width: double.infinity,
+        height: double.infinity,
+        errorBuilder: (_, __, ___) => _fallback(),
+      );
+    }
+
+    return _fallback();
+  }
+
+  Widget _filePreview() {
+    final name = file != null
+        ? file!.path.split('/').last
+        : source!.split('/').last;
+
+    return Container(
+      color: Colors.grey[100],
+      child: Column(
+        mainAxisAlignment: MainAxisAlignment.center,
+        children: [
+          Icon(Icons.insert_drive_file, size: 48, color: Colors.grey[600]),
+          const SizedBox(height: 8),
+          Text(
+            name,
+            maxLines: 2,
+            overflow: TextOverflow.ellipsis,
+            textAlign: TextAlign.center,
+            style: TextStyle(color: Colors.grey[800]),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _fallback() {
+    return Container(
+      color: Colors.grey[200],
+      child: const Center(
+        child: Icon(Icons.broken_image, size: 40, color: Colors.grey),
+      ),
     );
   }
 }

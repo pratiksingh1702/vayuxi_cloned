@@ -18,13 +18,17 @@ class SiteListScreen extends ConsumerStatefulWidget {
   final Widget Function(SiteModel site) pageBuilder;
   final bool show;
 
-  const SiteListScreen({super.key, required this.pageBuilder,this.show=false});
+  const SiteListScreen({super.key, required this.pageBuilder, this.show = false});
 
   @override
   ConsumerState<SiteListScreen> createState() => _SiteListScreenState();
 }
 
 class _SiteListScreenState extends ConsumerState<SiteListScreen> {
+  // Selection mode state
+  bool _isSelectionMode = false;
+  Set<String> _selectedSiteIds = {};
+
   @override
   void initState() {
     super.initState();
@@ -43,6 +47,7 @@ class _SiteListScreenState extends ConsumerState<SiteListScreen> {
       }
     });
   }
+
   Future<void> _confirmAndDeleteSite(SiteModel site) async {
     final confirm = await showDialog<bool>(
       context: context,
@@ -70,7 +75,6 @@ class _SiteListScreenState extends ConsumerState<SiteListScreen> {
 
     try {
       await SiteAPI.delete(site.id);
-
       ref.read(siteProvider.notifier).fetchSites();
 
       if (!mounted) return;
@@ -91,6 +95,103 @@ class _SiteListScreenState extends ConsumerState<SiteListScreen> {
     }
   }
 
+  /// Toggle selection mode
+  void _toggleSelectionMode() {
+    setState(() {
+      _isSelectionMode = !_isSelectionMode;
+      if (!_isSelectionMode) {
+        _selectedSiteIds.clear();
+      }
+    });
+  }
+
+  /// Toggle individual site selection
+  void _toggleSiteSelection(String siteId) {
+    setState(() {
+      if (_selectedSiteIds.contains(siteId)) {
+        _selectedSiteIds.remove(siteId);
+      } else {
+        _selectedSiteIds.add(siteId);
+      }
+    });
+  }
+
+  /// Select all sites
+  void _selectAllSites(List<SiteModel> sites) {
+    setState(() {
+      for (var site in sites) {
+        _selectedSiteIds.add(site.id);
+      }
+    });
+  }
+
+  /// Delete selected sites
+  Future<void> _deleteSelectedSites() async {
+    if (_selectedSiteIds.isEmpty) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text('No sites selected'),
+          backgroundColor: Colors.orange,
+        ),
+      );
+      return;
+    }
+
+    final confirmed = await showDialog<bool>(
+      context: context,
+      builder: (context) => AlertDialog(
+        title: const Text('Delete Selected Sites'),
+        content: Text(
+          'Are you sure you want to delete ${_selectedSiteIds.length} selected sites?\n\n'
+              'This action cannot be undone.',
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(context, false),
+            child: const Text('Cancel'),
+          ),
+          TextButton(
+            onPressed: () => Navigator.pop(context, true),
+            style: TextButton.styleFrom(foregroundColor: Colors.red),
+            child: const Text('Delete'),
+          ),
+        ],
+      ),
+    );
+
+    if (confirmed != true) return;
+
+    try {
+      await SiteAPI.bulkDeleteSites(_selectedSiteIds.toList());
+
+      ref.read(siteProvider.notifier).fetchSites();
+
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text('Successfully deleted ${_selectedSiteIds.length} sites'),
+            backgroundColor: Colors.green,
+          ),
+        );
+      }
+
+      setState(() {
+        _selectedSiteIds.clear();
+        _isSelectionMode = false;
+      });
+    } catch (e) {
+      debugPrint('❌ Failed to bulk delete: $e');
+
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text('Bulk delete failed: ${e.toString()}'),
+            backgroundColor: Colors.red,
+          ),
+        );
+      }
+    }
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -99,14 +200,15 @@ class _SiteListScreenState extends ConsumerState<SiteListScreen> {
     final selectedSiteId = ref.watch(selectedSiteIdProvider);
     final currentSite = ref.watch(currentSiteProvider);
 
-
-
-    // ⬇️ Otherwise build normal site list UI
     return Scaffold(
       body: NestedScrollView(
         headerSliverBuilder: (context, innerBoxIsScrolled) {
           return [
-            CustomSliverAppBar(title: "Select Site"),
+            CustomSliverAppBar(
+              title: _isSelectionMode
+                  ? '${_selectedSiteIds.length} Selected'
+                  : "Select Site",
+            ),
           ];
         },
         body: _buildMainBody(),
@@ -115,25 +217,73 @@ class _SiteListScreenState extends ConsumerState<SiteListScreen> {
   }
 
   Widget _buildMainBody() {
+    final siteState = ref.watch(siteProvider);
+    final sites = siteState.sites;
+
     return BottomButtonWrapper(
       customButtons: [
-       if(widget.show) CustomButton(
-          button: RoundedButton(
-            text: "Add",
-            color: Colors.blue,
-            textColor: Colors.white,
-            onPressed: () {
-              Navigator.push(
-                context,
-                MaterialPageRoute(builder: (context) =>SiteEntrySelectCardGrid()),
-              );
-            },
+        if (widget.show)
+          CustomButton(
+            button: RoundedButton(
+              text: "Add",
+              color: Colors.blue,
+              textColor: Colors.white,
+              onPressed: () {
+                Navigator.push(
+                  context,
+                  MaterialPageRoute(builder: (context) => SiteEntrySelectCardGrid()),
+                );
+              },
+            ),
           ),
-        ),
       ],
-      child: Stack(
+      child: Column(
         children: [
-          Positioned.fill(
+          // Top action bar with selection controls
+          if (sites.isNotEmpty)
+            Row(
+              mainAxisAlignment: MainAxisAlignment.end,
+              children: [
+
+                Row(
+                  children: [
+                    if (_isSelectionMode) ...[
+                      IconButton(
+                        icon: const Icon(Icons.close),
+                        onPressed: _toggleSelectionMode,
+                        tooltip: 'Cancel',
+                      ),
+                      TextButton(
+                        onPressed: () => _selectAllSites(sites),
+                        child: const Text('Select All'),
+                      ),
+                      const SizedBox(width: 8),
+                      ElevatedButton.icon(
+                        icon: const Icon(Icons.delete_sweep, size: 18),
+                        label: const Text('Delete'),
+                        onPressed: _selectedSiteIds.isEmpty
+                            ? null
+                            : _deleteSelectedSites,
+                        style: ElevatedButton.styleFrom(
+                          backgroundColor: Colors.red,
+                          foregroundColor: Colors.white,
+                        ),
+                      ),
+                    ] else ...[
+                      if (widget.show)
+                        IconButton(
+                          icon: const Icon(Icons.delete_sweep, color: Colors.red),
+                          onPressed: sites.isEmpty ? null : _toggleSelectionMode,
+                          tooltip: 'Select Sites to Delete',
+                        ),
+                    ],
+                  ],
+                ),
+              ],
+            ),
+
+          // Site grid
+          Expanded(
             child: Consumer(
               builder: (context, ref, child) {
                 final siteState = ref.watch(siteProvider);
@@ -147,7 +297,6 @@ class _SiteListScreenState extends ConsumerState<SiteListScreen> {
       ),
     );
   }
-
 
   Widget _buildBody(SiteState siteState) {
     // Show loading only when truly loading and no data
@@ -221,27 +370,76 @@ class _SiteListScreenState extends ConsumerState<SiteListScreen> {
         itemCount: siteState.sites.length,
         itemBuilder: (context, index) {
           final site = siteState.sites[index];
+          final isSelected = _selectedSiteIds.contains(site.id);
+
           print(site.siteImage);
           print("🏢 Building card for site: ${site.siteName} (index: $index)");
-          return CompanyCard(
-            imagePath:
-                site.siteImage ?? '',
-            companyName: site.siteName ?? 'Unknown Site',
-            onTap: () {
-              print("👆 Tapped on site: ${site.siteName}");
-              ref.read(selectedSiteIdProvider.notifier).state = site.id;
-              final ew=ref.read(currentSiteProvider);
-              print(ew?.siteName);
 
-              Navigator.push(
-                context,
-                MaterialPageRoute(
-                  builder: (context) => widget.pageBuilder(site),
+          return Stack(
+            children: [
+              Opacity(
+                opacity: _isSelectionMode && !isSelected ? 0.5 : 1.0,
+                child: CompanyCard(
+                  imagePath: site.siteImage ?? '',
+                  companyName: site.siteName ?? 'Unknown Site',
+                  onTap: _isSelectionMode
+                      ? () => _toggleSiteSelection(site.id)
+                      : () {
+                    print("👆 Tapped on site: ${site.siteName}");
+                    ref.read(selectedSiteIdProvider.notifier).state = site.id;
+                    final ew = ref.read(currentSiteProvider);
+                    print(ew?.siteName);
+
+                    Navigator.push(
+                      context,
+                      MaterialPageRoute(
+                        builder: (context) => widget.pageBuilder(site),
+                      ),
+                    );
+                  },
+                  onDelete: _isSelectionMode
+                      ? null
+                      : () => _confirmAndDeleteSite(site),
+                  show: widget.show && !_isSelectionMode,
                 ),
-              );
-            },
-            onDelete: () => _confirmAndDeleteSite(site),
-            show: widget.show,
+              ),
+
+              // Selection checkbox overlay
+              if (_isSelectionMode)
+                Positioned(
+                  top: 8,
+                  right: 8,
+                  child: GestureDetector(
+                    onTap: () => _toggleSiteSelection(site.id),
+                    child: Container(
+                      width: 32,
+                      height: 32,
+                      decoration: BoxDecoration(
+                        shape: BoxShape.circle,
+                        color: isSelected ? Colors.red : Colors.white,
+                        border: Border.all(
+                          color: Colors.red,
+                          width: 2,
+                        ),
+                        boxShadow: [
+                          BoxShadow(
+                            color: Colors.black.withOpacity(0.2),
+                            blurRadius: 4,
+                            offset: const Offset(0, 2),
+                          ),
+                        ],
+                      ),
+                      child: isSelected
+                          ? const Icon(
+                        Icons.check,
+                        color: Colors.white,
+                        size: 20,
+                      )
+                          : null,
+                    ),
+                  ),
+                ),
+            ],
           );
         },
       ),
