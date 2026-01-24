@@ -10,6 +10,7 @@ import 'core/router/routes.dart';
 import 'features/auth/provider/auth_provider.dart';
 import 'features/modules/screen/device_id.dart';
 import 'features/noti_system/noti_providers/noti_provider.dart';
+import 'features/profile_page/provider/userProvider.dart';
 
 class WorkCategoryScreen extends ConsumerStatefulWidget {
   const WorkCategoryScreen({super.key});
@@ -20,6 +21,14 @@ class WorkCategoryScreen extends ConsumerStatefulWidget {
 
 class _WorkCategoryScreenState extends ConsumerState<WorkCategoryScreen> {
   String? selectedImage;
+  @override
+  void initState() {
+    super.initState();
+    Future.microtask(() {
+      ref.read(userNotifierProvider.notifier).getCurrentUser();
+    });
+
+  }
 
   Future<void> handlePress({
     required String id,

@@ -9,6 +9,7 @@ import 'package:untitled2/features/modules/all_Modules/dpr/screens/widgets/size_
 import 'package:untitled2/features/modules/all_Modules/site_Details/providers/site_current_provider.dart';
 import '../../../../../../core/utlis/widgets/buttons.dart';
 import '../../../../../../core/utlis/widgets/custom.dart';
+import '../../../../../language/service/providers.dart';
 import '../../models/floorModel.dart';
 import '../../providers/floorProvider.dart';
 import '../../providers/selectedSize_provider.dart';
@@ -172,213 +173,20 @@ class _FloorSelectionPageState extends ConsumerState<FloorSelectionPage> {
     }
   }
 
-  void _showSizeInputDialog(BuildContext context) {
-    final TextEditingController sizeController = TextEditingController();
-    final FocusNode sizeFocusNode = FocusNode();
 
-    showDialog(
-      context: context,
-      barrierColor: Colors.black54,
-      builder: (context) => Dialog(
-        backgroundColor: Colors.transparent,
-        insetPadding: const EdgeInsets.all(20),
-        child: Container(
-          decoration: BoxDecoration(
-            color: Colors.white,
-            borderRadius: BorderRadius.circular(20),
-            boxShadow: [
-              BoxShadow(
-                color: Colors.black.withOpacity(0.1),
-                blurRadius: 20,
-                spreadRadius: 5,
-              ),
-            ],
-          ),
-          child: Padding(
-            padding: const EdgeInsets.all(24.0),
-            child: Column(
-              mainAxisSize: MainAxisSize.min,
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Row(
-                  children: [
-                    Container(
-                      width: 40,
-                      height: 40,
-                      decoration: BoxDecoration(
-                        color: Colors.blue.withOpacity(0.1),
-                        borderRadius: BorderRadius.circular(12),
-                      ),
-                      child: const Icon(
-                        Icons.straighten,
-                        color: Colors.blue,
-                        size: 24,
-                      ),
-                    ),
-                    const SizedBox(width: 12),
-                    const Expanded(
-                      child: Column(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        children: [
-                          Text(
-                            'Enter Size',
-                            style: TextStyle(
-                              fontSize: 20,
-                              fontWeight: FontWeight.w600,
-                              color: Colors.black87,
-                            ),
-                          ),
-                          SizedBox(height: 2),
-                          Text(
-                            'Please specify the size in inches',
-                            style: TextStyle(
-                              fontSize: 14,
-                              color: Colors.grey,
-                            ),
-                          ),
-                        ],
-                      ),
-                    ),
-                  ],
-                ),
-                const SizedBox(height: 24),
-                TextField(
-                  controller: sizeController,
-                  focusNode: sizeFocusNode,
-                  decoration: InputDecoration(
-                    hintText: 'e.g., 10, 12.5, 8, etc.',
-                    labelText: 'Size (inches)',
-                    labelStyle: const TextStyle(color: Colors.blue),
-                    prefixIcon: const Icon(Icons.construction, color: Colors.blue),
-                    border: OutlineInputBorder(
-                      borderRadius: BorderRadius.circular(12),
-                      borderSide: const BorderSide(color: Colors.grey),
-                    ),
-                    focusedBorder: OutlineInputBorder(
-                      borderRadius: BorderRadius.circular(12),
-                      borderSide: const BorderSide(color: Colors.blue, width: 2),
-                    ),
-                    filled: true,
-                    fillColor: Colors.grey[50],
-                    contentPadding: const EdgeInsets.symmetric(
-                      horizontal: 16,
-                      vertical: 16,
-                    ),
-                  ),
-                  style: const TextStyle(fontSize: 16),
-                  keyboardType:
-                  const TextInputType.numberWithOptions(decimal: true),
-                  textInputAction: TextInputAction.done,
-                  onSubmitted: (value) {
-                    if (value.trim().isNotEmpty) {
-                      _saveSizeAndNavigate(context, value.trim());
-                    }
-                  },
-                ),
-                const SizedBox(height: 8),
-                const Padding(
-                  padding: EdgeInsets.symmetric(horizontal: 8.0),
-                  child: Text(
-                    'Enter the size measurement in inches',
-                    style: TextStyle(fontSize: 12, color: Colors.grey),
-                  ),
-                ),
-                const SizedBox(height: 28),
-                Row(
-                  children: [
-                    Expanded(
-                      child: OutlinedButton(
-                        onPressed: () => Navigator.pop(context),
-                        style: OutlinedButton.styleFrom(
-                          padding: const EdgeInsets.symmetric(vertical: 16),
-                          shape: RoundedRectangleBorder(
-                            borderRadius: BorderRadius.circular(12),
-                          ),
-                          side: BorderSide(color: Colors.grey[300]!),
-                        ),
-                        child: const Text(
-                          'Cancel',
-                          style: TextStyle(color: Colors.grey),
-                        ),
-                      ),
-                    ),
-                    const SizedBox(width: 12),
-                    Expanded(
-                      child: ElevatedButton(
-                        onPressed: () {
-                          if (sizeController.text.trim().isNotEmpty) {
-                            _saveSizeAndNavigate(
-                                context, sizeController.text.trim());
-                          } else {
-                            ScaffoldMessenger.of(context).showSnackBar(
-                              const SnackBar(
-                                content: Text('Please enter a size'),
-                                backgroundColor: Colors.red,
-                                behavior: SnackBarBehavior.floating,
-                              ),
-                            );
-                          }
-                        },
-                        style: ElevatedButton.styleFrom(
-                          backgroundColor: Colors.blue,
-                          foregroundColor: Colors.white,
-                          padding: const EdgeInsets.symmetric(vertical: 16),
-                          shape: RoundedRectangleBorder(
-                            borderRadius: BorderRadius.circular(12),
-                          ),
-                          elevation: 0,
-                        ),
-                        child: const Row(
-                          mainAxisAlignment: MainAxisAlignment.center,
-                          children: [
-                            Text(
-                              'Save',
-                              style: TextStyle(
-                                fontSize: 16,
-                                fontWeight: FontWeight.w600,
-                              ),
-                            ),
-                            SizedBox(width: 8),
-                            Icon(Icons.arrow_forward, size: 20),
-                          ],
-                        ),
-                      ),
-                    ),
-                  ],
-                ),
-              ],
-            ),
-          ),
-        ),
-      ),
-    ).then((_) {
-      sizeController.dispose();
-      sizeFocusNode.dispose();
-    });
-  }
-
-  void _saveSizeAndNavigate(BuildContext context, String size) {
-    Navigator.pop(context);
-    ref.read(selectedSizeProvider.notifier).state = size;
-    Navigator.push(
-      context,
-      MaterialPageRoute(
-        builder: (context) => AddDescriptionScreen(),
-      ),
-    );
-  }
 
   @override
   Widget build(BuildContext context) {
     final floorState = ref.watch(floorProvider);
     final selectedFloor = ref.watch(selectedFloorProvider);
     final filteredFloors = _getFilteredFloors(floorState.floors);
+    final lang=ref.watch(dailyEntryTranslationHelperProvider);
 
     return Scaffold(
       body: NestedScrollView(
         headerSliverBuilder: (context, innerBoxIsScrolled) {
           return [
-            CustomSliverAppBar(title: "Floor List"),
+            CustomSliverAppBar(title: lang.chooseFloorTitle),
           ];
         },
         body: BottomButtonWrapper(
@@ -386,7 +194,7 @@ class _FloorSelectionPageState extends ConsumerState<FloorSelectionPage> {
             if (!widget.showEditOptions)
               CustomButton(
                 button: RoundedButton(
-                  text: "Save & Submit",
+                  text: lang.saveSubmitButton,
                   color: Colors.blue,
                   textColor: Colors.white,
                   onPressed: () {

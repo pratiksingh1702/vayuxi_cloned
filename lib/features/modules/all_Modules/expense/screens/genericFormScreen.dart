@@ -4,6 +4,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:untitled2/core/utlis/colors/colors.dart';
 import 'package:untitled2/core/utlis/widgets/Button_wrapper.dart';
 import 'package:untitled2/core/utlis/widgets/custom_appBar.dart';
+import 'package:untitled2/features/language/service/providers.dart';
 import 'package:untitled2/features/modules/all_Modules/rate/data/rateApi.dart';
 import 'package:untitled2/features/modules/all_Modules/site_Details/providers/site_current_provider.dart';
 import 'package:untitled2/typeProvider/type_provider.dart';
@@ -151,13 +152,14 @@ class _ExpenseFormScreenState extends ConsumerState<ExpenseFormScreen> {
   }
 
   String _getExpenseTypeName(String type) {
+    final lang=ref.watch(dailyEntryTranslationHelperProvider);
     final names = {
-      'material_tools': 'Material & Tools',
-      'travelling': 'Travelling',
-      'food': 'Food',
-      'accommodation': 'Accommodation',
-      'advance': 'Advance',
-      'miscellaneous': 'miscellaneous',
+      'material_tools': lang.materialToolsCategory,
+      'travelling': lang.travelCategory,
+      'food': lang.foodCategory,
+      'accommodation': lang.accommodationCategory,
+      'advance': lang.advanceCategory,
+      'miscellaneous': lang.miscellaneousCategory,
     };
     return names[type] ?? type;
   }
@@ -344,6 +346,7 @@ class _ExpenseFormScreenState extends ConsumerState<ExpenseFormScreen> {
   }
 
   Widget _buildMaterialToolsFields() {
+    final lang=ref.watch(dailyEntryTranslationHelperProvider);
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
@@ -362,7 +365,7 @@ class _ExpenseFormScreenState extends ConsumerState<ExpenseFormScreen> {
         ),
         const SizedBox(height: 16),
         CustomTextField(
-          label: "Hardware Shop",
+          label: lang.hardwareShopLabel,
           controller: _hardwareShopController,
           hint: "Enter hardware shop name",
         ),
@@ -756,6 +759,7 @@ class _ExpenseFormScreenState extends ConsumerState<ExpenseFormScreen> {
 
   @override
   Widget build(BuildContext context) {
+    final lang=ref.read(dailyEntryTranslationHelperProvider);
     return Scaffold(
       resizeToAvoidBottomInset: false,
       appBar: CustomAppBar(title: _getScreenTitle()),
@@ -794,8 +798,8 @@ class _ExpenseFormScreenState extends ConsumerState<ExpenseFormScreen> {
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  const Text(
-                    "Select Date*",
+                   Text(
+                    '${lang.dateLabel}',
                     style: TextStyle(
                       fontWeight: FontWeight.bold,
                       fontSize: 16,

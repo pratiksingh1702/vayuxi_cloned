@@ -3,6 +3,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:untitled2/core/utlis/widgets/buttons.dart';
 import 'package:untitled2/core/utlis/widgets/custom_appBar.dart';
+import 'package:untitled2/features/language/service/providers.dart';
 import 'package:untitled2/features/modules/all_Modules/site_Details/screens/site_entry_select_page.dart';
 
 import '../../../../../core/utlis/colors/colors.dart';
@@ -196,6 +197,7 @@ class _SiteListScreenState extends ConsumerState<SiteListScreen> {
   @override
   Widget build(BuildContext context) {
     print("🏗️ Building SiteListScreen");
+    final lang=ref.watch(dailyEntryTranslationHelperProvider);
 
     final selectedSiteId = ref.watch(selectedSiteIdProvider);
     final currentSite = ref.watch(currentSiteProvider);
@@ -207,7 +209,7 @@ class _SiteListScreenState extends ConsumerState<SiteListScreen> {
             CustomSliverAppBar(
               title: _isSelectionMode
                   ? '${_selectedSiteIds.length} Selected'
-                  : "Select Site",
+                  : lang.selectSiteTitle,
             ),
           ];
         },

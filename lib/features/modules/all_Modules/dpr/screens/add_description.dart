@@ -18,6 +18,7 @@ import 'package:untitled2/core/utlis/widgets/buttons.dart';
 import 'package:untitled2/core/utlis/widgets/custom.dart';
 import 'package:untitled2/features/modules/all_Modules/team/provider/teamProvider.dart';
 import '../../../../../core/utlis/common_functions.dart';
+import '../../../../language/service/providers.dart';
 import '../dpr-setup/screens/add/add_material.dart';
 import '../models/data/eqipment_provider.dart';
 import '../models/data/piping_provider.dart';
@@ -766,6 +767,7 @@ class _AddDescriptionScreenState extends ConsumerState<AddDescriptionScreen>
     final hasEquipmentMaterials = equipmentMaterials.isNotEmpty;
     final shouldShowPiping = _pipeFittingOn && _showPipingMaterials && hasPipingMaterials;
     final shouldShowEquipment = _equipmentOn && _showEquipmentMaterials && hasEquipmentMaterials;
+    final lang=ref.watch(dailyEntryTranslationHelperProvider);
 
     // Only show dropdown when:
     // 1. In edit mode
@@ -825,7 +827,7 @@ class _AddDescriptionScreenState extends ConsumerState<AddDescriptionScreen>
                         children: [
                           if (_pipeFittingOn && hasPipingMaterials)
                             _buildMaterialToggleCard(
-                              'Pipe Fitting Materials',
+                              lang.pipeFittingMaterialLabel,
                               pipingMaterials.length,
                               _showPipingMaterials,
                                   () => _toggleMaterialVisibility(true),
@@ -836,7 +838,7 @@ class _AddDescriptionScreenState extends ConsumerState<AddDescriptionScreen>
 
                           if (_equipmentOn && hasEquipmentMaterials)
                             _buildMaterialToggleCard(
-                              'Equipment Materials',
+                              lang.equipmentMaterialLabel,
                               equipmentMaterials.length,
                               _showEquipmentMaterials,
                                   () => _toggleMaterialVisibility(false),
@@ -1083,6 +1085,7 @@ class _AddDescriptionScreenState extends ConsumerState<AddDescriptionScreen>
   }
 
   Widget _buildDateSection() {
+    final lang=ref.watch(dailyEntryTranslationHelperProvider);
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
       decoration: BoxDecoration(
@@ -1094,12 +1097,12 @@ class _AddDescriptionScreenState extends ConsumerState<AddDescriptionScreen>
       child: Row(
         mainAxisAlignment: MainAxisAlignment.spaceBetween,
         children: [
-          const Row(
+          Row(
             children: [
-              SizedBox(width: 8),
+              const SizedBox(width: 8),
               Text(
-                'Daily Report',
-                style: TextStyle(fontSize: 15, fontWeight: FontWeight.w600),
+                "${lang.dailyReportTitle}",
+                style: const TextStyle(fontSize: 15, fontWeight: FontWeight.w600),
               ),
             ],
           ),
@@ -1168,6 +1171,7 @@ class _AddDescriptionScreenState extends ConsumerState<AddDescriptionScreen>
   }
 
   Widget _buildDprInfoCard(bool shouldShowDropdown) {
+
     return Container(
       decoration: BoxDecoration(
         color: Colors.white,
@@ -1389,17 +1393,18 @@ class _AddDescriptionScreenState extends ConsumerState<AddDescriptionScreen>
   }
 
   Widget _buildInputFields() {
+    final lang=ref.watch(dailyEntryTranslationHelperProvider);
     return Column(
       children: [
         Row(
           children: [
-            Expanded(child: _buildCompactInputField('Plant', _plantController, Icons.factory)),
+            Expanded(child: _buildCompactInputField(lang.plantTab, _plantController, Icons.factory)),
             const SizedBox(width: 12),
-            Expanded(child: _buildCompactInputField('Location', _floorController, Icons.location_on)),
+            Expanded(child: _buildCompactInputField(lang.locationTab, _floorController, Icons.location_on)),
             const SizedBox(width: 12),
-            Expanded(child: _buildCompactInputField('MOC', _mocController, Icons.category)),
+            Expanded(child: _buildCompactInputField(lang.mocTab, _mocController, Icons.category)),
             const SizedBox(width: 12),
-            Expanded(child: _buildCompactInputField('Size', _sizeController, Icons.straighten)),
+            Expanded(child: _buildCompactInputField(lang.sizeTab, _sizeController, Icons.straighten)),
           ],
         )
       ],
@@ -1444,6 +1449,7 @@ class _AddDescriptionScreenState extends ConsumerState<AddDescriptionScreen>
   }
 
   Widget _buildToggleSection() {
+    final lang=ref.watch(dailyEntryTranslationHelperProvider);
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
@@ -1451,7 +1457,7 @@ class _AddDescriptionScreenState extends ConsumerState<AddDescriptionScreen>
           children: [
             Expanded(
               child: _buildToggleCard(
-                'Pipe Fitting',
+                lang.pipeFittingsTab,
                 Icons.plumbing_rounded,
                 _pipeFittingOn,
                 false,
@@ -1461,7 +1467,7 @@ class _AddDescriptionScreenState extends ConsumerState<AddDescriptionScreen>
             const SizedBox(width: 12),
             Expanded(
               child: _buildToggleCard(
-                'Equipment',
+                lang.equipmentTab,
                 Icons.precision_manufacturing_rounded,
                 _equipmentOn,
                 false,

@@ -10,7 +10,10 @@ import 'package:path_provider/path_provider.dart' as path_provider;
 import 'app.dart';
 import 'core/api/dio.dart';
 import 'core/api/requestQueue.dart';
+import 'features/language/model/download_language.dart';
+import 'features/language/model/language_model.dart';
 import 'features/modules/all_Modules/dpr/models/hive_storage_service.dart';
+import 'features/modules/all_Modules/dpr/offline/data/local/isar_db.dart';
 import 'features/modules/all_Modules/site_Details/repository/siteHive/siteHiveService.dart';
 import 'features/modules/all_Modules/site_Details/repository/siteHive/siteLocalStorage.dart';
 import 'features/noti_system/noti_services/bg_handler.dart';
@@ -23,7 +26,21 @@ void main() async {
   FirebaseMessaging.onBackgroundMessage(firebaseMessagingBackgroundHandler);
 
   final appDocDir = await path_provider.getApplicationDocumentsDirectory();
+  IsarDB.init();
   await Hive.initFlutter(appDocDir.path);
+
+  Hive.registerAdapter(LanguageModuleAdapter());
+
+  await Hive.openBox('language_meta');
+  await Hive.openBox<LanguageModule>('language_modules');
+
+
+
+  Hive.registerAdapter(DownloadLanguageAdapter());
+
+  await Hive.openBox('language_meta');
+  await Hive.openBox<LanguageModule>('language_modules');
+  await Hive.openBox<DownloadLanguage>('downloaded_languages');
 
   Hive.registerAdapter(SiteModelHiveAdapter());
   // Initialize Hive

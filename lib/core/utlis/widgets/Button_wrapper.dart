@@ -1,8 +1,10 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:untitled2/core/utlis/widgets/image_clipped.dart';
+import 'package:untitled2/features/language/service/providers.dart';
 import 'buttons.dart';
 
-class BottomButtonWrapper extends StatelessWidget {
+class BottomButtonWrapper extends ConsumerWidget {
   final Widget child;
   final List<CustomButton> customButtons;
   final bool showBackButton;
@@ -21,36 +23,37 @@ class BottomButtonWrapper extends StatelessWidget {
   });
 
   @override
-  Widget build(BuildContext context) {
-    return  CornerClippedScreenSimple(
+  Widget build(BuildContext context, WidgetRef ref) {
+    return CornerClippedScreenSimple(
       child: Column(
-          children: [
-            // Main content scrolls above the buttons
-            Expanded(child: child),
-      
-            // Bottom buttons
-            Container(
-              padding: padding,
-              child: SafeArea(
-                top: false,
-                child: Row(
-                  children: _buildButtons(context),
-                ),
+        children: [
+          /// Main content
+          Expanded(child: child),
+
+          /// Bottom buttons
+          Container(
+            padding: padding,
+            color: backgroundColor,
+            child: SafeArea(
+              top: false,
+              child: Row(
+                children: _buildButtons(context,ref),
               ),
             ),
-          ],
-        ),
+          ),
+        ],
+      ),
     );
   }
 
-  List<Widget> _buildButtons(BuildContext context) {
+  List<Widget> _buildButtons(BuildContext context,WidgetRef ref) {
     final List<Widget> buttons = [];
+    final t=ref.read(dailyEntryTranslationHelperProvider);
 
-    // Add back button if needed
     if (showBackButton) {
       buttons.add(
         RoundedButton(
-          text: 'Back',
+          text: t.backButton,
           color: Colors.grey.shade300,
           textColor: Colors.black,
           onPressed: onBackPressed ?? () => Navigator.of(context).pop(),
@@ -59,31 +62,30 @@ class BottomButtonWrapper extends StatelessWidget {
       );
     }
 
-    // Add custom buttons
     for (final button in customButtons) {
       buttons.add(button.button);
     }
 
-    // If only one button, it takes full width
     if (buttons.length == 1) {
       return [
         Expanded(
           child: Padding(
-            padding: const EdgeInsets.symmetric(horizontal: 4.0),
+            padding: const EdgeInsets.symmetric(horizontal: 4),
             child: buttons.first,
           ),
         ),
       ];
     }
 
-    // If multiple buttons, distribute equally with Expanded
     return buttons
-        .map((button) => Expanded(
-      child: Padding(
-        padding: const EdgeInsets.symmetric(horizontal: 4.0),
-        child: button,
+        .map(
+          (button) => Expanded(
+        child: Padding(
+          padding: const EdgeInsets.symmetric(horizontal: 4),
+          child: button,
+        ),
       ),
-    ))
+    )
         .toList();
   }
 }

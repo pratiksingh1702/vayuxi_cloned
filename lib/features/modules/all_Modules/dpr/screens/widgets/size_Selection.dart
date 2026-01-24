@@ -5,6 +5,7 @@ import 'package:untitled2/core/utlis/widgets/Button_wrapper.dart';
 import 'package:untitled2/core/utlis/widgets/buttons.dart';
 import 'package:untitled2/core/utlis/widgets/custom_appBar.dart';
 import '../../../../../../core/utlis/widgets/fields/custom_textField.dart';
+import '../../../../../language/service/providers.dart';
 import '../../providers/selectedSize_provider.dart';
 import '../add_description.dart';
 
@@ -17,9 +18,10 @@ class SizeSelectionPage extends ConsumerWidget {
     final TextEditingController sizeController = TextEditingController(
       text: selectedSize ?? '',
     );
+    final lang=ref.watch(dailyEntryTranslationHelperProvider);
 
     return Scaffold(
-      appBar: CustomAppBar(title: "Enter Size"),
+      appBar: CustomAppBar(title: lang.enterSizeTitle),
       body: BottomButtonWrapper(
         customButtons: [
           CustomButton(
@@ -68,7 +70,7 @@ class SizeSelectionPage extends ConsumerWidget {
             children: [
               // Size input field
               CustomTextField(
-                label: 'Size (in inch)',
+                label: lang.sizeTab,
                 TextSize: 20,
                 hint: 'Enter size (e.g., 10, M, XL, 42, etc.)',
                 controller: sizeController,

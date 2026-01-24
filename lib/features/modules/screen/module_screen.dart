@@ -10,6 +10,9 @@ import 'package:untitled2/features/modules/all_Modules/team/provider/teamService
 import 'package:untitled2/features/modules/all_Modules/team/model/teamModel.dart';
 
 import '../../../core/utlis/widgets/sidebar.dart';
+import '../../language/service/lang_providers.dart';
+import '../../language/service/providers.dart';
+import '../../language/service/translator.dart';
 import '../all_Modules/site_Details/providers/siteProvider.dart';
 import '../all_Modules/site_Details/providers/site_current_provider.dart';
 import '../all_Modules/team/provider/teamProvider.dart';
@@ -32,78 +35,67 @@ class _ModuleScreenState extends ConsumerState<ModuleScreen> {
   // Define modules by category with image paths
   final List<ModuleItem> _dailyEntryModules = [
     ModuleItem(
-      label: "Attendance",
+      labelKey: 'attendance_card',
       imagePath: "assets/images/icons/attendance.webp",
       routeName: "/site-list/attendance",
       color: Colors.red,
     ),
     ModuleItem(
-      label: "Daily Progress",
+      labelKey: 'daily_progress_card',
       imagePath: "assets/images/icons/dpr.webp",
       routeName: "/site-list/dpr",
       color: Colors.purple,
     ),
     ModuleItem(
-      label: "Expense",
+      labelKey: 'expense_card',
       imagePath: "assets/images/icons/expense_daily.webp",
       routeName: "/site-list/add-exp",
       color: Colors.indigo,
     ),
     ModuleItem(
-      label: "Inventory Entry",
+      labelKey: 'inventory_entry_card',
       imagePath: "assets/images/icons/inventory_entry.webp",
       routeName: "/site-list/inv-entry",
       color: Colors.indigo,
     ),
-    ModuleItem(
-      label: "",
-      imagePath: "",
-      routeName: "",
-      color: Colors.transparent,
-      isEmpty: true,
-    ),
-    ModuleItem(
-      label: "",
-      imagePath: "",
-      routeName: "",
-      color: Colors.transparent,
-      isEmpty: true,
-    ),
+    ModuleItem(labelKey: '', imagePath: '', routeName: '', isEmpty: true),
+    ModuleItem(labelKey: '', imagePath: '', routeName: '', isEmpty: true),
   ];
+
 
   final List<ModuleItem> _setupModules = [
     ModuleItem(
-      label: "Site Details",
+      labelKey: 'site_details_card',
       imagePath: "assets/images/icons/site_details.webp",
       routeName: "/site",
       color: Colors.blue,
     ),
     ModuleItem(
-      label: "Rate",
+      labelKey: 'rate_card',
       imagePath: "assets/images/icons/rate.webp",
       routeName: "/site-list/rate",
       color: Colors.green,
     ),
     ModuleItem(
-      label: "Manpower Details",
+      labelKey: 'manpower_details_card',
       imagePath: "assets/images/icons/manpower_setup.webp",
       routeName: "/manpower",
       color: Colors.orange,
     ),
     ModuleItem(
-      label: "Create Team",
+      labelKey: 'create_team_card',
       imagePath: "assets/images/icons/add_team.webp",
       routeName: "/site-list/team",
       color: Colors.teal,
     ),
     ModuleItem(
-      label: "Dpr Set Up",
+      labelKey: 'dpr_setup_card',
       imagePath: "assets/images/icons/dpr_setup.webp",
       routeName: "/site-list/addMoc",
       color: Colors.green,
     ),
     ModuleItem(
-      label: "Inventory Setup",
+      labelKey: 'inventory_setup_card',
       imagePath: "assets/images/icons/inventory_setup.webp",
       routeName: "/site-list/inv-setup",
       color: Colors.indigo,
@@ -112,37 +104,37 @@ class _ModuleScreenState extends ConsumerState<ModuleScreen> {
 
   final List<ModuleItem> _reportModules = [
     ModuleItem(
-      label: "Summary & Analysis",
+      labelKey: 'summary_analysis_card',
       imagePath: "assets/images/icons/summary_analysis.webp",
       routeName: "/summary",
       color: Colors.deepPurple,
     ),
     ModuleItem(
-      label: "Salary Slip",
+      labelKey: 'salary_slip_card',
       imagePath: "assets/images/icons/salary_slip.webp",
       routeName: "/salary",
       color: Colors.brown,
     ),
     ModuleItem(
-      label: "DPR SHEETS",
+      labelKey: 'dpr_sheets_card',
       imagePath: "assets/images/icons/dpr_report.webp",
       routeName: "/site-list/dprReport",
       color: Colors.indigo,
     ),
     ModuleItem(
-      label: "Expense Report",
+      labelKey: 'expense_sheet_card',
       imagePath: "assets/images/icons/expense_sheet.webp",
       routeName: "/site-list/expense",
       color: Colors.indigo,
     ),
     ModuleItem(
-      label: "Attendance Sheet",
+      labelKey: 'attendance_sheet_card',
       imagePath: "assets/images/icons/attendance_sheet.webp",
       routeName: "/site-list/att-sheet",
       color: Colors.deepPurple,
     ),
     ModuleItem(
-      label: "Inventory Report",
+      labelKey: 'inventory_summary_card',
       imagePath: "assets/images/icons/inventory_summary.webp",
       routeName: "/site-list/inv-Report",
       color: Colors.deepPurple,
@@ -151,37 +143,37 @@ class _ModuleScreenState extends ConsumerState<ModuleScreen> {
 
   final List<ModuleItem> _moreModules = [
     ModuleItem(
-      label: "Profile",
+      labelKey: 'profile_card',
       imagePath: "assets/images/icons/profile.webp",
       routeName: "/profile",
       color: Colors.cyan,
     ),
     ModuleItem(
-      label: "Subscription",
+      labelKey: 'subscription_card',
       imagePath: "assets/images/icons/subscription.webp",
       routeName: "/subscription",
       color: Colors.amber,
     ),
     ModuleItem(
-      label: "Upcoming Update",
+      labelKey: 'upcoming_update_card',
       imagePath: "assets/images/icons/updates.webp",
       routeName: "/upcoming-update",
       color: Colors.green,
     ),
     ModuleItem(
-      label: "Theme",
+      labelKey: 'theme_card',
       imagePath: "assets/images/icons/theme.webp",
       routeName: "/theme",
       color: Colors.purple,
     ),
     ModuleItem(
-      label: "Language",
+      labelKey: 'language_card',
       imagePath: "assets/images/icons/language.webp",
       routeName: "/language",
       color: Colors.blue,
     ),
     ModuleItem(
-      label: "Help",
+      labelKey: 'help_card',
       imagePath: "assets/images/icons/help.webp",
       routeName: "/help",
       color: Colors.orange,
@@ -336,194 +328,246 @@ class _ModuleScreenState extends ConsumerState<ModuleScreen> {
   Widget build(BuildContext context) {
     final siteState = ref.watch(siteProvider);
     final teamState = ref.watch(teamProvider);
+    final homeModuleAsync = ref.watch(languageModuleProvider('home'));
+    final tHelper = ref.watch(homeTranslationHelperProvider);
 
-    return Scaffold(
-      drawer: const CustomDrawer(),
-      appBar: CustomAppBar(title: _currentTitle),
-      body: Stack(
-        children: [
-          CornerClippedScreenSimple(
-            child: SafeArea(
-              child: Column(
-                children: [
-                  const SizedBox(height: 10),
+    return homeModuleAsync.when(
+        loading: () => const Scaffold(
+          body: Center(child: CircularProgressIndicator()),
+        ),
+        error: (e, _) => Scaffold(
+          body: Center(child: Text(e.toString())),
+        ),
+        data: (homeData) {
+          final t = Translator(homeData);
 
-                  // 🔹 FIXED HEIGHT HEADER SECTION (Daily Entry only)
-                  SizedBox(
-                    child: _currentIndex == 0
-                        ? Column(
+          String currentTitle() {
+            switch (_currentIndex) {
+              case 0:
+                return t.t('daily_entry_title');
+              case 1:
+                return t.t('setup_title');
+              case 2:
+                return t.t('report_title');
+              case 3:
+                return t.t('more_title');
+              default:
+                return '';
+            }
+          }
+
+
+
+          return Scaffold(
+            drawer: const CustomDrawer(),
+            appBar: CustomAppBar(title: currentTitle()),
+
+            body: Stack(
+              children: [
+                CornerClippedScreenSimple(
+                  child: SafeArea(
+                    child: Column(
                       children: [
                         const SizedBox(height: 10),
-                        // Ad Banner
-                        AdBannerCarousel(
-                          height: 130,
-                          imageUrls: [
-                            'assets/images/b1.webp',
-                            'assets/images/b4.webp',
-                            'assets/images/b2.webp',
-                            'assets/images/b3.webp',
-                          ],
-                        ),
-                        const SizedBox(height: 16),
-                        // Dropdowns
-                        Row(
-                          children: [
-                            Expanded(child: _buildSiteDropdown(siteState)),
-                            const SizedBox(width: 8),
-                            Expanded(child: _buildTeamDropdown(teamState)),
-                          ],
-                        ),
-                        const SizedBox(height: 1),
-                      ],
-                    )
-                        : const SizedBox.shrink(),
-                  ),
 
-                  // 🔹 GRID SECTION WITH CONSISTENT PADDING
-                  Expanded(
-                    child: Padding(
-                      padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 16),
-                      child: _currentModules.isEmpty
-                          ? const Center(
-                        child: Text(
-                          "No modules available",
-                          style: TextStyle(fontSize: 16, color: Colors.grey),
-                        ),
-                      )
-                          : GridView.builder(
-                        itemCount: _currentModules.length,
-                        gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
-                          crossAxisCount: 2,
-                          mainAxisSpacing: 16,
-                          crossAxisSpacing: 16,
-                          childAspectRatio: 1,
-                        ),
-                        itemBuilder: (context, index) {
-                          final item = _currentModules[index];
-
-                          if (item.isEmpty) {
-                            return Container(
-                              decoration: BoxDecoration(
-                                color: Colors.transparent,
-                                borderRadius: BorderRadius.circular(20),
-                              ),
-                            );
-                          }
-
-                          return GestureDetector(
-                            onTap: () => _handleModuleTap(item),
-                            child: Container(
-                              decoration: BoxDecoration(
-                                color: Colors.white,
-                                borderRadius: BorderRadius.circular(20),
-                                boxShadow: [
-                                  BoxShadow(
-                                    color: Colors.black.withOpacity(0.05),
-                                    blurRadius: 8,
-                                    spreadRadius: 1,
-                                  ),
+                        // 🔹 FIXED HEIGHT HEADER SECTION (Daily Entry only)
+                        SizedBox(
+                          child: _currentIndex == 0
+                              ? Column(
+                            children: [
+                              const SizedBox(height: 10),
+                              // Ad Banner
+                              AdBannerCarousel(
+                                height: 130,
+                                imageUrls: [
+                                  'assets/images/b1.webp',
+                                  'assets/images/b4.webp',
+                                  'assets/images/b2.webp',
+                                  'assets/images/b3.webp',
                                 ],
                               ),
-                              child: Column(
-                                mainAxisAlignment: MainAxisAlignment.center,
+                              const SizedBox(height: 16),
+                              // Dropdowns
+                              Row(
                                 children: [
-                                  // Icon area
-                                  SizedBox(
-                                    height: 90,
-                                    width: 90,
-                                    child: Container(
-                                      padding: const EdgeInsets.all(12),
-                                      child: Image.asset(
-                                        item.imagePath,
-                                        fit: BoxFit.contain,
-                                      ),
-                                    ),
-                                  ),
-                                  const SizedBox(height: 8),
-                                  // Label
-                                  Padding(
-                                    padding: const EdgeInsets.symmetric(horizontal: 8),
-                                    child: Text(
-                                      item.label,
-                                      textAlign: TextAlign.center,
-                                      maxLines: 2,
-                                      overflow: TextOverflow.ellipsis,
-                                      style: const TextStyle(
-                                        fontSize: 14,
-                                        fontWeight: FontWeight.w600,
-                                        color: Color(0xFF1B1B1B),
-                                      ),
-                                    ),
-                                  ),
+                                  Expanded(child: _buildSiteDropdown(siteState)),
+                                  const SizedBox(width: 8),
+                                  Expanded(child: _buildTeamDropdown(teamState)),
                                 ],
                               ),
+                              const SizedBox(height: 1),
+                            ],
+                          )
+                              : const SizedBox.shrink(),
+                        ),
+
+                        // 🔹 GRID SECTION WITH CONSISTENT PADDING
+                        Expanded(
+                          child: Padding(
+                            padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 16),
+                            child: _currentModules.isEmpty
+                                ? const Center(
+                              child: Text(
+                                "No modules available",
+                                style: TextStyle(fontSize: 16, color: Colors.grey),
+                              ),
+                            )
+                                : GridView.builder(
+                              itemCount: _currentModules.length,
+                              gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
+                                crossAxisCount: 2,
+                                mainAxisSpacing: 16,
+                                crossAxisSpacing: 16,
+                                childAspectRatio: 1,
+                              ),
+                              itemBuilder: (context, index) {
+                                final item = _currentModules[index];
+
+                                if (item.isEmpty) {
+                                  return Container(
+                                    decoration: BoxDecoration(
+                                      color: Colors.transparent,
+                                      borderRadius: BorderRadius.circular(20),
+                                    ),
+                                  );
+                                }
+
+                                return GestureDetector(
+                                  onTap: () => _handleModuleTap(item),
+                                  child: Container(
+                                    decoration: BoxDecoration(
+                                      color: Colors.white,
+                                      borderRadius: BorderRadius.circular(20),
+                                      boxShadow: [
+                                        BoxShadow(
+                                          color: Colors.black.withOpacity(0.05),
+                                          blurRadius: 8,
+                                          spreadRadius: 1,
+                                        ),
+                                      ],
+                                    ),
+                                    child: Column(
+                                      mainAxisAlignment: MainAxisAlignment.center,
+                                      children: [
+                                        // Icon area
+                                        SizedBox(
+                                          height: 90,
+                                          width: 90,
+                                          child: Container(
+                                            padding: const EdgeInsets.all(12),
+                                            child: Image.asset(
+                                              item.imagePath,
+                                              fit: BoxFit.contain,
+                                            ),
+                                          ),
+                                        ),
+                                        const SizedBox(height: 8),
+                                        // Label
+                                        Padding(
+                                          padding: const EdgeInsets.symmetric(horizontal: 8),
+                                          child: Text(
+                                            item.isEmpty ? '' : t.t(item.labelKey),
+                                            textAlign: TextAlign.center,
+                                            maxLines: 2,
+                                            overflow: TextOverflow.ellipsis,
+                                            style: const TextStyle(
+                                              fontSize: 14,
+                                              fontWeight: FontWeight.w600,
+                                              color: Color(0xFF1B1B1B),
+                                            ),
+                                          ),
+                                        ),
+                                      ],
+                                    ),
+                                  ),
+                                );
+                              },
                             ),
-                          );
-                        },
-                      ),
-                    ),
-                  ),
-                ],
-              ),
-            ),
-          ),
-          // AI Analysis Button
-          Positioned(
-            right: 1,
-            bottom: -1,
-            child: GestureDetector(
-              onTap: _handleAiAnalysisTap,
-              child: Row(
-                mainAxisSize: MainAxisSize.min,
-                children: [
-                  Container(
-                    padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 5),
-                    decoration: BoxDecoration(
-                      color: Colors.white,
-                      borderRadius: BorderRadius.circular(30),
-                      border: Border.all(color: Color(0xFFBBD9FF)),
-                      boxShadow: [
-                        BoxShadow(
-                          color: Colors.grey.withOpacity(0.5),
-                          spreadRadius: 2,
-                          blurRadius: 5,
-                          offset: const Offset(0, 3),
+                          ),
                         ),
                       ],
                     ),
-                    child: const Text(
-                      "Ready to listen you !",
-                      style: TextStyle(fontSize: 10, color: Colors.black87),
+                  ),
+                ),
+                // AI Analysis Button
+                Positioned(
+                  right: 1,
+                  bottom: -1,
+                  child: GestureDetector(
+                    onTap: _handleAiAnalysisTap,
+                    child: Row(
+                      mainAxisSize: MainAxisSize.min,
+                      children: [
+                        Container(
+                          padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 5),
+                          decoration: BoxDecoration(
+                            color: Colors.white,
+                            borderRadius: BorderRadius.circular(30),
+                            border: Border.all(color: Color(0xFFBBD9FF)),
+                            boxShadow: [
+                              BoxShadow(
+                                color: Colors.grey.withOpacity(0.5),
+                                spreadRadius: 2,
+                                blurRadius: 5,
+                                offset: const Offset(0, 3),
+                              ),
+                            ],
+                          ),
+                          child: const Text(
+                            "Ready to listen you !",
+                            style: TextStyle(fontSize: 10, color: Colors.black87),
+                          ),
+                        ),
+                        const SizedBox(width: 2),
+                        SizedBox(
+                          height: 55,
+                          width: 55,
+                          child: Image.asset("assets/images/img.png", fit: BoxFit.contain),
+                        ),
+                      ],
                     ),
                   ),
-                  const SizedBox(width: 2),
-                  SizedBox(
-                    height: 55,
-                    width: 55,
-                    child: Image.asset("assets/images/img.png", fit: BoxFit.contain),
-                  ),
-                ],
-              ),
+                )
+              ],
             ),
-          )
-        ],
-      ),
-      bottomNavigationBar: BottomNavigationBar(
-        currentIndex: _currentIndex,
-        onTap: _handleBottomNavTap,
-        selectedItemColor: Colors.blue,
-        unselectedItemColor: Colors.grey,
-        type: BottomNavigationBarType.fixed,
-        items: const [
-          BottomNavigationBarItem(icon: Icon(Icons.edit_note_outlined), label: 'Daily Entry'),
-          BottomNavigationBarItem(icon: Icon(Icons.settings_outlined), label: 'Setup'),
-          BottomNavigationBarItem(icon: Icon(Icons.bar_chart_outlined), label: 'Report'),
-          BottomNavigationBarItem(icon: Icon(Icons.more_horiz_outlined), label: 'More'),
-        ],
-      ),
+            bottomNavigationBar: BottomNavigationBar(
+              currentIndex: _currentIndex,
+              onTap: _handleBottomNavTap,
+
+              selectedItemColor: Colors.black,
+              unselectedItemColor: Colors.black,
+
+              selectedLabelStyle: const TextStyle(color: Colors.black),
+              unselectedLabelStyle: const TextStyle(color: Colors.black),
+
+              type: BottomNavigationBarType.fixed,
+
+              items: [
+                BottomNavigationBarItem(
+                  icon: const Icon(Icons.edit_note_outlined),
+                  label: tHelper.bottomNavDailyEntry,
+                ),
+                BottomNavigationBarItem(
+                  icon: const Icon(Icons.settings_outlined),
+                  label: t.t('bottom_nav_setup'),
+                ),
+                BottomNavigationBarItem(
+                  icon: const Icon(Icons.bar_chart_outlined),
+                  label: t.t('bottom_nav_report'),
+                ),
+                BottomNavigationBarItem(
+                  icon: const Icon(Icons.more_horiz_outlined),
+                  label: t.t('bottom_nav_more'),
+                ),
+              ],
+            ),
+
+
+          );
+
+          }
     );
   }
-
 
 
   Future<void> _handleBottomNavTap(int index) async {
@@ -712,14 +756,14 @@ class _ModuleScreenState extends ConsumerState<ModuleScreen> {
 }
 
 class ModuleItem {
-  final String label;
+  final String labelKey;
   final String imagePath;
   final String routeName;
   final Color color;
   final bool isEmpty;
 
   ModuleItem({
-    required this.label,
+    required this.labelKey,
     required this.imagePath,
     required this.routeName,
     this.color = Colors.blue,

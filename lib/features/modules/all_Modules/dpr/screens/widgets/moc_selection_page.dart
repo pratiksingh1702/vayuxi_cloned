@@ -5,6 +5,7 @@ import 'package:untitled2/core/utlis/colors/colors.dart';
 import 'package:untitled2/core/utlis/widgets/Button_wrapper.dart';
 import 'package:untitled2/core/utlis/widgets/buttons.dart';
 import 'package:untitled2/core/utlis/widgets/custom_appBar.dart';
+import 'package:untitled2/features/language/service/providers.dart';
 import '../../../../../../core/utlis/widgets/custom.dart';
 import '../../../../../../core/utlis/widgets/image_clipped.dart';
 import '../../../site_Details/providers/site_current_provider.dart';
@@ -150,12 +151,13 @@ class _MOCSelectionPageState extends ConsumerState<MOCSelectionPage> {
     final mocState = ref.watch(mocProvider);
     final mocs = ref.watch(mocListProvider);
     final selectedMOC = ref.watch(selectedMOCProvider);
+    final lang=ref.watch(dailyEntryTranslationHelperProvider);
 
     return Scaffold(
       body: NestedScrollView(
         headerSliverBuilder: (context, innerBoxIsScrolled) {
           return [
-            CustomSliverAppBar(title: "Choose MOC"),
+            CustomSliverAppBar(title: lang.chooseMocTitle),
           ];
         },
         body: BottomButtonWrapper(
@@ -163,7 +165,7 @@ class _MOCSelectionPageState extends ConsumerState<MOCSelectionPage> {
             if (!widget.showEditOptions)
               CustomButton(
                 button: RoundedButton(
-                  text: "Save & Submit",
+                  text: lang.saveSubmitButton,
                   color: Colors.blue,
                   textColor: Colors.white,
                   onPressed: selectedMOC == null

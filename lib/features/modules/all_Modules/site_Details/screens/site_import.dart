@@ -3,6 +3,7 @@ import 'package:dio/dio.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:file_picker/file_picker.dart';
+import 'package:go_router/go_router.dart';
 import 'package:untitled2/core/utlis/colors/colors.dart';
 import 'package:untitled2/core/utlis/widgets/image_clipped.dart';
 import 'package:untitled2/features/modules/all_Modules/rate/data/rateApi.dart';
@@ -93,6 +94,7 @@ class _SiteImportCsvScreenState extends ConsumerState<SiteImportCsvScreen> {
           behavior: SnackBarBehavior.floating,
         ),
       );
+      context.push("/site-list/site");
 
 
 

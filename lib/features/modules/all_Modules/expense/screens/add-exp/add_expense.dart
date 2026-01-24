@@ -6,6 +6,7 @@ import 'package:untitled2/core/utlis/widgets/Button_wrapper.dart';
 import 'package:untitled2/core/utlis/widgets/buttons.dart';
 import 'package:untitled2/core/utlis/widgets/custom_appBar.dart';
 import 'package:untitled2/core/utlis/widgets/image_clipped.dart';
+import 'package:untitled2/features/language/service/providers.dart';
 import 'package:untitled2/features/modules/all_Modules/site_Details/providers/site_current_provider.dart';
 
 import '../../../../../../core/utlis/widgets/custom.dart';
@@ -49,11 +50,12 @@ class _AddExpenseScreenState extends ConsumerState<AddExpenseScreen> {
 
   @override
   Widget build(BuildContext context) {
+    final lang=ref.watch(dailyEntryTranslationHelperProvider);
     return Scaffold(
       body: NestedScrollView(
         headerSliverBuilder: (context, innerBoxIsScrolled) {
           return [
-            CustomSliverAppBar(title: "Add Expense"),
+            CustomSliverAppBar(title: lang.expenseCategoryTitle),
           ];
         },
         body: BottomButtonWrapper(
@@ -77,41 +79,49 @@ class _AddExpenseScreenState extends ConsumerState<AddExpenseScreen> {
   }
 }
 
-class _CategoryGrid extends StatelessWidget {
+class _CategoryGrid extends ConsumerWidget {
+
   final Function(String) onCategorySelected;
 
   const _CategoryGrid({required this.onCategorySelected});
 
   @override
-  Widget build(BuildContext context) {
+  Widget build(BuildContext context, WidgetRef ref)  {
+    final lang=ref.watch(dailyEntryTranslationHelperProvider);
     final categories = [
       {
         'type': 'material_tools',
+        'name': lang.materialToolsCategory,
         'icon': Icons.build,
         'color': Colors.orange,
       },
       {
         'type': 'travelling',
+        'name': lang.travelCategory,
         'icon': Icons.directions_car,
         'color': Colors.green,
       },
       {
         'type': 'food',
+        'name': lang.foodCategory,
         'icon': Icons.restaurant,
         'color': Colors.red,
       },
       {
         'type': 'accommodation',
+        'name': lang.accommodationCategory,
         'icon': Icons.hotel,
         'color': Colors.purple,
       },
       {
         'type': 'advance',
+        'name': lang.advanceCategory,
         'icon': Icons.attach_money,
         'color': Colors.blue,
       },
       {
         'type': 'miscellaneous',
+        'name': lang.miscellaneousCategory,
         'icon': Icons.miscellaneous_services,
         'color': Colors.blue,
       },
@@ -129,6 +139,7 @@ class _CategoryGrid extends StatelessWidget {
       itemBuilder: (context, index) {
         final category = categories[index];
         return _CategoryCard(
+          name:category['name'] as String,
           categoryType: category['type'] as String,
           icon: category['icon'] as IconData,
           color: category['color'] as Color,
@@ -141,6 +152,7 @@ class _CategoryGrid extends StatelessWidget {
 
 class _CategoryCard extends StatelessWidget {
   final String categoryType;
+  final String name;
   final IconData icon;
   final Color color;
   final Function(String) onTap;
@@ -149,7 +161,7 @@ class _CategoryCard extends StatelessWidget {
     required this.categoryType,
     required this.icon,
     required this.color,
-    required this.onTap,
+    required this.onTap, required this.name,
   });
 
   @override
@@ -180,7 +192,7 @@ class _CategoryCard extends StatelessWidget {
               ),
               const SizedBox(height: 8),
               Text(
-                _formatCategoryName(categoryType),
+                name,
                 textAlign: TextAlign.center,
                 style: const TextStyle(
                   fontSize: 14,

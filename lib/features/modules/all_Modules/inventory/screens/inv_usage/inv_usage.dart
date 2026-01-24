@@ -5,6 +5,7 @@ import 'package:untitled2/core/utlis/colors/colors.dart';
 import 'package:untitled2/core/utlis/widgets/Button_wrapper.dart';
 import 'package:untitled2/core/utlis/widgets/buttons.dart';
 import 'package:untitled2/core/utlis/widgets/custom_appBar.dart';
+import 'package:untitled2/features/language/service/providers.dart';
 import '../../../../../../core/utlis/widgets/custom_dropdown.dart';
 import '../../../../../../core/utlis/widgets/fields/custom_textField.dart';
 import '../../../site_Details/providers/site_current_provider.dart';
@@ -465,6 +466,7 @@ class _InventorySelectionPageState
     }
 
     final inventoryAsync = ref.watch(allInventoryProvider(siteId));
+    final lang=ref.watch(dailyEntryTranslationHelperProvider);
 
     return Scaffold(
       resizeToAvoidBottomInset: false,
@@ -552,7 +554,7 @@ class _InventorySelectionPageState
 
                       // ---------------- ITEM DROPDOWN ----------------
                       CustomDropdownField<String>(
-                        label: "Select Inventory Item",
+                        label: lang.selectInventoryItemLabel,
                         isRequired: true,
                         value: _selectedInventoryId,
                         items: allItems.map((inv) {
@@ -643,7 +645,7 @@ class _InventorySelectionPageState
 
                       // ---------------- UOM FIELD ----------------
                       CustomTextField(
-                        label: "Unit of Measure",
+                        label: lang.unitOfMeasureLabel,
                         controller: _uomController,
                         isRequired: true,
                         hint: "Unit will auto-fill when item is selected",
@@ -656,10 +658,10 @@ class _InventorySelectionPageState
 
                       // ---------------- QUANTITY FIELD ----------------
                       CustomTextField(
-                        label: "Quantity to Use${_selectedInventoryId != null ? " (Max: ${_getAvailableQuantity(allItems)} ${_uomController.text})" : ""}",
+                        label: "${lang.quantityToUseLabel}${_selectedInventoryId != null ? " (Max: ${_getAvailableQuantity(allItems)} ${_uomController.text})" : ""}",
                         controller: _quantityController,
                         isRequired: true,
-                        hint: "Enter quantity to use",
+                        hint: lang.quantityToUseLabel,
                         keyboardType: TextInputType.number,
                         validator: (value) {
                           if (value == null || value.isEmpty) {

@@ -6,6 +6,7 @@ import 'package:untitled2/core/utlis/widgets/custom_appBar.dart';
 import 'package:untitled2/features/modules/all_Modules/dpr/screens/widgets/floor_selection_page.dart';
 import 'package:untitled2/features/modules/all_Modules/dpr/screens/widgets/moc_selection_page.dart';
 
+import '../../../dpr_insu/screens/all_insulation_material.dart';
 import '../../../screens/dprTeamDetails.dart';
 import '../../../screens/widgets/all_material.dart';
 import '../../../screens/widgets/select_card.dart';
@@ -79,7 +80,7 @@ class ViewSelectCardGrid extends StatelessWidget {
                 Navigator.push(
                   context,
                   MaterialPageRoute(
-                    builder: (_) => AllMaterialsScreen(
+                    builder: (_) => AllInsulationMaterialsScreen(
 
 
                             )

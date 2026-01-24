@@ -4,6 +4,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:untitled2/core/utlis/widgets/custom_appBar.dart';
+import 'package:untitled2/features/language/service/providers.dart';
 import 'package:untitled2/features/modules/all_Modules/site_Details/providers/site_current_provider.dart';
 import 'package:untitled2/features/modules/all_Modules/site_Details/repository/siteModel.dart';
 import '../../../../../core/utlis/widgets/Button_wrapper.dart';
@@ -497,10 +498,11 @@ class _AttendanceScreenState extends ConsumerState<AttendanceScreen> {
   Widget build(BuildContext context) {
     final attendanceState = ref.watch(attendanceNotifierProvider);
     final site = ref.read(currentSiteProvider);
+    final lang=ref.watch(dailyEntryTranslationHelperProvider);
 
     return Scaffold(
       backgroundColor: const Color(0xFFE8F4FF),
-      appBar: CustomAppBar(title: "Record Attendance"),
+      appBar: CustomAppBar(title: lang.recordAttendanceTitle),
 
       body: BottomButtonWrapper(
         customButtons: [
