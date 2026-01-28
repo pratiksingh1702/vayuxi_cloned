@@ -13,7 +13,7 @@ import '../../../screens/widgets/select_card.dart';
 import '../../../dpr_report/screens/download_sheets.dart';
 import '../../../screens/workTeamList.dart';
 
-class ViewSelectCardGrid extends StatelessWidget {
+class ViewSelectCardGrid extends ConsumerWidget {
   const ViewSelectCardGrid({super.key});
 
   @override
