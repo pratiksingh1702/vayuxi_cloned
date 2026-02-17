@@ -8,8 +8,10 @@ import '../../../../../core/utlis/common_functions.dart';
 import '../../../../../core/utlis/widgets/fields/custom_textField.dart';
 import '../../../../../core/utlis/widgets/fields/phone_number_field.dart';
 import '../../../../../core/utlis/widgets/fields/searchableDropdown.dart';
+import '../../../../../core/utlis/widgets/sidebar.dart';
 import '../../../../../typeProvider/type_provider.dart';
 
+import '../../../../tour/domain/tour_controller.dart';
 import '../service/manPowerProvider.dart';
 
 
@@ -233,8 +235,10 @@ class _NewManpowerScreenState extends ConsumerState<NewManpowerScreen> {
           ),
         );
       }
+     await ref.read(tourPersistenceProvider).markManpowerDone();
 
-      Navigator.pop(context);
+
+     Navigator.pop(context);
       context.push("/manpower");
     } catch (e) {
       final message=extractBackendError(e);
@@ -256,6 +260,7 @@ class _NewManpowerScreenState extends ConsumerState<NewManpowerScreen> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
+      drawer: const CustomDrawer(),
       backgroundColor: AppColors.lightBlue,
       appBar: CustomAppBar(title: "New Employee Details"),
       body: SingleChildScrollView(

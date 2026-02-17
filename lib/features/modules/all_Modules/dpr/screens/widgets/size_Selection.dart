@@ -4,8 +4,10 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:untitled2/core/utlis/widgets/Button_wrapper.dart';
 import 'package:untitled2/core/utlis/widgets/buttons.dart';
 import 'package:untitled2/core/utlis/widgets/custom_appBar.dart';
+import 'package:untitled2/typeProvider/type_provider.dart';
 import '../../../../../../core/utlis/widgets/fields/custom_textField.dart';
 import '../../../../../language/service/providers.dart';
+import '../../dpr_insu/screens/testing.dart';
 import '../../providers/selectedSize_provider.dart';
 import '../add_description.dart';
 
@@ -34,21 +36,33 @@ class SizeSelectionPage extends ConsumerWidget {
                   ref.read(selectedSizeProvider.notifier).state = sizeController
                       .text
                       .trim();
-                  Navigator.push(
-                    context,
-                    MaterialPageRoute(
-                      builder: (context) => AddDescriptionScreen(),
-                    ),
-                  );
-
-                  ScaffoldMessenger.of(context).showSnackBar(
-                    SnackBar(
-                      content: Text(
-                        'Size "${sizeController.text.trim()}" saved!',
+                  final type=ref.read(typeProvider);
+                  if (type=="mechanical_work"){
+                    Navigator.push(
+                      context,
+                      MaterialPageRoute(
+                        builder: (context) => AddDescriptionScreen(),
                       ),
-                      backgroundColor: Colors.green,
-                    ),
-                  );
+                    );}else{
+                    Navigator.push(
+                      context,
+                      MaterialPageRoute(
+                        builder: (context) => AddInsulationDescriptionScreen(),
+                      ),
+                    );
+
+
+                  }
+
+                    ScaffoldMessenger.of(context).showSnackBar(
+                      SnackBar(
+                        content: Text(
+                          'Size "${sizeController.text.trim()}" saved!',
+                        ),
+                        backgroundColor: Colors.green,
+                      ),
+                    );
+
 
                   // Optional: Navigate back
                   // Navigator.pop(context);

@@ -17,7 +17,7 @@ class AddSelectCardGrid extends StatelessWidget {
   Widget build(BuildContext context) {
     return Scaffold(
       backgroundColor: AppColors.lightBlue,
-      appBar: CustomAppBar(title:"Select Card"),
+      appBar: CustomAppBar(title:"Select Dpr Values"),
       body: CornerClippedScreenSimple(
         child: GridView.count(
           physics: const NeverScrollableScrollPhysics(),

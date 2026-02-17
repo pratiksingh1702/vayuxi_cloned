@@ -1,12 +1,16 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
+import 'package:untitled2/core/utlis/app_toasts.dart';
 import 'package:untitled2/core/utlis/colors/colors.dart';
 import 'package:untitled2/features/modules/all_Modules/site_Details/providers/site_current_provider.dart';
+import '../../../../../core/utlis/common_functions.dart';
 import '../../../../../core/utlis/widgets/buttons.dart';
 import '../../../../../core/utlis/widgets/custom_appBar.dart';
 import '../../../../../core/utlis/widgets/fields/custom_textField.dart';
+import '../../../../../core/utlis/widgets/sidebar.dart';
 import '../../../../../typeProvider/type_provider.dart';
+import '../../../../tour/domain/tour_controller.dart';
 import '../../site_Details/repository/siteModel.dart';
 import '../data/rate_provider.dart';
 import '../domain/rateModel.dart';
@@ -99,9 +103,7 @@ class _AddRateScreenState extends ConsumerState<AddRateScreen> {
         hsnCodeController.text.isEmpty ||
         rateController.text.isEmpty ||
         uomController.text.isEmpty) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Please fill all required fields')),
-      );
+      AppToast.error('Please fill all required fields');
       return;
     }
 
@@ -120,10 +122,9 @@ class _AddRateScreenState extends ConsumerState<AddRateScreen> {
       if (type != null) {
         await ref.read(rateNotifierProvider.notifier).postRate(rateData, type, siteId!);
 
-        // Show success message
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text('Rate saved successfully')),
-        );
+     AppToast.success('Rate saved successfully');
+        await ref.read(tourPersistenceProvider).markRateDone();
+
 
         // Navigate back after successful save
         if (mounted) {
@@ -133,15 +134,15 @@ class _AddRateScreenState extends ConsumerState<AddRateScreen> {
       }
     } catch (e) {
       print("Error saving rate: $e");
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text('Failed to save rate: $e')),
-      );
+    final error = extractBackendError(e);
+    AppToast.error("❌ Failed to save rate:$error");
     }
   }
 
   @override
   Widget build(BuildContext context) {
     return Scaffold(
+      drawer: const CustomDrawer(),
       backgroundColor: AppColors.lightBlue,
       appBar: CustomAppBar(title: "Add Rate"),
       body: SingleChildScrollView(

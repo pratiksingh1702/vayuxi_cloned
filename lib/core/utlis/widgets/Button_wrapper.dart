@@ -66,6 +66,7 @@ class BottomButtonWrapper extends ConsumerWidget {
       buttons.add(button.button);
     }
 
+
     if (buttons.length == 1) {
       return [
         Expanded(
@@ -91,6 +92,6 @@ class BottomButtonWrapper extends ConsumerWidget {
 }
 
 class CustomButton {
-  final RoundedButton button;
+  final Widget button;
   const CustomButton({required this.button});
 }

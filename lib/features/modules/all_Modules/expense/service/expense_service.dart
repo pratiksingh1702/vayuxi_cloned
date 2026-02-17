@@ -3,6 +3,8 @@ import 'dart:io';
 
 import 'package:dio/dio.dart';
 import 'package:untitled2/core/api/dio.dart';
+import 'dart:typed_data';
+
 
 class ExpenseAPI {
   static final dio = DioClient.dio;
@@ -147,7 +149,7 @@ class ExpenseAPI {
       print('📊 Generating CSV with URL: $url');
 
       final response = await dio.get(url,
-          options: Options(responseType: ResponseType.plain),)
+          options: Options(responseType: ResponseType.bytes),)
       ;
 
       if (response.statusCode == 200) {
@@ -174,6 +176,29 @@ class ExpenseAPI {
       rethrow;
     }
   }
+  static Future<Uint8List> generateExpenseExcel({
+    required String serviceType,
+    required String type,
+    required String siteId,
+    required String startDate,
+    required String endDate,
+  }) async {
+    final url =
+        "/site/$siteId/expenses/generate-expenses?type=$type&serviceType=$serviceType&startDate=$startDate&endDate=$endDate";
+
+    final response = await dio.get(
+      url,
+      options: Options(responseType: ResponseType.bytes),
+    );
+
+    if (response.statusCode == 200) {
+      print('✅ Excel generated');
+      return Uint8List.fromList(response.data);
+    }
+
+    throw Exception("Failed to download excel");
+  }
+
   // Helper method to format date as YYYY-MM-DD
   static String _formatDateForAPI(DateTime date) {
     return "${date.year}-${date.month.toString().padLeft(2, '0')}-${date.day.toString().padLeft(2, '0')}";

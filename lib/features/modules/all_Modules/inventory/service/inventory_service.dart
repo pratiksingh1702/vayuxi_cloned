@@ -5,33 +5,13 @@ import 'dart:typed_data';
 import 'package:dio/dio.dart';
 import 'package:path_provider/path_provider.dart';
 import '../../../../../core/api/dio.dart';
-import '../models/inventory_Model.dart';
+import '../models/inventory_model.dart';
 
 
 class InventoryApi {
   static final dio = DioClient.dio;
   // Category APIs
 
-  // 1. Get All Categories
-  Future<List<Category>> getCategories({
-    required String siteId,
-  }) async {
-    try {
-      final response = await dio.get(
-        '/site/$siteId/inventory/category',
-      );
-
-      if (response.statusCode == 200) {
-        final List<dynamic> data = response.data ?? [];
-        return data.map((json) => Category.fromJson(json)).toList();
-      } else {
-        throw Exception('Failed to load categories');
-      }
-    } catch (e) {
-      print('Error fetching categories: $e');
-      rethrow;
-    }
-  }
 
   // 2. Create Category
   Future<Category> createCategory({
@@ -99,86 +79,6 @@ class InventoryApi {
 
   // Subcategory APIs
 
-  // 5. Get All Subcategories
-  Future<List<Subcategory>> getSubcategories({
-    required String siteId,
-    String? categoryId,
-  }) async {
-    try {
-      final queryParams = {
-        if (categoryId != null) 'categoryId': categoryId,
-      };
-
-      final response = await dio.get(
-        '/site/$siteId/inventory/subcategory',
-        queryParameters: queryParams,
-      );
-
-      if (response.statusCode == 200) {
-        final List<dynamic> data = response.data ?? [];
-        return data.map((json) => Subcategory.fromJson(json)).toList();
-      } else {
-        throw Exception('Failed to load subcategories');
-      }
-    } catch (e) {
-      print('Error fetching subcategories: $e');
-      rethrow;
-    }
-  }
-
-  // 6. Create Subcategory
-  Future<Subcategory> createSubcategory({
-    required String siteId,
-    required String name,
-    required String categoryId,
-  }) async {
-    try {
-      final response = await dio.post(
-        '/site/$siteId/inventory/subcategory',
-        data: {
-          'name': name,
-          'category': categoryId,
-        },
-      );
-
-      if (response.statusCode == 200 || response.statusCode == 201) {
-        return Subcategory.fromJson(response.data);
-      } else {
-        throw Exception('Failed to create subcategory');
-      }
-    } catch (e) {
-      print('Error creating subcategory: $e');
-      rethrow;
-    }
-  }
-
-  // 7. Update Subcategory
-  Future<Subcategory> updateSubcategory({
-    required String siteId,
-    required String subcategoryId,
-    required String name,
-    required String categoryId,
-  }) async {
-    try {
-      final response = await dio.put(
-        '/site/$siteId/inventory/subcategory/$subcategoryId',
-        data: {
-          'name': name,
-          'category': categoryId,
-        },
-      );
-
-      if (response.statusCode == 200) {
-        return Subcategory.fromJson(response.data);
-      } else {
-        throw Exception('Failed to update subcategory');
-      }
-    } catch (e) {
-      print('Error updating subcategory: $e');
-      rethrow;
-    }
-  }
-
   // 8. Delete Subcategory
   Future<void> deleteSubcategory({
     required String siteId,
@@ -200,89 +100,7 @@ class InventoryApi {
 
   // Item APIs
 
-  // 9. Get All Items
-  Future<List<InventoryItem>> getItems({
-    required String siteId,
-    String? subcategoryId,
-  }) async {
-    try {
-      final queryParams = {
-        if (subcategoryId != null) 'subcategoryId': subcategoryId,
-      };
 
-      final response = await dio.get(
-        '/site/$siteId/inventory/item',
-        queryParameters: queryParams,
-      );
-
-      if (response.statusCode == 200) {
-        final List<dynamic> data = response.data ?? [];
-        return data.map((json) => InventoryItem.fromJson(json)).toList();
-      } else {
-        throw Exception('Failed to load items');
-      }
-    } catch (e) {
-      print('Error fetching items: $e');
-      rethrow;
-    }
-  }
-
-  // 10. Create Item
-  Future<InventoryItem> createItem({
-    required String siteId,
-    required String name,
-    required String categoryId,
-    required String subcategoryId,
-  }) async {
-    try {
-      final response = await dio.post(
-        '/site/$siteId/inventory/item',
-        data: {
-          'name': name,
-          'category': categoryId,
-          'subcategory': subcategoryId,
-        },
-      );
-
-      if (response.statusCode == 200 || response.statusCode == 201) {
-        return InventoryItem.fromJson(response.data);
-      } else {
-        throw Exception('Failed to create item');
-      }
-    } catch (e) {
-      print('Error creating item: $e');
-      rethrow;
-    }
-  }
-
-  // 11. Update Item
-  Future<InventoryItem> updateItem({
-    required String siteId,
-    required String itemId,
-    required String name,
-    required String categoryId,
-    required String subcategoryId,
-  }) async {
-    try {
-      final response = await dio.put(
-        '/site/$siteId/inventory/item/$itemId',
-        data: {
-          'name': name,
-          'category': categoryId,
-          'subcategory': subcategoryId,
-        },
-      );
-
-      if (response.statusCode == 200) {
-        return InventoryItem.fromJson(response.data);
-      } else {
-        throw Exception('Failed to update item');
-      }
-    } catch (e) {
-      print('Error updating item: $e');
-      rethrow;
-    }
-  }
 
   // 12. Delete Item
   Future<void> deleteItem({
@@ -343,25 +161,7 @@ class InventoryApi {
     }
   }
   // 20. Get All Inventory Stock
-  Future<List<Inventory>> getAllInventory({
-    required String siteId,
-  }) async {
-    try {
-      final response = await dio.get(
-        '/site/$siteId/inventory',
-      );
 
-      if (response.statusCode == 200) {
-        final List<dynamic> data = response.data ?? [];
-        return data.map((json) => Inventory.fromJson(json)).toList();
-      } else {
-        throw Exception('Failed to load inventory stock');
-      }
-    } catch (e) {
-      print('Error fetching inventory stock: $e');
-      rethrow;
-    }
-  }
 
 // 21. Get Inventory Stock with Filtering
   Future<List<Inventory>> getInventoryWithFilters({
@@ -417,38 +217,6 @@ class InventoryApi {
     }
   }
 
-  // 15. Update Inventory
-  Future<Inventory> updateInventory({
-    required String siteId,
-    required String inventoryId,
-    double? totalQuantityAdded,
-    double? minimumStockLevel,
-    String? uom,
-    String? remarks,
-  }) async {
-    try {
-      final payload = {
-        if (totalQuantityAdded != null) 'totalQuantityAdded': totalQuantityAdded,
-        if (minimumStockLevel != null) 'minimumStockLevel': minimumStockLevel,
-        if (uom != null) 'uom': uom,
-        if (remarks != null) 'remarks': remarks,
-      };
-
-      final response = await dio.put(
-        '/site/$siteId/inventory/$inventoryId',
-        data: payload,
-      );
-
-      if (response.statusCode == 200) {
-        return Inventory.fromJson(response.data);
-      } else {
-        throw Exception('Failed to update inventory');
-      }
-    } catch (e) {
-      print('Error updating inventory: $e');
-      rethrow;
-    }
-  }
 
   // 16. Delete Inventory
   Future<void> deleteInventory({
@@ -661,12 +429,9 @@ class InventoryApi {
       rethrow;
     }
   }
-
-  // 5. Generate Inventory Usage Report (Excel)
   Future<Uint8List> generateReport({
     required String siteId,
     required DateTime fromDate,
-
   }) async {
     try {
       final response = await dio.get(
@@ -675,19 +440,32 @@ class InventoryApi {
           'format': 'excel',
           'siteId': siteId,
           'fromDate': fromDate.toIso8601String().split('T')[0],
-
+          'toDate': fromDate.toIso8601String().split('T')[0],
         },
         options: Options(
-          responseType: ResponseType.bytes, // 🔥 IMPORTANT
+          responseType: ResponseType.bytes,
         ),
       );
 
-      return Uint8List.fromList(response.data);
+      /// STEP 1 → bytes to string
+      final jsonString = utf8.decode(response.data);
+
+      /// STEP 2 → string to json
+      final Map<String, dynamic> jsonMap = jsonDecode(jsonString);
+
+      /// STEP 3 → take base64
+      final String base64File = jsonMap['data'];
+
+      /// STEP 4 → base64 to real excel bytes
+      final Uint8List excelBytes = base64Decode(base64File);
+
+      return excelBytes;
     } catch (e) {
       print('Error generating report: $e');
       rethrow;
     }
   }
+
 
   // Helper method to download and save Excel file
   Future<File> downloadReport(InventoryReport report) async {
@@ -705,5 +483,259 @@ class InventoryApi {
       rethrow;
     }
   }
+// ---------------------------------------------------------------------------
+  // ✅ CATEGORY (READ ONLY)
+  // ---------------------------------------------------------------------------
 
+  Future<List<Category>> getCategories({
+    required String siteId,
+  }) async {
+    final res = await dio.get('/site/$siteId/inventory/category');
+
+    final List data = res.data ?? [];
+    return data.map((e) => Category.fromJson(e)).toList();
+  }
+
+  // ---------------------------------------------------------------------------
+  // ✅ INVENTORY
+  // ---------------------------------------------------------------------------
+
+  Future<List<Inventory>> getAllInventory({
+    required String siteId,
+    String? type,
+  }) async {
+    final res = await dio.get(
+      '/site/$siteId/inventory',
+      queryParameters: {
+        if (type != null) 'type': type,
+      },
+    );
+
+    final List data = res.data ?? [];
+    return data.map((e) => Inventory.fromJson(e)).toList();
+  }
+
+
+
+  Future<Inventory> createInventory({
+    required String siteId,
+    required String name,
+    required String categoryId,
+
+    // consumable
+    String? uom,
+    double? totalQuantityAdded,
+    double? minimumStockLevel,
+
+    // fixed
+    int? totalUnits,
+    String? condition,
+
+    String? remarks,
+  }) async {
+    final payload = {
+      'name': name,
+      'category': categoryId,
+      if (uom != null) 'uom': uom,
+      if (totalQuantityAdded != null)
+        'totalQuantityAdded': totalQuantityAdded,
+      if (minimumStockLevel != null)
+        'minimumStockLevel': minimumStockLevel,
+      if (totalUnits != null) 'totalUnits': totalUnits,
+      if (condition != null) 'condition': condition,
+      if (remarks != null) 'remarks': remarks,
+    };
+
+    final res = await dio.post(
+      '/site/$siteId/inventory',
+      data: payload,
+    );
+
+    return Inventory.fromJson(res.data);
+  }
+
+  Future<Inventory> updateInventory({
+    required String siteId,
+    required String inventoryId,
+
+    String? name,
+    String? uom,
+    double? minimumStockLevel,
+    int? totalUnits,
+    String? condition,
+    String? remarks,
+  }) async {
+    final payload = {
+      if (name != null) 'name': name,
+      if (uom != null) 'uom': uom,
+      if (minimumStockLevel != null)
+        'minimumStockLevel': minimumStockLevel,
+      if (totalUnits != null) 'totalUnits': totalUnits,
+      if (condition != null) 'condition': condition,
+      if (remarks != null) 'remarks': remarks,
+    };
+
+    final res = await dio.put(
+      '/site/$siteId/inventory/$inventoryId',
+      data: payload,
+    );
+
+    return Inventory.fromJson(res.data);
+  }
+
+
+  // ---------------------------------------------------------------------------
+  // ✅ QUANTITY ADD (CONSUMABLE)
+  // ---------------------------------------------------------------------------
+
+  Future<Inventory> addQuantity({
+    required String siteId,
+    required String inventoryId,
+    required double quantity,
+  }) async {
+    final res = await dio.post(
+      '/site/$siteId/inventory/$inventoryId/add-quantity',
+      data: {
+        'quantity': quantity,
+        'operation': 'add',
+      },
+    );
+
+    return Inventory.fromJson(res.data);
+  }
+
+  // ---------------------------------------------------------------------------
+  // ✅ USAGE (CONSUMABLE)
+  // ---------------------------------------------------------------------------
+
+  Future<InventoryUsage> recordUsage({
+    required String siteId,
+    required String inventoryId,
+    required double quantityUsed,
+    required String usedByName,
+    DateTime? usageDate,
+    String? remarks,
+  }) async {
+    final payload = {
+      'inventory': inventoryId,
+      'quantityUsed': quantityUsed,
+      'usedByName': usedByName,
+      if (usageDate != null)
+        'usageDate': usageDate.toIso8601String().split('T')[0],
+      if (remarks != null) 'remarks': remarks,
+    };
+
+    final res = await dio.post(
+      '/site/$siteId/inventory/usage',
+      data: payload,
+    );
+
+    return InventoryUsage.fromJson(res.data['usage'] ?? res.data);
+  }
+
+
+
+  // ---------------------------------------------------------------------------
+  // ✅ CHECKOUT (FIXED)
+  // ---------------------------------------------------------------------------
+
+  Future<InventoryCheckout> checkoutItem({
+    required String siteId,
+    required String inventoryId,
+    required String issuedToName,
+    int quantity = 1,
+    DateTime? expectedReturnDate,
+    String? remarks,
+  }) async {
+    final payload = {
+      'inventory': inventoryId,
+      'issuedToName': issuedToName,
+      'quantity': quantity,
+      if (expectedReturnDate != null)
+        'expectedReturnDate':
+        expectedReturnDate.toIso8601String().split('T')[0],
+      if (remarks != null) 'remarks': remarks,
+    };
+
+    final res = await dio.post(
+      '/site/$siteId/inventory/checkout',
+      data: payload,
+    );
+
+    return InventoryCheckout.fromJson(res.data['checkout']);
+  }
+
+  Future<InventoryCheckout> updateCheckout({
+    required String siteId,
+    required String checkoutId,
+    required String status,
+    DateTime? actualReturnDate,
+    String? returnRemarks,
+    String? condition,
+  }) async {
+    final payload = {
+      'status': status,
+      if (actualReturnDate != null)
+        'actualReturnDate':
+        actualReturnDate.toIso8601String().split('T')[0],
+      if (returnRemarks != null) 'returnRemarks': returnRemarks,
+      if (condition != null) 'condition': condition,
+    };
+
+    final res = await dio.put(
+      '/site/$siteId/inventory/checkout/$checkoutId',
+      data: payload,
+    );
+
+    return InventoryCheckout.fromJson(res.data['checkout']);
+  }
+
+  Future<List<InventoryCheckout>> getCheckouts({
+    required String siteId,
+    String? status,
+  }) async {
+    final res = await dio.get(
+      '/site/$siteId/inventory/checkout',
+      queryParameters: {
+        if (status != null) 'status': status,
+      },
+    );
+
+    final List data = res.data ?? [];
+    return data.map((e) => InventoryCheckout.fromJson(e)).toList();
+  }
+
+  // ---------------------------------------------------------------------------
+  // ✅ LOW STOCK
+  // ---------------------------------------------------------------------------
+
+  Future<List<Inventory>> getLowStock({
+    required String siteId,
+  }) async {
+    final res = await dio.get('/site/$siteId/inventory/low-stock');
+
+    final List data = res.data ?? [];
+    return data.map((e) => Inventory.fromJson(e)).toList();
+  }
+
+  // ---------------------------------------------------------------------------
+  // ✅ REPORT
+  // ---------------------------------------------------------------------------
+
+  Future<Uint8List> downloadExcelReport({
+    required String siteId,
+    required DateTime fromDate,
+    required DateTime toDate,
+  }) async {
+    final res = await dio.post(
+      '/site/$siteId/inventory/report/excel',
+      data: {
+        'fromDate': fromDate.toIso8601String().split('T')[0],
+        'toDate': toDate.toIso8601String().split('T')[0],
+      },
+    );
+
+    final String base64File = res.data['data'];
+    return base64Decode(base64File);
+  }
 }

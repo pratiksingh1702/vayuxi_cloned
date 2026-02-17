@@ -1,19 +1,13 @@
 // screens/add_floor_page.dart
 import 'package:flutter/material.dart';
-import 'package:go_router/go_router.dart';
 import 'package:untitled2/core/utlis/colors/colors.dart';
 import 'package:untitled2/core/utlis/widgets/Button_wrapper.dart';
 import 'package:untitled2/core/utlis/widgets/custom_appBar.dart';
-import 'package:untitled2/features/modules/all_Modules/dpr/dpr-setup/screens/view/view_select_page.dart';
-import 'package:untitled2/features/modules/all_Modules/rate/screens/rate.dart';
 import 'package:untitled2/features/modules/all_Modules/site_Details/screens/siteDetailScreen.dart';
-import 'package:untitled2/features/modules/all_Modules/site_Details/screens/siteList.dart';
 import 'package:untitled2/features/modules/all_Modules/site_Details/screens/site_import.dart';
 
+import '../../../../../core/utlis/widgets/sidebar.dart';
 import '../../dpr/screens/widgets/select_card.dart';
-import '../../rate/screens/import_sheet.dart';
-
-
 
 class SiteEntrySelectCardGrid extends StatelessWidget {
   const SiteEntrySelectCardGrid({super.key});
@@ -21,58 +15,110 @@ class SiteEntrySelectCardGrid extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
+      drawer: const CustomDrawer(),
       backgroundColor: AppColors.lightBlue,
-      appBar: CustomAppBar(title:"Select Card"),
+      appBar: CustomAppBar(title: "Select Card"),
       body: BottomButtonWrapper(
-        onBackPressed: (){Navigator.pop(context);},
-        child: Container(
-          padding: const EdgeInsets.symmetric(horizontal: 16), // Add side padding
-          child: GridView.count(
-            physics: const NeverScrollableScrollPhysics(),
-            shrinkWrap: true,
-            crossAxisCount: 2,
-            mainAxisSpacing: 12, // Reduced vertical space between cards
-            crossAxisSpacing: 10, // Reduced horizontal space between cards
-            childAspectRatio: 1,
+        onBackPressed: () {
+          Navigator.pop(context);
+        },
+        child: Padding(
+          padding: const EdgeInsets.symmetric(horizontal: 16),
+          child: Column(
             children: [
-              SelectCard(
-                icon: Image.asset(
-                  "assets/images/icons/manual_entry.webp",
+              const SizedBox(height: 10),
 
-                  height: 120,
-                  width: double.infinity,
-                  fit: BoxFit.cover,
+              // ---------------- GRID ----------------
+              GridView.count(
+                physics: const NeverScrollableScrollPhysics(),
+                shrinkWrap: true,
+                crossAxisCount: 2,
+                mainAxisSpacing: 12,
+                crossAxisSpacing: 10,
+                childAspectRatio: 1,
+                children: [
+                  // ---------------- Manual Entry ----------------
+                  SelectCard(
+                    icon: Image.asset(
+                      "assets/images/icons/manual_entry.webp",
+                      height: 120,
+                      width: double.infinity,
+                      fit: BoxFit.cover,
+                    ),
+                    label: "Manual Entry",
+                    onTap: () {
+                      Navigator.push(
+                        context,
+                        MaterialPageRoute(
+                          builder: (context) => SiteDetailScreen(),
+                        ),
+                      );
+                    },
+                  ),
 
-                ),
-                label: "Manual Entry",
-                onTap: () {
-                  Navigator.push(
-                    context,
-                    MaterialPageRoute(builder: (context) =>SiteDetailScreen() ),
-                  );
-
-                },
+                  // ---------------- Import Sheet ----------------
+                  SelectCard(
+                    icon: Image.asset(
+                      "assets/images/icons/import_sheet.webp",
+                      height: 120,
+                      width: double.infinity,
+                      fit: BoxFit.cover,
+                    ),
+                    label: "Import Sheet",
+                    onTap: () {
+                      Navigator.push(
+                        context,
+                        MaterialPageRoute(
+                          builder: (context) => SiteImportCsvScreen(),
+                        ),
+                      );
+                    },
+                  ),
+                ],
               ),
-              SelectCard(
-                icon: Image.asset(
-                  "assets/images/icons/import_sheet.webp",
 
-                  height: 120,
-                  width: double.infinity,
-                  fit: BoxFit.cover,
+              const SizedBox(height: 18),
 
+              // ---------------- INFO CARD UNDER GRID ----------------
+              Container(
+                width: double.infinity,
+                padding: const EdgeInsets.all(16),
+                decoration: BoxDecoration(
+                  color: Colors.white,
+                  borderRadius: BorderRadius.circular(18),
+                  boxShadow: [
+                    BoxShadow(
+                      color: Colors.black.withOpacity(0.08),
+                      blurRadius: 12,
+                      offset: const Offset(0, 6),
+                    ),
+                  ],
                 ),
-                label: "Import Sheet",
-                onTap: () {
-
-                  Navigator.push(
-                    context,
-                    MaterialPageRoute(builder: (context) =>SiteImportCsvScreen() ),
-                  );
-
-                },
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: const [
+                    Text(
+                      "Choose the entry method",
+                      style: TextStyle(
+                        fontSize: 16,
+                        fontWeight: FontWeight.w700,
+                      ),
+                    ),
+                    SizedBox(height: 8),
+                    Text(
+                      "• Manual Entry: Enter site details step-by-step manually.\n"
+                          "• Import Sheet: Upload an Excel/CSV sheet — our AI will analyze your file and map fields automatically.",
+                      style: TextStyle(
+                        fontSize: 13,
+                        height: 1.5,
+                        color: Colors.black87,
+                      ),
+                    ),
+                  ],
+                ),
               ),
 
+              const SizedBox(height: 20),
             ],
           ),
         ),

@@ -6,26 +6,43 @@ class ManpowerModel {
   final String? designation;
   final String? employeeCode;
   final String? phoneNumber;
+
+  final String? aadharNumber;
   final String? panNumber;
+
   final String? dateOfBirth;
   final String? dateOfJoining;
+
   final String? bankAccountNumber;
   final String? ifscCode;
   final String? epfNumber;
   final String? uanNumber;
   final String? esicNumber;
+
   final String? payBasics;
+
   final double? salary;
+  final double? basicSalary;
+  final double? hra;
+  final double? dearnessAllowance;
+  final double? specialAllowance;
+  final double? travelAllowance;
+  final double? medicalAllowance;
+
+  final bool? pfApplicable;
+
   final String? remarks;
+
   final bool? isDeleted;
-  final String? company;
   final bool? isLeft;
   final String? reason;
   final String? type;
+  final String? company;
+
   final String? createdAt;
   final String? updatedAt;
 
-  // New fields
+  // Login fields
   final String? loginEmail;
   final String? loginPassword;
   final bool? isLoginEnabled;
@@ -36,6 +53,7 @@ class ManpowerModel {
     this.designation,
     this.employeeCode,
     this.phoneNumber,
+    this.aadharNumber,
     this.panNumber,
     this.dateOfBirth,
     this.dateOfJoining,
@@ -46,6 +64,13 @@ class ManpowerModel {
     this.esicNumber,
     this.payBasics,
     this.salary,
+    this.basicSalary,
+    this.hra,
+    this.dearnessAllowance,
+    this.specialAllowance,
+    this.travelAllowance,
+    this.medicalAllowance,
+    this.pfApplicable,
     this.remarks,
     this.isDeleted,
     this.company,
@@ -54,9 +79,9 @@ class ManpowerModel {
     this.type,
     this.createdAt,
     this.updatedAt,
-    this.loginEmail,  // New
+    this.loginEmail,
     this.loginPassword,
-    this.isLoginEnabled// New
+    this.isLoginEnabled,
   });
 
   factory ManpowerModel.fromJson(Map<String, dynamic> json) {
@@ -66,26 +91,44 @@ class ManpowerModel {
       designation: json['designation']?.toString(),
       employeeCode: json['employeeCode']?.toString(),
       phoneNumber: json['phoneNumber']?.toString(),
+
+      aadharNumber: json['aadharNumber']?.toString(),
       panNumber: json['panNumber']?.toString(),
+
       dateOfBirth: json['dateOfBirth']?.toString(),
       dateOfJoining: json['dateOfJoining']?.toString(),
+
       bankAccountNumber: json['bankAccountNumber']?.toString(),
       ifscCode: json['ifscCode']?.toString(),
       epfNumber: json['epfNumber']?.toString(),
       uanNumber: json['uanNumber']?.toString(),
       esicNumber: json['esicNumber']?.toString(),
+
       payBasics: json['payBasics']?.toString(),
+
       salary: _toDouble(json['salary']),
+      basicSalary: _toDouble(json['basicSalary']),
+      hra: _toDouble(json['hra']),
+      dearnessAllowance: _toDouble(json['dearnessAllowance']),
+      specialAllowance: _toDouble(json['specialAllowance']),
+      travelAllowance: _toDouble(json['travelAllowance']),
+      medicalAllowance: _toDouble(json['medicalAllowance']),
+
+      pfApplicable: _toBool(json['pfApplicable']),
+
       remarks: json['remarks']?.toString(),
+
       isDeleted: _toBool(json['isDeleted']),
-      company: json['company']?.toString(),
       isLeft: _toBool(json['isLeft']),
       reason: json['reason']?.toString(),
       type: json['type']?.toString(),
+      company: json['company']?.toString(),
+
       createdAt: json['createdAt']?.toString(),
       updatedAt: json['updatedAt']?.toString(),
-      loginEmail: json['loginEmail']?.toString(),  // New
-      loginPassword: json['loginPassword']?.toString(),  // New
+
+      loginEmail: json['loginEmail']?.toString(),
+      loginPassword: json['loginPassword']?.toString(),
       isLoginEnabled: _toBool(json['isLoginEnabled']),
     );
   }
@@ -97,34 +140,51 @@ class ManpowerModel {
       "designation": designation,
       "employeeCode": employeeCode,
       "phoneNumber": phoneNumber,
+
+      "aadharNumber": aadharNumber,
       "panNumber": panNumber,
+
       "dateOfBirth": dateOfBirth,
       "dateOfJoining": dateOfJoining,
+
       "bankAccountNumber": bankAccountNumber,
       "ifscCode": ifscCode,
       "epfNumber": epfNumber,
       "uanNumber": uanNumber,
       "esicNumber": esicNumber,
+
       "payBasics": payBasics,
+
       "salary": salary,
+      "basicSalary": basicSalary,
+      "hra": hra,
+      "dearnessAllowance": dearnessAllowance,
+      "specialAllowance": specialAllowance,
+      "travelAllowance": travelAllowance,
+      "medicalAllowance": medicalAllowance,
+
+      "pfApplicable": pfApplicable,
+
       "remarks": remarks,
+
       "isDeleted": isDeleted,
-      "company": company,
       "isLeft": isLeft,
       "reason": reason,
       "type": type,
+      "company": company,
+
       "createdAt": createdAt,
       "updatedAt": updatedAt,
-      "loginEmail": loginEmail,  // New
-      "loginPassword": loginPassword,  // New
+
+      "loginEmail": loginEmail,
+      "loginPassword": loginPassword,
       "isLoginEnabled": isLoginEnabled,
     };
   }
 
   static double? _toDouble(dynamic value) {
     if (value == null) return null;
-    if (value is double) return value;
-    if (value is int) return value.toDouble();
+    if (value is num) return value.toDouble();
     if (value is String) return double.tryParse(value);
     return null;
   }

@@ -215,6 +215,107 @@ class ManpowerAPI {
       };
     }
   }
+  /// Upload Excel via flexible-upload API
+  static Future<Map<String, dynamic>> flexibleUploadExcel({
+    required File file,
+    required String type,
+    bool analyze = false,
+  }) async {
+    try {
+      final mappedType = mapManpowerType(type);
+
+      final formData = FormData.fromMap({
+        "file": await MultipartFile.fromFile(
+          file.path,
+          filename: file.path.split('/').last,
+        ),
+      });
+
+      debugPrint("📤 Uploading excel using flexible-upload...");
+      debugPrint("📌 Type: $mappedType | Analyze: $analyze");
+      debugPrint("📁 File: ${file.path}");
+
+      final res = await dio.post(
+        "/manpower/flexible-upload",
+        queryParameters: {
+          "type": mappedType,
+          if (analyze) "analyze": true,
+        },
+        data: formData,
+        options: Options(
+          headers: {
+            "Accept": "application/json",
+            "Content-Type": "multipart/form-data",
+          },
+        ),
+      );
+
+      debugPrint("✅ flexible-upload success: ${res.statusCode}");
+      debugPrint("📦 Response: ${res.data}");
+
+      return {
+        "success": true,
+        "data": res.data,
+        "statusCode": res.statusCode,
+      };
+    } on DioException catch (e, stackTrace) {
+      debugPrint("❌ flexible-upload DIO ERROR");
+      debugPrint("➡️ URL: ${e.requestOptions.uri}");
+      debugPrint("➡️ Method: ${e.requestOptions.method}");
+      debugPrint("➡️ Query: ${e.requestOptions.queryParameters}");
+      debugPrint("➡️ Status Code: ${e.response?.statusCode}");
+      debugPrint("➡️ Response Data: ${e.response?.data}");
+      debugPrint("➡️ Message: ${e.message}");
+      debugPrint("➡️ StackTrace:\n$stackTrace");
+
+      String errorMessage = "Upload failed";
+
+      if (e.response?.data is Map) {
+        errorMessage =
+            e.response?.data['message'] ??
+                e.response?.data['error'] ??
+                errorMessage;
+      } else if (e.response?.data is String) {
+        errorMessage = e.response!.data;
+      } else if (e.message != null) {
+        errorMessage = e.message!;
+      }
+
+      return {
+        "success": false,
+        "error": "Flexible Upload Error",
+        "message": errorMessage,
+        "statusCode": e.response?.statusCode,
+        "data": e.response?.data,
+      };
+    } catch (e, stackTrace) {
+      debugPrint("❌ flexible-upload UNKNOWN ERROR: $e");
+      debugPrint("➡️ StackTrace:\n$stackTrace");
+
+      return {
+        "success": false,
+        "error": "Unexpected Error",
+        "message": e.toString(),
+      };
+    }
+  }
+
+  /// Shortcut: Upload only
+  static Future<Map<String, dynamic>> uploadExcel({
+    required File file,
+    required String type,
+  }) {
+    return flexibleUploadExcel(file: file, type: type, analyze: false);
+  }
+
+  /// Shortcut: Upload + Analyze
+  static Future<Map<String, dynamic>> analyzeExcel({
+    required File file,
+    required String type,
+  }) {
+    return flexibleUploadExcel(file: file, type: type, analyze: true);
+  }
+
   static Future<Map<String, dynamic>> uploadManpowerBulk(FormData formData,String type) async {
     try {
       print('📤 Uploading manpower file...');
@@ -347,6 +448,7 @@ class ManpowerAPI {
     }
   }
 }
+
 String mapManpowerType(String rawType) {
   switch (rawType) {
     case 'mechanical':
@@ -361,6 +463,19 @@ String mapManpowerType(String rawType) {
       throw Exception(
         "Invalid manpower type: $rawType. Allowed: mechanical_work, insulation_work",
       );
+  }
+}
+
+class ExcelUploadIssue {
+  final int? row;
+  final String message;
+
+  ExcelUploadIssue({this.row, required this.message});
+
+  @override
+  String toString() {
+    if (row == null) return message;
+    return "Row $row: $message";
   }
 }
 

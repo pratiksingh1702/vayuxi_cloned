@@ -2,6 +2,8 @@ import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
 import 'package:syncfusion_flutter_charts/charts.dart';
 
+import '../../../../../core/utlis/widgets/sidebar.dart';
+
 class FinancialReportScreen extends StatelessWidget {
   final String siteName;
   final dynamic income;
@@ -52,6 +54,7 @@ class FinancialReportScreen extends StatelessWidget {
     ];
 
     return Scaffold(
+      drawer: const CustomDrawer(),
       backgroundColor: const Color(0xFFF5F9FC),
       appBar: AppBar(
         title: Text(screenTitle),

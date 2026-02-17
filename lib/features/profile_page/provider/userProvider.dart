@@ -1,5 +1,8 @@
+import 'dart:convert';
+
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:dio/dio.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 
 import '../../auth/service/auth_client.dart';
 import '../userModel/userModel.dart';
@@ -43,21 +46,57 @@ class UserNotifier extends StateNotifier<UserState> {
 
   /// Get current user
   Future<void> getCurrentUser() async {
+    final prefs = await SharedPreferences.getInstance();
+
     try {
-      state = state.copyWith(isLoading: true, error: null);
+      // --------------------------------------------------
+      // ✅ STEP 1: LOAD FROM CACHE FIRST (FAST + OFFLINE)
+      // --------------------------------------------------
+      final cached = prefs.getString('user_data');
 
+      if (cached != null) {
+        final user = User.fromJson(json.decode(cached));
+        state = state.copyWith(user: user, isLoading: false);
+      } else {
+        state = state.copyWith(isLoading: true);
+      }
+
+      // --------------------------------------------------
+      // ✅ STEP 2: TRY API REFRESH (BACKGROUND)
+      // --------------------------------------------------
       final userData = await AuthAPI.getCurrentUser();
+      final freshUser = User.fromJson(userData['data'] ?? userData);
 
-      final user = User.fromJson(userData['data'] ?? userData);
-      state = state.copyWith(user: user, isLoading: false);
+      // save latest
+      await prefs.setString('user_data', json.encode(freshUser.toJson()));
+
+      // update UI
+      state = state.copyWith(user: freshUser, isLoading: false);
 
     } on DioException catch (e) {
-      final errorMessage = e.response?.data?['message'] ?? e.message ?? 'Failed to fetch user';
+      // --------------------------------------------------
+      // ❌ API FAILED → KEEP CACHED USER
+      // --------------------------------------------------
+      print("⚠️ API failed, using cached user");
+
+      final cached = prefs.getString('user_data');
+
+      if (cached != null) {
+        final user = User.fromJson(json.decode(cached));
+        state = state.copyWith(user: user, isLoading: false);
+        return;
+      }
+
+      // if no cache at all → then error
+      final errorMessage =
+          e.response?.data?['message'] ?? e.message ?? 'Failed to fetch user';
+
       state = state.copyWith(error: errorMessage, isLoading: false);
     } catch (e) {
       state = state.copyWith(error: e.toString(), isLoading: false);
     }
   }
+
 
   /// Get user by ID
   Future<User?> getUserById(String id) async {

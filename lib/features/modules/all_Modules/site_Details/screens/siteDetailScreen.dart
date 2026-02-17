@@ -9,11 +9,15 @@ import 'package:untitled2/core/utlis/widgets/Button_wrapper.dart';
 import 'package:untitled2/core/utlis/widgets/custom_appBar.dart';
 import 'package:untitled2/typeProvider/type_provider.dart';
 
+import '../../../../../core/utlis/app_toasts.dart';
+import '../../../../../core/utlis/common_functions.dart';
 import '../../../../../core/utlis/widgets/buttons.dart';
 import '../../../../../core/utlis/widgets/custom.dart';
 import '../../../../../core/utlis/widgets/fields/custom_textField.dart';
 import '../../../../../core/utlis/widgets/fields/phone_number_field.dart';
 import '../../../../../core/utlis/widgets/file_upload.dart';
+import '../../../../../core/utlis/widgets/sidebar.dart';
+import '../../../../tour/domain/tour_controller.dart';
 import '../providers/siteProvider.dart';
 import '../repository/siteModel.dart';
 import '../providers/site_service.dart';
@@ -162,7 +166,10 @@ print(_formatDocumentDate(site?.documentDate));
           throw ValidationException('Site type is required');
         }
         await SiteAPI.createSite(formData, type);
-        _showSnackBar('Site created successfully!', isError: false);
+        await ref.read(tourPersistenceProvider).markSiteDone();
+        AppToast.success("Site creation Successful ✅");
+
+        // _showSnackBar('Site created successfully!', isError: false);
       } else {
         await SiteAPI.updateSite(widget.site!.id, formData);
         _showSnackBar('Site updated successfully!', isError: false);
@@ -180,7 +187,7 @@ print(_formatDocumentDate(site?.documentDate));
       debugPrint("VALIDATION ERROR: ${e.message}");
     } on DioException catch (e) {
       // Handle Dio-specific errors
-      final userMessage = _handleDioError(e);
+      final userMessage = extractBackendError(e);
       _showSnackBar(userMessage, isError: true);
       debugPrint("API Error: ${e.message}\nStatus: ${e.response?.statusCode}\nData: ${e.response?.data}");
     } catch (e, stack) {
@@ -196,44 +203,14 @@ print(_formatDocumentDate(site?.documentDate));
 
 // Helper method to show snackbar - REMOVE mounted check at the beginning
   void _showSnackBar(String message, {bool isError = false}) {
-    // Use WidgetsBinding.instance.addPostFrameCallback to ensure context is ready
     WidgetsBinding.instance.addPostFrameCallback((_) {
       if (!mounted) return;
 
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(
-          content: Row(
-            children: [
-              Icon(
-                isError ? Icons.error_outline : Icons.check_circle,
-                color: isError ? Colors.red : Colors.green,
-                size: 20,
-              ),
-              const SizedBox(width: 8),
-              Expanded(
-                child: Text(
-                  message,
-                  style: TextStyle(
-                    color: isError ? Colors.red[800] : Colors.green[800],
-                  ),
-                ),
-              ),
-            ],
-          ),
-          backgroundColor: isError ? Colors.red[50] : Colors.green[50],
-          behavior: SnackBarBehavior.floating,
-          duration: Duration(seconds: isError ? 4 : 3),
-          action: isError
-              ? SnackBarAction(
-            label: 'Dismiss',
-            textColor: Colors.red[800],
-            onPressed: () {
-              ScaffoldMessenger.of(context).hideCurrentSnackBar();
-            },
-          )
-              : null,
-        ),
-      );
+      if (isError) {
+        AppToast.error(message);
+      } else {
+        AppToast.success(message);
+      }
     });
   }
 
@@ -254,59 +231,7 @@ print(_formatDocumentDate(site?.documentDate));
 
   }
 
-// Handle Dio errors
-  String _handleDioError(DioException e) {
-    // Extract server validation errors
-    if (e.response?.statusCode == 422 || e.response?.statusCode == 400) {
-      final errors = _extractValidationErrors(e.response?.data);
-      if (errors.isNotEmpty) {
-        // Show first error only to avoid too long messages
-        return errors.first;
-      } else if (e.response?.data?['message'] != null) {
-        return e.response!.data!['message'].toString();
-      }
-    }
 
-    // Handle specific status codes
-    switch (e.type) {
-      case DioExceptionType.connectionTimeout:
-      case DioExceptionType.sendTimeout:
-      case DioExceptionType.receiveTimeout:
-        return "Request timeout. Please check your internet connection.";
-
-      case DioExceptionType.connectionError:
-        return "No internet connection. Please check your network.";
-
-      case DioExceptionType.badResponse:
-        switch (e.response?.statusCode) {
-          case 401:
-            return "Your session has expired. Please log in again.";
-          case 403:
-            return "You don't have permission to perform this action.";
-          case 404:
-            return "Resource not found.";
-          case 409:
-            return "A site with this name already exists.";
-          case 500:
-          case 502:
-          case 503:
-          case 504:
-            return "Server is currently unavailable. Please try again later.";
-        }
-        break;
-
-      case DioExceptionType.cancel:
-        return "Request was cancelled.";
-
-      case DioExceptionType.badCertificate:
-        return "Security certificate error. Please contact support.";
-
-      default:
-        return "Failed to save site. Please try again.";
-    }
-
-    return "Failed to save site. Please try again.";
-  }
 
 // Helper method to extract validation errors from server response
   List<String> _extractValidationErrors(dynamic responseData) {
@@ -344,39 +269,14 @@ print(_formatDocumentDate(site?.documentDate));
 // Helper method to show success snackbar
   void showSuccessSnackBar(String message) {
     if (!mounted) return;
-    ScaffoldMessenger.of(context).showSnackBar(
-      SnackBar(
-        content: Row(
-          children: [
-            const Icon(Icons.check_circle, color: Colors.green, size: 20),
-            const SizedBox(width: 8),
-            Expanded(child: Text(message)),
-          ],
-        ),
-        backgroundColor: Colors.green[50],
-        behavior: SnackBarBehavior.floating,
-        duration: const Duration(seconds: 3),
-      ),
-    );
+ AppToast.success(message);
   }
 
 // Helper method to show error snackbar
   void showErrorSnackBar(String message) {
     if (!mounted) return;
-    ScaffoldMessenger.of(context).showSnackBar(
-      SnackBar(
-        content: Row(
-          children: [
-            const Icon(Icons.error_outline, color: Colors.red, size: 20),
-            const SizedBox(width: 8),
-            Text(message),
-          ],
-        ),
-        backgroundColor: Colors.red[50],
-        behavior: SnackBarBehavior.floating,
-        duration: const Duration(seconds: 4),
-      ),
-    );
+    final error=extractBackendError(message);
+  AppToast.error(error);
   }
 
 // GST validation helper
@@ -425,15 +325,13 @@ print(_formatDocumentDate(site?.documentDate));
 
       if (!mounted) return;
 
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text("✅ Site deleted successfully")),
-      );
+      _showSnackBar("Site deleted successfully!", isError: false);
 
       Navigator.pop(context); // leave detail screen
 
 
     } on DioException catch (e) {
-      final msg = _handleDioError(e);
+      final msg = extractBackendError(e);
       _showSnackBar(msg, isError: true);
     } catch (e) {
       _showSnackBar("Failed to delete site", isError: true);
@@ -449,6 +347,7 @@ print(_formatDocumentDate(site?.documentDate));
     final site = widget.site;
 
     return Scaffold(
+      drawer: const CustomDrawer(),
       body: NestedScrollView(
         headerSliverBuilder: (context, innerBoxIsScrolled) {
           return [CustomSliverAppBar(title: site?.siteName ?? "New Site")];

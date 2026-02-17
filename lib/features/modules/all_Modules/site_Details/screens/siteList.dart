@@ -1,15 +1,23 @@
 import 'package:dio/dio.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:showcaseview/showcaseview.dart';
+import 'package:untitled2/core/utlis/app_toasts.dart';
 import 'package:untitled2/core/utlis/widgets/buttons.dart';
 import 'package:untitled2/core/utlis/widgets/custom_appBar.dart';
 import 'package:untitled2/features/language/service/providers.dart';
 import 'package:untitled2/features/modules/all_Modules/site_Details/screens/site_entry_select_page.dart';
 
 import '../../../../../core/utlis/colors/colors.dart';
+import '../../../../../core/utlis/common_functions.dart';
 import '../../../../../core/utlis/widgets/Button_wrapper.dart';
 import '../../../../../core/utlis/widgets/card.dart';
 import '../../../../../core/utlis/widgets/custom.dart';
+import '../../../../tour/domain/tour_aware_mixin.dart';
+import '../../../../tour/domain/tour_controller.dart';
+import '../../../../tour/domain/tour_presistent.dart';
+import '../../../../tour/domain/tour_registery.dart';
+import '../../../../tour/domain/tour_step_model.dart';
 import '../providers/siteProvider.dart';
 import '../providers/site_current_provider.dart';
 import '../providers/site_service.dart';
@@ -25,7 +33,8 @@ class SiteListScreen extends ConsumerStatefulWidget {
   ConsumerState<SiteListScreen> createState() => _SiteListScreenState();
 }
 
-class _SiteListScreenState extends ConsumerState<SiteListScreen> {
+class _SiteListScreenState extends ConsumerState<SiteListScreen>
+    with TourAwareMixin {
   // Selection mode state
   bool _isSelectionMode = false;
   Set<String> _selectedSiteIds = {};
@@ -35,10 +44,13 @@ class _SiteListScreenState extends ConsumerState<SiteListScreen> {
     super.initState();
 
     WidgetsBinding.instance.addPostFrameCallback((_) {
+      final tour = ref.read(tourControllerProvider);
       final selectedSiteId = ref.read(selectedSiteIdProvider);
       final currentSite = ref.read(currentSiteProvider);
 
-      if (selectedSiteId != null && currentSite != null) {
+      final tourRunning = tour.status == TourStatus.running;
+
+      if (!tourRunning && selectedSiteId != null && currentSite != null) {
         Navigator.push(
           context,
           MaterialPageRoute(
@@ -48,6 +60,9 @@ class _SiteListScreenState extends ConsumerState<SiteListScreen> {
       }
     });
   }
+
+
+
 
   Future<void> _confirmAndDeleteSite(SiteModel site) async {
     final confirm = await showDialog<bool>(
@@ -80,21 +95,21 @@ class _SiteListScreenState extends ConsumerState<SiteListScreen> {
 
       if (!mounted) return;
 
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(
-          content: Text("✅ ${site.siteName} deleted successfully"),
-          behavior: SnackBarBehavior.floating,
-        ),
-      );
+      AppToast.success("✅ ${site.siteName} deleted successfully");
     } on DioException catch (e) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(
-          content: Text("❌ Failed to delete site"),
-          backgroundColor: Colors.red[100],
-        ),
-      );
+      debugPrint("❌ Delete site failed: $e");
+      if (!mounted) return;
+
+      AppToast.error("❌ Failed to delete site");
+    } catch (e) {
+      debugPrint("❌ Delete site failed: $e");
+      if (!mounted) return;
+
+      final error = extractBackendError(e);
+      AppToast.error("❌ $error");
     }
   }
+
 
   /// Toggle selection mode
   void _toggleSelectionMode() {
@@ -126,15 +141,9 @@ class _SiteListScreenState extends ConsumerState<SiteListScreen> {
     });
   }
 
-  /// Delete selected sites
   Future<void> _deleteSelectedSites() async {
     if (_selectedSiteIds.isEmpty) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(
-          content: Text('No sites selected'),
-          backgroundColor: Colors.orange,
-        ),
-      );
+      AppToast.info('No sites selected');
       return;
     }
 
@@ -167,14 +176,9 @@ class _SiteListScreenState extends ConsumerState<SiteListScreen> {
 
       ref.read(siteProvider.notifier).fetchSites();
 
-      if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
-            content: Text('Successfully deleted ${_selectedSiteIds.length} sites'),
-            backgroundColor: Colors.green,
-          ),
-        );
-      }
+      if (!mounted) return;
+
+      AppToast.success("✅ Successfully deleted ${_selectedSiteIds.length} sites");
 
       setState(() {
         _selectedSiteIds.clear();
@@ -182,17 +186,13 @@ class _SiteListScreenState extends ConsumerState<SiteListScreen> {
       });
     } catch (e) {
       debugPrint('❌ Failed to bulk delete: $e');
+      if (!mounted) return;
 
-      if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
-            content: Text('Bulk delete failed: ${e.toString()}'),
-            backgroundColor: Colors.red,
-          ),
-        );
-      }
+      final error = extractBackendError(e);
+      AppToast.error("❌ Bulk delete failed: $error");
     }
   }
+
 
   @override
   Widget build(BuildContext context) {
@@ -202,19 +202,27 @@ class _SiteListScreenState extends ConsumerState<SiteListScreen> {
     final selectedSiteId = ref.watch(selectedSiteIdProvider);
     final currentSite = ref.watch(currentSiteProvider);
 
-    return Scaffold(
-      body: NestedScrollView(
-        headerSliverBuilder: (context, innerBoxIsScrolled) {
-          return [
-            CustomSliverAppBar(
-              title: _isSelectionMode
-                  ? '${_selectedSiteIds.length} Selected'
-                  : lang.selectSiteTitle,
-            ),
-          ];
-        },
-        body: _buildMainBody(),
-      ),
+    return ShowCaseWidget(
+      builder: (showcaseContext) {
+        WidgetsBinding.instance.addPostFrameCallback((_) {
+          runTourForRoute("/site-list/site", showcaseContext);
+        });
+        return Scaffold(
+          body: NestedScrollView(
+            headerSliverBuilder: (context, innerBoxIsScrolled) {
+              return [
+                CustomSliverAppBar(
+                  title: _isSelectionMode
+                      ? '${_selectedSiteIds.length} Selected'
+                      : lang.selectSiteTitle,
+                ),
+              ];
+            },
+            body: _buildMainBody(),
+          ),
+        );
+      },
+
     );
   }
 
@@ -226,19 +234,27 @@ class _SiteListScreenState extends ConsumerState<SiteListScreen> {
       customButtons: [
         if (widget.show)
           CustomButton(
-            button: RoundedButton(
-              text: "Add",
-              color: Colors.blue,
-              textColor: Colors.white,
-              onPressed: () {
-                Navigator.push(
-                  context,
-                  MaterialPageRoute(builder: (context) => SiteEntrySelectCardGrid()),
-                );
-              },
+            button: Showcase(
+              key: TourRegistry.siteCreateKey,
+              description: "Tap here to create your first Site",
+              child: RoundedButton(
+                text: "Add",
+                color: Colors.blue,
+                textColor: Colors.white,
+                onPressed: () async {
+                  Navigator.push(
+                    context,
+                    MaterialPageRoute(builder: (context) => SiteEntrySelectCardGrid()),
+                  );
+                  await TourPersistence().markCompleted();
+
+                },
+                isOutlined: false,
+              ),
             ),
           ),
       ],
+
       child: Column(
         children: [
           // Top action bar with selection controls
@@ -382,7 +398,8 @@ class _SiteListScreenState extends ConsumerState<SiteListScreen> {
               Opacity(
                 opacity: _isSelectionMode && !isSelected ? 0.5 : 1.0,
                 child: CompanyCard(
-                  imagePath: site.siteImage ?? '',
+                  imagePath: site.siteImage ?? 'assets/images/site_def.webp',
+                  defaultImage: 'assets/images/site_def.webp',
                   companyName: site.siteName ?? 'Unknown Site',
                   onTap: _isSelectionMode
                       ? () => _toggleSiteSelection(site.id)

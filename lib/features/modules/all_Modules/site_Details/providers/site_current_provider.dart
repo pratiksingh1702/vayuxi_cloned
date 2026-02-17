@@ -67,7 +67,7 @@ class ModuleScreenSyncNotifier extends Notifier<void> {
 
     // 🔥 TEAM (Same pattern as site)
     if (teamDropdown == null) {
-      ref.read(selectedTeamIdProvider.notifier).state = null;
+      ref.read(selectedTeamIdProvider.notifier).state = "";
       ref.read(selectedTeamProvider.notifier).clear();
     }
   }

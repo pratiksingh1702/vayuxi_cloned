@@ -8,6 +8,7 @@ import 'package:untitled2/features/modules/all_Modules/summary/screens/profit_lo
 import 'package:untitled2/typeProvider/type_provider.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:shimmer/shimmer.dart';
+import '../../../../../core/utlis/widgets/sidebar.dart';
 import '../service/summaryService.dart';
 
 import 'loss.dart';
@@ -213,6 +214,7 @@ class _SummaryScreenState extends ConsumerState<SummaryScreen> {
     final defaultMonth = selectedMonth != null ? monthNames[selectedMonth! - 1] : null;
 
     return Scaffold(
+      drawer: const CustomDrawer(),
       backgroundColor: AppColors.lightBlue,
       appBar: CustomAppBar(title: "P&L Summary"),
       body: Column(

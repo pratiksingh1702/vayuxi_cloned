@@ -20,7 +20,7 @@ class PipingMaterialsData {
       location: 'sector 23',
       plant: 'plant',
       designation: ['piping'],
-      calculationCategory: 'B',
+      calculationCategory: 'B', floor: '', elevation: '',
     ),
     PipingItem(
       id: '6950b367d5e7fb761548d915',

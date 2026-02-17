@@ -44,20 +44,14 @@ class CustomAppBar extends StatelessWidget implements PreferredSizeWidget {
                   icon: Container(
                     padding: const EdgeInsets.all(8),
                     decoration: BoxDecoration(
-                      color: Colors.blue.shade600,
+
                       borderRadius: BorderRadius.circular(10),
-                      boxShadow: [
-                        BoxShadow(
-                          color: Colors.blue.withOpacity(0.3),
-                          blurRadius: 8,
-                          spreadRadius: 1,
-                        ),
-                      ],
+
                     ),
                     child: const Icon(
                       Icons.menu_rounded,
-                      color: Colors.white,
-                      size: 24,
+                      color: Colors.black,
+                      size: 34,
                     ),
                   ),
                   onPressed: () => Scaffold.of(context).openDrawer(),

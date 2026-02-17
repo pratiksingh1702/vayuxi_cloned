@@ -1,18 +1,24 @@
 import 'package:flutter/material.dart';
 
+import '../../models/rate_file_models.dart';
+
 class DynamicItemCard extends StatefulWidget {
   final String quantity;
   final String size;
   final String length;
   final String floor;
+  final String floorlabel;
   final String moc;
-  final String? image;
+  final String image;
   final String sizeLabel;
   final String lengthLabel;
   final String? remark;
 
   final String sizePlaceholder;
   final String lengthPlaceholder;
+
+
+
   final Function(String) onQtyChanged;
   final Function(String) onSizeChanged;
   final Function(String) onLengthChanged;
@@ -27,11 +33,14 @@ class DynamicItemCard extends StatefulWidget {
 
   const DynamicItemCard({
     required this.quantity,
+
     required this.size,
+
+ this.floorlabel='Floor',
     required this.length,
     required this.floor,
     required this.moc,
-    this.image,
+    required this.image,
     required this.sizeLabel,
     required this.lengthLabel,
     required this.sizePlaceholder,
@@ -373,7 +382,8 @@ class _DynamicItemCardState extends State<DynamicItemCard>
                     children: [
                       Row(
                         children: [
-                          Expanded(child: _blueBox("Floor", _floorController)),
+                          if (widget.floorlabel.isNotEmpty)  Expanded(child:    _blueBox(widget.floorlabel, _floorController),
+    ),
                           const SizedBox(width: 8),
                           Expanded(child: _blueBox("Size", _sizeController)),
                         ],

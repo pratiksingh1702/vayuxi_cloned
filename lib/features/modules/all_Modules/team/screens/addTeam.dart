@@ -9,7 +9,9 @@ import 'package:untitled2/core/utlis/colors/colors.dart';
 import 'package:untitled2/core/utlis/widgets/buttons.dart';
 
 import '../../../../../core/utlis/widgets/custom_appBar.dart';
+import '../../../../../core/utlis/widgets/sidebar.dart';
 import '../../../../../typeProvider/type_provider.dart';
+import '../../../../tour/domain/tour_controller.dart';
 import '../../Manpower Details/model/manpower_model.dart';
 import '../../Manpower Details/service/manPowerProvider.dart';
 import '../../site_Details/providers/site_current_provider.dart';
@@ -225,6 +227,7 @@ class _AddTeamScreenState extends ConsumerState<AddTeamScreen> {
     }
 
     return Scaffold(
+      drawer: const CustomDrawer(),
       backgroundColor: AppColors.lightBlue,
       appBar: CustomAppBar(title: 'Add Team'),
       body: Padding(
@@ -505,8 +508,10 @@ class _AddTeamScreenState extends ConsumerState<AddTeamScreen> {
                             await ref.read(teamProvider.notifier).createTeam(
                               type: type!,
                               siteId: siteId!,
-                              formData: formData,
+                              data: formData,
                             );
+                            await ref.read(tourPersistenceProvider).markTeamDone();
+
                             Navigator.pop(context);
                           }
                         },

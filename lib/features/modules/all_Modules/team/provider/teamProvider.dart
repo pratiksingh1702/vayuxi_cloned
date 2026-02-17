@@ -1,27 +1,107 @@
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:dio/dio.dart';
+import 'package:untitled2/features/modules/all_Modules/team/offline/state/isar_provider.dart';
 
 import '../model/teamModel.dart';
+import '../offline/isar/team_isar.dart';
+import '../offline/isar/team_local_Storage.dart';
+import '../offline/state/team_State.dart';
 import '../provider/teamService.dart';
 
 /// ------------------------------------------------------------
 /// TEAM LIST PROVIDER
 /// ------------------------------------------------------------
+import 'package:flutter_riverpod/flutter_riverpod.dart';
+import '../model/teamModel.dart';
+
+
 final teamProvider =
-StateNotifierProvider<TeamNotifier, AsyncValue<List<TeamModel>>>((ref) {
-  return TeamNotifier();
-});
+StateNotifierProvider<TeamNotifier, TeamState>((ref) => TeamNotifier(ref));
 
-class TeamNotifier extends StateNotifier<AsyncValue<List<TeamModel>>> {
-  TeamNotifier() : super(const AsyncValue.loading());
+class TeamNotifier extends StateNotifier<TeamState> {
+  TeamNotifier(this.ref) : super(TeamState());
 
-  Future<void> getTeams(String type, String siteId) async {
-    state = const AsyncValue.loading();
+  final Ref ref;
+
+  Future<void> fetchTeams({
+    required String type,
+    required String siteId,
+  }) async {
+    if (type.isEmpty || siteId.isEmpty) {
+      state = state.copyWith(
+        teams: [],
+        isLoading: false,
+        hasData: false,
+        error: "Missing type/siteId",
+      );
+      return;
+    }
+
+
+    final local = TeamLocalStorage();
+
+    // show loader ONLY if no data
+    if (state.teams.isEmpty) {
+      state = state.copyWith(isLoading: true, error: null);
+    }
+
     try {
-      final teams = await TeamApi.fetchTeams(type: type, siteId: siteId);
-      state = AsyncValue.data(teams);
-    } catch (e, st) {
-      state = AsyncValue.error(e, st);
+      // ✅ 1) LOAD OFFLINE FIRST
+      final cached = await local.getTeams(type: type, siteId: siteId);
+      final cachedTeams = cached.map((e) => e.toModel()).toList();
+
+      if (cachedTeams.isNotEmpty) {
+        state = state.copyWith(
+          teams: cachedTeams,
+          isLoading: false,
+          hasData: true,
+        );
+      }
+
+      // ✅ 2) FETCH ONLINE
+      final apiTeams = await TeamApi.fetchTeams(type: type, siteId: siteId);
+
+      // ✅ 3) SAVE TO ISAR
+      final keepIds = <String>{};
+      final isarTeams = <TeamIsar>[];
+
+      for (final team in apiTeams) {
+        keepIds.add(team.id);
+        isarTeams.add(TeamIsar.fromModel(team, siteId));
+      }
+
+      await local.saveTeams(type: type, siteId: siteId, teams: isarTeams);
+
+      // ✅ 4) CLEANUP STALE
+      await local.deleteTeamsNotIn(type: type, siteId: siteId, keepIds: keepIds);
+
+      // ✅ 5) UPDATE UI
+      state = state.copyWith(
+        isLoading: false,
+        teams: apiTeams,
+        hasData: true,
+        error: null,
+      );
+    } catch (e) {
+      // ✅ fallback offline
+      final cached = await local.getTeams(type: type, siteId: siteId);
+      final cachedTeams = cached.map((e) => e.toModel()).toList();
+
+      if (cachedTeams.isNotEmpty) {
+        state = state.copyWith(
+          isLoading: false,
+          teams: cachedTeams,
+          hasData: true,
+          error: "Using cached data - $e",
+        );
+      } else {
+        state = state.copyWith(
+          isLoading: false,
+          teams: [],
+          hasData: false,
+          error: e.toString(),
+        );
+      }
     }
   }
 
@@ -30,60 +110,34 @@ class TeamNotifier extends StateNotifier<AsyncValue<List<TeamModel>>> {
     required String teamId,
     required String type,
   }) async {
-    try {
-      state = const AsyncValue.loading();
+    await TeamApi.deleteTeam(siteId: siteId, teamId: teamId);
 
-      await TeamApi.deleteTeam(
-        siteId: siteId,
-        teamId: teamId,
-      );
-
-      // 🔄 Refresh list after delete
-      await getTeams(type, siteId);
-    } catch (e, st) {
-      state = AsyncValue.error(e, st);
-      rethrow;
-    }
+    // Refresh
+    await fetchTeams(type: type, siteId: siteId);
   }
 
   Future<void> updateTeam({
     required String siteId,
     required String teamId,
-    required FormData formData,
     required String type,
+    required FormData data,
   }) async {
-    try {
-      state = const AsyncValue.loading();
+    await TeamApi.updateTeam(siteId: siteId, teamId: teamId, data: data);
 
-      await TeamApi.updateTeam(
-        siteId: siteId,
-        teamId: teamId,
-        data: formData,
-      );
-
-      await getTeams(type, siteId);
-    } catch (e) {
-      state = AsyncValue.error(e, StackTrace.current);
-      rethrow;
-    }
+    await fetchTeams(type: type, siteId: siteId);
   }
 
   Future<void> createTeam({
-    required String type,
     required String siteId,
-    required FormData formData,
+    required String type,
+    required FormData data,
   }) async {
-    try {
-      await TeamApi.createTeam(
-        siteId: siteId,
-        type: type,
-        data: formData,
-      );
-    } catch (e, st) {
-      state = AsyncValue.error(e, st);
-    }
+    await TeamApi.createTeam(siteId: siteId, type: type, data: data);
+
+    await fetchTeams(type: type, siteId: siteId);
   }
 }
+
 
 /// ------------------------------------------------------------
 /// FETCH SINGLE TEAM (API CALL)
@@ -106,6 +160,7 @@ final teamDropdownValueProvider = StateProvider<TeamModel?>((ref) => null);
 /// Stores only the selected team's ID
 final selectedTeamIdProvider = StateProvider<String?>((ref) => null);
 
+
 /// Manages team selection with clear() method
 class SelectedTeamNotifier extends StateNotifier<TeamModel?> {
   SelectedTeamNotifier(this.ref) : super(null);
@@ -119,7 +174,7 @@ class SelectedTeamNotifier extends StateNotifier<TeamModel?> {
 
   void clear() {
     state = null;
-    ref.read(selectedTeamIdProvider.notifier).state = null;
+    ref.read(selectedTeamIdProvider.notifier).state = "";
     ref.read(teamDropdownValueProvider.notifier).state = null;
   }
 }
@@ -134,16 +189,12 @@ final currentTeamProvider = Provider<TeamModel?>((ref) {
   final teamState = ref.watch(teamProvider);
   final selectedId = ref.watch(selectedTeamIdProvider);
 
-  return teamState.when(
-    data: (teams) {
-      if (selectedId == null || teams.isEmpty) return null;
-      try {
-        return teams.firstWhere((team) => team.id == selectedId);
-      } catch (e) {
-        return null;
-      }
-    },
-    loading: () => null,
-    error: (_, __) => null,
-  );
+  if (selectedId == null || selectedId.isEmpty) return null;
+  if (teamState.teams.isEmpty) return null;
+
+  try {
+    return teamState.teams.firstWhere((team) => team.id == selectedId);
+  } catch (_) {
+    return null;
+  }
 });

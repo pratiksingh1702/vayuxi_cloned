@@ -1,3 +1,5 @@
+import 'package:untitled2/features/modules/all_Modules/dpr/models/rate_file_models.dart';
+
 class EquipmentItem {
   final String id;
   final String materialName;
@@ -18,6 +20,10 @@ class EquipmentItem {
   final List<String> designation;
   final String calculationCategory;
   final String remarks;
+  final bool isFromRateFile;
+  final String? rateFileId;
+  final String? rateVariantId;
+  final List<DynamicField> dynamicFields;
 
   const EquipmentItem({
     required this.id,
@@ -30,6 +36,7 @@ class EquipmentItem {
     required this.diameter,
     required this.weight,
     required this.power,
+    this.dynamicFields = const [],
     required this.actualRate,
     required this.rate,
     required this.moc,
@@ -39,6 +46,9 @@ class EquipmentItem {
     required this.designation,
     required this.calculationCategory,
     this.remarks = '',
+    this.isFromRateFile = false,
+    this.rateFileId,
+    this.rateVariantId,
   });
 
   factory EquipmentItem.fromJson(Map<String, dynamic> json) {
@@ -57,12 +67,84 @@ class EquipmentItem {
       rate: (json['rate'] ?? 0).toDouble(),
       moc: json['moc'] ?? '',
       size: json['size'] ?? '',
+      // ⭐⭐⭐⭐⭐⭐⭐⭐⭐⭐⭐⭐⭐
+      dynamicFields: (json['dynamicFields'] ?? [])
+          .map<DynamicField>((e) => DynamicField.fromJson(e))
+          .toList(),
+      // ⭐⭐⭐⭐⭐⭐⭐⭐⭐⭐⭐⭐⭐
+
       location: json['location'] ?? '',
       plant: json['plant'] ?? '',
       designation: List<String>.from(json['designation'] ?? const []),
       calculationCategory: json['calculationCategory'] ?? '',
       remarks: json['remarks'] ?? '',
+      isFromRateFile: json['isFromRateFile'] ?? false,
+      rateFileId: json['rateFileId'],
+      rateVariantId: json['rateVariantId'],
     );
+  }
+
+  // Convert from RateFileMaterial to EquipmentItem
+  factory EquipmentItem.fromRateMaterial(RateFileMaterial rateMaterial, RateVariant variant) {
+    // Parse size range if available
+    String size = '';
+    if (variant.sizeRange != null) {
+      final sr = variant.sizeRange!;
+      size = '${sr['min'] ?? ''}-${sr['max'] ?? ''} ${sr['unit'] ?? ''}';
+    }
+
+    return EquipmentItem(
+      id: rateMaterial.id, // Will be generated when saving
+      materialName: rateMaterial.normalizedMaterialName,
+      image: rateMaterial.image,
+      qty: 0, // Default quantity
+      uom: variant.uom,
+      length: 0,
+      rmt: 0,
+      dynamicFields: rateMaterial.dynamicFields,
+      diameter: 0,
+      weight: 0,
+      power: 0,
+      actualRate: variant.rate,
+      rate: variant.rate,
+      moc: variant.moc.isNotEmpty ? variant.moc : rateMaterial.normalizedMoc,
+      size: size,
+      location: variant.floor,
+      plant: '',
+      designation: rateMaterial.designation,
+      calculationCategory: rateMaterial.calculationCategory,
+      remarks: variant.remarks,
+      isFromRateFile: true,
+      rateFileId: rateMaterial.id,
+      rateVariantId: '', // You might want to generate a variant ID
+    );
+  }
+
+  Map<String, dynamic> toJson() {
+    return {
+      'id': id,
+      'materialName': materialName,
+      'image': image,
+      'qty': qty,
+      'uom': uom,
+      'length': length,
+      'rmt': rmt,
+      'diameter': diameter,
+      'weight': weight,
+      'power': power,
+      'actualRate': actualRate,
+      'rate': rate,
+      'moc': moc,
+      'size': size,
+      'location': location,
+      'plant': plant,
+      'designation': designation,
+      'calculationCategory': calculationCategory,
+      'remarks': remarks,
+      'isFromRateFile': isFromRateFile,
+      'rateFileId': rateFileId,
+      'rateVariantId': rateVariantId,
+    };
   }
 
   EquipmentItem copyWith({
@@ -80,11 +162,15 @@ class EquipmentItem {
     double? rate,
     String? moc,
     String? size,
+    List<DynamicField>? dynamicFields,
     String? location,
     String? plant,
     List<String>? designation,
     String? calculationCategory,
     String? remarks,
+    bool? isFromRateFile,
+    String? rateFileId,
+    String? rateVariantId,
   }) {
     return EquipmentItem(
       id: id ?? this.id,
@@ -92,6 +178,7 @@ class EquipmentItem {
       image: image ?? this.image,
       qty: qty ?? this.qty,
       uom: uom ?? this.uom,
+      dynamicFields: dynamicFields ?? this.dynamicFields,
       length: length ?? this.length,
       rmt: rmt ?? this.rmt,
       diameter: diameter ?? this.diameter,
@@ -104,9 +191,11 @@ class EquipmentItem {
       location: location ?? this.location,
       plant: plant ?? this.plant,
       designation: designation ?? this.designation,
-      calculationCategory:
-      calculationCategory ?? this.calculationCategory,
+      calculationCategory: calculationCategory ?? this.calculationCategory,
       remarks: remarks ?? this.remarks,
+      isFromRateFile: isFromRateFile ?? this.isFromRateFile,
+      rateFileId: rateFileId ?? this.rateFileId,
+      rateVariantId: rateVariantId ?? this.rateVariantId,
     );
   }
 
@@ -117,6 +206,7 @@ class EquipmentItem {
     qty: 0,
     uom: '',
     length: 0,
+    dynamicFields: const [],
     rmt: 0,
     diameter: 0,
     weight: 0,
@@ -130,5 +220,6 @@ class EquipmentItem {
     designation: [],
     calculationCategory: '',
     remarks: '',
+    isFromRateFile: false,
   );
 }

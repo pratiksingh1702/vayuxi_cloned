@@ -1,4 +1,5 @@
 // screens/expense/expense_report_screen.dart
+import 'dart:convert';
 import 'dart:io';
 import 'dart:typed_data';
 import 'package:flutter/material.dart';
@@ -205,49 +206,33 @@ class _ExpenseReportScreenState extends ConsumerState<ExpenseReportScreen> {
         isDownloading = true;
       });
 
-      final csvData = await _generateCSVData();
-      if (csvData.isEmpty) return;
+      final type = ref.read(typeProvider)!;
 
-      final bytes = Uint8List.fromList(csvData.codeUnits);
-      final tempDir = await getTemporaryDirectory();
-      final fileName = 'expense_report_${DateFormat('yyyyMMdd').format(_selectedStartDate!)}_${DateFormat('yyyyMMdd').format(_selectedEndDate!)}.csv';
-      final tempPath = '${tempDir.path}/$fileName';
-      final tempFile = File(tempPath);
-
-      await tempFile.writeAsBytes(bytes, flush: true);
-      debugPrint('💾 Temporary CSV saved for sharing: $tempPath');
-
-      await Share.shareXFiles(
-        [XFile(tempPath, mimeType: 'text/csv')],
-        text: 'Here is your Expense Report for period ${DateFormat('dd/MM/yyyy').format(_selectedStartDate!)} to ${DateFormat('dd/MM/yyyy').format(_selectedEndDate!)}',
-        subject: 'Expense Report - ${DateFormat('dd/MM/yyyy').format(_selectedStartDate!)} to ${DateFormat('dd/MM/yyyy').format(_selectedEndDate!)}',
+      final bytes = await ExpenseAPI.generateExpenseExcel(
+        serviceType: type,
+        type: selectedExpenseType,
+        siteId: widget.siteId,
+        startDate: _formatDateForAPI(_selectedStartDate!),
+        endDate: _formatDateForAPI(_selectedEndDate!),
       );
 
-      Future.delayed(const Duration(seconds: 30), () {
-        if (tempFile.existsSync()) {
-          tempFile.deleteSync();
-          debugPrint('🗑️ Temporary file deleted: $tempPath');
-        }
-      });
 
-      if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(
-            content: Text("CSV file ready for sharing"),
-            backgroundColor: Colors.green,
-          ),
-        );
-      }
+      final tempDir = await getTemporaryDirectory();
+
+      final fileName =
+          'expense_report_${DateFormat('yyyyMMdd').format(_selectedStartDate!)}_${DateFormat('yyyyMMdd').format(_selectedEndDate!)}.xlsx';
+
+      final file = File('${tempDir.path}/$fileName');
+
+      await file.writeAsBytes(bytes, flush: true);
+
+      await Share.shareXFiles(
+        [XFile(file.path)],
+        text: 'Expense report',
+      );
+
     } catch (e) {
-      debugPrint('❌ Share CSV failed: $e');
-      if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
-            content: Text("Failed to share: ${e.toString()}"),
-            backgroundColor: Colors.red,
-          ),
-        );
-      }
+      debugPrint("❌ excel share failed $e");
     } finally {
       if (mounted) {
         setState(() {
@@ -264,11 +249,15 @@ class _ExpenseReportScreenState extends ConsumerState<ExpenseReportScreen> {
         isLoading = true;
         isDownloading = true;
       });
+      final type=ref.read(typeProvider)!;
+      final bytes = await ExpenseAPI.generateExpenseExcel(
+        serviceType: type,
+        type: selectedExpenseType,
+        siteId: widget.siteId,
+        startDate: _formatDateForAPI(_selectedStartDate!),
+        endDate: _formatDateForAPI(_selectedEndDate!),
+      );
 
-      final csvData = await _generateCSVData();
-      if (csvData.isEmpty) return;
-
-      final bytes = Uint8List.fromList(csvData.codeUnits);
 
       if (Platform.isAndroid || Platform.isIOS) {
         await _saveMobileCSV(bytes);

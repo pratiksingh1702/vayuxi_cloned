@@ -65,23 +65,29 @@ class _ExpenseFormScreenState extends ConsumerState<ExpenseFormScreen> {
   // UOM list
   List<String> _uomList = [];
   bool _isLoadingUOM = false;
-
+  final ScrollController _scrollController = ScrollController();
   @override
   void initState() {
     super.initState();
     _selectedDate = DateTime.now();
-    _loadExpenseData();
 
-    // Fetch manpower for advance dropdown
-    if (widget.expenseType == 'advance') {
-      _fetchManpower();
-    }
+    _scrollController.addListener(() {
+      FocusScope.of(context).unfocus();
+    });
 
-    // Fetch UOM for material & tools
-    if (widget.expenseType == 'material_tools') {
-      _fetchUOM();
-    }
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      _loadExpenseData();
+
+      if (widget.expenseType == 'advance') {
+        _fetchManpower();
+      }
+
+      if (widget.expenseType == 'material_tools') {
+        _fetchUOM();
+      }
+    });
   }
+
 
   Future<void> _fetchUOM() async {
     setState(() => _isLoadingUOM = true);
@@ -193,8 +199,8 @@ class _ExpenseFormScreenState extends ConsumerState<ExpenseFormScreen> {
           'invoiceNumber': _invoiceNumberController.text.trim(),
           'hardwareShop': _hardwareShopController.text.trim(),
           'quantity': _quantityController.text.isNotEmpty ? int.parse(_quantityController.text) : 1,
-          'rate': _rateController.text.isNotEmpty ? double.parse(_rateController.text) : 0.0,
-          'balance': _balanceController.text.isNotEmpty ? double.parse(_balanceController.text) : 0.0,
+          'rateInRs': _rateController.text.isNotEmpty ? double.parse(_rateController.text) : 0.0,
+          'invoiceValue': _balanceController.text.isNotEmpty ? double.parse(_balanceController.text) : 0.0,
           'uom': _selectedUOM ?? '',
           'year': DateTime.now().year,
         };
@@ -352,7 +358,7 @@ class _ExpenseFormScreenState extends ConsumerState<ExpenseFormScreen> {
       children: [
         CustomTextField(
           label: "Description",
-          isRequired: true,
+
           maxLines: 3,
           controller: _descriptionController,
           hint: "Enter expense description",
@@ -514,19 +520,13 @@ class _ExpenseFormScreenState extends ConsumerState<ExpenseFormScreen> {
       children: [
         CustomTextField(
           label: "Description",
-          isRequired: true,
+
           maxLines: 3,
           controller: _descriptionController,
           hint: "Enter travel description",
         ),
         const SizedBox(height: 16),
-        CustomTextField(
-          label: "Place",
-          isRequired: true,
-          controller: _placeController,
-          hint: "Enter destination",
-        ),
-        const SizedBox(height: 16),
+
         CustomTextField(
           label: "Amount (Rs.)",
           isRequired: true,
@@ -551,7 +551,7 @@ class _ExpenseFormScreenState extends ConsumerState<ExpenseFormScreen> {
       children: [
         CustomTextField(
           label: "Description",
-          isRequired: true,
+
           maxLines: 3,
           controller: _descriptionController,
           hint: "Enter food expense description",
@@ -581,7 +581,7 @@ class _ExpenseFormScreenState extends ConsumerState<ExpenseFormScreen> {
       children: [
         CustomTextField(
           label: "Description",
-          isRequired: true,
+
           maxLines: 3,
           controller: _descriptionController,
           hint: "Enter accommodation details",
@@ -667,7 +667,7 @@ class _ExpenseFormScreenState extends ConsumerState<ExpenseFormScreen> {
         const SizedBox(height: 16),
         CustomTextField(
           label: "Description",
-          isRequired: true,
+
           maxLines: 3,
           controller: _descriptionController,
           hint: "Enter advance description",
@@ -697,7 +697,7 @@ class _ExpenseFormScreenState extends ConsumerState<ExpenseFormScreen> {
       children: [
         CustomTextField(
           label: "Description",
-          isRequired: true,
+
           maxLines: 3,
           controller: _descriptionController,
           hint: "Enter expense description",
@@ -727,7 +727,7 @@ class _ExpenseFormScreenState extends ConsumerState<ExpenseFormScreen> {
       children: [
         CustomTextField(
           label: "Description",
-          isRequired: true,
+
           maxLines: 3,
           controller: _descriptionController,
           hint: "Enter description",
@@ -745,6 +745,7 @@ class _ExpenseFormScreenState extends ConsumerState<ExpenseFormScreen> {
 
   @override
   void dispose() {
+    _scrollController.dispose();
     _descriptionController.dispose();
     _remarksController.dispose();
     _amountController.dispose();
@@ -841,9 +842,11 @@ class _ExpenseFormScreenState extends ConsumerState<ExpenseFormScreen> {
                   const SizedBox(height: 20),
                   Expanded(
                     child: SingleChildScrollView(
+                      controller: _scrollController,
                       child: _buildFormFields(),
                     ),
                   ),
+
                   const SizedBox(height: 20),
                 ],
               ),

@@ -36,7 +36,18 @@ class FloorState {
 class FloorNotifier extends StateNotifier<FloorState> {
   final FloorApi api;
 
-  FloorNotifier(this.api) : super(const FloorState());
+  FloorNotifier(this.api)
+      : super(
+    FloorState(
+      selected: Floor(
+        id: 'default-ground', // dummy id
+        name: 'GsDeld',
+        isDeleted: false, image: '', isApplied: true, createdAt: DateTime.now(), updatedAt:DateTime.now(),
+        // fill REQUIRED fields only
+      ),
+    ),
+  );
+
 
   /// FETCH
   Future<void> fetchBySite(String siteId) async {

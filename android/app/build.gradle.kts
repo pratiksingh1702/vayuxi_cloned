@@ -2,6 +2,7 @@ plugins {
     id("com.android.application")
     // START: FlutterFire Configuration
     id("com.google.gms.google-services")
+    id("com.google.firebase.crashlytics")
     // END: FlutterFire Configuration
     id("kotlin-android")
     // The Flutter Gradle Plugin must be applied after the Android and Kotlin Gradle plugins.
@@ -18,8 +19,16 @@ if (keystorePropertiesFile.exists()) {
 
 android {
     namespace = "com.vayuxi.erp"
-    compileSdk = flutter.compileSdkVersion
+    compileSdk = 36
     ndkVersion = flutter.ndkVersion
+
+    defaultConfig {
+        applicationId = "com.vayuxi.erp"
+        minSdk = flutter.minSdkVersion
+        targetSdk = 35
+        versionCode = flutter.versionCode
+        versionName = flutter.versionName
+    }
 
     compileOptions {
         isCoreLibraryDesugaringEnabled = true
@@ -30,18 +39,6 @@ android {
     kotlinOptions {
         jvmTarget = JavaVersion.VERSION_11.toString()
     }
-
-    defaultConfig {
-        // TODO: Specify your own unique Application ID (https://developer.android.com/studio/build/application-id.html).
-        applicationId = "com.vayuxi.erp"
-        // You can update the following values to match your application needs.
-        // For more information, see: https://flutter.dev/to/review-gradle-config.
-        minSdk = flutter.minSdkVersion
-        targetSdk = flutter.targetSdkVersion
-        versionCode = flutter.versionCode
-        versionName = flutter.versionName
-    }
-
     signingConfigs {
         create("release") {
             keyAlias = keystoreProperties["keyAlias"] as String
@@ -62,8 +59,8 @@ android {
             )
         }
     }
-
 }
+
 
 flutter {
     source = "../.."
@@ -73,5 +70,12 @@ dependencies {
     // Add these OkHttp dependencies
     implementation("com.squareup.okhttp3:okhttp:4.12.0")
     implementation("com.squareup.okhttp3:okhttp-urlconnection:4.12.0")
-    implementation("com.google.android.play:core:1.10.3")
+    implementation("com.google.android.play:feature-delivery:2.1.0")
+    implementation("com.google.android.play:asset-delivery:2.2.2")
+
+
+    implementation("com.google.android.gms:play-services-tasks:18.1.0") // ⭐ hero
+
+
+
 }

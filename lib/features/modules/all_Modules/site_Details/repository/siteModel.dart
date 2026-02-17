@@ -53,9 +53,13 @@ class SiteModel {
       type: json['type'] ?? '',
       createdAt: json['createdAt'] ?? '',
       updatedAt: json['updatedAt'] ?? '',
-      siteImage: json['siteImage'], // ✅ safely mapped
+      siteImage: (json['siteImage'] != null &&
+          json['siteImage'].toString().trim().isNotEmpty)
+          ? json['siteImage']
+          : 'assets/images/site_def.webp',
     );
   }
+
 
   Map<String, dynamic> toJson() {
     return {

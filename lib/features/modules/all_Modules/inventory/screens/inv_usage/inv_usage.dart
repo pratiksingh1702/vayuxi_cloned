@@ -9,7 +9,8 @@ import 'package:untitled2/features/language/service/providers.dart';
 import '../../../../../../core/utlis/widgets/custom_dropdown.dart';
 import '../../../../../../core/utlis/widgets/fields/custom_textField.dart';
 import '../../../site_Details/providers/site_current_provider.dart';
-import '../../models/inventory_Model.dart';
+import '../../models/inventory_model.dart';
+import '../../offline/repo/inventory_sync.dart';
 import '../../provider/inventory_provider.dart';
 
 // BeautifulDatePicker Widget
@@ -295,6 +296,15 @@ class _InventorySelectionPageState
   final GlobalKey<FormState> _formKey = GlobalKey<FormState>();
   DateTime _selectedDate = DateTime.now();
 
+  @override
+  void initState() {
+    super.initState();
+
+    final siteId = ref.read(selectedSiteIdProvider);
+    if (siteId != null) {
+      ref.read(inventorySyncControllerProvider(siteId));
+    }
+  }/**/
 
   @override
   void dispose() {
@@ -308,7 +318,8 @@ class _InventorySelectionPageState
     if (_selectedInventoryId == null) return 0;
     try {
       final selected = inventoryList.firstWhere((e) => e.id == _selectedInventoryId);
-      return selected.currentBalance;
+      return selected.currentBalance ?? 0;
+
     } catch (e) {
       return 0;
     }
@@ -377,7 +388,8 @@ class _InventorySelectionPageState
     }
 
     // Check if sufficient inventory is available
-    if (quantityUsed > selected.currentBalance) {
+    if (quantityUsed > (selected.currentBalance ?? 0))
+ {
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
           content: Text(
@@ -404,21 +416,23 @@ class _InventorySelectionPageState
           duration: Duration(seconds: 3), // Long duration for async operation
         ),
       );
+      final api = ref.read(inventoryApiProvider);
 
-      // Build args
-      final args = RecordUsageArgs(
-        inventoryId: selected.id,
-        itemId: selected.item!.id,
+      await api.recordUsage(
         siteId: siteId,
+        inventoryId: selected.id,
         quantityUsed: quantityUsed,
-        categoryId: selected.category?.id,
-        subcategoryId: selected.subcategory?.id,
-        usageDate: _selectedDate.toIso8601String(),
+        usedByName: "Site User", // later replace with logged user
+        usageDate: _selectedDate,
         remarks: "Usage recorded via mobile app",
       );
 
-      // Call provider
-      await ref.read(recordUsageProvider(args).future);
+      ref.invalidate(inventoryProvider(siteId));
+      ref.invalidate(inventorySyncControllerProvider(siteId));
+
+
+      ref.read(inventorySyncControllerProvider(siteId));
+
 
       // Clear form
       setState(() {
@@ -438,8 +452,7 @@ class _InventorySelectionPageState
         ),
       );
 
-      // Refresh inventory list
-      ref.invalidate(allInventoryProvider(siteId));
+
 
     } catch (e) {
       // Hide loading snackbar
@@ -465,7 +478,7 @@ class _InventorySelectionPageState
       );
     }
 
-    final inventoryAsync = ref.watch(allInventoryProvider(siteId));
+    final inventoryAsync = ref.watch(inventoryProvider(siteId));
     final lang=ref.watch(dailyEntryTranslationHelperProvider);
 
     return Scaffold(
@@ -499,7 +512,7 @@ class _InventorySelectionPageState
                       ),
                       const SizedBox(height: 16),
                       ElevatedButton(
-                        onPressed: () => ref.invalidate(allInventoryProvider(siteId)),
+                        onPressed: () => ref.invalidate(inventoryProvider(siteId)),
                         child: const Text("Retry"),
                       ),
                     ],
@@ -507,8 +520,10 @@ class _InventorySelectionPageState
                 ),
                 data: (inventoryList) {
                   // Filter out items with no stock if needed
-                  final availableItems = inventoryList.where((item) => item.currentBalance > 0).toList();
-                  final allItems = inventoryList;
+                  /// show only consumables
+                  final consumableItems =
+                  inventoryList.where((e) => e.type == "consumable").toList();
+
 
                   return Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
@@ -557,8 +572,9 @@ class _InventorySelectionPageState
                         label: lang.selectInventoryItemLabel,
                         isRequired: true,
                         value: _selectedInventoryId,
-                        items: allItems.map((inv) {
-                          final isLowStock = inv.currentBalance <= inv.minimumStockLevel;
+                        items: consumableItems
+.map((inv) {
+                          final isLowStock = (inv.currentBalance ?? 0) <= (inv.minimumStockLevel ?? 0);
                           final isOutOfStock = inv.currentBalance == 0;
 
                           return DropdownMenuItem(
@@ -568,7 +584,7 @@ class _InventorySelectionPageState
                               mainAxisSize: MainAxisSize.min,
                               children: [
                                 Text(
-                                  inv.item?.name ?? 'Unknown Item',
+                                  inv.name ?? 'Unknown Item',
                                   style: TextStyle(
                                     fontWeight: FontWeight.w500,
                                     color: isOutOfStock ? Colors.grey : null,
@@ -603,34 +619,37 @@ class _InventorySelectionPageState
                           );
                         }).toList(),
                         selectedItemBuilder: (context) {
-                          return allItems.map((inv) {
-                            return Text(inv.item?.name ?? 'Unknown Item');
+                          return consumableItems
+.map((inv) {
+                            return Text(inv.name ?? 'Unknown Item');
                           }).toList();
                         },
                         onChanged: (value) {
                           setState(() {
                             _selectedInventoryId = value;
 
-                            final selected = allItems.firstWhere(
+                            final selected = consumableItems
+.firstWhere(
                                   (e) => e.id == value,
                             );
 
-                            _uomController.text = selected.uom;
+                            _uomController.text = selected.uom??"";
                             _quantityController.text = ""; // Clear previous quantity
 
                             // Show available quantity to user
                             if (selected.currentBalance == 0) {
                               ScaffoldMessenger.of(context).showSnackBar(
                                 SnackBar(
-                                  content: Text("${selected.item?.name ?? 'Item'} is out of stock."),
+                                  content: Text("${selected.name ?? 'Item'} is out of stock."),
                                   backgroundColor: Colors.red,
                                   duration: const Duration(seconds: 2),
                                 ),
                               );
-                            } else if (selected.currentBalance <= selected.minimumStockLevel) {
+                            } else if ((selected.currentBalance ?? 0) <= (selected.minimumStockLevel ?? 0)
+                            ) {
                               ScaffoldMessenger.of(context).showSnackBar(
                                 SnackBar(
-                                  content: Text("${selected.item?.name ?? 'Item'} is low on stock."),
+                                  content: Text("${selected.name ?? 'Item'} is low on stock."),
                                   backgroundColor: Colors.orange,
                                   duration: const Duration(seconds: 2),
                                 ),
@@ -658,7 +677,8 @@ class _InventorySelectionPageState
 
                       // ---------------- QUANTITY FIELD ----------------
                       CustomTextField(
-                        label: "${lang.quantityToUseLabel}${_selectedInventoryId != null ? " (Max: ${_getAvailableQuantity(allItems)} ${_uomController.text})" : ""}",
+                        label: "${lang.quantityToUseLabel}${_selectedInventoryId != null ? " (Max: ${_getAvailableQuantity(consumableItems
+)} ${_uomController.text})" : ""}",
                         controller: _quantityController,
                         isRequired: true,
                         hint: lang.quantityToUseLabel,
@@ -677,7 +697,8 @@ class _InventorySelectionPageState
 
                           // Check available stock if item is selected
                           if (_selectedInventoryId != null) {
-                            final available = _getAvailableQuantity(allItems);
+                            final available = _getAvailableQuantity(consumableItems
+);
                             if (quantity > available) {
                               return 'Insufficient stock. Available: $available';
                             }
@@ -694,12 +715,14 @@ class _InventorySelectionPageState
                         Container(
                           padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
                           decoration: BoxDecoration(
-                            color: _getAvailableQuantity(allItems) == 0
+                            color: _getAvailableQuantity(consumableItems
+) == 0
                                 ? Colors.red.shade50
                                 : Colors.green.shade50,
                             borderRadius: BorderRadius.circular(8),
                             border: Border.all(
-                              color: _getAvailableQuantity(allItems) == 0
+                              color: _getAvailableQuantity(consumableItems
+) == 0
                                   ? Colors.red.shade200
                                   : Colors.green.shade200,
                             ),
@@ -707,10 +730,12 @@ class _InventorySelectionPageState
                           child: Row(
                             children: [
                               Icon(
-                                _getAvailableQuantity(allItems) == 0
+                                _getAvailableQuantity(consumableItems
+) == 0
                                     ? Icons.warning_amber_rounded
                                     : Icons.inventory_2_rounded,
-                                color: _getAvailableQuantity(allItems) == 0
+                                color: _getAvailableQuantity(consumableItems
+) == 0
                                     ? Colors.red
                                     : Colors.green,
                                 size: 16,
@@ -718,11 +743,14 @@ class _InventorySelectionPageState
                               const SizedBox(width: 8),
                               Expanded(
                                 child: Text(
-                                  _getAvailableQuantity(allItems) == 0
+                                  _getAvailableQuantity(consumableItems
+) == 0
                                       ? "Out of stock - Cannot use this item"
-                                      : "Available stock: ${_getAvailableQuantity(allItems)} ${_uomController.text}",
+                                      : "Available stock: ${_getAvailableQuantity(consumableItems
+)} ${_uomController.text}",
                                   style: TextStyle(
-                                    color: _getAvailableQuantity(allItems) == 0
+                                    color: _getAvailableQuantity(consumableItems
+) == 0
                                         ? Colors.red
                                         : Colors.green,
                                     fontWeight: FontWeight.w500,
@@ -743,7 +771,8 @@ class _InventorySelectionPageState
                           child: RoundedButton(text: "Record Usage",
                               color:Colors.blue,
                               textColor: Colors.white,
-                              onPressed: () => _recordUsage(allItems, siteId))
+                              onPressed: () => _recordUsage(consumableItems
+, siteId))
                       ),
 
                       // Information card

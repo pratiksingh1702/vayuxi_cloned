@@ -28,7 +28,8 @@ class _WorkTeamListPageState extends ConsumerState<WorkTeamListPage> {
   Future<void> _refreshTeams() async {
     final type = ref.read(typeProvider);
     final siteId = ref.read(selectedSiteIdProvider);
-    await ref.read(teamProvider.notifier).getTeams(type!, siteId!);
+    await ref.read(teamProvider.notifier).fetchTeams(type: type!, siteId: siteId!);
+
   }
 
   @override
@@ -36,8 +37,60 @@ class _WorkTeamListPageState extends ConsumerState<WorkTeamListPage> {
     super.initState();
     _selectedStartDate = widget.selectedStartDate;
     _selectedEndDate = widget.selectedEndDate;
-    _refreshTeams();
+
+    WidgetsBinding.instance.addPostFrameCallback((_) async {
+      await _refreshTeams();
+
+      final teamState = ref.read(teamProvider);
+      final teams = teamState.teams;
+
+      // 🚫 nothing received
+      if (teams.isEmpty) {
+        ref.read(selectedTeamIdProvider.notifier).state = "";
+        _goNext("", "");
+        return;
+      }
+
+      // check if a team is the system default
+      bool isDefault(String name) =>
+          name.trim().toLowerCase().contains("default backend team");
+
+      // 🚫 only default team
+      if (teams.length == 1 && isDefault(teams.first.teamName)) {
+        ref.read(selectedTeamIdProvider.notifier).state = "";
+        _goNext("", "");
+        return;
+      }
+
+      // ✅ only one real team
+      if (teams.length == 1) {
+        final team = teams.first;
+        ref.read(selectedTeamIdProvider.notifier).state = team.id;
+        _goNext(team.id, team.teamName);
+        return;
+      }
+
+      // more than one → user must pick
+    });
   }
+
+  void _goNext(String teamId, String teamName) {
+    final site = ref.read(currentSiteProvider);
+
+    Navigator.pushReplacement(
+      context,
+      MaterialPageRoute(
+        builder: (context) => DprWorkScreen(
+          siteId: site!.id,
+          teamId: teamId,
+          name: teamName,
+          selectedEndDate: widget.selectedEndDate,
+          selectedStartDate: widget.selectedStartDate,
+        ),
+      ),
+    );
+  }
+
 
   @override
   Widget build(BuildContext context) {
@@ -48,31 +101,61 @@ class _WorkTeamListPageState extends ConsumerState<WorkTeamListPage> {
       backgroundColor: const Color(0xFFEAF3FB), // soft blue background
       appBar: const CustomAppBar(title: "Team Details"),
       body: BottomButtonWrapper(
-        child: teamState.when(
-          data: (teams) => Padding(
-            padding: const EdgeInsets.all(16),
-            child: Column(
-              children: [
-                // Teams Grid
-                Expanded(
-                  child: GridView.builder(
-                    itemCount: teams.length,
-                    gridDelegate:
-                    const SliverGridDelegateWithFixedCrossAxisCount(
-                      crossAxisCount: 2,
-                      mainAxisSpacing: 16,
-                      crossAxisSpacing: 16,
-                      childAspectRatio: 0.9,
+        child: Builder(
+          builder: (context) {
+            // ✅ show loading ONLY when nothing cached yet
+            if (teamState.isLoading && !teamState.hasData) {
+              return const Center(child: CircularProgressIndicator());
+            }
+
+            // ✅ show error ONLY if no cached data
+            if (!teamState.hasData && teamState.error != null) {
+              return Center(child: Text("Error: ${teamState.error}"));
+            }
+
+            final teams = teamState.teams;
+
+            return Padding(
+              padding: const EdgeInsets.all(16),
+              child: Column(
+                children: [
+                  // ✅ Optional: show sync error but keep UI working
+                  if (teamState.error != null && teamState.hasData)
+                    Container(
+                      width: double.infinity,
+                      margin: const EdgeInsets.only(bottom: 12),
+                      padding: const EdgeInsets.all(10),
+                      decoration: BoxDecoration(
+                        color: Colors.orange.withOpacity(0.15),
+                        borderRadius: BorderRadius.circular(12),
+                        border: Border.all(color: Colors.orange),
+                      ),
+                      child: Text(
+                        teamState.error!,
+                        style: const TextStyle(color: Colors.orange),
+                      ),
                     ),
-                    itemBuilder: (context, index) {
-                      final team = teams[index];
-                      print(team.teamName);
-                      print(team.teamLeadImage);
-                      return GestureDetector(
+
+                  // Teams Grid
+                  Expanded(
+                    child: GridView.builder(
+                      itemCount: teams.length,
+                      gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
+                        crossAxisCount: 2,
+                        mainAxisSpacing: 16,
+                        crossAxisSpacing: 16,
+                        childAspectRatio: 0.9,
+                      ),
+                      itemBuilder: (context, index) {
+                        final team = teams[index];
+
+                        debugPrint(team.teamName);
+                        debugPrint(team.teamLeadImage);
+
+                        return GestureDetector(
                           onTap: () {
                             ref.read(selectedTeamIdProvider.notifier).state = team.id;
 
-                            // ✅ Default behaviour (unchanged)
                             Navigator.push(
                               context,
                               MaterialPageRoute(
@@ -86,63 +169,62 @@ class _WorkTeamListPageState extends ConsumerState<WorkTeamListPage> {
                               ),
                             );
                           },
-
-                        child: Card(
-                          color: Colors.white,
-
-                          child: Stack(
-                              children: [Center(
-                                child: Column(
-                                  mainAxisAlignment: MainAxisAlignment.center,
-                                  children: [
-                                    ClipOval(
-                                      child: team.teamLeadImage != null &&
-                                          team.teamLeadImage!.isNotEmpty
-                                          ? Image.network(
-                                        team.teamLeadImage!,
-                                        height: 80,
-                                        width: 80,
-                                        fit: BoxFit.cover,
-                                        errorBuilder: (_, __, ___) {
-                                          return Image.asset(
-                                            "assets/images/default.jpg",
-                                            height: 80,
-                                            width: 80,
-                                            fit: BoxFit.cover,
-                                          );
-                                        },
-                                      )
-                                          : Image.asset(
-                                        "assets/images/default.jpg",
-                                        height: 80,
-                                        width: 80,
-                                        fit: BoxFit.cover,
+                          child: Card(
+                            color: Colors.white,
+                            child: Stack(
+                              children: [
+                                Center(
+                                  child: Column(
+                                    mainAxisAlignment: MainAxisAlignment.center,
+                                    children: [
+                                      ClipOval(
+                                        child: team.teamLeadImage != null &&
+                                            team.teamLeadImage!.isNotEmpty
+                                            ? Image.network(
+                                          team.teamLeadImage!,
+                                          height: 80,
+                                          width: 80,
+                                          fit: BoxFit.cover,
+                                          errorBuilder: (_, __, ___) {
+                                            return Image.asset(
+                                              "assets/images/default.jpg",
+                                              height: 80,
+                                              width: 80,
+                                              fit: BoxFit.cover,
+                                            );
+                                          },
+                                        )
+                                            : Image.asset(
+                                          "assets/images/default.jpg",
+                                          height: 80,
+                                          width: 80,
+                                          fit: BoxFit.cover,
+                                        ),
                                       ),
-                                    ),
-                                    const SizedBox(height: 10),
-                                    Text(
-                                      team.teamName,
-                                      style: const TextStyle(
-                                        fontWeight: FontWeight.w600,
-                                        fontSize: 15,
+                                      const SizedBox(height: 10),
+                                      Text(
+                                        team.teamName,
+                                        style: const TextStyle(
+                                          fontWeight: FontWeight.w600,
+                                          fontSize: 15,
+                                        ),
                                       ),
-                                    ),
-                                  ],
+                                    ],
+                                  ),
                                 ),
-                              ),
-                               ]
+                              ],
+                            ),
                           ),
-                        ),
-                      );
-                    },
+                        );
+                      },
+                    ),
                   ),
-                ),
-              ],
-            ),
-          ),
-          loading: () => const Center(child: CircularProgressIndicator()),
-          error: (err, _) => Center(child: Text("Error: $err")),
+                ],
+              ),
+            );
+          },
         ),
+
       ),
     );
   }

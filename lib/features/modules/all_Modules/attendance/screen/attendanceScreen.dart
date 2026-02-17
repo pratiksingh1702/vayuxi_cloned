@@ -11,6 +11,9 @@ import '../../../../../core/utlis/widgets/Button_wrapper.dart';
 import '../../../../../core/utlis/widgets/buttons.dart';
 import '../../../../../core/utlis/widgets/image_clipped.dart';
 import '../../../../../typeProvider/type_provider.dart';
+import '../model/attModel.dart';
+import '../offline/repo/att_offline_provider.dart';
+import '../offline/repo/att_sync.dart';
 import '../provider/AttendanceProvider.dart';
 
 class AttendanceScreen extends ConsumerStatefulWidget {
@@ -23,6 +26,8 @@ class AttendanceScreen extends ConsumerStatefulWidget {
 class _AttendanceScreenState extends ConsumerState<AttendanceScreen> {
   bool allPresent = false;
   bool allAbsent = false;
+  bool _draftInitialized = false;
+
   bool isLoading = false;
   DateTime _selectedDate = DateTime.now();
   bool _isFirstOTEntry = true; // Track if this is the first OT entry
@@ -42,13 +47,15 @@ class _AttendanceScreenState extends ConsumerState<AttendanceScreen> {
     final val = i * 0.5;
     return {"label": val.toString(), "value": val};
   });
-
   @override
   void initState() {
     super.initState();
-    _selectedDate = _selectedDate;
-    _loadManpower();
+
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      _loadManpower();
+    });
   }
+
 
   @override
   void dispose() {
@@ -113,8 +120,7 @@ class _AttendanceScreenState extends ConsumerState<AttendanceScreen> {
       _loadManpower();
     }
   }
-
-  void _toggleAllPresent() {
+  Future<void> _toggleAllPresent() async {
     if (!_isEditable) {
       _showEditRequiredMessage();
       return;
@@ -125,18 +131,16 @@ class _AttendanceScreenState extends ConsumerState<AttendanceScreen> {
       allAbsent = false;
     });
 
-    final attendanceList = ref.read(attendanceNotifierProvider).value ?? [];
-    for (int i = 0; i < attendanceList.length; i++) {
-      ref
-          .read(attendanceNotifierProvider.notifier)
-          .updateEmployee(
-        i,
-        attendanceList[i].copyWith(totalHours: 8.0, status: "present"),
-      );
-    }
+    final notifier = ref.read(attendanceDraftProvider.notifier);
+    final list = notifier.state;
+
+    notifier.state = [
+      for (final emp in list)
+        emp.copyWith(status: "present", totalHours: 8)
+    ];
   }
 
-  void _toggleAllAbsent() {
+  Future<void> _toggleAllAbsent() async {
     if (!_isEditable) {
       _showEditRequiredMessage();
       return;
@@ -147,15 +151,13 @@ class _AttendanceScreenState extends ConsumerState<AttendanceScreen> {
       allAbsent = true;
     });
 
-    final attendanceList = ref.read(attendanceNotifierProvider).value ?? [];
-    for (int i = 0; i < attendanceList.length; i++) {
-      ref
-          .read(attendanceNotifierProvider.notifier)
-          .updateEmployee(
-        i,
-        attendanceList[i].copyWith(totalHours: 0.0, status: "absent"),
-      );
-    }
+    final notifier = ref.read(attendanceDraftProvider.notifier);
+    final list = notifier.state;
+
+    notifier.state = [
+      for (final emp in list)
+        emp.copyWith(status: "absent", totalHours: 0, ot: 0)
+    ];
   }
 
   void _showEditRequiredMessage() {
@@ -208,41 +210,41 @@ class _AttendanceScreenState extends ConsumerState<AttendanceScreen> {
     }
   }
 
-  // New method to handle OT logic
   void _handleOTChange(int index, double newOTValue) {
     if (!_isEditable) {
       _showEditRequiredMessage();
       return;
     }
 
-    final attendanceList = ref.read(attendanceNotifierProvider).value ?? [];
-    final employee = attendanceList[index];
+    final notifier = ref.read(attendanceDraftProvider.notifier);
+    final list = notifier.state;
+    final emp = list[index];
 
-    // Check conditions for zero OT
-    if (employee.status == "absent" || employee.totalHours < 8.0) {
-      // If absent or worked less than 8 hours, OT should be 0
-      ref
-          .read(attendanceNotifierProvider.notifier)
-          .updateEmployee(index, employee.copyWith(ot: 0.0));
+    /// rule → if absent or < 8h → OT must be 0
+    if (emp.status == "absent" || emp.totalHours < 8) {
+      newOTValue = 0;
+    }
+
+    /// ⭐ FIRST ENTRY → ASK
+    if (_isFirstOTEntry && newOTValue > 0) {
+      _isFirstOTEntry = false;
+      _firstOTValue = newOTValue;
+
+      _showOTConfirmationDialog(newOTValue,index);
       return;
     }
 
-    // If this is the first OT entry and employee is eligible for OT
-    if (_isFirstOTEntry && newOTValue > 0) {
-      _firstOTValue = newOTValue;
-      _isFirstOTEntry = false;
-
-      // Show confirmation snackbar
-      _showOTConfirmationDialog(newOTValue);
-    }
-
-    // Update the specific employee's OT
-    ref
-        .read(attendanceNotifierProvider.notifier)
-        .updateEmployee(index, employee.copyWith(ot: newOTValue));
+    /// normal single update
+    notifier.state = [
+      for (int i = 0; i < list.length; i++)
+        if (i == index)
+          list[i].copyWith(ot: newOTValue)
+        else
+          list[i]
+    ];
   }
 
-  void _showOTConfirmationDialog(double otValue) {
+  void _showOTConfirmationDialog(double otValue,int index) {
     showDialog(
       context: context,
       barrierDismissible: false, // ❌ don't allow tap outside
@@ -318,7 +320,7 @@ class _AttendanceScreenState extends ConsumerState<AttendanceScreen> {
                       child: ElevatedButton(
                         onPressed: () {
                           Navigator.pop(context);
-                          _applyOTToAll(otValue);
+                          _applyOTToAll(otValue,index);
                         },
                         style: ElevatedButton.styleFrom(
                           backgroundColor: Colors.blue.shade700,
@@ -343,27 +345,26 @@ class _AttendanceScreenState extends ConsumerState<AttendanceScreen> {
   }
 
 
-  void _applyOTToAll(double otValue) {
+  void _applyOTToAll(double otValue, int changedIndex) {
     if (!_isEditable) return;
 
-    final attendanceList = ref.read(attendanceNotifierProvider).value ?? [];
+    final notifier = ref.read(attendanceDraftProvider.notifier);
+    final list = notifier.state;
 
-    for (int i = 0; i < attendanceList.length; i++) {
-      final employee = attendanceList[i];
-
-      // Only apply OT to employees who are present AND worked 8+ hours
-      if (employee.status == "present" && employee.totalHours >= 8.0) {
-        ref
-            .read(attendanceNotifierProvider.notifier)
-            .updateEmployee(i, employee.copyWith(ot: otValue));
-      }
-    }
+    notifier.state = [
+      for (int i = 0; i < list.length; i++)
+        if (i == changedIndex)
+          list[i].copyWith(ot: otValue)
+        else if (list[i].status == "present" && list[i].totalHours >= 8)
+          list[i].copyWith(ot: otValue)
+        else
+          list[i]
+    ];
 
     ScaffoldMessenger.of(context).showSnackBar(
       SnackBar(
-        content: Text('$otValue hours OT applied to all eligible employees'),
+        content: Text('$otValue hours OT applied'),
         backgroundColor: Colors.green,
-        duration: Duration(seconds: 2),
         behavior: SnackBarBehavior.floating,
       ),
     );
@@ -386,9 +387,10 @@ class _AttendanceScreenState extends ConsumerState<AttendanceScreen> {
     try {
       setState(() => isLoading = true);
 
-      final state = ref.read(attendanceNotifierProvider);
+      final attendanceList = ref.read(attendanceDraftProvider);
+
       final type = ref.read(typeProvider);
-      final attendanceList = state.value ?? [];
+
 
       if (attendanceList.isEmpty) {
         ScaffoldMessenger.of(context).showSnackBar(
@@ -443,9 +445,20 @@ class _AttendanceScreenState extends ConsumerState<AttendanceScreen> {
         );
         print('✅ Successfully updated attendance records');
       } catch (updateError) {
-        print('⚠️ Update failed, trying create: $updateError');
 
-        // If update fails, try create
+        final msg = updateError.toString().toLowerCase();
+
+        /// if network → DO NOTHING
+        if (msg.contains("internet") ||
+            msg.contains("connection") ||
+            msg.contains("timeout")) {
+          print("🌐 Network issue → queued by interceptor");
+          return;
+        }
+
+        /// real server reason → try create
+        print('⚠️ Update failed for real, trying create');
+
         await ref
             .read(attendanceNotifierProvider.notifier)
             .postMultipleAttendance(
@@ -453,6 +466,7 @@ class _AttendanceScreenState extends ConsumerState<AttendanceScreen> {
           type: type!,
           siteId: siteId!,
         );
+
         print('✅ Successfully created attendance records');
       }
 
@@ -480,6 +494,7 @@ class _AttendanceScreenState extends ConsumerState<AttendanceScreen> {
         "Attendance for this date already exists. Please update instead.";
       }
 
+
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
           content: Text(errorMessage),
@@ -493,10 +508,50 @@ class _AttendanceScreenState extends ConsumerState<AttendanceScreen> {
   }
 
   String _formatDate(DateTime d) => "${d.day}/${d.month}/${d.year}";
+  Future<void> _updateLocal({
+    required AttendanceModel emp,
+    required String status,
+    required double hours,
+    required double ot,
+  }) async {
+    final repo = ref.read(attendanceRepositoryProvider);
+    final type = ref.read(typeProvider)!;
+    final siteId = ref.read(selectedSiteIdProvider)!;
+
+    await repo.upsertLocalAttendance(
+      siteId: siteId,
+      type: type,
+      dateKey: repo.formatDateKey(_selectedDate),
+      manpowerId: emp.manpower.id!,
+      status: status,
+      totalHours: hours,
+      ot: ot,
+      company: emp.company,
+    );
+    ref.invalidate(
+      attendanceOfflineProvider((
+      siteId: siteId,
+      type: type,
+      date: _selectedDate,
+      )),
+    );
+
+  }
+
 
   @override
   Widget build(BuildContext context) {
-    final attendanceState = ref.watch(attendanceNotifierProvider);
+    final type = ref.watch(typeProvider)!;
+    final siteId = ref.watch(selectedSiteIdProvider)!;
+
+    final attendanceState = ref.watch(
+      attendanceOfflineProvider((
+      siteId: siteId,
+      type: type,
+      date: _selectedDate,
+      )),
+    );
+
     final site = ref.read(currentSiteProvider);
     final lang=ref.watch(dailyEntryTranslationHelperProvider);
 
@@ -519,7 +574,19 @@ class _AttendanceScreenState extends ConsumerState<AttendanceScreen> {
         child: isLoading
             ? const Center(child: CircularProgressIndicator())
             : attendanceState.when(
-          data: (attendanceList) => Padding(
+          data: (attendanceList){
+            if (!_draftInitialized) {
+              WidgetsBinding.instance.addPostFrameCallback((_) {
+                ref.read(attendanceDraftProvider.notifier).state =
+                    attendanceList.map((e) => e.copyWith()).toList();
+              });
+
+              _draftInitialized = true;
+            }
+
+            final draft = ref.watch(attendanceDraftProvider);
+
+            return Padding(
             padding: const EdgeInsets.all(5),
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
@@ -703,9 +770,9 @@ class _AttendanceScreenState extends ConsumerState<AttendanceScreen> {
                 // Attendance List
                 Expanded(
                   child: ListView.builder(
-                    itemCount: attendanceList.length,
+                    itemCount: draft.length,
                     itemBuilder: (context, i) {
-                      final emp = attendanceList[i];
+                      final emp =draft[i];
                       return AttendanceCard(
                         name: emp.manpower.fullName ?? "Unnamed",
                         status: emp.status,
@@ -731,16 +798,18 @@ class _AttendanceScreenState extends ConsumerState<AttendanceScreen> {
                             st = "present";
                           }
 
-                          ref
-                              .read(attendanceNotifierProvider.notifier)
-                              .updateEmployee(
-                            i,
-                            emp.copyWith(
-                              totalHours: hours,
-                              status: st,
-                            ),
-                          );
-                        },
+                          final notifier = ref.read(attendanceDraftProvider.notifier);
+                          final list = notifier.state;
+
+                          notifier.state = [
+                            for (int j = 0; j < list.length; j++)
+                              if (j == i)
+                                list[j].copyWith(status: st, totalHours: hours)
+                              else
+                                list[j]
+                          ];
+                        }
+                        ,
                         onOtChange: (v) => _handleOTChange(i, v),
                       );
                     },
@@ -748,7 +817,7 @@ class _AttendanceScreenState extends ConsumerState<AttendanceScreen> {
                 ),
               ],
             ),
-          ),
+          );},
 
           error: (e, s) => Center(child: Text("Error: $e")),
           loading: () => const Center(child: CircularProgressIndicator()),
@@ -1108,7 +1177,10 @@ class _AttendanceCardState extends State<AttendanceCard> {
         ),
         child: DropdownButtonHideUnderline(
           child: DropdownButton<double>(
-            value: _hours,
+            value: hoursOptions.any((e) => e["value"] == _hours)
+                ? _hours
+                : hoursOptions.first["value"],
+
             iconSize: 16,
             isDense: true,
             items: hoursOptions
@@ -1162,7 +1234,10 @@ class _AttendanceCardState extends State<AttendanceCard> {
         ),
         child: DropdownButtonHideUnderline(
           child: DropdownButton<double>(
-            value: effectiveOTValue,
+            value: otOptions.any((e) => e["value"] == effectiveOTValue)
+                ? effectiveOTValue
+                : otOptions.first["value"],
+
             iconSize: 16,
             isDense: true,
             items: otOptions

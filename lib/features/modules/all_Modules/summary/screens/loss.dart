@@ -1,5 +1,7 @@
 import 'package:flutter/material.dart';
 
+import '../../../../../core/utlis/widgets/sidebar.dart';
+
 class LossScreen extends StatelessWidget {
   final String siteName;
   final dynamic income;
@@ -23,6 +25,7 @@ class LossScreen extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
+      drawer: const CustomDrawer(),
       backgroundColor: const Color(0xFFCFE8FA),
       appBar: AppBar(
         title: Text("Loss - $siteName"),

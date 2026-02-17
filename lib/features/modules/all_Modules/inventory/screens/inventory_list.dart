@@ -1,11 +1,12 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:untitled2/core/utlis/widgets/Button_wrapper.dart';
+import 'package:untitled2/features/modules/all_Modules/inventory/offline/repo/inventory_sync.dart';
 import '../../../../../core/utlis/colors/colors.dart';
 import '../../../../../core/utlis/widgets/buttons.dart';
 import '../../../../../core/utlis/widgets/custom_appBar.dart';
 import '../../site_Details/providers/site_current_provider.dart';
-import '../models/inventory_Model.dart';
+import '../models/inventory_model.dart';
 import '../provider/inventory_provider.dart';
 import 'add_inven.dart';
 import 'edit_inventory.dart';
@@ -20,11 +21,21 @@ class InventoryListScreen extends ConsumerStatefulWidget {
 
 class _InventoryListScreenState extends ConsumerState<InventoryListScreen> {
   String _search = "";
+  @override
+  void initState() {
+    super.initState();
 
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      final siteId = ref.read(selectedSiteIdProvider);
+      if (siteId != null) {
+  ref.read(inventorySyncControllerProvider(siteId));
+      }
+    });
+  }
   @override
   Widget build(BuildContext context) {
     final siteId = ref.watch(selectedSiteIdProvider);
-    final inventoryAsync = ref.watch(allInventoryProvider(siteId!));
+    final inventoryAsync = ref.watch(inventoryProvider(siteId!));
 
     return Scaffold(
       appBar: CustomAppBar(title: "Inventory List"),
@@ -71,7 +82,7 @@ class _InventoryListScreenState extends ConsumerState<InventoryListScreen> {
                 error: (e, _) => Center(child: Text("Failed to load inventory")),
                 data: (inventoryList) {
                   final filtered = inventoryList.where((item) {
-                    return item.itemName.toLowerCase().contains(_search);
+                    return item.name.toLowerCase().contains(_search);
                   }).toList();
 
                   if (filtered.isEmpty) {
@@ -88,7 +99,7 @@ class _InventoryListScreenState extends ConsumerState<InventoryListScreen> {
                         color: Colors.white,
                         margin: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
                         child: ListTile(
-                          title: Text(inventory.itemName),
+                          title: Text(inventory.name),
                           subtitle: Text(
                             "Qty: ${inventory.totalQuantityAdded} | Min: ${inventory.minimumStockLevel} | UOM: ${inventory.uom}",
                           ),
@@ -103,7 +114,7 @@ class _InventoryListScreenState extends ConsumerState<InventoryListScreen> {
 
                             if (updated == true) {
                               // 🔥 Refresh API
-                              ref.invalidate(allInventoryProvider);
+                              ref.invalidate(inventoryProvider);
                             }
 
                           },

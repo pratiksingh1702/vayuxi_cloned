@@ -29,43 +29,153 @@ class DprTeamScreen extends ConsumerStatefulWidget {
 class _DprTeamScreenState extends ConsumerState<DprTeamScreen> {
   Future<void> _refreshTeams() async {
     final type = ref.read(typeProvider);
-    await ref.read(teamProvider.notifier).getTeams(type!, widget.site.id);
-  }
+    await ref.read(teamProvider.notifier).fetchTeams(type: type!, siteId: widget.site.id);
 
+  }
   @override
   void initState() {
     super.initState();
 
-    WidgetsBinding.instance.addPostFrameCallback((_) {
-      final selectedTeamId = ref.read(selectedTeamIdProvider);
-      final currentTeam = ref.read(currentTeamProvider);
-      final dropdown = ref.read(teamDropdownValueProvider);
+    WidgetsBinding.instance.addPostFrameCallback((_) async {
+      final type = ref.read(typeProvider);
 
-      print(
-          (dropdown?.id != null && dropdown!.id!.isNotEmpty)
-              ? dropdown!.id
-              : 'ID missing'
-      );
+      await ref
+          .read(teamProvider.notifier)
+          .fetchTeams(type: type!, siteId: widget.site.id);
 
+      final teamState = ref.read(teamProvider);
+      final teams = teamState.teams;
+      print("📦 TOTAL TEAMS: ${teams.length}");
 
-
-      print("Selected Team ID: $selectedTeamId");
-      print("Current Team: ${currentTeam?.teamName}");
-
-      if (selectedTeamId != null && currentTeam != null && dropdown!=null) {
-        // Team is preselected, navigate to next screen
-        context.push('/moc-selection', extra: {
-          'siteId': widget.site.id,
-          'teamId': currentTeam.id,
-          'teamName': currentTeam.teamName,
-        });
-      } else {
-        // No team preselected, load teams for selection
-        final type = ref.read(typeProvider);
-        ref.read(teamProvider.notifier).getTeams(type!, widget.site.id);
+      for (final t in teams) {
+        print("👥 TEAM: ${t.teamName}  → members: ${t.teamMemberIds}");
       }
+
+
+
+      /// 🚫 NO TEAM → move ahead with empty
+      if (teams.isEmpty) {
+        ref.read(selectedTeamIdProvider.notifier).state = "";
+
+        _goNext("", "");
+        return;
+      }
+
+      /// ✅ ONLY ONE TEAM → auto pick
+      if (teams.length == 1) {
+        final team = teams.first;
+
+        ref.read(selectedTeamIdProvider.notifier).state = team.id;
+
+        _goNext(team.id, team.teamName);
+        return;
+      }
+
+
+
     });
   }
+  void _goNext(String teamId, String? teamName) {
+    final type = ref.read(typeProvider);
+
+    if (type == "mechanical_work") {
+      Navigator.pushReplacement(
+        context,
+        MaterialPageRoute(
+          builder: (_) => MOCSelectionPage(
+            siteId: widget.site.id,
+            teamId: teamId,
+            teamName: teamName,
+            onMOCSelected: (_) {},
+          ),
+        ),
+      );
+    } else if (type == "insulation_work") {
+      Navigator.pushReplacement(
+        context,
+        MaterialPageRoute(
+          builder: (_) => StepInsulationScreen(
+            siteId: widget.site.id,
+            teamId: teamId,
+            name: widget.site.siteName ?? "",
+            teamName: teamName,
+          ),
+        ),
+      );
+    }
+  }
+
+  void _navigateWithoutTeam() {
+    final type = ref.read(typeProvider);
+
+    // clear team state
+    ref.read(selectedTeamIdProvider.notifier).state = "default";
+    ref.read(selectedTeamProvider.notifier).clear();
+
+    if (type == "mechanical_work") {
+      Navigator.pushReplacement(
+        context,
+        MaterialPageRoute(
+          builder: (_) => MOCSelectionPage(
+            siteId: widget.site.id,
+            teamId:"default",
+            teamName: null,
+            onMOCSelected: (selectedMOC) {},
+          ),
+        ),
+      );
+    } else if (type == "insulation_work") {
+      Navigator.pushReplacement(
+        context,
+        MaterialPageRoute(
+          builder: (_) => StepInsulationScreen(
+            siteId: widget.site.id,
+            teamId: "",
+            name: widget.site.siteName ?? "",
+            teamName: null,
+          ),
+        ),
+      );
+    } else {
+      debugPrint("❌ Unknown work type: $type");
+    }
+  }
+
+  Future<void> _handleTeamAutoNavigation() async {
+    final teamState = ref.read(teamProvider);
+    final type = ref.read(typeProvider);
+
+    // 🚫 NO TEAMS → SKIP THIS SCREEN
+    if (teamState.teams.isEmpty) {
+      // clear selection explicitly
+      ref.read(selectedTeamIdProvider.notifier).state = "default";
+      ref.read(selectedTeamProvider.notifier).clear();
+      print("heeeeeeeeeeeeee");
+
+      if (type == "mechanical_work") {
+        context.push(
+          '/moc-selection',
+          extra: {
+            'siteId': widget.site.id,
+            'teamId': null,
+            'teamName': null,
+          },
+        );
+      } else if (type == "insulation_work") {
+        context.replace(
+          '/step-insulation',
+          extra: {
+            'siteId': widget.site.id,
+            'teamId': null,
+            'teamName': null,
+          },
+        );
+      }
+
+      return;
+    }
+  }
+
 
   @override
   Widget build(BuildContext context) {
@@ -83,154 +193,173 @@ class _DprTeamScreenState extends ConsumerState<DprTeamScreen> {
         },
 
         body: CornerClippedScreenSimple(
-          child: teamState.when(
-            data: (teams) => Column(
-              children: [
-                // Teams grid with expanded to take available space
-                Expanded(
-                  child: LiquidPullToRefresh(
-                    onRefresh: _refreshTeams,
-                    height: 200,
-                    backgroundColor: Colors.blue,
-                    color: Colors.white,
-                    animSpeedFactor: 2.0,
-                    showChildOpacityTransition: true,
-                    child: GridView.builder(
-                      padding: const EdgeInsets.all(12),
-                      gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
-                        crossAxisCount: 2,
-                        crossAxisSpacing: 12,
-                        mainAxisSpacing: 12,
-                        childAspectRatio: 1.2,
+          child: Builder(
+            builder: (context) {
+              // ✅ show loader only if no offline data
+              if (teamState.isLoading && !teamState.hasData) {
+                return const Center(child: CircularProgressIndicator());
+              }
+
+              // ✅ show error only if no cached data
+              if (!teamState.hasData && teamState.error != null) {
+                return Column(
+                  children: [
+                    Expanded(child: Center(child: Text("Error: ${teamState.error}"))),
+                    Container(
+                      width: double.infinity,
+                      padding: const EdgeInsets.all(16),
+                      child: RoundedButton(
+                        text: "Back",
+                        color: Colors.white,
+                        textColor: Colors.black,
+                        onPressed: () => context.pop(),
+                        width: double.infinity,
                       ),
-                      itemCount: teams.length,
-                      itemBuilder: (context, index) {
-                        final team = teams[index];
-                        return InkWell(
-                          onTap: () {
-                            ref.read(selectedTeamIdProvider.notifier).state = team.id;
+                    ),
+                  ],
+                );
+              }
 
-                            final type = ref.read(typeProvider);
+              final teams = teamState.teams;
 
-                            if (type == "mechanical_work") {
-                              Navigator.push(
-                                context,
-                                MaterialPageRoute(
-                                  builder: (_) => MOCSelectionPage(
-                                    siteId: widget.site.id,
-                                    teamId: team.id,
-                                    teamName: team.teamName,
-                                    onMOCSelected: (selectedMOC) {
-                                      print('Selected MOC: ${selectedMOC.name}');
-                                    },
-                                  ),
-                                ),
-                              );
-                            }
-                            else if (type == "insulation_work") {
-                              Navigator.push(
-                                context,
-                                MaterialPageRoute(
-                                  builder: (_) => StepInsulationScreen(
-                                    siteId: 'site123',
-                                    teamId: 'team456',
-                                    name: 'Project Name',
-                                    teamName: 'Team ABC',
-                                  ),
-                                ),
-                              );
-                            }
-                            else {
-                              debugPrint("❌ Unknown work type: $type");
-                            }
+              return Column(
+                children: [
+                  // ✅ show sync error but keep UI running
+                  if (teamState.error != null && teamState.hasData)
+                    Container(
+                      width: double.infinity,
+                      margin: const EdgeInsets.fromLTRB(12, 12, 12, 0),
+                      padding: const EdgeInsets.all(10),
+                      decoration: BoxDecoration(
+                        color: Colors.orange.withOpacity(0.12),
+                        borderRadius: BorderRadius.circular(12),
+                        border: Border.all(color: Colors.orange),
+                      ),
+                      child: Text(
+                        teamState.error!,
+                        style: const TextStyle(color: Colors.orange),
+                      ),
+                    ),
 
-                          },
-                          child: Container(
-                            decoration: BoxDecoration(
-                              color: Colors.white,
-                              borderRadius: BorderRadius.circular(16),),
-                            child: Column(
-                              mainAxisAlignment: MainAxisAlignment.center,
-                              children: [
-                                ClipOval(
-                                  child: team.teamLeadImage != null && team.teamLeadImage!.isNotEmpty
-                                      ? Image.network(
-                                    team.teamLeadImage!,
-                                    height: 80,
-                                    width: 80,
-                                    fit: BoxFit.cover,
-                                    errorBuilder: (context, error, stackTrace) {
-                                      return Image.asset(
-                                        "assets/images/default.webp"
-                                        ,
-                                        fit: BoxFit.cover,
-                                      );
-                                    },
-                                  )
-                                      : Image.asset(
-                                    "assets/images/default.webp"
-                                    ,
-                                    height: 80,
-                                    width: 80,
-                                    fit: BoxFit.cover,
+                  Expanded(
+                    child: LiquidPullToRefresh(
+                      onRefresh: _refreshTeams,
+                      height: 200,
+                      backgroundColor: Colors.blue,
+                      color: Colors.white,
+                      animSpeedFactor: 2.0,
+                      showChildOpacityTransition: true,
+                      child: GridView.builder(
+                        padding: const EdgeInsets.all(12),
+                        gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
+                          crossAxisCount: 2,
+                          crossAxisSpacing: 12,
+                          mainAxisSpacing: 12,
+                          childAspectRatio: 1.2,
+                        ),
+                        itemCount: teams.length,
+                        itemBuilder: (context, index) {
+                          final team = teams[index];
+
+                          return InkWell(
+                            onTap: () {
+                              ref.read(selectedTeamIdProvider.notifier).state = team.id;
+
+                              final type = ref.read(typeProvider);
+
+                              if (type == "mechanical_work") {
+                                Navigator.push(
+                                  context,
+                                  MaterialPageRoute(
+                                    builder: (_) => MOCSelectionPage(
+                                      siteId: widget.site.id,
+                                      teamId: team.id,
+                                      teamName: team.teamName,
+                                      onMOCSelected: (selectedMOC) {},
+                                    ),
                                   ),
-                                )
-                                ,
-                                const SizedBox(height: 10),
-                                Text(
-                                  team.teamName,
-                                  style: const TextStyle(
-                                    fontWeight: FontWeight.w600,
-                                    fontSize: 15,
+                                );
+                              } else if (type == "insulation_work") {
+                                Navigator.push(
+                                  context,
+                                  MaterialPageRoute(
+                                    builder: (_) => StepInsulationScreen(
+                                      siteId: widget.site.id,
+                                      teamId: team.id,
+                                      name: widget.site.siteName ?? "",
+                                      teamName: team.teamName,
+                                    ),
                                   ),
-                                ),
-                              ],
+                                );
+                              } else {
+                                debugPrint("❌ Unknown work type: $type");
+                              }
+                            },
+                            child: Container(
+                              decoration: BoxDecoration(
+                                color: Colors.white,
+                                borderRadius: BorderRadius.circular(16),
+                              ),
+                              child: Column(
+                                mainAxisAlignment: MainAxisAlignment.center,
+                                children: [
+                                  ClipOval(
+                                    child: team.teamLeadImage != null &&
+                                        team.teamLeadImage!.isNotEmpty
+                                        ? Image.network(
+                                      team.teamLeadImage!,
+                                      height: 80,
+                                      width: 80,
+                                      fit: BoxFit.cover,
+                                      errorBuilder: (context, error, stackTrace) {
+                                        return Image.asset(
+                                          "assets/images/default.webp",
+                                          height: 80,
+                                          width: 80,
+                                          fit: BoxFit.cover,
+                                        );
+                                      },
+                                    )
+                                        : Image.asset(
+                                      "assets/images/default.webp",
+                                      height: 80,
+                                      width: 80,
+                                      fit: BoxFit.cover,
+                                    ),
+                                  ),
+                                  const SizedBox(height: 10),
+                                  Text(
+                                    team.teamName,
+                                    style: const TextStyle(
+                                      fontWeight: FontWeight.w600,
+                                      fontSize: 15,
+                                    ),
+                                  ),
+                                ],
+                              ),
                             ),
-                          ),
-                        );
-                      },
+                          );
+                        },
+                      ),
                     ),
                   ),
-                ),
-                // Back button at the bottom
-                Container(
-                  width: double.infinity,
-                  padding: const EdgeInsets.all(16),
-                  child: RoundedButton(
-                    text: "Back",
-                    color: Colors.white,
-                    textColor: Colors.black,
-                    onPressed: () {
-                      context.pop();
-                    },
+
+                  Container(
                     width: double.infinity,
+                    padding: const EdgeInsets.all(16),
+                    child: RoundedButton(
+                      text: "Back",
+                      color: Colors.white,
+                      textColor: Colors.black,
+                      onPressed: () => context.pop(),
+                      width: double.infinity,
+                    ),
                   ),
-                ),
-              ],
-            ),
-            loading: () => const Center(child: CircularProgressIndicator()),
-            error: (err, _) => Column(
-              children: [
-                Expanded(
-                  child: Center(child: Text("Error: $err")),
-                ),
-                // Back button at the bottom even in error state
-                Container(
-                  width: double.infinity,
-                  padding: const EdgeInsets.all(16),
-                  child: RoundedButton(
-                    text: "Back",
-                    color: Colors.white,
-                    textColor: Colors.black,
-                    onPressed: () {
-                      context.pop();
-                    },
-                    width: double.infinity,
-                  ),
-                ),
-              ],
-            ),
+                ],
+              );
+            },
           ),
+
         ),
       ),
     );

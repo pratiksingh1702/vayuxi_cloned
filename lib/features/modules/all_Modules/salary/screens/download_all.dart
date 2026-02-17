@@ -10,6 +10,7 @@ import 'package:untitled2/features/modules/all_Modules/salary/screens/widget/fil
 import 'package:untitled2/features/modules/all_Modules/salary/screens/widget/pdf_generator.dart';
 import 'package:untitled2/typeProvider/type_provider.dart';
 
+import '../../../../../core/utlis/widgets/sidebar.dart';
 import '../service-provider/salaryClient.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
@@ -227,6 +228,7 @@ class _SelectRangeScreenState
   @override
   Widget build(BuildContext context) {
     return Scaffold(
+      drawer: const CustomDrawer(),
       backgroundColor: AppColors.lightBlue,
       appBar: CustomAppBar(title: "Download All"),
       body: Stack(

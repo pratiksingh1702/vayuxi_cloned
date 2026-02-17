@@ -13,6 +13,7 @@ import 'package:pdf/widgets.dart' as pw;
 import 'package:untitled2/core/utlis/colors/colors.dart';
 import 'package:untitled2/typeProvider/type_provider.dart';
 import '../../../../../core/utlis/widgets/custom_appBar.dart';
+import '../../../../../core/utlis/widgets/sidebar.dart';
 import '../../Manpower Details/service/manPowerProvider.dart';
 import '../service-provider/salaryClient.dart';
 
@@ -120,56 +121,9 @@ class _SalarySlipScreenState extends ConsumerState<SalarySlipScreen> {
     }
   }
 
-  Future<bool> _requestPermissions() async {
-    if (Platform.isAndroid) {
-      if (await Permission.manageExternalStorage.isGranted) {
-        return true;
-      }
 
-      PermissionStatus status;
-      if (Platform.isAndroid) {
-        status = await Permission.manageExternalStorage.request();
-      } else {
-        status = await Permission.storage.request();
-      }
 
-      if (status.isGranted) {
-        return true;
-      } else if (status.isPermanentlyDenied) {
-        _showPermissionDialog();
-        return false;
-      }
-      return false;
-    } else if (Platform.isIOS) {
-      return true;
-    }
-    return true;
-  }
-
-  void _showPermissionDialog() {
-    showDialog(
-      context: context,
-      builder: (BuildContext context) => AlertDialog(
-        title: const Text("Permission Required"),
-        content: const Text(
-            "Storage permission is required to save salary slip files. "
-                "Please grant the permission in app settings."),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.pop(context),
-            child: const Text("Cancel"),
-          ),
-          TextButton(
-            onPressed: () {
-              Navigator.pop(context);
-              openAppSettings();
-            },
-            child: const Text("Open Settings"),
-          ),
-        ],
-      ),
-    );
-  }
+/**/
 
   // Convert number to words (similar to React Native function)
   String _numberToWords(int num) {
@@ -273,7 +227,7 @@ class _SalarySlipScreenState extends ConsumerState<SalarySlipScreen> {
     final monthName = monthMap.keys.elementAt((selectedMonth ?? 1) - 1);
     final totalEarnings = _calculateTotalEarnings(earnings);
     final totalDeductions = _calculateTotalDeductions(deductions);
-    final monthlyCTC = totalEarnings + (deductions['pf'] ?? 0).toDouble();
+
     final netPay = totalEarnings - totalDeductions;
 
     // Handle negative net pay in amountInWords
@@ -403,7 +357,7 @@ class _SalarySlipScreenState extends ConsumerState<SalarySlipScreen> {
                     children: [
                       pw.Padding(
                         padding: const pw.EdgeInsets.all(6),
-                        child: pw.Text('Amount Total:', style: boldStyle, textAlign: pw.TextAlign.right),
+                        child: pw.Text('Total Earning:', style: boldStyle, textAlign: pw.TextAlign.right),
                       ),
                       pw.Padding(
                         padding: const pw.EdgeInsets.all(6),
@@ -411,7 +365,7 @@ class _SalarySlipScreenState extends ConsumerState<SalarySlipScreen> {
                       ),
                       pw.Padding(
                         padding: const pw.EdgeInsets.all(6),
-                        child: pw.Text('Amount Total:', style: boldStyle, textAlign: pw.TextAlign.right),
+                        child: pw.Text('Total Deduction:', style: boldStyle, textAlign: pw.TextAlign.right),
                       ),
                       pw.Padding(
                         padding: const pw.EdgeInsets.all(6),
@@ -423,14 +377,7 @@ class _SalarySlipScreenState extends ConsumerState<SalarySlipScreen> {
                   // Monthly CTC and Net Pay row
                   pw.TableRow(
                     children: [
-                      pw.Padding(
-                        padding: const pw.EdgeInsets.all(6),
-                        child: pw.Text('MONTHLY CTC:', style: boldStyle, textAlign: pw.TextAlign.right),
-                      ),
-                      pw.Padding(
-                        padding: const pw.EdgeInsets.all(6),
-                        child: pw.Text('$currencySymbol${monthlyCTC.toStringAsFixed(2)}', style: boldStyle),
-                      ),
+
                       pw.Padding(
                         padding: const pw.EdgeInsets.all(6),
                         child: pw.Text('Net Pay:', style: boldStyle, textAlign: pw.TextAlign.right),
@@ -452,9 +399,7 @@ class _SalarySlipScreenState extends ConsumerState<SalarySlipScreen> {
                           style: italicStyle,
                         ),
                       ),
-                      pw.Container(),
-                      pw.Container(),
-                      pw.Container(),
+                     
                     ],
                   ),
                 ],
@@ -570,7 +515,7 @@ class _SalarySlipScreenState extends ConsumerState<SalarySlipScreen> {
   Future<void> _downloadAndSavePDF() async {
     if (selectedEmployee == null || selectedMonth == null || selectedYear == null) return;
 
-    if (await _requestPermissions()) {
+
       setState(() => isDownloading = true);
 
       try {
@@ -617,7 +562,7 @@ class _SalarySlipScreenState extends ConsumerState<SalarySlipScreen> {
       } finally {
         setState(() => isDownloading = false);
       }
-    }
+
   }
   Future<Map<String, dynamic>?> _getSalaryData() async {
     try {
@@ -645,6 +590,7 @@ class _SalarySlipScreenState extends ConsumerState<SalarySlipScreen> {
     final manpowerState = ref.watch(manpowerProvider);
 
     return Scaffold(
+      drawer: const CustomDrawer(),
       backgroundColor: AppColors.lightBlue,
       appBar: CustomAppBar(title: "Salary Slip"),
       body: manpowerState.isLoading

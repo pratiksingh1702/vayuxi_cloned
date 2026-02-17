@@ -1,16 +1,24 @@
+import 'package:firebase_crashlytics/firebase_crashlytics.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
+import 'package:showcaseview/showcaseview.dart';
 import 'package:untitled2/core/utlis/colors/colors.dart';
 import 'package:untitled2/core/utlis/widgets/card.dart';
 import 'package:untitled2/core/utlis/widgets/custom_appBar.dart';
 import 'package:untitled2/core/utlis/widgets/image_clipped.dart';
 import 'package:untitled2/typeProvider/type_provider.dart';
 import 'core/router/routes.dart';
+import 'core/utlis/common_functions.dart';
+import 'core/utlis/widgets/language_first_time_popup.dart';
 import 'features/auth/provider/auth_provider.dart';
+import 'features/language/model/language_storage.dart';
+import 'features/modules/all_Modules/more/language.dart';
 import 'features/modules/screen/device_id.dart';
 import 'features/noti_system/noti_providers/noti_provider.dart';
 import 'features/profile_page/provider/userProvider.dart';
+import 'features/tour/domain/tour_controller.dart';
+import 'features/tour/domain/tour_registery.dart';
 
 class WorkCategoryScreen extends ConsumerStatefulWidget {
   const WorkCategoryScreen({super.key});
@@ -21,14 +29,36 @@ class WorkCategoryScreen extends ConsumerStatefulWidget {
 
 class _WorkCategoryScreenState extends ConsumerState<WorkCategoryScreen> {
   String? selectedImage;
+  bool showLanguagePopup = false;
+  bool languagePopupChecked = false; // avoid re-show loop
+  bool _languageFlowDone = false; // <-- add this
+  bool _showcaseStarted = false;
+  BuildContext? _showcaseContext;
+
+
+
   @override
   void initState() {
     super.initState();
-    Future.microtask(() {
-      ref.read(userNotifierProvider.notifier).getCurrentUser();
-    });
 
+    Future.microtask(() async {
+      await ref.read(userNotifierProvider.notifier).getCurrentUser();
+      final user=ref.read(currentUserProvider);
+      FirebaseCrashlytics.instance.setUserIdentifier(user!.id);
+
+
+      final alreadySeen = await LanguagePopupPrefs.hasSeen();
+
+      if (!mounted) return;
+
+      if (!alreadySeen) {
+        setState(() => showLanguagePopup = true);
+      } else {
+        setState(() => _languageFlowDone = true);
+      }
+    });
   }
+
 
   Future<void> handlePress({
     required String id,
@@ -36,8 +66,16 @@ class _WorkCategoryScreenState extends ConsumerState<WorkCategoryScreen> {
     required String imagePath,
   }) async {
     setState(() => selectedImage = id);
+    if (_showcaseContext != null) {
+      ShowCaseWidget.of(_showcaseContext!)?.dismiss();
+      await Future.delayed(const Duration(milliseconds: 50));
+    }
+
+
 
     final typeNotifier = ref.read(typeProvider.notifier);
+
+
     // Send instant notification
     await ref
         .read(notificationsStateProvider.notifier)
@@ -83,60 +121,125 @@ class _WorkCategoryScreenState extends ConsumerState<WorkCategoryScreen> {
   @override
   Widget build(BuildContext context) {
     final authState = ref.watch(authProvider);
-    final user = authState.user;
 
     if (!authState.isLoggedIn) {
       Future.microtask(() => context.go(Routes.login));
     }
 
-    return Scaffold(
-      backgroundColor: AppColors.lightBlue,
-      appBar: CustomAppBar(title: "Select Category"),
-      body: CornerClippedScreenSimple(
-        child: SafeArea(
-          child: Padding(
-            padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 24),
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                /// 🔹 Category Grid
-                Expanded(
-                  child: GridView.count(
-                    crossAxisCount: 2,
-                    crossAxisSpacing: 18,
-                    mainAxisSpacing: 18,
-                    childAspectRatio: 0.8, // Better aspect ratio for cards
-                    children: [
-                      CompanyCard(
-                        imagePath: "assets/images/mech.webp",
-                        companyName: "Mechanical Work",
-                        isSelected: selectedImage == "mechanical",
-                        onTap: () => handlePress(
-                          id: "mechanical",
-                          title: "Mechanical Work",
-                          imagePath: "https://images.unsplash.com/photo-1503387762-592deb58ef4e?w=600",
+    return ShowCaseWidget(
+      builder: (showcaseContext) {
+        _showcaseContext = showcaseContext;
+
+        WidgetsBinding.instance.addPostFrameCallback((_) {
+          if (!_languageFlowDone) return;
+          if (_showcaseStarted) return; // ✅ HARD BLOCK
+
+          final ctrl = ref.read(tourControllerProvider.notifier);
+          ctrl.syncToRoute(AppRoutes.workCategory);
+
+          final step = ctrl.currentStep;
+          if (step == null) return;
+
+          if (!step.autoShowcase) return;
+
+          final sc = ShowCaseWidget.of(showcaseContext);
+          if (sc == null) return;
+
+          sc.startShowCase([step.showcaseKey]);
+        });
+
+
+        return Stack(
+          children: [
+            Scaffold(
+              backgroundColor: AppColors.lightBlue,
+              appBar: CustomAppBar(title: "Select Category"),
+              body: CornerClippedScreenSimple(
+                child: SafeArea(
+                  child: Padding(
+                    padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 24),
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Expanded(
+                          child: GridView.count(
+                            crossAxisCount: 2,
+                            crossAxisSpacing: 18,
+                            mainAxisSpacing: 18,
+                            childAspectRatio: 0.8,
+                            children: [
+                              Showcase(
+                                key: TourRegistry.workCategoryKey,
+                                description: "Select any Work Type to continue 🚀",
+                                child: CompanyCard(
+                                  imagePath: "assets/images/mech.webp",
+                                  companyName: "Mechanical Work",
+                                  isSelected: selectedImage == "mechanical",
+                                  onTap: () => handlePress(
+                                    id: "mechanical",
+                                    title: "Mechanical Work",
+                                    imagePath:
+                                    "https://images.unsplash.com/photo-1503387762-592deb58ef4e?w=600",
+                                  ),
+                                ),
+                              ),
+                              CompanyCard(
+                                imagePath: "assets/images/insu.webp",
+                                companyName: "Insulation Work",
+                                isSelected: selectedImage == "insulation",
+                                onTap: () => handlePress(
+                                  id: "insulation",
+                                  title: "Insulation Work",
+                                  imagePath:
+                                  "https://images.unsplash.com/photo-1581092795360-fd1ca04f0952?w=600",
+                                ),
+                              ),
+                            ],
+                          ),
                         ),
-                      ),
-                      CompanyCard(
-                        imagePath: "assets/images/insu.webp",
-                        companyName: "Insulation Work",
-                        isSelected: selectedImage == "insulation",
-                        onTap: () => handlePress(
-                          id: "insulation",
-                          title: "Insulation Work",
-                          imagePath: "https://images.unsplash.com/photo-1581092795360-fd1ca04f0952?w=600",
-                        ),
-                      ),
-                    ],
+                      ],
+                    ),
                   ),
                 ),
-              ],
+              ),
             ),
-          ),
-        ),
-      ),
+
+            // ✅ Overlay popup
+            if (showLanguagePopup)
+              LanguageFirstTimePopup(
+                onSelectLanguage: () async {
+                  await LanguagePopupPrefs.markSeen();   // ⭐ add this
+
+                  setState(() => showLanguagePopup = false);
+
+                  await Navigator.push(
+                    context,
+                    MaterialPageRoute(
+                      builder: (_) => const LanguageSelectionScreen(),
+                    ),
+                  );
+
+                  if (!mounted) return;
+                  setState(() => _languageFlowDone = true);
+                },
+                onSkip: () async {
+                  await LanguagePopupPrefs.markSeen();   // ⭐ add this
+
+                  setState(() {
+                    showLanguagePopup = false;
+                    _languageFlowDone = true;
+                  });
+                },
+              ),
+
+/**/
+          ],
+        );
+
+      },
     );
   }
+
 }
 
 class CompanyCard extends StatelessWidget {

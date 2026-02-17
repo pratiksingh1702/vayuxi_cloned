@@ -1,4 +1,7 @@
+import 'dart:io';
+
 import 'package:untitled2/features/modules/all_Modules/dpr/models/pipingModel.dart';
+import 'package:untitled2/features/modules/all_Modules/dpr/models/rate_file_models.dart';
 import 'package:untitled2/features/modules/all_Modules/team/model/teamModel.dart';
 
 import 'equipmentModel.dart';
@@ -101,4 +104,19 @@ class DprModel {
       rethrow;
     }
   }
+}
+class MaterialEditResult {
+  final String name;
+  final File? imageFile;   // ⭐
+  final String? imageUrl;
+  final String uom;
+  final List<DynamicField> fields;
+
+  MaterialEditResult({
+    required this.name,
+    this.imageFile,
+    this.imageUrl,
+    required this.uom,
+    required this.fields,
+  });
 }

@@ -1,8 +1,13 @@
+import 'dart:convert';
+import 'dart:math';
+
+import 'package:dio/dio.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import 'package:intl/intl.dart';
 import 'package:cached_network_image/cached_network_image.dart';
+import 'package:untitled2/core/utlis/app_toasts.dart';
 import 'package:untitled2/core/utlis/widgets/Button_wrapper.dart';
 import 'package:untitled2/core/utlis/widgets/custom_appBar.dart';
 import 'package:untitled2/features/modules/all_Modules/dpr/models/data/equipment_material_data.dart';
@@ -10,13 +15,16 @@ import 'package:untitled2/features/modules/all_Modules/dpr/models/data/piping_ma
 import 'package:untitled2/features/modules/all_Modules/dpr/providers/dprService.dart';
 import 'package:untitled2/features/modules/all_Modules/dpr/providers/floorProvider.dart';
 import 'package:untitled2/features/modules/all_Modules/dpr/providers/mocProvider.dart';
+import 'package:untitled2/features/modules/all_Modules/dpr/screens/widgets/calculation/expand_wrapper.dart';
 import 'package:untitled2/features/modules/all_Modules/dpr/screens/widgets/dynamic_item_card.dart';
 import 'package:untitled2/features/modules/all_Modules/dpr/screens/widgets/dynamic_item_card2.dart';
+import 'package:untitled2/features/modules/all_Modules/dpr/screens/widgets/test_dynamic.dart';
 import 'package:untitled2/features/modules/all_Modules/site_Details/providers/site_current_provider.dart';
 import 'package:untitled2/features/modules/all_Modules/team/model/teamModel.dart';
 import 'package:untitled2/core/utlis/widgets/buttons.dart';
 import 'package:untitled2/core/utlis/widgets/custom.dart';
 import 'package:untitled2/features/modules/all_Modules/team/provider/teamProvider.dart';
+import '../../../../../core/local/isar_db.dart';
 import '../../../../../core/utlis/common_functions.dart';
 import '../../../../language/service/providers.dart';
 import '../dpr-setup/screens/add/add_material.dart';
@@ -25,9 +33,14 @@ import '../models/data/piping_provider.dart';
 import '../models/dprModel.dart';
 import '../models/equipmentModel.dart';
 import '../models/pipingModel.dart';
+import '../models/rate_file_models.dart';
+import '../offline/mech/repo/rate_Repo.dart';
 import '../providers/dpr.dart';
 import '../providers/material_service.dart';
+import '../providers/rate_variant_provider.dart';
 import '../providers/selectedSize_provider.dart';
+import '../providers/selection_provider.dart';
+import '../providers/service/rate_upload_material_dpr.dart';
 import 'material_sync_util.dart';
 
 class AddDescriptionScreen extends ConsumerStatefulWidget {
@@ -36,24 +49,27 @@ class AddDescriptionScreen extends ConsumerStatefulWidget {
   const AddDescriptionScreen({super.key, this.work});
 
   @override
-  ConsumerState<AddDescriptionScreen> createState() => _AddDescriptionScreenState();
+  ConsumerState<AddDescriptionScreen> createState() =>
+      _AddDescriptionScreenState();
 }
 
 class _AddDescriptionScreenState extends ConsumerState<AddDescriptionScreen>
     with AutomaticKeepAliveClientMixin, WidgetsBindingObserver {
-
   late final TextEditingController _dprNameController;
   late final TextEditingController _mocController;
   late final TextEditingController _sizeController;
   late final TextEditingController _plantController;
   late final TextEditingController _floorController;
-
+  String? editingMaterialId;
+  String? draftCategoryId;
+  bool _isLoading = false;
   late String siteId;
   late String teamId;
   late TeamModel team;
 
   String? _mechanicalId;
   String? _selectedDprId;
+
 
   bool _pipeFittingOn = true;
   bool _equipmentOn = true;
@@ -76,7 +92,6 @@ class _AddDescriptionScreenState extends ConsumerState<AddDescriptionScreen>
   bool get isCreatingDpr => _mechanicalId == null;
   bool get isEditingDpr => _mechanicalId != null;
   bool get isEditing => _mechanicalId != null;
-
 
 
   @override
@@ -105,73 +120,184 @@ class _AddDescriptionScreenState extends ConsumerState<AddDescriptionScreen>
       _mechanicalId = widget.work!.id;
     }
 
-    WidgetsBinding.instance.addPostFrameCallback((_) {
-      loadScreenState();
+    WidgetsBinding.instance.addPostFrameCallback((_) async {
+      await loadScreenState();
+      _applyHeaderValuesToMaterials();
     });
+
+    _floorController.addListener(_applyHeaderValuesToMaterials);
+    _mocController.addListener(_applyHeaderValuesToMaterials);
+    _sizeController.addListener(_applyHeaderValuesToMaterials);
+
   }
 
-  Future<void> loadScreenState() async {
+  Future<void> loadScreenState({DprModel? Dpr}) async {
+    print("000000");
     ref.read(pipingMaterialsProvider.notifier).clear();
     ref.read(equipmentMaterialsProvider.notifier).clear();
 
     if (_mechanicalId != null) {
       // 🔵 EDITING DPR
-      await _loadDprMaterials();
+
+      final work = widget.work ?? Dpr;
+
+      if (work != null) {
+        _mechanicalId = work.id;
+
+        _selectedDprId = work.id;
+
+        _dprNameController.text = work.dprName;
+        _mocController.text = work.moc;
+        _sizeController.text = work.size;
+        _floorController.text = work.location;
+        _plantController.text = work.plant;
+        await _loadDprMaterials(work);
+      } else {
+        await _loadDefaultMaterials();
+      }
+
     } else {
       // 🟢 CREATING DPR
       await _loadDefaultMaterials();
     }
   }
-  Future<void> _loadDefaultMaterials() async {
-    final service = DefaultMaterialService();
 
-    final materials = await service.getDefaultMaterials(
-      siteId: siteId,
-
-    );
-
-    ref.read(pipingMaterialsProvider.notifier).setMaterials(
-      materials.whereType<PipingItem>().toList(),
-    );
-
-    ref.read(equipmentMaterialsProvider.notifier).setMaterials(
-      materials.whereType<EquipmentItem>().toList(),
-    );
+  List<PipingItem> _toApprovedPipingItems(
+    List<RateFileMaterial> materials,
+  ) {
+    return materials
+        .where((m) => m.availableVariants.isNotEmpty) // 👈 IMPORTANT
+        .map((m) {
+      final v = m.availableVariants.first; // guaranteed non-null
+      return PipingItem.fromRateMaterial(m, v);
+    }).toList();
   }
-  Future<void> _loadDprMaterials() async {
-    final dpr = await ref.read(dprProvider.notifier).fetchDprById(
-      siteId: siteId,
-      teamId: teamId,
-      workId: _mechanicalId!,
-    );
 
-    if (dpr == null) return;
-    final mergedPiping = MaterialSyncService.syncPiping(
-      local: PipingMaterialsData.materials,
-      server: dpr.piping,
-    );
+  List<EquipmentItem> _toApprovedEquipmentItems(
+    List<RateFileMaterial> materials,
+  ) {
+    return materials
+        .where((m) => m.availableVariants.isNotEmpty) // 👈 IMPORTANT
+        .map((m) {
+      final v = m.availableVariants.first;
+      return EquipmentItem.fromRateMaterial(m, v);
+    }).toList();
+  }
 
-    final mergedEquipment = MaterialSyncService.syncEquipment(
-      local: EquipmentMaterialsData.materials,
-      server: dpr.equipment,
-    );
+  Future<void> _loadDefaultMaterials() async {
+    try {
+      final approvedMaterials = ref.read(approvedRateMaterialsProvider(siteId));
 
-    ref.read(pipingMaterialsProvider.notifier).setMaterials(mergedPiping);
-    ref.read(equipmentMaterialsProvider.notifier).setMaterials(mergedEquipment);
+      final pipingItems = _toApprovedPipingItems(
+        approvedMaterials
+            .where((m) => m.designation.contains("piping"))
+            .toList(),
+      );
 
-    _dprNameController.text = dpr.dprName;
-    _mocController.text = dpr.moc;
-    _sizeController.text = dpr.size;
-    _floorController.text = dpr.location;
-    _plantController.text = dpr.plant;
+      final equipmentItems = _toApprovedEquipmentItems(
+        approvedMaterials
+            .where((m) => m.designation.contains("equipment"))
+            .toList(),
+      );
+
+      ref.read(pipingMaterialsProvider.notifier).setMaterials(pipingItems);
+      ref
+          .read(equipmentMaterialsProvider.notifier)
+          .setMaterials(equipmentItems);
+    } catch (e, st) {
+      debugPrint("❌ Failed: $e");
+      debugPrintStack(stackTrace: st);
+    }
+  }
+
+  Future<void> _loadDprMaterials(DprModel? fallbackDpr) async {
+    debugPrint('================ DPR LOAD START ================');
+    debugPrint('siteId: $siteId');
+    debugPrint('teamId: $teamId');
+    debugPrint('mechanicalId: $_mechanicalId');
+
+    try {
+      final dpr = fallbackDpr ??
+          await ref.read(dprProvider.notifier).fetchDprById(
+            siteId: siteId,
+            teamId: teamId,
+            workId: _mechanicalId!,
+          );
+
+
+
+      debugPrint('DPR fetch completed');
+
+      if (dpr == null) {
+        debugPrint('❌ DPR is NULL');
+        debugPrint('================ DPR LOAD END ================');
+        return;
+      }
+      for (final m in dpr.equipment) {
+        debugPrint("🧱 ${m.materialName}");
+        debugPrint("dynamic count: ${m.dynamicFields.length}");
+      }
+
+      debugPrint('✅ DPR received');
+      debugPrint('dprName: ${dpr.dprName}');
+      debugPrint('moc: ${dpr.moc}');
+      debugPrint('size: ${dpr.size}');
+      debugPrint('location: ${dpr.location}');
+      debugPrint('plant: ${dpr.plant}');
+      debugPrint('server piping count: ${dpr.piping.length}');
+      debugPrint('server equipment count: ${dpr.equipment.length}');
+
+      debugPrint('local piping count: ${PipingMaterialsData.materials.length}');
+      debugPrint('local equipment count: ${EquipmentMaterialsData.materials.length}');
+
+      final mergedPiping = MaterialSyncService.syncPiping(
+        local: PipingMaterialsData.materials,
+        server: dpr.piping,
+      );
+
+      final mergedEquipment = MaterialSyncService.syncEquipment(
+        local: EquipmentMaterialsData.materials,
+        server: dpr.equipment,
+      );
+
+      debugPrint('merged piping count: ${mergedPiping.length}');
+      debugPrint('merged equipment count: ${mergedEquipment.length}');
+
+      ref.read(pipingMaterialsProvider.notifier).setMaterials(mergedPiping);
+
+
+      ref.read(equipmentMaterialsProvider.notifier).setMaterials(mergedEquipment);
+      final state = ref.read(equipmentMaterialsProvider);
+
+      for (final m in state) {
+        debugPrint("🧱 ${m.materialName}");
+        debugPrint("dynamic count: ${m.dynamicFields.length}");
+      }
+
+      debugPrint('✅ Providers updated');
+
+      _dprNameController.text = dpr.dprName;
+      _mocController.text = dpr.moc;
+      _sizeController.text = dpr.size;
+      _floorController.text = dpr.location;
+      _plantController.text = dpr.plant;
+
+      debugPrint('✅ Controllers updated');
+      debugPrint('================ DPR LOAD END ================');
+    } catch (e, st) {
+      debugPrint('🔥 ERROR while loading DPR');
+      debugPrint(e.toString());
+      debugPrint(st.toString());
+      debugPrint('================ DPR LOAD END ================');
+    }
   }
 
   Future<void> _loadMaterialsForEditing() async {
     final dpr = await ref.read(dprProvider.notifier).fetchDprById(
-      siteId: siteId,
-      teamId: teamId,
-      workId: _mechanicalId!,
-    );
+          siteId: siteId,
+          teamId: teamId,
+          workId: _mechanicalId!,
+        );
 
     if (dpr == null) return;
 
@@ -194,14 +320,70 @@ class _AddDescriptionScreenState extends ConsumerState<AddDescriptionScreen>
     );
 
     ref.read(pipingMaterialsProvider.notifier).setMaterials(
-      materials.whereType<PipingItem>().toList(),
-    );
+          materials.whereType<PipingItem>().toList(),
+        );
 
     ref.read(equipmentMaterialsProvider.notifier).setMaterials(
-      materials.whereType<EquipmentItem>().toList(),
-    );
+          materials.whereType<EquipmentItem>().toList(),
+        );
   }
+  void _applyHeaderValuesToMaterials() {
+    final floor = _floorController.text;
+    final moc = _mocController.text;
+    final size = _sizeController.text;
 
+    /// PIPING
+    final piping = ref.read(pipingMaterialsProvider);
+    ref.read(pipingMaterialsProvider.notifier).state = piping.map((m) {
+      final updated = m.dynamicFields.map((f) {
+        final key = f.key.toLowerCase();
+
+        if (key == 'floor') {
+          return f.copyWith(displayText: floor, value: floor);
+        }
+        if (key == 'moc') {
+          return f.copyWith(displayText: moc, value: moc);
+        }
+        if (key == 'size') {
+          return f.copyWith(displayText: size, value: size);
+        }
+        if (key == 'qty') {
+          return f.copyWith(displayText: '1', value: '1');
+        }
+
+        // everything else empty
+        return f.copyWith(displayText: '', value: '');
+      }).toList();
+
+      return m.copyWith(dynamicFields: updated);
+    }).toList();
+
+    /// EQUIPMENT
+    final equipment = ref.read(equipmentMaterialsProvider);
+    ref.read(equipmentMaterialsProvider.notifier).state = equipment.map((m) {
+      final updated = m.dynamicFields.map((f) {
+        final key = f.key.toLowerCase();
+
+        if (key == 'floor') {
+          return f.copyWith(displayText: floor, value: floor);
+        }
+        if (key == 'moc') {
+          return f.copyWith(displayText: moc, value: moc);
+        }
+        if (key == 'size') {
+          return f.copyWith(displayText: size, value: size);
+        }
+        if (key == 'qty') {
+          return f.copyWith(displayText: '1', value: '1');
+        }
+
+        // everything else empty
+        return f.copyWith(displayText: '', value: '');
+      }).toList();
+
+      return m.copyWith(dynamicFields: updated);
+    }).toList();
+  }
 
   @override
   void didChangeAppLifecycleState(AppLifecycleState state) {
@@ -220,65 +402,83 @@ class _AddDescriptionScreenState extends ConsumerState<AddDescriptionScreen>
 
   void _initializeData() {
     siteId = ref.read(selectedSiteIdProvider)!;
-    teamId = ref.read(selectedTeamIdProvider)!;
-    team = ref.read(currentTeamProvider)!;
-    _mocController.text =(widget.work==null? ref.read(selectedMOCProvider)!.name:widget.work?.moc)??"";_floorController.text = (widget.work==null?ref.read(selectedFloorProvider)!.name:widget.work?.location)??"";
-    _sizeController.text = (widget.work==null?ref.read(selectedSizeProvider)!:widget.work?.size)??"";
+    teamId = ref.read(selectedTeamIdProvider) ?? "default";
+    team = ref.read(currentTeamProvider) ??
+        TeamModel(
+          id: "",
+          teamName: "",
+          teamMemberIds: [],
+          company: '',
+          isDeleted: false,
+          type: '',
+        );
+    _mocController.text = (widget.work == null
+            ? ref.read(selectedMocNameProvider)
+            : widget.work?.moc) ??
+        "";
+    _floorController.text = (widget.work == null
+            ? ref.read(selectedFloorNameProvider)!
+            : widget.work?.location) ??
+        "";
+    _sizeController.text = (widget.work == null
+            ? ref.read(selectedSizeProvider)!
+            : widget.work?.size) ??
+        "";
   }
 
-  Future<void> _loadInitialData() async {
-    if (_isDisposed) return;
+  // Future<void> _loadInitialData() async {
+  //   if (_isDisposed) return;
+  //
+  //   if (mounted) setState(() => _isLoadingMaterials = true);
+  //
+  //   try {
+  //     if (widget.work != null) {
+  //       // If workId is provided, load that specific DPR
+  //       _mechanicalId = widget.work?.id;
+  //       await _fetchDprWorkById();
+  //     } else {
+  //       // Check if today's date
+  //       if (_isToday(_selectedDate)) {
+  //         // For today's date, always create a new DPR
+  //         await _autoCreateDprWork();
+  //       } else {
+  //         // For other dates, fetch DPR list
+  //         await _fetchDprListForDate(_selectedDate);
+  //
+  //         if (_dprListForSelectedDate.isNotEmpty) {
+  //           ref.read(pipingMaterialsProvider.notifier).clear();
+  //           ref.read(equipmentMaterialsProvider.notifier).clear();
+  //           await _loadDprWork(_dprListForSelectedDate.first);
+  //         } else {
+  //           // No DPR found for selected date
+  //           setState(() {
+  //             _mechanicalId = null;
+  //             _selectedDprId = null;
+  //             _dprNameController.text = 'New DPR Entry';
+  //             _pipeFittingOn = false;
+  //             _equipmentOn = false;
+  //             _showPipingMaterials = false;
+  //             _showEquipmentMaterials = false;
+  //           });
+  //         }
+  //       }
+  //     }
+  //   } catch (e) {
+  //     if (mounted && !_isDisposed) {
+  //       print('Error loading initial data: $e');
+  //       final message = extractBackendError(e);
+  //       _showSnackBar('Failed to load DPR work: $message', isError: true);
+  //     }
+  //   } finally {
+  //     if (mounted && !_isDisposed) {
+  //       setState(() {
+  //         _isLoadingMaterials = false;
+  //         _initialDataLoaded = true;
+  //       });
+  //     }
+  //   }
+  // }
 
-    if (mounted) setState(() => _isLoadingMaterials = true);
-
-    try {
-      if (widget.work != null) {
-        // If workId is provided, load that specific DPR
-        _mechanicalId = widget.work?.id;
-        await _fetchDprWorkById();
-      } else {
-        // Check if today's date
-        if (_isToday(_selectedDate)) {
-          // For today's date, always create a new DPR
-          await _autoCreateDprWork();
-        } else {
-          // For other dates, fetch DPR list
-          await _fetchDprListForDate(_selectedDate);
-
-          if (_dprListForSelectedDate.isNotEmpty) {
-            ref.read(pipingMaterialsProvider.notifier).clear();
-            ref.read(equipmentMaterialsProvider.notifier).clear();
-            await _loadDprWork(_dprListForSelectedDate.first);
-          } else {
-            // No DPR found for selected date
-            setState(() {
-              _mechanicalId = null;
-              _selectedDprId = null;
-              _dprNameController.text = 'New DPR Entry';
-              _pipeFittingOn = false;
-              _equipmentOn = false;
-              _showPipingMaterials = false;
-              _showEquipmentMaterials = false;
-            });
-          }
-        }
-      }
-    } catch (e) {
-      if (mounted && !_isDisposed) {
-        print('Error loading initial data: $e');
-        final message = extractBackendError(e);
-        _showSnackBar('Failed to load DPR work: $message', isError: true);
-
-      }
-    } finally {
-      if (mounted && !_isDisposed) {
-        setState(() {
-          _isLoadingMaterials = false;
-          _initialDataLoaded = true;
-        });
-      }
-    }
-  }
   Future<void> _fetchDprListForDate(DateTime date) async {
     if (_isDisposed) return;
 
@@ -302,8 +502,8 @@ class _AddDescriptionScreenState extends ConsumerState<AddDescriptionScreen>
             : 'No DPR found for ${_formatDate(date)}. Create a new DPR.',
       );
 
-
-      print('Found ${_dprListForSelectedDate.length} DPR(s) for ${_formatDate(date)}');
+      print(
+          'Found ${_dprListForSelectedDate.length} DPR(s) for ${_formatDate(date)}');
     } catch (e) {
       final message = extractBackendError(e);
       _showSnackBar('Error fetching DPR list: $message', isError: true);
@@ -316,34 +516,34 @@ class _AddDescriptionScreenState extends ConsumerState<AddDescriptionScreen>
       }
     }
   }
-
-  Future<void> _loadDprWork(DprModel dpr) async {
-    if (_isDisposed) return;
-
-    _mechanicalId = dpr.id;
-    _selectedDprId = dpr.id;
-
-    _dprNameController.text = dpr.dprName;
-    _mocController.text = dpr.moc;
-    _sizeController.text = dpr.size;
-    _floorController.text = dpr.location;
-    _plantController.text = dpr.plant;
-
-    await _fetchDprWorkById();
-
-    if (mounted && !_isDisposed) {
-      setState(() {
-        if (dpr.piping.isNotEmpty) {
-          _pipeFittingOn = true;
-          _showPipingMaterials = true;
-        }
-        if (dpr.equipment.isNotEmpty) {
-          _equipmentOn = true;
-          _showEquipmentMaterials = true;
-        }
-      });
-    }
-  }
+  //
+  // Future<void> _loadDprWork(DprModel dpr) async {
+  //   if (_isDisposed) return;
+  //
+  //   _mechanicalId = dpr.id;
+  //   _selectedDprId = dpr.id;
+  //
+  //   _dprNameController.text = dpr.dprName;
+  //   _mocController.text = dpr.moc;
+  //   _sizeController.text = dpr.size;
+  //   _floorController.text = dpr.location;
+  //   _plantController.text = dpr.plant;
+  //
+  //   await _fetchDprWorkById();
+  //
+  //   if (mounted && !_isDisposed) {
+  //     setState(() {
+  //       if (dpr.piping.isNotEmpty) {
+  //         _pipeFittingOn = true;
+  //         _showPipingMaterials = true;
+  //       }
+  //       if (dpr.equipment.isNotEmpty) {
+  //         _equipmentOn = true;
+  //         _showEquipmentMaterials = true;
+  //       }
+  //     });
+  //   }
+  // }
 
   Future<void> _autoCreateDprWork() async {
     if (_isDisposed || _autoCreateAttempted) return;
@@ -364,7 +564,7 @@ class _AddDescriptionScreenState extends ConsumerState<AddDescriptionScreen>
         'location': _floorController.text.trim(),
         'size': _sizeController.text.trim(),
         'moc': _mocController.text.trim(),
-        'designation': ["piping","equipment"],
+        'designation': ["piping", "equipment"],
         'date': _selectedDate.toIso8601String(),
       };
 
@@ -410,9 +610,11 @@ class _AddDescriptionScreenState extends ConsumerState<AddDescriptionScreen>
       }
     }
   }
+
   String materialKey(String name, String designation) {
     return '${designation.toLowerCase()}::${name.trim().toLowerCase()}';
   }
+
   Future<List<String>?> _askDprDesignation() async {
     return showDialog<List<String>>(
       context: context,
@@ -452,7 +654,6 @@ class _AddDescriptionScreenState extends ConsumerState<AddDescriptionScreen>
     );
   }
 
-
   void _syncLocalMaterialsWithServer(DprModel dpr) {
     print('🔄 SYNCING MATERIALS FOR DPR: ${dpr.id}');
 
@@ -485,13 +686,12 @@ class _AddDescriptionScreenState extends ConsumerState<AddDescriptionScreen>
     for (final e in equipmentState) {
       print('  → ${e.materialName}: UOM = ${e.uom}, Weight = ${e.weight}');
     }
-  }/**/
+  } /**/
 
   Future<void> _fetchDprWorkById() async {
     if (_isDisposed || _mechanicalId == null) return;
     ref.read(pipingMaterialsProvider.notifier).clear();
     ref.read(equipmentMaterialsProvider.notifier).clear();
-
 
     if (mounted) setState(() => _isLoadingMaterials = true);
 
@@ -499,15 +699,12 @@ class _AddDescriptionScreenState extends ConsumerState<AddDescriptionScreen>
       print('Fetching DPR work with ID: $_mechanicalId');
 
       final dprWork = await ref.read(dprProvider.notifier).fetchDprById(
-        siteId: siteId,
-        teamId: teamId,
-        workId: _mechanicalId!,
-      );
+            siteId: siteId,
+            teamId: teamId,
+            workId: _mechanicalId!,
+          );
 
       if (dprWork == null) return;
-
-
-
 
       _syncLocalMaterialsWithServer(dprWork);
 
@@ -530,8 +727,9 @@ class _AddDescriptionScreenState extends ConsumerState<AddDescriptionScreen>
         });
       }
 
-      print('Fetched DPR work successfully with ${dprWork.piping.length} piping and ${dprWork.equipment.length} equipment materials');
-        } catch (e) {
+      print(
+          'Fetched DPR work successfully with ${dprWork.piping.length} piping and ${dprWork.equipment.length} equipment materials');
+    } catch (e) {
       if (mounted && !_isDisposed) {
         print('Error fetching DPR work: $e');
         final message = extractBackendError(e);
@@ -586,7 +784,6 @@ class _AddDescriptionScreenState extends ConsumerState<AddDescriptionScreen>
     await loadScreenState();
   }
 
-
   String _formatDate(DateTime d) => "${d.day}/${d.month}/${d.year}";
 
   void _handleToggleChange(bool isPiping, bool newValue) {
@@ -629,55 +826,100 @@ class _AddDescriptionScreenState extends ConsumerState<AddDescriptionScreen>
     }
   }
 
- // _________MATERIAL  FUNCTIONS_______ //
-  Future<void> _deleteDprMaterial(String materialId, bool isPiping) async {
+  // _________MATERIAL  FUNCTIONS_______ //
+  String generateObjectId() {
+    final seconds = (DateTime.now().millisecondsSinceEpoch ~/ 1000)
+        .toRadixString(16)
+        .padLeft(8, '0');
+
+    final random = Random.secure();
+    final randomPart = List.generate(10, (_) => random.nextInt(16))
+        .map((e) => e.toRadixString(16))
+        .join();
+
+    final counter = random.nextInt(0xffffff).toRadixString(16).padLeft(6, '0');
+
+    return seconds + randomPart + counter;
+  }
+
+  /// ✅ LOCAL DELETE (no API)
+  void deleteDprMaterialLocal({
+    required String materialId,
+    required bool isPiping,
+  }) {
     if (!_isEditable) {
       _showEditRequiredMessage();
       return;
     }
 
-    try {
-      await DprApi().deleteMaterial(
-        mechanicalId: _mechanicalId!,
-        materialId: materialId,
+    if (isPiping) {
+      final notifier = ref.read(pipingMaterialsProvider.notifier);
+      final materials = ref.read(pipingMaterialsProvider);
 
+      final updated = materials.where((m) => m.id != materialId).toList();
+      notifier.setMaterials(updated);
+    } else {
+      final notifier = ref.read(equipmentMaterialsProvider.notifier);
+      final materials = ref.read(equipmentMaterialsProvider);
+
+      final updated = materials.where((m) => m.id != materialId).toList();
+      notifier.setMaterials(updated);
+    }
+
+    _showSnackBar('Material deleted');
+  }
+
+  /// ✅ LOCAL COPY (no API)
+  void copyDprMaterialLocal({
+    required dynamic material,
+    required bool isPiping,
+  }) {
+    if (!_isEditable) {
+      _showEditRequiredMessage();
+      return;
+    }
+
+    if (isPiping) {
+      if (material is! PipingItem) return;
+
+      final notifier = ref.read(pipingMaterialsProvider.notifier);
+      final materials = ref.read(pipingMaterialsProvider);
+
+      final index = materials.indexWhere((m) => m.id == material.id);
+      if (index == -1) return;
+
+      final copied = material.copyWith(
+        id: generateObjectId(),
+        materialName: '${material.materialName}',
       );
 
-      if (isPiping) {
-        final materials = ref.read(pipingMaterialsProvider);
-         ref.read(pipingMaterialsProvider.notifier).setMaterials(
-           materials.where((m) => m.id != materialId).toList(),
-       );
-      } else {
-        final materials = ref.read(equipmentMaterialsProvider);
-         ref.read(equipmentMaterialsProvider.notifier).setMaterials(
-           materials.where((m) => m.id != materialId).toList(),
-         );
-      }
+      final updated = [...materials];
+      updated.insert(index + 1, copied);
 
-      _showSnackBar('Material deleted');
-    } catch (e) {
-      final message = extractBackendError(e);
+      notifier.setMaterials(updated);
+    } else {
+      if (material is! EquipmentItem) return;
 
-      _showSnackBar('Delete failed: $message', isError: true);
-    }
-  }
-  Future<void> _copyDprMaterial(String materialId,) async {
-    try {
-      await DprApi.copyDprMaterial(
-        dprId: _mechanicalId!,
-        matId: materialId,
+      final notifier = ref.read(equipmentMaterialsProvider.notifier);
+      final materials = ref.read(equipmentMaterialsProvider);
 
+      final index = materials.indexWhere((m) => m.id == material.id);
+      if (index == -1) return;
+
+      final copied = material.copyWith(
+        id: generateObjectId(),
+        materialName: '${material.materialName} (Copy)',
       );
 
-      await _fetchDprWorkById(); // re-sync server state
-      _showSnackBar('Material copied');
-    } catch (e) {
-      final message = extractBackendError(e);
+      final updated = [...materials];
+      updated.insert(index + 1, copied);
 
-      _showSnackBar('Copy failed: $message', isError: true);
+      notifier.setMaterials(updated);
     }
+
+    _showSnackBar('Material copied');
   }
+
   void _editDprMaterial(dynamic material, String catgory) {
     if (!_isEditable) {
       _showEditRequiredMessage();
@@ -704,9 +946,7 @@ class _AddDescriptionScreenState extends ConsumerState<AddDescriptionScreen>
           .then((_) async {
         await _fetchDprWorkById(); // ✅ DPR refresh, not default materials
       });
-    }
-
-    else if (material is EquipmentItem) {
+    } else if (material is EquipmentItem) {
       Navigator.of(context)
           .push(
         MaterialPageRoute(
@@ -728,10 +968,6 @@ class _AddDescriptionScreenState extends ConsumerState<AddDescriptionScreen>
       });
     }
   }
-
-
-
-
 
   void _showEditRequiredMessage() {
     if (_isToday(_selectedDate)) {
@@ -765,17 +1001,18 @@ class _AddDescriptionScreenState extends ConsumerState<AddDescriptionScreen>
 
     final hasPipingMaterials = pipingMaterials.isNotEmpty;
     final hasEquipmentMaterials = equipmentMaterials.isNotEmpty;
-    final shouldShowPiping = _pipeFittingOn && _showPipingMaterials && hasPipingMaterials;
-    final shouldShowEquipment = _equipmentOn && _showEquipmentMaterials && hasEquipmentMaterials;
-    final lang=ref.watch(dailyEntryTranslationHelperProvider);
+    final shouldShowPiping =
+        _pipeFittingOn && _showPipingMaterials && hasPipingMaterials;
+    final shouldShowEquipment =
+        _equipmentOn && _showEquipmentMaterials && hasEquipmentMaterials;
+    final lang = ref.watch(dailyEntryTranslationHelperProvider);
 
     // Only show dropdown when:
     // 1. In edit mode
     // 2. Not today's date
     // 3. DPR list exists for selected date
-    final shouldShowDropdown = _globalEditMode &&
-
-        _dprListForSelectedDate.isNotEmpty;
+    final shouldShowDropdown =
+        _globalEditMode && _dprListForSelectedDate.isNotEmpty;
 
     return Scaffold(
       backgroundColor: Colors.grey[50],
@@ -797,7 +1034,7 @@ class _AddDescriptionScreenState extends ConsumerState<AddDescriptionScreen>
           ],
           child: Column(
             children: [
-              if (_isLoadingMaterials || _isCreatingWork)
+              if (_isLoadingMaterials || _isCreatingWork|| _isLoading)
                 const LinearProgressIndicator(
                   backgroundColor: Colors.transparent,
                   valueColor: AlwaysStoppedAnimation<Color>(Color(0xFF1B6DCE)),
@@ -822,7 +1059,6 @@ class _AddDescriptionScreenState extends ConsumerState<AddDescriptionScreen>
                       const SizedBox(height: 16),
                       _buildToggleSection(),
                       const SizedBox(height: 16),
-
                       Column(
                         children: [
                           if (_pipeFittingOn && hasPipingMaterials)
@@ -830,34 +1066,33 @@ class _AddDescriptionScreenState extends ConsumerState<AddDescriptionScreen>
                               lang.pipeFittingMaterialLabel,
                               pipingMaterials.length,
                               _showPipingMaterials,
-                                  () => _toggleMaterialVisibility(true),
+                              () => _toggleMaterialVisibility(true),
                             ),
-
                           if (shouldShowPiping)
                             ..._buildPipingMaterials(pipingMaterials),
-
                           if (_equipmentOn && hasEquipmentMaterials)
                             _buildMaterialToggleCard(
                               lang.equipmentMaterialLabel,
                               equipmentMaterials.length,
                               _showEquipmentMaterials,
-                                  () => _toggleMaterialVisibility(false),
+                              () => _toggleMaterialVisibility(false),
                             ),
-
                           if (shouldShowEquipment)
                             ..._buildEquipmentMaterials(equipmentMaterials),
-
                           if (_pipeFittingOn && !hasPipingMaterials)
-                            _buildEmptyMaterialsCard('No piping materials available'),
-
+                            _buildEmptyMaterialsCard(
+                                'No piping materials available'),
                           if (_equipmentOn && !hasEquipmentMaterials)
-                            _buildEmptyMaterialsCard('No equipment materials available'),
-
-                          if (!_pipeFittingOn && !_equipmentOn && _initialDataLoaded)
-                            _buildEmptyState('Materials will appear here once loaded', Icons.downloading),
+                            _buildEmptyMaterialsCard(
+                                'No equipment materials available'),
+                          if (!_pipeFittingOn &&
+                              !_equipmentOn &&
+                              _initialDataLoaded)
+                            _buildEmptyState(
+                                'Materials will appear here once loaded',
+                                Icons.downloading),
                         ],
                       ),
-
                       const SizedBox(height: 100),
                     ],
                   ),
@@ -901,11 +1136,11 @@ class _AddDescriptionScreenState extends ConsumerState<AddDescriptionScreen>
   }
 
   Widget _buildMaterialToggleCard(
-      String title,
-      int count,
-      bool isExpanded,
-      VoidCallback onToggle,
-      ) {
+    String title,
+    int count,
+    bool isExpanded,
+    VoidCallback onToggle,
+  ) {
     return GestureDetector(
       onTap: onToggle,
       child: Container(
@@ -944,7 +1179,8 @@ class _AddDescriptionScreenState extends ConsumerState<AddDescriptionScreen>
                 ),
                 const SizedBox(width: 8),
                 Container(
-                  padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
+                  padding:
+                      const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
                   decoration: BoxDecoration(
                     color: Colors.blue.shade50,
                     borderRadius: BorderRadius.circular(12),
@@ -958,8 +1194,6 @@ class _AddDescriptionScreenState extends ConsumerState<AddDescriptionScreen>
                     ),
                   ),
                 ),
-
-
               ],
             ),
             _buildAddDprMaterialButton(),
@@ -975,6 +1209,7 @@ class _AddDescriptionScreenState extends ConsumerState<AddDescriptionScreen>
       ),
     );
   }
+
   Widget _buildAddDprMaterialButton() {
     return InkWell(
       borderRadius: BorderRadius.circular(20),
@@ -987,8 +1222,8 @@ class _AddDescriptionScreenState extends ConsumerState<AddDescriptionScreen>
         final result = await Navigator.of(context).push(
           MaterialPageRoute(
             builder: (_) => PersistDPRScreen(
-              isDpr: true,                 // 🔴 critical
-              dprId: _mechanicalId!,       // 🔴 DPR ID
+              isDpr: true, // 🔴 critical
+              dprId: _mechanicalId!, // 🔴 DPR ID
               siteId: siteId,
               teamId: teamId,
             ),
@@ -1015,7 +1250,6 @@ class _AddDescriptionScreenState extends ConsumerState<AddDescriptionScreen>
     );
   }
 
-
   Widget _buildLoadingCard(String title, String subtitle) {
     return Container(
       margin: const EdgeInsets.symmetric(vertical: 12),
@@ -1041,7 +1275,10 @@ class _AddDescriptionScreenState extends ConsumerState<AddDescriptionScreen>
           const SizedBox(height: 16),
           Text(
             title,
-            style: TextStyle(color: Colors.grey[700], fontSize: 14, fontWeight: FontWeight.w500),
+            style: TextStyle(
+                color: Colors.grey[700],
+                fontSize: 14,
+                fontWeight: FontWeight.w500),
           ),
           const SizedBox(height: 4),
           Text(
@@ -1077,7 +1314,10 @@ class _AddDescriptionScreenState extends ConsumerState<AddDescriptionScreen>
           Text(
             message,
             textAlign: TextAlign.center,
-            style: TextStyle(color: Colors.grey[600], fontSize: 14, fontWeight: FontWeight.w500),
+            style: TextStyle(
+                color: Colors.grey[600],
+                fontSize: 14,
+                fontWeight: FontWeight.w500),
           ),
         ],
       ),
@@ -1085,7 +1325,7 @@ class _AddDescriptionScreenState extends ConsumerState<AddDescriptionScreen>
   }
 
   Widget _buildDateSection() {
-    final lang=ref.watch(dailyEntryTranslationHelperProvider);
+    final lang = ref.watch(dailyEntryTranslationHelperProvider);
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
       decoration: BoxDecoration(
@@ -1102,7 +1342,8 @@ class _AddDescriptionScreenState extends ConsumerState<AddDescriptionScreen>
               const SizedBox(width: 8),
               Text(
                 "${lang.dailyReportTitle}",
-                style: const TextStyle(fontSize: 15, fontWeight: FontWeight.w600),
+                style:
+                    const TextStyle(fontSize: 15, fontWeight: FontWeight.w600),
               ),
             ],
           ),
@@ -1111,10 +1352,13 @@ class _AddDescriptionScreenState extends ConsumerState<AddDescriptionScreen>
             child: Container(
               padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
               decoration: BoxDecoration(
-                color: _globalEditMode ? Colors.blue.shade50 : Colors.transparent,
+                color:
+                    _globalEditMode ? Colors.blue.shade50 : Colors.transparent,
                 borderRadius: BorderRadius.circular(8),
                 border: Border.all(
-                  color: _globalEditMode ? Colors.blue.shade200 : Colors.transparent,
+                  color: _globalEditMode
+                      ? Colors.blue.shade200
+                      : Colors.transparent,
                   width: 1,
                 ),
               ),
@@ -1171,7 +1415,6 @@ class _AddDescriptionScreenState extends ConsumerState<AddDescriptionScreen>
   }
 
   Widget _buildDprInfoCard(bool shouldShowDropdown) {
-
     return Container(
       decoration: BoxDecoration(
         color: Colors.white,
@@ -1201,11 +1444,8 @@ class _AddDescriptionScreenState extends ConsumerState<AddDescriptionScreen>
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        if (shouldShowDropdown)
-          _buildDprDropdown(),
-
+        if (shouldShowDropdown) _buildDprDropdown(),
         const SizedBox(height: 8),
-
         _buildRegularDprNameField(),
       ],
     );
@@ -1232,65 +1472,67 @@ class _AddDescriptionScreenState extends ConsumerState<AddDescriptionScreen>
           ),
           child: _isLoadingDprList
               ? Padding(
-            padding: const EdgeInsets.symmetric(vertical: 16),
-            child: Center(
-              child: SizedBox(
-                width: 20,
-                height: 20,
-                child: CircularProgressIndicator(strokeWidth: 2),
-              ),
-            ),
-          )
-              : DropdownButtonHideUnderline(
-            child: DropdownButton<String>(
-              value: _selectedDprId,
-              isExpanded: true,
-              icon: const Icon(Icons.arrow_drop_down, color: Colors.blue),
-              elevation: 16,
-              style: const TextStyle(
-                fontSize: 16,
-                fontWeight: FontWeight.w600,
-                color: Colors.black,
-              ),
-              hint: const Text('Select DPR'),
-              // onChanged: (String? newValue) {
-              //   if (newValue != null) {
-              //     ref.read(pipingMaterialsProvider.notifier).clear();
-              //     ref.read(equipmentMaterialsProvider.notifier).clear();
-              //     final selectedDpr = _dprListForSelectedDate
-              //         .firstWhere((dpr) => dpr.id == newValue);
-              //     _loadDprWork(selectedDpr);
-              //   }
-              // },
-              onChanged: (String? newValue) async {
-                if (newValue == null) return;
-                final dpr = _dprListForSelectedDate
-                       .firstWhere((dpr) => dpr.id == newValue);
-                  _dprNameController.text = dpr.dprName;
-                _mocController.text = dpr.moc;
-                _sizeController.text = dpr.size;
-                _floorController.text = dpr.location;
-                _plantController.text = dpr.plant;
-
-                _mechanicalId = newValue;
-                await loadScreenState();
-              },
-
-              items: _dprListForSelectedDate.map<DropdownMenuItem<String>>((DprModel dpr) {
-                return DropdownMenuItem<String>(
-                  value: dpr.id,
-                  child: Padding(
-                    padding: const EdgeInsets.symmetric(horizontal: 8),
-                    child: Text(
-                      dpr.dprName,
-                      maxLines: 1,
-                      overflow: TextOverflow.ellipsis,
+                  padding: const EdgeInsets.symmetric(vertical: 16),
+                  child: Center(
+                    child: SizedBox(
+                      width: 20,
+                      height: 20,
+                      child: CircularProgressIndicator(strokeWidth: 2),
                     ),
                   ),
-                );
-              }).toList(),
-            ),
-          ),
+                )
+              : DropdownButtonHideUnderline(
+                  child: DropdownButton<String>(
+                    value: _selectedDprId,
+                    isExpanded: true,
+                    icon: const Icon(Icons.arrow_drop_down, color: Colors.blue),
+                    elevation: 16,
+                    style: const TextStyle(
+                      fontSize: 16,
+                      fontWeight: FontWeight.w600,
+                      color: Colors.black,
+                    ),
+                    hint: const Text('Select DPR'),
+                    // onChanged: (String? newValue) {
+                    //   if (newValue != null) {
+                    //     ref.read(pipingMaterialsProvider.notifier).clear();
+                    //     ref.read(equipmentMaterialsProvider.notifier).clear();
+                    //     final selectedDpr = _dprListForSelectedDate
+                    //         .firstWhere((dpr) => dpr.id == newValue);
+                    //     _loadDprWork(selectedDpr);
+                    //   }
+                    // },
+                    onChanged: (String? newValue) async {
+                      if (newValue == null) return;
+                      final dpr = _dprListForSelectedDate
+                          .firstWhere((dpr) => dpr.id == newValue);
+                      _dprNameController.text = dpr.dprName;
+                      _mocController.text = dpr.moc;
+                      _sizeController.text = dpr.size;
+                      _floorController.text = dpr.location;
+                      _plantController.text = dpr.plant;
+
+                      _mechanicalId = newValue;
+                      await loadScreenState(Dpr: dpr);
+
+                    },
+
+                    items: _dprListForSelectedDate
+                        .map<DropdownMenuItem<String>>((DprModel dpr) {
+                      return DropdownMenuItem<String>(
+                        value: dpr.id,
+                        child: Padding(
+                          padding: const EdgeInsets.symmetric(horizontal: 8),
+                          child: Text(
+                            dpr.dprName,
+                            maxLines: 1,
+                            overflow: TextOverflow.ellipsis,
+                          ),
+                        ),
+                      );
+                    }).toList(),
+                  ),
+                ),
         ),
         const SizedBox(height: 8),
         Row(
@@ -1330,41 +1572,47 @@ class _AddDescriptionScreenState extends ConsumerState<AddDescriptionScreen>
         Expanded(
           child: _editMode
               ? TextField(
-            controller: _dprNameController,
-            style: const TextStyle(fontSize: 16, fontWeight: FontWeight.w600),
-            decoration: InputDecoration(
-              border: OutlineInputBorder(
-                borderRadius: BorderRadius.circular(10),
-                borderSide: BorderSide(color: Colors.grey[300]!),
-              ),
-              focusedBorder: OutlineInputBorder(
-                borderRadius: BorderRadius.circular(10),
-                borderSide: const BorderSide(color: Color(0xFF1B6DCE), width: 2),
-              ),
-              contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
-              hintText: 'Enter DPR Name',
-              prefixIcon: const Icon(Icons.edit_document, size: 20),
-            ),
-          )
+                  controller: _dprNameController,
+                  style: const TextStyle(
+                      fontSize: 16, fontWeight: FontWeight.w600),
+                  decoration: InputDecoration(
+                    border: OutlineInputBorder(
+                      borderRadius: BorderRadius.circular(10),
+                      borderSide: BorderSide(color: Colors.grey[300]!),
+                    ),
+                    focusedBorder: OutlineInputBorder(
+                      borderRadius: BorderRadius.circular(10),
+                      borderSide:
+                          const BorderSide(color: Color(0xFF1B6DCE), width: 2),
+                    ),
+                    contentPadding: const EdgeInsets.symmetric(
+                        horizontal: 16, vertical: 14),
+                    hintText: 'Enter DPR Name',
+                    prefixIcon: const Icon(Icons.edit_document, size: 20),
+                  ),
+                )
               : Container(
-            padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
-            decoration: BoxDecoration(
-              color: Colors.grey[100],
-              borderRadius: BorderRadius.circular(10),
-            ),
-            child: Row(
-              children: [
-                Icon(Icons.description, color: Colors.grey[700], size: 20),
-                const SizedBox(width: 12),
-                Expanded(
-                  child: Text(
-                    _dprNameController.text,
-                    style: const TextStyle(fontSize: 16, fontWeight: FontWeight.w600),
+                  padding:
+                      const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
+                  decoration: BoxDecoration(
+                    color: Colors.grey[100],
+                    borderRadius: BorderRadius.circular(10),
+                  ),
+                  child: Row(
+                    children: [
+                      Icon(Icons.description,
+                          color: Colors.grey[700], size: 20),
+                      const SizedBox(width: 12),
+                      Expanded(
+                        child: Text(
+                          _dprNameController.text,
+                          style: const TextStyle(
+                              fontSize: 16, fontWeight: FontWeight.w600),
+                        ),
+                      ),
+                    ],
                   ),
                 ),
-              ],
-            ),
-          ),
         ),
         const SizedBox(width: 12),
         if (_editMode)
@@ -1393,25 +1641,34 @@ class _AddDescriptionScreenState extends ConsumerState<AddDescriptionScreen>
   }
 
   Widget _buildInputFields() {
-    final lang=ref.watch(dailyEntryTranslationHelperProvider);
+    final lang = ref.watch(dailyEntryTranslationHelperProvider);
     return Column(
       children: [
         Row(
           children: [
-            Expanded(child: _buildCompactInputField(lang.plantTab, _plantController, Icons.factory)),
+            Expanded(
+                child: _buildCompactInputField(
+                    lang.plantTab, _plantController, Icons.factory)),
             const SizedBox(width: 12),
-            Expanded(child: _buildCompactInputField(lang.locationTab, _floorController, Icons.location_on)),
+            Expanded(
+                child: _buildCompactInputField(
+                    lang.locationTab, _floorController, Icons.location_on)),
             const SizedBox(width: 12),
-            Expanded(child: _buildCompactInputField(lang.mocTab, _mocController, Icons.category)),
+            Expanded(
+                child: _buildCompactInputField(
+                    lang.mocTab, _mocController, Icons.category)),
             const SizedBox(width: 12),
-            Expanded(child: _buildCompactInputField(lang.sizeTab, _sizeController, Icons.straighten)),
+            Expanded(
+                child: _buildCompactInputField(
+                    lang.sizeTab, _sizeController, Icons.straighten)),
           ],
         )
       ],
     );
   }
 
-  Widget _buildCompactInputField(String label, TextEditingController controller, IconData icon) {
+  Widget _buildCompactInputField(
+      String label, TextEditingController controller, IconData icon) {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
@@ -1419,7 +1676,10 @@ class _AddDescriptionScreenState extends ConsumerState<AddDescriptionScreen>
           padding: const EdgeInsets.only(bottom: 6),
           child: Text(
             label,
-            style: TextStyle(fontSize: 12, fontWeight: FontWeight.w600, color: Colors.grey[700]),
+            style: TextStyle(
+                fontSize: 12,
+                fontWeight: FontWeight.w600,
+                color: Colors.grey[700]),
           ),
         ),
         SizedBox(
@@ -1430,7 +1690,8 @@ class _AddDescriptionScreenState extends ConsumerState<AddDescriptionScreen>
             style: const TextStyle(fontSize: 14, fontWeight: FontWeight.w500),
             decoration: InputDecoration(
               isDense: true,
-              contentPadding: const EdgeInsets.symmetric(vertical: 2, horizontal: 2),
+              contentPadding:
+                  const EdgeInsets.symmetric(vertical: 2, horizontal: 2),
               filled: true,
               fillColor: const Color(0xFFE3F2FD),
               border: OutlineInputBorder(
@@ -1439,7 +1700,8 @@ class _AddDescriptionScreenState extends ConsumerState<AddDescriptionScreen>
               ),
               focusedBorder: OutlineInputBorder(
                 borderRadius: BorderRadius.circular(10),
-                borderSide: const BorderSide(color: Color(0xFF1B6DCE), width: 2),
+                borderSide:
+                    const BorderSide(color: Color(0xFF1B6DCE), width: 2),
               ),
             ),
           ),
@@ -1449,7 +1711,7 @@ class _AddDescriptionScreenState extends ConsumerState<AddDescriptionScreen>
   }
 
   Widget _buildToggleSection() {
-    final lang=ref.watch(dailyEntryTranslationHelperProvider);
+    final lang = ref.watch(dailyEntryTranslationHelperProvider);
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
@@ -1461,7 +1723,7 @@ class _AddDescriptionScreenState extends ConsumerState<AddDescriptionScreen>
                 Icons.plumbing_rounded,
                 _pipeFittingOn,
                 false,
-                    (value) => _handleToggleChange(true, value),
+                (value) => _handleToggleChange(true, value),
               ),
             ),
             const SizedBox(width: 12),
@@ -1471,7 +1733,7 @@ class _AddDescriptionScreenState extends ConsumerState<AddDescriptionScreen>
                 Icons.precision_manufacturing_rounded,
                 _equipmentOn,
                 false,
-                    (value) => _handleToggleChange(false, value),
+                (value) => _handleToggleChange(false, value),
               ),
             ),
           ],
@@ -1481,12 +1743,12 @@ class _AddDescriptionScreenState extends ConsumerState<AddDescriptionScreen>
   }
 
   Widget _buildToggleCard(
-      String title,
-      IconData ico,
-      bool value,
-      bool isLoading,
-      Function(bool) onChanged,
-      ) {
+    String title,
+    IconData ico,
+    bool value,
+    bool isLoading,
+    Function(bool) onChanged,
+  ) {
     return GestureDetector(
       onTap: isLoading ? null : () => onChanged(!value),
       child: AnimatedContainer(
@@ -1495,8 +1757,8 @@ class _AddDescriptionScreenState extends ConsumerState<AddDescriptionScreen>
         decoration: BoxDecoration(
           gradient: value
               ? const LinearGradient(
-            colors: [Color(0xFF1B6DCE), Color(0xFF1565C0)],
-          )
+                  colors: [Color(0xFF1B6DCE), Color(0xFF1565C0)],
+                )
               : null,
           color: value ? null : Colors.white,
           borderRadius: BorderRadius.circular(14),
@@ -1506,12 +1768,12 @@ class _AddDescriptionScreenState extends ConsumerState<AddDescriptionScreen>
           ),
           boxShadow: value
               ? [
-            BoxShadow(
-              color: const Color(0xFF1B6DCE).withOpacity(0.4),
-              blurRadius: 12,
-              offset: const Offset(0, 4),
-            ),
-          ]
+                  BoxShadow(
+                    color: const Color(0xFF1B6DCE).withOpacity(0.4),
+                    blurRadius: 12,
+                    offset: const Offset(0, 4),
+                  ),
+                ]
               : null,
         ),
         child: Column(
@@ -1541,91 +1803,246 @@ class _AddDescriptionScreenState extends ConsumerState<AddDescriptionScreen>
   }
 
   List<Widget> _buildPipingMaterials(List<PipingItem> materials) {
-    return materials.map((material) {
-      return Padding(
-        key: ValueKey(
-          material.id.isNotEmpty
-              ? 'piping_${material.id}'
-              : 'piping_${material.materialName}',
-        ),
+    final rateFileMeta = ref.read(rateFileMetaProvider(siteId));
 
+    final detected = ref.watch(detectedFieldsProvider(siteId));
+
+    final bool showFloor = detected?.hasFloor == true;
+    final bool showElevation = !showFloor && detected?.hasElevation == true;
+
+    final rateUploadId = rateFileMeta['rateFileId'] as String?;
+
+    return materials.map((material) {
+      final index = materials.indexOf(material);
+      return Padding(
+        key: ValueKey('piping_${material.id}_$index'),
         padding: const EdgeInsets.only(bottom: 12),
         child: MaterialCardWrapper(
           isUpdating: false,
-          child: DynamicItemCard(
-            quantity: material.qty.toString(),
-            size: _sizeController.text,
-            length: (material.length == null || material.length == 0)
-                ? ""
-                : material.length.toString(),
-            floor: _floorController.text,
-            moc:  _mocController.text,
-            image: material.image,
-            sizeLabel: 'Size',
-            remark: material.remarks,
-            lengthLabel: material.materialName,
-            sizePlaceholder: _sizeController.text,
-            lengthPlaceholder: material.uom,
-            onQtyChanged: (val) => _onPipingFieldChanged(material.id, 'quantity', val),
-            onSizeChanged: (val) => _onPipingFieldChanged(material.id, 'size', val),
-            onLengthChanged: (val) => _onPipingFieldChanged(material.id, 'length', val),
-            onFloorChanged: (val) => _onPipingFieldChanged(material.id, 'floor', val),
-            onMocChanged: (val) => _onPipingFieldChanged(material.id, 'moc', val),
-            isEditable: _isEditable,
-            onCopy: () => _copyDprMaterial(material.id),
-            onAdd: () => _copyDprMaterial(material.id),
-            onDelete: ()=>_deleteDprMaterial(material.id, true),
-            onEdit: ()=>_editDprMaterial(material,""),
+          child: ExpandableMaterialCard(
+            categoryId: editingMaterialId == material.id
+                ? draftCategoryId
+                : material.calculationCategory,
 
-            onRemark: () => _showRemarkDialog(material.id, material.remarks ?? '', isPiping: true),
+            isEditMode: editingMaterialId == material.id,
+
+            onCategoryChanged: (newId) {
+              setState(() {
+                draftCategoryId = newId;
+                print(draftCategoryId);
+              });
+            },
+            child: testDynamicItemCard(
+              image: material.image,
+              isEditMode: editingMaterialId == material.id,
+              lengthLabel: material.materialName,
+              lengthPlaceholder: material.uom,
+              fields: material.dynamicFields,
+              onChanged: (key, value) {
+                _onPipingDynamicChanged(material.id, key, value);
+              },
+              quantity: '',
+              size: _sizeController.text,
+              length: (material.length == null || material.length == 0)
+                  ? ''
+                  : material.length.toString(),
+
+              floor: _floorController.text,
+              moc: _mocController.text,
+
+              onSave: (result) async {
+                try {
+                  setState(() => _isLoading = true);
+                  print("🥲🥲🥲🥲🥲🥲 $draftCategoryId");
+
+                  final formData = FormData.fromMap({
+                    "materialName": result.name,
+                    "uom": result.uom,
+                    "designation": material.designation,
+                    "calculationCategory": draftCategoryId,
+                    "isApplied": false,
+                    "dynamicFields":
+                    jsonEncode(result.fields.map((e) => e.toJson()).toList()),
+
+                    if (result.imageFile != null)
+                      "image": await MultipartFile.fromFile(
+                        result.imageFile!.path,
+                        filename: result.imageFile!.path.split('/').last,
+                      ),
+                  });
+                  print("📤 sending image = ${result.imageFile?.path}");
+                  print("📤 fields = ${jsonEncode(result.fields.map((e) => e.toJson()).toList())}");
+
+
+                  await RateUploadApi.updateLineItem(
+                    rateUploadId: rateUploadId!,
+                    lineItemId: material.id,
+                    data: formData,
+                  );
+
+                  final repo = RateRepository(AppIsarDB.isar);
+                  await repo.syncRateFile(siteId);
+
+                  ref.invalidate(rateFileAnalysisProvider(siteId));
+                  ref.invalidate(approvedPipingMaterialsProvider(siteId));
+                  ref.invalidate(approvedEquipmentMaterialsProvider(siteId));
+                  ref.invalidate(suggestedPipingMaterialsProvider(siteId));
+                  ref.invalidate(suggestedEquipmentMaterialsProvider(siteId));
+
+                  setState(() {
+                    editingMaterialId = null;
+                    draftCategoryId = null;
+                  });
+
+                } catch (e) {
+                  print("❌ save failed $e");
+                } finally {
+                  setState(() => _isLoading = false);
+                }
+              },
+              sizeLabel: '',
+              sizePlaceholder: '',
+              onQtyChanged: (val) =>
+                  _onPipingFieldChanged(material.id, 'quantity', val),
+
+              onSizeChanged: (val) =>
+                  _onPipingFieldChanged(material.id, 'size', val),
+
+              onLengthChanged: (val) =>
+                  _onPipingFieldChanged(material.id, 'length', val),
+
+              onFloorChanged: (val) =>
+                  _onPipingFieldChanged(material.id, 'floor', val),
+
+              onMocChanged: (val) =>
+                  _onPipingFieldChanged(material.id, 'moc', val),
+
+
+              onCopy: () =>
+                  copyDprMaterialLocal(material: material, isPiping: true),
+              onAdd: () =>
+                  copyDprMaterialLocal(material: material, isPiping: true),
+              onDelete: () =>
+                  deleteDprMaterialLocal(materialId: material.id, isPiping: true),
+              onEdit:  () {
+                setState(() {
+                  editingMaterialId = material.id;
+                });
+              },
+              onRemark: () => _showRemarkDialog(
+                  material.id, material.remarks ?? '',
+                  isPiping: true),
+              isEditable: true,
+            ),
           ),
         ),
       );
     }).toList();
   }
 
-  List<Widget> _buildEquipmentMaterials(List<EquipmentItem> materials) {
-    return materials.map((material) {
-      return Padding(
-        key: ValueKey(
-          material.id.isNotEmpty
-              ? 'equipment_${material.id}'
-              : 'equipment_${material.materialName}',
-        ),
+  void _onPipingDynamicChanged(
+    String materialId,
+    String key,
+    String value,
+  ) {
+    if (!_isEditable) {
+      _showEditRequiredMessage();
+      return;
+    }
 
+    final materials = ref.read(pipingMaterialsProvider);
+
+    final updated = materials.map((m) {
+      if (m.id != materialId) return m;
+
+      final updatedFields = m.dynamicFields.map((f) {
+        if (f.key == key) {
+          return f.copyWith(value: value);
+        }
+        return f;
+      }).toList();
+
+      return m.copyWith(dynamicFields: updatedFields);
+    }).toList();
+
+    ref.read(pipingMaterialsProvider.notifier).state = updated;
+  }
+  void _onEquipmentDynamicChanged(
+      String materialId,
+      String key,
+      String value,
+      ) {
+    final materials = ref.read(equipmentMaterialsProvider);
+
+    final updated = materials.map((m) {
+      if (m.id != materialId) return m;
+
+      final updatedFields = m.dynamicFields.map((f) {
+        if (f.key == key) {
+          return f.copyWith(value: value);
+        }
+        return f;
+      }).toList();
+
+      return m.copyWith(dynamicFields: updatedFields);
+    }).toList();
+
+    ref.read(equipmentMaterialsProvider.notifier).state = updated;
+  }
+
+  List<Widget> _buildEquipmentMaterials(List<EquipmentItem> materials) {
+    return List.generate(materials.length, (index) {
+      final material = materials[index];
+
+      return Padding(
+        key: ValueKey('equipment_${material.id}_$index'), // ✅ FIXED UNIQUE KEY
         padding: const EdgeInsets.only(bottom: 12),
         child: MaterialCardWrapper(
           isUpdating: false,
           child: DynamicItemCard2(
+            fields: material.dynamicFields,
+            onChanged: (key, value) {
+              _onEquipmentDynamicChanged(material.id, key, value);
+            },
             title: material.materialName,
             quantity: material.qty.toString(),
             image: material.image,
             floor: _floorController.text,
-            moc:  _mocController.text,
+            moc: _mocController.text,
             size: _sizeController.text,
             ton: material.weight.toString(),
             meter: material.uom,
             remark: material.remarks,
-            onMocChanged: (val) => _onEquipmentFieldChanged(material.id, 'moc', val),
-            onQtyChanged: (val) => _onEquipmentFieldChanged(material.id, 'quantity', val),
-            onFloorChanged: (val) => _onEquipmentFieldChanged(material.id, 'floor', val),
-            onTonChanged: (val) => _onEquipmentFieldChanged(material.id, 'ton', val),
-            onCopy: () => _copyDprMaterial(material.id),
-            onAdd: () => _copyDprMaterial(material.id),
-            onEdit: ()=>_editDprMaterial(material,""),
-            onDelete: ()=>_deleteDprMaterial(material.id, false),
-
+            onMocChanged: (val) =>
+                _onEquipmentFieldChanged(material.id, 'moc', val),
+            onQtyChanged: (val) =>
+                _onEquipmentFieldChanged(material.id, 'quantity', val),
+            onFloorChanged: (val) =>
+                _onEquipmentFieldChanged(material.id, 'floor', val),
+            onTonChanged: (val) =>
+                _onEquipmentFieldChanged(material.id, 'ton', val),
+            onCopy: () =>
+                copyDprMaterialLocal(material: material, isPiping: false),
+            onAdd: () =>
+                copyDprMaterialLocal(material: material, isPiping: false),
+            onDelete: () => deleteDprMaterialLocal(
+                materialId: material.id, isPiping: false),
+            onEdit: () => _editDprMaterial(material, ""),
             isEditable: _isEditable,
-
-
-            onRemark: () => _showRemarkDialog(material.id, material.remarks ?? '', isPiping: false), onMeterChanged: (String p1) {  },
+            onRemark: () => _showRemarkDialog(
+              material.id,
+              material.remarks ?? '',
+              isPiping: false,
+            ),
+            onMeterChanged: (String p1) {},
           ),
         ),
       );
-    }).toList();
+    });
   }
 
-  void _showRemarkDialog(String materialId, String currentRemark, {bool isPiping = true}) {
+  void _showRemarkDialog(String materialId, String currentRemark,
+      {bool isPiping = true}) {
     final remarkController = TextEditingController(text: currentRemark);
 
     showDialog(
@@ -1651,11 +2068,13 @@ class _AddDescriptionScreenState extends ConsumerState<AddDescriptionScreen>
           ElevatedButton(
             onPressed: () {
               Navigator.pop(context);
-              _updateMaterialRemark(materialId, remarkController.text, isPiping: isPiping);
+              _updateMaterialRemark(materialId, remarkController.text,
+                  isPiping: isPiping);
             },
             style: ElevatedButton.styleFrom(
               backgroundColor: const Color(0xFF1B6DCE),
-              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
+              shape: RoundedRectangleBorder(
+                  borderRadius: BorderRadius.circular(10)),
             ),
             child: const Text('Save'),
           ),
@@ -1675,17 +2094,21 @@ class _AddDescriptionScreenState extends ConsumerState<AddDescriptionScreen>
       if (material.id == materialId) {
         switch (field) {
           case 'quantity':
-            return material.copyWith(qty: material.qty);
+            return material.copyWith(
+              qty: int.tryParse(value)?.toDouble() ?? 0,
+            );
+
           case 'size':
-          // Size is handled globally via _sizeController
+            // Size is handled globally via _sizeController
             return material;
           case 'length':
-            return material.copyWith(length: double.tryParse(value) ?? material.length);
+            return material.copyWith(
+                length: double.tryParse(value) ?? material.length);
           case 'floor':
-          // Floor is handled globally via _floorController
+            // Floor is handled globally via _floorController
             return material;
           case 'moc':
-          // MOC is handled globally via _mocController
+            // MOC is handled globally via _mocController
             return material;
           default:
             return material;
@@ -1709,14 +2132,17 @@ class _AddDescriptionScreenState extends ConsumerState<AddDescriptionScreen>
       if (material.id == materialId) {
         switch (field) {
           case 'quantity':
-            return material.copyWith(qty: material.qty);
+            return material.copyWith(
+              qty: int.tryParse(value)?.toDouble() ?? 0,
+            );
           case 'ton':
-            return material.copyWith(weight: double.tryParse(value) ?? material.weight);
+            return material.copyWith(
+                weight: double.tryParse(value) ?? material.weight);
           case 'floor':
-          // Floor is handled globally via _floorController
+            // Floor is handled globally via _floorController
             return material;
           case 'moc':
-          // MOC is handled globally via _mocController
+            // MOC is handled globally via _mocController
             return material;
           default:
             return material;
@@ -1729,7 +2155,8 @@ class _AddDescriptionScreenState extends ConsumerState<AddDescriptionScreen>
     print('Equipment material $materialId: $field changed to $value');
   }
 
-  void _updateMaterialRemark(String materialId, String remark, {bool isPiping = true}) {
+  void _updateMaterialRemark(String materialId, String remark,
+      {bool isPiping = true}) {
     if (isPiping) {
       final pipingMaterials = ref.read(pipingMaterialsProvider);
       final updatedMaterials = pipingMaterials.map((material) {
@@ -1752,6 +2179,7 @@ class _AddDescriptionScreenState extends ConsumerState<AddDescriptionScreen>
 
     _showSnackBar('Remark saved for material');
   }
+
   void _toggleGlobalEditMode() {
     setState(() {
       _globalEditMode = !_globalEditMode;
@@ -1771,8 +2199,7 @@ class _AddDescriptionScreenState extends ConsumerState<AddDescriptionScreen>
 
       // When enabling edit mode for non-today dates, fetch DPR list
 
-        _fetchDprListForDate(_selectedDate);
-
+      _fetchDprListForDate(_selectedDate);
     } else {
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(
@@ -1789,6 +2216,30 @@ class _AddDescriptionScreenState extends ConsumerState<AddDescriptionScreen>
       }
     }
   }
+  double _getDynamicQty(PipingItem m) {
+    final field = m.dynamicFields.firstWhere(
+          (f) => f.key.toLowerCase() == 'qty',
+      orElse: () => DynamicField(
+        key: 'qty',
+        label: 'Qty',
+        value: '0',
+        unit: '', displayText: '',
+      ),
+    );
+
+    return double.tryParse(field.value?.toString() ?? '') ?? 0;
+
+  }
+  String _getDynamicValue(List<DynamicField> fields, String key) {
+    for (final f in fields) {
+      if (f.key.toLowerCase() == key.toLowerCase()) {
+        return f.value?.toString() ?? '';
+      }
+    }
+    return '';
+  }
+
+
 
   Future<void> _handleSubmitFields() async {
     if (_isDisposed) return;
@@ -1803,7 +2254,6 @@ class _AddDescriptionScreenState extends ConsumerState<AddDescriptionScreen>
     setState(() => _isSubmitting = true);
 
     try {
-
       // if (_mechanicalId == null) {
       //   await _autoCreateDprWork();
       //   if (_mechanicalId == null) {
@@ -1824,21 +2274,34 @@ class _AddDescriptionScreenState extends ConsumerState<AddDescriptionScreen>
         dprDesignation.add('equipment');
       }
 
-
       debugPrint("🟦 RAW PIPING MATERIALS (${pipingMaterials.length})");
+
       for (final m in pipingMaterials) {
         debugPrint("""
 🧱 PIPING
   id: ${m.id}
   name: ${m.materialName}
-  qty: ${m.qty}
-  size: ${m.size}
+  qty: ${_getDynamicQty(m)}
+size: ${_getDynamicValue(m.dynamicFields, 'size')}
+
   length: ${m.length}
   uom: ${m.uom}
   moc: ${m.moc}
   calcCat: ${m.calculationCategory}
   remarks: ${m.remarks}
 """);
+
+        // 🔥 NEW PART
+        if (m.dynamicFields.isEmpty) {
+          debugPrint("  ⚠️ No dynamic fields");
+        } else {
+          debugPrint("  🔸 Dynamic Fields:");
+          for (final f in m.dynamicFields) {
+            debugPrint(
+              "     → key: ${f.key}, label: ${f.label}, value: ${f.value}, unit: ${f.unit}",
+            );
+          }
+        }
       }
 
       debugPrint("🟩 RAW EQUIPMENT MATERIALS (${equipmentMaterials.length})");
@@ -1857,45 +2320,54 @@ class _AddDescriptionScreenState extends ConsumerState<AddDescriptionScreen>
 """);
       }
 
-
       // Transform piping materials to API format
-      final pipingData = pipingMaterials.map((material) {
-        return {
-          'id': material.id,
-          'materialName': material.materialName,
-          'qty': material.qty, // Send as integer, not double
-          'size': _sizeController.text.trim(),
-          'length': material.length, // Keep as number
-          'uom': material.uom,
-          'actualRate': material.actualRate,
-          'location': _floorController.text.trim(),
-          'moc': _mocController.text.trim(),
-          'calculationCategory': material.calculationCategory, // Required field
-          'designation': ['piping'],
-          // Don't send the image field - it's a local asset path
-          if (material.remarks != null && material.remarks!.isNotEmpty)
-            'remarks': material.remarks,
-        };
-      }).toList();
+      // ✅ merge piping + equipment into ONE list
+      final items = [
+        ...pipingMaterials.map((material) {
+          return {
+            'id': material.id,
+            'materialName': material.materialName,
+            'qty': _getDynamicQty(material),
 
-      // Transform equipment materials to API format
-      final equipmentData = equipmentMaterials.map((material) {
-        return {
-          'id': material.id,
-          'materialName': material.materialName,
-          'qty': material.qty, // Send as integer, not double
-          'weight': material.weight, // Keep as number
-          'uom': material.uom,
-          'actualRate': material.actualRate,
-          'location': _floorController.text.trim(),
-          'moc': _mocController.text.trim(),
-          'calculationCategory': material.calculationCategory, // Required field
-          'designation': ['equipment'],
-          // Don't send the image field - it's a local asset path
-          if (material.remarks != null && material.remarks!.isNotEmpty)
-            'remarks': material.remarks,
-        };
-      }).toList();
+            'size': _sizeController.text,
+            'length': material.length,
+            'uom': material.uom,
+            'actualRate': material.actualRate,
+            'location': _floorController.text.trim(),
+            'moc': _mocController.text.trim(),
+            'calculationCategory': material.calculationCategory,
+            'designation': ['piping'],
+            'dynamicFields': material.dynamicFields
+                .map((f) => {
+                      'key': f.key,
+                      'label': f.label,
+              'value': f.value?.toString() ?? '',
+
+              'unit': f.unit,
+                    })
+                .toList(),
+            if (material.remarks != null && material.remarks!.isNotEmpty)
+              'remarks': material.remarks,
+          };
+        }),
+        ...equipmentMaterials.map((material) {
+          return {
+            'id': material.id,
+            'materialName': material.materialName,
+            'qty': material.qty,
+            'weight': material.weight,
+            'length': material.length,
+            'uom': material.uom,
+            'actualRate': material.actualRate,
+            'location': _floorController.text.trim(),
+            'moc': _mocController.text.trim(),
+            'calculationCategory': material.calculationCategory,
+            'designation': ['equipment'],
+            if (material.remarks != null && material.remarks!.isNotEmpty)
+              'remarks': material.remarks,
+          };
+        }),
+      ];
 
       final updateData = {
         'dprName': _dprNameController.text.trim(),
@@ -1904,14 +2376,15 @@ class _AddDescriptionScreenState extends ConsumerState<AddDescriptionScreen>
         'location': _floorController.text.trim(),
         'plant': _plantController.text.trim(),
         'date': _selectedDate.toIso8601String(),
+
         if (_mechanicalId == null && dprDesignation.isNotEmpty)
           'designation': dprDesignation,
 
-        if (pipingData.isNotEmpty) 'piping': pipingData,
-        if (equipmentData.isNotEmpty) 'equipment': equipmentData,
+        // ✅ new merged key
+        if (items.isNotEmpty) 'items': items,
       };
 
-      print('Sending update data: ${updateData}');
+      print('Sending update data: ${_selectedDate.toIso8601String()}');
 
       print('----- BEFORE SAVE (PROVIDER STATE) -----');
 
@@ -1941,27 +2414,35 @@ class _AddDescriptionScreenState extends ConsumerState<AddDescriptionScreen>
 
       print('---------------------------------------');
       if (_mechanicalId == null) {
-        await ref.read(dprProvider.notifier).postDprWork(
-               data: updateData,
-          siteId: ref.read(selectedSiteIdProvider)!,
-          teamId: ref.read(selectedTeamIdProvider)!,
+        final rawTeamId = ref.read(selectedTeamIdProvider);
 
-             );
+        final teamId = (rawTeamId == null || rawTeamId.trim().isEmpty)
+            ? "default"
+            : rawTeamId;
+
+        print("this is team id $teamId");
+
+        print('---------------------------------------');
+        if (_mechanicalId == null) {
+          await RateUploadApi.createDprMechanicalV2(
+            siteId: ref.read(selectedSiteIdProvider)!,
+            teamId: teamId, // ✅ always non-null
+            data: updateData,
+          );
+        }
       } else {
         await ref.read(dprProvider.notifier).updateDprWork(
-          data: updateData,
-          mechanicalId: _mechanicalId!,
-        );
+              data: updateData,
+              mechanicalId: _mechanicalId!,
+            );
       }
 
-
-
- // await ref.read(dprProvider.notifier).postDprWork(
- //        data: updateData,
- //   siteId: ref.read(selectedSiteIdProvider)!,
- //   teamId: ref.read(selectedTeamIdProvider)!,
- //
- //      );
+      // await ref.read(dprProvider.notifier).postDprWork(
+      //        data: updateData,
+      //   siteId: ref.read(selectedSiteIdProvider)!,
+      //   teamId: ref.read(selectedTeamIdProvider)!,
+      //
+      //      );
 
       WidgetsBinding.instance.addPostFrameCallback((_) {
         if (mounted && !_isDisposed) {
@@ -1976,21 +2457,22 @@ class _AddDescriptionScreenState extends ConsumerState<AddDescriptionScreen>
           // ❌ DO NOT auto-disable edit mode for past dates
         }
       });
-
-
-    } catch (e) {
+    } catch (e, st) {
       if (mounted && !_isDisposed) {
-        print('Error details: $e');
-        final message = extractBackendError(e);
+        print('❌ ERROR: $e');
+        print('📍 STACKTRACE:\n$st');
 
-        _showSnackBar('Failed to save DPR: $message', isError: true);
+        final message = extractBackendError(e);
+        AppToast.error(message);
       }
-    } finally {
+    }
+    finally {
       if (mounted && !_isDisposed) {
         setState(() => _isSubmitting = false);
       }
     }
   }
+
   @override
   void dispose() {
     _isDisposed = true;

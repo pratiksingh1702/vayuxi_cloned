@@ -297,6 +297,22 @@ class Subscription {
       monthlyPrice: json['monthlyPrice'],
     );
   }
+  Map<String, dynamic> toJson() {
+    return {
+      'hasSubscription': hasSubscription,
+      'plan': plan,
+      'status': status,
+      'daysRemaining': daysRemaining,
+      'aiUploadsUsed': aiUploadsUsed,
+      'aiUploadsLimit': aiUploadsLimit,
+      'aiUploadsRemaining': aiUploadsRemaining,
+      'autoRenew': autoRenew,
+      'currentPeriodStart': currentPeriodStart?.toIso8601String(),
+      'currentPeriodEnd': currentPeriodEnd?.toIso8601String(),
+      'monthlyPrice': monthlyPrice,
+    };
+  }
+
 
   bool get isTrial => plan == 'trial';
   bool get isPremium => plan == 'premium';

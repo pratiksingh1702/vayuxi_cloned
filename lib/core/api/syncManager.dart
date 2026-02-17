@@ -1,13 +1,18 @@
 import 'dart:async';
 import 'dart:io';
+import 'dart:ui';
 
 import 'package:connectivity_plus/connectivity_plus.dart';
 import 'package:dio/dio.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:untitled2/core/api/requestQueue.dart';
 import 'package:untitled2/core/api/requestQueueModel.dart';
-import 'package:untitled2/core/api/syncNotifierProvider.dart';
+import 'package:untitled2/core/api/sync_job.dart';
 
+import 'package:internet_connection_checker_plus/internet_connection_checker_plus.dart';
+
+import 'package:internet_connection_checker/internet_connection_checker.dart';
+import '../utlis/common_functions.dart';
 import 'dio.dart';
 
 final syncManagerProvider = Provider<SyncManager>((ref) {
@@ -16,41 +21,103 @@ final syncManagerProvider = Provider<SyncManager>((ref) {
 
 class SyncManager {
   final Ref ref;
-  StreamSubscription<List<ConnectivityResult>>? _connectivitySubscription; // Changed type
+
+  StreamSubscription<List<ConnectivityResult>>? _connectivitySub;
+  StreamSubscription<InternetConnectionStatus>? _internetSub;
+
   bool _isRetrying = false;
+  Timer? _periodicTimer;
+
+  void _loadExistingQueue() {
+    final items = RequestQueue.getAll();
+    for (final r in items) {
+      final label = buildTaskLabel(r.method, r.path);
+      ref.read(syncJobsProvider.notifier).addQueued(r.id, label);
+    }
+  }
 
   SyncManager(this.ref) {
+    Future.microtask(() {
+      _loadExistingQueue();
+    });
+
     _init();
   }
 
+
+
+
   void _init() {
-    _connectivitySubscription = Connectivity()
-        .onConnectivityChanged
-        .distinct()
-        .listen((List<ConnectivityResult> results) async { // Changed parameter type
-      if (_hasConnection(results)) { // Check if any connection is available
-        print("🌐 Connectivity restored. Retrying queued requests...");
-        await _retryQueuedRequests();
+    /// Connectivity hint
+    _connectivitySub =
+        Connectivity().onConnectivityChanged.listen((_) {
+          _triggerCheck("connectivity change");
+        });
+
+    /// Real internet
+    _internetSub = InternetConnectionChecker.I.onStatusChange
+        .listen((status) {
+      if (status == InternetConnectionStatus.connected) {
+        _triggerCheck("internet connected");
       }
     });
+
+    /// Safety retry (VERY IMPORTANT)
+    _periodicTimer =
+        Timer.periodic(const Duration(seconds: 30), (_) {
+          _triggerCheck("periodic");
+        });
+
+    /// Initial
+    Future.microtask(() => _triggerCheck("initial"));
   }
 
-  bool _hasConnection(List<ConnectivityResult> results) {
-    return results.any((result) => result != ConnectivityResult.none);
+  /// App resume
+  void didChangeAppLifecycleState(AppLifecycleState state) {
+    if (state == AppLifecycleState.resumed) {
+      _triggerCheck("resume");
+    }
   }
 
-  Future<void> dispose() async {
-    await _connectivitySubscription?.cancel();
+  Future<void> _triggerCheck(String source) async  {
+    if (_isRetrying) return;
+    if (RequestQueue.count == 0) {
+      print("😴 No pending requests → skip");
+      return;
+    }
+    print("🔎 Retry trigger from: $source");
+
+    final hasInternet = await InternetConnectionChecker.I.hasConnection;
+    if (!hasInternet) {
+      print("📵 No internet");
+      return;
+    }
+
+    final serverOk = await _canReachServer();
+    if (!serverOk) {
+      print("❌ Server unreachable");
+      return;
+    }
+
+    await _retryQueuedRequests();
   }
 
-  /// Helper to rebuild FormData for file uploads
+  Future<bool> _canReachServer() async {
+    try {
+      final res = await DioClient.dio.get("/site");
+      return res.statusCode == 200;
+    } catch (_) {
+      return false;
+    }
+  }
+
   Future<FormData> _buildFormData(QueuedRequest req) async {
-    print(req.data);
-    final formData = FormData.fromMap(req.data!);
+    final formData = FormData.fromMap(req.data ?? {});
     if (req.files != null) {
       for (var f in req.files!) {
         final file = File(f['path']!);
-        if (!await file.exists()) continue; // skip if file missing
+        if (!await file.exists()) continue;
+
         formData.files.add(
           MapEntry(
             f['key']!,
@@ -70,40 +137,31 @@ class SyncManager {
     _isRetrying = true;
 
     try {
-      final requests = await RequestQueue.getAll();
-      if (requests.isEmpty) return;
+      final requests = RequestQueue.getAll();
 
-      print("📂 Found ${requests.length} requests in queue");
-
-      // Check current connectivity (updated for List<ConnectivityResult>)
-      final connectivityResults = await Connectivity().checkConnectivity();
-      if (!_hasConnection(connectivityResults)) {
-        print("📵 No connectivity, skipping retry");
+      if (requests.isEmpty) {
         return;
       }
 
-      // Create a copy to avoid modifying while iterating
-      final requestsCopy = List<QueuedRequest>.from(requests);
+      for (final req in requests) {
+        final label = buildTaskLabel(req.method, req.path);
+        ref.read(syncJobsProvider.notifier).start(req.id, label);
 
-      for (final req in requestsCopy) {
         try {
-          print("🔄 Retrying: ${req.method} ${req.path}");
-
           dynamic requestData;
-          Options options = Options(
-            method: req.method,
-            sendTimeout: const Duration(seconds: 30),
-            receiveTimeout: const Duration(seconds: 30),
-          );
+          Options options = Options(method: req.method);
 
           if (req.contentType == "form") {
             requestData = await _buildFormData(req);
             options.headers = {'Content-Type': 'multipart/form-data'};
           } else {
             requestData = req.data;
+            if (requestData is Map &&
+                requestData["__isList"] == true) {
+              requestData = requestData["data"];
+            }
             options.headers = {'Content-Type': 'application/json'};
           }
-
 
           final res = await DioClient.dio.request(
             req.path,
@@ -111,44 +169,43 @@ class SyncManager {
             queryParameters: req.query,
             options: options,
           );
-          if (res.statusCode != null && res.statusCode! >= 200 && res.statusCode! < 300) {
-            print("✅ Success: ${req.path}, status: ${res.statusCode}");
-            ref.read(syncNotifierProvider.notifier).state++;
+
+          if (res.statusCode != null &&
+              res.statusCode! >= 200 &&
+              res.statusCode! < 300) {
+
             await RequestQueue.remove(req.id);
+            ref.read(syncJobsProvider.notifier).success(req.id);
 
-            print("😊 Deleted request: ${req.method} ${req.path}");
-
-            // Get and print remaining requests
-            final remainingRequests = await RequestQueue.getAll();
-            print("📋 Remaining ${remainingRequests.length} requests:");
-
-            if (remainingRequests.isEmpty) {
-              print("   🎉 Queue is now empty!");
-            } else {
-              for (var i = 0; i < remainingRequests.length; i++) {
-                final remainingReq = remainingRequests[i];
-                print("   ${i + 1}. ${remainingReq.method} ${remainingReq.path}");
-                if (remainingReq.data != null) {
-                  print("      Data: ${remainingReq.data}");
-                }
-                if (remainingReq.files != null && remainingReq.files!.isNotEmpty) {
-                  print("      Files: ${remainingReq.files!.length}");
-                }
-              }
+            if (RequestQueue.count == 0) {
+              ref.read(syncJobsProvider.notifier).allDone();
             }
+
+            print("✅ Success: ${req.id}");
           } else {
-            print("⚠️ Server error: ${req.path}, status: ${res.statusCode}");
-          }
-        } on DioException catch (e) {
-          if (e.type == DioExceptionType.connectionTimeout ||
-              e.type == DioExceptionType.receiveTimeout ||
-              e.type == DioExceptionType.sendTimeout) {
-            print("⏰ Timeout for ${req.path}, keeping in queue");
-          } else {
-            print("⚠️ Retry failed for ${req.path}: ${e.message}");
+            ref.read(syncJobsProvider.notifier)
+                .failed(req.id, "Server error");
+
+            await RequestQueue.remove(req.id);
+            print("❌ Failed: ${req.id}");
+
+            // ❗ keep in queue → retry later
           }
         } catch (e) {
-          print("❌ Unexpected error for ${req.path}: $e");
+          final msg = e.toString().toLowerCase();
+
+          if (msg.contains("already exists")) {
+            await RequestQueue.remove(req.id);
+            ref.read(syncJobsProvider.notifier).success(req.id);
+            print("⚠️ Already exists: ${req.id}");
+            continue;
+          }
+
+          ref.read(syncJobsProvider.notifier)
+              .failed(req.id, e.toString());
+          print("❌ Error: ${req.id}");
+
+          // ❗ keep in queue
         }
       }
     } finally {
@@ -157,6 +214,15 @@ class SyncManager {
   }
 
   Future<void> retryNow() async {
+    await _triggerCheck("manual");
+  }  Future<void> retry() async {
     await _retryQueuedRequests();
+  }
+
+  Future<void> dispose() async {
+
+    await _connectivitySub?.cancel();
+    await _internetSub?.cancel();
+    _periodicTimer?.cancel();
   }
 }

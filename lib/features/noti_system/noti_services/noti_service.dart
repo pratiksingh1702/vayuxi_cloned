@@ -1,6 +1,9 @@
 import 'package:flutter_local_notifications/flutter_local_notifications.dart';
 import 'package:timezone/timezone.dart' as tz;
 import 'package:timezone/data/latest.dart' as tz;
+import 'package:vibration/vibration.dart';
+import 'dart:typed_data';
+
 
 class NotificationService {
   static final FlutterLocalNotificationsPlugin _notificationsPlugin =
@@ -177,15 +180,22 @@ class NotificationService {
     print('Notification tapped: ${response.payload}');
   }
 
-  // Send instant notification
   Future<void> sendInstantNotification({
     required String title,
     required String body,
     String? payload,
     String? channelId,
     String? channelName,
+
+    // ✅ new flag
+    bool isFromFCM = false,
   }) async {
     try {
+      // ✅ vibrate only when it's FCM
+      if (isFromFCM) {
+        await vibrateNow();
+      }
+
       final androidDetails = AndroidNotificationDetails(
         channelId ?? 'immediate_notifications',
         channelName ?? 'Instant Notifications',
@@ -193,6 +203,8 @@ class NotificationService {
         importance: Importance.high,
         priority: Priority.high,
         playSound: true,
+        vibrationPattern: Int64List.fromList([0, 500, 200, 500]),
+        enableVibration: true,
       );
 
       const iosDetails = DarwinNotificationDetails(
@@ -205,6 +217,7 @@ class NotificationService {
         android: androidDetails,
         iOS: iosDetails,
       );
+
       final notificationId = DateTime.now().millisecondsSinceEpoch % 2147483647;
 
       await _notificationsPlugin.show(
@@ -218,6 +231,21 @@ class NotificationService {
       print('Error sending instant notification: $error');
     }
   }
+
+  Future<void> vibrateNow() async {
+    try {
+      final hasVibrator = await Vibration.hasVibrator() ?? false;
+      if (!hasVibrator) return;
+
+      await Vibration.vibrate(
+        pattern: [0, 1000, 200, 1000, 200, 1000], // total ~3s vibration
+        intensities: [0, 255, 0, 255, 0, 255],
+      );
+    } catch (e) {
+      print("❌ Vibration error: $e");
+    }
+  }
+
 
   // Send progress notification
   Future<void> sendProgressNotification({

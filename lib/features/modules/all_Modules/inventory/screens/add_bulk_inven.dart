@@ -10,7 +10,13 @@ import 'package:untitled2/core/utlis/colors/colors.dart';
 import 'package:untitled2/core/utlis/widgets/custom_appBar.dart';
 import 'package:untitled2/core/utlis/widgets/file_upload.dart';
 import 'package:untitled2/features/modules/all_Modules/site_Details/providers/site_current_provider.dart';
-import '../models/inventory_Model.dart';
+import '../../../../../core/utlis/app_toasts.dart';
+import '../../../../../core/utlis/sample_file/providers.dart';
+import '../../../../../core/utlis/sample_file/sample_file_model.dart';
+import '../../../../../core/utlis/widgets/buttons.dart';
+import '../../../../../core/utlis/widgets/sample_preview.dart';
+import '../../../../../core/utlis/widgets/sidebar.dart';
+import '../models/inventory_model.dart';
 import '../provider/inventory_provider.dart';
 
 class BulkUploadScreen extends ConsumerStatefulWidget {
@@ -33,7 +39,9 @@ class _BulkUploadScreenState extends ConsumerState<BulkUploadScreen> {
 
   @override
   Widget build(BuildContext context) {
+    final downloadState = ref.watch(templateDownloadControllerProvider);
     return Scaffold(
+      drawer: const CustomDrawer(),
       appBar: CustomAppBar(title: "Bulk Upload"),
       backgroundColor: AppColors.lightBlue,
       body: SingleChildScrollView(
@@ -42,6 +50,33 @@ class _BulkUploadScreenState extends ConsumerState<BulkUploadScreen> {
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
+              RoundedButton(
+                width: double.infinity,
+                text: downloadState.isLoading ? "Downloading..." : "Download Sample Template",
+                color: Colors.white,
+                textColor: Colors.black45,
+                onPressed: downloadState.isLoading
+                    ? (){}
+                    : () async {
+                  Navigator.push(
+                    context,
+                    MaterialPageRoute(
+                      builder: (_) => TemplatePreviewScreen(
+                        title: "Sample Template Preview",
+                        imageAsset: "assets/images/inv-temp.webp",
+                        onDownload: () async {
+                          final file = await ref
+                              .read(templateDownloadControllerProvider.notifier)
+                              .downloadAndSaveTemplate(TemplateModel.inventory);
+
+                          if (!context.mounted) return;
+                          AppToast.success("✅ Saved: ${file?.path}");
+                        },
+                      ),
+                    ),
+                  );
+                },
+              ),
               // Site Info
 
               // Upload Section
@@ -158,13 +193,28 @@ class _BulkUploadScreenState extends ConsumerState<BulkUploadScreen> {
               // ),
 
               // Status & Errors
+              const SizedBox(height: 8),
+              Text(
+                "* Use this format to ensure accurate and smooth import.",
+                style: TextStyle(
+                  fontSize: 12,
+                  color: Colors.grey.shade700,
+                  fontStyle: FontStyle.italic,
+                  fontWeight: FontWeight.w500,
+                ),
+              ),
+
+              const SizedBox(height: 24),
+
               UploadBox(
-                title: "Upload CSV File",
+                title: "Upload your Inventory file",
                 subtitle: _selectedFile?.path.split('/').last ??
-                    "Select a CSV file to upload",
-                buttonText: "Select CSV File",
+                    "Select  file to upload",
+                buttonText: "Select Inventory File",
                 onPressed: _selectCSVFile,
               ),
+
+              const SizedBox(height: 24),
               SizedBox(
                 width: double.infinity,
                 child: ElevatedButton.icon(

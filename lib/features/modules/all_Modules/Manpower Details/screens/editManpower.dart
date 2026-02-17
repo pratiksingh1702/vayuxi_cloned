@@ -8,6 +8,7 @@ import '../../../../../core/utlis/widgets/buttons.dart';
 import '../../../../../core/utlis/widgets/custom.dart';
 import '../../../../../core/utlis/widgets/fields/custom_textField.dart';
 import '../../../../../core/utlis/widgets/fields/phone_number_field.dart';
+import '../../../../../core/utlis/widgets/sidebar.dart';
 import '../../../../../typeProvider/type_provider.dart';
 import '../model/manpower_model.dart';
 import '../service/manPowerProvider.dart';
@@ -42,6 +43,17 @@ class _EditManpowerScreenState extends ConsumerState<EditManpowerScreen> {
   late TextEditingController _emailController;
   late TextEditingController _otpController;
 
+  late TextEditingController _aadhaarController;
+  late TextEditingController _basicSalaryController;
+  late TextEditingController _hraController;
+  late TextEditingController _daController;
+  late TextEditingController _specialAllowanceController;
+  late TextEditingController _travelAllowanceController;
+  late TextEditingController _medicalAllowanceController;
+
+  bool _isPfApplicable = true;
+
+
   DateTime? _dob;
   DateTime? _doj;
   String _payBasic = "monthly";
@@ -67,6 +79,29 @@ class _EditManpowerScreenState extends ConsumerState<EditManpowerScreen> {
     _salaryController = TextEditingController(text: m.salary.toString());
     _remarksController = TextEditingController(text: m.remarks ?? "");
     _payBasic = m.payBasics ?? "monthly";
+    _aadhaarController =
+        TextEditingController(text: m.aadharNumber ?? "");
+
+    _basicSalaryController =
+        TextEditingController(text: m.basicSalary?.toString() ?? "");
+
+    _hraController =
+        TextEditingController(text: m.hra?.toString() ?? "");
+
+    _daController =
+        TextEditingController(text: m.dearnessAllowance?.toString() ?? "");
+
+    _specialAllowanceController =
+        TextEditingController(text: m.specialAllowance?.toString() ?? "");
+
+    _travelAllowanceController =
+        TextEditingController(text: m.travelAllowance?.toString() ?? "");
+
+    _medicalAllowanceController =
+        TextEditingController(text: m.medicalAllowance?.toString() ?? "");
+
+    _isPfApplicable = m.pfApplicable ?? true;
+
 
     // Initialize login credential controllers
     _emailController = TextEditingController(text: m.loginEmail ?? "");
@@ -126,18 +161,31 @@ class _EditManpowerScreenState extends ConsumerState<EditManpowerScreen> {
       "fullName": _fullNameController.text,
       "designation": _designationController.text,
       "phoneNumber": _phoneController.text,
+      "aadharNumber": _aadhaarController.text,
       "panNumber": _panController.text,
       "bankAccountNumber": _bankController.text,
       "ifscCode": _ifscController.text,
       "epfNumber": _epfController.text,
       "uanNumber": _uanController.text,
       "esicNumber": _esicController.text,
+
       "dateOfBirth": _dob?.toIso8601String(),
       "dateOfJoining": _doj?.toIso8601String(),
+
       "payBasics": _payBasic,
       "salary": double.tryParse(_salaryController.text) ?? 0,
+      "basicSalary": double.tryParse(_basicSalaryController.text) ?? 0,
+
+      "hra": double.tryParse(_hraController.text) ?? 0,
+      "dearnessAllowance": double.tryParse(_daController.text) ?? 0,
+      "specialAllowance": double.tryParse(_specialAllowanceController.text) ?? 0,
+      "travelAllowance": double.tryParse(_travelAllowanceController.text) ?? 0,
+      "medicalAllowance": double.tryParse(_medicalAllowanceController.text) ?? 0,
+
+      "pfApplicable": _isPfApplicable,
       "remarks": _remarksController.text,
     };
+
 
     // Add login credentials if enabled
     if (_enableLoginCredentials && _emailController.text.isNotEmpty) {
@@ -199,6 +247,7 @@ class _EditManpowerScreenState extends ConsumerState<EditManpowerScreen> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
+      drawer: const CustomDrawer(),
       body: NestedScrollView(
         headerSliverBuilder: (context, innerBoxIsScrolled) {
           return [
@@ -334,6 +383,11 @@ class _EditManpowerScreenState extends ConsumerState<EditManpowerScreen> {
                       ],
                     ),
                   ),
+                  CustomTextField(
+                    label: "Aadhar Number",
+                    controller: _aadhaarController,
+                    keyboardType: TextInputType.number,
+                  ),
 
                   CustomTextField(
                     label: "PAN Number",
@@ -386,6 +440,32 @@ class _EditManpowerScreenState extends ConsumerState<EditManpowerScreen> {
                   Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
+                      const SizedBox(height: 16),
+                      Container(
+                        padding: const EdgeInsets.all(12),
+                        decoration: BoxDecoration(
+                          color: Colors.white,
+                          borderRadius: BorderRadius.circular(12),
+                          border: Border.all(color: Colors.blue.shade200, width: 1.5),
+                        ),
+                        child: Row(
+                          mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                          children: [
+                            const Text(
+                              "PF Applicable",
+                              style: TextStyle(fontSize: 14, fontWeight: FontWeight.w600),
+                            ),
+                            Switch(
+                              value: _isPfApplicable,
+                              activeColor: Colors.blue,
+                              onChanged: (val) {
+                                setState(() => _isPfApplicable = val);
+                              },
+                            ),
+                          ],
+                        ),
+                      ),
+                      const SizedBox(height: 16),
                       const Text(
                         "Pay Basics",
                         style: TextStyle(
@@ -395,6 +475,8 @@ class _EditManpowerScreenState extends ConsumerState<EditManpowerScreen> {
                         ),
                       ),
                       const SizedBox(height: 6),
+
+
                       Container(
                         decoration: BoxDecoration(
                           color: Colors.white,
@@ -457,6 +539,42 @@ class _EditManpowerScreenState extends ConsumerState<EditManpowerScreen> {
                     isRequired: true,
                     keyboardType: TextInputType.number,
                   ),
+                  CustomTextField(
+                    label: "Basic Salary",
+                    controller: _basicSalaryController,
+                    keyboardType: TextInputType.number,
+                  ),
+
+                  CustomTextField(
+                    label: "HRA",
+                    controller: _hraController,
+                    keyboardType: TextInputType.number,
+                  ),
+
+                  CustomTextField(
+                    label: "Dearness Allowance (DA)",
+                    controller: _daController,
+                    keyboardType: TextInputType.number,
+                  ),
+
+                  CustomTextField(
+                    label: "Special Allowance",
+                    controller: _specialAllowanceController,
+                    keyboardType: TextInputType.number,
+                  ),
+
+                  CustomTextField(
+                    label: "Travel Allowance",
+                    controller: _travelAllowanceController,
+                    keyboardType: TextInputType.number,
+                  ),
+
+                  CustomTextField(
+                    label: "Medical Allowance",
+                    controller: _medicalAllowanceController,
+                    keyboardType: TextInputType.number,
+                  ),
+
                   CustomTextField(
                     label: "Remarks",
                     controller: _remarksController,

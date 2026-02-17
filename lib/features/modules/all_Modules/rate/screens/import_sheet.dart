@@ -10,9 +10,17 @@ import 'package:untitled2/features/modules/all_Modules/rate/screens/rate.dart';
 import 'package:untitled2/features/modules/all_Modules/site_Details/repository/siteModel.dart';
 import 'package:untitled2/typeProvider/type_provider.dart';
 
+import '../../../../../core/utlis/app_toasts.dart';
+import '../../../../../core/utlis/sample_file/providers.dart';
+import '../../../../../core/utlis/sample_file/sample_file_model.dart';
+import '../../../../../core/utlis/widgets/buttons.dart';
 import '../../../../../core/utlis/widgets/custom_appBar.dart';
 import '../../../../../core/utlis/widgets/file_upload.dart';
+import '../../../../../core/utlis/widgets/sample_preview.dart';
+import '../../../../../core/utlis/widgets/sidebar.dart';
+import '../../../../tour/domain/tour_controller.dart';
 import '../../site_Details/providers/site_current_provider.dart';
+import '../data/rate_upload_provider.dart';
 
 class ImportCsvScreen extends ConsumerStatefulWidget {
 
@@ -75,42 +83,49 @@ class _ImportCsvScreenState extends ConsumerState<ImportCsvScreen> {
         ),
       });
 
-      final result = await RateApiClient().uploadCsv(
-        formData,
-        type!,
-        siteId!,
+      // final result = await RateApiClient().uploadCsv(
+      //   formData,
+      //   type!,
+      //   siteId!,
+      // );
+      final jobId = ref.read(rateUploadQueueProvider.notifier).enqueueUpload(
+        siteId: siteId!,
+        type: type!,
+        filePath:  _selectedFile!.path!,
       );
+      print(jobId);
+      await ref.read(tourPersistenceProvider).markRateDone();
+
+
 
       setState(() {
         _isLoading = false;
       });
 
-      if (result['success'] == true) {
-        setState(() {
-          _uploadStatus = 'CSV imported successfully!';
-        });
+      AppToast.success("✅ File added to upload queue");
 
-        // Show success message
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(
-            content: Text('CSV imported successfully'),
-            backgroundColor: Colors.green,
-          ),
-        );
-        Navigator.push(
-          context,
-          MaterialPageRoute(builder: (context) =>RateScreen() ),
-        );
 
-        // Optionally navigate back after successful upload
-        Future.delayed(const Duration(seconds: 2), () {
-          if (mounted) {
-            Navigator.pop(context, true); // Return true to indicate refresh needed
-          }
-        });
-      } else {
-        _showError('Upload failed: ${result['error']}');
-      }
+      // if (result['success'] == true) {
+      //   setState(() {
+      //     _uploadStatus = 'CSV imported successfully!';
+      //   });
+      //
+      //   // Show success message
+      //   ScaffoldMessenger.of(context).showSnackBar(
+      //     const SnackBar(
+      //       content: Text('CSV imported successfully'),
+      //       backgroundColor: Colors.green,
+      //     ),
+      //   );
+      //   Navigator.push(
+      //     context,
+      //     MaterialPageRoute(builder: (context) =>RateScreen() ),
+      //   );
+      //
+      //   // Optionally navigate back after successful
+      // } else {
+      //   _showError('Upload failed: ${result['error']}');
+      // }
     } catch (e) {
       setState(() {
         _isLoading = false;
@@ -123,13 +138,9 @@ class _ImportCsvScreenState extends ConsumerState<ImportCsvScreen> {
     setState(() {
       _uploadStatus = message;
     });
-    ScaffoldMessenger.of(context).showSnackBar(
-      SnackBar(
-        content: Text(message),
-        backgroundColor: Colors.red,
-      ),
-    );
+    AppToast.error(message);
   }
+
 
   void _clearSelection() {
     setState(() {
@@ -141,11 +152,12 @@ class _ImportCsvScreenState extends ConsumerState<ImportCsvScreen> {
 
   @override
   Widget build(BuildContext context) {
-
+    final downloadState = ref.watch(templateDownloadControllerProvider);
     return Scaffold(
+      drawer: const CustomDrawer(),
       backgroundColor: AppColors.lightBlue,
       appBar: CustomAppBar(
-        title: 'Import CSV',
+        title: 'Import Rate File',
 
       ),
       body: CornerClippedScreenSimple(
@@ -154,15 +166,57 @@ class _ImportCsvScreenState extends ConsumerState<ImportCsvScreen> {
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
+              RoundedButton(
+                width: double.infinity,
+                text: downloadState.isLoading ? "Downloading..." : "Download Sample Template",
+                color: Colors.white,
+                textColor: Colors.black45,
+                onPressed: downloadState.isLoading
+                    ? () {}
+                    : () async {Navigator.push(
+                  context,
+                  MaterialPageRoute(
+                    builder: (_) => TemplatePreviewScreen(
+                      title: "Sample Template Preview",
+                      imageAsset: "assets/images/rate-temp.webp",
+                      onDownload: () async {
+                        final file = await ref
+                            .read(templateDownloadControllerProvider.notifier)
+                            .downloadAndSaveTemplate(TemplateModel.rate);
+
+                        if (!context.mounted) return;
+                        AppToast.success("✅ Saved: ${file?.path}");
+                      },
+                    ),
+                  ),
+                );
+
+                },
+
+
+              ),
         
         
+
+              const SizedBox(height: 8),
+              Text(
+                "* Use this format to ensure accurate and smooth import.",
+                style: TextStyle(
+                  fontSize: 12,
+                  color: Colors.grey.shade700,
+                  fontStyle: FontStyle.italic,
+                  fontWeight: FontWeight.w500,
+                ),
+              ),
+
               const SizedBox(height: 24),
-        
+
+
               // File Selection Section
               UploadBox(
-                title: 'Select CSV File',
+                title: 'Upload your Rate file',
                 subtitle: _selectedFileName ?? 'No file selected',
-                buttonText: _selectedFileName == null ? 'Choose CSV File' : 'Change File',
+                buttonText: _selectedFileName == null ? 'Choose Rate File' : 'Change File',
                 onPressed: _pickCsvFile,
               ),
         
@@ -201,7 +255,7 @@ class _ImportCsvScreenState extends ConsumerState<ImportCsvScreen> {
                     children: [
                       Icon(Icons.cloud_upload),
                       SizedBox(width: 8),
-                      Text('Upload CSV'),
+                      Text('Upload Rate'),
                     ],
                   ),
                 ),

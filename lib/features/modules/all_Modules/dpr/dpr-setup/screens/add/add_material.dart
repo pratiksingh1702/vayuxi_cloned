@@ -1,4 +1,5 @@
 // lib/screens/persist_dpr_screen.dart
+import 'dart:convert';
 import 'dart:io';
 
 import 'package:dio/dio.dart';
@@ -17,8 +18,11 @@ import '../../../../rate/data/rate_provider.dart';
 import '../../../../site_Details/providers/site_current_provider.dart';
 import '../../../models/equipmentModel.dart';
 import '../../../models/pipingModel.dart';
+import '../../../models/rate_file_models.dart';
 import '../../../providers/dprService.dart';
 import '../../../providers/material_service.dart';
+import '../../../providers/rate_variant_provider.dart';
+import '../../../providers/service/rate_upload_material_dpr.dart';
 
 
 class PersistDPRScreen extends ConsumerStatefulWidget {
@@ -30,6 +34,8 @@ class PersistDPRScreen extends ConsumerStatefulWidget {
   final String dprId;
   final String? siteId;
   final String? teamId;
+  final bool isRateUploadMaterial;
+  final String? rateUploadId;
 
 
   const PersistDPRScreen({
@@ -41,7 +47,9 @@ class PersistDPRScreen extends ConsumerStatefulWidget {
     this.isDpr=false,
     this.dprId="",
     this.siteId,
-    this.teamId
+    this.teamId,
+    this.isRateUploadMaterial = true,
+    this.rateUploadId,
   });
 
   @override
@@ -53,6 +61,7 @@ class _PersistDPRScreenState extends ConsumerState<PersistDPRScreen> {
   final _materialNameController = TextEditingController();
   final _uomController = TextEditingController();
   String? siteId = '';
+  List<DynamicField> _dynamicFields = [];
 
   String? _calculationCategory;
   String? _imagePath;
@@ -171,6 +180,10 @@ class _PersistDPRScreenState extends ConsumerState<PersistDPRScreen> {
     _calculationCategory = material.calculationCategory;
     _selectedDesignation = 'piping';
     _imagePath = material.image;
+    _dynamicFields = material.dynamicFields
+        .map((e) => e.copyWith())
+        .toList();
+
   }
 
   void _prefillFromEquipment(EquipmentItem material) {
@@ -179,6 +192,8 @@ class _PersistDPRScreenState extends ConsumerState<PersistDPRScreen> {
     _calculationCategory = material.calculationCategory;
     _selectedDesignation = 'equipment';
     _imagePath = material.image;
+
+
   }
 
 
@@ -189,21 +204,33 @@ class _PersistDPRScreenState extends ConsumerState<PersistDPRScreen> {
     super.dispose();
   }
 
+
   Future<void> _submitForm() async {
     if (!_formKey.currentState!.validate()) return;
+
+    // ✅ only RateUpload flow allowed
+    if (widget.isRateUploadMaterial != true) {
+      _showError("This screen supports only Rate Upload materials.");
+      return;
+    }
+
+    if (widget.rateUploadId == null || widget.rateUploadId!.isEmpty) {
+      _showError("Rate Upload ID missing");
+      return;
+    }
 
     if (_calculationCategory == null || _calculationCategory!.isEmpty) {
       _showError("Please select a calculation category");
       return;
     }
 
-    if (_selectedDesignation == null || _selectedDesignation!.isEmpty) {
+    if (_selectedDesignation == null || _selectedDesignation!.isNotEmpty == false) {
       _showError("Please select material designation");
       return;
     }
 
     try {
-      // Handle image
+      // ✅ image handle
       File? imageFile;
       if (_imagePath != null &&
           _imagePath!.isNotEmpty &&
@@ -211,105 +238,65 @@ class _PersistDPRScreenState extends ConsumerState<PersistDPRScreen> {
         imageFile = File(_imagePath!);
       }
 
-      /// -------------------------------
-      /// 🔴 DPR MATERIAL FLOW
-      /// -------------------------------
-      if (widget.isDpr == true) {
-        if (widget.dprId == null || widget.dprId!.isEmpty) {
-          _showError("DPR ID missing");
-          return;
-        }
+      final isEdit =
+          widget.editMaterialId != null && widget.editMaterialId!.isNotEmpty;
 
-        final isEdit = widget.editMaterialId != null;
 
-        final formData = FormData.fromMap({
-          "materialName": _materialNameController.text.trim(),
-          "uom": _uomController.text.trim(),
+      // ✅ full fields like default service
+      final formData = FormData.fromMap({
+        "materialName": _materialNameController.text.trim(),
+        "uom": _uomController.text.trim(),
+        "designation": _selectedDesignation,
+        "calculationCategory": _calculationCategory,
+        "isApplied": _isApplied,
+        "dynamicFields":
+        jsonEncode(_dynamicFields.map((e) => e.toJson()).toList()),
 
-          // ✅ only send _id when updating
-          if (isEdit) "_id": widget.editMaterialId,
 
-          if (imageFile != null)
-            "file": await MultipartFile.fromFile(
-              imageFile.path,
-              filename: imageFile.path.split('/').last,
-            ),
-        });
 
-        if (isEdit) {
-          // ✅ UPDATE DPR MATERIAL (material ID, not DPR ID)
-          await DprApi().updateMaterial(
-            mechanicalId: widget.dprId, // 🔥 FIX
-            data: formData,
-          );
 
-          _showSuccess('DPR material updated successfully');
-        } else {
-          // ✅ CREATE DPR MATERIAL
-          await DprApi.addMechanicalMaterial(
-            dprId: widget.dprId!,
-            materialName: _materialNameController.text.trim(),
-            uom: _uomController.text.trim(),
-            file: imageFile,
-          );
+        if (imageFile != null)
+          "image": await MultipartFile.fromFile(
+            imageFile.path,
+            filename: imageFile.path.split('/').last,
+          ),
+      });
 
-          _showSuccess('DPR material added successfully');
-        }
+      if (isEdit) {
+        // ✅ EDIT LINE ITEM
+        await RateUploadApi.updateLineItem(
+          rateUploadId: widget.rateUploadId!,
+          lineItemId: widget.editMaterialId!,
+          data: formData,
+        );
+
+        _showSuccess("Material updated successfully");
+      } else {
+        // ✅ ADD LINE ITEM
+        await RateUploadApi.addLineItem(
+          rateUploadId: widget.rateUploadId!,
+          data: formData,
+        );
+
+        _showSuccess("Material added successfully");
       }
 
-
-      /// -------------------------------
-      /// 🔵 DEFAULT MATERIAL FLOW
-      /// -------------------------------
-      else {
-        if (siteId == null || siteId!.isEmpty) {
-          _showError("Site ID is required");
-          return;
-        }
-
-        final service = DefaultMaterialService();
-
-        if (widget.editMaterialId != null) {
-          // UPDATE DEFAULT MATERIAL
-          await service.updateMaterial(
-            id: widget.editMaterialId!,
-            materialName: _materialNameController.text.trim(),
-            uom: _uomController.text.trim(),
-            calculationCategory: _calculationCategory!,
-            isApplied: _isApplied,
-            image: imageFile,
-          );
-
-          _showSuccess('Material updated successfully');
-        } else {
-          // CREATE DEFAULT MATERIAL
-          await service.createMaterial(
-            materialName: _materialNameController.text.trim(),
-            uom: _uomController.text.trim(),
-            calculationCategory: _calculationCategory!,
-            designation: _selectedDesignation!,
-            siteId: siteId,
-            isApplied: _isApplied,
-            image: imageFile,
-          );
-
-          _showSuccess('Material created successfully');
-        }
+      // 🔄 refresh provider
+      final sId = ref.read(selectedSiteIdProvider);
+      if (sId != null) {
+        ref.invalidate(rateFileAnalysisProvider(sId));
       }
 
-      // Close screen and notify caller
-      if (mounted) {
-        Navigator.of(context).pop(true);
-      }
+      if (mounted) Navigator.pop(context, true);
     } catch (e, st) {
-      debugPrint('❌ Submit failed: $e');
+      debugPrint("❌ Submit failed: $e");
       debugPrintStack(stackTrace: st);
 
-      final message = extractBackendError(e);
-      _showError(message);
+      final msg = extractBackendError(e);
+      _showError(msg);
     }
-
   }
+
 
 
   void _showError(String message) {
@@ -355,6 +342,154 @@ class _PersistDPRScreenState extends ConsumerState<PersistDPRScreen> {
       },
     );
   }
+  Widget _buildDynamicFieldsSection() {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Text(
+          "Dynamic Fields",
+          style: Theme.of(context).textTheme.titleMedium?.copyWith(
+            fontSize: 18,
+            color: Colors.black,
+            fontWeight: FontWeight.w500,
+          ),
+        ),
+        const SizedBox(height: 8),
+
+        if (_dynamicFields.isEmpty)
+          Text(
+            "No dynamic fields added",
+            style: TextStyle(color: Colors.grey.shade600, fontSize: 13),
+          ),
+
+        const SizedBox(height: 10),
+
+        ...List.generate(_dynamicFields.length, (i) {
+          final f = _dynamicFields[i];
+
+          return Container(
+            margin: const EdgeInsets.only(bottom: 12),
+            padding: const EdgeInsets.all(12),
+            decoration: BoxDecoration(
+              color: Colors.white,
+              borderRadius: BorderRadius.circular(12),
+              border: Border.all(color: Colors.grey.shade300),
+            ),
+            child: Column(
+              children: [
+                Row(
+                  children: [
+                    const Icon(Icons.tune, size: 18, color: Colors.blue),
+                    const SizedBox(width: 8),
+                    Expanded(
+                      child: Text(
+                        f.key,
+                        style: const TextStyle(
+                          fontSize: 12,
+                          color: Colors.grey,
+                          fontWeight: FontWeight.w500,
+                        ),
+                      ),
+                    ),
+                    InkWell(
+                      onTap: () {
+                        setState(() => _dynamicFields.removeAt(i));
+                      },
+                      child: const Icon(Icons.delete, color: Colors.red),
+                    )
+                  ],
+                ),
+
+                const SizedBox(height: 12),
+
+                Row(
+                  children: [
+                    /// Label
+                    Expanded(
+                      child: TextFormField(
+                        initialValue: f.label,
+                        decoration: InputDecoration(
+                          labelText: "Label",
+                          isDense: true,
+                          filled: true,
+                          fillColor: const Color(0xFFF5F7FA),
+                          border: OutlineInputBorder(
+                            borderRadius: BorderRadius.circular(10),
+                            borderSide: BorderSide.none,
+                          ),
+                        ),
+                        onChanged: (v) {
+                          setState(() {
+                            _dynamicFields[i] = f.copyWith(label: v);
+                          });
+                        },
+                      ),
+                    ),
+
+                    const SizedBox(width: 10),
+
+                    /// Unit
+                    Expanded(
+                      child: TextFormField(
+                        initialValue: f.unit,
+                        decoration: InputDecoration(
+                          labelText: "Unit",
+                          isDense: true,
+                          filled: true,
+                          fillColor: const Color(0xFFF5F7FA),
+                          border: OutlineInputBorder(
+                            borderRadius: BorderRadius.circular(10),
+                            borderSide: BorderSide.none,
+                          ),
+                        ),
+                        onChanged: (v) {
+                          setState(() {
+                            _dynamicFields[i] = f.copyWith(unit: v);
+                          });
+                        },
+                      ),
+                    ),
+                  ],
+                ),
+              ],
+            ),
+          );
+        }),
+
+        const SizedBox(height: 6),
+
+        /// ADD BUTTON
+        SizedBox(
+          width: double.infinity,
+          child: OutlinedButton.icon(
+            icon: const Icon(Icons.add),
+            label: const Text("Add Field"),
+            style: OutlinedButton.styleFrom(
+              padding: const EdgeInsets.symmetric(vertical: 14),
+              side: const BorderSide(color: Colors.blue),
+              shape: RoundedRectangleBorder(
+                borderRadius: BorderRadius.circular(10),
+              ),
+            ),
+            onPressed: () {
+              setState(() {
+                _dynamicFields.add(
+                  DynamicField(
+                    key: DateTime.now().millisecondsSinceEpoch.toString(),
+                    label: "",
+                    unit: "",
+                    value: null,
+                    displayText: "",
+                  ),
+                );
+              });
+            },
+          ),
+        ),
+      ],
+    );
+  }
+
 
   @override
   Widget build(BuildContext context) {
@@ -378,6 +513,10 @@ class _PersistDPRScreenState extends ConsumerState<PersistDPRScreen> {
                 // UOM Field
                 _buildUOMField(),
                 const SizedBox(height: 20),
+
+                _buildDynamicFieldsSection(),
+                const SizedBox(height: 20),
+
 
                 // Material Designation Field
                 _buildDesignationField(),

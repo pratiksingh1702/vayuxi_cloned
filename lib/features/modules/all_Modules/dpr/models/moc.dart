@@ -4,15 +4,15 @@ class MOC {
   final String? description;
   final String? imageUrl;
   final bool isPredefined; // derived locally
-  final DateTime createdAt;
+  final DateTime? createdAt;
 
   const MOC({
-    required this.id,
-    required this.name,
+  this.id="",
+   this.name="",
     this.description,
     this.imageUrl,
     this.isPredefined = false,
-    required this.createdAt,
+this.createdAt,
   });
 
   /// COPY
@@ -56,7 +56,7 @@ class MOC {
       'description': description,
       'imageUrl': imageUrl,
       'isPredefined': isPredefined,
-      'createdAt': createdAt.toIso8601String(),
+      'createdAt': createdAt?.toIso8601String(),
     };
   }
 }

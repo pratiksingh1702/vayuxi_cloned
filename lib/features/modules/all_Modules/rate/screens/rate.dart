@@ -12,8 +12,11 @@ import 'package:untitled2/features/auth/service/auth_client.dart';
 import 'package:untitled2/features/modules/all_Modules/rate/data/rateApi.dart';
 import 'package:untitled2/features/modules/all_Modules/site_Details/providers/site_current_provider.dart';
 import 'package:untitled2/features/modules/all_Modules/site_Details/repository/siteModel.dart';
+import '../../../../../core/utlis/app_toasts.dart';
+import '../../../../../core/utlis/common_functions.dart';
 import '../../../../../core/utlis/widgets/custom.dart';
 import '../../../../../core/utlis/widgets/custom_appBar.dart';
+import '../../../../../core/utlis/widgets/sidebar.dart';
 import '../../../../../typeProvider/type_provider.dart';
 import '../data/rate_provider.dart';
 import '../domain/rateModel.dart';
@@ -79,12 +82,7 @@ class _RateScreenState extends ConsumerState<RateScreen> {
   /// Delete selected rates
   Future<void> _deleteSelectedRates() async {
     if (_selectedRateIds.isEmpty) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(
-          content: Text('No rates selected'),
-          backgroundColor: Colors.orange,
-        ),
-      );
+      AppToast.info('No rates selected');
       return;
     }
 
@@ -123,42 +121,28 @@ class _RateScreenState extends ConsumerState<RateScreen> {
           ref.read(rateNotifierProvider.notifier).fetchRate(type, siteId);
         }
 
-        if (mounted) {
-          ScaffoldMessenger.of(context).showSnackBar(
-            SnackBar(
-              content: Text('Successfully deleted ${_selectedRateIds.length} rates'),
-              backgroundColor: Colors.green,
-            ),
-          );
-        }
+        if (!mounted) return;
+
+        AppToast.success("✅ Successfully deleted ${_selectedRateIds.length} rates");
 
         setState(() {
           _selectedRateIds.clear();
           _isSelectionMode = false;
         });
       } else {
-        if (mounted) {
-          ScaffoldMessenger.of(context).showSnackBar(
-            SnackBar(
-              content: Text(result['message'] ?? 'Failed to delete rates'),
-              backgroundColor: Colors.red,
-            ),
-          );
-        }
+        if (!mounted) return;
+
+        AppToast.error(result['message'] ?? '❌ Failed to delete rates');
       }
     } catch (e) {
       debugPrint('❌ Failed to bulk delete: $e');
+      if (!mounted) return;
 
-      if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
-            content: Text('Bulk delete failed: ${e.toString()}'),
-            backgroundColor: Colors.red,
-          ),
-        );
-      }
+      final error = extractBackendError(e); // ✅ if you already have this helper
+      AppToast.error("❌ Bulk delete failed: $error");
     }
   }
+
 
   @override
   Widget build(BuildContext context) {
@@ -167,6 +151,7 @@ class _RateScreenState extends ConsumerState<RateScreen> {
     final rates = state.data ?? [];
 
     return Scaffold(
+      drawer: const CustomDrawer(),
       body: NestedScrollView(
         headerSliverBuilder: (context, innerBoxIsScrolled) {
           return [
@@ -519,7 +504,7 @@ Future<void> _confirmDeleteRate(
 }
 
 Future<void> _deleteRate(
-    BuildContext context,
+    BuildContext context, // keep if your caller needs it, but NOT used anymore
     String rateId,
     RateNotifier notifier,
     String type,
@@ -530,18 +515,12 @@ Future<void> _deleteRate(
 
     if (res['success'] == true) {
       notifier.fetchRate(type, siteId);
-
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text("✅ Rate deleted")),
-      );
+      AppToast.success("✅ Rate deleted");
     } else {
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text(res['message'] ?? "Delete failed")),
-      );
+      AppToast.error(res['message'] ?? "❌ Delete failed");
     }
   } catch (e) {
-    ScaffoldMessenger.of(context).showSnackBar(
-      SnackBar(content: Text("Error deleting rate: $e")),
-    );
+    final error = extractBackendError(e); // if you have this helper
+    AppToast.error("❌ Error deleting rate: $error");
   }
 }

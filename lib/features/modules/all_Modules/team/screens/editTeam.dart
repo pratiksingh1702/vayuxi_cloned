@@ -9,6 +9,7 @@ import 'package:untitled2/core/utlis/colors/colors.dart';
 import 'package:untitled2/core/utlis/widgets/buttons.dart';
 
 import '../../../../../core/utlis/widgets/custom_appBar.dart';
+import '../../../../../core/utlis/widgets/sidebar.dart';
 import '../../../../../typeProvider/type_provider.dart';
 import '../../Manpower Details/model/manpower_model.dart';
 import '../../Manpower Details/service/manPowerProvider.dart';
@@ -253,7 +254,7 @@ class _EditTeamScreenState extends ConsumerState<EditTeamScreen> {
       await ref.read(teamProvider.notifier).updateTeam(
         siteId: widget.site.id,
         teamId: widget.team.id,
-        formData: formData,
+        data: formData,
         type: type!,
       );
 
@@ -294,6 +295,7 @@ class _EditTeamScreenState extends ConsumerState<EditTeamScreen> {
     }
 
     return Scaffold(
+      drawer: const CustomDrawer(),
       backgroundColor: AppColors.lightBlue,
       appBar: CustomAppBar(title: 'Edit Team'),
       body: Padding(

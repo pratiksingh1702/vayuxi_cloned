@@ -5,6 +5,7 @@ import 'package:untitled2/core/utlis/widgets/buttons.dart';
 import 'package:untitled2/core/utlis/widgets/custom_appBar.dart';
 import 'package:untitled2/core/utlis/widgets/image_clipped.dart';
 
+import '../../../../../core/utlis/widgets/sidebar.dart';
 import 'download_all.dart';
 
 class CategoryScreen extends StatefulWidget {
@@ -30,6 +31,7 @@ class _CategoryScreenState extends State<CategoryScreen> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
+      drawer: const CustomDrawer(),
       backgroundColor: AppColors.lightBlue,
       appBar: CustomAppBar(title: "Select category"),
       body: CornerClippedScreenSimple(

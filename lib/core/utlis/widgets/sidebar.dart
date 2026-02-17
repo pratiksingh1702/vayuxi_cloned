@@ -4,6 +4,9 @@ import 'package:go_router/go_router.dart';
 import '../../../features/modules/screen/device_id.dart';
 import '../../../features/modules/screen/device_id_helper.dart';
 
+import '../../api/requestQueue.dart';
+import '../../api/syncManager.dart'; // Add this import
+
 class CustomDrawer extends ConsumerWidget {
   const CustomDrawer({super.key});
 
@@ -17,7 +20,7 @@ class CustomDrawer extends ConsumerWidget {
       String route,
       bool requiresVerification,
       ) async {
-    Navigator.pop(context); // Close drawer first
+    Navigator.pop(context);
 
     if (!requiresVerification) {
       context.push(route);
@@ -52,24 +55,36 @@ class CustomDrawer extends ConsumerWidget {
     }
   }
 
+  Future<void> _handleManualSync(BuildContext context, WidgetRef ref) async {
+    Navigator.pop(context);
+
+    ScaffoldMessenger.of(context).showSnackBar(
+      const SnackBar(content: Text("Sync started")),
+    );
+
+    await ref.read(syncManagerProvider).retry();
+
+    if (!context.mounted) return;
+
+    if (RequestQueue.count == 0) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text("All synced")),
+      );
+    } else {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text("${RequestQueue.count} still pending")),
+      );
+    }
+  }
+
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     return Drawer(
       child: Container(
-        decoration: BoxDecoration(
-          gradient: LinearGradient(
-            begin: Alignment.topLeft,
-            end: Alignment.bottomRight,
-            colors: [
-              Colors.blue.shade50,
-              Colors.white,
-            ],
-          ),
-        ),
+        color: Colors.white,
         child: SafeArea(
           child: Column(
             children: [
-              _buildDrawerHeader(context),
               const Divider(height: 1),
               Expanded(
                 child: ListView(
@@ -80,7 +95,7 @@ class CustomDrawer extends ConsumerWidget {
                       context,
                       imagePath: "assets/images/icons/dashboard.webp",
                       title: 'Dashboard',
-                      route: '/work-category',
+                      route: '/workCategory',
                       gradient: [Colors.blue.shade400, Colors.blue.shade600],
                       requiresVerification: false,
                     ),
@@ -92,6 +107,52 @@ class CustomDrawer extends ConsumerWidget {
                       gradient: [Colors.purple.shade400, Colors.purple.shade600],
                       requiresVerification: false,
                     ),
+
+                    // MANUAL SYNC BUTTON
+                    Container(
+                      margin: const EdgeInsets.symmetric(horizontal: 2, vertical: 2),
+                      decoration: BoxDecoration(
+                        gradient: LinearGradient(
+                          begin: Alignment.centerLeft,
+                          end: Alignment.centerRight,
+                          colors: [Colors.deepOrange.shade400, Colors.deepOrange.shade600],
+                        ),
+                        borderRadius: BorderRadius.circular(12),
+                      ),
+                      child: ListTile(
+                        leading: Container(
+                          padding: const EdgeInsets.all(8),
+                          decoration: BoxDecoration(
+                            color: Colors.white.withOpacity(0.2),
+                            borderRadius: BorderRadius.circular(8),
+                          ),
+                          child: const Icon(
+                            Icons.sync,
+                            color: Colors.white,
+                            size: 24,
+                          ),
+                        ),
+                        title: const Text(
+                          'Manual Sync',
+                          style: TextStyle(
+                            fontSize: 14,
+                            fontWeight: FontWeight.w600,
+                            color: Colors.white,
+                          ),
+                        ),
+                        trailing: const Icon(
+                          Icons.cloud_upload,
+                          color: Colors.white,
+                          size: 20,
+                        ),
+                        contentPadding: const EdgeInsets.symmetric(horizontal: 12, vertical: 4),
+                        shape: RoundedRectangleBorder(
+                          borderRadius: BorderRadius.circular(12),
+                        ),
+                        onTap: () => _handleManualSync(context, ref),
+                      ),
+                    ),
+
                     const SizedBox(height: 12),
                     _buildSectionTitle('DAILY OPERATIONS'),
                     _buildNavItem(
@@ -295,73 +356,6 @@ class CustomDrawer extends ConsumerWidget {
     );
   }
 
-  Widget _buildDrawerHeader(BuildContext context) {
-    return Container(
-      padding: const EdgeInsets.all(20),
-      decoration: BoxDecoration(
-        gradient: LinearGradient(
-          begin: Alignment.topLeft,
-          end: Alignment.bottomRight,
-          colors: [
-            Colors.blue.shade600,
-            Colors.blue.shade800,
-          ],
-        ),
-      ),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Row(
-            children: [
-              Container(
-                padding: const EdgeInsets.all(8),
-                decoration: BoxDecoration(
-                  color: Colors.white,
-                  borderRadius: BorderRadius.circular(12),
-                  boxShadow: [
-                    BoxShadow(
-                      color: Colors.black.withOpacity(0.1),
-                      blurRadius: 8,
-                      spreadRadius: 1,
-                    ),
-                  ],
-                ),
-                child: Icon(
-                  Icons.construction_outlined,
-                  color: Colors.blue.shade600,
-                  size: 32,
-                ),
-              ),
-              const SizedBox(width: 12),
-              Expanded(
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    const Text(
-                      'Site Manager',
-                      style: TextStyle(
-                        color: Colors.white,
-                        fontSize: 20,
-                        fontWeight: FontWeight.bold,
-                      ),
-                    ),
-                    Text(
-                      'Pro Edition',
-                      style: TextStyle(
-                        color: Colors.white.withOpacity(0.8),
-                        fontSize: 12,
-                      ),
-                    ),
-                  ],
-                ),
-              ),
-            ],
-          ),
-        ],
-      ),
-    );
-  }
-
   Widget _buildSectionTitle(String title) {
     return Padding(
       padding: const EdgeInsets.fromLTRB(16, 12, 16, 8),
@@ -389,7 +383,7 @@ class CustomDrawer extends ConsumerWidget {
     final isActive = currentRoute == route || currentRoute.startsWith(route);
 
     return Container(
-      margin: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
+      margin: const EdgeInsets.symmetric(horizontal: 2, vertical: 2),
       decoration: BoxDecoration(
         gradient: isActive
             ? LinearGradient(
@@ -413,7 +407,6 @@ class CustomDrawer extends ConsumerWidget {
             child: Image.asset(
               imagePath,
               fit: BoxFit.contain,
-
               errorBuilder: (context, error, stackTrace) {
                 return Icon(
                   Icons.image_not_supported,

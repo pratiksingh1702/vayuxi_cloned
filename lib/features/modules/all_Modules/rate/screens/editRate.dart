@@ -1,8 +1,11 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:untitled2/core/utlis/app_toasts.dart';
 import 'package:untitled2/core/utlis/widgets/Button_wrapper.dart';
 import 'package:untitled2/core/utlis/widgets/buttons.dart';
+import '../../../../../core/utlis/common_functions.dart';
 import '../../../../../core/utlis/widgets/custom_appBar.dart';
+import '../../../../../core/utlis/widgets/sidebar.dart';
 import '../../../../../typeProvider/type_provider.dart';
 import '../../site_Details/repository/siteModel.dart';
 import '../data/rate_provider.dart';
@@ -119,9 +122,7 @@ class _EditRateScreenState extends ConsumerState<EditRateScreen> {
         hsnCodeController.text.isEmpty ||
         rateController.text.isEmpty ||
         uomController.text.isEmpty) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Please fill all required fields')),
-      );
+   AppToast.info("Please fill all required fields");
       return;
     }
 
@@ -139,21 +140,19 @@ class _EditRateScreenState extends ConsumerState<EditRateScreen> {
           .read(rateNotifierProvider.notifier)
           .updateRate(updatedData, siteId, widget.rate.id);
 
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Rate updated successfully')),
-      );
-
+   AppToast.success('Rate updated successfully');
       Navigator.pop(context, true); // return true to refresh list if needed
     } catch (e) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text('Failed to update rate: $e')),
-      );
+      final error = extractBackendError(e);
+      AppToast.error("❌ Failed to update rate:$error");
+
     }
   }
 
   @override
   Widget build(BuildContext context) {
     return Scaffold(
+      drawer: const CustomDrawer(),
       appBar: CustomAppBar(title: "Edit Rate"),
       body: BottomButtonWrapper(
         customButtons: [

@@ -7,6 +7,7 @@ import 'package:intl/intl.dart';
 import 'package:untitled2/features/modules/all_Modules/dpr/screens/work_type.dart';
 
 // Mechanical imports
+import '../../../../../core/utlis/widgets/date_picker.dart';
 import '../../../../../typeProvider/type_provider.dart';
 import '../dpr_insu/screens/testing.dart';
 import '../dpr_insu/service/insulation_dpr_service.dart';
@@ -67,6 +68,43 @@ class _DprWorkScreenState extends ConsumerState<DprWorkScreen> {
     _debounceTimer?.cancel();
     super.dispose();
   }
+  Future<void> _showBeautifulDatePicker(
+      BuildContext context, {
+        required bool isStartDate,
+      }) async {
+    final selected = await showDialog<DateTime>(
+      context: context,
+      builder: (context) => BeautifulDatePicker(
+        initialDate: isStartDate ? _selectedStartDate : _selectedEndDate,
+        firstDate: DateTime(2000),
+        lastDate: DateTime.now(),
+        title: isStartDate ? "Select Start Date" : "Select End Date",
+        primaryColor: Colors.blue,      // use your AppColors if available
+        accentColor: Colors.blueAccent, // use your AppColors if available
+        backgroundColor: Colors.white,  // use your AppColors if available
+      ),
+    );
+
+    if (selected == null) return;
+
+    setState(() {
+      if (isStartDate) {
+        _selectedStartDate = selected;
+        // reset end date if invalid
+        if (_selectedEndDate != null && _selectedEndDate!.isBefore(selected)) {
+          _selectedEndDate = null;
+        }
+
+        // ✅ IMPORTANT: when picking range, remove single-date mode
+        selectedDate = null;
+      } else {
+        _selectedEndDate = selected;
+
+        // ✅ IMPORTANT: when picking range, remove single-date mode
+        selectedDate = null;
+      }
+    });
+  }
 
   void _fetchDataBasedOnType() {
     final workType = ref.read(typeProvider);
@@ -117,22 +155,31 @@ class _DprWorkScreenState extends ConsumerState<DprWorkScreen> {
     });
   }
 
-  void pickDate() async {
-    final picked = await showDatePicker(
+  Future<void> pickDate() async {
+    final selected = await showDialog<DateTime>(
       context: context,
-      initialDate: selectedDate ?? DateTime.now(),
-      firstDate: DateTime(2000),
-      lastDate: DateTime(2100),
+      builder: (context) => BeautifulDatePicker(
+        initialDate: selectedDate ?? DateTime.now(),
+        firstDate: DateTime(2000),
+        lastDate: DateTime.now(),
+        title: "Select Date",
+        primaryColor: Colors.blue,
+        accentColor: Colors.blueAccent,
+        backgroundColor: Colors.white,
+      ),
     );
 
-    if (picked != null) {
-      setState(() {
-        selectedDate = picked;
-        _selectedStartDate = null;
-        _selectedEndDate = null;
-      });
-    }
+    if (selected == null) return;
+
+    setState(() {
+      selectedDate = selected;
+
+      // ✅ when using single date filter, clear range
+      _selectedStartDate = null;
+      _selectedEndDate = null;
+    });
   }
+
 
   void pickDateRange() async {
     final pickedRange = await showDateRangePicker(
@@ -254,47 +301,192 @@ class _DprWorkScreenState extends ConsumerState<DprWorkScreen> {
           children: [
             // Date Picker Section
             Padding(
-              padding: const EdgeInsets.all(10),
+              padding: const EdgeInsets.all(12),
               child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
                   Row(
                     children: [
+                      // ✅ FROM date
                       Expanded(
-                        child: GestureDetector(
-                          onTap: pickDate,
-                          child: Container(
-                            padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 14),
-                            decoration: BoxDecoration(
-                              color: Colors.white,
-                              borderRadius: BorderRadius.circular(8),
-                              border: Border.all(color: Colors.grey.shade400),
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            const Text(
+                              "From",
+                              style: TextStyle(
+                                fontSize: 13,
+                                fontWeight: FontWeight.w600,
+                                color: Colors.grey,
+                              ),
                             ),
-                            child: Text(
-                              _selectedStartDate != null && _selectedEndDate != null
-                                  ? '${DateFormat('yyyy-MM-dd').format(_selectedStartDate!)} → ${DateFormat('yyyy-MM-dd').format(_selectedEndDate!)}'
-                                  : selectedDate != null
-                                  ? DateFormat('yyyy-MM-dd').format(selectedDate!)
-                                  : 'Select Date',
-                              style: const TextStyle(fontSize: 16),
+                            const SizedBox(height: 6),
+                            GestureDetector(
+                              onTap: pickDateRange,
+                              child: Container(
+                                padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 12),
+                                decoration: BoxDecoration(
+                                  color: Colors.grey.shade50,
+                                  borderRadius: BorderRadius.circular(12),
+                                  border: Border.all(
+                                    color: _selectedStartDate != null
+                                        ? Colors.blue
+                                        : Colors.grey.shade300,
+                                    width: 1.5,
+                                  ),
+                                ),
+                                child: Row(
+                                  children: [
+                                    Icon(
+                                      Icons.calendar_today_rounded,
+                                      size: 18,
+                                      color: _selectedStartDate != null ? Colors.blue : Colors.grey,
+                                    ),
+                                    const SizedBox(width: 8),
+                                    Expanded(
+                                      child: Text(
+                                        _selectedStartDate != null
+                                            ? DateFormat('dd/MM/yyyy').format(_selectedStartDate!)
+                                            : "Select start date",
+                                        style: TextStyle(
+                                          fontSize: 14,
+                                          fontWeight: _selectedStartDate != null
+                                              ? FontWeight.w600
+                                              : FontWeight.w400,
+                                          color: _selectedStartDate != null
+                                              ? Colors.black
+                                              : Colors.grey.shade600,
+                                        ),
+                                      ),
+                                    ),
+                                  ],
+                                ),
+                              ),
                             ),
+                          ],
+                        ),
+                      ),
+
+                      const SizedBox(width: 12),
+
+                      // ✅ TO date
+                      Expanded(
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            const Text(
+                              "To",
+                              style: TextStyle(
+                                fontSize: 13,
+                                fontWeight: FontWeight.w600,
+                                color: Colors.grey,
+                              ),
+                            ),
+                            const SizedBox(height: 6),
+                            GestureDetector(
+                              onTap: pickDateRange,
+                              child: Container(
+                                padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 12),
+                                decoration: BoxDecoration(
+                                  color: Colors.grey.shade50,
+                                  borderRadius: BorderRadius.circular(12),
+                                  border: Border.all(
+                                    color: _selectedEndDate != null
+                                        ? Colors.blue
+                                        : Colors.grey.shade300,
+                                    width: 1.5,
+                                  ),
+                                ),
+                                child: Row(
+                                  children: [
+                                    Icon(
+                                      Icons.calendar_today_rounded,
+                                      size: 18,
+                                      color: _selectedEndDate != null ? Colors.blue : Colors.grey,
+                                    ),
+                                    const SizedBox(width: 8),
+                                    Expanded(
+                                      child: Text(
+                                        _selectedEndDate != null
+                                            ? DateFormat('dd/MM/yyyy').format(_selectedEndDate!)
+                                            : "Select end date",
+                                        style: TextStyle(
+                                          fontSize: 14,
+                                          fontWeight: _selectedEndDate != null
+                                              ? FontWeight.w600
+                                              : FontWeight.w400,
+                                          color: _selectedEndDate != null
+                                              ? Colors.black
+                                              : Colors.grey.shade600,
+                                        ),
+                                      ),
+                                    ),
+                                  ],
+                                ),
+                              ),
+                            ),
+                          ],
+                        ),
+                      ),
+
+                      // ✅ clear filter icon (cross) — keep this like you want
+                      if (selectedDate != null || (_selectedStartDate != null && _selectedEndDate != null))
+                        Padding(
+                          padding: const EdgeInsets.only(left: 8),
+                          child: InkWell(
+                            onTap: clearDateFilter,
+                            borderRadius: BorderRadius.circular(30),
+                            child: Container(
+                              padding: const EdgeInsets.all(10),
+                              decoration: BoxDecoration(
+                                color: Colors.red.shade50,
+                                shape: BoxShape.circle,
+                                border: Border.all(color: Colors.red.shade200),
+                              ),
+                              child: Icon(
+                                Icons.close,
+                                size: 18,
+                                color: Colors.red.shade700,
+                              ),
+                            ),
+                          ),
+                        ),
+                    ],
+                  ),
+
+                  const SizedBox(height: 10),
+
+                  // ✅ quick action buttons row (single date + date range)
+                  Row(
+                    children: [
+                      Expanded(
+                        child: OutlinedButton.icon(
+                          onPressed: pickDate,
+                          icon: const Icon(Icons.event_available),
+                          label: const Text("Single Date"),
+                          style: OutlinedButton.styleFrom(
+                            padding: const EdgeInsets.symmetric(vertical: 12),
+                            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
                           ),
                         ),
                       ),
                       const SizedBox(width: 10),
-                      IconButton(
-                        icon: const Icon(Icons.date_range),
-                        onPressed: pickDateRange,
-                        tooltip: 'Select Date Range',
-                      ),
-                      if (selectedDate != null || (_selectedStartDate != null && _selectedEndDate != null))
-                        IconButton(
-                          icon: const Icon(Icons.clear),
-                          onPressed: clearDateFilter,
-                          tooltip: 'Clear Filter',
+                      Expanded(
+                        child: ElevatedButton.icon(
+                          onPressed: pickDateRange,
+                          icon: const Icon(Icons.date_range),
+                          label: const Text("Date Range"),
+                          style: ElevatedButton.styleFrom(
+                            padding: const EdgeInsets.symmetric(vertical: 12),
+                            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                          ),
                         ),
+                      ),
                     ],
                   ),
-                  const SizedBox(height: 5),
+
+                  const SizedBox(height: 8),
+
                   Text(
                     workType == WorkType.mechanical ? 'Mechanical Works' : 'Insulation Works',
                     style: TextStyle(
@@ -306,6 +498,7 @@ class _DprWorkScreenState extends ConsumerState<DprWorkScreen> {
                 ],
               ),
             ),
+
 
             // Loading / Error / List
             Expanded(

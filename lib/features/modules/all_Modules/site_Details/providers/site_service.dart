@@ -89,8 +89,7 @@ class SiteAPI {
     }
   }
 
-
-  static Future<dynamic> uploadFile(
+  static Future<Map<String, dynamic>> uploadFile(
       File file,
       String type, {
         String? siteId,
@@ -102,54 +101,18 @@ class SiteAPI {
       ),
     });
 
-    try {
-      final response = await dio.post(
-        '/site/ocr',
-        queryParameters: {
-          'type': type,
-          if (siteId != null) 'siteId': siteId,
-        },
-        data: formData,
-      );
+    final response = await dio.post(
+      '/site/ocr',
+      queryParameters: {
+        'type': type,
+        if (siteId != null) 'siteId': siteId,
+      },
+      data: formData,
+    );
 
-      return response.data;
-    }on DioException catch (e) {
-      String errorMessage = 'Upload failed. Please try again.';
-
-      try {
-        final data = e.response?.data;
-
-        if (data != null) {
-          if (data is Map<String, dynamic>) {
-            final backendMessage =
-                data['message'] ??
-                    data['error'] ??
-                    data['detail'] ??
-                    data['description'];
-
-            if (backendMessage is String && backendMessage.isNotEmpty) {
-              errorMessage = backendMessage;
-            } else if (backendMessage is List) {
-              errorMessage = backendMessage.join(', ');
-            }
-          } else if (data is String && data.isNotEmpty) {
-            errorMessage = data;
-          }
-        }
-
-        // Debug only (never show to user)
-        print('Dio status: ${e.response?.statusCode}');
-        print('Dio response: ${e.response?.data}');
-      } catch (parseError) {
-        print('Error parsing backend message: $parseError');
-      }
-
-      throw Exception(errorMessage);
-    }
-    catch (e) {
-      throw Exception('Unexpected error occurred.');
-    }
+    return response.data as Map<String, dynamic>;
   }
+
 
 
   static Future<Map<String, dynamic>> createSite(

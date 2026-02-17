@@ -6,10 +6,14 @@ import 'package:untitled2/core/api/requestQueue.dart';
 import 'package:untitled2/core/api/requestQueueModel.dart';
 import 'package:cookie_jar/cookie_jar.dart';
 import 'package:dio_cookie_manager/dio_cookie_manager.dart';
+import 'package:untitled2/core/api/sync_job.dart';
 
 import '../utlis/common_functions.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 class DioClient {
+  static  ProviderContainer? syncRef;
+
   static late CookieJar cookieJar;
   static final Dio dio = Dio(BaseOptions(
     baseUrl: "https://be-vayuxi-chi.vercel.app/api/v1",
@@ -40,10 +44,7 @@ class DioClient {
         } else {
           for (final cookie in cookies) {
             print("   🍪 ${cookie.name}=${cookie.value}");
-            print("     Domain: ${cookie.domain}");
-            print("     Path: ${cookie.path}");
-            print("     Secure: ${cookie.secure}");
-            print("     HttpOnly: ${cookie.httpOnly}");
+
           }
         }
       } catch (e) {
@@ -79,6 +80,8 @@ class DioClient {
     // Create interceptor wrapper
     final interceptor = InterceptorsWrapper(
       onRequest: (options, handler) async {
+
+
         final prefs = await SharedPreferences.getInstance();
         final token = prefs.getString('auth_token');
         if (token != null) {
@@ -90,10 +93,10 @@ class DioClient {
 
         print("🍪 Cookies being sent:");
         final cookies = await cookieJar.loadForRequest(options.uri);
-        print("   $cookies");
+
 
         print("➡️ Sending request: ${options.method} ${options.uri}");
-        print("   Headers: ${options.headers}");
+
 
         // Check if device ID cookie exists
         final deviceIdCookie = cookies.firstWhere(
@@ -101,9 +104,7 @@ class DioClient {
           orElse: () => Cookie('', ''),
         );
 
-        if (deviceIdCookie.value.isNotEmpty) {
-          print("📱 Device ID Cookie: ${deviceIdCookie.value}");
-        }
+
 
         // FIX: Properly handle FormData logging
         if (options.data is FormData) {
@@ -159,9 +160,15 @@ class DioClient {
             });
           });
         } else if (requestOptions.data is Map<String, dynamic>) {
-          // Force deep JSON serialization
           jsonData = _safeJson(requestOptions.data);
         }
+        else if (requestOptions.data is List) {
+          jsonData = {
+            "__isList": true,
+            "data": requestOptions.data
+          };
+        }
+
 
         // Only queue network errors, not server errors
         List<Map<String, String>> _extractFiles(FormData formData) {
@@ -174,6 +181,7 @@ class DioClient {
           }).toList();
         }
 
+
         // Queue the request
         final queuedReq = QueuedRequest(
           method: requestOptions.method,
@@ -184,7 +192,38 @@ class DioClient {
           contentType: requestOptions.data is FormData ? "form" : "json",
         );
 
-        await RequestQueue.add(queuedReq);
+        // ✅ queue ONLY if network problem
+        if (e.type == DioExceptionType.connectionError ||
+            e.type == DioExceptionType.connectionTimeout ||
+            e.type == DioExceptionType.receiveTimeout ||
+            e.type == DioExceptionType.sendTimeout ||
+            e.type == DioExceptionType.unknown) {
+          print("QUEUE RAW:");
+          print(queuedReq.toJson());
+
+          await RequestQueue.add(queuedReq);
+          print(DioClient.syncRef);
+
+
+          final label = buildTaskLabel(
+            requestOptions.method,
+            requestOptions.path,
+          );
+
+          syncRef?.read(syncJobsProvider.notifier)
+              .addQueued(queuedReq.id, label);
+
+          print("🔥 PROVIDER ADD CALLED");
+
+
+          print("📌 Queued: ${queuedReq.path}");
+          await RequestQueue.add(queuedReq);
+          print("📌 Saved request to queue: ${queuedReq.method} ${queuedReq.path}");
+
+        } else {
+          print("🚫 Not queued (server/client error)");
+        }
+
 
         print("📌 Saved request to queue: ${queuedReq.method} ${queuedReq.path}");
         if (queuedReq.data != null) print("   Saved data: ${queuedReq.data}");

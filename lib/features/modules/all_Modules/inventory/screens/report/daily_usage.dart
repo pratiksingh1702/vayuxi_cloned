@@ -15,6 +15,7 @@ import 'package:untitled2/core/utlis/widgets/buttons.dart';
 import '../../../../../../core/utlis/colors/colors.dart';
 import '../../../../../../core/utlis/widgets/custom_appBar.dart';
 import '../../../site_Details/providers/site_current_provider.dart';
+import '../../models/inventory_model.dart';
 import '../../provider/inventory_provider.dart';
 import '../edit_inventory.dart';
 
@@ -55,11 +56,31 @@ class _BeautifulDatePickerState extends State<BeautifulDatePicker> {
     _focusedDate = widget.initialDate ?? DateTime.now();
   }
 
+  DateTime normalize(DateTime d) => DateTime(d.year, d.month, d.day);
+
+  DateTime clampFocusedDay({
+    required DateTime focusedDay,
+    required DateTime firstDay,
+    required DateTime lastDay,
+  }) {
+    if (focusedDay.isAfter(lastDay)) return lastDay;
+    if (focusedDay.isBefore(firstDay)) return firstDay;
+    return focusedDay;
+  }
+
   @override
   Widget build(BuildContext context) {
-    final primaryColor= AppColors.primaryColor;
-    final accentColor=AppColors.accentColor;
-    final backgroundColor= AppColors.lightBlue;
+    final primaryColor = AppColors.primaryColor;
+    final accentColor = AppColors.accentColor;
+    final backgroundColor = AppColors.lightBlue;
+    final firstDay = DateTime(2020, 1, 1);
+    final lastDay = normalize(DateTime.now());
+
+    final safeFocusedDay = clampFocusedDay(
+      focusedDay: normalize(_focusedDate),
+      firstDay: firstDay,
+      lastDay: lastDay,
+    );
 
     return Dialog(
       backgroundColor: backgroundColor,
@@ -99,7 +120,8 @@ class _BeautifulDatePickerState extends State<BeautifulDatePicker> {
 
               // Selected date display
               Container(
-                padding: const EdgeInsets.symmetric(vertical: 12, horizontal: 16),
+                padding:
+                    const EdgeInsets.symmetric(vertical: 12, horizontal: 16),
                 decoration: BoxDecoration(
                   color: primaryColor.withOpacity(0.1),
                   borderRadius: BorderRadius.circular(12),
@@ -140,16 +162,18 @@ class _BeautifulDatePickerState extends State<BeautifulDatePicker> {
                 child: TableCalendar(
                   firstDay: widget.firstDate,
                   lastDay: widget.lastDate,
-                  focusedDay: _focusedDate,
+                  focusedDay: safeFocusedDay,
                   selectedDayPredicate: (day) => isSameDay(_selectedDate, day),
+
                   onDaySelected: (selectedDay, focusedDay) {
                     setState(() {
-                      _selectedDate = selectedDay;
-                      _focusedDate = focusedDay;
+                      _selectedDate = normalize(selectedDay);
+                      _focusedDate = normalize(focusedDay);
                     });
                   },
+
                   onPageChanged: (focusedDay) {
-                    _focusedDate = focusedDay;
+                    _focusedDate = normalize(focusedDay);
                   },
                   calendarFormat: _calendarFormat,
                   onFormatChanged: (format) {
@@ -160,8 +184,10 @@ class _BeautifulDatePickerState extends State<BeautifulDatePicker> {
 
                   // Calendar styling
                   calendarStyle: CalendarStyle(
-                    defaultTextStyle: const TextStyle(fontWeight: FontWeight.w500),
-                    weekendTextStyle: const TextStyle(fontWeight: FontWeight.w500),
+                    defaultTextStyle:
+                        const TextStyle(fontWeight: FontWeight.w500),
+                    weekendTextStyle:
+                        const TextStyle(fontWeight: FontWeight.w500),
                     selectedTextStyle: TextStyle(
                       fontWeight: FontWeight.bold,
                       color: Colors.white,
@@ -195,8 +221,10 @@ class _BeautifulDatePickerState extends State<BeautifulDatePicker> {
                       borderRadius: BorderRadius.circular(8),
                     ),
                     formatButtonTextStyle: const TextStyle(color: Colors.white),
-                    leftChevronIcon: Icon(Icons.chevron_left, color: primaryColor),
-                    rightChevronIcon: Icon(Icons.chevron_right, color: primaryColor),
+                    leftChevronIcon:
+                        Icon(Icons.chevron_left, color: primaryColor),
+                    rightChevronIcon:
+                        Icon(Icons.chevron_right, color: primaryColor),
                     titleTextStyle: TextStyle(
                       color: primaryColor,
                       fontSize: 16,
@@ -281,7 +309,20 @@ class _BeautifulDatePickerState extends State<BeautifulDatePicker> {
   }
 
   String _getMonthName(DateTime date) {
-    return ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'][date.month - 1];
+    return [
+      'Jan',
+      'Feb',
+      'Mar',
+      'Apr',
+      'May',
+      'Jun',
+      'Jul',
+      'Aug',
+      'Sep',
+      'Oct',
+      'Nov',
+      'Dec'
+    ][date.month - 1];
   }
 }
 
@@ -289,7 +330,8 @@ class DailyUsagePage extends ConsumerStatefulWidget {
   final DateTime? selectedStartDate;
   final DateTime? selectedEndDate;
 
-  const DailyUsagePage({super.key,this.selectedStartDate,this.selectedEndDate});
+  const DailyUsagePage(
+      {super.key, this.selectedStartDate, this.selectedEndDate});
 
   @override
   ConsumerState<DailyUsagePage> createState() => _DailyUsagePageState();
@@ -326,6 +368,17 @@ class _DailyUsagePageState extends ConsumerState<DailyUsagePage> {
     }
   }
 
+  DateTime normalize(DateTime d) => DateTime(d.year, d.month, d.day);
+  DateTime clampFocusedDay({
+    required DateTime focusedDay,
+    required DateTime firstDay,
+    required DateTime lastDay,
+  }) {
+    if (focusedDay.isAfter(lastDay)) return lastDay;
+    if (focusedDay.isBefore(firstDay)) return firstDay;
+    return focusedDay;
+  }
+
   // Function to show BeautifulDatePicker for end date
   Future<void> _showEndDatePicker() async {
     final date = await showDialog<DateTime>(
@@ -360,7 +413,8 @@ class _DailyUsagePageState extends ConsumerState<DailyUsagePage> {
         ? DateFormat('dd/MM/yyyy').format(_selectedEndDate!)
         : DateFormat('dd/MM/yyyy').format(_selectedStartDate!);
 
-    final sheetName = "Daily Usage Report $startDateStr${_selectedEndDate != null ? ' to $endDateStr' : ''}";
+    final sheetName =
+        "Daily Usage Report $startDateStr${_selectedEndDate != null ? ' to $endDateStr' : ''}";
 
     showModalBottomSheet(
       context: context,
@@ -516,27 +570,18 @@ class _DailyUsagePageState extends ConsumerState<DailyUsagePage> {
 
       // Save to temporary directory for sharing
       final tempDir = await getTemporaryDirectory();
-      final fileName = "daily_usage_${DateFormat('yyyyMMdd').format(_selectedStartDate!)}_${_selectedEndDate != null ? DateFormat('yyyyMMdd').format(_selectedEndDate!) : DateFormat('yyyyMMdd').format(_selectedStartDate!)}.xlsx";
-      final tempPath = '${tempDir.path}/$fileName';
-      final tempFile = File(tempPath);
+      final fileName =
+          "daily_usage_${DateFormat('yyyyMMdd').format(_selectedStartDate!)}_${_selectedEndDate != null ? DateFormat('yyyyMMdd').format(_selectedEndDate!) : DateFormat('yyyyMMdd').format(_selectedStartDate!)}.xlsx";
 
-      await tempFile.writeAsBytes(bytes, flush: true);
-      debugPrint('💾 Temporary report saved for sharing: $tempPath');
+      final file = File('${tempDir.path}/$fileName');
+
+      await file.writeAsBytes(bytes, flush: true);
 
       // Share the file
       await Share.shareXFiles(
-        [XFile(tempPath, mimeType: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet')],
-        text: 'Daily Usage Report - ${DateFormat('dd/MM/yyyy').format(_selectedStartDate!)}${_selectedEndDate != null ? ' to ${DateFormat('dd/MM/yyyy').format(_selectedEndDate!)}' : ''}',
-        subject: 'Daily Inventory Usage Report',
+        [XFile(file.path)],
+        text: 'Inventory report',
       );
-
-      // Clean up temp file after a delay
-      Future.delayed(const Duration(seconds: 30), () {
-        if (tempFile.existsSync()) {
-          tempFile.deleteSync();
-          debugPrint('🗑️ Temporary file deleted: $tempPath');
-        }
-      });
 
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(
@@ -544,7 +589,6 @@ class _DailyUsagePageState extends ConsumerState<DailyUsagePage> {
           backgroundColor: Colors.green,
         ),
       );
-
     } catch (e) {
       debugPrint('❌ Share report failed: $e');
       ScaffoldMessenger.of(context).showSnackBar(
@@ -558,6 +602,82 @@ class _DailyUsagePageState extends ConsumerState<DailyUsagePage> {
         isLoading = false;
         isDownloading = false;
       });
+    }
+  }
+
+  Future<void> _saveMobile(Uint8List bytes, String fileName) async {
+    try {
+      final String? outputPath = await FilePicker.platform.saveFile(
+        dialogTitle: 'Save File',
+        fileName: fileName,
+        bytes: bytes,
+      );
+
+      if (outputPath != null) {
+        debugPrint('💾 File saved to: $outputPath');
+
+        final result = await OpenFile.open(outputPath);
+        debugPrint('📂 Open file result: ${result.type} - ${result.message}');
+
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                const Text('✅ File saved successfully!'),
+                const SizedBox(height: 8),
+                Row(
+                  children: [
+                    Expanded(
+                      child: ElevatedButton.icon(
+                        onPressed: () => OpenFile.open(outputPath),
+                        icon: const Icon(Icons.open_in_new, size: 16),
+                        label: const Text('Open'),
+                      ),
+                    ),
+                    const SizedBox(width: 8),
+                    Expanded(
+                      child: ElevatedButton.icon(
+                        onPressed: () async {
+                          final mimeType = fileName.endsWith('.pdf')
+                              ? 'application/pdf'
+                              : 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet';
+
+                          await Share.shareXFiles(
+                            [XFile(outputPath, mimeType: mimeType)],
+                            text: 'Check out this file',
+                          );
+                        },
+                        icon: const Icon(Icons.share, size: 16),
+                        label: const Text('Share'),
+                      ),
+                    ),
+                  ],
+                ),
+              ],
+            ),
+            backgroundColor: Colors.green,
+            duration: const Duration(seconds: 8),
+          ),
+        );
+      } else {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(
+            content: Text('Save operation canceled.'),
+            backgroundColor: Colors.orange,
+          ),
+        );
+      }
+    } catch (e) {
+      debugPrint('❌ File save error: $e');
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text('Failed to save file: ${e.toString()}'),
+          backgroundColor: Colors.red,
+          duration: const Duration(seconds: 5),
+        ),
+      );
     }
   }
 
@@ -600,7 +720,6 @@ class _DailyUsagePageState extends ConsumerState<DailyUsagePage> {
       } else {
         await _saveDesktopReport(bytes);
       }
-
     } catch (e) {
       debugPrint('❌ Download report failed: $e');
       ScaffoldMessenger.of(context).showSnackBar(
@@ -658,7 +777,8 @@ class _DailyUsagePageState extends ConsumerState<DailyUsagePage> {
   // Save report on mobile devices
   Future<void> _saveMobileReport(Uint8List bytes) async {
     try {
-      final fileName = "daily_usage_${DateFormat('yyyyMMdd').format(_selectedStartDate!)}${_selectedEndDate != null ? '_to_${DateFormat('yyyyMMdd').format(_selectedEndDate!)}' : ''}.xlsx";
+      final fileName =
+          "daily_usage_${DateFormat('yyyyMMdd').format(_selectedStartDate!)}${_selectedEndDate != null ? '_to_${DateFormat('yyyyMMdd').format(_selectedEndDate!)}' : ''}.xlsx";
 
       final String? outputPath = await FilePicker.platform.saveFile(
         dialogTitle: 'Save Daily Usage Report',
@@ -696,8 +816,13 @@ class _DailyUsagePageState extends ConsumerState<DailyUsagePage> {
                       child: ElevatedButton.icon(
                         onPressed: () async {
                           await Share.shareXFiles(
-                            [XFile(outputPath, mimeType: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet')],
-                            text: 'Daily Usage Report - ${DateFormat('dd/MM/yyyy').format(_selectedStartDate!)}${_selectedEndDate != null ? ' to ${DateFormat('dd/MM/yyyy').format(_selectedEndDate!)}' : ''}',
+                            [
+                              XFile(outputPath,
+                                  mimeType:
+                                      'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet')
+                            ],
+                            text:
+                                'Daily Usage Report - ${DateFormat('dd/MM/yyyy').format(_selectedStartDate!)}${_selectedEndDate != null ? ' to ${DateFormat('dd/MM/yyyy').format(_selectedEndDate!)}' : ''}',
                           );
                         },
                         icon: const Icon(Icons.share, size: 16),
@@ -728,7 +853,8 @@ class _DailyUsagePageState extends ConsumerState<DailyUsagePage> {
 
   // Save report on desktop
   Future<void> _saveDesktopReport(Uint8List bytes) async {
-    final fileName = "daily_usage_${DateFormat('yyyyMMdd').format(_selectedStartDate!)}${_selectedEndDate != null ? '_to_${DateFormat('yyyyMMdd').format(_selectedEndDate!)}' : ''}.xlsx";
+    final fileName =
+        "daily_usage_${DateFormat('yyyyMMdd').format(_selectedStartDate!)}${_selectedEndDate != null ? '_to_${DateFormat('yyyyMMdd').format(_selectedEndDate!)}' : ''}.xlsx";
 
     final path = await FilePicker.platform.saveFile(
       dialogTitle: 'Save Daily Usage Report',
@@ -812,8 +938,18 @@ class _DailyUsagePageState extends ConsumerState<DailyUsagePage> {
         body: Center(child: Text("No site selected")),
       );
     }
+    final firstDay = DateTime(2020, 1, 1);
+    final lastDay = normalize(DateTime.now());
 
-    final dailyUsageAsync = ref.watch(dailyUsageProvider((siteId: siteId, date: _selectedStartDate)));
+    final inventoriesAsync = ref.watch(inventoryProvider(siteId));
+
+    final usageAsync = ref.watch(
+      inventoryUsageRangeProvider((
+        siteId: siteId,
+        startDate: _selectedStartDate,
+        endDate: _selectedEndDate,
+      )),
+    );
 
     return Scaffold(
       appBar: CustomAppBar(title: "Daily Inventory Usage"),
@@ -826,7 +962,8 @@ class _DailyUsagePageState extends ConsumerState<DailyUsagePage> {
                   text: "Download Report",
                   color: Colors.blue,
                   textColor: Colors.white,
-                  onPressed: _showShareOrDownloadDialog, // Updated to show dialog
+                  onPressed:
+                      _showShareOrDownloadDialog, // Updated to show dialog
                 ),
               ),
             ],
@@ -847,7 +984,8 @@ class _DailyUsagePageState extends ConsumerState<DailyUsagePage> {
                               borderRadius: BorderRadius.circular(16),
                               border: Border.all(color: Colors.grey.shade300),
                             ),
-                            padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 14),
+                            padding: const EdgeInsets.symmetric(
+                                horizontal: 12, vertical: 14),
                             child: Row(
                               children: [
                                 Icon(
@@ -859,11 +997,14 @@ class _DailyUsagePageState extends ConsumerState<DailyUsagePage> {
                                 Expanded(
                                   child: Text(
                                     _selectedStartDate != null
-                                        ? DateFormat('dd/MM/yyyy').format(_selectedStartDate!)
+                                        ? DateFormat('dd/MM/yyyy')
+                                            .format(_selectedStartDate!)
                                         : "Start Date",
                                     style: TextStyle(
                                       fontSize: 14,
-                                      color: _selectedStartDate != null ? Colors.black : Colors.grey,
+                                      color: _selectedStartDate != null
+                                          ? Colors.black
+                                          : Colors.grey,
                                       fontWeight: FontWeight.w500,
                                     ),
                                   ),
@@ -886,7 +1027,8 @@ class _DailyUsagePageState extends ConsumerState<DailyUsagePage> {
                               borderRadius: BorderRadius.circular(16),
                               border: Border.all(color: Colors.grey.shade300),
                             ),
-                            padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 14),
+                            padding: const EdgeInsets.symmetric(
+                                horizontal: 12, vertical: 14),
                             child: Row(
                               children: [
                                 Icon(
@@ -898,11 +1040,14 @@ class _DailyUsagePageState extends ConsumerState<DailyUsagePage> {
                                 Expanded(
                                   child: Text(
                                     _selectedEndDate != null
-                                        ? DateFormat('dd/MM/yyyy').format(_selectedEndDate!)
+                                        ? DateFormat('dd/MM/yyyy')
+                                            .format(_selectedEndDate!)
                                         : "End Date",
                                     style: TextStyle(
                                       fontSize: 14,
-                                      color: _selectedEndDate != null ? Colors.black : Colors.grey,
+                                      color: _selectedEndDate != null
+                                          ? Colors.black
+                                          : Colors.grey,
                                       fontWeight: FontWeight.w500,
                                     ),
                                   ),
@@ -918,68 +1063,95 @@ class _DailyUsagePageState extends ConsumerState<DailyUsagePage> {
 
                 // List of usages
                 Expanded(
-                  child: dailyUsageAsync.when(
-                    data: (usages) {
-                      if (usages.isEmpty) {
-                        return const Center(
-                            child: Text("No usage records found."));
-                      }
-                      return ListView.builder(
-                        padding: const EdgeInsets.only(bottom: 12),
-                        itemCount: usages.length,
-                        itemBuilder: (context, index) {
-                          final usage = usages[index];
-                          return Card(
-                            elevation: 0,
-                            color: Colors.white,
-                            margin: const EdgeInsets.symmetric(
-                                horizontal: 12, vertical: 6),
-                            child: ListTile(
-                              title: Text(usage.displayItemName),
-                              trailing: IconButton(
-                                  onPressed: () {
-                                    if (usage.inventory != null) {
-                                      Navigator.push(
-                                        context,
-                                        MaterialPageRoute(
-                                          builder: (_) => EditInventoryScreen(
-                                              inventory: usage.inventory!),
+                  child: inventoriesAsync.when(
+                    loading: () =>
+                        const Center(child: CircularProgressIndicator()),
+                    error: (e, _) => Center(child: Text("Inventory error: $e")),
+                    data: (inventories) {
+                      return usageAsync.when(
+                        loading: () =>
+                            const Center(child: CircularProgressIndicator()),
+                        error: (e, _) => Center(child: Text("Usage error: $e")),
+                        data: (usages) {
+                          if (usages.isEmpty) {
+                            return const Center(
+                                child: Text("No usage records found."));
+                          }
+
+                          return ListView.builder(
+                            padding: const EdgeInsets.only(bottom: 12),
+                            itemCount: usages.length,
+                            itemBuilder: (context, index) {
+                              final usage = usages[index];
+
+                              // 🔥 JOIN HAPPENS HERE
+                              final inventory = inventories.firstWhere(
+                                (i) => i.id == usage.inventory,
+                                orElse: () => Inventory(
+                                  id: '',
+                                  name: 'Unknown Item',
+                                  category: Category(id: '', name: '', type: '')
+                                ,
+                                  type: '',
+                                  createdAt: DateTime.now(),
+                                ),
+                              );
+
+                              return Card(
+                                elevation: 0,
+                                color: Colors.white,
+                                margin: const EdgeInsets.symmetric(
+                                    horizontal: 12, vertical: 6),
+                                child: ListTile(
+                                  title: Text(inventory.name),
+                                  trailing: inventory.id.isEmpty
+                                      ? null
+                                      : IconButton(
+                                          icon: const Icon(Icons.edit_outlined),
+                                          onPressed: () {
+                                            Navigator.push(
+                                              context,
+                                              MaterialPageRoute(
+                                                builder: (_) =>
+                                                    EditInventoryScreen(
+                                                        inventory: inventory),
+                                              ),
+                                            );
+                                          },
                                         ),
-                                      );
-                                    }
-                                  },
-                                  icon: const Icon(Icons.edit_outlined)),
-                              subtitle: Column(
-                                crossAxisAlignment: CrossAxisAlignment.start,
-                                children: [
-                                  Text(
-                                      "Category: ${usage.displayCategoryName} | Subcategory: ${usage.displaySubcategoryName}"),
-                                  Text(
-                                      "Quantity Used: ${usage.quantityUsed} ${usage.inventory?.uom ?? ''}"),
-                                  Text("Used By: ${usage.usedByName ?? 'Unknown'}"),
-                                  Text(
-                                      "Date: ${DateFormat('dd/MM/yyyy').format(usage.usageDate)}"),
-                                ],
-                              ),
-                              onTap: () {
-                                if (usage.inventory != null) {
-                                  Navigator.push(
-                                    context,
-                                    MaterialPageRoute(
-                                      builder: (_) => EditInventoryScreen(
-                                          inventory: usage.inventory!),
-                                    ),
-                                  );
-                                }
-                              },
-                            ),
+                                  subtitle: Column(
+                                    crossAxisAlignment:
+                                        CrossAxisAlignment.start,
+                                    children: [
+                                      Text("Type: ${inventory.type}"),
+                                      Text(
+                                        "Quantity: ${usage.quantityUsed} ${inventory.uom ?? ''}",
+                                      ),
+                                      Text("Used By: ${usage.usedByName}"),
+                                      Text(
+                                        "Date: ${DateFormat('dd/MM/yyyy').format(usage.usageDate)}",
+                                      ),
+                                    ],
+                                  ),
+                                  onTap: inventory.id.isEmpty
+                                      ? null
+                                      : () {
+                                          Navigator.push(
+                                            context,
+                                            MaterialPageRoute(
+                                              builder: (_) =>
+                                                  EditInventoryScreen(
+                                                      inventory: inventory),
+                                            ),
+                                          );
+                                        },
+                                ),
+                              );
+                            },
                           );
                         },
                       );
                     },
-                    loading: () =>
-                    const Center(child: CircularProgressIndicator()),
-                    error: (e, _) => Center(child: Text("Error: $e")),
                   ),
                 ),
               ],

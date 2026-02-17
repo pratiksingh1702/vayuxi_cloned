@@ -22,6 +22,27 @@ class RateApiClient {
       return _handleError(e);
     }
   }
+  Future<Map<String, dynamic>> uploadCsvWithProgress({
+    required FormData data,
+    required String type,
+    required String siteId,
+    required void Function(int sent, int total) onProgress,
+  }) async {
+    try {
+      final response = await _dio.post(
+        '/site/$siteId/rate/upload-csv',
+        data: data,
+        queryParameters: {'type': type},
+        options: Options(headers: {'Content-Type': 'multipart/form-data'}),
+        onSendProgress: onProgress,
+      );
+
+      return {'success': true, 'data': response.data};
+    } catch (e) {
+      return _handleError(e);
+    }
+  }
+
 
   // Post new rate
   Future<Map<String, dynamic>> postRate(

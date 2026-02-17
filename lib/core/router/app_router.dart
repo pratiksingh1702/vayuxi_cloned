@@ -41,7 +41,9 @@ import '../../features/modules/all_Modules/expense/screens/expense_screen.dart';
 import '../../features/modules/all_Modules/expense/screens/view_sheet.dart';
 import '../../features/modules/all_Modules/inventory/screens/add_bulk_inven.dart';
 import '../../features/modules/all_Modules/inventory/screens/add_inven.dart';
+import '../../features/modules/all_Modules/inventory/screens/inv_usage/checkout_managment_page.dart';
 import '../../features/modules/all_Modules/inventory/screens/inv_usage/inv_usage.dart';
+import '../../features/modules/all_Modules/inventory/screens/inv_usage/inventory_cat.dart';
 import '../../features/modules/all_Modules/inventory/screens/inventory_list.dart';
 import '../../features/modules/all_Modules/inventory/screens/report/daily_usage.dart';
 import '../../features/modules/all_Modules/inventory/screens/view_add_inventory_setup.dart';
@@ -69,85 +71,68 @@ import '../../features/modules/screen/module_detail.dart';
 import '../../work_cat.dart';
 import '../../core/router/routes.dart';
 import '../utlis/widgets/date_picker_Screen.dart';
+import 'app_access.dart';
 import 'go_router_refresh.dart';
+import 'package:bot_toast/bot_toast.dart';
+
 final appRouterProvider = Provider<GoRouter>((ref) {
-  final authState = ref.watch(authProvider);
+
 
 
   return GoRouter(
     initialLocation: Routes.splash,
     debugLogDiagnostics: true,
+    refreshListenable: ref.watch(routerRefreshProvider),
+
+
+
 
     redirect: (context, state) {
-      final authState = ref.watch(authProvider);
-      final isLoading = authState.isLoading;
-      final loggedIn = authState.isLoggedIn;
+      final access = ref.read(appAccessProvider);
+      print("BOOT:${access.isBooting}  LOGIN:${access.loggedIn}");
 
       final loggingIn = state.matchedLocation == Routes.login;
       final registering = state.matchedLocation == '/register';
       final manpowerLoggingIn = state.matchedLocation == '/manpower-login';
 
       final atSplash = state.matchedLocation == Routes.splash;
-      final atTrial = state.matchedLocation == '/trial';
-
-      print(
-        '🔄 ROUTER REDIRECT - isLoading: $isLoading, loggedIn: $loggedIn, location: ${state.matchedLocation}',
-      );
-
-      // 1️⃣ EXISTING: If still loading, stay at splash
-      if (isLoading && !atSplash) {
-        return Routes.splash;
-      }
-
-      // 2️⃣ EXISTING: Public routes
-      final publicRoutes = [
+      const publicRoutes = {
         Routes.login,
+          '/manpower-login',
         '/register',
-        '/manpower-login',
-      ];
+        '/trial',
+      };
 
-      // 3️⃣ EXISTING: Not logged in → force login
-      if (!isLoading && !loggedIn && !publicRoutes.contains(state.matchedLocation)) {
-        return Routes.login;
+      if (access.isBooting) return Routes.splash;
+
+      final isPublic = publicRoutes.contains(state.matchedLocation);
+
+      /// NOT LOGGED IN → only public allowed
+      if (!access.loggedIn&&!access.isBooting) {
+        return isPublic ? null : Routes.login;
       }
 
-      // 🔥 NEW: Logged in → check subscription
-      if (loggedIn) {
-        final subscriptionAsync = ref.watch(currentSubscriptionProvider);
-
-        return subscriptionAsync.when(
-          loading: () => null, // wait silently
-          error: (_, __) {
-            // fail-safe: no subscription → trial
-            if (!atTrial) return '/trial';
-            return null;
-          },
-          data: (subscription) {
-            // 🚫 NO SUBSCRIPTION → FORCE TRIAL
-            if (!subscription.hasSubscription && !atTrial) {
-              return '/trial';
-            }
-
-            // ✅ HAS SUBSCRIPTION → NORMAL FLOW
-            if (subscription.hasSubscription &&
-                (loggingIn || manpowerLoggingIn || atSplash || atTrial)) {
-              return Routes.workCategory;
-            }
-
-            return null;
-          },
-        );
-      }
-
-      // 4️⃣ EXISTING: Logged in & hitting login/splash
-      if (!isLoading && loggedIn && (loggingIn || manpowerLoggingIn || atSplash)) {
+      /// LOGGED IN → prevent going back to auth pages
+      if (access.loggedIn && (loggingIn || manpowerLoggingIn || atSplash)) {
         return Routes.workCategory;
       }
+
+      /// NOW check subscription (only for logged users)
+      // if (!access.hasSubscription &&
+      //     state.matchedLocation != '/trial') {
+      //   return '/trial';
+      // }
 
       return null;
     },
 
+
+    observers: [
+      BotToastNavigatorObserver(), // ✅ correct place
+    ],
+
     routes: [
+
       GoRoute(
         path: Routes.splash,
         builder: (context, state) => const SplashScreen(),
@@ -205,7 +190,8 @@ final appRouterProvider = Provider<GoRouter>((ref) {
                     MaterialPageRoute(builder: (context) => SheetDownloadPage(selectedStartDate: startDate,selectedEndDate: endDate,)),
                   ); },);
                   case 'inv-entry':
-                    return InventorySelectionPage();
+                    // return InventorySelectionPage();
+                  return InventoryCategorySelectionScreen();
                 case 'inv-setup':
                   return ViewAddInventorySetup();
                   case 'inv-Report':
@@ -311,7 +297,8 @@ final appRouterProvider = Provider<GoRouter>((ref) {
       GoRoute(
         path: '/upcoming-update',
         builder: (context, state) {
-          return ConstructionSiteScreen();
+          return Updates();
+          // return ConstructionSiteScreen();
 
 
         },
@@ -335,8 +322,7 @@ final appRouterProvider = Provider<GoRouter>((ref) {
       GoRoute(
         path: '/help',
         builder: (context, state) {
-          // return HelpCenterScreen();
-          return DateRangeSelectionScreen(onDatesSelected: (DateTime startDate, DateTime endDate) {  },);
+          return HelpCenterScreen();
 
 
         },

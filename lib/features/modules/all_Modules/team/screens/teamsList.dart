@@ -6,9 +6,11 @@ import 'package:untitled2/core/utlis/widgets/Button_wrapper.dart';
 import 'package:untitled2/core/utlis/widgets/buttons.dart';
 import '../../../../../core/utlis/common_functions.dart';
 import '../../../../../core/utlis/widgets/custom_appBar.dart';
+import '../../../../../core/utlis/widgets/sidebar.dart';
 import '../../../../../typeProvider/type_provider.dart';
 import '../../site_Details/providers/site_current_provider.dart';
 import '../../site_Details/repository/siteModel.dart';
+import '../model/teamModel.dart';
 import '../provider/teamProvider.dart';
 import '../provider/teamService.dart';
 
@@ -30,14 +32,16 @@ class _TeamListPageState extends ConsumerState<TeamListPage> {
   Future<void> _refreshTeams() async {
     final type = ref.read(typeProvider);
     final siteId = ref.read(selectedSiteIdProvider);
-    await ref.read(teamProvider.notifier).getTeams(type!, siteId!);
+    await ref.read(teamProvider.notifier).fetchTeams(type: type!, siteId: siteId!);
   }
-
   @override
   void initState() {
     super.initState();
-    _refreshTeams();
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      _refreshTeams();
+    });
   }
+
 
   /// Toggle selection mode
   void _toggleSelectionMode() {
@@ -61,7 +65,8 @@ class _TeamListPageState extends ConsumerState<TeamListPage> {
   }
 
   /// Select all teams
-  void _selectAllTeams(List teams) {
+  void _selectAllTeams(List<TeamModel> teams)
+  {
     setState(() {
       for (var team in teams) {
         _selectedTeamIds.add(team.id);
@@ -148,6 +153,7 @@ class _TeamListPageState extends ConsumerState<TeamListPage> {
     final site = ref.read(currentSiteProvider);
 
     return Scaffold(
+      drawer: const CustomDrawer(),
       backgroundColor: const Color(0xFFEAF3FB),
       appBar: CustomAppBar(
         title: _isSelectionMode
@@ -170,83 +176,109 @@ class _TeamListPageState extends ConsumerState<TeamListPage> {
             ),
           ),
         ],
-        child: teamState.when(
-          data: (teams) => Column(
-            children: [
-              // Top action bar with selection controls
-              if (teams.isNotEmpty)
-                Row(
-                  mainAxisAlignment: MainAxisAlignment.end,
-                  children: [
+        child: Builder(
+          builder: (context) {
+            // ✅ loading only when no cached data
+            if (teamState.isLoading && !teamState.hasData) {
+              return const Center(child: CircularProgressIndicator());
+            }
 
-                    Row(
-                      children: [
-                        if (_isSelectionMode) ...[
-                          IconButton(
-                            icon: const Icon(Icons.close),
-                            onPressed: _toggleSelectionMode,
-                            tooltip: 'Cancel',
-                          ),
-                          TextButton(
-                            onPressed: () => _selectAllTeams(teams),
-                            child: const Text('Select All'),
-                          ),
-                          const SizedBox(width: 8),
-                          ElevatedButton.icon(
-                            icon: const Icon(Icons.delete_sweep, size: 18),
-                            label: const Text('Delete'),
-                            onPressed: _selectedTeamIds.isEmpty
-                                ? null
-                                : _deleteSelectedTeams,
-                            style: ElevatedButton.styleFrom(
-                              backgroundColor: Colors.red,
-                              foregroundColor: Colors.white,
+            // ✅ show error only if no data
+            if (!teamState.hasData && teamState.error != null) {
+              return Center(child: Text("Error: ${teamState.error}"));
+            }
+
+            final teams = teamState.teams;
+
+            return Column(
+              children: [
+                // ✅ optional: show sync error as snackbar-like banner
+                if (teamState.error != null && teamState.hasData)
+                  Container(
+                    width: double.infinity,
+                    padding: const EdgeInsets.all(10),
+                    margin: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+                    decoration: BoxDecoration(
+                      color: Colors.orange.withOpacity(0.15),
+                      borderRadius: BorderRadius.circular(10),
+                      border: Border.all(color: Colors.orange),
+                    ),
+                    child: Text(
+                      teamState.error!,
+                      style: const TextStyle(color: Colors.orange),
+                    ),
+                  ),
+
+                // Top action bar with selection controls
+                if (teams.isNotEmpty)
+                  Row(
+                    mainAxisAlignment: MainAxisAlignment.end,
+                    children: [
+                      Row(
+                        children: [
+                          if (_isSelectionMode) ...[
+                            IconButton(
+                              icon: const Icon(Icons.close),
+                              onPressed: _toggleSelectionMode,
+                              tooltip: 'Cancel',
                             ),
-                          ),
-                        ] else ...[
-                          IconButton(
-                            icon: const Icon(
-                              Icons.delete_sweep,
-                              color: Colors.red,
+                            TextButton(
+                              onPressed: () => _selectAllTeams(teams),
+                              child: const Text('Select All'),
                             ),
-                            onPressed: teams.isEmpty
-                                ? null
-                                : _toggleSelectionMode,
-                            tooltip: 'Select Teams to Delete',
-                          ),
+                            const SizedBox(width: 8),
+                            ElevatedButton.icon(
+                              icon: const Icon(Icons.delete_sweep, size: 18),
+                              label: const Text('Delete'),
+                              onPressed:
+                              _selectedTeamIds.isEmpty ? null : _deleteSelectedTeams,
+                              style: ElevatedButton.styleFrom(
+                                backgroundColor: Colors.red,
+                                foregroundColor: Colors.white,
+                              ),
+                            ),
+                          ] else ...[
+                            IconButton(
+                              icon: const Icon(
+                                Icons.delete_sweep,
+                                color: Colors.red,
+                              ),
+                              onPressed: teams.isEmpty ? null : _toggleSelectionMode,
+                              tooltip: 'Select Teams to Delete',
+                            ),
+                          ],
                         ],
-                      ],
-                    ),
-                  ],
-                ),
+                      ),
+                    ],
+                  ),
 
-              // Teams Grid
-              Expanded(
-                child: Padding(
-                  padding: const EdgeInsets.all(16),
-                  child: GridView.builder(
-                    itemCount: teams.length,
-                    gridDelegate:
-                    const SliverGridDelegateWithFixedCrossAxisCount(
-                      crossAxisCount: 2,
-                      mainAxisSpacing: 16,
-                      crossAxisSpacing: 16,
-                      childAspectRatio: 0.9,
+                Expanded(
+                  child: Padding(
+                    padding: const EdgeInsets.all(16),
+                    child: LiquidPullToRefresh(
+                      onRefresh: _refreshTeams,
+                      child: GridView.builder(
+                        itemCount: teams.length,
+                        gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
+                          crossAxisCount: 2,
+                          mainAxisSpacing: 16,
+                          crossAxisSpacing: 16,
+                          childAspectRatio: 0.9,
+                        ),
+                        itemBuilder: (context, index) {
+                          final team = teams[index];
+                          final isSelected = _selectedTeamIds.contains(team.id);
+                          return _buildTeamCard(team, isSelected, site);
+                        },
+                      ),
                     ),
-                    itemBuilder: (context, index) {
-                      final team = teams[index];
-                      final isSelected = _selectedTeamIds.contains(team.id);
-
-                      return _buildTeamCard(team, isSelected, site);
-                    },
                   ),
                 ),
-              ),
-            ],
-          ),
-          loading: () => const Center(child: CircularProgressIndicator()),
-          error: (err, _) => Center(child: Text("Error: $err")),
+              ],
+            );
+          },
         ),
+
       ),
     );
   }
@@ -288,7 +320,7 @@ class _TeamListPageState extends ConsumerState<TeamListPage> {
                             fit: BoxFit.cover,
                             errorBuilder: (_, __, ___) {
                               return Image.asset(
-                                "assets/images/default.jpg",
+                                "assets/images/team_def.webp",
                                 height: 80,
                                 width: 80,
                                 fit: BoxFit.cover,
@@ -296,7 +328,7 @@ class _TeamListPageState extends ConsumerState<TeamListPage> {
                             },
                           )
                               : Image.asset(
-                            "assets/images/default.jpg",
+                            "assets/images/team_def.webp",
                             height: 80,
                             width: 80,
                             fit: BoxFit.cover,

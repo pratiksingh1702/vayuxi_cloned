@@ -1,7 +1,11 @@
+import 'dart:convert';
+
 import 'package:flutter/foundation.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:razorpay_flutter/razorpay_flutter.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 
+import '../../../core/router/app_access.dart';
 import '../models/payment_model.dart';
 import '../service/pricing_service.dart';
 import '../service/razor_pay_integeration_service.dart';
@@ -18,15 +22,63 @@ final razorpayServiceProvider = Provider<RazorpayIntegrationService>((ref) {
 
 // Current Subscription Provider
 final currentSubscriptionProvider = FutureProvider<Subscription>((ref) async {
+  final local = ref.watch(subscriptionLocalProvider);
   final service = ref.watch(paymentServiceProvider);
-  final response = await service.getCurrentSubscription();
 
-  if (response['success'] == true) {
-    return Subscription.fromJson(response['subscription']);
-  } else {
-    throw Exception('Failed to get subscription');
+  try {
+    // 🌐 FIRST → try live data
+    final response = await service.getCurrentSubscription();
+
+    if (response['success'] == true) {
+      final sub = Subscription.fromJson(response['subscription']);
+
+      // update cache
+      await local.save(sub);
+
+      print("🌐 Loaded subscription from SERVER");
+      return sub;
+    }
+
+    throw Exception('Server returned failure');
+  } catch (e) {
+    print("⚠️ Server failed → trying CACHE");
+
+    // 💾 fallback
+    final cached = await local.get();
+    if (cached != null) {
+      print("💾 Loaded subscription from CACHE");
+      return cached;
+    }
+
+    throw Exception('No subscription available');
   }
 });
+
+final subscriptionLocalProvider = Provider<SubscriptionLocalService>((ref) {
+  return SubscriptionLocalService();
+});
+
+class SubscriptionLocalService {
+  static const _key = "cached_subscription";
+
+  Future<void> save(Subscription sub) async {
+    final prefs = await SharedPreferences.getInstance();
+    await prefs.setString(_key, jsonEncode(sub.toJson()));
+  }
+
+  Future<Subscription?> get() async {
+    final prefs = await SharedPreferences.getInstance();
+    final raw = prefs.getString(_key);
+    if (raw == null) return null;
+    return Subscription.fromJson(jsonDecode(raw));
+  }
+
+  Future<void> clear() async {
+    final prefs = await SharedPreferences.getInstance();
+    await prefs.remove(_key);
+  }
+}
+
 
 // Payment History Provider
 final paymentHistoryProvider = FutureProvider<List<PaymentHistory>>((ref) async {
@@ -203,6 +255,7 @@ class PaymentNotifier extends StateNotifier<PaymentState> {
           razorpayPaymentId: response.paymentId,
           razorpaySignature: response.signature,
         );
+
       } else {
         await paymentService.verifySubscriptionPayment(
           razorpayOrderId: response.orderId,
@@ -210,6 +263,10 @@ class PaymentNotifier extends StateNotifier<PaymentState> {
           razorpaySignature: response.signature,
         );
       }
+      final local = ref.read(subscriptionLocalProvider);
+      final updated = await ref.read(currentSubscriptionProvider.future);
+      await local.save(updated);
+
 
       state = state.copyWith(
         isLoading: false,
@@ -221,6 +278,8 @@ class PaymentNotifier extends StateNotifier<PaymentState> {
       ref.invalidate(paymentHistoryProvider);
       ref.invalidate(coinBalanceProvider);
       ref.invalidate(referralCodeProvider);
+      await ref.read(appAccessProvider.notifier).refreshSubscription();
+
 
     } catch (e) {
       state = state.copyWith(

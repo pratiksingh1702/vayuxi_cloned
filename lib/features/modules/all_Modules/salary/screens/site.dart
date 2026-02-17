@@ -21,6 +21,7 @@ import 'package:untitled2/features/modules/all_Modules/site_Details/repository/s
 import 'package:untitled2/features/profile_page/userModel/userModel.dart';
 import 'package:untitled2/typeProvider/type_provider.dart';
 import '../../../../../core/utlis/widgets/buttons.dart';
+import '../../../../../core/utlis/widgets/sidebar.dart';
 import '../../../../profile_page/provider/userProvider.dart';
 import '../service-provider/salaryClient.dart';
 import 'package:download_path_provider/download_path_provider.dart';
@@ -1902,6 +1903,7 @@ Logo looks like URL: ${companyLogo?.startsWith('http') ?? false}
   @override
   Widget build(BuildContext context) {
     return Scaffold(
+      drawer: const CustomDrawer(),
       backgroundColor: AppColors.lightBlue,
       appBar: CustomAppBar(title: widget.siteModel.siteName),
       body: BottomButtonWrapper(

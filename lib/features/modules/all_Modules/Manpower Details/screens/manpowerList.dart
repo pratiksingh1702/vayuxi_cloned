@@ -1,14 +1,20 @@
+import 'dart:convert';
+
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import 'package:untitled2/core/utlis/colors/colors.dart';
 import 'package:untitled2/core/utlis/widgets/buttons.dart';
 import 'package:untitled2/core/utlis/widgets/custom_appBar.dart';
+import 'package:untitled2/features/modules/all_Modules/attendance/offline/repo/att_sync.dart';
+import 'package:untitled2/features/modules/all_Modules/site_Details/providers/site_current_provider.dart';
 
 import '../../../../../core/utlis/widgets/Button_wrapper.dart';
 import '../../../../../core/utlis/widgets/custom.dart';
 import '../../../../../core/utlis/widgets/image_clipped.dart';
+import '../../../../../core/utlis/widgets/sidebar.dart';
 import '../../../../../typeProvider/type_provider.dart';
+import '../../attendance/offline/repo/att_offline_provider.dart';
 import '../model/manpower_model.dart';
 import '../service/manPowerProvider.dart';
 import '../service/manpowerService.dart';
@@ -32,7 +38,8 @@ class _ManpowerListScreenState extends ConsumerState<ManpowerListScreen> {
     Future.microtask(() {
       final type = ref.read(typeProvider);
       if (type != null && type.isNotEmpty) {
-        ref.read(manpowerProvider.notifier).fetchManpower(type);
+        ref.invalidate(manpowerSyncControllerProvider((type: type!)));
+        // ref.read(manpowerProvider.notifier).fetchManpower(type);
       } else {
         debugPrint("❌ Type not set in typeProvider");
       }
@@ -115,9 +122,15 @@ class _ManpowerListScreenState extends ConsumerState<ManpowerListScreen> {
       if (result['success'] == true) {
         // Refresh manpower list
         final type = ref.read(typeProvider);
-        if (type != null) {
-          ref.read(manpowerProvider.notifier).fetchManpower(type);
-        }
+
+        ref.invalidate(
+          manpowerSyncControllerProvider((type: type!)),
+        );
+
+
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text("✅ Manpower deleted")),
+        );
 
         if (mounted) {
           ScaffoldMessenger.of(context).showSnackBar(
@@ -232,11 +245,20 @@ class _ManpowerListScreenState extends ConsumerState<ManpowerListScreen> {
   }
 
   @override
+  @override
   Widget build(BuildContext context) {
-    final manpowerState = ref.watch(manpowerProvider);
-    final manpowerList = manpowerState.manpowerList;
+    final type = ref.read(typeProvider)!;
+
+
+    final manpowerAsync = ref.watch(
+      manpowerOfflineProvider(( type: type)),
+    );
+    final syncState =
+    ref.watch(manpowerSyncControllerProvider((type: type)));
+
 
     return Scaffold(
+      drawer: const CustomDrawer(),
       body: NestedScrollView(
         headerSliverBuilder: (context, innerBoxIsScrolled) {
           return [
@@ -255,9 +277,12 @@ class _ManpowerListScreenState extends ConsumerState<ManpowerListScreen> {
                 color: Colors.blue,
                 textColor: Colors.white,
                 onPressed: () async {
+                  final list = manpowerAsync.value ?? [];
+
                   await exportToExcel(
-                    manpowerState.manpowerList.map((m) => m.toJson()).toList(),
+                    list.map((m) => m.toJson()).toList(),
                   );
+
                   ScaffoldMessenger.of(context).showSnackBar(
                     const SnackBar(
                       content: Text("✅ Excel saved in Downloads folder"),
@@ -267,98 +292,87 @@ class _ManpowerListScreenState extends ConsumerState<ManpowerListScreen> {
               ),
             ),
           ],
-          child: manpowerState.isLoading
-              ? const Center(child: CircularProgressIndicator())
-              : manpowerState.manpowerList.isEmpty
-              ? const Center(
-            child: Text(
-              "No manpower found",
-              style: TextStyle(
-                fontSize: 18,
-                fontWeight: FontWeight.w500,
-              ),
-            ),
-          )
-              : Column(
-            mainAxisAlignment: MainAxisAlignment.start,
-            children: [
-              // Top action bar with selection controls
-              if (manpowerList.isNotEmpty)
-                Row(
-                  mainAxisAlignment: MainAxisAlignment.end,
-                  children: [
+          child: manpowerAsync.when(
+            loading: () => const Center(child: CircularProgressIndicator()),
 
-                    Row(
-                      children: [
-                        if (_isSelectionMode) ...[
-                          IconButton(
-                            icon: const Icon(Icons.close),
-                            onPressed: _toggleSelectionMode,
-                            tooltip: 'Cancel',
+            error: (e, s) => Center(child: Text("Error: $e")),
+
+            data: (manpowerList) {
+              if (manpowerList.isEmpty) {
+                if (syncState.isLoading) {
+                  return const Center(child: CircularProgressIndicator());
+                }
+
+                return const Center(
+                  child: Text(
+                    "No manpower found",
+                    style: TextStyle(fontSize: 18, fontWeight: FontWeight.w500),
+                  ),
+                );
+              }
+
+
+              return Column(
+                children: [
+                  /// TOP BAR
+                  Row(
+                    mainAxisAlignment: MainAxisAlignment.end,
+                    children: [
+                      if (_isSelectionMode) ...[
+                        IconButton(
+                          icon: const Icon(Icons.close),
+                          onPressed: _toggleSelectionMode,
+                        ),
+                        TextButton(
+                          onPressed: () => _selectAllManpower(manpowerList),
+                          child: const Text('Select All'),
+                        ),
+                        const SizedBox(width: 8),
+                        ElevatedButton.icon(
+                          icon: const Icon(Icons.delete_sweep, size: 18),
+                          label: const Text('Delete'),
+                          onPressed: _selectedManpowerIds.isEmpty
+                              ? null
+                              : _deleteSelectedManpower,
+                          style: ElevatedButton.styleFrom(
+                            backgroundColor: Colors.red,
+                            foregroundColor: Colors.white,
                           ),
-                          TextButton(
-                            onPressed: () => _selectAllManpower(
-                              manpowerList,
-                            ),
-                            child: const Text('Select All'),
-                          ),
-                          const SizedBox(width: 8),
-                          ElevatedButton.icon(
-                            icon: const Icon(
-                              Icons.delete_sweep,
-                              size: 18,
-                            ),
-                            label: const Text('Delete'),
-                            onPressed: _selectedManpowerIds.isEmpty
-                                ? null
-                                : _deleteSelectedManpower,
-                            style: ElevatedButton.styleFrom(
-                              backgroundColor: Colors.red,
-                              foregroundColor: Colors.white,
-                            ),
-                          ),
-                        ] else ...[
-                          IconButton(
-                            icon: const Icon(
-                              Icons.delete_sweep,
-                              color: Colors.red,
-                            ),
-                            onPressed: manpowerList.isEmpty
-                                ? null
-                                : _toggleSelectionMode,
-                            tooltip: 'Select Manpower to Delete',
-                          ),
-                        ],
+                        ),
+                      ] else ...[
+                        IconButton(
+                          icon: const Icon(Icons.delete_sweep, color: Colors.red),
+                          onPressed: manpowerList.isEmpty
+                              ? null
+                              : _toggleSelectionMode,
+                        ),
                       ],
+                    ],
+                  ),
+
+                  /// LIST
+                  Expanded(
+                    child: ListView.builder(
+                      padding: const EdgeInsets.symmetric(horizontal: 16),
+                      itemCount: manpowerList.length,
+                      itemBuilder: (context, index) {
+                        final manpower = manpowerList[index];
+                        final isSelected =
+                        _selectedManpowerIds.contains(manpower.id);
+
+                        return _buildManpowerTile(manpower, isSelected);
+                      },
                     ),
-                  ],
-                ),
-
-              // Employee List
-              Expanded(
-                child: ListView.builder(
-                  padding: const EdgeInsets.symmetric(horizontal: 16),
-                  itemCount: manpowerState.manpowerList.length,
-                  itemBuilder: (context, index) {
-                    final ManpowerModel manpower =
-                    manpowerState.manpowerList[index];
-                    final isSelected = _selectedManpowerIds.contains(
-                      manpower.id,
-                    );
-
-                    return _buildManpowerTile(
-                      manpower,
-                      isSelected,
-                    );
-                  },
-                ),
-              ),
-            ],
+                  ),
+                ],
+              );
+            },
           ),
         ),
       ),
     );
   }
+
 
   Widget _buildManpowerTile(ManpowerModel manpower, bool isSelected) {
     return Stack(
@@ -401,6 +415,7 @@ class _ManpowerListScreenState extends ConsumerState<ManpowerListScreen> {
                   IconButton(
                     icon: const Icon(Icons.edit, color: Colors.blue),
                     onPressed: () {
+                      print(const JsonEncoder.withIndent('  ').convert(manpower.toJson()));
                       context.push('/edit-manpower', extra: manpower);
                     },
                   ),

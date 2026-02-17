@@ -1,5 +1,8 @@
 import 'package:flutter/material.dart';
 
+import '../../../../../../core/utlis/widgets/image.dart';
+import '../../models/rate_file_models.dart';
+
 class DynamicItemCard2 extends StatefulWidget {
   final String title;
   final String quantity;
@@ -8,8 +11,11 @@ class DynamicItemCard2 extends StatefulWidget {
   final String floor;
   final String moc;
   final String? size;
-  final String? image;
+  final String image;
   final String? remark;
+  final List<DynamicField> fields;
+  final Function(String key, String value) onChanged;
+
 
   final Function(String) onQtyChanged;
   final Function(String) onMeterChanged;
@@ -28,6 +34,9 @@ class DynamicItemCard2 extends StatefulWidget {
   const DynamicItemCard2({
     super.key,
     required this.title,
+    required this.fields,
+    required this.onChanged,
+
     required this.quantity,
     required this.ton,
     required this.meter,
@@ -35,7 +44,7 @@ class DynamicItemCard2 extends StatefulWidget {
     required this.moc,
     this.size,
 
-    this.image,
+    required this.image,
     this.remark,
     required this.onMeterChanged,
     required this.onQtyChanged,
@@ -60,6 +69,8 @@ class _DynamicItemCard2State extends State<DynamicItemCard2>
   late TextEditingController _tonCtrl;
   late TextEditingController _floorCtrl;
   late TextEditingController _mocCtrl;
+  final Map<String, TextEditingController> _controllers = {};
+
 
   @override
   bool get wantKeepAlive => true;
@@ -77,6 +88,11 @@ class _DynamicItemCard2State extends State<DynamicItemCard2>
         widget.onQtyChanged(_qtyCtrl.text);
       }
     });
+    for (final f in widget.fields) {
+      _controllers[f.key] =
+          TextEditingController(text: f.displayText);
+    }
+
 
     _tonCtrl.addListener(() {
       if (_tonCtrl.text != widget.ton) {
@@ -106,17 +122,115 @@ class _DynamicItemCard2State extends State<DynamicItemCard2>
     if (widget.floor != _floorCtrl.text) _floorCtrl.text = widget.floor;
     if (widget.moc != _mocCtrl.text) _mocCtrl.text = widget.moc;
   }
+  Widget _buildDynamicFields() {
+    final items = widget.fields;
+    if (items.isEmpty) return const SizedBox();
+
+    final rows = <Widget>[];
+
+    for (int i = 0; i < items.length; i += 2) {
+      rows.add(
+        Row(
+          children: [
+            Expanded(
+              child: _updatedblueBox(
+                label: items[i].label,
+                controller: _controllers.putIfAbsent(
+                  items[i].key,
+                      () => TextEditingController(),
+                ),
+                unit: items[i].unit,
+                keyName: items[i].key,
+              ),
+            ),
+            const SizedBox(width: 8),
+            if (i + 1 < items.length)
+              Expanded(
+                child: _updatedblueBox(
+                  label: items[i + 1].label,
+                  controller: _controllers.putIfAbsent(
+                    items[i + 1].key,
+                        () => TextEditingController(),
+                  ),
+                  unit: items[i + 1].unit,
+                  keyName: items[i + 1].key,
+                ),
+              )
+            else
+              const Expanded(child: SizedBox()),
+          ],
+        ),
+      );
+
+      rows.add(const SizedBox(height: 8));
+    }
+
+    return Column(children: rows);
+  }
+  Widget _updatedblueBox({
+    required String label,
+    required TextEditingController controller,
+    required String keyName,
+    String unit = '',
+  }) {
+    final shouldShowHint = label.toLowerCase() == "qty";
+
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Padding(
+          padding: const EdgeInsets.only(bottom: 4),
+          child: Text(
+            unit.isEmpty ? label : "$label ($unit)",
+            style: const TextStyle(
+              fontSize: 9,
+              fontWeight: FontWeight.w600,
+              color: Colors.black87,
+            ),
+          ),
+        ),
+        SizedBox(
+          height: 23,
+          child: TextFormField(
+            key: ValueKey(keyName),
+            controller: controller,
+            onChanged: (v) => widget.onChanged(keyName, v),
+            textAlign: TextAlign.center,
+            enabled: widget.isEditable,
+            decoration: InputDecoration(
+              hintText: shouldShowHint ? "Enter quantity" : "",
+              isDense: true,
+              contentPadding:
+              const EdgeInsets.symmetric(vertical: 4, horizontal: 2),
+              filled: true,
+              fillColor: widget.isEditable
+                  ? const Color(0xFFD0EAFD)
+                  : Colors.grey[300],
+              border: OutlineInputBorder(
+                borderRadius: BorderRadius.circular(4),
+                borderSide: BorderSide.none,
+              ),
+            ),
+            style: const TextStyle(fontSize: 8),
+          ),
+        ),
+      ],
+    );
+  }
 
   @override
   Widget build(BuildContext context) {
     super.build(context);
 
     return Container(
-      margin: const EdgeInsets.only(bottom: 8),
+
       padding: const EdgeInsets.all(2),
-      decoration: BoxDecoration(
+      decoration: const BoxDecoration(
         color: Colors.white,
-        borderRadius: BorderRadius.circular(14),
+        borderRadius: BorderRadius.only(
+          topLeft: Radius.circular(14),
+          topRight: Radius.circular(14),
+        ),
       ),
       child: Column(
         children: [
@@ -169,85 +283,82 @@ class _DynamicItemCard2State extends State<DynamicItemCard2>
             children: [
               // LEFT: IMAGE + ACTIONS
               Expanded(
-                child: Column(
-                  children: [
-                    if (widget.image != null && widget.image!.isNotEmpty)
-                      Padding(
-                        padding: const EdgeInsets.all(12),
-                        child: Image.asset(
-                          widget.image!,
-                          height: 100,
-                          errorBuilder: (_, __, ___) =>
-                          const Icon(Icons.image_not_supported),
-                        ),
-                      ),
+                child: Container(
+                  padding: const EdgeInsets.all(13),
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    mainAxisAlignment: MainAxisAlignment.start,
+                    children: [
 
-                    if (widget.isEditable &&
-                        (widget.onEdit != null ||
-                            widget.onCopy != null ||
-                            widget.onDelete != null))
-                      Padding(
-                        padding: const EdgeInsets.only(top: 12),
-                        child: Row(
-                          children: [
-                            if (widget.onEdit != null) ...[
-                              Expanded(
-                                child: IconButton(
-                                  onPressed: widget.onEdit,
-                                  icon: const Icon(Icons.edit, size: 18),
-                                  color: Colors.blue,
-                                  style: IconButton.styleFrom(
-                                    padding: const EdgeInsets.all(6),
-                                    minimumSize: const Size(0, 32),
-                                    side: const BorderSide(color: Colors.blue, width: 1.5),
-                                    shape: RoundedRectangleBorder(
-                                      borderRadius: BorderRadius.circular(6),
+                        buildSmartImage(image: widget.image),
+
+                      if (widget.isEditable &&
+                          (widget.onEdit != null ||
+                              widget.onCopy != null ||
+                              widget.onDelete != null))
+                        Padding(
+                          padding: const EdgeInsets.only(top: 12),
+                          child: Row(
+                            children: [
+                              if (widget.onEdit != null) ...[
+                                Expanded(
+                                  child: IconButton(
+                                    onPressed: widget.onEdit,
+                                    icon: const Icon(Icons.edit, size: 18),
+                                    color: Colors.blue,
+                                    style: IconButton.styleFrom(
+                                      padding: const EdgeInsets.all(6),
+                                      minimumSize: const Size(0, 32),
+                                      side: const BorderSide(color: Colors.blue, width: 1.5),
+                                      shape: RoundedRectangleBorder(
+                                        borderRadius: BorderRadius.circular(6),
+                                      ),
                                     ),
                                   ),
                                 ),
-                              ),
-                              const SizedBox(width: 8),
+                                const SizedBox(width: 8),
+                              ],
+
+                              if (widget.onCopy != null) ...[
+                                Expanded(
+                                  child: IconButton(
+                                    onPressed: widget.onCopy,
+                                    icon: const Icon(Icons.copy, size: 18),
+                                    color: Colors.green,
+                                    style: IconButton.styleFrom(
+                                      padding: const EdgeInsets.all(6),
+                                      minimumSize: const Size(0, 32),
+                                      side: const BorderSide(color: Colors.green, width: 1.5),
+                                      shape: RoundedRectangleBorder(
+                                        borderRadius: BorderRadius.circular(6),
+                                      ),
+                                    ),
+                                  ),
+                                ),
+                                const SizedBox(width: 8),
+                              ],
+
+                              if (widget.onDelete != null)
+                                Expanded(
+                                  child: IconButton(
+                                    onPressed: widget.onDelete,
+                                    icon: const Icon(Icons.delete, size: 18),
+                                    color: Colors.red,
+                                    style: IconButton.styleFrom(
+                                      padding: const EdgeInsets.all(6),
+                                      minimumSize: const Size(0, 32),
+                                      side: const BorderSide(color: Colors.red, width: 1.5),
+                                      shape: RoundedRectangleBorder(
+                                        borderRadius: BorderRadius.circular(6),
+                                      ),
+                                    ),
+                                  ),
+                                ),
                             ],
-
-                            if (widget.onCopy != null) ...[
-                              Expanded(
-                                child: IconButton(
-                                  onPressed: widget.onCopy,
-                                  icon: const Icon(Icons.copy, size: 18),
-                                  color: Colors.green,
-                                  style: IconButton.styleFrom(
-                                    padding: const EdgeInsets.all(6),
-                                    minimumSize: const Size(0, 32),
-                                    side: const BorderSide(color: Colors.green, width: 1.5),
-                                    shape: RoundedRectangleBorder(
-                                      borderRadius: BorderRadius.circular(6),
-                                    ),
-                                  ),
-                                ),
-                              ),
-                              const SizedBox(width: 8),
-                            ],
-
-                            if (widget.onDelete != null)
-                              Expanded(
-                                child: IconButton(
-                                  onPressed: widget.onDelete,
-                                  icon: const Icon(Icons.delete, size: 18),
-                                  color: Colors.red,
-                                  style: IconButton.styleFrom(
-                                    padding: const EdgeInsets.all(6),
-                                    minimumSize: const Size(0, 32),
-                                    side: const BorderSide(color: Colors.red, width: 1.5),
-                                    shape: RoundedRectangleBorder(
-                                      borderRadius: BorderRadius.circular(6),
-                                    ),
-                                  ),
-                                ),
-                              ),
-                          ],
+                          ),
                         ),
-                      ),
-                  ],
+                    ],
+                  ),
                 ),
               ),
 
@@ -255,21 +366,8 @@ class _DynamicItemCard2State extends State<DynamicItemCard2>
               Flexible(
                 child: Column(
                   children: [
-                    Row(
-                      children: [
-                        Expanded(child: _blueBox('Floor', _floorCtrl)),
-                        const SizedBox(width: 8),
-                        Expanded(child: _blueBox('MOC', _mocCtrl)),
-                      ],
-                    ),
-                    const SizedBox(height: 8),
-                    Row(
-                      children: [
-                        Expanded(child: _blueBox('Qty', _qtyCtrl)),
-                        const SizedBox(width: 8),
-                        Expanded(child: _blueBox('Ton', _tonCtrl)),
-                      ],
-                    ),
+                    _buildDynamicFields(),
+
                     const SizedBox(height: 12),
                     _blueBox(
                       'UOM (${widget.meter})',
@@ -297,7 +395,7 @@ class _DynamicItemCard2State extends State<DynamicItemCard2>
         Text(label, style: const TextStyle(fontSize: 9, fontWeight: FontWeight.w600)),
         const SizedBox(height: 4),
         SizedBox(
-          height: 23,
+          height: !enabled ? 60 : 23,
           child: TextFormField(
             controller: controller,
             enabled: widget.isEditable && enabled,
@@ -310,7 +408,10 @@ class _DynamicItemCard2State extends State<DynamicItemCard2>
               widget.isEditable && enabled ? const Color(0xFFD0EAFD) : Colors.grey[300],
               border: OutlineInputBorder(
                 borderRadius: BorderRadius.circular(4),
-                borderSide: BorderSide.none,
+                borderSide: BorderSide(
+                  color: Colors.black,
+                ),
+
               ),
             ),
           ),

@@ -3,6 +3,7 @@ import 'package:cached_network_image/cached_network_image.dart';
 
 class CompanyCard extends StatelessWidget {
   final String imagePath;
+  final String  defaultImage;
   final String companyName;
   final VoidCallback? onTap;
   final VoidCallback? onDelete;
@@ -12,6 +13,7 @@ class CompanyCard extends StatelessWidget {
     super.key,
     required this.imagePath,
     required this.companyName,
+    this.defaultImage='assets/images/default.webp',
     this.onTap,
     this.onDelete,
     this.show=false,
@@ -51,10 +53,10 @@ class CompanyCard extends StatelessWidget {
 
 
                         errorWidget: (context, url, error) => Image.asset(
-                          'assets/images/default.webp',
+                          defaultImage,
                           height: 100,
                           width: double.infinity,
-                          fit: BoxFit.cover,
+                          fit: BoxFit.fitHeight,
                         ),
                       ),
                     ),
