@@ -2,7 +2,9 @@ import 'base_material.dart';
 
 class EquipmentMaterial extends BaseMaterial {
   // Equipment material doesn't have 'size' field
+  Map<String, String>? customLabels;
   EquipmentMaterial({
+    this.customLabels,
     required String name,
     required String id,
     required List<String> image,
@@ -73,6 +75,10 @@ class EquipmentMaterial extends BaseMaterial {
       name: json['name'] ?? '',
       image: List<String>.from(json['image'] ?? []),
       qty: json['qty'] ?? 0,
+      customLabels: json['custom_labels'] != null
+          ? Map<String, String>.from(json['custom_labels'])
+          : {},
+
       length: (json['length'] ?? 0).toDouble(),
       circumference: (json['circumference'] ?? 0).toDouble(),
       circumference1: (json['circumference_1'] ?? 0).toDouble(),
@@ -109,6 +115,7 @@ class EquipmentMaterial extends BaseMaterial {
       'name': name,
       'image': image,
       'qty': qty,
+      'custom_labels': customLabels,
       'length': length,
       'circumference': circumference,
       'circumference_1': circumference1,
@@ -155,6 +162,7 @@ class EquipmentMaterial extends BaseMaterial {
     String? uom,
     double? diameterA3,
     double? diameterB3,
+    Map<String, String>? customLabels,
     double? diameterA2,
     double? diameterB2,
     double? diameterA1,
@@ -176,6 +184,7 @@ class EquipmentMaterial extends BaseMaterial {
       name: name ?? this.name,
       image: image ?? this.image,
       qty: qty ?? this.qty,
+      customLabels: customLabels ?? this.customLabels,
       length: length ?? this.length,
       circumference: circumference ?? this.circumference,
       circumference1: circumference1 ?? this.circumference1,

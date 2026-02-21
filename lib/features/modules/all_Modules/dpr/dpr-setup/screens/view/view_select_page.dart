@@ -44,7 +44,7 @@ class ViewSelectCardGrid extends ConsumerWidget {
           childAspectRatio: 1,
           children: [
             /// ✅ MOC
-            if (mocs.isNotEmpty)
+
               SelectCard(
                 icon: Image.asset(
                   "assets/images/icons/moc.webp",
@@ -53,18 +53,18 @@ class ViewSelectCardGrid extends ConsumerWidget {
                   fit: BoxFit.cover,
                 ),
                 label: "MOC",
-                onTap: () {
+                onTap: mocs.isNotEmpty ?(){
                   Navigator.push(
                     context,
                     MaterialPageRoute(
                       builder: (_) => const MOCSelectionPage(showEditOptions: true,),
                     ),
                   );
-                },
+                }:(){},
               ),
 
             /// ✅ FLOOR
-            if (floors.isNotEmpty)
+
               SelectCard(
                 icon: Image.asset(
                   "assets/images/icons/floor.webp",
@@ -73,21 +73,16 @@ class ViewSelectCardGrid extends ConsumerWidget {
                   fit: BoxFit.cover,
                 ),
                 label: "Floor",
-                onTap: () async {
-                  final all = await AppIsarDB.isar.rateFileAnalysisIsars.where().findAll();
-
-                  print("====== DB DATA ======");
-                  for (final r in all) {
-                    print("ROW siteId = '${r.siteId}'");
-                  }
-                  print("=====================");
-                  print("PROVIDER siteId = '$siteId'");
-
+                onTap: floors.isNotEmpty
+                    ? () {
                   Navigator.push(
                     context,
-                      MaterialPageRoute(builder: (context) => FloorSelectionPage(showEditOptions: true,))
+                    MaterialPageRoute(
+                      builder: (_) => const FloorSelectionPage(showEditOptions: true),
+                    ),
                   );
-                },
+                }
+                    : (){},
               ),
 
             /// ✅ ELEVATION (if you have a page for it)

@@ -60,6 +60,7 @@ class _AddInsulationDescriptionScreenState extends ConsumerState<AddInsulationDe
   late final TextEditingController _thicknessController;
   late final TextEditingController _claddingNameController;
   late final TextEditingController _claddingThicknessController;
+  late TextEditingController _claddingController;
 
   late String siteId;
   late String teamId;
@@ -127,6 +128,7 @@ class _AddInsulationDescriptionScreenState extends ConsumerState<AddInsulationDe
   void _hydrateFromMaterialStream() {
     final siteId = ref.read(selectedSiteIdProvider)!;
 
+
     ref.listenManual(
       materialsStreamProvider((
       siteId: siteId,
@@ -182,6 +184,7 @@ class _AddInsulationDescriptionScreenState extends ConsumerState<AddInsulationDe
     _thicknessController = TextEditingController();
     _claddingNameController = TextEditingController();
     _claddingThicknessController = TextEditingController();
+    _claddingController=TextEditingController();
   }
   void _initializeFromWork(InsulationDprModel work) {
     setState(() {
@@ -246,6 +249,21 @@ class _AddInsulationDescriptionScreenState extends ConsumerState<AddInsulationDe
   void _loadLayersFromProvider() {
     final state = ref.read(insulationStateProvider);
 
+    debugPrint("========== LOAD LAYERS ==========");
+    debugPrint("LayerType: ${state.layerType}");
+    debugPrint("Layers Count: ${state.layers.length}");
+
+    for (int i = 0; i < state.layers.length; i++) {
+      final layer = state.layers[i];
+      debugPrint(
+          "Layer[$i] → thickness: ${layer.thickness}, "
+              "density: ${layer.name}, "
+              "material: ${layer.thickness}");
+    }
+
+    debugPrint("Cladding: ${state.cladding.thickness}");
+    debugPrint("=================================");
+
     _selectedLayerType = state.layerType ?? LayerType.single;
 
     _layers
@@ -253,6 +271,9 @@ class _AddInsulationDescriptionScreenState extends ConsumerState<AddInsulationDe
       ..addAll(state.layers);
 
     _cladding = state.cladding;
+    _claddingController.text =
+    _cladding.thickness == 0 ? '' : _cladding.thickness.toString();
+    debugPrint("Cladding: ${_cladding.thickness}");
   }
 
 
@@ -841,12 +862,14 @@ class _AddInsulationDescriptionScreenState extends ConsumerState<AddInsulationDe
     'LRB',
   ];
   static const List<String> claddingMaterials = [
-    'SS',
-    'Aluminium',
+    'SS Sheet',
+    'Aluminium Sheet',
   ];
   List<String> get layerTypeOptions =>
       LayerType.values.map((e) => e.name.toUpperCase()).toList();
   Widget _buildLayerTypeSection() {
+
+    print("cladding in the buildlayer section ${_cladding.thickness}");
     return Container(
       padding: const EdgeInsets.all(16),
       decoration: BoxDecoration(
@@ -1025,7 +1048,7 @@ class _AddInsulationDescriptionScreenState extends ConsumerState<AddInsulationDe
                     SizedBox(
                       height: 34,
                       child: TextFormField(
-                        initialValue: _cladding.thickness == 0 ? '' : _cladding.thickness.toString(),
+                        controller: _claddingController,
                         keyboardType: TextInputType.number,
                         textAlign: TextAlign.center,
                         style: const TextStyle(

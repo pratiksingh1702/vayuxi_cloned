@@ -213,104 +213,106 @@ class _PipingMaterialCardState extends State<PipingMaterialCard> {
           children: [
             _header(),
             const SizedBox(height: 2),
-            Row(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                // LEFT COLUMN – IMAGE + ACTIONS (FIXED WIDTH)
-                SizedBox(
-                  width: 140, // 🔑 controls image + action width
-                  child: Column(
-                    children: [
-                      Column(
-                        children: [
-                          if (_isEditMode)
-                            TextButton.icon(
-                              onPressed: () async {
-                                final helper = ImageUploadHelper(context);
-
-                                final file = await helper.pickAndCropImage(
-                                  enableCropping: true,
-                                  cropTitle: "Crop Material Image",
-                                );
-
-                                if (file != null) {
-                                  setState(() {
-                                    _draftImageFile = file;
-                                    _draftImageUrl = null; // override server image
-                                  });
-                                }
-                              },
-                              icon: const Icon(Icons.photo),
-                              label: const Text("Change"),
-                            ),
-
-                          _buildSmartImage(
-                            imageFile: _isEditMode ? _draftImageFile : null,
-                            imageUrl: _isEditMode
-                                ? _draftImageUrl
-                                : widget.material.image.isNotEmpty
-                                ? widget.material.image.first
-                                : null,
-                            height: 100,
-                          ),
-                        ],
-                      ),
-                      const SizedBox(height: 8),
-                      Row(
-                        children: [
-                          _actionBtn(Icons.edit, Colors.blue, () {
-                            setState(() {
-                              _isEditMode = !_isEditMode;
-                            });
-                          }),
-                          const SizedBox(width: 6),
-                          _actionBtn(Icons.copy, Colors.green, widget.onAdd),
-                          const SizedBox(width: 6),
-                          _actionBtn(Icons.delete, Colors.red, widget.onDelete),
-                        ],
-                      ),
-                    ],
-                  ),
-                ),
-
-                const SizedBox(width: 8),
-
-                // RIGHT COLUMN – FIELDS
-                Expanded(
-                  child: Container(
-
-
+            IntrinsicHeight(
+              child: Row(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  // LEFT COLUMN – IMAGE + ACTIONS (FIXED WIDTH)
+                  SizedBox(
+                    width: 140, // 🔑 controls image + action width
                     child: Column(
-                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: () {
-                        final mainField = fields.firstWhere(
-                              (f) =>
-                          f.type == PipingFieldType.length ||
-                              f.type == PipingFieldType.qty,
-                          orElse: () => fields.first,
-                        );
-
-                        final hasMain = fields.any(
-                              (f) =>
-                          f.type == PipingFieldType.length ||
-                              f.type == PipingFieldType.qty,
-                        );
-
-                        final otherFields = fields.where((f) => f != mainField).toList();
-
-                        return [
-
-                          ...otherFields.map(_blueField),
-                         // ✅ pushes main field DOWN
-                          if (hasMain) _mainWhiteField(mainField),
-                        ];
-                      }(),
+                      children: [
+                        Column(
+                          children: [
+                            if (_isEditMode)
+                              TextButton.icon(
+                                onPressed: () async {
+                                  final helper = ImageUploadHelper(context);
+              
+                                  final file = await helper.pickAndCropImage(
+                                    enableCropping: true,
+                                    cropTitle: "Crop Material Image",
+                                  );
+              
+                                  if (file != null) {
+                                    setState(() {
+                                      _draftImageFile = file;
+                                      _draftImageUrl = null; // override server image
+                                    });
+                                  }
+                                },
+                                icon: const Icon(Icons.photo),
+                                label: const Text("Change"),
+                              ),
+              
+                            _buildSmartImage(
+                              imageFile: _isEditMode ? _draftImageFile : null,
+                              imageUrl: _isEditMode
+                                  ? _draftImageUrl
+                                  : widget.material.image.isNotEmpty
+                                  ? widget.material.image.first
+                                  : null,
+                              height: 100,
+                            ),
+                          ],
+                        ),
+                        const SizedBox(height: 8),
+                        Row(
+                          children: [
+                            _actionBtn(Icons.edit, Colors.blue, () {
+                              setState(() {
+                                _isEditMode = !_isEditMode;
+                              });
+                            }),
+                            const SizedBox(width: 6),
+                            _actionBtn(Icons.copy, Colors.green, widget.onAdd),
+                            const SizedBox(width: 6),
+                            _actionBtn(Icons.delete, Colors.red, widget.onDelete),
+                          ],
+                        ),
+                      ],
                     ),
                   ),
-                ),
+              
+                  const SizedBox(width: 8),
+              
+                  // RIGHT COLUMN – FIELDS
+                  Expanded(
+                    child: Container(
 
-              ],
+              
+                      child: Column(
+                        mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: () {
+                          final mainField = fields.firstWhere(
+                                (f) =>
+                            f.type == PipingFieldType.length ||
+                                f.type == PipingFieldType.qty,
+                            orElse: () => fields.first,
+                          );
+              
+                          final hasMain = fields.any(
+                                (f) =>
+                            f.type == PipingFieldType.length ||
+                                f.type == PipingFieldType.qty,
+                          );
+              
+                          final otherFields = fields.where((f) => f != mainField).toList();
+              
+                          return [
+              
+                            ...otherFields.map(_blueField),
+                           // ✅ pushes main field DOWN
+                            if (hasMain) _mainWhiteField(mainField),
+                          ];
+                        }(),
+                      ),
+                    ),
+                  ),
+              
+                ],
+              ),
             ),
             Row(
               children: [
@@ -493,35 +495,38 @@ class _PipingMaterialCardState extends State<PipingMaterialCard> {
         const SizedBox(height: 8),
 
         // -------- VALUE --------
-        if(!_isEditMode)TextFormField(
-          controller: _valueControllers[config.type]
-            ?..text = _resolveDisplayValue(config, material),
-          focusNode: _focusNodes[config.type],
-          textAlign: TextAlign.center,
-          keyboardType:
-          const TextInputType.numberWithOptions(decimal: true),
-          style: const TextStyle(
-            fontSize: 18,
-            fontWeight: FontWeight.w700,
-          ),
-          decoration: const InputDecoration(
-            filled: true,
-            fillColor: Colors.white,
-            border: OutlineInputBorder(),
-          ),
-          onChanged: (val) {
-            final parsed = isDecimal
-                ? double.tryParse(val) ?? 0
-                : int.tryParse(val) ?? 0;
+        if(!_isEditMode)SizedBox(
+          height: 44,
+          child: TextFormField(
+            controller: _valueControllers[config.type]
+              ?..text = _resolveDisplayValue(config, material),
+            focusNode: _focusNodes[config.type],
+            textAlign: TextAlign.center,
+            keyboardType:
+            const TextInputType.numberWithOptions(decimal: true),
+            style: const TextStyle(
+              fontSize: 18,
+              fontWeight: FontWeight.w700,
+            ),
+            decoration: const InputDecoration(
+              filled: true,
+              fillColor: Colors.white,
+              border: OutlineInputBorder(),
+            ),
+            onChanged: (val) {
+              final parsed = isDecimal
+                  ? double.tryParse(val) ?? 0
+                  : int.tryParse(val) ?? 0;
 
-            if (_isEditMode) {
-              setState(() {
-                _draftMaterial = _updateDraftMaterial(config, parsed);
-              });
-            } else {
-              widget.onChanged(_updateMaterial(config, parsed));
-            }
-          },
+              if (_isEditMode) {
+                setState(() {
+                  _draftMaterial = _updateDraftMaterial(config, parsed);
+                });
+              } else {
+                widget.onChanged(_updateMaterial(config, parsed));
+              }
+            },
+          ),
         ),
       ],
     );
@@ -706,40 +711,41 @@ class _PipingMaterialCardState extends State<PipingMaterialCard> {
           const SizedBox(height: 4),
 
           // -------- VALUE --------
-          if(!_isEditMode) SizedBox(
-            height: 26,
-            width: 110,
-            child: TextFormField(
-              controller: _valueControllers[config.type],
-              focusNode: _focusNodes[config.type],
-              textAlign: TextAlign.center,
-              keyboardType:
-              const TextInputType.numberWithOptions(decimal: true),
-              decoration: const InputDecoration(
-                isDense: true,
-                filled: true,
-                fillColor: Color(0xFFD0EAFD),
-                border: OutlineInputBorder(
-                  borderSide: BorderSide.none,
+          if (!_isEditMode)
+            SizedBox(
+              height: 24,
+              width: 70,
+              child: TextFormField(
+                controller: _valueControllers[config.type],
+                focusNode: _focusNodes[config.type],
+                textAlign: TextAlign.center,
+                keyboardType:
+                const TextInputType.numberWithOptions(decimal: true),
+                style: const TextStyle(
+                  fontSize: 11,   // 🔥 MUST shrink font
+                  height: 1,      // 🔥 Prevent extra vertical spacing
                 ),
-                contentPadding:
-                EdgeInsets.symmetric(horizontal: 4, vertical: 4),
-              ),
-              onChanged: (val) {
-                final parsed = isDecimal
-                    ? double.tryParse(val) ?? 0
-                    : int.tryParse(val) ?? 0;
+                decoration: const InputDecoration(
+                  isDense: true,  // 🔥 Required
+                  contentPadding: EdgeInsets.symmetric(
+                    horizontal: 4,
+                    vertical: 6,   // 🔥 Tight padding
+                  ),
+                  filled: true,
+                  fillColor: Color(0xFFD0EAFD),
+                  border: OutlineInputBorder(
+                    borderSide: BorderSide.none,
+                  ),
+                ),
+                onChanged: (val) {
+                  final parsed = isDecimal
+                      ? double.tryParse(val) ?? 0
+                      : int.tryParse(val) ?? 0;
 
-                if (_isEditMode) {
-                  setState(() {
-                    _draftMaterial = _updateDraftMaterial(config, parsed);
-                  });
-                } else {
                   widget.onChanged(_updateMaterial(config, parsed));
-                }
-              },
+                },
+              ),
             ),
-          ),
         ],
       ),
     );

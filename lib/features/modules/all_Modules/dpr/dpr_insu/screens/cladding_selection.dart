@@ -28,8 +28,8 @@ class CladdingScreen extends ConsumerStatefulWidget {
   }) : super(key: key);
 
   static const List<Map<String, String>> materials = [
-    {'name': 'SS', 'image': 'assets/stepper/ss.webp'},
-    {'name': 'Aluminium', 'image': 'assets/stepper/ss.webp'},
+    {'name': 'SS Sheet', 'image': 'assets/stepper/ss.webp'},
+    {'name': 'Aluminium Sheet', 'image': 'assets/stepper/ss.webp'},
   ];
 
   @override

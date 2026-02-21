@@ -177,6 +177,24 @@ class _AllInsulationMaterialsScreenState extends ConsumerState<AllInsulationMate
 
     await repo.update(local);
   }
+  // 1. UPDATE METHOD — add this alongside _updatePipingMaterial
+  Future<void> _updateEquipmentMaterial(
+      LocalMaterial local,
+      EquipmentMaterial updated,
+      ) async {
+    final repo = ref.read(materialRepositoryProvider);
+    print(local.materialDataJson);
+
+    local
+      ..name = updated.name
+      ..uom = updated.uom
+      ..images = updated.image
+      ..materialDataJson = jsonEncode(updated.toJson())
+      ..isDirty = false
+      ..updatedAt = DateTime.now();
+
+    await repo.update(local);
+  }
   /// Delete selected materials (OFFLINE)
   Future<void> _deleteSelectedMaterials(List<LocalMaterial> materials) async {
     if (_selectedMaterialIds.isEmpty) return;
@@ -356,49 +374,7 @@ class _AllInsulationMaterialsScreenState extends ConsumerState<AllInsulationMate
 
   Widget _buildSetupState(String siteId) {
     return Center(
-      child: Padding(
-        padding: const EdgeInsets.all(24),
-        child: Column(
-          mainAxisAlignment: MainAxisAlignment.center,
-          children: [
-            const Icon(
-              Icons.inventory_2_outlined,
-              size: 72,
-              color: Colors.blueGrey,
-            ),
-            const SizedBox(height: 24),
-            const Text(
-              'No Insulation Materials Found',
-              style: TextStyle(
-                fontSize: 22,
-                fontWeight: FontWeight.bold,
-              ),
-              textAlign: TextAlign.center,
-            ),
-            const SizedBox(height: 12),
-            const Text(
-              'Start by adding your first insulation material.',
-              textAlign: TextAlign.center,
-              style: TextStyle(
-                color: Colors.black54,
-                fontSize: 16,
-              ),
-            ),
-            const SizedBox(height: 32),
-            OutlinedButton.icon(
-              icon: const Icon(Icons.add),
-              label: const Text('Add Material'),
-              onPressed: () => _showAddMaterialSheet(siteId),
-              style: OutlinedButton.styleFrom(
-                padding: const EdgeInsets.symmetric(
-                  horizontal: 24,
-                  vertical: 14,
-                ),
-              ),
-            ),
-          ],
-        ),
-      ),
+      child: Text("Getting your Material...")
     );
   }
 
@@ -510,10 +486,10 @@ class _AllInsulationMaterialsScreenState extends ConsumerState<AllInsulationMate
               final localMaterial = materials[index];
 
               if (category == 'piping') {
-                final material = _toPiping(localMaterial);
+                final material = localMaterial.toPiping();
                 return _buildPipingCard(localMaterial, material, color);
               } else {
-                final material = _toEquipment(localMaterial);
+                final material = localMaterial.toEquipment();
                 return _buildEquipmentCard(localMaterial, material, color);
               }
             },
@@ -583,7 +559,9 @@ class _AllInsulationMaterialsScreenState extends ConsumerState<AllInsulationMate
           opacity: _isSelectionMode && !isSelected ? 0.5 : 1.0,
           child: EquipmentMaterialCard(
             material: material,
-            onChanged: (EquipmentMaterial value) {},
+            onChanged: (updated) async {
+              await _updateEquipmentMaterial(localMaterial, updated);
+            },
             onAdd: () => _copyMaterial(localMaterial),
             onEdit: () {},
             onDelete: () => _deleteMaterial(localMaterial),

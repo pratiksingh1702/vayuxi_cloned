@@ -1,4 +1,5 @@
 // pages/size_selection_page.dart
+
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:untitled2/core/utlis/widgets/Button_wrapper.dart';
@@ -7,22 +8,43 @@ import 'package:untitled2/core/utlis/widgets/custom_appBar.dart';
 import 'package:untitled2/typeProvider/type_provider.dart';
 import '../../../../../../core/utlis/widgets/fields/custom_textField.dart';
 import '../../../../../language/service/providers.dart';
-import '../../dpr_insu/screens/testing.dart';
 import '../../providers/selectedSize_provider.dart';
 import '../add_description.dart';
+import '../../dpr_insu/screens/testing.dart';
 
-class SizeSelectionPage extends ConsumerWidget {
+class SizeSelectionPage extends ConsumerStatefulWidget {
   const SizeSelectionPage({super.key});
 
   @override
-  Widget build(BuildContext context, WidgetRef ref) {
+  ConsumerState<SizeSelectionPage> createState() =>
+      _SizeSelectionPageState();
+}
+
+class _SizeSelectionPageState
+    extends ConsumerState<SizeSelectionPage> {
+
+  late TextEditingController sizeController;
+
+  @override
+  void initState() {
+    super.initState();
+
+    // Initialize controller ONCE
+    final selectedSize = ref.read(selectedSizeProvider);
+    sizeController = TextEditingController(text: selectedSize ?? '');
+  }
+
+  @override
+  void dispose() {
+    sizeController.dispose();
+    super.dispose();
+  }
+
+  @override
+  Widget build(BuildContext context) {
     final selectedSize = ref.watch(selectedSizeProvider);
     final selectedUnit = ref.watch(selectedUnitProvider);
-
-    final TextEditingController sizeController = TextEditingController(
-      text: selectedSize ?? '',
-    );
-    final lang=ref.watch(dailyEntryTranslationHelperProvider);
+    final lang = ref.watch(dailyEntryTranslationHelperProvider);
 
     return Scaffold(
       appBar: CustomAppBar(title: lang.enterSizeTitle),
@@ -34,48 +56,46 @@ class SizeSelectionPage extends ConsumerWidget {
               color: Colors.blue,
               textColor: Colors.white,
               onPressed: () {
-                if (sizeController.text.trim().isNotEmpty) {
-                  ref.read(selectedSizeProvider.notifier).state = sizeController
-                      .text
-                      .trim();
-                  final type=ref.read(typeProvider);
-                  if (type=="mechanical_work"){
-                    Navigator.push(
-                      context,
-                      MaterialPageRoute(
-                        builder: (context) => AddDescriptionScreen(),
-                      ),
-                    );}else{
-                    Navigator.push(
-                      context,
-                      MaterialPageRoute(
-                        builder: (context) => AddInsulationDescriptionScreen(),
-                      ),
-                    );
+                final value = sizeController.text.trim();
 
-
-                  }
-
-                    ScaffoldMessenger.of(context).showSnackBar(
-                      SnackBar(
-                        content: Text(
-                          'Size "${sizeController.text.trim()}" saved!',
-                        ),
-                        backgroundColor: Colors.green,
-                      ),
-                    );
-
-
-                  // Optional: Navigate back
-                  // Navigator.pop(context);
-                } else {
+                if (value.isEmpty) {
                   ScaffoldMessenger.of(context).showSnackBar(
                     const SnackBar(
                       content: Text('Please enter a size'),
                       backgroundColor: Colors.red,
                     ),
                   );
+                  return;
                 }
+
+                // Save size to provider
+                ref.read(selectedSizeProvider.notifier).state = value;
+
+                final type = ref.read(typeProvider);
+
+                if (type == "mechanical_work") {
+                  Navigator.push(
+                    context,
+                    MaterialPageRoute(
+                      builder: (context) => AddDescriptionScreen(),
+                    ),
+                  );
+                } else {
+                  Navigator.push(
+                    context,
+                    MaterialPageRoute(
+                      builder: (context) =>
+                          AddInsulationDescriptionScreen(),
+                    ),
+                  );
+                }
+
+                ScaffoldMessenger.of(context).showSnackBar(
+                  SnackBar(
+                    content: Text('Size "$value" saved!'),
+                    backgroundColor: Colors.green,
+                  ),
+                );
               },
             ),
           ),
@@ -84,32 +104,35 @@ class SizeSelectionPage extends ConsumerWidget {
           padding: const EdgeInsets.all(16.0),
           child: Column(
             children: [
-              // Size input field4
 
+              /// Title + Unit Selector
               Row(
                 mainAxisAlignment: MainAxisAlignment.spaceBetween,
                 children: [
                   Row(
-                    children: [
+                    children: const [
                       Text(
                         "Size",
-                        style: const TextStyle(
+                        style: TextStyle(
                           fontSize: 20,
                           fontWeight: FontWeight.w500,
                           color: Colors.black87,
                         ),
                       ),
-                      const Text(
+                      Text(
                         " *",
                         style: TextStyle(color: Colors.red),
                       ),
                     ],
                   ),
 
+                  /// UOM Dropdown
                   Container(
-                    padding: const EdgeInsets.symmetric(horizontal: 12),
+                    padding:
+                    const EdgeInsets.symmetric(horizontal: 12),
                     decoration: BoxDecoration(
-                      border: Border.all(color: const Color(0xFFDFE2E6)),
+                      border:
+                      Border.all(color: const Color(0xFFDFE2E6)),
                       borderRadius: BorderRadius.circular(8),
                       color: Colors.white,
                     ),
@@ -128,7 +151,10 @@ class SizeSelectionPage extends ConsumerWidget {
                         ],
                         onChanged: (value) {
                           if (value != null) {
-                            ref.read(selectedUnitProvider.notifier).state = value;
+                            // Changing UOM will NOT reset size anymore
+                            ref
+                                .read(selectedUnitProvider.notifier)
+                                .state = value;
                           }
                         },
                       ),
@@ -139,19 +165,21 @@ class SizeSelectionPage extends ConsumerWidget {
 
               const SizedBox(height: 8),
 
+              /// Size Input
               CustomTextField(
-                label: '', // no label here
+                label: '',
                 hint: 'Enter size (e.g., 10, 42, etc.)',
                 controller: sizeController,
                 keyboardType: TextInputType.number,
-
-                prefixIcon: const Icon(Icons.straighten, color: Colors.grey),
+                prefixIcon: const Icon(
+                  Icons.straighten,
+                  color: Colors.grey,
+                ),
               ),
-
 
               const SizedBox(height: 20),
 
-              // Display selected size
+              /// Display Saved Size
               if (selectedSize != null) ...[
                 Container(
                   padding: const EdgeInsets.all(16),
@@ -162,10 +190,11 @@ class SizeSelectionPage extends ConsumerWidget {
                   ),
                   child: Row(
                     children: [
-                      const Icon(Icons.check_circle, color: Colors.green),
+                      const Icon(Icons.check_circle,
+                          color: Colors.green),
                       const SizedBox(width: 8),
                       Text(
-                        'Selected Size: $selectedSize',
+                        'Selected Size: $selectedSize $selectedUnit',
                         style: const TextStyle(
                           fontSize: 16,
                           fontWeight: FontWeight.w500,
@@ -179,55 +208,6 @@ class SizeSelectionPage extends ConsumerWidget {
               ],
 
               const Spacer(),
-
-              // Save button
-              // SizedBox(
-              //   width: double.infinity,
-              //   child: ElevatedButton(
-              //     onPressed: () {
-              //       if (sizeController.text.trim().isNotEmpty) {
-              //         ref.read(selectedSizeProvider.notifier).state =
-              //             sizeController.text.trim();
-              //         Navigator.push(
-              //           context,
-              //           MaterialPageRoute(
-              //             builder: (context) => AddDescriptionScreen(
-              //                   ),
-              //           ),
-              //         );
-              //
-              //         ScaffoldMessenger.of(context).showSnackBar(
-              //           SnackBar(
-              //             content: Text('Size "${sizeController.text.trim()}" saved!'),
-              //             backgroundColor: Colors.green,
-              //           ),
-              //         );
-              //
-              //         // Optional: Navigate back
-              //         // Navigator.pop(context);
-              //       } else {
-              //         ScaffoldMessenger.of(context).showSnackBar(
-              //           const SnackBar(
-              //             content: Text('Please enter a size'),
-              //             backgroundColor: Colors.red,
-              //           ),
-              //         );
-              //       }
-              //     },
-              //     style: ElevatedButton.styleFrom(
-              //       backgroundColor: Colors.blue,
-              //       foregroundColor: Colors.white,
-              //       padding: const EdgeInsets.symmetric(vertical: 16),
-              //       shape: RoundedRectangleBorder(
-              //         borderRadius: BorderRadius.circular(8),
-              //       ),
-              //     ),
-              //     child: const Text(
-              //       'Save Size',
-              //       style: TextStyle(fontSize: 16, fontWeight: FontWeight.w500),
-              //     ),
-              //   ),
-              // ),
             ],
           ),
         ),

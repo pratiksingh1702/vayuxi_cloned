@@ -2034,7 +2034,7 @@ class _AddDescriptionScreenState extends ConsumerState<AddDescriptionScreen>
               material.remarks ?? '',
               isPiping: false,
             ),
-            onMeterChanged: (String p1) {},
+            onMeterChanged: (val) => _onEquipmentFieldChanged(material.id, 'uom', val),
           ),
         ),
       );
@@ -2135,6 +2135,8 @@ class _AddDescriptionScreenState extends ConsumerState<AddDescriptionScreen>
             return material.copyWith(
               qty: int.tryParse(value)?.toDouble() ?? 0,
             );
+          case 'uom':
+            return material.copyWith(uom: value);
           case 'ton':
             return material.copyWith(
                 weight: double.tryParse(value) ?? material.weight);
