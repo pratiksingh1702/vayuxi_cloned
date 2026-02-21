@@ -17,6 +17,8 @@ class SizeSelectionPage extends ConsumerWidget {
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final selectedSize = ref.watch(selectedSizeProvider);
+    final selectedUnit = ref.watch(selectedUnitProvider);
+
     final TextEditingController sizeController = TextEditingController(
       text: selectedSize ?? '',
     );
@@ -82,22 +84,70 @@ class SizeSelectionPage extends ConsumerWidget {
           padding: const EdgeInsets.all(16.0),
           child: Column(
             children: [
-              // Size input field
-              CustomTextField(
-                label: lang.sizeTab,
-                TextSize: 20,
-                hint: 'Enter size (e.g., 10, M, XL, 42, etc.)',
-                controller: sizeController,
-                keyboardType: TextInputType.text,
-                isRequired: true,
-                prefixIcon: const Icon(Icons.straighten, color: Colors.grey),
-                validator: (value) {
-                  if (value == null || value.trim().isEmpty) {
-                    return 'Please enter a size';
-                  }
-                  return null;
-                },
+              // Size input field4
+
+              Row(
+                mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                children: [
+                  Row(
+                    children: [
+                      Text(
+                        "Size",
+                        style: const TextStyle(
+                          fontSize: 20,
+                          fontWeight: FontWeight.w500,
+                          color: Colors.black87,
+                        ),
+                      ),
+                      const Text(
+                        " *",
+                        style: TextStyle(color: Colors.red),
+                      ),
+                    ],
+                  ),
+
+                  Container(
+                    padding: const EdgeInsets.symmetric(horizontal: 12),
+                    decoration: BoxDecoration(
+                      border: Border.all(color: const Color(0xFFDFE2E6)),
+                      borderRadius: BorderRadius.circular(8),
+                      color: Colors.white,
+                    ),
+                    child: DropdownButtonHideUnderline(
+                      child: DropdownButton<String>(
+                        value: selectedUnit,
+                        items: const [
+                          DropdownMenuItem(
+                            value: 'mm',
+                            child: Text('mm'),
+                          ),
+                          DropdownMenuItem(
+                            value: 'inch',
+                            child: Text('inch'),
+                          ),
+                        ],
+                        onChanged: (value) {
+                          if (value != null) {
+                            ref.read(selectedUnitProvider.notifier).state = value;
+                          }
+                        },
+                      ),
+                    ),
+                  ),
+                ],
               ),
+
+              const SizedBox(height: 8),
+
+              CustomTextField(
+                label: '', // no label here
+                hint: 'Enter size (e.g., 10, 42, etc.)',
+                controller: sizeController,
+                keyboardType: TextInputType.number,
+
+                prefixIcon: const Icon(Icons.straighten, color: Colors.grey),
+              ),
+
 
               const SizedBox(height: 20),
 

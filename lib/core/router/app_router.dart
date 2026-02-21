@@ -118,10 +118,10 @@ final appRouterProvider = Provider<GoRouter>((ref) {
       }
 
       /// NOW check subscription (only for logged users)
-      // if (!access.hasSubscription &&
-      //     state.matchedLocation != '/trial') {
-      //   return '/trial';
-      // }
+      if (!access.hasSubscription &&
+          state.matchedLocation != '/trial') {
+        return '/trial';
+      }
 
       return null;
     },

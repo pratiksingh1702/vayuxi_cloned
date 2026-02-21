@@ -379,8 +379,17 @@ class CustomDrawer extends ConsumerWidget {
         required List<Color> gradient,
         required bool requiresVerification,
       }) {
-    final currentRoute = GoRouterState.of(context).uri.path;
-    final isActive = currentRoute == route || currentRoute.startsWith(route);
+    String currentRoute = '';
+    bool isActive = false;
+
+    final router = GoRouter.maybeOf(context);
+
+    if (router != null) {
+      currentRoute =
+          router.routeInformationProvider.value.uri.path;
+      isActive =
+          currentRoute == route || currentRoute.startsWith(route);
+    }
 
     return Container(
       margin: const EdgeInsets.symmetric(horizontal: 2, vertical: 2),

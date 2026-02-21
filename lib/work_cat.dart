@@ -13,6 +13,9 @@ import 'core/utlis/common_functions.dart';
 import 'core/utlis/widgets/language_first_time_popup.dart';
 import 'features/auth/provider/auth_provider.dart';
 import 'features/language/model/language_storage.dart';
+import 'features/modules/all_Modules/dpr/dpr_insu/model/dpr_model_insu.dart';
+import 'features/modules/all_Modules/dpr/dpr_insu/providers/draft_insu.dart';
+import 'features/modules/all_Modules/dpr/dpr_insu/screens/testing.dart';
 import 'features/modules/all_Modules/more/language.dart';
 import 'features/modules/screen/device_id.dart';
 import 'features/noti_system/noti_providers/noti_provider.dart';
@@ -120,6 +123,9 @@ class _WorkCategoryScreenState extends ConsumerState<WorkCategoryScreen> {
 
   @override
   Widget build(BuildContext context) {
+    final drafts = ref.watch(insulationDraftProvider);
+
+
     final authState = ref.watch(authProvider);
 
     if (!authState.isLoggedIn) {
@@ -197,12 +203,18 @@ class _WorkCategoryScreenState extends ConsumerState<WorkCategoryScreen> {
                             ],
                           ),
                         ),
+
+                    if (drafts.isNotEmpty)
+                  ...drafts.map((draft) => DraftCard(draft,context))
+
                       ],
+
                     ),
                   ),
                 ),
               ),
             ),
+
 
             // ✅ Overlay popup
             if (showLanguagePopup)
@@ -240,6 +252,26 @@ class _WorkCategoryScreenState extends ConsumerState<WorkCategoryScreen> {
     );
   }
 
+}
+Widget DraftCard(InsulationDprModel draft,BuildContext context) {
+  return Card(
+    color: Colors.orange[50],
+    child: ListTile(
+      leading: Icon(Icons.save, color: Colors.orange),
+      title: Text(draft.workDescription),
+      subtitle: Text("Unsaved changes • ${draft.date}"),
+      trailing: Icon(Icons.arrow_forward_ios),
+      onTap: () {
+        Navigator.push(
+          context,
+          MaterialPageRoute(
+            builder: (context) => AddInsulationDescriptionScreen(work: draft,),
+          ),
+        );
+
+      },
+    ),
+  );
 }
 
 class CompanyCard extends StatelessWidget {
