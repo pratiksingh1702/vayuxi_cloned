@@ -119,10 +119,20 @@ class _AddDescriptionScreenState extends ConsumerState<AddDescriptionScreen>
 
     if (widget.work != null) {
       _mechanicalId = widget.work!.id;
+
+      // ADD THIS
+      WidgetsBinding.instance.addPostFrameCallback((_) {
+        final jsonString = const JsonEncoder.withIndent('  ').convert(widget.work!.toJson());
+        debugPrint('🔴 WIDGET.WORK JSON:');
+        for (int i = 0; i < jsonString.length; i += 800) {
+          final end = (i + 800 < jsonString.length) ? i + 800 : jsonString.length;
+          debugPrint(jsonString.substring(i, end));
+        }
+      });
     }
 
     WidgetsBinding.instance.addPostFrameCallback((_) async {
-      await loadScreenState();
+      await loadScreenState(Dpr: widget.work);
       _applyHeaderValuesToMaterials();
     });
 
@@ -141,6 +151,8 @@ class _AddDescriptionScreenState extends ConsumerState<AddDescriptionScreen>
       // 🔵 EDITING DPR
 
       final work = widget.work ?? Dpr;
+      print("work: ${work}");
+      print("😑😑😑😑😑😑😑");
 
       if (work != null) {
         _mechanicalId = work.id;
@@ -152,7 +164,10 @@ class _AddDescriptionScreenState extends ConsumerState<AddDescriptionScreen>
         _sizeController.text = work.size;
         _floorController.text = work.location;
         _plantController.text = work.plant;
-        await _loadDprMaterials(work);
+
+
+
+        await _loadDprMaterials(Dpr);
       } else {
         await _loadDefaultMaterials();
       }
@@ -353,7 +368,14 @@ class _AddDescriptionScreenState extends ConsumerState<AddDescriptionScreen>
         }
 
         // everything else empty
-        return f.copyWith(value: '');
+        // 🔥 THIS IS THE IMPORTANT PART
+        if (isCreatingDpr) {
+          // New DPR → wipe DB default values
+          return f.copyWith(value: '');
+        } else {
+          // Editing DPR → preserve server values
+          return f;
+        }
       }).toList();
 
       return m.copyWith(dynamicFields: updated);
@@ -1594,6 +1616,8 @@ class _AddDescriptionScreenState extends ConsumerState<AddDescriptionScreen>
                       _plantController.text = dpr.plant;
 
                       _mechanicalId = newValue;
+                      await getd(dpr);
+
                       await loadScreenState(Dpr: dpr);
 
                     },
@@ -2761,6 +2785,16 @@ class _AddDescriptionScreenState extends ConsumerState<AddDescriptionScreen>
     _plantController.dispose();
     _floorController.dispose();
     super.dispose();
+  }
+
+  Future<void> getd(DprModel dpr) async {
+    final jsonString = const JsonEncoder.withIndent('  ').convert(dpr.toJson());
+    debugPrint('🔴 DROPDOWN DPR JSON:');
+    for (int i = 0; i < jsonString.length; i += 800) {
+      final end = (i + 800 < jsonString.length) ? i + 800 : jsonString.length;
+      debugPrint(jsonString.substring(i, end));
+    }
+
   }
 }
 

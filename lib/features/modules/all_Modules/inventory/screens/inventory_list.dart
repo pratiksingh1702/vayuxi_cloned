@@ -100,6 +100,14 @@ class _InventoryListScreenState extends ConsumerState<InventoryListScreen> {
                     itemCount: filtered.length,
                     itemBuilder: (_, i) {
                       final inventory = filtered[i];
+                      final num totalQuantity = inventory.type == "consumable"
+                          ? (inventory.totalQuantityAdded ?? 0)
+                          : (inventory.totalUnits ?? 0);
+                      debugPrint(
+                          "Inventory -> Name: ${inventory.name}, "
+                              "Type: ${inventory.type}, "
+                              "TotalQty: $totalQuantity"
+                      );
 
                       return Card(
                         elevation: 0,
@@ -108,7 +116,7 @@ class _InventoryListScreenState extends ConsumerState<InventoryListScreen> {
                         child: ListTile(
                           title: Text(inventory.name),
                           subtitle: Text(
-                            "Qty: ${inventory.totalQuantityAdded} | Min: ${inventory.minimumStockLevel} | UOM: ${inventory.uom}",
+                            "Qty: ${totalQuantity} | Min: ${inventory.minimumStockLevel} | UOM: ${inventory.uom}",
                           ),
                           trailing: const Icon(Icons.mode_edit_outline_outlined),
                           onTap: () async {

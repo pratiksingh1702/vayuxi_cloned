@@ -107,7 +107,25 @@ class DprModel {
       rethrow;
     }
   }
-
+  Map<String, dynamic> toJson() {
+    return {
+      '_id': id,
+      'siteId': siteId,
+      'teamId': teamId,
+      'company': company,
+      'dprName': dprName,
+      'plant': plant,
+      'location': location,
+      'size': size,
+      'moc': moc,
+      'piping': piping.map((e) => e.toJson()).toList(),
+      'equipment': equipment.map((e) => e.toJson()).toList(),
+      'designation': designation,
+      'date': date.toIso8601String(),
+      'createdAt': createdAt.toIso8601String(),
+      'updatedAt': updatedAt.toIso8601String(),
+    };
+  }
 
 
 }
