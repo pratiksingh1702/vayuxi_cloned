@@ -5,6 +5,7 @@ import 'package:liquid_pull_to_refresh/liquid_pull_to_refresh.dart';
 import 'package:untitled2/core/utlis/widgets/Button_wrapper.dart';
 import 'package:untitled2/core/utlis/widgets/buttons.dart';
 import '../../../../../core/utlis/widgets/custom_appBar.dart';
+import '../../../../../core/utlis/widgets/sidebar.dart';
 import '../../../../../typeProvider/type_provider.dart';
 import '../../site_Details/providers/site_current_provider.dart';
 import '../../site_Details/repository/siteModel.dart';
@@ -28,7 +29,18 @@ class _WorkTeamListPageState extends ConsumerState<WorkTeamListPage> {
   Future<void> _refreshTeams() async {
     final type = ref.read(typeProvider);
     final siteId = ref.read(selectedSiteIdProvider);
-    await ref.read(teamProvider.notifier).fetchTeams(type: type!, siteId: siteId!);
+    final notifier = ref.read(teamProvider.notifier);
+
+    if (type == "mechanical_work") {
+      await notifier.fetchMechanicalCombined(siteId: siteId!);
+    }
+    else if (type == "insulation_work") {
+      await notifier.fetchInsulationCombined(siteId: siteId!);
+    }
+    else {
+      // fallback if some other type appears
+      await notifier.fetchTeams(type: type!, siteId: siteId!);
+    }
 
   }
 
@@ -40,37 +52,42 @@ class _WorkTeamListPageState extends ConsumerState<WorkTeamListPage> {
 
     WidgetsBinding.instance.addPostFrameCallback((_) async {
       await _refreshTeams();
-
       final teamState = ref.read(teamProvider);
       final teams = teamState.teams;
 
-      // 🚫 nothing received
+// 🚫 If no teams at all → auto navigate
       if (teams.isEmpty) {
         ref.read(selectedTeamIdProvider.notifier).state = "";
         _goNext("", "");
         return;
       }
 
-      // check if a team is the system default
-      bool isDefault(String name) =>
-          name.trim().toLowerCase().contains("default backend team");
+      // final teamState = ref.read(teamProvider);
+      // final teams = teamState.teams;
+      //
+      // bool isDefault(String name) =>
+      //     name.trim().toLowerCase().contains("default backend team");
+      //
+      // // 🚫 no teams at all
+      // if (teams.isEmpty) {
+      //   ref.read(selectedTeamIdProvider.notifier).state = "";
+      //   _goNext("", "");
+      //   return;
+      // }
+      //
+      // // Filter real teams
+      // final realTeams = teams.where((t) => !isDefault(t.teamName)).toList();
+      //
+      // // 🚫 only default exists
+      // if (realTeams.isEmpty) {
+      //   ref.read(selectedTeamIdProvider.notifier).state = "";
+      //   _goNext("", "");
+      //   return;
+      // }
 
-      // 🚫 only default team
-      if (teams.length == 1 && isDefault(teams.first.teamName)) {
-        ref.read(selectedTeamIdProvider.notifier).state = "";
-        _goNext("", "");
-        return;
-      }
-
-      // ✅ only one real team
-      if (teams.length == 1) {
-        final team = teams.first;
-        ref.read(selectedTeamIdProvider.notifier).state = team.id;
-        _goNext(team.id, team.teamName);
-        return;
-      }
-
-      // more than one → user must pick
+      // ✅ At least one real team exists → DO NOT auto navigate
+      // User must manually pick
+      return;
     });
   }
 
@@ -98,6 +115,7 @@ class _WorkTeamListPageState extends ConsumerState<WorkTeamListPage> {
     final site = ref.read(currentSiteProvider);
 
     return Scaffold(
+      drawer: const CustomDrawer(),
       backgroundColor: const Color(0xFFEAF3FB), // soft blue background
       appBar: const CustomAppBar(title: "Team Details"),
       body: BottomButtonWrapper(

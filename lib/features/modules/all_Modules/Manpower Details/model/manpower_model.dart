@@ -12,6 +12,7 @@ class ManpowerModel {
 
   final String? dateOfBirth;
   final String? dateOfJoining;
+  final String? totalHour;
 
   final String? bankAccountNumber;
   final String? ifscCode;
@@ -57,6 +58,7 @@ class ManpowerModel {
     this.panNumber,
     this.dateOfBirth,
     this.dateOfJoining,
+    this.totalHour,
     this.bankAccountNumber,
     this.ifscCode,
     this.epfNumber,
@@ -94,6 +96,7 @@ class ManpowerModel {
 
       aadharNumber: json['aadharNumber']?.toString(),
       panNumber: json['panNumber']?.toString(),
+      totalHour: json['totalHour']?.toString(),
 
       dateOfBirth: json['dateOfBirth']?.toString(),
       dateOfJoining: json['dateOfJoining']?.toString(),
@@ -146,7 +149,7 @@ class ManpowerModel {
 
       "dateOfBirth": dateOfBirth,
       "dateOfJoining": dateOfJoining,
-
+      "totalHour": totalHour,
       "bankAccountNumber": bankAccountNumber,
       "ifscCode": ifscCode,
       "epfNumber": epfNumber,

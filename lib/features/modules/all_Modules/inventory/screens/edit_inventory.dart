@@ -3,6 +3,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../../../../core/utlis/colors/colors.dart';
 import '../../../../../core/utlis/widgets/custom_appBar.dart';
 import '../../../../../core/utlis/widgets/fields/custom_textField.dart';
+import '../../../../../core/utlis/widgets/sidebar.dart';
 import '../../site_Details/providers/site_current_provider.dart';
 import '../models/inventory_model.dart';
 import '../provider/inventory_provider.dart';
@@ -90,6 +91,7 @@ class _EditInventoryScreenState extends ConsumerState<EditInventoryScreen> {
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: CustomAppBar(title: "Edit Inventory"),
+      drawer: const CustomDrawer(),
       backgroundColor: AppColors.lightBlue,
       body: Padding(
         padding: const EdgeInsets.all(16),

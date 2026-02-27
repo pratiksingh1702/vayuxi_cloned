@@ -4,6 +4,7 @@ import 'package:untitled2/core/utlis/colors/colors.dart';
 import 'package:untitled2/core/utlis/widgets/custom_appBar.dart';
 
 import '../../../../../../../core/utlis/widgets/image_clipped.dart';
+import '../../../../../../../core/utlis/widgets/sidebar.dart';
 import '../../../screens/dprTeamDetails.dart';
 import '../../../screens/widgets/select_card.dart';
 import '../../../screens/workTeamList.dart';
@@ -16,6 +17,7 @@ class AddSelectCardGrid extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
+      drawer: const CustomDrawer(),
       backgroundColor: AppColors.lightBlue,
       appBar: CustomAppBar(title:"Select Dpr Values"),
       body: CornerClippedScreenSimple(

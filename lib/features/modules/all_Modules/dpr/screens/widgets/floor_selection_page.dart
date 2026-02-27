@@ -60,7 +60,6 @@ class _FloorSelectionPageState extends ConsumerState<FloorSelectionPage> {
   List<Floor> _filterFloors(List<Floor> floors) {
     var result = floors;
 
-
     if (_searchQuery.isNotEmpty) {
       result = result
           .where((f) =>
@@ -69,10 +68,42 @@ class _FloorSelectionPageState extends ConsumerState<FloorSelectionPage> {
     }
 
     if (widget.ordered) {
-      result.sort((a, b) => a.name.compareTo(b.name));
+      result.sort((a, b) =>
+          _floorOrderValue(a.name).compareTo(_floorOrderValue(b.name)));
     }
 
     return result;
+  }
+  int _floorOrderValue(String name) {
+    final lower = name.toLowerCase().trim();
+
+    // Basement handling (B1, Basement 1, etc.)
+    if (lower.contains('basement') || lower.startsWith('b')) {
+      final number = _extractNumber(lower);
+      return -100 + (number ?? 0); // keep basements lowest
+    }
+
+    // Ground floor
+    if (lower == 'ground' || lower == 'ground floor' || lower == 'g' || lower == '0') {
+      return 0;
+    }
+
+    // Numeric floors (1, 1st, 2nd, 10th etc.)
+    final number = _extractNumber(lower);
+    if (number != null) {
+      return number;
+    }
+
+    // Unknown labels go at bottom
+    return 9999;
+  }
+
+  int? _extractNumber(String text) {
+    final match = RegExp(r'\d+').firstMatch(text);
+    if (match != null) {
+      return int.tryParse(match.group(0)!);
+    }
+    return null;
   }
 
   void _toggleSelectionMode() {

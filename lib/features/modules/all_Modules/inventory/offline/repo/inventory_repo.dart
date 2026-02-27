@@ -37,11 +37,16 @@ class InventoryRepository {
   }
 
   Stream<List<InventoryUsage>> watchUsage(String siteId) {
+    print("👀 WATCH USAGE CALLED for site: $siteId");
+
     return isar.inventoryUsageIsars
         .filter()
         .siteIdEqualTo(siteId)
         .watch(fireImmediately: true)
-        .map((e) => e.map((x) => x.toModel()).toList());
+        .map((e) {
+      print("📦 ISAR USAGE EMITTED: ${e.length}");
+      return e.map((x) => x.toModel()).toList();
+    });
   }
 
   Stream<List<InventoryCheckout>> watchCheckouts(String siteId) {
@@ -50,6 +55,62 @@ class InventoryRepository {
         .siteIdEqualTo(siteId)
         .watch(fireImmediately: true)
         .map((list) => list.map((e) => e.toModel()).toList());
+  }
+  Future<Inventory> createInventory({
+    required String siteId,
+    required String name,
+    required String categoryId,
+    String? uom,
+    double? totalQuantityAdded,
+    double? minimumStockLevel,
+    int? totalUnits,
+    String? condition,
+    String? remarks,
+  }) async {
+
+    // 1️⃣ Call API
+    final created = await api.createInventory(
+      siteId: siteId,
+      name: name,
+      categoryId: categoryId,
+      uom: uom,
+      totalQuantityAdded: totalQuantityAdded,
+      minimumStockLevel: minimumStockLevel,
+      totalUnits: totalUnits,
+      condition: condition,
+      remarks: remarks,
+    );
+
+    // 2️⃣ Persist locally immediately
+    await isar.writeTxn(() async {
+      print("➡️ Isar object prepared:");
+      await isar.inventoryIsars.put(
+        InventoryIsar()
+          ..id = created.id
+          ..siteId = siteId
+          ..categoryId = created.category.id
+          ..name = created.name
+          ..type = created.type
+          ..uom = created.uom
+          ..totalQuantityAdded = created.totalQuantityAdded
+          ..currentBalance = created.currentBalance
+          ..minimumStockLevel = created.minimumStockLevel
+          ..totalUnits = created.totalUnits
+          ..availableUnits = created.availableUnits
+          ..condition = created.condition
+          ..remarks = created.remarks
+          ..isDeleted = false
+          ..updatedAt = DateTime.now(),
+      );
+    });
+    final check = await isar.inventoryIsars
+        .filter()
+        .idEqualTo(created.id)
+        .findFirst();
+
+    print("🔎 DB CHECK: ${check?.name}");
+
+    return created;
   }
 
   // ---------------------------------------------------------------------------
@@ -165,14 +226,33 @@ class InventoryRepository {
         usage.map((u) => InventoryUsageIsar()
           ..id = u.id
           ..siteId = siteId
-          ..inventoryId = u.inventory
           ..quantityUsed = u.quantityUsed
-          ..usedByName = u.usedByName
+          ..uom = u.uom
+          ..usedByName = u.usedBy!.fullName
+          ..usedById = u.usedBy?.id
           ..usageDate = u.usageDate
           ..remarks = u.remarks
-          ..updatedAt = u.usageDate).toList(),
+          ..isDeleted = u.isDeleted
+          ..createdAt = u.createdAt
+          ..updatedAt = u.updatedAt
+        ).toList(),
       );
 
+// 🔥 Link inventory
+      for (final u in usage) {
+        final usageIsar = await isar.inventoryUsageIsars
+            .filter()
+            .idEqualTo(u.id)
+            .findFirst();
+
+        final inventoryIsar = await isar.inventoryIsars
+            .filter()
+            .idEqualTo(u.inventory.id)
+            .findFirst();
+
+        usageIsar?.inventory.value = inventoryIsar;
+        await usageIsar?.inventory.save();
+      }
       await isar.inventoryCheckoutIsars.putAll(
         checkouts.map((c) => InventoryCheckoutIsar()
           ..id = c.id

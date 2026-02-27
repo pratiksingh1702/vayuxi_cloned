@@ -103,9 +103,9 @@ class _DynamicItemCard2State extends State<DynamicItemCard2>
   void initState() {
     super.initState();
     _initDraft();
-    _uomCtrl = TextEditingController(text: widget.meter);
+    _uomCtrl = TextEditingController(text: '');
     _uomCtrl.addListener(() {
-      if (_uomCtrl.text != widget.meter) widget.onMeterChanged(_uomCtrl.text);
+      widget.onMeterChanged(_uomCtrl.text);
     });
     _qtyCtrl = TextEditingController(text: widget.quantity);
     _tonCtrl = TextEditingController(text: widget.ton);
@@ -146,7 +146,7 @@ class _DynamicItemCard2State extends State<DynamicItemCard2>
     if (widget.isEditMode && !oldWidget.isEditMode) {
       _initDraft();
     }
-    if (widget.meter != _uomCtrl.text) _uomCtrl.text = widget.meter;
+
     if (widget.image != oldWidget.image) {
       draftImageUrl = widget.image;
       draftImageFile = null;
@@ -528,10 +528,8 @@ class _DynamicItemCard2State extends State<DynamicItemCard2>
                         onChanged: (v) => draftUom = v,
                       ),
                     )
-                        : _blueBox(
-                      'UOM',
-                      _uomCtrl, // 👈 use the stored controller
-                    )
+                        : _buildUomField()// 👈 use the stored controller
+
                   ],
                 ),
               ),
@@ -574,7 +572,50 @@ class _DynamicItemCard2State extends State<DynamicItemCard2>
   }
 
   // ── Helpers ─────────────────────────────────────────────────────────────────
-
+  Widget _buildUomField() {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        const Text(
+          'UOM',
+          style: TextStyle(
+            fontSize: 11, // bigger label
+            fontWeight: FontWeight.w700,
+          ),
+        ),
+        const SizedBox(height: 6),
+        SizedBox(
+          height: 40, // bigger height
+          child: TextFormField(
+            controller: _uomCtrl,
+            enabled: widget.isEditable,
+            textAlign: TextAlign.center,
+            style: const TextStyle(
+              fontSize: 12, // bigger text
+              fontWeight: FontWeight.w600,
+            ),
+            decoration: InputDecoration(
+              filled: true,
+              fillColor: Colors.white, // ✅ white background
+              contentPadding: const EdgeInsets.symmetric(vertical: 8),
+              border: OutlineInputBorder(
+                borderRadius: BorderRadius.circular(8),
+                borderSide: const BorderSide(color: Colors.black, width: 1.2),
+              ),
+              enabledBorder: OutlineInputBorder(
+                borderRadius: BorderRadius.circular(8),
+                borderSide: const BorderSide(color: Colors.black, width: 1.2),
+              ),
+              focusedBorder: OutlineInputBorder(
+                borderRadius: BorderRadius.circular(8),
+                borderSide: const BorderSide(color: Colors.blue, width: 1.5),
+              ),
+            ),
+          ),
+        ),
+      ],
+    );
+  }
   Widget _updatedblueBox({
     required String label,
     required TextEditingController controller,

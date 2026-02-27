@@ -38,7 +38,11 @@ class RateFileMaterialIsar {
 
   late String materialName;
   late String image;
+  late String uom;
   late String calculationCategory;
+  late String rawMaterialName;
+  late String normalizedMaterialName;
+
   List<DynamicFieldIsar> dynamicFields = [];
 
   late String designationJoined; // store list as string

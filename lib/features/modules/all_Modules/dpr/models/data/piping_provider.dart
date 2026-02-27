@@ -23,6 +23,9 @@ class PipingMaterialsNotifier extends StateNotifier<List<PipingItem>> {
   void setFromServer(List<PipingItem> serverMaterials) {
     state = List.unmodifiable(serverMaterials);
   }
+  void addMaterial(PipingItem item) {
+    state = [...state, item];
+  }
   void clear() => state = const [];
 
   // Load materials from Hive

@@ -728,7 +728,7 @@ class _ManImportCsvScreenState extends ConsumerState<ManImportCsvScreen> {
 
             // File Selection Section
             UploadBox(
-              title: 'Upload your Manpowe file',
+              title: 'Upload your Manpower file',
               subtitle: _selectedFileName ?? 'No file selected',
               buttonText: _selectedFileName == null ? 'Choose Manpower File' : 'Change File',
               onPressed: _pickCsvFile,

@@ -1,3 +1,4 @@
+import 'package:flutter/cupertino.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:dio/dio.dart';
 import 'package:untitled2/features/modules/all_Modules/team/offline/state/isar_provider.dart';
@@ -22,6 +23,109 @@ class TeamNotifier extends StateNotifier<TeamState> {
   TeamNotifier(this.ref) : super(TeamState());
 
   final Ref ref;
+  Future<void> fetchMechanicalCombined({
+    required String siteId,
+
+  }) async {
+    if (siteId.isEmpty) return;
+
+    state = state.copyWith(isLoading: true, error: null);
+
+    try {
+      // Normal teams
+      final normalTeams =
+      await TeamApi.fetchTeams(type: "mechanical_work", siteId: siteId);
+
+      debugPrint("🟢 Normal Teams Count: ${normalTeams.length}");
+      for (final t in normalTeams) {
+        debugPrint("   → NORMAL: ${t.id} | ${t.teamName}");
+      }
+
+// DPR mechanical teams
+      final dprTeams =
+      await TeamApi.fetchMechanicalTeams(siteId: siteId);
+
+      debugPrint("🔵 DPR Mechanical Teams Count: ${dprTeams.length}");
+      for (final t in dprTeams) {
+        debugPrint("   → DPR: ${t.id} | ${t.teamName}");
+      }
+
+// Combine
+      final combined = [...normalTeams, ...dprTeams];
+
+      debugPrint("🟡 Combined Count Before Dedup: ${combined.length}");
+
+// Remove duplicates by id
+      final uniqueMap = <String, TeamModel>{};
+
+      for (final team in combined) {
+        if (uniqueMap.containsKey(team.id)) {
+          debugPrint("⚠️ Duplicate Found: ${team.id} | ${team.teamName}");
+        }
+        uniqueMap[team.id] = team;
+      }
+
+      final uniqueList = uniqueMap.values.toList();
+
+      debugPrint("🟣 Final Unique Count: ${uniqueList.length}");
+
+      for (final t in uniqueList) {
+        debugPrint("   ✅ FINAL: ${t.id} | ${t.teamName}");
+      }
+
+      state = state.copyWith(
+        teams: uniqueList,
+        isLoading: false,
+        hasData: true,
+        error: null,
+      );
+    } catch (e) {
+      state = state.copyWith(
+        isLoading: false,
+        error: e.toString(),
+      );
+    }
+  }
+  Future<void> fetchInsulationCombined({
+    required String siteId,
+  }) async {
+    if (siteId.isEmpty) return;
+
+    state = state.copyWith(isLoading: true, error: null);
+
+    try {
+      // Normal teams
+      final normalTeams =
+      await TeamApi.fetchTeams(type: "insulation-work", siteId: siteId);
+
+      // DPR insulation teams
+      final dprTeams =
+      await TeamApi.fetchInsulationTeams(siteId: siteId);
+
+      // Combine
+      final combined = [...normalTeams, ...dprTeams];
+
+      // Remove duplicates
+      final uniqueMap = <String, TeamModel>{};
+      for (final team in combined) {
+        uniqueMap[team.id] = team;
+      }
+
+      final uniqueList = uniqueMap.values.toList();
+
+      state = state.copyWith(
+        teams: uniqueList,
+        isLoading: false,
+        hasData: true,
+        error: null,
+      );
+    } catch (e) {
+      state = state.copyWith(
+        isLoading: false,
+        error: e.toString(),
+      );
+    }
+  }
 
   Future<void> fetchTeams({
     required String type,

@@ -6,9 +6,10 @@ class TeamModel {
   final String company;
   final bool isDeleted;
   final String type;
+  final bool isDefaultTeam; // 🔥 NEW FIELD
   final String? createdAt;
   final String? updatedAt;
-  final String? teamLeadImage; // New field
+  final String? teamLeadImage;
 
   TeamModel({
     required this.id,
@@ -18,6 +19,7 @@ class TeamModel {
     required this.company,
     required this.isDeleted,
     required this.type,
+ this.isDefaultTeam=false, // 🔥 REQUIRED
     this.createdAt,
     this.updatedAt,
     this.teamLeadImage,
@@ -25,21 +27,30 @@ class TeamModel {
 
   factory TeamModel.fromJson(Map<String, dynamic> json) {
     return TeamModel(
-      id: json['_id'] ?? '',
+      id: json['_id']?.toString() ?? '',
       teamName: json['teamName'] ?? '',
-      teamLeadId :json['teamLead'] is Map
-          ? json['teamLead']['_id']
-          : json['teamLead'],
-        teamMemberIds : (json['teamMembers'] as List)
-            .map((e) => e is Map ? e['_id'] : e)
-            .cast<String>()
-            .toList(),
-      company: json['company']?.toString() ?? '',
+
+      teamLeadId: json['teamLead'] is Map
+          ? json['teamLead']['_id']?.toString()
+          : json['teamLead']?.toString(),
+
+      teamMemberIds: (json['teamMembers'] as List? ?? [])
+          .map((e) => e is Map ? e['_id'].toString() : e.toString())
+          .toList(),
+
+      company: json['company'] is Map
+          ? json['company']['_id']?.toString() ?? ''
+          : json['company']?.toString() ?? '',
+
       isDeleted: json['isDeleted'] ?? false,
       type: json['type'] ?? '',
-      createdAt: json['createdAt'],
-      updatedAt: json['updatedAt'],
-      teamLeadImage: json['teamLeadImage']?.toString(), // Safely handle nullable field
+
+      isDefaultTeam: json['isDefaultTeam'] ?? false, // 🔥 IMPORTANT
+
+      createdAt: json['createdAt']?.toString(),
+      updatedAt: json['updatedAt']?.toString(),
+
+      teamLeadImage: json['teamLeadImage']?.toString(),
     );
   }
 
@@ -52,9 +63,10 @@ class TeamModel {
       'company': company,
       'isDeleted': isDeleted,
       'type': type,
+      'isDefaultTeam': isDefaultTeam, // 🔥 INCLUDE
       'createdAt': createdAt,
       'updatedAt': updatedAt,
-      'teamLeadImage': teamLeadImage, // Include it in JSON
+      'teamLeadImage': teamLeadImage,
     };
   }
 }

@@ -60,17 +60,21 @@ class InventoryUsageIsar {
   @Index()
   late String siteId;
 
-  @Index()
-  late String inventoryId;
+  final inventory = IsarLink<InventoryIsar>();
 
   late double quantityUsed;
-  late String usedByName;
-  late DateTime usageDate;
+  String? uom;
 
+  late String usedByName;
+  String? usedById;
+
+  late DateTime usageDate;
   String? remarks;
+
+  late bool isDeleted;
+  late DateTime createdAt;
   late DateTime updatedAt;
 }
-
 @collection
 class InventoryCheckoutIsar {
   Id isarId = Isar.autoIncrement;
@@ -128,11 +132,16 @@ extension InventoryIsarMapper on InventoryIsar {
 extension UsageIsarMapper on InventoryUsageIsar {
   InventoryUsage toModel() => InventoryUsage(
     id: id,
-    inventory: inventoryId,
+    inventory: inventory.value!.toModel(),
     quantityUsed: quantityUsed,
+    uom: uom,
     usedByName: usedByName,
+    usedBy: null, // not persisted fully locally
     usageDate: usageDate,
     remarks: remarks,
+    isDeleted: isDeleted,
+    createdAt: createdAt,
+    updatedAt: updatedAt,
   );
 }
 extension CheckoutIsarMapper on InventoryCheckoutIsar {

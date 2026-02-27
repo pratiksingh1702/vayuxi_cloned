@@ -6,6 +6,7 @@ import 'package:untitled2/core/utlis/widgets/custom_appBar.dart';
 import 'package:untitled2/features/modules/all_Modules/Manpower%20Details/screens/widgets/popup.dart';
 import '../../../../../core/utlis/widgets/buttons.dart';
 import '../../../../../core/utlis/widgets/custom.dart';
+import '../../../../../core/utlis/widgets/custom_dropdown.dart';
 import '../../../../../core/utlis/widgets/fields/custom_textField.dart';
 import '../../../../../core/utlis/widgets/fields/phone_number_field.dart';
 import '../../../../../core/utlis/widgets/sidebar.dart';
@@ -61,6 +62,9 @@ class _EditManpowerScreenState extends ConsumerState<EditManpowerScreen> {
   // New state variables
   bool _enableLoginCredentials = false;
   String _generatedOtp = "";
+  String? _selectedTotalHour;
+  final List<String> _totalHourOptions =
+  List.generate(16, (index) => (index + 1).toString());
 
   @override
   void initState() {
@@ -79,6 +83,7 @@ class _EditManpowerScreenState extends ConsumerState<EditManpowerScreen> {
     _salaryController = TextEditingController(text: m.salary.toString());
     _remarksController = TextEditingController(text: m.remarks ?? "");
     _payBasic = m.payBasics ?? "monthly";
+    _selectedTotalHour = m.totalHour;
     _aadhaarController =
         TextEditingController(text: m.aadharNumber ?? "");
 
@@ -168,6 +173,7 @@ class _EditManpowerScreenState extends ConsumerState<EditManpowerScreen> {
       "epfNumber": _epfController.text,
       "uanNumber": _uanController.text,
       "esicNumber": _esicController.text,
+      "totalHour": _selectedTotalHour,
 
       "dateOfBirth": _dob?.toIso8601String(),
       "dateOfJoining": _doj?.toIso8601String(),
@@ -538,6 +544,27 @@ class _EditManpowerScreenState extends ConsumerState<EditManpowerScreen> {
                     controller: _salaryController,
                     isRequired: true,
                     keyboardType: TextInputType.number,
+                  ),
+                  const SizedBox(height: 16),
+
+                  CustomDropdownField<String>(
+                    label: "Total Hour",
+
+                    value: _selectedTotalHour,
+                    hint: "Select Total Working Hours",
+                    items: _totalHourOptions
+                        .map(
+                          (hour) => DropdownMenuItem<String>(
+                        value: hour,
+                        child: Text(hour),
+                      ),
+                    )
+                        .toList(),
+                    onChanged: (value) {
+                      setState(() {
+                        _selectedTotalHour = value;
+                      });
+                    },
                   ),
                   CustomTextField(
                     label: "Basic Salary",

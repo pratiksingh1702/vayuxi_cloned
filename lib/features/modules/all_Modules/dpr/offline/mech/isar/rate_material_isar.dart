@@ -12,6 +12,9 @@ class RateMaterialIsar {
 
   late String designation;     // piping/equipment
   late String materialName;
+  late String rawMaterialName;
+  late String normalizedMaterialName;
+
   late String image;
   late String approvalStatus;  // approved/rejected/suggested
   late String calculationCategory;

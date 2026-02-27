@@ -1,6 +1,8 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:go_router/go_router.dart';
 import 'package:pin_code_fields/pin_code_fields.dart';
+import 'package:untitled2/features/auth/screens/toc.dart';
 import '../../../core/utlis/widgets/buttons.dart';
 import '../../../core/utlis/widgets/custom_appBar.dart';
 import '../../../core/utlis/widgets/fields/phone_number_field.dart';
@@ -26,6 +28,7 @@ class _RegisterScreenState extends ConsumerState<RegisterScreen> {
   bool _isLoading = false;
   bool _isEmailVerified = false;
   bool _isSendingOtp = false;
+  bool _acceptedTerms = false;
   bool _isVerifyingOtp = false;
 
   @override
@@ -462,14 +465,56 @@ class _RegisterScreenState extends ConsumerState<RegisterScreen> {
                 _buildTextField("Company Name", companyController),
 
                 const SizedBox(height: 25),
+                const SizedBox(height: 10),
+
+                Row(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Checkbox(
+                      value: _acceptedTerms,
+                      onChanged: (value) {
+                        setState(() {
+                          _acceptedTerms = value ?? false;
+                        });
+                      },
+                    ),
+                    Expanded(
+                      child: GestureDetector(
+                        onTap: () {
+                          context.push('/terms');
+                        },
+                        child: RichText(
+                          text: const TextSpan(
+                            style: TextStyle(color: Colors.black87, fontSize: 13),
+                            children: [
+                              TextSpan(text: "I agree to the "),
+                              TextSpan(
+                                text: "Terms & Conditions",
+                                style: TextStyle(
+                                  color: Colors.blue,
+                                  fontWeight: FontWeight.w600,
+                                  decoration: TextDecoration.underline,
+                                ),
+                              ),
+                            ],
+                          ),
+                        ),
+                      ),
+                    ),
+                  ],
+                ),
 
                 // --- Register Button ---
                 SizedBox(
                   width: double.infinity,
                   child: ElevatedButton(
-                    onPressed: (_isLoading || !_isEmailVerified) ? null : _handleRegistration,
+                    onPressed: (_isLoading || !_isEmailVerified || !_acceptedTerms)
+                        ? null
+                        : _handleRegistration,
                     style: ElevatedButton.styleFrom(
-                      backgroundColor: _isEmailVerified ? Colors.blue : Colors.grey,
+                      backgroundColor: (_isEmailVerified && _acceptedTerms)
+                          ? Colors.blue
+                          : Colors.grey,
                       shape: RoundedRectangleBorder(
                         borderRadius: BorderRadius.circular(10),
                       ),

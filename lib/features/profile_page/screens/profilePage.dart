@@ -40,6 +40,7 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
   final TextEditingController _ifscCodeController = TextEditingController();
   final TextEditingController _branchController = TextEditingController();
   final TextEditingController _panController = TextEditingController();
+  final TextEditingController _accountNameController = TextEditingController();
   File? _digitalSignatureFile;
 
 
@@ -110,7 +111,7 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
   Future<void> _pickDigitalSignature() async {
     final helper = ImageUploadHelper(context);
     final file = await helper.pickAndCropImage(
-      enableCropping: false,
+      enableCropping: true,
       cropTitle: 'Upload Digital Signature',
     );
 
@@ -138,6 +139,7 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
     _ifscCodeController.text = user.company?.ifscCode ?? '';
     _branchController.text = user.company?.branch ?? '';
     _panController.text = user.company?.panNumber ?? '';
+    _accountNameController.text = user.company?.accountName ?? '';
 
     _formValues['digitalSignature'] = user.company?.digitalSignature ?? '';
     print(user.id);
@@ -159,7 +161,7 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
         },
         'address': user.address ?? '',
         'other': user.other ?? '',
-        'selectService': List<String>.from(user.selectedServices),
+        // 'selectService': List<String>.from(user.selectedServices),
 
       };
     });
@@ -200,12 +202,12 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
   Future<void> _submitForm() async {
     if (!_formKey.currentState!.validate()) return;
 
-    if ((_formValues['selectService'] as List).isEmpty) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Select at least one service')),
-      );
-      return;
-    }
+    // if ((_formValues['selectService'] as List).isEmpty) {
+    //   ScaffoldMessenger.of(context).showSnackBar(
+    //     const SnackBar(content: Text('Select at least one service')),
+    //   );
+    //   return;
+    // }
 
     try {
       final userNotifier = ref.read(userNotifierProvider.notifier);
@@ -267,6 +269,7 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
         MapEntry('gstNumber', _gstController.text.trim()),
         MapEntry('company', _companyNameController.text.trim()),
         MapEntry('address', _addressController.text.trim()),
+        MapEntry('accountName', _accountNameController.text.trim()), // ✅ NEW
         MapEntry('other', _otherController.text.trim()),
         MapEntry('bankName', _bankNameController.text.trim()),
         MapEntry('accountNumber', _accountNumberController.text.trim()),
@@ -275,17 +278,15 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
         MapEntry('panNumber', _panController.text.trim()),
       ]);
 
-      // selectedServices (REPEAT KEY — VERY IMPORTANT)
-      for (final service in _formValues['selectService']) {
-        formData.fields.add(MapEntry('selectedServices', service));
-      }
+
 
       await userNotifier.updateUser(formData);
 
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(content: Text('Profile updated successfully')),
       );
-    } catch (e) {
+    } catch (e,stackTrace) {
+      print(stackTrace);
       print(e);
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(content: Text(e.toString())),
@@ -318,7 +319,7 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
     _ifscCodeController.dispose();
     _branchController.dispose();
     _panController.dispose();
-
+    _accountNameController.dispose();
     super.dispose();
   }
 
@@ -495,7 +496,11 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
                       label: 'Bank Name',
                       hint: 'Enter bank name',
                     ),
-
+                    CustomTextField(
+                      controller: _accountNameController,
+                      label: 'Account Name',
+                      hint: 'Enter account holder name',
+                    ),
                     CustomTextField(
                       controller: _accountNumberController,
                       label: 'Account Number',
@@ -514,7 +519,11 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
                       label: 'Branch',
                       hint: 'Enter branch name',
                     ),
-
+                    CustomTextField(
+                      controller: _gstController,
+                      label: 'GST Number',
+                      hint: 'Enter GST number',
+                    ),
                     CustomTextField(
                       controller: _panController,
                       label: 'PAN Number',
@@ -569,69 +578,42 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
                     ),
 
 
-
-
-                    // Services
-                    const Align(
-                      alignment: Alignment.centerLeft,
-                      child: Text(
-                        'Select Service',
-                        style: TextStyle(
-                          fontWeight: FontWeight.w600,
-                          fontSize: 14,
-                        ),
-                      ),
-                    ),
                     const SizedBox(height: 6),
-                    Container(
-                      padding: const EdgeInsets.all(8),
-                      decoration: BoxDecoration(
-                        border: Border.all(color: Colors.grey.shade300),
-                        borderRadius: BorderRadius.circular(10),
-                        color: const Color(0xFFF8FAFD),
-                      ),
-                      child: Column(
-                        children: _serviceKeys.map((service) {
-                          return CheckboxListTile(
-                            dense: true,
-                            contentPadding: EdgeInsets.zero,
-                            value: _formValues['selectService'].contains(service),
-                            title: Text(_getServiceLabel(service)),
-                            onChanged: (_) => _onServiceToggle(service),
-                          );
-                        }).toList(),
-                      ),
-                    ),
-                    const SizedBox(height: 15),
+                    //
+                    // // Services
+                    // const Align(
+                    //   alignment: Alignment.centerLeft,
+                    //   child: Text(
+                    //     'Select Service',
+                    //     style: TextStyle(
+                    //       fontWeight: FontWeight.w600,
+                    //       fontSize: 14,
+                    //     ),
+                    //   ),
+                    // ),
+                    // const SizedBox(height: 6),
+                    // Container(
+                    //   padding: const EdgeInsets.all(8),
+                    //   decoration: BoxDecoration(
+                    //     border: Border.all(color: Colors.grey.shade300),
+                    //     borderRadius: BorderRadius.circular(10),
+                    //     color: const Color(0xFFF8FAFD),
+                    //   ),
+                    //   child: Column(
+                    //     children: _serviceKeys.map((service) {
+                    //       return CheckboxListTile(
+                    //         dense: true,
+                    //         contentPadding: EdgeInsets.zero,
+                    //         value: _formValues['selectService'].contains(service),
+                    //         title: Text(_getServiceLabel(service)),
+                    //         onChanged: (_) => _onServiceToggle(service),
+                    //       );
+                    //     }).toList(),
+                    //   ),
+                    // ),
+                    // const SizedBox(height: 15),
 
-                    CustomTextField(
-                      controller: _otherController,
-                      label: 'Please Mention (if selected others)',
-                      hint: 'Input Text',
-                    ),
 
-                    // Language dropdown
-                    const Align(
-                      alignment: Alignment.centerLeft,
-                      child: Padding(
-                        padding: EdgeInsets.only(bottom: 8.0, top: 8),
-                        child: Text(
-                          'Select Your Language',
-                          style: TextStyle(
-                            fontSize: 14,
-                            fontWeight: FontWeight.w500,
-                          ),
-                        ),
-                      ),
-                    ),
-                    Dropdown(
-                      options: _langMap.keys.toList(),
-                      value: _selectedLangLabel,
-                      onSelect: (option) {
-                        setState(() => _selectedLangLabel = option);
-                      },
-                    ),
-                    const SizedBox(height: 25),
 
                     // Error message if any
                     if (userState.error != null)

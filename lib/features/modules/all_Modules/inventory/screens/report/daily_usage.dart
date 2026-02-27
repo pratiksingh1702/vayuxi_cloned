@@ -5,7 +5,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:intl/intl.dart';
 import 'package:path_provider/path_provider.dart';
-import 'package:permission_handler/permission_handler.dart';
+
 import 'package:file_picker/file_picker.dart';
 import 'package:share_plus/share_plus.dart';
 import 'package:open_file/open_file.dart';
@@ -398,103 +398,7 @@ class _DailyUsagePageState extends ConsumerState<DailyUsagePage> {
     }
   }
 
-  // Share/Download Dialog
-  void _showShareOrDownloadDialog() {
-    final siteId = ref.read(selectedSiteIdProvider);
-    if (siteId == null || _selectedStartDate == null) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text("Please select a date first")),
-      );
-      return;
-    }
 
-    final startDateStr = DateFormat('dd/MM/yyyy').format(_selectedStartDate!);
-    final endDateStr = _selectedEndDate != null
-        ? DateFormat('dd/MM/yyyy').format(_selectedEndDate!)
-        : DateFormat('dd/MM/yyyy').format(_selectedStartDate!);
-
-    final sheetName =
-        "Daily Usage Report $startDateStr${_selectedEndDate != null ? ' to $endDateStr' : ''}";
-
-    showModalBottomSheet(
-      context: context,
-      shape: const RoundedRectangleBorder(
-        borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
-      ),
-      builder: (context) {
-        return Padding(
-          padding: const EdgeInsets.fromLTRB(20, 16, 20, 24),
-          child: Column(
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              // ─── Drag Handle ───
-              Container(
-                width: 40,
-                height: 4,
-                margin: const EdgeInsets.only(bottom: 16),
-                decoration: BoxDecoration(
-                  color: Colors.grey.shade400,
-                  borderRadius: BorderRadius.circular(4),
-                ),
-              ),
-
-              // ─── Title ───
-              Text(
-                sheetName,
-                style: const TextStyle(
-                  fontSize: 18,
-                  fontWeight: FontWeight.w600,
-                ),
-              ),
-              const SizedBox(height: 6),
-              const Text(
-                "What would you like to do?",
-                style: TextStyle(color: Colors.grey),
-              ),
-
-              const SizedBox(height: 20),
-
-              // ─── Actions ───
-              _ActionTile(
-                icon: Icons.share_rounded,
-                color: Colors.blue,
-                title: "Share",
-                subtitle: "Send report via apps",
-                onTap: () {
-                  Navigator.pop(context);
-                  _downloadAndShareReport();
-                },
-              ),
-
-              const SizedBox(height: 12),
-
-              _ActionTile(
-                icon: Icons.download_rounded,
-                color: Colors.green,
-                title: "Download",
-                subtitle: "Save to your device",
-                onTap: () {
-                  Navigator.pop(context);
-                  _downloadReportFile();
-                },
-              ),
-
-              const SizedBox(height: 16),
-
-              // ─── Cancel ───
-              TextButton(
-                onPressed: () => Navigator.pop(context),
-                child: const Text(
-                  "Cancel",
-                  style: TextStyle(fontSize: 16),
-                ),
-              ),
-            ],
-          ),
-        );
-      },
-    );
-  }
 
   // Action Tile Widget
   Widget _ActionTile({
@@ -534,194 +438,119 @@ class _DailyUsagePageState extends ConsumerState<DailyUsagePage> {
     );
   }
 
-  // Generate report and share directly
-  Future<void> _downloadAndShareReport() async {
-    try {
-      setState(() {
-        isLoading = true;
-        isDownloading = true;
-      });
-
-      // Check if dates are selected
-      if (_selectedStartDate == null) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text("Please select a date")),
-        );
-        return;
-      }
-
-      // Check permissions first
-      if (!await _requestPermissions()) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(
-            content: Text("Storage permission is required to save the file"),
-            backgroundColor: Colors.red,
-          ),
-        );
-        return;
-      }
-
-      // Generate report data
-      final reportData = await _generateReportData();
-      if (reportData == null) return;
-
-      // Convert to bytes
-      final bytes = reportData;
-
-      // Save to temporary directory for sharing
-      final tempDir = await getTemporaryDirectory();
-      final fileName =
-          "daily_usage_${DateFormat('yyyyMMdd').format(_selectedStartDate!)}_${_selectedEndDate != null ? DateFormat('yyyyMMdd').format(_selectedEndDate!) : DateFormat('yyyyMMdd').format(_selectedStartDate!)}.xlsx";
-
-      final file = File('${tempDir.path}/$fileName');
-
-      await file.writeAsBytes(bytes, flush: true);
-
-      // Share the file
-      await Share.shareXFiles(
-        [XFile(file.path)],
-        text: 'Inventory report',
-      );
-
+// =========================
+// SHARE OR DOWNLOAD DIALOG
+// =========================
+  void _showShareOrDownloadDialog() {
+    if (_selectedStartDate == null) {
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(
-          content: Text("Report ready for sharing"),
-          backgroundColor: Colors.green,
+          content: Text("Please select start date first"),
+          backgroundColor: Colors.orange,
         ),
       );
-    } catch (e) {
-      debugPrint('❌ Share report failed: $e');
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(
-          content: Text("Failed to share: ${e.toString()}"),
-          backgroundColor: Colors.red,
-        ),
-      );
-    } finally {
-      setState(() {
-        isLoading = false;
-        isDownloading = false;
-      });
+      return;
     }
-  }
 
-  Future<void> _saveMobile(Uint8List bytes, String fileName) async {
-    try {
-      final String? outputPath = await FilePicker.platform.saveFile(
-        dialogTitle: 'Save File',
-        fileName: fileName,
-        bytes: bytes,
-      );
+    final start = DateFormat('dd/MM/yyyy').format(_selectedStartDate!);
+    final end = _selectedEndDate != null
+        ? DateFormat('dd/MM/yyyy').format(_selectedEndDate!)
+        : start;
 
-      if (outputPath != null) {
-        debugPrint('💾 File saved to: $outputPath');
+    final sheetName = "Daily Usage Report ($start to $end)";
 
-        final result = await OpenFile.open(outputPath);
-        debugPrint('📂 Open file result: ${result.type} - ${result.message}');
-
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
-            content: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              mainAxisSize: MainAxisSize.min,
-              children: [
-                const Text('✅ File saved successfully!'),
-                const SizedBox(height: 8),
-                Row(
-                  children: [
-                    Expanded(
-                      child: ElevatedButton.icon(
-                        onPressed: () => OpenFile.open(outputPath),
-                        icon: const Icon(Icons.open_in_new, size: 16),
-                        label: const Text('Open'),
-                      ),
-                    ),
-                    const SizedBox(width: 8),
-                    Expanded(
-                      child: ElevatedButton.icon(
-                        onPressed: () async {
-                          final mimeType = fileName.endsWith('.pdf')
-                              ? 'application/pdf'
-                              : 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet';
-
-                          await Share.shareXFiles(
-                            [XFile(outputPath, mimeType: mimeType)],
-                            text: 'Check out this file',
-                          );
-                        },
-                        icon: const Icon(Icons.share, size: 16),
-                        label: const Text('Share'),
-                      ),
-                    ),
-                  ],
+    showModalBottomSheet(
+      context: context,
+      shape: const RoundedRectangleBorder(
+        borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
+      ),
+      builder: (context) {
+        return Padding(
+          padding: const EdgeInsets.fromLTRB(20, 16, 20, 24),
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              Container(
+                width: 40,
+                height: 4,
+                margin: const EdgeInsets.only(bottom: 16),
+                decoration: BoxDecoration(
+                  color: Colors.grey.shade400,
+                  borderRadius: BorderRadius.circular(4),
                 ),
-              ],
-            ),
-            backgroundColor: Colors.green,
-            duration: const Duration(seconds: 8),
-          ),
-        );
-      } else {
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(
-            content: Text('Save operation canceled.'),
-            backgroundColor: Colors.orange,
-          ),
-        );
-      }
-    } catch (e) {
-      debugPrint('❌ File save error: $e');
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(
-          content: Text('Failed to save file: ${e.toString()}'),
-          backgroundColor: Colors.red,
-          duration: const Duration(seconds: 5),
-        ),
-      );
-    }
-  }
+              ),
+              Text(
+                sheetName,
+                style: const TextStyle(
+                  fontSize: 18,
+                  fontWeight: FontWeight.w600,
+                ),
+              ),
+              const SizedBox(height: 20),
 
-  // Download report file to device
-  Future<void> _downloadReportFile() async {
+              _ActionTile(
+                icon: Icons.share,
+                color: Colors.blue,
+                title: "Share",
+                subtitle: "Send file via apps",
+                onTap: () {
+                  Navigator.pop(context);
+                  _downloadAndShare();
+                },
+              ),
+
+              const SizedBox(height: 12),
+
+              _ActionTile(
+                icon: Icons.download,
+                color: Colors.green,
+                title: "Download",
+                subtitle: "Save to device",
+                onTap: () {
+                  Navigator.pop(context);
+                  _downloadReport();
+                },
+              ),
+
+              const SizedBox(height: 16),
+
+              TextButton(
+                onPressed: () => Navigator.pop(context),
+                child: const Text("Cancel"),
+              ),
+            ],
+          ),
+        );
+      },
+    );
+  }
+  Future<void> _downloadReport() async {
     try {
       setState(() {
         isLoading = true;
         isDownloading = true;
       });
 
-      // Check if dates are selected
-      if (_selectedStartDate == null) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text("Please select a date")),
-        );
-        return;
+      final bytes = await _generateReportData();
+      if (bytes == null || bytes.isEmpty) {
+        throw Exception("Empty file");
       }
 
-      // Check permissions
-      if (!await _requestPermissions()) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(
-            content: Text("Storage permission is required to save the file"),
-            backgroundColor: Colors.red,
-          ),
-        );
-        return;
-      }
+      final startStr =
+      DateFormat('yyyyMMdd').format(_selectedStartDate!);
 
-      // Generate report data
-      final reportData = await _generateReportData();
-      if (reportData == null) return;
+      final endStr = _selectedEndDate != null
+          ? DateFormat('yyyyMMdd').format(_selectedEndDate!)
+          : startStr;
 
-      // Convert to bytes
-      final bytes = reportData;
+      final fileName = "daily_usage_${startStr}_to_${endStr}.xlsx";
 
       if (Platform.isAndroid || Platform.isIOS) {
-        await _saveMobileReport(bytes);
+        await _saveMobile(bytes, fileName);
       } else {
-        await _saveDesktopReport(bytes);
+        await _saveDesktop(bytes, fileName);
       }
     } catch (e) {
-      debugPrint('❌ Download report failed: $e');
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
           content: Text("Download failed: ${e.toString()}"),
@@ -735,7 +564,100 @@ class _DailyUsagePageState extends ConsumerState<DailyUsagePage> {
       });
     }
   }
+  Future<void> _downloadAndShare() async {
+    try {
+      setState(() {
+        isLoading = true;
+        isDownloading = true;
+      });
 
+      final bytes = await _generateReportData();
+      if (bytes == null || bytes.isEmpty) {
+        throw Exception("Empty file");
+      }
+
+      final tempDir = await getTemporaryDirectory();
+
+      final startStr =
+      DateFormat('yyyyMMdd').format(_selectedStartDate!);
+
+      final endStr = _selectedEndDate != null
+          ? DateFormat('yyyyMMdd').format(_selectedEndDate!)
+          : startStr;
+
+      final fileName = "daily_usage_${startStr}_to_${endStr}.xlsx";
+      final tempPath = "${tempDir.path}/$fileName";
+
+      final file = File(tempPath);
+      await file.writeAsBytes(bytes, flush: true);
+
+      await Share.shareXFiles(
+        [
+          XFile(
+            tempPath,
+            mimeType:
+            'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
+          )
+        ],
+        text: "Daily Usage Report",
+        subject: "Daily Usage Report ($startStr to $endStr)",
+      );
+
+      Future.delayed(const Duration(seconds: 30), () {
+        if (file.existsSync()) {
+          file.deleteSync();
+        }
+      });
+    } catch (e) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text("Share failed: ${e.toString()}"),
+          backgroundColor: Colors.red,
+        ),
+      );
+    } finally {
+      setState(() {
+        isLoading = false;
+        isDownloading = false;
+      });
+    }
+  }
+  Future<void> _saveMobile(Uint8List bytes, String fileName) async {
+    final String? outputPath = await FilePicker.platform.saveFile(
+      dialogTitle: 'Save Report',
+      fileName: fileName,
+      bytes: bytes,
+    );
+
+    if (outputPath == null) return;
+
+    await OpenFile.open(outputPath);
+
+    ScaffoldMessenger.of(context).showSnackBar(
+      const SnackBar(
+        content: Text("File saved successfully"),
+        backgroundColor: Colors.green,
+      ),
+    );
+  }
+  Future<void> _saveDesktop(Uint8List bytes, String fileName) async {
+    final path = await FilePicker.platform.saveFile(
+      dialogTitle: 'Save Report',
+      fileName: fileName,
+    );
+
+    if (path == null) return;
+
+    final file = File(path);
+    await file.writeAsBytes(bytes, flush: true);
+
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(
+        content: Text("File saved at: $path"),
+        backgroundColor: Colors.green,
+      ),
+    );
+  }
   // Generate report data
   Future<Uint8List?> _generateReportData() async {
     try {
@@ -886,52 +808,14 @@ class _DailyUsagePageState extends ConsumerState<DailyUsagePage> {
     );
   }
 
-  // ---------------------- STORAGE PERMISSION ----------------------
-  Future<bool> _requestPermissions() async {
-    if (Platform.isAndroid) {
-      if (await Permission.manageExternalStorage.isGranted) return true;
 
-      PermissionStatus status;
-      status = await Permission.manageExternalStorage.request();
 
-      if (status.isGranted) return true;
-
-      if (status.isPermanentlyDenied) {
-        _showPermissionDialog();
-      }
-      return false;
-    } else if (Platform.isIOS) {
-      return true;
-    }
-    return true;
-  }
-
-  void _showPermissionDialog() {
-    showDialog(
-      context: context,
-      builder: (context) => AlertDialog(
-        title: const Text("Permission Required"),
-        content: const Text(
-            "Storage permission is required to save files. Please allow it in settings."),
-        actions: [
-          TextButton(
-            child: const Text("Cancel"),
-            onPressed: () => Navigator.pop(context),
-          ),
-          TextButton(
-            child: const Text("Open Settings"),
-            onPressed: () {
-              Navigator.pop(context);
-              openAppSettings();
-            },
-          ),
-        ],
-      ),
-    );
-  }
 
   @override
   Widget build(BuildContext context) {
+    print("🧱 BUILD DailyUsagePage");
+    print("   StartDate: $_selectedStartDate");
+    print("   EndDate: $_selectedEndDate");
     final siteId = ref.watch(selectedSiteIdProvider);
     if (siteId == null) {
       return const Scaffold(
@@ -1063,91 +947,74 @@ class _DailyUsagePageState extends ConsumerState<DailyUsagePage> {
 
                 // List of usages
                 Expanded(
-                  child: inventoriesAsync.when(
+                  child: usageAsync.when(
                     loading: () =>
-                        const Center(child: CircularProgressIndicator()),
-                    error: (e, _) => Center(child: Text("Inventory error: $e")),
-                    data: (inventories) {
-                      return usageAsync.when(
-                        loading: () =>
-                            const Center(child: CircularProgressIndicator()),
-                        error: (e, _) => Center(child: Text("Usage error: $e")),
-                        data: (usages) {
-                          if (usages.isEmpty) {
-                            return const Center(
-                                child: Text("No usage records found."));
-                          }
+                    const Center(child: CircularProgressIndicator()),
+                    error: (e, _) {print("Usage error: $e");return Center(child: Text("Usage error: $e"));},
+                    data: (usages) {
+                      if (usages.isEmpty) {
+                        return const Center(
+                            child: Text("No usage records found."));
+                      }
 
-                          return ListView.builder(
-                            padding: const EdgeInsets.only(bottom: 12),
-                            itemCount: usages.length,
-                            itemBuilder: (context, index) {
-                              final usage = usages[index];
+                      return ListView.builder(
+                        padding: const EdgeInsets.only(bottom: 12),
+                        itemCount: usages.length,
+                        itemBuilder: (context, index) {
+                          final usage = usages[index];
 
-                              // 🔥 JOIN HAPPENS HERE
-                              final inventory = inventories.firstWhere(
-                                (i) => i.id == usage.inventory,
-                                orElse: () => Inventory(
-                                  id: '',
-                                  name: 'Unknown Item',
-                                  category: Category(id: '', name: '', type: '')
-                                ,
-                                  type: '',
-                                  createdAt: DateTime.now(),
-                                ),
-                              );
+                          // 🔥 JOIN HAPPENS HERE
+                          final inventory = usage.inventory!;
 
-                              return Card(
-                                elevation: 0,
-                                color: Colors.white,
-                                margin: const EdgeInsets.symmetric(
-                                    horizontal: 12, vertical: 6),
-                                child: ListTile(
-                                  title: Text(inventory.name),
-                                  trailing: inventory.id.isEmpty
-                                      ? null
-                                      : IconButton(
-                                          icon: const Icon(Icons.edit_outlined),
-                                          onPressed: () {
-                                            Navigator.push(
-                                              context,
-                                              MaterialPageRoute(
-                                                builder: (_) =>
-                                                    EditInventoryScreen(
-                                                        inventory: inventory),
-                                              ),
-                                            );
-                                          },
-                                        ),
-                                  subtitle: Column(
-                                    crossAxisAlignment:
-                                        CrossAxisAlignment.start,
-                                    children: [
-                                      Text("Type: ${inventory.type}"),
-                                      Text(
-                                        "Quantity: ${usage.quantityUsed} ${inventory.uom ?? ''}",
-                                      ),
-                                      Text("Used By: ${usage.usedByName}"),
-                                      Text(
-                                        "Date: ${DateFormat('dd/MM/yyyy').format(usage.usageDate)}",
-                                      ),
-                                    ],
+                          return Card(
+                            elevation: 0,
+                            color: Colors.white,
+                            margin: const EdgeInsets.symmetric(
+                                horizontal: 12, vertical: 6),
+                            child: ListTile(
+                              title: Text(inventory.name),
+                              trailing: inventory.id.isEmpty
+                                  ? null
+                                  : IconButton(
+                                icon: const Icon(Icons.edit_outlined),
+                                onPressed: () {
+                                  Navigator.push(
+                                    context,
+                                    MaterialPageRoute(
+                                      builder: (_) =>
+                                          EditInventoryScreen(
+                                              inventory: inventory),
+                                    ),
+                                  );
+                                },
+                              ),
+                              subtitle: Column(
+                                crossAxisAlignment:
+                                CrossAxisAlignment.start,
+                                children: [
+                                  Text("Type: ${inventory.type}"),
+                                  Text(
+                                    "Quantity: ${usage.quantityUsed} ${inventory.uom ?? ''}",
                                   ),
-                                  onTap: inventory.id.isEmpty
-                                      ? null
-                                      : () {
-                                          Navigator.push(
-                                            context,
-                                            MaterialPageRoute(
-                                              builder: (_) =>
-                                                  EditInventoryScreen(
-                                                      inventory: inventory),
-                                            ),
-                                          );
-                                        },
-                                ),
-                              );
-                            },
+                                  Text("Used By: ${usage.usedByName}"),
+                                  Text(
+                                    "Date: ${DateFormat('dd/MM/yyyy').format(usage.usageDate)}",
+                                  ),
+                                ],
+                              ),
+                              onTap: inventory.id.isEmpty
+                                  ? null
+                                  : () {
+                                Navigator.push(
+                                  context,
+                                  MaterialPageRoute(
+                                    builder: (_) =>
+                                        EditInventoryScreen(
+                                            inventory: inventory),
+                                  ),
+                                );
+                              },
+                            ),
                           );
                         },
                       );

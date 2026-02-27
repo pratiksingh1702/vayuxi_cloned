@@ -104,8 +104,8 @@ class Company {
   final String? name;
   final String? logo;
 
-  // 🔹 Bank / Legal Details
   final String? bankName;
+  final String? accountName;   // ✅ NEW FIELD
   final String? accountNumber;
   final String? ifscCode;
   final String? branch;
@@ -117,6 +117,7 @@ class Company {
     this.name,
     this.logo,
     this.bankName,
+    this.accountName,   // ✅
     this.accountNumber,
     this.ifscCode,
     this.branch,
@@ -124,13 +125,13 @@ class Company {
     this.digitalSignature,
   });
 
-  /// 🔐 SAFE JSON PARSER
   factory Company.fromJson(Map<String, dynamic> json) {
     return Company(
       id: _parseNullableString(json['_id'] ?? json['id']),
       name: _parseNullableString(json['name']),
       logo: _parseNullableString(json['logo']),
       bankName: _parseNullableString(json['bankName']),
+      accountName: _parseNullableString(json['accountName']), // ✅
       accountNumber: _parseNullableString(json['accountNumber']),
       ifscCode: _parseNullableString(json['ifscCode']),
       branch: _parseNullableString(json['branch']),
@@ -139,44 +140,19 @@ class Company {
     );
   }
 
-  /// 🔁 JSON SERIALIZER
   Map<String, dynamic> toJson() {
     return {
       'id': id,
       'name': name,
       'logo': logo,
       'bankName': bankName,
+      'accountName': accountName,   // ✅
       'accountNumber': accountNumber,
       'ifscCode': ifscCode,
       'branch': branch,
       'panNumber': panNumber,
       'digitalSignature': digitalSignature,
     };
-  }
-
-  /// 🧬 COPY WITH
-  Company copyWith({
-    String? id,
-    String? name,
-    String? logo,
-    String? bankName,
-    String? accountNumber,
-    String? ifscCode,
-    String? branch,
-    String? panNumber,
-    String? digitalSignature,
-  }) {
-    return Company(
-      id: id ?? this.id,
-      name: name ?? this.name,
-      logo: logo ?? this.logo,
-      bankName: bankName ?? this.bankName,
-      accountNumber: accountNumber ?? this.accountNumber,
-      ifscCode: ifscCode ?? this.ifscCode,
-      branch: branch ?? this.branch,
-      panNumber: panNumber ?? this.panNumber,
-      digitalSignature: digitalSignature ?? this.digitalSignature,
-    );
   }
 }
 

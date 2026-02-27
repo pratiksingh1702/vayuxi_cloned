@@ -1,16 +1,13 @@
 import 'dart:io';
+import 'dart:typed_data';
 import 'package:excel/excel.dart';
-
-import 'package:path_provider/path_provider.dart';
+import 'package:file_picker/file_picker.dart';
 
 Future<void> exportToExcel(List<Map<String, dynamic>> manpowerList) async {
   try {
-    // 📌 Create Excel
-
     final excel = Excel.createExcel();
     final sheet = excel['Manpower'];
 
-    // Header row
     sheet.appendRow([
       TextCellValue('Full Name'),
       TextCellValue('Employee Code'),
@@ -18,9 +15,7 @@ Future<void> exportToExcel(List<Map<String, dynamic>> manpowerList) async {
       TextCellValue('Salary'),
     ]);
 
-    // Data rows
     for (var m in manpowerList) {
-      print(m['salary']);
       sheet.appendRow([
         TextCellValue(m['fullName'] ?? ''),
         TextCellValue(m['employeeCode'] ?? ''),
@@ -29,31 +24,25 @@ Future<void> exportToExcel(List<Map<String, dynamic>> manpowerList) async {
       ]);
     }
 
-    // 📌 Path to Downloads folder
-    Directory? downloadsDir;
-    if (Platform.isAndroid) {
-      downloadsDir = Directory('/storage/emulated/0/Download');
-    } else {
-      downloadsDir = await getDownloadsDirectory(); // macOS, Windows
-    }
-
-    if (downloadsDir == null) {
-      print("❌ Could not find Downloads folder");
-      return;
-    }
-
-    final filePath = '${downloadsDir.path}/manpower_list.xlsx';
-
-    // 📌 Write file
     final fileBytes = excel.encode();
     if (fileBytes == null) throw Exception("Excel encoding failed");
 
-    final file = File(filePath)
-      ..createSync(recursive: true)
-      ..writeAsBytesSync(fileBytes);
+    final uint8List = Uint8List.fromList(fileBytes);
 
-    print("✅ File saved at $filePath");
+    // 🔥 Let user pick a directory instead of saving bytes
+    String? selectedDir = await FilePicker.platform.getDirectoryPath();
 
+    if (selectedDir == null) {
+      print("User cancelled");
+      return;
+    }
+
+    final filePath = "$selectedDir/manpower_list.xlsx";
+
+    final file = File(filePath);
+    await file.writeAsBytes(uint8List);
+
+    print("✅ Excel saved at $filePath");
 
   } catch (e) {
     print("❌ Error exporting: $e");

@@ -67,7 +67,12 @@ Provider.family<List<NamedImage>, String>((ref, siteId) {
     print("   → $m");
   }
 
-  return detected.mocs.map((rawName) {
+  final allMocNames = {
+    ...detected.mocs,
+    ...detected.mocsWithImages.map((e) => e.name),
+  }.toList();
+
+  return allMocNames.map((rawName) {
     final normalized = normalize(rawName);
 
     // alias correction
@@ -77,7 +82,7 @@ Provider.family<List<NamedImage>, String>((ref, siteId) {
 
     // 👇 find server image
     final serverImage = detected.mocsWithImages
-        .where((e) => e.name == rawName)
+        .where((e) => normalize(e.name) == normalize(rawName))
         .map((e) => e.image)
         .firstWhere(
           (e) => e.isNotEmpty,
@@ -198,7 +203,12 @@ Provider.family<List<Floor>, String>((ref, siteId) {
     print("   → $f");
   }
 
-  return detected.floors.expand((rawName) {
+  final allFloorNames = {
+    ...detected.floors,
+    ...detected.floorsWithImages.map((e) => e.name),
+  }.toList();
+
+  return allFloorNames.expand((rawName) {
     final parts = splitFloors(rawName);
 
     return parts.map((name) {

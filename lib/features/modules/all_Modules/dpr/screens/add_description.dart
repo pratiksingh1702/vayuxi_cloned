@@ -26,6 +26,7 @@ import 'package:untitled2/core/utlis/widgets/custom.dart';
 import 'package:untitled2/features/modules/all_Modules/team/provider/teamProvider.dart';
 import '../../../../../core/local/isar_db.dart';
 import '../../../../../core/utlis/common_functions.dart';
+import '../../../../../core/utlis/widgets/sidebar.dart';
 import '../../../../language/service/providers.dart';
 import '../dpr-setup/screens/add/add_material.dart';
 import '../models/data/eqipment_provider.dart';
@@ -267,7 +268,7 @@ class _AddDescriptionScreenState extends ConsumerState<AddDescriptionScreen>
 
 
       ref.read(equipmentMaterialsProvider.notifier).setMaterials(mergedEquipment);
-      final state = ref.read(equipmentMaterialsProvider);
+      final state = ref.read(pipingMaterialsProvider);
 
       for (final m in state) {
         debugPrint("🧱 ${m.materialName}");
@@ -339,20 +340,20 @@ class _AddDescriptionScreenState extends ConsumerState<AddDescriptionScreen>
         final key = f.key.toLowerCase();
 
         if (key == 'floor') {
-          return f.copyWith(displayText: floor, value: floor);
+          return f.copyWith( value: floor);
         }
         if (key == 'moc') {
-          return f.copyWith(displayText: moc, value: moc);
+          return f.copyWith( value: moc);
         }
         if (key == 'size') {
-          return f.copyWith(displayText: size, value: size);
+          return f.copyWith(value: size);
         }
         if (key == 'qty') {
           return f.copyWith(displayText: '1', value: '1');
         }
 
         // everything else empty
-        return f.copyWith(displayText: '', value: '');
+        return f.copyWith(value: '');
       }).toList();
 
       return m.copyWith(dynamicFields: updated);
@@ -365,20 +366,20 @@ class _AddDescriptionScreenState extends ConsumerState<AddDescriptionScreen>
         final key = f.key.toLowerCase();
 
         if (key == 'floor') {
-          return f.copyWith(displayText: floor, value: floor);
+          return f.copyWith( value: floor);
         }
         if (key == 'moc') {
           return f.copyWith(displayText: moc, value: moc);
         }
         if (key == 'size') {
-          return f.copyWith(displayText: size, value: size);
+          return f.copyWith( value: size);
         }
         if (key == 'qty') {
           return f.copyWith(displayText: '1', value: '1');
         }
 
         // everything else empty
-        return f.copyWith(displayText: '', value: '');
+        return f;
       }).toList();
 
       return m.copyWith(dynamicFields: updated);
@@ -489,12 +490,24 @@ class _AddDescriptionScreenState extends ConsumerState<AddDescriptionScreen>
         siteId: siteId,
         teamId: teamId,
       );
-
       _dprListForSelectedDate = allDprs.where((dpr) {
-        final dprDate = dpr.updatedAt;
-        return dprDate.year == date.year &&
-            dprDate.month == date.month &&
-            dprDate.day == date.day;
+        // Normalize DPR date (strip time completely)
+        final dprDate = DateTime(
+          dpr.date.year,
+          dpr.date.month,
+          dpr.date.day,
+        );
+
+        // Normalize selected date (strip time completely)
+        final selectedDate = DateTime(
+          date.year,
+          date.month,
+          date.day,
+        );
+
+        return dprDate.year == selectedDate.year &&
+            dprDate.month == selectedDate.month &&
+            dprDate.day == selectedDate.day;
       }).toList();
       _showSnackBar(
         _dprListForSelectedDate.isNotEmpty
@@ -868,56 +881,128 @@ class _AddDescriptionScreenState extends ConsumerState<AddDescriptionScreen>
 
     _showSnackBar('Material deleted');
   }
-
-  /// ✅ LOCAL COPY (no API)
-  void copyDprMaterialLocal({
+  Future<void> copyDprMaterialLocal({
     required dynamic material,
     required bool isPiping,
-  }) {
+    required String rateUploadId,
+  }) async {
     if (!_isEditable) {
       _showEditRequiredMessage();
       return;
     }
 
-    if (isPiping) {
-      if (material is! PipingItem) return;
+    try {
+      String? newId;
 
-      final notifier = ref.read(pipingMaterialsProvider.notifier);
-      final materials = ref.read(pipingMaterialsProvider);
+      // 🔥 1️⃣ Try backend copy if DPR exists
+      if (_mechanicalId != null) {
+        final response = await DprApi.copyDprMaterial(
+          dprId: _mechanicalId!,
+          matId: material.id,
+        );
 
-      final index = materials.indexWhere((m) => m.id == material.id);
-      if (index == -1) return;
+        final backendItems = response;
 
-      final copied = material.copyWith(
-        id: generateObjectId(),
-        materialName: '${material.materialName}',
-      );
+        final materials = isPiping
+            ? ref.read(pipingMaterialsProvider)
+            : ref.read(equipmentMaterialsProvider);
 
-      final updated = [...materials];
-      updated.insert(index + 1, copied);
+        // final newBackendItem = backendItems.firstWhere(
+        //       (b) => !materials.any((m) => m.id == b.id),
+        //   orElse: () => null,
+        // );
+        final newBackendItem = null;
 
-      notifier.setMaterials(updated);
-    } else {
-      if (material is! EquipmentItem) return;
+        if (newBackendItem != null) {
+          newId = newBackendItem.id;
+        }
+      }
 
-      final notifier = ref.read(equipmentMaterialsProvider.notifier);
-      final materials = ref.read(equipmentMaterialsProvider);
+      // 🔥 2️⃣ If backend didn’t give ID → generate Mongo-style ID
+      newId ??= generateObjectId();
 
-      final index = materials.indexWhere((m) => m.id == material.id);
-      if (index == -1) return;
+      // 🔥 3️⃣ Insert Locally
+      if (isPiping) {
+        if (material is! PipingItem) return;
 
-      final copied = material.copyWith(
-        id: generateObjectId(),
-        materialName: '${material.materialName} (Copy)',
-      );
+        final notifier = ref.read(pipingMaterialsProvider.notifier);
+        final materials = ref.read(pipingMaterialsProvider);
 
-      final updated = [...materials];
-      updated.insert(index + 1, copied);
+        final index = materials.indexWhere((m) => m.id == material.id);
+        if (index == -1) return;
 
-      notifier.setMaterials(updated);
+        final copied = material.copyWith(
+          id: newId,
+          materialName: '${material.materialName} (Copy)',
+        );
+
+        final updated = [...materials];
+        updated.insert(index + 1, copied);
+
+        notifier.setMaterials(updated);
+      } else {
+        if (material is! EquipmentItem) return;
+
+        final notifier = ref.read(equipmentMaterialsProvider.notifier);
+        final materials = ref.read(equipmentMaterialsProvider);
+
+        final index = materials.indexWhere((m) => m.id == material.id);
+        if (index == -1) return;
+
+        final copied = material.copyWith(
+          id: newId,
+          materialName: '${material.materialName} (Copy)',
+        );
+
+        final updated = [...materials];
+        updated.insert(index + 1, copied);
+
+        notifier.setMaterials(updated);
+      }
+
+      _showSnackBar('Material copied');
+    } catch (e) {
+      // 🔥 If backend fails completely → fallback to local copy
+      try {
+        final fallbackId = generateObjectId();
+
+        if (isPiping && material is PipingItem) {
+          final notifier = ref.read(pipingMaterialsProvider.notifier);
+          final materials = ref.read(pipingMaterialsProvider);
+
+          final index = materials.indexWhere((m) => m.id == material.id);
+          if (index == -1) return;
+
+          final copied = material.copyWith(
+            id: fallbackId,
+            materialName: '${material.materialName} (Copy)',
+          );
+
+          final updated = [...materials];
+          updated.insert(index + 1, copied);
+          notifier.setMaterials(updated);
+        } else if (!isPiping && material is EquipmentItem) {
+          final notifier = ref.read(equipmentMaterialsProvider.notifier);
+          final materials = ref.read(equipmentMaterialsProvider);
+
+          final index = materials.indexWhere((m) => m.id == material.id);
+          if (index == -1) return;
+
+          final copied = material.copyWith(
+            id: fallbackId,
+            materialName: '${material.materialName} (Copy)',
+          );
+
+          final updated = [...materials];
+          updated.insert(index + 1, copied);
+          notifier.setMaterials(updated);
+        }
+
+        _showSnackBar('Material copied (offline)');
+      } catch (_) {
+        _showSnackBar('Copy failed');
+      }
     }
-
-    _showSnackBar('Material copied');
   }
 
   void _editDprMaterial(dynamic material, String catgory) {
@@ -1016,6 +1101,7 @@ class _AddDescriptionScreenState extends ConsumerState<AddDescriptionScreen>
 
     return Scaffold(
       backgroundColor: Colors.grey[50],
+      drawer: const CustomDrawer(),
       body: NestedScrollView(
         headerSliverBuilder: (context, innerBoxIsScrolled) {
           return [const CustomSliverAppBar(title: "Add DPR")];
@@ -1057,8 +1143,8 @@ class _AddDescriptionScreenState extends ConsumerState<AddDescriptionScreen>
                       const SizedBox(height: 16),
                       _buildDprInfoCard(shouldShowDropdown),
                       const SizedBox(height: 16),
-                      _buildToggleSection(),
-                      const SizedBox(height: 16),
+                      // _buildToggleSection(),
+                      // const SizedBox(height: 16),
                       Column(
                         children: [
                           if (_pipeFittingOn && hasPipingMaterials)
@@ -1214,16 +1300,13 @@ class _AddDescriptionScreenState extends ConsumerState<AddDescriptionScreen>
     return InkWell(
       borderRadius: BorderRadius.circular(20),
       onTap: () async {
-        if (_mechanicalId == null) {
-          _showSnackBar('DPR not created yet', isError: true);
-          return;
-        }
+
 
         final result = await Navigator.of(context).push(
           MaterialPageRoute(
             builder: (_) => PersistDPRScreen(
               isDpr: true, // 🔴 critical
-              dprId: _mechanicalId!, // 🔴 DPR ID
+              dprId: _mechanicalId??'', // 🔴 DPR ID
               siteId: siteId,
               teamId: teamId,
             ),
@@ -1231,9 +1314,7 @@ class _AddDescriptionScreenState extends ConsumerState<AddDescriptionScreen>
         );
 
         // Re-fetch DPR after add
-        if (result == true) {
-          await _fetchDprWorkById();
-        }
+
       },
       child: Container(
         padding: const EdgeInsets.all(6),
@@ -1549,10 +1630,39 @@ class _AddDescriptionScreenState extends ConsumerState<AddDescriptionScreen>
             ),
             if (_isEditable)
               TextButton.icon(
-                onPressed: () async {
-                  await _autoCreateDprWork();
-                  await _fetchDprListForDate(_selectedDate);
-                },
+    onPressed: () async {
+    if (!_isEditable) return;
+
+    // 1️⃣ Reset DPR identity
+    setState(() {
+    _mechanicalId = null;
+    _selectedDprId = null;
+    });
+
+    // 2️⃣ Reset header fields
+    _dprNameController.text = 'New DPR Entry';
+    _mocController.clear();
+    _sizeController.clear();
+    _floorController.clear();
+    _plantController.clear();
+
+    // 3️⃣ Clear providers (remove old DPR materials completely)
+    ref.read(pipingMaterialsProvider.notifier).clear();
+    ref.read(equipmentMaterialsProvider.notifier).clear();
+
+    // 4️⃣ Load fresh default materials
+    await _loadDefaultMaterials();
+
+    // 5️⃣ Re-apply header values (now empty)
+    _applyHeaderValuesToMaterials();
+
+    // 6️⃣ Force rebuild
+    if (mounted) {
+    setState(() {});
+    }
+
+    _showSnackBar("New DPR initialized");
+    },
                 icon: const Icon(Icons.add, size: 16),
                 label: const Text('New DPR'),
                 style: TextButton.styleFrom(
@@ -1842,6 +1952,7 @@ class _AddDescriptionScreenState extends ConsumerState<AddDescriptionScreen>
                 _onPipingDynamicChanged(material.id, key, value);
               },
               quantity: '',
+              remark: material.remarks,
               size: _sizeController.text,
               length: (material.length == null || material.length == 0)
                   ? ''
@@ -1872,13 +1983,10 @@ class _AddDescriptionScreenState extends ConsumerState<AddDescriptionScreen>
                   });
                   print("📤 sending image = ${result.imageFile?.path}");
                   print("📤 fields = ${jsonEncode(result.fields.map((e) => e.toJson()).toList())}");
-
-
-                  await RateUploadApi.updateLineItem(
-                    rateUploadId: rateUploadId!,
-                    lineItemId: material.id,
-                    data: formData,
-                  );
+                 await  DprApi.updateDprItem(
+                    dprId: _mechanicalId!,
+                    itemId: material.id,
+                    data: formData,);
 
                   final repo = RateRepository(AppIsarDB.isar);
                   await repo.syncRateFile(siteId);
@@ -1888,6 +1996,22 @@ class _AddDescriptionScreenState extends ConsumerState<AddDescriptionScreen>
                   ref.invalidate(approvedEquipmentMaterialsProvider(siteId));
                   ref.invalidate(suggestedPipingMaterialsProvider(siteId));
                   ref.invalidate(suggestedEquipmentMaterialsProvider(siteId));
+                  final materials = ref.read(pipingMaterialsProvider);
+
+                  final updated = materials.map((m) {
+                    if (m.id == material.id) {
+                      return m.copyWith(
+                        dynamicFields: result.fields,
+                        materialName: result.name,
+                        uom: result.uom,
+                      );
+                    }
+                    return m;
+                  }).toList();
+
+
+                  ref.read(pipingMaterialsProvider.notifier).state = updated;
+                  _applyHeaderValuesToMaterials();
 
                   setState(() {
                     editingMaterialId = null;
@@ -1919,9 +2043,9 @@ class _AddDescriptionScreenState extends ConsumerState<AddDescriptionScreen>
 
 
               onCopy: () =>
-                  copyDprMaterialLocal(material: material, isPiping: true),
+                  copyDprMaterialLocal(material: material, isPiping: true,rateUploadId: rateUploadId!),
               onAdd: () =>
-                  copyDprMaterialLocal(material: material, isPiping: true),
+                  copyDprMaterialLocal(material: material, isPiping: true,rateUploadId: rateUploadId!),
               onDelete: () =>
                   deleteDprMaterialLocal(materialId: material.id, isPiping: true),
               onEdit:  () {
@@ -1957,7 +2081,10 @@ class _AddDescriptionScreenState extends ConsumerState<AddDescriptionScreen>
 
       final updatedFields = m.dynamicFields.map((f) {
         if (f.key == key) {
-          return f.copyWith(value: value);
+          return f.copyWith(
+            value: value,
+            displayText: f.displayText, // preserve UI text
+          );
         }
         return f;
       }).toList();
@@ -1993,6 +2120,10 @@ class _AddDescriptionScreenState extends ConsumerState<AddDescriptionScreen>
   List<Widget> _buildEquipmentMaterials(List<EquipmentItem> materials) {
     return List.generate(materials.length, (index) {
       final material = materials[index];
+      final rateFileMeta = ref.read(rateFileMetaProvider(siteId));
+
+
+      final rateUploadId = rateFileMeta['rateFileId'] as String?;
 
       return Padding(
         key: ValueKey('equipment_${material.id}_$index'), // ✅ FIXED UNIQUE KEY
@@ -2022,9 +2153,9 @@ class _AddDescriptionScreenState extends ConsumerState<AddDescriptionScreen>
             onTonChanged: (val) =>
                 _onEquipmentFieldChanged(material.id, 'ton', val),
             onCopy: () =>
-                copyDprMaterialLocal(material: material, isPiping: false),
+                copyDprMaterialLocal(material: material, isPiping: false,rateUploadId: rateUploadId!),
             onAdd: () =>
-                copyDprMaterialLocal(material: material, isPiping: false),
+                copyDprMaterialLocal(material: material, isPiping: false,rateUploadId: rateUploadId!),
             onDelete: () => deleteDprMaterialLocal(
                 materialId: material.id, isPiping: false),
             onEdit: () => _editDprMaterial(material, ""),
@@ -2072,12 +2203,11 @@ class _AddDescriptionScreenState extends ConsumerState<AddDescriptionScreen>
                   isPiping: isPiping);
             },
             style: ElevatedButton.styleFrom(
-              backgroundColor: const Color(0xFF1B6DCE),
+              backgroundColor: Colors.blue,
               shape: RoundedRectangleBorder(
                   borderRadius: BorderRadius.circular(10)),
             ),
-            child: const Text('Save'),
-          ),
+            child: const Text('Save' ,style: TextStyle(color: Colors.white)),)
         ],
       ),
     );
@@ -2136,7 +2266,7 @@ class _AddDescriptionScreenState extends ConsumerState<AddDescriptionScreen>
               qty: int.tryParse(value)?.toDouble() ?? 0,
             );
           case 'uom':
-            return material.copyWith(uom: value);
+            return material.copyWith(length:int.tryParse(value)?.toDouble() ?? 0);
           case 'ton':
             return material.copyWith(
                 weight: double.tryParse(value) ?? material.weight);
@@ -2282,10 +2412,18 @@ class _AddDescriptionScreenState extends ConsumerState<AddDescriptionScreen>
         debugPrint("""
 🧱 PIPING
   id: ${m.id}
-  name: ${m.materialName}
-  qty: ${_getDynamicQty(m)}
-size: ${_getDynamicValue(m.dynamicFields, 'size')}
 
+  🔍 TRACEABILITY
+  rawName: ${m.rawMaterialName}
+  normalizedName: ${m.normalizedMaterialName}
+  displayName: ${m.materialName}
+  isFromRateFile: ${m.isFromRateFile}
+  rateFileId: ${m.rateFileId}
+  rateVariantId: ${m.rateVariantId}
+
+  📦 VALUES
+  qty(dynamic): ${_getDynamicQty(m)}
+  size(dynamic): ${_getDynamicValue(m.dynamicFields, 'size')}
   length: ${m.length}
   uom: ${m.uom}
   moc: ${m.moc}
@@ -2293,33 +2431,55 @@ size: ${_getDynamicValue(m.dynamicFields, 'size')}
   remarks: ${m.remarks}
 """);
 
-        // 🔥 NEW PART
         if (m.dynamicFields.isEmpty) {
           debugPrint("  ⚠️ No dynamic fields");
         } else {
           debugPrint("  🔸 Dynamic Fields:");
           for (final f in m.dynamicFields) {
             debugPrint(
-              "     → key: ${f.key}, label: ${f.label}, value: ${f.value}, unit: ${f.unit}",
+              "     → key: ${f.key}, label: ${f.label}, value: ${f.value}, unit: ${f.unit}, display: ${f.displayText}",
             );
           }
         }
       }
-
       debugPrint("🟩 RAW EQUIPMENT MATERIALS (${equipmentMaterials.length})");
+
+
       for (final m in equipmentMaterials) {
         debugPrint("""
 🔩 EQUIPMENT
   id: ${m.id}
-  name: ${m.materialName}
+
+  🔍 TRACEABILITY
+  rawName: ${m.rawMaterialName}
+  normalizedName: ${m.normalizedMaterialName}
+  displayName: ${m.materialName}
+  isFromRateFile: ${m.isFromRateFile}
+  rateFileId: ${m.rateFileId}
+  rateVariantId: ${m.rateVariantId}
+
+  📦 VALUES
   qty: ${m.qty}
   weight: ${m.weight}
   length: ${m.length}
+  diameter: ${m.diameter}
+  power: ${m.power}
   uom: ${m.uom}
   moc: ${m.moc}
   calcCat: ${m.calculationCategory}
   remarks: ${m.remarks}
 """);
+
+        if (m.dynamicFields.isEmpty) {
+          debugPrint("  ⚠️ No dynamic fields");
+        } else {
+          debugPrint("  🔸 Dynamic Fields:");
+          for (final f in m.dynamicFields) {
+            debugPrint(
+              "     → key: ${f.key}, label: ${f.label}, value: ${f.value}, unit: ${f.unit}, display: ${f.displayText}",
+            );
+          }
+        }
       }
 
       // Transform piping materials to API format
@@ -2327,49 +2487,156 @@ size: ${_getDynamicValue(m.dynamicFields, 'size')}
       final items = [
         ...pipingMaterials.map((material) {
           return {
-            'id': material.id,
+            'lineItemId': material.id,
+
+            // 🔥 TRACEABILITY
+            'rawMaterialName': material.rawMaterialName,
+            'normalizedMaterialName': material.normalizedMaterialName,
             'materialName': material.materialName,
+            'image': material.image,
+
+            // 🔥 CORE VALUES
             'qty': _getDynamicQty(material),
-
-            'size': _sizeController.text,
             'length': material.length,
+            'rmt': material.rmt,
+            'diameter': material.diameter,
+            'weight': material.weight,
+            'power': material.power,
             'uom': material.uom,
-            'actualRate': material.actualRate,
-            'location': _floorController.text.trim(),
-            'moc': _mocController.text.trim(),
-            'calculationCategory': material.calculationCategory,
-            'designation': ['piping'],
-            'dynamicFields': material.dynamicFields
-                .map((f) => {
-                      'key': f.key,
-                      'label': f.label,
-              'value': f.value?.toString() ?? '',
 
-              'unit': f.unit,
-                    })
-                .toList(),
-            if (material.remarks != null && material.remarks!.isNotEmpty)
-              'remarks': material.remarks,
+            'actualRate': 0,
+            'rate':0,
+
+            // 🔥 HEADER SYNC
+            'moc': _mocController.text.trim(),
+            'size': _sizeController.text.trim(),
+            'location': _floorController.text.trim(),
+            'plant': _plantController.text.trim(),
+
+            'designation': ['piping'],
+            'calculationCategory': material.calculationCategory,
+
+            // 🔥 DYNAMIC FIELDS
+            'dynamicFields': material.dynamicFields.map((f) {
+              dynamic parsedValue;
+
+              if (f.value == null || f.value.toString().isEmpty) {
+                parsedValue = null;
+              } else {
+                final raw = f.value.toString().trim();
+
+                // Try int first
+                final intVal = int.tryParse(raw);
+                if (intVal != null) {
+                  parsedValue = intVal;
+                } else {
+                  // Try double
+                  final doubleVal = double.tryParse(raw);
+                  if (doubleVal != null) {
+                    parsedValue = doubleVal;
+                  } else {
+                    parsedValue = raw; // keep as string (like CS)
+                  }
+                }
+              }
+
+              return {
+                'key': f.key,
+                'label': f.label,
+                'value': parsedValue,
+                'unit': f.unit,
+                'displayText': f.displayText,
+              };
+            }).toList(),
+
+            'remarks': material.remarks,
+
+            // 🔥 RATE FILE META
+            'isFromRateFile': material.isFromRateFile,
+            'rateFileId': material.rateFileId,
+            'rateVariantId': material.rateVariantId,
           };
         }),
+
         ...equipmentMaterials.map((material) {
           return {
-            'id': material.id,
+            'lineItemId': material.id,
+
+            // 🔥 TRACEABILITY
+            'rawMaterialName': material.rawMaterialName,
+            'normalizedMaterialName': material.normalizedMaterialName,
             'materialName': material.materialName,
+            'image': material.image,
+
+            // 🔥 CORE VALUES
             'qty': material.qty,
-            'weight': material.weight,
             'length': material.length,
+            'rmt': material.rmt,
+            'diameter': material.diameter,
+            'weight': material.weight,
+            'power': material.power,
             'uom': material.uom,
-            'actualRate': material.actualRate,
-            'location': _floorController.text.trim(),
+
+            'actualRate': 0,
+            'rate':0,
+
+            // 🔥 HEADER SYNC
             'moc': _mocController.text.trim(),
-            'calculationCategory': material.calculationCategory,
+            'size': _sizeController.text.trim(),
+            'location': _floorController.text.trim(),
+            'plant': _plantController.text.trim(),
+
             'designation': ['equipment'],
-            if (material.remarks != null && material.remarks!.isNotEmpty)
-              'remarks': material.remarks,
+            'calculationCategory': material.calculationCategory,
+
+            // 🔥 DYNAMIC FIELDS (YOU WERE MISSING THIS)
+            'dynamicFields': material.dynamicFields.map((f) {
+              dynamic parsedValue;
+
+              if (f.value == null || f.value.toString().isEmpty) {
+                parsedValue = null;
+              } else {
+                final raw = f.value.toString().trim();
+
+                // Try int first
+                final intVal = int.tryParse(raw);
+                if (intVal != null) {
+                  parsedValue = intVal;
+                } else {
+                  // Try double
+                  final doubleVal = double.tryParse(raw);
+                  if (doubleVal != null) {
+                    parsedValue = doubleVal;
+                  } else {
+                    parsedValue = raw; // keep as string (like CS)
+                  }
+                }
+              }
+
+              return {
+                'key': f.key,
+                'label': f.label,
+                'value': parsedValue,
+                'unit': f.unit,
+                'displayText': f.displayText,
+              };
+            }).toList(),
+            'remarks': material.remarks,
+
+            // 🔥 RATE FILE META
+            'isFromRateFile': material.isFromRateFile,
+            'rateFileId': material.rateFileId,
+            'rateVariantId': material.rateVariantId,
           };
         }),
       ];
+      final pureDate = DateTime(
+        _selectedDate.year,
+        _selectedDate.month,
+        _selectedDate.day,
+      );
+
+      final dateString = DateFormat('yyyy-MM-dd').format(pureDate);
 
       final updateData = {
         'dprName': _dprNameController.text.trim(),
@@ -2377,7 +2644,7 @@ size: ${_getDynamicValue(m.dynamicFields, 'size')}
         'size': _sizeController.text.trim(),
         'location': _floorController.text.trim(),
         'plant': _plantController.text.trim(),
-        'date': _selectedDate.toIso8601String(),
+        'date': dateString,
 
         if (_mechanicalId == null && dprDesignation.isNotEmpty)
           'designation': dprDesignation,
@@ -2414,6 +2681,12 @@ size: ${_getDynamicValue(m.dynamicFields, 'size')}
         });
       }
 
+
+      final jsonString =
+      const JsonEncoder.withIndent('  ').convert(updateData);
+
+      print("🚀 FULL DPR UPDATE JSON:");
+      printLongString(jsonString);
       print('---------------------------------------');
       if (_mechanicalId == null) {
         final rawTeamId = ref.read(selectedTeamIdProvider);
@@ -2439,18 +2712,13 @@ size: ${_getDynamicValue(m.dynamicFields, 'size')}
             );
       }
 
-      // await ref.read(dprProvider.notifier).postDprWork(
-      //        data: updateData,
-      //   siteId: ref.read(selectedSiteIdProvider)!,
-      //   teamId: ref.read(selectedTeamIdProvider)!,
-      //
-      //      );
+
 
       WidgetsBinding.instance.addPostFrameCallback((_) {
         if (mounted && !_isDisposed) {
           int count = 0;
 
-          // Only pop if you're NOT in global edit mode
+
           if (!_globalEditMode) {
             Navigator.of(context).popUntil((_) => count++ >= 4);
           }
@@ -2474,7 +2742,15 @@ size: ${_getDynamicValue(m.dynamicFields, 'size')}
       }
     }
   }
-
+  void printLongString(String text) {
+    const int chunkSize = 800; // safe size
+    for (int i = 0; i < text.length; i += chunkSize) {
+      final end = (i + chunkSize < text.length)
+          ? i + chunkSize
+          : text.length;
+      print(text.substring(i, end));
+    }
+  }
   @override
   void dispose() {
     _isDisposed = true;

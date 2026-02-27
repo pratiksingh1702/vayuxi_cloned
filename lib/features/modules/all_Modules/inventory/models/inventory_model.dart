@@ -1,4 +1,5 @@
 
+import '../../../../profile_page/userModel/userModel.dart';
 import '../offline/isar/inventory_isar.dart';
 
 class Category {
@@ -106,33 +107,59 @@ class Inventory {
 
 class InventoryUsage {
   final String id;
-  final String inventory;
+  final Inventory inventory;
   final double quantityUsed;
+  final String? uom;
   final String usedByName;
+  final User? usedBy;
   final DateTime usageDate;
   final String? remarks;
+  final bool isDeleted;
+  final DateTime createdAt;
+  final DateTime updatedAt;
 
   InventoryUsage({
     required this.id,
     required this.inventory,
     required this.quantityUsed,
+this.uom,
     required this.usedByName,
+    this.usedBy,
     required this.usageDate,
     this.remarks,
+    required this.isDeleted,
+    required this.createdAt,
+    required this.updatedAt,
   });
+  /// 🔥 Hybrid UOM priority
+  String get effectiveUom {
+    if (uom != null && uom!.isNotEmpty) return uom!;
+    if (inventory.uom != null && inventory.uom!.isNotEmpty) {
+      return inventory.uom!;
+    }
+    return '';
+  }
 
   factory InventoryUsage.fromJson(Map<String, dynamic> json) {
     return InventoryUsage(
-      id: json['_id'],
-      inventory: json['inventory'],
-      quantityUsed: (json['quantityUsed']).toDouble(),
-      usedByName: json['usedByName'],
-      usageDate: DateTime.parse(json['usageDate']),
-      remarks: json['remarks'],
+      id: json['_id']?.toString() ?? '',
+      inventory: Inventory.fromJson(json['inventory']),
+      quantityUsed: (json['quantityUsed'] as num?)?.toDouble() ?? 0.0,
+      uom: json['uom']?.toString() ?? '',
+      usedByName: json['usedByName']?.toString() ?? '',
+      usedBy: json['usedBy'] is Map<String, dynamic>
+          ? User.fromJson(json['usedBy'])
+          : null,
+      usageDate: DateTime.tryParse(json['usageDate'] ?? '') ?? DateTime.now(),
+      remarks: json['remarks']?.toString(),
+      isDeleted: json['isDeleted'] ?? false,
+      createdAt:
+      DateTime.tryParse(json['createdAt'] ?? '') ?? DateTime.now(),
+      updatedAt:
+      DateTime.tryParse(json['updatedAt'] ?? '') ?? DateTime.now(),
     );
   }
 }
-
 class InventoryCheckout {
   final String id;
   final Inventory inventory;
@@ -141,6 +168,8 @@ class InventoryCheckout {
   final int quantity;
   final DateTime? actualReturnDate;
   final String? returnRemarks;
+  final String? remarks;
+  final DateTime? expectedReturnDate;
 
   InventoryCheckout({
     required this.id,
@@ -148,8 +177,9 @@ class InventoryCheckout {
     required this.issuedToName,
     required this.status,
     required this.quantity,
+    this.expectedReturnDate,
     this.actualReturnDate,
-    this.returnRemarks,
+    this.returnRemarks,this.remarks,
   });
 
   factory InventoryCheckout.fromJson(Map<String, dynamic> json) {
@@ -171,12 +201,14 @@ class InventoryCheckout {
       issuedToName: json['issuedToName']?.toString() ?? '',
       status: json['status']?.toString() ?? '',
       quantity: json['quantity'] ?? 0,
-
+      expectedReturnDate: json['expectedReturnDate'] != null
+          ? DateTime.tryParse(json['expectedReturnDate'])
+          : null,
       actualReturnDate: json['actualReturnDate'] != null
           ? DateTime.tryParse(json['actualReturnDate'])
           : null,
 
-      returnRemarks: json['returnRemarks']?.toString(),
+      returnRemarks: json['returnRemarks']?.toString(),   remarks: json['returnRemarks']?.toString(),
     );
   }
 }

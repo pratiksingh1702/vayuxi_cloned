@@ -9,6 +9,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter/rendering.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:hive_flutter/hive_flutter.dart';
+// import 'package:mobile_rag_engine/mobile_rag_engine.dart';
 import 'package:path_provider/path_provider.dart' as path_provider;
 
 import 'app.dart';
@@ -72,6 +73,11 @@ Future<void> main() async {
 
     final fcm = FCMService(notifier);
     await fcm.initialize();
+    // await MobileRag.initialize(
+    //   tokenizerAsset: 'assets/model/tokenizer.json',
+    //   modelAsset: 'assets/model/model.onnx',
+    //   deferIndexWarmup: true,
+    // );
 
     final container = ProviderContainer();
     DioClient.syncRef = container;

@@ -752,15 +752,7 @@ class _AllMaterialsScreenState extends ConsumerState<AllMaterialsScreen>
             child: Row(
               mainAxisAlignment: MainAxisAlignment.spaceBetween,
               children: [
-                Text(
-                  _isSelectionMode
-                      ? '${_selectedMaterialIds.length} selected'
-                      : 'Suggested Materials',
-                  style: const TextStyle(
-                    fontWeight: FontWeight.bold,
-                    fontSize: 16,
-                  ),
-                ),
+
                 Row(
                   children: [
                     if (_isSelectionMode) ...[
@@ -772,6 +764,16 @@ class _AllMaterialsScreenState extends ConsumerState<AllMaterialsScreen>
                             _selectedMaterialIds.clear();
                           });
                         },
+                      ),
+                      TextButton(
+                        onPressed: () {
+                          final allSuggested = [
+                            ...pipingItems,
+                            ...equipmentItems,
+                          ];
+                          _selectAllMaterials(allSuggested);
+                        },
+                        child: const Text('Select All'),
                       ),
 
                       // ✅ APPROVE button
@@ -1341,6 +1343,7 @@ class _AllMaterialsScreenState extends ConsumerState<AllMaterialsScreen>
                         ref.invalidate(approvedEquipmentMaterialsProvider(siteId));
                         ref.invalidate(suggestedPipingMaterialsProvider(siteId));
                         ref.invalidate(suggestedEquipmentMaterialsProvider(siteId));
+                        ref.invalidate(allRateVariantsProvider);
 
                         setState(() {
                           editingMaterialId = null;
@@ -1790,11 +1793,20 @@ class _AllMaterialsScreenState extends ConsumerState<AllMaterialsScreen>
   }
 
   void _addNewMaterial(String category) {
+    final siteID=ref.read(selectedSiteIdProvider)!;
+    final rateFileMeta = ref.read(rateFileMetaProvider(siteID));
+
+
+
+
+
+    final rateUploadId = rateFileMeta['rateFileId'] as String?;
     Navigator.of(context)
         .push(
       MaterialPageRoute(
         builder: (context) => PersistDPRScreen(
           designation: category,
+          rateUploadId:rateUploadId ,
         ),
       ),
     )

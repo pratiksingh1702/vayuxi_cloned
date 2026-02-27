@@ -1,6 +1,7 @@
 // lib/screens/persist_dpr_screen.dart
 import 'dart:convert';
 import 'dart:io';
+import 'dart:math';
 
 import 'package:dio/dio.dart';
 import 'package:flutter/material.dart';
@@ -12,10 +13,14 @@ import '../../../../../../../core/utlis/colors/colors.dart';
 import '../../../../../../../core/utlis/common_functions.dart';
 import '../../../../../../../core/utlis/widgets/custom_appBar.dart';
 import '../../../../../../../core/utlis/widgets/fields/custom_textField.dart';
+import '../../../../../../../core/utlis/widgets/fields/searchableDropdown.dart';
 import '../../../../../../../core/utlis/widgets/file_upload.dart';
 import '../../../../../../../core/utlis/widgets/image_clipped.dart';
+import '../../../../../../../core/utlis/widgets/sidebar.dart';
 import '../../../../rate/data/rate_provider.dart';
 import '../../../../site_Details/providers/site_current_provider.dart';
+import '../../../models/data/eqipment_provider.dart';
+import '../../../models/data/piping_provider.dart';
 import '../../../models/equipmentModel.dart';
 import '../../../models/pipingModel.dart';
 import '../../../models/rate_file_models.dart';
@@ -204,18 +209,15 @@ class _PersistDPRScreenState extends ConsumerState<PersistDPRScreen> {
     super.dispose();
   }
 
-
   Future<void> _submitForm() async {
     if (!_formKey.currentState!.validate()) return;
-
-    // ✅ only RateUpload flow allowed
-    if (widget.isRateUploadMaterial != true) {
-      _showError("This screen supports only Rate Upload materials.");
+    if(widget.isDpr){
+      _handleDprMaterialAdd();
       return;
     }
 
-    if (widget.rateUploadId == null || widget.rateUploadId!.isEmpty) {
-      _showError("Rate Upload ID missing");
+    if (widget.isRateUploadMaterial != true) {
+      _showError("This screen supports only Rate Upload materials.");
       return;
     }
 
@@ -224,14 +226,50 @@ class _PersistDPRScreenState extends ConsumerState<PersistDPRScreen> {
       return;
     }
 
-    if (_selectedDesignation == null || _selectedDesignation!.isNotEmpty == false) {
+    if (_selectedDesignation == null || _selectedDesignation!.isEmpty) {
       _showError("Please select material designation");
       return;
     }
 
+    /// 🔥 STEP 1 — Resolve RateUploadId (Clean Logic)
+
+    String? rateUploadId;
+
+    // Priority 1 → If widget has it
+    if (widget.rateUploadId != null &&
+        widget.rateUploadId!.trim().isNotEmpty) {
+      rateUploadId = widget.rateUploadId!;
+    }
+    // Priority 2 → Fallback to provider
+    else {
+      final siteID = ref.read(selectedSiteIdProvider);
+
+      if (siteID == null || siteID.isEmpty) {
+        _showError("Site ID missing");
+        return;
+      }
+
+      final rateFileMeta = ref.read(rateFileMetaProvider(siteID));
+
+      if (rateFileMeta == null ||
+          rateFileMeta['rateFileId'] == null ||
+          rateFileMeta['rateFileId'].toString().isEmpty) {
+        _showError("Rate Upload ID not found");
+        return;
+      }
+
+      rateUploadId = rateFileMeta['rateFileId'].toString();
+    }
+
+    /// 🔥 STEP 2 — Safety Check
+    if (rateUploadId == null || rateUploadId.isEmpty) {
+      _showError("Rate Upload ID resolution failed");
+      return;
+    }
+
     try {
-      // ✅ image handle
       File? imageFile;
+
       if (_imagePath != null &&
           _imagePath!.isNotEmpty &&
           !_imagePath!.startsWith('http')) {
@@ -239,10 +277,9 @@ class _PersistDPRScreenState extends ConsumerState<PersistDPRScreen> {
       }
 
       final isEdit =
-          widget.editMaterialId != null && widget.editMaterialId!.isNotEmpty;
+          widget.editMaterialId != null &&
+              widget.editMaterialId!.isNotEmpty;
 
-
-      // ✅ full fields like default service
       final formData = FormData.fromMap({
         "materialName": _materialNameController.text.trim(),
         "uom": _uomController.text.trim(),
@@ -251,10 +288,6 @@ class _PersistDPRScreenState extends ConsumerState<PersistDPRScreen> {
         "isApplied": _isApplied,
         "dynamicFields":
         jsonEncode(_dynamicFields.map((e) => e.toJson()).toList()),
-
-
-
-
         if (imageFile != null)
           "image": await MultipartFile.fromFile(
             imageFile.path,
@@ -263,41 +296,173 @@ class _PersistDPRScreenState extends ConsumerState<PersistDPRScreen> {
       });
 
       if (isEdit) {
-        // ✅ EDIT LINE ITEM
         await RateUploadApi.updateLineItem(
-          rateUploadId: widget.rateUploadId!,
+          rateUploadId: rateUploadId,
           lineItemId: widget.editMaterialId!,
           data: formData,
         );
-
         _showSuccess("Material updated successfully");
       } else {
-        // ✅ ADD LINE ITEM
         await RateUploadApi.addLineItem(
-          rateUploadId: widget.rateUploadId!,
+          rateUploadId: rateUploadId,
           data: formData,
         );
-
         _showSuccess("Material added successfully");
       }
 
-      // 🔄 refresh provider
-      final sId = ref.read(selectedSiteIdProvider);
-      if (sId != null) {
-        ref.invalidate(rateFileAnalysisProvider(sId));
+      /// 🔄 Refresh provider
+      final siteID = ref.read(selectedSiteIdProvider);
+      if (siteID != null) {
+        ref.invalidate(rateFileAnalysisProvider(siteID));
       }
 
       if (mounted) Navigator.pop(context, true);
+
     } catch (e, st) {
       debugPrint("❌ Submit failed: $e");
       debugPrintStack(stackTrace: st);
-
       final msg = extractBackendError(e);
       _showError(msg);
     }
   }
+  String _generateObjectId() {
+    final seconds = (DateTime.now().millisecondsSinceEpoch ~/ 1000)
+        .toRadixString(16)
+        .padLeft(8, '0');
+
+    final random = Random.secure();
+    final randomPart = List.generate(10, (_) => random.nextInt(16))
+        .map((e) => e.toRadixString(16))
+        .join();
+
+    final counter =
+    random.nextInt(0xffffff).toRadixString(16).padLeft(6, '0');
+
+    return seconds + randomPart + counter;
+  }
+  Future<void> _handleDprMaterialAdd() async {
+    try {
+      File? imageFile;
+
+      if (_imagePath != null &&
+          _imagePath!.isNotEmpty &&
+          !_imagePath!.startsWith('http')) {
+        imageFile = File(_imagePath!);
+      }
+
+      final formData = FormData.fromMap({
+        "materialName": _materialNameController.text.trim(),
+        "uom": _uomController.text.trim(),
+        "designation": _selectedDesignation,
+        "calculationCategory": _calculationCategory,
+        "dynamicFields":
+        jsonEncode(_dynamicFields.map((e) => e.toJson()).toList()),
+        if (imageFile != null)
+          "image": await MultipartFile.fromFile(
+            imageFile.path,
+            filename: imageFile.path.split('/').last,
+          ),
+      });
+      final isNewDpr = widget.dprId.isEmpty;
+
+      // 🔥 If NO DPR ID → local draft mode
+      if (isNewDpr) {
+        final newId = _generateObjectId();
+
+        if (_selectedDesignation == "piping") {
+          final newItem = PipingItem(
+            id: newId,
+            materialName: _materialNameController.text.trim(),
+            uom: _uomController.text.trim(),
+            designation: ["piping"],
+            calculationCategory: _calculationCategory!,
+            dynamicFields: _dynamicFields,
+            image: _imagePath ?? "",
+            qty: 0,
+            length: 0,
+            weight: 0,
+            power: 0,
+            diameter: 0,
+            rmt: 0,
+            remarks: "",
+            rateFileId: null,
+            rateVariantId: null, rawMaterialName: '', normalizedMaterialName: '', floor: '', elevation: '', actualRate: 0, rate: 0, moc: '', size: '', location: '', plant: '',
+          );
+
+          ref.read(pipingMaterialsProvider.notifier).addMaterial(newItem);
+        }
+
+        if (_selectedDesignation == "equipment") {
+          final newItem = EquipmentItem(
+            id: newId,
+            materialName: _materialNameController.text.trim(),
+            uom: _uomController.text.trim(),
 
 
+            dynamicFields: _dynamicFields,
+            image: _imagePath ?? "",
+            qty: 0,
+            length: 0,
+            weight: 0,
+            power: 0,
+            diameter: 0,
+            rmt: 0,
+            remarks: "",
+
+            rateFileId: null,
+            rateVariantId: null, rawMaterialName: '', normalizedMaterialName: '', actualRate: 0, rate: 0, moc: '', size: '', location: '', plant: '', calculationCategory: '', designation: [],
+          );
+
+          ref.read(equipmentMaterialsProvider.notifier).addMaterial(newItem);
+        }
+
+        _showSuccess("Material added locally (Draft Mode)");
+        if (mounted) Navigator.pop(context, true);
+        return;
+      }
+
+      final response = await DprApi.addMechanicalMaterial(
+        dprId: widget.dprId,
+        formData: formData,
+      );
+
+      if (response["success"] != true) {
+        _showError("Failed to add material");
+        return;
+      }
+      final updatedDpr = response["data"]?["data"];
+
+      if (updatedDpr == null) {
+        _showError("Invalid response structure");
+        return;
+      }
+
+      final List pipingList = updatedDpr["piping"] ?? [];
+      final List equipmentList = updatedDpr["equipment"] ?? [];
+
+      if (_selectedDesignation == "piping" && pipingList.isNotEmpty) {
+        final last = pipingList.last;
+        final newItem = PipingItem.fromJson(last);
+
+        ref.read(pipingMaterialsProvider.notifier).addMaterial(newItem);
+      }
+
+      if (_selectedDesignation == "equipment" && equipmentList.isNotEmpty) {
+        final last = equipmentList.last;
+        final newItem = EquipmentItem.fromJson(last);
+
+        ref.read(equipmentMaterialsProvider.notifier).addMaterial(newItem);
+      }
+
+      _showSuccess("Material added successfully");
+
+
+      if (mounted) Navigator.pop(context, true);
+    } catch (e) {
+      final msg = extractBackendError(e);
+      _showError(msg);
+    }
+  }
 
   void _showError(String message) {
     if (mounted) {
@@ -495,6 +660,7 @@ class _PersistDPRScreenState extends ConsumerState<PersistDPRScreen> {
   Widget build(BuildContext context) {
     return Scaffold(
       backgroundColor: AppColors.lightBlue,
+      drawer: const CustomDrawer(),
       appBar: CustomAppBar(
         title: widget.editMaterialId != null ? 'Edit Material' : 'Add Material',
       ),
@@ -571,7 +737,6 @@ class _PersistDPRScreenState extends ConsumerState<PersistDPRScreen> {
       ],
     );
   }
-
   Widget _buildUOMField() {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
@@ -585,40 +750,27 @@ class _PersistDPRScreenState extends ConsumerState<PersistDPRScreen> {
           ),
         ),
         const SizedBox(height: 8),
-        GestureDetector(
-          onTap: _openUOMBottomSheet,
-          child: Container(
-            padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
-            decoration: BoxDecoration(
-              color: Colors.white,
-              borderRadius: BorderRadius.circular(8),
-              border: Border.all(color: Colors.grey),
-            ),
-            child: Row(
-              children: [
-                Expanded(
-                  child: Text(
-                    _uomController.text.isEmpty
-                        ? "Select UOM (e.g., MTR, NOS, TON, KG, HP, DIAMETER)"
-                        : _uomController.text,
-                    style: TextStyle(
-                      color: _uomController.text.isEmpty
-                          ? Colors.grey
-                          : Colors.black,
-                    ),
-                  ),
-                ),
-                const Icon(Icons.arrow_drop_down, color: Colors.grey),
-              ],
-            ),
-          ),
+
+        SearchableDropdown(
+          data: _allUOM,
+          value: _uomController.text,
+          placeholder: "Search or type UOM (e.g., MTR, NOS, TON, KG, HP)",
+          onSelect: (value) {
+            setState(() {
+              _uomController.text = value;
+            });
+          },
         ),
-        if (_uomController.text.isEmpty)
+
+        if (_uomController.text.trim().isEmpty)
           Padding(
-            padding: const EdgeInsets.only(top: 4.0),
+            padding: const EdgeInsets.only(top: 6),
             child: Text(
               "UOM is required",
-              style: TextStyle(color: Colors.red.shade600, fontSize: 12),
+              style: TextStyle(
+                color: Colors.red.shade600,
+                fontSize: 12,
+              ),
             ),
           ),
       ],

@@ -178,14 +178,7 @@
       }
 
 
-      if (widget.isDpr) {
-        for (final f in widget.fields) {
-          final c = _controllers[f.key];
-          if (c != null && c.text != f.displayText) {
-            c.text = f.displayText;
-          }
-        }
-      }
+
   
       if (widget.size != oldWidget.size) {
         final sizeController = _controllers.putIfAbsent(
@@ -313,30 +306,26 @@
   
       return Column(children: rows);
     }
-  
+
     Widget _viewFieldTile(DynamicField field) {
       final isQty = field.key.toLowerCase() == 'qty';
-  
+
       final controller = _controllers.putIfAbsent(
         field.key,
-        () {
-          String initial = '';
-  
-          if (widget.isDpr) {
-            // DPR screen → show saved values
-            initial = field.displayText;
-          } else {
-            // Materials screen → empty except qty
-            initial = isQty ? field.displayText : '';
-          }
-  
-          print("👉 create ctrl ${field.key} = '$initial'");
-          return TextEditingController(text: initial);
-        },
+            () => TextEditingController(),
       );
-  
+
+      // 🔥 FORCE SYNC CONTROLLER WITH FIELD VALUE
+      final newValue = widget.isDpr
+          ? (field.value?.toString() ?? '')
+          : (isQty ? field.displayText ?? '' : '');
+
+      if (controller.text != newValue) {
+        controller.text = newValue;
+      }
+
       print("📦 ${field.key} -> '${controller.text}'");
-  
+
       return _updatedblueBox(
         label: field.label,
         controller: controller,
@@ -344,13 +333,12 @@
         keyName: field.key,
       );
     }
-  
     Widget _editFieldTile(int index) {
       final field = draftFields[index];
   
       final valueController = _controllers.putIfAbsent(
         field.key,
-        () => TextEditingController(text: field.displayText),
+        () => TextEditingController(text: ""),
       );
   
       final labelController = TextEditingController(text: field.label);
@@ -404,7 +392,7 @@
               ),
               style: const TextStyle(fontSize: 8),
               onChanged: (v) {
-                draftFields[index] = field.copyWith(displayText: v);
+                draftFields[index] = field.copyWith(unit: v);
               },
             ),
           ),

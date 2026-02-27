@@ -6,6 +6,7 @@ enum EquipmentFieldType {
   circumference2,
   circumference3,
   zHeight,
+  gSlantHeight,
 }
 
 
@@ -38,6 +39,7 @@ final Map<String, List<EquipmentFieldConfig>> equipmentFieldConfig = {
 
   'CONE END': [
     EquipmentFieldConfig(label: 'Circumference', type: EquipmentFieldType.circumference, imageIndex: 0),
+    EquipmentFieldConfig(label: 'Slant Height', type: EquipmentFieldType.gSlantHeight, imageIndex: 1),
   ],
 
   'REDUCER': [
@@ -56,7 +58,11 @@ final Map<String, List<EquipmentFieldConfig>> equipmentFieldConfig = {
   ],
 
   // 🔥 ALL FLANGE BOX VARIANTS
-  'FLANGE BOX': [
+  'FLANGE BOX-4': [
+    EquipmentFieldConfig(label: 'Circumference', type: EquipmentFieldType.circumference, imageIndex: 0),
+    EquipmentFieldConfig(label: 'Lenght', type: EquipmentFieldType.length, imageIndex: 0),
+  ],
+'FLANGE BOX': [
     EquipmentFieldConfig(label: 'Circumference', type: EquipmentFieldType.circumference, imageIndex: 0),
   ],
 

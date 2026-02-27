@@ -8,6 +8,7 @@ import 'package:untitled2/features/modules/all_Modules/dpr/screens/widgets/moc_s
 import '../../../../../core/utlis/widgets/buttons.dart';
 import '../../../../../core/utlis/widgets/custom.dart';
 import '../../../../../core/utlis/widgets/image_clipped.dart';
+import '../../../../../core/utlis/widgets/sidebar.dart';
 import '../../../../../typeProvider/type_provider.dart';
 import '../../site_Details/repository/siteModel.dart';
 
@@ -29,7 +30,20 @@ class DprTeamScreen extends ConsumerStatefulWidget {
 class _DprTeamScreenState extends ConsumerState<DprTeamScreen> {
   Future<void> _refreshTeams() async {
     final type = ref.read(typeProvider);
-    await ref.read(teamProvider.notifier).fetchTeams(type: type!, siteId: widget.site.id);
+    final notifier = ref.read(teamProvider.notifier);
+    final siteId=widget.site.id;
+
+
+    if (type == "mechanical_work") {
+      await notifier.fetchMechanicalCombined(siteId: siteId!);
+    }
+    else if (type == "insulation_work") {
+      await notifier.fetchInsulationCombined(siteId: siteId!);
+    }
+    else {
+      // fallback if some other type appears
+      await notifier.fetchTeams(type: type!, siteId: siteId!);
+    }
 
   }
   @override
@@ -37,42 +51,42 @@ class _DprTeamScreenState extends ConsumerState<DprTeamScreen> {
     super.initState();
 
     WidgetsBinding.instance.addPostFrameCallback((_) async {
-      final type = ref.read(typeProvider);
-
-      await ref
-          .read(teamProvider.notifier)
-          .fetchTeams(type: type!, siteId: widget.site.id);
+      await _refreshTeams();
 
       final teamState = ref.read(teamProvider);
       final teams = teamState.teams;
-      print("📦 TOTAL TEAMS: ${teams.length}");
-
-      for (final t in teams) {
-        print("👥 TEAM: ${t.teamName}  → members: ${t.teamMemberIds}");
-      }
 
 
-
-      /// 🚫 NO TEAM → move ahead with empty
+// 🚫 If no teams at all → auto navigate
       if (teams.isEmpty) {
         ref.read(selectedTeamIdProvider.notifier).state = "";
-
         _goNext("", "");
         return;
       }
 
-      /// ✅ ONLY ONE TEAM → auto pick
-      if (teams.length == 1) {
-        final team = teams.first;
+      // bool isDefault(String name) =>
+      //     name.trim().toLowerCase().contains("default backend team");
+      //
+      // // 🚫 no teams at all
+      // if (teams.isEmpty) {
+      //   ref.read(selectedTeamIdProvider.notifier).state = "";
+      //   _goNext("", "");
+      //   return;
+      // }
+      //
+      // // Filter real teams
+      // final realTeams = teams.where((t) => !isDefault(t.teamName)).toList();
+      //
+      // // 🚫 only default exists
+      // if (realTeams.isEmpty) {
+      //   ref.read(selectedTeamIdProvider.notifier).state = "";
+      //   _goNext("", "");
+      //   return;
+      // }
 
-        ref.read(selectedTeamIdProvider.notifier).state = team.id;
-
-        _goNext(team.id, team.teamName);
-        return;
-      }
-
-
-
+      // ✅ At least one real team exists → DO NOT auto navigate
+      // User must manually pick
+      return;
     });
   }
   void _goNext(String teamId, String? teamName) {
@@ -184,7 +198,7 @@ class _DprTeamScreenState extends ConsumerState<DprTeamScreen> {
 
     return Scaffold(
       backgroundColor: AppColors.lightBlue,
-
+      drawer: const CustomDrawer(),
       body: NestedScrollView(
         headerSliverBuilder: (context, innerBoxIsScrolled) {
           return [
@@ -263,7 +277,14 @@ class _DprTeamScreenState extends ConsumerState<DprTeamScreen> {
 
                           return InkWell(
                             onTap: () {
-                              ref.read(selectedTeamIdProvider.notifier).state = team.id;
+
+                              final isDefault = team.isDefaultTeam == true;
+
+                              // 🔥 If default team → force empty ID
+                              final effectiveTeamId = isDefault ? "" : team.id;
+                              print("effectiveteam $effectiveTeamId");
+
+                              ref.read(selectedTeamIdProvider.notifier).state = effectiveTeamId;
 
                               final type = ref.read(typeProvider);
 
@@ -273,9 +294,9 @@ class _DprTeamScreenState extends ConsumerState<DprTeamScreen> {
                                   MaterialPageRoute(
                                     builder: (_) => MOCSelectionPage(
                                       siteId: widget.site.id,
-                                      teamId: team.id,
+                                      teamId: effectiveTeamId,
                                       teamName: team.teamName,
-                                      onMOCSelected: (selectedMOC) {},
+                                      onMOCSelected: (_) {},
                                     ),
                                   ),
                                 );
@@ -285,14 +306,12 @@ class _DprTeamScreenState extends ConsumerState<DprTeamScreen> {
                                   MaterialPageRoute(
                                     builder: (_) => StepInsulationScreen(
                                       siteId: widget.site.id,
-                                      teamId: team.id,
+                                      teamId: effectiveTeamId,
                                       name: widget.site.siteName ?? "",
                                       teamName: team.teamName,
                                     ),
                                   ),
                                 );
-                              } else {
-                                debugPrint("❌ Unknown work type: $type");
                               }
                             },
                             child: Container(

@@ -3,15 +3,18 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import 'package:untitled2/core/utlis/app_toasts.dart';
 import 'package:untitled2/core/utlis/colors/colors.dart';
+import 'package:untitled2/core/utlis/widgets/Button_wrapper.dart';
 import 'package:untitled2/features/modules/all_Modules/site_Details/providers/site_current_provider.dart';
 import '../../../../../core/utlis/common_functions.dart';
 import '../../../../../core/utlis/widgets/buttons.dart';
 import '../../../../../core/utlis/widgets/custom_appBar.dart';
 import '../../../../../core/utlis/widgets/fields/custom_textField.dart';
+import '../../../../../core/utlis/widgets/fields/searchableDropdown.dart';
 import '../../../../../core/utlis/widgets/sidebar.dart';
 import '../../../../../typeProvider/type_provider.dart';
 import '../../../../tour/domain/tour_controller.dart';
 import '../../site_Details/repository/siteModel.dart';
+import '../data/rateApi.dart';
 import '../data/rate_provider.dart';
 import '../domain/rateModel.dart';
 
@@ -31,13 +34,27 @@ class _AddRateScreenState extends ConsumerState<AddRateScreen> {
 
   final FocusNode uomFocusNode = FocusNode();
   bool isCustomUOM = false;
+  List<String> uomList = [];
 
-  final List<String> uomList = [
-    "Inches (in.)",
-    "Pieces (pcs.)",
-    "Number (nos.)",
-    "Kilograms (kgs.)",
-  ];
+  @override
+  void initState() {
+    super.initState();
+    _loadUOM();
+  }
+
+  Future<void> _loadUOM() async {
+    try {
+      final response = await RateApiClient().getRateUOM();
+
+      setState(() {
+        uomList = response
+            .map<String>((item) => item['name'].toString())
+            .toList();
+      });
+    } catch (e) {
+      print("❌ Failed to load UOM: $e");
+    }
+  }
 
   void _showUOMBottomSheet() {
     // If user is typing custom UOM, don't show bottom sheet
@@ -100,7 +117,7 @@ class _AddRateScreenState extends ConsumerState<AddRateScreen> {
 
   Future<void> _saveRate() async {
     if (siteNameController.text.isEmpty ||
-        hsnCodeController.text.isEmpty ||
+
         rateController.text.isEmpty ||
         uomController.text.isEmpty) {
       AppToast.error('Please fill all required fields');
@@ -142,109 +159,149 @@ class _AddRateScreenState extends ConsumerState<AddRateScreen> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
+
       drawer: const CustomDrawer(),
       backgroundColor: AppColors.lightBlue,
       appBar: CustomAppBar(title: "Add Rate"),
-      body: SingleChildScrollView(
-        padding: const EdgeInsets.all(16),
-        child: Column(
-          children: [
-            CustomTextField(
-              label: "Product",
-              controller: siteNameController,
-              isRequired: true,
-            ),
-            CustomTextField(
-              label: "HSN/SAC Code",
-              controller: hsnCodeController,
-              isRequired: true,
-            ),
-            CustomTextField(
-              label: "Rate in RS.",
-              controller: rateController,
-              keyboardType: TextInputType.number,
-              isRequired: true,
-            ),
-
-            // UOM Section with Label
-            const SizedBox(height: 8),
-            Align(
-              alignment: Alignment.centerLeft,
-              child: Text(
-                "UOM",
-                style: TextStyle(
-                  fontSize: 16,
-                  fontWeight: FontWeight.w500,
-                  color: Colors.grey[700],
-                ),
+      body: BottomButtonWrapper(
+        customButtons: [
+          CustomButton(button:    RoundedButton(
+            text: "Save",
+            color: Colors.blue,
+            textColor: Colors.white,
+            onPressed: _saveRate,
+          ))
+        ],
+        child: SingleChildScrollView(
+          padding: const EdgeInsets.all(16),
+          child: Column(
+            children: [
+              CustomTextField(
+                label: "Product",
+                controller: siteNameController,
+                isRequired: true,
               ),
-            ),
-            const SizedBox(height: 4),
-
-            // Combined UOM Field - Can type or select from dropdown
-            TextFormField(
-              controller: uomController,
-              focusNode: uomFocusNode,
-              onChanged: _onUOMChanged,
-              decoration: InputDecoration(
-                hintText: "Select or type Unit of Measurement",
-                hintStyle: TextStyle(color: Colors.grey[500]),
-                border: OutlineInputBorder(
-                  borderRadius: BorderRadius.circular(8),
-                  borderSide: const BorderSide(color: Color(0xFFDFE2E6)),
-                ),
-                enabledBorder: OutlineInputBorder(
-                  borderRadius: BorderRadius.circular(8),
-                  borderSide: const BorderSide(color: Color(0xFFDFE2E6)),
-                ),
-                focusedBorder: OutlineInputBorder(
-                  borderRadius: BorderRadius.circular(8),
-                  borderSide: const BorderSide(color: Colors.blue),
-                ),
-                filled: true,
-                fillColor: Colors.white,
-                contentPadding: const EdgeInsets.symmetric(horizontal: 12, vertical: 16),
-                suffixIcon: IconButton(
-                  icon: const Icon(Icons.arrow_drop_down),
-                  onPressed: _showUOMBottomSheet,
-                ),
+              CustomTextField(
+                label: "HSN/SAC Code",
+                controller: hsnCodeController,
+                isRequired: false,
               ),
-              style: const TextStyle(fontSize: 16),
-            ),
-
-            // Show indicator if using custom UOM
-            if (isCustomUOM && uomController.text.isNotEmpty)
-              Padding(
-                padding: const EdgeInsets.only(top: 4.0),
-                child: Row(
-                  children: [
-                    Icon(Icons.edit, size: 14, color: Colors.orange[700]),
-                    const SizedBox(width: 4),
-                    Text(
-                      "Using custom UOM",
+              CustomTextField(
+                label: "Rate in RS.",
+                controller: rateController,
+                keyboardType: TextInputType.number,
+                isRequired: true,
+              ),
+        
+              // UOM Section with Label
+              // UOM Section
+              const SizedBox(height: 8),
+              Row(
+                mainAxisAlignment: MainAxisAlignment.start,
+                children: [
+                  RichText(
+                    text: TextSpan(
+                      text: "Uom",
                       style: TextStyle(
-                        fontSize: 12,
-                        color: Colors.orange[700],
-                        fontStyle: FontStyle.italic,
+                        fontSize:14,
+                        fontWeight: FontWeight.w500,
+                        color: Colors.black87,
                       ),
+                      children: [
+
+                          const TextSpan(
+                            text: ' *',
+                            style: TextStyle(color: Colors.red),
+                          ),
+                      ],
                     ),
-                  ],
+                  ),
+                ],
+              ),
+              const SizedBox(height: 4),
+
+              SearchableDropdown(
+                data: uomList,
+
+                value: uomController.text,
+                placeholder: "Search or type Unit of Measurement",
+                onSelect: (value) {
+                  setState(() {
+                    uomController.text = value;
+                  });
+                },
+                containerDecoration: BoxDecoration(
+                  color: Colors.white,
+                  borderRadius: BorderRadius.circular(8),
+                  border: const Border(
+                    left: BorderSide(color: Color(0xFFDFE2E6)),
+                    right: BorderSide(color: Color(0xFFDFE2E6)),
+                    top: BorderSide(color: Color(0xFFDFE2E6)),
+                    bottom: BorderSide(color: Color(0xFFDFE2E6)),
+                  ),
                 ),
               ),
+        
+              // // Combined UOM Field - Can type or select from dropdown
+              // TextFormField(
+              //   controller: uomController,
+              //   focusNode: uomFocusNode,
+              //   onChanged: _onUOMChanged,
+              //   decoration: InputDecoration(
+              //     hintText: "Select or type Unit of Measurement",
+              //     hintStyle: TextStyle(color: Colors.grey[500]),
+              //     border: OutlineInputBorder(
+              //       borderRadius: BorderRadius.circular(8),
+              //       borderSide: const BorderSide(color: Color(0xFFDFE2E6)),
+              //     ),
+              //     enabledBorder: OutlineInputBorder(
+              //       borderRadius: BorderRadius.circular(8),
+              //       borderSide: const BorderSide(color: Color(0xFFDFE2E6)),
+              //     ),
+              //     focusedBorder: OutlineInputBorder(
+              //       borderRadius: BorderRadius.circular(8),
+              //       borderSide: const BorderSide(color: Colors.blue),
+              //     ),
+              //     filled: true,
+              //     fillColor: Colors.white,
+              //     contentPadding: const EdgeInsets.symmetric(horizontal: 12, vertical: 16),
+              //     suffixIcon: IconButton(
+              //       icon: const Icon(Icons.arrow_drop_down),
+              //       onPressed: _showUOMBottomSheet,
+              //     ),
+              //   ),
+              //   style: const TextStyle(fontSize: 16),
+              // ),
+              //
+              // Show indicator if using custom UOM
+              if (isCustomUOM && uomController.text.isNotEmpty)
+                Padding(
+                  padding: const EdgeInsets.only(top: 4.0),
+                  child: Row(
+                    children: [
+                      Icon(Icons.edit, size: 14, color: Colors.orange[700]),
+                      const SizedBox(width: 4),
+                      Text(
+                        "Using custom UOM",
+                        style: TextStyle(
+                          fontSize: 12,
+                          color: Colors.orange[700],
+                          fontStyle: FontStyle.italic,
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+        
+              CustomTextField(
+                label: "Remark (if any)",
+                controller: remarkController,
+                maxLines: 3,
+              ),
+              const SizedBox(height: 20),
 
-            CustomTextField(
-              label: "Remark (if any)",
-              controller: remarkController,
-              maxLines: 3,
-            ),
-            const SizedBox(height: 20),
-            RoundedButton(
-              text: "Save",
-              color: Colors.blue,
-              textColor: Colors.white,
-              onPressed: _saveRate,
-            )
-          ],
+            ],
+          ),
         ),
       ),
     );

@@ -358,15 +358,12 @@
       String? unit,
       String? displayText,
     }) {
-      final newValue = value ?? this.value;
-
       return DynamicField(
         key: key ?? this.key,
         label: label ?? this.label,
-        value: newValue,
+        value: value ?? this.value,
         unit: unit ?? this.unit,
-        displayText: displayText ??
-            (newValue == null ? "" : newValue.toString()),
+        displayText: displayText ?? this.displayText, // ✅ PRESERVE
       );
     }
   }

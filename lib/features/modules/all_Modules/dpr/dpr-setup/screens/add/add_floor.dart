@@ -4,12 +4,16 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:untitled2/core/utlis/colors/colors.dart';
 import 'package:untitled2/core/utlis/widgets/custom_appBar.dart';
+import '../../../../../../../core/local/isar_db.dart';
 import '../../../../../../../core/utlis/widgets/fields/custom_textField.dart';
 import '../../../../../../../core/utlis/widgets/file_upload.dart';
 import '../../../../../../../core/utlis/widgets/image_clipped.dart';
+import '../../../../../../../core/utlis/widgets/sidebar.dart';
 import '../../../../site_Details/providers/site_current_provider.dart';
 import '../../../models/floorModel.dart';
+import '../../../offline/mech/repo/rate_Repo.dart';
 import '../../../providers/floorProvider.dart';
+import '../../../providers/rate_variant_provider.dart';
 
 class AddFloorPage extends ConsumerStatefulWidget {
   final Floor? floor;
@@ -77,13 +81,27 @@ class _AddFloorPageState extends ConsumerState<AddFloorPage> {
         if (_selectedImage == null) {
           throw 'Image required';
         }
+        final rateFileMeta = ref.read(rateFileMetaProvider(siteID));
+
+
+
+
+
+        final rateUploadId = rateFileMeta['rateFileId'] as String?;
+        // Inside CREATE block:
+        final existingFloors = ref.read(floorWithImagesProvider(siteID));
 
         await ref.read(floorProvider.notifier).create(
           name: name,
           siteId: siteID,
           image: _selectedImage!,
-          isApplied: _isApplied,
+          rateuploadId: rateUploadId!,
+          existingFloors: existingFloors, // 🔥
         );
+        final repo = RateRepository(AppIsarDB.isar);
+        await repo.syncRateFile(siteID);
+
+        ref.invalidate(rateFileAnalysisProvider(siteID));
       } else {
         // ================= UPDATE =================
         await ref.read(floorProvider.notifier).update(
@@ -107,8 +125,10 @@ class _AddFloorPageState extends ConsumerState<AddFloorPage> {
 
   @override
   Widget build(BuildContext context) {
+
     return Scaffold(
       resizeToAvoidBottomInset: false,
+      drawer: const CustomDrawer(),
       appBar: CustomAppBar(
         title: widget.floor == null ? "Add Floor" : "Edit Floor",
       ),

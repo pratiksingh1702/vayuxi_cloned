@@ -1,8 +1,10 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:untitled2/core/utlis/colors/colors.dart';
+import 'package:untitled2/core/utlis/widgets/Button_wrapper.dart';
 import 'package:untitled2/core/utlis/widgets/custom_appBar.dart';
 import 'package:untitled2/features/modules/all_Modules/inventory/offline/repo/inventory_sync.dart';
+import '../../../../../core/utlis/widgets/custom_dropdown.dart';
 import '../../../../../core/utlis/widgets/fields/custom_textField.dart';
 import '../../../../../core/utlis/widgets/fields/searchableDropdown.dart';
 import '../../../../../core/utlis/widgets/sidebar.dart';
@@ -62,7 +64,7 @@ class _CreateInventoryScreenState
     final siteId = ref.read(selectedSiteIdProvider);
     if (siteId == null) return;
 
-    if (!_formKey.currentState!.validate()) return;
+
 
     if (_selectedCategoryId == null) {
       _showError("Select category");
@@ -95,9 +97,7 @@ class _CreateInventoryScreenState
       condition: null,
       name: _nameController.text.trim(),
       categoryId: selectedCategory.id,
-      uom: selectedCategory.type == "consumable"
-          ? _uomController.text.trim()
-          : null,
+      uom: _uomController.text.trim(),
       totalQuantityAdded: selectedCategory.type == "consumable"
           ? double.parse(_quantityController.text)
           : null,
@@ -138,108 +138,128 @@ class _CreateInventoryScreenState
       drawer: const CustomDrawer(),
       appBar: CustomAppBar(title: "Create Inventory"),
       backgroundColor: AppColors.lightBlue,
-      body: Padding(
-        padding: const EdgeInsets.all(16),
-        child: Form(
-          key: _formKey,
-          child: categoriesAsync.when(
-            loading: () =>
-            const Center(child: CircularProgressIndicator()),
-            error: (e, _) => Center(child: Text(e.toString())),
-            data: (categories) {
-              Category? selectedCategory;
-              for (final c in categories) {
-                if (c.id == _selectedCategoryId) {
-                  selectedCategory = c;
-                  break;
-                }
+      body: BottomButtonWrapper(
+        key: _formKey,
+        child: categoriesAsync.when(
+          loading: () =>
+          const Center(child: CircularProgressIndicator()),
+          error: (e, _) => Center(child: Text(e.toString())),
+          data: (categories) {
+            Category? selectedCategory;
+            for (final c in categories) {
+              if (c.id == _selectedCategoryId) {
+                selectedCategory = c;
+                break;
               }
+            }
 
-              return ListView(
-                children: [
-                  // CATEGORY
-                DropdownButtonFormField<String>(
-                value: _selectedCategoryId,
-                items: categories
-                    .map((c) => DropdownMenuItem<String>(
-                  value: c.id,
-                  child: Text(c.name),
-                ))
-                    .toList(),
-                onChanged: (v) => setState(() => _selectedCategoryId = v),
-                decoration: const InputDecoration(labelText: "Category *"),
-                validator: (v) => v == null ? "Select category" : null,
-              ),
+            return ListView(
+              children: [
+                // CATEGORY
+                CustomDropdownField<String>(
+                  label: "Category",
+                  isRequired: true,
+                  value: _selectedCategoryId,
+                  items: categories
+                      .map((c) => DropdownMenuItem<String>(
+                    value: c.id,
+                    child: Text(c.name),
+                  ))
+                      .toList(),
+                  onChanged: (v) {
+                    setState(() {
+                      _selectedCategoryId = v;
 
-              const SizedBox(height: 16),
+                      // Clear previous inputs when switching category
+                      _quantityController.clear();
+                      _unitsController.clear();
+                      _minStockController.clear();
+                      _uomController.clear();
+                    });
+                  },
+                ),
 
-                  // NAME
+            const SizedBox(height: 16),
+
+                // NAME
+                CustomTextField(
+                  label: 'Inventory Name',
+                  isRequired: true,
+                  controller: _nameController,
+                ),
+
+                const SizedBox(height: 16),
+
+
+                if (selectedCategory?.type == "consumable") ...[
+                  Row(
+                    children: [
+                      Expanded(
+                        child: CustomTextField(
+                          label: 'Quantity',
+                          isRequired: true,
+                          controller: _quantityController,
+                          keyboardType: TextInputType.number,
+                        ),
+                      ),
+                      const SizedBox(width: 12),
+                      Expanded(
+                        child: CustomTextField(
+                          label: 'UOM',
+                          isRequired: true,
+                          controller: _uomController,
+                        ),
+                      ),
+                    ],
+                  ),
+                  const SizedBox(height: 16),
                   CustomTextField(
-                    label: 'Inventory Name',
+                    label: 'Minimum Stock Level',
                     isRequired: true,
-                    controller: _nameController,
+                    controller: _minStockController,
+                    keyboardType: TextInputType.number,
                   ),
-
-                  const SizedBox(height: 16),
-
-
-                  if (selectedCategory?.type == "consumable") ...[
-                    Row(
-                      children: [
-                        Expanded(
-                          child: CustomTextField(
-                            label: 'Quantity',
-                            isRequired: true,
-                            controller: _quantityController,
-                            keyboardType: TextInputType.number,
-                          ),
-                        ),
-                        const SizedBox(width: 12),
-                        Expanded(
-                          child: CustomTextField(
-                            label: 'UOM',
-                            isRequired: true,
-                            controller: _uomController,
-                          ),
-                        ),
-                      ],
-                    ),
-                    const SizedBox(height: 16),
-                    CustomTextField(
-                      label: 'Minimum Stock Level',
-                      isRequired: true,
-                      controller: _minStockController,
-                      keyboardType: TextInputType.number,
-                    ),
-                  ],
-
-                  if (selectedCategory?.type == "fixed") ...[
-                    CustomTextField(
-                      label: 'Total Units',
-                      isRequired: true,
-                      controller: _unitsController,
-                      keyboardType: TextInputType.number,
-                    ),
-                  ],
-
-                  const SizedBox(height: 16),
-
-                  CustomTextField(
-                    label: 'Remarks',
-                    controller: _remarksController,
-                    maxLines: 3,
-                  ),
-
-                  const SizedBox(height: 24),
-
-                  ElevatedButton(
-                    onPressed: _submit,
-                    child: const Text("Create"),
-                  )
                 ],
-              );
-            },
-          ),
+
+                if (selectedCategory?.type == "fixed") ...[
+                  Row(
+                    children: [
+                      Expanded(
+                        child: CustomTextField(
+                          label: 'Total Units',
+                          isRequired: true,
+                          controller: _unitsController,
+                          keyboardType: TextInputType.number,
+                        ),
+                      ),
+                      const SizedBox(width: 12),
+                      Expanded(
+                        child: CustomTextField(
+                          label: 'UOM',
+                          isRequired: true,
+                          controller: _uomController,
+                        ),
+                      ),
+                    ],
+                  ),
+                ],
+                const SizedBox(height: 16),
+
+                CustomTextField(
+                  label: 'Remarks',
+                  controller: _remarksController,
+                  maxLines: 3,
+                ),
+
+                const SizedBox(height: 24),
+
+                ElevatedButton(
+                  onPressed: _submit,
+                  child: const Text("Create"),
+                )
+              ],
+            );
+          },
         ),
       ),
     );

@@ -51,7 +51,7 @@ class ExpenseModel {
       hardwareShopName: json['hardwareShop']?.toString(),
       quantity: _toInt(json['quantity']),
       uom: json['uom']?.toString(),
-      rate: _toDouble(json['rate']),
+      rate: _toDouble(json['rateInRs']),
       balance: _toDouble(json['balance']),
       year: _toInt(json['year']),
       place: json['place']?.toString(),

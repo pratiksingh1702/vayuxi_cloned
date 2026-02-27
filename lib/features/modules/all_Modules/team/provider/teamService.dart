@@ -4,6 +4,51 @@ import '../model/teamModel.dart';
 
 class TeamApi {
   // Fetch team list
+  /// 🔹 DPR MECHANICAL TEAMS
+  static Future<List<TeamModel>> fetchMechanicalTeams({
+    required String siteId,
+  }) async {
+    try {
+      final response = await DioClient.dio.get(
+        "/site/$siteId/team/dpr-mechanical",
+      );
+
+      if (response.statusCode == 200) {
+        final List data = response.data;
+        return data.map((e) {
+          final teamJson = e["teamId"];   // 🔥 IMPORTANT FIX
+          return TeamModel.fromJson(teamJson);
+        }).toList();
+      } else {
+        throw Exception("Failed to fetch mechanical teams");
+      }
+    } catch (e) {
+      rethrow;
+    }
+  }
+
+  /// 🔹 DPR INSULATION TEAMS
+  static Future<List<TeamModel>> fetchInsulationTeams({
+    required String siteId,
+  }) async {
+    try {
+      final response = await DioClient.dio.get(
+        "/site/$siteId/team/dpr-insulation",
+      );
+
+      if (response.statusCode == 200) {
+        final List data = response.data;
+        return data.map((e) {
+          final teamJson = e["teamId"];   // 🔥 IMPORTANT FIX
+          return TeamModel.fromJson(teamJson);
+        }).toList();
+      } else {
+        throw Exception("Failed to fetch insulation teams");
+      }
+    } catch (e) {
+      rethrow;
+    }
+  }
   static Future<List<TeamModel>> fetchTeams({
     required String type,
     required String siteId,

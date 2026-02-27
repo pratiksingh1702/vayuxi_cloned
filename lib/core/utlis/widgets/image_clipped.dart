@@ -21,6 +21,8 @@ class CornerClippedScreenSimple extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    print(Theme.of(context).scaffoldBackgroundColor);
+    print("color at clipped 😑😑😑");
     return Stack(
       children: [
         // Background Image
@@ -41,6 +43,7 @@ class CornerClippedScreenSimple extends StatelessWidget {
               child: Container(
                   padding: EdgeInsets.symmetric(vertical: 8),
                   decoration: BoxDecoration(
+                    // color: Theme.of(context).scaffoldBackgroundColor,
                     color: color,
 
 

@@ -12,6 +12,7 @@ import '../../features/auth/screens/login.dart';
 import '../../features/auth/screens/manpower_login_Screen.dart';
 import '../../features/auth/screens/sign_up.dart';
 import '../../features/auth/screens/splash_screen.dart';
+import '../../features/auth/screens/toc.dart';
 import '../../features/modules/all_Modules/Manpower Details/model/manpower_model.dart';
 import '../../features/modules/all_Modules/Manpower Details/screens/addManpower.dart';
 import '../../features/modules/all_Modules/Manpower Details/screens/editManpower.dart';
@@ -50,7 +51,9 @@ import '../../features/modules/all_Modules/inventory/screens/view_add_inventory_
 import '../../features/modules/all_Modules/more/help.dart';
 import '../../features/modules/all_Modules/more/language.dart';
 import '../../features/modules/all_Modules/more/more.dart';
+import '../../features/modules/all_Modules/more/rag.dart';
 import '../../features/modules/all_Modules/more/subscription.dart';
+import '../../features/modules/all_Modules/more/theme/screen/theme_screen.dart';
 import '../../features/modules/all_Modules/more/themes.dart';
 import '../../features/modules/all_Modules/more/upcoming.dart';
 import '../../features/modules/all_Modules/rate/screens/rate.dart';
@@ -101,6 +104,7 @@ final appRouterProvider = Provider<GoRouter>((ref) {
           '/manpower-login',
         '/register',
         '/trial',
+        '/terms'
       };
 
       if (access.isBooting) return Routes.splash;
@@ -282,6 +286,7 @@ final appRouterProvider = Provider<GoRouter>((ref) {
         path: '/profile',
         builder: (context, state) {
           return ProfileScreen();
+          // return RagScreen();
 
 
         },
@@ -289,7 +294,7 @@ final appRouterProvider = Provider<GoRouter>((ref) {
       GoRoute(
         path: '/theme',
         builder: (context, state) {
-          return ThemeSettingsPage();
+          return ThemeScreen();
 
 
         },
@@ -376,7 +381,11 @@ final appRouterProvider = Provider<GoRouter>((ref) {
         },
       ),
 
-
+      GoRoute(
+        path: '/terms',
+        name: 'terms',
+        builder: (context, state) => const TermsAndConditionsScreen(),
+      ),
 
       GoRoute(
         path: '/lagging-material',

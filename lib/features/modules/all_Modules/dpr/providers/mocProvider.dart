@@ -3,6 +3,7 @@ import 'dart:io';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../models/moc.dart';
 
+import '../models/rate_file_models.dart';
 import 'moc_service.dart';
 
 /// STATE
@@ -74,7 +75,9 @@ class MOCNotifier extends StateNotifier<MOCState> {
   Future<void> create({
     required String name,
     required String siteId,
-    bool? isApplied,
+    required String rateuploadId,
+    required List<NamedImage> existingMocs, //
+
     File? image,
   }) async {
     state = state.copyWith(isLoading: true);
@@ -82,9 +85,9 @@ class MOCNotifier extends StateNotifier<MOCState> {
     try {
       final res = await api.createMoc(
         name: name,
-        siteId: siteId,
-        isApplied: isApplied,
-        image: image,
+
+
+        image: image, rateUploadId: rateuploadId,
       );
 
       final moc = MOC.fromJson(res.data['data'] ?? res.data);

@@ -7,6 +7,7 @@ import 'package:untitled2/core/utlis/widgets/Button_wrapper.dart';
 import 'package:untitled2/core/utlis/widgets/buttons.dart';
 import 'package:untitled2/core/utlis/widgets/custom_appBar.dart';
 import 'package:untitled2/typeProvider/type_provider.dart';
+import '../../../../../../core/utlis/widgets/sidebar.dart';
 import '../../../Manpower Details/model/manpower_model.dart';
 import '../../../Manpower Details/service/manPowerProvider.dart';
 import '../../../site_Details/providers/site_current_provider.dart';
@@ -471,6 +472,316 @@ class _CheckoutManagementPageState
       );
     }
   }
+  void _showReturnBottomSheet({
+    required BuildContext context,
+    required dynamic checkout,
+    required String siteId,
+  }) {
+    final returnRemarksController = TextEditingController();
+    String? selectedCondition;
+
+    const conditions = ['issued', 'returned', 'lost', 'damaged'];
+
+    showModalBottomSheet(
+      context: context,
+      isScrollControlled: true,
+      backgroundColor: Colors.transparent,
+      builder: (sheetContext) {
+        return StatefulBuilder(
+          builder: (context, setSheetState) {
+            return Container(
+              decoration: const BoxDecoration(
+                color: Colors.white,
+                borderRadius: BorderRadius.vertical(top: Radius.circular(24)),
+              ),
+              padding: EdgeInsets.only(
+                left: 20,
+                right: 20,
+                top: 20,
+                bottom: MediaQuery.of(context).viewInsets.bottom + 24,
+              ),
+              child: SingleChildScrollView(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    // Handle bar
+                    Center(
+                      child: Container(
+                        width: 40,
+                        height: 4,
+                        margin: const EdgeInsets.only(bottom: 20),
+                        decoration: BoxDecoration(
+                          color: Colors.grey.shade300,
+                          borderRadius: BorderRadius.circular(2),
+                        ),
+                      ),
+                    ),
+
+                    // Title
+                    Row(
+                      children: [
+                        Container(
+                          padding: const EdgeInsets.all(8),
+                          decoration: BoxDecoration(
+                            color: Colors.blue.shade50,
+                            borderRadius: BorderRadius.circular(8),
+                          ),
+                          child: Icon(Icons.assignment_return, color: Colors.blue.shade700, size: 22),
+                        ),
+                        const SizedBox(width: 12),
+                        const Text(
+                          "Return Item",
+                          style: TextStyle(fontSize: 20, fontWeight: FontWeight.bold),
+                        ),
+                      ],
+                    ),
+
+                    const SizedBox(height: 20),
+                    const Divider(),
+                    const SizedBox(height: 16),
+
+                    // -------- Checkout Details Card --------
+                    Container(
+                      width: double.infinity,
+                      padding: const EdgeInsets.all(16),
+                      decoration: BoxDecoration(
+                        color: Colors.grey.shade50,
+                        borderRadius: BorderRadius.circular(12),
+                        border: Border.all(color: Colors.grey.shade200),
+                      ),
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Text(
+                            "Checkout Details",
+                            style: TextStyle(
+                              fontSize: 13,
+                              fontWeight: FontWeight.w600,
+                              color: Colors.grey.shade600,
+                              letterSpacing: 0.5,
+                            ),
+                          ),
+                          const SizedBox(height: 12),
+                          _detailRow(Icons.person_outline, "Issued To", checkout.issuedToName),
+                          const SizedBox(height: 10),
+                          _detailRow(Icons.inventory_2_outlined, "Item", checkout.inventory.name),
+                          const SizedBox(height: 10),
+                          _detailRow(Icons.numbers, "Quantity", "${checkout.quantity}"),
+                          const SizedBox(height: 10),
+                          _detailRow(
+                            Icons.flag_outlined,
+                            "Status",
+                            checkout.status.toUpperCase(),
+                            valueColor: Colors.orange.shade700,
+                          ),
+                          if (checkout.expectedReturnDate != null) ...[
+                            const SizedBox(height: 10),
+                            _detailRow(
+                              Icons.event_outlined,
+                              "Expected Return",
+                              "${checkout.expectedReturnDate!.day.toString().padLeft(2, '0')}/"
+                                  "${checkout.expectedReturnDate!.month.toString().padLeft(2, '0')}/"
+                                  "${checkout.expectedReturnDate!.year}",
+                            ),
+                          ],
+                          if (checkout.remarks != null && checkout.remarks!.isNotEmpty) ...[
+                            const SizedBox(height: 10),
+                            _detailRow(Icons.notes_outlined, "Remarks", checkout.remarks!),
+                          ],
+                        ],
+                      ),
+                    ),
+
+                    const SizedBox(height: 24),
+
+                    // -------- Condition Selector --------
+                    const Text(
+                      "Item Condition *",
+                      style: TextStyle(fontWeight: FontWeight.w600, fontSize: 14),
+                    ),
+                    const SizedBox(height: 10),
+                    Wrap(
+                      spacing: 8,
+                      runSpacing: 8,
+                      children: conditions.map((condition) {
+                        final isSelected = selectedCondition == condition;
+                        Color chipColor;
+                        switch (condition) {
+                          case 'Good':
+                            chipColor = Colors.green;
+                            break;
+                          case 'Damaged':
+                            chipColor = Colors.red;
+                            break;
+                          case 'Needs Repair':
+                            chipColor = Colors.orange;
+                            break;
+                          case 'Lost':
+                            chipColor = Colors.deepPurple;
+                            break;
+                          default:
+                            chipColor = Colors.blue;
+                        }
+
+                        return GestureDetector(
+                          onTap: () => setSheetState(() => selectedCondition = condition),
+                          child: AnimatedContainer(
+                            duration: const Duration(milliseconds: 200),
+                            padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
+                            decoration: BoxDecoration(
+                              color: isSelected ? chipColor : Colors.white,
+                              borderRadius: BorderRadius.circular(10),
+                              border: Border.all(
+                                color: isSelected ? chipColor : Colors.grey.shade300,
+                                width: isSelected ? 2 : 1,
+                              ),
+                              boxShadow: isSelected
+                                  ? [BoxShadow(color: chipColor.withOpacity(0.3), blurRadius: 8, offset: const Offset(0, 2))]
+                                  : [],
+                            ),
+                            child: Text(
+                              condition,
+                              style: TextStyle(
+                                color: isSelected ? Colors.white : Colors.grey.shade700,
+                                fontWeight: isSelected ? FontWeight.w600 : FontWeight.w400,
+                                fontSize: 14,
+                              ),
+                            ),
+                          ),
+                        );
+                      }).toList(),
+                    ),
+
+                    const SizedBox(height: 20),
+
+                    // -------- Return Remarks --------
+                    const Text(
+                      "Return Remarks (Optional)",
+                      style: TextStyle(fontWeight: FontWeight.w600, fontSize: 14),
+                    ),
+                    const SizedBox(height: 8),
+                    TextFormField(
+                      controller: returnRemarksController,
+                      maxLines: 3,
+                      decoration: InputDecoration(
+                        hintText: "Add notes about the return condition...",
+                        filled: true,
+                        fillColor: Colors.white,
+                        contentPadding: const EdgeInsets.symmetric(horizontal: 12, vertical: 14),
+                        border: OutlineInputBorder(
+                          borderRadius: BorderRadius.circular(10),
+                          borderSide: BorderSide(color: Colors.grey.shade300),
+                        ),
+                        enabledBorder: OutlineInputBorder(
+                          borderRadius: BorderRadius.circular(10),
+                          borderSide: BorderSide(color: Colors.grey.shade300),
+                        ),
+                        focusedBorder: OutlineInputBorder(
+                          borderRadius: BorderRadius.circular(10),
+                          borderSide: BorderSide(color: Theme.of(context).primaryColor),
+                        ),
+                      ),
+                    ),
+
+                    const SizedBox(height: 28),
+
+                    // -------- Confirm Button --------
+                    SizedBox(
+                      width: double.infinity,
+                      child: ElevatedButton(
+                        onPressed: () async {
+                          if (selectedCondition == null) {
+                            ScaffoldMessenger.of(context).showSnackBar(
+                              const SnackBar(
+                                content: Text("Please select item condition."),
+                                backgroundColor: Colors.orange,
+                              ),
+                            );
+                            return;
+                          }
+
+                          Navigator.pop(sheetContext);
+
+                          try {
+                            await ref.read(updateCheckoutProvider((
+                            siteId: siteId,
+                            checkoutId: checkout.id,
+                            status: "returned",
+                            actualReturnDate: DateTime.now(),
+                            returnRemarks: returnRemarksController.text.isEmpty
+                                ? null
+                                : returnRemarksController.text,
+                            condition: selectedCondition,
+                            )).future);
+
+                            ref.invalidate(checkoutProvider(siteId));
+                            ref.invalidate(inventorySyncControllerProvider(siteId));
+
+                            ScaffoldMessenger.of(context).showSnackBar(
+                              const SnackBar(
+                                content: Text("Item returned successfully!"),
+                                backgroundColor: Colors.green,
+                              ),
+                            );
+                          } catch (e) {
+                            ScaffoldMessenger.of(context).showSnackBar(
+                              SnackBar(
+                                content: Text("Error: ${e.toString()}"),
+                                backgroundColor: Colors.red,
+                              ),
+                            );
+                          }
+                        },
+                        style: ElevatedButton.styleFrom(
+                          backgroundColor: Colors.blue,
+                          foregroundColor: Colors.white,
+                          padding: const EdgeInsets.symmetric(vertical: 16),
+                          shape: RoundedRectangleBorder(
+                            borderRadius: BorderRadius.circular(12),
+                          ),
+                          elevation: 0,
+                        ),
+                        child: const Text(
+                          "Confirm Return",
+                          style: TextStyle(fontSize: 16, fontWeight: FontWeight.w600),
+                        ),
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+            );
+          },
+        );
+      },
+    );
+  }
+
+// Helper widget for detail rows
+  Widget _detailRow(IconData icon, String label, String value, {Color? valueColor}) {
+    return Row(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Icon(icon, size: 16, color: Colors.grey.shade500),
+        const SizedBox(width: 8),
+        Text(
+          "$label: ",
+          style: TextStyle(fontSize: 13, color: Colors.grey.shade600),
+        ),
+        Expanded(
+          child: Text(
+            value,
+            style: TextStyle(
+              fontSize: 13,
+              fontWeight: FontWeight.w600,
+              color: valueColor ?? Colors.black87,
+            ),
+          ),
+        ),
+      ],
+    );
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -486,6 +797,7 @@ class _CheckoutManagementPageState
     final checkoutAsync = ref.watch(checkoutProvider(siteId));
 
     return Scaffold(
+      drawer: const CustomDrawer(),
       resizeToAvoidBottomInset: true,
       backgroundColor: AppColors.lightBlue,
       appBar: CustomAppBar(title: "Checkout Management"),
@@ -1096,25 +1408,30 @@ class _CheckoutManagementPageState
                                                     SizedBox(
                                                       height: 36,
                                                       child: ElevatedButton(
-                                                        onPressed: () async {
-                                                          await ref.read(updateCheckoutProvider((
+                                                        // onPressed: () async {
+                                                        //   await ref.read(updateCheckoutProvider((
+                                                        //   siteId: siteId,
+                                                        //   checkoutId: c.id,
+                                                        //   status: "returned",
+                                                        //   actualReturnDate: DateTime.now(),
+                                                        //   returnRemarks: null,
+                                                        //   condition: null,
+                                                        //   )).future);
+                                                        //
+                                                        //   ref.invalidate(inventorySyncControllerProvider(siteId));
+                                                        //
+                                                        //   ScaffoldMessenger.of(context).showSnackBar(
+                                                        //     const SnackBar(
+                                                        //       content: Text("Item returned successfully"),
+                                                        //       backgroundColor: Colors.green,
+                                                        //     ),
+                                                        //   );
+                                                        // },
+                                                        onPressed: () => _showReturnBottomSheet(
+                                                          context: context,
+                                                          checkout: c,
                                                           siteId: siteId,
-                                                          checkoutId: c.id,
-                                                          status: "returned",
-                                                          actualReturnDate: DateTime.now(),
-                                                          returnRemarks: null,
-                                                          condition: null,
-                                                          )).future);
-
-                                                          ref.invalidate(inventorySyncControllerProvider(siteId));
-
-                                                          ScaffoldMessenger.of(context).showSnackBar(
-                                                            const SnackBar(
-                                                              content: Text("Item returned successfully"),
-                                                              backgroundColor: Colors.green,
-                                                            ),
-                                                          );
-                                                        },
+                                                        ),
                                                         style: ElevatedButton.styleFrom(
                                                           backgroundColor: Colors.blue,
                                                           foregroundColor: Colors.white,

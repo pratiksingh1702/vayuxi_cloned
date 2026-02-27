@@ -119,7 +119,7 @@ class _EditRateScreenState extends ConsumerState<EditRateScreen> {
 
   Future<void> _updateRate() async {
     if (siteNameController.text.isEmpty ||
-        hsnCodeController.text.isEmpty ||
+
         rateController.text.isEmpty ||
         uomController.text.isEmpty) {
    AppToast.info("Please fill all required fields");
@@ -177,7 +177,7 @@ class _EditRateScreenState extends ConsumerState<EditRateScreen> {
               CustomTextField(
                 label: "HSN/SAC Code",
                 controller: hsnCodeController,
-                isRequired: true,
+                isRequired: false,
               ),
               CustomTextField(
                 label: "Rate in Rs.",

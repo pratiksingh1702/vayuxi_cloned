@@ -24,17 +24,52 @@ class _SplashScreenState extends ConsumerState<SplashScreen> {
   Widget build(BuildContext context) {
     return Scaffold(
       backgroundColor: AppColors.lightBlue,
-      body: Center(
+      body: SafeArea(
         child: Column(
-          mainAxisAlignment: MainAxisAlignment.center,
           children: [
-            Image.asset(
-              "assets/images/adaptive-icon.png",
-              width: 700,
-              height: 700,
+
+            // Center Content
+            Expanded(
+              child: Column(
+                mainAxisAlignment: MainAxisAlignment.center,
+                crossAxisAlignment: CrossAxisAlignment.center,
+                children: [
+                  Center(
+                    child: Image.asset(
+                      "assets/images/adaptive-icon.png",
+                      width: 180,
+                      height: 180,
+                    ),
+                  ),
+                  const SizedBox(height: 20),
+
+                  Center(
+                    child: const Text(
+                      'Make in India 🇮🇳',
+                      style: TextStyle(
+                        fontSize: 22,
+                        fontWeight: FontWeight.bold,
+                        color: Colors.black,
+                      ),
+                    ),
+                  ),
+                ],
+              ),
             ),
 
-            const Text('Getting you there ....'),
+            // Bottom Text
+            const Padding(
+              padding: EdgeInsets.only(bottom: 20),
+              child: Text(
+                'Made with ❤️ in India',
+                style: TextStyle(
+                  fontSize: 16,
+                  fontStyle: FontStyle.italic,
+                  fontWeight: FontWeight.w500,
+                  color: Colors.black,
+                ),
+              ),
+            ),
           ],
         ),
       ),

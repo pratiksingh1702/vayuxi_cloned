@@ -156,10 +156,36 @@ class RateRepository {
 
     final materials = <RateFileMaterialIsar>[];
     final variants = <RateVariantIsar>[];
+    for (final m in analysis.lineItems) {
+
+      print("━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━");
+      print("📦 MATERIAL: ${m.MaterialName}");
+      print("🆔 ID: ${m.id}");
+      print("🧠 Raw: ${m.rawMaterialName}");
+      print("🧠 Normalized: ${m.normalizedMaterialName}");
+      print("🔢 Dynamic Fields Count: ${m.dynamicFields.length}");
+
+      if (m.dynamicFields.isEmpty) {
+        print("⚠️ NO DYNAMIC FIELDS");
+      } else {
+        for (final f in m.dynamicFields) {
+          print("""
+  🔸 FIELD
+     key: ${f.key}
+     label: ${f.label}
+     unit: ${f.unit}
+     displayText: ${f.displayText}
+     value: ${f.value}
+""");
+        }
+      }}
 
     for (final m in analysis.lineItems) {
       final material = RateFileMaterialIsar()
         ..siteId = siteId
+        ..rawMaterialName=m.rawMaterialName
+        ..normalizedMaterialName=m.normalizedMaterialName
+        ..uom = m.uom
         ..rateFileId = analysis.id
         ..materialId = m.id
         ..materialName = m.MaterialName
@@ -320,15 +346,21 @@ class RateRepository {
     return RateFileMaterial(
       id: m.materialId,
       MaterialName: m.materialName,
-      normalizedMaterialName: m.materialName,
+      rawMaterialName: m.rawMaterialName.isNotEmpty
+          ? m.rawMaterialName
+          : m.materialName,
+
+      normalizedMaterialName: m.normalizedMaterialName.isNotEmpty
+          ? m.normalizedMaterialName
+          : m.materialName.toLowerCase().trim(),
       image: m.image,
       designation: designation,
       calculationCategory: m.calculationCategory,
       approvalStatus: m.approvalStatus,
       normalizedMoc: m.normalizedMoc,
       availableVariants: variants,
-      rawMaterialName: '',
-      uom: '',
+
+      uom: m.uom,
       materialMasterId: '',
       isDefaultMaterial: false,
       dynamicFields: dynamicFields,   // 🔥

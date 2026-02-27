@@ -4139,43 +4139,58 @@ const InventoryUsageIsarSchema = CollectionSchema(
   name: r'InventoryUsageIsar',
   id: -6515978903085311308,
   properties: {
-    r'id': PropertySchema(
+    r'createdAt': PropertySchema(
       id: 0,
+      name: r'createdAt',
+      type: IsarType.dateTime,
+    ),
+    r'id': PropertySchema(
+      id: 1,
       name: r'id',
       type: IsarType.string,
     ),
-    r'inventoryId': PropertySchema(
-      id: 1,
-      name: r'inventoryId',
-      type: IsarType.string,
+    r'isDeleted': PropertySchema(
+      id: 2,
+      name: r'isDeleted',
+      type: IsarType.bool,
     ),
     r'quantityUsed': PropertySchema(
-      id: 2,
+      id: 3,
       name: r'quantityUsed',
       type: IsarType.double,
     ),
     r'remarks': PropertySchema(
-      id: 3,
+      id: 4,
       name: r'remarks',
       type: IsarType.string,
     ),
     r'siteId': PropertySchema(
-      id: 4,
+      id: 5,
       name: r'siteId',
       type: IsarType.string,
     ),
+    r'uom': PropertySchema(
+      id: 6,
+      name: r'uom',
+      type: IsarType.string,
+    ),
     r'updatedAt': PropertySchema(
-      id: 5,
+      id: 7,
       name: r'updatedAt',
       type: IsarType.dateTime,
     ),
     r'usageDate': PropertySchema(
-      id: 6,
+      id: 8,
       name: r'usageDate',
       type: IsarType.dateTime,
     ),
+    r'usedById': PropertySchema(
+      id: 9,
+      name: r'usedById',
+      type: IsarType.string,
+    ),
     r'usedByName': PropertySchema(
-      id: 7,
+      id: 10,
       name: r'usedByName',
       type: IsarType.string,
     )
@@ -4211,22 +4226,16 @@ const InventoryUsageIsarSchema = CollectionSchema(
           caseSensitive: true,
         )
       ],
-    ),
-    r'inventoryId': IndexSchema(
-      id: 5580507021079049209,
-      name: r'inventoryId',
-      unique: false,
-      replace: false,
-      properties: [
-        IndexPropertySchema(
-          name: r'inventoryId',
-          type: IndexType.hash,
-          caseSensitive: true,
-        )
-      ],
     )
   },
-  links: {},
+  links: {
+    r'inventory': LinkSchema(
+      id: 7002767519477955910,
+      name: r'inventory',
+      target: r'InventoryIsar',
+      single: true,
+    )
+  },
   embeddedSchemas: {},
   getId: _inventoryUsageIsarGetId,
   getLinks: _inventoryUsageIsarGetLinks,
@@ -4241,7 +4250,6 @@ int _inventoryUsageIsarEstimateSize(
 ) {
   var bytesCount = offsets.last;
   bytesCount += 3 + object.id.length * 3;
-  bytesCount += 3 + object.inventoryId.length * 3;
   {
     final value = object.remarks;
     if (value != null) {
@@ -4249,6 +4257,18 @@ int _inventoryUsageIsarEstimateSize(
     }
   }
   bytesCount += 3 + object.siteId.length * 3;
+  {
+    final value = object.uom;
+    if (value != null) {
+      bytesCount += 3 + value.length * 3;
+    }
+  }
+  {
+    final value = object.usedById;
+    if (value != null) {
+      bytesCount += 3 + value.length * 3;
+    }
+  }
   bytesCount += 3 + object.usedByName.length * 3;
   return bytesCount;
 }
@@ -4259,14 +4279,17 @@ void _inventoryUsageIsarSerialize(
   List<int> offsets,
   Map<Type, List<int>> allOffsets,
 ) {
-  writer.writeString(offsets[0], object.id);
-  writer.writeString(offsets[1], object.inventoryId);
-  writer.writeDouble(offsets[2], object.quantityUsed);
-  writer.writeString(offsets[3], object.remarks);
-  writer.writeString(offsets[4], object.siteId);
-  writer.writeDateTime(offsets[5], object.updatedAt);
-  writer.writeDateTime(offsets[6], object.usageDate);
-  writer.writeString(offsets[7], object.usedByName);
+  writer.writeDateTime(offsets[0], object.createdAt);
+  writer.writeString(offsets[1], object.id);
+  writer.writeBool(offsets[2], object.isDeleted);
+  writer.writeDouble(offsets[3], object.quantityUsed);
+  writer.writeString(offsets[4], object.remarks);
+  writer.writeString(offsets[5], object.siteId);
+  writer.writeString(offsets[6], object.uom);
+  writer.writeDateTime(offsets[7], object.updatedAt);
+  writer.writeDateTime(offsets[8], object.usageDate);
+  writer.writeString(offsets[9], object.usedById);
+  writer.writeString(offsets[10], object.usedByName);
 }
 
 InventoryUsageIsar _inventoryUsageIsarDeserialize(
@@ -4276,15 +4299,18 @@ InventoryUsageIsar _inventoryUsageIsarDeserialize(
   Map<Type, List<int>> allOffsets,
 ) {
   final object = InventoryUsageIsar();
-  object.id = reader.readString(offsets[0]);
-  object.inventoryId = reader.readString(offsets[1]);
+  object.createdAt = reader.readDateTime(offsets[0]);
+  object.id = reader.readString(offsets[1]);
+  object.isDeleted = reader.readBool(offsets[2]);
   object.isarId = id;
-  object.quantityUsed = reader.readDouble(offsets[2]);
-  object.remarks = reader.readStringOrNull(offsets[3]);
-  object.siteId = reader.readString(offsets[4]);
-  object.updatedAt = reader.readDateTime(offsets[5]);
-  object.usageDate = reader.readDateTime(offsets[6]);
-  object.usedByName = reader.readString(offsets[7]);
+  object.quantityUsed = reader.readDouble(offsets[3]);
+  object.remarks = reader.readStringOrNull(offsets[4]);
+  object.siteId = reader.readString(offsets[5]);
+  object.uom = reader.readStringOrNull(offsets[6]);
+  object.updatedAt = reader.readDateTime(offsets[7]);
+  object.usageDate = reader.readDateTime(offsets[8]);
+  object.usedById = reader.readStringOrNull(offsets[9]);
+  object.usedByName = reader.readString(offsets[10]);
   return object;
 }
 
@@ -4296,20 +4322,26 @@ P _inventoryUsageIsarDeserializeProp<P>(
 ) {
   switch (propertyId) {
     case 0:
-      return (reader.readString(offset)) as P;
+      return (reader.readDateTime(offset)) as P;
     case 1:
       return (reader.readString(offset)) as P;
     case 2:
-      return (reader.readDouble(offset)) as P;
+      return (reader.readBool(offset)) as P;
     case 3:
-      return (reader.readStringOrNull(offset)) as P;
+      return (reader.readDouble(offset)) as P;
     case 4:
-      return (reader.readString(offset)) as P;
+      return (reader.readStringOrNull(offset)) as P;
     case 5:
-      return (reader.readDateTime(offset)) as P;
+      return (reader.readString(offset)) as P;
     case 6:
-      return (reader.readDateTime(offset)) as P;
+      return (reader.readStringOrNull(offset)) as P;
     case 7:
+      return (reader.readDateTime(offset)) as P;
+    case 8:
+      return (reader.readDateTime(offset)) as P;
+    case 9:
+      return (reader.readStringOrNull(offset)) as P;
+    case 10:
       return (reader.readString(offset)) as P;
     default:
       throw IsarError('Unknown property with id $propertyId');
@@ -4322,12 +4354,14 @@ Id _inventoryUsageIsarGetId(InventoryUsageIsar object) {
 
 List<IsarLinkBase<dynamic>> _inventoryUsageIsarGetLinks(
     InventoryUsageIsar object) {
-  return [];
+  return [object.inventory];
 }
 
 void _inventoryUsageIsarAttach(
     IsarCollection<dynamic> col, Id id, InventoryUsageIsar object) {
   object.isarId = id;
+  object.inventory
+      .attach(col, col.isar.collection<InventoryIsar>(), r'inventory', id);
 }
 
 extension InventoryUsageIsarByIndex on IsarCollection<InventoryUsageIsar> {
@@ -4554,55 +4588,66 @@ extension InventoryUsageIsarQueryWhere
       }
     });
   }
-
-  QueryBuilder<InventoryUsageIsar, InventoryUsageIsar, QAfterWhereClause>
-      inventoryIdEqualTo(String inventoryId) {
-    return QueryBuilder.apply(this, (query) {
-      return query.addWhereClause(IndexWhereClause.equalTo(
-        indexName: r'inventoryId',
-        value: [inventoryId],
-      ));
-    });
-  }
-
-  QueryBuilder<InventoryUsageIsar, InventoryUsageIsar, QAfterWhereClause>
-      inventoryIdNotEqualTo(String inventoryId) {
-    return QueryBuilder.apply(this, (query) {
-      if (query.whereSort == Sort.asc) {
-        return query
-            .addWhereClause(IndexWhereClause.between(
-              indexName: r'inventoryId',
-              lower: [],
-              upper: [inventoryId],
-              includeUpper: false,
-            ))
-            .addWhereClause(IndexWhereClause.between(
-              indexName: r'inventoryId',
-              lower: [inventoryId],
-              includeLower: false,
-              upper: [],
-            ));
-      } else {
-        return query
-            .addWhereClause(IndexWhereClause.between(
-              indexName: r'inventoryId',
-              lower: [inventoryId],
-              includeLower: false,
-              upper: [],
-            ))
-            .addWhereClause(IndexWhereClause.between(
-              indexName: r'inventoryId',
-              lower: [],
-              upper: [inventoryId],
-              includeUpper: false,
-            ));
-      }
-    });
-  }
 }
 
 extension InventoryUsageIsarQueryFilter
     on QueryBuilder<InventoryUsageIsar, InventoryUsageIsar, QFilterCondition> {
+  QueryBuilder<InventoryUsageIsar, InventoryUsageIsar, QAfterFilterCondition>
+      createdAtEqualTo(DateTime value) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(FilterCondition.equalTo(
+        property: r'createdAt',
+        value: value,
+      ));
+    });
+  }
+
+  QueryBuilder<InventoryUsageIsar, InventoryUsageIsar, QAfterFilterCondition>
+      createdAtGreaterThan(
+    DateTime value, {
+    bool include = false,
+  }) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(FilterCondition.greaterThan(
+        include: include,
+        property: r'createdAt',
+        value: value,
+      ));
+    });
+  }
+
+  QueryBuilder<InventoryUsageIsar, InventoryUsageIsar, QAfterFilterCondition>
+      createdAtLessThan(
+    DateTime value, {
+    bool include = false,
+  }) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(FilterCondition.lessThan(
+        include: include,
+        property: r'createdAt',
+        value: value,
+      ));
+    });
+  }
+
+  QueryBuilder<InventoryUsageIsar, InventoryUsageIsar, QAfterFilterCondition>
+      createdAtBetween(
+    DateTime lower,
+    DateTime upper, {
+    bool includeLower = true,
+    bool includeUpper = true,
+  }) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(FilterCondition.between(
+        property: r'createdAt',
+        lower: lower,
+        includeLower: includeLower,
+        upper: upper,
+        includeUpper: includeUpper,
+      ));
+    });
+  }
+
   QueryBuilder<InventoryUsageIsar, InventoryUsageIsar, QAfterFilterCondition>
       idEqualTo(
     String value, {
@@ -4740,137 +4785,11 @@ extension InventoryUsageIsarQueryFilter
   }
 
   QueryBuilder<InventoryUsageIsar, InventoryUsageIsar, QAfterFilterCondition>
-      inventoryIdEqualTo(
-    String value, {
-    bool caseSensitive = true,
-  }) {
+      isDeletedEqualTo(bool value) {
     return QueryBuilder.apply(this, (query) {
       return query.addFilterCondition(FilterCondition.equalTo(
-        property: r'inventoryId',
+        property: r'isDeleted',
         value: value,
-        caseSensitive: caseSensitive,
-      ));
-    });
-  }
-
-  QueryBuilder<InventoryUsageIsar, InventoryUsageIsar, QAfterFilterCondition>
-      inventoryIdGreaterThan(
-    String value, {
-    bool include = false,
-    bool caseSensitive = true,
-  }) {
-    return QueryBuilder.apply(this, (query) {
-      return query.addFilterCondition(FilterCondition.greaterThan(
-        include: include,
-        property: r'inventoryId',
-        value: value,
-        caseSensitive: caseSensitive,
-      ));
-    });
-  }
-
-  QueryBuilder<InventoryUsageIsar, InventoryUsageIsar, QAfterFilterCondition>
-      inventoryIdLessThan(
-    String value, {
-    bool include = false,
-    bool caseSensitive = true,
-  }) {
-    return QueryBuilder.apply(this, (query) {
-      return query.addFilterCondition(FilterCondition.lessThan(
-        include: include,
-        property: r'inventoryId',
-        value: value,
-        caseSensitive: caseSensitive,
-      ));
-    });
-  }
-
-  QueryBuilder<InventoryUsageIsar, InventoryUsageIsar, QAfterFilterCondition>
-      inventoryIdBetween(
-    String lower,
-    String upper, {
-    bool includeLower = true,
-    bool includeUpper = true,
-    bool caseSensitive = true,
-  }) {
-    return QueryBuilder.apply(this, (query) {
-      return query.addFilterCondition(FilterCondition.between(
-        property: r'inventoryId',
-        lower: lower,
-        includeLower: includeLower,
-        upper: upper,
-        includeUpper: includeUpper,
-        caseSensitive: caseSensitive,
-      ));
-    });
-  }
-
-  QueryBuilder<InventoryUsageIsar, InventoryUsageIsar, QAfterFilterCondition>
-      inventoryIdStartsWith(
-    String value, {
-    bool caseSensitive = true,
-  }) {
-    return QueryBuilder.apply(this, (query) {
-      return query.addFilterCondition(FilterCondition.startsWith(
-        property: r'inventoryId',
-        value: value,
-        caseSensitive: caseSensitive,
-      ));
-    });
-  }
-
-  QueryBuilder<InventoryUsageIsar, InventoryUsageIsar, QAfterFilterCondition>
-      inventoryIdEndsWith(
-    String value, {
-    bool caseSensitive = true,
-  }) {
-    return QueryBuilder.apply(this, (query) {
-      return query.addFilterCondition(FilterCondition.endsWith(
-        property: r'inventoryId',
-        value: value,
-        caseSensitive: caseSensitive,
-      ));
-    });
-  }
-
-  QueryBuilder<InventoryUsageIsar, InventoryUsageIsar, QAfterFilterCondition>
-      inventoryIdContains(String value, {bool caseSensitive = true}) {
-    return QueryBuilder.apply(this, (query) {
-      return query.addFilterCondition(FilterCondition.contains(
-        property: r'inventoryId',
-        value: value,
-        caseSensitive: caseSensitive,
-      ));
-    });
-  }
-
-  QueryBuilder<InventoryUsageIsar, InventoryUsageIsar, QAfterFilterCondition>
-      inventoryIdMatches(String pattern, {bool caseSensitive = true}) {
-    return QueryBuilder.apply(this, (query) {
-      return query.addFilterCondition(FilterCondition.matches(
-        property: r'inventoryId',
-        wildcard: pattern,
-        caseSensitive: caseSensitive,
-      ));
-    });
-  }
-
-  QueryBuilder<InventoryUsageIsar, InventoryUsageIsar, QAfterFilterCondition>
-      inventoryIdIsEmpty() {
-    return QueryBuilder.apply(this, (query) {
-      return query.addFilterCondition(FilterCondition.equalTo(
-        property: r'inventoryId',
-        value: '',
-      ));
-    });
-  }
-
-  QueryBuilder<InventoryUsageIsar, InventoryUsageIsar, QAfterFilterCondition>
-      inventoryIdIsNotEmpty() {
-    return QueryBuilder.apply(this, (query) {
-      return query.addFilterCondition(FilterCondition.greaterThan(
-        property: r'inventoryId',
-        value: '',
       ));
     });
   }
@@ -5288,6 +5207,160 @@ extension InventoryUsageIsarQueryFilter
   }
 
   QueryBuilder<InventoryUsageIsar, InventoryUsageIsar, QAfterFilterCondition>
+      uomIsNull() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(const FilterCondition.isNull(
+        property: r'uom',
+      ));
+    });
+  }
+
+  QueryBuilder<InventoryUsageIsar, InventoryUsageIsar, QAfterFilterCondition>
+      uomIsNotNull() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(const FilterCondition.isNotNull(
+        property: r'uom',
+      ));
+    });
+  }
+
+  QueryBuilder<InventoryUsageIsar, InventoryUsageIsar, QAfterFilterCondition>
+      uomEqualTo(
+    String? value, {
+    bool caseSensitive = true,
+  }) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(FilterCondition.equalTo(
+        property: r'uom',
+        value: value,
+        caseSensitive: caseSensitive,
+      ));
+    });
+  }
+
+  QueryBuilder<InventoryUsageIsar, InventoryUsageIsar, QAfterFilterCondition>
+      uomGreaterThan(
+    String? value, {
+    bool include = false,
+    bool caseSensitive = true,
+  }) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(FilterCondition.greaterThan(
+        include: include,
+        property: r'uom',
+        value: value,
+        caseSensitive: caseSensitive,
+      ));
+    });
+  }
+
+  QueryBuilder<InventoryUsageIsar, InventoryUsageIsar, QAfterFilterCondition>
+      uomLessThan(
+    String? value, {
+    bool include = false,
+    bool caseSensitive = true,
+  }) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(FilterCondition.lessThan(
+        include: include,
+        property: r'uom',
+        value: value,
+        caseSensitive: caseSensitive,
+      ));
+    });
+  }
+
+  QueryBuilder<InventoryUsageIsar, InventoryUsageIsar, QAfterFilterCondition>
+      uomBetween(
+    String? lower,
+    String? upper, {
+    bool includeLower = true,
+    bool includeUpper = true,
+    bool caseSensitive = true,
+  }) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(FilterCondition.between(
+        property: r'uom',
+        lower: lower,
+        includeLower: includeLower,
+        upper: upper,
+        includeUpper: includeUpper,
+        caseSensitive: caseSensitive,
+      ));
+    });
+  }
+
+  QueryBuilder<InventoryUsageIsar, InventoryUsageIsar, QAfterFilterCondition>
+      uomStartsWith(
+    String value, {
+    bool caseSensitive = true,
+  }) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(FilterCondition.startsWith(
+        property: r'uom',
+        value: value,
+        caseSensitive: caseSensitive,
+      ));
+    });
+  }
+
+  QueryBuilder<InventoryUsageIsar, InventoryUsageIsar, QAfterFilterCondition>
+      uomEndsWith(
+    String value, {
+    bool caseSensitive = true,
+  }) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(FilterCondition.endsWith(
+        property: r'uom',
+        value: value,
+        caseSensitive: caseSensitive,
+      ));
+    });
+  }
+
+  QueryBuilder<InventoryUsageIsar, InventoryUsageIsar, QAfterFilterCondition>
+      uomContains(String value, {bool caseSensitive = true}) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(FilterCondition.contains(
+        property: r'uom',
+        value: value,
+        caseSensitive: caseSensitive,
+      ));
+    });
+  }
+
+  QueryBuilder<InventoryUsageIsar, InventoryUsageIsar, QAfterFilterCondition>
+      uomMatches(String pattern, {bool caseSensitive = true}) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(FilterCondition.matches(
+        property: r'uom',
+        wildcard: pattern,
+        caseSensitive: caseSensitive,
+      ));
+    });
+  }
+
+  QueryBuilder<InventoryUsageIsar, InventoryUsageIsar, QAfterFilterCondition>
+      uomIsEmpty() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(FilterCondition.equalTo(
+        property: r'uom',
+        value: '',
+      ));
+    });
+  }
+
+  QueryBuilder<InventoryUsageIsar, InventoryUsageIsar, QAfterFilterCondition>
+      uomIsNotEmpty() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(FilterCondition.greaterThan(
+        property: r'uom',
+        value: '',
+      ));
+    });
+  }
+
+  QueryBuilder<InventoryUsageIsar, InventoryUsageIsar, QAfterFilterCondition>
       updatedAtEqualTo(DateTime value) {
     return QueryBuilder.apply(this, (query) {
       return query.addFilterCondition(FilterCondition.equalTo(
@@ -5395,6 +5468,160 @@ extension InventoryUsageIsarQueryFilter
         includeLower: includeLower,
         upper: upper,
         includeUpper: includeUpper,
+      ));
+    });
+  }
+
+  QueryBuilder<InventoryUsageIsar, InventoryUsageIsar, QAfterFilterCondition>
+      usedByIdIsNull() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(const FilterCondition.isNull(
+        property: r'usedById',
+      ));
+    });
+  }
+
+  QueryBuilder<InventoryUsageIsar, InventoryUsageIsar, QAfterFilterCondition>
+      usedByIdIsNotNull() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(const FilterCondition.isNotNull(
+        property: r'usedById',
+      ));
+    });
+  }
+
+  QueryBuilder<InventoryUsageIsar, InventoryUsageIsar, QAfterFilterCondition>
+      usedByIdEqualTo(
+    String? value, {
+    bool caseSensitive = true,
+  }) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(FilterCondition.equalTo(
+        property: r'usedById',
+        value: value,
+        caseSensitive: caseSensitive,
+      ));
+    });
+  }
+
+  QueryBuilder<InventoryUsageIsar, InventoryUsageIsar, QAfterFilterCondition>
+      usedByIdGreaterThan(
+    String? value, {
+    bool include = false,
+    bool caseSensitive = true,
+  }) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(FilterCondition.greaterThan(
+        include: include,
+        property: r'usedById',
+        value: value,
+        caseSensitive: caseSensitive,
+      ));
+    });
+  }
+
+  QueryBuilder<InventoryUsageIsar, InventoryUsageIsar, QAfterFilterCondition>
+      usedByIdLessThan(
+    String? value, {
+    bool include = false,
+    bool caseSensitive = true,
+  }) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(FilterCondition.lessThan(
+        include: include,
+        property: r'usedById',
+        value: value,
+        caseSensitive: caseSensitive,
+      ));
+    });
+  }
+
+  QueryBuilder<InventoryUsageIsar, InventoryUsageIsar, QAfterFilterCondition>
+      usedByIdBetween(
+    String? lower,
+    String? upper, {
+    bool includeLower = true,
+    bool includeUpper = true,
+    bool caseSensitive = true,
+  }) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(FilterCondition.between(
+        property: r'usedById',
+        lower: lower,
+        includeLower: includeLower,
+        upper: upper,
+        includeUpper: includeUpper,
+        caseSensitive: caseSensitive,
+      ));
+    });
+  }
+
+  QueryBuilder<InventoryUsageIsar, InventoryUsageIsar, QAfterFilterCondition>
+      usedByIdStartsWith(
+    String value, {
+    bool caseSensitive = true,
+  }) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(FilterCondition.startsWith(
+        property: r'usedById',
+        value: value,
+        caseSensitive: caseSensitive,
+      ));
+    });
+  }
+
+  QueryBuilder<InventoryUsageIsar, InventoryUsageIsar, QAfterFilterCondition>
+      usedByIdEndsWith(
+    String value, {
+    bool caseSensitive = true,
+  }) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(FilterCondition.endsWith(
+        property: r'usedById',
+        value: value,
+        caseSensitive: caseSensitive,
+      ));
+    });
+  }
+
+  QueryBuilder<InventoryUsageIsar, InventoryUsageIsar, QAfterFilterCondition>
+      usedByIdContains(String value, {bool caseSensitive = true}) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(FilterCondition.contains(
+        property: r'usedById',
+        value: value,
+        caseSensitive: caseSensitive,
+      ));
+    });
+  }
+
+  QueryBuilder<InventoryUsageIsar, InventoryUsageIsar, QAfterFilterCondition>
+      usedByIdMatches(String pattern, {bool caseSensitive = true}) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(FilterCondition.matches(
+        property: r'usedById',
+        wildcard: pattern,
+        caseSensitive: caseSensitive,
+      ));
+    });
+  }
+
+  QueryBuilder<InventoryUsageIsar, InventoryUsageIsar, QAfterFilterCondition>
+      usedByIdIsEmpty() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(FilterCondition.equalTo(
+        property: r'usedById',
+        value: '',
+      ));
+    });
+  }
+
+  QueryBuilder<InventoryUsageIsar, InventoryUsageIsar, QAfterFilterCondition>
+      usedByIdIsNotEmpty() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(FilterCondition.greaterThan(
+        property: r'usedById',
+        value: '',
       ));
     });
   }
@@ -5540,10 +5767,38 @@ extension InventoryUsageIsarQueryObject
     on QueryBuilder<InventoryUsageIsar, InventoryUsageIsar, QFilterCondition> {}
 
 extension InventoryUsageIsarQueryLinks
-    on QueryBuilder<InventoryUsageIsar, InventoryUsageIsar, QFilterCondition> {}
+    on QueryBuilder<InventoryUsageIsar, InventoryUsageIsar, QFilterCondition> {
+  QueryBuilder<InventoryUsageIsar, InventoryUsageIsar, QAfterFilterCondition>
+      inventory(FilterQuery<InventoryIsar> q) {
+    return QueryBuilder.apply(this, (query) {
+      return query.link(q, r'inventory');
+    });
+  }
+
+  QueryBuilder<InventoryUsageIsar, InventoryUsageIsar, QAfterFilterCondition>
+      inventoryIsNull() {
+    return QueryBuilder.apply(this, (query) {
+      return query.linkLength(r'inventory', 0, true, 0, true);
+    });
+  }
+}
 
 extension InventoryUsageIsarQuerySortBy
     on QueryBuilder<InventoryUsageIsar, InventoryUsageIsar, QSortBy> {
+  QueryBuilder<InventoryUsageIsar, InventoryUsageIsar, QAfterSortBy>
+      sortByCreatedAt() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addSortBy(r'createdAt', Sort.asc);
+    });
+  }
+
+  QueryBuilder<InventoryUsageIsar, InventoryUsageIsar, QAfterSortBy>
+      sortByCreatedAtDesc() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addSortBy(r'createdAt', Sort.desc);
+    });
+  }
+
   QueryBuilder<InventoryUsageIsar, InventoryUsageIsar, QAfterSortBy>
       sortById() {
     return QueryBuilder.apply(this, (query) {
@@ -5559,16 +5814,16 @@ extension InventoryUsageIsarQuerySortBy
   }
 
   QueryBuilder<InventoryUsageIsar, InventoryUsageIsar, QAfterSortBy>
-      sortByInventoryId() {
+      sortByIsDeleted() {
     return QueryBuilder.apply(this, (query) {
-      return query.addSortBy(r'inventoryId', Sort.asc);
+      return query.addSortBy(r'isDeleted', Sort.asc);
     });
   }
 
   QueryBuilder<InventoryUsageIsar, InventoryUsageIsar, QAfterSortBy>
-      sortByInventoryIdDesc() {
+      sortByIsDeletedDesc() {
     return QueryBuilder.apply(this, (query) {
-      return query.addSortBy(r'inventoryId', Sort.desc);
+      return query.addSortBy(r'isDeleted', Sort.desc);
     });
   }
 
@@ -5615,6 +5870,20 @@ extension InventoryUsageIsarQuerySortBy
   }
 
   QueryBuilder<InventoryUsageIsar, InventoryUsageIsar, QAfterSortBy>
+      sortByUom() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addSortBy(r'uom', Sort.asc);
+    });
+  }
+
+  QueryBuilder<InventoryUsageIsar, InventoryUsageIsar, QAfterSortBy>
+      sortByUomDesc() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addSortBy(r'uom', Sort.desc);
+    });
+  }
+
+  QueryBuilder<InventoryUsageIsar, InventoryUsageIsar, QAfterSortBy>
       sortByUpdatedAt() {
     return QueryBuilder.apply(this, (query) {
       return query.addSortBy(r'updatedAt', Sort.asc);
@@ -5643,6 +5912,20 @@ extension InventoryUsageIsarQuerySortBy
   }
 
   QueryBuilder<InventoryUsageIsar, InventoryUsageIsar, QAfterSortBy>
+      sortByUsedById() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addSortBy(r'usedById', Sort.asc);
+    });
+  }
+
+  QueryBuilder<InventoryUsageIsar, InventoryUsageIsar, QAfterSortBy>
+      sortByUsedByIdDesc() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addSortBy(r'usedById', Sort.desc);
+    });
+  }
+
+  QueryBuilder<InventoryUsageIsar, InventoryUsageIsar, QAfterSortBy>
       sortByUsedByName() {
     return QueryBuilder.apply(this, (query) {
       return query.addSortBy(r'usedByName', Sort.asc);
@@ -5660,6 +5943,20 @@ extension InventoryUsageIsarQuerySortBy
 extension InventoryUsageIsarQuerySortThenBy
     on QueryBuilder<InventoryUsageIsar, InventoryUsageIsar, QSortThenBy> {
   QueryBuilder<InventoryUsageIsar, InventoryUsageIsar, QAfterSortBy>
+      thenByCreatedAt() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addSortBy(r'createdAt', Sort.asc);
+    });
+  }
+
+  QueryBuilder<InventoryUsageIsar, InventoryUsageIsar, QAfterSortBy>
+      thenByCreatedAtDesc() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addSortBy(r'createdAt', Sort.desc);
+    });
+  }
+
+  QueryBuilder<InventoryUsageIsar, InventoryUsageIsar, QAfterSortBy>
       thenById() {
     return QueryBuilder.apply(this, (query) {
       return query.addSortBy(r'id', Sort.asc);
@@ -5674,16 +5971,16 @@ extension InventoryUsageIsarQuerySortThenBy
   }
 
   QueryBuilder<InventoryUsageIsar, InventoryUsageIsar, QAfterSortBy>
-      thenByInventoryId() {
+      thenByIsDeleted() {
     return QueryBuilder.apply(this, (query) {
-      return query.addSortBy(r'inventoryId', Sort.asc);
+      return query.addSortBy(r'isDeleted', Sort.asc);
     });
   }
 
   QueryBuilder<InventoryUsageIsar, InventoryUsageIsar, QAfterSortBy>
-      thenByInventoryIdDesc() {
+      thenByIsDeletedDesc() {
     return QueryBuilder.apply(this, (query) {
-      return query.addSortBy(r'inventoryId', Sort.desc);
+      return query.addSortBy(r'isDeleted', Sort.desc);
     });
   }
 
@@ -5744,6 +6041,20 @@ extension InventoryUsageIsarQuerySortThenBy
   }
 
   QueryBuilder<InventoryUsageIsar, InventoryUsageIsar, QAfterSortBy>
+      thenByUom() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addSortBy(r'uom', Sort.asc);
+    });
+  }
+
+  QueryBuilder<InventoryUsageIsar, InventoryUsageIsar, QAfterSortBy>
+      thenByUomDesc() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addSortBy(r'uom', Sort.desc);
+    });
+  }
+
+  QueryBuilder<InventoryUsageIsar, InventoryUsageIsar, QAfterSortBy>
       thenByUpdatedAt() {
     return QueryBuilder.apply(this, (query) {
       return query.addSortBy(r'updatedAt', Sort.asc);
@@ -5772,6 +6083,20 @@ extension InventoryUsageIsarQuerySortThenBy
   }
 
   QueryBuilder<InventoryUsageIsar, InventoryUsageIsar, QAfterSortBy>
+      thenByUsedById() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addSortBy(r'usedById', Sort.asc);
+    });
+  }
+
+  QueryBuilder<InventoryUsageIsar, InventoryUsageIsar, QAfterSortBy>
+      thenByUsedByIdDesc() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addSortBy(r'usedById', Sort.desc);
+    });
+  }
+
+  QueryBuilder<InventoryUsageIsar, InventoryUsageIsar, QAfterSortBy>
       thenByUsedByName() {
     return QueryBuilder.apply(this, (query) {
       return query.addSortBy(r'usedByName', Sort.asc);
@@ -5788,6 +6113,13 @@ extension InventoryUsageIsarQuerySortThenBy
 
 extension InventoryUsageIsarQueryWhereDistinct
     on QueryBuilder<InventoryUsageIsar, InventoryUsageIsar, QDistinct> {
+  QueryBuilder<InventoryUsageIsar, InventoryUsageIsar, QDistinct>
+      distinctByCreatedAt() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addDistinctBy(r'createdAt');
+    });
+  }
+
   QueryBuilder<InventoryUsageIsar, InventoryUsageIsar, QDistinct> distinctById(
       {bool caseSensitive = true}) {
     return QueryBuilder.apply(this, (query) {
@@ -5796,9 +6128,9 @@ extension InventoryUsageIsarQueryWhereDistinct
   }
 
   QueryBuilder<InventoryUsageIsar, InventoryUsageIsar, QDistinct>
-      distinctByInventoryId({bool caseSensitive = true}) {
+      distinctByIsDeleted() {
     return QueryBuilder.apply(this, (query) {
-      return query.addDistinctBy(r'inventoryId', caseSensitive: caseSensitive);
+      return query.addDistinctBy(r'isDeleted');
     });
   }
 
@@ -5823,6 +6155,13 @@ extension InventoryUsageIsarQueryWhereDistinct
     });
   }
 
+  QueryBuilder<InventoryUsageIsar, InventoryUsageIsar, QDistinct> distinctByUom(
+      {bool caseSensitive = true}) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addDistinctBy(r'uom', caseSensitive: caseSensitive);
+    });
+  }
+
   QueryBuilder<InventoryUsageIsar, InventoryUsageIsar, QDistinct>
       distinctByUpdatedAt() {
     return QueryBuilder.apply(this, (query) {
@@ -5834,6 +6173,13 @@ extension InventoryUsageIsarQueryWhereDistinct
       distinctByUsageDate() {
     return QueryBuilder.apply(this, (query) {
       return query.addDistinctBy(r'usageDate');
+    });
+  }
+
+  QueryBuilder<InventoryUsageIsar, InventoryUsageIsar, QDistinct>
+      distinctByUsedById({bool caseSensitive = true}) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addDistinctBy(r'usedById', caseSensitive: caseSensitive);
     });
   }
 
@@ -5853,16 +6199,22 @@ extension InventoryUsageIsarQueryProperty
     });
   }
 
+  QueryBuilder<InventoryUsageIsar, DateTime, QQueryOperations>
+      createdAtProperty() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addPropertyName(r'createdAt');
+    });
+  }
+
   QueryBuilder<InventoryUsageIsar, String, QQueryOperations> idProperty() {
     return QueryBuilder.apply(this, (query) {
       return query.addPropertyName(r'id');
     });
   }
 
-  QueryBuilder<InventoryUsageIsar, String, QQueryOperations>
-      inventoryIdProperty() {
+  QueryBuilder<InventoryUsageIsar, bool, QQueryOperations> isDeletedProperty() {
     return QueryBuilder.apply(this, (query) {
-      return query.addPropertyName(r'inventoryId');
+      return query.addPropertyName(r'isDeleted');
     });
   }
 
@@ -5886,6 +6238,12 @@ extension InventoryUsageIsarQueryProperty
     });
   }
 
+  QueryBuilder<InventoryUsageIsar, String?, QQueryOperations> uomProperty() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addPropertyName(r'uom');
+    });
+  }
+
   QueryBuilder<InventoryUsageIsar, DateTime, QQueryOperations>
       updatedAtProperty() {
     return QueryBuilder.apply(this, (query) {
@@ -5897,6 +6255,13 @@ extension InventoryUsageIsarQueryProperty
       usageDateProperty() {
     return QueryBuilder.apply(this, (query) {
       return query.addPropertyName(r'usageDate');
+    });
+  }
+
+  QueryBuilder<InventoryUsageIsar, String?, QQueryOperations>
+      usedByIdProperty() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addPropertyName(r'usedById');
     });
   }
 

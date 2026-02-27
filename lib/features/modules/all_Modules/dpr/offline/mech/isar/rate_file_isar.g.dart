@@ -1735,19 +1735,34 @@ const RateFileMaterialIsarSchema = CollectionSchema(
       name: r'materialName',
       type: IsarType.string,
     ),
-    r'normalizedMoc': PropertySchema(
+    r'normalizedMaterialName': PropertySchema(
       id: 7,
+      name: r'normalizedMaterialName',
+      type: IsarType.string,
+    ),
+    r'normalizedMoc': PropertySchema(
+      id: 8,
       name: r'normalizedMoc',
       type: IsarType.string,
     ),
     r'rateFileId': PropertySchema(
-      id: 8,
+      id: 9,
       name: r'rateFileId',
       type: IsarType.string,
     ),
+    r'rawMaterialName': PropertySchema(
+      id: 10,
+      name: r'rawMaterialName',
+      type: IsarType.string,
+    ),
     r'siteId': PropertySchema(
-      id: 9,
+      id: 11,
       name: r'siteId',
+      type: IsarType.string,
+    ),
+    r'uom': PropertySchema(
+      id: 12,
+      name: r'uom',
       type: IsarType.string,
     )
   },
@@ -1826,9 +1841,12 @@ int _rateFileMaterialIsarEstimateSize(
   bytesCount += 3 + object.image.length * 3;
   bytesCount += 3 + object.materialId.length * 3;
   bytesCount += 3 + object.materialName.length * 3;
+  bytesCount += 3 + object.normalizedMaterialName.length * 3;
   bytesCount += 3 + object.normalizedMoc.length * 3;
   bytesCount += 3 + object.rateFileId.length * 3;
+  bytesCount += 3 + object.rawMaterialName.length * 3;
   bytesCount += 3 + object.siteId.length * 3;
+  bytesCount += 3 + object.uom.length * 3;
   return bytesCount;
 }
 
@@ -1850,9 +1868,12 @@ void _rateFileMaterialIsarSerialize(
   writer.writeString(offsets[4], object.image);
   writer.writeString(offsets[5], object.materialId);
   writer.writeString(offsets[6], object.materialName);
-  writer.writeString(offsets[7], object.normalizedMoc);
-  writer.writeString(offsets[8], object.rateFileId);
-  writer.writeString(offsets[9], object.siteId);
+  writer.writeString(offsets[7], object.normalizedMaterialName);
+  writer.writeString(offsets[8], object.normalizedMoc);
+  writer.writeString(offsets[9], object.rateFileId);
+  writer.writeString(offsets[10], object.rawMaterialName);
+  writer.writeString(offsets[11], object.siteId);
+  writer.writeString(offsets[12], object.uom);
 }
 
 RateFileMaterialIsar _rateFileMaterialIsarDeserialize(
@@ -1876,9 +1897,12 @@ RateFileMaterialIsar _rateFileMaterialIsarDeserialize(
   object.isarId = id;
   object.materialId = reader.readString(offsets[5]);
   object.materialName = reader.readString(offsets[6]);
-  object.normalizedMoc = reader.readString(offsets[7]);
-  object.rateFileId = reader.readString(offsets[8]);
-  object.siteId = reader.readString(offsets[9]);
+  object.normalizedMaterialName = reader.readString(offsets[7]);
+  object.normalizedMoc = reader.readString(offsets[8]);
+  object.rateFileId = reader.readString(offsets[9]);
+  object.rawMaterialName = reader.readString(offsets[10]);
+  object.siteId = reader.readString(offsets[11]);
+  object.uom = reader.readString(offsets[12]);
   return object;
 }
 
@@ -1914,6 +1938,12 @@ P _rateFileMaterialIsarDeserializeProp<P>(
     case 8:
       return (reader.readString(offset)) as P;
     case 9:
+      return (reader.readString(offset)) as P;
+    case 10:
+      return (reader.readString(offset)) as P;
+    case 11:
+      return (reader.readString(offset)) as P;
+    case 12:
       return (reader.readString(offset)) as P;
     default:
       throw IsarError('Unknown property with id $propertyId');
@@ -3183,6 +3213,146 @@ extension RateFileMaterialIsarQueryFilter on QueryBuilder<RateFileMaterialIsar,
   }
 
   QueryBuilder<RateFileMaterialIsar, RateFileMaterialIsar,
+      QAfterFilterCondition> normalizedMaterialNameEqualTo(
+    String value, {
+    bool caseSensitive = true,
+  }) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(FilterCondition.equalTo(
+        property: r'normalizedMaterialName',
+        value: value,
+        caseSensitive: caseSensitive,
+      ));
+    });
+  }
+
+  QueryBuilder<RateFileMaterialIsar, RateFileMaterialIsar,
+      QAfterFilterCondition> normalizedMaterialNameGreaterThan(
+    String value, {
+    bool include = false,
+    bool caseSensitive = true,
+  }) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(FilterCondition.greaterThan(
+        include: include,
+        property: r'normalizedMaterialName',
+        value: value,
+        caseSensitive: caseSensitive,
+      ));
+    });
+  }
+
+  QueryBuilder<RateFileMaterialIsar, RateFileMaterialIsar,
+      QAfterFilterCondition> normalizedMaterialNameLessThan(
+    String value, {
+    bool include = false,
+    bool caseSensitive = true,
+  }) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(FilterCondition.lessThan(
+        include: include,
+        property: r'normalizedMaterialName',
+        value: value,
+        caseSensitive: caseSensitive,
+      ));
+    });
+  }
+
+  QueryBuilder<RateFileMaterialIsar, RateFileMaterialIsar,
+      QAfterFilterCondition> normalizedMaterialNameBetween(
+    String lower,
+    String upper, {
+    bool includeLower = true,
+    bool includeUpper = true,
+    bool caseSensitive = true,
+  }) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(FilterCondition.between(
+        property: r'normalizedMaterialName',
+        lower: lower,
+        includeLower: includeLower,
+        upper: upper,
+        includeUpper: includeUpper,
+        caseSensitive: caseSensitive,
+      ));
+    });
+  }
+
+  QueryBuilder<RateFileMaterialIsar, RateFileMaterialIsar,
+      QAfterFilterCondition> normalizedMaterialNameStartsWith(
+    String value, {
+    bool caseSensitive = true,
+  }) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(FilterCondition.startsWith(
+        property: r'normalizedMaterialName',
+        value: value,
+        caseSensitive: caseSensitive,
+      ));
+    });
+  }
+
+  QueryBuilder<RateFileMaterialIsar, RateFileMaterialIsar,
+      QAfterFilterCondition> normalizedMaterialNameEndsWith(
+    String value, {
+    bool caseSensitive = true,
+  }) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(FilterCondition.endsWith(
+        property: r'normalizedMaterialName',
+        value: value,
+        caseSensitive: caseSensitive,
+      ));
+    });
+  }
+
+  QueryBuilder<RateFileMaterialIsar, RateFileMaterialIsar,
+          QAfterFilterCondition>
+      normalizedMaterialNameContains(String value,
+          {bool caseSensitive = true}) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(FilterCondition.contains(
+        property: r'normalizedMaterialName',
+        value: value,
+        caseSensitive: caseSensitive,
+      ));
+    });
+  }
+
+  QueryBuilder<RateFileMaterialIsar, RateFileMaterialIsar,
+          QAfterFilterCondition>
+      normalizedMaterialNameMatches(String pattern,
+          {bool caseSensitive = true}) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(FilterCondition.matches(
+        property: r'normalizedMaterialName',
+        wildcard: pattern,
+        caseSensitive: caseSensitive,
+      ));
+    });
+  }
+
+  QueryBuilder<RateFileMaterialIsar, RateFileMaterialIsar,
+      QAfterFilterCondition> normalizedMaterialNameIsEmpty() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(FilterCondition.equalTo(
+        property: r'normalizedMaterialName',
+        value: '',
+      ));
+    });
+  }
+
+  QueryBuilder<RateFileMaterialIsar, RateFileMaterialIsar,
+      QAfterFilterCondition> normalizedMaterialNameIsNotEmpty() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(FilterCondition.greaterThan(
+        property: r'normalizedMaterialName',
+        value: '',
+      ));
+    });
+  }
+
+  QueryBuilder<RateFileMaterialIsar, RateFileMaterialIsar,
       QAfterFilterCondition> normalizedMocEqualTo(
     String value, {
     bool caseSensitive = true,
@@ -3459,6 +3629,144 @@ extension RateFileMaterialIsarQueryFilter on QueryBuilder<RateFileMaterialIsar,
   }
 
   QueryBuilder<RateFileMaterialIsar, RateFileMaterialIsar,
+      QAfterFilterCondition> rawMaterialNameEqualTo(
+    String value, {
+    bool caseSensitive = true,
+  }) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(FilterCondition.equalTo(
+        property: r'rawMaterialName',
+        value: value,
+        caseSensitive: caseSensitive,
+      ));
+    });
+  }
+
+  QueryBuilder<RateFileMaterialIsar, RateFileMaterialIsar,
+      QAfterFilterCondition> rawMaterialNameGreaterThan(
+    String value, {
+    bool include = false,
+    bool caseSensitive = true,
+  }) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(FilterCondition.greaterThan(
+        include: include,
+        property: r'rawMaterialName',
+        value: value,
+        caseSensitive: caseSensitive,
+      ));
+    });
+  }
+
+  QueryBuilder<RateFileMaterialIsar, RateFileMaterialIsar,
+      QAfterFilterCondition> rawMaterialNameLessThan(
+    String value, {
+    bool include = false,
+    bool caseSensitive = true,
+  }) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(FilterCondition.lessThan(
+        include: include,
+        property: r'rawMaterialName',
+        value: value,
+        caseSensitive: caseSensitive,
+      ));
+    });
+  }
+
+  QueryBuilder<RateFileMaterialIsar, RateFileMaterialIsar,
+      QAfterFilterCondition> rawMaterialNameBetween(
+    String lower,
+    String upper, {
+    bool includeLower = true,
+    bool includeUpper = true,
+    bool caseSensitive = true,
+  }) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(FilterCondition.between(
+        property: r'rawMaterialName',
+        lower: lower,
+        includeLower: includeLower,
+        upper: upper,
+        includeUpper: includeUpper,
+        caseSensitive: caseSensitive,
+      ));
+    });
+  }
+
+  QueryBuilder<RateFileMaterialIsar, RateFileMaterialIsar,
+      QAfterFilterCondition> rawMaterialNameStartsWith(
+    String value, {
+    bool caseSensitive = true,
+  }) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(FilterCondition.startsWith(
+        property: r'rawMaterialName',
+        value: value,
+        caseSensitive: caseSensitive,
+      ));
+    });
+  }
+
+  QueryBuilder<RateFileMaterialIsar, RateFileMaterialIsar,
+      QAfterFilterCondition> rawMaterialNameEndsWith(
+    String value, {
+    bool caseSensitive = true,
+  }) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(FilterCondition.endsWith(
+        property: r'rawMaterialName',
+        value: value,
+        caseSensitive: caseSensitive,
+      ));
+    });
+  }
+
+  QueryBuilder<RateFileMaterialIsar, RateFileMaterialIsar,
+          QAfterFilterCondition>
+      rawMaterialNameContains(String value, {bool caseSensitive = true}) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(FilterCondition.contains(
+        property: r'rawMaterialName',
+        value: value,
+        caseSensitive: caseSensitive,
+      ));
+    });
+  }
+
+  QueryBuilder<RateFileMaterialIsar, RateFileMaterialIsar,
+          QAfterFilterCondition>
+      rawMaterialNameMatches(String pattern, {bool caseSensitive = true}) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(FilterCondition.matches(
+        property: r'rawMaterialName',
+        wildcard: pattern,
+        caseSensitive: caseSensitive,
+      ));
+    });
+  }
+
+  QueryBuilder<RateFileMaterialIsar, RateFileMaterialIsar,
+      QAfterFilterCondition> rawMaterialNameIsEmpty() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(FilterCondition.equalTo(
+        property: r'rawMaterialName',
+        value: '',
+      ));
+    });
+  }
+
+  QueryBuilder<RateFileMaterialIsar, RateFileMaterialIsar,
+      QAfterFilterCondition> rawMaterialNameIsNotEmpty() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(FilterCondition.greaterThan(
+        property: r'rawMaterialName',
+        value: '',
+      ));
+    });
+  }
+
+  QueryBuilder<RateFileMaterialIsar, RateFileMaterialIsar,
       QAfterFilterCondition> siteIdEqualTo(
     String value, {
     bool caseSensitive = true,
@@ -3595,6 +3903,144 @@ extension RateFileMaterialIsarQueryFilter on QueryBuilder<RateFileMaterialIsar,
       ));
     });
   }
+
+  QueryBuilder<RateFileMaterialIsar, RateFileMaterialIsar,
+      QAfterFilterCondition> uomEqualTo(
+    String value, {
+    bool caseSensitive = true,
+  }) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(FilterCondition.equalTo(
+        property: r'uom',
+        value: value,
+        caseSensitive: caseSensitive,
+      ));
+    });
+  }
+
+  QueryBuilder<RateFileMaterialIsar, RateFileMaterialIsar,
+      QAfterFilterCondition> uomGreaterThan(
+    String value, {
+    bool include = false,
+    bool caseSensitive = true,
+  }) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(FilterCondition.greaterThan(
+        include: include,
+        property: r'uom',
+        value: value,
+        caseSensitive: caseSensitive,
+      ));
+    });
+  }
+
+  QueryBuilder<RateFileMaterialIsar, RateFileMaterialIsar,
+      QAfterFilterCondition> uomLessThan(
+    String value, {
+    bool include = false,
+    bool caseSensitive = true,
+  }) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(FilterCondition.lessThan(
+        include: include,
+        property: r'uom',
+        value: value,
+        caseSensitive: caseSensitive,
+      ));
+    });
+  }
+
+  QueryBuilder<RateFileMaterialIsar, RateFileMaterialIsar,
+      QAfterFilterCondition> uomBetween(
+    String lower,
+    String upper, {
+    bool includeLower = true,
+    bool includeUpper = true,
+    bool caseSensitive = true,
+  }) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(FilterCondition.between(
+        property: r'uom',
+        lower: lower,
+        includeLower: includeLower,
+        upper: upper,
+        includeUpper: includeUpper,
+        caseSensitive: caseSensitive,
+      ));
+    });
+  }
+
+  QueryBuilder<RateFileMaterialIsar, RateFileMaterialIsar,
+      QAfterFilterCondition> uomStartsWith(
+    String value, {
+    bool caseSensitive = true,
+  }) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(FilterCondition.startsWith(
+        property: r'uom',
+        value: value,
+        caseSensitive: caseSensitive,
+      ));
+    });
+  }
+
+  QueryBuilder<RateFileMaterialIsar, RateFileMaterialIsar,
+      QAfterFilterCondition> uomEndsWith(
+    String value, {
+    bool caseSensitive = true,
+  }) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(FilterCondition.endsWith(
+        property: r'uom',
+        value: value,
+        caseSensitive: caseSensitive,
+      ));
+    });
+  }
+
+  QueryBuilder<RateFileMaterialIsar, RateFileMaterialIsar,
+          QAfterFilterCondition>
+      uomContains(String value, {bool caseSensitive = true}) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(FilterCondition.contains(
+        property: r'uom',
+        value: value,
+        caseSensitive: caseSensitive,
+      ));
+    });
+  }
+
+  QueryBuilder<RateFileMaterialIsar, RateFileMaterialIsar,
+          QAfterFilterCondition>
+      uomMatches(String pattern, {bool caseSensitive = true}) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(FilterCondition.matches(
+        property: r'uom',
+        wildcard: pattern,
+        caseSensitive: caseSensitive,
+      ));
+    });
+  }
+
+  QueryBuilder<RateFileMaterialIsar, RateFileMaterialIsar,
+      QAfterFilterCondition> uomIsEmpty() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(FilterCondition.equalTo(
+        property: r'uom',
+        value: '',
+      ));
+    });
+  }
+
+  QueryBuilder<RateFileMaterialIsar, RateFileMaterialIsar,
+      QAfterFilterCondition> uomIsNotEmpty() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(FilterCondition.greaterThan(
+        property: r'uom',
+        value: '',
+      ));
+    });
+  }
 }
 
 extension RateFileMaterialIsarQueryObject on QueryBuilder<RateFileMaterialIsar,
@@ -3698,6 +4144,20 @@ extension RateFileMaterialIsarQuerySortBy
   }
 
   QueryBuilder<RateFileMaterialIsar, RateFileMaterialIsar, QAfterSortBy>
+      sortByNormalizedMaterialName() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addSortBy(r'normalizedMaterialName', Sort.asc);
+    });
+  }
+
+  QueryBuilder<RateFileMaterialIsar, RateFileMaterialIsar, QAfterSortBy>
+      sortByNormalizedMaterialNameDesc() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addSortBy(r'normalizedMaterialName', Sort.desc);
+    });
+  }
+
+  QueryBuilder<RateFileMaterialIsar, RateFileMaterialIsar, QAfterSortBy>
       sortByNormalizedMoc() {
     return QueryBuilder.apply(this, (query) {
       return query.addSortBy(r'normalizedMoc', Sort.asc);
@@ -3726,6 +4186,20 @@ extension RateFileMaterialIsarQuerySortBy
   }
 
   QueryBuilder<RateFileMaterialIsar, RateFileMaterialIsar, QAfterSortBy>
+      sortByRawMaterialName() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addSortBy(r'rawMaterialName', Sort.asc);
+    });
+  }
+
+  QueryBuilder<RateFileMaterialIsar, RateFileMaterialIsar, QAfterSortBy>
+      sortByRawMaterialNameDesc() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addSortBy(r'rawMaterialName', Sort.desc);
+    });
+  }
+
+  QueryBuilder<RateFileMaterialIsar, RateFileMaterialIsar, QAfterSortBy>
       sortBySiteId() {
     return QueryBuilder.apply(this, (query) {
       return query.addSortBy(r'siteId', Sort.asc);
@@ -3736,6 +4210,20 @@ extension RateFileMaterialIsarQuerySortBy
       sortBySiteIdDesc() {
     return QueryBuilder.apply(this, (query) {
       return query.addSortBy(r'siteId', Sort.desc);
+    });
+  }
+
+  QueryBuilder<RateFileMaterialIsar, RateFileMaterialIsar, QAfterSortBy>
+      sortByUom() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addSortBy(r'uom', Sort.asc);
+    });
+  }
+
+  QueryBuilder<RateFileMaterialIsar, RateFileMaterialIsar, QAfterSortBy>
+      sortByUomDesc() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addSortBy(r'uom', Sort.desc);
     });
   }
 }
@@ -3841,6 +4329,20 @@ extension RateFileMaterialIsarQuerySortThenBy
   }
 
   QueryBuilder<RateFileMaterialIsar, RateFileMaterialIsar, QAfterSortBy>
+      thenByNormalizedMaterialName() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addSortBy(r'normalizedMaterialName', Sort.asc);
+    });
+  }
+
+  QueryBuilder<RateFileMaterialIsar, RateFileMaterialIsar, QAfterSortBy>
+      thenByNormalizedMaterialNameDesc() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addSortBy(r'normalizedMaterialName', Sort.desc);
+    });
+  }
+
+  QueryBuilder<RateFileMaterialIsar, RateFileMaterialIsar, QAfterSortBy>
       thenByNormalizedMoc() {
     return QueryBuilder.apply(this, (query) {
       return query.addSortBy(r'normalizedMoc', Sort.asc);
@@ -3869,6 +4371,20 @@ extension RateFileMaterialIsarQuerySortThenBy
   }
 
   QueryBuilder<RateFileMaterialIsar, RateFileMaterialIsar, QAfterSortBy>
+      thenByRawMaterialName() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addSortBy(r'rawMaterialName', Sort.asc);
+    });
+  }
+
+  QueryBuilder<RateFileMaterialIsar, RateFileMaterialIsar, QAfterSortBy>
+      thenByRawMaterialNameDesc() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addSortBy(r'rawMaterialName', Sort.desc);
+    });
+  }
+
+  QueryBuilder<RateFileMaterialIsar, RateFileMaterialIsar, QAfterSortBy>
       thenBySiteId() {
     return QueryBuilder.apply(this, (query) {
       return query.addSortBy(r'siteId', Sort.asc);
@@ -3879,6 +4395,20 @@ extension RateFileMaterialIsarQuerySortThenBy
       thenBySiteIdDesc() {
     return QueryBuilder.apply(this, (query) {
       return query.addSortBy(r'siteId', Sort.desc);
+    });
+  }
+
+  QueryBuilder<RateFileMaterialIsar, RateFileMaterialIsar, QAfterSortBy>
+      thenByUom() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addSortBy(r'uom', Sort.asc);
+    });
+  }
+
+  QueryBuilder<RateFileMaterialIsar, RateFileMaterialIsar, QAfterSortBy>
+      thenByUomDesc() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addSortBy(r'uom', Sort.desc);
     });
   }
 }
@@ -3931,6 +4461,14 @@ extension RateFileMaterialIsarQueryWhereDistinct
   }
 
   QueryBuilder<RateFileMaterialIsar, RateFileMaterialIsar, QDistinct>
+      distinctByNormalizedMaterialName({bool caseSensitive = true}) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addDistinctBy(r'normalizedMaterialName',
+          caseSensitive: caseSensitive);
+    });
+  }
+
+  QueryBuilder<RateFileMaterialIsar, RateFileMaterialIsar, QDistinct>
       distinctByNormalizedMoc({bool caseSensitive = true}) {
     return QueryBuilder.apply(this, (query) {
       return query.addDistinctBy(r'normalizedMoc',
@@ -3946,9 +4484,24 @@ extension RateFileMaterialIsarQueryWhereDistinct
   }
 
   QueryBuilder<RateFileMaterialIsar, RateFileMaterialIsar, QDistinct>
+      distinctByRawMaterialName({bool caseSensitive = true}) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addDistinctBy(r'rawMaterialName',
+          caseSensitive: caseSensitive);
+    });
+  }
+
+  QueryBuilder<RateFileMaterialIsar, RateFileMaterialIsar, QDistinct>
       distinctBySiteId({bool caseSensitive = true}) {
     return QueryBuilder.apply(this, (query) {
       return query.addDistinctBy(r'siteId', caseSensitive: caseSensitive);
+    });
+  }
+
+  QueryBuilder<RateFileMaterialIsar, RateFileMaterialIsar, QDistinct>
+      distinctByUom({bool caseSensitive = true}) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addDistinctBy(r'uom', caseSensitive: caseSensitive);
     });
   }
 }
@@ -4010,6 +4563,13 @@ extension RateFileMaterialIsarQueryProperty on QueryBuilder<
   }
 
   QueryBuilder<RateFileMaterialIsar, String, QQueryOperations>
+      normalizedMaterialNameProperty() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addPropertyName(r'normalizedMaterialName');
+    });
+  }
+
+  QueryBuilder<RateFileMaterialIsar, String, QQueryOperations>
       normalizedMocProperty() {
     return QueryBuilder.apply(this, (query) {
       return query.addPropertyName(r'normalizedMoc');
@@ -4024,9 +4584,22 @@ extension RateFileMaterialIsarQueryProperty on QueryBuilder<
   }
 
   QueryBuilder<RateFileMaterialIsar, String, QQueryOperations>
+      rawMaterialNameProperty() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addPropertyName(r'rawMaterialName');
+    });
+  }
+
+  QueryBuilder<RateFileMaterialIsar, String, QQueryOperations>
       siteIdProperty() {
     return QueryBuilder.apply(this, (query) {
       return query.addPropertyName(r'siteId');
+    });
+  }
+
+  QueryBuilder<RateFileMaterialIsar, String, QQueryOperations> uomProperty() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addPropertyName(r'uom');
     });
   }
 }

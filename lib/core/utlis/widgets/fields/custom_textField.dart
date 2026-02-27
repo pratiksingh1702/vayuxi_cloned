@@ -54,7 +54,11 @@ class CustomTextField extends StatelessWidget {
             keyboardType: keyboardType,
             maxLines: maxLines,
             decoration: InputDecoration(
-              hintText: hint ?? 'Input Text',
+              hintText: hint ?? 'Enter $label',
+              hintStyle: const TextStyle(
+                color: Colors.grey,
+              ),
+
               filled: true,
               fillColor: Colors.white,
               prefixIcon: prefixIcon,

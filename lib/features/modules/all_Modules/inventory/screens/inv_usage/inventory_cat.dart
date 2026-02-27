@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:untitled2/core/utlis/colors/colors.dart';
 import 'package:untitled2/core/utlis/widgets/custom_appBar.dart';
+import '../../../../../../core/utlis/widgets/sidebar.dart';
 import '../../../dpr/screens/widgets/select_card.dart';
 
 import 'checkout_managment_page.dart';
@@ -13,6 +14,7 @@ class InventoryCategorySelectionScreen extends StatelessWidget {
   Widget build(BuildContext context) {
     return Scaffold(
       backgroundColor: AppColors.lightBlue,
+      drawer: const CustomDrawer(),
       appBar: CustomAppBar(title: "Select Category"),
       body: Column(
         children: [

@@ -12,6 +12,7 @@ import 'package:untitled2/features/modules/all_Modules/site_Details/screens/site
 import 'package:untitled2/features/modules/all_Modules/site_Details/screens/siteList.dart';
 
 import '../../../../../core/utlis/widgets/date_picker_Screen.dart';
+import '../../../../../core/utlis/widgets/sidebar.dart';
 import '../../dpr/screens/widgets/select_card.dart';
 import 'download_sheet.dart';
 import 'expense_screen.dart';
@@ -28,6 +29,7 @@ class ExpenseEntrySelectCardGrid extends ConsumerWidget{
     final site=ref.read(selectedSiteIdProvider);
     return Scaffold(
       backgroundColor: AppColors.lightBlue,
+      drawer: const CustomDrawer(),
       appBar: CustomAppBar(title:"Select Card"),
       body: BottomButtonWrapper(
         onBackPressed: (){Navigator.pop(context);},

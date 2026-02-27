@@ -5,6 +5,7 @@ import 'package:untitled2/core/utlis/colors/colors.dart';
 import 'package:untitled2/core/utlis/widgets/custom_appBar.dart';
 import 'package:untitled2/features/modules/all_Modules/Manpower%20Details/screens/widgets/popup.dart';
 import '../../../../../core/utlis/common_functions.dart';
+import '../../../../../core/utlis/widgets/custom_dropdown.dart';
 import '../../../../../core/utlis/widgets/fields/custom_textField.dart';
 import '../../../../../core/utlis/widgets/fields/phone_number_field.dart';
 import '../../../../../core/utlis/widgets/fields/searchableDropdown.dart';
@@ -12,6 +13,7 @@ import '../../../../../core/utlis/widgets/sidebar.dart';
 import '../../../../../typeProvider/type_provider.dart';
 
 import '../../../../tour/domain/tour_controller.dart';
+import '../../attendance/offline/repo/att_sync.dart';
 import '../service/manPowerProvider.dart';
 
 
@@ -49,6 +51,7 @@ class _NewManpowerScreenState extends ConsumerState<NewManpowerScreen> {
   final _hra = TextEditingController();
 
   bool _isPfApplicable = true;
+  String? _selectedTotalHour;
 
 
   // New controllers for login credentials
@@ -80,7 +83,8 @@ class _NewManpowerScreenState extends ConsumerState<NewManpowerScreen> {
     "Grinderman",
     "Cutter",
   ];
-
+  final List<String> _totalHourOptions =
+  List.generate(16, (index) => (index + 1).toString());
   DateTime? _dob;
   DateTime? _doj;
   String _payBasic = "monthly";
@@ -168,17 +172,17 @@ class _NewManpowerScreenState extends ConsumerState<NewManpowerScreen> {
       _showSnack("Salary must be greater than 0");
       return;
     }
-
-    final basicSalary = double.tryParse(_basicSalaryController.text);
-    if (basicSalary == null || basicSalary <= 0) {
-      _showSnack("Basic salary must be greater than 0");
-      return;
-    }
-
-    if (basicSalary > salary) {
-      _showSnack("Basic salary cannot be greater than total salary");
-      return;
-    }
+    //
+    // final basicSalary = double.tryParse(_basicSalaryController.text);
+    // // if (basicSalary == null || basicSalary <= 0) {
+    // //   _showSnack("Basic salary must be greater than 0");
+    // //   return;
+    // // }
+    //
+    // if (basicSalary > salary) {
+    //   _showSnack("Basic salary cannot be greater than total salary");
+    //   return;
+    // }
 
 
     final data = {
@@ -198,7 +202,7 @@ class _NewManpowerScreenState extends ConsumerState<NewManpowerScreen> {
       "salary": double.tryParse(_salaryController.text) ?? 0,
       "basicSalary":double.tryParse(_basicSalaryController.text) ?? 0,
       "hra":_hra.text,
-
+      "totalHour": _selectedTotalHour,
       // ✅ NEW FIELDS
       "dearnessAllowance": double.tryParse(_daController.text) ?? 0,
       "specialAllowance": double.tryParse(_specialAllowanceController.text) ?? 0,
@@ -221,6 +225,11 @@ class _NewManpowerScreenState extends ConsumerState<NewManpowerScreen> {
 
     try {
      final createdManpower= await ref.read(manpowerProvider.notifier).addManpower(manpowerType, data);
+     await ref.read(tourPersistenceProvider).markManpowerDone();
+     final type=ref.read(typeProvider);
+     ref.invalidate(manpowerSyncControllerProvider((type: type!)));
+     final repo = ref.read(attendanceRepositoryProvider);
+     await repo.syncManpowerFromApi(type!);
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(content: Text("✅ Manpower added successfully")),
       );
@@ -235,7 +244,7 @@ class _NewManpowerScreenState extends ConsumerState<NewManpowerScreen> {
           ),
         );
       }
-     await ref.read(tourPersistenceProvider).markManpowerDone();
+
 
 
      Navigator.pop(context);
@@ -606,10 +615,32 @@ class _NewManpowerScreenState extends ConsumerState<NewManpowerScreen> {
                 keyboardType: TextInputType.number,
               ),
               const SizedBox(height: 20),
+
+
+              CustomDropdownField<String>(
+                label: "Total Hour",
+
+                value: _selectedTotalHour,
+                hint: "Select Total Working Hours",
+                items: _totalHourOptions
+                    .map(
+                      (hour) => DropdownMenuItem<String>(
+                    value: hour,
+                    child: Text(hour),
+                  ),
+                )
+                    .toList(),
+                onChanged: (value) {
+                  setState(() {
+                    _selectedTotalHour = value;
+                  });
+                },
+              ),
+              const SizedBox(height: 16),
               CustomTextField(
                 label: "Basic Salary",
                 controller: _basicSalaryController,
-                isRequired: true,
+
                 keyboardType: TextInputType.number,
               ),
               const SizedBox(height: 20),

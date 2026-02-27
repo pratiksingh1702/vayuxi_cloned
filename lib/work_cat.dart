@@ -204,8 +204,8 @@ class _WorkCategoryScreenState extends ConsumerState<WorkCategoryScreen> {
                           ),
                         ),
 
-                    if (drafts.isNotEmpty)
-                  ...drafts.map((draft) => DraftCard(draft,context))
+                        if (drafts.isNotEmpty)
+                          ...drafts.map((draft) => DraftCard(draft,context))
 
                       ],
 
@@ -300,7 +300,7 @@ class CompanyCard extends StatelessWidget {
       onTap: onTap,
       child: Card(
         elevation: 0,
-        color: Colors.white,
+
         shape: RoundedRectangleBorder(
           borderRadius: BorderRadius.circular(15),
           side: BorderSide(

@@ -5,6 +5,7 @@ import 'package:untitled2/features/modules/all_Modules/inventory/offline/repo/in
 import '../../../../../core/utlis/colors/colors.dart';
 import '../../../../../core/utlis/widgets/buttons.dart';
 import '../../../../../core/utlis/widgets/custom_appBar.dart';
+import '../../../../../core/utlis/widgets/sidebar.dart';
 import '../../site_Details/providers/site_current_provider.dart';
 import '../models/inventory_model.dart';
 import '../provider/inventory_provider.dart';
@@ -27,19 +28,25 @@ class _InventoryListScreenState extends ConsumerState<InventoryListScreen> {
 
     WidgetsBinding.instance.addPostFrameCallback((_) {
       final siteId = ref.read(selectedSiteIdProvider);
+
       if (siteId != null) {
-  ref.read(inventorySyncControllerProvider(siteId));
+        // force provider to re-run even if cached
+        ref.invalidate(inventorySyncControllerProvider(siteId));
+        ref.read(inventorySyncControllerProvider(siteId));
       }
     });
   }
+
   @override
   Widget build(BuildContext context) {
+
     final siteId = ref.watch(selectedSiteIdProvider);
     final inventoryAsync = ref.watch(inventoryProvider(siteId!));
 
     return Scaffold(
       appBar: CustomAppBar(title: "Inventory List"),
       backgroundColor: AppColors.lightBlue,
+      drawer: const CustomDrawer(),
       body: BottomButtonWrapper(
         customButtons: [
           CustomButton(button:RoundedButton(

@@ -14,6 +14,8 @@ class EquipmentMaterialsNotifier extends StateNotifier<List<EquipmentItem>> {
   }
   void setMaterials(List<EquipmentItem> materials) {
     state = List<EquipmentItem>.unmodifiable(materials);
+  }void addMaterial(EquipmentItem item) {
+    state = [...state, item];
   }
 
   // Load materials from Hive

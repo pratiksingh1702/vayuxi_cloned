@@ -441,11 +441,11 @@ class _ModuleScreenState extends ConsumerState<ModuleScreen> {
 
     return homeModuleAsync.when(
         loading: () => const Scaffold(
-              body: Center(child: CircularProgressIndicator()),
-            ),
+          body: Center(child: CircularProgressIndicator()),
+        ),
         error: (e, _) => Scaffold(
-              body: Center(child: Text(e.toString())),
-            ),
+          body: Center(child: Text(e.toString())),
+        ),
         data: (homeData) {
           final t = Translator(homeData);
 
@@ -626,7 +626,7 @@ class _ModuleScreenState extends ConsumerState<ModuleScreen> {
                                       );
 
 
-                                  }else if (_checkpoint == TourCheckpoint.rate && isRateCard) {
+                                    }else if (_checkpoint == TourCheckpoint.rate && isRateCard) {
                                       card = Showcase(
                                         key: TourRegistry.rateModuleKey,
                                         description: "Now add Rate here 💰",
@@ -743,7 +743,7 @@ class _ModuleScreenState extends ConsumerState<ModuleScreen> {
                   currentIndex: _currentIndex,
                   onTap: _handleBottomNavTap,
                   selectedItemColor: Colors.black,
-                  unselectedItemColor: Colors.black,
+                  unselectedItemColor: Colors.grey,
                   selectedLabelStyle: const TextStyle(color: Colors.black),
                   unselectedLabelStyle: const TextStyle(color: Colors.black),
                   type: BottomNavigationBarType.fixed,
@@ -835,9 +835,9 @@ class _ModuleScreenState extends ConsumerState<ModuleScreen> {
   Widget _buildSiteDropdown(SiteState siteState) {
     final uniqueSites = siteState.sites
         .fold(<String, SiteModel>{}, (map, site) {
-          map[site.id] = site;
-          return map;
-        })
+      map[site.id] = site;
+      return map;
+    })
         .values
         .toList();
 
@@ -861,7 +861,7 @@ class _ModuleScreenState extends ConsumerState<ModuleScreen> {
     final dropdownList = [noneSite, ...uniqueSites];
     final currentSelectedSite = _selectedSite != null
         ? dropdownList.firstWhere((site) => site.id == _selectedSite!.id,
-            orElse: () => noneSite)
+        orElse: () => noneSite)
         : noneSite;
 
     return Padding(
@@ -936,9 +936,9 @@ class _ModuleScreenState extends ConsumerState<ModuleScreen> {
 
             final uniqueTeams = teams
                 .fold<Map<String, TeamModel>>({}, (map, team) {
-                  map[team.id] = team;
-                  return map;
-                })
+              map[team.id] = team;
+              return map;
+            })
                 .values
                 .toList();
 
@@ -955,9 +955,9 @@ class _ModuleScreenState extends ConsumerState<ModuleScreen> {
 
             final currentSelectedTeam = _selectedTeam != null
                 ? dropdownList.firstWhere(
-                    (team) => team.id == _selectedTeam!.id,
-                    orElse: () => noneTeam,
-                  )
+                  (team) => team.id == _selectedTeam!.id,
+              orElse: () => noneTeam,
+            )
                 : noneTeam;
 
             return DropdownButton<TeamModel>(

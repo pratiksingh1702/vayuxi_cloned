@@ -211,6 +211,9 @@ class _SearchableDropdownState extends State<SearchableDropdown> {
         decoration: widget.inputDecoration ??
             InputDecoration(
               hintText: widget.placeholder,
+              hintStyle: TextStyle(
+                color: Colors.grey
+              ),
               contentPadding: const EdgeInsets.symmetric(
                 horizontal: 16,
                 vertical: 14,

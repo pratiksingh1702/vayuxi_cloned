@@ -9,6 +9,10 @@ class DprApi {
   // ----------------------------
   // 1. Fetch DPR Work List
   // ----------------------------
+
+  static Future<void> deleteDpr(String id) async {
+    await DioClient.dio.delete("/dpr-delete/$id");
+  }
   static Future<List<DprModel>> fetchDprWork({
     required String siteId,
     required String teamId,
@@ -284,6 +288,24 @@ class DprApi {
       rethrow;
     }
   }
+  static Future<Response> updateDprItem({
+    required String dprId,
+    required String itemId,
+    required FormData data,
+  }) async {
+    try {
+      final response = await DioClient.dio.put(
+        "/dpr-mechanical/$dprId/items/$itemId",
+        data: data,
+      );
+
+      print("✅ UPDATE SUCCESS: ${response.data}");
+      return response;
+    } on DioException catch (e) {
+      print("❌ UPDATE FAILED: ${e.response?.data}");
+      rethrow;
+    }
+  }
 
 
   // Update material
@@ -353,26 +375,13 @@ class DprApi {
       rethrow;
     }
   }
-
   static Future<Map<String, dynamic>> addMechanicalMaterial({
     required String dprId,
-    required String materialName,
-    required String uom,
-    File? file,
+    required FormData formData,
   }) async {
     try {
-      final formData = FormData.fromMap({
-        "materialName": materialName,
-        "uom": uom,
-        if (file != null)
-          "file": await MultipartFile.fromFile(
-            file.path,
-            filename: file.path.split('/').last,
-          ),
-      });
-
       final response = await DioClient.dio.post(
-        "/mechnical/$dprId",
+        "/dpr-mechanical/$dprId/items",
         data: formData,
         options: Options(
           headers: {
@@ -384,49 +393,21 @@ class DprApi {
       );
 
       if (response.statusCode == 200 || response.statusCode == 201) {
-        print("✅ Mechanical material created successfully");
-        printFormattedJson(response.data);
         return {
           "success": true,
           "data": response.data,
-          "statusCode": response.statusCode,
         };
       }
 
       throw DioException(
         requestOptions: response.requestOptions,
         response: response,
-        message: "Unexpected status code ${response.statusCode}",
+        message: "Unexpected status ${response.statusCode}",
       );
-    }
-
-    // Dio-level errors
-    on DioException catch (e, stack) {
-      print("❌ MECHANICAL CREATE FAILED");
-      print("➡️ ${e.requestOptions.method} ${e.requestOptions.path}");
-      print("📟 Status: ${e.response?.statusCode}");
-
-      if (e.response?.data != null) {
-        print("📦 Response:");
-        printFormattedJson(e.response!.data);
-      }
-
-      print("🧨 Dio Error Type: ${e.type}");
-      print("📝 Message: ${e.message}");
-      print(stack);
-
-      rethrow;
-    }
-
-    // Anything else
-    catch (e, stack) {
-      print("❌ MECHANICAL CREATE FAILED (Unknown)");
-      print("📝 Error: $e");
-      print(stack);
+    } on DioException {
       rethrow;
     }
   }
-
 
   // ----------------------------
   // 6. Copy DPR Material
@@ -438,8 +419,9 @@ class DprApi {
 
   }) async {
     try {
-      final response = await DioClient.dio.put(
-        "/site/$dprId/team/$matId/dpr-mechanical/copy",
+      final response = await DioClient.dio.post(
+
+        "/dpr-mechanical/$dprId/items/$matId/copy",
 
         options: Options(
           headers: {

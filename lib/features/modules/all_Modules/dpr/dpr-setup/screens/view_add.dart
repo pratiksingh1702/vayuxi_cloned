@@ -5,6 +5,7 @@ import 'package:untitled2/core/utlis/widgets/Button_wrapper.dart';
 import 'package:untitled2/core/utlis/widgets/custom_appBar.dart';
 import 'package:untitled2/features/modules/all_Modules/dpr/dpr-setup/screens/view/view_select_page.dart';
 
+import '../../../../../../core/utlis/widgets/sidebar.dart';
 import '../../screens/widgets/select_card.dart';
 import 'add/select_page.dart';
 
@@ -15,6 +16,7 @@ class DprSelectCardGrid extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
+      drawer: const CustomDrawer(),
       backgroundColor: AppColors.lightBlue,
       appBar: CustomAppBar(title:"Select View or Add"),
       body: BottomButtonWrapper(

@@ -38,7 +38,9 @@ class _EquipmentMaterialCardState extends State<EquipmentMaterialCard> {
     EquipmentFieldType.circumference2: FocusNode(),
     EquipmentFieldType.circumference3: FocusNode(),
     EquipmentFieldType.zHeight: FocusNode(),
+    EquipmentFieldType.gSlantHeight: FocusNode(),
   };
+  late final TextEditingController _qtyController;
 
   late Map<EquipmentFieldType, TextEditingController> _valueControllers;
   late Map<EquipmentFieldType, TextEditingController> _labelControllers;
@@ -53,19 +55,23 @@ class _EquipmentMaterialCardState extends State<EquipmentMaterialCard> {
   @override
   void initState() {
     super.initState();
+    _qtyController = TextEditingController(
+      text: widget.material.qty.toString(),
+    );
     _draftMaterial = widget.material.copyWith();
     _initControllers(widget.material);
   }
 
   void _initControllers(EquipmentMaterial m) {
     _valueControllers = {
-      EquipmentFieldType.qty: TextEditingController(text: m.qty.toString()),
-      EquipmentFieldType.length: TextEditingController(text: m.length.toString()),
-      EquipmentFieldType.circumference: TextEditingController(text: m.circumference.toString()),
-      EquipmentFieldType.circumference1: TextEditingController(text: m.circumference1.toString()),
-      EquipmentFieldType.circumference2: TextEditingController(text: m.circumference2.toString()),
-      EquipmentFieldType.circumference3: TextEditingController(text: m.circumference3.toString()),
-      EquipmentFieldType.zHeight: TextEditingController(text: m.zHeight.toString()),
+      EquipmentFieldType.qty: TextEditingController(text: ""),
+      EquipmentFieldType.length: TextEditingController(text: ""),
+      EquipmentFieldType.circumference: TextEditingController(text: ""),
+      EquipmentFieldType.circumference1: TextEditingController(text: ""),
+      EquipmentFieldType.circumference2: TextEditingController(text: ""),
+      EquipmentFieldType.circumference3: TextEditingController(text:""),
+      EquipmentFieldType.zHeight: TextEditingController(text: ""),
+      EquipmentFieldType.gSlantHeight: TextEditingController(text: ""),
     };
 
     _labelControllers = {
@@ -76,6 +82,9 @@ class _EquipmentMaterialCardState extends State<EquipmentMaterialCard> {
       EquipmentFieldType.circumference2: TextEditingController(text: m.customLabels?['circumference2'] ?? 'Circumference 2'),
       EquipmentFieldType.circumference3: TextEditingController(text: m.customLabels?['circumference3'] ?? 'Circumference 3'),
       EquipmentFieldType.zHeight: TextEditingController(text: m.customLabels?['zHeight'] ?? 'Z-Height'),
+      EquipmentFieldType.gSlantHeight: TextEditingController(
+          text: m.customLabels?['gSlantHeight'] ?? 'Slant Height'
+      ),
     };
 
     _uomControllers = {
@@ -86,27 +95,24 @@ class _EquipmentMaterialCardState extends State<EquipmentMaterialCard> {
       EquipmentFieldType.circumference2: TextEditingController(text: m.customLabels?['circumference2_uom'] ?? 'mm'),
       EquipmentFieldType.circumference3: TextEditingController(text: m.customLabels?['circumference3_uom'] ?? 'mm'),
       EquipmentFieldType.zHeight: TextEditingController(text: m.customLabels?['zHeight_uom'] ?? 'mm'),
+      EquipmentFieldType.gSlantHeight: TextEditingController(
+          text: m.customLabels?['gSlantHeight_uom'] ?? 'mm'
+      ),
     };
   }
 
   @override
   void didUpdateWidget(covariant EquipmentMaterialCard oldWidget) {
     super.didUpdateWidget(oldWidget);
+
+    if (oldWidget.material.qty != widget.material.qty) {
+      _qtyController.text = widget.material.qty.toString();
+    }
+
     if (!_isEditMode) {
       _draftMaterial = widget.material.copyWith();
       _draftImageFiles.clear();
-      _syncControllersFromMaterial(widget.material);
     }
-  }
-
-  void _syncControllersFromMaterial(EquipmentMaterial m) {
-    _valueControllers[EquipmentFieldType.qty]!.text = m.qty.toString();
-    _valueControllers[EquipmentFieldType.length]!.text = m.length.toString();
-    _valueControllers[EquipmentFieldType.circumference]!.text = m.circumference.toString();
-    _valueControllers[EquipmentFieldType.circumference1]!.text = m.circumference1.toString();
-    _valueControllers[EquipmentFieldType.circumference2]!.text = m.circumference2.toString();
-    _valueControllers[EquipmentFieldType.circumference3]!.text = m.circumference3.toString();
-    _valueControllers[EquipmentFieldType.zHeight]!.text = m.zHeight.toString();
   }
 
   @override
@@ -115,6 +121,7 @@ class _EquipmentMaterialCardState extends State<EquipmentMaterialCard> {
     for (final c in _valueControllers.values) c.dispose();
     for (final c in _labelControllers.values) c.dispose();
     for (final c in _uomControllers.values) c.dispose();
+    _qtyController.dispose();
     super.dispose();
   }
 
@@ -213,7 +220,7 @@ class _EquipmentMaterialCardState extends State<EquipmentMaterialCard> {
         margin: const EdgeInsets.only(bottom: 8),
         padding: const EdgeInsets.all(8),
         decoration: BoxDecoration(
-          color: const Color(0xFFFFFBF2),
+          color: Colors.white,
           borderRadius: BorderRadius.circular(14),
         ),
         child: Column(
@@ -231,9 +238,75 @@ class _EquipmentMaterialCardState extends State<EquipmentMaterialCard> {
               }).toList(),
             ),
 
-            const SizedBox(height: 6),
 
-            _actionRow(),
+            const SizedBox(height: 6),
+            const SizedBox(height: 10),
+
+// QUANTITY FIELD (Bottom Right)
+            Row(
+              mainAxisAlignment: MainAxisAlignment.spaceBetween,
+              crossAxisAlignment: CrossAxisAlignment.end,
+              children: [
+                _actionRow(),
+                Container(
+                  width: 80,
+
+                  // decoration: BoxDecoration(
+                  //   color: Colors.white,
+                  //   border: Border.all(color: Colors.grey.shade400),
+                  //   borderRadius: BorderRadius.circular(8),
+                  // ),
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      const Text(
+                        "Qty",
+                        style: TextStyle(fontSize: 8, fontWeight: FontWeight.w600),
+                      ),
+
+                  SizedBox(
+                    height:40,
+                    child: TextFormField(
+                      controller: _qtyController,
+                      keyboardType: TextInputType.number,
+                      textAlign: TextAlign.center,
+                      textAlignVertical: TextAlignVertical.center,
+
+                      style: TextStyle(
+                        fontSize: 16,
+                        height: 15 // 🔥 important
+                      ),
+
+                      strutStyle: StrutStyle(
+                        forceStrutHeight: true,
+                        height: 1,
+                      ),
+
+                      decoration: InputDecoration(
+                        isCollapsed: true, // 🔥 removes default vertical padding
+                        contentPadding: EdgeInsets.symmetric(horizontal: 8,vertical: 8),
+
+                        filled: true,
+                        fillColor: Colors.white,
+
+                        enabledBorder: OutlineInputBorder(
+                          borderRadius: BorderRadius.circular(6),
+                          borderSide: BorderSide(color: Colors.grey),
+                        ),
+                        focusedBorder: OutlineInputBorder(
+                          borderRadius: BorderRadius.circular(6),
+                          borderSide: BorderSide(color: Colors.blue, width: 2),
+                        ),
+                      ),
+                    ),
+                  )
+                    ],
+                  ),
+                ),
+              ],
+            ),
+
+
 
             // Save / Cancel buttons in edit mode
             if (_isEditMode) ...[
@@ -428,7 +501,7 @@ class _EquipmentMaterialCardState extends State<EquipmentMaterialCard> {
         margin: const EdgeInsets.only(bottom: 10),
         padding: const EdgeInsets.all(8),
         decoration: BoxDecoration(
-          color: Colors.white,
+          color: Colors.grey.shade50,
           border: Border.all(color: Colors.grey.shade400),
           borderRadius: BorderRadius.circular(10),
         ),
@@ -616,6 +689,9 @@ class _EquipmentMaterialCardState extends State<EquipmentMaterialCard> {
         return m.circumference3;
       case EquipmentFieldType.zHeight:
         return m.zHeight;
+        case EquipmentFieldType.gSlantHeight:
+        return m.gSlantHeight;
+
     }
   }
 
@@ -635,15 +711,28 @@ class _EquipmentMaterialCardState extends State<EquipmentMaterialCard> {
         return widget.material.copyWith(circumference3: value);
       case EquipmentFieldType.zHeight:
         return widget.material.copyWith(zHeight: value);
+        case EquipmentFieldType.gSlantHeight:
+        return widget.material.copyWith(gSlantHeight: value);
+
     }
   }
 
   String _resolveConfigKey(String name) {
     final upper = name.toUpperCase().replaceAll(RegExp(r'\s*\(COPY\)'), '');
-    return equipmentFieldConfig.keys.firstWhere(
-          (k) => upper.startsWith(k),
-      orElse: () => 'DEFAULT',
-    );
+
+    // 1️⃣ Exact match first
+    if (equipmentFieldConfig.containsKey(upper)) {
+      return upper;
+    }
+
+    // 2️⃣ Then fallback to prefix match
+    for (final key in equipmentFieldConfig.keys) {
+      if (upper.startsWith(key)) {
+        return key;
+      }
+    }
+
+    return 'DEFAULT';
   }
 
   String _defaultUom(EquipmentFieldType type) {

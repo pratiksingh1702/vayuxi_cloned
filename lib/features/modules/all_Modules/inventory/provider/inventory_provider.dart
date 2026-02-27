@@ -52,26 +52,40 @@ final inventoryUsageRangeProvider = StreamProvider.family<
     DateTime? endDate,
     })
 >((ref, args) {
+
+  print("🟣 RANGE PROVIDER CALLED");
+  print("   Site: ${args.siteId}");
+  print("   Start: ${args.startDate}");
+  print("   End: ${args.endDate}");
+
   ref.watch(inventorySyncControllerProvider(args.siteId));
 
   final repo = ref.read(repositoryProvider);
 
   return repo.watchUsage(args.siteId).map((list) {
+    print("🔵 RAW USAGE COUNT: ${list.length}");
+
     final start = args.startDate;
     final end = args.endDate ?? start;
 
-    if (start == null) return list;
+    if (start == null) {
+      print("🟢 NO DATE FILTER APPLIED");
+      return list;
+    }
 
     final startDay = DateTime(start.year, start.month, start.day);
     final endDay = DateTime(end!.year, end.month, end.day, 23, 59, 59);
 
-    return list.where((u) {
+    final filtered = list.where((u) {
       return u.usageDate.isAfter(startDay.subtract(const Duration(seconds: 1))) &&
           u.usageDate.isBefore(endDay.add(const Duration(seconds: 1)));
     }).toList();
+
+    print("🟠 FILTERED COUNT: ${filtered.length}");
+
+    return filtered;
   });
 });
-
 
 final checkoutProvider =
 StreamProvider.family<List<InventoryCheckout>, String>((ref, siteId) {
@@ -167,10 +181,11 @@ final createInventoryProvider = FutureProvider.family<
     int? totalUnits,
     String? condition,
     String? remarks,
-    })>((ref, args) async {
-  final api = ref.read(inventoryApiProvider);
+    })>((ref, args) {
 
-  final result = await api.createInventory(
+  final repo = ref.read(repositoryProvider);
+
+  return repo.createInventory(
     siteId: args.siteId,
     name: args.name,
     categoryId: args.categoryId,
@@ -181,8 +196,6 @@ final createInventoryProvider = FutureProvider.family<
     condition: args.condition,
     remarks: args.remarks,
   );
-
-  return result;
 });
 final updateInventoryProvider = FutureProvider.family<
     Inventory,

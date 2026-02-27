@@ -203,38 +203,39 @@ class _DprWorkScreenState extends ConsumerState<DprWorkScreen> {
 
   // Generic date matching helper
   bool _matchesDate(DateTime createdAt) {
+    // 🔥 DO NOT convert to local
     final dprDate = DateTime(
       createdAt.year,
       createdAt.month,
       createdAt.day,
     );
 
-    // Priority 1: Range filter
     if (_selectedStartDate != null && _selectedEndDate != null) {
       final start = DateTime(
         _selectedStartDate!.year,
         _selectedStartDate!.month,
         _selectedStartDate!.day,
       );
+
       final end = DateTime(
         _selectedEndDate!.year,
         _selectedEndDate!.month,
         _selectedEndDate!.day,
       );
+
       return !dprDate.isBefore(start) && !dprDate.isAfter(end);
     }
 
-    // Priority 2: Single date filter
     if (selectedDate != null) {
       final selected = DateTime(
         selectedDate!.year,
         selectedDate!.month,
         selectedDate!.day,
       );
+
       return dprDate == selected;
     }
 
-    // Priority 3: No filter
     return true;
   }
 
@@ -250,6 +251,67 @@ class _DprWorkScreenState extends ConsumerState<DprWorkScreen> {
       return 'Layer: ${insulationDpr.layer}  •  '
           'Size: ${insulationDpr.size}  •  '
           'Location: ${insulationDpr.location}';
+    }
+  }
+  Future<void> _deleteDpr(dynamic dpr) async {
+    final workType = ref.read(typeProvider);
+
+    final confirmed = await showDialog<bool>(
+      context: context,
+      builder: (_) => AlertDialog(
+        title: const Text("Delete Work"),
+        content: const Text(
+          "Are you sure you want to delete this work?\n\nThis action cannot be undone.",
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(context, false),
+            child: const Text("Cancel"),
+          ),
+          TextButton(
+            onPressed: () => Navigator.pop(context, true),
+            style: TextButton.styleFrom(foregroundColor: Colors.red),
+            child: const Text("Delete"),
+          ),
+        ],
+      ),
+    );
+
+    if (confirmed != true) return;
+
+    try {
+      if (workType == WorkType.mechanical) {
+        await ref.read(dprProvider.notifier).deleteDpr(dpr.id);
+
+        // 🔥 REMOVE LOCALLY IN PROVIDER
+        ref.read(dprProvider.notifier).removeLocalDpr(dpr.id);
+
+      } else {
+        // await InsulationDprApi.deleteInsulationDpr(dpr.id);
+
+        // 🔥 REMOVE LOCALLY FROM LIST
+        setState(() {
+          insulationList.removeWhere((item) => item.id == dpr.id);
+        });
+      }
+
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(
+            content: Text("DPR deleted successfully"),
+            backgroundColor: Colors.red,
+          ),
+        );
+      }
+    } catch (e) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text("Delete failed: $e"),
+            backgroundColor: Colors.red,
+          ),
+        );
+      }
     }
   }
 
@@ -284,12 +346,12 @@ class _DprWorkScreenState extends ConsumerState<DprWorkScreen> {
 
       if (dprState.data != null) {
         final list = dprState.data as List<DprModel>;
-        filteredList = list.where((dpr) => _matchesDate(dpr.createdAt)).toList();
+        filteredList = list.where((dpr) => _matchesDate(dpr.date)).toList();
       }
     } else {
       isLoading = isLoadingInsulation;
       error = insulationError;
-      filteredList = insulationList.where((dpr) => _matchesDate(dpr.createdAt)).toList();
+      filteredList = insulationList.where((dpr) => _matchesDate(dpr.date)).toList();
     }
 
     return Scaffold(
@@ -612,25 +674,47 @@ class _DprWorkScreenState extends ConsumerState<DprWorkScreen> {
                           ),
                         ),
 
-                        trailing: Column(
-                          mainAxisAlignment: MainAxisAlignment.center,
-                          crossAxisAlignment: CrossAxisAlignment.end,
+                        trailing: Row(
+                          mainAxisSize: MainAxisSize.min,
                           children: [
-                            Text(
-                              DateFormat('MMM dd').format(
-                                workType == WorkType.mechanical
-                                    ? (dpr as DprModel).createdAt
-                                    : (dpr as InsulationDprModel).createdAt,
-                              ),
-                              style: TextStyle(
-                                fontSize: 10,
-                                color: Colors.grey.shade500,
-                              ),
+                            Column(
+                              mainAxisAlignment: MainAxisAlignment.center,
+                              crossAxisAlignment: CrossAxisAlignment.end,
+                              children: [
+                                Text(
+                                  DateFormat('MMM dd').format(
+                                    DateTime(
+                                      (workType == WorkType.mechanical
+                                          ? (dpr as DprModel).createdAt
+                                          : (dpr as InsulationDprModel).createdAt)
+                                          .year,
+                                      (workType == WorkType.mechanical
+                                          ? (dpr as DprModel).createdAt
+                                          : (dpr as InsulationDprModel).createdAt)
+                                          .month,
+                                      (workType == WorkType.mechanical
+                                          ? (dpr as DprModel).createdAt
+                                          : (dpr as InsulationDprModel).createdAt)
+                                          .day,
+                                    ),
+                                  ),
+                                  style: TextStyle(
+                                    fontSize: 10,
+                                    color: Colors.grey.shade500,
+                                  ),
+                                ),
+                                const SizedBox(height: 4),
+                                const Icon(
+                                  Icons.arrow_forward_ios,
+                                  size: 12,
+                                  color: Colors.grey,
+                                ),
+                              ],
                             ),
-                            const Icon(
-                              Icons.arrow_forward_ios,
-                              size: 12,
-                              color: Colors.grey,
+                            const SizedBox(width: 8),
+                            IconButton(
+                              icon: const Icon(Icons.delete_outline, color: Colors.red),
+                              onPressed: () => _deleteDpr(dpr),
                             ),
                           ],
                         ),

@@ -16,6 +16,7 @@ import 'package:untitled2/core/utlis/widgets/date_picker.dart';
 import 'package:untitled2/features/modules/all_Modules/dpr/screens/widgets/select_card.dart';
 import 'package:untitled2/typeProvider/type_provider.dart';
 import '../../../../../core/utlis/widgets/buttons.dart';
+import '../../../../../core/utlis/widgets/sidebar.dart';
 import '../model/expense_model.dart';
 import '../service/expense_service.dart';
 
@@ -538,6 +539,7 @@ class _ExpenseReportScreenState extends ConsumerState<ExpenseReportScreen> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
+      drawer: const CustomDrawer(),
       backgroundColor: AppColors.lightBlue,
       appBar: CustomAppBar(title: "Generate Expense Report"),
       body: BottomButtonWrapper(

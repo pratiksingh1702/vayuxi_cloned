@@ -8,6 +8,7 @@ import 'inventory_repo.dart';
 final inventorySyncControllerProvider =
 Provider.family<InventorySyncController, String>((ref, siteId) {
   final repo = ref.read(repositoryProvider);
+  print("🚀 SYNC CONTROLLER CREATED for $siteId");
 
   final controller = InventorySyncController(repo, siteId);
 
@@ -29,6 +30,7 @@ class InventorySyncController {
   void _init() {
     // initial attempt
     runSync();
+
 
     // listen for internet return
     _sub = Connectivity().onConnectivityChanged.listen((r) {

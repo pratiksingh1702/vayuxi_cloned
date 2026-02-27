@@ -3,6 +3,7 @@ import 'dart:io';
 import 'package:dio/dio.dart';
 
 import '../../../../../core/api/dio.dart';
+import '../models/floorModel.dart';
 
 class FloorApi {
   final Dio dio = DioClient.dio;
@@ -15,29 +16,43 @@ class FloorApi {
     );
   }
 
-  /// CREATE FLOOR
   Future<Response> createFloor({
     required String name,
-    required String siteId,
-    bool isApplied=false,
+    required String rateUploadId,
+    required List<Floor> existingFloorsWithImages,
     File? image,
   }) async {
     final formData = FormData.fromMap({
-      'name': name,
-      'siteId': siteId,
-      "isApplied": isApplied,
+      "floorNames[]": [
+        ...existingFloorsWithImages.map((e) => e.name),
+        name,
+      ],
+      "hasFloor": true,
+    });
 
-      if (image != null)
-        'image': await MultipartFile.fromFile(
+    // Existing floors — send their server URLs
+    for (int i = 0; i < existingFloorsWithImages.length; i++) {
+      final existing = existingFloorsWithImages[i];
+      if (existing.image.startsWith('http')) {
+        formData.fields.add(MapEntry("floorImageUrls[$i]", existing.image));
+      }
+    }
+
+    // New floor image as file
+    if (image != null) {
+      formData.files.add(MapEntry(
+        "floorImages",
+        await MultipartFile.fromFile(
           image.path,
           filename: image.path.split('/').last,
         ),
-    });
+      ));
+    }
 
-    return dio.post(
-      '/floor',
+    return await dio.put(
+      "/rate-upload/$rateUploadId/detected-fields",
       data: formData,
-      options: Options(contentType: 'multipart/form-data'),
+      options: Options(contentType: "multipart/form-data"),
     );
   }
 

@@ -1,31 +1,31 @@
-import 'package:dio/dio.dart';
+
 import '../../../../../core/api/dio.dart';
+import '../data/model_enums.dart';
 
+import 'package:untitled2/core/api/dio.dart';
 
-class SummaryAPI {
-  static final dio = DioClient.dio;
+class SummaryService {
+  static final _dio = DioClient.dio;
 
-  /// Fetch Insulation Summary
-  static Future<List<dynamic>> fetchInsulationSummary({
-    required int month,
-    required String year,
+  static Future<List<SiteSummaryModel>> fetchSummary({
+    required String type, // 'mechnical' or 'insulation'
+    required SummaryFilterType filterType,
+    String? year,
+    int? month,
+    String? date, // 'yyyy-MM-dd' for daily/weekly
   }) async {
-    final res = await dio.get(
-      '/summery-sheet/insulation',
-      queryParameters: {'month': month, 'year': year},
-    );
-    return res.data;
-  }
+    final query = <String, dynamic>{
+      'filterType': filterType.name,
+      if (year != null) 'year': year,
+      if (month != null && filterType == SummaryFilterType.monthly) 'month': month,
+      if (date != null &&
+          (filterType == SummaryFilterType.daily ||
+              filterType == SummaryFilterType.weekly))
+        'date': date,
+    };
 
-  /// Fetch Mechanical Summary
-  static Future<List<dynamic>> fetchMechanicalSummary({
-    required int month,
-    required String year,
-  }) async {
-    final res = await dio.get(
-      '/summery-sheet/mechnical',
-      queryParameters: {'month': month, 'year': year},
-    );
-    return res.data;
+    final res = await _dio.get('/summery-sheet/$type', queryParameters: query);
+    final List data = res.data;
+    return data.map((e) => SiteSummaryModel.fromJson(e, filterType)).toList();
   }
 }

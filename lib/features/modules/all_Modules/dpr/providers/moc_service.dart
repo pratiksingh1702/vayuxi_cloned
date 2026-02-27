@@ -8,23 +8,22 @@ class MocApi {
   /// CREATE MOC (POST)
   Future<Response> createMoc({
     required String name,
-    required String siteId,
-    bool? isApplied ,
+    required String rateUploadId,   // 🔥 IMPORTANT (based on your API structure)
+    bool isApplied = false,
     File? image,
   }) async {
     final formData = FormData.fromMap({
-      "name": name,
-      "siteId": siteId,
-      "isApplied": isApplied.toString(),
+      "mocNames[]": name,                // 🔥 backend expects array
+      "hasMoc": true,
       if (image != null)
-        "image": await MultipartFile.fromFile(
+        "mocImages": await MultipartFile.fromFile(
           image.path,
           filename: image.path.split('/').last,
         ),
     });
 
-    return await dio.post(
-      "/moc",
+    return await dio.put(
+      "/rate-upload/$rateUploadId/detected-fields",
       data: formData,
       options: Options(
         contentType: "multipart/form-data",

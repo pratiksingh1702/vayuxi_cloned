@@ -78,20 +78,29 @@ class FloorNotifier extends StateNotifier<FloorState> {
   Future<void> create({
     required String name,
     required String siteId,
-    bool isApplied=false,
+    required String rateuploadId,
+    required List<Floor> existingFloors, // 🔥
     File? image,
   }) async {
-    final res = await api.createFloor(
-      name: name,
-      siteId: siteId,
-      image: image,
-      isApplied: isApplied,
-    );
+    state = state.copyWith(isLoading: true);
+    try {
+      final res = await api.createFloor(
+        name: name,
+        rateUploadId: rateuploadId,
+        existingFloorsWithImages: existingFloors,
+        image: image,
+      );
 
-    final floor = Floor.fromJson(res.data);
-    state = state.copyWith(floors: [...state.floors, floor]);
+      final floor = Floor.fromJson(res.data['data'] ?? res.data);
+
+      state = state.copyWith(
+        floors: [...state.floors, floor],
+        isLoading: false,
+      );
+    } catch (e) {
+      state = state.copyWith(isLoading: false, error: e.toString());
+    }
   }
-
   /// UPDATE
   Future<void> update({
     required String floorId,

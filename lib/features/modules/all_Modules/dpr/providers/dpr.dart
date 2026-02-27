@@ -171,6 +171,21 @@ class DprNotifier extends StateNotifier<DprState> {
   //     state = state.copyWith(isLoading: false, error: e.toString());
   //   }
   // }
+  Future<void> deleteDpr(String id) async {
+    try {
+      await DprApi.deleteDpr(id);
+    } catch (e) {
+      rethrow;
+    }
+  }
+  void removeLocalDpr(String id) {
+    if (state.data == null) return;
+
+    final current = List<DprModel>.from(state.data as List<DprModel>);
+    current.removeWhere((dpr) => dpr.id == id);
+
+    state = state.copyWith(data: current);
+  }
 }
 
 // Provider

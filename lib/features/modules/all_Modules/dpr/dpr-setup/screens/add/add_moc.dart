@@ -6,12 +6,17 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:untitled2/core/utlis/colors/colors.dart';
 import 'package:untitled2/core/utlis/widgets/custom_appBar.dart';
 import 'package:untitled2/features/modules/all_Modules/site_Details/providers/site_current_provider.dart';
+import '../../../../../../../core/local/isar_db.dart';
 import '../../../../../../../core/utlis/widgets/fields/custom_textField.dart';
 import '../../../../../../../core/utlis/widgets/file_upload.dart';
 import '../../../../../../../core/utlis/widgets/image_clipped.dart';
+import '../../../../../../../core/utlis/widgets/sidebar.dart';
 import '../../../models/moc.dart';
+import '../../../offline/mech/repo/rate_Repo.dart';
 import '../../../providers/mocProvider.dart';
 import 'package:file_picker/file_picker.dart';
+
+import '../../../providers/rate_variant_provider.dart';
 
 class AddMOCPage extends ConsumerStatefulWidget {
   final MOC? moc;
@@ -86,13 +91,28 @@ class _AddMOCPageState extends ConsumerState<AddMOCPage> {
         if (_selectedImage == null) {
           throw 'Image required';
         }
+        final rateFileMeta = ref.read(rateFileMetaProvider(siteID));
+
+
+
+
+
+        final rateUploadId = rateFileMeta['rateFileId'] as String?;
+        // In _submitForm, inside the CREATE block:
+        final existingMocs = ref.read(mocWithImagesProvider(siteID));
 
         await ref.read(mocProvider.notifier).create(
           name: name,
           siteId: siteID,
-          isApplied: _isApplied,
           image: _selectedImage!,
+          rateuploadId: rateUploadId!,
+          existingMocs: existingMocs, // 🔥 pass existing list
         );
+
+        final repo = RateRepository(AppIsarDB.isar);
+        await repo.syncRateFile(siteID);
+
+        ref.invalidate(rateFileAnalysisProvider(siteID));
       } else {
         // ================= UPDATE =================
         await ref.read(mocProvider.notifier).update(
@@ -105,7 +125,8 @@ class _AddMOCPageState extends ConsumerState<AddMOCPage> {
 
       if (!mounted) return;
       Navigator.pop(context, true);
-    } catch (e) {
+    } catch (e, stackTrace) {
+      print(stackTrace);
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(content: Text(e.toString()), backgroundColor: Colors.red),
       );
@@ -119,7 +140,7 @@ class _AddMOCPageState extends ConsumerState<AddMOCPage> {
   Widget build(BuildContext context) {
     return Scaffold(
       resizeToAvoidBottomInset: false,
-
+      drawer: const CustomDrawer(),
       appBar:CustomAppBar(title: "Add MOC"),
       backgroundColor: AppColors.lightBlue,
       body: CornerClippedScreenSimple(

@@ -21,6 +21,7 @@ class DprModel {
   final List<EquipmentItem> equipment;
   final List<String> designation;
   final DateTime createdAt;
+  final DateTime date;
   final DateTime updatedAt;
 
   DprModel({
@@ -38,6 +39,7 @@ class DprModel {
     required this.designation,
     required this.createdAt,
     required this.updatedAt,
+    required this.date,
   });
 
   factory DprModel.fromJson(Map<String, dynamic> json) {
@@ -94,6 +96,7 @@ class DprModel {
           return EquipmentItem.empty();
         }),
         designation: parseDesignation(json['designation']),
+        date: DateTime.parse(safeString(json['date'])),
         createdAt: DateTime.parse(safeString(json['createdAt'])),
         updatedAt: DateTime.parse(safeString(json['updatedAt'])),
       );
@@ -104,6 +107,9 @@ class DprModel {
       rethrow;
     }
   }
+
+
+
 }
 class MaterialEditResult {
   final String name;

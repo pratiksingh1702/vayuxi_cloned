@@ -110,7 +110,7 @@ class EquipmentMaterial extends BaseMaterial {
 
   @override
   Map<String, dynamic> toJson() {
-    return {'id': id,
+    return {'_id': id,
 
       'name': name,
       'image': image,

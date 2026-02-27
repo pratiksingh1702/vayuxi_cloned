@@ -13,6 +13,7 @@ import 'package:untitled2/features/modules/all_Modules/dpr/screens/widgets/floor
 import 'package:untitled2/features/modules/all_Modules/dpr/screens/widgets/moc_selection_page.dart';
 
 import '../../../../../../../core/local/isar_db.dart';
+import '../../../../../../../core/utlis/widgets/sidebar.dart';
 import '../../../../site_Details/providers/site_current_provider.dart';
 import '../../../dpr_insu/screens/all_insulation_material.dart';
 import '../../../providers/rate_variant_provider.dart';
@@ -27,11 +28,13 @@ class ViewSelectCardGrid extends ConsumerWidget {
   Widget build(BuildContext context, WidgetRef ref) {
     final siteId = ref.watch(selectedSiteIdProvider)!;
 
-    final floors = ref.watch(floorListDetectedProvider(siteId));
+    final floors = ref.watch(floorWithImagesProvider(siteId));
+    print(floors);
     final elevations = ref.watch(elevationListDetectedProvider(siteId));
     final mocs = ref.watch(mocListDetectedProvider(siteId)); // if you add this
 
     return Scaffold(
+      drawer: const CustomDrawer(),
       backgroundColor: AppColors.lightBlue,
       appBar: CustomAppBar(title: "Select Dpr Values"),
       body: BottomButtonWrapper(

@@ -12,6 +12,7 @@ import '../../../../../core/utlis/widgets/buttons.dart';
 import '../../../../../core/utlis/widgets/fields/custom_textField.dart';
 import '../../../../../core/utlis/widgets/fields/searchableDropdown.dart';
 
+import '../../../../../core/utlis/widgets/sidebar.dart';
 import '../../Manpower Details/model/manpower_model.dart';
 import '../../Manpower Details/service/manPowerProvider.dart';
 import '../model/expense_model.dart';
@@ -368,6 +369,7 @@ class _ExpenseFormScreenState extends ConsumerState<ExpenseFormScreen> {
           label: "Invoice Number",
           controller: _invoiceNumberController,
           hint: "Enter invoice number",
+
         ),
         const SizedBox(height: 16),
         CustomTextField(
@@ -491,7 +493,7 @@ class _ExpenseFormScreenState extends ConsumerState<ExpenseFormScreen> {
         const SizedBox(height: 16),
         CustomTextField(
           label: "Rate (Rs.)",
-          isRequired: true,
+
           controller: _rateController,
           hint: "0.00",
           keyboardType: TextInputType.number,
@@ -499,6 +501,7 @@ class _ExpenseFormScreenState extends ConsumerState<ExpenseFormScreen> {
         const SizedBox(height: 16),
         CustomTextField(
           label: "Invoice Balance (Rs.)",
+          isRequired: true,
           controller: _balanceController,
           hint: "0.00",
           keyboardType: TextInputType.number,
@@ -762,6 +765,7 @@ class _ExpenseFormScreenState extends ConsumerState<ExpenseFormScreen> {
   Widget build(BuildContext context) {
     final lang=ref.read(dailyEntryTranslationHelperProvider);
     return Scaffold(
+      drawer: const CustomDrawer(),
       resizeToAvoidBottomInset: false,
       appBar: CustomAppBar(title: _getScreenTitle()),
       backgroundColor: AppColors.lightBlue,
@@ -777,17 +781,17 @@ class _ExpenseFormScreenState extends ConsumerState<ExpenseFormScreen> {
               width: null,
             ),
           ),
-          if (_isEditing)
-            CustomButton(
-              button: RoundedButton(
-                text: "Remove",
-                color: Colors.red,
-                textColor: Colors.red,
-                onPressed: _isLoading ? (){} : _deleteExpense,
-                isOutlined: true,
-                width: null,
-              ),
-            ),
+          // if (_isEditing)
+          //   CustomButton(
+          //     button: RoundedButton(
+          //       text: "Remove",
+          //       color: Colors.red,
+          //       textColor: Colors.red,
+          //       onPressed: _isLoading ? (){} : _deleteExpense,
+          //       isOutlined: true,
+          //       width: null,
+          //     ),
+          //   ),
         ],
         showBackButton: true,
         onBackPressed: _isLoading ? null : () => Navigator.pop(context),

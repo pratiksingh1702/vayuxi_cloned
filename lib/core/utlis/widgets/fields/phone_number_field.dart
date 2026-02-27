@@ -26,10 +26,7 @@ class PhoneInputField extends StatelessWidget {
                 color: Colors.black87,
               ),
               children: [
-                TextSpan(
-                  text: ' *',
-                  style: TextStyle(color: Colors.red),
-                ),
+
               ],
             ),
           ),

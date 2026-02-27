@@ -8,6 +8,7 @@ import 'package:untitled2/core/utlis/widgets/custom_appBar.dart';
 import 'package:untitled2/features/language/service/providers.dart';
 import '../../../../../../core/utlis/widgets/custom_dropdown.dart';
 import '../../../../../../core/utlis/widgets/fields/custom_textField.dart';
+import '../../../../../../core/utlis/widgets/sidebar.dart';
 import '../../../site_Details/providers/site_current_provider.dart';
 import '../../models/inventory_model.dart';
 import '../../offline/repo/inventory_sync.dart';
@@ -484,6 +485,7 @@ class _InventorySelectionPageState
     return Scaffold(
       resizeToAvoidBottomInset: false,
       backgroundColor: AppColors.lightBlue,
+      drawer: const CustomDrawer(),
       appBar: CustomAppBar(title: "Inventory usage"),
       body: BottomButtonWrapper(
 

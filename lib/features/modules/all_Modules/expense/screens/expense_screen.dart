@@ -6,6 +6,7 @@ import 'package:untitled2/core/utlis/widgets/buttons.dart';
 import 'package:untitled2/core/utlis/widgets/image_clipped.dart';
 import 'package:untitled2/typeProvider/type_provider.dart';
 import '../../../../../core/utlis/widgets/custom.dart';
+import '../../../../../core/utlis/widgets/sidebar.dart';
 import '../model/expense_model.dart';
 import '../service/expense_service.dart';
 import 'genericFormScreen.dart';
@@ -214,6 +215,7 @@ class _ExpenseListScreenState extends ConsumerState<ExpenseListScreen> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
+      drawer: const CustomDrawer(),
       body: NestedScrollView(
         headerSliverBuilder: (context, innerBoxIsScrolled) {
           return [
@@ -345,9 +347,11 @@ class _ExpenseListScreenState extends ConsumerState<ExpenseListScreen> {
         ? "Unknown"
         : expense.expenseType!;
 
-    final amountText = expense.amount == null
-        ? "N/A"
-        : "₹${expense.amount!.toStringAsFixed(2)}";
+    final amountText = expense.amount != null
+        ? "₹${expense.amount!.toStringAsFixed(2)}"
+        : expense.rate != null
+        ? "₹${expense.rate!.toStringAsFixed(2)}"
+        : "N/A";
 
     return Stack(
       children: [
