@@ -2,6 +2,7 @@ import 'package:dropdown_search/dropdown_search.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:table_calendar/table_calendar.dart';
+import 'package:untitled2/core/utlis/app_toasts.dart';
 import 'package:untitled2/core/utlis/colors/colors.dart';
 import 'package:untitled2/core/utlis/widgets/Button_wrapper.dart';
 import 'package:untitled2/core/utlis/widgets/buttons.dart';
@@ -717,13 +718,9 @@ class _CheckoutManagementPageState
 
                             ref.invalidate(checkoutProvider(siteId));
                             ref.invalidate(inventorySyncControllerProvider(siteId));
+                            AppToast.success("Item retuned successfully");
+                            
 
-                            ScaffoldMessenger.of(context).showSnackBar(
-                              const SnackBar(
-                                content: Text("Item returned successfully!"),
-                                backgroundColor: Colors.green,
-                              ),
-                            );
                           } catch (e) {
                             ScaffoldMessenger.of(context).showSnackBar(
                               SnackBar(

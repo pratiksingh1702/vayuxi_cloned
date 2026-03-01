@@ -33,7 +33,7 @@ class CustomDropdownField<T> extends StatelessWidget {
             text: TextSpan(
               text: label,
               style: const TextStyle(
-                fontSize: 20,
+                fontSize: 14,
                 fontWeight: FontWeight.w500,
                 color: Colors.black87,
               ),

@@ -9,6 +9,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import 'package:untitled2/features/modules/all_Modules/rate/data/rateApi.dart';
 import 'package:untitled2/typeProvider/type_provider.dart';
+import '../../../../../../../core/local/isar_db.dart';
 import '../../../../../../../core/utlis/colors/colors.dart';
 import '../../../../../../../core/utlis/common_functions.dart';
 import '../../../../../../../core/utlis/widgets/custom_appBar.dart';
@@ -24,6 +25,7 @@ import '../../../models/data/piping_provider.dart';
 import '../../../models/equipmentModel.dart';
 import '../../../models/pipingModel.dart';
 import '../../../models/rate_file_models.dart';
+import '../../../offline/mech/repo/rate_Repo.dart';
 import '../../../providers/dprService.dart';
 import '../../../providers/material_service.dart';
 import '../../../providers/rate_variant_provider.dart';
@@ -41,6 +43,7 @@ class PersistDPRScreen extends ConsumerStatefulWidget {
   final String? teamId;
   final bool isRateUploadMaterial;
   final String? rateUploadId;
+  final bool isMaterialStore;
 
 
   const PersistDPRScreen({
@@ -54,7 +57,7 @@ class PersistDPRScreen extends ConsumerStatefulWidget {
     this.siteId,
     this.teamId,
     this.isRateUploadMaterial = true,
-    this.rateUploadId,
+    this.rateUploadId,  bool this.isMaterialStore=false,
   });
 
   @override
@@ -351,6 +354,7 @@ class _PersistDPRScreenState extends ConsumerState<PersistDPRScreen> {
       }
 
       final formData = FormData.fromMap({
+        "isMaterialStore": widget.isMaterialStore,
         "materialName": _materialNameController.text.trim(),
         "uom": _uomController.text.trim(),
         "designation": _selectedDesignation,
@@ -363,6 +367,52 @@ class _PersistDPRScreenState extends ConsumerState<PersistDPRScreen> {
             filename: imageFile.path.split('/').last,
           ),
       });
+      final isDraftMode = widget.isDpr && widget.dprId.isEmpty;
+
+      if (isDraftMode) {
+        final newId = _generateObjectId();
+
+        if (_selectedDesignation == "piping") {
+          final newItem = PipingItem.base(
+            id: newId,
+            materialName: _materialNameController.text.trim(),
+            image: _imagePath ?? "",
+            uom: _uomController.text.trim(),
+            calculationCategory: _calculationCategory!,
+          ).copyWith(
+            dynamicFields: _dynamicFields,
+            designation: const ["piping"],
+            rawMaterialName: _materialNameController.text.trim(),
+            normalizedMaterialName:
+            _materialNameController.text.trim().toLowerCase(),
+          );
+
+          ref.read(pipingMaterialsProvider.notifier).addMaterial(newItem);
+        }
+        //
+        // if (_selectedDesignation == "equipment") {
+        //   final newItem = EquipmentItem.base(
+        //     id: newId,
+        //     materialName: _materialNameController.text.trim(),
+        //     image: _imagePath ?? "",
+        //     uom: _uomController.text.trim(),
+        //     calculationCategory: _calculationCategory!,
+        //   ).copyWith(
+        //     dynamicFields: _dynamicFields,
+        //     designation: const ["equipment"],
+        //     rawMaterialName: _materialNameController.text.trim(),
+        //     normalizedMaterialName:
+        //     _materialNameController.text.trim().toLowerCase(),
+        //   );
+        //
+        //   ref.read(equipmentMaterialsProvider.notifier).addMaterial(newItem);
+        // }
+
+        _showSuccess("Material added locally (Draft Mode)");
+
+        if (mounted) Navigator.pop(context, true);
+        return;
+      }
       final isNewDpr = widget.dprId.isEmpty;
 
       // 🔥 If NO DPR ID → local draft mode
@@ -425,6 +475,18 @@ class _PersistDPRScreenState extends ConsumerState<PersistDPRScreen> {
         dprId: widget.dprId,
         formData: formData,
       );
+      if(widget.isMaterialStore){
+        final siteId=ref.read(selectedSiteIdProvider)!;
+        final repo = RateRepository(AppIsarDB.isar);
+        await repo.syncRateFile(siteId);
+
+        ref.invalidate(rateFileAnalysisProvider(siteId));
+        ref.invalidate(approvedPipingMaterialsProvider(siteId));
+        ref.invalidate(approvedEquipmentMaterialsProvider(siteId));
+        ref.invalidate(suggestedPipingMaterialsProvider(siteId));
+        ref.invalidate(suggestedEquipmentMaterialsProvider(siteId));
+        ref.invalidate(allRateVariantsProvider);
+      }
 
       if (response["success"] != true) {
         _showError("Failed to add material");

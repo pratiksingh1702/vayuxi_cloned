@@ -134,7 +134,7 @@ class PipingMaterialsNotifier extends StateNotifier<List<PipingItem>> {
         );
 
         // Update in Hive
-        HiveStorageService.updatePipingMaterial(id, updatedMaterial);
+        // HiveStorageService.updatePipingMaterial(id, updatedMaterial);
 
         return updatedMaterial;
       }

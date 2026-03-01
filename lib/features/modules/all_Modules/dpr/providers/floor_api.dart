@@ -1,4 +1,5 @@
 // services/floor_api.dart
+import 'dart:convert';
 import 'dart:io';
 import 'package:dio/dio.dart';
 
@@ -17,37 +18,49 @@ class FloorApi {
   }
 
   Future<Response> createFloor({
-    required String name,
     required String rateUploadId,
+    required String newFloorName,
+    required List<String> existingFloorNames,
     required List<Floor> existingFloorsWithImages,
-    File? image,
+    File? newImage,
   }) async {
-    final formData = FormData.fromMap({
-      "floorNames[]": [
-        ...existingFloorsWithImages.map((e) => e.name),
-        name,
-      ],
+    final isAddingNew = newFloorName.trim().isNotEmpty;
+
+    // If adding → append
+    // If editing/deleting → just use provided list as-is
+    final allFloors = isAddingNew
+        ? [...existingFloorNames, newFloorName]
+        : existingFloorNames;
+
+    final Map<String, dynamic> formMap = {
       "hasFloor": true,
-    });
 
-    // Existing floors — send their server URLs
-    for (int i = 0; i < existingFloorsWithImages.length; i++) {
-      final existing = existingFloorsWithImages[i];
-      if (existing.image.startsWith('http')) {
-        formData.fields.add(MapEntry("floorImageUrls[$i]", existing.image));
-      }
+      /// FULL FINAL LIST
+      "floors": jsonEncode(allFloors),
+
+      /// Only send new name if actually adding
+      "floorNames": isAddingNew
+          ? jsonEncode([newFloorName])
+          : jsonEncode([]),
+
+      /// Existing objects only (already modified if edit/delete)
+      "floorsWithImages": jsonEncode(
+        existingFloorsWithImages.map((e) => {
+          "name": e.name,
+          "image": e.image,
+        }).toList(),
+      ),
+    };
+
+    // Only attach image when adding new
+    if (isAddingNew && newImage != null) {
+      formMap["floorImages"] = await MultipartFile.fromFile(
+        newImage.path,
+        filename: newImage.path.split('/').last,
+      );
     }
 
-    // New floor image as file
-    if (image != null) {
-      formData.files.add(MapEntry(
-        "floorImages",
-        await MultipartFile.fromFile(
-          image.path,
-          filename: image.path.split('/').last,
-        ),
-      ));
-    }
+    final formData = FormData.fromMap(formMap);
 
     return await dio.put(
       "/rate-upload/$rateUploadId/detected-fields",

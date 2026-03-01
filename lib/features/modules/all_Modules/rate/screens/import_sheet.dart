@@ -185,7 +185,7 @@ class _ImportCsvScreenState extends ConsumerState<ImportCsvScreen> {
                             .downloadAndSaveTemplate(TemplateModel.rate);
 
                         if (!context.mounted) return;
-                        AppToast.success("✅ Saved: ${file?.path}");
+                        AppToast.success("✅ Saved: ${file}");
                       },
                     ),
                   ),

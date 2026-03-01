@@ -29,7 +29,7 @@ class TeamNotifier extends StateNotifier<TeamState> {
   }) async {
     if (siteId.isEmpty) return;
 
-    state = state.copyWith(isLoading: true, error: null);
+    state = state.copyWith(isLoading: true, error: null,teams: null);
 
     try {
       // Normal teams

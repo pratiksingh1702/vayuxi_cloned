@@ -14,6 +14,7 @@ extension TemplateModelX on TemplateModel {
         return "site";
       case TemplateModel.manpower:
         return "manpower";
+
       case TemplateModel.rate:
         return "rate";
     }
@@ -23,12 +24,13 @@ extension TemplateModelX on TemplateModel {
     switch (this) {
       case TemplateModel.inventory:
         return "inventory_template.csv";
+
       case TemplateModel.site:
         return "site_template.xlsx";
       case TemplateModel.manpower:
         return "manpower_template.xlsx";
       case TemplateModel.rate:
-        return "rate_template.xlsx";
+        return "rate_template.csv";
     }
   }
 

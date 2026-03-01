@@ -5,6 +5,7 @@ import 'package:showcaseview/showcaseview.dart';
 import 'package:untitled2/core/utlis/app_toasts.dart';
 import 'package:untitled2/core/utlis/widgets/buttons.dart';
 import 'package:untitled2/core/utlis/widgets/custom_appBar.dart';
+import 'package:untitled2/core/utlis/widgets/sidebar.dart';
 import 'package:untitled2/features/language/service/providers.dart';
 import 'package:untitled2/features/modules/all_Modules/site_Details/screens/site_entry_select_page.dart';
 
@@ -208,6 +209,7 @@ class _SiteListScreenState extends ConsumerState<SiteListScreen>
           runTourForRoute("/site-list/site", showcaseContext);
         });
         return Scaffold(
+          drawer: const CustomDrawer(),
           body: NestedScrollView(
             headerSliverBuilder: (context, innerBoxIsScrolled) {
               return [

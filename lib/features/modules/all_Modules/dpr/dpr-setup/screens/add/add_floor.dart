@@ -87,16 +87,19 @@ class _AddFloorPageState extends ConsumerState<AddFloorPage> {
 
 
 
-        final rateUploadId = rateFileMeta['rateFileId'] as String?;
+        final rateUploadId = rateFileMeta['rateFileId'];
+        final existingNames =
+        ref.read(floorListDetectedProvider(siteID));
         // Inside CREATE block:
         final existingFloors = ref.read(floorWithImagesProvider(siteID));
 
         await ref.read(floorProvider.notifier).create(
           name: name,
-          siteId: siteID,
+          rateUploadId: rateUploadId,
+          existingFloorNames: existingNames,
+          existingFloorsWithImages: existingFloors,
           image: _selectedImage!,
-          rateuploadId: rateUploadId!,
-          existingFloors: existingFloors, // 🔥
+      // 🔥
         );
         final repo = RateRepository(AppIsarDB.isar);
         await repo.syncRateFile(siteID);
@@ -104,12 +107,43 @@ class _AddFloorPageState extends ConsumerState<AddFloorPage> {
         ref.invalidate(rateFileAnalysisProvider(siteID));
       } else {
         // ================= UPDATE =================
-        await ref.read(floorProvider.notifier).update(
-          floorId: widget.floor!.id,
-          name: name,
-          isApplied: _isApplied,
-          image: _selectedImage, // nullable
+        final siteID = ref.read(selectedSiteIdProvider)!;
+        final rateFileMeta = ref.read(rateFileMetaProvider(siteID));
+        final rateUploadId = rateFileMeta['rateFileId'];
+
+        final existingNames =
+        ref.read(floorListDetectedProvider(siteID));
+
+        final existingFloors =
+        ref.read(floorWithImagesProvider(siteID));
+
+        final updatedNames = existingNames.map((e) {
+          return e == widget.floor!.name ? name : e;
+        }).toList();
+
+        final updatedFloors = existingFloors.map((e) {
+          if (e.name == widget.floor!.name) {
+            return Floor(
+              id: e.id,
+              name: name,
+              image: _selectedImage != null
+                  ? _selectedImage!.path
+             : e.image,
+              isApplied: false, isDeleted: false, createdAt:DateTime.now(),updatedAt:DateTime.now(),
+            );
+          }
+          return e;
+        }).toList();
+
+        await ref.read(floorProvider.notifier).create(
+          name: "",
+          rateUploadId: rateUploadId,
+          existingFloorNames: updatedNames,
+          existingFloorsWithImages: updatedFloors,
+          image: null,
         );
+
+        ref.invalidate(rateFileAnalysisProvider(siteID));
       }
 
       if (!mounted) return;

@@ -2,6 +2,7 @@
 import 'dart:io';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../models/floorModel.dart';
+import '../models/rate_file_models.dart';
 import 'floor_api.dart';
 
 class FloorState {
@@ -77,18 +78,19 @@ class FloorNotifier extends StateNotifier<FloorState> {
   /// CREATE
   Future<void> create({
     required String name,
-    required String siteId,
-    required String rateuploadId,
-    required List<Floor> existingFloors, // 🔥
+    required String rateUploadId,
+    required List<Floor> existingFloorsWithImages,
+    required List<String> existingFloorNames,
     File? image,
   }) async {
     state = state.copyWith(isLoading: true);
     try {
       final res = await api.createFloor(
-        name: name,
-        rateUploadId: rateuploadId,
-        existingFloorsWithImages: existingFloors,
-        image: image,
+        rateUploadId: rateUploadId,
+        newFloorName: name,
+        existingFloorNames: existingFloorNames,
+        existingFloorsWithImages: existingFloorsWithImages,
+        newImage: image,
       );
 
       final floor = Floor.fromJson(res.data['data'] ?? res.data);

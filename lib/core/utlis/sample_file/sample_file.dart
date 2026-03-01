@@ -12,6 +12,7 @@ class TemplatesApiService {
   /// GET /api/v1/templates/download?model=manpower
   /// GET /api/v1/templates/download?model=rate
   Future<Uint8List> downloadTemplate({
+
     required String model,
   }) async {
     final response = await dio.get(
@@ -20,10 +21,14 @@ class TemplatesApiService {
       options: Options(
         responseType: ResponseType.bytes, // ✅ must for download
         followRedirects: true,
-        receiveTimeout: const Duration(seconds: 120),
-      ),
-    );
+        receiveTimeout: const Duration(seconds: 120),  headers: {
+        "Accept": "text/csv",
+      },
 
+      ),
+
+    );
+    print(response.headers);
     return Uint8List.fromList(response.data);
   }
 }

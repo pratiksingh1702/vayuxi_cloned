@@ -348,7 +348,7 @@ class _DprTeamScreenState extends ConsumerState<DprTeamScreen> {
                                   ),
                                   const SizedBox(height: 10),
                                   Text(
-                                    team.teamName,
+                                    team.isDefaultTeam?'Default team':team.teamName ?? '',
                                     style: const TextStyle(
                                       fontWeight: FontWeight.w600,
                                       fontSize: 15,

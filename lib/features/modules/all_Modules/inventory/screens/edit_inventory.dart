@@ -1,6 +1,8 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../../../../core/utlis/colors/colors.dart';
+import '../../../../../core/utlis/widgets/Button_wrapper.dart';
+import '../../../../../core/utlis/widgets/buttons.dart';
 import '../../../../../core/utlis/widgets/custom_appBar.dart';
 import '../../../../../core/utlis/widgets/fields/custom_textField.dart';
 import '../../../../../core/utlis/widgets/sidebar.dart';
@@ -41,12 +43,22 @@ class _EditInventoryScreenState extends ConsumerState<EditInventoryScreen> {
           widget.inventory.minimumStockLevel?.toString() ?? "";
       _uomController.text = widget.inventory.uom ?? "";
     } else {
-      _quantityController.text =
-          widget.inventory.totalUnits?.toString() ?? "";
+      _quantityController.text = widget.inventory.totalUnits?.toString() ?? "";
+      _uomController.text = widget.inventory.uom ?? "";
     }
   }
 
-  Future<void> _updateInventory() async {
+  @override
+  void dispose() {
+    _nameController.dispose();
+    _quantityController.dispose();
+    _minStockController.dispose();
+    _uomController.dispose();
+    _remarksController.dispose();
+    super.dispose();
+  }
+
+  Future<void> _submit() async {
     final siteId = ref.read(selectedSiteIdProvider);
     if (siteId == null) return;
 
@@ -60,9 +72,7 @@ class _EditInventoryScreenState extends ConsumerState<EditInventoryScreen> {
       siteId: siteId,
       inventoryId: widget.inventory.id,
       name: _nameController.text.trim(),
-      uom: widget.inventory.type == "consumable"
-          ? _uomController.text.trim()
-          : null,
+      uom: _uomController.text.trim(),
       minimumStockLevel: widget.inventory.type == "consumable"
           ? double.tryParse(_minStockController.text)
           : null,
@@ -72,106 +82,196 @@ class _EditInventoryScreenState extends ConsumerState<EditInventoryScreen> {
       remarks: _remarksController.text.trim().isEmpty
           ? null
           : _remarksController.text.trim(),
-      ) as ({String? condition, String inventoryId, double? minimumStockLevel, String? name, String? remarks, String siteId, int? totalUnits, String? uom})).future);
+      condition: null,
+      ) as ({
+      String? condition,
+      String inventoryId,
+      double? minimumStockLevel,
+      String? name,
+      String? remarks,
+      String siteId,
+      int? totalUnits,
+      String? uom
+      })).future);
 
       ref.invalidate(inventoryProvider(siteId));
 
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text("Updated successfully")),
-      );
-
+      _success("Updated successfully");
       Navigator.pop(context, true);
     } catch (e) {
-      ScaffoldMessenger.of(context)
-          .showSnackBar(SnackBar(content: Text("Failed: $e")));
+      _error("Failed: $e");
     }
   }
 
   @override
   Widget build(BuildContext context) {
+    final isConsumable = widget.inventory.type == "consumable";
+
     return Scaffold(
       appBar: CustomAppBar(title: "Edit Inventory"),
       drawer: const CustomDrawer(),
       backgroundColor: AppColors.lightBlue,
-      body: Padding(
-        padding: const EdgeInsets.all(16),
-        child: Form(
-          key: _formKey,
+      body: BottomButtonWrapper(
+        key: _formKey,
+        customButtons: [
+          CustomButton(
+            button: RoundedButton(
+              text: "Update",
+              color: Colors.blue,
+              textColor: Colors.white,
+              onPressed: _submit,
+            ),
+          ),
+        ],
+        child: Padding(
+          padding: const EdgeInsets.all(8.0),
           child: ListView(
             children: [
-              // ---------------- NAME ----------------
+              // ---------- CATEGORY (read-only display) ----------
+              _ReadOnlyField(
+                label: "Category",
+                value:  widget.inventory.type,
+                icon: Icons.category,
+              ),
+
+              const SizedBox(height: 16),
+
+              // ---------- NAME ----------
               CustomTextField(
-                label: "Item Name",
+                label: 'Inventory Name',
+                isRequired: true,
                 controller: _nameController,
-                isRequired: true,
-                prefixIcon: const Icon(Icons.edit),
               ),
 
               const SizedBox(height: 16),
 
-              // ---------------- QUANTITY / UNITS ----------------
-              CustomTextField(
-                label: widget.inventory.type == "consumable"
-                    ? 'Total Quantity Added'
-                    : 'Total Units',
-                isRequired: true,
-                controller: _quantityController,
-                keyboardType: TextInputType.number,
-                prefixIcon: const Icon(Icons.format_list_numbered),
-              ),
-
-              const SizedBox(height: 16),
-
-              // ---------------- UOM (only consumable) ----------------
-              if (widget.inventory.type == "consumable") ...[
-                CustomTextField(
-                  label: 'Unit of Measure',
-                  isRequired: true,
-                  controller: _uomController,
-                  prefixIcon: const Icon(Icons.safety_check),
+              // ---------- CONSUMABLE FIELDS ----------
+              if (isConsumable) ...[
+                Row(
+                  children: [
+                    Expanded(
+                      child: CustomTextField(
+                        label: 'Quantity',
+                        isRequired: true,
+                        controller: _quantityController,
+                        keyboardType: TextInputType.number,
+                      ),
+                    ),
+                    const SizedBox(width: 12),
+                    Expanded(
+                      child: CustomTextField(
+                        label: 'UOM',
+                        isRequired: true,
+                        controller: _uomController,
+                      ),
+                    ),
+                  ],
                 ),
                 const SizedBox(height: 16),
-              ],
-
-              // ---------------- MIN STOCK (only consumable) ----------------
-              if (widget.inventory.type == "consumable") ...[
                 CustomTextField(
                   label: 'Minimum Stock Level',
                   isRequired: true,
                   controller: _minStockController,
                   keyboardType: TextInputType.number,
-                  prefixIcon: const Icon(Icons.warning_amber),
                 ),
-                const SizedBox(height: 16),
               ],
 
-              // ---------------- REMARKS ----------------
+              // ---------- FIXED FIELDS ----------
+              if (!isConsumable) ...[
+                Row(
+                  children: [
+                    Expanded(
+                      child: CustomTextField(
+                        label: 'Total Units',
+                        isRequired: true,
+                        controller: _quantityController,
+                        keyboardType: TextInputType.number,
+                      ),
+                    ),
+                    const SizedBox(width: 12),
+                    Expanded(
+                      child: CustomTextField(
+                        label: 'UOM',
+                        isRequired: true,
+                        controller: _uomController,
+                      ),
+                    ),
+                  ],
+                ),
+              ],
+
+              const SizedBox(height: 16),
+
+              // ---------- REMARKS ----------
               CustomTextField(
                 label: 'Remarks',
                 controller: _remarksController,
                 maxLines: 3,
-                hint: "Optional",
               ),
 
               const SizedBox(height: 24),
-
-              ElevatedButton(
-                onPressed: _updateInventory,
-                style: ElevatedButton.styleFrom(
-                  backgroundColor: Colors.blue.shade700,
-                  padding: const EdgeInsets.symmetric(vertical: 16),
-                  shape: RoundedRectangleBorder(
-                      borderRadius: BorderRadius.circular(8)),
-                ),
-                child: const Text(
-                  "Update Inventory",
-                  style: TextStyle(color: Colors.white, fontSize: 16),
-                ),
-              ),
             ],
           ),
         ),
       ),
+    );
+  }
+
+  void _success(String m) => ScaffoldMessenger.of(context).showSnackBar(
+    SnackBar(content: Text(m), backgroundColor: Colors.green),
+  );
+  void _error(String m) => ScaffoldMessenger.of(context).showSnackBar(
+    SnackBar(content: Text(m), backgroundColor: Colors.red),
+  );
+}
+
+// ---------------------------------------------------------------------------
+// Read-only field to display category (non-editable, matches form style)
+// ---------------------------------------------------------------------------
+
+class _ReadOnlyField extends StatelessWidget {
+  final String label;
+  final String value;
+  final IconData icon;
+
+  const _ReadOnlyField({
+    required this.label,
+    required this.value,
+    required this.icon,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Text(
+          label,
+          style: const TextStyle(fontSize: 13, fontWeight: FontWeight.w500),
+        ),
+        const SizedBox(height: 6),
+        Container(
+          width: double.infinity,
+          padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 14),
+          decoration: BoxDecoration(
+            color: Colors.grey.shade200,
+            borderRadius: BorderRadius.circular(8),
+            border: Border.all(color: Colors.grey.shade400),
+          ),
+          child: Row(
+            children: [
+              Icon(icon, size: 18, color: Colors.grey.shade600),
+              const SizedBox(width: 10),
+              Text(
+                value,
+                style: TextStyle(fontSize: 15, color: Colors.grey.shade700),
+              ),
+              const Spacer(),
+              Icon(Icons.lock_outline, size: 16, color: Colors.grey.shade400),
+            ],
+          ),
+        ),
+      ],
     );
   }
 }

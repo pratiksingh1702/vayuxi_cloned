@@ -8,6 +8,8 @@ import '../../../../../../core/utlis/widgets/custom_appBar.dart';
 import '../../../../../language/service/providers.dart';
 
 import '../../../site_Details/providers/site_current_provider.dart';
+import '../../dpr-setup/screens/add/add_floor.dart';
+import '../../providers/floorProvider.dart';
 import '../../providers/selection_provider.dart';
 import '../../providers/rate_variant_provider.dart';
 
@@ -55,6 +57,64 @@ class _FloorSelectionPageState extends ConsumerState<FloorSelectionPage> {
   void dispose() {
     _searchController.dispose();
     super.dispose();
+  }
+  Future<void> _deleteFloor(Floor floor) async {
+    final siteId = ref.read(selectedSiteIdProvider)!;
+
+    final confirm = await showDialog<bool>(
+      context: context,
+      builder: (_) => AlertDialog(
+        title: const Text("Delete Floor"),
+        content: Text("Are you sure you want to delete ${floor.name}?"),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(context, false),
+            child: const Text("Cancel"),
+          ),
+          TextButton(
+            onPressed: () => Navigator.pop(context, true),
+            child: const Text("Delete", style: TextStyle(color: Colors.red)),
+          ),
+        ],
+      ),
+    );
+
+    if (confirm != true) return;
+
+    try {
+      final rateFileMeta = ref.read(rateFileMetaProvider(siteId));
+      final rateUploadId = rateFileMeta['rateFileId'];
+
+      final existingNames =
+      ref.read(floorListDetectedProvider(siteId));
+
+      final existingFloors =
+      ref.read(floorWithImagesProvider(siteId));
+
+      final updatedNames =
+      existingNames.where((e) => e != floor.name).toList();
+
+      final updatedFloors =
+      existingFloors.where((e) => e.name != floor.name).toList();
+
+      await ref.read(floorProvider.notifier).create(
+        name: "", // important → no new addition
+        rateUploadId: rateUploadId,
+        existingFloorNames: updatedNames,
+        existingFloorsWithImages: updatedFloors,
+        image: null,
+      );
+
+      ref.invalidate(rateFileAnalysisProvider(siteId));
+
+    } catch (e) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text(e.toString()),
+          backgroundColor: Colors.red,
+        ),
+      );
+    }
   }
 
   List<Floor> _filterFloors(List<Floor> floors) {
@@ -222,8 +282,25 @@ class _FloorSelectionPageState extends ConsumerState<FloorSelectionPage> {
                                 : 1,
                             child: FloorCard(
                               floor: floor,
+                              showEditButton: widget.showEditOptions,
                               isSelected:
                               !_isSelectionMode && isSelected,
+                              onEdit: () async {
+                                final result = await Navigator.push(
+                                  context,
+                                  MaterialPageRoute(
+                                    builder: (_) => AddFloorPage(floor: floor),
+                                  ),
+                                );
+
+                                if (result == true) {
+                                  ref.invalidate(rateFileAnalysisProvider(siteId));
+                                }
+                              },
+
+                              onDelete: () async {
+                                await _deleteFloor(floor);
+                              },
                               onTap: () {
                                 if (_isSelectionMode) {
                                   _toggleFloorSelection(floor.id);

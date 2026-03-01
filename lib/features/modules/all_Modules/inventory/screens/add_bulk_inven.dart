@@ -70,7 +70,7 @@ class _BulkUploadScreenState extends ConsumerState<BulkUploadScreen> {
                               .downloadAndSaveTemplate(TemplateModel.inventory);
 
                           if (!context.mounted) return;
-                          AppToast.success("✅ Saved: ${file?.path}");
+                          AppToast.success("✅ Saved: ${file}");
                         },
                       ),
                     ),

@@ -12,6 +12,7 @@ import '../../../../../../../core/utlis/widgets/file_upload.dart';
 import '../../../../../../../core/utlis/widgets/image_clipped.dart';
 import '../../../../../../../core/utlis/widgets/sidebar.dart';
 import '../../../models/moc.dart';
+import '../../../models/rate_file_models.dart';
 import '../../../offline/mech/repo/rate_Repo.dart';
 import '../../../providers/mocProvider.dart';
 import 'package:file_picker/file_picker.dart';
@@ -88,39 +89,70 @@ class _AddMOCPageState extends ConsumerState<AddMOCPage> {
 
       if (widget.moc == null) {
         // ================= CREATE =================
-        if (_selectedImage == null) {
-          throw 'Image required';
-        }
-        final rateFileMeta = ref.read(rateFileMetaProvider(siteID));
+
+        final rateFileMeta = ref.watch(rateFileMetaProvider(siteID));
 
 
 
 
 
-        final rateUploadId = rateFileMeta['rateFileId'] as String?;
+        final rateUploadId = rateFileMeta['rateFileId'] ;
         // In _submitForm, inside the CREATE block:
-        final existingMocs = ref.read(mocWithImagesProvider(siteID));
+        final existingNames =
+        ref.read(mocListDetectedProvider(siteID));
+
+        final existingWithImages =
+        ref.read(mocWithImagesProvider(siteID));
 
         await ref.read(mocProvider.notifier).create(
           name: name,
-          siteId: siteID,
+          rateUploadId: rateUploadId,
+          existingMocNames: existingNames,
+          existingMocsWithImages: existingWithImages,
           image: _selectedImage!,
-          rateuploadId: rateUploadId!,
-          existingMocs: existingMocs, // 🔥 pass existing list
         );
-
         final repo = RateRepository(AppIsarDB.isar);
         await repo.syncRateFile(siteID);
 
         ref.invalidate(rateFileAnalysisProvider(siteID));
-      } else {
+      }
+      else {
         // ================= UPDATE =================
-        await ref.read(mocProvider.notifier).update(
-          mocId: widget.moc!.id,
-          name: name,
-          isApplied: _isApplied,
-          image: _selectedImage, // nullable
+        final siteID = ref.read(selectedSiteIdProvider)!;
+        final rateFileMeta = ref.read(rateFileMetaProvider(siteID));
+        final rateUploadId = rateFileMeta['rateFileId'];
+
+        final existingNames =
+        ref.read(mocListDetectedProvider(siteID));
+
+        final existingWithImages =
+        ref.read(mocWithImagesProvider(siteID));
+
+        final updatedNames = existingNames.map((e) {
+          return e == widget.moc!.name ? name : e;
+        }).toList();
+
+        final updatedWithImages = existingWithImages.map((e) {
+          if (e.name == widget.moc!.name) {
+            return NamedImage(
+              name: name,
+              image: _selectedImage != null
+                  ? _selectedImage!.path
+                  : e.image,
+            );
+          }
+          return e;
+        }).toList();
+
+        await ref.read(mocProvider.notifier).create(
+          name: "", // no new addition
+          rateUploadId: rateUploadId,
+          existingMocNames: updatedNames,
+          existingMocsWithImages: updatedWithImages,
+          image: null,
         );
+
+        ref.invalidate(rateFileAnalysisProvider(siteID));
       }
 
       if (!mounted) return;

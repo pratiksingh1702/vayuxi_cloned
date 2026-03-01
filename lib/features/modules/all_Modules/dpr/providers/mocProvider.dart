@@ -74,30 +74,28 @@ class MOCNotifier extends StateNotifier<MOCState> {
   /// CREATE
   Future<void> create({
     required String name,
-    required String siteId,
-    required String rateuploadId,
-    required List<NamedImage> existingMocs, //
-
+    required String rateUploadId,
+    required List<NamedImage> existingMocsWithImages,
+    required List<String> existingMocNames,
     File? image,
   }) async {
     state = state.copyWith(isLoading: true);
 
     try {
-      final res = await api.createMoc(
-        name: name,
-
-
-        image: image, rateUploadId: rateuploadId,
+      await api.createMoc(
+        rateUploadId: rateUploadId,
+        newMocName: name,
+        existingMocs: existingMocNames,
+        existingMocsWithImages: existingMocsWithImages,
+        newImage: image,
       );
 
-      final moc = MOC.fromJson(res.data['data'] ?? res.data);
-
-      state = state.copyWith(
-        mocs: [...state.mocs, moc],
-        isLoading: false,
-      );
+      state = state.copyWith(isLoading: false);
     } catch (e) {
-      state = state.copyWith(isLoading: false, error: e.toString());
+      state = state.copyWith(
+        isLoading: false,
+        error: e.toString(),
+      );
     }
   }
 

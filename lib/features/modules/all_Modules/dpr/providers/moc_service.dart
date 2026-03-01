@@ -1,33 +1,54 @@
+import 'dart:convert';
 import 'dart:io';
 import 'package:dio/dio.dart';
 import 'package:untitled2/core/api/dio.dart';
+
+import '../models/rate_file_models.dart';
 
 class MocApi {
   final Dio dio = DioClient.dio;
 
   /// CREATE MOC (POST)
   Future<Response> createMoc({
-    required String name,
-    required String rateUploadId,   // 🔥 IMPORTANT (based on your API structure)
-    bool isApplied = false,
-    File? image,
+    required String rateUploadId,
+    required String newMocName,
+    required List<String> existingMocs,
+    required List<NamedImage> existingMocsWithImages,
+    File? newImage,
   }) async {
-    final formData = FormData.fromMap({
-      "mocNames[]": name,                // 🔥 backend expects array
+
+    final isAddingNew = newMocName.trim().isNotEmpty;
+
+    final allMocs = isAddingNew
+        ? [...existingMocs, newMocName]
+        : existingMocs;
+
+    final formMap = {
       "hasMoc": true,
-      if (image != null)
-        "mocImages": await MultipartFile.fromFile(
-          image.path,
-          filename: image.path.split('/').last,
-        ),
-    });
+      "mocs": jsonEncode(allMocs),
+      "mocsWithImages":
+      jsonEncode(existingMocsWithImages.map((e) => e.toJson()).toList()),
+    };
+
+    if (isAddingNew) {
+      formMap["mocNames"] = jsonEncode([newMocName]);
+    } else {
+      formMap["mocNames"] = jsonEncode([]); // 👈 important
+    }
+
+    if (isAddingNew && newImage != null) {
+      formMap["mocImages"] = await MultipartFile.fromFile(
+        newImage.path,
+        filename: newImage.path.split('/').last,
+      );
+    }
+
+    final formData = FormData.fromMap(formMap);
 
     return await dio.put(
       "/rate-upload/$rateUploadId/detected-fields",
       data: formData,
-      options: Options(
-        contentType: "multipart/form-data",
-      ),
+      options: Options(contentType: "multipart/form-data"),
     );
   }
 

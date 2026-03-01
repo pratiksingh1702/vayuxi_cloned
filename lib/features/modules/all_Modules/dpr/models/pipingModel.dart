@@ -2,6 +2,7 @@ import 'package:untitled2/features/modules/all_Modules/dpr/models/rate_file_mode
 
 class PipingItem {
   final String id;
+  final String lineItemId; // 🔥 NEW
 
   // 🔥 MATERIAL NAMES (IMPORTANT FOR TRACEABILITY)
   final String rawMaterialName;
@@ -42,6 +43,7 @@ class PipingItem {
 
   const PipingItem({
     required this.id,
+    this.lineItemId = '', // 🔥 NEW
     required this.rawMaterialName,
     required this.normalizedMaterialName,
     required this.materialName,
@@ -76,7 +78,8 @@ class PipingItem {
 
   factory PipingItem.fromJson(Map<String, dynamic> json) {
     return PipingItem(
-      id: json['_id'] ?? json['id'] ?? '',
+      id: json['_id'] ?? json['id'] ?? json['lineItemId'] ?? '',
+      lineItemId: json['lineItemId'] ?? '', // 🔥 NEW
       rawMaterialName: json['rawMaterialName'] ?? '',
       normalizedMaterialName: json['normalizedMaterialName'] ?? '',
       materialName: json['materialName'] ?? '',
@@ -127,14 +130,13 @@ class PipingItem {
 
     return PipingItem(
       id: rateMaterial.id,
+      lineItemId: '', // 🔥 NEW
       rawMaterialName: rateMaterial.rawMaterialName,
       normalizedMaterialName: rateMaterial.normalizedMaterialName,
       materialName: rateMaterial.MaterialName,
       image: rateMaterial.image,
       qty: 0,
-      uom: rateMaterial.uom.isNotEmpty
-          ? rateMaterial.uom
-          : variant.uom,
+      uom: rateMaterial.uom.isNotEmpty ? rateMaterial.uom : variant.uom,
       length: 0,
       rmt: 0,
       diameter: 0,
@@ -144,9 +146,7 @@ class PipingItem {
       elevation: variant.elevation,
       actualRate: variant.rate,
       rate: variant.rate,
-      moc: variant.moc.isNotEmpty
-          ? variant.moc
-          : rateMaterial.normalizedMoc,
+      moc: variant.moc.isNotEmpty ? variant.moc : rateMaterial.normalizedMoc,
       size: size,
       location: variant.floor,
       plant: '',
@@ -167,6 +167,7 @@ class PipingItem {
   Map<String, dynamic> toJson() {
     return {
       'id': id,
+      'lineItemId': lineItemId, // 🔥 NEW
       'rawMaterialName': rawMaterialName,
       'normalizedMaterialName': normalizedMaterialName,
       'materialName': materialName,
@@ -189,8 +190,7 @@ class PipingItem {
       'designation': designation,
       'calculationCategory': calculationCategory,
       'remarks': remarks,
-      'dynamicFields':
-      dynamicFields.map((e) => e.toJson()).toList(),
+      'dynamicFields': dynamicFields.map((e) => e.toJson()).toList(),
       'isFromRateFile': isFromRateFile,
       'rateFileId': rateFileId,
       'rateVariantId': rateVariantId,
@@ -203,6 +203,7 @@ class PipingItem {
 
   PipingItem copyWith({
     String? id,
+    String? lineItemId, // 🔥 NEW
     String? rawMaterialName,
     String? normalizedMaterialName,
     String? materialName,
@@ -232,6 +233,7 @@ class PipingItem {
   }) {
     return PipingItem(
       id: id ?? this.id,
+      lineItemId: lineItemId ?? this.lineItemId, // 🔥 NEW
       rawMaterialName: rawMaterialName ?? this.rawMaterialName,
       normalizedMaterialName:
       normalizedMaterialName ?? this.normalizedMaterialName,
@@ -253,8 +255,7 @@ class PipingItem {
       location: location ?? this.location,
       plant: plant ?? this.plant,
       designation: designation ?? this.designation,
-      calculationCategory:
-      calculationCategory ?? this.calculationCategory,
+      calculationCategory: calculationCategory ?? this.calculationCategory,
       remarks: remarks ?? this.remarks,
       dynamicFields: dynamicFields ?? this.dynamicFields,
       isFromRateFile: isFromRateFile ?? this.isFromRateFile,
@@ -269,6 +270,7 @@ class PipingItem {
 
   static PipingItem empty() => const PipingItem(
     id: '',
+    lineItemId: '', // 🔥 NEW
     rawMaterialName: '',
     normalizedMaterialName: '',
     materialName: '',
@@ -294,6 +296,7 @@ class PipingItem {
     remarks: '',
     isFromRateFile: false,
   );
+
   static PipingItem base({
     required String id,
     required String materialName,
@@ -304,6 +307,7 @@ class PipingItem {
   }) {
     return PipingItem(
       id: id,
+      lineItemId: '', // 🔥 NEW
       rawMaterialName: materialName,
       normalizedMaterialName: materialName.toLowerCase().trim(),
       materialName: materialName,

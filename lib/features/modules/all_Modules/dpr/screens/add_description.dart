@@ -93,6 +93,7 @@ class _AddDescriptionScreenState extends ConsumerState<AddDescriptionScreen>
   bool get isCreatingDpr => _mechanicalId == null;
   bool get isEditingDpr => _mechanicalId != null;
   bool get isEditing => _mechanicalId != null;
+  Set<String> _updatingMaterialIds = {};
 
 
   @override
@@ -877,31 +878,140 @@ class _AddDescriptionScreenState extends ConsumerState<AddDescriptionScreen>
     return seconds + randomPart + counter;
   }
 
-  /// ✅ LOCAL DELETE (no API)
-  void deleteDprMaterialLocal({
+  Future<void> deleteDprMaterialLocal({
     required String materialId,
     required bool isPiping,
-  }) {
+  }) async {
     if (!_isEditable) {
       _showEditRequiredMessage();
       return;
     }
 
+    final scope = await _askMaterialScope();
+    if (scope == null) return;
+
+    // 🔥 Start spinner immediately
+    setState(() {
+      _updatingMaterialIds.add(materialId);
+    });
+
+    bool apiFailed = false;
+
+    try {
+      if (_mechanicalId != null) {
+        await DprApi().deleteMaterial(
+          mechanicalId: _mechanicalId!,
+          materialId: materialId,
+          designation: isPiping ? "piping" : "equipment",
+          isMaterialStore: scope,
+        );
+      }
+    } catch (e, st) {
+      apiFailed = true;
+
+      print("❌ Delete API failed: $e");
+      print(st);
+
+      final error = extractBackendError(e);
+      AppToast.info(
+        "$error\nDeleted locally. Will sync on final DPR save.",
+      );
+    }
+
+    // ✅ ALWAYS DELETE LOCALLY (even if API fails)
     if (isPiping) {
       final notifier = ref.read(pipingMaterialsProvider.notifier);
       final materials = ref.read(pipingMaterialsProvider);
 
-      final updated = materials.where((m) => m.id != materialId).toList();
-      notifier.setMaterials(updated);
+      notifier.setMaterials(
+        materials.where((m) => m.id != materialId).toList(),
+      );
     } else {
       final notifier = ref.read(equipmentMaterialsProvider.notifier);
       final materials = ref.read(equipmentMaterialsProvider);
 
-      final updated = materials.where((m) => m.id != materialId).toList();
-      notifier.setMaterials(updated);
+      notifier.setMaterials(
+        materials.where((m) => m.id != materialId).toList(),
+      );
     }
 
-    _showSnackBar('Material deleted');
+    if (!apiFailed) {
+      _showSnackBar('Material deleted');
+    }
+
+    // 🔥 Always stop spinner
+    if (mounted) {
+      setState(() {
+        _updatingMaterialIds.remove(materialId);
+      });
+    }
+  }
+  Future<bool?> _askMaterialScope() async {
+    return showDialog<bool>(
+      context: context,
+      barrierDismissible: false,
+      builder: (context) {
+        return Dialog(
+          backgroundColor: Colors.white,
+          elevation: 0,
+          shape: const RoundedRectangleBorder(
+            borderRadius: BorderRadius.zero, // 🔥 sharp edges
+          ),
+          child: Container(
+            padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 20),
+            color: Colors.white, // 🔥 pure white
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                const Text(
+                  "Apply Changes",
+                  style: TextStyle(
+                    fontSize: 18,
+                    fontWeight: FontWeight.bold,
+                    color: Colors.black,
+                  ),
+                ),
+                const SizedBox(height: 16),
+                const Text(
+                  "Are these changes permanent or only for this DPR?",
+                  style: TextStyle(
+                    fontSize: 14,
+                    color: Colors.black87,
+                  ),
+                ),
+                const SizedBox(height: 24),
+                Row(
+                  mainAxisAlignment: MainAxisAlignment.end,
+                  children: [
+                    TextButton(
+                      style: TextButton.styleFrom(
+                        foregroundColor: Colors.black,
+                      ),
+                      onPressed: () => Navigator.pop(context, false),
+                      child: const Text("Only This DPR"),
+                    ),
+                    const SizedBox(width: 12),
+                    ElevatedButton(
+                      style: ElevatedButton.styleFrom(
+                        backgroundColor: Colors.black,
+                        foregroundColor: Colors.white,
+                        shape: const RoundedRectangleBorder(
+                          borderRadius: BorderRadius.zero, // sharp button
+                        ),
+                        elevation: 0,
+                      ),
+                      onPressed: () => Navigator.pop(context, true),
+                      child: const Text("Permanent"),
+                    ),
+                  ],
+                ),
+              ],
+            ),
+          ),
+        );
+      },
+    );
   }
   Future<void> copyDprMaterialLocal({
     required dynamic material,
@@ -913,117 +1023,87 @@ class _AddDescriptionScreenState extends ConsumerState<AddDescriptionScreen>
       return;
     }
 
-    try {
-      String? newId;
+    final scope = await _askMaterialScope();
+    if (scope == null) return;
 
-      // 🔥 1️⃣ Try backend copy if DPR exists
+    // 🔥 Start per-material loading
+    setState(() {
+      _updatingMaterialIds.add(material.id);
+    });
+
+    String? newId;
+    bool apiFailed = false;
+
+    try {
       if (_mechanicalId != null) {
         final response = await DprApi.copyDprMaterial(
           dprId: _mechanicalId!,
           matId: material.id,
+          isMaterialStore: scope,
         );
 
-        final backendItems = response;
-
-        final materials = isPiping
-            ? ref.read(pipingMaterialsProvider)
-            : ref.read(equipmentMaterialsProvider);
-
-        // final newBackendItem = backendItems.firstWhere(
-        //       (b) => !materials.any((m) => m.id == b.id),
-        //   orElse: () => null,
-        // );
-        final newBackendItem = null;
-
-        if (newBackendItem != null) {
-          newId = newBackendItem.id;
+        if (response != null && response['data'] != null) {
+          newId = response['data']['_id'];
         }
       }
+    } catch (e, st) {
+      apiFailed = true;
+      print("❌ Copy API failed: $e");
+      print(st);
 
-      // 🔥 2️⃣ If backend didn’t give ID → generate Mongo-style ID
-      newId ??= generateObjectId();
+      final error = extractBackendError(e);
+      AppToast.info(
+        "$error\nCopied locally. Will sync on final DPR save.",
+      );
+    }
 
-      // 🔥 3️⃣ Insert Locally
-      if (isPiping) {
-        if (material is! PipingItem) return;
+    // 🔥 Always generate local ID if backend didn’t return one
+    newId ??= generateObjectId();
 
-        final notifier = ref.read(pipingMaterialsProvider.notifier);
-        final materials = ref.read(pipingMaterialsProvider);
+    // 🔥 Always insert locally (optimistic)
+    if (isPiping && material is PipingItem) {
+      final notifier = ref.read(pipingMaterialsProvider.notifier);
+      final materials = ref.read(pipingMaterialsProvider);
 
-        final index = materials.indexWhere((m) => m.id == material.id);
-        if (index == -1) return;
+      final index = materials.indexWhere((m) => m.id == material.id);
+      if (index == -1) return;
 
-        final copied = material.copyWith(
-          id: newId,
-          materialName: '${material.materialName} (Copy)',
-        );
+      final copied = material.copyWith(
+        id: newId,
+        materialName: '${material.materialName} (Copy)',
+      );
 
-        final updated = [...materials];
-        updated.insert(index + 1, copied);
+      final updated = [...materials];
+      updated.insert(index + 1, copied);
 
-        notifier.setMaterials(updated);
-      } else {
-        if (material is! EquipmentItem) return;
+      notifier.setMaterials(updated);
+    } else if (!isPiping && material is EquipmentItem) {
+      final notifier = ref.read(equipmentMaterialsProvider.notifier);
+      final materials = ref.read(equipmentMaterialsProvider);
 
-        final notifier = ref.read(equipmentMaterialsProvider.notifier);
-        final materials = ref.read(equipmentMaterialsProvider);
+      final index = materials.indexWhere((m) => m.id == material.id);
+      if (index == -1) return;
 
-        final index = materials.indexWhere((m) => m.id == material.id);
-        if (index == -1) return;
+      final copied = material.copyWith(
+        id: newId,
+        materialName: '${material.materialName} (Copy)',
+      );
 
-        final copied = material.copyWith(
-          id: newId,
-          materialName: '${material.materialName} (Copy)',
-        );
+      final updated = [...materials];
+      updated.insert(index + 1, copied);
 
-        final updated = [...materials];
-        updated.insert(index + 1, copied);
+      notifier.setMaterials(updated);
+    }
 
-        notifier.setMaterials(updated);
-      }
-
+    if (!apiFailed) {
       _showSnackBar('Material copied');
-    } catch (e) {
-      // 🔥 If backend fails completely → fallback to local copy
-      try {
-        final fallbackId = generateObjectId();
+    }
 
-        if (isPiping && material is PipingItem) {
-          final notifier = ref.read(pipingMaterialsProvider.notifier);
-          final materials = ref.read(pipingMaterialsProvider);
-
-          final index = materials.indexWhere((m) => m.id == material.id);
-          if (index == -1) return;
-
-          final copied = material.copyWith(
-            id: fallbackId,
-            materialName: '${material.materialName} (Copy)',
-          );
-
-          final updated = [...materials];
-          updated.insert(index + 1, copied);
-          notifier.setMaterials(updated);
-        } else if (!isPiping && material is EquipmentItem) {
-          final notifier = ref.read(equipmentMaterialsProvider.notifier);
-          final materials = ref.read(equipmentMaterialsProvider);
-
-          final index = materials.indexWhere((m) => m.id == material.id);
-          if (index == -1) return;
-
-          final copied = material.copyWith(
-            id: fallbackId,
-            materialName: '${material.materialName} (Copy)',
-          );
-
-          final updated = [...materials];
-          updated.insert(index + 1, copied);
-          notifier.setMaterials(updated);
-        }
-
-        _showSnackBar('Material copied (offline)');
-      } catch (_) {
-        _showSnackBar('Copy failed');
-      }
+    // 🔥 Always stop spinner
+    if (mounted) {
+      setState(() {
+        _updatingMaterialIds.remove(material.id);
+      });
     }
   }
 
@@ -1952,7 +2032,8 @@ class _AddDescriptionScreenState extends ConsumerState<AddDescriptionScreen>
         key: ValueKey('piping_${material.id}_$index'),
         padding: const EdgeInsets.only(bottom: 12),
         child: MaterialCardWrapper(
-          isUpdating: false,
+
+          isUpdating: _updatingMaterialIds.contains(material.id),
           child: ExpandableMaterialCard(
             categoryId: editingMaterialId == material.id
                 ? draftCategoryId
@@ -1986,67 +2067,93 @@ class _AddDescriptionScreenState extends ConsumerState<AddDescriptionScreen>
               moc: _mocController.text,
 
               onSave: (result) async {
-                try {
-                  setState(() => _isLoading = true);
-                  print("🥲🥲🥲🥲🥲🥲 $draftCategoryId");
+                setState(() {
+                  _updatingMaterialIds.add(material.id);
+                });
 
+                bool apiFailed = false;
+
+                try {
                   final formData = FormData.fromMap({
                     "materialName": result.name,
                     "uom": result.uom,
                     "designation": material.designation,
                     "calculationCategory": draftCategoryId,
                     "isApplied": false,
-                    "dynamicFields":
-                    jsonEncode(result.fields.map((e) => e.toJson()).toList()),
-
+                    "dynamicFields": jsonEncode(
+                      result.fields.map((e) => e.toJson()).toList(),
+                    ),
                     if (result.imageFile != null)
                       "image": await MultipartFile.fromFile(
                         result.imageFile!.path,
                         filename: result.imageFile!.path.split('/').last,
                       ),
                   });
-                  print("📤 sending image = ${result.imageFile?.path}");
-                  print("📤 fields = ${jsonEncode(result.fields.map((e) => e.toJson()).toList())}");
-                 await  DprApi.updateDprItem(
+
+                  final response = await DprApi.updateDprItem(
                     dprId: _mechanicalId!,
                     itemId: material.id,
-                    data: formData,);
+                    data: formData,
+                  );
 
-                  final repo = RateRepository(AppIsarDB.isar);
-                  await repo.syncRateFile(siteId);
+                  final backendItems = (response.data['data']['piping'] as List)
+                      .map((e) => PipingItem.fromJson(e))
+                      .toList();
 
-                  ref.invalidate(rateFileAnalysisProvider(siteId));
-                  ref.invalidate(approvedPipingMaterialsProvider(siteId));
-                  ref.invalidate(approvedEquipmentMaterialsProvider(siteId));
-                  ref.invalidate(suggestedPipingMaterialsProvider(siteId));
-                  ref.invalidate(suggestedEquipmentMaterialsProvider(siteId));
+                  final updatedItem = backendItems.firstWhere(
+                        (e) => e.lineItemId == material.lineItemId,
+                    orElse: () => throw Exception(
+                      "Updated piping item not found for lineItemId: ${material.lineItemId}",
+                    ),
+                  );
+
                   final materials = ref.read(pipingMaterialsProvider);
 
-                  final updated = materials.map((m) {
-                    if (m.id == material.id) {
-                      return m.copyWith(
-                        dynamicFields: result.fields,
-                        materialName: result.name,
-                        uom: result.uom,
-                      );
+                  final updatedList = materials.map((m) {
+                    if (m.lineItemId == updatedItem.lineItemId) {
+                      return updatedItem; // 🔥 backend truth
                     }
                     return m;
                   }).toList();
 
+                  ref.read(pipingMaterialsProvider.notifier).state = updatedList;
 
-                  ref.read(pipingMaterialsProvider.notifier).state = updated;
-                  _applyHeaderValuesToMaterials();
+                } catch (e, st) {
+                  apiFailed = true;
 
-                  setState(() {
-                    editingMaterialId = null;
-                    draftCategoryId = null;
-                  });
-
-                } catch (e) {
                   print("❌ save failed $e");
-                } finally {
-                  setState(() => _isLoading = false);
+                  print(st);
+
+                  final error = extractBackendError(e);
+                  AppToast.info(
+                    "$error\nSaved locally. Will sync on final DPR save.",
+                  );
+
+                  // 🔥 LOCAL FALLBACK UPDATE
+                  final materials = ref.read(pipingMaterialsProvider);
+
+                  final updatedList = materials.map((m) {
+                    if (m.id != material.id) return m;
+
+                    return m.copyWith(
+                      materialName: result.name,
+                      uom: result.uom,
+                      calculationCategory: draftCategoryId,
+                      dynamicFields: result.fields,
+                      image: result.imageFile?.path ?? m.image,
+                    );
+                  }).toList();
+
+                  ref.read(pipingMaterialsProvider.notifier).state = updatedList;
                 }
+
+                _applyHeaderValuesToMaterials();
+
+                setState(() {
+                  editingMaterialId = null;
+                  draftCategoryId = null;
+                  _updatingMaterialIds.remove(material.id);
+                });
               },
               sizeLabel: '',
               sizePlaceholder: '',

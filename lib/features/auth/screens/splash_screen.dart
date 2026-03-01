@@ -43,16 +43,6 @@ class _SplashScreenState extends ConsumerState<SplashScreen> {
                   ),
                   const SizedBox(height: 20),
 
-                  Center(
-                    child: const Text(
-                      'Make in India 🇮🇳',
-                      style: TextStyle(
-                        fontSize: 22,
-                        fontWeight: FontWeight.bold,
-                        color: Colors.black,
-                      ),
-                    ),
-                  ),
                 ],
               ),
             ),
@@ -61,7 +51,7 @@ class _SplashScreenState extends ConsumerState<SplashScreen> {
             const Padding(
               padding: EdgeInsets.only(bottom: 20),
               child: Text(
-                'Made with ❤️ in India',
+                'Make in India 🇮🇳',
                 style: TextStyle(
                   fontSize: 16,
                   fontStyle: FontStyle.italic,

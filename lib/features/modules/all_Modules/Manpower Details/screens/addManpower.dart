@@ -618,7 +618,7 @@ class _NewManpowerScreenState extends ConsumerState<NewManpowerScreen> {
 
 
               CustomDropdownField<String>(
-                label: "Total Hour",
+                label: "Shift Hour",
 
                 value: _selectedTotalHour,
                 hint: "Select Total Working Hours",

@@ -12,7 +12,9 @@ import '../../../../../../features/language/service/providers.dart';
 
 
 import '../../../site_Details/providers/site_current_provider.dart';
+import '../../dpr-setup/screens/add/add_moc.dart';
 import '../../models/moc.dart';
+import '../../providers/mocProvider.dart';
 import '../../providers/rate_variant_provider.dart';
 import '../../providers/selection_provider.dart';
 import 'floor_selection_page.dart';
@@ -40,6 +42,65 @@ class MOCSelectionPage extends ConsumerStatefulWidget {
 
 class _MOCSelectionPageState extends ConsumerState<MOCSelectionPage> {
   String? _selectedMoc;
+
+  Future<void> _deleteMoc(MOC moc) async {
+    final siteId = ref.read(selectedSiteIdProvider)!;
+
+    final confirm = await showDialog<bool>(
+      context: context,
+      builder: (_) => AlertDialog(
+        title: const Text("Delete MOC"),
+        content: Text("Are you sure you want to delete ${moc.name}?"),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(context, false),
+            child: const Text("Cancel"),
+          ),
+          TextButton(
+            onPressed: () => Navigator.pop(context, true),
+            child: const Text("Delete", style: TextStyle(color: Colors.red)),
+          ),
+        ],
+      ),
+    );
+
+    if (confirm != true) return;
+
+    try {
+      final existingNames =
+      ref.read(mocListDetectedProvider(siteId));
+
+      final existingWithImages =
+      ref.read(mocWithImagesProvider(siteId));
+
+      final updatedNames =
+      existingNames.where((name) => name != moc.name).toList();
+
+      final updatedWithImages =
+      existingWithImages.where((e) => e.name != moc.name).toList();
+
+      final rateFileMeta = ref.read(rateFileMetaProvider(siteId));
+      final rateUploadId = rateFileMeta['rateFileId'];
+
+      await ref.read(mocProvider.notifier).create(
+        name: "", // not used
+        rateUploadId: rateUploadId,
+        existingMocNames: updatedNames,
+        existingMocsWithImages: updatedWithImages,
+        image: null,
+      );
+
+      ref.invalidate(rateFileAnalysisProvider(siteId));
+
+    } catch (e) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text(e.toString()),
+          backgroundColor: Colors.red,
+        ),
+      );
+    }
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -136,8 +197,25 @@ class _MOCSelectionPageState extends ConsumerState<MOCSelectionPage> {
                     final isSelected = _selectedMoc == moc.name;
 
                     return MOCCard(
+                      showEditButton: widget.showEditOptions,
                       moc: moc,
                       isSelected: isSelected,
+                      onEdit: () async {
+                        final result = await Navigator.push(
+                          context,
+                          MaterialPageRoute(
+                            builder: (_) => AddMOCPage(moc: moc),
+                          ),
+                        );
+
+                        if (result == true) {
+                          ref.invalidate(rateFileAnalysisProvider(siteId));
+                        }
+                      },
+
+                      onDelete: () async {
+                        _deleteMoc(moc);
+                      },
                       onTap: () {
                         setState(() => _selectedMoc = moc.name);
                         ref.read(selectedMocNameProvider.notifier).state = moc.name;

@@ -695,14 +695,14 @@ class _ManImportCsvScreenState extends ConsumerState<ManImportCsvScreen> {
                   MaterialPageRoute(
                     builder: (_) => TemplatePreviewScreen(
                       title: "Sample Template Preview",
-                      imageAsset: "assets/images/man-temp.webp",
+                      imageAsset: "assets/images/man-temp.png",
                       onDownload: () async {
                         final file = await ref
                             .read(templateDownloadControllerProvider.notifier)
                             .downloadAndSaveTemplate(TemplateModel.manpower);
 
                         if (!context.mounted) return;
-                        AppToast.success("✅ Saved: ${file?.path}");
+                        AppToast.success("✅ Saved: ${file}");
                       },
                     ),
                   ),

@@ -258,20 +258,21 @@ class DprApi {
   Future<Map<String, dynamic>> deleteMaterial({
 
     required String mechanicalId,
-    required String materialId,
+    required String materialId, required String designation, bool isMaterialStore=false,
   }) async {
     try {
       final response = await DioClient.dio.delete(
-        "/mechnical/$mechanicalId",
-        data: FormData.fromMap({
-          "_id": materialId,
-        }),
+        "/dpr-mechanical/$mechanicalId/items/$materialId",
+        data: {
+          "designation": designation,
+          "isMaterialStore": isMaterialStore,
+        },
         options: Options(
           extra: {"withCredentials": true},
           validateStatus: (s) => true,
+          contentType: Headers.jsonContentType,
         ),
       );
-
       print("🗑 DELETE STATUS: ${response.statusCode}");
       print("🗑 DELETE RESPONSE: ${response.data}");
 
@@ -415,7 +416,7 @@ class DprApi {
   // In your DprApi class
   static Future<Map<String, dynamic>> copyDprMaterial({
     required String dprId,
-    required String matId,
+    required String matId, required bool isMaterialStore,
 
   }) async {
     try {
