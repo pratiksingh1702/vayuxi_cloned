@@ -1041,6 +1041,9 @@ class _AddDescriptionScreenState extends ConsumerState<AddDescriptionScreen>
           matId: material.id,
           isMaterialStore: scope,
         );
+        final jsonString =
+        const JsonEncoder.withIndent('  ').convert(material);
+        printLongString("INSERTING PIPING MATERIAL: $jsonString");
 
         if (response != null && response['data'] != null) {
           newId = response['data']['_id'];
@@ -1062,6 +1065,10 @@ class _AddDescriptionScreenState extends ConsumerState<AddDescriptionScreen>
 
     // 🔥 Always insert locally (optimistic)
     if (isPiping && material is PipingItem) {
+      final jsonString =
+      const JsonEncoder.withIndent('  ').convert(material);
+     printLongString("INSERTING PIPING MATERIAL: $jsonString");
+
       final notifier = ref.read(pipingMaterialsProvider.notifier);
       final materials = ref.read(pipingMaterialsProvider);
 
@@ -1070,7 +1077,7 @@ class _AddDescriptionScreenState extends ConsumerState<AddDescriptionScreen>
 
       final copied = material.copyWith(
         id: newId,
-        materialName: '${material.materialName} (Copy)',
+        materialName: '${material.materialName} ',
       );
 
       final updated = [...materials];
@@ -2137,6 +2144,7 @@ class _AddDescriptionScreenState extends ConsumerState<AddDescriptionScreen>
 
                     return m.copyWith(
                       materialName: result.name,
+
                       uom: result.uom,
                       calculationCategory: draftCategoryId,
                       dynamicFields: result.fields,
@@ -2551,6 +2559,9 @@ class _AddDescriptionScreenState extends ConsumerState<AddDescriptionScreen>
   isFromRateFile: ${m.isFromRateFile}
   rateFileId: ${m.rateFileId}
   rateVariantId: ${m.rateVariantId}
+  rateId: ${m.rateId}
+
+  
 
   📦 VALUES
   qty(dynamic): ${_getDynamicQty(m)}
@@ -2625,6 +2636,7 @@ class _AddDescriptionScreenState extends ConsumerState<AddDescriptionScreen>
             'normalizedMaterialName': material.normalizedMaterialName,
             'materialName': material.materialName,
             'image': material.image,
+            'rateId':material.rateId,
 
             // 🔥 CORE VALUES
             'qty': _getDynamicQty(material),
@@ -2830,11 +2842,15 @@ class _AddDescriptionScreenState extends ConsumerState<AddDescriptionScreen>
 
         print('---------------------------------------');
         if (_mechanicalId == null) {
-          await RateUploadApi.createDprMechanicalV2(
+         final res= await RateUploadApi.createDprMechanicalV2(
             siteId: ref.read(selectedSiteIdProvider)!,
             teamId: teamId, // ✅ always non-null
             data: updateData,
           );
+
+         final jsonString =
+         const JsonEncoder.withIndent('  ').convert(res.data);
+         printLongString("Dpr : $jsonString");
         }
       } else {
         await ref.read(dprProvider.notifier).updateDprWork(

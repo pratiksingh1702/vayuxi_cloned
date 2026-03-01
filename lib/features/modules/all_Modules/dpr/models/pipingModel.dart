@@ -2,7 +2,8 @@ import 'package:untitled2/features/modules/all_Modules/dpr/models/rate_file_mode
 
 class PipingItem {
   final String id;
-  final String lineItemId; // 🔥 NEW
+  final String lineItemId;
+  final String rateId; // 🔥 NEW
 
   // 🔥 MATERIAL NAMES (IMPORTANT FOR TRACEABILITY)
   final String rawMaterialName;
@@ -43,7 +44,8 @@ class PipingItem {
 
   const PipingItem({
     required this.id,
-    this.lineItemId = '', // 🔥 NEW
+    this.lineItemId = '',
+    this.rateId = '', // 🔥 NEW
     required this.rawMaterialName,
     required this.normalizedMaterialName,
     required this.materialName,
@@ -79,7 +81,8 @@ class PipingItem {
   factory PipingItem.fromJson(Map<String, dynamic> json) {
     return PipingItem(
       id: json['_id'] ?? json['id'] ?? json['lineItemId'] ?? '',
-      lineItemId: json['lineItemId'] ?? '', // 🔥 NEW
+      lineItemId: json['lineItemId'] ?? '',
+      rateId: json['rateId'] ?? '', // 🔥 NEW
       rawMaterialName: json['rawMaterialName'] ?? '',
       normalizedMaterialName: json['normalizedMaterialName'] ?? '',
       materialName: json['materialName'] ?? '',
@@ -130,7 +133,8 @@ class PipingItem {
 
     return PipingItem(
       id: rateMaterial.id,
-      lineItemId: '', // 🔥 NEW
+      lineItemId: '',
+      rateId: '', // 🔥 NEW
       rawMaterialName: rateMaterial.rawMaterialName,
       normalizedMaterialName: rateMaterial.normalizedMaterialName,
       materialName: rateMaterial.MaterialName,
@@ -167,7 +171,8 @@ class PipingItem {
   Map<String, dynamic> toJson() {
     return {
       'id': id,
-      'lineItemId': lineItemId, // 🔥 NEW
+      'lineItemId': lineItemId,
+      'rateId': rateId, // 🔥 NEW
       'rawMaterialName': rawMaterialName,
       'normalizedMaterialName': normalizedMaterialName,
       'materialName': materialName,
@@ -203,7 +208,8 @@ class PipingItem {
 
   PipingItem copyWith({
     String? id,
-    String? lineItemId, // 🔥 NEW
+    String? lineItemId,
+    String? rateId, // 🔥 NEW
     String? rawMaterialName,
     String? normalizedMaterialName,
     String? materialName,
@@ -233,7 +239,8 @@ class PipingItem {
   }) {
     return PipingItem(
       id: id ?? this.id,
-      lineItemId: lineItemId ?? this.lineItemId, // 🔥 NEW
+      lineItemId: lineItemId ?? this.lineItemId,
+      rateId: rateId ?? this.rateId, // 🔥 NEW
       rawMaterialName: rawMaterialName ?? this.rawMaterialName,
       normalizedMaterialName:
       normalizedMaterialName ?? this.normalizedMaterialName,
@@ -270,7 +277,8 @@ class PipingItem {
 
   static PipingItem empty() => const PipingItem(
     id: '',
-    lineItemId: '', // 🔥 NEW
+    lineItemId: '',
+    rateId: '', // 🔥 NEW
     rawMaterialName: '',
     normalizedMaterialName: '',
     materialName: '',
@@ -307,7 +315,8 @@ class PipingItem {
   }) {
     return PipingItem(
       id: id,
-      lineItemId: '', // 🔥 NEW
+      lineItemId: '',
+      rateId: '', // 🔥 NEW
       rawMaterialName: materialName,
       normalizedMaterialName: materialName.toLowerCase().trim(),
       materialName: materialName,
