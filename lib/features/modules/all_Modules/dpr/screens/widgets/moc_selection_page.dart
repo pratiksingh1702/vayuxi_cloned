@@ -14,6 +14,7 @@ import '../../../../../../features/language/service/providers.dart';
 import '../../../site_Details/providers/site_current_provider.dart';
 import '../../dpr-setup/screens/add/add_moc.dart';
 import '../../models/moc.dart';
+import '../../models/rate_file_models.dart';
 import '../../providers/mocProvider.dart';
 import '../../providers/rate_variant_provider.dart';
 import '../../providers/selection_provider.dart';
@@ -42,6 +43,125 @@ class MOCSelectionPage extends ConsumerStatefulWidget {
 
 class _MOCSelectionPageState extends ConsumerState<MOCSelectionPage> {
   String? _selectedMoc;
+  bool _isMultiSelectMode = false;
+  final Set<String> _selectedForAction = {};
+  void _toggleMultiSelect() {
+    setState(() {
+      _isMultiSelectMode = !_isMultiSelectMode;
+      _selectedForAction.clear();
+    });
+  }
+  void _selectAll(List<NamedImage> mocList) {
+    setState(() {
+      _selectedForAction
+        ..clear()
+        ..addAll(mocList.map((e) => e.name));
+    });
+  }
+  Future<void> _deleteSelected() async {
+    final siteId = ref.read(selectedSiteIdProvider)!;
+
+    if (_selectedForAction.isEmpty) return;
+
+    final confirm = await showDialog<bool>(
+      context: context,
+      builder: (_) => AlertDialog(
+        title: const Text("Delete Selected MOCs"),
+        content: Text(
+            "Are you sure you want to delete ${_selectedForAction.length} items?"),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(context, false),
+            child: const Text("Cancel"),
+          ),
+          TextButton(
+            onPressed: () => Navigator.pop(context, true),
+            child: const Text("Delete", style: TextStyle(color: Colors.red)),
+          ),
+        ],
+      ),
+    );
+
+    if (confirm != true) return;
+
+    try {
+      final existingNames = ref.read(mocListDetectedProvider(siteId));
+      final existingWithImages =
+      ref.read(mocWithImagesProvider(siteId));
+
+      final updatedNames = existingNames
+          .where((name) => !_selectedForAction.contains(name))
+          .toList();
+
+      final updatedWithImages = existingWithImages
+          .where((e) => !_selectedForAction.contains(e.name))
+          .toList();
+
+      final rateFileMeta = ref.read(rateFileMetaProvider(siteId));
+      final rateUploadId = rateFileMeta['rateFileId'];
+
+      await ref.read(mocProvider.notifier).create(
+        name: "",
+        rateUploadId: rateUploadId,
+        existingMocNames: updatedNames,
+        existingMocsWithImages: updatedWithImages,
+        image: null,
+      );
+
+      setState(() {
+        _isMultiSelectMode = false;
+        _selectedForAction.clear();
+      });
+
+      ref.invalidate(rateFileAnalysisProvider(siteId));
+    } catch (e) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text(e.toString())),
+      );
+    }
+  }
+  Future<void> _deleteAll() async {
+    final siteId = ref.read(selectedSiteIdProvider)!;
+
+    final confirm = await showDialog<bool>(
+      context: context,
+      builder: (_) => AlertDialog(
+        title: const Text("Delete All MOCs"),
+        content: const Text("This will remove all MOCs. Continue?"),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(context, false),
+            child: const Text("Cancel"),
+          ),
+          TextButton(
+            onPressed: () => Navigator.pop(context, true),
+            child: const Text("Delete", style: TextStyle(color: Colors.red)),
+          ),
+        ],
+      ),
+    );
+
+    if (confirm != true) return;
+
+    try {
+      final rateFileMeta = ref.read(rateFileMetaProvider(siteId));
+      final rateUploadId = rateFileMeta['rateFileId'];
+
+      await ref.read(mocProvider.notifier).create(
+        name: "",
+        rateUploadId: rateUploadId,
+        existingMocNames: [],
+        existingMocsWithImages: [],
+        image: null,
+      );
+
+      ref.invalidate(rateFileAnalysisProvider(siteId));
+    } catch (e) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text(e.toString())),
+      );
+    }
+  }
 
   Future<void> _deleteMoc(MOC moc) async {
     final siteId = ref.read(selectedSiteIdProvider)!;
@@ -173,55 +293,177 @@ class _MOCSelectionPageState extends ConsumerState<MOCSelectionPage> {
               if (mocImages.isEmpty) {
                 return const Center(child: Text("No MOC available"));
               }
-
               return Padding(
                 padding: const EdgeInsets.all(16),
-                child: GridView.builder(
-                  gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
-                    crossAxisCount: 2,
-                    crossAxisSpacing: 16,
-                    mainAxisSpacing: 16,
-                    childAspectRatio: 0.95,
-                  ),
-                  itemCount: mocImages.length,
-                  itemBuilder: (context, index) {
-                    final item = mocImages[index];
+                child: Column(
+                  children: [
+                  Row(
+                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                  children: [
 
-                    final moc = MOC(
-                      name: item.name,
-                      imageUrl: item.image.isNotEmpty
-                          ? item.image
-                          : 'assets/images/default.webp',
-                    );
+                    /// LEFT SIDE — TITLE OR EMPTY
+                    const SizedBox(),
 
-                    final isSelected = _selectedMoc == moc.name;
-
-                    return MOCCard(
-                      showEditButton: widget.showEditOptions,
-                      moc: moc,
-                      isSelected: isSelected,
-                      onEdit: () async {
-                        final result = await Navigator.push(
-                          context,
-                          MaterialPageRoute(
-                            builder: (_) => AddMOCPage(moc: moc),
+                    /// RIGHT SIDE
+                    if (!_isMultiSelectMode)
+                      IconButton(
+                        icon: const Icon(
+                          Icons.delete_outline,
+                          color: Colors.red,
+                        ),
+                        onPressed: () {
+                          setState(() {
+                            _isMultiSelectMode = true;
+                          });
+                        },
+                      )
+                    else
+                      Row(
+                        children: [
+                          /// Select All
+                          TextButton(
+                            onPressed: () => _selectAll(mocImages),
+                            child: const Text("Select All"),
                           ),
-                        );
 
-                        if (result == true) {
-                          ref.invalidate(rateFileAnalysisProvider(siteId));
-                        }
-                      },
+                          /// Delete Selected
+                          TextButton(
+                            onPressed: _deleteSelected,
+                            child: const Text(
+                              "Delete",
+                              style: TextStyle(color: Colors.red),
+                            ),
+                          ),
 
-                      onDelete: () async {
-                        _deleteMoc(moc);
-                      },
-                      onTap: () {
-                        setState(() => _selectedMoc = moc.name);
-                        ref.read(selectedMocNameProvider.notifier).state = moc.name;
-                      },
-                    );
-                  },
+                          /// Close Multi-Select
+                          IconButton(
+                            icon: const Icon(Icons.close),
+                            onPressed: () {
+                              setState(() {
+                                _isMultiSelectMode = false;
+                                _selectedForAction.clear();
+                              });
+                            },
+                          ),
+                        ],
+                      ),
+                  ],
+                ),
+
+                    /// 🔥 THIS IS REQUIRED
+                    Expanded(
+                      child: GridView.builder(
+                        gridDelegate:
+                        const SliverGridDelegateWithFixedCrossAxisCount(
+                          crossAxisCount: 2,
+                          crossAxisSpacing: 16,
+                          mainAxisSpacing: 16,
+                          childAspectRatio: 0.95,
+                        ),
+                        itemCount: mocImages.length,
+                        itemBuilder: (context, index) {
+                          final item = mocImages[index];
+
+                          final moc = MOC(
+                            name: item.name,
+                            imageUrl: item.image.isNotEmpty
+                                ? item.image
+                                : 'assets/images/default.webp',
+                          );
+
+                          return Stack(
+                            children: [
+                              MOCCard(
+                                showEditButton:
+                                widget.showEditOptions && !_isMultiSelectMode,
+                                moc: moc,
+                                isSelected: _isMultiSelectMode
+                                    ? _selectedForAction.contains(moc.name)
+                                    : _selectedMoc == moc.name,
+                                onEdit: () async {
+                                  final result = await Navigator.push(
+                                    context,
+                                    MaterialPageRoute(
+                                      builder: (_) => AddMOCPage(moc: moc),
+                                    ),
+                                  );
+
+                                  if (result == true) {
+                                    ref.invalidate(rateFileAnalysisProvider(siteId));
+                                  }
+                                },
+                                onDelete: () => _deleteMoc(moc),
+                                onTap: () {
+                                  if (_isMultiSelectMode) {
+                                    setState(() {
+                                      if (_selectedForAction.contains(moc.name)) {
+                                        _selectedForAction.remove(moc.name);
+                                      } else {
+                                        _selectedForAction.add(moc.name);
+                                      }
+                                    });
+                                  } else {
+                                    setState(() => _selectedMoc = moc.name);
+                                    ref
+                                        .read(selectedMocNameProvider.notifier)
+                                        .state = moc.name;
+                                  }
+                                },
+                              ),
+
+                              /// 🔥 Selection Circle Overlay
+                              if (_isMultiSelectMode)
+                                Positioned(
+                                  top: 8,
+                                  right: 8,
+                                  child: GestureDetector(
+                                    onTap: () {
+                                      setState(() {
+                                        if (_selectedForAction.contains(moc.name)) {
+                                          _selectedForAction.remove(moc.name);
+                                        } else {
+                                          _selectedForAction.add(moc.name);
+                                        }
+                                      });
+                                    },
+                                    child: AnimatedContainer(
+                                      duration: const Duration(milliseconds: 200),
+                                      width: 28,
+                                      height: 28,
+                                      decoration: BoxDecoration(
+                                        shape: BoxShape.circle,
+                                        color: _selectedForAction.contains(moc.name)
+                                            ? Colors.red
+                                            : Colors.white,
+                                        border: Border.all(
+                                          color: _selectedForAction.contains(moc.name)
+                                              ? Colors.red
+                                              : Colors.grey,
+                                          width: 2,
+                                        ),
+                                        boxShadow: const [
+                                          BoxShadow(
+                                            blurRadius: 4,
+                                            color: Colors.black26,
+                                          ),
+                                        ],
+                                      ),
+                                      child: _selectedForAction.contains(moc.name)
+                                          ? const Icon(
+                                        Icons.check,
+                                        size: 18,
+                                        color: Colors.white,
+                                      )
+                                          : null,
+                                    ),
+                                  ),
+                                ),
+                            ],
+                          );
+                        },
+                      ),
+                    ),
+                  ],
                 ),
               );
 

@@ -332,7 +332,7 @@ class _DprTeamScreenState extends ConsumerState<DprTeamScreen> {
                                       fit: BoxFit.cover,
                                       errorBuilder: (context, error, stackTrace) {
                                         return Image.asset(
-                                          "assets/images/default.webp",
+                                          "assets/images/team_def.webp",
                                           height: 80,
                                           width: 80,
                                           fit: BoxFit.cover,
@@ -340,7 +340,7 @@ class _DprTeamScreenState extends ConsumerState<DprTeamScreen> {
                                       },
                                     )
                                         : Image.asset(
-                                      "assets/images/default.webp",
+                                      "assets/images/team_def.webp",
                                       height: 80,
                                       width: 80,
                                       fit: BoxFit.cover,

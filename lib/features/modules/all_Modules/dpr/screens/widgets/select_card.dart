@@ -4,10 +4,12 @@ class SelectCard extends StatelessWidget {
   final Widget icon;
   final String label;
   final VoidCallback onTap;
+  final Color color;
 
   const SelectCard({
     super.key,
     required this.icon,
+    this.color=Colors.black,
     required this.label,
     required this.onTap,
   });
@@ -42,6 +44,7 @@ class SelectCard extends StatelessWidget {
                 width: 70,
                 child: Center(
                   child: icon,
+
                 ),
               ),
 

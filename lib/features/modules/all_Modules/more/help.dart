@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:url_launcher/url_launcher.dart';
 
 class HelpCenterScreen extends StatefulWidget {
   const HelpCenterScreen({super.key});
@@ -27,7 +28,13 @@ class _HelpCenterScreenState extends State<HelpCenterScreen>
       "a": "Check the Community tab and select a group."
     },
   ];
+  Future<void> _launchURL(String url) async {
+    final Uri uri = Uri.parse(url);
 
+    if (!await launchUrl(uri, mode: LaunchMode.externalApplication)) {
+      throw Exception('Could not launch $url');
+    }
+  }
   @override
   Widget build(BuildContext context) {
     return DefaultTabController(
@@ -186,12 +193,52 @@ class _HelpCenterScreenState extends State<HelpCenterScreen>
   // -----------------------------
   Widget _buildContactSection() {
     final List<Map<String, dynamic>> contacts = [
-      {"icon": Icons.call, "title": "Customer Services"},
-      {"icon": Icons.message, "title": "WhatsApp"},
-      {"icon": Icons.language, "title": "Website"},
-      {"icon": Icons.facebook, "title": "Facebook"},
-      {"icon": Icons.alternate_email, "title": "Twitter"},
-      {"icon": Icons.camera_alt, "title": "Instagram"},
+      {
+        "icon": Icons.call,
+        "title": "Customer Service",
+        "url": "tel:+918320554983",
+      },
+      {
+        "icon": Icons.message,
+        "title": "WhatsApp",
+        "url": "https://wa.me/9178018 87386",
+      },
+      {
+        "icon": Icons.email,
+        "title": "Email (info@vayuxierp.com)",
+        "url": "mailto:info@vayuxierp.com",
+      },
+      {
+        "icon": Icons.email_outlined,
+        "title": "Email (vayuxierp@gmail.com)",
+        "url": "mailto:vayuxierp@gmail.com",
+      },
+      {
+        "icon": Icons.language,
+        "title": "Website",
+        "url": "https://vayuxierp.com",
+      },
+      {
+        "icon": Icons.facebook,
+        "title": "Facebook",
+        "url": "https://facebook.com/",
+      },
+      {
+        "icon": Icons.alternate_email,
+        "title": "Twitter",
+        "url": "https://twitter.com/",
+      },
+      {
+        "icon": Icons.camera_alt,
+        "title": "Instagram",
+        "url": "https://instagram.com/",
+      },
+      {
+        "icon": Icons.location_on,
+        "title": "Address",
+        "url":
+        "https://www.google.com/maps/search/?api=1&query=183,REEVA RESIDENCY FLYOVER BRIDGE KOSAMBA DIST- SURAT 394120,Gujarat, India",
+      },
     ];
 
     return Padding(
@@ -199,23 +246,31 @@ class _HelpCenterScreenState extends State<HelpCenterScreen>
       child: ListView.builder(
         itemCount: contacts.length,
         itemBuilder: (context, i) {
-          return Container(
-            margin: const EdgeInsets.only(bottom: 12),
-            padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
-            decoration: BoxDecoration(
-              color: Colors.white,
-              borderRadius: BorderRadius.circular(12),
-              border: Border.all(color: Colors.grey.shade300),
-            ),
-            child: Row(
-              children: [
-                Icon(contacts[i]["icon"], size: 28),
-                const SizedBox(width: 12),
-                Text(
-                  contacts[i]["title"],
-                  style: const TextStyle(fontSize: 16, fontWeight: FontWeight.w500),
-                ),
-              ],
+          return GestureDetector(
+            onTap: () => _launchURL(contacts[i]["url"]),
+            child: Container(
+              margin: const EdgeInsets.only(bottom: 12),
+              padding:
+              const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
+              decoration: BoxDecoration(
+                color: Colors.white,
+                borderRadius: BorderRadius.circular(12),
+                border: Border.all(color: Colors.grey.shade300),
+              ),
+              child: Row(
+                children: [
+                  Icon(contacts[i]["icon"], size: 28),
+                  const SizedBox(width: 12),
+                  Expanded(
+                    child: Text(
+                      contacts[i]["title"],
+                      style: const TextStyle(
+                          fontSize: 16, fontWeight: FontWeight.w500),
+                    ),
+                  ),
+                  const Icon(Icons.arrow_forward_ios, size: 16),
+                ],
+              ),
             ),
           );
         },

@@ -45,12 +45,42 @@ class _ExpenseReportScreenState extends ConsumerState<ExpenseReportScreen> {
   bool isDownloading = false;
 
   final List<Map<String, dynamic>> expenseTypes = [
-
-    {'value': 'material_tools', 'label': 'Material & Tools', 'icon': Icons.build},
-    {'value': 'travelling', 'label': 'Travelling', 'icon': Icons.directions_car},
-    {'value': 'food', 'label': 'Food', 'icon': Icons.restaurant},
-    {'value': 'accommodation', 'label': 'Accommodation', 'icon': Icons.hotel},
-    {'value': 'advance', 'label': 'Advance', 'icon': Icons.attach_money},
+    {
+      'value': 'material_tools',
+      'label': 'Material & Tools',
+      'icon': Icons.build,
+      'color': Colors.orange,
+    },
+    {
+      'value': 'travelling',
+      'label': 'Travelling',
+      'icon': Icons.directions_car,
+      'color': Colors.green,
+    },
+    {
+      'value': 'food',
+      'label': 'Food',
+      'icon': Icons.restaurant,
+      'color': Colors.red,
+    },
+    {
+      'value': 'accommodation',
+      'label': 'Accommodation',
+      'icon': Icons.hotel,
+      'color': Colors.purple,
+    },
+    {
+      'value': 'advance',
+      'label': 'Advance',
+      'icon': Icons.attach_money,
+      'color': Colors.blue,
+    },
+    {
+      'value': 'miscellaneous',
+      'label': 'Miscellaneous',
+      'icon': Icons.miscellaneous_services,
+      'color': Colors.blue,
+    },
   ];
 
   @override
@@ -527,11 +557,12 @@ class _ExpenseReportScreenState extends ConsumerState<ExpenseReportScreen> {
   Widget _expenseTypeCard({
     required String value,
     required String label,
-    required IconData icon,
+    required IconData icon, required color,
   }) {
     return SelectCard(
-      icon: Icon(icon),
+      icon: Icon(icon,color: color,),
       label: label,
+      color: color,
       onTap: () => _showExpenseTypeSelectionDialog(value, label, icon),
     );
   }
@@ -712,6 +743,7 @@ class _ExpenseReportScreenState extends ConsumerState<ExpenseReportScreen> {
                         value: type['value'],
                         label: type['label'],
                         icon: type['icon'],
+                        color:type['color'],
                       );
                     }).toList(),
                   ),

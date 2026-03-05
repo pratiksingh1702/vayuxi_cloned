@@ -10,6 +10,7 @@ class ExpenseModel {
   final int? quantity;
   final String? uom;
   final double? rate;
+  final double? invoiceValue;
   final double? balance;
   final int? year;
   final String? place;
@@ -24,6 +25,7 @@ class ExpenseModel {
     this.description,
     this.date,
     this.amount,
+    this.invoiceValue,
     this.remarks,
     this.invoiceNumber,
     this.hardwareShopName,
@@ -46,6 +48,7 @@ class ExpenseModel {
       description: json['description']?.toString(),
       date: json['date'] != null ? DateTime.parse(json['date']) : null,
       amount: _toDouble(json['amount']),
+      invoiceValue: _toDouble(json['invoiceValue']),
       remarks: json['remarks']?.toString(),
       invoiceNumber: json['invoiceNumber']?.toString(),
       hardwareShopName: json['hardwareShop']?.toString(),
@@ -75,6 +78,7 @@ class ExpenseModel {
       'uom': uom,
       'rate': rate,
       'balance': balance,
+      'invoiceValue': invoiceValue,
       'year': year,
       'place': place,
       'manpowerId': manpowerId,
@@ -96,5 +100,28 @@ class ExpenseModel {
     if (value is double) return value.toInt();
     if (value is String) return int.tryParse(value);
     return null;
+  }
+  @override
+  String toString() {
+    return '''
+ExpenseModel(
+  id: $id,
+  expenseType: $expenseType,
+  description: $description,
+  date: $date,
+  amount: $amount,
+  invoiceValue: $invoiceValue,
+  rate: $rate,
+  quantity: $quantity,
+  uom: $uom,
+  balance: $balance,
+  year: $year,
+  place: $place,
+  manpowerId: $manpowerId,
+  siteId: $siteId,
+  createdAt: $createdAt,
+  updatedAt: $updatedAt
+)
+''';
   }
 }

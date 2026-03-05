@@ -1,6 +1,7 @@
   import 'dart:convert';
 
-  import 'package:flutter_riverpod/flutter_riverpod.dart';
+  import 'package:flutter/cupertino.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
   import 'package:shared_preferences/shared_preferences.dart';
   import 'package:untitled2/features/modules/screen/device_id_helper.dart';
   import '../../../core/router/app_access.dart';
@@ -71,6 +72,7 @@ import '../../modules/all_Modules/Manpower Details/model/manpower_model.dart';
             user: user,
           );
 
+          debugPrint(userData);
 
           print("🔐 AUTH INIT - User restored from cache");
           return;

@@ -30,10 +30,10 @@ class CustomAppBar extends StatelessWidget implements PreferredSizeWidget {
           color: Colors.white.withOpacity(0.7),
         ),
         padding: EdgeInsets.only(
-          top: MediaQuery.of(context).padding.top,
-          left: showDrawer ? 16 : 16,
-          right: 16,
-          bottom: 10,
+          top:0, // small gap below status bar
+          left: 4,   // almost extreme left
+          right: 8,  // small right space
+          bottom: 8,
         ),
         child: Row(
           children: [
@@ -51,7 +51,7 @@ class CustomAppBar extends StatelessWidget implements PreferredSizeWidget {
                     child: const Icon(
                       Icons.menu_rounded,
                       color: Colors.black,
-                      size: 34,
+                      size: 23,
                     ),
                   ),
                   onPressed: () => Scaffold.of(context).openDrawer(),

@@ -5,9 +5,11 @@ import 'package:untitled2/core/utlis/widgets/Button_wrapper.dart';
 import 'package:untitled2/core/utlis/widgets/buttons.dart';
 import '../../../../../core/utlis/common_functions.dart';
 import '../../../../../core/utlis/widgets/custom_appBar.dart';
+import '../../../../../core/utlis/widgets/fields/searchableDropdown.dart';
 import '../../../../../core/utlis/widgets/sidebar.dart';
 import '../../../../../typeProvider/type_provider.dart';
 import '../../site_Details/repository/siteModel.dart';
+import '../data/rateApi.dart';
 import '../data/rate_provider.dart';
 import '../domain/rateModel.dart';
 import '../../../../../core/utlis/widgets/fields/custom_textField.dart';
@@ -36,12 +38,8 @@ class _EditRateScreenState extends ConsumerState<EditRateScreen> {
   final FocusNode uomFocusNode = FocusNode();
   bool isCustomUOM = false;
 
-  final List<String> uomList = [
-    "Inches (in.)",
-    "Pieces (pcs.)",
-    "Number (nos.)",
-    "Kilograms (kgs.)",
-  ];
+  List<String> uomList = [];
+  bool isLoadingUom = false;
 
   @override
   void initState() {
@@ -52,12 +50,29 @@ class _EditRateScreenState extends ConsumerState<EditRateScreen> {
     rateController = TextEditingController(text: widget.rate.rate.toString());
     remarkController = TextEditingController(text: widget.rate.remarks ?? "");
     uomController = TextEditingController(text: widget.rate.uom);
+    _loadUOM();
 
     // Check if the existing UOM is custom
     final existingUOM = widget.rate.uom;
     isCustomUOM = !uomList.contains(existingUOM);
   }
+  Future<void> _loadUOM() async {
+    try {
+      setState(() => isLoadingUom = true);
 
+      final response = await RateApiClient().getRateUOM();
+
+      uomList = response
+          .map<String>((item) => item['name'].toString())
+          .toList();
+
+      setState(() {});
+    } catch (e) {
+      print("❌ Failed to load UOM: $e");
+    } finally {
+      setState(() => isLoadingUom = false);
+    }
+  }
   void _showUOMBottomSheet() {
     // If user is typing custom UOM, don't show bottom sheet
     if (isCustomUOM) return;
@@ -142,7 +157,9 @@ class _EditRateScreenState extends ConsumerState<EditRateScreen> {
 
    AppToast.success('Rate updated successfully');
       Navigator.pop(context, true); // return true to refresh list if needed
-    } catch (e) {
+    } catch (e,stackrace) {
+      print(e);
+      print(stackrace);
       final error = extractBackendError(e);
       AppToast.error("❌ Failed to update rate:$error");
 
@@ -158,7 +175,7 @@ class _EditRateScreenState extends ConsumerState<EditRateScreen> {
         customButtons: [
           CustomButton(
               button: RoundedButton(
-                text: "Save & Submit",
+                text: "Save",
                 color: Colors.blue,
                 textColor: Colors.white,
                 onPressed: _updateRate,
@@ -188,49 +205,58 @@ class _EditRateScreenState extends ConsumerState<EditRateScreen> {
 
               // UOM Section with Label
               const SizedBox(height: 8),
-              Align(
-                alignment: Alignment.centerLeft,
-                child: Text(
-                  "UOM",
-                  style: TextStyle(
-                    fontSize: 16,
-                    fontWeight: FontWeight.w500,
-                    color: Colors.grey[700],
+              const SizedBox(height: 8),
+
+              Row(
+                mainAxisAlignment: MainAxisAlignment.start,
+                children: [
+                  RichText(
+                    text: const TextSpan(
+                      text: "UOM",
+                      style: TextStyle(
+                        fontSize: 14,
+                        fontWeight: FontWeight.w500,
+                        color: Colors.black87,
+                      ),
+                      children: [
+                        TextSpan(
+                          text: ' *',
+                          style: TextStyle(color: Colors.red),
+                        ),
+                      ],
+                    ),
+                  ),
+                ],
+              ),
+
+              const SizedBox(height: 4),
+
+              isLoadingUom
+                  ? const Center(child: CircularProgressIndicator())
+                  : SearchableDropdown(
+                data: uomList,
+                value: uomController.text,
+                placeholder: "Search or type Unit of Measurement",
+                onSelect: (value) {
+                  setState(() {
+                    uomController.text = value;
+                  });
+                },
+                containerDecoration: BoxDecoration(
+                  color: Colors.white,
+                  borderRadius: BorderRadius.circular(8),
+                  border: const Border(
+                    left: BorderSide(color: Color(0xFFDFE2E6)),
+                    right: BorderSide(color: Color(0xFFDFE2E6)),
+                    top: BorderSide(color: Color(0xFFDFE2E6)),
+                    bottom: BorderSide(color: Color(0xFFDFE2E6)),
                   ),
                 ),
               ),
               const SizedBox(height: 4),
 
               // Combined UOM Field - Can type or select from dropdown
-              TextFormField(
-                controller: uomController,
-                focusNode: uomFocusNode,
-                onChanged: _onUOMChanged,
-                decoration: InputDecoration(
-                  hintText: "Select or type Unit of Measurement",
-                  hintStyle: TextStyle(color: Colors.grey[500]),
-                  border: OutlineInputBorder(
-                    borderRadius: BorderRadius.circular(8),
-                    borderSide: const BorderSide(color: Color(0xFFDFE2E6)),
-                  ),
-                  enabledBorder: OutlineInputBorder(
-                    borderRadius: BorderRadius.circular(8),
-                    borderSide: const BorderSide(color: Color(0xFFDFE2E6)),
-                  ),
-                  focusedBorder: OutlineInputBorder(
-                    borderRadius: BorderRadius.circular(8),
-                    borderSide: const BorderSide(color: Colors.blue),
-                  ),
-                  filled: true,
-                  fillColor: Colors.white,
-                  contentPadding: const EdgeInsets.symmetric(horizontal: 12, vertical: 16),
-                  suffixIcon: IconButton(
-                    icon: const Icon(Icons.arrow_drop_down),
-                    onPressed: _showUOMBottomSheet,
-                  ),
-                ),
-                style: const TextStyle(fontSize: 16),
-              ),
+
 
               // Show indicator if using custom UOM
               if (isCustomUOM && uomController.text.isNotEmpty)

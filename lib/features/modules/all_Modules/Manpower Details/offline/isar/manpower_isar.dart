@@ -38,7 +38,7 @@ class ManpowerIsar {
   double? specialAllowance;
   double? travelAllowance;
   double? medicalAllowance;
-
+  String? totalHour;
   bool? pfApplicable;
 
   String? remarks;

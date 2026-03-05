@@ -11,6 +11,7 @@ import 'package:untitled2/features/modules/all_Modules/salary/screens/widget/pdf
 import 'package:untitled2/typeProvider/type_provider.dart';
 
 import '../../../../../core/utlis/widgets/sidebar.dart';
+import '../../../../profile_page/provider/userProvider.dart';
 import '../service-provider/salaryClient.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
@@ -102,11 +103,12 @@ class _SelectRangeScreenState
             try {
               // Get company name from data
               final companyName = salaryData['companyDetails']?['name']?.toString() ?? 'Company';
+              final user = ref.read(currentUserProvider);
 
               final pdfFile = await PDFGenerator.generateSalarySlipPDF(
                 jsonData: salaryData,
                 companyName: companyName,
-                logoBytes: logoBytes,
+                logoBytes: logoBytes,         companyAddress: user?.address?? '',
               );
 
               // Read file bytes
@@ -149,7 +151,7 @@ class _SelectRangeScreenState
           context: context,
           files: pdfFiles,
           folderName: folderName,
-          askForDirectory: _askForDirectory,
+
         );
 
         if (saveResult.success && saveResult.savedCount > 0) {

@@ -55,7 +55,7 @@ class AddDescriptionScreen extends ConsumerStatefulWidget {
 }
 
 class _AddDescriptionScreenState extends ConsumerState<AddDescriptionScreen>
-    with AutomaticKeepAliveClientMixin, WidgetsBindingObserver {
+    with  WidgetsBindingObserver {
   late final TextEditingController _dprNameController;
   late final TextEditingController _mocController;
   late final TextEditingController _sizeController;
@@ -94,10 +94,10 @@ class _AddDescriptionScreenState extends ConsumerState<AddDescriptionScreen>
   bool get isEditingDpr => _mechanicalId != null;
   bool get isEditing => _mechanicalId != null;
   Set<String> _updatingMaterialIds = {};
+  bool _headerInitialized = false;
 
 
-  @override
-  bool get wantKeepAlive => true;
+
 
   // @override
   // void initState() {
@@ -134,7 +134,7 @@ class _AddDescriptionScreenState extends ConsumerState<AddDescriptionScreen>
 
     WidgetsBinding.instance.addPostFrameCallback((_) async {
       await loadScreenState(Dpr: widget.work);
-      _applyHeaderValuesToMaterials();
+      if(widget.work==null)_applyHeaderValuesToMaterials();
     });
 
     _floorController.addListener(_applyHeaderValuesToMaterials);
@@ -142,43 +142,38 @@ class _AddDescriptionScreenState extends ConsumerState<AddDescriptionScreen>
     _sizeController.addListener(_applyHeaderValuesToMaterials);
 
   }
+  void _setControllerSilently(
+      TextEditingController controller,
+      String value,
+      ) {
+    controller.removeListener(_applyHeaderValuesToMaterials);
+    controller.text = value;
+    controller.addListener(_applyHeaderValuesToMaterials);
+  }
 
   Future<void> loadScreenState({DprModel? Dpr}) async {
-    print("000000");
     ref.read(pipingMaterialsProvider.notifier).clear();
     ref.read(equipmentMaterialsProvider.notifier).clear();
 
+    // ✅ Always reset flag at the START of every load
+    _headerInitialized = false;
+
     if (_mechanicalId != null) {
-      // 🔵 EDITING DPR
-
       final work = widget.work ?? Dpr;
-      print("work: ${work}");
-      print("😑😑😑😑😑😑😑");
-
       if (work != null) {
         _mechanicalId = work.id;
-
         _selectedDprId = work.id;
-
-        _dprNameController.text = work.dprName;
-        _mocController.text = work.moc;
-        _sizeController.text = work.size;
-        _floorController.text = work.location;
-        _plantController.text = work.plant;
-
-
-
+        // ❌ DON'T set controllers here — _loadDprMaterials does it
         await _loadDprMaterials(Dpr);
       } else {
         await _loadDefaultMaterials();
+        _headerInitialized = true; // new DPR
       }
-
     } else {
-      // 🟢 CREATING DPR
       await _loadDefaultMaterials();
+      _headerInitialized = true; // new DPR
     }
   }
-
   List<PipingItem> _toApprovedPipingItems(
     List<RateFileMaterial> materials,
   ) {
@@ -221,6 +216,7 @@ class _AddDescriptionScreenState extends ConsumerState<AddDescriptionScreen>
       ref
           .read(equipmentMaterialsProvider.notifier)
           .setMaterials(equipmentItems);
+      _applyHeaderValuesToMaterials();
     } catch (e, st) {
       debugPrint("❌ Failed: $e");
       debugPrintStack(stackTrace: st);
@@ -299,11 +295,18 @@ class _AddDescriptionScreenState extends ConsumerState<AddDescriptionScreen>
       _floorController.text = dpr.location;
       _plantController.text = dpr.plant;
 
+      _headerInitialized = true;
+      setState(() {
+        _isLoading=false;
+      });
+
       debugPrint('✅ Controllers updated');
       debugPrint('================ DPR LOAD END ================');
     } catch (e, st) {
       debugPrint('🔥 ERROR while loading DPR');
       debugPrint(e.toString());
+      _headerInitialized = true;
+
       debugPrint(st.toString());
       debugPrint('================ DPR LOAD END ================');
     }
@@ -345,6 +348,9 @@ class _AddDescriptionScreenState extends ConsumerState<AddDescriptionScreen>
         );
   }
   void _applyHeaderValuesToMaterials() {
+    print("😂😂😂😂😂😂😂😂😂😂😂😂😂😂😂😂😂😂😂😂");
+    if (!_headerInitialized) return;
+
     final floor = _floorController.text;
     final moc = _mocController.text;
     final size = _sizeController.text;
@@ -506,7 +512,10 @@ class _AddDescriptionScreenState extends ConsumerState<AddDescriptionScreen>
   Future<void> _fetchDprListForDate(DateTime date) async {
     if (_isDisposed) return;
 
-    setState(() => _isLoadingDprList = true);
+  setState(() {
+    _isLoadingDprList=true;
+    _isLoading=true;
+  });
 
     try {
       final List<DprModel> allDprs = await DprApi.fetchDprWork(
@@ -548,7 +557,10 @@ class _AddDescriptionScreenState extends ConsumerState<AddDescriptionScreen>
       _dprListForSelectedDate = [];
     } finally {
       if (mounted && !_isDisposed) {
-        setState(() => _isLoadingDprList = false);
+        setState(() {
+          _isLoadingDprList=false;
+          _isLoading=false;
+        });
       }
     }
   }
@@ -1188,7 +1200,7 @@ class _AddDescriptionScreenState extends ConsumerState<AddDescriptionScreen>
 
   @override
   Widget build(BuildContext context) {
-    super.build(context);
+
 
     final pipingMaterials = ref.watch(pipingMaterialsProvider);
     final equipmentMaterials = ref.watch(equipmentMaterialsProvider);
@@ -1229,7 +1241,7 @@ class _AddDescriptionScreenState extends ConsumerState<AddDescriptionScreen>
           ],
           child: Column(
             children: [
-              if (_isLoadingMaterials || _isCreatingWork|| _isLoading)
+              if (_isLoading)
                 const LinearProgressIndicator(
                   backgroundColor: Colors.transparent,
                   valueColor: AlwaysStoppedAnimation<Color>(Color(0xFF1B6DCE)),
@@ -1703,6 +1715,10 @@ class _AddDescriptionScreenState extends ConsumerState<AddDescriptionScreen>
                       _plantController.text = dpr.plant;
 
                       _mechanicalId = newValue;
+                      setState(() {
+                        _isLoading=true;
+                      });
+                      _applyHeaderValuesToMaterials();
                       await getd(dpr);
 
                       await loadScreenState(Dpr: dpr);
@@ -2065,7 +2081,12 @@ class _AddDescriptionScreenState extends ConsumerState<AddDescriptionScreen>
               },
               quantity: '',
               remark: material.remarks,
-              size: _sizeController.text,
+              size: material.dynamicFields
+                  .firstWhere(
+                    (f) => f.key.toLowerCase() == 'size',
+                orElse: () => DynamicField(key: 'size', label: 'Size', value: _sizeController.text, unit: '', displayText: ''),
+              )
+                  .value ?? _sizeController.text,
               length: (material.length == null || material.length == 0)
                   ? ''
                   : material.length.toString(),
@@ -2510,8 +2531,19 @@ class _AddDescriptionScreenState extends ConsumerState<AddDescriptionScreen>
     return '';
   }
 
+  String? _resolveSize(material) {
+    for (final f in material.dynamicFields) {
+      if (f.key.toLowerCase() == 'size') {
+        final val = f.value?.toString().trim();
+        if (val != null && val.isNotEmpty) {
+          return val;
+        }
+      }
+    }
 
-
+    final headerSize = _sizeController.text.trim();
+    return headerSize.isNotEmpty ? headerSize : null;
+  }
   Future<void> _handleSubmitFields() async {
     if (_isDisposed) return;
 
@@ -2652,7 +2684,7 @@ class _AddDescriptionScreenState extends ConsumerState<AddDescriptionScreen>
 
             // 🔥 HEADER SYNC
             'moc': _mocController.text.trim(),
-            'size': _sizeController.text.trim(),
+            'size': _resolveSize(material),
             'location': _floorController.text.trim(),
             'plant': _plantController.text.trim(),
 
@@ -2725,7 +2757,7 @@ class _AddDescriptionScreenState extends ConsumerState<AddDescriptionScreen>
 
             // 🔥 HEADER SYNC
             'moc': _mocController.text.trim(),
-            'size': _sizeController.text.trim(),
+            'size': _resolveSize(material),
             'location': _floorController.text.trim(),
             'plant': _plantController.text.trim(),
 
@@ -2787,7 +2819,9 @@ class _AddDescriptionScreenState extends ConsumerState<AddDescriptionScreen>
         'size': _sizeController.text.trim(),
         'location': _floorController.text.trim(),
         'plant': _plantController.text.trim(),
-        'date': dateString,
+        (_mechanicalId == null || _mechanicalId!.isEmpty)
+            ? 'date'
+            : 'updatedDate':dateString,
 
         if (_mechanicalId == null && dprDesignation.isNotEmpty)
           'designation': dprDesignation,
@@ -2796,7 +2830,7 @@ class _AddDescriptionScreenState extends ConsumerState<AddDescriptionScreen>
         if (items.isNotEmpty) 'items': items,
       };
 
-      print('Sending update data: ${_selectedDate.toIso8601String()}');
+      print('Sending update data: ${dateString}');
 
       print('----- BEFORE SAVE (PROVIDER STATE) -----');
 

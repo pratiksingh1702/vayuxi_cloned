@@ -9,6 +9,7 @@ import '../../../../../core/utlis/widgets/custom.dart';
 import '../../../../../core/utlis/widgets/custom_dropdown.dart';
 import '../../../../../core/utlis/widgets/fields/custom_textField.dart';
 import '../../../../../core/utlis/widgets/fields/phone_number_field.dart';
+import '../../../../../core/utlis/widgets/fields/searchableDropdown.dart';
 import '../../../../../core/utlis/widgets/sidebar.dart';
 import '../../../../../typeProvider/type_provider.dart';
 import '../model/manpower_model.dart';
@@ -65,6 +66,30 @@ class _EditManpowerScreenState extends ConsumerState<EditManpowerScreen> {
   String? _selectedTotalHour;
   final List<String> _totalHourOptions =
   List.generate(16, (index) => (index + 1).toString());
+  final List<String> _designationOptions = [
+    "Manager",
+    "Team Leader",
+    "Team Member",
+    "Director",
+    "Supervisor",
+    "Engineer",
+    "Executive Engineer",
+    "Welder",
+    "Fitter",
+    "Rigger",
+    "Helper",
+    "Legger",
+    "Fabricator",
+    "Foreman",
+    "Site Supervisor",
+    "CTO",
+    "CEO",
+    "Senior Manager",
+    "Assistant General Manager",
+    "General Manager",
+    "Grinderman",
+    "Cutter",
+  ];
 
   @override
   void initState() {
@@ -83,9 +108,11 @@ class _EditManpowerScreenState extends ConsumerState<EditManpowerScreen> {
     _salaryController = TextEditingController(text: m.salary.toString());
     _remarksController = TextEditingController(text: m.remarks ?? "");
     _payBasic = m.payBasics ?? "monthly";
-    _selectedTotalHour = m.totalHour;
+    _selectedTotalHour = m.totalHour?.toString();
+    debugPrint("initiating totalHour: $_selectedTotalHour");
     _aadhaarController =
         TextEditingController(text: m.aadharNumber ?? "");
+
 
     _basicSalaryController =
         TextEditingController(text: m.basicSalary?.toString() ?? "");
@@ -212,6 +239,7 @@ class _EditManpowerScreenState extends ConsumerState<EditManpowerScreen> {
     }
 
     try {
+      debugPrint("Sending totalHour: $_selectedTotalHour");
       // Call updateManpower which now returns the updated object
       final updatedManpower = await ref.read(manpowerProvider.notifier).updateManpower(
           widget.manpower.id!, data, manpowerType
@@ -283,10 +311,14 @@ class _EditManpowerScreenState extends ConsumerState<EditManpowerScreen> {
                     controller: _fullNameController,
                     isRequired: true,
                   ),
-                  CustomTextField(
-                    label: "Designation",
-                    controller: _designationController,
-                    isRequired: true,
+                  SearchableDropdown(
+                    data: _designationOptions,
+                    value: _designationController.text,
+                    onSelect: (value) {
+                      setState(() {
+                        _designationController.text = value;
+                      });
+                    },
                   ),
                   PhoneInputField(
                     controller: _phoneController,
@@ -520,6 +552,10 @@ class _EditManpowerScreenState extends ConsumerState<EditManpowerScreen> {
                                 value: "yearly",
                                 child: Text("Yearly"),
                               ),
+                              DropdownMenuItem(
+                                value: "fixed",
+                                child: Text("Fixed"),
+                              ),
                             ],
                             onChanged: (val) {
                               setState(() {
@@ -548,7 +584,7 @@ class _EditManpowerScreenState extends ConsumerState<EditManpowerScreen> {
                   const SizedBox(height: 16),
 
                   CustomDropdownField<String>(
-                    label: "Total Hour",
+                    label: "Shift Hour",
 
                     value: _selectedTotalHour,
                     hint: "Select Total Working Hours",

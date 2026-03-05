@@ -167,23 +167,28 @@ const ManpowerIsarSchema = CollectionSchema(
       name: r'specialAllowance',
       type: IsarType.double,
     ),
-    r'travelAllowance': PropertySchema(
+    r'totalHour': PropertySchema(
       id: 30,
+      name: r'totalHour',
+      type: IsarType.string,
+    ),
+    r'travelAllowance': PropertySchema(
+      id: 31,
       name: r'travelAllowance',
       type: IsarType.double,
     ),
     r'type': PropertySchema(
-      id: 31,
+      id: 32,
       name: r'type',
       type: IsarType.string,
     ),
     r'uanNumber': PropertySchema(
-      id: 32,
+      id: 33,
       name: r'uanNumber',
       type: IsarType.string,
     ),
     r'updatedAt': PropertySchema(
-      id: 33,
+      id: 34,
       name: r'updatedAt',
       type: IsarType.dateTime,
     )
@@ -350,6 +355,12 @@ int _manpowerIsarEstimateSize(
       bytesCount += 3 + value.length * 3;
     }
   }
+  {
+    final value = object.totalHour;
+    if (value != null) {
+      bytesCount += 3 + value.length * 3;
+    }
+  }
   bytesCount += 3 + object.type.length * 3;
   {
     final value = object.uanNumber;
@@ -396,10 +407,11 @@ void _manpowerIsarSerialize(
   writer.writeString(offsets[27], object.remarks);
   writer.writeDouble(offsets[28], object.salary);
   writer.writeDouble(offsets[29], object.specialAllowance);
-  writer.writeDouble(offsets[30], object.travelAllowance);
-  writer.writeString(offsets[31], object.type);
-  writer.writeString(offsets[32], object.uanNumber);
-  writer.writeDateTime(offsets[33], object.updatedAt);
+  writer.writeString(offsets[30], object.totalHour);
+  writer.writeDouble(offsets[31], object.travelAllowance);
+  writer.writeString(offsets[32], object.type);
+  writer.writeString(offsets[33], object.uanNumber);
+  writer.writeDateTime(offsets[34], object.updatedAt);
 }
 
 ManpowerIsar _manpowerIsarDeserialize(
@@ -440,10 +452,11 @@ ManpowerIsar _manpowerIsarDeserialize(
   object.remarks = reader.readStringOrNull(offsets[27]);
   object.salary = reader.readDoubleOrNull(offsets[28]);
   object.specialAllowance = reader.readDoubleOrNull(offsets[29]);
-  object.travelAllowance = reader.readDoubleOrNull(offsets[30]);
-  object.type = reader.readString(offsets[31]);
-  object.uanNumber = reader.readStringOrNull(offsets[32]);
-  object.updatedAt = reader.readDateTime(offsets[33]);
+  object.totalHour = reader.readStringOrNull(offsets[30]);
+  object.travelAllowance = reader.readDoubleOrNull(offsets[31]);
+  object.type = reader.readString(offsets[32]);
+  object.uanNumber = reader.readStringOrNull(offsets[33]);
+  object.updatedAt = reader.readDateTime(offsets[34]);
   return object;
 }
 
@@ -515,12 +528,14 @@ P _manpowerIsarDeserializeProp<P>(
     case 29:
       return (reader.readDoubleOrNull(offset)) as P;
     case 30:
-      return (reader.readDoubleOrNull(offset)) as P;
-    case 31:
-      return (reader.readString(offset)) as P;
-    case 32:
       return (reader.readStringOrNull(offset)) as P;
+    case 31:
+      return (reader.readDoubleOrNull(offset)) as P;
+    case 32:
+      return (reader.readString(offset)) as P;
     case 33:
+      return (reader.readStringOrNull(offset)) as P;
+    case 34:
       return (reader.readDateTime(offset)) as P;
     default:
       throw IsarError('Unknown property with id $propertyId');
@@ -4404,6 +4419,160 @@ extension ManpowerIsarQueryFilter
   }
 
   QueryBuilder<ManpowerIsar, ManpowerIsar, QAfterFilterCondition>
+      totalHourIsNull() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(const FilterCondition.isNull(
+        property: r'totalHour',
+      ));
+    });
+  }
+
+  QueryBuilder<ManpowerIsar, ManpowerIsar, QAfterFilterCondition>
+      totalHourIsNotNull() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(const FilterCondition.isNotNull(
+        property: r'totalHour',
+      ));
+    });
+  }
+
+  QueryBuilder<ManpowerIsar, ManpowerIsar, QAfterFilterCondition>
+      totalHourEqualTo(
+    String? value, {
+    bool caseSensitive = true,
+  }) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(FilterCondition.equalTo(
+        property: r'totalHour',
+        value: value,
+        caseSensitive: caseSensitive,
+      ));
+    });
+  }
+
+  QueryBuilder<ManpowerIsar, ManpowerIsar, QAfterFilterCondition>
+      totalHourGreaterThan(
+    String? value, {
+    bool include = false,
+    bool caseSensitive = true,
+  }) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(FilterCondition.greaterThan(
+        include: include,
+        property: r'totalHour',
+        value: value,
+        caseSensitive: caseSensitive,
+      ));
+    });
+  }
+
+  QueryBuilder<ManpowerIsar, ManpowerIsar, QAfterFilterCondition>
+      totalHourLessThan(
+    String? value, {
+    bool include = false,
+    bool caseSensitive = true,
+  }) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(FilterCondition.lessThan(
+        include: include,
+        property: r'totalHour',
+        value: value,
+        caseSensitive: caseSensitive,
+      ));
+    });
+  }
+
+  QueryBuilder<ManpowerIsar, ManpowerIsar, QAfterFilterCondition>
+      totalHourBetween(
+    String? lower,
+    String? upper, {
+    bool includeLower = true,
+    bool includeUpper = true,
+    bool caseSensitive = true,
+  }) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(FilterCondition.between(
+        property: r'totalHour',
+        lower: lower,
+        includeLower: includeLower,
+        upper: upper,
+        includeUpper: includeUpper,
+        caseSensitive: caseSensitive,
+      ));
+    });
+  }
+
+  QueryBuilder<ManpowerIsar, ManpowerIsar, QAfterFilterCondition>
+      totalHourStartsWith(
+    String value, {
+    bool caseSensitive = true,
+  }) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(FilterCondition.startsWith(
+        property: r'totalHour',
+        value: value,
+        caseSensitive: caseSensitive,
+      ));
+    });
+  }
+
+  QueryBuilder<ManpowerIsar, ManpowerIsar, QAfterFilterCondition>
+      totalHourEndsWith(
+    String value, {
+    bool caseSensitive = true,
+  }) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(FilterCondition.endsWith(
+        property: r'totalHour',
+        value: value,
+        caseSensitive: caseSensitive,
+      ));
+    });
+  }
+
+  QueryBuilder<ManpowerIsar, ManpowerIsar, QAfterFilterCondition>
+      totalHourContains(String value, {bool caseSensitive = true}) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(FilterCondition.contains(
+        property: r'totalHour',
+        value: value,
+        caseSensitive: caseSensitive,
+      ));
+    });
+  }
+
+  QueryBuilder<ManpowerIsar, ManpowerIsar, QAfterFilterCondition>
+      totalHourMatches(String pattern, {bool caseSensitive = true}) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(FilterCondition.matches(
+        property: r'totalHour',
+        wildcard: pattern,
+        caseSensitive: caseSensitive,
+      ));
+    });
+  }
+
+  QueryBuilder<ManpowerIsar, ManpowerIsar, QAfterFilterCondition>
+      totalHourIsEmpty() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(FilterCondition.equalTo(
+        property: r'totalHour',
+        value: '',
+      ));
+    });
+  }
+
+  QueryBuilder<ManpowerIsar, ManpowerIsar, QAfterFilterCondition>
+      totalHourIsNotEmpty() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(FilterCondition.greaterThan(
+        property: r'totalHour',
+        value: '',
+      ));
+    });
+  }
+
+  QueryBuilder<ManpowerIsar, ManpowerIsar, QAfterFilterCondition>
       travelAllowanceIsNull() {
     return QueryBuilder.apply(this, (query) {
       return query.addFilterCondition(const FilterCondition.isNull(
@@ -5222,6 +5391,18 @@ extension ManpowerIsarQuerySortBy
     });
   }
 
+  QueryBuilder<ManpowerIsar, ManpowerIsar, QAfterSortBy> sortByTotalHour() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addSortBy(r'totalHour', Sort.asc);
+    });
+  }
+
+  QueryBuilder<ManpowerIsar, ManpowerIsar, QAfterSortBy> sortByTotalHourDesc() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addSortBy(r'totalHour', Sort.desc);
+    });
+  }
+
   QueryBuilder<ManpowerIsar, ManpowerIsar, QAfterSortBy>
       sortByTravelAllowance() {
     return QueryBuilder.apply(this, (query) {
@@ -5669,6 +5850,18 @@ extension ManpowerIsarQuerySortThenBy
     });
   }
 
+  QueryBuilder<ManpowerIsar, ManpowerIsar, QAfterSortBy> thenByTotalHour() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addSortBy(r'totalHour', Sort.asc);
+    });
+  }
+
+  QueryBuilder<ManpowerIsar, ManpowerIsar, QAfterSortBy> thenByTotalHourDesc() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addSortBy(r'totalHour', Sort.desc);
+    });
+  }
+
   QueryBuilder<ManpowerIsar, ManpowerIsar, QAfterSortBy>
       thenByTravelAllowance() {
     return QueryBuilder.apply(this, (query) {
@@ -5929,6 +6122,13 @@ extension ManpowerIsarQueryWhereDistinct
     });
   }
 
+  QueryBuilder<ManpowerIsar, ManpowerIsar, QDistinct> distinctByTotalHour(
+      {bool caseSensitive = true}) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addDistinctBy(r'totalHour', caseSensitive: caseSensitive);
+    });
+  }
+
   QueryBuilder<ManpowerIsar, ManpowerIsar, QDistinct>
       distinctByTravelAllowance() {
     return QueryBuilder.apply(this, (query) {
@@ -6148,6 +6348,12 @@ extension ManpowerIsarQueryProperty
       specialAllowanceProperty() {
     return QueryBuilder.apply(this, (query) {
       return query.addPropertyName(r'specialAllowance');
+    });
+  }
+
+  QueryBuilder<ManpowerIsar, String?, QQueryOperations> totalHourProperty() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addPropertyName(r'totalHour');
     });
   }
 

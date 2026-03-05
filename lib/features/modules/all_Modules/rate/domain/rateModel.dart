@@ -30,9 +30,35 @@ class Rate {
   });
 
   factory Rate.fromJson(Map<String, dynamic> json) {
+    final siteData = json['siteId'];
+
+    SiteModel siteModel;
+
+    if (siteData is Map<String, dynamic>) {
+      siteModel = SiteModel.fromJson(siteData);
+    } else if (siteData is String) {
+      siteModel = SiteModel(
+        id: siteData,
+        siteName: '',
+        address: '',
+        contactPerson: '',
+        gstNo: '',
+        phoneNumber: '',
+        emailId: '',
+        documentNumber: '',
+        shippingAddress: '',
+        isDeleted: false,
+        company: '',
+        type: '', documentDate: '', createdAt: '', updatedAt: '',
+
+      );
+    } else {
+      siteModel = SiteModel.fromJson({});
+    }
+
     return Rate(
       id: json['_id'] ?? '',
-      site: SiteModel.fromJson(json['siteId'] ?? {}),
+      site: siteModel,
       serviceName: json['serviceName'] ?? '',
       hsnSacCode: json['hsnSacCode'] ?? '',
       rate: (json['rate'] ?? 0).toDouble(),

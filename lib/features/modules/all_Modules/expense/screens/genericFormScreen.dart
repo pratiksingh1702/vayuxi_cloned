@@ -130,9 +130,10 @@ class _ExpenseFormScreenState extends ConsumerState<ExpenseFormScreen> {
       if (expense.rate != null) {
         _rateController.text = expense.rate!.toString();
       }
-      if (expense.balance != null) {
-        _balanceController.text = expense.balance!.toString();
-      }
+      _balanceController.text =
+          expense.balance?.toString() ??
+              expense.invoiceValue?.toString() ??
+              '';
       if (expense.uom != null) {
         _selectedUOM = expense.uom;
       }

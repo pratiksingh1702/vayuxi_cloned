@@ -54,17 +54,33 @@ class RateNotifier extends StateNotifier<RateState<List<Rate>>> {
     }
   }
 
-  Future<void> updateRate(Map<String, dynamic> data, String siteId, String rateId) async {
+  Future<void> updateRate(
+      Map<String, dynamic> data,
+      String siteId,
+      String rateId,
+      ) async {
     state = state.copyWith(loading: true, error: null);
+
     final response = await _client.updateRate(data, siteId, rateId);
 
     if (response['success']) {
-      final ratesJson = response['data']['rates'] as List<dynamic>;
-      final rates = ratesJson.map((e) => Rate.fromJson(e)).toList();
-      state = state.copyWith(loading: false, data: rates);
+      final updatedRate = Rate.fromJson(response['data']);
+
+      final currentRates = state.data ?? [];
+
+      final updatedList = currentRates.map((r) {
+        return r.id == updatedRate.id ? updatedRate : r;
+      }).toList();
+
+      state = state.copyWith(
+        loading: false,
+        data: updatedList,
+      );
     } else {
       state = state.copyWith(
-          loading: false, error: response['error']?.toString() ?? "Unknown error");
+        loading: false,
+        error: response['error']?.toString() ?? "Unknown error",
+      );
     }
   }
 }

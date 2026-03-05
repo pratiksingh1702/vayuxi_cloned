@@ -145,24 +145,36 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
     print(user.id);
 
 
-    // Set form values
     setState(() {
       _formValues = {
         'profilePhoto': user.profilePhoto ?? '',
-        'companyLogo': user.company?.logo ?? '',
         'fullName': user.fullName,
         'phoneNumber': user.phoneNumber,
         'email': user.email,
         'aadhaarCard': user.aadhaarCard ?? '',
         'gstNumber': user.gstNumber ?? '',
+
         'company': {
           'name': user.company?.name ?? '',
           'logo': user.company?.logo ?? '',
         },
+
+        'companyLogo': user.company?.logo ?? '',
         'address': user.address ?? '',
         'other': user.other ?? '',
-        // 'selectService': List<String>.from(user.selectedServices),
 
+        'bankName': user.company?.bankName ?? '',
+        'accountName': user.company?.accountName ?? '',
+        'accountNumber': user.company?.accountNumber ?? '',
+        'ifscCode': user.company?.ifscCode ?? '',
+        'branch': user.company?.branch ?? '',
+        'panNumber': user.company?.panNumber ?? '',
+
+        'digitalSignature': user.company?.digitalSignature ?? '',
+
+        'selectService': user.selectedServices != null
+            ? List<String>.from(user.selectedServices!)
+            : <String>[],
       };
     });
   }

@@ -14,6 +14,19 @@ class AttendanceRepository {
 
   AttendanceRepository(this.isar);
 
+
+  Future<int> getAttendanceCount({
+    required String siteId,
+    required String type,
+    required String dateKey,
+  }) async {
+    return await isar.attendanceIsars
+        .filter()
+        .siteIdEqualTo(siteId)
+        .typeEqualTo(type)
+        .dateKeyEqualTo(dateKey)
+        .count();
+  }
   // -------------------------------
   // ✅ MANPOWER CACHE
   // -------------------------------
@@ -25,24 +38,70 @@ class AttendanceRepository {
   }) async {
     if (!await isOnline()) return;
 
-    final res = await AttendanceApi.fetchAttendanceByDate(
-      type: type,
-      siteId: siteId,
-      fromDate: dateKey, // already yyyy-mm-dd
-    );
+    final date = DateTime.parse(dateKey);
+
+    final formattedDate =
+        "${date.day.toString().padLeft(2, '0')}/"
+        "${date.month.toString().padLeft(2, '0')}/"
+        "${date.year}";
+
+    dynamic res;
+
+    try {
+      res = await AttendanceApi.fetchAttendanceByDate(
+        type: type,
+        siteId: siteId,
+        fromDate: formattedDate,
+      );
+    } catch (e) {
+      print("⚠️ Attendance API error: $e");
+      return;
+    }
 
     final List raw =
-    (res.data is Map && res.data['data'] != null) ? res.data['data'] : res.data;
+    (res.data is Map && res.data['data'] != null)
+        ? res.data['data']
+        : res.data;
 
-    final models =
-    raw.map((e) => AttendanceModel.fromJson(e)).toList();
+    final models = raw.map((e) => AttendanceModel.fromJson(e)).toList();
 
     final isarRows = models.map((m) {
-      return AttendanceIsarMapper.fromModel(m, dateKey, siteId:siteId, type: type);
+      return AttendanceIsarMapper.fromModel(
+        m,
+        dateKey,
+        siteId: siteId,
+        type: type,
+      );
     }).toList();
 
     await isar.writeTxn(() async {
-      await isar.attendanceIsars.putAll(isarRows);
+      for (final row in isarRows) {
+        // ✅ Find existing by manpowerId + dateKey + siteId + type
+        final existing = await isar.attendanceIsars
+            .filter()
+            .siteIdEqualTo(siteId)
+            .typeEqualTo(type)
+            .dateKeyEqualTo(dateKey)
+            .manpowerIdEqualTo(row.manpowerId)
+            .findFirst();
+
+        if (existing != null) {
+          // ✅ Update existing row — preserve isarId so Isar updates in place
+          existing
+            ..attendanceId = row.attendanceId
+            ..status = row.status
+            ..totalHours = row.totalHours
+            ..ot = row.ot
+            ..company = row.company
+            ..isDeleted = row.isDeleted
+            ..isDirty = false
+            ..updatedAt = row.updatedAt;
+          await isar.attendanceIsars.put(existing);
+        } else {
+          // ✅ Insert new row
+          await isar.attendanceIsars.put(row);
+        }
+      }
     });
   }
   Future<bool> isOnline() async {
@@ -88,7 +147,7 @@ class AttendanceRepository {
           esicNumber: m.esicNumber,
 
           payBasics: m.payBasics,
-
+          totalHour: m.totalHour,
           salary: m.salary,
           basicSalary: m.basicSalary,
           hra: m.hra,
@@ -173,6 +232,7 @@ class AttendanceRepository {
           ..esicNumber = m.esicNumber
 
           ..payBasics = m.payBasics
+          ..totalHour = m.totalHour?.toString()
 
           ..salary = m.salary
           ..basicSalary = m.basicSalary
@@ -203,8 +263,6 @@ class AttendanceRepository {
 
       await isar.manpowerIsars.putAll(isarList);
 
-
-      await isar.manpowerIsars.putAll(isarList);
     });
   }
 
@@ -403,14 +461,20 @@ class AttendanceRepository {
     await isar.writeTxn(() async {
       for (final m in manpowerRows) {
         final existing = await isar.attendanceIsars
+            .where()
             .filter()
             .siteIdEqualTo(siteId)
+
             .typeEqualTo(type)
+
             .dateKeyEqualTo(dateKey)
+
             .manpowerIdEqualTo(m.manpowerId)
             .findFirst();
 
-        if (existing != null) continue;
+        if (existing != null) {
+          continue;
+        }
 
         final row = AttendanceIsar()
           ..attendanceId = "${siteId}_${m.manpowerId}_$dateKey"

@@ -9,7 +9,7 @@ part 'attendance_isar.g.dart';
 class AttendanceIsar {
   Id isarId = Isar.autoIncrement;
 
-  @Index()
+  @Index(unique: true, replace: true)
   late String attendanceId; // API id OR local generated id
 
   @Index()

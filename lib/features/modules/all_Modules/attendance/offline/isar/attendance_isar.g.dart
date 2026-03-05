@@ -87,8 +87,8 @@ const AttendanceIsarSchema = CollectionSchema(
     r'attendanceId': IndexSchema(
       id: -5047753669473436316,
       name: r'attendanceId',
-      unique: false,
-      replace: false,
+      unique: true,
+      replace: true,
       properties: [
         IndexPropertySchema(
           name: r'attendanceId',
@@ -282,6 +282,63 @@ List<IsarLinkBase<dynamic>> _attendanceIsarGetLinks(AttendanceIsar object) {
 void _attendanceIsarAttach(
     IsarCollection<dynamic> col, Id id, AttendanceIsar object) {
   object.isarId = id;
+}
+
+extension AttendanceIsarByIndex on IsarCollection<AttendanceIsar> {
+  Future<AttendanceIsar?> getByAttendanceId(String attendanceId) {
+    return getByIndex(r'attendanceId', [attendanceId]);
+  }
+
+  AttendanceIsar? getByAttendanceIdSync(String attendanceId) {
+    return getByIndexSync(r'attendanceId', [attendanceId]);
+  }
+
+  Future<bool> deleteByAttendanceId(String attendanceId) {
+    return deleteByIndex(r'attendanceId', [attendanceId]);
+  }
+
+  bool deleteByAttendanceIdSync(String attendanceId) {
+    return deleteByIndexSync(r'attendanceId', [attendanceId]);
+  }
+
+  Future<List<AttendanceIsar?>> getAllByAttendanceId(
+      List<String> attendanceIdValues) {
+    final values = attendanceIdValues.map((e) => [e]).toList();
+    return getAllByIndex(r'attendanceId', values);
+  }
+
+  List<AttendanceIsar?> getAllByAttendanceIdSync(
+      List<String> attendanceIdValues) {
+    final values = attendanceIdValues.map((e) => [e]).toList();
+    return getAllByIndexSync(r'attendanceId', values);
+  }
+
+  Future<int> deleteAllByAttendanceId(List<String> attendanceIdValues) {
+    final values = attendanceIdValues.map((e) => [e]).toList();
+    return deleteAllByIndex(r'attendanceId', values);
+  }
+
+  int deleteAllByAttendanceIdSync(List<String> attendanceIdValues) {
+    final values = attendanceIdValues.map((e) => [e]).toList();
+    return deleteAllByIndexSync(r'attendanceId', values);
+  }
+
+  Future<Id> putByAttendanceId(AttendanceIsar object) {
+    return putByIndex(r'attendanceId', object);
+  }
+
+  Id putByAttendanceIdSync(AttendanceIsar object, {bool saveLinks = true}) {
+    return putByIndexSync(r'attendanceId', object, saveLinks: saveLinks);
+  }
+
+  Future<List<Id>> putAllByAttendanceId(List<AttendanceIsar> objects) {
+    return putAllByIndex(r'attendanceId', objects);
+  }
+
+  List<Id> putAllByAttendanceIdSync(List<AttendanceIsar> objects,
+      {bool saveLinks = true}) {
+    return putAllByIndexSync(r'attendanceId', objects, saveLinks: saveLinks);
+  }
 }
 
 extension AttendanceIsarQueryWhereSort

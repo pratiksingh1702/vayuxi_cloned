@@ -9,7 +9,6 @@ import '../../../../../core/utlis/widgets/custom_appBar.dart';
 import '../../../../../core/utlis/widgets/sidebar.dart';
 import '../../../../../typeProvider/type_provider.dart';
 import '../../site_Details/providers/site_current_provider.dart';
-import '../../site_Details/repository/siteModel.dart';
 import '../model/teamModel.dart';
 import '../provider/teamProvider.dart';
 import '../provider/teamService.dart';
@@ -336,7 +335,7 @@ class _TeamListPageState extends ConsumerState<TeamListPage> {
                         ),
                         const SizedBox(height: 10),
                         Text(
-                          team.teamName,
+                          team.isDefaultTeam?'Default team':team.teamName ?? '',
                           style: const TextStyle(
                             fontWeight: FontWeight.w600,
                             fontSize: 15,

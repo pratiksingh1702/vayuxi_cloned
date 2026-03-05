@@ -6,7 +6,6 @@ import '../../../team/provider/teamProvider.dart';
 import '../../model/attModel.dart';
 import 'att_sync.dart';
 
-
 String normalizeDateKey(DateTime date) {
   // YYYY-MM-DD
   return "${date.year.toString().padLeft(4, '0')}-"
@@ -16,56 +15,54 @@ String normalizeDateKey(DateTime date) {
 
 /// ✅ OFFLINE manpower stream
 final manpowerOfflineProvider =
-StreamProvider.family<List<ManpowerModel>, ({String type})>((ref, args) {
-  ref.watch(manpowerSyncControllerProvider(( type: args.type)));
+    StreamProvider.family<List<ManpowerModel>, ({String type})>((ref, args) {
+  ref.watch(manpowerSyncControllerProvider((type: args.type)));
   final repo = ref.watch(attendanceRepositoryProvider);
   return repo.watchManpower(args.type);
 });
 
-/// ✅ OFFLINE attendance stream
-final attendanceOfflineProvider = StreamProvider.family<
-    List<AttendanceModel>,
-    ({String siteId, String type, DateTime date})
->((ref, args) async* {
+final attendanceOfflineProvider = StreamProvider.family<List<AttendanceModel>,
+    ({String siteId, String type, DateTime date})>((ref, args) async* {
+  print('🔄 Fetching attendance for ${args.date}');
+
   final repo = ref.watch(attendanceRepositoryProvider);
-  final type=ref.read(typeProvider)!;
-  final id=ref.read(selectedSiteIdProvider)!;
-
-  await ref
-      .read(teamProvider.notifier)
-      .fetchTeams(type: type!, siteId: id);
-
-  final teamState = ref.watch(teamProvider);
 
   final dateKey = repo.formatDateKey(args.date);
 
-// 🔥 Extract manpower IDs from ALL teams
-
-
-  final teams = teamState.teams;
-  print("📦 TOTAL TEAMS: ${teams.length}");
-
-  for (final t in teams) {
-    print("👥 TEAM: ${t.teamName}  → members: ${t.teamMemberIds} -> lead ${t.teamLeadId}");
+  if (await repo.isOnline()) {
+    try {
+      await repo.syncAttendanceForDate(
+        siteId: args.siteId,
+        type: args.type,
+        dateKey: dateKey,
+      );
+    } catch (e, s) {
+      // Do NOT stop the provider — just log and continue
+      print("⚠️ Attendance sync failed: $e");
+    }
   }
 
+  /// fetch teams
+  final teamNotifier = ref.read(teamProvider.notifier);
+  await teamNotifier.fetchTeams(type: args.type, siteId: args.siteId);
 
+  final teams = ref.read(teamProvider).teams;
 
   final ids = teams
       .expand((t) => [
-    ...t.teamMemberIds,
-    if (t.teamLeadId != null && t.teamLeadId!.isNotEmpty)
-      t.teamLeadId!,
-  ])
-      .toSet() // remove duplicates
+            ...t.teamMemberIds,
+            if (t.teamLeadId != null && t.teamLeadId!.isNotEmpty) t.teamLeadId!,
+          ])
+      .toSet()
       .toList();
 
+  final existing = await repo.getAttendanceCount(
+    siteId: args.siteId,
+    type: args.type,
+    dateKey: dateKey,
+  );
 
-  print("🆔 FINAL MANPOWER IDS (after merge + unique): $ids");
-
-
-  if (ids.isNotEmpty) {
-
+  if (existing == 0 && ids.isNotEmpty) {
     await repo.prepareAttendanceFromTeam(
       siteId: args.siteId,
       type: args.type,
@@ -74,7 +71,7 @@ final attendanceOfflineProvider = StreamProvider.family<
     );
   }
 
-  // 🔥 Stream after creation
+  /// stream DB
   yield* repo.watchAttendance(
     siteId: args.siteId,
     type: args.type,
@@ -82,4 +79,4 @@ final attendanceOfflineProvider = StreamProvider.family<
   );
 });
 final attendanceDraftProvider =
-StateProvider<List<AttendanceModel>>((ref) => []);
+    StateProvider<List<AttendanceModel>>((ref) => []);

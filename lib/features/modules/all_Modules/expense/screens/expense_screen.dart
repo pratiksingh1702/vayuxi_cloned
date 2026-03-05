@@ -337,6 +337,7 @@ class _ExpenseListScreenState extends ConsumerState<ExpenseListScreen> {
   }
 
   Widget _buildExpenseCard(ExpenseModel expense, bool isSelected) {
+    debugPrint(expense.toString());
     final description =
     (expense.description == null || expense.description!.isEmpty)
         ? "No description"
@@ -347,12 +348,23 @@ class _ExpenseListScreenState extends ConsumerState<ExpenseListScreen> {
         ? "Unknown"
         : expense.expenseType!;
 
-    final amountText = expense.amount != null
-        ? "₹${expense.amount!.toStringAsFixed(2)}"
-        : expense.rate != null
-        ? "₹${expense.rate!.toStringAsFixed(2)}"
-        : "N/A";
+    final amountText = () {
+      if (expense.expenseType == "material_tools") {
+        return expense.invoiceValue != null
+            ? "₹${expense.invoiceValue!.toStringAsFixed(2)}"
+            : "N/A";
+      }
 
+      if (expense.amount != null) {
+        return "₹${expense.amount!.toStringAsFixed(2)}";
+      }
+
+      if (expense.rate != null) {
+        return "₹${expense.rate!.toStringAsFixed(2)}";
+      }
+
+      return "N/A";
+    }();
     return Stack(
       children: [
         Opacity(

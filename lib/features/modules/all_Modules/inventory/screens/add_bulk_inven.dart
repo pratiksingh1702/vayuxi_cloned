@@ -1,6 +1,5 @@
 // screens/inventory/bulk_upload_screen.dart
 import 'dart:io';
-
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:file_picker/file_picker.dart';
@@ -16,17 +15,12 @@ import '../../../../../core/utlis/sample_file/sample_file_model.dart';
 import '../../../../../core/utlis/widgets/buttons.dart';
 import '../../../../../core/utlis/widgets/sample_preview.dart';
 import '../../../../../core/utlis/widgets/sidebar.dart';
-import '../models/inventory_model.dart';
 import '../provider/inventory_provider.dart';
 
 class BulkUploadScreen extends ConsumerStatefulWidget {
-
-
   const BulkUploadScreen({
     Key? key,
-
   }) : super(key: key);
-
   @override
   ConsumerState<BulkUploadScreen> createState() => _BulkUploadScreenState();
 }

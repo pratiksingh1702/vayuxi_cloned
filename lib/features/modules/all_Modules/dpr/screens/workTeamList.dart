@@ -205,7 +205,7 @@ class _WorkTeamListPageState extends ConsumerState<WorkTeamListPage> {
                                           fit: BoxFit.cover,
                                           errorBuilder: (_, __, ___) {
                                             return Image.asset(
-                                              "assets/images/default.jpg",
+                                              "assets/images/team_def.webp",
                                               height: 80,
                                               width: 80,
                                               fit: BoxFit.cover,
@@ -213,7 +213,7 @@ class _WorkTeamListPageState extends ConsumerState<WorkTeamListPage> {
                                           },
                                         )
                                             : Image.asset(
-                                          "assets/images/default.jpg",
+                                          "assets/images/team_def.webp",
                                           height: 80,
                                           width: 80,
                                           fit: BoxFit.cover,
@@ -221,7 +221,7 @@ class _WorkTeamListPageState extends ConsumerState<WorkTeamListPage> {
                                       ),
                                       const SizedBox(height: 10),
                                       Text(
-                                        team.teamName,
+                                        team.isDefaultTeam?'Default team':team.teamName ?? '',
                                         style: const TextStyle(
                                           fontWeight: FontWeight.w600,
                                           fontSize: 15,

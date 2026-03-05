@@ -101,7 +101,7 @@ final appRouterProvider = Provider<GoRouter>((ref) {
       final atSplash = state.matchedLocation == Routes.splash;
       const publicRoutes = {
         Routes.login,
-          '/manpower-login',
+        '/manpower-login',
         '/register',
         '/trial',
         '/terms'
