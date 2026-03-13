@@ -5,6 +5,7 @@ import 'package:untitled2/core/utlis/widgets/Button_wrapper.dart';
 import 'package:untitled2/core/utlis/widgets/afd.dart';
 import 'package:intl/intl.dart';
 import 'package:untitled2/features/modules/all_Modules/dpr/screens/work_type.dart';
+import 'package:untitled2/features/modules/all_Modules/team/provider/teamProvider.dart';
 
 // Mechanical imports
 import '../../../../../core/utlis/widgets/custom_appBar.dart';
@@ -318,6 +319,7 @@ class _DprWorkScreenState extends ConsumerState<DprWorkScreen> {
   @override
   Widget build(BuildContext context) {
     final workType = ref.watch(typeProvider);
+    final team=ref.read(currentTeamProvider);
 
     // Fail fast if no work type is selected
     if (workType == null || !WorkType.isValid(workType)) {
@@ -356,7 +358,7 @@ class _DprWorkScreenState extends ConsumerState<DprWorkScreen> {
 
     return Scaffold(
       appBar: CustomAppBar(
-        title: "${workType == WorkType.mechanical ? 'Mechanical' : 'Insulation'} Work Descriptions",
+        title: "Team ${team?.teamName} Work Descriptions",
 
       ),
       body: BottomButtonWrapper(

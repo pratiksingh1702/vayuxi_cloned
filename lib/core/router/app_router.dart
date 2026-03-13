@@ -6,6 +6,8 @@ import 'package:untitled2/features/modules/all_Modules/site_Details/screens/site
 import 'package:untitled2/features/modules/all_Modules/summary/screens/summaru_screen.dart';
 
 
+import '../../features/auth/onboarding/screens/onboarding_screen.dart';
+import '../../features/auth/onboarding/screens/pla_Select_Screen.dart';
 import '../../features/auth/provider/auth_provider.dart';
 import '../../features/auth/screens/TrialScreen.dart';
 import '../../features/auth/screens/login.dart';
@@ -88,48 +90,93 @@ final appRouterProvider = Provider<GoRouter>((ref) {
     refreshListenable: ref.watch(routerRefreshProvider),
 
 
+      redirect: (context, state) {
+        final access = ref.read(appAccessProvider);
+        final loc = state.matchedLocation;
 
+        print(
+          'ROUTER: booting=${access.isBooting} '
+              'loggedIn=${access.loggedIn} '
+              'planSelected=${access.planSelected} '
+              'onboarding=${access.onboardingCompleted} '
+              'trial=${access.trialActivated} '
+              'sub=${access.hasSubscription}  '
+              'loc=$loc',
+        );
 
-    redirect: (context, state) {
-      final access = ref.read(appAccessProvider);
-      print("BOOT:${access.isBooting}  LOGIN:${access.loggedIn}");
+        // ── 0. Still booting ─────────────────────────────────────────────────
+        if (access.isBooting) return Routes.splash;
 
-      final loggingIn = state.matchedLocation == Routes.login;
-      final registering = state.matchedLocation == '/register';
-      final manpowerLoggingIn = state.matchedLocation == '/manpower-login';
+        // ── 1. Not logged in ─────────────────────────────────────────────────
+        const Set<String> publicRoutes = {
+          Routes.login,
+          '/manpower-login',
+          '/register',
+          '/trial',
+          '/onboarding',
+          '/plan-select',
+          '/terms',
+        };
+        final isPublic = publicRoutes.contains(loc);
 
-      final atSplash = state.matchedLocation == Routes.splash;
-      const publicRoutes = {
-        Routes.login,
-        '/manpower-login',
-        '/register',
-        '/trial',
-        '/terms'
-      };
+        if (!access.loggedIn) {
+          return isPublic ? null : Routes.login;
+        }
 
-      if (access.isBooting) return Routes.splash;
+        // ── Gate pages: any screen that belongs to the pre-app funnel ─────────
+        final atGatePage = loc == Routes.splash ||
+            loc == Routes.login ||
+            loc == '/manpower-login' ||
+            loc == '/plan-select' ||
+            loc == '/onboarding' ||
+            loc == '/trial';
 
-      final isPublic = publicRoutes.contains(state.matchedLocation);
+        // ── 2. Has active subscription → straight into the app ───────────────
+        if (access.hasSubscription) {
+          if (atGatePage) return Routes.workCategory;
+          return null; // already inside, let them navigate freely
+        }
 
-      /// NOT LOGGED IN → only public allowed
-      if (!access.loggedIn&&!access.isBooting) {
-        return isPublic ? null : Routes.login;
-      }
+        // ────────────────────────────────────────────────────────────────────
+        // NO SUBSCRIPTION from here down — enforce the funnel:
+        //   plan-select → (onboarding if not done) → trial
+        // ────────────────────────────────────────────────────────────────────
 
-      /// LOGGED IN → prevent going back to auth pages
-      if (access.loggedIn && (loggingIn || manpowerLoggingIn || atSplash)) {
-        return Routes.workCategory;
-      }
+        // 2a. Coming from splash/login → always start at plan-select
+        if (loc == Routes.splash || loc == Routes.login || loc == '/manpower-login') {
+          return '/plan-select';
+        }
 
-      /// NOW check subscription (only for logged users)
-      if (!access.hasSubscription &&
-          state.matchedLocation != '/trial') {
-        return '/trial';
-      }
+        // 2b. Plan not yet selected → force plan-select
+        if (!access.planSelected && loc != '/plan-select') {
+          return '/plan-select';
+        }
 
-      return null;
-    },
+        // 2c. Plan selected, onboarding NOT done → go to onboarding
+        //     (skipped automatically if onboardingCompleted == true)
+        if (access.planSelected &&
+            !access.onboardingCompleted &&
+            loc != '/onboarding') {
+          return '/onboarding';
+        }
 
+        // 2d. Plan selected + onboarding done (or skipped) → go to trial
+        if (access.planSelected &&
+            access.onboardingCompleted &&
+            !access.trialActivated &&
+            loc != '/trial') {
+          return '/trial';
+        }
+
+        // 2e. Trial activated but subscription still not active (expired/lapsed)
+        if (access.trialActivated &&
+            !access.hasSubscription &&
+            loc != '/trial') {
+          return '/trial';
+        }
+
+        return null;
+      },
 
     observers: [
       BotToastNavigatorObserver(), // ✅ correct place
@@ -141,7 +188,15 @@ final appRouterProvider = Provider<GoRouter>((ref) {
         path: Routes.splash,
         builder: (context, state) => const SplashScreen(),
       ),
+      GoRoute(
+        path: '/plan-select',
+        builder: (context, state) => const PlanSelectScreen(),
+      ),
 
+      GoRoute(
+        path: '/onboarding',
+        builder: (context, state) => const OnboardingScreen(),
+      ),
       GoRoute(
         path: Routes.login,
         builder: (context, state) => const LoginScreen(),

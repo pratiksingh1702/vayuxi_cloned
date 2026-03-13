@@ -47,7 +47,7 @@ class AddInsulationDescriptionScreen extends ConsumerStatefulWidget {
 }
 
 class _AddInsulationDescriptionScreenState extends ConsumerState<AddInsulationDescriptionScreen>
-    with AutomaticKeepAliveClientMixin, WidgetsBindingObserver {
+    {
 
   late final TextEditingController _dprNameController;
   late final TextEditingController _mocController;
@@ -102,14 +102,12 @@ class _AddInsulationDescriptionScreenState extends ConsumerState<AddInsulationDe
   bool get isEditingDpr => _insulationId != null;
   bool get isEditing => _insulationId != null;
 
-  @override
-  bool get wantKeepAlive => true;
+
 
   @override
   void initState() {
     super.initState();
 
-    WidgetsBinding.instance.addObserver(this);
     _initializeControllers();
     _initializeData();
 
@@ -120,60 +118,98 @@ class _AddInsulationDescriptionScreenState extends ConsumerState<AddInsulationDe
         setState(() {
           _loadLayersFromProvider();
         });
-
-        _hydrateFromMaterialStream();   // ← clean hydration
-      }
+      //
+      //   Future.microtask(() async {
+      //     await _hydrateFromMaterialStream();
+      //   });  // ← clean hydration
+       }
     });
   }
-  void _hydrateFromMaterialStream() {
-    final siteId = ref.read(selectedSiteIdProvider)!;
-
-
-    ref.listenManual(
-      materialsStreamProvider((
-      siteId: siteId,
-      domain: 'insulation',
-      designation: '', // we’ll filter ourselves
-      )),
-          (previous, next) {
-        next.whenData((localMaterials) {
-          if (localMaterials.isEmpty) return;
-
-          final piping = <PipingMaterial>[];
-          final equipment = <EquipmentMaterial>[];
-
-          for (final local in localMaterials) {
-            if (local.designation == 'piping') {
-              piping.add(local.toPiping());
-            } else if (local.designation == 'equipment') {
-              equipment.add(local.toEquipment());
-            }
-          }
-
-          ref
-              .read(insulationPipingMaterialsProvider.notifier)
-              .setMaterials(piping);
-
-          ref
-              .read(insulationEquipmentMaterialsProvider.notifier)
-              .setMaterials(equipment);
-
-          // propagate global size + unit
-          final size = ref.read(selectedSizeProvider) ?? '';
-          final unit = ref.read(selectedUnitProvider);
-
-          ref
-              .read(insulationPipingMaterialsProvider.notifier)
-              .updateAllSizes(
-            size: size,
-            unit: unit,
-          );
-        });
-      },
-    );
-  }
+  // Future<void> _hydrateFromMaterialStream() async {
+  //   final siteId = ref.read(selectedSiteIdProvider)!;
+  //   ref.read(insulationPipingMaterialsProvider).clear();
+  //
+  //   /// STEP 1 — Force sync before listening
+  //   await ref.read(materialRepositoryProvider).sync(
+  //     siteId: siteId,
+  //     domain: 'insulation',
+  //     designation: '',
+  //   );
+  //
+  //   /// STEP 2 — Listen to DB stream
+  //   ref.listenManual(
+  //     materialsStreamProvider((
+  //     siteId: siteId,
+  //     domain: 'insulation',
+  //     designation: '',
+  //     )),
+  //         (previous, next) {
+  //       next.whenData((localMaterials) {
+  //         if (localMaterials.isEmpty) return;
+  //
+  //         final pipingIncoming = <PipingMaterial>[];
+  //         final equipmentIncoming = <EquipmentMaterial>[];
+  //
+  //         for (final local in localMaterials) {
+  //           if (local.isDeleted) continue;
+  //
+  //           if (local.designation == 'piping') {
+  //             pipingIncoming.add(local.toPiping());
+  //           } else if (local.designation == 'equipment') {
+  //             equipmentIncoming.add(local.toEquipment());
+  //           }
+  //         }
+  //
+  //         /// Existing provider materials
+  //         final existingPiping =
+  //         ref.read(insulationPipingMaterialsProvider);
+  //
+  //         final existingEquipment =
+  //         ref.read(insulationEquipmentMaterialsProvider);
+  //
+  //         final pipingIds =
+  //         existingPiping.map((e) => e.id).toSet();
+  //
+  //         final equipmentIds =
+  //         existingEquipment.map((e) => e.id).toSet();
+  //
+  //         /// Add only missing materials
+  //         final newPiping = pipingIncoming
+  //             .where((m) => !pipingIds.contains(m.id))
+  //             .toList();
+  //
+  //         final newEquipment = equipmentIncoming
+  //             .where((m) => !equipmentIds.contains(m.id))
+  //             .toList();
+  //
+  //         if (newPiping.isNotEmpty) {
+  //           ref
+  //               .read(insulationPipingMaterialsProvider.notifier)
+  //               .addMaterials(newPiping);
+  //         }
+  //
+  //         if (newEquipment.isNotEmpty) {
+  //           ref
+  //               .read(insulationEquipmentMaterialsProvider.notifier)
+  //               .addMaterials(newEquipment);
+  //         }
+  //
+  //         /// propagate global size + unit
+  //         final size = ref.read(selectedSizeProvider) ?? '';
+  //         final unit = ref.read(selectedUnitProvider);
+  //
+  //         ref
+  //             .read(insulationPipingMaterialsProvider.notifier)
+  //             .updateAllSizes(
+  //           size: size,
+  //           unit: unit,
+  //         );
+  //       });
+  //     },
+  //   );
+  // }
   void _initializeControllers() {
-    _dprNameController = TextEditingController(text: 'New Insulation DPR');
+    _dprNameController = TextEditingController();
     _mocController = TextEditingController();
     _sizeController = TextEditingController();
     _plantController = TextEditingController();
@@ -618,7 +654,7 @@ class _AddInsulationDescriptionScreenState extends ConsumerState<AddInsulationDe
     } else {
       _insulationId = null;
       _selectedDprId = null;
-      _dprNameController.text = 'New Insulation DPR';
+      _dprNameController.text = '';
     }
 
     await loadScreenState();
@@ -1420,8 +1456,68 @@ class _AddInsulationDescriptionScreenState extends ConsumerState<AddInsulationDe
 
   @override
   Widget build(BuildContext context) {
-    super.build(context);
 
+    print("againnnnnnnnnnnnn");
+    final pipingStream = ref.watch(materialsStreamProvider((
+    siteId: siteId,
+    domain: 'insulation',
+    designation: 'piping',
+    )));
+
+    final equipmentStream = ref.watch(materialsStreamProvider((
+    siteId: siteId,
+    domain: 'insulation',
+    designation: 'equipment',
+    )));
+
+    // ✅ ref.listen only fires on VALUE CHANGE, not every rebuild
+    // No infinite loop!
+    if (_insulationId == null && widget.work == null) {
+      print("00000000000000000000000000000000000000000000000000000000");
+      ref.listen(
+        materialsStreamProvider((
+        siteId: siteId,
+        domain: 'insulation',
+        designation: 'piping',
+        )),
+            (previous, next) {
+          next.whenData((localMaterials) {
+            if (!mounted) return;
+            final incoming = localMaterials
+                .where((m) => !m.isDeleted)
+                .map((m) => m.toPiping())
+                .toList();
+
+            ref.read(insulationPipingMaterialsProvider.notifier).clear();
+            if (incoming.isNotEmpty) {
+              ref.read(insulationPipingMaterialsProvider.notifier).addMaterials(incoming);
+            }
+          });
+        },
+      );
+
+      ref.listen(
+        materialsStreamProvider((
+        siteId: siteId,
+        domain: 'insulation',
+        designation: 'equipment',
+        )),
+            (previous, next) {
+          next.whenData((localMaterials) {
+            if (!mounted) return;
+            final incoming = localMaterials
+                .where((m) => !m.isDeleted)
+                .map((m) => m.toEquipment())
+                .toList();
+
+            ref.read(insulationEquipmentMaterialsProvider.notifier).clear();
+            if (incoming.isNotEmpty) {
+              ref.read(insulationEquipmentMaterialsProvider.notifier).addMaterials(incoming);
+            }
+          });
+        },
+      );
+    }
     final pipingMaterials = ref.watch(insulationPipingMaterialsProvider);
     final equipmentMaterials = ref.watch(insulationEquipmentMaterialsProvider);
     final insulationState = ref.watch(insulationStateProvider);
@@ -2785,7 +2881,7 @@ class _AddInsulationDescriptionScreenState extends ConsumerState<AddInsulationDe
   @override
   void dispose() {
     _isDisposed = true;
-    WidgetsBinding.instance.removeObserver(this);
+
     _dprNameController.dispose();
     _mocController.dispose();
     _sizeController.dispose();

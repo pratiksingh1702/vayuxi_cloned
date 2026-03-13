@@ -9,12 +9,15 @@ class CustomTextField extends StatelessWidget {
   final TextEditingController? controller;
   final TextInputType keyboardType;
   final Widget? prefixIcon;
+  final FocusNode? focusNode;
+
   final String? Function(String?)? validator;
 
   const CustomTextField({
     super.key,
     required this.label,
     this.hint,
+    this.focusNode,
     this.isRequired = false,
     this.maxLines = 1,
     this.controller,
@@ -53,6 +56,7 @@ class CustomTextField extends StatelessWidget {
             controller: controller,
             keyboardType: keyboardType,
             maxLines: maxLines,
+            focusNode: focusNode,
             decoration: InputDecoration(
               hintText: hint ?? 'Enter $label',
               hintStyle: const TextStyle(

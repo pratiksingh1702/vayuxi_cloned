@@ -451,6 +451,7 @@ class _PipingMaterialCardState extends State<PipingMaterialCard> {
               SizedBox(
                 height: 24,
                 child: TextFormField(
+                  keyboardType: TextInputType.number,
                   initialValue: qtyUom,
                   decoration: InputDecoration(
                     isDense: true,
@@ -673,7 +674,9 @@ class _PipingMaterialCardState extends State<PipingMaterialCard> {
                   height: 22,
                   child: TextFormField(
                     controller: _sizeUomController,
+                    keyboardType: TextInputType.number,
                     decoration: InputDecoration(
+
                       isDense: true,
                       filled: true,
                       fillColor: const Color(0xFFD0EAFD),

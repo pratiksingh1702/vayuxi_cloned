@@ -2,6 +2,7 @@ import 'dart:math' as math;
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:go_router/go_router.dart';
 import 'package:untitled2/core/utlis/common_functions.dart';
 import '../models/payment_model.dart';
 import '../providers/razorpay_provider.dart';
@@ -151,7 +152,35 @@ class PlanData {
 }
 
 // Plan order: Premium → Standard → Trial (high-anchor first)
+// Replace kPlans in subsciption_screen.dart
+
 final List<PlanData> kPlans = [
+  PlanData(
+    id: 'yearly',
+    name: 'Yearly',
+    tagline: 'Best value — save ₹6,589 vs monthly.',
+    priceMonthly: 14999, // billed once per year
+    primaryFeatures: [
+      'Unlimited AI uploads all year',
+      'Everything in Premium included',
+      'Lock in price — no renewal hikes',
+    ],
+    secondaryFeatures: [
+      'Dedicated account manager',
+      'Early access to new features',
+      'Custom onboarding session',
+    ],
+    accentColor: AppColors.teal,
+    cardGradient: const LinearGradient(
+      colors: [Color(0xFF0AADA2), Color(0xFF0A8FAD)],
+      begin: Alignment.topLeft, end: Alignment.bottomRight,
+    ),
+    badge: 'BEST VALUE',
+    isHighlighted: false,
+    weight: PlanWeight.secondary,
+    deltaText: '₹1,250/mo effective — vs ₹1,799/mo on monthly Premium',
+    socialProof: 'Save ₹6,589 compared to 12 × Premium',
+  ),
   PlanData(
     id: 'premium',
     name: 'Premium',
@@ -178,6 +207,10 @@ final List<PlanData> kPlans = [
     deltaText: 'Only ₹700 more than Standard — unlimited everything',
     socialProof: '68% of users choose Premium',
   ),
+
+  // ── NEW: Yearly plan ────────────────────────────────────────────────────
+
+
   PlanData(
     id: 'standard',
     name: 'Standard',
@@ -192,7 +225,7 @@ final List<PlanData> kPlans = [
       'Referral rewards program',
       'Export to PDF & Excel',
     ],
-    accentColor: AppColors.teal,
+    accentColor: AppColors.violet,
     cardGradient: const LinearGradient(
       colors: [AppColors.standardGradStart, AppColors.standardGradEnd],
       begin: Alignment.topLeft, end: Alignment.bottomRight,
@@ -201,6 +234,7 @@ final List<PlanData> kPlans = [
     weight: PlanWeight.secondary,
     deltaText: 'Upgrade to Premium for only ₹700 more — remove every limit',
   ),
+
   PlanData(
     id: 'trial',
     name: 'Try first',
@@ -775,15 +809,16 @@ class _SubscriptionScreenState extends ConsumerState<SubscriptionScreen>
   void _handlePlanTap(PlanData plan, Subscription sub) {
     HapticFeedback.lightImpact();
     if (plan.id == 'trial') {
-      ref.read(paymentNotifierProvider.notifier).startTrialPayment();
+      // Trial requires a referral code — send user to TrialScreen where
+      // they enter the code, create the order, and complete the ₹1 payment.
+      context.push('/trial');
     } else {
       ref.read(paymentNotifierProvider.notifier).startSubscriptionPayment(
-        plan: plan.id,
+        plan:       plan.id,
         coinsToUse: _coinsApplied[plan.id] ?? 0,
       );
     }
   }
-
   void _showCancelDialog() {
     showDialog(
       context: context,
@@ -1016,6 +1051,10 @@ class _PlanCardState extends State<_PlanCard>
         return _hasSavings
             ? 'Unlock Premium · ₹${_finalPrice.toStringAsFixed(0)}/mo'
             : 'Unlock Premium · ₹$_originalPrice/mo';
+      case 'yearly':
+        return _hasSavings
+            ? 'Get Yearly · ₹${_finalPrice.toStringAsFixed(0)}/yr'
+            : 'Get Yearly · ₹$_originalPrice/yr';
       case 'standard':
         return _hasSavings
             ? 'Get Standard · ₹${_finalPrice.toStringAsFixed(0)}/mo'
@@ -1182,6 +1221,13 @@ class _PlanCardState extends State<_PlanCard>
   //   No coins: ₹1499                  /month
   //   Coins on: ₹1339  ~~₹1499~~      /month
   Widget _buildPriceBlock(Color accent) {
+    final isYearly = widget.plan.id == 'yearly';
+    final periodLabel = _isTrialPlan
+        ? null
+        : isYearly
+        ? '/year'
+        : '/month';
+
     return Row(
       crossAxisAlignment: CrossAxisAlignment.end,
       children: [
@@ -1195,14 +1241,11 @@ class _PlanCardState extends State<_PlanCard>
             key: const ValueKey('discounted'),
             crossAxisAlignment: CrossAxisAlignment.end,
             children: [
-              // Final discounted price — coloured with plan accent
               Text(
                 '₹${_finalPrice.toStringAsFixed(0)}',
-                style:
-                AppTextStyles.priceMain.copyWith(color: accent),
+                style: AppTextStyles.priceMain.copyWith(color: accent),
               ),
               const SizedBox(width: 8),
-              // Original struck through
               Padding(
                 padding: const EdgeInsets.only(bottom: 5),
                 child: Text('₹$_originalPrice',
@@ -1222,23 +1265,47 @@ class _PlanCardState extends State<_PlanCard>
           ),
         ),
         const Spacer(),
-        if (!_isTrialPlan)
-          Padding(
-            padding: const EdgeInsets.only(bottom: 5),
-            child: Text('/month',
-                style: AppTextStyles.featureText.copyWith(fontSize: 11)),
-          )
-        else
+
+        // Period label / badge
+        if (_isTrialPlan)
           Container(
-            padding:
-            const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+            padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
             decoration: BoxDecoration(
               color: AppColors.tealDim,
               borderRadius: BorderRadius.circular(8),
             ),
             child: Text('REFUNDABLE',
-                style: AppTextStyles.badgeText
-                    .copyWith(color: AppColors.teal)),
+                style: AppTextStyles.badgeText.copyWith(color: AppColors.teal)),
+          )
+        else if (isYearly)
+          Column(
+            crossAxisAlignment: CrossAxisAlignment.end,
+            children: [
+              Padding(
+                padding: const EdgeInsets.only(bottom: 2),
+                child: Text(periodLabel!,
+                    style: AppTextStyles.featureText.copyWith(fontSize: 11)),
+              ),
+              // Effective monthly cost chip
+              Container(
+                padding:
+                const EdgeInsets.symmetric(horizontal: 7, vertical: 3),
+                decoration: BoxDecoration(
+                  color: accent.withOpacity(0.12),
+                  borderRadius: BorderRadius.circular(6),
+                ),
+                child: Text(
+                  '≈ ₹1,250/mo',
+                  style: AppTextStyles.badgeText.copyWith(color: accent),
+                ),
+              ),
+            ],
+          )
+        else
+          Padding(
+            padding: const EdgeInsets.only(bottom: 5),
+            child: Text(periodLabel!,
+                style: AppTextStyles.featureText.copyWith(fontSize: 11)),
           ),
       ],
     );

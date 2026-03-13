@@ -44,8 +44,8 @@ final Map<String, List<EquipmentFieldConfig>> equipmentFieldConfig = {
 
   'REDUCER': [
     EquipmentFieldConfig(label: 'Length', type: EquipmentFieldType.length, imageIndex: 0),
-    EquipmentFieldConfig(label: 'Circumference 1', type: EquipmentFieldType.circumference1, imageIndex: 1),
-    EquipmentFieldConfig(label: 'Circumference 2', type: EquipmentFieldType.circumference2, imageIndex: 2),
+    EquipmentFieldConfig(label: 'Circumference', type: EquipmentFieldType.circumference, imageIndex: 1),
+    EquipmentFieldConfig(label: 'Circumference 1', type: EquipmentFieldType.circumference1, imageIndex: 2),
   ],
 
   'NOZZLE': [

@@ -104,6 +104,7 @@ dependencies:
   file_saver: ^0.3.1
   flutter_file_dialog: ^3.0.3
   flutter_markdown_plus: ^1.0.7
+  auto_size_text: ^3.0.0
 
 
 

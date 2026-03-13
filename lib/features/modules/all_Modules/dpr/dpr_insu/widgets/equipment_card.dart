@@ -271,6 +271,10 @@ class _EquipmentMaterialCardState extends State<EquipmentMaterialCard> {
                       keyboardType: TextInputType.number,
                       textAlign: TextAlign.center,
                       textAlignVertical: TextAlignVertical.center,
+                      onChanged: (val) {
+                        final qty = int.tryParse(val) ?? 0;
+                        widget.onChanged(widget.material.copyWith(qty: qty));
+                      },
 
                       style: TextStyle(
                         fontSize: 16,
@@ -592,8 +596,10 @@ class _EquipmentMaterialCardState extends State<EquipmentMaterialCard> {
                     height: 28,
                     child: TextFormField(
                       controller: _uomControllers[field.type],
+                      keyboardType: TextInputType.number,
                       decoration: InputDecoration(
                         isDense: true,
+
                         filled: true,
                         fillColor: const Color(0xFFD0EAFD),
                         hintText: "UOM",
@@ -624,6 +630,7 @@ class _EquipmentMaterialCardState extends State<EquipmentMaterialCard> {
                       height: 36,
                       child: TextFormField(
                         controller: _valueControllers[field.type],
+
                         focusNode: _focusNodes[field.type],
                         textAlign: TextAlign.center,
                         keyboardType: const TextInputType.numberWithOptions(decimal: true),

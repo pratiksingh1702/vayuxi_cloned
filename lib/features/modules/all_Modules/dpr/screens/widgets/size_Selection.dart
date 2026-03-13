@@ -5,6 +5,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:untitled2/core/utlis/widgets/Button_wrapper.dart';
 import 'package:untitled2/core/utlis/widgets/buttons.dart';
 import 'package:untitled2/core/utlis/widgets/custom_appBar.dart';
+import 'package:untitled2/core/utlis/widgets/sidebar.dart';
 import 'package:untitled2/typeProvider/type_provider.dart';
 import '../../../../../../core/utlis/widgets/fields/custom_textField.dart';
 import '../../../../../language/service/providers.dart';
@@ -48,6 +49,7 @@ class _SizeSelectionPageState
 
     return Scaffold(
       appBar: CustomAppBar(title: lang.enterSizeTitle),
+      drawer: CustomDrawer(),
       body: BottomButtonWrapper(
         customButtons: [
           CustomButton(

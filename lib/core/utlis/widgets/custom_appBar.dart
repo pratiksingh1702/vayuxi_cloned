@@ -1,3 +1,4 @@
+import 'package:auto_size_text/auto_size_text.dart';
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
 
@@ -63,11 +64,11 @@ class CustomAppBar extends StatelessWidget implements PreferredSizeWidget {
               child: Center(
                 child: Padding(
                   padding: EdgeInsets.only(left: showDrawer ? 0 : 0),
-                  child: Text(
+                  child: AutoSizeText(
                     title,
-                    maxLines: 1,
+                    maxLines: 2,
+                    minFontSize: 14,
                     textAlign: TextAlign.center,
-                    overflow: TextOverflow.ellipsis,
                     style: const TextStyle(
                       fontSize: 20,
                       fontWeight: FontWeight.bold,

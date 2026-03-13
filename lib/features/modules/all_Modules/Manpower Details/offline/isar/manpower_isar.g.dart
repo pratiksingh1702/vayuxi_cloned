@@ -202,7 +202,7 @@ const ManpowerIsarSchema = CollectionSchema(
     r'manpowerId': IndexSchema(
       id: -4902541461226653662,
       name: r'manpowerId',
-      unique: false,
+      unique: true,
       replace: false,
       properties: [
         IndexPropertySchema(
@@ -220,6 +220,19 @@ const ManpowerIsarSchema = CollectionSchema(
       properties: [
         IndexPropertySchema(
           name: r'type',
+          type: IndexType.hash,
+          caseSensitive: true,
+        )
+      ],
+    ),
+    r'employeeCode': IndexSchema(
+      id: 7493838445661731167,
+      name: r'employeeCode',
+      unique: true,
+      replace: false,
+      properties: [
+        IndexPropertySchema(
+          name: r'employeeCode',
           type: IndexType.hash,
           caseSensitive: true,
         )
@@ -555,6 +568,117 @@ void _manpowerIsarAttach(
   object.isarId = id;
 }
 
+extension ManpowerIsarByIndex on IsarCollection<ManpowerIsar> {
+  Future<ManpowerIsar?> getByManpowerId(String manpowerId) {
+    return getByIndex(r'manpowerId', [manpowerId]);
+  }
+
+  ManpowerIsar? getByManpowerIdSync(String manpowerId) {
+    return getByIndexSync(r'manpowerId', [manpowerId]);
+  }
+
+  Future<bool> deleteByManpowerId(String manpowerId) {
+    return deleteByIndex(r'manpowerId', [manpowerId]);
+  }
+
+  bool deleteByManpowerIdSync(String manpowerId) {
+    return deleteByIndexSync(r'manpowerId', [manpowerId]);
+  }
+
+  Future<List<ManpowerIsar?>> getAllByManpowerId(
+      List<String> manpowerIdValues) {
+    final values = manpowerIdValues.map((e) => [e]).toList();
+    return getAllByIndex(r'manpowerId', values);
+  }
+
+  List<ManpowerIsar?> getAllByManpowerIdSync(List<String> manpowerIdValues) {
+    final values = manpowerIdValues.map((e) => [e]).toList();
+    return getAllByIndexSync(r'manpowerId', values);
+  }
+
+  Future<int> deleteAllByManpowerId(List<String> manpowerIdValues) {
+    final values = manpowerIdValues.map((e) => [e]).toList();
+    return deleteAllByIndex(r'manpowerId', values);
+  }
+
+  int deleteAllByManpowerIdSync(List<String> manpowerIdValues) {
+    final values = manpowerIdValues.map((e) => [e]).toList();
+    return deleteAllByIndexSync(r'manpowerId', values);
+  }
+
+  Future<Id> putByManpowerId(ManpowerIsar object) {
+    return putByIndex(r'manpowerId', object);
+  }
+
+  Id putByManpowerIdSync(ManpowerIsar object, {bool saveLinks = true}) {
+    return putByIndexSync(r'manpowerId', object, saveLinks: saveLinks);
+  }
+
+  Future<List<Id>> putAllByManpowerId(List<ManpowerIsar> objects) {
+    return putAllByIndex(r'manpowerId', objects);
+  }
+
+  List<Id> putAllByManpowerIdSync(List<ManpowerIsar> objects,
+      {bool saveLinks = true}) {
+    return putAllByIndexSync(r'manpowerId', objects, saveLinks: saveLinks);
+  }
+
+  Future<ManpowerIsar?> getByEmployeeCode(String? employeeCode) {
+    return getByIndex(r'employeeCode', [employeeCode]);
+  }
+
+  ManpowerIsar? getByEmployeeCodeSync(String? employeeCode) {
+    return getByIndexSync(r'employeeCode', [employeeCode]);
+  }
+
+  Future<bool> deleteByEmployeeCode(String? employeeCode) {
+    return deleteByIndex(r'employeeCode', [employeeCode]);
+  }
+
+  bool deleteByEmployeeCodeSync(String? employeeCode) {
+    return deleteByIndexSync(r'employeeCode', [employeeCode]);
+  }
+
+  Future<List<ManpowerIsar?>> getAllByEmployeeCode(
+      List<String?> employeeCodeValues) {
+    final values = employeeCodeValues.map((e) => [e]).toList();
+    return getAllByIndex(r'employeeCode', values);
+  }
+
+  List<ManpowerIsar?> getAllByEmployeeCodeSync(
+      List<String?> employeeCodeValues) {
+    final values = employeeCodeValues.map((e) => [e]).toList();
+    return getAllByIndexSync(r'employeeCode', values);
+  }
+
+  Future<int> deleteAllByEmployeeCode(List<String?> employeeCodeValues) {
+    final values = employeeCodeValues.map((e) => [e]).toList();
+    return deleteAllByIndex(r'employeeCode', values);
+  }
+
+  int deleteAllByEmployeeCodeSync(List<String?> employeeCodeValues) {
+    final values = employeeCodeValues.map((e) => [e]).toList();
+    return deleteAllByIndexSync(r'employeeCode', values);
+  }
+
+  Future<Id> putByEmployeeCode(ManpowerIsar object) {
+    return putByIndex(r'employeeCode', object);
+  }
+
+  Id putByEmployeeCodeSync(ManpowerIsar object, {bool saveLinks = true}) {
+    return putByIndexSync(r'employeeCode', object, saveLinks: saveLinks);
+  }
+
+  Future<List<Id>> putAllByEmployeeCode(List<ManpowerIsar> objects) {
+    return putAllByIndex(r'employeeCode', objects);
+  }
+
+  List<Id> putAllByEmployeeCodeSync(List<ManpowerIsar> objects,
+      {bool saveLinks = true}) {
+    return putAllByIndexSync(r'employeeCode', objects, saveLinks: saveLinks);
+  }
+}
+
 extension ManpowerIsarQueryWhereSort
     on QueryBuilder<ManpowerIsar, ManpowerIsar, QWhere> {
   QueryBuilder<ManpowerIsar, ManpowerIsar, QAfterWhere> anyIsarId() {
@@ -719,6 +843,73 @@ extension ManpowerIsarQueryWhere
               indexName: r'type',
               lower: [],
               upper: [type],
+              includeUpper: false,
+            ));
+      }
+    });
+  }
+
+  QueryBuilder<ManpowerIsar, ManpowerIsar, QAfterWhereClause>
+      employeeCodeIsNull() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addWhereClause(IndexWhereClause.equalTo(
+        indexName: r'employeeCode',
+        value: [null],
+      ));
+    });
+  }
+
+  QueryBuilder<ManpowerIsar, ManpowerIsar, QAfterWhereClause>
+      employeeCodeIsNotNull() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addWhereClause(IndexWhereClause.between(
+        indexName: r'employeeCode',
+        lower: [null],
+        includeLower: false,
+        upper: [],
+      ));
+    });
+  }
+
+  QueryBuilder<ManpowerIsar, ManpowerIsar, QAfterWhereClause>
+      employeeCodeEqualTo(String? employeeCode) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addWhereClause(IndexWhereClause.equalTo(
+        indexName: r'employeeCode',
+        value: [employeeCode],
+      ));
+    });
+  }
+
+  QueryBuilder<ManpowerIsar, ManpowerIsar, QAfterWhereClause>
+      employeeCodeNotEqualTo(String? employeeCode) {
+    return QueryBuilder.apply(this, (query) {
+      if (query.whereSort == Sort.asc) {
+        return query
+            .addWhereClause(IndexWhereClause.between(
+              indexName: r'employeeCode',
+              lower: [],
+              upper: [employeeCode],
+              includeUpper: false,
+            ))
+            .addWhereClause(IndexWhereClause.between(
+              indexName: r'employeeCode',
+              lower: [employeeCode],
+              includeLower: false,
+              upper: [],
+            ));
+      } else {
+        return query
+            .addWhereClause(IndexWhereClause.between(
+              indexName: r'employeeCode',
+              lower: [employeeCode],
+              includeLower: false,
+              upper: [],
+            ))
+            .addWhereClause(IndexWhereClause.between(
+              indexName: r'employeeCode',
+              lower: [],
+              upper: [employeeCode],
               includeUpper: false,
             ));
       }

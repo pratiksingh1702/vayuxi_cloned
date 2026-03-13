@@ -418,9 +418,9 @@ class _AllInsulationMaterialsScreenState extends ConsumerState<AllInsulationMate
     required String emptyMessage,
     required String category,
   }) {
-    if (materials.isEmpty) {
-      return _buildSetupState(siteId);
-    }
+    // if (materials.isEmpty) {
+    //   return _buildSetupState(siteId);
+    // }
 
     return Column(
       children: [
@@ -478,7 +478,7 @@ class _AllInsulationMaterialsScreenState extends ConsumerState<AllInsulationMate
             ],
           ),
         ),
-        Expanded(
+       if(materials.isNotEmpty) Expanded(
           child: ListView.builder(
             padding: const EdgeInsets.all(8.0),
             itemCount: materials.length,

@@ -4,6 +4,7 @@ import 'package:path_provider/path_provider.dart';
 // if LocalMaterialSchema is here
 import '../../features/modules/all_Modules/Manpower Details/offline/isar/manpower_isar.dart';
 import '../../features/modules/all_Modules/attendance/offline/isar/attendance_isar.dart';
+import '../../features/modules/all_Modules/dpr/offline/data/local/cached_image.dart';
 import '../../features/modules/all_Modules/dpr/offline/data/local/local_material.dart';
 import '../../features/modules/all_Modules/dpr/offline/mech/isar/dpr_work.dart';
 import '../../features/modules/all_Modules/dpr/offline/mech/isar/outbox.dart';
@@ -33,6 +34,7 @@ class AppIsarDB {
 
     final schemas = [
       LocalMaterialSchema,
+      CachedImageSchema,
       TeamIsarSchema,
       RateFileAnalysisIsarSchema,
       RateFileMaterialIsarSchema,
@@ -45,6 +47,7 @@ class AppIsarDB {
       InventoryIsarSchema,
       InventoryUsageIsarSchema,
       InventoryCheckoutIsarSchema,
+
 
       AttendanceIsarSchema,
       ManpowerIsarSchema

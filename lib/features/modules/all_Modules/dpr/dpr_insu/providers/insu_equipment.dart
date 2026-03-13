@@ -20,7 +20,9 @@ class InsulationEquipmentMaterialsNotifier extends StateNotifier<List<EquipmentM
   void setMaterials(List<EquipmentMaterial> materials) {
     state = List<EquipmentMaterial>.unmodifiable(materials);
   }
-
+  void addMaterials(List<EquipmentMaterial> newMaterials) {
+    state = [...state, ...newMaterials];
+  }
   // Alternative name for clarity
   void setFromServer(List<EquipmentMaterial> serverMaterials) {
     state = List.unmodifiable(serverMaterials);

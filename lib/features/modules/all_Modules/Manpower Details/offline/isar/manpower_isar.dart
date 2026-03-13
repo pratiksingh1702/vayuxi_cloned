@@ -6,7 +6,7 @@ part 'manpower_isar.g.dart';
 class ManpowerIsar {
   Id isarId = Isar.autoIncrement;
 
-  @Index()
+  @Index(unique: true)
   late String manpowerId;
 
   @Index()
@@ -14,7 +14,11 @@ class ManpowerIsar {
 
   String? fullName;
   String? designation;
+
+
+  @Index(unique: true)
   String? employeeCode;
+
   String? phoneNumber;
 
   String? aadharNumber;

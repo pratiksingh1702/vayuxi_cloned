@@ -42,6 +42,7 @@ final attendanceOfflineProvider = StreamProvider.family<List<AttendanceModel>,
     }
   }
 
+
   /// fetch teams
   final teamNotifier = ref.read(teamProvider.notifier);
   await teamNotifier.fetchTeams(type: args.type, siteId: args.siteId);
@@ -56,21 +57,14 @@ final attendanceOfflineProvider = StreamProvider.family<List<AttendanceModel>,
       .toSet()
       .toList();
 
-  final existing = await repo.getAttendanceCount(
-    siteId: args.siteId,
-    type: args.type,
-    dateKey: dateKey,
-  );
-
-  if (existing == 0 && ids.isNotEmpty) {
-    await repo.prepareAttendanceFromTeam(
+  if (ids.isNotEmpty) {
+    await repo.ensureAttendanceForTeam(
       siteId: args.siteId,
       type: args.type,
       dateKey: dateKey,
       teamMemberIds: ids,
     );
   }
-
   /// stream DB
   yield* repo.watchAttendance(
     siteId: args.siteId,

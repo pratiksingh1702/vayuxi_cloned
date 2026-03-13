@@ -127,56 +127,52 @@ class ExpenseAPI {
     return response.data;
   }
 
-  // Generate CSV
-  static Future<String> generateExpenseCSV({
+  static Future<Map<String, dynamic>> generateExpenseCSV({
     required String serviceType,
     required String type,
     required String siteId,
     required String startDate,
     required String endDate,
-    String expenseType="material_tools",
   }) async {
     try {
-
-
-      // Encode parameters
-      final encodedType = Uri.encodeComponent(type);
       final encodedServiceType = Uri.encodeComponent(serviceType);
 
-      // Construct URL with all required parameters
-      final url = "/site/$siteId/expenses/generate-expenses?type=$type&serviceType=$encodedServiceType&startDate=${Uri.encodeComponent(startDate)}&endDate=${Uri.encodeComponent(endDate)}";
+      final url =
+          "/site/$siteId/expenses/generate-expenses?type=$type&serviceType=$encodedServiceType&startDate=${Uri.encodeComponent(startDate)}&endDate=${Uri.encodeComponent(endDate)}";
 
-      print('📊 Generating CSV with URL: $url');
-
-      final response = await dio.get(url,
-          options: Options(responseType: ResponseType.bytes),)
-      ;
+      final response = await dio.get(
+        url,
+        options: Options(responseType: ResponseType.bytes),
+      );
 
       if (response.statusCode == 200) {
-        print('✅ CSV generated successfully');
-        return response.data;
-      } else {
-        throw HttpException(
-          'Failed to generate CSV: ${response.statusCode}',
-          uri: Uri.parse(url),
-        );
-      }
-    } on DioException catch (e) {
-      // More specific Dio error handling
-      print('❌ Dio Error generating CSV');
-      print('URL: ${e.requestOptions.uri}');
-      print('Status: ${e.response?.statusCode}');
-      print('Error: ${e.message}');
-      print('Response: ${e.response?.data}');
+        final headers = response.headers;
 
-      // You might want to throw a more specific exception
-      throw Exception('Failed to generate CSV: ${e.message}');
+        String fileName = "expense_report.csv";
+
+        final contentDisposition = headers.value('content-disposition');
+
+        if (contentDisposition != null) {
+          final regex = RegExp(r'filename="?(.+?)"?$');
+          final match = regex.firstMatch(contentDisposition);
+          if (match != null) {
+            fileName = match.group(1)!;
+          }
+        }
+
+        return {
+          "bytes": Uint8List.fromList(response.data),
+          "fileName": fileName,
+        };
+      } else {
+        throw Exception("Failed to generate CSV");
+      }
     } catch (e) {
-      print('❌ Unexpected error generating CSV: $e');
+      print("❌ CSV generation error: $e");
       rethrow;
     }
   }
-  static Future<Uint8List> generateExpenseExcel({
+  static Future<Map<String, dynamic>> generateExpenseExcel({
     required String serviceType,
     required String type,
     required String siteId,
@@ -193,12 +189,29 @@ class ExpenseAPI {
 
     if (response.statusCode == 200) {
       print('✅ Excel generated');
-      return Uint8List.fromList(response.data);
+
+      String fileName = "expense_report.xlsx";
+
+      final contentDisposition =
+      response.headers.value('content-disposition');
+
+      if (contentDisposition != null) {
+        final regex = RegExp(r'filename="?(.+?)"?$');
+        final match = regex.firstMatch(contentDisposition);
+
+        if (match != null) {
+          fileName = match.group(1)!;
+        }
+      }
+
+      return {
+        "bytes": Uint8List.fromList(response.data),
+        "fileName": fileName,
+      };
     }
 
     throw Exception("Failed to download excel");
   }
-
   // Helper method to format date as YYYY-MM-DD
   static String _formatDateForAPI(DateTime date) {
     return "${date.year}-${date.month.toString().padLeft(2, '0')}-${date.day.toString().padLeft(2, '0')}";

@@ -159,7 +159,7 @@ class _WorkCategoryScreenState extends ConsumerState<WorkCategoryScreen> {
           children: [
             Scaffold(
               backgroundColor: AppColors.lightBlue,
-              appBar: CustomAppBar(title: "Select Category"),
+              appBar: CustomAppBar(title: "Select Category",showDrawer: false,),
               body: CornerClippedScreenSimple(
                 child: SafeArea(
                   child: Padding(
@@ -203,9 +203,9 @@ class _WorkCategoryScreenState extends ConsumerState<WorkCategoryScreen> {
                             ],
                           ),
                         ),
-
-                        if (drafts.isNotEmpty)
-                          ...drafts.map((draft) => DraftCard(draft,context))
+                        //
+                        // if (drafts.isNotEmpty)
+                        //   ...drafts.map((draft) => DraftCard(draft,context))
 
                       ],
 

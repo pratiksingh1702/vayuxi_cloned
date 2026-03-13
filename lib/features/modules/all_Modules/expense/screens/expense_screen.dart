@@ -162,7 +162,59 @@ class _ExpenseListScreenState extends ConsumerState<ExpenseListScreen> {
       }
     }
   }
+  Future<void> _deleteSingleExpense(String expenseId) async {
+    final confirmed = await showDialog<bool>(
+      context: context,
+      builder: (context) => AlertDialog(
+        title: const Text("Delete Expense"),
+        content: const Text(
+          "Are you sure you want to delete this expense?\n\nThis action cannot be undone.",
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(context, false),
+            child: const Text("Cancel"),
+          ),
+          TextButton(
+            onPressed: () => Navigator.pop(context, true),
+            style: TextButton.styleFrom(foregroundColor: Colors.red),
+            child: const Text("Delete"),
+          ),
+        ],
+      ),
+    );
 
+    if (confirmed != true) return;
+
+    try {
+      await ExpenseAPI.deleteExpense(
+        siteId: widget.siteId,
+        expenseId: expenseId,
+      );
+
+      await _fetchExpenses();
+
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(
+            content: Text("Expense deleted successfully"),
+            backgroundColor: Colors.green,
+          ),
+        );
+      }
+    } catch (e) {
+      debugPrint("❌ Delete expense failed: $e");
+
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(
+            content: Text("Failed to delete expense"),
+            backgroundColor: Colors.red,
+          ),
+        );
+      }
+    }
+  }
   void _showCategoryModal() {
     showModalBottomSheet(
       context: context,
@@ -434,18 +486,28 @@ class _ExpenseListScreenState extends ConsumerState<ExpenseListScreen> {
                             style: TextStyle(
                               fontWeight: FontWeight.bold,
                               fontSize: 16,
-                              color: expense.amount == null
+                              color: amountText.isEmpty
                                   ? Colors.grey
                                   : Colors.green,
                             ),
                           ),
-                          IconButton(
-                            icon: const Icon(Icons.edit, color: Colors.blue),
-                            onPressed: () => _navigateToEditExpense(expense),
-                            tooltip: "Edit",
+                          Row(
+                            mainAxisSize: MainAxisSize.min,
+                            children: [
+                              IconButton(
+                                icon: const Icon(Icons.edit, color: Colors.blue),
+                                onPressed: () => _navigateToEditExpense(expense),
+                                tooltip: "Edit",
+                              ),
+                              IconButton(
+                                icon: const Icon(Icons.delete, color: Colors.red),
+                                onPressed: () => _deleteSingleExpense(expense.id!),
+                                tooltip: "Delete",
+                              ),
+                            ],
                           ),
                         ],
-                      ),
+                      )
                   ],
                 ),
               ),

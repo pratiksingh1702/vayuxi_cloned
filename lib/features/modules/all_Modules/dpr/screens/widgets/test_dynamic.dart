@@ -765,6 +765,7 @@
             child: TextFormField(
               controller: controller,
               focusNode: focusNode,
+              keyboardType: const TextInputType.numberWithOptions(decimal: true),
               textAlign: TextAlign.center,
               style: TextStyle(
                 fontSize: isUOM ? 14 : 8,

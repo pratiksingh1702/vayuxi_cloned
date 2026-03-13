@@ -1,6 +1,7 @@
 // screens/expense/expense_form_screen.dart
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:untitled2/core/utlis/app_toasts.dart';
 import 'package:untitled2/core/utlis/colors/colors.dart';
 import 'package:untitled2/core/utlis/widgets/Button_wrapper.dart';
 import 'package:untitled2/core/utlis/widgets/custom_appBar.dart';
@@ -66,15 +67,41 @@ class _ExpenseFormScreenState extends ConsumerState<ExpenseFormScreen> {
   // UOM list
   List<String> _uomList = [];
   bool _isLoadingUOM = false;
+
   final ScrollController _scrollController = ScrollController();
+
+  // FocusNodes — used to ensureVisible when keyboard opens over a field
+  final _descriptionFocusNode = FocusNode();
+  final _remarksFocusNode = FocusNode();
+  final _amountFocusNode = FocusNode();
+  final _invoiceNumberFocusNode = FocusNode();
+  final _hardwareShopFocusNode = FocusNode();
+  final _rateFocusNode = FocusNode();
+  final _balanceFocusNode = FocusNode();
+  final _placeFocusNode = FocusNode();
+
   @override
   void initState() {
     super.initState();
     _selectedDate = DateTime.now();
 
-    _scrollController.addListener(() {
-      FocusScope.of(context).unfocus();
-    });
+    // Auto-scroll to field when keyboard appears and it gets focus
+    for (final node in [
+      _descriptionFocusNode,
+      _remarksFocusNode,
+      _amountFocusNode,
+      _invoiceNumberFocusNode,
+      _hardwareShopFocusNode,
+      _rateFocusNode,
+      _balanceFocusNode,
+      _placeFocusNode,
+    ]) {
+      node.addListener(() {
+        if (node.hasFocus) {
+          _ensureVisible(node);
+        }
+      });
+    }
 
     WidgetsBinding.instance.addPostFrameCallback((_) {
       _loadExpenseData();
@@ -85,6 +112,20 @@ class _ExpenseFormScreenState extends ConsumerState<ExpenseFormScreen> {
 
       if (widget.expenseType == 'material_tools') {
         _fetchUOM();
+      }
+    });
+  }
+
+  /// Scrolls the focused field into view after the keyboard has fully animated in.
+  void _ensureVisible(FocusNode node) {
+    Future.delayed(const Duration(milliseconds: 350), () {
+      if (node.context != null) {
+        Scrollable.ensureVisible(
+          node.context!,
+          duration: const Duration(milliseconds: 250),
+          curve: Curves.easeInOut,
+          alignment: 0.5, // centre the field vertically in the visible area
+        );
       }
     });
   }
@@ -106,18 +147,19 @@ class _ExpenseFormScreenState extends ConsumerState<ExpenseFormScreen> {
       setState(() => _isLoadingUOM = false);
     }
   }
+
   void _loadExpenseData() {
     if (_isEditing && widget.expense != null) {
       final expense = widget.expense!;
       _descriptionController.text = expense.description ?? '';
       _remarksController.text = expense.remarks ?? '';
       _selectedDate = expense.date;
+      print(expense.hardwareShopName);
 
       if (expense.amount != null) {
         _amountController.text = expense.amount!.toString();
       }
 
-      // Load type-specific fields
       if (expense.invoiceNumber != null) {
         _invoiceNumberController.text = expense.invoiceNumber!;
       }
@@ -160,7 +202,7 @@ class _ExpenseFormScreenState extends ConsumerState<ExpenseFormScreen> {
   }
 
   String _getExpenseTypeName(String type) {
-    final lang=ref.watch(dailyEntryTranslationHelperProvider);
+    final lang = ref.watch(dailyEntryTranslationHelperProvider);
     final names = {
       'material_tools': lang.materialToolsCategory,
       'travelling': lang.travelCategory,
@@ -199,7 +241,7 @@ class _ExpenseFormScreenState extends ConsumerState<ExpenseFormScreen> {
         return {
           ...baseData,
           'invoiceNumber': _invoiceNumberController.text.trim(),
-          'hardwareShop': _hardwareShopController.text.trim(),
+          'hardwareShopName': _hardwareShopController.text.trim(),
           'quantity': _quantityController.text.isNotEmpty ? int.parse(_quantityController.text) : 1,
           'rateInRs': _rateController.text.isNotEmpty ? double.parse(_rateController.text) : 0.0,
           'invoiceValue': _balanceController.text.isNotEmpty ? double.parse(_balanceController.text) : 0.0,
@@ -243,7 +285,6 @@ class _ExpenseFormScreenState extends ConsumerState<ExpenseFormScreen> {
       return;
     }
 
-    // Validate amount for types that require it
     if (widget.expenseType != 'material_tools' && _amountController.text.isEmpty) {
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(content: Text("Please enter amount")),
@@ -251,7 +292,6 @@ class _ExpenseFormScreenState extends ConsumerState<ExpenseFormScreen> {
       return;
     }
 
-    // Validate UOM for material & tools
     if (widget.expenseType == 'material_tools' && (_selectedUOM == null || _selectedUOM!.isEmpty)) {
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(content: Text("Please select UOM")),
@@ -270,25 +310,19 @@ class _ExpenseFormScreenState extends ConsumerState<ExpenseFormScreen> {
           siteId: widget.siteId,
           expenseId: widget.expenseId!,
         );
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text("Expense updated successfully")),
-        );
+        AppToast.success("Expense updated successfully");
       } else {
         await ExpenseAPI.createExpense(
           data: expenseData,
           type: type!,
           siteId: widget.siteId,
         );
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text("Expense created successfully")),
-        );
+       AppToast.success("Expense created successfully");
       }
 
       Navigator.pop(context);
     } catch (e) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text("Failed to save expense: $e")),
-      );
+      AppToast.error("Failed to save expense: $e");
     } finally {
       setState(() => _isLoading = false);
     }
@@ -354,28 +388,29 @@ class _ExpenseFormScreenState extends ConsumerState<ExpenseFormScreen> {
   }
 
   Widget _buildMaterialToolsFields() {
-    final lang=ref.watch(dailyEntryTranslationHelperProvider);
+    final lang = ref.watch(dailyEntryTranslationHelperProvider);
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
         CustomTextField(
           label: "Description",
-
           maxLines: 3,
           controller: _descriptionController,
+          focusNode: _descriptionFocusNode,
           hint: "Enter expense description",
         ),
         const SizedBox(height: 16),
         CustomTextField(
           label: "Invoice Number",
           controller: _invoiceNumberController,
+          focusNode: _invoiceNumberFocusNode,
           hint: "Enter invoice number",
-
         ),
         const SizedBox(height: 16),
         CustomTextField(
           label: lang.hardwareShopLabel,
           controller: _hardwareShopController,
+          focusNode: _hardwareShopFocusNode,
           hint: "Enter hardware shop name",
         ),
         const SizedBox(height: 16),
@@ -494,8 +529,8 @@ class _ExpenseFormScreenState extends ConsumerState<ExpenseFormScreen> {
         const SizedBox(height: 16),
         CustomTextField(
           label: "Rate (Rs.)",
-
           controller: _rateController,
+          focusNode: _rateFocusNode,
           hint: "0.00",
           keyboardType: TextInputType.number,
         ),
@@ -504,6 +539,7 @@ class _ExpenseFormScreenState extends ConsumerState<ExpenseFormScreen> {
           label: "Invoice Balance (Rs.)",
           isRequired: true,
           controller: _balanceController,
+          focusNode: _balanceFocusNode,
           hint: "0.00",
           keyboardType: TextInputType.number,
         ),
@@ -512,6 +548,7 @@ class _ExpenseFormScreenState extends ConsumerState<ExpenseFormScreen> {
           label: "Remarks",
           maxLines: 3,
           controller: _remarksController,
+          focusNode: _remarksFocusNode,
           hint: "Enter any additional remarks",
         ),
       ],
@@ -524,17 +561,17 @@ class _ExpenseFormScreenState extends ConsumerState<ExpenseFormScreen> {
       children: [
         CustomTextField(
           label: "Description",
-
           maxLines: 3,
           controller: _descriptionController,
+          focusNode: _descriptionFocusNode,
           hint: "Enter travel description",
         ),
         const SizedBox(height: 16),
-
         CustomTextField(
           label: "Amount (Rs.)",
           isRequired: true,
           controller: _amountController,
+          focusNode: _amountFocusNode,
           hint: "0.00",
           keyboardType: TextInputType.number,
         ),
@@ -543,6 +580,7 @@ class _ExpenseFormScreenState extends ConsumerState<ExpenseFormScreen> {
           label: "Remarks",
           maxLines: 3,
           controller: _remarksController,
+          focusNode: _remarksFocusNode,
           hint: "Enter any additional remarks",
         ),
       ],
@@ -555,9 +593,9 @@ class _ExpenseFormScreenState extends ConsumerState<ExpenseFormScreen> {
       children: [
         CustomTextField(
           label: "Description",
-
           maxLines: 3,
           controller: _descriptionController,
+          focusNode: _descriptionFocusNode,
           hint: "Enter food expense description",
         ),
         const SizedBox(height: 16),
@@ -565,6 +603,7 @@ class _ExpenseFormScreenState extends ConsumerState<ExpenseFormScreen> {
           label: "Amount (Rs.)",
           isRequired: true,
           controller: _amountController,
+          focusNode: _amountFocusNode,
           hint: "0.00",
           keyboardType: TextInputType.number,
         ),
@@ -573,6 +612,7 @@ class _ExpenseFormScreenState extends ConsumerState<ExpenseFormScreen> {
           label: "Remarks",
           maxLines: 3,
           controller: _remarksController,
+          focusNode: _remarksFocusNode,
           hint: "Enter any additional remarks",
         ),
       ],
@@ -585,9 +625,9 @@ class _ExpenseFormScreenState extends ConsumerState<ExpenseFormScreen> {
       children: [
         CustomTextField(
           label: "Description",
-
           maxLines: 3,
           controller: _descriptionController,
+          focusNode: _descriptionFocusNode,
           hint: "Enter accommodation details",
         ),
         const SizedBox(height: 16),
@@ -595,6 +635,7 @@ class _ExpenseFormScreenState extends ConsumerState<ExpenseFormScreen> {
           label: "Amount (Rs.)",
           isRequired: true,
           controller: _amountController,
+          focusNode: _amountFocusNode,
           hint: "0.00",
           keyboardType: TextInputType.number,
         ),
@@ -603,6 +644,7 @@ class _ExpenseFormScreenState extends ConsumerState<ExpenseFormScreen> {
           label: "Remarks",
           maxLines: 3,
           controller: _remarksController,
+          focusNode: _remarksFocusNode,
           hint: "Enter any additional remarks",
         ),
       ],
@@ -671,9 +713,9 @@ class _ExpenseFormScreenState extends ConsumerState<ExpenseFormScreen> {
         const SizedBox(height: 16),
         CustomTextField(
           label: "Description",
-
           maxLines: 3,
           controller: _descriptionController,
+          focusNode: _descriptionFocusNode,
           hint: "Enter advance description",
         ),
         const SizedBox(height: 16),
@@ -681,6 +723,7 @@ class _ExpenseFormScreenState extends ConsumerState<ExpenseFormScreen> {
           label: "Amount (Rs.)",
           isRequired: true,
           controller: _amountController,
+          focusNode: _amountFocusNode,
           hint: "0.00",
           keyboardType: TextInputType.number,
         ),
@@ -689,6 +732,7 @@ class _ExpenseFormScreenState extends ConsumerState<ExpenseFormScreen> {
           label: "Remarks",
           maxLines: 3,
           controller: _remarksController,
+          focusNode: _remarksFocusNode,
           hint: "Enter any additional remarks",
         ),
       ],
@@ -701,9 +745,9 @@ class _ExpenseFormScreenState extends ConsumerState<ExpenseFormScreen> {
       children: [
         CustomTextField(
           label: "Description",
-
           maxLines: 3,
           controller: _descriptionController,
+          focusNode: _descriptionFocusNode,
           hint: "Enter expense description",
         ),
         const SizedBox(height: 16),
@@ -711,6 +755,7 @@ class _ExpenseFormScreenState extends ConsumerState<ExpenseFormScreen> {
           label: "Amount (Rs.)",
           isRequired: true,
           controller: _amountController,
+          focusNode: _amountFocusNode,
           hint: "0.00",
           keyboardType: TextInputType.number,
         ),
@@ -719,6 +764,7 @@ class _ExpenseFormScreenState extends ConsumerState<ExpenseFormScreen> {
           label: "Remarks",
           maxLines: 3,
           controller: _remarksController,
+          focusNode: _remarksFocusNode,
           hint: "Enter any additional remarks",
         ),
       ],
@@ -731,9 +777,9 @@ class _ExpenseFormScreenState extends ConsumerState<ExpenseFormScreen> {
       children: [
         CustomTextField(
           label: "Description",
-
           maxLines: 3,
           controller: _descriptionController,
+          focusNode: _descriptionFocusNode,
           hint: "Enter description",
         ),
         const SizedBox(height: 16),
@@ -741,6 +787,7 @@ class _ExpenseFormScreenState extends ConsumerState<ExpenseFormScreen> {
           label: "Remarks",
           maxLines: 3,
           controller: _remarksController,
+          focusNode: _remarksFocusNode,
           hint: "Enter any additional remarks",
         ),
       ],
@@ -759,15 +806,25 @@ class _ExpenseFormScreenState extends ConsumerState<ExpenseFormScreen> {
     _rateController.dispose();
     _balanceController.dispose();
     _placeController.dispose();
+    // FocusNodes
+    _descriptionFocusNode.dispose();
+    _remarksFocusNode.dispose();
+    _amountFocusNode.dispose();
+    _invoiceNumberFocusNode.dispose();
+    _hardwareShopFocusNode.dispose();
+    _rateFocusNode.dispose();
+    _balanceFocusNode.dispose();
+    _placeFocusNode.dispose();
     super.dispose();
   }
 
   @override
   Widget build(BuildContext context) {
-    final lang=ref.read(dailyEntryTranslationHelperProvider);
+    final lang = ref.read(dailyEntryTranslationHelperProvider);
     return Scaffold(
+      // ── FIX 1: resizeToAvoidBottomInset keeps layout intact when keyboard opens ──
+      resizeToAvoidBottomInset: true,
       drawer: const CustomDrawer(),
-      resizeToAvoidBottomInset: false,
       appBar: CustomAppBar(title: _getScreenTitle()),
       backgroundColor: AppColors.lightBlue,
       body: BottomButtonWrapper(
@@ -777,22 +834,11 @@ class _ExpenseFormScreenState extends ConsumerState<ExpenseFormScreen> {
               text: "Save",
               color: Colors.blue,
               textColor: Colors.white,
-              onPressed: _isLoading ? (){} : _submitForm,
+              onPressed: _isLoading ? () {} : _submitForm,
               isOutlined: false,
               width: null,
             ),
           ),
-          // if (_isEditing)
-          //   CustomButton(
-          //     button: RoundedButton(
-          //       text: "Remove",
-          //       color: Colors.red,
-          //       textColor: Colors.red,
-          //       onPressed: _isLoading ? (){} : _deleteExpense,
-          //       isOutlined: true,
-          //       width: null,
-          //     ),
-          //   ),
         ],
         showBackButton: true,
         onBackPressed: _isLoading ? null : () => Navigator.pop(context),
@@ -801,59 +847,59 @@ class _ExpenseFormScreenState extends ConsumerState<ExpenseFormScreen> {
             padding: const EdgeInsets.all(16),
             child: Form(
               key: _formKey,
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                   Text(
-                    '${lang.dateLabel}',
-                    style: TextStyle(
-                      fontWeight: FontWeight.bold,
-                      fontSize: 16,
-                    ),
-                  ),
-                  const SizedBox(height: 8),
-                  GestureDetector(
-                    onTap: _selectDate,
-                    child: Container(
-                      width: double.infinity,
-                      padding: const EdgeInsets.all(16),
-                      decoration: BoxDecoration(
-                        color: Colors.white,
-                        borderRadius: BorderRadius.circular(8),
-                        border: Border.all(color: Colors.grey.shade300),
+              child: SingleChildScrollView(
+                controller: _scrollController,
+                keyboardDismissBehavior: ScrollViewKeyboardDismissBehavior.onDrag,
+                padding: EdgeInsets.only(
+                  bottom: MediaQuery.of(context).viewInsets.bottom + 20,
+                ),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      '${lang.dateLabel}',
+                      style: const TextStyle(
+                        fontWeight: FontWeight.bold,
+                        fontSize: 16,
                       ),
-                      child: Row(
-                        children: [
-                          Icon(
-                            Icons.calendar_today,
-                            color: Colors.grey.shade600,
-                          ),
-                          const SizedBox(width: 12),
-                          Text(
-                            _selectedDate != null
-                                ? "${_selectedDate!.day.toString().padLeft(2, '0')}/${_selectedDate!.month.toString().padLeft(2, '0')}/${_selectedDate!.year}"
-                                : "Select Date",
-                            style: TextStyle(
-                              color: _selectedDate != null
-                                  ? Colors.black
-                                  : Colors.grey.shade500,
-                              fontSize: 16,
+                    ),
+                    const SizedBox(height: 8),
+                    GestureDetector(
+                      onTap: _selectDate,
+                      child: Container(
+                        width: double.infinity,
+                        padding: const EdgeInsets.all(16),
+                        decoration: BoxDecoration(
+                          color: Colors.white,
+                          borderRadius: BorderRadius.circular(8),
+                          border: Border.all(color: Colors.grey.shade300),
+                        ),
+                        child: Row(
+                          children: [
+                            Icon(
+                              Icons.calendar_today,
+                              color: Colors.grey.shade600,
                             ),
-                          ),
-                        ],
+                            const SizedBox(width: 12),
+                            Text(
+                              _selectedDate != null
+                                  ? "${_selectedDate!.day.toString().padLeft(2, '0')}/${_selectedDate!.month.toString().padLeft(2, '0')}/${_selectedDate!.year}"
+                                  : "Select Date",
+                              style: TextStyle(
+                                color: _selectedDate != null
+                                    ? Colors.black
+                                    : Colors.grey.shade500,
+                                fontSize: 16,
+                              ),
+                            ),
+                          ],
+                        ),
                       ),
                     ),
-                  ),
-                  const SizedBox(height: 20),
-                  Expanded(
-                    child: SingleChildScrollView(
-                      controller: _scrollController,
-                      child: _buildFormFields(),
-                    ),
-                  ),
-
-                  const SizedBox(height: 20),
-                ],
+                    const SizedBox(height: 20),
+                    _buildFormFields(),
+                  ],
+                ),
               ),
             ),
           ),

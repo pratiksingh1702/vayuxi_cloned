@@ -423,7 +423,7 @@ class _AddDescriptionScreenState extends ConsumerState<AddDescriptionScreen>
   }
 
   void _initializeControllers() {
-    _dprNameController = TextEditingController(text: 'New DPR Entry');
+    _dprNameController = TextEditingController();
     _mocController = TextEditingController();
     _sizeController = TextEditingController();
     _plantController = TextEditingController();
@@ -756,7 +756,7 @@ class _AddDescriptionScreenState extends ConsumerState<AddDescriptionScreen>
 
       _syncLocalMaterialsWithServer(dprWork);
 
-      _dprNameController.text = dprWork.dprName ?? 'New DPR Entry';
+      _dprNameController.text = dprWork.dprName ?? '';
       _mocController.text = dprWork.moc ?? _mocController.text;
       _sizeController.text = dprWork.size ?? _sizeController.text;
       _floorController.text = dprWork.location ?? _floorController.text;
@@ -825,7 +825,7 @@ class _AddDescriptionScreenState extends ConsumerState<AddDescriptionScreen>
       _mechanicalId = null;
       _selectedDprId = null;
 
-      _dprNameController.text = 'New DPR Entry';
+      _dprNameController.text ='' ;
     }
 
     // 🔑 SINGLE SOURCE OF TRUTH

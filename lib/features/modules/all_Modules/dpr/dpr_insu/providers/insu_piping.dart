@@ -28,6 +28,9 @@ class InsulationPipingMaterialsNotifier extends StateNotifier<List<PipingMateria
         ),
     ];
   }
+  void addMaterials(List<PipingMaterial> newMaterials) {
+    state = [...state, ...newMaterials];
+  }
 
   // PRIMARY METHOD: Set materials from external source
   void setMaterials(List<PipingMaterial> materials) {

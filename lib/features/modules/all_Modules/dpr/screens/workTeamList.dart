@@ -222,8 +222,14 @@ class _WorkTeamListPageState extends ConsumerState<WorkTeamListPage> {
                                       const SizedBox(height: 10),
                                       Text(
                                         team.isDefaultTeam?'Default team':team.teamName ?? '',
+                                        maxLines: 2,
+                                        textAlign: TextAlign.center,
+                                        overflow: TextOverflow.ellipsis,
+
+
                                         style: const TextStyle(
                                           fontWeight: FontWeight.w600,
+
                                           fontSize: 15,
                                         ),
                                       ),

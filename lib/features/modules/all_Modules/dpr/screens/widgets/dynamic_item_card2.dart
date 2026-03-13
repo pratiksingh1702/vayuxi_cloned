@@ -589,6 +589,7 @@ class _DynamicItemCard2State extends State<DynamicItemCard2>
           child: TextFormField(
             controller: _uomCtrl,
             enabled: widget.isEditable,
+            keyboardType: const TextInputType.numberWithOptions(decimal: true),
             textAlign: TextAlign.center,
             style: const TextStyle(
               fontSize: 12, // bigger text

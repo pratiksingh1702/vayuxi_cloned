@@ -1,3 +1,13 @@
+// features/pricing/providers/razorpay_provider.dart
+//
+// Aligned with v2.0 API docs:
+//   Trial flow   → /trial-onboarding/create-order  + /trial-onboarding/activate
+//   Paid flow    → /payment/create-subscription-order + /payment/verify-subscription-payment
+//
+// Key body-field differences (see API docs):
+//   Trial activate  → snake_case  { razorpay_order_id, razorpay_payment_id, razorpay_signature }
+//   Paid verify     → camelCase   { razorpayOrderId, razorpayPaymentId, razorpaySignature }
+
 import 'dart:convert';
 
 import 'package:flutter/foundation.dart';
@@ -10,8 +20,8 @@ import '../models/payment_model.dart';
 import '../service/pricing_service.dart';
 import '../service/razor_pay_integeration_service.dart';
 
+// ── Service providers ─────────────────────────────────────────────────────────
 
-// Service Providers
 final paymentServiceProvider = Provider<PaymentService>((ref) {
   return PaymentService();
 });
@@ -20,36 +30,23 @@ final razorpayServiceProvider = Provider<RazorpayIntegrationService>((ref) {
   return RazorpayIntegrationService();
 });
 
-// Current Subscription Provider
+// ── Subscription providers ────────────────────────────────────────────────────
+
 final currentSubscriptionProvider = FutureProvider<Subscription>((ref) async {
-  final local = ref.watch(subscriptionLocalProvider);
+  final local   = ref.watch(subscriptionLocalProvider);
   final service = ref.watch(paymentServiceProvider);
 
   try {
-    // 🌐 FIRST → try live data
     final response = await service.getCurrentSubscription();
-
     if (response['success'] == true) {
       final sub = Subscription.fromJson(response['subscription']);
-
-      // update cache
       await local.save(sub);
-
-      print("🌐 Loaded subscription from SERVER");
       return sub;
     }
-
     throw Exception('Server returned failure');
-  } catch (e) {
-    print("⚠️ Server failed → trying CACHE");
-
-    // 💾 fallback
+  } catch (_) {
     final cached = await local.get();
-    if (cached != null) {
-      print("💾 Loaded subscription from CACHE");
-      return cached;
-    }
-
+    if (cached != null) return cached;
     throw Exception('No subscription available');
   }
 });
@@ -59,7 +56,7 @@ final subscriptionLocalProvider = Provider<SubscriptionLocalService>((ref) {
 });
 
 class SubscriptionLocalService {
-  static const _key = "cached_subscription";
+  static const _key = 'cached_subscription';
 
   Future<void> save(Subscription sub) async {
     final prefs = await SharedPreferences.getInstance();
@@ -79,49 +76,42 @@ class SubscriptionLocalService {
   }
 }
 
+// ── Other providers ───────────────────────────────────────────────────────────
 
-// Payment History Provider
-final paymentHistoryProvider = FutureProvider<List<PaymentHistory>>((ref) async {
-  final service = ref.watch(paymentServiceProvider);
-  return service.getPaymentHistory();
+final paymentHistoryProvider =
+FutureProvider<List<PaymentHistory>>((ref) async {
+  return ref.watch(paymentServiceProvider).getPaymentHistory();
 });
 
-// Coin Balance Provider
 final coinBalanceProvider = FutureProvider<CoinBalance>((ref) async {
-  final service = ref.watch(paymentServiceProvider);
-  final response = await service.getCoinBalance();
-
-  if (response['success'] == true) {
-    return CoinBalance.fromJson(response);
-  } else {
-    throw Exception('Failed to get coin balance');
-  }
+  final res = await ref.watch(paymentServiceProvider).getCoinBalance();
+  if (res['success'] == true) return CoinBalance.fromJson(res);
+  throw Exception('Failed to get coin balance');
 });
 
-// Referral Code Provider
 final referralCodeProvider = FutureProvider<ReferralCode>((ref) async {
-  final service = ref.watch(paymentServiceProvider);
-  final response = await service.getReferralCode();
-
-  if (response['success'] == true) {
-    return ReferralCode.fromJson(response);
-  } else {
-    throw Exception('Failed to get referral code');
-  }
+  final res = await ref.watch(paymentServiceProvider).getReferralCode();
+  if (res['success'] == true) return ReferralCode.fromJson(res);
+  throw Exception('Failed to get referral code');
 });
 
-// Payment State Management
+// ── Payment state ─────────────────────────────────────────────────────────────
+
 class PaymentState {
   final bool isLoading;
   final String? error;
   final String? successMessage;
   final RazorpayOrder? currentOrder;
 
+  /// True when the current order is for the trial (amount == 100 paise / ₹1).
+  final bool isTrialOrder;
+
   PaymentState({
-    this.isLoading = false,
+    this.isLoading    = false,
     this.error,
     this.successMessage,
     this.currentOrder,
+    this.isTrialOrder = false,
   });
 
   PaymentState copyWith({
@@ -129,15 +119,19 @@ class PaymentState {
     String? error,
     String? successMessage,
     RazorpayOrder? currentOrder,
+    bool? isTrialOrder,
   }) {
     return PaymentState(
-      isLoading: isLoading ?? this.isLoading,
-      error: error,
+      isLoading:      isLoading      ?? this.isLoading,
+      error:          error,
       successMessage: successMessage,
-      currentOrder: currentOrder ?? this.currentOrder,
+      currentOrder:   currentOrder   ?? this.currentOrder,
+      isTrialOrder:   isTrialOrder   ?? this.isTrialOrder,
     );
   }
 }
+
+// ── Notifier ──────────────────────────────────────────────────────────────────
 
 class PaymentNotifier extends StateNotifier<PaymentState> {
   final Ref ref;
@@ -147,207 +141,190 @@ class PaymentNotifier extends StateNotifier<PaymentState> {
   PaymentNotifier(this.ref, this.razorpayService, this.paymentService)
       : super(PaymentState());
 
-  // Initialize Razorpay with callbacks
+  // ── Init ──────────────────────────────────────────────────────────────────
   void initializeRazorpay() {
     razorpayService.initialize(
-      onSuccess: _handlePaymentSuccess,
-      onError: _handlePaymentError,
+      onSuccess:        _handlePaymentSuccess,
+      onError:          _handlePaymentError,
       onExternalWallet: _handleExternalWallet,
     );
   }
 
-  // Start Trial Payment
-  Future<void> startTrialPayment() async {
-    try {
-      state = state.copyWith(isLoading: true, error: null);
+  // ── Trial payment ─────────────────────────────────────────────────────────
+  //
+  // Called by TrialScreen after it has already created the order via
+  // /trial-onboarding/create-order (with the user's referral code).
+  // The pre-built RazorpayOrder is passed in directly.
+  //
+  // If prebuiltOrder is null (legacy / fallback), we throw — the referral
+  // code flow is required in v2.0.
+  Future<void> startTrialPayment({required RazorpayOrder prebuiltOrder}) async {
+    state = state.copyWith(
+      isLoading:    true,
+      error:        null,
+      currentOrder: prebuiltOrder,
+      isTrialOrder: true,
+    );
 
-      final order = await paymentService.createTrialOrder();
+    // Small delay so state update propagates before Razorpay opens
+    await Future.delayed(const Duration(milliseconds: 100));
 
-      state = state.copyWith(currentOrder: order, isLoading: false);
+    state = state.copyWith(isLoading: false);
 
-      // Open Razorpay checkout
-      _openTrialCheckout(order);
-
-    } catch (e) {
-      state = state.copyWith(
-        isLoading: false,
-        error: 'Failed to create trial order: $e',
-      );
-    }
+    razorpayService.openCheckout(
+      key:         prebuiltOrder.key,
+      orderId:     prebuiltOrder.orderId,
+      amount:      prebuiltOrder.amount,
+      name:        'Vayuxi ERP',
+      description: 'Trial Activation — ₹1 (Refundable)',
+      prefill:     {},
+    );
   }
 
-  // Start Subscription Payment
+  // ── Paid subscription payment ─────────────────────────────────────────────
+  //
+  // Calls POST /payment/create-subscription-order then opens Razorpay.
   Future<void> startSubscriptionPayment({
     required String plan,
     int coinsToUse = 0,
+    bool gstApplied = false,
+    String? gstNumber,
+    String? companyName,
+    String? billingAddress,
   }) async {
     try {
-      state = state.copyWith(isLoading: true, error: null);
+      state = state.copyWith(isLoading: true, error: null, isTrialOrder: false);
 
       final order = await paymentService.createSubscriptionOrder(
-        plan: plan,
+        plan:             plan,
         vayuxiCoinsToUse: coinsToUse,
+        gstApplied:       gstApplied,
+        gstNumber:        gstNumber,
+        companyName:      companyName,
+        billingAddress:   billingAddress,
       );
 
-      state = state.copyWith(currentOrder: order, isLoading: false);
+      state = state.copyWith(
+        currentOrder: order,
+        isLoading:    false,
+        isTrialOrder: false,
+      );
 
-      // Open Razorpay checkout
-      _openSubscriptionCheckout(order, plan);
+      final planName     = plan[0].toUpperCase() + plan.substring(1);
+      final amountRupees = (order.amount / 100).toStringAsFixed(0);
 
+      razorpayService.openCheckout(
+        key:         order.key,
+        orderId:     order.orderId,
+        amount:      order.amount,
+        name:        'Vayuxi ERP',
+        description: '$planName Plan — ₹$amountRupees',
+        prefill:     {},
+      );
     } catch (e) {
       state = state.copyWith(
         isLoading: false,
-        error: 'Failed to create subscription order: $e',
+        error: e.toString().replaceFirst('Exception: ', ''),
       );
     }
   }
 
-  // Open Trial Checkout
-  void _openTrialCheckout(RazorpayOrder order) {
-    // Get user details from shared preferences or auth provider
-    final prefill = <String, String>{};
-    print("opening checkout for trial ❤️❤️");
-
-    razorpayService.openCheckout(
-      key: order.key,
-      orderId: order.orderId,
-      amount: order.amount,
-      name: 'Vayuxi ERP',
-      description: 'Trial Subscription (₹1 Refundable)',
-      prefill: prefill,
-    );
-  }
-
-  // Open Subscription Checkout
-  void _openSubscriptionCheckout(RazorpayOrder order, String plan) {
-    final planName = plan == 'premium' ? 'Premium' : 'Standard';
-    final amountInRupees = (order.amount / 100).toStringAsFixed(2);
-
-    final prefill = <String, String>{};
-
-    razorpayService.openCheckout(
-      key: order.key,
-      orderId: order.orderId,
-      amount: order.amount,
-      name: 'Vayuxi ERP',
-      description: '$planName Plan - ₹$amountInRupees',
-      prefill: prefill,
-    );
-  }
-
-  // Handle Payment Success
-  Future<void> _handlePaymentSuccess(RazorpaySuccessResponse response) async {
+  // ── Handle success ────────────────────────────────────────────────────────
+  //
+  // Razorpay SDK calls this on successful payment.
+  // Routes to the correct verify endpoint based on isTrialOrder.
+  Future<void> _handlePaymentSuccess(
+      RazorpaySuccessResponse response) async {
     try {
       state = state.copyWith(isLoading: true, error: null);
 
-      final order = state.currentOrder;
-
-      if (order == null) {
-        throw Exception('No order found');
-      }
-
-      // Determine if this is trial or subscription
-      final isTrial = order.amount == 100; // ₹1 in paise
-
-      if (isTrial) {
+      if (state.isTrialOrder) {
+        // ── TRIAL: POST /trial-onboarding/activate
+        // Body must use snake_case keys (per API docs)
         await paymentService.verifyTrialPayment(
-          razorpayOrderId: response.orderId,
-          razorpayPaymentId: response.paymentId,
-          razorpaySignature: response.signature,
+          razorpayOrderId:   response.orderId   ?? '',
+          razorpayPaymentId: response.paymentId ?? '',
+          razorpaySignature: response.signature ?? '',
         );
-
       } else {
+        // ── PAID: POST /payment/verify-subscription-payment
+        // Body uses camelCase keys (per API docs)
         await paymentService.verifySubscriptionPayment(
-          razorpayOrderId: response.orderId,
-          razorpayPaymentId: response.paymentId,
-          razorpaySignature: response.signature,
+          razorpayOrderId:   response.orderId   ?? '',
+          razorpayPaymentId: response.paymentId ?? '',
+          razorpaySignature: response.signature ?? '',
         );
       }
-      final local = ref.read(subscriptionLocalProvider);
-      final updated = await ref.read(currentSubscriptionProvider.future);
-      await local.save(updated);
 
+      // Refresh local cache
+      try {
+        final local   = ref.read(subscriptionLocalProvider);
+        final updated = await ref.read(currentSubscriptionProvider.future);
+        await local.save(updated);
+      } catch (_) {}
 
       state = state.copyWith(
-        isLoading: false,
-        successMessage: 'Payment successful! Subscription activated.',
+        isLoading:      false,
+        successMessage: state.isTrialOrder
+            ? 'Trial activated! ₹1 will be refunded within 5–7 days.'
+            : 'Subscription activated successfully!',
       );
 
-      // Invalidate subscription providers to refresh data
+      // Invalidate so UI re-fetches
       ref.invalidate(currentSubscriptionProvider);
       ref.invalidate(paymentHistoryProvider);
       ref.invalidate(coinBalanceProvider);
-      ref.invalidate(referralCodeProvider);
+
+      // Re-run AppAccess → GoRouter re-evaluates → navigates to correct screen
       await ref.read(appAccessProvider.notifier).refreshSubscription();
-
-
     } catch (e) {
       state = state.copyWith(
         isLoading: false,
-        error: 'Payment verification failed: $e',
+        error: e.toString().replaceFirst('Exception: ', ''),
       );
     }
   }
 
-  // Handle Payment Error
+  // ── Handle failure ────────────────────────────────────────────────────────
   void _handlePaymentError(PaymentFailureResponse response) {
-    String errorMessage;
-
-    switch (response.code) {
-      case 0:
-        errorMessage = 'Payment cancelled by user';
-        break;
-      default:
-        errorMessage = response.message ?? 'Payment failed';
-    }
-
-    state = state.copyWith(
-      isLoading: false,
-      error: errorMessage,
-    );
+    final msg = response.code == 0
+        ? 'Payment cancelled'
+        : (response.message ?? 'Payment failed. Please try again.');
+    state = state.copyWith(isLoading: false, error: msg);
   }
 
-  // Handle External Wallet
   void _handleExternalWallet(ExternalWalletResponse response) {
-    // Can be used for tracking wallet usage
-    if (kDebugMode) {
-      print('External wallet selected: ${response.walletName}');
-    }
+    if (kDebugMode) print('External wallet: ${response.walletName}');
   }
 
-  // Cancel Subscription
+  // ── Cancel subscription ───────────────────────────────────────────────────
   Future<void> cancelSubscription() async {
     try {
       state = state.copyWith(isLoading: true, error: null);
-
       await paymentService.cancelSubscription();
-
       state = state.copyWith(
-        isLoading: false,
-        successMessage: 'Subscription cancelled successfully.',
+        isLoading:      false,
+        successMessage: 'Subscription cancelled.',
       );
-
-      // Refresh subscription data
       ref.invalidate(currentSubscriptionProvider);
-
     } catch (e) {
       state = state.copyWith(
         isLoading: false,
-        error: 'Failed to cancel subscription: $e',
+        error: e.toString().replaceFirst('Exception: ', ''),
       );
     }
   }
 
-  // Clear payment state
-  void clearState() {
-    state = PaymentState();
-  }
+  void clearState() => state = PaymentState();
 }
 
-final paymentNotifierProvider = StateNotifierProvider<PaymentNotifier, PaymentState>(
-      (ref) {
-    final razorpayService = ref.watch(razorpayServiceProvider);
-    final paymentService = ref.watch(paymentServiceProvider);
-    return PaymentNotifier(ref, razorpayService, paymentService);
-  },
-);
+// ── Provider ──────────────────────────────────────────────────────────────────
+
+final paymentNotifierProvider =
+StateNotifierProvider<PaymentNotifier, PaymentState>((ref) {
+  return PaymentNotifier(
+    ref,
+    ref.watch(razorpayServiceProvider),
+    ref.watch(paymentServiceProvider),
+  );
+});

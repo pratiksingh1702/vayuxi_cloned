@@ -465,19 +465,26 @@ class _RegisterScreenState extends ConsumerState<RegisterScreen> {
                 _buildTextField("Company Name", companyController),
 
                 const SizedBox(height: 25),
-                const SizedBox(height: 10),
+
 
                 Row(
-                  crossAxisAlignment: CrossAxisAlignment.start,
+                  crossAxisAlignment: CrossAxisAlignment.center,
                   children: [
-                    Checkbox(
-                      value: _acceptedTerms,
-                      onChanged: (value) {
-                        setState(() {
-                          _acceptedTerms = value ?? false;
-                        });
-                      },
+                    SizedBox(
+                      width: 24,
+                      height: 24,
+                      child: Checkbox(
+                        value: _acceptedTerms,
+                        materialTapTargetSize: MaterialTapTargetSize.shrinkWrap,
+                        visualDensity: VisualDensity.compact,
+                        onChanged: (value) {
+                          setState(() {
+                            _acceptedTerms = value ?? false;
+                          });
+                        },
+                      ),
                     ),
+                    const SizedBox(width: 8),
                     Expanded(
                       child: GestureDetector(
                         onTap: () {
@@ -503,6 +510,7 @@ class _RegisterScreenState extends ConsumerState<RegisterScreen> {
                     ),
                   ],
                 ),
+                const SizedBox(height: 10),
 
                 // --- Register Button ---
                 SizedBox(

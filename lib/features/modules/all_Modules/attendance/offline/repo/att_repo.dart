@@ -14,7 +14,56 @@ class AttendanceRepository {
 
   AttendanceRepository(this.isar);
 
+  Future<void> ensureAttendanceForTeam({
+    required String siteId,
+    required String type,
+    required String dateKey,
+    required List<String> teamMemberIds,
+  }) async {
 
+    final existingRows = await isar.attendanceIsars
+        .filter()
+        .siteIdEqualTo(siteId)
+        .typeEqualTo(type)
+        .dateKeyEqualTo(dateKey)
+        .findAll();
+
+    final existingIds = existingRows.map((e) => e.manpowerId).toSet();
+
+    final manpowerRows = await isar.manpowerIsars
+        .filter()
+        .typeEqualTo(type)
+        .anyOf(teamMemberIds, (q, id) => q.manpowerIdEqualTo(id))
+        .isDeletedEqualTo(false)
+        .findAll();
+
+    await isar.writeTxn(() async {
+
+      for (final m in manpowerRows) {
+
+        if (existingIds.contains(m.manpowerId)) {
+          continue;
+        }
+
+        final row = AttendanceIsar()
+          ..attendanceId = "${siteId}_${m.manpowerId}_$dateKey"
+          ..siteId = siteId
+          ..type = type
+          ..dateKey = dateKey
+          ..manpowerId = m.manpowerId
+          ..status = "absent"
+          ..totalHours = 0
+          ..ot = 0
+          ..company = m.company
+          ..isDeleted = false
+          ..isDirty = false
+          ..updatedAt = DateTime.now();
+
+        await isar.attendanceIsars.put(row);
+      }
+
+    });
+  }
   Future<int> getAttendanceCount({
     required String siteId,
     required String type,
@@ -192,25 +241,44 @@ class AttendanceRepository {
     final serverIds = list.map((e) => e.id ?? "").toSet();
 
     await isar.writeTxn(() async {
+
       /// ----------------------------
-      /// DELETE missing rows
+      /// FETCH ALL LOCAL DATA
       /// ----------------------------
       final local = await isar.manpowerIsars
           .filter()
           .typeEqualTo(type)
           .findAll();
 
-      for (final row in local) {
-        if (!serverIds.contains(row.manpowerId)) {
-          await isar.manpowerIsars.delete(row.isarId);
-        }
+      /// Map for fast lookup
+      final Map<String, ManpowerIsar> localMap = {
+        for (var item in local) item.manpowerId: item
+      };
+
+      /// ----------------------------
+      /// DELETE MISSING RECORDS
+      /// ----------------------------
+      final idsToDelete = local
+          .where((row) => !serverIds.contains(row.manpowerId))
+          .map((e) => e.isarId)
+          .toList();
+
+      if (idsToDelete.isNotEmpty) {
+        await isar.manpowerIsars.deleteAll(idsToDelete);
       }
 
       /// ----------------------------
-      /// INSERT / UPDATE
+      /// UPSERT RECORDS
       /// ----------------------------
-      final isarList = list.map((m) {
-        return ManpowerIsar()
+      final List<ManpowerIsar> isarList = [];
+
+      for (final m in list) {
+
+        final existing = localMap[m.id ?? ""];
+
+        final obj = existing ?? ManpowerIsar();
+
+        obj
           ..manpowerId = m.id ?? ""
           ..type = m.type ?? type
 
@@ -245,7 +313,6 @@ class AttendanceRepository {
           ..pfApplicable = m.pfApplicable
 
           ..remarks = m.remarks
-
           ..company = m.company
 
           ..isDeleted = m.isDeleted ?? false
@@ -259,13 +326,13 @@ class AttendanceRepository {
           ..loginEmail = m.loginEmail
           ..loginPassword = m.loginPassword
           ..isLoginEnabled = m.isLoginEnabled;
-      }).toList();
+
+        isarList.add(obj);
+      }
 
       await isar.manpowerIsars.putAll(isarList);
-
     });
   }
-
 
   // -------------------------------
   // ✅ ATTENDANCE CACHE

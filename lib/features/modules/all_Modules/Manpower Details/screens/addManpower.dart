@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
+import 'package:untitled2/core/utlis/app_toasts.dart';
 import 'package:untitled2/core/utlis/colors/colors.dart';
 import 'package:untitled2/core/utlis/widgets/custom_appBar.dart';
 import 'package:untitled2/features/modules/all_Modules/Manpower%20Details/screens/widgets/popup.dart';
@@ -57,6 +58,8 @@ class _NewManpowerScreenState extends ConsumerState<NewManpowerScreen> {
   // New controllers for login credentials
   final _emailController = TextEditingController();
   final _otpController = TextEditingController();
+
+  bool loading=false;
 
   // Designation options
   final List<String> _designationOptions = [
@@ -146,6 +149,9 @@ class _NewManpowerScreenState extends ConsumerState<NewManpowerScreen> {
 
   Future<void> _saveManpower() async {
     // if (!_formKey.currentState!.validate()) return;
+    setState(() {
+      loading=true;
+    });
 
     final manpowerType = ref.read(typeProvider);
     if (manpowerType == null) {
@@ -230,9 +236,7 @@ class _NewManpowerScreenState extends ConsumerState<NewManpowerScreen> {
      ref.invalidate(manpowerSyncControllerProvider((type: type!)));
      final repo = ref.read(attendanceRepositoryProvider);
      await repo.syncManpowerFromApi(type!);
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text("✅ Manpower added successfully")),
-      );
+    AppToast.success("✅ Manpower added successfully");
       if (_enableLoginCredentials && _emailController.text.isNotEmpty) {
         final employeeCode = createdManpower?.employeeCode ?? "N/A";
 
@@ -250,10 +254,15 @@ class _NewManpowerScreenState extends ConsumerState<NewManpowerScreen> {
      Navigator.pop(context);
       context.push("/manpower");
     } catch (e) {
+      print(e);
       final message=extractBackendError(e);
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text("❌ Error: $message")),
-      );
+     AppToast.error(message);
+    }finally{
+      setState(() {
+        setState(() {
+          loading=false;
+        });
+      });
     }
   }
   void _showSnack(String message) {
@@ -699,11 +708,12 @@ class _NewManpowerScreenState extends ConsumerState<NewManpowerScreen> {
                       onPressed: _saveManpower,
                       style: ElevatedButton.styleFrom(
                         backgroundColor: Colors.blue,
+                        foregroundColor: Colors.white,
                         shape: RoundedRectangleBorder(
                           borderRadius: BorderRadius.circular(30),
                         ),
                       ),
-                      child: const Text("Save & Submit"),
+                      child: loading?const CircularProgressIndicator():const Text("Save"),
                     ),
                   ),
                 ],
@@ -716,6 +726,7 @@ class _NewManpowerScreenState extends ConsumerState<NewManpowerScreen> {
                       onPressed: _resetForm,
                       style: ElevatedButton.styleFrom(
                         backgroundColor: Colors.blue,
+                        foregroundColor: Colors.white,
                         shape: RoundedRectangleBorder(
                           borderRadius: BorderRadius.circular(30),
                         ),
