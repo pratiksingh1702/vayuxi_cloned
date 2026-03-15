@@ -8,6 +8,7 @@ import 'package:untitled2/features/modules/all_Modules/team/provider/teamProvide
 import '../../../../../core/utlis/widgets/Button_wrapper.dart';
 import '../../../../../core/utlis/widgets/buttons.dart';
 import '../../../../../core/utlis/widgets/image_clipped.dart';
+import '../../../../../core/utlis/widgets/sidebar.dart';
 import '../../../../../typeProvider/type_provider.dart';
 import '../model/attModel.dart';
 import '../offline/repo/att_offline_provider.dart';
@@ -519,6 +520,7 @@ class _AttendanceScreenState extends ConsumerState<AttendanceScreen> {
 
     return Scaffold(
       backgroundColor: const Color(0xFFE8F4FF),
+      drawer: CustomDrawer(),
       appBar: CustomAppBar(title: lang.recordAttendanceTitle),
       body: BottomButtonWrapper(
         customButtons: [

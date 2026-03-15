@@ -57,7 +57,7 @@ class _BulkUploadScreenState extends ConsumerState<BulkUploadScreen> {
                     MaterialPageRoute(
                       builder: (_) => TemplatePreviewScreen(
                         title: "Sample Template Preview",
-                        imageAsset: "assets/images/inv-temp.webp",
+                        imageAsset: "assets/images/inv-temp.png",
                         onDownload: () async {
                           final file = await ref
                               .read(templateDownloadControllerProvider.notifier)

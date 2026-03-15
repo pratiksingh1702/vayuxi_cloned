@@ -64,6 +64,20 @@ class AttendanceRepository {
 
     });
   }
+
+  Future<void> deleteManpowerLocal(String manpowerId) async {
+    final row = await isar.manpowerIsars
+        .filter()
+        .manpowerIdEqualTo(manpowerId)
+        .findFirst();
+
+    if (row == null) return;
+    print("dpmmmmmmmmmmm");
+
+    await isar.writeTxn(() async {
+      await isar.manpowerIsars.delete(row.isarId);
+    });
+  }
   Future<int> getAttendanceCount({
     required String siteId,
     required String type,
@@ -171,30 +185,26 @@ class AttendanceRepository {
         .filter()
         .typeEqualTo(type)
         .isDeletedEqualTo(false)
+        .sortByUpdatedAtDesc()
         .watch(fireImmediately: true)
         .map(
           (rows) => rows.map((m) {
         return ManpowerModel(
           id: m.manpowerId,
           type: m.type,
-
           fullName: m.fullName,
           designation: m.designation,
           employeeCode: m.employeeCode,
           phoneNumber: m.phoneNumber,
-
           aadharNumber: m.aadharNumber,
           panNumber: m.panNumber,
-
           dateOfBirth: m.dateOfBirth,
           dateOfJoining: m.dateOfJoining,
-
           bankAccountNumber: m.bankAccountNumber,
           ifscCode: m.ifscCode,
           epfNumber: m.epfNumber,
           uanNumber: m.uanNumber,
           esicNumber: m.esicNumber,
-
           payBasics: m.payBasics,
           totalHour: m.totalHour,
           salary: m.salary,
@@ -204,20 +214,14 @@ class AttendanceRepository {
           specialAllowance: m.specialAllowance,
           travelAllowance: m.travelAllowance,
           medicalAllowance: m.medicalAllowance,
-
           pfApplicable: m.pfApplicable,
-
           remarks: m.remarks,
-
           company: m.company,
-
           isDeleted: m.isDeleted,
           isLeft: m.isLeft,
           reason: m.reason,
-
           createdAt: m.createdAt,
           updatedAt: m.updatedAt.toIso8601String(),
-
           loginEmail: m.loginEmail,
           loginPassword: m.loginPassword,
           isLoginEnabled: m.isLoginEnabled,
@@ -225,7 +229,6 @@ class AttendanceRepository {
       }).toList(),
     );
   }
-
 
   Future<void> syncManpowerFromApi(String type) async {
     final res = await DioClient.dio.get(

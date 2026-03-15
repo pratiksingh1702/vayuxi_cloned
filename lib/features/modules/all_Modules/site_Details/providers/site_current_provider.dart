@@ -58,6 +58,7 @@ class ModuleScreenSyncNotifier extends Notifier<void> {
     print("[SYNC] Site Dropdown: ${siteDropdown?.siteName}");
     print("[SYNC] Team Dropdown: ${teamDropdown?.teamName}");
     print("🫂🫂");
+    print("=>");
 
     // 🔥 SITE
     if (siteDropdown == null) {

@@ -78,7 +78,7 @@
   }
   
   class _testDynamicItemCardState extends State<testDynamicItemCard>
-      with AutomaticKeepAliveClientMixin {
+    {
     // Controllers to preserve
     late String draftName;
     File? draftImageFile;
@@ -175,6 +175,16 @@
       if (widget.image != oldWidget.image) {
         draftImageUrl = widget.image;
         draftImageFile = null;
+      }
+      /// UOM / LENGTH RESET FIX
+      if (!_isEditingLength &&
+          widget.lengthPlaceholder != oldWidget.lengthPlaceholder) {
+
+        draftUom = widget.lengthPlaceholder;
+
+        if (_lengthController.text != widget.lengthPlaceholder) {
+          _lengthController.text = widget.lengthPlaceholder;
+        }
       }
 
 
@@ -474,7 +484,7 @@
   
     @override
     Widget build(BuildContext context) {
-      super.build(context);
+
   
       return GestureDetector(
         onTap: () {

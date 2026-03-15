@@ -25,12 +25,12 @@ final materialsStreamProvider = StreamProvider.family<
     })>((ref, args) {
   final repo = ref.read(materialRepositoryProvider);
 
-  // ✅ trigger background sync (DON’T await)
-  repo.syncInBackground(
-    siteId: args.siteId,
-    domain: args.domain,
-    designation: args.designation,
-  );
+  // // ✅ trigger background sync (DON’T await)
+  // repo.syncInBackground(
+  //   siteId: args.siteId,
+  //   domain: args.domain,
+  //   designation: args.designation,
+  // );
 
   // ✅ UI reads only local db
   return repo.watch(

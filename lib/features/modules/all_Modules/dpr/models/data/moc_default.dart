@@ -34,7 +34,6 @@ List<MOC> defaultMOCList = [
     imageUrl: "assets/stepper/glr.webp",
     createdAt: DateTime.now(),
     
-    
     isPredefined: true,
   ),
   MOC(

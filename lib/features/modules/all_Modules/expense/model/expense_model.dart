@@ -1,3 +1,5 @@
+import 'package:untitled2/features/modules/all_Modules/Manpower%20Details/model/manpower_model.dart';
+
 class ExpenseModel {
   final String? id;
   final String? expenseType;
@@ -18,6 +20,7 @@ class ExpenseModel {
   final String? siteId;
   final DateTime? createdAt;
   final DateTime? updatedAt;
+  final ManpowerModel? manpower;
 
   ExpenseModel({
     this.id,
@@ -39,6 +42,7 @@ class ExpenseModel {
     this.siteId,
     this.createdAt,
     this.updatedAt,
+    this.manpower,
   });
 
   factory ExpenseModel.fromJson(Map<String, dynamic> json) {
@@ -58,7 +62,14 @@ class ExpenseModel {
       balance: _toDouble(json['balance']),
       year: _toInt(json['year']),
       place: json['place']?.toString(),
-      manpowerId: json['manpowerId']?.toString(),
+      manpowerId: json['manpowerId'] is String
+          ? json['manpowerId']
+          : json['manpowerId']?['_id'],
+
+      manpower: json['manpowerId'] is Map
+          ? ManpowerModel.fromJson(json['manpowerId'])
+          : null,
+
       siteId: json['siteId']?.toString(),
       createdAt: json['createdAt'] != null ? DateTime.parse(json['createdAt']) : null,
       updatedAt: json['updatedAt'] != null ? DateTime.parse(json['updatedAt']) : null,

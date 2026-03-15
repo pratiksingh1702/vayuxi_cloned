@@ -14,6 +14,7 @@ import 'package:share_plus/share_plus.dart';
 import 'package:open_file/open_file.dart';
 import 'package:untitled2/core/utlis/widgets/Button_wrapper.dart';
 import 'package:untitled2/core/utlis/widgets/custom_appBar.dart';
+import 'package:untitled2/core/utlis/widgets/sidebar.dart';
 import 'package:untitled2/features/modules/all_Modules/site_Details/providers/site_current_provider.dart';
 import '../../../../../core/utlis/widgets/buttons.dart';
 import '../../../../../core/utlis/widgets/image_clipped.dart';
@@ -45,7 +46,8 @@ class _GenerateAttendanceSheetScreenState
       return;
     }
 
-    final sheetName = "Attendance Sheet ${DateFormat('dd/MM/yyyy').format(startDate!)} - ${DateFormat('dd/MM/yyyy').format(endDate!)}";
+    final sheetName =
+        "Attendance Sheet ${DateFormat('dd/MM/yyyy').format(startDate!)} - ${DateFormat('dd/MM/yyyy').format(endDate!)}";
 
     showModalBottomSheet(
       context: context,
@@ -192,15 +194,15 @@ class _GenerateAttendanceSheetScreenState
       debugPrint('✅ CSV data generated: ${csvData.length} chars');
 
       // Add UTF-8 BOM for Excel compatibility (Excel prefers this)
-      final bytes = Uint8List.fromList(
-          [0xEF, 0xBB, 0xBF, ...utf8.encode(csvData)]
-      );
+      final bytes =
+          Uint8List.fromList([0xEF, 0xBB, 0xBF, ...utf8.encode(csvData)]);
 
       debugPrint('✅ Converted to bytes with BOM: ${bytes.length} bytes');
 
       // Get temporary directory
       final tempDir = await getTemporaryDirectory();
-      final fileName = 'attendance_${DateFormat('yyyyMMdd').format(startDate!)}_to_${DateFormat('yyyyMMdd').format(endDate!)}.csv';
+      final fileName =
+          'attendance_${DateFormat('yyyyMMdd').format(startDate!)}_to_${DateFormat('yyyyMMdd').format(endDate!)}.csv';
       final tempPath = '${tempDir.path}/$fileName';
 
       debugPrint('📁 Saving to temp path: $tempPath');
@@ -214,7 +216,8 @@ class _GenerateAttendanceSheetScreenState
       final fileSize = await tempFile.length();
 
       if (!fileExists || fileSize == 0) {
-        debugPrint('❌ File not created or empty. Exists: $fileExists, Size: $fileSize');
+        debugPrint(
+            '❌ File not created or empty. Exists: $fileExists, Size: $fileSize');
         throw Exception('Failed to create attendance file');
       }
 
@@ -222,7 +225,8 @@ class _GenerateAttendanceSheetScreenState
 
       // Read back a sample to verify
       final sampleContent = await tempFile.readAsString();
-      debugPrint('📄 File preview (first 200 chars): ${sampleContent.substring(0, sampleContent.length > 200 ? 200 : sampleContent.length)}');
+      debugPrint(
+          '📄 File preview (first 200 chars): ${sampleContent.substring(0, sampleContent.length > 200 ? 200 : sampleContent.length)}');
 
       // Prepare file for sharing
       final xFile = XFile(
@@ -246,8 +250,7 @@ class _GenerateAttendanceSheetScreenState
             0,
             0,
             MediaQuery.of(context).size.width,
-            MediaQuery.of(context).size.height / 3
-        ),
+            MediaQuery.of(context).size.height / 3),
       );
 
       debugPrint('✅ Share completed with result: $shareResult');
@@ -284,7 +287,6 @@ class _GenerateAttendanceSheetScreenState
           debugPrint('⚠️ Error deleting temp file: $e');
         }
       });
-
     } on PlatformException catch (e) {
       debugPrint('❌ PlatformException during share: $e');
       ScaffoldMessenger.of(context).showSnackBar(
@@ -309,6 +311,7 @@ class _GenerateAttendanceSheetScreenState
       });
     }
   }
+
   // Download attendance file to device
   Future<void> _downloadAttendanceFile() async {
     try {
@@ -316,17 +319,6 @@ class _GenerateAttendanceSheetScreenState
         isLoading = true;
         isDownloading = true;
       });
-
-      // Check storage permission
-      if (!await _requestPermissions()) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(
-            content: Text("Storage permission is required to save the file"),
-            backgroundColor: Colors.red,
-          ),
-        );
-        return;
-      }
 
       // Generate CSV data
       final csvData = await _generateAttendanceCSVData();
@@ -340,7 +332,6 @@ class _GenerateAttendanceSheetScreenState
       } else {
         await _saveDesktopAttendance(bytes);
       }
-
     } catch (e) {
       debugPrint('❌ Download attendance failed: $e');
       ScaffoldMessenger.of(context).showSnackBar(
@@ -383,14 +374,17 @@ class _GenerateAttendanceSheetScreenState
       debugPrint('🔍 API Response received successfully');
       debugPrint('📊 Data type: ${res.data.runtimeType}');
       debugPrint('📊 Data length: ${(res.data as String).length} chars');
-      debugPrint('📊 First 200 chars: ${(res.data as String).substring(0, min((res.data as String).length, 200))}');
+      debugPrint(
+          '📊 First 200 chars: ${(res.data as String).substring(0, min((res.data as String).length, 200))}');
 
       // Generate CSV content
       final csvContent = _generateCSVContent(res.data);
 
       debugPrint('📊 Generated CSV length: ${csvContent.length} chars');
-      debugPrint('📊 Generated CSV preview:\n${csvContent.substring(0, min(csvContent.length, 300))}');
-      debugPrint('📊 Generated CSV ends with: ${csvContent.substring(csvContent.length - min(50, csvContent.length))}');
+      debugPrint(
+          '📊 Generated CSV preview:\n${csvContent.substring(0, min(csvContent.length, 300))}');
+      debugPrint(
+          '📊 Generated CSV ends with: ${csvContent.substring(csvContent.length - min(50, csvContent.length))}');
 
       if (csvContent.isEmpty) {
         ScaffoldMessenger.of(context).showSnackBar(
@@ -415,61 +409,11 @@ class _GenerateAttendanceSheetScreenState
     }
   }
 
-  Future<bool> _requestPermissions() async {
-    if (Platform.isAndroid) {
-      if (await Permission.manageExternalStorage.isGranted) {
-        return true;
-      }
-
-      PermissionStatus status;
-      if (Platform.isAndroid) {
-        status = await Permission.manageExternalStorage.request();
-      } else {
-        status = await Permission.storage.request();
-      }
-
-      if (status.isGranted) {
-        return true;
-      } else if (status.isPermanentlyDenied) {
-        _showPermissionDialog();
-        return false;
-      }
-      return false;
-    } else if (Platform.isIOS) {
-      return true;
-    }
-    return true;
-  }
-
-  void _showPermissionDialog() {
-    showDialog(
-      context: context,
-      builder: (BuildContext context) => AlertDialog(
-        title: const Text("Permission Required"),
-        content: const Text(
-            "Storage permission is required to save attendance files. "
-                "Please grant the permission in app settings."),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.pop(context),
-            child: const Text("Cancel"),
-          ),
-          TextButton(
-            onPressed: () {
-              Navigator.pop(context);
-              openAppSettings();
-            },
-            child: const Text("Open Settings"),
-          ),
-        ],
-      ),
-    );
-  }
-
   // Save CSV on mobile devices
   Future<void> _saveMobileAttendance(Uint8List bytes) async {
     try {
-      final fileName = 'attendance_${DateFormat('yyyyMMdd').format(startDate!)}_to_${DateFormat('yyyyMMdd').format(endDate!)}.csv';
+      final fileName =
+          'attendance_${DateFormat('yyyyMMdd').format(startDate!)}_to_${DateFormat('yyyyMMdd').format(endDate!)}.csv';
 
       final String? outputPath = await FilePicker.platform.saveFile(
         dialogTitle: 'Save Attendance Sheet',
@@ -508,7 +452,8 @@ class _GenerateAttendanceSheetScreenState
                         onPressed: () async {
                           await Share.shareXFiles(
                             [XFile(outputPath, mimeType: 'text/csv')],
-                            text: 'Attendance Sheet - ${DateFormat('dd/MM/yyyy').format(startDate!)} to ${DateFormat('dd/MM/yyyy').format(endDate!)}',
+                            text:
+                                'Attendance Sheet - ${DateFormat('dd/MM/yyyy').format(startDate!)} to ${DateFormat('dd/MM/yyyy').format(endDate!)}',
                           );
                         },
                         icon: const Icon(Icons.share, size: 16),
@@ -539,7 +484,8 @@ class _GenerateAttendanceSheetScreenState
 
   // Save CSV on desktop
   Future<void> _saveDesktopAttendance(Uint8List bytes) async {
-    final fileName = 'attendance_${DateFormat('yyyyMMdd').format(startDate!)}_to_${DateFormat('yyyyMMdd').format(endDate!)}.csv';
+    final fileName =
+        'attendance_${DateFormat('yyyyMMdd').format(startDate!)}_to_${DateFormat('yyyyMMdd').format(endDate!)}.csv';
 
     final path = await FilePicker.platform.saveFile(
       dialogTitle: 'Save Attendance Sheet',
@@ -589,11 +535,15 @@ class _GenerateAttendanceSheetScreenState
     // CASE 3: If data is a List of other types (check what we actually have)
     if (data is List) {
       debugPrint('📋 Data is List with ${data.length} items');
-      debugPrint('📋 First item type: ${data.isNotEmpty ? data.first.runtimeType : "empty"}');
+      debugPrint(
+          '📋 First item type: ${data.isNotEmpty ? data.first.runtimeType : "empty"}');
 
       // Check if first item is a complete CSV string header
-      if (data.isNotEmpty && data.first is String && (data.first as String).contains("ATTENDANCE SHEET")) {
-        debugPrint('✅ First item contains CSV header, treating as List<String>');
+      if (data.isNotEmpty &&
+          data.first is String &&
+          (data.first as String).contains("ATTENDANCE SHEET")) {
+        debugPrint(
+            '✅ First item contains CSV header, treating as List<String>');
         return (data as List<String>).join('\n');
       }
 
@@ -608,12 +558,14 @@ class _GenerateAttendanceSheetScreenState
           debugPrint('🗺️ Map keys: ${item.keys}');
 
           // If it has the attendance grid format
-          if (item.containsKey('employeeName') && item.containsKey('attendance')) {
+          if (item.containsKey('employeeName') &&
+              item.containsKey('attendance')) {
             // This would need custom formatting for your specific grid
             // _formatAttendanceGrid(buffer, item);
           } else {
             // Simple CSV row format
-            buffer.writeln('${item['date']},${item['employeeId']},${item['employeeName']},${item['checkIn']},${item['checkOut']},${item['totalHours']},${item['status']}');
+            buffer.writeln(
+                '${item['date']},${item['employeeId']},${item['employeeName']},${item['checkIn']},${item['checkOut']},${item['totalHours']},${item['status']}');
           }
         } else {
           buffer.writeln(item.toString());
@@ -626,9 +578,11 @@ class _GenerateAttendanceSheetScreenState
     debugPrint('📦 Fallback: Converting data to string');
     return data.toString();
   }
+
   @override
   Widget build(BuildContext context) {
     return Scaffold(
+      drawer: CustomDrawer(),
       appBar: CustomAppBar(title: "Generate Attendance Sheet"),
       body: Stack(
         children: [
@@ -666,7 +620,9 @@ class _GenerateAttendanceSheetScreenState
                     const CircularProgressIndicator(color: Colors.white),
                     const SizedBox(height: 16),
                     Text(
-                      isDownloading ? 'Downloading attendance sheet...' : 'Loading...',
+                      isDownloading
+                          ? 'Downloading attendance sheet...'
+                          : 'Loading...',
                       style: const TextStyle(color: Colors.white, fontSize: 16),
                     ),
                   ],
@@ -707,6 +663,47 @@ class _DateRangePickerDialogState extends State<DateRangePickerDialog> {
     _end = widget.endDate;
   }
 
+  Future<void> _pickDate({required bool isStart}) async {
+    final initial = isStart
+        ? (_start ?? DateTime.now())
+        : (_end ?? _start ?? DateTime.now());
+
+    final picked = await showDatePicker(
+      context: context,
+      initialDate: initial,
+      firstDate: DateTime(2000),
+      lastDate: DateTime(2100),
+      builder: (context, child) {
+        return Theme(
+          data: Theme.of(context).copyWith(
+            dialogTheme: const DialogThemeData(
+              shape: RoundedRectangleBorder(
+                borderRadius: BorderRadius.all(Radius.circular(16)),
+              ),
+            ),
+          ),
+          child: child!,
+        );
+      },
+    );
+
+    if (picked == null) return;
+
+    setState(() {
+      if (isStart) {
+        _start = picked;
+        if (_end != null && _end!.isBefore(picked)) _end = null;
+      } else {
+        if (_start != null && picked.isBefore(_start!)) {
+          _start = picked;
+          _end = null;
+        } else {
+          _end = picked; // ✅ same date as _start is now allowed
+        }
+      }
+    });
+  }
+
   @override
   Widget build(BuildContext context) {
     return Column(
@@ -721,6 +718,7 @@ class _DateRangePickerDialogState extends State<DateRangePickerDialog> {
                 _start != null
                     ? DateFormat("dd/MM/yyyy").format(_start!)
                     : "Input Text",
+                () => _pickDate(isStart: true),
               ),
             ),
             const SizedBox(width: 16),
@@ -730,6 +728,7 @@ class _DateRangePickerDialogState extends State<DateRangePickerDialog> {
                 _end != null
                     ? DateFormat("dd/MM/yyyy").format(_end!)
                     : "Input Text",
+                () => _pickDate(isStart: false),
               ),
             ),
           ],
@@ -759,7 +758,8 @@ class _DateRangePickerDialogState extends State<DateRangePickerDialog> {
                 if (_start == null || (_start != null && _end != null)) {
                   _start = selectedDay;
                   _end = null;
-                } else if (selectedDay.isAfter(_start!)) {
+                } else if (!selectedDay.isBefore(_start!)) {
+                  // ✅ isBefore check allows same day (isAfter was blocking it)
                   _end = selectedDay;
                 }
                 _focused = focusedDay;
@@ -843,6 +843,7 @@ class _DateRangePickerDialogState extends State<DateRangePickerDialog> {
               child: ElevatedButton(
                 style: ElevatedButton.styleFrom(
                   backgroundColor: Colors.blue,
+                  foregroundColor: Colors.white,
                   padding: const EdgeInsets.symmetric(vertical: 14),
                   shape: RoundedRectangleBorder(
                     borderRadius: BorderRadius.circular(12),
@@ -861,29 +862,32 @@ class _DateRangePickerDialogState extends State<DateRangePickerDialog> {
   }
 
   // SMALL BOX LIKE SCREENSHOT
-  Widget _dateBox(String label, String value) {
+  Widget _dateBox(String label, String value, VoidCallback onTap) {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
         Text(label,
             style: const TextStyle(fontSize: 14, fontWeight: FontWeight.w500)),
         const SizedBox(height: 6),
-        Container(
-          padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 12),
-          decoration: BoxDecoration(
-            border: Border.all(color: Colors.grey.shade300),
-            borderRadius: BorderRadius.circular(10),
-          ),
-          child: Row(
-            mainAxisAlignment: MainAxisAlignment.spaceBetween,
-            children: [
-              Text(value,
-                  style: TextStyle(
-                    fontSize: 14,
-                    color: value == "Input Text" ? Colors.grey : Colors.black,
-                  )),
-              const Icon(Icons.calendar_today, size: 18, color: Colors.blue)
-            ],
+        GestureDetector(
+          onTap: onTap,
+          child: Container(
+            padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 12),
+            decoration: BoxDecoration(
+              border: Border.all(color: Colors.grey.shade300),
+              borderRadius: BorderRadius.circular(10),
+            ),
+            child: Row(
+              mainAxisAlignment: MainAxisAlignment.spaceBetween,
+              children: [
+                Text(value,
+                    style: TextStyle(
+                      fontSize: 14,
+                      color: value == "Input Text" ? Colors.grey : Colors.black,
+                    )),
+                const Icon(Icons.calendar_today, size: 18, color: Colors.blue)
+              ],
+            ),
           ),
         )
       ],

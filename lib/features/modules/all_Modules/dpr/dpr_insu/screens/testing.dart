@@ -111,19 +111,110 @@ class _AddInsulationDescriptionScreenState extends ConsumerState<AddInsulationDe
     _initializeControllers();
     _initializeData();
 
+    // ✅ Only attach listeners ONCE, not on every rebuild
+    if (widget.work == null) {
+      WidgetsBinding.instance.addPostFrameCallback((_) {
+        final repo = ref.read(materialRepositoryProvider);
+
+        repo.syncInBackground(
+          siteId: siteId,
+          domain: 'insulation',
+          designation: '',
+        );
+
+
+      });
+      _attachMaterialListeners();
+    }
+
     WidgetsBinding.instance.addPostFrameCallback((_) async {
       if (widget.work != null) {
         _initializeFromWork(widget.work!);
       } else {
-        setState(() {
-          _loadLayersFromProvider();
-        });
-      //
-      //   Future.microtask(() async {
-      //     await _hydrateFromMaterialStream();
-      //   });  // ← clean hydration
-       }
+        setState(() => _loadLayersFromProvider());
+      }
     });
+  }
+
+  void _attachMaterialListeners() {
+
+    ref.listenManual(
+      materialsStreamProvider((
+      siteId: siteId,
+      domain: 'insulation',
+      designation: 'piping',
+      )),
+          (previous, next) {
+
+        next.whenData((localMaterials) {
+
+          if (!mounted) return;
+
+          final incoming = localMaterials
+              .where((m) => !m.isDeleted)
+              .map((m) => m.toPiping())
+              .toList();
+
+          /// 🔥 Delay provider modification
+          Future.microtask(() {
+
+            if (!mounted) return;
+
+            final notifier =
+            ref.read(insulationPipingMaterialsProvider.notifier);
+
+            notifier.clear();
+
+            if (incoming.isNotEmpty) {
+              notifier.addMaterials(incoming);
+            }
+
+          });
+
+        });
+
+      },
+      fireImmediately: true,
+    );
+
+    ref.listenManual(
+      materialsStreamProvider((
+      siteId: siteId,
+      domain: 'insulation',
+      designation: 'equipment',
+      )),
+          (previous, next) {
+
+        next.whenData((localMaterials) {
+
+          if (!mounted) return;
+
+          final incoming = localMaterials
+              .where((m) => !m.isDeleted)
+              .map((m) => m.toEquipment())
+              .toList();
+
+          /// 🔥 Delay provider modification
+          Future.microtask(() {
+
+            if (!mounted) return;
+
+            final notifier =
+            ref.read(insulationEquipmentMaterialsProvider.notifier);
+
+            notifier.clear();
+
+            if (incoming.isNotEmpty) {
+              notifier.addMaterials(incoming);
+            }
+
+          });
+
+        });
+
+      },
+      fireImmediately: true,
+    );
   }
   // Future<void> _hydrateFromMaterialStream() async {
   //   final siteId = ref.read(selectedSiteIdProvider)!;
@@ -210,6 +301,7 @@ class _AddInsulationDescriptionScreenState extends ConsumerState<AddInsulationDe
   // }
   void _initializeControllers() {
     _dprNameController = TextEditingController();
+    _dprNameController.addListener(() => setState(() {}));
     _mocController = TextEditingController();
     _sizeController = TextEditingController();
     _plantController = TextEditingController();
@@ -1458,66 +1550,59 @@ class _AddInsulationDescriptionScreenState extends ConsumerState<AddInsulationDe
   Widget build(BuildContext context) {
 
     print("againnnnnnnnnnnnn");
-    final pipingStream = ref.watch(materialsStreamProvider((
-    siteId: siteId,
-    domain: 'insulation',
-    designation: 'piping',
-    )));
 
-    final equipmentStream = ref.watch(materialsStreamProvider((
-    siteId: siteId,
-    domain: 'insulation',
-    designation: 'equipment',
-    )));
 
     // ✅ ref.listen only fires on VALUE CHANGE, not every rebuild
     // No infinite loop!
-    if (_insulationId == null && widget.work == null) {
-      print("00000000000000000000000000000000000000000000000000000000");
-      ref.listen(
-        materialsStreamProvider((
-        siteId: siteId,
-        domain: 'insulation',
-        designation: 'piping',
-        )),
-            (previous, next) {
-          next.whenData((localMaterials) {
-            if (!mounted) return;
-            final incoming = localMaterials
-                .where((m) => !m.isDeleted)
-                .map((m) => m.toPiping())
-                .toList();
-
-            ref.read(insulationPipingMaterialsProvider.notifier).clear();
-            if (incoming.isNotEmpty) {
-              ref.read(insulationPipingMaterialsProvider.notifier).addMaterials(incoming);
-            }
-          });
-        },
-      );
-
-      ref.listen(
-        materialsStreamProvider((
-        siteId: siteId,
-        domain: 'insulation',
-        designation: 'equipment',
-        )),
-            (previous, next) {
-          next.whenData((localMaterials) {
-            if (!mounted) return;
-            final incoming = localMaterials
-                .where((m) => !m.isDeleted)
-                .map((m) => m.toEquipment())
-                .toList();
-
-            ref.read(insulationEquipmentMaterialsProvider.notifier).clear();
-            if (incoming.isNotEmpty) {
-              ref.read(insulationEquipmentMaterialsProvider.notifier).addMaterials(incoming);
-            }
-          });
-        },
-      );
-    }
+    // if (_insulationId == null && widget.work == null) {
+    //   print("00000000000000000000000000000000000000000000000000000000");
+    //   ref.listen(
+    //     materialsStreamProvider((
+    //     siteId: siteId,
+    //     domain: 'insulation',
+    //     designation: 'piping',
+    //     )),
+    //         (previous, next) {
+    //       next.whenData((localMaterials) {
+    //         if (!mounted) return;
+    //         final incoming = localMaterials
+    //             .where((m) => !m.isDeleted)
+    //             .map((m) => m.toPiping())
+    //             .toList();
+    //
+    //         print("STREAM DATA: ${localMaterials.length}");
+    //
+    //
+    //         ref.read(insulationPipingMaterialsProvider.notifier).clear();
+    //         if (incoming.isNotEmpty) {
+    //           ref.read(insulationPipingMaterialsProvider.notifier).addMaterials(incoming);
+    //         }
+    //       });
+    //     },
+    //   );
+    //
+    //   ref.listen(
+    //     materialsStreamProvider((
+    //     siteId: siteId,
+    //     domain: 'insulation',
+    //     designation: 'equipment',
+    //     )),
+    //         (previous, next) {
+    //       next.whenData((localMaterials) {
+    //         if (!mounted) return;
+    //         final incoming = localMaterials
+    //             .where((m) => !m.isDeleted)
+    //             .map((m) => m.toEquipment())
+    //             .toList();
+    //
+    //         ref.read(insulationEquipmentMaterialsProvider.notifier).clear();
+    //         if (incoming.isNotEmpty) {
+    //           ref.read(insulationEquipmentMaterialsProvider.notifier).addMaterials(incoming);
+    //         }
+    //       });
+    //     },
+    //   );
+    // }
     final pipingMaterials = ref.watch(insulationPipingMaterialsProvider);
     final equipmentMaterials = ref.watch(insulationEquipmentMaterialsProvider);
     final insulationState = ref.watch(insulationStateProvider);
@@ -1541,9 +1626,13 @@ class _AddInsulationDescriptionScreenState extends ConsumerState<AddInsulationDe
 
         backgroundColor: Colors.grey[50],
         body: NestedScrollView(
-          headerSliverBuilder: (context, innerBoxIsScrolled) {
-            return [const CustomSliverAppBar(title: "Add Insulation DPR")];
-          },
+          // AFTER
+            headerSliverBuilder: (context, innerBoxIsScrolled) {
+              final appBarTitle = _dprNameController.text.trim().isNotEmpty
+                  ? _dprNameController.text.trim()
+                  : "Add Insulation DPR";
+              return [CustomSliverAppBar(title: appBarTitle)];
+            },
           body: BottomButtonWrapper(
             customButtons: [
               CustomButton(

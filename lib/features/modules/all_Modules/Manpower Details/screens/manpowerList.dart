@@ -3,6 +3,7 @@ import 'dart:convert';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
+import 'package:untitled2/core/utlis/app_toasts.dart';
 import 'package:untitled2/core/utlis/colors/colors.dart';
 import 'package:untitled2/core/utlis/widgets/buttons.dart';
 import 'package:untitled2/core/utlis/widgets/custom_appBar.dart';
@@ -81,12 +82,7 @@ class _ManpowerListScreenState extends ConsumerState<ManpowerListScreen> {
   /// Delete selected manpower
   Future<void> _deleteSelectedManpower() async {
     if (_selectedManpowerIds.isEmpty) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(
-          content: Text('No manpower selected'),
-          backgroundColor: Colors.orange,
-        ),
-      );
+  AppToast.show('No manpower selected');
       return;
     }
 
@@ -115,6 +111,11 @@ class _ManpowerListScreenState extends ConsumerState<ManpowerListScreen> {
     if (confirmed != true) return;
 
     try {
+      final repo = ref.read(attendanceRepositoryProvider);
+
+      for (final id in _selectedManpowerIds) {
+        await repo.deleteManpowerLocal(id);
+      }
       final result = await ManpowerAPI.bulkDeleteManpower(
         _selectedManpowerIds.toList(),
       );
@@ -123,24 +124,12 @@ class _ManpowerListScreenState extends ConsumerState<ManpowerListScreen> {
         // Refresh manpower list
         final type = ref.read(typeProvider);
 
-        ref.invalidate(
-          manpowerSyncControllerProvider((type: type!)),
-        );
 
 
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text("✅ Manpower deleted")),
-        );
+
 
         if (mounted) {
-          ScaffoldMessenger.of(context).showSnackBar(
-            SnackBar(
-              content: Text(
-                'Successfully deleted ${_selectedManpowerIds.length} manpower records',
-              ),
-              backgroundColor: Colors.green,
-            ),
-          );
+         AppToast.success('Successfully deleted ${_selectedManpowerIds.length} manpower records');
         }
 
         setState(() {
@@ -149,24 +138,14 @@ class _ManpowerListScreenState extends ConsumerState<ManpowerListScreen> {
         });
       } else {
         if (mounted) {
-          ScaffoldMessenger.of(context).showSnackBar(
-            SnackBar(
-              content: Text(result['message'] ?? 'Failed to delete manpower'),
-              backgroundColor: Colors.red,
-            ),
-          );
+         AppToast.error(result['message'] ?? 'Failed to delete manpower');
         }
       }
     } catch (e) {
       debugPrint('❌ Failed to bulk delete: $e');
 
       if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
-            content: Text('Bulk delete failed: ${e.toString()}'),
-            backgroundColor: Colors.red,
-          ),
-        );
+       AppToast.error('Bulk delete failed: ${e.toString()}');
       }
     }
   }
@@ -239,9 +218,7 @@ class _ManpowerListScreenState extends ConsumerState<ManpowerListScreen> {
 
     await ref.read(manpowerProvider.notifier).leftManpower(id, data, type);
 
-    ScaffoldMessenger.of(context).showSnackBar(
-      const SnackBar(content: Text("✅ Manpower marked as left")),
-    );
+   AppToast.info("✅ Manpower marked as left");
   }
 
   @override
@@ -283,11 +260,7 @@ class _ManpowerListScreenState extends ConsumerState<ManpowerListScreen> {
                     list.map((m) => m.toJson()).toList(),
                   );
 
-                  ScaffoldMessenger.of(context).showSnackBar(
-                    const SnackBar(
-                      content: Text("✅ Excel saved in Downloads folder"),
-                    ),
-                  );
+               AppToast.success("✅ Excel saved in Downloads folder");
                 },
               ),
             ),
@@ -509,25 +482,31 @@ class _ManpowerListScreenState extends ConsumerState<ManpowerListScreen> {
       _deleteManpower(context, manpowerId);
     }
   }
-
   Future<void> _deleteManpower(BuildContext context, String manpowerId) async {
-    final res = await ManpowerAPI.deleteManpower(manpowerId);
 
-    if (res['success'] == true) {
-      // 🔥 REFRESH LIST
-      final type = ref.read(typeProvider);
-      ref.read(manpowerProvider.notifier).fetchManpower(type!);
+    final repo = ref.read(attendanceRepositoryProvider);
 
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text("✅ Manpower deleted")),
-      );
-    } else {
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(
-          content: Text(res['message'] ?? "Delete failed"),
-          backgroundColor: Colors.red,
-        ),
-      );
+    /// 1️⃣ DELETE LOCALLY FIRST (instant UI update)
+    await repo.deleteManpowerLocal(manpowerId);
+
+    try {
+
+      /// 2️⃣ DELETE ON SERVER
+      final res = await ManpowerAPI.deleteManpower(manpowerId);
+
+      if (res['success'] != true) {
+        throw Exception("Server delete failed");
+      }
+
+    } catch (e) {
+
+      /// 3️⃣ OPTIONAL: rollback if server fails
+      debugPrint("Server delete failed: $e");
+
     }
+
+    ScaffoldMessenger.of(context).showSnackBar(
+      const SnackBar(content: Text("✅ Manpower deleted")),
+    );
   }
 }

@@ -72,6 +72,7 @@ dependencies:
   record: ^6.2.0
 
 
+
   carousel_slider: ^5.1.1
   flutter_tts: ^4.2.3
   canvas_kit: ^0.5.2

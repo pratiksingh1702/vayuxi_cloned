@@ -11,10 +11,11 @@ part 'local_material.g.dart';
 class LocalMaterial {
   Id id = Isar.autoIncrement;
 
-  /// SERVER
+  @Index(unique: true)
   String? serverId;
 
   /// SCOPE
+
   late String siteId;
   late String domain;       // insulation | mechanical
   late String designation;  // piping | equipment

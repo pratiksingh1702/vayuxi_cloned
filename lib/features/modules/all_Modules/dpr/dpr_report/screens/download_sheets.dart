@@ -548,6 +548,7 @@ class _SheetDownloadPageState extends ConsumerState<SheetDownloadPage> {
           ),
         ),
       );
+
     }
 
     return Scaffold(
@@ -576,6 +577,7 @@ class _SheetDownloadPageState extends ConsumerState<SheetDownloadPage> {
                           ),
                           const SizedBox(height: 6),
                           Container(
+
                             decoration: BoxDecoration(
                               color: Colors.grey.shade50,
                               borderRadius: BorderRadius.circular(12),
@@ -779,8 +781,8 @@ class _SheetDownloadPageState extends ConsumerState<SheetDownloadPage> {
                         Navigator.push(
                           context,
                           MaterialPageRoute(
-                            builder: (context) =>WorkTeamListPage(selectedStartDate: widget.selectedStartDate,selectedEndDate: widget.selectedEndDate,),
-                          ),
+                            builder: (context) =>WorkTeamListPage(selectedStartDate:_selectedStartDate??widget.selectedStartDate,selectedEndDate:_selectedEndDate??widget.selectedEndDate,),
+                            ),
                         );
 
 

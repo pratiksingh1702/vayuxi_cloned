@@ -695,7 +695,7 @@ class _ManImportCsvScreenState extends ConsumerState<ManImportCsvScreen> {
                   MaterialPageRoute(
                     builder: (_) => TemplatePreviewScreen(
                       title: "Sample Template Preview",
-                      imageAsset: "assets/images/man-temp.png",
+                      imageAsset: "assets/images/man-temp.webp",
                       onDownload: () async {
                         final file = await ref
                             .read(templateDownloadControllerProvider.notifier)

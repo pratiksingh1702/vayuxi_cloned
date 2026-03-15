@@ -247,8 +247,22 @@ class _EditTeamScreenState extends ConsumerState<EditTeamScreen> {
           "file": await MultipartFile.fromFile(
             _selectedImage!.path,
             filename: "team_profile.jpg",
-          ),
+          )
+        else if (_selectedImage==null && _currentImageUrl==null)
+          "file": "",
+
       });
+      print("===== FORM DATA =====");
+
+      for (var field in formData.fields) {
+        print("${field.key}: ${field.value}");
+      }
+
+      for (var file in formData.files) {
+        print("${file.key}: ${file.value.filename}");
+      }
+
+      print("=====================");
       final type = ref.read(typeProvider);
 
       await ref.read(teamProvider.notifier).updateTeam(

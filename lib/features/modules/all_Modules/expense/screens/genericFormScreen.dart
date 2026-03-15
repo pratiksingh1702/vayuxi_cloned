@@ -18,7 +18,7 @@ import '../../Manpower Details/model/manpower_model.dart';
 import '../../Manpower Details/service/manPowerProvider.dart';
 import '../model/expense_model.dart';
 import '../service/expense_service.dart';
-
+import 'package:dropdown_search/dropdown_search.dart';
 
 class ExpenseFormScreen extends ConsumerStatefulWidget {
   final String siteId;
@@ -680,29 +680,42 @@ class _ExpenseFormScreenState extends ConsumerState<ExpenseFormScreen> {
                   if (manpowerState.isLoading) {
                     return const Padding(
                       padding: EdgeInsets.symmetric(vertical: 12),
-                      child: Center(child: CircularProgressIndicator()),
+                      child: Center(child: CircularProgressIndicator(color: Colors.white,)),
                     );
                   }
 
-                  return DropdownButtonHideUnderline(
-                    child: DropdownButton<ManpowerModel>(
-                      value: _selectedManpower,
-                      isExpanded: true,
-                      hint: const Text("Select Employee"),
-                      items: manpowerState.manpowerList.map((ManpowerModel manpower) {
-                        return DropdownMenuItem<ManpowerModel>(
-                          value: manpower,
-                          child: Text(
-                            "${manpower.fullName ?? 'Unknown'} - ${manpower.employeeCode ?? 'No Code'}",
-                            overflow: TextOverflow.ellipsis,
-                          ),
-                        );
-                      }).toList(),
-                      onChanged: (ManpowerModel? newValue) {
-                        setState(() {
-                          _selectedManpower = newValue;
-                        });
-                      },
+                  return DropdownSearch<ManpowerModel>(
+                    selectedItem: _selectedManpower,
+                    items: (f, cs) => manpowerState.manpowerList,
+
+                    itemAsString: (ManpowerModel m) =>
+                    "${m.fullName ?? 'Unknown'} - ${m.employeeCode ?? 'No Code'}",
+
+                    onChanged: (ManpowerModel? newValue) {
+                      setState(() {
+                        _selectedManpower = newValue;
+                      });
+                    },
+
+                    compareFn: (item, selectedItem) =>
+                    item.id == selectedItem.id,
+
+                    decoratorProps: const DropDownDecoratorProps(
+                      decoration: InputDecoration(
+                        hintText: "Select Employee",
+
+                        contentPadding: EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+                      ),
+                    ),
+
+                    popupProps: const PopupProps.menu(
+                      showSearchBox: true,
+                      searchFieldProps: TextFieldProps(
+                        decoration: InputDecoration(
+                          hintText: "Search employee...",
+
+                        ),
+                      ),
                     ),
                   );
                 },

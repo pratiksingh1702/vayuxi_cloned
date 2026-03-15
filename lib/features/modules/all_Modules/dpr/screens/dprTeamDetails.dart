@@ -572,27 +572,27 @@ class _DprWorkScreenState extends ConsumerState<DprWorkScreen> {
                   return const Center(child: CircularProgressIndicator());
                 }
 
-                if (error != null) {
-                  return Center(
-                    child: Column(
-                      mainAxisAlignment: MainAxisAlignment.center,
-                      children: [
-                        const Icon(Icons.error_outline, color: Colors.red, size: 48),
-                        const SizedBox(height: 16),
-                        Text(
-                          'Error: $error',
-                          style: const TextStyle(color: Colors.red),
-                          textAlign: TextAlign.center,
-                        ),
-                        const SizedBox(height: 16),
-                        ElevatedButton(
-                          onPressed: _fetchDataBasedOnType,
-                          child: const Text('Retry'),
-                        ),
-                      ],
-                    ),
-                  );
-                }
+                // if (error != null) {
+                //   return Center(
+                //     child: Column(
+                //       mainAxisAlignment: MainAxisAlignment.center,
+                //       children: [
+                //         const Icon(Icons.error_outline, color: Colors.red, size: 48),
+                //         const SizedBox(height: 16),
+                //         Text(
+                //           'Error: $error',
+                //           style: const TextStyle(color: Colors.red),
+                //           textAlign: TextAlign.center,
+                //         ),
+                //         const SizedBox(height: 16),
+                //         ElevatedButton(
+                //           onPressed: _fetchDataBasedOnType,
+                //           child: const Text('Retry'),
+                //         ),
+                //       ],
+                //     ),
+                //   );
+                // }
 
                 if (filteredList.isEmpty) {
                   return Center(

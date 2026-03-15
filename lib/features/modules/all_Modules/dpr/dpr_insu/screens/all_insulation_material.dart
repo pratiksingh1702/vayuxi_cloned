@@ -36,6 +36,19 @@ class _AllInsulationMaterialsScreenState extends ConsumerState<AllInsulationMate
   @override
   void initState() {
     super.initState();
+    final repo = ref.read(materialRepositoryProvider);
+    final siteId = ref.read(selectedSiteIdProvider)!;
+
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+
+    repo.syncInBackground(
+      siteId: siteId,
+      domain: 'insulation', designation: '',
+
+    );
+
+
+  });
     _tabController = TabController(length: 2, vsync: this);
   }
 

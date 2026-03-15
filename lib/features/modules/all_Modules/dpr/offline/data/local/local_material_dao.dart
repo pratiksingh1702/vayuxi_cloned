@@ -6,6 +6,13 @@ import 'local_material.dart';
 class LocalMaterialDao {
   Isar get _isar => AppIsarDB.isar;
 
+
+  Future<void> upsertBatch(List<LocalMaterial> materials) async {
+    await _isar.writeTxn(() async {
+      await _isar.localMaterials.putAll(materials);
+    });
+  }
+
   Stream<List<LocalMaterial>> watchAll({
     required String siteId,
     required String domain,
@@ -34,13 +41,21 @@ class LocalMaterialDao {
     required String domain,
     required String designation,
   }) {
-    return _isar.localMaterials
+
+    final query = _isar.localMaterials
         .filter()
         .siteIdEqualTo(siteId)
         .domainEqualTo(domain)
-        .designationEqualTo(designation)
-        .isDeletedEqualTo(false)
-        .findAll();
+        .isDeletedEqualTo(false);
+
+    if (designation.trim().isNotEmpty) {
+      return query
+          .designationEqualTo(designation)
+          .findAll();
+    }
+
+    // 🔥 return both piping + equipment
+    return query.findAll();
   }
 
   Future<List<LocalMaterial>> dirty(String siteId) {

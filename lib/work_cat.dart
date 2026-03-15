@@ -80,12 +80,12 @@ class _WorkCategoryScreenState extends ConsumerState<WorkCategoryScreen> {
 
 
     // Send instant notification
-    await ref
-        .read(notificationsStateProvider.notifier)
-        .sendInstantNotification(
-      title: 'Hello!',
-      body: '${id} as a type has been set for further progress in app. Enjoy 😊',
-    );
+    // await ref
+    //     .read(notificationsStateProvider.notifier)
+    //     .sendInstantNotification(
+    //   title: 'Hello!',
+    //   body: '${id} as a type has been set for further progress in app. Enjoy 😊',
+    // );
 
 // Morning notification at 07:30
     await ref

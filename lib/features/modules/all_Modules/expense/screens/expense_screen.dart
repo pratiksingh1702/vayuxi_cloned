@@ -471,6 +471,38 @@ class _ExpenseListScreenState extends ConsumerState<ExpenseListScreen> {
                               ),
                             ],
                           ),
+                          /// Show manpower if present
+                          if ((expense.manpower?.fullName?.isNotEmpty ?? false) ||
+                              (expense.manpowerId?.isNotEmpty ?? false))
+                            Padding(
+                              padding: const EdgeInsets.only(top: 4),
+                              child: Row(
+                                children: [
+                                  const Text(
+                                    "Employee:",
+                                    style: TextStyle(
+
+                                      fontSize: 13,
+                                      color: Colors.black87,
+                                    ),
+                                  ),
+                                  const SizedBox(width: 8),
+                                  Text(
+                                    expense.manpower?.fullName ??
+                                        "Unknown",
+                                    style: const TextStyle(
+                                      fontWeight: FontWeight.w600,
+
+                                      fontSize: 13,
+
+                                      color: Colors.grey,
+                                    ),
+                                  ),
+
+                                ],
+                              ),
+                            ),
+
                         ],
                       ),
                     ),

@@ -113,7 +113,21 @@ const LocalMaterialSchema = CollectionSchema(
   deserialize: _localMaterialDeserialize,
   deserializeProp: _localMaterialDeserializeProp,
   idName: r'id',
-  indexes: {},
+  indexes: {
+    r'serverId': IndexSchema(
+      id: -7950187970872907662,
+      name: r'serverId',
+      unique: true,
+      replace: false,
+      properties: [
+        IndexPropertySchema(
+          name: r'serverId',
+          type: IndexType.hash,
+          caseSensitive: true,
+        )
+      ],
+    )
+  },
   links: {},
   embeddedSchemas: {},
   getId: _localMaterialGetId,
@@ -289,6 +303,61 @@ void _localMaterialAttach(
   object.id = id;
 }
 
+extension LocalMaterialByIndex on IsarCollection<LocalMaterial> {
+  Future<LocalMaterial?> getByServerId(String? serverId) {
+    return getByIndex(r'serverId', [serverId]);
+  }
+
+  LocalMaterial? getByServerIdSync(String? serverId) {
+    return getByIndexSync(r'serverId', [serverId]);
+  }
+
+  Future<bool> deleteByServerId(String? serverId) {
+    return deleteByIndex(r'serverId', [serverId]);
+  }
+
+  bool deleteByServerIdSync(String? serverId) {
+    return deleteByIndexSync(r'serverId', [serverId]);
+  }
+
+  Future<List<LocalMaterial?>> getAllByServerId(List<String?> serverIdValues) {
+    final values = serverIdValues.map((e) => [e]).toList();
+    return getAllByIndex(r'serverId', values);
+  }
+
+  List<LocalMaterial?> getAllByServerIdSync(List<String?> serverIdValues) {
+    final values = serverIdValues.map((e) => [e]).toList();
+    return getAllByIndexSync(r'serverId', values);
+  }
+
+  Future<int> deleteAllByServerId(List<String?> serverIdValues) {
+    final values = serverIdValues.map((e) => [e]).toList();
+    return deleteAllByIndex(r'serverId', values);
+  }
+
+  int deleteAllByServerIdSync(List<String?> serverIdValues) {
+    final values = serverIdValues.map((e) => [e]).toList();
+    return deleteAllByIndexSync(r'serverId', values);
+  }
+
+  Future<Id> putByServerId(LocalMaterial object) {
+    return putByIndex(r'serverId', object);
+  }
+
+  Id putByServerIdSync(LocalMaterial object, {bool saveLinks = true}) {
+    return putByIndexSync(r'serverId', object, saveLinks: saveLinks);
+  }
+
+  Future<List<Id>> putAllByServerId(List<LocalMaterial> objects) {
+    return putAllByIndex(r'serverId', objects);
+  }
+
+  List<Id> putAllByServerIdSync(List<LocalMaterial> objects,
+      {bool saveLinks = true}) {
+    return putAllByIndexSync(r'serverId', objects, saveLinks: saveLinks);
+  }
+}
+
 extension LocalMaterialQueryWhereSort
     on QueryBuilder<LocalMaterial, LocalMaterial, QWhere> {
   QueryBuilder<LocalMaterial, LocalMaterial, QAfterWhere> anyId() {
@@ -366,6 +435,73 @@ extension LocalMaterialQueryWhere
         upper: upperId,
         includeUpper: includeUpper,
       ));
+    });
+  }
+
+  QueryBuilder<LocalMaterial, LocalMaterial, QAfterWhereClause>
+      serverIdIsNull() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addWhereClause(IndexWhereClause.equalTo(
+        indexName: r'serverId',
+        value: [null],
+      ));
+    });
+  }
+
+  QueryBuilder<LocalMaterial, LocalMaterial, QAfterWhereClause>
+      serverIdIsNotNull() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addWhereClause(IndexWhereClause.between(
+        indexName: r'serverId',
+        lower: [null],
+        includeLower: false,
+        upper: [],
+      ));
+    });
+  }
+
+  QueryBuilder<LocalMaterial, LocalMaterial, QAfterWhereClause> serverIdEqualTo(
+      String? serverId) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addWhereClause(IndexWhereClause.equalTo(
+        indexName: r'serverId',
+        value: [serverId],
+      ));
+    });
+  }
+
+  QueryBuilder<LocalMaterial, LocalMaterial, QAfterWhereClause>
+      serverIdNotEqualTo(String? serverId) {
+    return QueryBuilder.apply(this, (query) {
+      if (query.whereSort == Sort.asc) {
+        return query
+            .addWhereClause(IndexWhereClause.between(
+              indexName: r'serverId',
+              lower: [],
+              upper: [serverId],
+              includeUpper: false,
+            ))
+            .addWhereClause(IndexWhereClause.between(
+              indexName: r'serverId',
+              lower: [serverId],
+              includeLower: false,
+              upper: [],
+            ));
+      } else {
+        return query
+            .addWhereClause(IndexWhereClause.between(
+              indexName: r'serverId',
+              lower: [serverId],
+              includeLower: false,
+              upper: [],
+            ))
+            .addWhereClause(IndexWhereClause.between(
+              indexName: r'serverId',
+              lower: [],
+              upper: [serverId],
+              includeUpper: false,
+            ));
+      }
     });
   }
 }

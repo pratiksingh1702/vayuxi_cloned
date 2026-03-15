@@ -61,6 +61,7 @@ class _AddDescriptionScreenState extends ConsumerState<AddDescriptionScreen>
   late final TextEditingController _sizeController;
   late final TextEditingController _plantController;
   late final TextEditingController _floorController;
+  Key _materialsRebuildKey = UniqueKey();
   String? editingMaterialId;
   String? draftCategoryId;
   bool _isLoading = false;
@@ -424,6 +425,7 @@ class _AddDescriptionScreenState extends ConsumerState<AddDescriptionScreen>
 
   void _initializeControllers() {
     _dprNameController = TextEditingController();
+    _dprNameController.addListener(() => setState(() {}));
     _mocController = TextEditingController();
     _sizeController = TextEditingController();
     _plantController = TextEditingController();
@@ -508,7 +510,40 @@ class _AddDescriptionScreenState extends ConsumerState<AddDescriptionScreen>
   //     }
   //   }
   // }
+  Future<void> _resetMaterialProviders() async {
+    if (_isDisposed) return;
 
+    setState(() {
+      _isLoading = true;
+    });
+
+    try {
+      /// 1️⃣ Clear providers
+      ref.read(pipingMaterialsProvider.notifier).clear();
+      ref.read(equipmentMaterialsProvider.notifier).clear();
+
+      /// 2️⃣ Load defaults
+      await _loadDefaultMaterials();
+
+      /// 3️⃣ Apply header
+      _applyHeaderValuesToMaterials();
+
+      /// 4️⃣ FORCE FULL UI REBUILD
+      setState(() {
+        _materialsRebuildKey = UniqueKey();
+      });
+
+    } catch (e, st) {
+      debugPrint("❌ Material reset failed: $e");
+      debugPrintStack(stackTrace: st);
+    } finally {
+      if (mounted) {
+        setState(() {
+          _isLoading = false;
+        });
+      }
+    }
+  }
   Future<void> _fetchDprListForDate(DateTime date) async {
     if (_isDisposed) return;
 
@@ -546,6 +581,36 @@ class _AddDescriptionScreenState extends ConsumerState<AddDescriptionScreen>
             ? 'Found ${_dprListForSelectedDate.length} DPR(s) for ${_formatDate(date)}'
             : 'No DPR found for ${_formatDate(date)}. Create a new DPR.',
       );
+      // if(_dprListForSelectedDate.isNotEmpty){
+      //   // 1️⃣ Reset DPR identity
+      //   setState(() {
+      //     _mechanicalId = null;
+      //     _selectedDprId = null;
+      //   });
+      //   print("😂😂😂😂😂");
+      //
+      //   // 2️⃣ Reset header fields
+      //   _dprNameController.text = '';
+      //
+      //
+      //   // 3️⃣ Clear providers (remove old DPR materials completely)
+      //   ref.read(pipingMaterialsProvider.notifier).clear();
+      //   ref.read(equipmentMaterialsProvider.notifier).clear();
+      //
+      //   // 4️⃣ Load fresh default materials
+      //   await _loadDefaultMaterials();
+      //
+      //
+      //
+      //   // 6️⃣ Force rebuild
+      //   if (mounted) {
+      //     setState(() {});
+      //   }
+      //
+      //   _showSnackBar("New DPR initialized");
+      // }
+
+
 
       print(
           'Found ${_dprListForSelectedDate.length} DPR(s) for ${_formatDate(date)}');
@@ -561,6 +626,7 @@ class _AddDescriptionScreenState extends ConsumerState<AddDescriptionScreen>
           _isLoadingDprList=false;
           _isLoading=false;
         });
+
       }
     }
   }
@@ -813,23 +879,27 @@ class _AddDescriptionScreenState extends ConsumerState<AddDescriptionScreen>
       _selectedDate = picked;
     });
 
-    // Fetch DPRs for selected date
     await _fetchDprListForDate(picked);
 
-    if (_dprListForSelectedDate.isNotEmpty) {
-      // 🔵 EDITING: DPR exists for this date
-      _mechanicalId = _dprListForSelectedDate.first.id;
-      _selectedDprId = _mechanicalId;
-    } else {
-      // 🟢 CREATING: No DPR for this date
-      _mechanicalId = null;
-      _selectedDprId = null;
+    /// ALWAYS initialize new DPR
+    _mechanicalId = null;
+    _selectedDprId = null;
 
-      _dprNameController.text ='' ;
+    /// reset header
+    _dprNameController.text = '';
+
+    /// clear providers
+    ref.read(pipingMaterialsProvider.notifier).clear();
+    ref.read(equipmentMaterialsProvider.notifier).clear();
+
+    /// load default materials
+    await _loadDefaultMaterials();
+
+    _applyHeaderValuesToMaterials();
+
+    if (mounted) {
+      setState(() {});
     }
-
-    // 🔑 SINGLE SOURCE OF TRUTH
-    await loadScreenState();
   }
 
   String _formatDate(DateTime d) => "${d.day}/${d.month}/${d.year}";
@@ -1225,7 +1295,10 @@ class _AddDescriptionScreenState extends ConsumerState<AddDescriptionScreen>
       drawer: const CustomDrawer(),
       body: NestedScrollView(
         headerSliverBuilder: (context, innerBoxIsScrolled) {
-          return [const CustomSliverAppBar(title: "Add DPR")];
+          final appBarTitle = _dprNameController.text.trim().isNotEmpty
+              ? _dprNameController.text.trim()
+              : "Add DPR";
+          return [CustomSliverAppBar(title: appBarTitle)];
         },
         body: BottomButtonWrapper(
           customButtons: [
@@ -1254,8 +1327,22 @@ class _AddDescriptionScreenState extends ConsumerState<AddDescriptionScreen>
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
                       Row(
-                        mainAxisAlignment: MainAxisAlignment.end,
+                        mainAxisAlignment: MainAxisAlignment.spaceBetween,
                         children: [
+                          IconButton(
+                            tooltip: "Reset Materials",
+                            icon: const Icon(
+                              Icons.refresh,
+                              color: Colors.red,
+                            ),
+                            onPressed: () async {
+                              await _resetMaterialProviders();
+
+                              _showSnackBar("Materials reset");
+                            },
+                          ),
+
+
                           _buildEditModeButton(),
                         ],
                       ),
@@ -1267,6 +1354,7 @@ class _AddDescriptionScreenState extends ConsumerState<AddDescriptionScreen>
                       // _buildToggleSection(),
                       // const SizedBox(height: 16),
                       Column(
+                        key: _materialsRebuildKey,
                         children: [
                           if (_pipeFittingOn && hasPipingMaterials)
                             _buildMaterialToggleCard(

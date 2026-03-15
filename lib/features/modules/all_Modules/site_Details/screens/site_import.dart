@@ -183,7 +183,7 @@ class _SiteImportCsvScreenState extends ConsumerState<SiteImportCsvScreen> {
                     MaterialPageRoute(
                       builder: (_) => TemplatePreviewScreen(
                         title: "Sample Template Preview",
-                        imageAsset: "assets/images/site-temp.webp",
+                        imageAsset: "assets/images/site-temp.png",
                         onDownload: () async {
                           final file = await ref
                               .read(templateDownloadControllerProvider.notifier)
