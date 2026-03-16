@@ -1,4 +1,3 @@
-// widgets/searchable_dropdown.dart
 import 'package:flutter/material.dart';
 
 class SearchableDropdown extends StatefulWidget {
@@ -20,7 +19,7 @@ class SearchableDropdown extends StatefulWidget {
     this.containerDecoration,
     this.inputDecoration,
     this.textStyle,
-    this.maxHeight = 150,
+    this.maxHeight = 180,
   });
 
   @override
@@ -30,14 +29,18 @@ class SearchableDropdown extends StatefulWidget {
 class _SearchableDropdownState extends State<SearchableDropdown> {
   final FocusNode _focusNode = FocusNode();
   final TextEditingController _controller = TextEditingController();
+
+  final LayerLink _layerLink = LayerLink();
+
   List<String> _filteredData = [];
   List<String> _localData = [];
-  bool _showDropdown = false;
+
   OverlayEntry? _overlayEntry;
 
   @override
   void initState() {
     super.initState();
+
     _localData = List.from(widget.data);
     _filteredData = _localData;
 
@@ -47,15 +50,9 @@ class _SearchableDropdownState extends State<SearchableDropdown> {
 
     _focusNode.addListener(() {
       if (_focusNode.hasFocus) {
-        _showDropdownWidget();
-        setState(() {
-          _showDropdown = true;
-        });
+        _showDropdown();
       } else {
-        _hideDropdownWidget();
-        setState(() {
-          _showDropdown = false;
-        });
+        _hideDropdown();
       }
     });
   }
@@ -63,92 +60,106 @@ class _SearchableDropdownState extends State<SearchableDropdown> {
   @override
   void didUpdateWidget(SearchableDropdown oldWidget) {
     super.didUpdateWidget(oldWidget);
-    if (widget.value != oldWidget.value) {
-      _controller.text = widget.value ?? '';
-    }
+
     if (widget.data != oldWidget.data) {
       _localData = List.from(widget.data);
       _filteredData = _localData;
     }
+
+    if (widget.value != oldWidget.value) {
+      _controller.text = widget.value ?? '';
+    }
   }
 
-  void _showDropdownWidget() {
-    final RenderBox renderBox = context.findRenderObject() as RenderBox;
-    final offset = renderBox.localToGlobal(Offset.zero);
+  void _showDropdown() {
+    if (_overlayEntry != null) return;
+
+    final renderBox = context.findRenderObject() as RenderBox;
     final size = renderBox.size;
 
     _overlayEntry = OverlayEntry(
-      builder: (context) => Positioned(
-        left: offset.dx,
-        top: offset.dy + size.height + 5,
-        width: size.width,
-        child: Material(
-          elevation: 4,
-          borderRadius: BorderRadius.circular(8),
-          child: Container(
-            constraints: BoxConstraints(
-              maxHeight: widget.maxHeight ?? 150,
+      builder: (context) {
+        return Positioned.fill(
+          child: GestureDetector(
+            behavior: HitTestBehavior.translucent,
+            onTap: () => _focusNode.unfocus(),
+            child: Stack(
+              children: [
+                CompositedTransformFollower(
+                  link: _layerLink,
+                  offset: Offset(0, size.height),
+                  showWhenUnlinked: false,
+                  child: Material(
+                    elevation: 4,
+                    borderRadius: BorderRadius.circular(8),
+                    child: Container(
+                      width: size.width,
+                      constraints: BoxConstraints(
+                        maxHeight: widget.maxHeight ?? 180,
+                      ),
+                      decoration: BoxDecoration(
+                        color: Colors.white,
+                        borderRadius: BorderRadius.circular(8),
+                        border: Border.all(color: Colors.grey.shade300),
+                      ),
+                      child: _buildDropdown(),
+                    ),
+                  ),
+                ),
+              ],
             ),
-            decoration: BoxDecoration(
-              color: Colors.white,
-              borderRadius: BorderRadius.circular(8),
-              border: Border.all(color: Colors.grey.shade300),
-            ),
-            child: _buildDropdownContent(),
           ),
-        ),
-      ),
+        );
+      },
     );
 
     Overlay.of(context).insert(_overlayEntry!);
   }
-
-  void _hideDropdownWidget() {
+  void _hideDropdown() {
     _overlayEntry?.remove();
     _overlayEntry = null;
   }
 
-  void _filterData(String query) {
+  void _filter(String query) {
     setState(() {
       if (query.trim().isEmpty) {
         _filteredData = _localData;
       } else {
         _filteredData = _localData
-            .where((item) =>
-            item.toLowerCase().contains(query.toLowerCase()))
+            .where(
+              (item) => item.toLowerCase().contains(query.toLowerCase()),
+        )
             .toList();
       }
     });
 
-    // Update overlay if it's showing
-    if (_showDropdown && _overlayEntry != null) {
-      _overlayEntry?.markNeedsBuild();
-    }
+    _overlayEntry?.markNeedsBuild();
   }
 
-  void _handleSelect(String value) {
+  void _select(String value) {
     _controller.text = value;
     widget.onSelect(value);
+
     _focusNode.unfocus();
-    _hideDropdownWidget();
-    setState(() {
-      _showDropdown = false;
-    });
+    _hideDropdown();
   }
 
-  void _handleAddNew() {
-    final newItem = _controller.text.trim();
-    if (newItem.isNotEmpty && !_localData.contains(newItem)) {
-      setState(() {
-        _localData.add(newItem);
-      });
+  void _addNew() {
+    final text = _controller.text.trim();
+
+    if (text.isEmpty) return;
+
+    if (!_localData.contains(text)) {
+      _localData.add(text);
     }
-    _handleSelect(newItem);
+
+    _select(text);
   }
 
-  Widget _buildDropdownContent() {
+  Widget _buildDropdown() {
     if (_filteredData.isEmpty && _controller.text.trim().isNotEmpty) {
       return ListTile(
+        dense: true,
         title: Text(
           'Add "${_controller.text}"',
           style: TextStyle(
@@ -156,25 +167,28 @@ class _SearchableDropdownState extends State<SearchableDropdown> {
             color: Theme.of(context).primaryColor,
           ),
         ),
-        onTap: _handleAddNew,
+        onTap: _addNew,
       );
     }
 
     return ListView.builder(
+      padding: EdgeInsets.zero,
       shrinkWrap: true,
-      physics: const ClampingScrollPhysics(),
       itemCount: _filteredData.length,
       itemBuilder: (context, index) {
+        final value = _filteredData[index];
+
         return ListTile(
+          dense: true,
           title: Text(
-            _filteredData[index],
+            value,
             style: widget.textStyle ??
                 const TextStyle(
-                  fontSize: 16,
+                  fontSize: 15,
                   color: Color(0xFF124559),
                 ),
           ),
-          onTap: () => _handleSelect(_filteredData[index]),
+          onTap: () => _select(value),
         );
       },
     );
@@ -184,44 +198,40 @@ class _SearchableDropdownState extends State<SearchableDropdown> {
   void dispose() {
     _focusNode.dispose();
     _controller.dispose();
-    _hideDropdownWidget();
+    _hideDropdown();
     super.dispose();
   }
 
   @override
   Widget build(BuildContext context) {
-    return Container(
-      decoration: widget.containerDecoration ??
-          BoxDecoration(
-            color: Colors.white,
-            borderRadius: BorderRadius.circular(12),
-            border: Border.all(
-              color: const Color(0xFF197278),
-              width: 1,
-            ),
-          ),
-      child: TextFormField(
-        controller: _controller,
-        focusNode: _focusNode,
-        onChanged: _filterData,
-        style: widget.textStyle ??
-            const TextStyle(
-              fontSize: 16,
-            ),
-        decoration: widget.inputDecoration ??
-            InputDecoration(
-              hintText: widget.placeholder,
-              hintStyle: TextStyle(
-                color: Colors.grey
+    return CompositedTransformTarget(
+      link: _layerLink,
+      child: Container(
+        decoration: widget.containerDecoration ??
+            BoxDecoration(
+              color: Colors.white,
+              borderRadius: BorderRadius.circular(10),
+              border: Border.all(
+                color: const Color(0xFF197278),
               ),
-              contentPadding: const EdgeInsets.symmetric(
-                horizontal: 16,
-                vertical: 14,
-              ),
-              border: InputBorder.none,
-              focusedBorder: InputBorder.none,
-              enabledBorder: InputBorder.none,
             ),
+        child: TextFormField(
+          controller: _controller,
+          focusNode: _focusNode,
+          onChanged: _filter,
+          style: widget.textStyle ?? const TextStyle(fontSize: 15),
+          decoration: widget.inputDecoration ??
+              InputDecoration(
+                hintText: widget.placeholder,
+                hintStyle: const TextStyle(color: Colors.grey),
+                isDense: true,
+                contentPadding: const EdgeInsets.symmetric(
+                  horizontal: 12,
+                  vertical: 8,
+                ),
+                border: InputBorder.none,
+              ),
+        ),
       ),
     );
   }

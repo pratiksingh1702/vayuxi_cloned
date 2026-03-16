@@ -59,11 +59,14 @@ class _AttendanceScreenState extends ConsumerState<AttendanceScreen> {
   @override
   void initState() {
     super.initState();
-    WidgetsBinding.instance.addPostFrameCallback((_) {
+    WidgetsBinding.instance.addPostFrameCallback((_) async {
+      final type = ref.read(typeProvider)!;
+      final siteId = ref.read(selectedSiteIdProvider)!;
+      // Fetch teams first, then load manpower
+      await ref.read(teamProvider.notifier).fetchTeams(type: type, siteId: siteId);
       _loadManpower();
     });
   }
-
   @override
   void dispose() {
     _isEditMode = false;
@@ -73,9 +76,11 @@ class _AttendanceScreenState extends ConsumerState<AttendanceScreen> {
   Future<void> _loadManpower() async {
     setState(() => isLoading = true);
     final type = ref.read(typeProvider);
-    final siteId = ref.read(selectedSiteIdProvider)!;
 
     ref.invalidate(manpowerSyncControllerProvider((type: type!)));
+
+    // ✅ Bump refresh counter → forces attendanceOfflineProvider to re-run
+    ref.read(attendanceRefreshProvider.notifier).state++;
 
     setState(() {
       isLoading = false;
@@ -83,6 +88,7 @@ class _AttendanceScreenState extends ConsumerState<AttendanceScreen> {
       _firstOTValue = null;
     });
   }
+
 
   bool _isToday(DateTime date) {
     final now = DateTime.now();
@@ -453,6 +459,7 @@ class _AttendanceScreenState extends ConsumerState<AttendanceScreen> {
       // ✅ Sync confirmed data from API back into Isar
       final repo = ref.read(attendanceRepositoryProvider);
       final dateKey = repo.formatDateKey(_selectedDate);
+      final team=ref.read(currentTeamProvider);
 
       try {
         await repo.syncAttendanceForDate(
@@ -467,6 +474,7 @@ class _AttendanceScreenState extends ConsumerState<AttendanceScreen> {
           siteId: siteId,
           type: type,
           dateKey: dateKey,
+          teamMemberIds: team!.teamMemberIds,
         )
             .first;
 

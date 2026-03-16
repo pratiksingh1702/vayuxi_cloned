@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
+import '../../../features/auth/provider/auth_provider.dart';
 import '../../../features/modules/screen/device_id.dart';
 import '../../../features/modules/screen/device_id_helper.dart';
 
@@ -348,7 +349,7 @@ class CustomDrawer extends ConsumerWidget {
                   ],
                 ),
               ),
-              _buildDrawerFooter(context),
+              _buildDrawerFooter(context,ref),
             ],
           ),
         ),
@@ -446,7 +447,7 @@ class CustomDrawer extends ConsumerWidget {
     );
   }
 
-  Widget _buildDrawerFooter(BuildContext context) {
+  Widget _buildDrawerFooter(BuildContext context,WidgetRef ref) {
     return Container(
       padding: const EdgeInsets.all(16),
       decoration: BoxDecoration(
@@ -466,9 +467,11 @@ class CustomDrawer extends ConsumerWidget {
             ),
           ),
           TextButton.icon(
-            onPressed: () {
-              Navigator.pop(context);
-              context.push('/login');
+            onPressed: () async {
+
+                final authNotifier = ref.read(authProvider.notifier);
+                await authNotifier.logout();
+
             },
             icon: Icon(Icons.logout, size: 16, color: Colors.red.shade600),
             label: Text(

@@ -1,7 +1,7 @@
 import 'package:connectivity_plus/connectivity_plus.dart';
 import 'package:isar/isar.dart';
 import 'package:untitled2/features/modules/all_Modules/attendance/provider/AttendanceService.dart';
-
+import 'package:rxdart/rxdart.dart';
 import '../../../../../../core/api/dio.dart';
 import '../../../Manpower Details/model/manpower_model.dart';
 import '../../../Manpower Details/offline/isar/manpower_isar.dart';
@@ -344,53 +344,56 @@ class AttendanceRepository {
     required String siteId,
     required String type,
     required String dateKey,
+    required List<String> teamMemberIds,
   }) {
-    return isar.attendanceIsars
+    final attendanceStream = isar.attendanceIsars
         .filter()
         .siteIdEqualTo(siteId)
         .typeEqualTo(type)
         .dateKeyEqualTo(dateKey)
         .isDeletedEqualTo(false)
-        .watch(fireImmediately: true)
-        .asyncMap((rows) async {
-      // load manpower rows once for mapping
-      final manpowerRows = await isar.manpowerIsars.filter().typeEqualTo(type).findAll();
-      final manpowerMap = {for (final m in manpowerRows) m.manpowerId: m};
+        .watch(fireImmediately: true);
 
-      return rows.map((a) {
-        final m = manpowerMap[a.manpowerId];
+    final manpowerStream = isar.manpowerIsars
+        .filter()
+        .typeEqualTo(type)
+        .anyOf(teamMemberIds, (q, id) => q.manpowerIdEqualTo(id))
+        .isDeletedEqualTo(false)
+        .watch(fireImmediately: true);
 
-        final manpower = ManpowerModel(
-          id: a.manpowerId,
-          fullName: m?.fullName,
-          designation: m?.designation,
-          employeeCode: m?.employeeCode,
-          phoneNumber: m?.phoneNumber,
-          company: m?.company,
-          type: type,
-          updatedAt: m?.updatedAt.toIso8601String(),
-          createdAt: m?.updatedAt.toIso8601String(),
-          isDeleted: m?.isDeleted,
-          isLeft: m?.isLeft,
-        );
+    return Rx.combineLatest2(
+      attendanceStream,
+      manpowerStream,
+          (List<AttendanceIsar> attendanceRows, List<ManpowerIsar> manpowerRows) {
+        final attendanceMap = {
+          for (final a in attendanceRows) a.manpowerId: a
+        };
 
-        return AttendanceModel(
-          id: a.attendanceId,
-          siteId: a.siteId,
-          manpower: manpower,
-          ot: a.ot,
-          date: a.dateKey,
-          status: a.status,
-          totalHours: a.totalHours,
-          company: a.company ?? "",
-          type: a.type,
-          createdAt: a.updatedAt,
-          updatedAt: a.updatedAt,
-        );
-      }).toList();
-    });
+        return manpowerRows.map((m) {
+          final att = attendanceMap[m.manpowerId];
+
+          return AttendanceModel(
+            id: att?.attendanceId ?? "${siteId}_${m.manpowerId}_$dateKey",
+            siteId: siteId,
+            manpower: ManpowerModel(
+              id: m.manpowerId,
+              fullName: m.fullName,
+              designation: m.designation,
+              company: m.company,
+            ),
+            ot: att?.ot ?? 0,
+            date: dateKey,
+            status: att?.status ?? "absent",
+            totalHours: att?.totalHours ?? 0,
+            company: m.company ?? "",
+            type: type,
+            createdAt: att?.updatedAt ?? DateTime.now(),
+            updatedAt: att?.updatedAt ?? DateTime.now(),
+          );
+        }).toList();
+      },
+    );
   }
-
   Future<void> syncAttendanceFromApi({
     required String siteId,
     required String type,

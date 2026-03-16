@@ -21,12 +21,23 @@ final manpowerOfflineProvider =
   return repo.watchManpower(args.type);
 });
 
+// att_offline_provider.dart
+
+// Add a refresh counter to force provider re-runs
+final attendanceRefreshProvider = StateProvider<int>((ref) => 0);
+
 final attendanceOfflineProvider = StreamProvider.family<List<AttendanceModel>,
     ({String siteId, String type, DateTime date})>((ref, args) async* {
+
+  // ✅ FIX 1: Watch the refresh counter — any increment forces full re-run
+  ref.watch(attendanceRefreshProvider);
+
+  // ✅ FIX 2: Watch teamProvider reactively so new members trigger re-run
+  final teams = ref.watch(teamProvider).teams;
+
   print('🔄 Fetching attendance for ${args.date}');
 
   final repo = ref.watch(attendanceRepositoryProvider);
-
   final dateKey = repo.formatDateKey(args.date);
 
   if (await repo.isOnline()) {
@@ -36,24 +47,17 @@ final attendanceOfflineProvider = StreamProvider.family<List<AttendanceModel>,
         type: args.type,
         dateKey: dateKey,
       );
-    } catch (e, s) {
-      // Do NOT stop the provider — just log and continue
+    } catch (e) {
       print("⚠️ Attendance sync failed: $e");
     }
   }
 
-
-  /// fetch teams
-  final teamNotifier = ref.read(teamProvider.notifier);
-  await teamNotifier.fetchTeams(type: args.type, siteId: args.siteId);
-
-  final teams = ref.read(teamProvider).teams;
-
+  // ✅ FIX 2: Use teams from reactive watch above, not a one-shot read
   final ids = teams
       .expand((t) => [
-            ...t.teamMemberIds,
-            if (t.teamLeadId != null && t.teamLeadId!.isNotEmpty) t.teamLeadId!,
-          ])
+    ...t.teamMemberIds,
+    if (t.teamLeadId != null && t.teamLeadId!.isNotEmpty) t.teamLeadId!,
+  ])
       .toSet()
       .toList();
 
@@ -65,11 +69,12 @@ final attendanceOfflineProvider = StreamProvider.family<List<AttendanceModel>,
       teamMemberIds: ids,
     );
   }
-  /// stream DB
+
   yield* repo.watchAttendance(
     siteId: args.siteId,
     type: args.type,
     dateKey: dateKey,
+    teamMemberIds: ids,
   );
 });
 final attendanceDraftProvider =
