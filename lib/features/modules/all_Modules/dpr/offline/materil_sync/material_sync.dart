@@ -1,3 +1,5 @@
+import 'dart:async';
+
 import 'package:connectivity_plus/connectivity_plus.dart';
 import 'package:flutter/cupertino.dart';
 import '../data/constants/material_constants.dart';
@@ -18,13 +20,16 @@ class MaterialSyncEngine {
   Future<bool> _online() async {
     return await Connectivity().checkConnectivity() != ConnectivityResult.none;
   }
+  // In material_sync.dart — add at the top of the class:
+  final _progressController = StreamController<double>.broadcast();
+  Stream<double> get progressStream => _progressController.stream;
 
   Future<void> sync({
     required String siteId,
     required String domain,
     required String designation,
   }) async {
-
+    _progressController.add(0.0); // started
     debugPrint("🔵 SYNC STARTED $designation");
 
     if (!await _online()) {
@@ -57,6 +62,8 @@ class MaterialSyncEngine {
 
       debugPrint("📦 Server returned ${raw.length} materials");
 
+      _progressController.add(0.15); // fetched remote list
+
       /// 🔹 LOAD LOCAL MATERIALS
       final localMaterials = await local.getAll(
         siteId: siteId,
@@ -68,12 +75,15 @@ class MaterialSyncEngine {
         for (var m in localMaterials)
           if (m.serverId != null) m.serverId!: m
       };
+      _progressController.add(0.25);
 
       /// 🔹 COLLECT UPSERT LIST
+      final total = raw.length;
       final List<LocalMaterial> materialsToUpsert = [];
 
       /// 🔹 PROCESS SERVER MATERIALS
-      for (final item in raw) {
+      for (int i = 0; i < total; i++) {
+        final item = raw[i];
 
         final remoteDesignation =
         (item['designation'] ?? '').toString().toLowerCase();
@@ -137,6 +147,8 @@ class MaterialSyncEngine {
 
           materialsToUpsert.add(existing);
         }
+
+        _progressController.add(0.25 + 0.50 * ((i + 1) / total));
       }
 
       /// 🔹 BATCH DATABASE WRITE (VERY FAST)
@@ -184,6 +196,8 @@ class MaterialSyncEngine {
           await local.deleteHard(m.id);
         }
       }
+
+      _progressController.add(1.0);
 
       debugPrint("✅ SYNC COMPLETE");
 

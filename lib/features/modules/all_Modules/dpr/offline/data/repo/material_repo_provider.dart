@@ -16,6 +16,13 @@ final materialRepositoryProvider = Provider<MaterialRepository>((ref) {
     syncEngine,
   );
 });
+
+
+final syncProgressProvider = StreamProvider.autoDispose<double>((ref) {
+  return ref.watch(materialRepositoryProvider).syncProgress;
+});
+
+
 final materialsStreamProvider = StreamProvider.family<
     List<LocalMaterial>,
     ({

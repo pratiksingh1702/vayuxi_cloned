@@ -1,4 +1,5 @@
 import 'dart:io';
+import 'dart:typed_data';
 
 import 'package:dio/dio.dart';
 import 'package:flutter/cupertino.dart';
@@ -7,6 +8,8 @@ import '../../../../../core/api/dio.dart';
 class ManpowerAPI {
   static final dio = DioClient.dio;
   /// Delete manpower by ID
+  ///
+  ///
   static Future<Map<String, dynamic>> deleteManpower(String id) async {
     try {
       final res = await dio.delete("/manpower/$id");
@@ -411,6 +414,26 @@ class ManpowerAPI {
         "data": null,
         "error": e.toString(),
       };
+    }
+  }
+
+  /// Fetch manpower list as file (excel/pdf)
+  static Future<Uint8List> downloadManpowerSheet({
+    String format = 'excel',
+  }) async {
+    try {
+      final response = await DioClient.dio.get(
+        "/manpower/view",
+        queryParameters: {
+          "format": format,
+        },
+        options: Options(
+          responseType: ResponseType.bytes, // ✅ raw bytes
+        ),
+      );
+      return Uint8List.fromList(response.data as List<int>);
+    } catch (e) {
+      rethrow;
     }
   }
 

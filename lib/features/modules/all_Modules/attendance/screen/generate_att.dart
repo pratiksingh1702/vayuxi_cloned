@@ -38,7 +38,8 @@ class _GenerateAttendanceSheetScreenState
   bool isDownloading = false;
 
   // Share/Download Dialog
-  void _showShareOrDownloadDialog() {
+// ✅ STEP 1: Show format selection (Excel / PDF)
+  void _showFormatSelectionDialog() {
     if (startDate == null || endDate == null) {
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(content: Text("Please select a date range first")),
@@ -46,6 +47,120 @@ class _GenerateAttendanceSheetScreenState
       return;
     }
 
+    String selectedFormat = 'excel';
+
+    showModalBottomSheet(
+      context: context,
+      shape: const RoundedRectangleBorder(
+        borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
+      ),
+      builder: (context) {
+        return StatefulBuilder(
+          builder: (context, setSheetState) {
+            return Padding(
+              padding: const EdgeInsets.fromLTRB(20, 16, 20, 24),
+              child: Column(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  // Drag handle
+                  Container(
+                    width: 40, height: 4,
+                    margin: const EdgeInsets.only(bottom: 16),
+                    decoration: BoxDecoration(
+                      color: Colors.grey.shade400,
+                      borderRadius: BorderRadius.circular(4),
+                    ),
+                  ),
+                  const Text(
+                    "Select Format",
+                    style: TextStyle(fontSize: 18, fontWeight: FontWeight.w600),
+                  ),
+                  const SizedBox(height: 6),
+                  const Text(
+                    "Choose file format to export",
+                    style: TextStyle(color: Colors.grey),
+                  ),
+                  const SizedBox(height: 20),
+
+                  // Excel option
+                  ListTile(
+                    contentPadding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                    leading: Container(
+                      width: 48, height: 48,
+                      decoration: BoxDecoration(
+                        color: Colors.green.withOpacity(0.1),
+                        borderRadius: BorderRadius.circular(12),
+                      ),
+                      child: const Icon(Icons.table_chart, color: Colors.green, size: 24),
+                    ),
+                    title: Text(
+                      "Excel (.xlsx)",
+                      style: TextStyle(
+                        fontSize: 16,
+                        fontWeight: FontWeight.w500,
+                        color: selectedFormat == 'excel' ? Colors.green : Colors.black,
+                      ),
+                    ),
+                    subtitle: const Text("Spreadsheet format", style: TextStyle(fontSize: 13, color: Colors.grey)),
+                    trailing: selectedFormat == 'excel'
+                        ? const Icon(Icons.check_circle, color: Colors.green)
+                        : const SizedBox.shrink(),
+                    onTap: () {
+                      setSheetState(() => selectedFormat = 'excel');
+                      Navigator.pop(context);
+                      _showShareOrDownloadDialog(format: selectedFormat);
+                    },
+                  ),
+
+                  const SizedBox(height: 12),
+
+                  // PDF option
+                  ListTile(
+                    contentPadding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                    leading: Container(
+                      width: 48, height: 48,
+                      decoration: BoxDecoration(
+                        color: Colors.red.withOpacity(0.1),
+                        borderRadius: BorderRadius.circular(12),
+                      ),
+                      child: const Icon(Icons.picture_as_pdf, color: Colors.red, size: 24),
+                    ),
+                    title: Text(
+                      "PDF (.pdf)",
+                      style: TextStyle(
+                        fontSize: 16,
+                        fontWeight: FontWeight.w500,
+                        color: selectedFormat == 'pdf' ? Colors.red : Colors.black,
+                      ),
+                    ),
+                    subtitle: const Text("Document format", style: TextStyle(fontSize: 13, color: Colors.grey)),
+                    trailing: selectedFormat == 'pdf'
+                        ? const Icon(Icons.check_circle, color: Colors.red)
+                        : const SizedBox.shrink(),
+                    onTap: () {
+                      setSheetState(() => selectedFormat = 'pdf');
+                      Navigator.pop(context);
+                      _showShareOrDownloadDialog(format: selectedFormat);
+                    },
+                  ),
+
+                  const SizedBox(height: 16),
+                  TextButton(
+                    onPressed: () => Navigator.pop(context),
+                    child: const Text("Cancel", style: TextStyle(fontSize: 16)),
+                  ),
+                ],
+              ),
+            );
+          },
+        );
+      },
+    );
+  }
+
+// ✅ STEP 2: Share or Download (now receives format)
+  void _showShareOrDownloadDialog({required String format}) {
+    final fileExt = format == 'pdf' ? 'PDF' : 'Excel';
     final sheetName =
         "Attendance Sheet ${DateFormat('dd/MM/yyyy').format(startDate!)} - ${DateFormat('dd/MM/yyyy').format(endDate!)}";
 
@@ -60,34 +175,26 @@ class _GenerateAttendanceSheetScreenState
           child: Column(
             mainAxisSize: MainAxisSize.min,
             children: [
-              // ─── Drag Handle ───
               Container(
-                width: 40,
-                height: 4,
+                width: 40, height: 4,
                 margin: const EdgeInsets.only(bottom: 16),
                 decoration: BoxDecoration(
                   color: Colors.grey.shade400,
                   borderRadius: BorderRadius.circular(4),
                 ),
               ),
-
-              // ─── Title ───
+              Text(sheetName,
+                  style: const TextStyle(fontSize: 18, fontWeight: FontWeight.w600)),
+              const SizedBox(height: 6),
               Text(
-                sheetName,
-                style: const TextStyle(
-                  fontSize: 18,
-                  fontWeight: FontWeight.w600,
-                ),
+                "Format: $fileExt",
+                style: const TextStyle(color: Colors.grey, fontSize: 12),
               ),
               const SizedBox(height: 6),
-              const Text(
-                "What would you like to do?",
-                style: TextStyle(color: Colors.grey),
-              ),
-
+              const Text("What would you like to do?",
+                  style: TextStyle(color: Colors.grey)),
               const SizedBox(height: 20),
 
-              // ─── Actions ───
               _ActionTile(
                 icon: Icons.share_rounded,
                 color: Colors.blue,
@@ -95,12 +202,10 @@ class _GenerateAttendanceSheetScreenState
                 subtitle: "Send file via apps",
                 onTap: () {
                   Navigator.pop(context);
-                  _downloadAndShareAttendance();
+                  _downloadAndShareAttendance(format: format);
                 },
               ),
-
               const SizedBox(height: 12),
-
               _ActionTile(
                 icon: Icons.download_rounded,
                 color: Colors.green,
@@ -108,19 +213,13 @@ class _GenerateAttendanceSheetScreenState
                 subtitle: "Save to your device",
                 onTap: () {
                   Navigator.pop(context);
-                  _downloadAttendanceFile();
+                  _downloadAttendanceFile(format: format);
                 },
               ),
-
               const SizedBox(height: 16),
-
-              // ─── Cancel ───
               TextButton(
                 onPressed: () => Navigator.pop(context),
-                child: const Text(
-                  "Cancel",
-                  style: TextStyle(fontSize: 16),
-                ),
+                child: const Text("Cancel", style: TextStyle(fontSize: 16)),
               ),
             ],
           ),
@@ -168,249 +267,100 @@ class _GenerateAttendanceSheetScreenState
   }
 
   // Generate CSV and share directly
-  Future<void> _downloadAndShareAttendance() async {
+
+
+  // Download attendance file to device
+  Future<void> _downloadAndShareAttendance({String format = 'excel'}) async {
     try {
-      setState(() {
-        isLoading = true;
-        isDownloading = true;
-      });
+      setState(() { isLoading = true; isDownloading = true; });
 
-      debugPrint('🔄 Starting share process...');
+      final type = ref.read(typeProvider);
+      final siteId = ref.read(selectedSiteIdProvider);
 
-      // First generate CSV data
-      final csvData = await _generateAttendanceCSVData();
+      final bytes = await AttendanceApi.fetchAttendanceFromTo(
+        type: type!,
+        siteId: siteId!,
+        startDate: startDate,
+        endDate: endDate,
+        format: format, // ✅
+      );
 
-      if (csvData.isEmpty) {
-        debugPrint('❌ CSV data is empty');
+      if (bytes.isEmpty) {
         ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(
-            content: Text("No attendance data available"),
-            backgroundColor: Colors.orange,
-          ),
+          const SnackBar(content: Text("No attendance data available"), backgroundColor: Colors.orange),
         );
         return;
       }
 
-      debugPrint('✅ CSV data generated: ${csvData.length} chars');
-
-      // Add UTF-8 BOM for Excel compatibility (Excel prefers this)
-      final bytes =
-          Uint8List.fromList([0xEF, 0xBB, 0xBF, ...utf8.encode(csvData)]);
-
-      debugPrint('✅ Converted to bytes with BOM: ${bytes.length} bytes');
-
-      // Get temporary directory
       final tempDir = await getTemporaryDirectory();
+      final fileExt = format == 'pdf' ? '.pdf' : '.xlsx';
+      final mimeType = format == 'pdf'
+          ? 'application/pdf'
+          : 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet';
       final fileName =
-          'attendance_${DateFormat('yyyyMMdd').format(startDate!)}_to_${DateFormat('yyyyMMdd').format(endDate!)}.csv';
+          'attendance_${DateFormat('yyyyMMdd').format(startDate!)}_to_${DateFormat('yyyyMMdd').format(endDate!)}$fileExt';
       final tempPath = '${tempDir.path}/$fileName';
 
-      debugPrint('📁 Saving to temp path: $tempPath');
+      await File(tempPath).writeAsBytes(bytes, flush: true);
 
-      // Save file
-      final tempFile = File(tempPath);
-      await tempFile.writeAsBytes(bytes, flush: true);
-
-      // Verify the file was created
-      final fileExists = await tempFile.exists();
-      final fileSize = await tempFile.length();
-
-      if (!fileExists || fileSize == 0) {
-        debugPrint(
-            '❌ File not created or empty. Exists: $fileExists, Size: $fileSize');
-        throw Exception('Failed to create attendance file');
-      }
-
-      debugPrint('💾 File saved successfully: $tempPath (${fileSize} bytes)');
-
-      // Read back a sample to verify
-      final sampleContent = await tempFile.readAsString();
-      debugPrint(
-          '📄 File preview (first 200 chars): ${sampleContent.substring(0, sampleContent.length > 200 ? 200 : sampleContent.length)}');
-
-      // Prepare file for sharing
-      final xFile = XFile(
-        tempPath,
-        mimeType: 'text/csv',
-        name: fileName,
+      await Share.shareXFiles(
+        [XFile(tempPath, mimeType: mimeType)],
+        text: 'Attendance Sheet: ${DateFormat('dd/MM/yyyy').format(startDate!)} to ${DateFormat('dd/MM/yyyy').format(endDate!)}',
+        subject: 'Attendance Report',
       );
 
-      // Prepare share text
-      final shareText = 'Attendance Sheet\n'
-          'Site: ${DateFormat('dd/MM/yyyy').format(startDate!)} to ${DateFormat('dd/MM/yyyy').format(endDate!)}';
-
-      debugPrint('📤 Sharing file...');
-
-      // Share with proper configuration
-      final shareResult = await Share.shareXFiles(
-        [xFile],
-        text: shareText,
-        subject: 'Attendance Report CSV',
-        sharePositionOrigin: Rect.fromLTWH(
-            0,
-            0,
-            MediaQuery.of(context).size.width,
-            MediaQuery.of(context).size.height / 3),
-      );
-
-      debugPrint('✅ Share completed with result: $shareResult');
-
-      // Show success message
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(
-          content: const Text("✅ Attendance file ready for sharing"),
-          backgroundColor: Colors.green,
-          duration: const Duration(seconds: 3),
-          action: SnackBarAction(
-            label: 'OPEN',
-            textColor: Colors.white,
-            onPressed: () async {
-              try {
-                final result = await OpenFile.open(tempPath);
-                debugPrint('📂 Open file result: ${result.type}');
-              } catch (e) {
-                debugPrint('❌ Error opening file: $e');
-              }
-            },
-          ),
-        ),
-      );
-
-      // Schedule cleanup (increased to 60 seconds to allow time for sharing)
       Future.delayed(const Duration(seconds: 60), () async {
-        try {
-          if (await tempFile.exists()) {
-            await tempFile.delete();
-            debugPrint('🗑️ Temporary file deleted: $tempPath');
-          }
-        } catch (e) {
-          debugPrint('⚠️ Error deleting temp file: $e');
-        }
+        final f = File(tempPath);
+        if (await f.exists()) await f.delete();
       });
-    } on PlatformException catch (e) {
-      debugPrint('❌ PlatformException during share: $e');
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(
-          content: Text("Sharing failed: ${e.message}"),
-          backgroundColor: Colors.red,
-        ),
-      );
-    } catch (e, stackTrace) {
-      debugPrint('❌ Error in _downloadAndShareAttendance: $e');
-      debugPrint('❌ Stack trace: $stackTrace');
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(
-          content: Text("Failed to share: ${e.toString()}"),
-          backgroundColor: Colors.red,
-        ),
-      );
-    } finally {
-      setState(() {
-        isLoading = false;
-        isDownloading = false;
-      });
-    }
-  }
-
-  // Download attendance file to device
-  Future<void> _downloadAttendanceFile() async {
-    try {
-      setState(() {
-        isLoading = true;
-        isDownloading = true;
-      });
-
-      // Generate CSV data
-      final csvData = await _generateAttendanceCSVData();
-      if (csvData.isEmpty) return;
-
-      // Convert to bytes
-      final bytes = Uint8List.fromList(utf8.encode(csvData));
-
-      if (Platform.isAndroid || Platform.isIOS) {
-        await _saveMobileAttendance(bytes);
-      } else {
-        await _saveDesktopAttendance(bytes);
-      }
     } catch (e) {
-      debugPrint('❌ Download attendance failed: $e');
       ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(
-          content: Text("Download failed: ${e.toString()}"),
-          backgroundColor: Colors.red,
-        ),
+        SnackBar(content: Text("Failed to share: $e"), backgroundColor: Colors.red),
       );
     } finally {
-      setState(() {
-        isLoading = false;
-        isDownloading = false;
-      });
+      setState(() { isLoading = false; isDownloading = false; });
     }
   }
 
-  // Generate attendance CSV data
-  Future<String> _generateAttendanceCSVData() async {
+  Future<void> _downloadAttendanceFile({String format = 'excel'}) async {
     try {
+      setState(() { isLoading = true; isDownloading = true; });
+
       final type = ref.read(typeProvider);
       final siteId = ref.read(selectedSiteIdProvider);
 
-      if (siteId == null) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(
-            content: Text("Please select a site first"),
-            backgroundColor: Colors.red,
-          ),
-        );
-        return '';
-      }
-
-      final res = await AttendanceApi.fetchAttendanceFromTo(
+      final bytes = await AttendanceApi.fetchAttendanceFromTo(
         type: type!,
-        siteId: siteId,
+        siteId: siteId!,
         startDate: startDate,
         endDate: endDate,
+        format: format, // ✅
       );
 
-      debugPrint('🔍 API Response received successfully');
-      debugPrint('📊 Data type: ${res.data.runtimeType}');
-      debugPrint('📊 Data length: ${(res.data as String).length} chars');
-      debugPrint(
-          '📊 First 200 chars: ${(res.data as String).substring(0, min((res.data as String).length, 200))}');
+      if (bytes.isEmpty) return;
 
-      // Generate CSV content
-      final csvContent = _generateCSVContent(res.data);
+      final fileExt = format == 'pdf' ? '.pdf' : '.xlsx';
+      final fileName =
+          'attendance_${DateFormat('yyyyMMdd').format(startDate!)}_to_${DateFormat('yyyyMMdd').format(endDate!)}$fileExt';
 
-      debugPrint('📊 Generated CSV length: ${csvContent.length} chars');
-      debugPrint(
-          '📊 Generated CSV preview:\n${csvContent.substring(0, min(csvContent.length, 300))}');
-      debugPrint(
-          '📊 Generated CSV ends with: ${csvContent.substring(csvContent.length - min(50, csvContent.length))}');
-
-      if (csvContent.isEmpty) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(
-            content: Text("No attendance data found for the selected dates"),
-            backgroundColor: Colors.orange,
-          ),
-        );
-        return '';
+      if (Platform.isAndroid || Platform.isIOS) {
+        await _saveMobileAttendance(bytes, fileName);
+      } else {
+        await _saveDesktopAttendance(bytes, fileName);
       }
-
-      return csvContent;
     } catch (e) {
-      debugPrint('❌ Attendance CSV generation error: $e');
       ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(
-          content: Text("Failed to generate attendance sheet: ${e.toString()}"),
-          backgroundColor: Colors.red,
-        ),
+        SnackBar(content: Text("Download failed: $e"), backgroundColor: Colors.red),
       );
-      return '';
+    } finally {
+      setState(() { isLoading = false; isDownloading = false; });
     }
   }
 
+
+
   // Save CSV on mobile devices
-  Future<void> _saveMobileAttendance(Uint8List bytes) async {
+  Future<void> _saveMobileAttendance(Uint8List bytes, String fileName) async {
     try {
       final fileName =
           'attendance_${DateFormat('yyyyMMdd').format(startDate!)}_to_${DateFormat('yyyyMMdd').format(endDate!)}.csv';
@@ -483,7 +433,7 @@ class _GenerateAttendanceSheetScreenState
   }
 
   // Save CSV on desktop
-  Future<void> _saveDesktopAttendance(Uint8List bytes) async {
+  Future<void> _saveDesktopAttendance(Uint8List bytes,String filename) async {
     final fileName =
         'attendance_${DateFormat('yyyyMMdd').format(startDate!)}_to_${DateFormat('yyyyMMdd').format(endDate!)}.csv';
 
@@ -600,7 +550,7 @@ class _GenerateAttendanceSheetScreenState
                         startDate = start;
                         endDate = end;
                       });
-                      _showShareOrDownloadDialog();
+                      _showFormatSelectionDialog();
                     },
                   ),
 

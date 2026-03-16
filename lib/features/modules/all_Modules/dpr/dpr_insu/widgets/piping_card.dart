@@ -496,23 +496,27 @@ class _PipingMaterialCardState extends State<PipingMaterialCard> {
         const SizedBox(height: 8),
 
         // -------- VALUE --------
-        if(!_isEditMode)SizedBox(
-          height: 44,
-          child: TextFormField(
+        if (!_isEditMode)
+          TextFormField(
             controller: _valueControllers[config.type]
               ?..text = _resolveDisplayValue(config, material),
             focusNode: _focusNodes[config.type],
             textAlign: TextAlign.center,
-            keyboardType:
-            const TextInputType.numberWithOptions(decimal: true),
+            textAlignVertical: TextAlignVertical.center,
+            keyboardType: const TextInputType.numberWithOptions(decimal: true),
             style: const TextStyle(
-              fontSize: 18,
+              fontSize: 12,
               fontWeight: FontWeight.w700,
             ),
             decoration: const InputDecoration(
+              isDense: true,
               filled: true,
               fillColor: Colors.white,
               border: OutlineInputBorder(),
+              contentPadding: EdgeInsets.symmetric(
+                horizontal: 8,
+                vertical: 10,
+              ),
             ),
             onChanged: (val) {
               final parsed = isDecimal
@@ -528,7 +532,6 @@ class _PipingMaterialCardState extends State<PipingMaterialCard> {
               }
             },
           ),
-        ),
       ],
     );
   }

@@ -1,8 +1,12 @@
 import 'dart:convert';
-
+import 'dart:io';
+import 'package:file_picker/file_picker.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
+import 'package:open_file/open_file.dart';
+import 'package:path_provider/path_provider.dart';
+import 'package:share_plus/share_plus.dart';
 import 'package:untitled2/core/utlis/app_toasts.dart';
 import 'package:untitled2/core/utlis/colors/colors.dart';
 import 'package:untitled2/core/utlis/widgets/buttons.dart';
@@ -32,6 +36,7 @@ class _ManpowerListScreenState extends ConsumerState<ManpowerListScreen> {
   // Selection mode state
   bool _isSelectionMode = false;
   Set<String> _selectedManpowerIds = {};
+  String _searchQuery = '';
 
   @override
   void initState() {
@@ -220,8 +225,279 @@ class _ManpowerListScreenState extends ConsumerState<ManpowerListScreen> {
 
    AppToast.info("✅ Manpower marked as left");
   }
+// ✅ STEP 1: Format selection bottom sheet
+  void _showFormatSelectionDialog(BuildContext context) {
+    showModalBottomSheet(
+      context: context,
+      shape: const RoundedRectangleBorder(
+        borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
+      ),
+      builder: (context) {
+        return Padding(
+          padding: const EdgeInsets.fromLTRB(20, 16, 20, 24),
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              // Drag handle
+              Container(
+                width: 40, height: 4,
+                margin: const EdgeInsets.only(bottom: 16),
+                decoration: BoxDecoration(
+                  color: Colors.grey.shade400,
+                  borderRadius: BorderRadius.circular(4),
+                ),
+              ),
+              const Text(
+                "Select Format",
+                style: TextStyle(fontSize: 18, fontWeight: FontWeight.w600),
+              ),
+              const SizedBox(height: 6),
+              const Text(
+                "Choose file format to export",
+                style: TextStyle(color: Colors.grey),
+              ),
+              const SizedBox(height: 20),
 
-  @override
+              // Excel
+              ListTile(
+                contentPadding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                leading: Container(
+                  width: 48, height: 48,
+                  decoration: BoxDecoration(
+                    color: Colors.green.withOpacity(0.1),
+                    borderRadius: BorderRadius.circular(12),
+                  ),
+                  child: const Icon(Icons.table_chart, color: Colors.green, size: 24),
+                ),
+                title: const Text(
+                  "Excel (.xlsx)",
+                  style: TextStyle(fontSize: 16, fontWeight: FontWeight.w500),
+                ),
+                subtitle: const Text(
+                  "Spreadsheet format",
+                  style: TextStyle(fontSize: 13, color: Colors.grey),
+                ),
+                trailing: const Icon(Icons.chevron_right_rounded, color: Colors.grey),
+                onTap: () {
+                  Navigator.pop(context);
+                  _showShareOrDownloadDialog(format: 'excel');
+                },
+              ),
+
+              const SizedBox(height: 12),
+
+              // PDF
+              ListTile(
+                contentPadding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                leading: Container(
+                  width: 48, height: 48,
+                  decoration: BoxDecoration(
+                    color: Colors.red.withOpacity(0.1),
+                    borderRadius: BorderRadius.circular(12),
+                  ),
+                  child: const Icon(Icons.picture_as_pdf, color: Colors.red, size: 24),
+                ),
+                title: const Text(
+                  "PDF (.pdf)",
+                  style: TextStyle(fontSize: 16, fontWeight: FontWeight.w500),
+                ),
+                subtitle: const Text(
+                  "Document format",
+                  style: TextStyle(fontSize: 13, color: Colors.grey),
+                ),
+                trailing: const Icon(Icons.chevron_right_rounded, color: Colors.grey),
+                onTap: () {
+                  Navigator.pop(context);
+                  _showShareOrDownloadDialog(format: 'pdf');
+                },
+              ),
+
+              const SizedBox(height: 16),
+              TextButton(
+                onPressed: () => Navigator.pop(context),
+                child: const Text("Cancel", style: TextStyle(fontSize: 16)),
+              ),
+            ],
+          ),
+        );
+      },
+    );
+  }
+
+// ✅ STEP 2: Share or Download bottom sheet
+  void _showShareOrDownloadDialog({required String format}) {
+    final fileExt = format == 'pdf' ? 'PDF' : 'Excel';
+
+    showModalBottomSheet(
+      context: context,
+      shape: const RoundedRectangleBorder(
+        borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
+      ),
+      builder: (context) {
+        return Padding(
+          padding: const EdgeInsets.fromLTRB(20, 16, 20, 24),
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              Container(
+                width: 40, height: 4,
+                margin: const EdgeInsets.only(bottom: 16),
+                decoration: BoxDecoration(
+                  color: Colors.grey.shade400,
+                  borderRadius: BorderRadius.circular(4),
+                ),
+              ),
+              const Text(
+                "Manpower Sheet",
+                style: TextStyle(fontSize: 18, fontWeight: FontWeight.w600),
+              ),
+              const SizedBox(height: 6),
+              Text(
+                "Format: $fileExt",
+                style: const TextStyle(color: Colors.grey, fontSize: 12),
+              ),
+              const SizedBox(height: 6),
+              const Text(
+                "What would you like to do?",
+                style: TextStyle(color: Colors.grey),
+              ),
+              const SizedBox(height: 20),
+
+              // Share
+              ListTile(
+                contentPadding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                leading: Container(
+                  width: 48, height: 48,
+                  decoration: BoxDecoration(
+                    color: Colors.blue.withOpacity(0.1),
+                    borderRadius: BorderRadius.circular(12),
+                  ),
+                  child: const Icon(Icons.share_rounded, color: Colors.blue, size: 24),
+                ),
+                title: const Text("Share", style: TextStyle(fontSize: 16, fontWeight: FontWeight.w500)),
+                subtitle: const Text("Send file via apps", style: TextStyle(fontSize: 13, color: Colors.grey)),
+                trailing: const Icon(Icons.chevron_right_rounded, color: Colors.grey),
+                onTap: () {
+                  Navigator.pop(context);
+                  _downloadAndShareManpower(format: format);
+                },
+              ),
+
+              const SizedBox(height: 12),
+
+              // Download
+              ListTile(
+                contentPadding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                leading: Container(
+                  width: 48, height: 48,
+                  decoration: BoxDecoration(
+                    color: Colors.green.withOpacity(0.1),
+                    borderRadius: BorderRadius.circular(12),
+                  ),
+                  child: const Icon(Icons.download_rounded, color: Colors.green, size: 24),
+                ),
+                title: const Text("Download", style: TextStyle(fontSize: 16, fontWeight: FontWeight.w500)),
+                subtitle: const Text("Save to your device", style: TextStyle(fontSize: 13, color: Colors.grey)),
+                trailing: const Icon(Icons.chevron_right_rounded, color: Colors.grey),
+                onTap: () {
+                  Navigator.pop(context);
+                  _downloadManpowerFile(format: format);
+                },
+              ),
+
+              const SizedBox(height: 16),
+              TextButton(
+                onPressed: () => Navigator.pop(context),
+                child: const Text("Cancel", style: TextStyle(fontSize: 16)),
+              ),
+            ],
+          ),
+        );
+      },
+    );
+  }
+
+// ✅ STEP 3a: Share
+  Future<void> _downloadAndShareManpower({String format = 'excel'}) async {
+    try {
+      AppToast.show('Preparing file...');
+
+      final bytes = await ManpowerAPI.downloadManpowerSheet(format: format);
+
+      if (bytes.isEmpty) {
+        AppToast.error('No data available');
+        return;
+      }
+
+      final tempDir = await getTemporaryDirectory();
+      final fileExt = format == 'pdf' ? '.pdf' : '.xlsx';
+      final mimeType = format == 'pdf'
+          ? 'application/pdf'
+          : 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet';
+      final fileName = 'manpower_${DateTime.now().millisecondsSinceEpoch}$fileExt';
+      final tempPath = '${tempDir.path}/$fileName';
+
+      await File(tempPath).writeAsBytes(bytes, flush: true);
+
+      await Share.shareXFiles(
+        [XFile(tempPath, mimeType: mimeType)],
+        text: 'Manpower Sheet',
+        subject: 'Manpower Report',
+      );
+
+      Future.delayed(const Duration(seconds: 60), () async {
+        final f = File(tempPath);
+        if (await f.exists()) await f.delete();
+      });
+    } catch (e) {
+      AppToast.error('Failed to share: $e');
+    }
+  }
+
+// ✅ STEP 3b: Download
+  Future<void> _downloadManpowerFile({String format = 'excel'}) async {
+    try {
+      AppToast.show('Downloading...');
+
+      final bytes = await ManpowerAPI.downloadManpowerSheet(format: format);
+
+      if (bytes.isEmpty) {
+        AppToast.error('No data available');
+        return;
+      }
+
+      final fileExt = format == 'pdf' ? '.pdf' : '.xlsx';
+      final fileName = 'manpower_${DateTime.now().millisecondsSinceEpoch}$fileExt';
+
+      if (Platform.isAndroid || Platform.isIOS) {
+        final String? outputPath = await FilePicker.platform.saveFile(
+          dialogTitle: 'Save Manpower Sheet',
+          fileName: fileName,
+          bytes: bytes,
+        );
+
+        if (outputPath != null) {
+          await OpenFile.open(outputPath);
+          AppToast.success('✅ File saved successfully');
+        } else {
+          AppToast.show('Save cancelled');
+        }
+      } else {
+        // Desktop
+        final path = await FilePicker.platform.saveFile(
+          dialogTitle: 'Save Manpower Sheet',
+          fileName: fileName,
+        );
+        if (path != null) {
+          await File(path).writeAsBytes(bytes, flush: true);
+          await OpenFile.open(path);
+          AppToast.success('✅ File saved: $path');
+        }
+      }
+    } catch (e) {
+      AppToast.error('Download failed: $e');
+    }
+  }
   @override
   Widget build(BuildContext context) {
     final type = ref.read(typeProvider)!;
@@ -253,15 +529,7 @@ class _ManpowerListScreenState extends ConsumerState<ManpowerListScreen> {
                 text: "View Sheet",
                 color: Colors.blue,
                 textColor: Colors.white,
-                onPressed: () async {
-                  final list = manpowerAsync.value ?? [];
-
-                  await exportToExcel(
-                    list.map((m) => m.toJson()).toList(),
-                  );
-
-               AppToast.success("✅ Excel saved in Downloads folder");
-                },
+                onPressed: () => _showFormatSelectionDialog(context), // ✅
               ),
             ),
           ],
@@ -271,6 +539,16 @@ class _ManpowerListScreenState extends ConsumerState<ManpowerListScreen> {
             error: (e, s) => Center(child: Text("Error: $e")),
 
             data: (manpowerList) {
+
+              final filteredList = _searchQuery.isEmpty
+                  ? manpowerList
+                  : manpowerList.where((m) {
+                final name = (m.fullName ?? '').toLowerCase();
+                final code = (m.employeeCode ?? '').toLowerCase();
+                final query = _searchQuery.toLowerCase();
+                return name.contains(query) || code.contains(query);
+              }).toList();
+
               if (manpowerList.isEmpty) {
                 if (syncState.isLoading) {
                   return const Center(child: CircularProgressIndicator());
@@ -287,6 +565,32 @@ class _ManpowerListScreenState extends ConsumerState<ManpowerListScreen> {
 
               return Column(
                 children: [
+
+                  Padding(
+                    padding: const EdgeInsets.fromLTRB(16, 8, 16, 4),
+                    child: TextField(
+                      onChanged: (val) => setState(() => _searchQuery = val),
+                      decoration: InputDecoration(
+                        hintText: 'Search by name or employee code...',
+                        prefixIcon: const Icon(Icons.search, size: 20),
+                        suffixIcon: _searchQuery.isNotEmpty
+                            ? IconButton(
+                          icon: const Icon(Icons.close, size: 18),
+                          onPressed: () => setState(() => _searchQuery = ''),
+                        )
+                            : null,
+                        isDense: true,
+                        filled: true,
+                        fillColor: Colors.white,
+                        contentPadding:
+                        const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
+                        border: OutlineInputBorder(
+                          borderRadius: BorderRadius.circular(10),
+                          borderSide: BorderSide.none,
+                        ),
+                      ),
+                    ),
+                  ),
                   /// TOP BAR
                   Row(
                     mainAxisAlignment: MainAxisAlignment.end,
@@ -325,14 +629,15 @@ class _ManpowerListScreenState extends ConsumerState<ManpowerListScreen> {
 
                   /// LIST
                   Expanded(
-                    child: ListView.builder(
+                    child: filteredList.isEmpty
+                        ? const Center(child: Text("No results found"))
+                        : ListView.builder(
                       padding: const EdgeInsets.symmetric(horizontal: 16),
-                      itemCount: manpowerList.length,
+                      itemCount: filteredList.length,       // ✅ filteredList
                       itemBuilder: (context, index) {
-                        final manpower = manpowerList[index];
+                        final manpower = filteredList[index]; // ✅ filteredList
                         final isSelected =
                         _selectedManpowerIds.contains(manpower.id);
-
                         return _buildManpowerTile(manpower, isSelected);
                       },
                     ),

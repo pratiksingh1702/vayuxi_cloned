@@ -384,10 +384,53 @@ class _AllInsulationMaterialsScreenState extends ConsumerState<AllInsulationMate
       ),
     );
   }
-
   Widget _buildSetupState(String siteId) {
+    final progressAsync = ref.watch(syncProgressProvider);
+
     return Center(
-      child: Text("Getting your Material...")
+      child: Padding(
+        padding: const EdgeInsets.symmetric(horizontal: 40),
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            const Icon(Icons.sync, size: 48, color: Colors.blue),
+            const SizedBox(height: 20),
+            const Text(
+              'Loading your materials…',
+              style: TextStyle(fontSize: 16, fontWeight: FontWeight.w500),
+            ),
+            const SizedBox(height: 24),
+            progressAsync.when(
+              data: (progress) => Column(
+                children: [
+                  ClipRRect(
+                    borderRadius: BorderRadius.circular(8),
+                    child: LinearProgressIndicator(
+                      value: progress,
+                      minHeight: 10,
+                      backgroundColor: Colors.grey.shade200,
+                      valueColor: AlwaysStoppedAnimation<Color>(
+                        AppColors.primary,
+                      ),
+                    ),
+                  ),
+                  const SizedBox(height: 10),
+                  Text(
+                    '${(progress * 100).toInt()}%',
+                    style: TextStyle(
+                      fontSize: 14,
+                      color: Colors.grey.shade600,
+                      fontWeight: FontWeight.w600,
+                    ),
+                  ),
+                ],
+              ),
+              loading: () => const LinearProgressIndicator(),
+              error: (_, __) => const Text('Sync error'),
+            ),
+          ],
+        ),
+      ),
     );
   }
 

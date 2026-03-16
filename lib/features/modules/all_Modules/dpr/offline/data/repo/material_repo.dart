@@ -1,15 +1,26 @@
 import 'dart:async';
 import 'dart:convert';
 
+import 'package:flutter_riverpod/flutter_riverpod.dart';
+
 import '../../materil_sync/material_sync.dart';
 import '../local/local_material.dart';
 import '../local/local_material_dao.dart';
+import 'material_repo_provider.dart';
 
 class MaterialRepository {
   final LocalMaterialDao local;
   final MaterialSyncEngine syncEngine;
 
+  // In material_repo.dart
+
   MaterialRepository(this.local, this.syncEngine);
+
+
+  Stream<double> get syncProgress => syncEngine.progressStream;
+  // In material_repo_provider.dart — add:
+
+
   Stream<List<LocalMaterial>> watch({
     required String siteId,
     required String domain,

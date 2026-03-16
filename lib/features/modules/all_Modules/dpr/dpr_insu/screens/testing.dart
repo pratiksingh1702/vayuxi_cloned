@@ -36,19 +36,18 @@ import '../service/material_service.dart';
 import '../widgets/equipment_card.dart';
 import '../widgets/piping_card.dart';
 
-
 class AddInsulationDescriptionScreen extends ConsumerStatefulWidget {
   final InsulationDprModel? work;
 
   const AddInsulationDescriptionScreen({super.key, this.work});
 
   @override
-  ConsumerState<AddInsulationDescriptionScreen> createState() => _AddInsulationDescriptionScreenState();
+  ConsumerState<AddInsulationDescriptionScreen> createState() =>
+      _AddInsulationDescriptionScreenState();
 }
 
-class _AddInsulationDescriptionScreenState extends ConsumerState<AddInsulationDescriptionScreen>
-    {
-
+class _AddInsulationDescriptionScreenState
+    extends ConsumerState<AddInsulationDescriptionScreen> {
   late final TextEditingController _dprNameController;
   late final TextEditingController _mocController;
   late final TextEditingController _sizeController;
@@ -66,7 +65,7 @@ class _AddInsulationDescriptionScreenState extends ConsumerState<AddInsulationDe
   late String teamId;
   late TeamModel team;
 
-  InsulationDprApi service=InsulationDprApi();
+  InsulationDprApi service = InsulationDprApi();
 
   String? _insulationId;
   String? _selectedDprId;
@@ -89,7 +88,6 @@ class _AddInsulationDescriptionScreenState extends ConsumerState<AddInsulationDe
   bool _removeLagging = false;
   bool _removeCladding = false;
 
-
   List<InsulationDprModel> _dprListForSelectedDate = [];
   bool _isLoadingDprList = false;
 
@@ -101,8 +99,6 @@ class _AddInsulationDescriptionScreenState extends ConsumerState<AddInsulationDe
   bool get isCreatingDpr => _insulationId == null;
   bool get isEditingDpr => _insulationId != null;
   bool get isEditing => _insulationId != null;
-
-
 
   @override
   void initState() {
@@ -121,8 +117,6 @@ class _AddInsulationDescriptionScreenState extends ConsumerState<AddInsulationDe
           domain: 'insulation',
           designation: '',
         );
-
-
       });
       _attachMaterialListeners();
     }
@@ -137,17 +131,17 @@ class _AddInsulationDescriptionScreenState extends ConsumerState<AddInsulationDe
   }
 
   void _attachMaterialListeners() {
+    final size = ref.read(selectedSizeProvider) ?? '';
+    final unit = ref.read(selectedUnitProvider);
 
     ref.listenManual(
       materialsStreamProvider((
-      siteId: siteId,
-      domain: 'insulation',
-      designation: 'piping',
+        siteId: siteId,
+        domain: 'insulation',
+        designation: 'piping',
       )),
-          (previous, next) {
-
+      (previous, next) {
         next.whenData((localMaterials) {
-
           if (!mounted) return;
 
           final incoming = localMaterials
@@ -157,36 +151,31 @@ class _AddInsulationDescriptionScreenState extends ConsumerState<AddInsulationDe
 
           /// 🔥 Delay provider modification
           Future.microtask(() {
-
             if (!mounted) return;
 
             final notifier =
-            ref.read(insulationPipingMaterialsProvider.notifier);
+                ref.read(insulationPipingMaterialsProvider.notifier);
 
             notifier.clear();
 
             if (incoming.isNotEmpty) {
               notifier.addMaterials(incoming);
+              notifier.updateAllSizes(size: size, unit: unit);
             }
-
           });
-
         });
-
       },
       fireImmediately: true,
     );
 
     ref.listenManual(
       materialsStreamProvider((
-      siteId: siteId,
-      domain: 'insulation',
-      designation: 'equipment',
+        siteId: siteId,
+        domain: 'insulation',
+        designation: 'equipment',
       )),
-          (previous, next) {
-
+      (previous, next) {
         next.whenData((localMaterials) {
-
           if (!mounted) return;
 
           final incoming = localMaterials
@@ -196,26 +185,23 @@ class _AddInsulationDescriptionScreenState extends ConsumerState<AddInsulationDe
 
           /// 🔥 Delay provider modification
           Future.microtask(() {
-
             if (!mounted) return;
 
             final notifier =
-            ref.read(insulationEquipmentMaterialsProvider.notifier);
+                ref.read(insulationEquipmentMaterialsProvider.notifier);
 
             notifier.clear();
 
             if (incoming.isNotEmpty) {
               notifier.addMaterials(incoming);
             }
-
           });
-
         });
-
       },
       fireImmediately: true,
     );
   }
+
   // Future<void> _hydrateFromMaterialStream() async {
   //   final siteId = ref.read(selectedSiteIdProvider)!;
   //   ref.read(insulationPipingMaterialsProvider).clear();
@@ -312,8 +298,9 @@ class _AddInsulationDescriptionScreenState extends ConsumerState<AddInsulationDe
     _thicknessController = TextEditingController();
     _claddingNameController = TextEditingController();
     _claddingThicknessController = TextEditingController();
-    _claddingController=TextEditingController();
+    _claddingController = TextEditingController();
   }
+
   void _initializeFromWork(InsulationDprModel work) {
     setState(() {
       // ---- CORE ----
@@ -337,12 +324,15 @@ class _AddInsulationDescriptionScreenState extends ConsumerState<AddInsulationDe
     });
 
     // ---- MATERIAL PROVIDERS ----
-    ref.read(insulationPipingMaterialsProvider.notifier)
+    ref
+        .read(insulationPipingMaterialsProvider.notifier)
         .setMaterials(work.pipingMaterials);
 
-    ref.read(insulationEquipmentMaterialsProvider.notifier)
+    ref
+        .read(insulationEquipmentMaterialsProvider.notifier)
         .setMaterials(work.equipmentMaterials);
   }
+
   void _loadLayersFromModel(InsulationDprModel work) {
     _selectedLayerType = _mapLayerStringToEnum(work.layer);
 
@@ -374,6 +364,7 @@ class _AddInsulationDescriptionScreenState extends ConsumerState<AddInsulationDe
       thickness: work.claddingSwg?.toDouble() ?? 0,
     );
   }
+
   void _loadLayersFromProvider() {
     final state = ref.read(insulationStateProvider);
 
@@ -383,10 +374,9 @@ class _AddInsulationDescriptionScreenState extends ConsumerState<AddInsulationDe
 
     for (int i = 0; i < state.layers.length; i++) {
       final layer = state.layers[i];
-      debugPrint(
-          "Layer[$i] → thickness: ${layer.thickness}, "
-              "density: ${layer.name}, "
-              "material: ${layer.thickness}");
+      debugPrint("Layer[$i] → thickness: ${layer.thickness}, "
+          "density: ${layer.name}, "
+          "material: ${layer.thickness}");
     }
 
     debugPrint("Cladding: ${state.cladding.thickness}");
@@ -400,23 +390,20 @@ class _AddInsulationDescriptionScreenState extends ConsumerState<AddInsulationDe
 
     _cladding = state.cladding;
     _claddingController.text =
-    _cladding.thickness == 0 ? '' : _cladding.thickness.toString();
+        _cladding.thickness == 0 ? '' : _cladding.thickness.toString();
     debugPrint("Cladding: ${_cladding.thickness}");
   }
 
-
-
   void _initializeData() {
     siteId = ref.read(selectedSiteIdProvider)!;
-    teamId = ref.read(selectedTeamIdProvider)??"";
-
+    teamId = ref.read(selectedTeamIdProvider) ?? "";
 
     // ONLY read, never watch
     final insulationState = ref.read(insulationStateProvider);
     _floorController.text = insulationState.floor;
 
     _mocController.text = "";
-    _sizeController.text = ref.read(selectedSizeProvider)??'';
+    _sizeController.text = ref.read(selectedSizeProvider) ?? '';
   }
 
   Future<void> loadScreenState() async {
@@ -431,6 +418,7 @@ class _AddInsulationDescriptionScreenState extends ConsumerState<AddInsulationDe
       await _loadDefaultInsulationMaterials();
     }
   }
+
   Future<void> _loadSelectedDpr(String dprId) async {
     try {
       setState(() {
@@ -456,7 +444,6 @@ class _AddInsulationDescriptionScreenState extends ConsumerState<AddInsulationDe
 
       // ✅ Use ONE single initializer
       _initializeFromWork(dpr);
-
     } catch (e) {
       _showSnackBar(
         "Failed to load DPR: ${extractBackendError(e)}",
@@ -573,17 +560,14 @@ class _AddInsulationDescriptionScreenState extends ConsumerState<AddInsulationDe
     final service = InsulationMaterialSetupService();
     final apiNotifier = ref.read(insulationMaterialsApiProvider.notifier);
     try {
-      final siteID=ref.read(selectedSiteIdProvider)!;
+      final siteID = ref.read(selectedSiteIdProvider)!;
       await apiNotifier.fetchAndSetMaterials(siteId: siteID);
-      final size=ref.read(selectedSizeProvider);
+      final size = ref.read(selectedSizeProvider);
       final unit = ref.read(selectedUnitProvider);
-      ref
-          .read(insulationPipingMaterialsProvider.notifier)
-          .updateAllSizes(
-        size: size!,
-        unit: unit,
-      );
-
+      ref.read(insulationPipingMaterialsProvider.notifier).updateAllSizes(
+            size: size!,
+            unit: unit,
+          );
     } catch (e) {
       // Show error snackbar
       ScaffoldMessenger.of(context).showSnackBar(
@@ -643,9 +627,9 @@ class _AddInsulationDescriptionScreenState extends ConsumerState<AddInsulationDe
       // Cladding (mapped correctly)
       _cladding = (dpr.claddingMaterial != null && dpr.claddingSwg != null)
           ? LayerData(
-        name: dpr.claddingMaterial!,
-        thickness: dpr.claddingSwg!.toDouble(), // SWG stored as numeric
-      )
+              name: dpr.claddingMaterial!,
+              thickness: dpr.claddingSwg!.toDouble(), // SWG stored as numeric
+            )
           : LayerData.empty();
 
       // Materials
@@ -661,14 +645,12 @@ class _AddInsulationDescriptionScreenState extends ConsumerState<AddInsulationDe
       _dprNameController.text = dpr.workDescription;
       _sizeController.text = dpr.size.toString();
       _floorController.text = dpr.location;
-
     } catch (e, s) {
       debugPrint('Error loading insulation DPR: $e');
       debugPrintStack(stackTrace: s);
       _showSnackBar('Failed to load DPR', isError: true);
     }
   }
-
 
   LayerType _mapLayerStringToEnum(String layer) {
     switch (layer.toLowerCase()) {
@@ -680,7 +662,6 @@ class _AddInsulationDescriptionScreenState extends ConsumerState<AddInsulationDe
         return LayerType.single;
     }
   }
-
 
   @override
   void didChangeAppLifecycleState(AppLifecycleState state) {
@@ -695,7 +676,8 @@ class _AddInsulationDescriptionScreenState extends ConsumerState<AddInsulationDe
     setState(() => _isLoadingDprList = true);
 
     try {
-      final List<InsulationDprModel> allDprs = await InsulationDprApi.fetchInsulationDprList(
+      final List<InsulationDprModel> allDprs =
+          await InsulationDprApi.fetchInsulationDprList(
         siteId: siteId,
         teamId: teamId,
       );
@@ -712,7 +694,6 @@ class _AddInsulationDescriptionScreenState extends ConsumerState<AddInsulationDe
             ? 'Found ${_dprListForSelectedDate.length} Insulation DPR(s) for ${_formatDate(date)}'
             : 'No Insulation DPR found for ${_formatDate(date)}. Create a new DPR.',
       );
-
     } catch (e) {
       final message = extractBackendError(e);
       _showSnackBar('Error fetching DPR list: $message', isError: true);
@@ -800,28 +781,22 @@ class _AddInsulationDescriptionScreenState extends ConsumerState<AddInsulationDe
     required bool isPiping,
   }) {
     if (isPiping) {
-      final notifier =
-      ref.read(insulationPipingMaterialsProvider.notifier);
-      final materials =
-      ref.read(insulationPipingMaterialsProvider);
+      final notifier = ref.read(insulationPipingMaterialsProvider.notifier);
+      final materials = ref.read(insulationPipingMaterialsProvider);
 
       if (material is! PipingMaterial) return;
 
-      final updated =
-      materials.where((m) => m.id != material.id).toList();
+      final updated = materials.where((m) => m.id != material.id).toList();
 
       notifier.setMaterials(updated);
     } else {
-      final notifier =
-      ref.read(insulationEquipmentMaterialsProvider.notifier);
-      final materials =
-      ref.read(insulationEquipmentMaterialsProvider);
+      final notifier = ref.read(insulationEquipmentMaterialsProvider.notifier);
+      final materials = ref.read(insulationEquipmentMaterialsProvider);
       print("😂😂😂😂😂😂😂");
 
       if (material is! EquipmentMaterial) return;
       print("😂😂😂😂😂😂😂");
-      final updated =
-      materials.where((m) => m.id != material.id).toList();
+      final updated = materials.where((m) => m.id != material.id).toList();
 
       notifier.setMaterials(updated);
       print("😂😂😂😂😂😂😂");
@@ -846,10 +821,8 @@ class _AddInsulationDescriptionScreenState extends ConsumerState<AddInsulationDe
   //   }
   // }
 
-
   String generateObjectId() {
-    final seconds =
-    (DateTime.now().millisecondsSinceEpoch ~/ 1000)
+    final seconds = (DateTime.now().millisecondsSinceEpoch ~/ 1000)
         .toRadixString(16)
         .padLeft(8, '0');
 
@@ -858,9 +831,7 @@ class _AddInsulationDescriptionScreenState extends ConsumerState<AddInsulationDe
         .map((e) => e.toRadixString(16))
         .join();
 
-    final counter = random.nextInt(0xffffff)
-        .toRadixString(16)
-        .padLeft(6, '0');
+    final counter = random.nextInt(0xffffff).toRadixString(16).padLeft(6, '0');
 
     return seconds + randomPart + counter;
   }
@@ -870,10 +841,8 @@ class _AddInsulationDescriptionScreenState extends ConsumerState<AddInsulationDe
     required bool isPiping,
   }) {
     if (isPiping) {
-      final notifier =
-      ref.read(insulationPipingMaterialsProvider.notifier);
-      final materials =
-      ref.read(insulationPipingMaterialsProvider);
+      final notifier = ref.read(insulationPipingMaterialsProvider.notifier);
+      final materials = ref.read(insulationPipingMaterialsProvider);
 
       if (material is! PipingMaterial) return;
 
@@ -890,10 +859,8 @@ class _AddInsulationDescriptionScreenState extends ConsumerState<AddInsulationDe
 
       notifier.setMaterials(updated);
     } else {
-      final notifier =
-      ref.read(insulationEquipmentMaterialsProvider.notifier);
-      final materials =
-      ref.read(insulationEquipmentMaterialsProvider);
+      final notifier = ref.read(insulationEquipmentMaterialsProvider.notifier);
+      final materials = ref.read(insulationEquipmentMaterialsProvider);
 
       if (material is! EquipmentMaterial) return;
 
@@ -934,24 +901,25 @@ class _AddInsulationDescriptionScreenState extends ConsumerState<AddInsulationDe
       // ).then((_) async {
       //   await _loadInsulationDprMaterials();
       // });
-    // } else if (material is EquipmentMaterial) {
-    //   Navigator.of(context).push(
-    //     MaterialPageRoute(
-    //       builder: (_) => AddInsulationMaterialScreen(
-    //         editMaterialId: material.id,
-    //         designation: 'equipment',
-    //         equipmentMaterial: material,
-    //         isDpr: true,
-    //         dprId: _insulationId!,
-    //         siteId: siteId,
-    //         teamId: teamId,
-    //       ),
-    //     ),
-    //   ).then((_) async {
-    //     await _loadInsulationDprMaterials();
-    //   });
-    // }
-  }}
+      // } else if (material is EquipmentMaterial) {
+      //   Navigator.of(context).push(
+      //     MaterialPageRoute(
+      //       builder: (_) => AddInsulationMaterialScreen(
+      //         editMaterialId: material.id,
+      //         designation: 'equipment',
+      //         equipmentMaterial: material,
+      //         isDpr: true,
+      //         dprId: _insulationId!,
+      //         siteId: siteId,
+      //         teamId: teamId,
+      //       ),
+      //     ),
+      //   ).then((_) async {
+      //     await _loadInsulationDprMaterials();
+      //   });
+      // }
+    }
+  }
 
   void _showEditRequiredMessage() {
     if (_isToday(_selectedDate)) {
@@ -996,7 +964,6 @@ class _AddInsulationDescriptionScreenState extends ConsumerState<AddInsulationDe
   List<String> get layerTypeOptions =>
       LayerType.values.map((e) => e.name.toUpperCase()).toList();
   Widget _buildLayerTypeSection() {
-
     print("cladding in the buildlayer section ${_cladding.thickness}");
     return Container(
       padding: const EdgeInsets.all(16),
@@ -1024,7 +991,6 @@ class _AddInsulationDescriptionScreenState extends ConsumerState<AddInsulationDe
                 ),
               ),
               const SizedBox(width: 12),
-
               Expanded(
                 flex: 2,
                 child: _buildInlineCompactDropdown(
@@ -1032,20 +998,25 @@ class _AddInsulationDescriptionScreenState extends ConsumerState<AddInsulationDe
                   items: layerTypeOptions,
                   onChanged: (v) {
                     final selected = LayerType.values.firstWhere(
-                          (e) => e.name.toUpperCase() == v,
+                      (e) => e.name.toUpperCase() == v,
                     );
 
                     setState(() {
                       _selectedLayerType = selected;
 
                       if (_selectedLayerType == LayerType.single) {
-                        if (_layers.length > 1) _layers.removeRange(1, _layers.length);
+                        if (_layers.length > 1)
+                          _layers.removeRange(1, _layers.length);
                       } else if (_selectedLayerType == LayerType.double) {
-                        while (_layers.length < 2) _layers.add(LayerData.empty());
-                        if (_layers.length > 2) _layers.removeRange(2, _layers.length);
+                        while (_layers.length < 2)
+                          _layers.add(LayerData.empty());
+                        if (_layers.length > 2)
+                          _layers.removeRange(2, _layers.length);
                       } else if (_selectedLayerType == LayerType.triple) {
-                        while (_layers.length < 3) _layers.add(LayerData.empty());
-                        if (_layers.length > 3) _layers.removeRange(3, _layers.length);
+                        while (_layers.length < 3)
+                          _layers.add(LayerData.empty());
+                        if (_layers.length > 3)
+                          _layers.removeRange(3, _layers.length);
                       }
                     });
                   },
@@ -1053,7 +1024,6 @@ class _AddInsulationDescriptionScreenState extends ConsumerState<AddInsulationDe
               ),
             ],
           ),
-
 
           const SizedBox(height: 10),
 
@@ -1078,9 +1048,7 @@ class _AddInsulationDescriptionScreenState extends ConsumerState<AddInsulationDe
                       },
                     ),
                   ),
-
                   const SizedBox(width: 12),
-
                   Expanded(
                     flex: 2,
                     child: Column(
@@ -1100,7 +1068,9 @@ class _AddInsulationDescriptionScreenState extends ConsumerState<AddInsulationDe
                         SizedBox(
                           height: 34,
                           child: TextFormField(
-                            initialValue: layer.thickness == 0 ? '' : layer.thickness.toString(),
+                            initialValue: layer.thickness == 0
+                                ? ''
+                                : layer.thickness.toString(),
                             keyboardType: TextInputType.number,
                             textAlign: TextAlign.center,
                             style: const TextStyle(
@@ -1111,14 +1081,16 @@ class _AddInsulationDescriptionScreenState extends ConsumerState<AddInsulationDe
                               isDense: true,
                               filled: true,
                               fillColor: const Color(0xFFE3F2FD),
-                              contentPadding: const EdgeInsets.symmetric(horizontal: 8, vertical: 6),
+                              contentPadding: const EdgeInsets.symmetric(
+                                  horizontal: 8, vertical: 6),
                               border: OutlineInputBorder(
                                 borderRadius: BorderRadius.circular(10),
                                 borderSide: BorderSide.none,
                               ),
                               focusedBorder: OutlineInputBorder(
                                 borderRadius: BorderRadius.circular(10),
-                                borderSide: const BorderSide(color: Colors.blue, width: 2),
+                                borderSide: const BorderSide(
+                                    color: Colors.blue, width: 2),
                               ),
                             ),
                             onChanged: (v) {
@@ -1159,7 +1131,7 @@ class _AddInsulationDescriptionScreenState extends ConsumerState<AddInsulationDe
               const SizedBox(width: 12),
               Expanded(
                 flex: 2,
-                child:Column(
+                child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
                     const Padding(
@@ -1187,14 +1159,16 @@ class _AddInsulationDescriptionScreenState extends ConsumerState<AddInsulationDe
                           isDense: true,
                           filled: true,
                           fillColor: const Color(0xFFE3F2FD),
-                          contentPadding: const EdgeInsets.symmetric(horizontal: 8, vertical: 6),
+                          contentPadding: const EdgeInsets.symmetric(
+                              horizontal: 8, vertical: 6),
                           border: OutlineInputBorder(
                             borderRadius: BorderRadius.circular(10),
                             borderSide: BorderSide.none,
                           ),
                           focusedBorder: OutlineInputBorder(
                             borderRadius: BorderRadius.circular(10),
-                            borderSide: const BorderSide(color: Colors.blue, width: 2),
+                            borderSide:
+                                const BorderSide(color: Colors.blue, width: 2),
                           ),
                         ),
                         onChanged: (v) {
@@ -1208,7 +1182,6 @@ class _AddInsulationDescriptionScreenState extends ConsumerState<AddInsulationDe
                     ),
                   ],
                 ),
-
               ),
             ],
           ),
@@ -1511,17 +1484,15 @@ class _AddInsulationDescriptionScreenState extends ConsumerState<AddInsulationDe
   }) {
     return SizedBox(
       height: 34,
-
-
       child: DropdownButtonFormField<String>(
         value: value,
         isExpanded: true,
         decoration: InputDecoration(
           isDense: true,
           filled: true,
-          fillColor: const Color(0xFFE3F2FD)
-,
-          contentPadding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
+          fillColor: const Color(0xFFE3F2FD),
+          contentPadding:
+              const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
           border: OutlineInputBorder(
             borderRadius: BorderRadius.circular(8),
             borderSide: BorderSide.none,
@@ -1530,13 +1501,14 @@ class _AddInsulationDescriptionScreenState extends ConsumerState<AddInsulationDe
         items: items
             .map(
               (e) => DropdownMenuItem<String>(
-            value: e,
-            child: Text(
-              e,
-              style: const TextStyle(fontSize: 13, fontWeight: FontWeight.w500),
-            ),
-          ),
-        )
+                value: e,
+                child: Text(
+                  e,
+                  style: const TextStyle(
+                      fontSize: 13, fontWeight: FontWeight.w500),
+                ),
+              ),
+            )
             .toList(),
         onChanged: (v) {
           if (v != null) onChanged(v);
@@ -1545,12 +1517,9 @@ class _AddInsulationDescriptionScreenState extends ConsumerState<AddInsulationDe
     );
   }
 
-
   @override
   Widget build(BuildContext context) {
-
     print("againnnnnnnnnnnnn");
-
 
     // ✅ ref.listen only fires on VALUE CHANGE, not every rebuild
     // No infinite loop!
@@ -1608,13 +1577,31 @@ class _AddInsulationDescriptionScreenState extends ConsumerState<AddInsulationDe
     final insulationState = ref.watch(insulationStateProvider);
     final insulationNotifier = ref.read(insulationStateProvider.notifier);
 
-
     final hasPipingMaterials = pipingMaterials.isNotEmpty;
     final hasEquipmentMaterials = equipmentMaterials.isNotEmpty;
-    final shouldShowPiping = _pipeInsulationOn && _showPipingMaterials && hasPipingMaterials;
-    final shouldShowEquipment = _equipmentInsulationOn && _showEquipmentMaterials && hasEquipmentMaterials;
+    final shouldShowPiping =
+        _pipeInsulationOn && _showPipingMaterials && hasPipingMaterials;
+    final shouldShowEquipment = _equipmentInsulationOn &&
+        _showEquipmentMaterials &&
+        hasEquipmentMaterials;
 
-    final shouldShowDropdown = _globalEditMode && _dprListForSelectedDate.isNotEmpty;
+    final shouldShowDropdown =
+        _globalEditMode && _dprListForSelectedDate.isNotEmpty;
+    final team = ref.read(currentTeamProvider);
+    final site = ref.read(currentSiteProvider);
+    final teamid = ref.read(selectedTeamIdProvider)!;
+    final siteid = ref.read(selectedSiteIdProvider)!;
+
+    debugPrint("Team -> $team");
+    debugPrint("Site -> $site");
+    debugPrint("Teamid -> $teamid");
+    debugPrint("Siteid -> $siteid");
+
+    final appBarTitle = team?.isDefaultTeam == true
+        ? (site?.siteName ?? "DPR")
+        : (team?.teamName ?? "DPR");
+
+    debugPrint("AppBar Title -> $appBarTitle");
 
     return WillPopScope(
       onWillPop: () async {
@@ -1623,16 +1610,15 @@ class _AddInsulationDescriptionScreenState extends ConsumerState<AddInsulationDe
       },
       child: Scaffold(
         drawer: const CustomDrawer(),
-
         backgroundColor: Colors.grey[50],
         body: NestedScrollView(
           // AFTER
-            headerSliverBuilder: (context, innerBoxIsScrolled) {
-              final appBarTitle = _dprNameController.text.trim().isNotEmpty
-                  ? _dprNameController.text.trim()
-                  : "Add Insulation DPR";
-              return [CustomSliverAppBar(title: appBarTitle)];
-            },
+          headerSliverBuilder: (context, innerBoxIsScrolled) {
+            final appBarTitle = (team == null || team.isDefaultTeam)
+                ? (site?.siteName ?? "DPR")
+                : (team.teamName ?? "DPR");
+            return [CustomSliverAppBar(title: appBarTitle)];
+          },
           body: BottomButtonWrapper(
             customButtons: [
               CustomButton(
@@ -1650,7 +1636,8 @@ class _AddInsulationDescriptionScreenState extends ConsumerState<AddInsulationDe
                 if (_isLoadingMaterials || _isCreatingWork)
                   const LinearProgressIndicator(
                     backgroundColor: Colors.transparent,
-                    valueColor: AlwaysStoppedAnimation<Color>(Color(0xFF1B6DCE)),
+                    valueColor:
+                        AlwaysStoppedAnimation<Color>(Color(0xFF1B6DCE)),
                   ),
                 Expanded(
                   child: SingleChildScrollView(
@@ -1675,7 +1662,6 @@ class _AddInsulationDescriptionScreenState extends ConsumerState<AddInsulationDe
                         _buildLayerTypeSection(),
                         const SizedBox(height: 16),
 
-
                         _buildToggleSection(),
                         const SizedBox(height: 16),
 
@@ -1686,7 +1672,7 @@ class _AddInsulationDescriptionScreenState extends ConsumerState<AddInsulationDe
                                 'Pipe Insulation Materials',
                                 pipingMaterials.length,
                                 _showPipingMaterials,
-                                    () => _toggleMaterialVisibility(true),
+                                () => _toggleMaterialVisibility(true),
                               ),
 
                             if (shouldShowPiping)
@@ -1697,17 +1683,20 @@ class _AddInsulationDescriptionScreenState extends ConsumerState<AddInsulationDe
                                 'Equipment Insulation Materials',
                                 equipmentMaterials.length,
                                 _showEquipmentMaterials,
-                                    () => _toggleMaterialVisibility(false),
+                                () => _toggleMaterialVisibility(false),
                               ),
 
                             if (shouldShowEquipment)
                               ..._buildEquipmentMaterials(equipmentMaterials),
 
                             if (_pipeInsulationOn && !hasPipingMaterials)
-                              _buildEmptyMaterialsCard('No pipe insulation materials available'),
+                              _buildEmptyMaterialsCard(
+                                  'No pipe insulation materials available'),
 
-                            if (_equipmentInsulationOn && !hasEquipmentMaterials)
-                              _buildEmptyMaterialsCard('No equipment insulation materials available'),
+                            if (_equipmentInsulationOn &&
+                                !hasEquipmentMaterials)
+                              _buildEmptyMaterialsCard(
+                                  'No equipment insulation materials available'),
 
                             // if (!_pipeInsulationOn && !_equipmentInsulationOn && _initialDataLoaded)
                             //   _buildEmptyState('Materials will appear here once loaded', Icons.downloading),
@@ -1726,6 +1715,7 @@ class _AddInsulationDescriptionScreenState extends ConsumerState<AddInsulationDe
       ),
     );
   }
+
   Widget _buildLaggingSection() {
     final laggings = ref.watch(laggingMaterialProvider);
     final notifier = ref.read(laggingMaterialProvider.notifier);
@@ -1811,8 +1801,9 @@ class _AddInsulationDescriptionScreenState extends ConsumerState<AddInsulationDe
                   Expanded(
                     flex: 2,
                     child: TextFormField(
-                      initialValue:
-                      lagging.thickness == 0 ? '' : lagging.thickness.toString(),
+                      initialValue: lagging.thickness == 0
+                          ? ''
+                          : lagging.thickness.toString(),
                       keyboardType: TextInputType.number,
                       decoration: const InputDecoration(
                         labelText: 'Thickness',
@@ -1843,8 +1834,6 @@ class _AddInsulationDescriptionScreenState extends ConsumerState<AddInsulationDe
       ),
     );
   }
-
-
 
   Widget _buildEmptyMaterialsCard(String message) {
     return Container(
@@ -1877,11 +1866,11 @@ class _AddInsulationDescriptionScreenState extends ConsumerState<AddInsulationDe
   }
 
   Widget _buildMaterialToggleCard(
-      String title,
-      int count,
-      bool isExpanded,
-      VoidCallback onToggle,
-      ) {
+    String title,
+    int count,
+    bool isExpanded,
+    VoidCallback onToggle,
+  ) {
     return GestureDetector(
       onTap: onToggle,
       child: Container(
@@ -1920,7 +1909,8 @@ class _AddInsulationDescriptionScreenState extends ConsumerState<AddInsulationDe
                 ),
                 const SizedBox(width: 8),
                 Container(
-                  padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
+                  padding:
+                      const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
                   decoration: BoxDecoration(
                     color: Colors.blue.shade50,
                     borderRadius: BorderRadius.circular(12),
@@ -2015,10 +2005,13 @@ class _AddInsulationDescriptionScreenState extends ConsumerState<AddInsulationDe
             child: Container(
               padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
               decoration: BoxDecoration(
-                color: _globalEditMode ? Colors.blue.shade50 : Colors.transparent,
+                color:
+                    _globalEditMode ? Colors.blue.shade50 : Colors.transparent,
                 borderRadius: BorderRadius.circular(8),
                 border: Border.all(
-                  color: _globalEditMode ? Colors.blue.shade200 : Colors.transparent,
+                  color: _globalEditMode
+                      ? Colors.blue.shade200
+                      : Colors.transparent,
                   width: 1,
                 ),
               ),
@@ -2104,11 +2097,8 @@ class _AddInsulationDescriptionScreenState extends ConsumerState<AddInsulationDe
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        if (shouldShowDropdown)
-          _buildDprDropdown(),
-
+        if (shouldShowDropdown) _buildDprDropdown(),
         const SizedBox(height: 8),
-
         _buildRegularDprNameField(),
       ],
     );
@@ -2135,47 +2125,48 @@ class _AddInsulationDescriptionScreenState extends ConsumerState<AddInsulationDe
           ),
           child: _isLoadingDprList
               ? Padding(
-            padding: const EdgeInsets.symmetric(vertical: 16),
-            child: Center(
-              child: SizedBox(
-                width: 20,
-                height: 20,
-                child: CircularProgressIndicator(strokeWidth: 2),
-              ),
-            ),
-          )
-              : DropdownButtonHideUnderline(
-            child: DropdownButton<String>(
-              value: _selectedDprId,
-              isExpanded: true,
-              icon: const Icon(Icons.arrow_drop_down, color: Colors.blue),
-              elevation: 16,
-              style: const TextStyle(
-                fontSize: 16,
-                fontWeight: FontWeight.w600,
-                color: Colors.black,
-              ),
-              hint: const Text('Select DPR'),
-              onChanged: (String? newValue) async {
-                if (newValue == null) return;
-                await _loadSelectedDpr(newValue);
-              },
-
-              items: _dprListForSelectedDate.map<DropdownMenuItem<String>>((InsulationDprModel dpr) {
-                return DropdownMenuItem<String>(
-                  value: dpr.id,
-                  child: Padding(
-                    padding: const EdgeInsets.symmetric(horizontal: 8),
-                    child: Text(
-                     dpr.workDescription,
-                      maxLines: 1,
-                      overflow: TextOverflow.ellipsis,
+                  padding: const EdgeInsets.symmetric(vertical: 16),
+                  child: Center(
+                    child: SizedBox(
+                      width: 20,
+                      height: 20,
+                      child: CircularProgressIndicator(strokeWidth: 2),
                     ),
                   ),
-                );
-              }).toList(),
-            ),
-          ),
+                )
+              : DropdownButtonHideUnderline(
+                  child: DropdownButton<String>(
+                    value: _selectedDprId,
+                    isExpanded: true,
+                    icon: const Icon(Icons.arrow_drop_down, color: Colors.blue),
+                    elevation: 16,
+                    style: const TextStyle(
+                      fontSize: 16,
+                      fontWeight: FontWeight.w600,
+                      color: Colors.black,
+                    ),
+                    hint: const Text('Select DPR'),
+                    onChanged: (String? newValue) async {
+                      if (newValue == null) return;
+                      await _loadSelectedDpr(newValue);
+                    },
+                    items: _dprListForSelectedDate
+                        .map<DropdownMenuItem<String>>(
+                            (InsulationDprModel dpr) {
+                      return DropdownMenuItem<String>(
+                        value: dpr.id,
+                        child: Padding(
+                          padding: const EdgeInsets.symmetric(horizontal: 8),
+                          child: Text(
+                            dpr.workDescription,
+                            maxLines: 1,
+                            overflow: TextOverflow.ellipsis,
+                          ),
+                        ),
+                      );
+                    }).toList(),
+                  ),
+                ),
         ),
         const SizedBox(height: 8),
         Row(
@@ -2215,41 +2206,46 @@ class _AddInsulationDescriptionScreenState extends ConsumerState<AddInsulationDe
         Expanded(
           child: _editMode
               ? TextField(
-            controller: _dprNameController,
-            style: const TextStyle(fontSize: 16, fontWeight: FontWeight.w600),
-            decoration: InputDecoration(
-              border: OutlineInputBorder(
-                borderRadius: BorderRadius.circular(10),
-                borderSide: BorderSide(color: Colors.grey[300]!),
-              ),
-              focusedBorder: OutlineInputBorder(
-                borderRadius: BorderRadius.circular(10),
-                borderSide: const BorderSide(color: Colors.blue, width: 2),
-              ),
-              contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
-              hintText: 'Enter Insulation DPR Name',
-              prefixIcon: const Icon(Icons.insights, size: 20),
-            ),
-          )
+                  controller: _dprNameController,
+                  style: const TextStyle(
+                      fontSize: 16, fontWeight: FontWeight.w600),
+                  decoration: InputDecoration(
+                    border: OutlineInputBorder(
+                      borderRadius: BorderRadius.circular(10),
+                      borderSide: BorderSide(color: Colors.grey[300]!),
+                    ),
+                    focusedBorder: OutlineInputBorder(
+                      borderRadius: BorderRadius.circular(10),
+                      borderSide:
+                          const BorderSide(color: Colors.blue, width: 2),
+                    ),
+                    contentPadding: const EdgeInsets.symmetric(
+                        horizontal: 16, vertical: 14),
+                    hintText: 'Enter Insulation DPR Name',
+                    prefixIcon: const Icon(Icons.insights, size: 20),
+                  ),
+                )
               : Container(
-            padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
-            decoration: BoxDecoration(
-              color: Colors.grey[100],
-              borderRadius: BorderRadius.circular(10),
-            ),
-            child: Row(
-              children: [
-                Icon(Icons.insights, color: Colors.grey[700], size: 20),
-                const SizedBox(width: 12),
-                Expanded(
-                  child: Text(
-                    _dprNameController.text,
-                    style: const TextStyle(fontSize: 16, fontWeight: FontWeight.w600),
+                  padding:
+                      const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
+                  decoration: BoxDecoration(
+                    color: Colors.grey[100],
+                    borderRadius: BorderRadius.circular(10),
+                  ),
+                  child: Row(
+                    children: [
+                      Icon(Icons.insights, color: Colors.grey[700], size: 20),
+                      const SizedBox(width: 12),
+                      Expanded(
+                        child: Text(
+                          _dprNameController.text,
+                          style: const TextStyle(
+                              fontSize: 16, fontWeight: FontWeight.w600),
+                        ),
+                      ),
+                    ],
                   ),
                 ),
-              ],
-            ),
-          ),
         ),
         const SizedBox(width: 12),
         if (_editMode)
@@ -2283,7 +2279,6 @@ class _AddInsulationDescriptionScreenState extends ConsumerState<AddInsulationDe
     return Row(
       crossAxisAlignment: CrossAxisAlignment.end,
       children: [
-
         /// Plant
         Expanded(
           child: _buildCompactInputField(
@@ -2314,22 +2309,19 @@ class _AddInsulationDescriptionScreenState extends ConsumerState<AddInsulationDe
             Icons.straighten,
             keyboardType: TextInputType.number,
             onChanged: (value) {
-
-              ref.read(dprSizeProvider.notifier).state =value;
+              ref.read(dprSizeProvider.notifier).state = value;
 
               /// propagate with unit
               final unit = ref.read(selectedUnitProvider);
               ref
                   .read(insulationPipingMaterialsProvider.notifier)
                   .updateAllSizes(
-                size: value,
-                unit: unit,
-              );
-
+                    size: value,
+                    unit: unit,
+                  );
             },
           ),
         ),
-
 
         const SizedBox(width: 12),
 
@@ -2357,7 +2349,7 @@ class _AddInsulationDescriptionScreenState extends ConsumerState<AddInsulationDe
                   decoration: InputDecoration(
                     isDense: true,
                     contentPadding:
-                    const EdgeInsets.symmetric(vertical: 2, horizontal: 2),
+                        const EdgeInsets.symmetric(vertical: 2, horizontal: 2),
                     filled: true,
                     fillColor: const Color(0xFFE3F2FD),
                     border: OutlineInputBorder(
@@ -2368,31 +2360,36 @@ class _AddInsulationDescriptionScreenState extends ConsumerState<AddInsulationDe
                   items: const ['mm', 'inch']
                       .map(
                         (e) => DropdownMenuItem<String>(
-                      value: e,
-                      child: Text(
-                        e,
-                        style: const TextStyle(
-                            fontSize: 14, fontWeight: FontWeight.w500),
-                      ),
-                    ),
-                  )
+                          value: e,
+                          child: Text(
+                            e,
+                            style: const TextStyle(
+                                fontSize: 14, fontWeight: FontWeight.w500),
+                          ),
+                        ),
+                      )
                       .toList(),
                   onChanged: (value) {
                     if (value != null) {
                       ref.read(selectedUnitProvider.notifier).state = value;
-                      final size = (ref.read(dprSizeProvider)?.trim().isNotEmpty ?? false)
-                          ? ref.read(dprSizeProvider)!
-                          : (ref.read(selectedSizeProvider)?.trim().isNotEmpty ?? false)
-                          ? ref.read(selectedSizeProvider)!
-                          : '';
+                      final size =
+                          (ref.read(dprSizeProvider)?.trim().isNotEmpty ??
+                                  false)
+                              ? ref.read(dprSizeProvider)!
+                              : (ref
+                                          .read(selectedSizeProvider)
+                                          ?.trim()
+                                          .isNotEmpty ??
+                                      false)
+                                  ? ref.read(selectedSizeProvider)!
+                                  : '';
 
                       ref
                           .read(insulationPipingMaterialsProvider.notifier)
                           .updateAllSizes(
-                        size: size,
-                        unit: value,
-                      );
-
+                            size: size,
+                            unit: value,
+                          );
                     }
                   },
                 ),
@@ -2405,12 +2402,12 @@ class _AddInsulationDescriptionScreenState extends ConsumerState<AddInsulationDe
   }
 
   Widget _buildCompactInputField(
-      String label,
-      TextEditingController controller,
-      IconData icon, {
-        TextInputType? keyboardType,
-        ValueChanged<String>? onChanged,
-      }) {
+    String label,
+    TextEditingController controller,
+    IconData icon, {
+    TextInputType? keyboardType,
+    ValueChanged<String>? onChanged,
+  }) {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
@@ -2439,7 +2436,7 @@ class _AddInsulationDescriptionScreenState extends ConsumerState<AddInsulationDe
             decoration: InputDecoration(
               isDense: true,
               contentPadding:
-              const EdgeInsets.symmetric(vertical: 2, horizontal: 2),
+                  const EdgeInsets.symmetric(vertical: 2, horizontal: 2),
               filled: true,
               fillColor: const Color(0xFFE3F2FD),
               border: OutlineInputBorder(
@@ -2485,10 +2482,9 @@ class _AddInsulationDescriptionScreenState extends ConsumerState<AddInsulationDe
             decoration: InputDecoration(
               isDense: true,
               filled: true,
-              fillColor: const Color(0xFFE3F2FD)
-,
+              fillColor: const Color(0xFFE3F2FD),
               contentPadding:
-              const EdgeInsets.symmetric(horizontal: 8, vertical: 6),
+                  const EdgeInsets.symmetric(horizontal: 8, vertical: 6),
               border: OutlineInputBorder(
                 borderRadius: BorderRadius.circular(10),
                 borderSide: BorderSide.none,
@@ -2501,16 +2497,16 @@ class _AddInsulationDescriptionScreenState extends ConsumerState<AddInsulationDe
             items: items
                 .map(
                   (m) => DropdownMenuItem<String>(
-                value: m,
-                child: Text(
-                  m,
-                  style: const TextStyle(
-                    fontSize: 13,
-                    fontWeight: FontWeight.w500,
+                    value: m,
+                    child: Text(
+                      m,
+                      style: const TextStyle(
+                        fontSize: 13,
+                        fontWeight: FontWeight.w500,
+                      ),
+                    ),
                   ),
-                ),
-              ),
-            )
+                )
                 .toList(),
             onChanged: (v) {
               if (v != null) onChanged(v);
@@ -2533,7 +2529,7 @@ class _AddInsulationDescriptionScreenState extends ConsumerState<AddInsulationDe
                 Icons.insights,
                 _pipeInsulationOn,
                 false,
-                    (value) => _handleToggleChange(true, value),
+                (value) => _handleToggleChange(true, value),
               ),
             ),
             const SizedBox(width: 12),
@@ -2543,7 +2539,7 @@ class _AddInsulationDescriptionScreenState extends ConsumerState<AddInsulationDe
                 Icons.thermostat,
                 _equipmentInsulationOn,
                 false,
-                    (value) => _handleToggleChange(false, value),
+                (value) => _handleToggleChange(false, value),
               ),
             ),
           ],
@@ -2553,12 +2549,12 @@ class _AddInsulationDescriptionScreenState extends ConsumerState<AddInsulationDe
   }
 
   Widget _buildToggleCard(
-      String title,
-      IconData ico,
-      bool value,
-      bool isLoading,
-      Function(bool) onChanged,
-      ) {
+    String title,
+    IconData ico,
+    bool value,
+    bool isLoading,
+    Function(bool) onChanged,
+  ) {
     return GestureDetector(
       onTap: isLoading ? null : () => onChanged(!value),
       child: AnimatedContainer(
@@ -2567,9 +2563,8 @@ class _AddInsulationDescriptionScreenState extends ConsumerState<AddInsulationDe
         decoration: BoxDecoration(
           gradient: value
               ? const LinearGradient(
-            colors: [Colors.blue, Colors.blue
-            ],
-          )
+                  colors: [Colors.blue, Colors.blue],
+                )
               : null,
           color: value ? null : Colors.white,
           borderRadius: BorderRadius.circular(14),
@@ -2579,12 +2574,12 @@ class _AddInsulationDescriptionScreenState extends ConsumerState<AddInsulationDe
           ),
           boxShadow: value
               ? [
-            BoxShadow(
-              color: Colors.blue.withOpacity(0.4),
-              blurRadius: 12,
-              offset: const Offset(0, 4),
-            ),
-          ]
+                  BoxShadow(
+                    color: Colors.blue.withOpacity(0.4),
+                    blurRadius: 12,
+                    offset: const Offset(0, 4),
+                  ),
+                ]
               : null,
         ),
         child: Column(
@@ -2616,71 +2611,67 @@ class _AddInsulationDescriptionScreenState extends ConsumerState<AddInsulationDe
   List<Widget> _buildPipingMaterials(List<PipingMaterial> materials) {
     return materials.map((material) {
       return Padding(
-        key: ValueKey(
-          material.id.isNotEmpty
-              ? 'piping_${material.id}'
-              : 'piping_${material.name}',
-        ),
-        padding: const EdgeInsets.only(bottom: 12),
-        child:  PipingMaterialCard(
-          material: material,
-          onChanged: (updated) {
-            ref
-                .read(insulationPipingMaterialsProvider.notifier)
-                .editPipingMaterial(material.id, updated);
-          },
-          onAdd: () {
-            copyInsulationMaterial(material: material,isPiping: true);
-          },
-          onEdit: () {},
-          onDelete: () {
-            deleteInsulationMaterial(
-              material: material,
-              isPiping: true,
-            );
-          },
-          onRemark: () {},
-        )
-      );
+          key: ValueKey(
+            material.id.isNotEmpty
+                ? 'piping_${material.id}'
+                : 'piping_${material.name}',
+          ),
+          padding: const EdgeInsets.only(bottom: 12),
+          child: PipingMaterialCard(
+            material: material,
+            onChanged: (updated) {
+              ref
+                  .read(insulationPipingMaterialsProvider.notifier)
+                  .editPipingMaterial(material.id, updated);
+            },
+            onAdd: () {
+              copyInsulationMaterial(material: material, isPiping: true);
+            },
+            onEdit: () {},
+            onDelete: () {
+              deleteInsulationMaterial(
+                material: material,
+                isPiping: true,
+              );
+            },
+            onRemark: () {},
+          ));
     }).toList();
   }
 
   List<Widget> _buildEquipmentMaterials(List<EquipmentMaterial> materials) {
     return materials.map((material) {
       return Padding(
-        key: ValueKey(
-          material.id.isNotEmpty
-              ? 'equipment_${material.id}'
-              : 'equipment_${material.name}',
-        ),
-        padding: const EdgeInsets.only(bottom: 12),
-        child: EquipmentMaterialCard(
-          material: material,
-          onChanged: (updated) {
-            ref
-                .read(insulationEquipmentMaterialsProvider.notifier)
-                .editEquipmentMaterial(material.id, updated);
-          },
-          onAdd: () {
-            copyInsulationMaterial(material: material,isPiping: false);
-          },
-          onEdit: () {},
-          onDelete: () {
-
+          key: ValueKey(
+            material.id.isNotEmpty
+                ? 'equipment_${material.id}'
+                : 'equipment_${material.name}',
+          ),
+          padding: const EdgeInsets.only(bottom: 12),
+          child: EquipmentMaterialCard(
+            material: material,
+            onChanged: (updated) {
+              ref
+                  .read(insulationEquipmentMaterialsProvider.notifier)
+                  .editEquipmentMaterial(material.id, updated);
+            },
+            onAdd: () {
+              copyInsulationMaterial(material: material, isPiping: false);
+            },
+            onEdit: () {},
+            onDelete: () {
               deleteInsulationMaterial(
                 material: material,
                 isPiping: false,
               );
-
-
-          },
-          onRemark: () {},
-        )
-      );
+            },
+            onRemark: () {},
+          ));
     }).toList();
   }
 
-  void _showRemarkDialog(String materialId, String currentRemark, {bool isPiping = true}) {
+  void _showRemarkDialog(String materialId, String currentRemark,
+      {bool isPiping = true}) {
     final remarkController = TextEditingController(text: currentRemark);
 
     showDialog(
@@ -2706,11 +2697,13 @@ class _AddInsulationDescriptionScreenState extends ConsumerState<AddInsulationDe
           ElevatedButton(
             onPressed: () {
               Navigator.pop(context);
-              _updateMaterialRemark(materialId, remarkController.text, isPiping: isPiping);
+              _updateMaterialRemark(materialId, remarkController.text,
+                  isPiping: isPiping);
             },
             style: ElevatedButton.styleFrom(
               backgroundColor: Colors.blue,
-              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
+              shape: RoundedRectangleBorder(
+                  borderRadius: BorderRadius.circular(10)),
             ),
             child: const Text('Save'),
           ),
@@ -2719,7 +2712,8 @@ class _AddInsulationDescriptionScreenState extends ConsumerState<AddInsulationDe
     );
   }
 
-  void _updateMaterialRemark(String materialId, String remark, {bool isPiping = true}) {
+  void _updateMaterialRemark(String materialId, String remark,
+      {bool isPiping = true}) {
     if (isPiping) {
       final materials = ref.read(insulationPipingMaterialsProvider);
       final updatedMaterials = materials.map((material) {
@@ -2728,7 +2722,9 @@ class _AddInsulationDescriptionScreenState extends ConsumerState<AddInsulationDe
         }
         return material;
       }).toList();
-      ref.read(insulationPipingMaterialsProvider.notifier).setMaterials(updatedMaterials);
+      ref
+          .read(insulationPipingMaterialsProvider.notifier)
+          .setMaterials(updatedMaterials);
     } else {
       final materials = ref.read(insulationEquipmentMaterialsProvider);
       final updatedMaterials = materials.map((material) {
@@ -2737,7 +2733,9 @@ class _AddInsulationDescriptionScreenState extends ConsumerState<AddInsulationDe
         }
         return material;
       }).toList();
-      ref.read(insulationEquipmentMaterialsProvider.notifier).setMaterials(updatedMaterials);
+      ref
+          .read(insulationEquipmentMaterialsProvider.notifier)
+          .setMaterials(updatedMaterials);
     }
 
     _showSnackBar('Remark saved for material');
@@ -2788,7 +2786,7 @@ class _AddInsulationDescriptionScreenState extends ConsumerState<AddInsulationDe
     if (equipmentMaterials.isNotEmpty) designation.add('equipment');
 
     final validLayers =
-    state.layers.where((l) => l.name.trim().isNotEmpty).toList();
+        state.layers.where((l) => l.name.trim().isNotEmpty).toList();
 
     String? lm1, lm2, lm3;
     int lt1 = 0, lt2 = 0, lt3 = 0;
@@ -2805,60 +2803,58 @@ class _AddInsulationDescriptionScreenState extends ConsumerState<AddInsulationDe
       lm3 = validLayers[2].name.trim();
       lt3 = validLayers[2].thickness.toInt();
     }
-    final size =
-    [ref.read(dprSizeProvider), ref.read(selectedSizeProvider), _sizeController.text]
-        .firstWhere(
-          (v) => v != null && v.trim().isNotEmpty && (num.tryParse(v.trim()) ?? 0) != 0,
+    final size = [
+      ref.read(dprSizeProvider),
+      ref.read(selectedSizeProvider),
+      _sizeController.text
+    ].firstWhere(
+      (v) =>
+          v != null &&
+          v.trim().isNotEmpty &&
+          (num.tryParse(v.trim()) ?? 0) != 0,
       orElse: () => '',
     );
-    final sizeUom=ref.read(selectedUnitProvider);
-
+    final sizeUom = ref.read(selectedUnitProvider);
 
     return {
       'designation': designation,
       'plant': _plantController.text.trim(),
       'location': _floorController.text.trim(),
       'layer': state.layerType?.name,
-      'work_description':_dprNameController.text,
-      'size':size,
-      'sizeUom':sizeUom,
-
-
+      'work_description': _dprNameController.text,
+      'size': size,
+      'sizeUom': sizeUom,
       'legging_material_1': lm1,
       'legging_thickness_1': lt1,
       'legging_material_2': lm2,
       'legging_thickness_2': lt2,
       'legging_material_3': lm3,
       'legging_thickness_3': lt3,
-
-      'cladding_material': state.cladding.name.isNotEmpty ? state.cladding.name : null,
+      'cladding_material':
+          state.cladding.name.isNotEmpty ? state.cladding.name : null,
       'cladding_swg': state.cladding.thickness.toInt(),
-
       'lagging_removal': _removeLagging,
       'cladding_removal': _removeCladding,
-
       if (equipmentMaterials.isNotEmpty)
-        'equipment_materials': equipmentMaterials.map((e) => e.toJson()).toList(),
-
+        'equipment_materials':
+            equipmentMaterials.map((e) => e.toJson()).toList(),
       if (pipingMaterials.isNotEmpty)
         'piping_materials': pipingMaterials.map((p) => p.toJson()).toList(),
     };
   }
-  InsulationDprModel _buildDraftModel() {
-    final pipingMaterials =
-    ref.read(insulationPipingMaterialsProvider);
 
-    final equipmentMaterials =
-    ref.read(insulationEquipmentMaterialsProvider);
+  InsulationDprModel _buildDraftModel() {
+    final pipingMaterials = ref.read(insulationPipingMaterialsProvider);
+
+    final equipmentMaterials = ref.read(insulationEquipmentMaterialsProvider);
 
     final state = ref.read(insulationStateProvider);
 
     final validLayers =
-    state.layers.where((l) => l.name.trim().isNotEmpty).toList();
+        state.layers.where((l) => l.name.trim().isNotEmpty).toList();
 
     return InsulationDprModel(
       id: _insulationId ?? generateObjectId(),
-
       workDescription: _dprNameController.text.trim(),
       designation: [
         if (pipingMaterials.isNotEmpty) 'piping',
@@ -2868,29 +2864,20 @@ class _AddInsulationDescriptionScreenState extends ConsumerState<AddInsulationDe
       location: _floorController.text.trim(),
       size: int.tryParse(_sizeController.text.trim()) ?? 0,
       layer: state.layerType?.name ?? 'single',
-
       leggingMaterial1: validLayers.length > 0 ? validLayers[0].name : null,
-      leggingThickness1: validLayers.length > 0
-          ? validLayers[0].thickness.toInt()
-          : null,
-
+      leggingThickness1:
+          validLayers.length > 0 ? validLayers[0].thickness.toInt() : null,
       leggingMaterial2: validLayers.length > 1 ? validLayers[1].name : null,
-      leggingThickness2: validLayers.length > 1
-          ? validLayers[1].thickness.toInt()
-          : null,
-
+      leggingThickness2:
+          validLayers.length > 1 ? validLayers[1].thickness.toInt() : null,
       leggingMaterial3: validLayers.length > 2 ? validLayers[2].name : null,
-      leggingThickness3: validLayers.length > 2
-          ? validLayers[2].thickness.toInt()
-          : null,
-
+      leggingThickness3:
+          validLayers.length > 2 ? validLayers[2].thickness.toInt() : null,
       claddingMaterial:
-      state.cladding.name.isNotEmpty ? state.cladding.name : null,
+          state.cladding.name.isNotEmpty ? state.cladding.name : null,
       claddingSwg: state.cladding.thickness.toInt(),
-
       pipingMaterials: pipingMaterials,
       equipmentMaterials: equipmentMaterials,
-
       layer1Rate: 0,
       layer2Rate: 0,
       layer3Rate: 0,
@@ -2899,26 +2886,24 @@ class _AddInsulationDescriptionScreenState extends ConsumerState<AddInsulationDe
       totalEquipmentArea: 0,
       grandTotalArea: 0,
       totalAmount: 0,
-
       status: 'draft',
       date: _selectedDate,
       createdAt: DateTime.now(),
       updatedAt: DateTime.now(),
     );
   }
+
   Future<void> _autoSaveDraft() async {
     final draft = _buildDraftModel();
-    debugPrint("PIPING COUNT: ${ref.read(insulationPipingMaterialsProvider).length}");
-    debugPrint("EQUIPMENT COUNT: ${ref.read(insulationEquipmentMaterialsProvider).length}");
+    debugPrint(
+        "PIPING COUNT: ${ref.read(insulationPipingMaterialsProvider).length}");
+    debugPrint(
+        "EQUIPMENT COUNT: ${ref.read(insulationEquipmentMaterialsProvider).length}");
 
-
-    ref.read(insulationDraftProvider.notifier)
-        .saveDraft(draft);
-
+    ref.read(insulationDraftProvider.notifier).saveDraft(draft);
 
     debugPrint("💾 Draft Auto Saved");
   }
-
 
   Future<void> _handleSubmitFields() async {
     if (!_isEditable || _isSubmitting) return;
@@ -2926,10 +2911,8 @@ class _AddInsulationDescriptionScreenState extends ConsumerState<AddInsulationDe
     setState(() => _isSubmitting = true);
 
     try {
-      final pipingMaterials =
-      ref.read(insulationPipingMaterialsProvider);
-      final equipmentMaterials =
-      ref.read(insulationEquipmentMaterialsProvider);
+      final pipingMaterials = ref.read(insulationPipingMaterialsProvider);
+      final equipmentMaterials = ref.read(insulationEquipmentMaterialsProvider);
 
       final payload = buildInsulationDprPayload(
         pipingMaterials: pipingMaterials,
@@ -2964,8 +2947,6 @@ class _AddInsulationDescriptionScreenState extends ConsumerState<AddInsulationDe
       if (mounted) setState(() => _isSubmitting = false);
     }
   }
-
-
 
   @override
   void dispose() {

@@ -70,7 +70,6 @@ class _SizeSelectionPageState
                   return;
                 }
 
-                // Save size to provider
                 ref.read(selectedSizeProvider.notifier).state = value;
 
                 final type = ref.read(typeProvider);
@@ -78,17 +77,12 @@ class _SizeSelectionPageState
                 if (type == "mechanical_work") {
                   Navigator.push(
                     context,
-                    MaterialPageRoute(
-                      builder: (context) => AddDescriptionScreen(),
-                    ),
+                    MaterialPageRoute(builder: (context) => AddDescriptionScreen()),
                   );
                 } else {
                   Navigator.push(
                     context,
-                    MaterialPageRoute(
-                      builder: (context) =>
-                          AddInsulationDescriptionScreen(),
-                    ),
+                    MaterialPageRoute(builder: (context) => AddInsulationDescriptionScreen()),
                   );
                 }
 
@@ -106,6 +100,51 @@ class _SizeSelectionPageState
           padding: const EdgeInsets.all(16.0),
           child: Column(
             children: [
+
+              /// Skip Button — top right of body
+              Align(
+                alignment: Alignment.topRight,
+                child: TextButton(
+                  onPressed: () {
+                    // Clear size value
+                    ref.read(selectedSizeProvider.notifier).state = null;
+                    sizeController.clear();
+
+                    final type = ref.read(typeProvider);
+                    if (type == "mechanical_work") {
+                      Navigator.push(
+                        context,
+                        MaterialPageRoute(builder: (context) => AddDescriptionScreen()),
+                      );
+                    } else {
+                      Navigator.push(
+                        context,
+                        MaterialPageRoute(builder: (context) => AddInsulationDescriptionScreen()),
+                      );
+                    }
+                  },
+                  style: TextButton.styleFrom(
+                    backgroundColor: Colors.blue,
+                    foregroundColor: Colors.white,
+                    padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 10), // ✅
+                    shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(20),
+                    ),
+
+                    minimumSize: Size.zero,
+                    tapTargetSize: MaterialTapTargetSize.shrinkWrap,
+                  ),
+                  child: const Text(
+                    'Skip',
+                    style: TextStyle(
+                      fontSize: 14,
+                      fontWeight: FontWeight.w600,
+                    ),
+                  ),
+                ),
+              ),
+
+              const SizedBox(height: 8),
 
               /// Title + Unit Selector
               Row(
@@ -128,35 +167,25 @@ class _SizeSelectionPageState
                     ],
                   ),
 
-                  /// UOM Dropdown
+                  /// UOM Dropdown — default inch
                   Container(
-                    padding:
-                    const EdgeInsets.symmetric(horizontal: 12),
+                    padding: const EdgeInsets.symmetric(horizontal: 12),
                     decoration: BoxDecoration(
-                      border:
-                      Border.all(color: const Color(0xFFDFE2E6)),
+                      border: Border.all(color: const Color(0xFFDFE2E6)),
                       borderRadius: BorderRadius.circular(8),
                       color: Colors.white,
                     ),
                     child: DropdownButtonHideUnderline(
                       child: DropdownButton<String>(
-                        value: selectedUnit,
+                        value: selectedUnit ?? 'inch', // ✅ default to inch
                         items: const [
-                          DropdownMenuItem(
-                            value: 'mm',
-                            child: Text('mm'),
-                          ),
-                          DropdownMenuItem(
-                            value: 'inch',
-                            child: Text('inch'),
-                          ),
+                          DropdownMenuItem(value: 'inch', child: Text('inch')),
+
+                          DropdownMenuItem(value: 'mm', child: Text('mm')),
                         ],
                         onChanged: (value) {
                           if (value != null) {
-                            // Changing UOM will NOT reset size anymore
-                            ref
-                                .read(selectedUnitProvider.notifier)
-                                .state = value;
+                            ref.read(selectedUnitProvider.notifier).state = value;
                           }
                         },
                       ),
@@ -173,10 +202,7 @@ class _SizeSelectionPageState
                 hint: 'Enter size (e.g., 10, 42, etc.)',
                 controller: sizeController,
                 keyboardType: TextInputType.number,
-                prefixIcon: const Icon(
-                  Icons.straighten,
-                  color: Colors.grey,
-                ),
+                prefixIcon: const Icon(Icons.straighten, color: Colors.grey),
               ),
 
               const SizedBox(height: 20),
@@ -192,8 +218,7 @@ class _SizeSelectionPageState
                   ),
                   child: Row(
                     children: [
-                      const Icon(Icons.check_circle,
-                          color: Colors.green),
+                      const Icon(Icons.check_circle, color: Colors.green),
                       const SizedBox(width: 8),
                       Text(
                         'Selected Size: $selectedSize $selectedUnit',

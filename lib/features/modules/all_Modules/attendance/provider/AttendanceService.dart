@@ -2,7 +2,7 @@ import 'dart:convert';
 
 import 'package:dio/dio.dart';
 import '../../../../../core/api/dio.dart';
-
+import 'dart:typed_data';
 class AttendanceApi {
   /// Fetch attendance list
   static Future<Response> fetchAttendance({
@@ -71,18 +71,20 @@ class AttendanceApi {
   }
 
   /// Fetch attendance from-to date
-  static Future<Response> fetchAttendanceFromTo({
+  static Future<Uint8List> fetchAttendanceFromTo({
     required String type,
     required String siteId,
     DateTime? startDate,
     DateTime? endDate,
+    String format = 'excel', // ✅ new param
   }) async {
     try {
       final from = startDate != null
           ? startDate.toIso8601String().split("T")[0]
           : "";
-      final to =
-      endDate != null ? endDate.toIso8601String().split("T")[0] : "";
+      final to = endDate != null
+          ? endDate.toIso8601String().split("T")[0]
+          : "";
 
       final response = await DioClient.dio.get(
         "/site/$siteId/attendance/generate-attendance",
@@ -90,9 +92,14 @@ class AttendanceApi {
           "type": type,
           "fromDate": from,
           "toDate": to,
+          "format": format, // ✅ pass format
         },
+        options: Options(
+          responseType: ResponseType.bytes, // ✅ receive raw bytes
+        ),
       );
-      return response;
+
+      return Uint8List.fromList(response.data as List<int>);
     } catch (e) {
       rethrow;
     }
