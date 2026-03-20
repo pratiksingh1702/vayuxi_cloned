@@ -358,7 +358,7 @@ class _DprWorkScreenState extends ConsumerState<DprWorkScreen> {
 
     return Scaffold(
       appBar: CustomAppBar(
-        title: "Team ${team?.teamName} Work Descriptions",
+        title: "${team?.teamName} Work Descriptions",
 
       ),
       body: BottomButtonWrapper(

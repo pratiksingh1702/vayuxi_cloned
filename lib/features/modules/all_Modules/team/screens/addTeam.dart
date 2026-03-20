@@ -14,6 +14,7 @@ import '../../../../../typeProvider/type_provider.dart';
 import '../../../../tour/domain/tour_controller.dart';
 import '../../Manpower Details/model/manpower_model.dart';
 import '../../Manpower Details/service/manPowerProvider.dart';
+import '../../attendance/offline/repo/att_sync.dart';
 import '../../site_Details/providers/site_current_provider.dart';
 import '../../site_Details/repository/siteModel.dart';
 import '../model/teamModel.dart';
@@ -510,7 +511,9 @@ class _AddTeamScreenState extends ConsumerState<AddTeamScreen> {
                               siteId: siteId!,
                               data: formData,
                             );
+                            ref.invalidate(manpowerSyncControllerProvider((type: type)));
                             await ref.read(tourPersistenceProvider).markTeamDone();
+
 
                             Navigator.pop(context);
                           }

@@ -80,7 +80,7 @@ class _SiteListScreenState extends ConsumerState<SiteListScreen>
             child: const Text("Cancel"),
           ),
           ElevatedButton(
-            style: ElevatedButton.styleFrom(backgroundColor: Colors.red),
+            style: ElevatedButton.styleFrom(backgroundColor: Colors.red,foregroundColor: Colors.white),
             onPressed: () => Navigator.pop(context, true),
             child: const Text("Delete"),
           ),

@@ -38,7 +38,7 @@ class _DprTeamScreenState extends ConsumerState<DprTeamScreen> {
       await notifier.fetchMechanicalCombined(siteId: siteId!);
     }
     else if (type == "insulation_work") {
-      await notifier.fetchInsulationCombined(siteId: siteId!);
+      await notifier.fetchTeams(type: type!, siteId: siteId);
     }
     else {
       // fallback if some other type appears
@@ -194,7 +194,7 @@ class _DprTeamScreenState extends ConsumerState<DprTeamScreen> {
   @override
   Widget build(BuildContext context) {
     final teamState = ref.watch(teamProvider);
-
+    print(teamState.error );
 
     return Scaffold(
       backgroundColor: AppColors.lightBlue,
@@ -213,9 +213,10 @@ class _DprTeamScreenState extends ConsumerState<DprTeamScreen> {
               if (teamState.isLoading && !teamState.hasData) {
                 return const Center(child: CircularProgressIndicator());
               }
-
-              // ✅ show error only if no cached data
+              //
+              // // ✅ show error only if no cached data
               if (!teamState.hasData && teamState.error != null) {
+                print(teamState.error);
                 return Column(
                   children: [
                     Expanded(child: Center(child: Text("Error: ${teamState.error}"))),

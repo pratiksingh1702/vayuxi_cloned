@@ -64,14 +64,29 @@ class _EquipmentMaterialCardState extends State<EquipmentMaterialCard> {
 
   void _initControllers(EquipmentMaterial m) {
     _valueControllers = {
-      EquipmentFieldType.qty: TextEditingController(text: ""),
-      EquipmentFieldType.length: TextEditingController(text: ""),
-      EquipmentFieldType.circumference: TextEditingController(text: ""),
-      EquipmentFieldType.circumference1: TextEditingController(text: ""),
-      EquipmentFieldType.circumference2: TextEditingController(text: ""),
-      EquipmentFieldType.circumference3: TextEditingController(text:""),
-      EquipmentFieldType.zHeight: TextEditingController(text: ""),
-      EquipmentFieldType.gSlantHeight: TextEditingController(text: ""),
+      EquipmentFieldType.qty:
+      TextEditingController(text: m.qty.toString()),
+
+      EquipmentFieldType.length:
+      TextEditingController(text: m.length == 0 ? "" : m.length.toString()),
+
+      EquipmentFieldType.circumference:
+      TextEditingController(text: m.circumference == 0 ? "" : m.circumference.toString()),
+
+      EquipmentFieldType.circumference1:
+      TextEditingController(text: m.circumference1 == 0 ? "" : m.circumference1.toString()),
+
+      EquipmentFieldType.circumference2:
+      TextEditingController(text: m.circumference2 == 0 ? "" : m.circumference2.toString()),
+
+      EquipmentFieldType.circumference3:
+      TextEditingController(text: m.circumference3 == 0 ? "" : m.circumference3.toString()),
+
+      EquipmentFieldType.zHeight:
+      TextEditingController(text: m.zHeight == 0 ? "" : m.zHeight.toString()),
+
+      EquipmentFieldType.gSlantHeight:
+      TextEditingController(text: m.gSlantHeight == 0 ? "" : m.gSlantHeight.toString()),
     };
 
     _labelControllers = {
@@ -105,6 +120,10 @@ class _EquipmentMaterialCardState extends State<EquipmentMaterialCard> {
   void didUpdateWidget(covariant EquipmentMaterialCard oldWidget) {
     super.didUpdateWidget(oldWidget);
 
+    if (oldWidget.material.id != widget.material.id && !_isEditMode) {
+      _initControllers(widget.material);
+    }
+
     if (oldWidget.material.qty != widget.material.qty) {
       _qtyController.text = widget.material.qty.toString();
     }
@@ -114,7 +133,6 @@ class _EquipmentMaterialCardState extends State<EquipmentMaterialCard> {
       _draftImageFiles.clear();
     }
   }
-
   @override
   void dispose() {
     for (final n in _focusNodes.values) n.dispose();
@@ -626,30 +644,30 @@ class _EquipmentMaterialCardState extends State<EquipmentMaterialCard> {
 
                   // Value input (only in view mode; hidden in edit mode)
                   if (!_isEditMode)
-                    SizedBox(
-                      height: 36,
-                      child: TextFormField(
-                        controller: _valueControllers[field.type],
+                    TextFormField(
+                      controller: _valueControllers[field.type],
+                      style: TextStyle(
+                        fontSize: 10
+                      ),
 
-                        focusNode: _focusNodes[field.type],
-                        textAlign: TextAlign.center,
-                        keyboardType: const TextInputType.numberWithOptions(decimal: true),
-                        decoration: InputDecoration(
-                          isDense: true,
-                          filled: true,
-                          fillColor: const Color(0xFFD0EAFD),
+                      focusNode: _focusNodes[field.type],
+                      textAlign: TextAlign.center,
+                      keyboardType: const TextInputType.numberWithOptions(decimal: true),
+                      decoration: InputDecoration(
+                        isDense: true,
+                        filled: true,
+                        fillColor: const Color(0xFFD0EAFD),
 
-                          contentPadding: const EdgeInsets.symmetric(vertical: 8, horizontal: 6),
-                          border: OutlineInputBorder(
-                            borderRadius: BorderRadius.circular(6),
-                            borderSide: BorderSide.none,
-                          ),
+                        contentPadding: const EdgeInsets.symmetric(vertical: 8, horizontal: 6),
+                        border: OutlineInputBorder(
+                          borderRadius: BorderRadius.circular(6),
+                          borderSide: BorderSide.none,
                         ),
+                      ),
                         onChanged: (val) {
                           final v = double.tryParse(val) ?? 0;
                           widget.onChanged(_updateMaterial(field, v));
-                        },
-                      ),
+                        }
                     ),
 
                   // In edit mode show a placeholder message

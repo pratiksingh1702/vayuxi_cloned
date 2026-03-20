@@ -35,7 +35,7 @@ class _TrialScreenState extends ConsumerState<TrialScreen> {
   @override
   void dispose() {
     _referralCtrl.dispose();
-    ref.read(razorpayServiceProvider).dispose();
+
     super.dispose();
   }
 

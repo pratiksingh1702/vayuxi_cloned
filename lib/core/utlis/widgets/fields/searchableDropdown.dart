@@ -155,28 +155,37 @@ class _SearchableDropdownState extends State<SearchableDropdown> {
 
     _select(text);
   }
-
   Widget _buildDropdown() {
-    if (_filteredData.isEmpty && _controller.text.trim().isNotEmpty) {
-      return ListTile(
-        dense: true,
-        title: Text(
-          'Add "${_controller.text}"',
-          style: TextStyle(
-            fontStyle: FontStyle.italic,
-            color: Theme.of(context).primaryColor,
-          ),
-        ),
-        onTap: _addNew,
-      );
-    }
+    final text = _controller.text.trim();
+
+    final hasExactMatch =
+    _localData.any((item) => item.toLowerCase() == text.toLowerCase());
+
+    final showAddOption = text.isNotEmpty && !hasExactMatch;
+
+    final totalItems = _filteredData.length + (showAddOption ? 1 : 0);
 
     return ListView.builder(
       padding: EdgeInsets.zero,
       shrinkWrap: true,
-      itemCount: _filteredData.length,
+      itemCount: totalItems,
       itemBuilder: (context, index) {
-        final value = _filteredData[index];
+        if (showAddOption && index == 0) {
+          return ListTile(
+            dense: true,
+            title: Text(
+              'Add "$text"',
+              style: TextStyle(
+                fontStyle: FontStyle.italic,
+                color: Theme.of(context).primaryColor,
+              ),
+            ),
+            onTap: _addNew,
+          );
+        }
+
+        final itemIndex = showAddOption ? index - 1 : index;
+        final value = _filteredData[itemIndex];
 
         return ListTile(
           dense: true,

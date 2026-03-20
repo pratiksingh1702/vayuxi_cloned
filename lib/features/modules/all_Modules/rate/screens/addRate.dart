@@ -34,6 +34,7 @@ class _AddRateScreenState extends ConsumerState<AddRateScreen> {
 
   final FocusNode uomFocusNode = FocusNode();
   bool isCustomUOM = false;
+  bool isloading=false;
   List<String> uomList = [];
 
   @override
@@ -116,6 +117,9 @@ class _AddRateScreenState extends ConsumerState<AddRateScreen> {
   }
 
   Future<void> _saveRate() async {
+    setState(() {
+      isloading=true;
+    });
     if (siteNameController.text.isEmpty ||
 
         rateController.text.isEmpty ||
@@ -128,7 +132,7 @@ class _AddRateScreenState extends ConsumerState<AddRateScreen> {
       "serviceName": siteNameController.text,
       "hsnSacCode": hsnCodeController.text,
       "rate": double.tryParse(rateController.text) ?? 0,
-      "uom": uomController.text.trim(), // Use whatever is in the field
+      "uom": "M", // Use whatever is in the field
       "remarks": remarkController.text,
     };
 
@@ -153,6 +157,10 @@ class _AddRateScreenState extends ConsumerState<AddRateScreen> {
       print("Error saving rate: $e");
     final error = extractBackendError(e);
     AppToast.error("❌ Failed to save rate:$error");
+    }finally{
+      setState(() {
+        isloading=false;
+      });
     }
   }
 
@@ -166,7 +174,7 @@ class _AddRateScreenState extends ConsumerState<AddRateScreen> {
       body: BottomButtonWrapper(
         customButtons: [
           CustomButton(button:    RoundedButton(
-            text: "Save",
+            text: isloading?"Saving...":"Save",
             color: Colors.blue,
             textColor: Colors.white,
             onPressed: _saveRate,
@@ -232,13 +240,21 @@ class _AddRateScreenState extends ConsumerState<AddRateScreen> {
                 },
                 containerDecoration: BoxDecoration(
                   color: Colors.white,
-                  borderRadius: BorderRadius.circular(8),
-                  border: const Border(
-                    left: BorderSide(color: Color(0xFFDFE2E6)),
-                    right: BorderSide(color: Color(0xFFDFE2E6)),
-                    top: BorderSide(color: Color(0xFFDFE2E6)),
-                    bottom: BorderSide(color: Color(0xFFDFE2E6)),
+                  borderRadius: BorderRadius.circular(12),
+                  border: Border.all(
+                    color: const Color(0xFF197278),
+                    width: 1,
                   ),
+                ),
+                inputDecoration: const InputDecoration(
+                  hintText: "Search or type Unit of Measurement",
+                  contentPadding: EdgeInsets.symmetric(
+                    horizontal: 16,
+                    vertical: 14,
+                  ),
+                  border: InputBorder.none,
+                  focusedBorder: InputBorder.none,
+                  enabledBorder: InputBorder.none,
                 ),
               ),
         

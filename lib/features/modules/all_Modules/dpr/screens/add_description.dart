@@ -59,6 +59,7 @@ class _AddDescriptionScreenState extends ConsumerState<AddDescriptionScreen>
   late final TextEditingController _dprNameController;
   late final TextEditingController _mocController;
   late final TextEditingController _sizeController;
+  late final TextEditingController _sizeUomController;
   late final TextEditingController _plantController;
   late final TextEditingController _floorController;
   Key _materialsRebuildKey = UniqueKey();
@@ -428,6 +429,7 @@ class _AddDescriptionScreenState extends ConsumerState<AddDescriptionScreen>
     _dprNameController.addListener(() => setState(() {}));
     _mocController = TextEditingController();
     _sizeController = TextEditingController();
+    _sizeUomController = TextEditingController();
     _plantController = TextEditingController();
     _floorController = TextEditingController();
   }
@@ -449,13 +451,18 @@ class _AddDescriptionScreenState extends ConsumerState<AddDescriptionScreen>
             : widget.work?.moc) ??
         "";
     _floorController.text = (widget.work == null
-            ? ref.read(selectedFloorNameProvider)!
+            ? ref.read(selectedFloorNameProvider)
             : widget.work?.location) ??
         "";
     _sizeController.text = (widget.work == null
-            ? ref.read(selectedSizeProvider)!
+            ? ref.read(selectedSizeProvider)
             : widget.work?.size) ??
         "";
+    _sizeUomController.text = (widget.work == null
+            ? ref.read(selectedUnitProvider)!
+            : widget.work?.size) ??
+        "";
+
   }
 
   // Future<void> _loadInitialData() async {
@@ -1289,15 +1296,28 @@ class _AddDescriptionScreenState extends ConsumerState<AddDescriptionScreen>
     // 3. DPR list exists for selected date
     final shouldShowDropdown =
         _globalEditMode && _dprListForSelectedDate.isNotEmpty;
+    final team = ref.read(currentTeamProvider);
+    final site = ref.read(currentSiteProvider);
+    final teamid = ref.read(selectedTeamIdProvider)!;
+    final siteid = ref.read(selectedSiteIdProvider)!;
+
+    debugPrint("Team -> $team");
+    debugPrint("Site -> $site");
+    debugPrint("Teamid -> $teamid");
+    debugPrint("Siteid -> $siteid");
+
+    final appBarTitle = team?.isDefaultTeam == true
+        ? (site?.siteName ?? "DPR")
+        : (team?.teamName ?? "DPR");
 
     return Scaffold(
       backgroundColor: Colors.grey[50],
       drawer: const CustomDrawer(),
       body: NestedScrollView(
         headerSliverBuilder: (context, innerBoxIsScrolled) {
-          final appBarTitle = _dprNameController.text.trim().isNotEmpty
-              ? _dprNameController.text.trim()
-              : "Add DPR";
+          final appBarTitle = (team == null || team.isDefaultTeam)
+              ? (site?.siteName ?? "DPR")
+              : (team.teamName ?? "DPR");
           return [CustomSliverAppBar(title: appBarTitle)];
         },
         body: BottomButtonWrapper(
@@ -1967,6 +1987,7 @@ class _AddDescriptionScreenState extends ConsumerState<AddDescriptionScreen>
 
   Widget _buildInputFields() {
     final lang = ref.watch(dailyEntryTranslationHelperProvider);
+    final sizeUom=_sizeUomController.text;
     return Column(
       children: [
         Row(
@@ -1985,7 +2006,7 @@ class _AddDescriptionScreenState extends ConsumerState<AddDescriptionScreen>
             const SizedBox(width: 12),
             Expanded(
                 child: _buildCompactInputField(
-                    lang.sizeTab, _sizeController, Icons.straighten)),
+                    'Size($sizeUom)', _sizeController, Icons.straighten)),
           ],
         )
       ],
@@ -2905,6 +2926,7 @@ class _AddDescriptionScreenState extends ConsumerState<AddDescriptionScreen>
         'dprName': _dprNameController.text.trim(),
         'moc': _mocController.text.trim(),
         'size': _sizeController.text.trim(),
+        'sizeUom':_sizeUomController.text.trim(),
         'location': _floorController.text.trim(),
         'plant': _plantController.text.trim(),
         (_mechanicalId == null || _mechanicalId!.isEmpty)

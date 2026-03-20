@@ -4,12 +4,9 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:pin_code_fields/pin_code_fields.dart';
 import 'package:go_router/go_router.dart';
-import 'package:flutter_svg/flutter_svg.dart';
 
-import '../../../core/utlis/widgets/buttons.dart';
 import '../../modules/screen/craosule_banner.dart';
 import '../provider/auth_provider.dart';
-import '../../../core/router/routes.dart';
 import '../service/auth_client.dart';
 
 class LoginScreen extends ConsumerStatefulWidget {
@@ -27,17 +24,38 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
   bool isSendingOtp = false;
   bool otpButtonLoading = false;
 
+  // Resend cooldown state
+  int _resendCooldown = 0;
+  Timer? _resendTimer;
+
   final List<String> carouselImages = [
     'assets/images/l1.webp',
     'assets/images/l2.webp',
     'assets/images/l3.webp',
   ];
 
-  @override
-  void initState() {
-    super.initState();
-    // No need for auto-scroll timer anymore as CarouselSlider handles it
+  // ─── Resend cooldown logic ────────────────────────────────────────────────
+
+  void _startResendCooldown() {
+    _resendTimer?.cancel();
+
+    setState(() => _resendCooldown = 30);
+
+    _resendTimer = Timer.periodic(const Duration(seconds: 1), (t) {
+      if (!mounted) {
+        t.cancel(); // 🔥 THIS IS MANDATORY
+        return;
+      }
+
+      if (_resendCooldown <= 1) {
+        t.cancel();
+        setState(() => _resendCooldown = 0);
+      } else {
+        setState(() => _resendCooldown--);
+      }
+    });
   }
+  // ─── API calls ────────────────────────────────────────────────────────────
 
   Future<void> sendOtp() async {
     final email = emailController.text.trim();
@@ -57,12 +75,13 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
     try {
       await AuthAPI.generateLoginOtp(email);
       setState(() => otpVisible = true);
+      _startResendCooldown();
       _showSuccessSnackBar("OTP sent successfully!");
     } catch (e) {
       _showErrorSnackBar(
-          e.toString().contains('timeout')
-              ? "Network timeout. Please check your connection"
-              : "Failed to send OTP. Please try again"
+        e.toString().contains('timeout')
+            ? "Network timeout. Please check your connection"
+            : "Failed to send OTP. Please try again",
       );
     } finally {
       if (mounted) setState(() => isSendingOtp = false);
@@ -72,8 +91,8 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
   Future<void> verifyOtp() async {
     final otp = otpController.text.trim();
 
-    if (otp.length != 6) {
-      _showErrorSnackBar("Please enter a valid 6-digit OTP");
+    if (otp.length != 4) {
+      _showErrorSnackBar("Please enter a valid 4-digit OTP");
       return;
     }
 
@@ -83,27 +102,31 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
       await ref
           .read(authProvider.notifier)
           .loginWithOtp(emailController.text.trim(), otp);
+      _resendTimer?.cancel(); // 🔥 ADD THIS
 
       // ❌ DO NOTHING AFTER THIS
-      // AuthNotifier will:
-      // - update auth state
-      // - trigger subscription check
-      // - open Razorpay if needed
-      // - router will redirect
+      // AuthNotifier will update auth state → trigger subscription check
+      // → open Razorpay if needed → router will redirect.
     } catch (e) {
+      print("error");
       if (!mounted) return;
+
 
       _showErrorSnackBar(
         e.toString().contains('Invalid OTP')
             ? "Invalid OTP. Please check and try again"
             : "OTP verification failed. Please try again",
       );
+    }finally{
+      setState(() {
+        otpButtonLoading=false;
+      });
     }
 
-    // ❌ NO finally block
-    // ❌ NO setState(false)
+    // ❌ NO finally / NO setState(false) — intentional.
   }
 
+  // ─── Helpers ──────────────────────────────────────────────────────────────
 
   void _showErrorSnackBar(String message) {
     ScaffoldMessenger.of(context).showSnackBar(
@@ -125,20 +148,31 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
     );
   }
 
+  bool get _isEmailValid =>
+      RegExp(r'^[^\s@]+@[^\s@]+\.[^\s@]+$')
+          .hasMatch(emailController.text.trim());
+
+  bool get _hasEmailInput => emailController.text.trim().isNotEmpty;
+
   @override
   void dispose() {
+    _resendTimer?.cancel(); // 🔥 FIRST
     emailController.dispose();
     otpController.dispose();
     super.dispose();
   }
 
+  // ─── Build ────────────────────────────────────────────────────────────────
+
   @override
   Widget build(BuildContext context) {
+    final screenWidth = MediaQuery.of(context).size.width;
+
     return Scaffold(
       backgroundColor: Colors.white,
       body: Stack(
         children: [
-          // Background
+          // Subtle background
           Container(
             decoration: const BoxDecoration(
               image: DecorationImage(
@@ -153,151 +187,48 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
               ),
             ),
           ),
+
           SafeArea(
             child: SingleChildScrollView(
-              padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 20),
+              padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 16),
               child: Column(
+                crossAxisAlignment: CrossAxisAlignment.stretch,
                 children: [
-                  Center(
-                    child: Row(
-                      mainAxisSize: MainAxisSize.min,
-                      mainAxisAlignment: MainAxisAlignment.center,
-                      children: [
-                        Text(
-                          "Welcome to",
-                          style: TextStyle(
-                            fontSize: MediaQuery.of(context).size.width * 0.07,
-                            fontWeight: FontWeight.w500,
-                          ),
-                        ),
-                        SizedBox(width: MediaQuery.of(context).size.width * 0.015),
-                        Text(
-                          "VAYUXI",
-                          style: TextStyle(
-                            fontSize: MediaQuery.of(context).size.width * 0.07,
-                            fontWeight: FontWeight.bold,
-                            color: Colors.blue,
-                            letterSpacing: MediaQuery.of(context).size.width * 0.002,
-                          ),
-                        ),
-                      ],
-                    ),
-                  ),
+                  // ── Header ──────────────────────────────────────────────
+                  _WelcomeHeader(screenWidth: screenWidth),
+                  const SizedBox(height: 12),
 
-                  // Carousel using your custom widget
+                  // ── Carousel ────────────────────────────────────────────
                   AdBannerCarousel(
-                    height: 250,
+                    height: 220,
                     boxFit: BoxFit.contain,
                     imageUrls: carouselImages,
                   ),
+                  const SizedBox(height: 12),
 
-                  const SizedBox(height: 20),
-                  Center(
-                    child: RichText(
-                      textAlign: TextAlign.center,
-                      text: TextSpan(
-                        style: const TextStyle(
-                          fontSize: 16,
-                          color: Colors.black,
-                          height: 1.4,
+                  // ── Tagline ─────────────────────────────────────────────
+                  _TaglineText(),
+                  const SizedBox(height: 24),
 
-                        ),
-                        children: const [
-                          TextSpan(text: "Congrats! There are "),
-                          TextSpan(
-                            text: "70 Million+",
-                            style: TextStyle(
-                              color: Colors.blue,
-                              fontWeight: FontWeight.bold,
-                            ),
-                          ),
-                          TextSpan(text: " people working in Construction sector, you are one step ahead of them"),
-                        ],
-                      ),
-                    ),
-                  ),
-
-                  const SizedBox(height: 20),
-
-                  // Email Field with integrated SVG button
-                  const Align(
-                    alignment: Alignment.centerLeft,
-                    child: Text(
-                      "E-Mail ID*",
-                      style: TextStyle(
-                        fontSize: 15,
-                        fontWeight: FontWeight.w600,
-                      ),
-                    ),
-                  ),
-
-                  const SizedBox(height: 8),
-
-                  // Email TextField with integrated SVG button
-                  TextField(
+                  // ── Email field ─────────────────────────────────────────
+                  _FieldLabel(label: "E-Mail ID*"),
+                  const SizedBox(height: 6),
+                  _EmailField(
                     controller: emailController,
-                    decoration: InputDecoration(
-                      hintText: "xyz@gmail.com",
-                      filled: true,
-                      fillColor: Colors.white.withOpacity(0.9),
-                      border: OutlineInputBorder(
-                        borderRadius: BorderRadius.circular(12),
-                      ),
-                      errorText: _validateEmail() ? "Invalid email format" : null,
-                      suffixIcon: Padding(
-                        padding: const EdgeInsets.all(8.0),
-                        child: GestureDetector(
-                          onTap: isSendingOtp || _validateEmail() ? null : sendOtp,
-                          child: Container(
-                            width: 40,
-                            height: 40,
-                            decoration: BoxDecoration(
-                              color: isSendingOtp || _validateEmail()
-                                  ? Colors.grey
-                                  : Colors.green,
-                              borderRadius: BorderRadius.circular(10),
-                            ),
-                            child: Center(
-                              child: isSendingOtp
-                                  ? const SizedBox(
-                                width: 18,
-                                height: 18,
-                                child: CircularProgressIndicator(
-                                  strokeWidth: 2,
-                                  color: Colors.white,
-                                ),
-                              )
-                                  : const Icon(
-                                Icons.arrow_forward_rounded,
-                                color: Colors.white,
-                                size: 22,
-                              ),
-                            ),
-                          ),
-                        ),
-                      ),
-                    ),
+                    isSendingOtp: isSendingOtp,
+                    isEmailValid: _isEmailValid,
+                    hasInput: _hasEmailInput,
+                    onSend: sendOtp,
                     onChanged: (_) => setState(() {}),
                   ),
-
                   const SizedBox(height: 20),
 
-                  // OTP Section
+                  // ── OTP field (conditional) ──────────────────────────────
                   if (otpVisible) ...[
-                    const Align(
-                      alignment: Alignment.centerLeft,
-                      child: Text(
-                        "OTP",
-                        style: TextStyle(
-                          fontSize: 15,
-                          fontWeight: FontWeight.w600,
-                        ),
-                      ),
-                    ),
-                    const SizedBox(height: 8),
-
+                    _FieldLabel(label: "One-Time Password"),
+                    const SizedBox(height: 6),
                     PinCodeTextField(
-                      length: 6,
+                      length: 4,
                       appContext: context,
                       controller: otpController,
                       keyboardType: TextInputType.number,
@@ -310,103 +241,39 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
                         activeFillColor: Colors.white,
                         inactiveFillColor: Colors.white,
                         inactiveColor: Colors.grey.shade300,
+                        selectedColor: const Color(0xFF218AE6),
+                        activeColor: const Color(0xFF218AE6),
                       ),
                       onChanged: (_) => setState(() {}),
                     ),
+                    const SizedBox(height: 4),
 
+                    // ── Resend OTP inline text ───────────────────────────
+                    _ResendRow(
+                      cooldown: _resendCooldown,
+                      onResend: _resendCooldown == 0 ? sendOtp : null,
+                    ),
+                    const SizedBox(height: 20),
                   ],
 
-                  SizedBox(
-                    width: double.infinity,
-                    height: 48,
-                    child: ElevatedButton(
-                      onPressed: otpButtonLoading || otpController.text.length != 6
-                          ? null
-                          : verifyOtp,
-                      style: ElevatedButton.styleFrom(
-                        backgroundColor: const Color(0xFF218AE6),
-                        shape: RoundedRectangleBorder(
-                          borderRadius: BorderRadius.circular(12),
-                        ),
-                      ),
-                      child: otpButtonLoading
-                          ? const SizedBox(
-                        width: 20,
-                        height: 20,
-                        child: CircularProgressIndicator(
-                          strokeWidth: 2,
-                          color: Colors.white,
-                        ),
-                      )
-                          : const Text(
-                        "Login",
-                        style: TextStyle(
-                          fontSize: 16,
-                          fontWeight: FontWeight.w600,
-                          color: Colors.white,
-                        ),
-                      ),
-                    ),
+                  // ── Primary CTA: Login ───────────────────────────────────
+                  _LoginButton(
+                    isLoading: otpButtonLoading,
+                    isEnabled:
+                    !otpButtonLoading && otpController.text.length == 4,
+                    onPressed: verifyOtp,
+                  ),
+                  const SizedBox(height: 28),
+
+                  // ── Secondary text actions ───────────────────────────────
+                  _SecondaryActions(
+                    onRegister: () => context.push('/register'),
+                    onManpowerLogin: () => context.push('/manpower-login'),
                   ),
                   const SizedBox(height: 20),
 
-                  // Register Button
-                  SizedBox(
-                    width: double.infinity,
-                    height: 48,
-                    child: RoundedButton(
-                      text: "Register",
-                      color: const Color(0xFF007BFF),
-                      textColor: Colors.white,
-                      onPressed: () => context.push('/register'),
-                    ),
-                  ),
-                  const SizedBox(height: 20),
-                  SizedBox(
-                    width: double.infinity,
-                    height: 48,
-                    child: OutlinedButton(
-                      onPressed: () => context.push('/manpower-login'),
-                      style: OutlinedButton.styleFrom(
-                        shape: RoundedRectangleBorder(
-                          borderRadius: BorderRadius.circular(12),
-                        ),
-                        side: const BorderSide(color: Colors.blue),
-                      ),
-                      child: const Text(
-                        "Login as Manpower",
-                        style: TextStyle(
-                          fontSize: 16,
-                          fontWeight: FontWeight.w600,
-                          color: Colors.blue,
-                        ),
-                      ),
-                    ),
-                  ),
-
-                  // Terms and Privacy Policy
-                  Container(
-                    padding: const EdgeInsets.all(12),
-                    decoration: BoxDecoration(
-                      color: Colors.white.withOpacity(0.8),
-                      borderRadius: BorderRadius.circular(8),
-                    ),
-                    child: const Column(
-                      children: [
-                        Text(
-                          "By continuing, you're agreeing to our Terms of Service and Privacy Policy.",
-                          textAlign: TextAlign.center,
-                          style: TextStyle(fontSize: 12, color: Colors.black87),
-                        ),
-                        SizedBox(height: 8),
-                        Text(
-                          "© 2025 VAYUXI. All rights reserved.",
-                          textAlign: TextAlign.center,
-                          style: TextStyle(fontSize: 12, color: Colors.black87),
-                        ),
-                      ],
-                    ),
-                  ),
+                  // ── Footer ───────────────────────────────────────────────
+                  _Footer(),
                 ],
               ),
             ),
@@ -415,10 +282,322 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
       ),
     );
   }
+}
 
-  bool _validateEmail() {
-    final email = emailController.text.trim();
-    return email.isNotEmpty &&
-        !RegExp(r'^[^\s@]+@[^\s@]+\.[^\s@]+$').hasMatch(email);
+// ─────────────────────────────────────────────────────────────────────────────
+// Sub-widgets
+// ─────────────────────────────────────────────────────────────────────────────
+
+class _WelcomeHeader extends StatelessWidget {
+  final double screenWidth;
+  const _WelcomeHeader({required this.screenWidth});
+
+  @override
+  Widget build(BuildContext context) {
+    final fontSize = screenWidth * 0.07;
+    return Row(
+      mainAxisAlignment: MainAxisAlignment.center,
+      mainAxisSize: MainAxisSize.min,
+      children: [
+        Text(
+          "Welcome to ",
+          style: TextStyle(fontSize: fontSize, fontWeight: FontWeight.w500),
+        ),
+        Text(
+          "VAYUXI",
+          style: TextStyle(
+            fontSize: fontSize,
+            fontWeight: FontWeight.bold,
+            color: Colors.blue,
+            letterSpacing: screenWidth * 0.002,
+          ),
+        ),
+      ],
+    );
+  }
+}
+
+class _TaglineText extends StatelessWidget {
+  @override
+  Widget build(BuildContext context) {
+    return RichText(
+      textAlign: TextAlign.center,
+      text: const TextSpan(
+        style: TextStyle(fontSize: 14.5, color: Colors.black87, height: 1.5),
+        children: [
+          TextSpan(text: "Congrats! There are "),
+          TextSpan(
+            text: "70 Million+",
+            style: TextStyle(
+              color: Colors.blue,
+              fontWeight: FontWeight.bold,
+            ),
+          ),
+          TextSpan(
+            text:
+            " people working in Construction sector, you are one step ahead of them",
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+class _FieldLabel extends StatelessWidget {
+  final String label;
+  const _FieldLabel({required this.label});
+
+  @override
+  Widget build(BuildContext context) {
+    return Text(
+      label,
+      style: const TextStyle(fontSize: 13.5, fontWeight: FontWeight.w600),
+    );
+  }
+}
+
+/// Email input with a lightweight inline "Send" text-button below the field.
+class _EmailField extends StatelessWidget {
+  final TextEditingController controller;
+  final bool isSendingOtp;
+  final bool isEmailValid;
+  final bool hasInput;
+  final VoidCallback onSend;
+  final ValueChanged<String> onChanged;
+
+  const _EmailField({
+    required this.controller,
+    required this.isSendingOtp,
+    required this.isEmailValid,
+    required this.hasInput,
+    required this.onSend,
+    required this.onChanged,
+  });
+
+  bool get _canSend => isEmailValid && !isSendingOtp;
+
+  @override
+  Widget build(BuildContext context) {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.end,
+      children: [
+        TextField(
+          controller: controller,
+          keyboardType: TextInputType.emailAddress,
+          onChanged: onChanged,
+          decoration: InputDecoration(
+            hintText: "xyz@gmail.com",
+            hintStyle: TextStyle(color: Colors.grey.shade400, fontSize: 14),
+            filled: true,
+            fillColor: Colors.white.withOpacity(0.9),
+            contentPadding:
+            const EdgeInsets.symmetric(horizontal: 14, vertical: 14),
+            border: OutlineInputBorder(
+              borderRadius: BorderRadius.circular(10),
+              borderSide: BorderSide(color: Colors.grey.shade300),
+            ),
+            enabledBorder: OutlineInputBorder(
+              borderRadius: BorderRadius.circular(10),
+              borderSide: BorderSide(color: Colors.grey.shade300),
+            ),
+            focusedBorder: OutlineInputBorder(
+              borderRadius: BorderRadius.circular(10),
+              borderSide:
+              const BorderSide(color: Color(0xFF218AE6), width: 1.5),
+            ),
+            // Show error border only when user has typed something invalid
+            errorText:
+            hasInput && !isEmailValid ? "Invalid email format" : null,
+            errorStyle: const TextStyle(fontSize: 11),
+          ),
+        ),
+        const SizedBox(height: 6),
+
+        // Lightweight "Send OTP" text action, right-aligned under the field
+        GestureDetector(
+          onTap: _canSend ? onSend : null,
+          child: Padding(
+            padding: const EdgeInsets.symmetric(vertical: 2),
+            child: isSendingOtp
+                ? const SizedBox(
+              width: 14,
+              height: 14,
+              child: CircularProgressIndicator(
+                strokeWidth: 1.8,
+                color: Color(0xFF218AE6),
+              ),
+            )
+                : Text(
+              "Send OTP",
+              style: TextStyle(
+                fontSize: 13,
+                fontWeight: FontWeight.w600,
+                color: _canSend
+                    ? const Color(0xFF218AE6)
+                    : Colors.grey.shade400,
+              ),
+            ),
+          ),
+        ),
+      ],
+    );
+  }
+}
+
+/// Inline "Didn't get the code? Resend" row with optional cooldown timer.
+class _ResendRow extends StatelessWidget {
+  final int cooldown;
+  final VoidCallback? onResend;
+
+  const _ResendRow({required this.cooldown, this.onResend});
+
+  @override
+  Widget build(BuildContext context) {
+    final canResend = cooldown == 0 && onResend != null;
+
+    return Row(
+      mainAxisAlignment: MainAxisAlignment.end,
+      children: [
+        Text(
+          "Didn't get the code? ",
+          style: TextStyle(fontSize: 12.5, color: Colors.grey.shade600),
+        ),
+        GestureDetector(
+          onTap: canResend ? onResend : null,
+          child: Text(
+            canResend ? "Resend" : "Resend in ${cooldown}s",
+            style: TextStyle(
+              fontSize: 12.5,
+              fontWeight: FontWeight.bold,
+              color: canResend ? const Color(0xFF218AE6) : Colors.grey.shade400,
+            ),
+          ),
+        ),
+      ],
+    );
+  }
+}
+
+class _LoginButton extends StatelessWidget {
+  final bool isLoading;
+  final bool isEnabled;
+  final VoidCallback onPressed;
+
+  const _LoginButton({
+    required this.isLoading,
+    required this.isEnabled,
+    required this.onPressed,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    return SizedBox(
+      height: 48,
+      child: ElevatedButton(
+        onPressed: isEnabled ? onPressed : null,
+        style: ElevatedButton.styleFrom(
+          backgroundColor: const Color(0xFF218AE6),
+          disabledBackgroundColor: Colors.grey.shade200,
+          elevation: 0,
+          shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(10),
+          ),
+        ),
+        child: isLoading
+            ? const SizedBox(
+          width: 20,
+          height: 20,
+          child: CircularProgressIndicator(
+            strokeWidth: 2,
+            color: Colors.white,
+          ),
+        )
+            : const Text(
+          "Login",
+          style: TextStyle(
+            fontSize: 15,
+            fontWeight: FontWeight.w600,
+            color: Colors.white,
+          ),
+        ),
+      ),
+    );
+  }
+}
+
+/// Secondary actions rendered as minimal inline text — no large buttons.
+class _SecondaryActions extends StatelessWidget {
+  final VoidCallback onRegister;
+  final VoidCallback onManpowerLogin;
+
+  const _SecondaryActions({
+    required this.onRegister,
+    required this.onManpowerLogin,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    return Column(
+      children: [
+        // Register
+        Row(
+          mainAxisAlignment: MainAxisAlignment.center,
+          children: [
+            Text(
+              "Don't have an account? ",
+              style: TextStyle(fontSize: 13, color: Colors.grey.shade600),
+            ),
+            GestureDetector(
+              onTap: onRegister,
+              child: const Text(
+                "Register",
+                style: TextStyle(
+                  fontSize: 13,
+                  fontWeight: FontWeight.w600,
+                  color: Color(0xFF218AE6),
+                ),
+              ),
+            ),
+          ],
+        ),
+        const SizedBox(height: 10),
+
+        // Manpower login
+        GestureDetector(
+          onTap: onManpowerLogin,
+          child: Text(
+            "Login as Manpower",
+            style: TextStyle(
+              fontSize: 13,
+              fontWeight: FontWeight.w500,
+              color: Colors.grey.shade600,
+              decoration: TextDecoration.underline,
+              decorationColor: Colors.grey.shade400,
+            ),
+          ),
+        ),
+      ],
+    );
+  }
+}
+
+class _Footer extends StatelessWidget {
+  @override
+  Widget build(BuildContext context) {
+    return Column(
+      children: [
+        Text(
+          "By continuing, you're agreeing to our Terms of Service and Privacy Policy.",
+          textAlign: TextAlign.center,
+          style: TextStyle(fontSize: 11, color: Colors.grey.shade500),
+        ),
+        const SizedBox(height: 4),
+        Text(
+          "© 2026 VAYUXI. All rights reserved.",
+          textAlign: TextAlign.center,
+          style: TextStyle(fontSize: 11, color: Colors.grey.shade400),
+        ),
+      ],
+    );
   }
 }

@@ -13,6 +13,7 @@ import '../../../../../core/utlis/widgets/sidebar.dart';
 import '../../../../../typeProvider/type_provider.dart';
 import '../../Manpower Details/model/manpower_model.dart';
 import '../../Manpower Details/service/manPowerProvider.dart';
+import '../../attendance/offline/repo/att_sync.dart';
 import '../../site_Details/repository/siteModel.dart';
 import '../model/teamModel.dart';
 import '../provider/teamProvider.dart';
@@ -271,6 +272,7 @@ class _EditTeamScreenState extends ConsumerState<EditTeamScreen> {
         data: formData,
         type: type!,
       );
+      ref.invalidate(manpowerSyncControllerProvider((type: type!)));
 
       if (mounted) {
         Navigator.pop(context);

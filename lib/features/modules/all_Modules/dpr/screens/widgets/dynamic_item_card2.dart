@@ -113,7 +113,7 @@ class _DynamicItemCard2State extends State<DynamicItemCard2>
     _mocCtrl = TextEditingController(text: widget.moc);
 
     for (final f in widget.fields) {
-      _controllers[f.key] = TextEditingController(text: f.displayText);
+      _controllers[f.key] = TextEditingController(text:"");
     }
 
     _qtyCtrl.addListener(() {

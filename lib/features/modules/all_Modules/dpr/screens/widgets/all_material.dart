@@ -44,6 +44,7 @@ import 'dynamic_item_card.dart';
 import 'dynamic_item_card2.dart';
 import 'edit_material.dart';
 
+import 'material_overlay_edit.dart';
 class AllMaterialsScreen extends ConsumerStatefulWidget {
   const AllMaterialsScreen({
     super.key,
@@ -80,6 +81,170 @@ class _AllMaterialsScreenState extends ConsumerState<AllMaterialsScreen>
     _tabController.dispose();
     super.dispose();
   }
+
+  Future<void> _openPipingEditOverlay(
+      PipingItem material,
+      String? rateUploadId,
+      ) async {
+    // Disable selection mode while editing
+    if (_isSelectionMode) {
+      setState(() {
+        _isSelectionMode = false;
+        _selectedMaterialIds.clear();
+      });
+    }
+
+    final siteId = ref.read(selectedSiteIdProvider)!;
+
+    final result = await showPipingEditOverlay(
+      context: context,
+      material: material,
+      rateUploadId: rateUploadId,
+      siteId: siteId,
+    );
+
+    if (result == null || !mounted) return;
+
+    // ── Same save logic that was previously inside onSave inline ──────────────
+    try {
+      setState(() => _isLoading = true);
+
+      final formData = FormData.fromMap({
+        "materialName": result.name,
+        "uom": result.uom,
+        "designation": material.designation,
+        "calculationCategory": result.categoryId ?? material.calculationCategory,
+        "isApplied": false,
+        "dynamicFields":
+        jsonEncode(result.fields.map((e) => e.toJson()).toList()),
+        if (result.imageFile != null)
+          "image": await MultipartFile.fromFile(
+            result.imageFile!.path,
+            filename: result.imageFile!.path.split('/').last,
+          ),
+      });
+
+      await RateUploadApi.updateLineItem(
+        rateUploadId: rateUploadId!,
+        lineItemId: material.id,
+        data: formData,
+      );
+
+      final repo = RateRepository(AppIsarDB.isar);
+      await repo.syncRateFile(siteId);
+
+      ref.invalidate(rateFileAnalysisProvider(siteId));
+      ref.invalidate(approvedPipingMaterialsProvider(siteId));
+      ref.invalidate(approvedEquipmentMaterialsProvider(siteId));
+      ref.invalidate(suggestedPipingMaterialsProvider(siteId));
+      ref.invalidate(suggestedEquipmentMaterialsProvider(siteId));
+      ref.invalidate(allRateVariantsProvider);
+
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(
+            content: Text('Material updated successfully'),
+            backgroundColor: Colors.green,
+            behavior: SnackBarBehavior.floating,
+          ),
+        );
+      }
+    } catch (e) {
+      debugPrint('❌ Piping overlay save failed: $e');
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text('Save failed: $e'),
+            backgroundColor: Colors.red,
+            behavior: SnackBarBehavior.floating,
+          ),
+        );
+      }
+    } finally {
+      if (mounted) setState(() => _isLoading = false);
+    }
+  }
+
+  Future<void> _openEquipmentEditOverlay(
+      EquipmentItem material,
+      String? rateUploadId,
+      ) async {
+    if (_isSelectionMode) {
+      setState(() {
+        _isSelectionMode = false;
+        _selectedMaterialIds.clear();
+      });
+    }
+
+    final siteId = ref.read(selectedSiteIdProvider)!;
+
+    final result = await showEquipmentEditOverlay(
+      context: context,
+      material: material,
+      rateUploadId: rateUploadId,
+      siteId: siteId,
+    );
+
+    if (result == null || !mounted) return;
+
+    try {
+      setState(() => _isLoading = true);
+
+      final formData = FormData.fromMap({
+        "materialName": result.name,
+        "uom": result.uom,
+        "designation": material.designation,
+        "calculationCategory": result.categoryId ?? material.calculationCategory,
+        "isApplied": false,
+        "dynamicFields":
+        jsonEncode(result.fields.map((e) => e.toJson()).toList()),
+        if (result.imageFile != null)
+          "image": await MultipartFile.fromFile(
+            result.imageFile!.path,
+            filename: result.imageFile!.path.split('/').last,
+          ),
+      });
+
+      await RateUploadApi.updateLineItem(
+        rateUploadId: rateUploadId!,
+        lineItemId: material.id,
+        data: formData,
+      );
+
+      final repo = RateRepository(AppIsarDB.isar);
+      await repo.syncRateFile(siteId);
+
+      ref.invalidate(rateFileAnalysisProvider(siteId));
+      ref.invalidate(approvedPipingMaterialsProvider(siteId));
+      ref.invalidate(approvedEquipmentMaterialsProvider(siteId));
+      ref.invalidate(suggestedPipingMaterialsProvider(siteId));
+      ref.invalidate(suggestedEquipmentMaterialsProvider(siteId));
+
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(
+            content: Text('Material updated successfully'),
+            backgroundColor: Colors.green,
+            behavior: SnackBarBehavior.floating,
+          ),
+        );
+      }
+    } catch (e) {
+      debugPrint('❌ Equipment overlay save failed: $e');
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text('Save failed: $e'),
+            backgroundColor: Colors.red,
+            behavior: SnackBarBehavior.floating,
+          ),
+        );
+      }
+    } finally {
+      if (mounted) setState(() => _isLoading = false);
+    }
+  }
+
 
   /// Initialize materials from the Default Material API
   Future<void> _initializeMaterials() async {
@@ -329,11 +494,8 @@ class _AllMaterialsScreenState extends ConsumerState<AllMaterialsScreen>
 
       final item = PipingItem.fromRateMaterial(m, v);
       return item.copyWith(
-        image: m.image.isNotEmpty
-            ? m.image
-            : m.resolveImage(),
+        image: m.image.isNotEmpty ? m.image : m.resolveImage(),
       );
-
     }).toList();
   }
 
@@ -752,7 +914,6 @@ class _AllMaterialsScreenState extends ConsumerState<AllMaterialsScreen>
             child: Row(
               mainAxisAlignment: MainAxisAlignment.spaceBetween,
               children: [
-
                 Row(
                   children: [
                     if (_isSelectionMode) ...[
@@ -1234,16 +1395,17 @@ class _AllMaterialsScreenState extends ConsumerState<AllMaterialsScreen>
           child: RefreshIndicator(
             onRefresh: _refreshMaterials,
             child: ListView.builder(
-              padding: const EdgeInsets.all(8.0),
+              padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 10),
               itemCount: materials.length,
               itemBuilder: (context, index) {
-                if (category == 'piping') {
-                  final material = materials[index] as PipingItem;
-                  return _buildPipingCard(material, color);
-                } else {
-                  final material = materials[index] as EquipmentItem;
-                  return _buildEquipmentCard(material, color);
-                }
+                final item = materials[index];
+
+                return Padding(
+                  padding: const EdgeInsets.only(bottom: 12), // 🔥 spacing between cards
+                  child: category == 'piping'
+                      ? _buildPipingCard(item as PipingItem, color)
+                      : _buildEquipmentCard(item as EquipmentItem, color),
+                );
               },
             ),
           ),
@@ -1267,144 +1429,108 @@ class _AllMaterialsScreenState extends ConsumerState<AllMaterialsScreen>
     final rateUploadId = rateFileMeta['rateFileId'] as String?;
     print("🧠 UI IMAGE = ${material.image}");
 
-
     return Stack(
       children: [
         Opacity(
             opacity: _isSelectionMode && !isSelected ? 0.5 : 1.0,
-            child:ExpandableMaterialCard(
-              categoryId: editingMaterialId == material.id
-                  ? draftCategoryId
-                  : material.calculationCategory,
-
+            child: testDynamicItemCard(
+              key: ValueKey(material.id + material.image),
+              isDpr: false,
+              image: material.image,
+              lengthLabel: material.materialName,
+              lengthPlaceholder: material.uom,
+              fields: material.dynamicFields,
+              isEditable: !_isSelectionMode && editingMaterialId == null,
               isEditMode: editingMaterialId == material.id,
-
-              onCategoryChanged: (newId) {
-                setState(() {
-                  draftCategoryId = newId;
-                  print(draftCategoryId);
-                });
+              onCancel: () {
+                setState(() => editingMaterialId = null);
               },
+              onSave: (result) async {
+                try {
+                  setState(() => _isLoading = true);
+                  print("🥲🥲🥲🥲🥲🥲 $draftCategoryId");
 
-              child: testDynamicItemCard(
-                key: ValueKey(material.id + material.image),
+                  final formData = FormData.fromMap({
+                    "materialName": result.name,
+                    "uom": result.uom,
+                    "designation": material.designation,
+                    "calculationCategory": draftCategoryId,
+                    "isApplied": false,
+                    "dynamicFields": jsonEncode(
+                        result.fields.map((e) => e.toJson()).toList()),
+                    if (result.imageFile != null)
+                      "image": await MultipartFile.fromFile(
+                        result.imageFile!.path,
+                        filename: result.imageFile!.path.split('/').last,
+                      ),
+                  });
+                  print("📤 sending image = ${result.imageFile?.path}");
+                  print(
+                      "📤 fields = ${jsonEncode(result.fields.map((e) => e.toJson()).toList())}");
 
-                isDpr: false,
-
-
-                  image: material.image,
-                  lengthLabel: material.materialName,
-                  lengthPlaceholder: material.uom,
-                  fields: material.dynamicFields,
-
-                  isEditable: !_isSelectionMode && editingMaterialId == null,
-
-                  isEditMode: editingMaterialId == material.id,
-
-                  onCancel: () {
-                    setState(() => editingMaterialId = null);
-                  },
-
-                    onSave: (result) async {
-                      try {
-                        setState(() => _isLoading = true);
-                        print("🥲🥲🥲🥲🥲🥲 $draftCategoryId");
-
-                        final formData = FormData.fromMap({
-                          "materialName": result.name,
-                          "uom": result.uom,
-                          "designation": material.designation,
-                          "calculationCategory": draftCategoryId,
-                          "isApplied": false,
-                          "dynamicFields":
-                          jsonEncode(result.fields.map((e) => e.toJson()).toList()),
-
-                          if (result.imageFile != null)
-                            "image": await MultipartFile.fromFile(
-                              result.imageFile!.path,
-                              filename: result.imageFile!.path.split('/').last,
-                            ),
-                        });
-                        print("📤 sending image = ${result.imageFile?.path}");
-                        print("📤 fields = ${jsonEncode(result.fields.map((e) => e.toJson()).toList())}");
-
-
-                        await RateUploadApi.updateLineItem(
-                          rateUploadId: rateUploadId!,
-                          lineItemId: material.id,
-                          data: formData,
-                        );
-
-                        final repo = RateRepository(AppIsarDB.isar);
-                        await repo.syncRateFile(siteId);
-
-                        ref.invalidate(rateFileAnalysisProvider(siteId));
-                        ref.invalidate(approvedPipingMaterialsProvider(siteId));
-                        ref.invalidate(approvedEquipmentMaterialsProvider(siteId));
-                        ref.invalidate(suggestedPipingMaterialsProvider(siteId));
-                        ref.invalidate(suggestedEquipmentMaterialsProvider(siteId));
-                        ref.invalidate(allRateVariantsProvider);
-
-                        setState(() {
-                          editingMaterialId = null;
-                          draftCategoryId = null;
-                        });
-
-                      } catch (e) {
-                        print("❌ save failed $e");
-                      } finally {
-                        setState(() => _isLoading = false);
-                      }
-                    },
-
-
-                  onChanged: (key, value) {
-                    _updatePipingField(material.id, key, value);
-                  },
-
-                  onEdit: _isSelectionMode
-                      ? null
-                      : () {
-                    setState(() {
-                      editingMaterialId = material.id;
-                    });
-                  },
-
-                  onDelete: editingMaterialId != null || rateUploadId == null
-                      ? null
-                      : () => _deleteRateLineItem(
-                    siteId: siteId,
-                    rateUploadId: rateUploadId,
+                  await RateUploadApi.updateLineItem(
+                    rateUploadId: rateUploadId!,
                     lineItemId: material.id,
-                    materialName: material.materialName,
-                  ),
+                    data: formData,
+                  );
 
-                  onCopy: editingMaterialId != null || rateUploadId == null
-                      ? null
-                      : () => _copyRateLineItem(
-                    siteId: siteId,
-                    rateUploadId: rateUploadId,
-                    lineItemId: material.rateFileId ?? '',
-                  ),
+                  final repo = RateRepository(AppIsarDB.isar);
+                  await repo.syncRateFile(siteId);
 
-                  onAdd: editingMaterialId != null
-                      ? null
-                      : () => _copyMaterial(material, 'piping'),
+                  ref.invalidate(rateFileAnalysisProvider(siteId));
+                  ref.invalidate(approvedPipingMaterialsProvider(siteId));
+                  ref.invalidate(approvedEquipmentMaterialsProvider(siteId));
+                  ref.invalidate(suggestedPipingMaterialsProvider(siteId));
+                  ref.invalidate(suggestedEquipmentMaterialsProvider(siteId));
+                  ref.invalidate(allRateVariantsProvider);
 
-                  quantity: '',
-                  size: '',
-                  length: '',
-                  floor: '',
-                  moc: '',
-                  sizeLabel: '',
-                  sizePlaceholder: '',
-                  onQtyChanged: (_) {},
-                  onSizeChanged: (_) {},
-                  onLengthChanged: (_) {},
-                  onFloorChanged: (_) {},
-                  onMocChanged: (_) {}, onRemark: () {  },
-                ),
-
+                  setState(() {
+                    editingMaterialId = null;
+                    draftCategoryId = null;
+                  });
+                } catch (e) {
+                  print("❌ save failed $e");
+                } finally {
+                  setState(() => _isLoading = false);
+                }
+              },
+              onChanged: (key, value) {
+                _updatePipingField(material.id, key, value);
+              },
+              onEdit: _isSelectionMode
+                  ? null
+                  : () => _openPipingEditOverlay(material, rateUploadId),
+              onDelete: editingMaterialId != null || rateUploadId == null
+                  ? null
+                  : () => _deleteRateLineItem(
+                        siteId: siteId,
+                        rateUploadId: rateUploadId,
+                        lineItemId: material.id,
+                        materialName: material.materialName,
+                      ),
+              onCopy: editingMaterialId != null || rateUploadId == null
+                  ? null
+                  : () => _copyRateLineItem(
+                        siteId: siteId,
+                        rateUploadId: rateUploadId,
+                        lineItemId: material.rateFileId ?? '',
+                      ),
+              onAdd: editingMaterialId != null
+                  ? null
+                  : () => _copyMaterial(material, 'piping'),
+              quantity: '',
+              size: '',
+              length: '',
+              floor: '',
+              moc: '',
+              sizeLabel: '',
+              sizePlaceholder: '',
+              onQtyChanged: (_) {},
+              onSizeChanged: (_) {},
+              onLengthChanged: (_) {},
+              onFloorChanged: (_) {},
+              onMocChanged: (_) {},
+              onRemark: () {},
             )),
         if (_isSelectionMode)
           Positioned(
@@ -1443,7 +1569,6 @@ class _AllMaterialsScreenState extends ConsumerState<AllMaterialsScreen>
       ],
     );
   }
-
 
   Widget _buildEquipmentCard(EquipmentItem material, Color color,
       {bool isSuggested = false}) {
@@ -1489,8 +1614,8 @@ class _AllMaterialsScreenState extends ConsumerState<AllMaterialsScreen>
                     "designation": material.designation,
                     "calculationCategory": draftCategoryId,
                     "isApplied": false,
-                    "dynamicFields":
-                    jsonEncode(result.fields.map((e) => e.toJson()).toList()),
+                    "dynamicFields": jsonEncode(
+                        result.fields.map((e) => e.toJson()).toList()),
                     if (result.imageFile != null)
                       "image": await MultipartFile.fromFile(
                         result.imageFile!.path,
@@ -1537,26 +1662,26 @@ class _AllMaterialsScreenState extends ConsumerState<AllMaterialsScreen>
               onEdit: _isSelectionMode
                   ? null
                   : () {
-                setState(() {
-                  editingMaterialId = material.id;
-                  draftCategoryId = material.calculationCategory;
-                });
-              },
+                      setState(() {
+                        editingMaterialId = material.id;
+                        draftCategoryId = material.calculationCategory;
+                      });
+                    },
               onDelete: editingMaterialId != null || rateUploadId == null
                   ? null
                   : () => _deleteRateLineItem(
-                siteId: siteId,
-                rateUploadId: rateUploadId,
-                lineItemId: material.rateFileId ?? '',
-                materialName: material.materialName,
-              ),
+                        siteId: siteId,
+                        rateUploadId: rateUploadId,
+                        lineItemId: material.rateFileId ?? '',
+                        materialName: material.materialName,
+                      ),
               onCopy: editingMaterialId != null || rateUploadId == null
                   ? null
                   : () => _copyRateLineItem(
-                siteId: siteId,
-                rateUploadId: rateUploadId,
-                lineItemId: material.rateFileId ?? '',
-              ),
+                        siteId: siteId,
+                        rateUploadId: rateUploadId,
+                        lineItemId: material.rateFileId ?? '',
+                      ),
               onAdd: editingMaterialId != null
                   ? null
                   : () => _copyMaterial(material, 'equipment'),
@@ -1605,7 +1730,6 @@ class _AllMaterialsScreenState extends ConsumerState<AllMaterialsScreen>
       ],
     );
   }
-
 
   Future<void> _updatePipingField(String id, String field, String value) async {
     try {
@@ -1793,12 +1917,8 @@ class _AllMaterialsScreenState extends ConsumerState<AllMaterialsScreen>
   }
 
   void _addNewMaterial(String category) {
-    final siteID=ref.read(selectedSiteIdProvider)!;
+    final siteID = ref.read(selectedSiteIdProvider)!;
     final rateFileMeta = ref.read(rateFileMetaProvider(siteID));
-
-
-
-
 
     final rateUploadId = rateFileMeta['rateFileId'] as String?;
     Navigator.of(context)
@@ -1806,7 +1926,7 @@ class _AllMaterialsScreenState extends ConsumerState<AllMaterialsScreen>
       MaterialPageRoute(
         builder: (context) => PersistDPRScreen(
           designation: category,
-          rateUploadId:rateUploadId ,
+          rateUploadId: rateUploadId,
         ),
       ),
     )

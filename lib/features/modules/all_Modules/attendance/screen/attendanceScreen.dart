@@ -1,15 +1,18 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:untitled2/core/utlis/common_functions.dart';
 import 'package:untitled2/core/utlis/widgets/custom_appBar.dart';
 import 'package:untitled2/features/language/service/providers.dart';
 import 'package:untitled2/features/modules/all_Modules/site_Details/providers/site_current_provider.dart';
 import 'package:untitled2/features/modules/all_Modules/site_Details/repository/siteModel.dart';
 import 'package:untitled2/features/modules/all_Modules/team/provider/teamProvider.dart';
+import '../../../../../core/utlis/app_toasts.dart';
 import '../../../../../core/utlis/widgets/Button_wrapper.dart';
 import '../../../../../core/utlis/widgets/buttons.dart';
 import '../../../../../core/utlis/widgets/image_clipped.dart';
 import '../../../../../core/utlis/widgets/sidebar.dart';
 import '../../../../../typeProvider/type_provider.dart';
+import '../../../screen/device_id.dart';
 import '../model/attModel.dart';
 import '../offline/repo/att_offline_provider.dart';
 import '../offline/repo/att_sync.dart';
@@ -56,6 +59,7 @@ class _AttendanceScreenState extends ConsumerState<AttendanceScreen> {
     return {"label": val.toString(), "value": val};
   });
 
+
   @override
   void initState() {
     super.initState();
@@ -72,14 +76,83 @@ class _AttendanceScreenState extends ConsumerState<AttendanceScreen> {
     _isEditMode = false;
     super.dispose();
   }
+  Future<void> _reloadAll() async {
+    print("🔄 FULL RELOAD START");
+
+    final type = ref.read(typeProvider)!;
+    final siteId = ref.read(selectedSiteIdProvider)!;
+
+    try {
+      // 1️⃣ Reload teams
+      await ref.read(teamProvider.notifier).fetchTeams(
+        type: type,
+        siteId: siteId,
+      );
+
+      // 2️⃣ Reload manpower
+      final repo = ref.read(attendanceRepositoryProvider);
+      await repo.syncManpowerFromApi(type);
+
+      // 3️⃣ Force attendance provider rebuild
+      ref.invalidate(attendanceOfflineProvider);
+
+      // 4️⃣ Force refresh counter (extra safety)
+      ref.read(attendanceRefreshProvider.notifier).state++;
+
+      print("✅ FULL RELOAD DONE");
+    } catch (e) {
+      print("❌ Reload failed: $e");
+    }
+  }
 
   Future<void> _loadManpower() async {
     setState(() => isLoading = true);
+
+    print("88888888888888888888888888888888888888888888888888888888");
+
     final type = ref.read(typeProvider);
+    final repo = ref.read(attendanceRepositoryProvider);
 
-    ref.invalidate(manpowerSyncControllerProvider((type: type!)));
+    try {
+      await repo.syncManpowerFromApi(type!);
+      print("✅ Manpower synced from API");
+    } catch (e) {
 
-    // ✅ Bump refresh counter → forces attendanceOfflineProvider to re-run
+
+      final error = extractBackendError(e);
+      AppToast.error(error);
+      if (isDeviceAuthError(e)) {
+        print("🔐 Device not authorized → opening OTP screen");
+
+        final result = await Navigator.push(
+          context,
+          MaterialPageRoute(
+            builder: (_) => const DeviceOtpScreen(),
+          ),
+        );
+
+        // 🔥 After OTP success → retry
+        if (result == true) {
+          print("✅ Device authorized → reloading full screen");
+
+          await _reloadAll();
+
+          if (mounted) {
+            setState(() {}); // force rebuild UI
+          }
+
+          return;
+        }
+
+        setState(() => isLoading = false);
+        return;
+      }
+
+
+      print("⚠️ Failed to sync manpower, using offline data: $e");
+    }
+
+    // 🔥 Always refresh UI regardless of API success/failure
     ref.read(attendanceRefreshProvider.notifier).state++;
 
     setState(() {
@@ -342,21 +415,30 @@ class _AttendanceScreenState extends ConsumerState<AttendanceScreen> {
       for (int i = 0; i < list.length; i++)
         if (i == changedIndex)
           list[i].copyWith(ot: otValue)
-        else if (list[i].status == "present" && list[i].totalHours >= 8)
-          list[i].copyWith(ot: otValue)
+        else if (list[i].status == "present")
+              () {
+            final totalHourRaw = list[i].manpower.totalHour;
+            final totalHour =
+                double.tryParse(totalHourRaw ?? "") ?? 0;
+
+            // fallback to 8 if not defined
+            final maxOT = totalHour > 0 ? totalHour : 8.0;
+
+            final safeOT = otValue.clamp(0, maxOT).toDouble();
+            return list[i].copyWith(ot: safeOT);
+          }()
         else
           list[i]
     ];
 
     ScaffoldMessenger.of(context).showSnackBar(
       SnackBar(
-        content: Text('$otValue hours OT applied'),
+        content: Text('$otValue hours OT applied (adjusted per employee)'),
         backgroundColor: Colors.green,
         behavior: SnackBarBehavior.floating,
       ),
     );
   }
-
   Future<void> _submitAttendance() async {
     if (!_isEditable) {
       if (!_isToday(_selectedDate)) {
@@ -509,6 +591,24 @@ class _AttendanceScreenState extends ConsumerState<AttendanceScreen> {
   }
 
   String _formatDate(DateTime d) => "${d.day}/${d.month}/${d.year}";
+  List<Map<String, dynamic>> buildOTOptions({
+    required double? maxAllowedHours,
+  }) {
+    // fallback to 8 if not provided or invalid
+    final maxOT = (maxAllowedHours != null && maxAllowedHours > 0)
+        ? maxAllowedHours
+        : 8.0;
+
+    final steps = (maxOT * 2).floor(); // 0.5 steps
+
+    return List.generate(steps + 1, (i) {
+      final val = i * 0.5;
+      return {
+        "label": val.toString(),
+        "value": val,
+      };
+    });
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -547,7 +647,7 @@ class _AttendanceScreenState extends ConsumerState<AttendanceScreen> {
             : attendanceState.when(
           data: (attendanceList) {
             // ✅ Only initialize draft when date changes, not on every stream emit
-            if (_draftLoadedForDate != _selectedDate) {
+            if (_draftLoadedForDate != _selectedDate && attendanceList.isNotEmpty){
               _draftLoadedForDate = _selectedDate;
               WidgetsBinding.instance.addPostFrameCallback((_) {
                 if (!mounted) return;
@@ -749,8 +849,15 @@ class _AttendanceScreenState extends ConsumerState<AttendanceScreen> {
                       itemCount: draft.length,
                       itemBuilder: (context, i) {
                         final emp = draft[i];
+                        final totalHours =
+                            double.tryParse(emp.manpower.totalHour ?? "") ?? 0;
+
+                        final otOptions = buildOTOptions(
+                          maxAllowedHours: totalHours,
+                        );
                         return AttendanceCard(
                           name: emp.manpower.fullName ?? "Unnamed",
+                          maxAllowedHours: totalHours,
                           status: emp.status,
                           totalHours: emp.totalHours,
                           otValue: emp.ot,
@@ -818,6 +925,7 @@ class AttendanceCard extends StatefulWidget {
   final Function(dynamic) onAbsentChange;
   final Function(double) onOtChange;
   final bool isEditMode;
+  final double maxAllowedHours;
 
   const AttendanceCard({
     super.key,
@@ -830,6 +938,8 @@ class AttendanceCard extends StatefulWidget {
     required this.onAbsentChange,
     required this.onOtChange,
     required this.isEditMode,
+    required this.maxAllowedHours,
+
   });
 
   @override
@@ -1129,8 +1239,17 @@ class _AttendanceCardState extends State<AttendanceCard> {
   }
 
   Widget _buildHoursDropdown() {
+    final maxAllowedHours =
+    widget.maxAllowedHours > 0 ? widget.maxAllowedHours : 8.0;
+
     final hoursOptions = _present
-        ? widget.absentOptions.where((e) => e["value"] is double).toList()
+        ? List.generate((maxAllowedHours * 2).floor() + 1, (i) {
+      final val = i * 0.5;
+      return {
+        "label": "${val.toString()}h",
+        "value": val,
+      };
+    })
         : [
       {"value": 0.0, "label": "0h"}
     ];
@@ -1154,13 +1273,13 @@ class _AttendanceCardState extends State<AttendanceCard> {
           child: DropdownButton<double>(
             value: hoursOptions.any((e) => e["value"] == _hours)
                 ? _hours
-                : hoursOptions.first["value"],
+                : hoursOptions.first["value"] as double,
             iconSize: 16,
             isDense: true,
             items: hoursOptions
                 .map(
                   (e) => DropdownMenuItem<double>(
-                value: e["value"],
+                value: e["value"] as double,
                 child: Text(
                   e["label"].toString(),
                   style: TextStyle(
@@ -1175,6 +1294,13 @@ class _AttendanceCardState extends State<AttendanceCard> {
                 ? (v) {
               if (v != null) {
                 setState(() => _hours = v);
+
+                // 🔥 IMPORTANT: reset OT if exceeds limit
+                if (_otHours > maxAllowedHours - v) {
+                  _otHours = 0;
+                  widget.onOtChange(0);
+                }
+
                 widget.onAbsentChange(v);
               }
             }
@@ -1183,6 +1309,23 @@ class _AttendanceCardState extends State<AttendanceCard> {
         ),
       ),
     );
+  }
+
+  List<Map<String, dynamic>> buildOTOptions({
+    required double maxAllowedHours,
+    required double workedHours,
+  }) {
+    final maxOT = (maxAllowedHours - workedHours).clamp(0, 24);
+
+    final steps = (maxOT * 2).floor(); // 0.5 steps
+
+    return List.generate(steps + 1, (i) {
+      final val = i * 0.5;
+      return {
+        "label": val.toString(),
+        "value": val,
+      };
+    });
   }
 
   Widget _buildOTDropdown(double effectiveOTValue) {

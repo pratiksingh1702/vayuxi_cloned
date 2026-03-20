@@ -68,11 +68,11 @@ class AuthAPI {
   /// Helper: Get or Create Device ID
   static Future<String> _getDeviceId() async {
     final prefs = await SharedPreferences.getInstance();
-    String? id = prefs.getString("device_id");
+    String? id = prefs.getString("actual_device_id");
 
     if (id == null) {
       id = const Uuid().v4();
-      await prefs.setString("device_id", id);
+      await prefs.setString("actual_device_id", id);
     }
 
     return id;

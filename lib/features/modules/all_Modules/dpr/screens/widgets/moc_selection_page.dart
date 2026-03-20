@@ -368,7 +368,7 @@ class _MOCSelectionPageState extends ConsumerState<MOCSelectionPage> {
                             name: item.name,
                             imageUrl: item.image.isNotEmpty
                                 ? item.image
-                                : 'assets/images/default.webp',
+                                : 'assets/images/default_moc.webp',
                           );
 
                           return Stack(

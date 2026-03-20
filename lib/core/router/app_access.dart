@@ -89,28 +89,39 @@ class AppAccessNotifier extends StateNotifier<AppAccessState> {
     // ── 3. Fetch onboarding status ───────────────────────────────────────────
     bool onboardingCompleted = false;
     bool trialActivated      = false;
+    bool trialPaymentPending = false; // ← NEW: trial order created but not yet verified
 
     try {
-      final status        = await OnboardingService.getStatus();
+      final status = await OnboardingService.getStatus();
       onboardingCompleted = status['isCompleted']    == true;
       trialActivated      = status['trialActivated'] == true;
+
+      // ── KEY FIX: user has gone through trial flow (payment pending/completed)
+      // paymentStatus: 'pending' means the ₹1 order was created and payment
+      // was made but backend hasn't marked trialActivated yet, OR the trial
+      // was activated but the flag wasn't updated. Either way, treat as paid.
+      final paymentStatus = status['paymentStatus'] as String? ?? '';
+      trialPaymentPending = paymentStatus == 'pending' || paymentStatus == 'completed';
     } catch (e) {
       print('AppAccess: onboarding status fetch failed – $e');
     }
 
-    // ── 4. Check subscription ────────────────────────────────────────────────
+    // ── 4. Check subscription from payment provider ───────────────────────────
     bool hasSubscription = false;
     try {
-      final sub    = await ref.read(currentSubscriptionProvider.future);
+      final sub = await ref.read(currentSubscriptionProvider.future);
       hasSubscription = sub.hasSubscription && sub.isActive;
     } catch (e) {
       print('AppAccess: subscription fetch failed – $e');
     }
 
-    // ── 5. planSelected is ONLY true when user has an active subscription ────
-    // Without a subscription the router ALWAYS shows plan-select first,
-    // regardless of onboarding history. onboardingCompleted is tracked
-    // separately so the router can skip that step if already done.
+    // ── 5. If trial payment was made (even if not fully activated yet),
+    //       treat as having a subscription so plan overlay is skipped.
+    //       The access gate will then only check device verification.
+    if (!hasSubscription && trialActivated) {
+      hasSubscription = true;
+    }
+
     final planSelected = hasSubscription;
 
     state = AppAccessState(
@@ -118,7 +129,7 @@ class AppAccessNotifier extends StateNotifier<AppAccessState> {
       loggedIn:            true,
       planSelected:        planSelected,
       onboardingCompleted: onboardingCompleted,
-      trialActivated:      trialActivated,
+      trialActivated:      trialActivated || trialPaymentPending,
       hasSubscription:     hasSubscription,
     );
   }
@@ -128,7 +139,7 @@ class AppAccessNotifier extends StateNotifier<AppAccessState> {
   void markTrialActivated()      => state = state.copyWith(trialActivated: true);
 
   Future<void> refreshSubscription() async {
-    state = state.copyWith(isBooting: true);
+
     await initialize();
   }
 }

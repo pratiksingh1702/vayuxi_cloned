@@ -312,7 +312,9 @@ import '../../modules/all_Modules/Manpower Details/model/manpower_model.dart';
           isLoggedIn: false,
           errorMessage: _getErrorMessage(e),
         );
+        rethrow;
       }
+
     }
 
     // ---------------------------------------------------------

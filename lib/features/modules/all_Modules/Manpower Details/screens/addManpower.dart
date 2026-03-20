@@ -713,7 +713,7 @@ class _NewManpowerScreenState extends ConsumerState<NewManpowerScreen> {
                           borderRadius: BorderRadius.circular(30),
                         ),
                       ),
-                      child: loading?const CircularProgressIndicator():const Text("Save"),
+                      child: loading?const CircularProgressIndicator(color: Colors.white,):const Text("Save"),
                     ),
                   ),
                 ],

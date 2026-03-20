@@ -126,10 +126,10 @@ class _WorkTeamListPageState extends ConsumerState<WorkTeamListPage> {
               return const Center(child: CircularProgressIndicator());
             }
 
-            // ✅ show error ONLY if no cached data
-            if (!teamState.hasData && teamState.error != null) {
-              return Center(child: Text("Error: ${teamState.error}"));
-            }
+            // // ✅ show error ONLY if no cached data
+            // if (!teamState.hasData && teamState.error != null) {
+            //   return Center(child: Text("Error: ${teamState.error}"));
+            // }
 
             final teams = teamState.teams;
 
@@ -138,21 +138,21 @@ class _WorkTeamListPageState extends ConsumerState<WorkTeamListPage> {
               child: Column(
                 children: [
                   // ✅ Optional: show sync error but keep UI working
-                  if (teamState.error != null && teamState.hasData)
-                    Container(
-                      width: double.infinity,
-                      margin: const EdgeInsets.only(bottom: 12),
-                      padding: const EdgeInsets.all(10),
-                      decoration: BoxDecoration(
-                        color: Colors.orange.withOpacity(0.15),
-                        borderRadius: BorderRadius.circular(12),
-                        border: Border.all(color: Colors.orange),
-                      ),
-                      child: Text(
-                        teamState.error!,
-                        style: const TextStyle(color: Colors.orange),
-                      ),
-                    ),
+                  // if (teamState.error != null && teamState.hasData)
+                  //   Container(
+                  //     width: double.infinity,
+                  //     margin: const EdgeInsets.only(bottom: 12),
+                  //     padding: const EdgeInsets.all(10),
+                  //     decoration: BoxDecoration(
+                  //       color: Colors.orange.withOpacity(0.15),
+                  //       borderRadius: BorderRadius.circular(12),
+                  //       border: Border.all(color: Colors.orange),
+                  //     ),
+                  //     child: Text(
+                  //       teamState.error!,
+                  //       style: const TextStyle(color: Colors.orange),
+                  //     ),
+                  //   ),
 
                   // Teams Grid
                   Expanded(

@@ -131,10 +131,11 @@ class DprModel {
 }
 class MaterialEditResult {
   final String name;
-  final File? imageFile;   // ⭐
+  final File? imageFile;
   final String? imageUrl;
   final String uom;
   final List<DynamicField> fields;
+  final String? categoryId;          // ← ADD THIS
 
   MaterialEditResult({
     required this.name,
@@ -142,5 +143,6 @@ class MaterialEditResult {
     this.imageUrl,
     required this.uom,
     required this.fields,
+    this.categoryId,               // ← ADD THIS
   });
 }

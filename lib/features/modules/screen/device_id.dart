@@ -1,11 +1,8 @@
 import 'package:flutter/material.dart';
-import 'package:dio/dio.dart';
 import 'package:go_router/go_router.dart';
 import 'package:pin_code_fields/pin_code_fields.dart';
 import '../../../core/api/dio.dart';
 import '../../auth/service/auth_client.dart';
-import 'package:cookie_jar/cookie_jar.dart';
-import 'package:dio_cookie_manager/dio_cookie_manager.dart';
 
 import 'device_id_helper.dart';
 
@@ -31,6 +28,8 @@ class _DeviceOtpScreenState extends State<DeviceOtpScreen> {
   String? message;
   bool isSuccess = false;
 
+  // ─── API calls (unchanged) ────────────────────────────────────────────────
+
   Future<void> generateOtp() async {
     setState(() {
       loading = true;
@@ -40,7 +39,6 @@ class _DeviceOtpScreenState extends State<DeviceOtpScreen> {
 
     try {
       final res = await AuthAPI.generateDeviceOtp();
-
       setState(() {
         otpSent = true;
         message = res["message"] ?? "OTP sent to your email";
@@ -77,13 +75,13 @@ class _DeviceOtpScreenState extends State<DeviceOtpScreen> {
       });
 
       final String newDeviceId = res["deviceId"]?.toString() ?? '';
-
       await DioClient.setDeviceIdCookie(newDeviceId);
       await DevicePrefs.saveDeviceId(newDeviceId);
 
       if (!mounted) return;
 
-      final targetTabIndex = widget.redirectExtraData?['targetTabIndex'] as int?;
+      final targetTabIndex =
+      widget.redirectExtraData?['targetTabIndex'] as int?;
 
       if (targetTabIndex != null) {
         Navigator.pop(context, targetTabIndex);
@@ -102,7 +100,7 @@ class _DeviceOtpScreenState extends State<DeviceOtpScreen> {
         return;
       }
 
-      Navigator.pop(context);
+      Navigator.pop(context, true);
     } catch (e) {
       setState(() {
         message = "Invalid OTP. Please try again.";
@@ -112,6 +110,8 @@ class _DeviceOtpScreenState extends State<DeviceOtpScreen> {
 
     setState(() => loading = false);
   }
+
+  // ─── Build ────────────────────────────────────────────────────────────────
 
   @override
   Widget build(BuildContext context) {
@@ -128,12 +128,12 @@ class _DeviceOtpScreenState extends State<DeviceOtpScreen> {
           children: [
             Expanded(
               child: SingleChildScrollView(
-                padding: const EdgeInsets.all(24),
+                padding: const EdgeInsets.symmetric(horizontal: 24),
                 child: Column(
                   children: [
-                    const SizedBox(height: 20),
+                    const SizedBox(height: 24),
 
-                    // Icon
+                    // ── Icon ────────────────────────────────────────────────
                     Container(
                       padding: const EdgeInsets.all(20),
                       decoration: BoxDecoration(
@@ -147,35 +147,38 @@ class _DeviceOtpScreenState extends State<DeviceOtpScreen> {
                       ),
                     ),
 
-                    const SizedBox(height: 24),
+                    const SizedBox(height: 20),
 
-                    // Title
+                    // ── Title ───────────────────────────────────────────────
                     Text(
-                      otpSent ? "Enter Verification Code" : "Verify Your Device",
+                      otpSent
+                          ? "Enter Verification Code"
+                          : "Verify Your Device",
                       style: const TextStyle(
                         fontSize: 24,
                         fontWeight: FontWeight.bold,
                       ),
                     ),
 
-                    const SizedBox(height: 12),
+                    const SizedBox(height: 10),
 
-                    // Subtitle
+                    // ── Subtitle ────────────────────────────────────────────
                     Text(
                       otpSent
-                          ? "We've sent a 6-digit code to your email"
-                          : "Tap the button below to receive a verification code",
-                      style: TextStyle(
-                        fontSize: 15,
-                        color: Colors.grey[600],
-                      ),
+                          ? "We've sent a 6-digit code to your registered email"
+                          : "A quick one-time step to confirm this is your device",
+                      style: TextStyle(fontSize: 15, color: Colors.grey[600]),
                       textAlign: TextAlign.center,
                     ),
 
-                    const SizedBox(height: 40),
+                    const SizedBox(height: 24),
 
-                    // OTP Input (only show after OTP is sent)
+                    // ── Why section (only before OTP is sent) ───────────────
+                    if (!otpSent) _WhySection(),
+
+                    // ── OTP Input ───────────────────────────────────────────
                     if (otpSent) ...[
+                      const SizedBox(height: 16),
                       PinCodeTextField(
                         length: 6,
                         appContext: context,
@@ -207,22 +210,39 @@ class _DeviceOtpScreenState extends State<DeviceOtpScreen> {
                         backgroundColor: Colors.transparent,
                       ),
 
-                      const SizedBox(height: 24),
+                      const SizedBox(height: 12),
 
-                      // Resend OTP
-                      TextButton.icon(
-                        onPressed: loading ? null : generateOtp,
-                        icon: const Icon(Icons.refresh, size: 18),
-                        label: const Text("Didn't receive code? Resend"),
-                        style: TextButton.styleFrom(
-                          foregroundColor: Colors.blue[700],
-                        ),
+                      // ── Resend — inline text style ───────────────────────
+                      Row(
+                        mainAxisAlignment: MainAxisAlignment.center,
+                        children: [
+                          Text(
+                            "Didn't receive the code? ",
+                            style: TextStyle(
+                              fontSize: 13,
+                              color: Colors.grey[500],
+                            ),
+                          ),
+                          GestureDetector(
+                            onTap: loading ? null : generateOtp,
+                            child: Text(
+                              "Resend",
+                              style: TextStyle(
+                                fontSize: 13,
+                                fontWeight: FontWeight.w700,
+                                color: loading
+                                    ? Colors.grey[400]
+                                    : Colors.blue[700],
+                              ),
+                            ),
+                          ),
+                        ],
                       ),
                     ],
 
                     const SizedBox(height: 20),
 
-                    // Message
+                    // ── Feedback message ────────────────────────────────────
                     if (message != null)
                       Container(
                         padding: const EdgeInsets.symmetric(
@@ -230,7 +250,9 @@ class _DeviceOtpScreenState extends State<DeviceOtpScreen> {
                           vertical: 12,
                         ),
                         decoration: BoxDecoration(
-                          color: isSuccess ? Colors.green[50] : Colors.red[50],
+                          color: isSuccess
+                              ? Colors.green[50]
+                              : Colors.red[50],
                           borderRadius: BorderRadius.circular(12),
                           border: Border.all(
                             color: isSuccess
@@ -241,8 +263,12 @@ class _DeviceOtpScreenState extends State<DeviceOtpScreen> {
                         child: Row(
                           children: [
                             Icon(
-                              isSuccess ? Icons.check_circle : Icons.error,
-                              color: isSuccess ? Colors.green[700] : Colors.red[700],
+                              isSuccess
+                                  ? Icons.check_circle
+                                  : Icons.error,
+                              color: isSuccess
+                                  ? Colors.green[700]
+                                  : Colors.red[700],
                               size: 20,
                             ),
                             const SizedBox(width: 12),
@@ -260,12 +286,14 @@ class _DeviceOtpScreenState extends State<DeviceOtpScreen> {
                           ],
                         ),
                       ),
+
+                    const SizedBox(height: 16),
                   ],
                 ),
               ),
             ),
 
-            // Bottom Button
+            // ── Bottom CTA (unchanged) ───────────────────────────────────
             Container(
               padding: const EdgeInsets.all(24),
               decoration: BoxDecoration(
@@ -282,9 +310,7 @@ class _DeviceOtpScreenState extends State<DeviceOtpScreen> {
                 width: double.infinity,
                 height: 52,
                 child: FilledButton(
-                  onPressed: loading
-                      ? null
-                      : (otpSent ? verifyOtp : generateOtp),
+                  onPressed: loading ? null : (otpSent ? verifyOtp : generateOtp),
                   style: FilledButton.styleFrom(
                     backgroundColor: Colors.blue[700],
                     shape: RoundedRectangleBorder(
@@ -301,7 +327,9 @@ class _DeviceOtpScreenState extends State<DeviceOtpScreen> {
                     ),
                   )
                       : Text(
-                    otpSent ? "Verify Code" : "Send Verification Code",
+                    otpSent
+                        ? "Verify Code"
+                        : "Send Verification Code",
                     style: const TextStyle(
                       fontSize: 16,
                       fontWeight: FontWeight.w600,
@@ -313,6 +341,130 @@ class _DeviceOtpScreenState extends State<DeviceOtpScreen> {
           ],
         ),
       ),
+    );
+  }
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
+// Why Section — shown only before OTP is sent
+// ─────────────────────────────────────────────────────────────────────────────
+
+class _WhySection extends StatelessWidget {
+  const _WhySection();
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      width: double.infinity,
+      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 16),
+      decoration: BoxDecoration(
+        color: Colors.blue[50],
+        borderRadius: BorderRadius.circular(14),
+        border: Border.all(color: Colors.blue.shade100),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          // Section header
+          Row(
+            children: [
+              Icon(Icons.info_outline_rounded,
+                  size: 15, color: Colors.blue[700]),
+              const SizedBox(width: 6),
+              Text(
+                "Why is this required?",
+                style: TextStyle(
+                  fontSize: 13,
+                  fontWeight: FontWeight.w700,
+                  color: Colors.blue[800],
+                ),
+              ),
+            ],
+          ),
+          const SizedBox(height: 10),
+
+          // Explanation
+          Text(
+            "VAYUXI is used by supervisors and site managers to handle teams, reports, and project data. "
+                "Device verification makes sure only authorised people can access this information — "
+                "even if someone else installs the app.",
+            style: TextStyle(
+              fontSize: 12.5,
+              color: Colors.blue[900],
+              height: 1.55,
+            ),
+          ),
+
+          const SizedBox(height: 12),
+
+          // Benefit bullets
+          _BulletPoint(
+            icon: Icons.lock_outline_rounded,
+            text: "Keeps your site data accessible only to you",
+          ),
+          const SizedBox(height: 6),
+          _BulletPoint(
+            icon: Icons.block_rounded,
+            text: "Stops unauthorised changes or misuse",
+          ),
+          const SizedBox(height: 6),
+          _BulletPoint(
+            icon: Icons.devices_rounded,
+            text: "Ties your account to this device securely",
+          ),
+
+          const SizedBox(height: 14),
+
+          // Reassurance line
+          Row(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Icon(Icons.verified_user_outlined,
+                  size: 14, color: Colors.green[600]),
+              const SizedBox(width: 6),
+              Expanded(
+                child: Text(
+                  "Your data is safe. This verification happens only once per device.",
+                  style: TextStyle(
+                    fontSize: 12,
+                    color: Colors.green[700],
+                    fontWeight: FontWeight.w500,
+                    height: 1.45,
+                  ),
+                ),
+              ),
+            ],
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+class _BulletPoint extends StatelessWidget {
+  final IconData icon;
+  final String text;
+
+  const _BulletPoint({required this.icon, required this.text});
+
+  @override
+  Widget build(BuildContext context) {
+    return Row(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Icon(icon, size: 14, color: Colors.blue[600]),
+        const SizedBox(width: 8),
+        Expanded(
+          child: Text(
+            text,
+            style: TextStyle(
+              fontSize: 12.5,
+              color: Colors.blue[900],
+              height: 1.4,
+            ),
+          ),
+        ),
+      ],
     );
   }
 }

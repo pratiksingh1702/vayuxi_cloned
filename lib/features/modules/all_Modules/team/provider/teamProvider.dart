@@ -120,6 +120,7 @@ class TeamNotifier extends StateNotifier<TeamState> {
         error: null,
       );
     } catch (e) {
+      print("00000000000000000000000000000000000000000000000000000000");
       state = state.copyWith(
         isLoading: false,
         error: e.toString(),
@@ -208,7 +209,6 @@ class TeamNotifier extends StateNotifier<TeamState> {
       }
     }
   }
-
   Future<void> deleteTeam({
     required String siteId,
     required String teamId,

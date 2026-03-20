@@ -251,6 +251,7 @@ class AttendanceRepository {
       final local = await isar.manpowerIsars
           .filter()
           .typeEqualTo(type)
+
           .findAll();
 
       /// Map for fast lookup
@@ -346,6 +347,10 @@ class AttendanceRepository {
     required String dateKey,
     required List<String> teamMemberIds,
   }) {
+
+    print("👥 teamMemberIds: $teamMemberIds");
+
+
     final attendanceStream = isar.attendanceIsars
         .filter()
         .siteIdEqualTo(siteId)
@@ -380,6 +385,7 @@ class AttendanceRepository {
               fullName: m.fullName,
               designation: m.designation,
               company: m.company,
+                totalHour: m.totalHour
             ),
             ot: att?.ot ?? 0,
             date: dateKey,

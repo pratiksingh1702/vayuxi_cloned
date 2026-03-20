@@ -270,28 +270,70 @@ class _FloorSelectionPageState extends ConsumerState<FloorSelectionPage> {
           child: Column(
             children: [
 
-              /* SEARCH */
-              if (widget.showSearch)
-                Padding(
-                  padding: const EdgeInsets.all(16),
-                  child: TextField(
-                    controller: _searchController,
-                    decoration: InputDecoration(
-                      hintText: 'Search floors...',
-                      prefixIcon:
-                      const Icon(Icons.search),
-                      border: OutlineInputBorder(
-                        borderRadius:
-                        BorderRadius.circular(12),
-                      ),
-                    ),
-                    onChanged: (v) =>
-                        setState(() => _searchQuery = v),
-                  ),
-                ),
+              // /* SEARCH */
+              // if (widget.showSearch)
+              //   Padding(
+              //     padding: const EdgeInsets.all(16),
+              //     child: TextField(
+              //       controller: _searchController,
+              //       decoration: InputDecoration(
+              //         hintText: 'Search floors...',
+              //         prefixIcon:
+              //         const Icon(Icons.search),
+              //         border: OutlineInputBorder(
+              //           borderRadius:
+              //           BorderRadius.circular(12),
+              //         ),
+              //       ),
+              //       onChanged: (v) =>
+              //           setState(() => _searchQuery = v),
+              //     ),
+              //   ),
 
               /* DELETE ICON ROW */
-              Padding(
+
+              if (!widget.showEditOptions)
+          Padding(
+            padding: const EdgeInsets.all(8.0),
+            child: Align(
+            alignment: Alignment.topRight,
+            child: TextButton(
+              onPressed: () {
+                setState(() => _selectedFloor = '');
+                ref
+                    .read(selectedFloorNameProvider.notifier)
+                    .state = '';
+                Navigator.push(
+                  context,
+                  MaterialPageRoute(
+                    builder: (_) => const SizeSelectionPage(),
+                  ),
+                );
+              },
+              style: TextButton.styleFrom(
+                backgroundColor: Colors.blue,
+                foregroundColor: Colors.white,
+                padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 10), // ✅
+                shape: RoundedRectangleBorder(
+                  borderRadius: BorderRadius.circular(20),
+                ),
+
+                minimumSize: Size.zero,
+                tapTargetSize: MaterialTapTargetSize.shrinkWrap,
+              ),
+              child: const Text(
+                'Skip',
+                style: TextStyle(
+                  fontSize: 14,
+                  fontWeight: FontWeight.w600,
+                ),
+              ),
+            ),
+                    ),
+          ),
+
+
+              if (widget.showEditOptions) Padding(
                 padding:
                 const EdgeInsets.symmetric(horizontal: 16),
                 child: Align(

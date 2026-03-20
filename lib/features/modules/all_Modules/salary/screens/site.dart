@@ -773,30 +773,35 @@ class _SiteSalaryScreenState extends ConsumerState<SiteSalaryScreen> {
       ),
     );
   }
-
   Widget _buildEmployeeList() {
     if (isLoading) {
       return const Center(child: CircularProgressIndicator());
     }
 
-    if (manpowerDataList.isEmpty) {
+    /// ✅ FILTER employees with salary ONLY
+    final filteredList = manpowerDataList.where((emp) {
+      return workData.any((d) => d["manpowerDetails"]["_id"] == emp["_id"]);
+    }).toList();
+
+    if (filteredList.isEmpty) {
       return Center(
-        child: Image.asset("assets/thame/site.png",
-            width: 350, height: 350, fit: BoxFit.contain),
+        child: Text(
+          "No salary data available",
+          style: TextStyle(fontSize: 16, color: Colors.grey[600]),
+        ),
       );
     }
 
     return ListView.builder(
       padding: const EdgeInsets.symmetric(horizontal: 10),
-      itemCount: manpowerDataList.length,
+      itemCount: filteredList.length,
       itemBuilder: (_, index) {
-        final emp = manpowerDataList[index];
-        final hasSalary =
-        workData.any((d) => d["manpowerDetails"]["_id"] == emp["_id"]);
+        final emp = filteredList[index];
 
         return Card(
           color: Colors.white,
-          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+          shape: RoundedRectangleBorder(
+              borderRadius: BorderRadius.circular(12)),
           elevation: 0,
           margin: const EdgeInsets.symmetric(vertical: 4),
           child: ListTile(
@@ -807,24 +812,27 @@ class _SiteSalaryScreenState extends ConsumerState<SiteSalaryScreen> {
               height: 40,
               decoration: const BoxDecoration(
                   color: Colors.white, shape: BoxShape.circle),
-              child:
-              Icon(Icons.person, color: Theme.of(context).primaryColor),
+              child: Icon(Icons.person,
+                  color: Theme.of(context).primaryColor),
             ),
-            title: Text(emp["fullName"] ?? "Unknown",
-                style: const TextStyle(
-                    fontSize: 16, fontWeight: FontWeight.w600)),
-            subtitle: Text(emp["designation"] ?? "No Designation",
-                style: TextStyle(fontSize: 14, color: Colors.grey[600])),
-            trailing: _PdfIndicator(hasSalaryData: hasSalary),
-            onTap: hasSalary && !isDownloading
+            title: Text(
+              emp["fullName"] ?? "Unknown",
+              style:
+              const TextStyle(fontSize: 16, fontWeight: FontWeight.w600),
+            ),
+            subtitle: Text(
+              emp["designation"] ?? "No Designation",
+              style: TextStyle(fontSize: 14, color: Colors.grey[600]),
+            ),
+            trailing: const _PdfIndicator(hasSalaryData: true),
+            onTap: !isDownloading
                 ? () => _handleGenerateSinglePDF(emp)
                 : null,
           ),
         );
       },
     );
-  }
-}
+  }}
 
 // =============================================================================
 // SUPPORTING WIDGETS (kept in same file as drop-in replacement)
@@ -999,6 +1007,8 @@ class _BulkDownloadDialogState extends State<_BulkDownloadDialog> {
         final failedNames = widget.getFailedNames();
         final done = success + failed;
         final isComplete = done >= widget.total;
+        final hasError = failed > 0;
+        final isSuccess = isComplete && !hasError;
         final progress = widget.total > 0 ? done / widget.total : 0.0;
 
         return AlertDialog(
@@ -1010,14 +1020,24 @@ class _BulkDownloadDialogState extends State<_BulkDownloadDialog> {
               Container(
                 padding: const EdgeInsets.all(8),
                 decoration: BoxDecoration(
-                  color: isComplete
-                      ? Colors.green.shade50
-                      : Colors.blue.shade50,
+                    color: isSuccess
+                        ? Colors.green
+                        : isComplete
+                        ? Colors.red
+                        : Colors.blue,
                   borderRadius: BorderRadius.circular(8),
                 ),
                 child: Icon(
-                  isComplete ? Icons.check_circle : Icons.download,
-                  color: isComplete ? Colors.green : Colors.blue,
+                  isSuccess
+                      ? Icons.check_circle
+                      : isComplete
+                      ? Icons.error
+                      : Icons.download,
+                  color: isSuccess
+                ? Colors.green
+                    : isComplete
+                ? Colors.red
+                  : Colors.blue,
                   size: 24,
                 ),
               ),
@@ -1027,9 +1047,11 @@ class _BulkDownloadDialogState extends State<_BulkDownloadDialog> {
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
                     Text(
-                      isComplete
-                          ? 'Download Complete!'
-                          : 'Downloading Salary Slips',
+                isSuccess
+                ? 'Download Complete!'
+                    : isComplete
+                    ? 'Download Completed with Errors'
+                        : 'Downloading Salary Slips',
                       style: const TextStyle(
                           fontSize: 18, fontWeight: FontWeight.bold),
                     ),
@@ -1057,7 +1079,11 @@ class _BulkDownloadDialogState extends State<_BulkDownloadDialog> {
                     style: TextStyle(
                         fontSize: 24,
                         fontWeight: FontWeight.bold,
-                        color: isComplete ? Colors.green : Colors.blue),
+                        color: isSuccess
+                            ? Colors.green
+                            : isComplete
+                            ? Colors.red
+                            : Colors.blue),
                   ),
                   Text('$success success, $failed failed',
                       style: TextStyle(fontSize: 13, color: Colors.grey[700])),
@@ -1070,7 +1096,11 @@ class _BulkDownloadDialogState extends State<_BulkDownloadDialog> {
                   value: progress,
                   backgroundColor: Colors.grey[200],
                   valueColor: AlwaysStoppedAnimation<Color>(
-                      isComplete ? Colors.green : Colors.blue),
+                      isSuccess
+                          ? Colors.green
+                          : isComplete
+                          ? Colors.red
+                          : Colors.blue),
                   minHeight: 12,
                 ),
               ),
@@ -1081,7 +1111,9 @@ class _BulkDownloadDialogState extends State<_BulkDownloadDialog> {
                 Container(
                   padding: const EdgeInsets.all(12),
                   decoration: BoxDecoration(
-                    color: Colors.green.shade50,
+        color: isSuccess
+        ? Colors.green.shade50
+            : Colors.red.shade50,
                     borderRadius: BorderRadius.circular(12),
                     border: Border.all(color: Colors.green.shade200),
                   ),
@@ -1129,7 +1161,7 @@ class _BulkDownloadDialogState extends State<_BulkDownloadDialog> {
                 child: ElevatedButton(
                   onPressed: () => Navigator.pop(context),
                   style: ElevatedButton.styleFrom(
-                    backgroundColor: Colors.green,
+                    backgroundColor: isSuccess ? Colors.green : Colors.red,
                     foregroundColor: Colors.white,
                     padding: const EdgeInsets.symmetric(vertical: 14),
                     shape: RoundedRectangleBorder(

@@ -1,7 +1,11 @@
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:isar/isar.dart';
+import 'package:untitled2/features/modules/all_Modules/Manpower%20Details/offline/isar/manpower_isar.dart';
+import 'package:untitled2/features/modules/all_Modules/attendance/offline/repo/att_sync.dart';
 
 import '../model/manpower_model.dart';
 
+import '../offline/repo/manpower_repo.dart';
 import 'manpowerService.dart';
 
 /// State class to hold manpower data
@@ -31,30 +35,79 @@ class ManpowerState {
 
 /// Notifier to manage manpower state
 class ManpowerNotifier extends StateNotifier<ManpowerState> {
-  ManpowerNotifier() : super(ManpowerState());
+  final ManpowerRepository repo;
+
+  ManpowerNotifier(this.repo) : super(ManpowerState());
 
   /// Fetch manpower list
   Future<void> fetchManpower(String type) async {
     state = state.copyWith(isLoading: true, error: null);
+
     try {
-      final res = await ManpowerAPI.fetchManpower(type);
-      if (res["success"]) {
-        final List dataList = res["data"];
+      // 🔥 Try API first
+
+      await repo.syncFromApi(type);
+
+      // 🔥 Always load from Isar after sync
+      final localData = await repo.isar.manpowerIsars
+          .filter()
+          .typeEqualTo(type)
+          .isDeletedEqualTo(false)
+          .findAll();
+
+      state = state.copyWith(
+        manpowerList: localData.map((m) => ManpowerModel(
+          id: m.manpowerId,
+          fullName: m.fullName,
+          designation: m.designation,
+          employeeCode: m.employeeCode,
+          phoneNumber: m.phoneNumber,
+          company: m.company,
+          type: m.type,
+          isDeleted: m.isDeleted,
+          isLeft: m.isLeft,
+          createdAt: m.updatedAt.toIso8601String(),
+          updatedAt: m.updatedAt.toIso8601String(),
+        )).toList(),
+        isLoading: false,
+      );
+
+    } catch (e) {
+      // ❌ API failed → fallback to Isar
+      print("⚠️ API failed, loading offline data");
+
+      final localData = await repo.isar.manpowerIsars
+          .filter()
+          .typeEqualTo(type)
+          .isDeletedEqualTo(false)
+          .findAll();
+
+      if (localData.isNotEmpty) {
         state = state.copyWith(
-          manpowerList: dataList.map((e) => ManpowerModel.fromJson(e)).toList(),
+          manpowerList: localData.map((m) => ManpowerModel(
+            id: m.manpowerId,
+            fullName: m.fullName,
+            designation: m.designation,
+            employeeCode: m.employeeCode,
+            phoneNumber: m.phoneNumber,
+            company: m.company,
+            type: m.type,
+            isDeleted: m.isDeleted,
+            isLeft: m.isLeft,
+            createdAt: m.updatedAt.toIso8601String(),
+            updatedAt: m.updatedAt.toIso8601String(),
+          )).toList(),
           isLoading: false,
+          error: "Offline mode",
         );
       } else {
         state = state.copyWith(
-          error: "Failed to fetch manpower",
+          error: "No data available (offline + API failed)",
           isLoading: false,
         );
       }
-    } catch (e) {
-      state = state.copyWith(error: e.toString(), isLoading: false);
     }
   }
-
   Future<ManpowerModel?> addManpower(String type, Map<String, dynamic> data) async {
     try {
       final response = await ManpowerAPI.postManpower(type, data);
@@ -116,8 +169,8 @@ class ManpowerNotifier extends StateNotifier<ManpowerState> {
   }
 }
 
-/// Provider instance
 final manpowerProvider =
 StateNotifierProvider<ManpowerNotifier, ManpowerState>((ref) {
-  return ManpowerNotifier();
+  final repo = ref.read(manpowerRepositoryProvider);
+  return ManpowerNotifier(repo);
 });

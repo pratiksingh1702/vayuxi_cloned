@@ -356,7 +356,7 @@ print(_formatDocumentDate(site?.documentDate));
           customButtons: [
             CustomButton(
               button: RoundedButton(
-                text: "Save & Submit",
+                text: isLoading?"Saving...":"Save",
                 color: Colors.blue,
                 textColor: Colors.white,
                 onPressed: saveSite,

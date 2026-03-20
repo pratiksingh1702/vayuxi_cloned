@@ -1,6 +1,7 @@
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_local_notifications/flutter_local_notifications.dart';
 import 'package:permission_handler/permission_handler.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 import '../noti_services/noti_service.dart';
 import '../noti_services/permi_service.dart';
 
@@ -130,6 +131,15 @@ class NotificationsStateNotifier extends StateNotifier<NotificationsState> {
     required int minute,
   }) async {
     try {
+      // Check if already scheduled via SharedPreferences
+      final prefs = await SharedPreferences.getInstance();
+      final key = 'notification_scheduled_${hour}_${minute}';
+      final alreadyScheduled = prefs.getBool(key) ?? false;
+
+      if (alreadyScheduled) {
+        return true; // Already scheduled, skip
+      }
+
       final success = await _notificationService.scheduleDailyNotification(
         title: title,
         body: body,
@@ -138,7 +148,9 @@ class NotificationsStateNotifier extends StateNotifier<NotificationsState> {
       );
 
       if (success) {
-        // Add to local state
+        // Persist the flag
+        await prefs.setBool(key, true);
+
         final newNotification = ScheduledNotification(
           id: DateTime.now().millisecondsSinceEpoch,
           title: title,
@@ -161,7 +173,6 @@ class NotificationsStateNotifier extends StateNotifier<NotificationsState> {
       return false;
     }
   }
-
   // Cancel a scheduled notification
   Future<void> cancelNotification(int id) async {
     try {

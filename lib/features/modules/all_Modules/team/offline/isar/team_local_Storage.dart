@@ -1,5 +1,6 @@
 import 'package:isar/isar.dart';
 import '../../../../../../core/local/isar_db.dart';
+import '../../model/teamModel.dart';
 import 'team_isar.dart';
 
 class TeamLocalStorage {
@@ -19,6 +20,15 @@ class TeamLocalStorage {
         .and()
         .isDeletedEqualTo(false)
         .findAll();
+  }
+
+  Stream<List<TeamModel>> watchTeams(String siteId, String type) {
+    return isar.teamIsars
+        .filter()
+        .siteIdEqualTo(siteId)
+        .typeEqualTo(type)
+        .watch(fireImmediately: true)
+        .map((rows) => rows.map((e) => e.toModel()).toList());
   }
 
   Future<void> saveTeams({

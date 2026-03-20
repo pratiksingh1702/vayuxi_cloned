@@ -220,15 +220,15 @@ class _CladdingScreenState extends ConsumerState<CladdingScreen> {
       thickness: thickness,
     );
 
-    if (cladding.name.isEmpty || cladding.thickness == 0) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(
-          content: Text('Select cladding material and thickness'),
-          backgroundColor: Colors.red,
-        ),
-      );
-      return;
-    }
+    // if (cladding.name.isEmpty || cladding.thickness == 0) {
+    //   ScaffoldMessenger.of(context).showSnackBar(
+    //     const SnackBar(
+    //       content: Text('Select cladding material and thickness'),
+    //       backgroundColor: Colors.red,
+    //     ),
+    //   );
+    //   return;
+    // }
 
     final payload = ref.read(insulationStateProvider).toJson();
 

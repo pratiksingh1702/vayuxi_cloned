@@ -144,3 +144,12 @@ class LanguagePopupPrefs {
 class NetworkSwitch {
   static bool offline = true;
 }
+bool isDeviceAuthError(dynamic e) {
+  try {
+    if (e is DioException) {
+      final data = e.response?.data;
+      return data is Map && data["requiresDeviceAuth"] == true;
+    }
+  } catch (_) {}
+  return false;
+}

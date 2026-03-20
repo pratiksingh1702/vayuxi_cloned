@@ -300,6 +300,7 @@ class CompanyCard extends StatelessWidget {
       onTap: onTap,
       child: Card(
         elevation: 0,
+        color: Colors.white,
 
         shape: RoundedRectangleBorder(
           borderRadius: BorderRadius.circular(15),

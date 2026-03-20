@@ -51,6 +51,7 @@ Provider.family<List<NamedImage>, String>((ref, siteId) {
     print("   → ${m.name} = ${m.imageUrl}");
   }
 
+  /// 🚫 If backend has no MOC → return defaults
   if (detected?.hasMoc != true) {
     print("🚫 Backend has NO MOC → using DEFAULTS");
 
@@ -67,30 +68,44 @@ Provider.family<List<NamedImage>, String>((ref, siteId) {
     print("   → $m");
   }
 
-  final allMocNames = {
-    ...detected.mocs,
-    ...detected.mocsWithImages.map((e) => e.name),
-  }.toList();
+  /// ✅ STEP 1: Build UNIQUE map using normalized keys
+  final Map<String, String> uniqueMocs = {};
 
-  return allMocNames.map((rawName) {
-    final normalized = normalize(rawName);
+  // Add raw moc names
+  for (final name in detected.mocs) {
+    final normalized = normalize(name);
+    uniqueMocs[normalized] = name;
+  }
+
+  // Add mocWithImages (override if duplicate)
+  for (final m in detected.mocsWithImages) {
+    final normalized = normalize(m.name);
+    uniqueMocs[normalized] = m.name;
+  }
+
+  /// ✅ STEP 2: Precompute server image map (FAST lookup)
+  final Map<String, String> serverImageMap = {
+    for (final e in detected.mocsWithImages)
+      normalize(e.name): e.image
+  };
+
+  /// ✅ STEP 3: Build final list
+  return uniqueMocs.entries.map((entry) {
+    final normalized = entry.key;
+    final rawName = entry.value;
 
     // alias correction
     final finalKey = mocAliases[normalized] ?? normalized;
 
     final asset = defaultMocImages[finalKey];
 
-    // 👇 find server image
-    final serverImage = detected.mocsWithImages
-        .where((e) => normalize(e.name) == normalize(rawName))
-        .map((e) => e.image)
-        .firstWhere(
-          (e) => e.isNotEmpty,
-      orElse: () => '',
-    );
+    // server image lookup
+    final serverImage = serverImageMap[normalized] ?? '';
 
-    final finalImage =
-        asset ?? (serverImage.isNotEmpty ? serverImage : 'assets/images/default.webp');
+    final finalImage = asset ??
+        (serverImage.isNotEmpty
+            ? serverImage
+            : 'assets/images/default_moc.webp');
 
     if (asset != null) {
       print("🎯 ASSET MATCH → $rawName → $asset");
@@ -105,8 +120,6 @@ Provider.family<List<NamedImage>, String>((ref, siteId) {
       image: finalImage,
     );
   }).toList();
-
-
 });
 String normalize(String input) {
   return input
@@ -141,9 +154,10 @@ final Map<String, String> defaultMocImages = {
 final Map<String, String> defaultFloorImages = {
   for (final f in defaultFloorList) f.name.toLowerCase(): f.image,
 };
+
 List<String> splitFloors(String raw) {
   return raw
-      .split(RegExp(r'&|,|/'))   // split by &, comma, slash
+      .split(RegExp(r'&|,|/'))
       .map((e) => e.trim())
       .where((e) => e.isNotEmpty)
       .toList();
@@ -166,7 +180,6 @@ final Map<String, String> floorAliases = {
   'g': 'ground',
   'gf': 'ground',
   'ground': 'ground',
-
   '0': 'ground',
 
   '1': 'first',
@@ -184,6 +197,26 @@ final Map<String, String> floorAliases = {
   'terrace': 'terrace',
 };
 
+/// ✅ Clean display names
+String formatFloorName(String key) {
+  switch (key) {
+    case 'ground':
+      return 'Ground Floor';
+    case 'first':
+      return 'First Floor';
+    case 'second':
+      return 'Second Floor';
+    case 'third':
+      return 'Third Floor';
+    case 'fourth':
+      return 'Fourth Floor';
+    case 'terrace':
+      return 'Terrace';
+    default:
+      return key;
+  }
+}
+
 final floorWithImagesProvider =
 Provider.family<List<Floor>, String>((ref, siteId) {
   final detected = ref.watch(detectedFieldsProvider(siteId));
@@ -193,6 +226,7 @@ Provider.family<List<Floor>, String>((ref, siteId) {
     print("   → ${f.name} = ${f.image}");
   }
 
+  /// 🚫 No backend data → return defaults
   if (detected?.hasFloor != true) {
     print("🚫 Backend has NO FLOOR → using DEFAULTS");
     return defaultFloorList;
@@ -203,31 +237,39 @@ Provider.family<List<Floor>, String>((ref, siteId) {
     print("   → $f");
   }
 
-  final allFloorNames = {
+  /// 🔥 STEP 1: Precompute server image map (FAST)
+  final Map<String, String> serverImageMap = {
+    for (final e in detected.floorsWithImages)
+      normalizeFloor(e.name): e.image
+  };
+
+  /// 🔥 STEP 2: Merge all raw inputs
+  final allRaw = [
     ...detected.floors,
     ...detected.floorsWithImages.map((e) => e.name),
-  }.toList();
+  ];
 
-  return allFloorNames.expand((rawName) {
+  /// 🔥 STEP 3: UNIQUE floors using canonical key
+  final Map<String, Floor> uniqueFloors = {};
+
+  for (final rawName in allRaw) {
     final parts = splitFloors(rawName);
 
-    return parts.map((name) {
+    for (final name in parts) {
       final normalized = normalizeFloor(name);
-      final canonical = floorAliases[normalized];
 
-      final asset =
-      canonical != null ? defaultFloorImages[canonical] : null;
+      final canonical = floorAliases[normalized] ?? normalized;
 
-      final serverImage = detected.floorsWithImages
-          .where((e) => e.name == rawName)
-          .map((e) => e.image)
-          .firstWhere(
-            (e) => e.isNotEmpty,
-        orElse: () => '',
-      );
+      /// ✅ DEDUPE HERE (core fix)
+      if (uniqueFloors.containsKey(canonical)) continue;
 
-      final finalImage =
-          asset ?? (serverImage.isNotEmpty ? serverImage : 'assets/images/floor_default.webp');
+      final asset = defaultFloorImages[canonical];
+      final serverImage = serverImageMap[normalized] ?? '';
+
+      final finalImage = asset ??
+          (serverImage.isNotEmpty
+              ? serverImage
+              : 'assets/images/floor_default.webp');
 
       if (asset != null) {
         print("🎯 ASSET MATCH → $name → $asset");
@@ -237,22 +279,20 @@ Provider.family<List<Floor>, String>((ref, siteId) {
         print("❌ NO MATCH → $name → generic");
       }
 
-      return Floor(
-        id: name,
-        name: name,
+      uniqueFloors[canonical] = Floor(
+        id: canonical, // 🔥 stable ID
+        name: formatFloorName(canonical), // 🔥 clean UI name
         image: finalImage,
         isDeleted: false,
         isApplied: true,
         createdAt: DateTime.now(),
         updatedAt: DateTime.now(),
       );
-    });
-  }).toList();
+    }
+  }
 
-
-
+  return uniqueFloors.values.toList();
 });
-
 final materialDynamicFieldsProvider =
 Provider.family<List<DynamicField>, ({String siteId, String materialId})>(
       (ref, params) {

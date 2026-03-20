@@ -1,10 +1,10 @@
+import 'dart:async';
+
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import 'package:pin_code_fields/pin_code_fields.dart';
-import 'package:untitled2/features/auth/screens/toc.dart';
-import '../../../core/utlis/widgets/buttons.dart';
-import '../../../core/utlis/widgets/custom_appBar.dart';
+
 import '../../../core/utlis/widgets/fields/phone_number_field.dart';
 import '../provider/auth_provider.dart';
 
@@ -17,13 +17,9 @@ class RegisterScreen extends ConsumerStatefulWidget {
 
 class _RegisterScreenState extends ConsumerState<RegisterScreen> {
   final _formKey = GlobalKey<FormState>();
-  final firstNameController = TextEditingController();
-  final lastNameController = TextEditingController();
+  final fullNameController = TextEditingController();
   final phoneController = TextEditingController();
   final emailController = TextEditingController();
-  final gstinController = TextEditingController();
-  final aadhaarController = TextEditingController();
-  final companyController = TextEditingController();
 
   bool _isLoading = false;
   bool _isEmailVerified = false;
@@ -31,106 +27,322 @@ class _RegisterScreenState extends ConsumerState<RegisterScreen> {
   bool _acceptedTerms = false;
   bool _isVerifyingOtp = false;
 
+  // Resend cooldown
+  int _resendCooldown = 0;
+  Timer? _resendTimer;
+
   @override
   void dispose() {
-    firstNameController.dispose();
-    lastNameController.dispose();
+    fullNameController.dispose();
     phoneController.dispose();
     emailController.dispose();
-    gstinController.dispose();
-    aadhaarController.dispose();
-    companyController.dispose();
+    _resendTimer?.cancel();
     super.dispose();
   }
 
-  Future<void> _handleRegistration() async {
-    if (!_formKey.currentState!.validate()) {
-      return;
-    }
+  // ─── Cooldown ─────────────────────────────────────────────────────────────
 
-    if (!_isEmailVerified) {
-      _showErrorDialog("Please verify your email before registering");
-      return;
-    }
-
-    setState(() {
-      _isLoading = true;
+  void _startResendCooldown() {
+    setState(() => _resendCooldown = 30);
+    _resendTimer?.cancel();
+    _resendTimer = Timer.periodic(const Duration(seconds: 1), (t) {
+      if (_resendCooldown <= 1) {
+        t.cancel();
+        if (mounted) setState(() => _resendCooldown = 0);
+      } else {
+        if (mounted) setState(() => _resendCooldown--);
+      }
     });
+  }
+
+  // ─── Validation ───────────────────────────────────────────────────────────
+
+  String? _validateRequired(String? value, String fieldName) {
+    if (value == null || value.trim().isEmpty) return '$fieldName is required';
+    return null;
+  }
+
+  String? _validateEmail(String? value) {
+    if (value == null || value.trim().isEmpty) return 'Email is required';
+    if (!RegExp(r'^[^\s@]+@[^\s@]+\.[^\s@]+$').hasMatch(value.trim())) {
+      return 'Please enter a valid email address';
+    }
+    return null;
+  }
+
+  String? _validatePhone(String? value) {
+    if (value == null || value.trim().isEmpty) return 'Phone number is required';
+    if (!RegExp(r'^[0-9]{10}$').hasMatch(value.replaceAll(RegExp(r'\s+'), ''))) {
+      return 'Please enter a valid 10-digit phone number';
+    }
+    return null;
+  }
+
+  // ─── OTP ──────────────────────────────────────────────────────────────────
+
+  Future<void> _sendOtp({bool isResend = false}) async {
+    final email = emailController.text.trim();
+    if (_validateEmail(email) != null) {
+      _showErrorSnackBar("Please enter a valid email address");
+      return;
+    }
+
+    if (!isResend) setState(() => _isSendingOtp = true);
 
     try {
-      // Use the EXACT same field names as React Native
-      final registrationData = {
-        "firstName": firstNameController.text.trim(),
-        "lastName": lastNameController.text.trim(),
-        "phoneNumber": phoneController.text.trim().replaceAll(RegExp(r'[^0-9]'), ''), // Changed from "phone"
-        "email": emailController.text.trim(),
-        "aadhaarCard": aadhaarController.text.trim().isNotEmpty ? aadhaarController.text.trim() : null, // Changed from "aadhaar"
-        "gstNumber": gstinController.text.trim().isNotEmpty ? gstinController.text.trim() : null, // Changed from "gstin"
-        "company": companyController.text.trim().isNotEmpty ? companyController.text.trim() : null, // Changed from "companyName"
-      };
+      await ref.read(authProvider.notifier).generateEmailOtp(email);
+      _startResendCooldown();
+      if (!isResend) _showOtpDialog();
+    } catch (e) {
+      if (mounted) {
+        _showErrorSnackBar(
+          e.toString().contains('timeout')
+              ? "Network timeout. Please check your connection"
+              : "Failed to send OTP. Please try again",
+        );
+      }
+    } finally {
+      if (mounted && !isResend) setState(() => _isSendingOtp = false);
+    }
+  }
 
-      print("📤 REGISTRATION - Final data: $registrationData");
+  void _showOtpDialog() {
+    final otpFieldController = TextEditingController();
+
+    showDialog(
+      context: context,
+      barrierDismissible: false,
+      builder: (context) => StatefulBuilder(
+        builder: (context, setDialogState) {
+          final canResend = _resendCooldown == 0;
+
+          return Dialog(
+            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+            insetPadding: const EdgeInsets.symmetric(horizontal: 28),
+            child: Padding(
+              padding: const EdgeInsets.fromLTRB(24, 28, 24, 20),
+              child: Column(
+                mainAxisSize: MainAxisSize.min,
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  // Title
+                  const Text(
+                    "Verify your email",
+                    style: TextStyle(
+                      fontSize: 17,
+                      fontWeight: FontWeight.w700,
+                      color: Colors.black87,
+                    ),
+                  ),
+                  const SizedBox(height: 6),
+                  Text(
+                    "We sent a 4-digit code to ${emailController.text.trim()}",
+                    style: TextStyle(fontSize: 13, color: Colors.grey.shade600),
+                  ),
+                  const SizedBox(height: 24),
+
+                  // OTP input — 4 digits
+                  PinCodeTextField(
+                    length: 4,
+                    appContext: context,
+                    controller: otpFieldController,
+                    keyboardType: TextInputType.number,
+                    enableActiveFill: true,
+                    animationType: AnimationType.fade,
+                    pinTheme: PinTheme(
+                      shape: PinCodeFieldShape.box,
+                      borderRadius: BorderRadius.circular(8),
+                      fieldHeight: 52,
+                      fieldWidth: 52,
+                      activeFillColor: Colors.white,
+                      inactiveFillColor: Colors.white,
+                      selectedFillColor: Colors.white,
+                      activeColor: Colors.black,
+                      inactiveColor: Colors.black,
+                      selectedColor: Colors.black,
+                    ),
+                    onChanged: (_) => setDialogState(() {}),
+                  ),
+                  const SizedBox(height: 8),
+
+                  // Resend row
+                  StatefulBuilder(
+                    builder: (_, setResendState) {
+                      return Row(
+                        children: [
+                          Text(
+                            "Didn't receive the code? ",
+                            style: TextStyle(
+                              fontSize: 12.5,
+                              color: Colors.grey.shade500,
+                            ),
+                          ),
+                          GestureDetector(
+                            onTap: canResend
+                                ? () async {
+                              await _sendOtp(isResend: true);
+                              setDialogState(() {});
+                            }
+                                : null,
+                            child: Text(
+                              canResend
+                                  ? "Resend"
+                                  : "Resend in ${_resendCooldown}s",
+                              style: TextStyle(
+                                fontSize: 12.5,
+                                fontWeight: FontWeight.w700,
+                                color: canResend
+                                    ? const Color(0xFF218AE6)
+                                    : Colors.grey.shade400,
+                              ),
+                            ),
+                          ),
+                        ],
+                      );
+                    },
+                  ),
+
+                  const SizedBox(height: 24),
+
+                  // Actions
+                  Row(
+                    children: [
+                      // Cancel
+                      Expanded(
+                        child: TextButton(
+                          onPressed: _isVerifyingOtp
+                              ? null
+                              : () => Navigator.of(context).pop(),
+                          style: TextButton.styleFrom(
+                            foregroundColor: Colors.grey.shade600,
+                          ),
+                          child: const Text("Cancel"),
+                        ),
+                      ),
+                      const SizedBox(width: 8),
+                      // Verify
+                      Expanded(
+                        child: ElevatedButton(
+                          onPressed: (_isVerifyingOtp ||
+                              otpFieldController.text.length != 4)
+                              ? null
+                              : () async {
+                            setDialogState(() => _isVerifyingOtp = true);
+                            try {
+                              await ref
+                                  .read(authProvider.notifier)
+                                  .verifyEmailOtp(
+                                emailController.text.trim(),
+                                otpFieldController.text.trim(),
+                              );
+                              if (mounted) {
+                                setState(() => _isEmailVerified = true);
+                                Navigator.of(context).pop();
+                                _showSuccessSnackBar(
+                                    "Email verified successfully!");
+                              }
+                            } catch (e) {
+                              if (mounted) {
+                                _showErrorSnackBar(
+                                  e.toString().contains('Invalid OTP')
+                                      ? "Invalid OTP. Please try again"
+                                      : "Verification failed. Please try again",
+                                );
+                              }
+                            } finally {
+                              if (mounted) {
+                                setDialogState(
+                                        () => _isVerifyingOtp = false);
+                              }
+                            }
+                          },
+                          style: ElevatedButton.styleFrom(
+                            backgroundColor: const Color(0xFF218AE6),
+                            elevation: 0,
+                            padding: const EdgeInsets.symmetric(vertical: 12),
+                            shape: RoundedRectangleBorder(
+                              borderRadius: BorderRadius.circular(8),
+                            ),
+                          ),
+                          child: _isVerifyingOtp
+                              ? const SizedBox(
+                            width: 18,
+                            height: 18,
+                            child: CircularProgressIndicator(
+                              strokeWidth: 2,
+                              color: Colors.white,
+                            ),
+                          )
+                              : const Text(
+                            "Verify",
+                            style: TextStyle(
+                              fontSize: 14,
+                              fontWeight: FontWeight.w600,
+                              color: Colors.white,
+                            ),
+                          ),
+                        ),
+                      ),
+                    ],
+                  ),
+                ],
+              ),
+            ),
+          );
+        },
+      ),
+    );
+  }
+
+  // ─── Registration ─────────────────────────────────────────────────────────
+
+  Future<void> _handleRegistration() async {
+    if (!_formKey.currentState!.validate()) return;
+
+    if (!_isEmailVerified) {
+      _showErrorSnackBar("Please verify your email before registering");
+      return;
+    }
+
+    setState(() => _isLoading = true);
+
+    try {
+      final registrationData = {
+        "fullName": fullNameController.text.trim(),
+        "phoneNumber": phoneController.text
+            .trim()
+            .replaceAll(RegExp(r'[^0-9]'), ''),
+        "email": emailController.text.trim(),
+      };
 
       await ref.read(authProvider.notifier).register(registrationData);
 
-      if (mounted) {
-        _showSuccessDialog();
-      }
+      if (mounted) _showSuccessDialog();
     } catch (e) {
-      if (mounted) {
-        _showErrorDialog(e.toString());
-      }
+      if (mounted) _showErrorSnackBar(e.toString());
     } finally {
-      if (mounted) {
-        setState(() {
-          _isLoading = false;
-        });
-      }
+      if (mounted) setState(() => _isLoading = false);
     }
   }
+
+  // ─── Feedback helpers ─────────────────────────────────────────────────────
 
   void _showSuccessDialog() {
     showDialog(
       context: context,
       builder: (context) => AlertDialog(
-        title: const Text("Registration Successful"),
-        content: const Text("Your account has been created successfully!"),
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(14)),
+        title: const Text("Account created!"),
+        content: const Text("Your account has been created successfully."),
         actions: [
           TextButton(
             onPressed: () {
               Navigator.of(context).pop();
-              // Navigate to login screen
-              Navigator.of(context).pop(); // Go back to login
+              Navigator.of(context).pop();
             },
-            child: const Text("OK"),
+            child: const Text("Continue"),
           ),
         ],
-      ),
-    );
-  }
-
-  void _showErrorDialog(String message) {
-    showDialog(
-      context: context,
-      builder: (context) => AlertDialog(
-        title: const Text("Error"),
-        content: Text(message),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.of(context).pop(),
-            child: const Text("OK"),
-          ),
-        ],
-      ),
-    );
-  }
-
-  void _showSuccessSnackBar(String message) {
-    ScaffoldMessenger.of(context).showSnackBar(
-      SnackBar(
-        content: Text(message),
-        backgroundColor: Colors.green,
-        behavior: SnackBarBehavior.floating,
       ),
     );
   }
@@ -139,368 +351,152 @@ class _RegisterScreenState extends ConsumerState<RegisterScreen> {
     ScaffoldMessenger.of(context).showSnackBar(
       SnackBar(
         content: Text(message),
-        backgroundColor: Colors.red,
+        backgroundColor: Colors.red.shade600,
         behavior: SnackBarBehavior.floating,
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
       ),
     );
   }
 
-  String? _validateRequired(String? value, String fieldName) {
-    if (value == null || value.trim().isEmpty) {
-      return '$fieldName is required';
-    }
-    return null;
-  }
-
-  String? _validateEmail(String? value) {
-    if (value == null || value.trim().isEmpty) {
-      return 'Email is required';
-    }
-    final emailRegex = RegExp(r'^[^\s@]+@[^\s@]+\.[^\s@]+$');
-    if (!emailRegex.hasMatch(value.trim())) {
-      return 'Please enter a valid email address';
-    }
-    return null;
-  }
-
-  String? _validatePhone(String? value) {
-    if (value == null || value.trim().isEmpty) {
-      return 'Phone number is required';
-    }
-    final phoneRegex = RegExp(r'^[0-9]{10}$');
-    if (!phoneRegex.hasMatch(value.replaceAll(RegExp(r'\s+'), ''))) {
-      return 'Please enter a valid 10-digit phone number';
-    }
-    return null;
-  }
-
-  Future<void> _sendOtp() async {
-    final email = emailController.text.trim();
-
-    if (_validateEmail(email) != null) {
-      _showErrorSnackBar("Please enter a valid email address");
-      return;
-    }
-
-    setState(() {
-      _isSendingOtp = true;
-    });
-
-    try {
-      final res= await ref.read(authProvider.notifier).generateEmailOtp(email);
-      _showOtpDialog();
-      print(res);
-
-    } catch (e) {
-      if (mounted) {
-        _showErrorSnackBar(
-            e.toString().contains('timeout')
-                ? "Network timeout. Please check your connection"
-                : "Failed to send OTP. Please try again"
-        );
-      }
-    } finally {
-      if (mounted) {
-        setState(() {
-          _isSendingOtp = false;
-        });
-      }
-    }
-  }
-
-  void _showOtpDialog() {
-    final otpController = TextEditingController();
-
-    showDialog(
-      context: context,
-      barrierDismissible: false,
-      builder: (context) => StatefulBuilder(
-        builder: (context, setDialogState) {
-          return AlertDialog(
-            title: const Text("Verify Email"),
-            content: Column(
-              mainAxisSize: MainAxisSize.min,
-              children: [
-                const Text(
-                  "We've sent a 6-digit OTP to your email. Please enter it below to verify your email address.",
-                  textAlign: TextAlign.center,
-                ),
-                const SizedBox(height: 20),
-                PinCodeTextField(
-                  length: 6,
-                  appContext: context,
-                  controller: otpController,
-                  keyboardType: TextInputType.number,
-                  enableActiveFill: true,
-                  pinTheme: PinTheme(
-                    shape: PinCodeFieldShape.box,
-                    borderRadius: BorderRadius.circular(8),
-                    fieldHeight: 50,
-                    fieldWidth: 40,
-                    activeFillColor: Colors.grey[100],
-                    inactiveFillColor: Colors.grey[100],
-                    selectedFillColor: Colors.blue[50],
-                    activeColor: Colors.blue,
-                    inactiveColor: Colors.grey,
-                    selectedColor: Colors.blue,
-                  ),
-                  onChanged: (value) {},
-                ),
-                const SizedBox(height: 10),
-                if (_isVerifyingOtp)
-                  const Padding(
-                    padding: EdgeInsets.all(8.0),
-                    child: CircularProgressIndicator(),
-                  ),
-              ],
-            ),
-            actions: [
-              TextButton(
-                onPressed: _isVerifyingOtp
-                    ? null
-                    : () {
-                  Navigator.of(context).pop();
-                },
-                child: const Text("Cancel"),
-              ),
-              TextButton(
-                onPressed: _isVerifyingOtp
-                    ? null
-                    : () async {
-                  final otp = otpController.text.trim();
-                  if (otp.length != 6) {
-                    _showErrorSnackBar("Please enter a valid 6-digit OTP");
-                    return;
-                  }
-
-                  setDialogState(() {
-                    _isVerifyingOtp = true;
-                  });
-
-                  try {
-                    await ref.read(authProvider.notifier).verifyEmailOtp(
-                      emailController.text.trim(),
-                      otp,
-                    );
-
-                    if (mounted) {
-                      setState(() {
-                        _isEmailVerified = true;
-                      });
-                      Navigator.of(context).pop();
-                      _showSuccessSnackBar("Email verified successfully!");
-                    }
-                  } catch (e) {
-                    if (mounted) {
-                      _showErrorSnackBar(
-                        e.toString().contains('Invalid OTP')
-                            ? "Invalid OTP. Please check and try again"
-                            : "OTP verification failed. Please try again",
-                      );
-                    }
-                  } finally {
-                    if (mounted) {
-                      setDialogState(() {
-                        _isVerifyingOtp = false;
-                      });
-                    }
-                  }
-                },
-                child: const Text("Verify OTP"),
-              ),
-            ],
-          );
-        },
+  void _showSuccessSnackBar(String message) {
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(
+        content: Text(message),
+        backgroundColor: Colors.green.shade600,
+        behavior: SnackBarBehavior.floating,
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
       ),
     );
   }
+
+  // ─── Build ────────────────────────────────────────────────────────────────
 
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: const CustomAppBar(title: "Register at VAYUXI"),
-      backgroundColor: const Color(0xFFE9F3FB),
+      backgroundColor: Colors.white,
+      appBar: AppBar(
+        backgroundColor: Colors.white,
+        elevation: 0,
+        leading: IconButton(
+          icon: const Icon(Icons.arrow_back_ios_new_rounded,
+              size: 18, color: Colors.black87),
+          onPressed: () => Navigator.of(context).pop(),
+        ),
+        title: const Text(
+          "Create account",
+          style: TextStyle(
+            fontSize: 17,
+            fontWeight: FontWeight.w700,
+            color: Colors.black87,
+          ),
+        ),
+        centerTitle: false,
+      ),
       body: SafeArea(
         child: SingleChildScrollView(
-          padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 15),
+          padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 8),
           child: Form(
             key: _formKey,
             child: Column(
-              crossAxisAlignment: CrossAxisAlignment.center,
+              crossAxisAlignment: CrossAxisAlignment.stretch,
               children: [
-                const SizedBox(height: 10),
-
-                // --- Toggle Buttons for Login/Register ---
-                Row(
-                  children: [
-                    Expanded(
-                      child: RoundedButton(
-                        text: "Login",
-                        color: Colors.blue,
-                        textColor: Colors.blue,
-                        isOutlined: true,
-                        onPressed: () {
-                          Navigator.of(context).pop();
-                        },
-                      ),
-                    ),
-                    const SizedBox(width: 10),
-                    Expanded(
-                      child: RoundedButton(
-                        text: "Register",
-                        color: Colors.blue,
-                        textColor: Colors.white,
-                        onPressed: () {},
-                      ),
-                    ),
-                  ],
+                // ── Subheader ─────────────────────────────────────────────
+                Text(
+                  "Join 70 Million+ construction professionals",
+                  style: TextStyle(
+                    fontSize: 13.5,
+                    color: Colors.grey.shade500,
+                    height: 1.4,
+                  ),
                 ),
+                const SizedBox(height: 28),
 
-                const SizedBox(height: 25),
-
-                // --- First & Last Name ---
-                Row(
-                  children: [
-                    Expanded(
-                      child: _buildTextField(
-                        "First Name*",
-                        firstNameController,
-                        validator: (value) => _validateRequired(value, 'First Name'),
-                      ),
-                    ),
-                    const SizedBox(width: 12),
-                    Expanded(
-                      child: _buildTextField(
-                        "Last Name*",
-                        lastNameController,
-                        validator: (value) => _validateRequired(value, 'Last Name'),
-                      ),
-                    ),
-                  ],
-                ),
-
-                const SizedBox(height: 20),
-
-                // --- Phone Number ---
-                PhoneInputField(
-                  controller: phoneController,
-                  countryCode: "+91",
+                // ── Full Name ─────────────────────────────────────────────
+                _FormField(
+                  label: "Full Name",
+                  required: true,
+                  child: _buildInput(
+                    controller: fullNameController,
+                    hint: "John Doe",
+                    validator: (v) => _validateRequired(v, 'Full Name'),
+                  ),
                 ),
                 const SizedBox(height: 20),
 
-                // --- Email with Verify Button ---
-                // --- Email with Verify Button ---
-                Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    _buildTextField(
-                      "E-Mail ID*",
-                      emailController,
-                      validator: _validateEmail,
-                      keyboardType: TextInputType.emailAddress,
-                      suffixIcon: Padding(
-                        padding: const EdgeInsets.only(right: 4), // Add some right padding
-                        child: IconButton(
-                          onPressed: _isSendingOtp
-                              ? null
-                              : _sendOtp,
-                          icon: _isSendingOtp
-                              ? const SizedBox(
-                            width: 20,
-                            height: 20,
-                            child: CircularProgressIndicator(
-                              strokeWidth: 2,
-                              color: Colors.blue,
-                            ),
-                          )
-                              : Icon(
-                            _isEmailVerified ? Icons.check_circle : Icons.send,
-                            color: _isEmailVerified ? Colors.green : Colors.blue,
-                          ),
-                          padding: const EdgeInsets.all(0), // Remove default padding
-                          constraints: const BoxConstraints(), // Remove min size constraints
-                        ),
+                // ── Phone ─────────────────────────────────────────────────
+                _FormField(
+                  label: "Phone Number",
+                  required: true,
+                  child: PhoneInputField(
+                    controller: phoneController,
+                    countryCode: "+91",
+                  ),
+                ),
+                const SizedBox(height: 20),
+
+                // ── Email ─────────────────────────────────────────────────
+                _FormField(
+                  label: "Email Address",
+                  required: true,
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.end,
+                    children: [
+                      _buildInput(
+                        controller: emailController,
+                        hint: "you@example.com",
+                        keyboardType: TextInputType.emailAddress,
+                        validator: _validateEmail,
+                        onChanged: (_) => setState(() {}),
+                        readOnly: _isEmailVerified,
                       ),
-                    ),
-                    if (_isEmailVerified)
-                      Padding(
-                        padding: const EdgeInsets.only(top: 8.0),
-                        child: Row(
-                          children: [
-                            Icon(Icons.verified, color: Colors.green, size: 16),
-                            const SizedBox(width: 4),
-                            Text(
-                              "Email verified",
-                              style: TextStyle(
-                                color: Colors.green,
-                                fontSize: 12,
-                                fontWeight: FontWeight.w500,
-                              ),
-                            ),
-                          ],
-                        ),
+                      const SizedBox(height: 6),
+                      _EmailVerifyAction(
+                        isVerified: _isEmailVerified,
+                        isSending: _isSendingOtp,
+                        canSend: !_isEmailVerified &&
+                            _validateEmail(emailController.text) == null,
+                        onSend: () => _sendOtp(),
                       ),
-                  ],
+                    ],
+                  ),
                 ),
-                const SizedBox(height: 20),
+                const SizedBox(height: 32),
 
-                // --- GSTIN ---
-                _buildTextField(
-                  "GSTIN",
-                  gstinController,
-                ),
-
-                const SizedBox(height: 20),
-
-                // --- Aadhaar ---
-                _buildTextField(
-                  "Aadhar Number",
-                  aadhaarController,
-                  keyboardType: TextInputType.number,
-                ),
-
-                const SizedBox(height: 20),
-
-                // --- Company Name ---
-                _buildTextField("Company Name", companyController),
-
-                const SizedBox(height: 25),
-
-
+                // ── Terms ─────────────────────────────────────────────────
                 Row(
                   crossAxisAlignment: CrossAxisAlignment.center,
                   children: [
                     SizedBox(
-                      width: 24,
-                      height: 24,
+                      width: 22,
+                      height: 22,
                       child: Checkbox(
                         value: _acceptedTerms,
+                        activeColor: const Color(0xFF218AE6),
                         materialTapTargetSize: MaterialTapTargetSize.shrinkWrap,
                         visualDensity: VisualDensity.compact,
-                        onChanged: (value) {
-                          setState(() {
-                            _acceptedTerms = value ?? false;
-                          });
-                        },
+                        shape: RoundedRectangleBorder(
+                          borderRadius: BorderRadius.circular(4),
+                        ),
+                        onChanged: (v) =>
+                            setState(() => _acceptedTerms = v ?? false),
                       ),
                     ),
-                    const SizedBox(width: 8),
+                    const SizedBox(width: 10),
                     Expanded(
                       child: GestureDetector(
-                        onTap: () {
-                          context.push('/terms');
-                        },
+                        onTap: () => context.push('/terms'),
                         child: RichText(
                           text: const TextSpan(
-                            style: TextStyle(color: Colors.black87, fontSize: 13),
+                            style: TextStyle(
+                                fontSize: 13, color: Colors.black54),
                             children: [
                               TextSpan(text: "I agree to the "),
                               TextSpan(
                                 text: "Terms & Conditions",
                                 style: TextStyle(
-                                  color: Colors.blue,
+                                  color: Color(0xFF218AE6),
                                   fontWeight: FontWeight.w600,
-                                  decoration: TextDecoration.underline,
                                 ),
                               ),
                             ],
@@ -510,81 +506,62 @@ class _RegisterScreenState extends ConsumerState<RegisterScreen> {
                     ),
                   ],
                 ),
-                const SizedBox(height: 10),
+                const SizedBox(height: 24),
 
-                // --- Register Button ---
-                SizedBox(
-                  width: double.infinity,
-                  child: ElevatedButton(
-                    onPressed: (_isLoading || !_isEmailVerified || !_acceptedTerms)
-                        ? null
-                        : _handleRegistration,
-                    style: ElevatedButton.styleFrom(
-                      backgroundColor: (_isEmailVerified && _acceptedTerms)
-                          ? Colors.blue
-                          : Colors.grey,
-                      shape: RoundedRectangleBorder(
-                        borderRadius: BorderRadius.circular(10),
-                      ),
-                      padding: const EdgeInsets.symmetric(vertical: 14),
-                    ),
-                    child: _isLoading
-                        ? const SizedBox(
-                      height: 20,
-                      width: 20,
-                      child: CircularProgressIndicator(
-                        strokeWidth: 2,
-                        valueColor: AlwaysStoppedAnimation(Colors.white),
-                      ),
-                    )
-                        : Row(
-                      mainAxisAlignment: MainAxisAlignment.center,
-                      children: [
-                        Text(
-                          "Register",
-                          style: TextStyle(
-                            fontWeight: FontWeight.w600,
-                            color: Colors.white,
-                          ),
-                        ),
-                        if (!_isEmailVerified)
-                          Row(
-                            children: [
-                              const SizedBox(width: 8),
-                              Icon(Icons.info_outline, size: 16, color: Colors.white),
-                            ],
-                          ),
-                      ],
-                    ),
-                  ),
+                // ── Register CTA ──────────────────────────────────────────
+                _RegisterButton(
+                  isLoading: _isLoading,
+                  isEnabled: _isEmailVerified && _acceptedTerms && !_isLoading,
+                  onPressed: _handleRegistration,
                 ),
 
-                if (!_isEmailVerified)
-                  Padding(
-                    padding: const EdgeInsets.only(top: 8.0),
-                    child: Text(
-                      "Please verify your email to register",
+                // Email not verified hint
+                if (!_isEmailVerified) ...[
+                  const SizedBox(height: 8),
+                  Text(
+                    "Verify your email address to continue",
+                    textAlign: TextAlign.center,
+                    style: TextStyle(
+                      fontSize: 11.5,
+                      color: Colors.orange.shade600,
+                    ),
+                  ),
+                ],
+
+                const SizedBox(height: 32),
+
+                // ── Already have account ───────────────────────────────────
+                Row(
+                  mainAxisAlignment: MainAxisAlignment.center,
+                  children: [
+                    Text(
+                      "Already have an account? ",
                       style: TextStyle(
-                        color: Colors.orange[700],
-                        fontSize: 12,
+                          fontSize: 13.5, color: Colors.grey.shade500),
+                    ),
+                    GestureDetector(
+                      onTap: () => Navigator.of(context).pop(),
+                      child: const Text(
+                        "Login",
+                        style: TextStyle(
+                          fontSize: 13.5,
+                          fontWeight: FontWeight.w700,
+                          color: Color(0xFF218AE6),
+                        ),
                       ),
                     ),
-                  ),
-
-                const SizedBox(height: 30),
-
-                // --- Footer ---
-                const Text(
-                  "By continuing, you're agreeing to our Terms of Service and Privacy Policy.",
-                  textAlign: TextAlign.center,
-                  style: TextStyle(fontSize: 12, color: Colors.black54),
+                  ],
                 ),
-                const SizedBox(height: 10),
-                const Text(
-                  "© 2025 VAYUXI. All rights reserved.",
+                const SizedBox(height: 24),
+
+                // ── Footer ────────────────────────────────────────────────
+                Text(
+                  "By continuing, you're agreeing to our Terms of Service and Privacy Policy.\n© 2026 VAYUXI. All rights reserved.",
                   textAlign: TextAlign.center,
-                  style: TextStyle(fontSize: 12, color: Colors.black54),
+                  style: TextStyle(
+                      fontSize: 11, color: Colors.grey.shade400, height: 1.6),
                 ),
+                const SizedBox(height: 16),
               ],
             ),
           ),
@@ -593,45 +570,204 @@ class _RegisterScreenState extends ConsumerState<RegisterScreen> {
     );
   }
 
-  Widget _buildTextField(
-      String label,
-      TextEditingController controller, {
-        String? Function(String?)? validator,
-        TextInputType keyboardType = TextInputType.text,
-        Widget? suffixIcon, // Add suffixIcon parameter
-      }) {
+  /// Shared input builder — white background, black border.
+  Widget _buildInput({
+    required TextEditingController controller,
+    String hint = "",
+    TextInputType keyboardType = TextInputType.text,
+    String? Function(String?)? validator,
+    ValueChanged<String>? onChanged,
+    bool readOnly = false,
+  }) {
+    return TextFormField(
+      controller: controller,
+      keyboardType: keyboardType,
+      validator: validator,
+      onChanged: onChanged,
+      readOnly: readOnly,
+      style: const TextStyle(fontSize: 14.5, color: Colors.black87),
+      decoration: InputDecoration(
+        hintText: hint,
+        hintStyle: TextStyle(color: Colors.grey.shade400, fontSize: 14),
+        filled: true,
+        fillColor: Colors.white,
+        contentPadding:
+        const EdgeInsets.symmetric(horizontal: 14, vertical: 13),
+        border: OutlineInputBorder(
+          borderRadius: BorderRadius.circular(10),
+          borderSide: const BorderSide(color: Colors.black),
+        ),
+        enabledBorder: OutlineInputBorder(
+          borderRadius: BorderRadius.circular(10),
+          borderSide: const BorderSide(color: Colors.black),
+        ),
+        focusedBorder: OutlineInputBorder(
+          borderRadius: BorderRadius.circular(10),
+          borderSide: const BorderSide(color: Colors.black, width: 1.8),
+        ),
+        errorBorder: OutlineInputBorder(
+          borderRadius: BorderRadius.circular(10),
+          borderSide: const BorderSide(color: Colors.red),
+        ),
+        focusedErrorBorder: OutlineInputBorder(
+          borderRadius: BorderRadius.circular(10),
+          borderSide: const BorderSide(color: Colors.red, width: 1.5),
+        ),
+        errorStyle: const TextStyle(fontSize: 11),
+      ),
+    );
+  }
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
+// Sub-widgets
+// ─────────────────────────────────────────────────────────────────────────────
+
+/// Wraps a field with a label. Red asterisk for required fields.
+class _FormField extends StatelessWidget {
+  final String label;
+  final bool required;
+  final Widget child;
+
+  const _FormField({
+    required this.label,
+    required this.child,
+    this.required = false,
+  });
+
+  @override
+  Widget build(BuildContext context) {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        Text(
-          label,
-          style: const TextStyle(
+        RichText(
+          text: TextSpan(
+            style: const TextStyle(
+              fontSize: 13,
+              fontWeight: FontWeight.w600,
+              color: Colors.black87,
+            ),
+            children: [
+              TextSpan(text: label),
+              if (required)
+                const TextSpan(
+                  text: " *",
+                  style: TextStyle(color: Colors.red, fontSize: 13),
+                ),
+            ],
+          ),
+        ),
+        const SizedBox(height: 6),
+        child,
+      ],
+    );
+  }
+}
+
+/// Lightweight email verify action — text link style.
+class _EmailVerifyAction extends StatelessWidget {
+  final bool isVerified;
+  final bool isSending;
+  final bool canSend;
+  final VoidCallback onSend;
+
+  const _EmailVerifyAction({
+    required this.isVerified,
+    required this.isSending,
+    required this.canSend,
+    required this.onSend,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    if (isVerified) {
+      return Row(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          Icon(Icons.check_circle_rounded,
+              size: 14, color: Colors.green.shade600),
+          const SizedBox(width: 4),
+          Text(
+            "Email verified",
+            style: TextStyle(
+              fontSize: 12.5,
+              color: Colors.green.shade600,
+              fontWeight: FontWeight.w500,
+            ),
+          ),
+        ],
+      );
+    }
+
+    return GestureDetector(
+      onTap: canSend && !isSending ? onSend : null,
+      child: isSending
+          ? const SizedBox(
+        width: 14,
+        height: 14,
+        child: CircularProgressIndicator(
+          strokeWidth: 1.8,
+          color: Color(0xFF218AE6),
+        ),
+      )
+          : Text(
+        "Send verification code",
+        style: TextStyle(
+          fontSize: 12.5,
+          fontWeight: FontWeight.w600,
+          color: canSend
+              ? const Color(0xFF218AE6)
+              : Colors.grey.shade400,
+        ),
+      ),
+    );
+  }
+}
+
+/// Primary register button with clear disabled state.
+class _RegisterButton extends StatelessWidget {
+  final bool isLoading;
+  final bool isEnabled;
+  final VoidCallback onPressed;
+
+  const _RegisterButton({
+    required this.isLoading,
+    required this.isEnabled,
+    required this.onPressed,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    return SizedBox(
+      height: 50,
+      child: ElevatedButton(
+        onPressed: isEnabled ? onPressed : null,
+        style: ElevatedButton.styleFrom(
+          backgroundColor: const Color(0xFF218AE6),
+          disabledBackgroundColor: Colors.grey.shade100,
+          elevation: 0,
+          shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(12),
+          ),
+        ),
+        child: isLoading
+            ? const SizedBox(
+          width: 20,
+          height: 20,
+          child: CircularProgressIndicator(
+            strokeWidth: 2,
+            color: Colors.white,
+          ),
+        )
+            : Text(
+          "Create Account",
+          style: TextStyle(
             fontSize: 15,
             fontWeight: FontWeight.w600,
-            color: Colors.black,
+            color: isEnabled ? Colors.white : Colors.grey.shade400,
           ),
         ),
-        const SizedBox(height: 5),
-        TextField(
-          controller: controller,
-          keyboardType: keyboardType,
-          decoration: InputDecoration(
-            contentPadding: const EdgeInsets.symmetric(horizontal: 14, vertical: 14),
-            filled: true,
-            fillColor: Colors.white,
-            hintText: "Input Text",
-            border: OutlineInputBorder(
-              borderRadius: BorderRadius.circular(10),
-              borderSide: BorderSide(color: Colors.grey.shade400),
-            ),
-            suffixIcon: suffixIcon, // Use the passed suffixIcon
-            errorBorder: OutlineInputBorder(
-              borderRadius: BorderRadius.circular(10),
-              borderSide: const BorderSide(color: Colors.red),
-            ),
-          ),
-        ),
-      ],
+      ),
     );
   }
 }

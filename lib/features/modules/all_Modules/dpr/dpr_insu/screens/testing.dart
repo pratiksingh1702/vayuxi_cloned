@@ -17,6 +17,7 @@ import 'package:untitled2/features/modules/all_Modules/team/model/teamModel.dart
 import 'package:untitled2/core/utlis/widgets/buttons.dart';
 import 'package:untitled2/core/utlis/widgets/custom.dart';
 import 'package:untitled2/features/modules/all_Modules/team/provider/teamProvider.dart';
+import '../../../../../../core/utlis/colors/colors.dart';
 import '../../../../../../core/utlis/common_functions.dart';
 import '../../../../../../core/utlis/widgets/sidebar.dart';
 import '../../offline/data/repo/material_repo_provider.dart';
@@ -99,7 +100,6 @@ class _AddInsulationDescriptionScreenState
   bool get isCreatingDpr => _insulationId == null;
   bool get isEditingDpr => _insulationId != null;
   bool get isEditing => _insulationId != null;
-
   @override
   void initState() {
     super.initState();
@@ -107,27 +107,56 @@ class _AddInsulationDescriptionScreenState
     _initializeControllers();
     _initializeData();
 
-    // ✅ Only attach listeners ONCE, not on every rebuild
     if (widget.work == null) {
-      WidgetsBinding.instance.addPostFrameCallback((_) {
-        final repo = ref.read(materialRepositoryProvider);
-
-        repo.syncInBackground(
-          siteId: siteId,
-          domain: 'insulation',
-          designation: '',
-        );
+      setState(() {
+        _isLoadingMaterials = true;
       });
-      _attachMaterialListeners();
+      WidgetsBinding.instance.addPostFrameCallback((_) {
+        _loadMaterials();   // 👈 run async loader
+      });
+
+
     }
 
-    WidgetsBinding.instance.addPostFrameCallback((_) async {
+    WidgetsBinding.instance.addPostFrameCallback((_) {
       if (widget.work != null) {
         _initializeFromWork(widget.work!);
       } else {
         setState(() => _loadLayersFromProvider());
       }
     });
+  }
+
+
+  Future<void> _loadMaterials() async {
+    final repo = ref.read(materialRepositoryProvider);
+    print("77777777777777777777");
+
+
+    if (!mounted) return;
+
+    // setState(() {
+    //   _isLoadingMaterials = true;
+    // });
+    await Future.delayed(const Duration(milliseconds: 16));
+
+    try {
+      await repo.syncInBackground(
+        siteId: siteId,
+        domain: 'insulation',
+        designation: '',
+      );
+      _attachMaterialListeners();
+    } catch (e, stack) {
+      debugPrint("❌ Material sync failed: $e");
+      debugPrintStack(stackTrace: stack);
+    } finally {
+      if (!mounted) return;
+
+      setState(() {
+        _isLoadingMaterials = false;
+      });
+    }
   }
 
   void _attachMaterialListeners() {
@@ -200,6 +229,7 @@ class _AddInsulationDescriptionScreenState
       },
       fireImmediately: true,
     );
+
   }
 
   // Future<void> _hydrateFromMaterialStream() async {
@@ -300,30 +330,63 @@ class _AddInsulationDescriptionScreenState
     _claddingThicknessController = TextEditingController();
     _claddingController = TextEditingController();
   }
-
   void _initializeFromWork(InsulationDprModel work) {
+    ref
+        .read(insulationPipingMaterialsProvider.notifier)
+        .clear();
+
+    ref
+        .read(insulationEquipmentMaterialsProvider.notifier)
+        .clear();
+
+    debugPrint("========== INITIALIZE FROM WORK ==========");
+
+    debugPrint("DPR ID: ${work.id}");
+    debugPrint("Description: ${work.workDescription}");
+    debugPrint("Plant: ${work.plant}");
+    debugPrint("Location: ${work.location}");
+    debugPrint("Size: ${work.size}");
+    debugPrint("Layer: ${work.layer}");
+
+    debugPrint("Piping Materials Count: ${work.pipingMaterials.length}");
+    debugPrint("Equipment Materials Count: ${work.equipmentMaterials.length}");
+
+    /// FULL JSON PRINT
+    final pipingJson = work.pipingMaterials.map((e) => e.toJson()).toList();
+    final equipmentJson = work.equipmentMaterials.map((e) => e.toJson()).toList();
+
+    debugPrint("---- PIPING MATERIAL JSON ----");
+    debugPrint(const JsonEncoder.withIndent('  ').convert(pipingJson));
+
+    debugPrint("---- EQUIPMENT MATERIAL JSON ----");
+    debugPrint(const JsonEncoder.withIndent('  ').convert(equipmentJson));
+
+    debugPrint("================================");
+
     setState(() {
-      // ---- CORE ----
+      /// CORE
       _insulationId = work.id;
       _selectedDprId = work.id;
 
       _dprNameController.text = work.workDescription;
       _plantController.text = work.plant ?? '';
       _floorController.text = work.location;
+
       ref.read(dprSizeProvider.notifier).state = work.size.toString();
       _sizeController.text = work.size.toString();
 
-      // ---- TOGGLES ----
+      /// TOGGLES
       _pipeInsulationOn = work.pipingMaterials.isNotEmpty;
       _equipmentInsulationOn = work.equipmentMaterials.isNotEmpty;
+
       _showPipingMaterials = _pipeInsulationOn;
       _showEquipmentMaterials = _equipmentInsulationOn;
 
-      // ---- LAYERS LOCAL ----
+      /// LAYERS
       _loadLayersFromModel(work);
     });
 
-    // ---- MATERIAL PROVIDERS ----
+    /// PROVIDERS
     ref
         .read(insulationPipingMaterialsProvider.notifier)
         .setMaterials(work.pipingMaterials);
@@ -1689,14 +1752,11 @@ class _AddInsulationDescriptionScreenState
                             if (shouldShowEquipment)
                               ..._buildEquipmentMaterials(equipmentMaterials),
 
-                            if (_pipeInsulationOn && !hasPipingMaterials)
-                              _buildEmptyMaterialsCard(
-                                  'No pipe insulation materials available'),
+                            if (_pipeInsulationOn && !hasPipingMaterials||(_equipmentInsulationOn &&
+    !hasEquipmentMaterials))
+                              _buildSetupState(siteId)
 
-                            if (_equipmentInsulationOn &&
-                                !hasEquipmentMaterials)
-                              _buildEmptyMaterialsCard(
-                                  'No equipment insulation materials available'),
+
 
                             // if (!_pipeInsulationOn && !_equipmentInsulationOn && _initialDataLoaded)
                             //   _buildEmptyState('Materials will appear here once loaded', Icons.downloading),
@@ -1711,6 +1771,55 @@ class _AddInsulationDescriptionScreenState
               ],
             ),
           ),
+        ),
+      ),
+    );
+  }
+  Widget _buildSetupState(String siteId) {
+    final progressAsync = ref.watch(syncProgressProvider);
+
+    return Center(
+      child: Padding(
+        padding: const EdgeInsets.symmetric(horizontal: 40),
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            const Icon(Icons.sync, size: 48, color: Colors.blue),
+            const SizedBox(height: 20),
+            const Text(
+              'Loading your materials…',
+              style: TextStyle(fontSize: 16, fontWeight: FontWeight.w500),
+            ),
+            const SizedBox(height: 24),
+            progressAsync.when(
+              data: (progress) => Column(
+                children: [
+                  ClipRRect(
+                    borderRadius: BorderRadius.circular(8),
+                    child: LinearProgressIndicator(
+                      value: progress,
+                      minHeight: 10,
+                      backgroundColor: Colors.grey.shade200,
+                      valueColor: AlwaysStoppedAnimation<Color>(
+                        AppColors.primary,
+                      ),
+                    ),
+                  ),
+                  const SizedBox(height: 10),
+                  Text(
+                    '${(progress * 100).toInt()}%',
+                    style: TextStyle(
+                      fontSize: 14,
+                      color: Colors.grey.shade600,
+                      fontWeight: FontWeight.w600,
+                    ),
+                  ),
+                ],
+              ),
+              loading: () => const LinearProgressIndicator(),
+              error: (_, __) => const Text('Sync error'),
+            ),
+          ],
         ),
       ),
     );
@@ -2779,14 +2888,8 @@ class _AddInsulationDescriptionScreenState
     required List<PipingMaterial> pipingMaterials,
     required List<EquipmentMaterial> equipmentMaterials,
   }) {
-    final state = ref.read(insulationStateProvider);
-
-    final designation = <String>[];
-    if (pipingMaterials.isNotEmpty) designation.add('piping');
-    if (equipmentMaterials.isNotEmpty) designation.add('equipment');
-
-    final validLayers =
-        state.layers.where((l) => l.name.trim().isNotEmpty).toList();
+    // ✅ Use local _layers and _cladding, NOT insulationStateProvider
+    final validLayers = _layers.where((l) => l.name.trim().isNotEmpty).toList();
 
     String? lm1, lm2, lm3;
     int lt1 = 0, lt2 = 0, lt3 = 0;
@@ -2803,41 +2906,41 @@ class _AddInsulationDescriptionScreenState
       lm3 = validLayers[2].name.trim();
       lt3 = validLayers[2].thickness.toInt();
     }
+
+    final designation = <String>[];
+    if (pipingMaterials.isNotEmpty) designation.add('piping');
+    if (equipmentMaterials.isNotEmpty) designation.add('equipment');
+
     final size = [
       ref.read(dprSizeProvider),
       ref.read(selectedSizeProvider),
       _sizeController.text
     ].firstWhere(
-      (v) =>
-          v != null &&
-          v.trim().isNotEmpty &&
-          (num.tryParse(v.trim()) ?? 0) != 0,
+          (v) => v != null && v.trim().isNotEmpty && (num.tryParse(v.trim()) ?? 0) != 0,
       orElse: () => '',
     );
-    final sizeUom = ref.read(selectedUnitProvider);
+
 
     return {
       'designation': designation,
       'plant': _plantController.text.trim(),
       'location': _floorController.text.trim(),
-      'layer': state.layerType?.name,
+      'layer': _selectedLayerType.name,       // ✅ local enum
       'work_description': _dprNameController.text,
       'size': size,
-      'sizeUom': sizeUom,
+      'sizeUom': ref.read(selectedUnitProvider),
       'legging_material_1': lm1,
       'legging_thickness_1': lt1,
       'legging_material_2': lm2,
       'legging_thickness_2': lt2,
       'legging_material_3': lm3,
       'legging_thickness_3': lt3,
-      'cladding_material':
-          state.cladding.name.isNotEmpty ? state.cladding.name : null,
-      'cladding_swg': state.cladding.thickness.toInt(),
+      'cladding_material': _cladding.name.isNotEmpty ? _cladding.name : null,  // ✅ local
+      'cladding_swg': _cladding.thickness.toInt(),                              // ✅ local
       'lagging_removal': _removeLagging,
       'cladding_removal': _removeCladding,
       if (equipmentMaterials.isNotEmpty)
-        'equipment_materials':
-            equipmentMaterials.map((e) => e.toJson()).toList(),
+        'equipment_materials': equipmentMaterials.map((e) => e.toJson()).toList(),
       if (pipingMaterials.isNotEmpty)
         'piping_materials': pipingMaterials.map((p) => p.toJson()).toList(),
     };

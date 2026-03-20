@@ -12,6 +12,7 @@ import '../../../../../core/utlis/widgets/fields/phone_number_field.dart';
 import '../../../../../core/utlis/widgets/fields/searchableDropdown.dart';
 import '../../../../../core/utlis/widgets/sidebar.dart';
 import '../../../../../typeProvider/type_provider.dart';
+import '../../attendance/offline/repo/att_sync.dart';
 import '../model/manpower_model.dart';
 import '../service/manPowerProvider.dart';
 import 'package:flutter/material.dart';
@@ -244,6 +245,8 @@ class _EditManpowerScreenState extends ConsumerState<EditManpowerScreen> {
       final updatedManpower = await ref.read(manpowerProvider.notifier).updateManpower(
           widget.manpower.id!, data, manpowerType
       );
+      final type=ref.read(typeProvider);
+      ref.invalidate(manpowerSyncControllerProvider((type: type!)));
 
       if (updatedManpower == null) {
         throw Exception("Failed to update manpower");
@@ -269,6 +272,7 @@ class _EditManpowerScreenState extends ConsumerState<EditManpowerScreen> {
           ),
         );
       }
+
 
       Navigator.pop(context);
     } catch (e) {
@@ -600,6 +604,7 @@ class _EditManpowerScreenState extends ConsumerState<EditManpowerScreen> {
                       setState(() {
                         _selectedTotalHour = value;
                       });
+                      print("Selected Total Hour: $_selectedTotalHour");
                     },
                   ),
                   CustomTextField(
