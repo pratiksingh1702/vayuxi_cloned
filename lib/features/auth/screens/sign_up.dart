@@ -430,8 +430,8 @@ class _RegisterScreenState extends ConsumerState<RegisterScreen> {
                   required: true,
                   child: PhoneInputField(
                     controller: phoneController,
-                    countryCode: "+91",
-                  ),
+                    autovalidateMode: AutovalidateMode.onUserInteraction,
+                  )
                 ),
                 const SizedBox(height: 20),
 

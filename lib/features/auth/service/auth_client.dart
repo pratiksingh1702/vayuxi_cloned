@@ -1,5 +1,6 @@
 import 'package:dio/dio.dart';
 import 'package:shared_preferences/shared_preferences.dart';
+import 'package:untitled2/features/modules/screen/device_id_helper.dart';
 import 'package:uuid/uuid.dart';
 
 import '../../../core/api/dio.dart';
@@ -54,6 +55,11 @@ class AuthAPI {
     }
   }
 
+  static Future<Map<String, dynamic>> getGracePeriodStatus() async {
+    final res = await dio.get("/auth/grace-period-status");
+    return res.data as Map<String, dynamic>;
+  }
+
   /// 2️⃣ Get Current Manpower (after login)
   static Future<Map<String, dynamic>> getCurrentManpower() async {
     final response = await dio.get('/manpower-auth/me');
@@ -65,6 +71,17 @@ class AuthAPI {
     }
   }
 
+  // In AuthAPI class — add this new method, don't touch existing ones
+
+  static Future<Map<String, dynamic>> checkDeviceTrust() async {
+    final deviceId = await DevicePrefs.getDeviceId()??_getDeviceId();
+    print('🔍 [checkDeviceTrust] deviceId: $deviceId');
+    final res = await dio.post(
+      "/auth/check-device-trust",
+      data: {"deviceId": deviceId},
+    );
+    return res.data as Map<String, dynamic>;
+  }
   /// Helper: Get or Create Device ID
   static Future<String> _getDeviceId() async {
     final prefs = await SharedPreferences.getInstance();

@@ -85,6 +85,7 @@ class DioClient {
         final prefs = await SharedPreferences.getInstance();
         final token = prefs.getString('auth_token');
         if (token != null) {
+          print(token);
           options.headers['Authorization'] = 'Bearer $token';
         }
 

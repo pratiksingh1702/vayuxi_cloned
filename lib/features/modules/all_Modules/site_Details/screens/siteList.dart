@@ -52,7 +52,7 @@ class _SiteListScreenState extends ConsumerState<SiteListScreen>
       final tourRunning = tour.status == TourStatus.running;
 
       if (!tourRunning && selectedSiteId != null && currentSite != null) {
-        Navigator.push(
+        Navigator.pushReplacement(
           context,
           MaterialPageRoute(
             builder: (_) => widget.pageBuilder(currentSite),

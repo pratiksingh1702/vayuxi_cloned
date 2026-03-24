@@ -1,3 +1,4 @@
+import 'package:dropdown_search/dropdown_search.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
@@ -15,11 +16,12 @@ import '../../../../../typeProvider/type_provider.dart';
 
 import '../../../../tour/domain/tour_controller.dart';
 import '../../attendance/offline/repo/att_sync.dart';
+import '../../site_Details/providers/site_current_provider.dart';
+import '../../site_Details/providers/siteProvider.dart';
+import '../../site_Details/repository/siteModel.dart';
 import '../service/manPowerProvider.dart';
 
-
-
-import 'dart:math'; // Add this import for generating random OTP
+import 'dart:math';
 
 class NewManpowerScreen extends ConsumerStatefulWidget {
   const NewManpowerScreen({super.key});
@@ -50,54 +52,75 @@ class _NewManpowerScreenState extends ConsumerState<NewManpowerScreen> {
   final _travelAllowanceController = TextEditingController();
   final _medicalAllowanceController = TextEditingController();
   final _hra = TextEditingController();
-
-  bool _isPfApplicable = true;
-  String? _selectedTotalHour;
-
-
-  // New controllers for login credentials
   final _emailController = TextEditingController();
   final _otpController = TextEditingController();
 
-  bool loading=false;
+  bool _isPfApplicable = true;
+  String? _selectedTotalHour;
+  bool loading = false;
 
-  // Designation options
+  // ✅ Selected sites for this manpower
+  List<SiteModel> _selectedSites = [];
+
   final List<String> _designationOptions = [
-    "Manager",
-    "Team Leader",
-    "Team Member",
-    "Director",
-    "Supervisor",
-    "Engineer",
-    "Executive Engineer",
-    "Welder",
-    "Fitter",
-    "Rigger",
-    "Helper",
-    "Legger",
-    "Fabricator",
-    "Foreman",
-    "Site Supervisor",
-    "CTO",
-    "CEO",
-    "Senior Manager",
-    "Assistant General Manager",
-    "General Manager",
-    "Grinderman",
-    "Cutter",
+    "Manager", "Team Leader", "Team Member", "Director", "Supervisor",
+    "Engineer", "Executive Engineer", "Welder", "Fitter", "Rigger",
+    "Helper", "Legger", "Fabricator", "Foreman", "Site Supervisor",
+    "CTO", "CEO", "Senior Manager", "Assistant General Manager",
+    "General Manager", "Grinderman", "Cutter",
   ];
   final List<String> _totalHourOptions =
   List.generate(16, (index) => (index + 1).toString());
+
   DateTime? _dob;
   DateTime? _doj;
   String _payBasic = "monthly";
   String? _selectedDesignation;
-
-  // New state variables for login credentials toggle
   bool _enableLoginCredentials = false;
   String _generatedOtp = "";
 
-  // Generate random 6-digit OTP
+  @override
+  void initState() {
+    super.initState();
+    // Pre-select current site if available
+    Future.microtask(() {
+      final currentSiteId = ref.read(selectedSiteIdProvider);
+      if (currentSiteId != null && currentSiteId.isNotEmpty) {
+        final siteState = ref.read(siteProvider);
+        final currentSite =
+            siteState.sites.where((s) => s.id == currentSiteId).firstOrNull;
+        if (currentSite != null && mounted) {
+          setState(() => _selectedSites = [currentSite]);
+        }
+      }
+    });
+  }
+
+  @override
+  void dispose() {
+    _fullNameController.dispose();
+    _designationController.dispose();
+    _phoneController.dispose();
+    _aadhaarController.dispose();
+    _panController.dispose();
+    _bankController.dispose();
+    _ifscController.dispose();
+    _epfController.dispose();
+    _uanController.dispose();
+    _esicController.dispose();
+    _salaryController.dispose();
+    _basicSalaryController.dispose();
+    _remarksController.dispose();
+    _daController.dispose();
+    _specialAllowanceController.dispose();
+    _travelAllowanceController.dispose();
+    _medicalAllowanceController.dispose();
+    _hra.dispose();
+    _emailController.dispose();
+    _otpController.dispose();
+    super.dispose();
+  }
+
   void _generateOtp() {
     final random = Random();
     _generatedOtp = (100000 + random.nextInt(900000)).toString();
@@ -113,11 +136,8 @@ class _NewManpowerScreenState extends ConsumerState<NewManpowerScreen> {
     );
     if (picked != null) {
       setState(() {
-        if (isDOB) {
-          _dob = picked;
-        } else {
-          _doj = picked;
-        }
+        if (isDOB) _dob = picked;
+        else _doj = picked;
       });
     }
   }
@@ -145,24 +165,25 @@ class _NewManpowerScreenState extends ConsumerState<NewManpowerScreen> {
     _selectedDesignation = null;
     _enableLoginCredentials = false;
     _generatedOtp = "";
+    _selectedSites = [];
+    setState(() {});
   }
 
   Future<void> _saveManpower() async {
-    // if (!_formKey.currentState!.validate()) return;
-    setState(() {
-      loading=true;
-    });
+    setState(() => loading = true);
 
     final manpowerType = ref.read(typeProvider);
     if (manpowerType == null) {
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(content: Text("Error: No manpower type selected")),
       );
+      setState(() => loading = false);
       return;
     }
-    // 🔴 Snackbar validations (hard stop)
+
     if (_fullNameController.text.trim().isEmpty) {
       _showSnack("Full name is required");
+      setState(() => loading = false);
       return;
     }
 
@@ -170,28 +191,27 @@ class _NewManpowerScreenState extends ConsumerState<NewManpowerScreen> {
         _selectedDesignation?.trim() ?? _designationController.text.trim();
     if (designation.isEmpty) {
       _showSnack("Designation is required");
+      setState(() => loading = false);
       return;
     }
 
     final salary = double.tryParse(_salaryController.text);
     if (salary == null || salary <= 0) {
       _showSnack("Salary must be greater than 0");
+      setState(() => loading = false);
       return;
     }
-    //
-    // final basicSalary = double.tryParse(_basicSalaryController.text);
-    // // if (basicSalary == null || basicSalary <= 0) {
-    // //   _showSnack("Basic salary must be greater than 0");
-    // //   return;
-    // // }
-    //
-    // if (basicSalary > salary) {
-    //   _showSnack("Basic salary cannot be greater than total salary");
-    //   return;
-    // }
 
+    // Build sites list — fallback to current site if nothing selected
+    List<String> siteIds = _selectedSites.map((s) => s.id).toList();
+    if (siteIds.isEmpty) {
+      final currentSiteId = ref.read(selectedSiteIdProvider);
+      if (currentSiteId != null && currentSiteId.isNotEmpty) {
+        siteIds = [currentSiteId];
+      }
+    }
 
-    final data = {
+    final data = <String, dynamic>{
       "fullName": _fullNameController.text,
       "designation": _selectedDesignation ?? _designationController.text,
       "phoneNumber": _phoneController.text,
@@ -206,77 +226,235 @@ class _NewManpowerScreenState extends ConsumerState<NewManpowerScreen> {
       "dateOfJoining": _doj?.toIso8601String(),
       "payBasics": _payBasic,
       "salary": double.tryParse(_salaryController.text) ?? 0,
-      "basicSalary":double.tryParse(_basicSalaryController.text) ?? 0,
-      "hra":_hra.text,
+      "basicSalary": double.tryParse(_basicSalaryController.text) ?? 0,
+      "hra": double.tryParse(_hra.text) ?? 0,
       "totalHour": _selectedTotalHour,
-      // ✅ NEW FIELDS
       "dearnessAllowance": double.tryParse(_daController.text) ?? 0,
       "specialAllowance": double.tryParse(_specialAllowanceController.text) ?? 0,
       "travelAllowance": double.tryParse(_travelAllowanceController.text) ?? 0,
       "medicalAllowance": double.tryParse(_medicalAllowanceController.text) ?? 0,
       "pfApplicable": _isPfApplicable,
-
       "remarks": _remarksController.text,
+      if (siteIds.isNotEmpty) "sites": siteIds,
     };
 
-
-    // Add login credentials if enabled
     if (_enableLoginCredentials && _emailController.text.isNotEmpty) {
       data["loginEmail"] = _emailController.text;
       data["loginPassword"] = _otpController.text;
       data["isLoginEnabled"] = true;
-    }else{
+    } else {
       data["isLoginEnabled"] = false;
     }
 
     try {
-     final createdManpower= await ref.read(manpowerProvider.notifier).addManpower(manpowerType, data);
-     await ref.read(tourPersistenceProvider).markManpowerDone();
-     final type=ref.read(typeProvider);
-     ref.invalidate(manpowerSyncControllerProvider((type: type!)));
-     final repo = ref.read(attendanceRepositoryProvider);
-     await repo.syncManpowerFromApi(type!);
-    AppToast.success("✅ Manpower added successfully");
+      final createdManpower = await ref
+          .read(manpowerProvider.notifier)
+          .addManpower(manpowerType, data);
+
+      await ref.read(tourPersistenceProvider).markManpowerDone();
+      final type = ref.read(typeProvider);
+      ref.invalidate(manpowerSyncControllerProvider((type: type!)));
+
+      final repo = ref.read(attendanceRepositoryProvider);
+      await repo.syncManpowerFromApi(type);
+
+      for (final siteId in siteIds) {
+        ref.invalidate(manpowerSyncBySiteControllerProvider(
+          (siteId: siteId, type: type),
+        ));
+      }
+
+      AppToast.success("✅ Manpower added successfully");
+
       if (_enableLoginCredentials && _emailController.text.isNotEmpty) {
         final employeeCode = createdManpower?.employeeCode ?? "N/A";
-
         await showDialog(
           context: context,
           builder: (context) => LoginCredentialsPopup(
-            employeeCode: employeeCode,  // Pass employee code instead of email
+            employeeCode: employeeCode,
             password: _otpController.text,
           ),
         );
       }
 
-
-
-     Navigator.pop(context);
+      Navigator.pop(context);
       context.push("/manpower");
     } catch (e) {
-      print(e);
-      final message=extractBackendError(e);
-     AppToast.error(message);
-    }finally{
-      setState(() {
-        setState(() {
-          loading=false;
-        });
-      });
+      final message = extractBackendError(e);
+      AppToast.error(message);
+    } finally {
+      setState(() => loading = false);
     }
   }
+
   void _showSnack(String message) {
     ScaffoldMessenger.of(context).showSnackBar(
-      SnackBar(
-        content: Text(message),
-        backgroundColor: Colors.red,
-      ),
+      SnackBar(content: Text(message), backgroundColor: Colors.red),
     );
   }
 
+  // ─────────────────────────────────────────────────────────────
+  // SITE MULTI-SELECTOR
+  // Uses dropdown_search v6 API — matches AddTeamScreen exactly.
+  // Chips are rendered via a custom dropdownBuilder; the popup
+  // rows use itemBuilder(context, item, isDisabled, isSelected).
+  // ─────────────────────────────────────────────────────────────
+
+  Widget _buildSiteSelector(List<SiteModel> allSites) {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        const Text(
+          "Assign to Sites",
+          style: TextStyle(
+            fontSize: 14,
+            fontWeight: FontWeight.w600,
+            color: Colors.black87,
+          ),
+        ),
+        const SizedBox(height: 6),
+        DropdownSearch<SiteModel>.multiSelection(
+          // ── data ──
+          items: (String filter, LoadProps? props) => allSites
+              .where((s) => (s.siteName ?? '')
+              .toLowerCase()
+              .contains(filter.toLowerCase()))
+              .toList(),
+          selectedItems: _selectedSites,
+          itemAsString: (s) => s.siteName ?? s.id,
+          compareFn: (a, b) => a.id == b.id,
+
+          onChanged: (values) => setState(() => _selectedSites = values),
+
+          // ── popup: bottom sheet + search box ──
+          popupProps: PopupPropsMultiSelection.modalBottomSheet(
+            showSearchBox: true,
+            searchFieldProps: TextFieldProps(
+              decoration: InputDecoration(
+                hintText: 'Search sites...',
+                contentPadding:
+                const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
+                border: OutlineInputBorder(
+                  borderRadius: BorderRadius.circular(8),
+                  borderSide: BorderSide.none,
+                ),
+                filled: true,
+                fillColor: Colors.grey[100],
+              ),
+            ),
+            title: const Padding(
+              padding: EdgeInsets.fromLTRB(16, 16, 16, 4),
+              child: Text(
+                "Select Sites",
+                style: TextStyle(fontWeight: FontWeight.bold, fontSize: 16),
+              ),
+            ),
+            // ✅ v6 API: 4-arg itemBuilder (context, item, isDisabled, isSelected)
+            itemBuilder: (context, item, isDisabled, isSelected) {
+              return ListTile(
+                dense: true,
+                leading: Icon(
+                  isSelected
+                      ? Icons.check_box
+                      : Icons.check_box_outline_blank,
+                  color: isSelected ? Colors.blue : Colors.grey,
+                  size: 22,
+                ),
+                title: Text(
+                  item.siteName ?? item.id,
+                  style: TextStyle(
+                    fontSize: 14,
+                    color: isDisabled ? Colors.grey : Colors.black87,
+                    fontWeight: isSelected
+                        ? FontWeight.w600
+                        : FontWeight.normal,
+                  ),
+                ),
+              );
+            },
+          ),
+
+          // ── field decoration ──
+          decoratorProps: DropDownDecoratorProps(
+            decoration: InputDecoration(
+              hintText: _selectedSites.isEmpty
+                  ? "Select sites (optional)"
+                  : null,
+              filled: true,
+              fillColor: Colors.white,
+              contentPadding:
+              const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
+              border: OutlineInputBorder(
+                borderRadius: BorderRadius.circular(12),
+                borderSide:
+                BorderSide(color: Colors.blue.shade200, width: 1.5),
+              ),
+              enabledBorder: OutlineInputBorder(
+                borderRadius: BorderRadius.circular(12),
+                borderSide:
+                BorderSide(color: Colors.blue.shade200, width: 1.5),
+              ),
+              focusedBorder: OutlineInputBorder(
+                borderRadius: BorderRadius.circular(12),
+                borderSide:
+                const BorderSide(color: Colors.blue, width: 1.5),
+              ),
+            ),
+          ),
+
+          // ✅ v6 API: dropdownBuilder renders what shows INSIDE the field
+          // We show chips when items are selected, hint otherwise.
+          dropdownBuilder: (context, selectedItems) {
+            if (selectedItems.isEmpty) {
+              return const SizedBox.shrink(); // hint from decoration handles it
+            }
+            return Wrap(
+              spacing: 6,
+              runSpacing: 4,
+              children: selectedItems.map((site) {
+                return Chip(
+                  label: Text(
+                    site.siteName ?? site.id,
+                    style: const TextStyle(
+                      fontSize: 12,
+                      color: Colors.white,
+                    ),
+                  ),
+                  backgroundColor: Colors.blue,
+                  deleteIconColor: Colors.white,
+                  onDeleted: () {
+                    setState(() {
+                      _selectedSites =
+                          _selectedSites.where((s) => s.id != site.id).toList();
+                    });
+                  },
+                  materialTapTargetSize: MaterialTapTargetSize.shrinkWrap,
+                  padding: const EdgeInsets.symmetric(
+                      horizontal: 4, vertical: 0),
+                  visualDensity: VisualDensity.compact,
+                );
+              }).toList(),
+            );
+          },
+        ),
+
+        // Site count hint below the field
+        if (_selectedSites.isNotEmpty)
+          Padding(
+            padding: const EdgeInsets.only(top: 6),
+            child: Text(
+              "${_selectedSites.length} site${_selectedSites.length == 1 ? '' : 's'} selected",
+              style: TextStyle(fontSize: 12, color: Colors.grey[600]),
+            ),
+          ),
+      ],
+    );
+  }
 
   @override
   Widget build(BuildContext context) {
+    final siteState = ref.watch(siteProvider);
+
     return Scaffold(
       drawer: const CustomDrawer(),
       backgroundColor: AppColors.lightBlue,
@@ -288,14 +466,14 @@ class _NewManpowerScreenState extends ConsumerState<NewManpowerScreen> {
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              // Full Name
+              // ── Full Name ──
               CustomTextField(
                 label: "Full Name",
                 controller: _fullNameController,
                 isRequired: true,
               ),
 
-              // Designation with SearchableDropdown
+              // ── Designation ──
               const SizedBox(height: 16),
               Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
@@ -303,35 +481,27 @@ class _NewManpowerScreenState extends ConsumerState<NewManpowerScreen> {
                   const Text(
                     "Designation",
                     style: TextStyle(
-                      fontSize: 14,
-                      fontWeight: FontWeight.w600,
-                      color: Colors.black87,
-                    ),
+                        fontSize: 14,
+                        fontWeight: FontWeight.w600,
+                        color: Colors.black87),
                   ),
                   const SizedBox(height: 6),
                   SearchableDropdown(
                     data: _designationOptions,
-                    onSelect: (value) {
-                      setState(() {
-                        _selectedDesignation = value;
-                      });
-                    },
+                    onSelect: (value) =>
+                        setState(() => _selectedDesignation = value),
                     placeholder: "Search Designation",
                     value: _selectedDesignation,
                     containerDecoration: BoxDecoration(
                       color: Colors.white,
                       borderRadius: BorderRadius.circular(12),
                       border: Border.all(
-                        color: const Color(0xFF197278),
-                        width: 1,
-                      ),
+                          color: const Color(0xFF197278), width: 1),
                     ),
                     inputDecoration: const InputDecoration(
                       hintText: "Search Designation",
                       contentPadding: EdgeInsets.symmetric(
-                        horizontal: 16,
-                        vertical: 14,
-                      ),
+                          horizontal: 16, vertical: 14),
                       border: InputBorder.none,
                       focusedBorder: InputBorder.none,
                       enabledBorder: InputBorder.none,
@@ -340,20 +510,23 @@ class _NewManpowerScreenState extends ConsumerState<NewManpowerScreen> {
                 ],
               ),
 
-              // Phone Number
+              // ── Phone ──
               const SizedBox(height: 16),
-              PhoneInputField(
-                controller: _phoneController,
-              ),
+              PhoneInputField(controller: _phoneController),
 
-              // Login Credentials Toggle
+              // ── ✅ Site Selector ──
+              const SizedBox(height: 16),
+              _buildSiteSelector(siteState.sites),
+
+              // ── Login Credentials Toggle ──
               const SizedBox(height: 16),
               Container(
                 padding: const EdgeInsets.all(12),
                 decoration: BoxDecoration(
                   color: Colors.white,
                   borderRadius: BorderRadius.circular(12),
-                  border: Border.all(color: Colors.blue.shade200, width: 1.5),
+                  border:
+                  Border.all(color: Colors.blue.shade200, width: 1.5),
                 ),
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
@@ -364,10 +537,9 @@ class _NewManpowerScreenState extends ConsumerState<NewManpowerScreen> {
                         const Text(
                           "Enable Login Credentials",
                           style: TextStyle(
-                            fontSize: 14,
-                            fontWeight: FontWeight.w600,
-                            color: Colors.black87,
-                          ),
+                              fontSize: 14,
+                              fontWeight: FontWeight.w600,
+                              color: Colors.black87),
                         ),
                         Switch(
                           value: _enableLoginCredentials,
@@ -403,7 +575,6 @@ class _NewManpowerScreenState extends ConsumerState<NewManpowerScreen> {
                               label: "OTP Password",
                               controller: _otpController,
                               isRequired: true,
-
                             ),
                           ),
                           const SizedBox(width: 8),
@@ -412,31 +583,25 @@ class _NewManpowerScreenState extends ConsumerState<NewManpowerScreen> {
                             style: ElevatedButton.styleFrom(
                               backgroundColor: Colors.blue,
                               shape: RoundedRectangleBorder(
-                                borderRadius: BorderRadius.circular(8),
-                              ),
+                                  borderRadius: BorderRadius.circular(8)),
                             ),
-                            child: const Text(
-                              "Regenerate",
-                              style: TextStyle(color: Colors.white),
-                            ),
+                            child: const Text("Regenerate",
+                                style: TextStyle(color: Colors.white)),
                           ),
                         ],
                       ),
                       const SizedBox(height: 8),
                       Text(
                         "OTP will be used as initial password",
-                        style: TextStyle(
-                          fontSize: 12,
-                          color: Colors.grey[600],
-                        ),
+                        style:
+                        TextStyle(fontSize: 12, color: Colors.grey[600]),
                       ),
                     ],
                   ],
                 ),
               ),
 
-              // Rest of your form fields...
-              // Aadhar Number
+              // ── Aadhar ──
               const SizedBox(height: 16),
               CustomTextField(
                 label: "Aadhar Number",
@@ -445,7 +610,7 @@ class _NewManpowerScreenState extends ConsumerState<NewManpowerScreen> {
                 keyboardType: TextInputType.number,
               ),
 
-              // PAN Number
+              // ── PAN ──
               const SizedBox(height: 16),
               CustomTextField(
                 label: "PAN Number",
@@ -453,7 +618,7 @@ class _NewManpowerScreenState extends ConsumerState<NewManpowerScreen> {
                 isRequired: false,
               ),
 
-              // Bank Account Number
+              // ── Bank ──
               const SizedBox(height: 16),
               CustomTextField(
                 label: "Bank Account Number",
@@ -462,7 +627,7 @@ class _NewManpowerScreenState extends ConsumerState<NewManpowerScreen> {
                 keyboardType: TextInputType.number,
               ),
 
-              // IFSC Code
+              // ── IFSC ──
               const SizedBox(height: 16),
               CustomTextField(
                 label: "IFSC Code",
@@ -470,7 +635,7 @@ class _NewManpowerScreenState extends ConsumerState<NewManpowerScreen> {
                 isRequired: false,
               ),
 
-              // EPF Number
+              // ── EPF ──
               const SizedBox(height: 16),
               CustomTextField(
                 label: "EPF Number",
@@ -479,7 +644,7 @@ class _NewManpowerScreenState extends ConsumerState<NewManpowerScreen> {
                 keyboardType: TextInputType.number,
               ),
 
-              // UAN Number
+              // ── UAN ──
               const SizedBox(height: 16),
               CustomTextField(
                 label: "UAN Number",
@@ -488,7 +653,7 @@ class _NewManpowerScreenState extends ConsumerState<NewManpowerScreen> {
                 keyboardType: TextInputType.number,
               ),
 
-              // ESIC Number
+              // ── ESIC ──
               const SizedBox(height: 16),
               CustomTextField(
                 label: "ESIC Number",
@@ -497,76 +662,67 @@ class _NewManpowerScreenState extends ConsumerState<NewManpowerScreen> {
                 keyboardType: TextInputType.number,
               ),
 
-              // Date of Birth and Date of Joining
+              // ── Dates ──
               const SizedBox(height: 16),
               Row(
                 children: [
                   Expanded(
-                    child: _buildDatePicker("Date of Birth", _dob, true),
-                  ),
+                      child: _buildDatePicker("Date of Birth", _dob, true)),
                   const SizedBox(width: 8),
                   Expanded(
-                    child: _buildDatePicker("Date of Joining", _doj, false),
-                  ),
+                      child:
+                      _buildDatePicker("Date of Joining", _doj, false)),
                 ],
               ),
+
+              // ── PF Toggle ──
               const SizedBox(height: 16),
               Container(
                 padding: const EdgeInsets.all(12),
                 decoration: BoxDecoration(
                   color: Colors.white,
                   borderRadius: BorderRadius.circular(12),
-                  border: Border.all(color: Colors.blue.shade200, width: 1.5),
+                  border:
+                  Border.all(color: Colors.blue.shade200, width: 1.5),
                 ),
                 child: Row(
                   mainAxisAlignment: MainAxisAlignment.spaceBetween,
                   children: [
-                    const Text(
-                      "PF Applicable",
-                      style: TextStyle(
-                        fontSize: 14,
-                        fontWeight: FontWeight.w600,
-                      ),
-                    ),
+                    const Text("PF Applicable",
+                        style: TextStyle(
+                            fontSize: 14, fontWeight: FontWeight.w600)),
                     Switch(
                       value: _isPfApplicable,
                       activeColor: Colors.blue,
-                      onChanged: (val) {
-                        setState(() {
-                          _isPfApplicable = val;
-                        });
-                      },
+                      onChanged: (val) =>
+                          setState(() => _isPfApplicable = val),
                     ),
                   ],
                 ),
               ),
 
-
-              // Pay Basics Dropdown
+              // ── Pay Basics ──
               const SizedBox(height: 16),
               Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  const Text(
-                    "Pay Basics",
-                    style: TextStyle(
-                      fontSize: 14,
-                      fontWeight: FontWeight.w600,
-                      color: Colors.black87,
-                    ),
-                  ),
+                  const Text("Pay Basics",
+                      style: TextStyle(
+                          fontSize: 14,
+                          fontWeight: FontWeight.w600,
+                          color: Colors.black87)),
                   const SizedBox(height: 6),
                   Container(
                     decoration: BoxDecoration(
                       color: Colors.white,
                       borderRadius: BorderRadius.circular(12),
-                      border: Border.all(color: Colors.blue.shade200, width: 1.5),
+                      border: Border.all(
+                          color: Colors.blue.shade200, width: 1.5),
                       boxShadow: [
                         BoxShadow(
-                          color: Colors.blue.withOpacity(0.1),
-                          blurRadius: 4,
-                          offset: const Offset(0, 2),
-                        ),
+                            color: Colors.blue.withOpacity(0.1),
+                            blurRadius: 4,
+                            offset: const Offset(0, 2))
                       ],
                     ),
                     child: DropdownButtonHideUnderline(
@@ -574,48 +730,37 @@ class _NewManpowerScreenState extends ConsumerState<NewManpowerScreen> {
                         value: _payBasic,
                         isExpanded: true,
                         decoration: const InputDecoration(
-                          contentPadding:
-                          EdgeInsets.symmetric(horizontal: 16, vertical: 14),
+                          contentPadding: EdgeInsets.symmetric(
+                              horizontal: 16, vertical: 14),
                           border: InputBorder.none,
                         ),
-                        icon: const Icon(Icons.keyboard_arrow_down_rounded,
+                        icon: const Icon(
+                            Icons.keyboard_arrow_down_rounded,
                             color: Colors.black54),
                         items: const [
                           DropdownMenuItem(
-                            value: "daily",
-                            child: Text("Daily"),
-                          ),
+                              value: "daily", child: Text("Daily")),
                           DropdownMenuItem(
-                            value: "monthly",
-                            child: Text("Monthly"),
-                          ),
+                              value: "monthly", child: Text("Monthly")),
                           DropdownMenuItem(
-                            value: "yearly",
-                            child: Text("Yearly"),
-                          ),
+                              value: "yearly", child: Text("Yearly")),
                           DropdownMenuItem(
-                            value: "fixed",
-                            child: Text("Fixed"),
-                          ),
+                              value: "fixed", child: Text("Fixed")),
                         ],
-                        onChanged: (val) {
-                          setState(() {
-                            _payBasic = val!;
-                          });
-                        },
+                        onChanged: (val) =>
+                            setState(() => _payBasic = val!),
                         dropdownColor: Colors.white,
                         style: const TextStyle(
-                          fontSize: 15,
-                          color: Colors.black87,
-                          fontWeight: FontWeight.w500,
-                        ),
+                            fontSize: 15,
+                            color: Colors.black87,
+                            fontWeight: FontWeight.w500),
                       ),
                     ),
                   ),
                 ],
               ),
 
-              // Salary
+              // ── Salary ──
               const SizedBox(height: 16),
               CustomTextField(
                 label: "Salary",
@@ -623,37 +768,30 @@ class _NewManpowerScreenState extends ConsumerState<NewManpowerScreen> {
                 isRequired: true,
                 keyboardType: TextInputType.number,
               ),
+
+              // ── Shift Hour ──
               const SizedBox(height: 20),
-
-
               CustomDropdownField<String>(
                 label: "Shift Hour",
-
                 value: _selectedTotalHour,
                 hint: "Select Total Working Hours",
                 items: _totalHourOptions
-                    .map(
-                      (hour) => DropdownMenuItem<String>(
-                    value: hour,
-                    child: Text(hour),
-                  ),
-                )
+                    .map((hour) => DropdownMenuItem<String>(
+                    value: hour, child: Text(hour)))
                     .toList(),
-                onChanged: (value) {
-                  setState(() {
-                    _selectedTotalHour = value;
-                  });
-                },
+                onChanged: (value) =>
+                    setState(() => _selectedTotalHour = value),
               ),
+
+              // ── Basic Salary ──
               const SizedBox(height: 16),
               CustomTextField(
                 label: "Basic Salary",
                 controller: _basicSalaryController,
-
                 keyboardType: TextInputType.number,
               ),
-              const SizedBox(height: 20),
 
+              // ── DA ──
               const SizedBox(height: 12),
               CustomTextField(
                 label: "Dearness Allowance (DA)",
@@ -661,6 +799,7 @@ class _NewManpowerScreenState extends ConsumerState<NewManpowerScreen> {
                 keyboardType: TextInputType.number,
               ),
 
+              // ── HRA ──
               const SizedBox(height: 12),
               CustomTextField(
                 label: "Home Rent Allowance (HRA)",
@@ -668,6 +807,7 @@ class _NewManpowerScreenState extends ConsumerState<NewManpowerScreen> {
                 keyboardType: TextInputType.number,
               ),
 
+              // ── Special Allowance ──
               const SizedBox(height: 12),
               CustomTextField(
                 label: "Special Allowance",
@@ -675,6 +815,7 @@ class _NewManpowerScreenState extends ConsumerState<NewManpowerScreen> {
                 keyboardType: TextInputType.number,
               ),
 
+              // ── Travel Allowance ──
               const SizedBox(height: 12),
               CustomTextField(
                 label: "Travel Allowance",
@@ -682,6 +823,7 @@ class _NewManpowerScreenState extends ConsumerState<NewManpowerScreen> {
                 keyboardType: TextInputType.number,
               ),
 
+              // ── Medical Allowance ──
               const SizedBox(height: 12),
               CustomTextField(
                 label: "Medical Allowance",
@@ -689,8 +831,7 @@ class _NewManpowerScreenState extends ConsumerState<NewManpowerScreen> {
                 keyboardType: TextInputType.number,
               ),
 
-
-              // Remarks
+              // ── Remarks ──
               const SizedBox(height: 16),
               CustomTextField(
                 label: "Remarks",
@@ -699,21 +840,23 @@ class _NewManpowerScreenState extends ConsumerState<NewManpowerScreen> {
                 maxLines: 3,
               ),
 
-              // Buttons
+              // ── Buttons ──
               const SizedBox(height: 20),
               Row(
                 children: [
                   Expanded(
                     child: ElevatedButton(
-                      onPressed: _saveManpower,
+                      onPressed: loading ? null : _saveManpower,
                       style: ElevatedButton.styleFrom(
                         backgroundColor: Colors.blue,
                         foregroundColor: Colors.white,
                         shape: RoundedRectangleBorder(
-                          borderRadius: BorderRadius.circular(30),
-                        ),
+                            borderRadius: BorderRadius.circular(30)),
                       ),
-                      child: loading?const CircularProgressIndicator(color: Colors.white,):const Text("Save"),
+                      child: loading
+                          ? const CircularProgressIndicator(
+                          color: Colors.white)
+                          : const Text("Save"),
                     ),
                   ),
                 ],
@@ -728,8 +871,7 @@ class _NewManpowerScreenState extends ConsumerState<NewManpowerScreen> {
                         backgroundColor: Colors.blue,
                         foregroundColor: Colors.white,
                         shape: RoundedRectangleBorder(
-                          borderRadius: BorderRadius.circular(30),
-                        ),
+                            borderRadius: BorderRadius.circular(30)),
                       ),
                       child: const Text("Reset"),
                     ),
@@ -742,8 +884,7 @@ class _NewManpowerScreenState extends ConsumerState<NewManpowerScreen> {
                         backgroundColor: Colors.white,
                         foregroundColor: Colors.black,
                         shape: RoundedRectangleBorder(
-                          borderRadius: BorderRadius.circular(30),
-                        ),
+                            borderRadius: BorderRadius.circular(30)),
                       ),
                       child: const Text("Back"),
                     ),
@@ -761,29 +902,26 @@ class _NewManpowerScreenState extends ConsumerState<NewManpowerScreen> {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        Text(
-          label,
-          style: const TextStyle(
-            fontSize: 14,
-            fontWeight: FontWeight.w600,
-            color: Colors.black87,
-          ),
-        ),
+        Text(label,
+            style: const TextStyle(
+                fontSize: 14,
+                fontWeight: FontWeight.w600,
+                color: Colors.black87)),
         const SizedBox(height: 6),
         GestureDetector(
           onTap: () => _pickDate(context, isDOB),
           child: Container(
-            padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 14),
+            padding:
+            const EdgeInsets.symmetric(horizontal: 14, vertical: 14),
             decoration: BoxDecoration(
               color: Colors.white,
               borderRadius: BorderRadius.circular(12),
               border: Border.all(color: Colors.blue.shade200, width: 1.5),
               boxShadow: [
                 BoxShadow(
-                  color: Colors.blue.withOpacity(0.08),
-                  blurRadius: 4,
-                  offset: const Offset(0, 2),
-                ),
+                    color: Colors.blue.withOpacity(0.08),
+                    blurRadius: 4,
+                    offset: const Offset(0, 2))
               ],
             ),
             child: Row(
@@ -794,16 +932,14 @@ class _NewManpowerScreenState extends ConsumerState<NewManpowerScreen> {
                       ? "${date.day}-${date.month}-${date.year}"
                       : "Input Text",
                   style: TextStyle(
-                    fontSize: 15,
-                    color: date != null ? Colors.black87 : Colors.grey.shade500,
-                    fontWeight: FontWeight.w500,
-                  ),
+                      fontSize: 15,
+                      color: date != null
+                          ? Colors.black87
+                          : Colors.grey.shade500,
+                      fontWeight: FontWeight.w500),
                 ),
-                const Icon(
-                  Icons.calendar_today_rounded,
-                  color: Color(0xFF007BFF),
-                  size: 20,
-                ),
+                const Icon(Icons.calendar_today_rounded,
+                    color: Color(0xFF007BFF), size: 20),
               ],
             ),
           ),

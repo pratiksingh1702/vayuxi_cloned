@@ -5,11 +5,27 @@ import '../../../features/auth/provider/auth_provider.dart';
 import '../../../features/modules/screen/device_id.dart';
 import '../../../features/modules/screen/device_id_helper.dart';
 
+import '../../../features/profile_page/provider/userProvider.dart';
 import '../../api/requestQueue.dart';
-import '../../api/syncManager.dart'; // Add this import
+import '../../api/syncManager.dart';
 
 class CustomDrawer extends ConsumerWidget {
   const CustomDrawer({super.key});
+
+  // Color System
+  static const Color _background = Color(0xFFFFFFFF);
+  static const Color _surface = Color(0xFFF8F9FA);
+  static const Color _surfaceElevated = Color(0xFFF1F3F5);
+  static const Color _primary = Color(0xFF3B82F6);
+  static const Color _primaryLight = Color(0xFFEFF6FF);
+  static const Color _textPrimary = Color(0xFF1E293B);
+  static const Color _textSecondary = Color(0xFF64748B);
+  static const Color _textMuted = Color(0xFF94A3B8);
+  static const Color _divider = Color(0xFFE2E8F0);
+  static const Color _danger = Color(0xFFEF4444);
+  static const Color _dangerLight = Color(0xFFFEF2F2);
+  static const Color _success = Color(0xFF10B981);
+  static const Color _successLight = Color(0xFFF0FDF4);
 
   Future<bool> _checkDeviceVerification() async {
     final id = await DevicePrefs.getDeviceId();
@@ -35,7 +51,7 @@ class CustomDrawer extends ConsumerWidget {
         ScaffoldMessenger.of(context).showSnackBar(
           const SnackBar(
             content: Text("Device not verified. Please verify first to access this feature."),
-            backgroundColor: Colors.red,
+            backgroundColor: _danger,
             behavior: SnackBarBehavior.floating,
           ),
         );
@@ -82,22 +98,22 @@ class CustomDrawer extends ConsumerWidget {
   Widget build(BuildContext context, WidgetRef ref) {
     return Drawer(
       child: Container(
-        color: Colors.white,
+        color: _background,
         child: SafeArea(
           child: Column(
             children: [
-              const Divider(height: 1),
               Expanded(
                 child: ListView(
-                  padding: const EdgeInsets.symmetric(vertical: 8),
+                  padding: const EdgeInsets.symmetric(vertical: 12),
+                  physics: const BouncingScrollPhysics(),
                   children: [
+                    const SizedBox(height: 4),
                     _buildSectionTitle('MAIN'),
                     _buildNavItem(
                       context,
                       imagePath: "assets/images/icons/dashboard.webp",
                       title: 'Dashboard',
                       route: '/workCategory',
-                      gradient: [Colors.blue.shade400, Colors.blue.shade600],
                       requiresVerification: false,
                     ),
                     _buildNavItem(
@@ -105,63 +121,17 @@ class CustomDrawer extends ConsumerWidget {
                       imagePath: "assets/images/icons/modules.webp",
                       title: 'Modules',
                       route: '/select-module',
-                      gradient: [Colors.purple.shade400, Colors.purple.shade600],
                       requiresVerification: false,
                     ),
-
-                    // MANUAL SYNC BUTTON
-                    Container(
-                      margin: const EdgeInsets.symmetric(horizontal: 2, vertical: 2),
-                      decoration: BoxDecoration(
-                        gradient: LinearGradient(
-                          begin: Alignment.centerLeft,
-                          end: Alignment.centerRight,
-                          colors: [Colors.deepOrange.shade400, Colors.deepOrange.shade600],
-                        ),
-                        borderRadius: BorderRadius.circular(12),
-                      ),
-                      child: ListTile(
-                        leading: Container(
-                          padding: const EdgeInsets.all(8),
-                          decoration: BoxDecoration(
-                            color: Colors.white.withOpacity(0.2),
-                            borderRadius: BorderRadius.circular(8),
-                          ),
-                          child: const Icon(
-                            Icons.sync,
-                            color: Colors.white,
-                            size: 24,
-                          ),
-                        ),
-                        title: const Text(
-                          'Manual Sync',
-                          style: TextStyle(
-                            fontSize: 14,
-                            fontWeight: FontWeight.w600,
-                            color: Colors.white,
-                          ),
-                        ),
-                        trailing: const Icon(
-                          Icons.cloud_upload,
-                          color: Colors.white,
-                          size: 20,
-                        ),
-                        contentPadding: const EdgeInsets.symmetric(horizontal: 12, vertical: 4),
-                        shape: RoundedRectangleBorder(
-                          borderRadius: BorderRadius.circular(12),
-                        ),
-                        onTap: () => _handleManualSync(context, ref),
-                      ),
-                    ),
-
-                    const SizedBox(height: 12),
+                    const SizedBox(height: 8),
+                    _buildManualSyncCard(context, ref),
+                    const SizedBox(height: 20),
                     _buildSectionTitle('DAILY OPERATIONS'),
                     _buildNavItem(
                       context,
                       imagePath: "assets/images/icons/attendance.webp",
                       title: 'Attendance',
                       route: '/site-list/attendance',
-                      gradient: [Colors.red.shade400, Colors.red.shade600],
                       requiresVerification: false,
                     ),
                     _buildNavItem(
@@ -169,7 +139,6 @@ class CustomDrawer extends ConsumerWidget {
                       imagePath: "assets/images/icons/dpr.webp",
                       title: 'Daily Progress',
                       route: '/site-list/dpr',
-                      gradient: [Colors.indigo.shade400, Colors.indigo.shade600],
                       requiresVerification: false,
                     ),
                     _buildNavItem(
@@ -177,7 +146,6 @@ class CustomDrawer extends ConsumerWidget {
                       imagePath: "assets/images/icons/expense_daily.webp",
                       title: 'Expense Entry',
                       route: '/site-list/add-exp',
-                      gradient: [Colors.orange.shade400, Colors.orange.shade600],
                       requiresVerification: false,
                     ),
                     _buildNavItem(
@@ -185,17 +153,15 @@ class CustomDrawer extends ConsumerWidget {
                       imagePath: "assets/images/icons/inventory_entry.webp",
                       title: 'Inventory Entry',
                       route: '/site-list/inv-entry',
-                      gradient: [Colors.teal.shade400, Colors.teal.shade600],
                       requiresVerification: false,
                     ),
-                    const SizedBox(height: 12),
+                    const SizedBox(height: 20),
                     _buildSectionTitle('SETUP & CONFIGURATION'),
                     _buildNavItem(
                       context,
                       imagePath: "assets/images/icons/site_details.webp",
                       title: 'Site Details',
                       route: '/site',
-                      gradient: [Colors.cyan.shade400, Colors.cyan.shade600],
                       requiresVerification: true,
                     ),
                     _buildNavItem(
@@ -203,7 +169,6 @@ class CustomDrawer extends ConsumerWidget {
                       imagePath: "assets/images/icons/rate.webp",
                       title: 'Rate Management',
                       route: '/site-list/rate',
-                      gradient: [Colors.green.shade400, Colors.green.shade600],
                       requiresVerification: true,
                     ),
                     _buildNavItem(
@@ -211,7 +176,6 @@ class CustomDrawer extends ConsumerWidget {
                       imagePath: "assets/images/icons/manpower_setup.webp",
                       title: 'Manpower Details',
                       route: '/manpower',
-                      gradient: [Colors.amber.shade400, Colors.amber.shade600],
                       requiresVerification: true,
                     ),
                     _buildNavItem(
@@ -219,7 +183,6 @@ class CustomDrawer extends ConsumerWidget {
                       imagePath: "assets/images/icons/add_team.webp",
                       title: 'Team Management',
                       route: '/site-list/team',
-                      gradient: [Colors.lightBlue.shade400, Colors.lightBlue.shade600],
                       requiresVerification: true,
                     ),
                     _buildNavItem(
@@ -227,7 +190,6 @@ class CustomDrawer extends ConsumerWidget {
                       imagePath: "assets/images/icons/dpr_setup.webp",
                       title: 'DPR Setup',
                       route: '/site-list/addMoc',
-                      gradient: [Colors.deepPurple.shade400, Colors.deepPurple.shade600],
                       requiresVerification: true,
                     ),
                     _buildNavItem(
@@ -235,17 +197,15 @@ class CustomDrawer extends ConsumerWidget {
                       imagePath: "assets/images/icons/inventory_setup.webp",
                       title: 'Inventory Setup',
                       route: '/site-list/inv-setup',
-                      gradient: [Colors.teal.shade400, Colors.teal.shade600],
                       requiresVerification: true,
                     ),
-                    const SizedBox(height: 12),
+                    const SizedBox(height: 20),
                     _buildSectionTitle('REPORTS & ANALYSIS'),
                     _buildNavItem(
                       context,
                       imagePath: "assets/images/icons/summary_analysis.webp",
                       title: 'Summary & Analysis',
                       route: '/summary',
-                      gradient: [Colors.deepOrange.shade400, Colors.deepOrange.shade600],
                       requiresVerification: true,
                     ),
                     _buildNavItem(
@@ -253,7 +213,6 @@ class CustomDrawer extends ConsumerWidget {
                       imagePath: "assets/images/icons/ai_analysis.webp",
                       title: 'AI Analysis',
                       route: '/analysis',
-                      gradient: [Colors.pink.shade400, Colors.pink.shade600],
                       requiresVerification: true,
                     ),
                     _buildNavItem(
@@ -261,7 +220,6 @@ class CustomDrawer extends ConsumerWidget {
                       imagePath: "assets/images/icons/salary_slip.webp",
                       title: 'Salary Reports',
                       route: '/salary',
-                      gradient: [Colors.brown.shade400, Colors.brown.shade600],
                       requiresVerification: true,
                     ),
                     _buildNavItem(
@@ -269,7 +227,6 @@ class CustomDrawer extends ConsumerWidget {
                       imagePath: "assets/images/icons/dpr_report.webp",
                       title: 'DPR Sheets',
                       route: '/site-list/dprReport',
-                      gradient: [Colors.indigo.shade400, Colors.indigo.shade600],
                       requiresVerification: true,
                     ),
                     _buildNavItem(
@@ -277,7 +234,6 @@ class CustomDrawer extends ConsumerWidget {
                       imagePath: "assets/images/icons/expense_sheet.webp",
                       title: 'Expense Report',
                       route: '/site-list/expense',
-                      gradient: [Colors.orange.shade400, Colors.orange.shade600],
                       requiresVerification: true,
                     ),
                     _buildNavItem(
@@ -285,7 +241,6 @@ class CustomDrawer extends ConsumerWidget {
                       imagePath: "assets/images/icons/attendance_sheet.webp",
                       title: 'Attendance Sheet',
                       route: '/site-list/att-sheet',
-                      gradient: [Colors.red.shade400, Colors.red.shade600],
                       requiresVerification: true,
                     ),
                     _buildNavItem(
@@ -293,17 +248,15 @@ class CustomDrawer extends ConsumerWidget {
                       imagePath: "assets/images/icons/inventory_summary.webp",
                       title: 'Inventory Report',
                       route: '/site-list/inv-Report',
-                      gradient: [Colors.teal.shade400, Colors.teal.shade600],
                       requiresVerification: true,
                     ),
-                    const SizedBox(height: 12),
+                    const SizedBox(height: 20),
                     _buildSectionTitle('SETTINGS'),
                     _buildNavItem(
                       context,
                       imagePath: "assets/images/icons/profile.webp",
                       title: 'Profile',
                       route: '/profile',
-                      gradient: [Colors.blue.shade400, Colors.blue.shade600],
                       requiresVerification: true,
                     ),
                     _buildNavItem(
@@ -311,7 +264,6 @@ class CustomDrawer extends ConsumerWidget {
                       imagePath: "assets/images/icons/subscription.webp",
                       title: 'Subscription',
                       route: '/subscription',
-                      gradient: [Colors.amber.shade400, Colors.amber.shade600],
                       requiresVerification: true,
                     ),
                     _buildNavItem(
@@ -319,7 +271,6 @@ class CustomDrawer extends ConsumerWidget {
                       imagePath: "assets/images/icons/theme.webp",
                       title: 'Theme',
                       route: '/theme',
-                      gradient: [Colors.purple.shade400, Colors.purple.shade600],
                       requiresVerification: true,
                     ),
                     _buildNavItem(
@@ -327,7 +278,6 @@ class CustomDrawer extends ConsumerWidget {
                       imagePath: "assets/images/icons/language.webp",
                       title: 'Language',
                       route: '/language',
-                      gradient: [Colors.green.shade400, Colors.green.shade600],
                       requiresVerification: true,
                     ),
                     _buildNavItem(
@@ -335,7 +285,6 @@ class CustomDrawer extends ConsumerWidget {
                       imagePath: "assets/images/icons/updates.webp",
                       title: 'What\'s New',
                       route: '/upcoming-update',
-                      gradient: [Colors.lightGreen.shade400, Colors.lightGreen.shade600],
                       requiresVerification: true,
                     ),
                     _buildNavItem(
@@ -343,13 +292,13 @@ class CustomDrawer extends ConsumerWidget {
                       imagePath: "assets/images/icons/help.webp",
                       title: 'Help & Support',
                       route: '/help',
-                      gradient: [Colors.blueGrey.shade400, Colors.blueGrey.shade600],
                       requiresVerification: true,
                     ),
+                    const SizedBox(height: 24),
                   ],
                 ),
               ),
-              _buildDrawerFooter(context,ref),
+              _buildDrawerFooter(context, ref),
             ],
           ),
         ),
@@ -359,15 +308,26 @@ class CustomDrawer extends ConsumerWidget {
 
   Widget _buildSectionTitle(String title) {
     return Padding(
-      padding: const EdgeInsets.fromLTRB(16, 12, 16, 8),
-      child: Text(
-        title,
-        style: TextStyle(
-          fontSize: 11,
-          fontWeight: FontWeight.bold,
-          color: Colors.grey.shade600,
-          letterSpacing: 1.2,
-        ),
+      padding: const EdgeInsets.fromLTRB(20, 8, 16, 12),
+      child: Row(
+        children: [
+          Text(
+            title,
+            style: TextStyle(
+              fontSize: 11,
+              fontWeight: FontWeight.w600,
+              color: _textMuted,
+              letterSpacing: 0.8,
+            ),
+          ),
+          Expanded(
+            child: Container(
+              margin: const EdgeInsets.only(left: 12),
+              height: 1,
+              color: _divider,
+            ),
+          ),
+        ],
       ),
     );
   }
@@ -377,7 +337,6 @@ class CustomDrawer extends ConsumerWidget {
         required String imagePath,
         required String title,
         required String route,
-        required List<Color> gradient,
         required bool requiresVerification,
       }) {
     String currentRoute = '';
@@ -386,107 +345,379 @@ class CustomDrawer extends ConsumerWidget {
     final router = GoRouter.maybeOf(context);
 
     if (router != null) {
-      currentRoute =
-          router.routeInformationProvider.value.uri.path;
-      isActive =
-          currentRoute == route || currentRoute.startsWith(route);
+      currentRoute = router.routeInformationProvider.value.uri.path;
+      isActive = currentRoute == route || currentRoute.startsWith(route);
     }
 
-    return Container(
-      margin: const EdgeInsets.symmetric(horizontal: 2, vertical: 2),
-      decoration: BoxDecoration(
-        gradient: isActive
-            ? LinearGradient(
-          begin: Alignment.centerLeft,
-          end: Alignment.centerRight,
-          colors: gradient,
-        )
-            : null,
-        borderRadius: BorderRadius.circular(12),
-      ),
-      child: ListTile(
-        leading: Container(
-          padding: const EdgeInsets.all(8),
-          decoration: BoxDecoration(
-            color: isActive ? Colors.white.withOpacity(0.2) : Colors.transparent,
-            borderRadius: BorderRadius.circular(8),
-          ),
-          child: SizedBox(
-            width: 24,
-            height: 24,
-            child: Image.asset(
-              imagePath,
-              fit: BoxFit.contain,
-              errorBuilder: (context, error, stackTrace) {
-                return Icon(
-                  Icons.image_not_supported,
-                  color: isActive ? Colors.white : Colors.grey.shade700,
-                  size: 22,
-                );
-              },
+    return Padding(
+      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 2),
+      child: Material(
+        color: Colors.transparent,
+        child: InkWell(
+          onTap: () => _handleNavigation(context, route, requiresVerification),
+          borderRadius: BorderRadius.circular(12),
+          splashColor: _primary.withOpacity(0.08),
+          highlightColor: Colors.transparent,
+          child: Container(
+            padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
+            decoration: BoxDecoration(
+              color: isActive ? _primaryLight : Colors.transparent,
+              borderRadius: BorderRadius.circular(12),
+              boxShadow: isActive
+                  ? [
+                BoxShadow(
+                  color: _primary.withOpacity(0.08),
+                  blurRadius: 8,
+                  offset: const Offset(0, 2),
+                ),
+              ]
+                  : null,
+            ),
+            child: Row(
+              children: [
+                Container(
+                  width: 32,
+                  height: 32,
+                  alignment: Alignment.center,
+                  child: Image.asset(
+                    imagePath,
+                    width: 20,
+                    height: 20,
+
+                    fit: BoxFit.contain,
+                    errorBuilder: (context, error, stackTrace) {
+                      return Icon(
+                        Icons.circle_outlined,
+                        color: isActive ? _primary : _textSecondary,
+                        size: 20,
+                      );
+                    },
+                  ),
+                ),
+                const SizedBox(width: 12),
+                Expanded(
+                  child: Text(
+                    title,
+                    style: TextStyle(
+                      fontSize: 14,
+                      fontWeight: isActive ? FontWeight.w600 : FontWeight.w500,
+                      color: isActive ? _primary : _textPrimary,
+                      letterSpacing: -0.2,
+                    ),
+                  ),
+                ),
+                if (isActive)
+                  Container(
+                    width: 3,
+                    height: 28,
+                    decoration: BoxDecoration(
+                      color: _primary,
+                      borderRadius: BorderRadius.circular(2),
+                    ),
+                  ),
+              ],
             ),
           ),
         ),
-        title: Text(
-          title,
-          style: TextStyle(
-            fontSize: 14,
-            fontWeight: isActive ? FontWeight.w600 : FontWeight.w500,
-            color: isActive ? Colors.white : Colors.grey.shade800,
-          ),
-        ),
-        trailing: isActive
-            ? const Icon(Icons.chevron_right, color: Colors.white, size: 20)
-            : null,
-        contentPadding: const EdgeInsets.symmetric(horizontal: 12, vertical: 4),
-        shape: RoundedRectangleBorder(
-          borderRadius: BorderRadius.circular(12),
-        ),
-        onTap: () => _handleNavigation(context, route, requiresVerification),
       ),
     );
   }
 
-  Widget _buildDrawerFooter(BuildContext context,WidgetRef ref) {
+  Widget _buildManualSyncCard(BuildContext context, WidgetRef ref) {
     return Container(
-      padding: const EdgeInsets.all(16),
-      decoration: BoxDecoration(
-        color: Colors.grey.shade100,
-        border: Border(
-          top: BorderSide(color: Colors.grey.shade300, width: 1),
-        ),
-      ),
-      child: Row(
-        mainAxisAlignment: MainAxisAlignment.spaceBetween,
-        children: [
-          Text(
-            'Version 1.0.0',
-            style: TextStyle(
-              fontSize: 11,
-              color: Colors.grey.shade600,
-            ),
-          ),
-          TextButton.icon(
-            onPressed: () async {
-
-                final authNotifier = ref.read(authProvider.notifier);
-                await authNotifier.logout();
-
-            },
-            icon: Icon(Icons.logout, size: 16, color: Colors.red.shade600),
-            label: Text(
-              'Logout',
-              style: TextStyle(
-                fontSize: 12,
-                color: Colors.red.shade600,
-                fontWeight: FontWeight.w600,
+      margin: const EdgeInsets.symmetric(horizontal: 12, vertical: 4),
+      child: Material(
+        color: Colors.transparent,
+        child: InkWell(
+          onTap: () => _handleManualSync(context, ref),
+          borderRadius: BorderRadius.circular(12),
+          splashColor: _success.withOpacity(0.08),
+          highlightColor: Colors.transparent,
+          child: Container(
+            padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
+            decoration: BoxDecoration(
+              color: _successLight,
+              borderRadius: BorderRadius.circular(12),
+              border: Border.all(
+                color: _success.withOpacity(0.2),
+                width: 1,
               ),
             ),
-            style: TextButton.styleFrom(
-              padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+            child: Row(
+              children: [
+                Container(
+                  width: 32,
+                  height: 32,
+                  decoration: BoxDecoration(
+                    color: _success.withOpacity(0.15),
+                    borderRadius: BorderRadius.circular(8),
+                  ),
+                  alignment: Alignment.center,
+                  child: const Icon(
+                    Icons.sync,
+                    color: _success,
+                    size: 18,
+                  ),
+                ),
+                const SizedBox(width: 12),
+                Expanded(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text(
+                        'Manual Sync',
+                        style: TextStyle(
+                          fontSize: 14,
+                          fontWeight: FontWeight.w600,
+                          color: _textPrimary,
+                        ),
+                      ),
+                      Text(
+                        'Sync pending data',
+                        style: TextStyle(
+                          fontSize: 11,
+                          fontWeight: FontWeight.w400,
+                          color: _textSecondary,
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+                Container(
+                  padding: const EdgeInsets.all(6),
+                  decoration: BoxDecoration(
+                    color: _success.withOpacity(0.1),
+                    borderRadius: BorderRadius.circular(6),
+                  ),
+                  child: Icon(
+                    Icons.cloud_upload,
+                    color: _success,
+                    size: 16,
+                  ),
+                ),
+              ],
             ),
           ),
-        ],
+        ),
+      ),
+    );
+  }
+
+  Widget _buildDrawerFooter(BuildContext context, WidgetRef ref) {
+    final user = ref.watch(currentUserProvider);
+
+    return Container(
+      decoration: BoxDecoration(
+        color: _background,
+        border: Border(
+          top: BorderSide(color: _divider, width: 1),
+        ),
+      ),
+      child: SafeArea(
+        child: Padding(
+          padding: const EdgeInsets.fromLTRB(16, 12, 16, 20),
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              // User Profile Section
+              Container(
+                padding: const EdgeInsets.all(12),
+                decoration: BoxDecoration(
+                  color: _surface,
+                  borderRadius: BorderRadius.circular(16),
+                ),
+                child: Row(
+                  children: [
+                    // Avatar
+                    Container(
+                      width: 48,
+                      height: 48,
+                      decoration: BoxDecoration(
+                        shape: BoxShape.circle,
+                        color: _surfaceElevated,
+                      ),
+                      child: ClipOval(
+                        child: user?.profilePhoto != null && user!.profilePhoto!.isNotEmpty
+                            ? Image.network(
+                          user.profilePhoto!,
+                          fit: BoxFit.cover,
+                          errorBuilder: (context, error, stackTrace) {
+                            return Icon(
+                              Icons.person_outline,
+                              size: 24,
+                              color: _textSecondary,
+                            );
+                          },
+                        )
+                            : Icon(
+                          Icons.person_outline,
+                          size: 24,
+                          color: _textSecondary,
+                        ),
+                      ),
+                    ),
+                    const SizedBox(width: 12),
+                    Expanded(
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Text(
+                            user?.fullName ?? 'Guest User',
+                            style: TextStyle(
+                              fontSize: 15,
+                              fontWeight: FontWeight.w600,
+                              color: _textPrimary,
+                              letterSpacing: -0.2,
+                            ),
+                            maxLines: 1,
+                            overflow: TextOverflow.ellipsis,
+                          ),
+                          const SizedBox(height: 4),
+                          Text(
+                            user?.email ?? 'Not signed in',
+                            style: TextStyle(
+                              fontSize: 12,
+                              fontWeight: FontWeight.w400,
+                              color: _textSecondary,
+                            ),
+                            maxLines: 1,
+                            overflow: TextOverflow.ellipsis,
+                          ),
+                        ],
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+              const SizedBox(height: 12),
+              // Logout Button
+              Material(
+                color: Colors.transparent,
+                child: InkWell(
+                  onTap: () async {
+                    final shouldLogout = await showDialog<bool>(
+                      context: context,
+                      builder: (context) => AlertDialog(
+                        shape: RoundedRectangleBorder(
+                          borderRadius: BorderRadius.circular(20),
+                        ),
+                        title: Row(
+                          children: [
+                            Container(
+                              padding: const EdgeInsets.all(8),
+                              decoration: BoxDecoration(
+                                color: _dangerLight,
+                                borderRadius: BorderRadius.circular(10),
+                              ),
+                              child: Icon(
+                                Icons.logout,
+                                color: _danger,
+                                size: 20,
+                              ),
+                            ),
+                            const SizedBox(width: 12),
+                            const Text(
+                              'Logout',
+                              style: TextStyle(
+                                fontSize: 18,
+                                fontWeight: FontWeight.w700,
+                              ),
+                            ),
+                          ],
+                        ),
+                        content: const Text(
+                          'Are you sure you want to logout?',
+                          style: TextStyle(fontSize: 14),
+                        ),
+                        actions: [
+                          TextButton(
+                            onPressed: () => Navigator.pop(context, false),
+                            child: Text(
+                              'Cancel',
+                              style: TextStyle(
+                                color: _textSecondary,
+                                fontWeight: FontWeight.w600,
+                                fontSize: 14,
+                              ),
+                            ),
+                          ),
+                          Container(
+                            decoration: BoxDecoration(
+                              color: _danger,
+                              borderRadius: BorderRadius.circular(12),
+                            ),
+                            child: TextButton(
+                              onPressed: () => Navigator.pop(context, true),
+                              style: TextButton.styleFrom(
+                                backgroundColor: Colors.transparent,
+                                foregroundColor: Colors.white,
+                                padding: const EdgeInsets.symmetric(
+                                  horizontal: 20,
+                                  vertical: 12,
+                                ),
+                              ),
+                              child: const Text(
+                                'Logout',
+                                style: TextStyle(
+                                  fontWeight: FontWeight.w600,
+                                  fontSize: 14,
+                                ),
+                              ),
+                            ),
+                          ),
+                        ],
+                      ),
+                    );
+
+                    if (shouldLogout == true) {
+                      final authNotifier = ref.read(authProvider.notifier);
+                      await authNotifier.logout();
+                    }
+                  },
+                  borderRadius: BorderRadius.circular(12),
+                  child: Container(
+                    padding: const EdgeInsets.symmetric(vertical: 10),
+                    decoration: BoxDecoration(
+                      color: _surface,
+                      borderRadius: BorderRadius.circular(12),
+                    ),
+                    child: Row(
+                      mainAxisAlignment: MainAxisAlignment.center,
+                      children: [
+                        Icon(
+                          Icons.logout,
+                          size: 16,
+                          color: _danger,
+                        ),
+                        const SizedBox(width: 8),
+                        Text(
+                          'Sign Out',
+                          style: TextStyle(
+                            fontSize: 13,
+                            fontWeight: FontWeight.w600,
+                            color: _danger,
+                            letterSpacing: -0.2,
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+                ),
+              ),
+              const SizedBox(height: 8),
+              // Version
+              Text(
+                'Version 1.0.0',
+                style: TextStyle(
+                  fontSize: 10,
+                  fontWeight: FontWeight.w500,
+                  color: _textMuted,
+                  letterSpacing: 0.3,
+                ),
+              ),
+            ],
+          ),
+        ),
       ),
     );
   }

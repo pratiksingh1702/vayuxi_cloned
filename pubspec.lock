@@ -1011,7 +1011,7 @@ packages:
   isar_flutter_libs:
     dependency: "direct main"
     description:
-      path: "packages/isar_flutter_libs"
+      path: "packages/packages/isar_flutter_libs"
       relative: true
     source: path
     version: "3.1.0+1"

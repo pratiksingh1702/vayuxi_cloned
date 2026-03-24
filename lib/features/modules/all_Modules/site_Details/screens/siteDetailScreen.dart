@@ -46,6 +46,8 @@ class _SiteDetailScreenState extends ConsumerState<SiteDetailScreen> {
 
 
   File? selectedImage;
+  bool isImageDeleted = false; // Track if image should be deleted
+  String? existingImageUrl;
   bool isLoading = false;
   DateTime selectedDate = DateTime.now();
 
@@ -54,6 +56,7 @@ class _SiteDetailScreenState extends ConsumerState<SiteDetailScreen> {
   void initState() {
     super.initState();
     final site = widget.site;
+    existingImageUrl = site?.siteImage;
     siteNameController = TextEditingController(text: site?.siteName ?? "");
     addressController = TextEditingController(text: site?.address ?? "");
     contactPersonController = TextEditingController(
@@ -100,8 +103,20 @@ print(_formatDocumentDate(site?.documentDate));
     );
 
     if (file != null) {
-      setState(() => selectedImage = file);
+      setState(() {
+        selectedImage = file;
+        isImageDeleted = false; // Reset delete flag when new image is selected
+      });
     }
+  }
+
+// Add method to handle image deletion
+  void _deleteImage() {
+    setState(() {
+      selectedImage = null;
+      existingImageUrl = null;
+      isImageDeleted = true; // Mark that image should be deleted
+    });
   }
 
 
@@ -127,13 +142,12 @@ print(_formatDocumentDate(site?.documentDate));
 
     setState(() => isLoading = true);
     try {
-      // Validate required fields - MOVE VALIDATION BEFORE setState
       _validateFields();
 
       final formData = FormData.fromMap({
         "siteName": siteNameController.text.trim(),
         "address": addressController.text.trim(),
-        "shippingAddress": shippingAddressController.text.trim(), // ✅ NEW
+        "shippingAddress": shippingAddressController.text.trim(),
         "contactPerson": contactPersonController.text.trim(),
         "phoneNumber": phoneController.text.trim(),
         "gstNo": gstNoController.text.trim(),
@@ -142,12 +156,16 @@ print(_formatDocumentDate(site?.documentDate));
         "selectedDate": dateController.text,
         "company": widget.site?.company ?? "",
         "type": widget.site?.type ?? "mechanical_work",
+
       });
 
-
-      // Validate image
+      // Handle image based on three scenarios:
+      // 1. New image selected -> upload new file
+      // 2. Image was deleted -> send empty file data to remove existing image
+      // 3. No change -> don't send any image data
 
       if (selectedImage != null) {
+        // Scenario 1: New image selected
         formData.files.add(
           MapEntry(
             "file",
@@ -157,8 +175,15 @@ print(_formatDocumentDate(site?.documentDate));
             ),
           ),
         );
-      }
+      } else if (isImageDeleted) {
+        // Scenario 2: Image was deleted - send empty file to indicate removal
+        // Create an empty MultipartFile to signal backend to remove the image
+        formData.fields.add(
+          const MapEntry("siteImage", ""), // Send empty string to clear the image
+        );
 
+      }
+      // Scenario 3: No change - don't add any file to formData
 
       if (widget.site == null) {
         final type = ref.read(typeProvider);
@@ -168,30 +193,24 @@ print(_formatDocumentDate(site?.documentDate));
         await SiteAPI.createSite(formData, type);
         await ref.read(tourPersistenceProvider).markSiteDone();
         AppToast.success("Site creation Successful ✅");
-
-        // _showSnackBar('Site created successfully!', isError: false);
       } else {
         await SiteAPI.updateSite(widget.site!.id, formData);
         _showSnackBar('Site updated successfully!', isError: false);
       }
 
-      // Refresh sites list and navigate back
       ref.read(siteProvider.notifier).fetchSites();
       if (mounted) {
         Navigator.pop(context, true);
         context.push("/site-list/site");
       }
     } on ValidationException catch (e) {
-      // Show validation errors to user
       _showSnackBar(e.message, isError: true);
       debugPrint("VALIDATION ERROR: ${e.message}");
     } on DioException catch (e) {
-      // Handle Dio-specific errors
       final userMessage = extractBackendError(e);
       _showSnackBar(userMessage, isError: true);
       debugPrint("API Error: ${e.message}\nStatus: ${e.response?.statusCode}\nData: ${e.response?.data}");
     } catch (e, stack) {
-      // Handle any other unexpected errors
       _showSnackBar("An unexpected error occurred. Please try again.", isError: true);
       debugPrint("UNEXPECTED ERROR: $e\nSTACK TRACE: $stack");
     } finally {
@@ -405,21 +424,14 @@ print(_formatDocumentDate(site?.documentDate));
                       ),
                     ),
                   ),
-                UploadBox(
-                  title: "Select Site Image",
-                  subtitle: "Tap to select and crop image",
-                  buttonText: "Choose File",
-                  onPressed: pickImage,
-                  selectedFile: selectedImage,
-                  previewWidget: selectedImage != null
-                      ? UploadBoxPreview(
-                    file: selectedImage!,
-                    isImage: true,
-                    onRemove: () => setState(() => selectedImage = null),
-                    onEdit: pickImage,
-                  )
-                      : null,
-                ),
+                  UploadBox(
+                    title: "Select Site Image",
+                    subtitle: "Tap to select and crop image",
+                    buttonText: "Choose File",
+                    onPressed: pickImage,
+                    selectedFile: selectedImage,
+                    previewWidget: _buildPreviewWidget(), // Use custom preview builder
+                  ),
 
                   const SizedBox(height: 24),
 
@@ -493,6 +505,31 @@ print(_formatDocumentDate(site?.documentDate));
         ),
       ),
     );
+  }
+
+  Widget? _buildPreviewWidget() {
+    // Case 1: New image selected
+    if (selectedImage != null) {
+      return UploadBoxPreview(
+        file: selectedImage!,
+        isImage: true,
+        onRemove: _deleteImage,
+        onEdit: pickImage,
+      );
+    }
+
+    // Case 2: Existing image from server (edit mode)
+    if (existingImageUrl != null && existingImageUrl!.isNotEmpty) {
+      return UploadBoxPreview(
+        source: existingImageUrl!,
+        isImage: true,
+        onRemove: _deleteImage,
+        onEdit: pickImage,
+      );
+    }
+
+    // Case 3: No image
+    return null;
   }
 }
 class ValidationException implements Exception {

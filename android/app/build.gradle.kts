@@ -1,4 +1,4 @@
-plugins {
+﻿plugins {
     id("com.android.application")
     // START: FlutterFire Configuration
     id("com.google.gms.google-services")
@@ -22,13 +22,15 @@ android {
     compileSdk = 36
     ndkVersion = flutter.ndkVersion
 
+
     defaultConfig {
         applicationId = "com.vayuxi.erp"
         minSdk = flutter.minSdkVersion
         targetSdk = 35
         versionCode = flutter.versionCode
         versionName = flutter.versionName
-      
+
+
     }
 
     packaging {

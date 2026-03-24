@@ -3010,9 +3010,8 @@ class _AddDescriptionScreenState extends ConsumerState<AddDescriptionScreen>
           int count = 0;
 
 
-          if (!_globalEditMode) {
             Navigator.of(context).popUntil((_) => count++ >= 4);
-          }
+
           _showSnackBar("Successfully Saved");
 
           // ❌ DO NOT auto-disable edit mode for past dates

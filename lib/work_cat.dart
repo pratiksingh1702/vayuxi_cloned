@@ -305,7 +305,7 @@ class CompanyCard extends StatelessWidget {
         shape: RoundedRectangleBorder(
           borderRadius: BorderRadius.circular(15),
           side: BorderSide(
-            color: isSelected ? Colors.blue : Colors.transparent,
+            color:  Colors.transparent,
             width: 2,
           ),
         ),

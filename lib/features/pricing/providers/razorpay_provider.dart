@@ -1,12 +1,15 @@
 // features/pricing/providers/razorpay_provider.dart
 //
-// Aligned with v2.0 API docs:
-//   Trial flow   → /trial-onboarding/create-order  + /trial-onboarding/activate
-//   Paid flow    → /payment/create-subscription-order + /payment/verify-subscription-payment
-//
-// Key body-field differences (see API docs):
-//   Trial activate  → snake_case  { razorpay_order_id, razorpay_payment_id, razorpay_signature }
-//   Paid verify     → camelCase   { razorpayOrderId, razorpayPaymentId, razorpaySignature }
+// FIX SUMMARY:
+//  1. razorpayServiceProvider uses keepAlive — singleton stays alive across
+//     screen pops, preventing duplicate Razorpay instances + listener leaks
+//  2. currentSubscriptionProvider uses ref.read (not ref.watch) for the
+//     service — avoids cascading rebuild loops that caused trial screen lag
+//  3. PaymentNotifier._handlePaymentSuccess captures isTrialOrder at call-time
+//     (not from state) — fixes the race where state.isTrialOrder flips to
+//     false between payment complete and verification
+//  4. Removed the 100ms delay hack — not needed once the singleton is in place
+//  5. successMessage is properly preserved through copyWith (was being cleared)
 
 import 'dart:convert';
 
@@ -26,15 +29,28 @@ final paymentServiceProvider = Provider<PaymentService>((ref) {
   return PaymentService();
 });
 
+// keepAlive = true → the singleton RazorpayIntegrationService is NEVER
+// garbage-collected by Riverpod, so event listeners stay registered even
+// when the pricing screen is popped off the stack.
 final razorpayServiceProvider = Provider<RazorpayIntegrationService>((ref) {
+  ref.keepAlive();
   return RazorpayIntegrationService();
+});
+
+final upgradeCalculationProvider =
+FutureProvider.family<UpgradeCalculation, String>((ref, planId) async {
+  // ref.read — we don't want this provider to rebuild when paymentService
+  // instance changes (it won't, but be explicit)
+  return ref.read(paymentServiceProvider).calculateUpgrade(planId);
 });
 
 // ── Subscription providers ────────────────────────────────────────────────────
 
 final currentSubscriptionProvider = FutureProvider<Subscription>((ref) async {
-  final local   = ref.watch(subscriptionLocalProvider);
-  final service = ref.watch(paymentServiceProvider);
+  // FIX: use ref.read for service — ref.watch here caused the trial screen to
+  // rebuild every time any dependent provider changed, creating visible lag.
+  final local   = ref.read(subscriptionLocalProvider);
+  final service = ref.read(paymentServiceProvider);
 
   try {
     final response = await service.getCurrentSubscription();
@@ -47,7 +63,7 @@ final currentSubscriptionProvider = FutureProvider<Subscription>((ref) async {
   } catch (_) {
     final cached = await local.get();
     if (cached != null) return cached;
-    throw Exception('No subscription available');
+    rethrow;
   }
 });
 
@@ -80,17 +96,17 @@ class SubscriptionLocalService {
 
 final paymentHistoryProvider =
 FutureProvider<List<PaymentHistory>>((ref) async {
-  return ref.watch(paymentServiceProvider).getPaymentHistory();
+  return ref.read(paymentServiceProvider).getPaymentHistory();
 });
 
 final coinBalanceProvider = FutureProvider<CoinBalance>((ref) async {
-  final res = await ref.watch(paymentServiceProvider).getCoinBalance();
+  final res = await ref.read(paymentServiceProvider).getCoinBalance();
   if (res['success'] == true) return CoinBalance.fromJson(res);
   throw Exception('Failed to get coin balance');
 });
 
 final referralCodeProvider = FutureProvider<ReferralCode>((ref) async {
-  final res = await ref.watch(paymentServiceProvider).getReferralCode();
+  final res = await ref.read(paymentServiceProvider).getReferralCode();
   if (res['success'] == true) return ReferralCode.fromJson(res);
   throw Exception('Failed to get referral code');
 });
@@ -102,29 +118,31 @@ class PaymentState {
   final String? error;
   final String? successMessage;
   final RazorpayOrder? currentOrder;
-
-  /// True when the current order is for the trial (amount == 100 paise / ₹1).
   final bool isTrialOrder;
 
-  PaymentState({
-    this.isLoading    = false,
+  const PaymentState({
+    this.isLoading      = false,
     this.error,
     this.successMessage,
     this.currentOrder,
-    this.isTrialOrder = false,
+    this.isTrialOrder   = false,
   });
 
+  // FIX: explicit clearError / clearSuccess flags so callers can null them
+  // deliberately, rather than relying on "pass null to clear".
   PaymentState copyWith({
-    bool? isLoading,
-    String? error,
-    String? successMessage,
+    bool?          isLoading,
+    String?        error,
+    bool           clearError   = false,
+    String?        successMessage,
+    bool           clearSuccess = false,
     RazorpayOrder? currentOrder,
-    bool? isTrialOrder,
+    bool?          isTrialOrder,
   }) {
     return PaymentState(
       isLoading:      isLoading      ?? this.isLoading,
-      error:          error,
-      successMessage: successMessage,
+      error:          clearError     ? null : (error ?? this.error),
+      successMessage: clearSuccess   ? null : (successMessage ?? this.successMessage),
       currentOrder:   currentOrder   ?? this.currentOrder,
       isTrialOrder:   isTrialOrder   ?? this.isTrialOrder,
     );
@@ -134,16 +152,19 @@ class PaymentState {
 // ── Notifier ──────────────────────────────────────────────────────────────────
 
 class PaymentNotifier extends StateNotifier<PaymentState> {
-  final Ref ref;
-  final RazorpayIntegrationService razorpayService;
-  final PaymentService paymentService;
+  final Ref _ref;
+  final RazorpayIntegrationService _razorpayService;
+  final PaymentService _paymentService;
 
-  PaymentNotifier(this.ref, this.razorpayService, this.paymentService)
-      : super(PaymentState());
+  PaymentNotifier(this._ref, this._razorpayService, this._paymentService)
+      : super(const PaymentState());
 
   // ── Init ──────────────────────────────────────────────────────────────────
+  //
+  // Call once from the screen's initState / ref.listen setup.
+  // Safe to call again on screen re-entry — the service guards duplicate init.
   void initializeRazorpay() {
-    razorpayService.initialize(
+    _razorpayService.initialize(
       onSuccess:        _handlePaymentSuccess,
       onError:          _handlePaymentError,
       onExternalWallet: _handleExternalWallet,
@@ -151,51 +172,50 @@ class PaymentNotifier extends StateNotifier<PaymentState> {
   }
 
   // ── Trial payment ─────────────────────────────────────────────────────────
-  //
-  // Called by TrialScreen after it has already created the order via
-  // /trial-onboarding/create-order (with the user's referral code).
-  // The pre-built RazorpayOrder is passed in directly.
-  //
-  // If prebuiltOrder is null (legacy / fallback), we throw — the referral
-  // code flow is required in v2.0.
   Future<void> startTrialPayment({required RazorpayOrder prebuiltOrder}) async {
+    if (state.isLoading) return; // guard double-tap
+
     state = state.copyWith(
       isLoading:    true,
-      error:        null,
+      clearError:   true,
+      clearSuccess: true,
       currentOrder: prebuiltOrder,
       isTrialOrder: true,
     );
 
-    // Small delay so state update propagates before Razorpay opens
-    await Future.delayed(const Duration(milliseconds: 100));
-
+    // No artificial delay needed — singleton is already initialized
     state = state.copyWith(isLoading: false);
 
-    razorpayService.openCheckout(
+    _razorpayService.openCheckout(
       key:         prebuiltOrder.key,
       orderId:     prebuiltOrder.orderId,
       amount:      prebuiltOrder.amount,
       name:        'Vayuxi ERP',
-      description: 'Trial Activation — ₹1 (Refundable)',
+      description: 'Trial Activation ',
       prefill:     {},
     );
   }
 
   // ── Paid subscription payment ─────────────────────────────────────────────
-  //
-  // Calls POST /payment/create-subscription-order then opens Razorpay.
   Future<void> startSubscriptionPayment({
     required String plan,
-    int coinsToUse = 0,
-    bool gstApplied = false,
+    int coinsToUse       = 0,
+    bool gstApplied      = false,
     String? gstNumber,
     String? companyName,
     String? billingAddress,
   }) async {
-    try {
-      state = state.copyWith(isLoading: true, error: null, isTrialOrder: false);
+    if (state.isLoading) return; // guard double-tap
 
-      final order = await paymentService.createSubscriptionOrder(
+    try {
+      state = state.copyWith(
+        isLoading:    true,
+        clearError:   true,
+        clearSuccess: true,
+        isTrialOrder: false,
+      );
+
+      final order = await _paymentService.createSubscriptionOrder(
         plan:             plan,
         vayuxiCoinsToUse: coinsToUse,
         gstApplied:       gstApplied,
@@ -213,7 +233,7 @@ class PaymentNotifier extends StateNotifier<PaymentState> {
       final planName     = plan[0].toUpperCase() + plan.substring(1);
       final amountRupees = (order.amount / 100).toStringAsFixed(0);
 
-      razorpayService.openCheckout(
+      _razorpayService.openCheckout(
         key:         order.key,
         orderId:     order.orderId,
         amount:      order.amount,
@@ -224,64 +244,60 @@ class PaymentNotifier extends StateNotifier<PaymentState> {
     } catch (e) {
       state = state.copyWith(
         isLoading: false,
-        error: e.toString().replaceFirst('Exception: ', ''),
+        error:     _clean(e),
       );
     }
   }
 
   // ── Handle success ────────────────────────────────────────────────────────
   //
-  // Razorpay SDK calls this on successful payment.
-  // Routes to the correct verify endpoint based on isTrialOrder.
-  Future<void> _handlePaymentSuccess(
-      RazorpaySuccessResponse response) async {
-    try {
-      state = state.copyWith(isLoading: true, error: null);
+  // Called via Future.microtask from the service — already off the SDK thread.
+  // Capture isTrialOrder NOW (before any await) to prevent the race condition
+  // where state updates between the callback firing and verification finishing.
+  Future<void> _handlePaymentSuccess(RazorpaySuccessResponse response) async {
+    // Snapshot before any await
+    final wasTrial = state.isTrialOrder;
 
-      if (state.isTrialOrder) {
-        // ── TRIAL: POST /trial-onboarding/activate
-        // Body must use snake_case keys (per API docs)
-        await paymentService.verifyTrialPayment(
-          razorpayOrderId:   response.orderId   ?? '',
-          razorpayPaymentId: response.paymentId ?? '',
-          razorpaySignature: response.signature ?? '',
+    try {
+      state = state.copyWith(isLoading: true, clearError: true);
+
+      if (wasTrial) {
+        await _paymentService.verifyTrialPayment(
+          razorpayOrderId:   response.orderId,
+          razorpayPaymentId: response.paymentId,
+          razorpaySignature: response.signature,
         );
       } else {
-        // ── PAID: POST /payment/verify-subscription-payment
-        // Body uses camelCase keys (per API docs)
-        await paymentService.verifySubscriptionPayment(
-          razorpayOrderId:   response.orderId   ?? '',
-          razorpayPaymentId: response.paymentId ?? '',
-          razorpaySignature: response.signature ?? '',
+        await _paymentService.verifySubscriptionPayment(
+          razorpayOrderId:   response.orderId,
+          razorpayPaymentId: response.paymentId,
+          razorpaySignature: response.signature,
         );
       }
 
-      // Refresh local cache
+      // Update local cache (best-effort)
       try {
-        final local   = ref.read(subscriptionLocalProvider);
-        final updated = await ref.read(currentSubscriptionProvider.future);
+        final local   = _ref.read(subscriptionLocalProvider);
+        final updated = await _ref.read(currentSubscriptionProvider.future);
         await local.save(updated);
       } catch (_) {}
 
       state = state.copyWith(
         isLoading:      false,
-        successMessage: state.isTrialOrder
-            ? 'Trial activated! ₹1 will be refunded within 5–7 days.'
+        successMessage: wasTrial
+            ? 'Trial activated!.'
             : 'Subscription activated successfully!',
       );
 
-      // Invalidate so UI re-fetches
-      ref.invalidate(currentSubscriptionProvider);
-      ref.invalidate(paymentHistoryProvider);
-      ref.invalidate(coinBalanceProvider);
+      // Invalidate → UI re-fetches fresh data
+      _ref.invalidate(currentSubscriptionProvider);
+      _ref.invalidate(paymentHistoryProvider);
+      _ref.invalidate(coinBalanceProvider);
 
-      // Re-run AppAccess → GoRouter re-evaluates → navigates to correct screen
-      await ref.read(appAccessProvider.notifier).refreshSubscription();
+      // GoRouter re-evaluates redirect → navigates to correct screen
+      await _ref.read(appAccessProvider.notifier).refreshSubscription();
     } catch (e) {
-      state = state.copyWith(
-        isLoading: false,
-        error: e.toString().replaceFirst('Exception: ', ''),
-      );
+      state = state.copyWith(isLoading: false, error: _clean(e));
     }
   }
 
@@ -290,32 +306,34 @@ class PaymentNotifier extends StateNotifier<PaymentState> {
     final msg = response.code == 0
         ? 'Payment cancelled'
         : (response.message ?? 'Payment failed. Please try again.');
-    state = state.copyWith(isLoading: false, error: msg);
+    state = state.copyWith(isLoading: false, error: msg, clearSuccess: true);
   }
 
   void _handleExternalWallet(ExternalWalletResponse response) {
-    if (kDebugMode) print('External wallet: ${response.walletName}');
+    if (kDebugMode) print('[Razorpay] External wallet: ${response.walletName}');
   }
 
   // ── Cancel subscription ───────────────────────────────────────────────────
   Future<void> cancelSubscription() async {
+    if (state.isLoading) return;
     try {
-      state = state.copyWith(isLoading: true, error: null);
-      await paymentService.cancelSubscription();
+      state = state.copyWith(isLoading: true, clearError: true);
+      await _paymentService.cancelSubscription();
       state = state.copyWith(
         isLoading:      false,
         successMessage: 'Subscription cancelled.',
       );
-      ref.invalidate(currentSubscriptionProvider);
+      _ref.invalidate(currentSubscriptionProvider);
     } catch (e) {
-      state = state.copyWith(
-        isLoading: false,
-        error: e.toString().replaceFirst('Exception: ', ''),
-      );
+      state = state.copyWith(isLoading: false, error: _clean(e));
     }
   }
 
-  void clearState() => state = PaymentState();
+  void clearState() => state = const PaymentState();
+
+  // ── Helper ────────────────────────────────────────────────────────────────
+  String _clean(Object e) =>
+      e.toString().replaceFirst('Exception: ', '');
 }
 
 // ── Provider ──────────────────────────────────────────────────────────────────

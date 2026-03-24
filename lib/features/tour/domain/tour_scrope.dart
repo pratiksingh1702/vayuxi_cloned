@@ -26,8 +26,7 @@ class _TourScopeState extends ConsumerState<TourScope> {
     // 3. User has either a subscription OR has completed trial activation
     //    (i.e. they are fully inside the app, past all gates)
     final isInsideApp = !access.isBooting &&
-        access.loggedIn &&
-        (access.hasSubscription || access.trialActivated);
+        access.loggedIn ;
 
     if (isInsideApp && !_tourInitialized) {
       _tourInitialized = true;

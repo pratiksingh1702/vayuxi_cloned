@@ -15,7 +15,6 @@ class ManpowerIsar {
   String? fullName;
   String? designation;
 
-
   @Index(unique: true)
   String? employeeCode;
 
@@ -48,6 +47,9 @@ class ManpowerIsar {
   String? remarks;
 
   String? company;
+
+  // ✅ NEW: Sites this manpower is assigned to (site-wise storage)
+  List<String> sites = [];
 
   bool isDeleted = false;
   bool isLeft = false;

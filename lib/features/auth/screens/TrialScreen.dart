@@ -1,16 +1,13 @@
 // features/auth/screens/TrialScreen.dart
-//
-// Uses /trial-onboarding/create-order (with referralCode) directly via
-// PaymentService, then hands the pre-built order to PaymentNotifier so
-// Razorpay opens. On Razorpay success, the notifier calls
-// /trial-onboarding/activate (snake_case body) and refreshes AppAccess.
 
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../pricing/models/payment_model.dart';
 import '../../pricing/providers/razorpay_provider.dart';
 import '../../pricing/service/pricing_service.dart';
+import '../../pricing/Screens/subsciption_screen.dart';
 
 class TrialScreen extends ConsumerStatefulWidget {
   const TrialScreen({super.key});
@@ -28,6 +25,8 @@ class _TrialScreenState extends ConsumerState<TrialScreen> {
   void initState() {
     super.initState();
     WidgetsBinding.instance.addPostFrameCallback((_) {
+      // FIX: Clear any stale error/success from a previous session before init
+      ref.read(paymentNotifierProvider.notifier).clearState();
       ref.read(paymentNotifierProvider.notifier).initializeRazorpay();
     });
   }
@@ -35,15 +34,13 @@ class _TrialScreenState extends ConsumerState<TrialScreen> {
   @override
   void dispose() {
     _referralCtrl.dispose();
-
     super.dispose();
   }
 
-  // ── Create order via /trial-onboarding/create-order then open Razorpay ───
   Future<void> _pay() async {
     final code = _referralCtrl.text.trim();
     if (code.isEmpty) {
-      setState(() => _localError = 'Please enter your referral code from the email.');
+      setState(() => _localError = 'Please enter your referral code.');
       return;
     }
 
@@ -53,15 +50,17 @@ class _TrialScreenState extends ConsumerState<TrialScreen> {
     });
 
     try {
-      // PaymentService.createTrialOrder now takes referralCode
-      final order = await PaymentService().createTrialOrder(
-        referralCode: code,
-      );
+      // FIX: Use the provider's paymentService instead of a raw PaymentService()
+      // instantiation — avoids creating a second Dio client outside the provider
+      // graph, which was a source of extra network overhead and missing auth tokens
+      // on retry.
+      final order = await ref
+          .read(paymentServiceProvider)
+          .createTrialOrder(referralCode: code);
 
       if (!mounted) return;
       setState(() => _creatingOrder = false);
 
-      // Hand off to notifier — it opens Razorpay and calls /trial-onboarding/activate
       await ref
           .read(paymentNotifierProvider.notifier)
           .startTrialPayment(prebuiltOrder: order);
@@ -76,177 +75,216 @@ class _TrialScreenState extends ConsumerState<TrialScreen> {
 
   @override
   Widget build(BuildContext context) {
+    // FIX: ref.listen handles side-effects (SnackBar, navigation) without
+    // causing build() to re-run. Previously, showing a SnackBar inside build()
+    // or a watch callback would trigger another rebuild → lag loop.
+    ref.listen<PaymentState>(paymentNotifierProvider, (prev, next) {
+      // Show success snackbar (navigation itself is handled by GoRouter via
+      // appAccessProvider.refreshSubscription() inside the notifier)
+      if (next.successMessage != null &&
+          next.successMessage != prev?.successMessage) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content:         Text(next.successMessage!),
+            backgroundColor: Colors.green.shade700,
+            behavior:        SnackBarBehavior.floating,
+          ),
+        );
+      }
+    });
+
     final paymentState = ref.watch(paymentNotifierProvider);
     final isLoading    = _creatingOrder || paymentState.isLoading;
 
-    return Scaffold(
-      backgroundColor: const Color(0xFFF8FAFC),
-      body: SafeArea(
-        child: SingleChildScrollView(
-          padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 40),
+    // Merge provider error + local error: local takes priority so the referral
+    // field error shows inline, not in the banner
+    final bannerError = _localError == null ? paymentState.error : null;
+
+    return AnnotatedRegion<SystemUiOverlayStyle>(
+      value: const SystemUiOverlayStyle(
+        statusBarColor:          Colors.transparent,
+        statusBarIconBrightness: Brightness.dark,
+      ),
+      child: Scaffold(
+        backgroundColor: AppColors.bg,
+        appBar: AppBar(
+          backgroundColor:   AppColors.bg,
+          surfaceTintColor:  Colors.transparent,
+          elevation:         0,
+          leading: IconButton(
+            icon: const Icon(Icons.arrow_back_ios_new_rounded,
+                size: 18, color: AppColors.textSecondary),
+            onPressed: () => Navigator.pop(context),
+          ),
+        ),
+        body: Padding(
+          padding: const EdgeInsets.fromLTRB(24, 8, 24, 0),
           child: Column(
-            crossAxisAlignment: CrossAxisAlignment.center,
+            crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              // ── Hero icon ──────────────────────────────────────────────
-              Container(
-                width: 120, height: 120,
-                decoration: BoxDecoration(
-                  gradient: const LinearGradient(
-                    colors: [Color(0xFF6366F1), Color(0xFF8B5CF6)],
-                    begin: Alignment.topLeft,
-                    end: Alignment.bottomRight,
-                  ),
-                  borderRadius: BorderRadius.circular(30),
-                  boxShadow: [
-                    BoxShadow(
-                      color: const Color(0xFF6366F1).withOpacity(0.3),
-                      blurRadius: 20, offset: const Offset(0, 10),
-                    ),
-                  ],
-                ),
-                child: const Icon(Icons.auto_awesome,
-                    size: 60, color: Colors.white),
+
+              // ── Heading ───────────────────────────────────────────────
+              Text('Activate free trial',
+                  style: AppTextStyles.planTitle
+                      .copyWith(fontSize: 22, letterSpacing: -0.5)),
+              const SizedBox(height: 6),
+              Text(
+                'We sent a referral code to your registered email. Enter it below to get 30-day free access.',
+                style: AppTextStyles.featureText
+                    .copyWith(fontSize: 13.5, height: 1.5),
               ),
+
               const SizedBox(height: 32),
 
-              const Text(
-                'Activate Your Trial',
-                style: TextStyle(
-                  fontSize: 28, fontWeight: FontWeight.bold,
-                  color: Color(0xFF1E293B), letterSpacing: -0.5,
-                ),
-                textAlign: TextAlign.center,
-              ),
-              const SizedBox(height: 12),
-              const Text(
-                'Enter the referral code from your email to activate 30 days of full access.',
-                textAlign: TextAlign.center,
-                style: TextStyle(
-                  fontSize: 16, color: Color(0xFF64748B), height: 1.5,
-                ),
-              ),
-              const SizedBox(height: 32),
+              // ── Input label ───────────────────────────────────────────
+              Text('Referral code',
+                  style: AppTextStyles.featureText.copyWith(
+                      fontSize: 13,
+                      fontWeight: FontWeight.w600,
+                      color: AppColors.textPrimary)),
+              const SizedBox(height: 8),
 
-              // ── Features ───────────────────────────────────────────────
-              Container(
-                padding: const EdgeInsets.all(24),
-                decoration: BoxDecoration(
-                  color: Colors.white,
-                  borderRadius: BorderRadius.circular(20),
-                  boxShadow: [
-                    BoxShadow(
-                      color: Colors.black.withOpacity(0.05),
-                      blurRadius: 10, offset: const Offset(0, 4),
-                    ),
-                  ],
-                ),
-                child: Column(
-                  children: [
-                    _Feature(icon: Icons.check_circle_outline,
-                        title: 'Full Access',
-                        subtitle: 'All features unlocked for 30 days'),
-                    const SizedBox(height: 20),
-                    _Feature(icon: Icons.cloud_upload_outlined,
-                        title: '2 AI Uploads',
-                        subtitle: 'Explore our AI analysis feature'),
-                    const SizedBox(height: 20),
-                    _Feature(icon: Icons.security,
-                        title: 'Secure & Private',
-                        subtitle: 'Your data is safe with us'),
-                  ],
-                ),
-              ),
-              const SizedBox(height: 28),
-
-              // ── Referral code input ────────────────────────────────────
-              _ReferralField(
-                controller: _referralCtrl,
-                error:      _localError,
-                enabled:    !isLoading,
-              ),
-              const SizedBox(height: 16),
-
-              // ── ₹1 info card ───────────────────────────────────────────
-              Container(
-                padding: const EdgeInsets.all(16),
-                decoration: BoxDecoration(
-                  color: const Color(0xFFF1F5F9),
-                  borderRadius: BorderRadius.circular(14),
-                  border: Border.all(color: const Color(0xFFE2E8F0)),
-                ),
-                child: Row(
-                  children: [
-                    Container(
-                      padding: const EdgeInsets.all(10),
-                      decoration: BoxDecoration(
-                        color: Colors.white,
-                        borderRadius: BorderRadius.circular(10),
-                      ),
-                      child: const Icon(Icons.info_outline,
-                          color: Color(0xFF6366F1), size: 22),
-                    ),
-                    const SizedBox(width: 14),
-                    const Expanded(
-                      child: Text(
-                        '₹1 refundable verification. Refund within 5–7 business days.',
-                        style: TextStyle(
-                          fontSize: 13, color: Color(0xFF475569), height: 1.4,
-                        ),
-                      ),
-                    ),
-                  ],
-                ),
-              ),
-              const SizedBox(height: 28),
-
-              // ── CTA ────────────────────────────────────────────────────
-              SizedBox(
-                width: double.infinity, height: 56,
-                child: ElevatedButton(
-                  onPressed: isLoading ? null : _pay,
-                  style: ElevatedButton.styleFrom(
-                    backgroundColor: const Color(0xFF6366F1),
-                    foregroundColor: Colors.white,
-                    disabledBackgroundColor: const Color(0xFFCBD5E1),
-                    elevation: 0,
-                    shape: RoundedRectangleBorder(
-                        borderRadius: BorderRadius.circular(16)),
+              // ── Text field ────────────────────────────────────────────
+              TextField(
+                controller:            _referralCtrl,
+                enabled:               !isLoading,
+                textCapitalization:    TextCapitalization.characters,
+                style: AppTextStyles.planTitle.copyWith(
+                    fontSize: 16, letterSpacing: 2),
+                onChanged: (_) {
+                  // Clear both local and provider errors as user types
+                  if (_localError != null) {
+                    setState(() => _localError = null);
+                  }
+                  // FIX: Also clear the provider error so the banner disappears
+                  // when the user edits the field after a failed attempt
+                  if (paymentState.error != null) {
+                    ref.read(paymentNotifierProvider.notifier).clearState();
+                  }
+                },
+                decoration: InputDecoration(
+                  hintText:  'e.g. ABC123XY',
+                  hintStyle: AppTextStyles.featureText.copyWith(
+                      fontSize: 15,
+                      letterSpacing: 0,
+                      color: AppColors.textMuted),
+                  prefixIcon: const Icon(Icons.vpn_key_rounded,
+                      size: 18, color: AppColors.textMuted),
+                  filled:     true,
+                  fillColor:  AppColors.card,
+                  errorText:  _localError,
+                  errorStyle: AppTextStyles.featureText.copyWith(
+                      fontSize: 12, color: AppColors.rose),
+                  border: OutlineInputBorder(
+                    borderRadius: BorderRadius.circular(12),
+                    borderSide:
+                    const BorderSide(color: AppColors.divider),
                   ),
-                  child: isLoading
-                      ? const SizedBox(
-                      width: 22, height: 22,
-                      child: CircularProgressIndicator(
-                          color: Colors.white, strokeWidth: 2.5))
-                      : const Row(
-                    mainAxisAlignment: MainAxisAlignment.center,
-                    children: [
-                      Text('Activate Trial · ₹1',
-                          style: TextStyle(
-                            fontSize: 16,
-                            fontWeight: FontWeight.w600,
-                            letterSpacing: 0.3,
-                          )),
-                      SizedBox(width: 8),
-                      Icon(Icons.arrow_forward, size: 20),
-                    ],
+                  enabledBorder: OutlineInputBorder(
+                    borderRadius: BorderRadius.circular(12),
+                    borderSide:
+                    const BorderSide(color: AppColors.divider),
                   ),
+                  focusedBorder: OutlineInputBorder(
+                    borderRadius: BorderRadius.circular(12),
+                    borderSide: const BorderSide(
+                        color: AppColors.teal, width: 1.8),
+                  ),
+                  errorBorder: OutlineInputBorder(
+                    borderRadius: BorderRadius.circular(12),
+                    borderSide: BorderSide(
+                        color: AppColors.rose.withOpacity(0.6)),
+                  ),
+                  focusedErrorBorder: OutlineInputBorder(
+                    borderRadius: BorderRadius.circular(12),
+                    borderSide:
+                    const BorderSide(color: AppColors.rose, width: 1.8),
+                  ),
+                  contentPadding: const EdgeInsets.symmetric(
+                      horizontal: 16, vertical: 16),
                 ),
               ),
 
-              // ── Razorpay / network error ───────────────────────────────
-              if (paymentState.error != null) ...[
-                const SizedBox(height: 16),
-                _ErrorBanner(message: paymentState.error!),
+              const SizedBox(height: 8),
+              Text(
+                "Didn't receive it? Check your spam folder.",
+                style: AppTextStyles.featureText
+                    .copyWith(fontSize: 11.5, color: AppColors.textMuted),
+              ),
+
+              // ── Razorpay / network error banner ───────────────────────
+              // FIX: Only shows provider errors here (not local field errors,
+              // those appear inline in the TextField via errorText above)
+              if (bannerError != null) ...[
+                const SizedBox(height: 14),
+                _ErrorBanner(message: bannerError),
               ],
 
-              const SizedBox(height: 24),
-              const Text(
-                'By continuing you agree to our Terms of Service and Privacy Policy.',
-                textAlign: TextAlign.center,
-                style: TextStyle(
-                  fontSize: 12, color: Color(0xFF94A3B8), height: 1.5,
+              const Spacer(),
+
+              // ── ₹1 note ───────────────────────────────────────────────
+              Row(
+                children: [
+                  const Icon(Icons.info_outline_rounded,
+                      size: 14, color: AppColors.textMuted),
+                  const SizedBox(width: 6),
+                  Expanded(
+                    child: Text(
+                      '₹1 is only to Explore the app.',
+                      style: AppTextStyles.featureText
+                          .copyWith(fontSize: 11.5, color: AppColors.textMuted),
+                    ),
+                  ),
+                ],
+              ),
+
+              const SizedBox(height: 14),
+
+              // ── CTA button ────────────────────────────────────────────
+              GestureDetector(
+                onTap: isLoading ? null : _pay,
+                child: AnimatedContainer(
+                  duration: const Duration(milliseconds: 160),
+                  width:  double.infinity,
+                  height: 52,
+                  decoration: BoxDecoration(
+                    gradient: isLoading
+                        ? null
+                        : const LinearGradient(
+                      colors: [
+                        AppColors.teal,
+                        Color(0xFF0891B2),
+                      ],
+                      begin: Alignment.centerLeft,
+                      end:   Alignment.centerRight,
+                    ),
+                    color:         isLoading ? AppColors.divider : null,
+                    borderRadius:  BorderRadius.circular(14),
+                    boxShadow: isLoading
+                        ? []
+                        : [
+                      BoxShadow(
+                        color: AppColors.teal.withOpacity(0.28),
+                        blurRadius: 14,
+                        offset: const Offset(0, 5),
+                      )
+                    ],
+                  ),
+                  alignment: Alignment.center,
+                  child: isLoading
+                      ? const SizedBox(
+                    width: 20, height: 20,
+                    child: CircularProgressIndicator(
+                        strokeWidth: 2.5, color: Colors.white),
+                  )
+                      : Text('Activate Trial · ₹1',
+                      style: AppTextStyles.ctaLabel.copyWith(
+                          color: Colors.white, fontSize: 15)),
                 ),
               ),
+
+              SizedBox(
+                  height: 16 + MediaQuery.of(context).padding.bottom),
             ],
           ),
         ),
@@ -256,103 +294,8 @@ class _TrialScreenState extends ConsumerState<TrialScreen> {
 }
 
 // ─────────────────────────────────────────────────────────────────────────────
-// SUB-WIDGETS
+// ERROR BANNER  — unchanged
 // ─────────────────────────────────────────────────────────────────────────────
-
-class _ReferralField extends StatelessWidget {
-  final TextEditingController controller;
-  final String? error;
-  final bool enabled;
-  const _ReferralField(
-      {required this.controller, required this.error, required this.enabled});
-
-  @override
-  Widget build(BuildContext context) {
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        const Text('Referral Code',
-            style: TextStyle(
-              fontSize: 14, fontWeight: FontWeight.w600,
-              color: Color(0xFF334155),
-            )),
-        const SizedBox(height: 8),
-        TextField(
-          controller: controller,
-          enabled: enabled,
-          textCapitalization: TextCapitalization.characters,
-          decoration: InputDecoration(
-            hintText: 'e.g. ABC123XY',
-            prefixIcon: const Icon(Icons.vpn_key_rounded,
-                color: Color(0xFF6366F1), size: 20),
-            filled: true,
-            fillColor: Colors.white,
-            errorText: error,
-            border: OutlineInputBorder(
-              borderRadius: BorderRadius.circular(14),
-              borderSide: const BorderSide(color: Color(0xFFE2E8F0)),
-            ),
-            enabledBorder: OutlineInputBorder(
-              borderRadius: BorderRadius.circular(14),
-              borderSide: const BorderSide(color: Color(0xFFE2E8F0)),
-            ),
-            focusedBorder: OutlineInputBorder(
-              borderRadius: BorderRadius.circular(14),
-              borderSide:
-              const BorderSide(color: Color(0xFF6366F1), width: 2),
-            ),
-            contentPadding:
-            const EdgeInsets.symmetric(horizontal: 16, vertical: 16),
-          ),
-        ),
-        const SizedBox(height: 6),
-        const Text(
-          'Check your email for the code sent after completing the questionnaire.',
-          style: TextStyle(fontSize: 12, color: Color(0xFF94A3B8)),
-        ),
-      ],
-    );
-  }
-}
-
-class _Feature extends StatelessWidget {
-  final IconData icon;
-  final String title;
-  final String subtitle;
-  const _Feature(
-      {required this.icon, required this.title, required this.subtitle});
-
-  @override
-  Widget build(BuildContext context) => Row(
-    children: [
-      Container(
-        padding: const EdgeInsets.all(8),
-        decoration: BoxDecoration(
-          color: const Color(0xFFEEF2FF),
-          borderRadius: BorderRadius.circular(10),
-        ),
-        child: Icon(icon, color: const Color(0xFF6366F1), size: 22),
-      ),
-      const SizedBox(width: 16),
-      Expanded(
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Text(title,
-                style: const TextStyle(
-                  fontSize: 15, fontWeight: FontWeight.w600,
-                  color: Color(0xFF1E293B),
-                )),
-            const SizedBox(height: 2),
-            Text(subtitle,
-                style: const TextStyle(
-                    fontSize: 13, color: Color(0xFF64748B))),
-          ],
-        ),
-      ),
-    ],
-  );
-}
 
 class _ErrorBanner extends StatelessWidget {
   final String message;
@@ -360,21 +303,21 @@ class _ErrorBanner extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) => Container(
-    padding: const EdgeInsets.all(14),
+    padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
     decoration: BoxDecoration(
-      color: const Color(0xFFFEE2E2),
-      borderRadius: BorderRadius.circular(12),
-      border: Border.all(color: const Color(0xFFFECACA)),
+      color: AppColors.rose.withOpacity(0.07),
+      borderRadius: BorderRadius.circular(10),
+      border: Border.all(color: AppColors.rose.withOpacity(0.22)),
     ),
     child: Row(
       children: [
-        const Icon(Icons.error_outline,
-            color: Color(0xFFDC2626), size: 18),
-        const SizedBox(width: 10),
+        const Icon(Icons.error_outline_rounded,
+            color: AppColors.rose, size: 15),
+        const SizedBox(width: 8),
         Expanded(
           child: Text(message,
-              style: const TextStyle(
-                  color: Color(0xFFDC2626), fontSize: 13)),
+              style: AppTextStyles.featureText.copyWith(
+                  fontSize: 12, color: AppColors.textPrimary)),
         ),
       ],
     ),

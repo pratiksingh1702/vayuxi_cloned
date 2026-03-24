@@ -22,6 +22,7 @@
 import 'package:dio/dio.dart';
 
 import '../../../core/api/dio.dart';
+import '../../modules/screen/device_id_helper.dart';
 import '../models/payment_model.dart';
 
 class PaymentService {
@@ -91,20 +92,22 @@ class PaymentService {
     required String razorpaySignature,
   }) async {
     try {
+      // Read the local device ID so the backend can store it as purchaseDeviceId
+      final deviceId = await DevicePrefs.getDeviceId();
+
       final response = await _dio.post(
         '/trial-onboarding/activate',
         data: {
           'razorpay_order_id':   razorpayOrderId,
           'razorpay_payment_id': razorpayPaymentId,
           'razorpay_signature':  razorpaySignature,
+          if (deviceId != null && deviceId.isNotEmpty) 'deviceId': deviceId,
         },
       );
 
       final data = response.data as Map<String, dynamic>;
-
       if (data['success'] != true) {
-        throw Exception(
-            data['message'] ?? 'Trial activation failed');
+        throw Exception(data['message'] ?? 'Trial activation failed');
       }
     } on DioException catch (e) {
       throw Exception(_extractDioError(e, 'Failed to activate trial'));
@@ -195,24 +198,25 @@ class PaymentService {
     required String razorpaySignature,
   }) async {
     try {
+      // Read the local device ID so the backend can store it as purchaseDeviceId
+      final deviceId = await DevicePrefs.getDeviceId();
+
       final response = await _dio.post(
         '/payment/verify-subscription-payment',
         data: {
           'razorpayOrderId':   razorpayOrderId,
           'razorpayPaymentId': razorpayPaymentId,
           'razorpaySignature': razorpaySignature,
+          if (deviceId != null && deviceId.isNotEmpty) 'deviceId': deviceId,
         },
       );
 
       final data = response.data as Map<String, dynamic>;
-
       if (data['success'] != true) {
-        throw Exception(
-            data['message'] ?? 'Subscription payment verification failed');
+        throw Exception(data['message'] ?? 'Subscription payment verification failed');
       }
     } on DioException catch (e) {
-      throw Exception(
-          _extractDioError(e, 'Failed to verify subscription payment'));
+      throw Exception(_extractDioError(e, 'Failed to verify subscription payment'));
     }
   }
 
@@ -293,5 +297,21 @@ class PaymentService {
     if (v is int) return v;
     if (v is double) return v.toInt();
     return int.tryParse(v.toString());
+  }
+
+  Future<UpgradeCalculation> calculateUpgrade(String targetPlan) async {
+    try {
+      final response = await _dio.post(
+        '/subscription/calculate-upgrade',
+        data: {'targetPlan': targetPlan},
+      );
+      final data = response.data as Map<String, dynamic>;
+      if (data['success'] != true) {
+        throw Exception(data['message'] ?? 'Failed to calculate upgrade');
+      }
+      return UpgradeCalculation.fromJson(data);
+    } on DioException catch (e) {
+      throw Exception(_extractDioError(e, 'Failed to calculate upgrade'));
+    }
   }
 }

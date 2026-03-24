@@ -27,6 +27,7 @@ import '../../features/modules/all_Modules/ai_analyze/screen/tts.dart';
 import '../../features/modules/all_Modules/attendance/screen/attendanceScreen.dart';
 import '../../features/modules/all_Modules/attendance/screen/dailyAttendanceScreen.dart';
 import '../../features/modules/all_Modules/attendance/screen/generate_att.dart';
+import '../../features/modules/all_Modules/boq/screens/boq_dasboard_Screen.dart';
 import '../../features/modules/all_Modules/dpr/dpr-setup/screens/add/add_floor.dart';
 import '../../features/modules/all_Modules/dpr/dpr-setup/screens/add/add_moc.dart';
 import '../../features/modules/all_Modules/dpr/dpr-setup/screens/add/select_page.dart';
@@ -194,6 +195,11 @@ final appRouterProvider = Provider<GoRouter>((ref) {
                   return TeamSelectCardGrid();
                 case 'dpr':
                   return DprTeamScreen(site: site);
+                case 'boq':
+                  return BoqDashboardScreen(
+                    siteId: site.id,
+                    siteName: site.siteName,
+                  );
                 case 'attendance':
                   return AttendanceScreen();
                 case 'siteSalary':

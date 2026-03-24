@@ -322,3 +322,42 @@ class Subscription {
   bool get hasUnlimitedUploads =>
       aiUploadsLimit == -1 || aiUploadsRemaining == -1;
 }
+
+class UpgradeCalculation {
+  final String currentPlan;
+  final String targetPlan;
+  final int    originalPrice;
+  final int    proratedCredit;
+  final int    unusedDays;
+  final int    priceAfterProration;
+  final int    availableCoins;
+  final int    maxCoinsUsable;
+  final int    savings;
+
+  const UpgradeCalculation({
+    required this.currentPlan,
+    required this.targetPlan,
+    required this.originalPrice,
+    required this.proratedCredit,
+    required this.unusedDays,
+    required this.priceAfterProration,
+    required this.availableCoins,
+    required this.maxCoinsUsable,
+    required this.savings,
+  });
+
+  factory UpgradeCalculation.fromJson(Map<String, dynamic> json) {
+    final c = json['calculation'] as Map<String, dynamic>;
+    return UpgradeCalculation(
+      currentPlan:        c['currentPlan']        as String,
+      targetPlan:         c['targetPlan']          as String,
+      originalPrice:      c['originalPrice']       as int,
+      proratedCredit:     c['proratedCredit']      as int,
+      unusedDays:         c['unusedDays']           as int,
+      priceAfterProration: c['priceAfterProration'] as int,
+      availableCoins:     c['availableCoins']      as int,
+      maxCoinsUsable:     c['maxCoinsUsable']      as int,
+      savings:            c['savings']             as int,
+    );
+  }
+}

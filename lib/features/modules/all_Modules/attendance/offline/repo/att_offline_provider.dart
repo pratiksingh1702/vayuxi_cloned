@@ -1,83 +1,98 @@
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import 'package:untitled2/features/modules/all_Modules/site_Details/providers/site_current_provider.dart';
-import 'package:untitled2/typeProvider/type_provider.dart';
 import '../../../Manpower Details/model/manpower_model.dart';
-import '../../../team/provider/teamProvider.dart';
 import '../../model/attModel.dart';
 import 'att_sync.dart';
 
 String normalizeDateKey(DateTime date) {
-  // YYYY-MM-DD
   return "${date.year.toString().padLeft(4, '0')}-"
       "${date.month.toString().padLeft(2, '0')}-"
       "${date.day.toString().padLeft(2, '0')}";
 }
 
-/// ✅ OFFLINE manpower stream
+// ─────────────────────────────────────────────────────────────
+// MANPOWER OFFLINE PROVIDERS
+// ─────────────────────────────────────────────────────────────
+
+/// Company-wide manpower stream (all sites for a type).
 final manpowerOfflineProvider =
-    StreamProvider.family<List<ManpowerModel>, ({String type})>((ref, args) {
+StreamProvider.family<List<ManpowerModel>, ({String type})>((ref, args) {
   ref.watch(manpowerSyncControllerProvider((type: args.type)));
   final repo = ref.watch(attendanceRepositoryProvider);
   return repo.watchManpower(args.type);
 });
 
-// att_offline_provider.dart
+/// Site-scoped manpower stream.
+/// Syncs via GET /site/[siteId]/manpower, then watches Isar filtered by
+/// sitesElementEqualTo(siteId).
+final manpowerBySiteOfflineProvider =
+StreamProvider.family<List<ManpowerModel>, ({String siteId, String type})>(
+        (ref, args) {
+      ref.watch(manpowerSyncBySiteControllerProvider(
+        (siteId: args.siteId, type: args.type),
+      ));
+      final repo = ref.watch(attendanceRepositoryProvider);
+      return repo.watchManpowerBySite(siteId: args.siteId, type: args.type);
+    });
 
-// Add a refresh counter to force provider re-runs
+// ─────────────────────────────────────────────────────────────
+// ATTENDANCE OFFLINE PROVIDER
+// ─────────────────────────────────────────────────────────────
+
 final attendanceRefreshProvider = StateProvider<int>((ref) => 0);
 
-final attendanceOfflineProvider =
-StreamProvider.family<List<AttendanceModel>,
+/// Streams attendance for a site + type + date.
+///
+/// ── Filtering logic ──────────────────────────────────────────
+/// A manpower appears in the attendance list if and only if their
+/// [sites] array contains [siteId].
+///
+/// Team membership is NOT a factor. Every person assigned to the site
+/// gets an attendance row regardless of which team (if any) they belong to.
+/// ─────────────────────────────────────────────────────────────
+final attendanceOfflineProvider = StreamProvider.family<List<AttendanceModel>,
     ({String siteId, String type, DateTime date})>((ref, args) async* {
-
   ref.watch(attendanceRefreshProvider);
-  final teams = ref.watch(
-    teamProvider.select((value) => value.teams),
-  );
-
-  if (teams.isEmpty) {
-    print("⛔ Waiting for teams...");
-    yield* const Stream.empty();
-    return;
-  }
 
   final repo = ref.watch(attendanceRepositoryProvider);
   final dateKey = repo.formatDateKey(args.date);
 
-  final ids = teams
-      .expand((t) => [
-    ...t.teamMemberIds,
-    if (t.teamLeadId != null && t.teamLeadId!.isNotEmpty) t.teamLeadId!,
-  ])
-      .toSet()
-      .toList();
-
+  // ── Background sync ─────────────────────────────────────────
   if (await repo.isOnline()) {
+    try {
+      // Sync site-specific manpower first so sites[] arrays are populated
+      await repo.syncManpowerBySite(
+        siteId: args.siteId,
+        type: args.type,
+      );
+    } catch (e) {
+      print("⚠️ Manpower site-sync failed: $e");
+    }
+
     try {
       await repo.syncAttendanceForDate(
         siteId: args.siteId,
         type: args.type,
         dateKey: dateKey,
       );
-
     } catch (e) {
       print("⚠️ Attendance sync failed: $e");
     }
   }
 
-  await repo.ensureAttendanceForTeam(
+  // ── Ensure absent rows exist for every site-assigned manpower ──
+  await repo.ensureAttendanceForSite(
     siteId: args.siteId,
     type: args.type,
     dateKey: dateKey,
-    teamMemberIds: ids,
   );
 
+  // ── Stream live data (site-only filter inside watchAttendance) ──
   yield* repo.watchAttendance(
     siteId: args.siteId,
     type: args.type,
     dateKey: dateKey,
-    teamMemberIds: ids,
   );
 });
+
 final attendanceDraftProvider =
-    StateProvider<List<AttendanceModel>>((ref) => []);
+StateProvider<List<AttendanceModel>>((ref) => []);

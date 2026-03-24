@@ -40,10 +40,19 @@ class GlobalTourOverlay extends ConsumerWidget {
   Widget build(BuildContext context, WidgetRef ref) {
     final access = ref.watch(appAccessProvider);
 
+    // ADD THIS
+    print('''
+    isBooting: ${access.isBooting}
+    loggedIn: ${access.loggedIn}
+    hasSubscription: ${access.hasSubscription}
+    trialActivated: ${access.trialActivated}
+    planSelected: ${access.planSelected}
+  ''');
+
+
     // User must be fully inside the app before we even think about tour UI
     final isInsideApp = !access.isBooting &&
-        access.loggedIn &&
-        (access.hasSubscription || access.trialActivated);
+        access.loggedIn ;
 
     if (!isInsideApp) {
       // Still booting / on auth/onboarding screens → only show banners
@@ -59,6 +68,11 @@ class GlobalTourOverlay extends ConsumerWidget {
         tourState.status == TourStatus.running &&
             tourState.buddyVisible &&
             step != null;
+    print('''
+  tourStatus: ${tourState.status}
+  buddyVisible: ${tourState.buddyVisible}
+  currentStep: ${ctrl.currentStep?.route}
+''');
 
     return Stack(
       children: [

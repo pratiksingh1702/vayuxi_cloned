@@ -7,20 +7,221 @@ import '../../../Manpower Details/model/manpower_model.dart';
 import '../../../Manpower Details/offline/isar/manpower_isar.dart';
 import '../../model/attModel.dart';
 import '../isar/attendance_isar.dart';
- // AttendanceModel
 
 class AttendanceRepository {
   final Isar isar;
 
   AttendanceRepository(this.isar);
 
-  Future<void> ensureAttendanceForTeam({
+  // ─────────────────────────────────────────────────────────────
+  // MANPOWER SYNC
+  // ─────────────────────────────────────────────────────────────
+
+  Future<void> syncManpowerFromApi(String type) async {
+    final res = await DioClient.dio.get(
+      "/manpower",
+      queryParameters: {"type": type},
+    );
+
+    print("SYNC MANPOWER RUNNING — type: $type");
+
+    final list =
+    (res.data as List).map((e) => ManpowerModel.fromJson(e)).toList();
+    final serverIds = list.map((e) => e.id ?? "").toSet();
+
+    await isar.writeTxn(() async {
+      final local =
+      await isar.manpowerIsars.filter().typeEqualTo(type).findAll();
+      final Map<String, ManpowerIsar> localMap = {
+        for (var item in local) item.manpowerId: item
+      };
+
+      final idsToDelete = local
+          .where((row) => !serverIds.contains(row.manpowerId))
+          .map((e) => e.isarId)
+          .toList();
+      if (idsToDelete.isNotEmpty) {
+        await isar.manpowerIsars.deleteAll(idsToDelete);
+      }
+
+      final List<ManpowerIsar> isarList = [];
+      for (final m in list) {
+        final obj = localMap[m.id ?? ""] ?? ManpowerIsar();
+        _fillIsar(obj, m, type);
+        isarList.add(obj);
+      }
+
+      await isar.manpowerIsars.putAll(isarList);
+    });
+  }
+
+  Future<void> syncManpowerBySite({
+    required String siteId,
+    required String type,
+  }) async {
+    final res = await DioClient.dio.get(
+      "/site/$siteId/manpower",
+      queryParameters: {"type": type},
+    );
+
+    print("SYNC MANPOWER BY SITE — site: $siteId, type: $type");
+
+    final list =
+    (res.data as List).map((e) => ManpowerModel.fromJson(e)).toList();
+
+    await isar.writeTxn(() async {
+      final local =
+      await isar.manpowerIsars.filter().typeEqualTo(type).findAll();
+      final Map<String, ManpowerIsar> localMap = {
+        for (var item in local) item.manpowerId: item
+      };
+
+      final List<ManpowerIsar> isarList = [];
+      for (final m in list) {
+        final obj = localMap[m.id ?? ""] ?? ManpowerIsar();
+        _fillIsar(obj, m, type);
+        isarList.add(obj);
+      }
+
+      await isar.manpowerIsars.putAll(isarList);
+    });
+  }
+
+  void _fillIsar(ManpowerIsar obj, ManpowerModel m, String type) {
+    obj
+      ..manpowerId = m.id ?? ""
+      ..type = m.type ?? type
+      ..fullName = m.fullName
+      ..designation = m.designation
+      ..employeeCode = m.employeeCode
+      ..phoneNumber = m.phoneNumber
+      ..aadharNumber = m.aadharNumber
+      ..panNumber = m.panNumber
+      ..dateOfBirth = m.dateOfBirth
+      ..dateOfJoining = m.dateOfJoining
+      ..bankAccountNumber = m.bankAccountNumber
+      ..ifscCode = m.ifscCode
+      ..epfNumber = m.epfNumber
+      ..uanNumber = m.uanNumber
+      ..esicNumber = m.esicNumber
+      ..payBasics = m.payBasics
+      ..totalHour = m.totalHour?.toString()
+      ..salary = m.salary
+      ..basicSalary = m.basicSalary
+      ..hra = m.hra
+      ..dearnessAllowance = m.dearnessAllowance
+      ..specialAllowance = m.specialAllowance
+      ..travelAllowance = m.travelAllowance
+      ..medicalAllowance = m.medicalAllowance
+      ..pfApplicable = m.pfApplicable
+      ..remarks = m.remarks
+      ..company = m.company
+      ..sites = List<String>.from(m.sites)
+      ..isDeleted = m.isDeleted ?? false
+      ..isLeft = m.isLeft ?? false
+      ..reason = m.reason
+      ..createdAt = m.createdAt
+      ..updatedAt = DateTime.tryParse(m.updatedAt ?? "") ?? DateTime.now()
+      ..loginEmail = m.loginEmail
+      ..loginPassword = m.loginPassword
+      ..isLoginEnabled = m.isLoginEnabled;
+  }
+
+  // ─────────────────────────────────────────────────────────────
+  // MANPOWER WATCH
+  // ─────────────────────────────────────────────────────────────
+
+  Stream<List<ManpowerModel>> watchManpower(String type) {
+    return isar.manpowerIsars
+        .filter()
+        .typeEqualTo(type)
+        .isDeletedEqualTo(false)
+        .sortByUpdatedAtDesc()
+        .watch(fireImmediately: true)
+        .map((rows) => rows.map(_isarToModel).toList());
+  }
+
+  Stream<List<ManpowerModel>> watchManpowerBySite({
+    required String siteId,
+    required String type,
+  }) {
+    return isar.manpowerIsars
+        .filter()
+        .typeEqualTo(type)
+        .isDeletedEqualTo(false)
+        .sitesElementEqualTo(siteId)
+        .sortByUpdatedAtDesc()
+        .watch(fireImmediately: true)
+        .map((rows) => rows.map(_isarToModel).toList());
+  }
+
+  ManpowerModel _isarToModel(ManpowerIsar m) {
+    return ManpowerModel(
+      id: m.manpowerId,
+      type: m.type,
+      fullName: m.fullName,
+      designation: m.designation,
+      employeeCode: m.employeeCode,
+      phoneNumber: m.phoneNumber,
+      aadharNumber: m.aadharNumber,
+      panNumber: m.panNumber,
+      dateOfBirth: m.dateOfBirth,
+      dateOfJoining: m.dateOfJoining,
+      bankAccountNumber: m.bankAccountNumber,
+      ifscCode: m.ifscCode,
+      epfNumber: m.epfNumber,
+      uanNumber: m.uanNumber,
+      esicNumber: m.esicNumber,
+      payBasics: m.payBasics,
+      totalHour: m.totalHour,
+      salary: m.salary,
+      basicSalary: m.basicSalary,
+      hra: m.hra,
+      dearnessAllowance: m.dearnessAllowance,
+      specialAllowance: m.specialAllowance,
+      travelAllowance: m.travelAllowance,
+      medicalAllowance: m.medicalAllowance,
+      pfApplicable: m.pfApplicable,
+      remarks: m.remarks,
+      company: m.company,
+      sites: List<String>.from(m.sites),
+      isDeleted: m.isDeleted,
+      isLeft: m.isLeft,
+      reason: m.reason,
+      createdAt: m.createdAt,
+      updatedAt: m.updatedAt.toIso8601String(),
+      loginEmail: m.loginEmail,
+      loginPassword: m.loginPassword,
+      isLoginEnabled: m.isLoginEnabled,
+    );
+  }
+
+  // ─────────────────────────────────────────────────────────────
+  // MANPOWER LOCAL OPS
+  // ─────────────────────────────────────────────────────────────
+
+  Future<void> deleteManpowerLocal(String manpowerId) async {
+    final row = await isar.manpowerIsars
+        .filter()
+        .manpowerIdEqualTo(manpowerId)
+        .findFirst();
+    if (row == null) return;
+    await isar.writeTxn(() async {
+      await isar.manpowerIsars.delete(row.isarId);
+    });
+  }
+
+  // ─────────────────────────────────────────────────────────────
+  // ATTENDANCE — ENSURE ROWS
+  // ─────────────────────────────────────────────────────────────
+
+  /// Creates missing absent rows for every manpower that has [siteId] in
+  /// their [sites] array. No team filter — all site-assigned manpower get a row.
+  Future<void> ensureAttendanceForSite({
     required String siteId,
     required String type,
     required String dateKey,
-    required List<String> teamMemberIds,
   }) async {
-
     final existingRows = await isar.attendanceIsars
         .filter()
         .siteIdEqualTo(siteId)
@@ -28,22 +229,19 @@ class AttendanceRepository {
         .dateKeyEqualTo(dateKey)
         .findAll();
 
-    final existingIds = existingRows.map((e) => e.manpowerId).toSet();
+    final existingAttIds = existingRows.map((e) => e.manpowerId).toSet();
 
+    // ✅ ONLY site filter — show every manpower assigned to this site
     final manpowerRows = await isar.manpowerIsars
         .filter()
         .typeEqualTo(type)
-        .anyOf(teamMemberIds, (q, id) => q.manpowerIdEqualTo(id))
         .isDeletedEqualTo(false)
+        .sitesElementEqualTo(siteId)
         .findAll();
 
     await isar.writeTxn(() async {
-
       for (final m in manpowerRows) {
-
-        if (existingIds.contains(m.manpowerId)) {
-          continue;
-        }
+        if (existingAttIds.contains(m.manpowerId)) continue;
 
         final row = AttendanceIsar()
           ..attendanceId = "${siteId}_${m.manpowerId}_$dateKey"
@@ -61,23 +259,19 @@ class AttendanceRepository {
 
         await isar.attendanceIsars.put(row);
       }
-
     });
   }
 
-  Future<void> deleteManpowerLocal(String manpowerId) async {
-    final row = await isar.manpowerIsars
-        .filter()
-        .manpowerIdEqualTo(manpowerId)
-        .findFirst();
+  /// Kept for backward-compat call sites that still pass teamMemberIds.
+  /// Internally delegates to [ensureAttendanceForSite] — team IDs ignored.
+  Future<void> ensureAttendanceForTeam({
+    required String siteId,
+    required String type,
+    required String dateKey,
+    required List<String> teamMemberIds, // ignored
+  }) =>
+      ensureAttendanceForSite(siteId: siteId, type: type, dateKey: dateKey);
 
-    if (row == null) return;
-    print("dpmmmmmmmmmmm");
-
-    await isar.writeTxn(() async {
-      await isar.manpowerIsars.delete(row.isarId);
-    });
-  }
   Future<int> getAttendanceCount({
     required String siteId,
     required String type,
@@ -90,10 +284,7 @@ class AttendanceRepository {
         .dateKeyEqualTo(dateKey)
         .count();
   }
-  // -------------------------------
-  // ✅ MANPOWER CACHE
-  // -------------------------------
-  /// ✅ SYNC API -> ISAR (background)
+
   Future<void> syncAttendanceForDate({
     required String siteId,
     required String type,
@@ -102,14 +293,11 @@ class AttendanceRepository {
     if (!await isOnline()) return;
 
     final date = DateTime.parse(dateKey);
-
-    final formattedDate =
-        "${date.day.toString().padLeft(2, '0')}/"
+    final formattedDate = "${date.day.toString().padLeft(2, '0')}/"
         "${date.month.toString().padLeft(2, '0')}/"
         "${date.year}";
 
     dynamic res;
-
     try {
       res = await AttendanceApi.fetchAttendanceByDate(
         type: type,
@@ -121,25 +309,18 @@ class AttendanceRepository {
       return;
     }
 
-    final List raw =
-    (res.data is Map && res.data['data'] != null)
+    final List raw = (res.data is Map && res.data['data'] != null)
         ? res.data['data']
         : res.data;
 
     final models = raw.map((e) => AttendanceModel.fromJson(e)).toList();
-
-    final isarRows = models.map((m) {
-      return AttendanceIsarMapper.fromModel(
-        m,
-        dateKey,
-        siteId: siteId,
-        type: type,
-      );
-    }).toList();
+    final isarRows = models
+        .map((m) => AttendanceIsarMapper.fromModel(m, dateKey,
+        siteId: siteId, type: type))
+        .toList();
 
     await isar.writeTxn(() async {
       for (final row in isarRows) {
-        // ✅ Find existing by manpowerId + dateKey + siteId + type
         final existing = await isar.attendanceIsars
             .filter()
             .siteIdEqualTo(siteId)
@@ -149,7 +330,6 @@ class AttendanceRepository {
             .findFirst();
 
         if (existing != null) {
-          // ✅ Update existing row — preserve isarId so Isar updates in place
           existing
             ..attendanceId = row.attendanceId
             ..status = row.status
@@ -161,196 +341,37 @@ class AttendanceRepository {
             ..updatedAt = row.updatedAt;
           await isar.attendanceIsars.put(existing);
         } else {
-          // ✅ Insert new row
           await isar.attendanceIsars.put(row);
         }
       }
     });
   }
+
   Future<bool> isOnline() async {
-    final result = await  Connectivity().checkConnectivity();
+    final result = await Connectivity().checkConnectivity();
     return result != ConnectivityResult.none;
   }
+
   String formatDateKey(DateTime date) {
-    // backend expects YYYY-MM-DD
     final y = date.year.toString().padLeft(4, '0');
     final m = date.month.toString().padLeft(2, '0');
     final d = date.day.toString().padLeft(2, '0');
     return "$y-$m-$d";
   }
 
+  // ─────────────────────────────────────────────────────────────
+  // ATTENDANCE WATCH
+  // ─────────────────────────────────────────────────────────────
 
-  Stream<List<ManpowerModel>> watchManpower(String type) {
-    return isar.manpowerIsars
-        .filter()
-        .typeEqualTo(type)
-        .isDeletedEqualTo(false)
-        .sortByUpdatedAtDesc()
-        .watch(fireImmediately: true)
-        .map(
-          (rows) => rows.map((m) {
-        return ManpowerModel(
-          id: m.manpowerId,
-          type: m.type,
-          fullName: m.fullName,
-          designation: m.designation,
-          employeeCode: m.employeeCode,
-          phoneNumber: m.phoneNumber,
-          aadharNumber: m.aadharNumber,
-          panNumber: m.panNumber,
-          dateOfBirth: m.dateOfBirth,
-          dateOfJoining: m.dateOfJoining,
-          bankAccountNumber: m.bankAccountNumber,
-          ifscCode: m.ifscCode,
-          epfNumber: m.epfNumber,
-          uanNumber: m.uanNumber,
-          esicNumber: m.esicNumber,
-          payBasics: m.payBasics,
-          totalHour: m.totalHour,
-          salary: m.salary,
-          basicSalary: m.basicSalary,
-          hra: m.hra,
-          dearnessAllowance: m.dearnessAllowance,
-          specialAllowance: m.specialAllowance,
-          travelAllowance: m.travelAllowance,
-          medicalAllowance: m.medicalAllowance,
-          pfApplicable: m.pfApplicable,
-          remarks: m.remarks,
-          company: m.company,
-          isDeleted: m.isDeleted,
-          isLeft: m.isLeft,
-          reason: m.reason,
-          createdAt: m.createdAt,
-          updatedAt: m.updatedAt.toIso8601String(),
-          loginEmail: m.loginEmail,
-          loginPassword: m.loginPassword,
-          isLoginEnabled: m.isLoginEnabled,
-        );
-      }).toList(),
-    );
-  }
-
-  Future<void> syncManpowerFromApi(String type) async {
-    final res = await DioClient.dio.get(
-      "/manpower",
-      queryParameters: {"type": type},
-    );
-
-    print("SYNC RUNNING AGAIN");
-
-    final list =
-    (res.data as List).map((e) => ManpowerModel.fromJson(e)).toList();
-
-    final serverIds = list.map((e) => e.id ?? "").toSet();
-
-    await isar.writeTxn(() async {
-
-      /// ----------------------------
-      /// FETCH ALL LOCAL DATA
-      /// ----------------------------
-      final local = await isar.manpowerIsars
-          .filter()
-          .typeEqualTo(type)
-
-          .findAll();
-
-      /// Map for fast lookup
-      final Map<String, ManpowerIsar> localMap = {
-        for (var item in local) item.manpowerId: item
-      };
-
-      /// ----------------------------
-      /// DELETE MISSING RECORDS
-      /// ----------------------------
-      final idsToDelete = local
-          .where((row) => !serverIds.contains(row.manpowerId))
-          .map((e) => e.isarId)
-          .toList();
-
-      if (idsToDelete.isNotEmpty) {
-        await isar.manpowerIsars.deleteAll(idsToDelete);
-      }
-
-      /// ----------------------------
-      /// UPSERT RECORDS
-      /// ----------------------------
-      final List<ManpowerIsar> isarList = [];
-
-      for (final m in list) {
-
-        final existing = localMap[m.id ?? ""];
-
-        final obj = existing ?? ManpowerIsar();
-
-        obj
-          ..manpowerId = m.id ?? ""
-          ..type = m.type ?? type
-
-          ..fullName = m.fullName
-          ..designation = m.designation
-          ..employeeCode = m.employeeCode
-          ..phoneNumber = m.phoneNumber
-
-          ..aadharNumber = m.aadharNumber
-          ..panNumber = m.panNumber
-
-          ..dateOfBirth = m.dateOfBirth
-          ..dateOfJoining = m.dateOfJoining
-
-          ..bankAccountNumber = m.bankAccountNumber
-          ..ifscCode = m.ifscCode
-          ..epfNumber = m.epfNumber
-          ..uanNumber = m.uanNumber
-          ..esicNumber = m.esicNumber
-
-          ..payBasics = m.payBasics
-          ..totalHour = m.totalHour?.toString()
-
-          ..salary = m.salary
-          ..basicSalary = m.basicSalary
-          ..hra = m.hra
-          ..dearnessAllowance = m.dearnessAllowance
-          ..specialAllowance = m.specialAllowance
-          ..travelAllowance = m.travelAllowance
-          ..medicalAllowance = m.medicalAllowance
-
-          ..pfApplicable = m.pfApplicable
-
-          ..remarks = m.remarks
-          ..company = m.company
-
-          ..isDeleted = m.isDeleted ?? false
-          ..isLeft = m.isLeft ?? false
-          ..reason = m.reason
-
-          ..createdAt = m.createdAt
-          ..updatedAt =
-              DateTime.tryParse(m.updatedAt ?? "") ?? DateTime.now()
-
-          ..loginEmail = m.loginEmail
-          ..loginPassword = m.loginPassword
-          ..isLoginEnabled = m.isLoginEnabled;
-
-        isarList.add(obj);
-      }
-
-      await isar.manpowerIsars.putAll(isarList);
-    });
-  }
-
-  // -------------------------------
-  // ✅ ATTENDANCE CACHE
-  // -------------------------------
+  /// Streams attendance rows for a date.
+  /// Only filter: manpower must have [siteId] in their [sites] array.
+  /// Team membership is irrelevant.
   Stream<List<AttendanceModel>> watchAttendance({
     required String siteId,
     required String type,
     required String dateKey,
-    required List<String> teamMemberIds,
+    List<String> teamMemberIds = const [], // kept for signature compat, unused
   }) {
-
-    print("👥 teamMemberIds: $teamMemberIds");
-
-
     final attendanceStream = isar.attendanceIsars
         .filter()
         .siteIdEqualTo(siteId)
@@ -359,11 +380,12 @@ class AttendanceRepository {
         .isDeletedEqualTo(false)
         .watch(fireImmediately: true);
 
+    // ✅ SITE-ONLY filter — no team gate
     final manpowerStream = isar.manpowerIsars
         .filter()
         .typeEqualTo(type)
-        .anyOf(teamMemberIds, (q, id) => q.manpowerIdEqualTo(id))
         .isDeletedEqualTo(false)
+        .sitesElementEqualTo(siteId)
         .watch(fireImmediately: true);
 
     return Rx.combineLatest2(
@@ -376,7 +398,6 @@ class AttendanceRepository {
 
         return manpowerRows.map((m) {
           final att = attendanceMap[m.manpowerId];
-
           return AttendanceModel(
             id: att?.attendanceId ?? "${siteId}_${m.manpowerId}_$dateKey",
             siteId: siteId,
@@ -385,7 +406,7 @@ class AttendanceRepository {
               fullName: m.fullName,
               designation: m.designation,
               company: m.company,
-                totalHour: m.totalHour
+              totalHour: m.totalHour,
             ),
             ot: att?.ot ?? 0,
             date: dateKey,
@@ -400,10 +421,15 @@ class AttendanceRepository {
       },
     );
   }
+
+  // ─────────────────────────────────────────────────────────────
+  // ATTENDANCE LOCAL OPS
+  // ─────────────────────────────────────────────────────────────
+
   Future<void> syncAttendanceFromApi({
     required String siteId,
     required String type,
-    required String dateKey, // YYYY-MM-DD
+    required String dateKey,
   }) async {
     final response = await DioClient.dio.get(
       "/site/$siteId/attendance/attendance",
@@ -416,7 +442,8 @@ class AttendanceRepository {
 
     final isarList = list.map((x) {
       return AttendanceIsar()
-        ..attendanceId = x.id.isEmpty ? "${x.siteId}_${x.manpower.id}_$dateKey" : x.id
+        ..attendanceId =
+        x.id.isEmpty ? "${x.siteId}_${x.manpower.id}_$dateKey" : x.id
         ..siteId = siteId
         ..type = type
         ..dateKey = dateKey
@@ -435,7 +462,6 @@ class AttendanceRepository {
     });
   }
 
-  /// ✅ local edit (works offline)
   Future<void> upsertLocalAttendance({
     required String siteId,
     required String type,
@@ -455,9 +481,9 @@ class AttendanceRepository {
         .findFirst();
 
     final row = existing ?? AttendanceIsar();
-
     row
-      ..attendanceId = existing?.attendanceId ?? "${siteId}_${manpowerId}_$dateKey"
+      ..attendanceId =
+          existing?.attendanceId ?? "${siteId}_${manpowerId}_$dateKey"
       ..siteId = siteId
       ..type = type
       ..dateKey = dateKey
@@ -475,7 +501,6 @@ class AttendanceRepository {
     });
   }
 
-  /// ✅ push dirty rows to backend
   Future<void> pushDirtyAttendance({
     required String siteId,
     required String type,
@@ -491,17 +516,16 @@ class AttendanceRepository {
 
     if (dirty.isEmpty) return;
 
-    final payload = dirty.map((x) {
-      return {
-        "manpowerId": x.manpowerId,
-        "status": x.status,
-        "totalHours": x.totalHours,
-        "ot": x.ot,
-        "date": dateKey,
-      };
-    }).toList();
+    final payload = dirty
+        .map((x) => {
+      "manpowerId": x.manpowerId,
+      "status": x.status,
+      "totalHours": x.totalHours,
+      "ot": x.ot,
+      "date": dateKey,
+    })
+        .toList();
 
-    // Use your API endpoint to update/create
     await DioClient.dio.post(
       "/site/$siteId/attendance/update",
       queryParameters: {"type": type, "fromDate": dateKey},
@@ -515,93 +539,13 @@ class AttendanceRepository {
       }
     });
   }
+
+  /// Kept for backward-compat. Delegates to [ensureAttendanceForSite].
   Future<void> prepareAttendanceFromTeam({
     required String siteId,
     required String type,
     required String dateKey,
-    required List<String> teamMemberIds,
-  }) async {
-    print("preparing ooooooooooooo");
-    // 🔥 Step 1: get manpower rows from Isar
-    final manpowerRows = await isar.manpowerIsars
-        .filter()
-        .typeEqualTo(type)
-        .and()
-        .anyOf(
-          teamMemberIds,
-              (q, id) => q.manpowerIdEqualTo(id),
-        )
-
-            .and()
-        .isDeletedEqualTo(false)
-        .findAll();
-
-    // 🔥 Step 2: create attendance rows if missing
-    await isar.writeTxn(() async {
-      for (final m in manpowerRows) {
-        final existing = await isar.attendanceIsars
-            .where()
-            .filter()
-            .siteIdEqualTo(siteId)
-
-            .typeEqualTo(type)
-
-            .dateKeyEqualTo(dateKey)
-
-            .manpowerIdEqualTo(m.manpowerId)
-            .findFirst();
-
-        if (existing != null) {
-          continue;
-        }
-
-        final row = AttendanceIsar()
-          ..attendanceId = "${siteId}_${m.manpowerId}_$dateKey"
-          ..siteId = siteId
-          ..type = type
-          ..dateKey = dateKey
-          ..manpowerId = m.manpowerId
-          ..status = "absent"
-          ..totalHours = 0
-          ..ot = 0
-          ..company = m.company
-          ..isDeleted = false
-          ..isDirty = false
-          ..updatedAt = DateTime.now();
-
-        await isar.attendanceIsars.put(row);
-      }
-    });
-  }
-
-  Future<void> _createAttendanceFromManpower({
-    required String siteId,
-    required String type,
-    required String dateKey,
-    required List<String> manpowerIds,
-  }) async {
-    for (final id in manpowerIds) {
-      final existing = await isar.attendanceIsars
-          .filter()
-          .siteIdEqualTo(siteId)
-          .typeEqualTo(type)
-          .dateKeyEqualTo(dateKey)
-          .manpowerIdEqualTo(id)
-          .findFirst();
-
-      if (existing != null) continue;
-
-      await upsertLocalAttendance(
-        siteId: siteId,
-        type: type,
-        dateKey: dateKey,
-        manpowerId: id,
-        status: "absent",
-        totalHours: 0,
-        ot: 0,
-      );
-    }
-  }
-
-
+    required List<String> teamMemberIds, // ignored
+  }) =>
+      ensureAttendanceForSite(siteId: siteId, type: type, dateKey: dateKey);
 }

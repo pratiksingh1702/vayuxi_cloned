@@ -48,7 +48,7 @@ class _SummaryScreenState extends ConsumerState<SummaryScreen> {
     return Scaffold(
       drawer: const CustomDrawer(),
       backgroundColor: AppColors.lightBlue,
-      appBar: CustomAppBar(title: "P&L Summary"),
+      appBar: CustomAppBar(title: "Profit and Loss Summary"),
       body: Column(
         children: [
           // ── Filter Bar ──────────────────────────────────────────

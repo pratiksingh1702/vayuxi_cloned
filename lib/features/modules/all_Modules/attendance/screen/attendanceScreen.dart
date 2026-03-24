@@ -565,6 +565,7 @@ class _AttendanceScreenState extends ConsumerState<AttendanceScreen> {
           // ✅ Prevent build() from overwriting with stale stream data
           _draftLoadedForDate = _selectedDate;
         }
+        Navigator.pop(context);
       } catch (syncError) {
         // Sync failed — draft stays as-is (what user saved), not a critical error
         print("⚠️ Post-save sync failed: $syncError");

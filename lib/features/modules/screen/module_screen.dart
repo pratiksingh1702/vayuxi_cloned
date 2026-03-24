@@ -1,10 +1,21 @@
 // features/modules/screen/module_screen.dart
+//
 // ─────────────────────────────────────────────────────────────────────────────
-// FIXES vs previous version:
-//   1. Overlay now covers the AppBar — Scaffold is wrapped in a Stack so the
-//      Positioned.fill overlay sits above everything including the AppBar.
-//   2. _checkInProgress is reset in _storePendingAndShowOverlay so plan taps
-//      and subsequent checks are never permanently blocked.
+// CHANGE IN THIS VERSION
+// ─────────────────────────────────────────────────────────────────────────────
+//
+// When access check returns noSubscription → redirect to /subscription screen
+// instead of showing the inline plan overlay.
+//
+// All other gates (needsOnboarding, deviceNotVerified) still use the overlay
+// as before. Only noSubscription is redirected.
+//
+// WHY:
+//   The subscription screen (/subscription) is the proper full-screen plan
+//   selection experience with Hero animations and plan detail views.
+//   The inline overlay plan cards are a secondary fallback that's no longer
+//   needed for this gate since the dedicated screen handles it better.
+//
 // ─────────────────────────────────────────────────────────────────────────────
 
 import 'dart:ui';
@@ -20,6 +31,7 @@ import 'package:untitled2/features/modules/all_Modules/team/offline/state/team_S
 import 'package:untitled2/features/modules/all_Modules/team/provider/teamService.dart';
 import 'package:untitled2/features/modules/all_Modules/team/model/teamModel.dart';
 import 'package:showcaseview/showcaseview.dart';
+import 'package:untitled2/typeProvider/type_provider.dart';
 
 import '../../../core/router/access_control_provider.dart';
 import '../../../core/utlis/widgets/sidebar.dart';
@@ -33,7 +45,6 @@ import '../all_Modules/site_Details/providers/siteProvider.dart';
 import '../all_Modules/site_Details/providers/site_current_provider.dart';
 import '../all_Modules/team/provider/teamProvider.dart';
 import 'craosule_banner.dart';
-import 'device_id_helper.dart';
 import 'widgets/access_overlay.dart';
 
 class ModuleScreen extends ConsumerStatefulWidget {
@@ -65,44 +76,62 @@ class _ModuleScreenState extends ConsumerState<ModuleScreen> {
 
   // ─────────────────────────────────────────────────────────────────────────
   // ACCESS CHECK
+  //
+  // noSubscription → navigates to /subscription (full screen experience)
+  // needsOnboarding / deviceNotVerified → shows inline overlay as before
   // ─────────────────────────────────────────────────────────────────────────
 
   Future<bool> _checkAccess({
-    bool deviceOnly = false,
     required VoidCallback onAllowed,
     VoidCallback? previewSwitch,
   }) async {
-    if (_checkInProgress) return false;
+    if (_checkInProgress) {
+      print('🔒 [ModuleScreen] _checkAccess skipped — check already in progress');
+      return false;
+    }
     _checkInProgress = true;
+    print('🔒 [ModuleScreen] _checkAccess started');
 
     if (previewSwitch != null) {
       setState(previewSwitch);
     }
 
-    if (deviceOnly) {
-      final deviceId = await DevicePrefs.getDeviceId();
-      final ok = deviceId != null && deviceId.isNotEmpty;
-      _checkInProgress = false;
-      if (!ok) {
-        _storePendingAndShowOverlay(AccessState.deviceNotVerified, onAllowed);
-        return false;
-      }
-      return true;
-    }
-
     setState(() => _overlayLoading = true);
 
     try {
-      ref.invalidate(accessControlProvider);
-      final result = await ref.read(accessControlProvider.future);
+      await ref.read(accessControlProvider.notifier).evaluate();
+
+      final asyncValue = ref.read(accessControlProvider);
       setState(() => _overlayLoading = false);
-      _checkInProgress = false; // ✅ reset before showing overlay
+      _checkInProgress = false;
 
-      if (result.state == AccessState.allowed) return true;
+      final result = asyncValue.valueOrNull;
 
+      if (result == null) {
+        print('⚠️  [ModuleScreen] accessControlProvider returned null result');
+        return false;
+      }
+
+      print('🔒 [ModuleScreen] Access result: ${result.state}');
+
+      if (result.state == AccessState.allowed) {
+        print('✅ [ModuleScreen] Access GRANTED');
+        return true;
+      }
+
+      // ── noSubscription → redirect to subscription screen ─────────────────
+      // Don't show inline plan overlay — use the dedicated subscription page.
+      if (result.state == AccessState.noSubscription) {
+        print('🔒 [ModuleScreen] No subscription → redirecting to /subscription');
+        if (mounted) context.push('/subscription');
+        return false;
+      }
+
+      // ── Other gates (onboarding, device OTP) → show inline overlay ───────
       _storePendingAndShowOverlay(result.state, onAllowed);
       return false;
-    } catch (_) {
+    } catch (e) {
+      print('❌ [ModuleScreen] _checkAccess error: $e');
       setState(() => _overlayLoading = false);
       _checkInProgress = false;
       return false;
@@ -110,9 +139,8 @@ class _ModuleScreenState extends ConsumerState<ModuleScreen> {
   }
 
   void _storePendingAndShowOverlay(AccessState gate, VoidCallback onAllowed) {
-    // ✅ FIX: _checkInProgress must be false before setState so that taps
-    // inside the overlay (plan select, OTP) are never blocked.
     _checkInProgress = false;
+    print('🎭 [ModuleScreen] Showing overlay gate: $gate');
     setState(() {
       _pendingAction = onAllowed;
       _overlayType = gate;
@@ -120,31 +148,61 @@ class _ModuleScreenState extends ConsumerState<ModuleScreen> {
   }
 
   void _hideOverlay() {
+    print('🎭 [ModuleScreen] Hiding overlay');
     setState(() {
       _overlayType = null;
       _pendingAction = null;
-      _checkInProgress = false; // safety reset
+      _checkInProgress = false;
     });
   }
 
   Future<void> _onUnlocked() async {
+    print('🔓 [ModuleScreen] _onUnlocked called');
+
+    if (_overlayLoading) {
+      print('🔓 [ModuleScreen] _onUnlocked skipped — already loading');
+      return;
+    }
+
     setState(() => _overlayLoading = true);
-    ref.invalidate(accessControlProvider);
+
     try {
-      final result = await ref.read(accessControlProvider.future);
+      await ref.read(accessControlProvider.notifier).evaluate();
+
+      final asyncValue = ref.read(accessControlProvider);
       setState(() => _overlayLoading = false);
 
+      final result = asyncValue.valueOrNull;
+
+      if (result == null) {
+        print('⚠️  [ModuleScreen] _onUnlocked: null result after evaluate');
+        _hideOverlay();
+        return;
+      }
+
+      print('🔓 [ModuleScreen] _onUnlocked result: ${result.state}');
+
       if (result.state == AccessState.allowed) {
+        print('✅ [ModuleScreen] All gates cleared — running pending action');
         final action = _pendingAction;
         setState(() {
           _overlayType = null;
           _pendingAction = null;
         });
         action?.call();
+      } else if (result.state == AccessState.noSubscription) {
+        // Subscription gate appeared after completing another gate
+        // (e.g. onboarding done but subscription still needed).
+        // Redirect to subscription screen instead of showing overlay.
+        print('🔒 [ModuleScreen] _onUnlocked: noSubscription → redirecting to /subscription');
+        setState(() { _overlayType = null; _pendingAction = null; });
+        if (mounted) context.push('/subscription');
       } else {
+        print('🔒 [ModuleScreen] Still blocked at: ${result.state}');
         setState(() => _overlayType = result.state);
       }
-    } catch (_) {
+    } catch (e) {
+      print('❌ [ModuleScreen] _onUnlocked error: $e');
       setState(() => _overlayLoading = false);
       _hideOverlay();
     }
@@ -222,6 +280,7 @@ class _ModuleScreenState extends ConsumerState<ModuleScreen> {
     ModuleItem(labelKey: 'create_team_card', imagePath: "assets/images/icons/add_team.webp", routeName: "/site-list/team", color: Colors.teal),
     ModuleItem(labelKey: 'dpr_setup_card', imagePath: "assets/images/icons/dpr_setup.webp", routeName: "/site-list/addMoc", color: Colors.green),
     ModuleItem(labelKey: 'inventory_setup_card', imagePath: "assets/images/icons/inventory_setup.webp", routeName: "/site-list/inv-setup", color: Colors.indigo),
+    ModuleItem(labelKey: 'boq_card', imagePath: "assets/images/icons/boq.webp", routeName: "/site-list/boq", color: Colors.indigo),
   ];
 
   final List<ModuleItem> _reportModules = [
@@ -270,7 +329,7 @@ class _ModuleScreenState extends ConsumerState<ModuleScreen> {
   void _onTeamChanged(TeamModel? newTeam) => setState(() => _selectedTeam = newTeam);
 
   // ─────────────────────────────────────────────────────────────────────────
-  // NAVIGATION HANDLERS
+  // NAVIGATION HANDLERS (unchanged)
   // ─────────────────────────────────────────────────────────────────────────
 
   Future<void> _handleModuleTap(ModuleItem item) async {
@@ -278,16 +337,10 @@ class _ModuleScreenState extends ConsumerState<ModuleScreen> {
     ref.read(moduleScreenSyncProvider.notifier).syncDropdownToGlobal();
 
     if (_currentIndex == 3) { _navigateToModule(item); return; }
+    if (_currentIndex == 0) { _navigateToModule(item); return; }
 
     void navigate() => _navigateToModule(item);
-
-    if (_currentIndex == 0) {
-      final ok = await _checkAccess(deviceOnly: true, onAllowed: navigate);
-      if (ok) navigate();
-      return;
-    }
-
-    final ok = await _checkAccess(deviceOnly: false, onAllowed: navigate);
+    final ok = await _checkAccess(onAllowed: navigate);
     if (ok) navigate();
   }
 
@@ -304,14 +357,13 @@ class _ModuleScreenState extends ConsumerState<ModuleScreen> {
       'selectedSite': _selectedSite,
       'selectedTeam': _selectedTeam,
     });
-    final ok = await _checkAccess(deviceOnly: false, onAllowed: navigate);
+    final ok = await _checkAccess(onAllowed: navigate);
     if (ok) navigate();
   }
 
   Future<void> _handleBottomNavTap(int index) async {
     void switchTab() => setState(() => _currentIndex = index);
     final ok = await _checkAccess(
-      deviceOnly: false,
       onAllowed: switchTab,
       previewSwitch: () => _currentIndex = index,
     );
@@ -352,11 +404,8 @@ class _ModuleScreenState extends ConsumerState<ModuleScreen> {
               _maybeStartShowcase(showcaseContext);
             });
 
-            // ── FIX: wrap the entire Scaffold in a Stack so the overlay
-            //    can sit above the AppBar as well as the body. ──────────────
             return Stack(
               children: [
-                // ── The real Scaffold ─────────────────────────────────────
                 Scaffold(
                   drawer: const CustomDrawer(),
                   appBar: CustomAppBar(title: currentTitle()),
@@ -427,7 +476,8 @@ class _ModuleScreenState extends ConsumerState<ModuleScreen> {
                                               const SizedBox(height: 8),
                                               Padding(
                                                 padding: const EdgeInsets.symmetric(horizontal: 8),
-                                                child: Text(t.t(item.labelKey), textAlign: TextAlign.center, maxLines: 2, overflow: TextOverflow.ellipsis,
+                                                child: Text(t.t(item.labelKey),
+                                                    textAlign: TextAlign.center, maxLines: 2, overflow: TextOverflow.ellipsis,
                                                     style: const TextStyle(fontSize: 14, fontWeight: FontWeight.w600, color: Color(0xFF1B1B1B))),
                                               ),
                                             ],
@@ -435,7 +485,6 @@ class _ModuleScreenState extends ConsumerState<ModuleScreen> {
                                         ),
                                       );
 
-                                      // Tour wrappers (unchanged)
                                       final bool isSetupTab = _currentIndex == 1;
                                       if (_checkpoint == TourCheckpoint.site && isSetupTab && item.routeName == "/site") {
                                         card = Showcase(key: TourRegistry.siteModuleKey, description: "Add your Site here ✅", disposeOnTap: true,
@@ -464,7 +513,6 @@ class _ModuleScreenState extends ConsumerState<ModuleScreen> {
                         ),
                       ),
 
-                      // AI FAB
                       Positioned(
                         right: 1, bottom: -1,
                         child: GestureDetector(
@@ -528,23 +576,21 @@ class _ModuleScreenState extends ConsumerState<ModuleScreen> {
                   ),
                 ),
 
-                // ── OVERLAY — sits above the entire Scaffold including AppBar ──
-                // Spinner while checking
+                // Spinner while evaluate() is running
                 if (_overlayLoading)
                   Positioned.fill(
                     child: BackdropFilter(
                       filter: ImageFilter.blur(sigmaX: 14, sigmaY: 14),
                       child: Container(
                         color: Colors.black.withOpacity(0.48),
-                        child: const Center(
-                          child: CircularProgressIndicator(color: Colors.white, strokeWidth: 3),
-                        ),
+                        child: const Center(child: CircularProgressIndicator(color: Colors.white, strokeWidth: 3)),
                       ),
                     ),
                   ),
 
-                // Gate card overlay
-                if (!_overlayLoading && _overlayType != null)
+                // Overlay only for onboarding and device OTP gates
+                // noSubscription is handled by navigation to /subscription
+                if (!_overlayLoading && _overlayType != null && _overlayType != AccessState.noSubscription)
                   Positioned.fill(
                     child: AccessOverlay(
                       type: _overlayType!,
@@ -579,13 +625,42 @@ class _ModuleScreenState extends ConsumerState<ModuleScreen> {
           value: currentSelectedSite, isExpanded: true, underline: const SizedBox(),
           items: dropdownList.map((site) => DropdownMenuItem<SiteModel>(value: site, child: Text(site.siteName, maxLines: 1, overflow: TextOverflow.ellipsis, style: const TextStyle(fontSize: 16)))).toList(),
           onChanged: (SiteModel? newSite) {
-            if (newSite == null || newSite.id == "none") { _onSiteChanged(null); ref.read(siteDropdownValueProvider.notifier).state = null; ref.read(selectedSiteIdProvider.notifier).state = null; }
-            else { _onSiteChanged(newSite); ref.read(siteDropdownValueProvider.notifier).state = newSite; ref.read(selectedSiteIdProvider.notifier).state = newSite.id; }
+            if (newSite == null || newSite.id == "none") {
+              _onSiteChanged(null);
+              ref.read(siteDropdownValueProvider.notifier).state = null;
+              ref.read(selectedSiteIdProvider.notifier).state = null;
+
+              // 🔥 Clear team dropdown when "None" is selected
+              ref.read(teamDropdownValueProvider.notifier).state = null;
+              ref.read(selectedTeamIdProvider.notifier).state = "";
+              ref.read(selectedTeamProvider.notifier).clear();
+
+              // 🔥 Set teams to empty list
+              ref.read(teamProvider.notifier).state = ref.read(teamProvider.notifier).state.copyWith(
+                teams: [],
+                hasData: false,
+              );
+            }
+            else {
+              _onSiteChanged(newSite);
+              ref.read(siteDropdownValueProvider.notifier).state = newSite;
+              ref.read(selectedSiteIdProvider.notifier).state = newSite.id;
+
+              // 🔥 Fetch teams for the selected site
+              final type = ref.read(typeProvider); // Get selected type
+
+                ref.read(teamProvider.notifier).fetchTeams(
+                  type: type!,
+                  siteId: newSite.id,
+                );
+
+            }
           },
         ),
       ),
     );
   }
+
 
   Widget _buildTeamDropdown(TeamState teamState) {
     return Padding(

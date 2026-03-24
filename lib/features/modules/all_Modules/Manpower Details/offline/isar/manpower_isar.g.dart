@@ -162,33 +162,38 @@ const ManpowerIsarSchema = CollectionSchema(
       name: r'salary',
       type: IsarType.double,
     ),
-    r'specialAllowance': PropertySchema(
+    r'sites': PropertySchema(
       id: 29,
+      name: r'sites',
+      type: IsarType.stringList,
+    ),
+    r'specialAllowance': PropertySchema(
+      id: 30,
       name: r'specialAllowance',
       type: IsarType.double,
     ),
     r'totalHour': PropertySchema(
-      id: 30,
+      id: 31,
       name: r'totalHour',
       type: IsarType.string,
     ),
     r'travelAllowance': PropertySchema(
-      id: 31,
+      id: 32,
       name: r'travelAllowance',
       type: IsarType.double,
     ),
     r'type': PropertySchema(
-      id: 32,
+      id: 33,
       name: r'type',
       type: IsarType.string,
     ),
     r'uanNumber': PropertySchema(
-      id: 33,
+      id: 34,
       name: r'uanNumber',
       type: IsarType.string,
     ),
     r'updatedAt': PropertySchema(
-      id: 34,
+      id: 35,
       name: r'updatedAt',
       type: IsarType.dateTime,
     )
@@ -368,6 +373,13 @@ int _manpowerIsarEstimateSize(
       bytesCount += 3 + value.length * 3;
     }
   }
+  bytesCount += 3 + object.sites.length * 3;
+  {
+    for (var i = 0; i < object.sites.length; i++) {
+      final value = object.sites[i];
+      bytesCount += value.length * 3;
+    }
+  }
   {
     final value = object.totalHour;
     if (value != null) {
@@ -419,12 +431,13 @@ void _manpowerIsarSerialize(
   writer.writeString(offsets[26], object.reason);
   writer.writeString(offsets[27], object.remarks);
   writer.writeDouble(offsets[28], object.salary);
-  writer.writeDouble(offsets[29], object.specialAllowance);
-  writer.writeString(offsets[30], object.totalHour);
-  writer.writeDouble(offsets[31], object.travelAllowance);
-  writer.writeString(offsets[32], object.type);
-  writer.writeString(offsets[33], object.uanNumber);
-  writer.writeDateTime(offsets[34], object.updatedAt);
+  writer.writeStringList(offsets[29], object.sites);
+  writer.writeDouble(offsets[30], object.specialAllowance);
+  writer.writeString(offsets[31], object.totalHour);
+  writer.writeDouble(offsets[32], object.travelAllowance);
+  writer.writeString(offsets[33], object.type);
+  writer.writeString(offsets[34], object.uanNumber);
+  writer.writeDateTime(offsets[35], object.updatedAt);
 }
 
 ManpowerIsar _manpowerIsarDeserialize(
@@ -464,12 +477,13 @@ ManpowerIsar _manpowerIsarDeserialize(
   object.reason = reader.readStringOrNull(offsets[26]);
   object.remarks = reader.readStringOrNull(offsets[27]);
   object.salary = reader.readDoubleOrNull(offsets[28]);
-  object.specialAllowance = reader.readDoubleOrNull(offsets[29]);
-  object.totalHour = reader.readStringOrNull(offsets[30]);
-  object.travelAllowance = reader.readDoubleOrNull(offsets[31]);
-  object.type = reader.readString(offsets[32]);
-  object.uanNumber = reader.readStringOrNull(offsets[33]);
-  object.updatedAt = reader.readDateTime(offsets[34]);
+  object.sites = reader.readStringList(offsets[29]) ?? [];
+  object.specialAllowance = reader.readDoubleOrNull(offsets[30]);
+  object.totalHour = reader.readStringOrNull(offsets[31]);
+  object.travelAllowance = reader.readDoubleOrNull(offsets[32]);
+  object.type = reader.readString(offsets[33]);
+  object.uanNumber = reader.readStringOrNull(offsets[34]);
+  object.updatedAt = reader.readDateTime(offsets[35]);
   return object;
 }
 
@@ -539,16 +553,18 @@ P _manpowerIsarDeserializeProp<P>(
     case 28:
       return (reader.readDoubleOrNull(offset)) as P;
     case 29:
-      return (reader.readDoubleOrNull(offset)) as P;
+      return (reader.readStringList(offset) ?? []) as P;
     case 30:
-      return (reader.readStringOrNull(offset)) as P;
-    case 31:
       return (reader.readDoubleOrNull(offset)) as P;
-    case 32:
-      return (reader.readString(offset)) as P;
-    case 33:
+    case 31:
       return (reader.readStringOrNull(offset)) as P;
+    case 32:
+      return (reader.readDoubleOrNull(offset)) as P;
+    case 33:
+      return (reader.readString(offset)) as P;
     case 34:
+      return (reader.readStringOrNull(offset)) as P;
+    case 35:
       return (reader.readDateTime(offset)) as P;
     default:
       throw IsarError('Unknown property with id $propertyId');
@@ -4526,6 +4542,231 @@ extension ManpowerIsarQueryFilter
   }
 
   QueryBuilder<ManpowerIsar, ManpowerIsar, QAfterFilterCondition>
+      sitesElementEqualTo(
+    String value, {
+    bool caseSensitive = true,
+  }) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(FilterCondition.equalTo(
+        property: r'sites',
+        value: value,
+        caseSensitive: caseSensitive,
+      ));
+    });
+  }
+
+  QueryBuilder<ManpowerIsar, ManpowerIsar, QAfterFilterCondition>
+      sitesElementGreaterThan(
+    String value, {
+    bool include = false,
+    bool caseSensitive = true,
+  }) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(FilterCondition.greaterThan(
+        include: include,
+        property: r'sites',
+        value: value,
+        caseSensitive: caseSensitive,
+      ));
+    });
+  }
+
+  QueryBuilder<ManpowerIsar, ManpowerIsar, QAfterFilterCondition>
+      sitesElementLessThan(
+    String value, {
+    bool include = false,
+    bool caseSensitive = true,
+  }) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(FilterCondition.lessThan(
+        include: include,
+        property: r'sites',
+        value: value,
+        caseSensitive: caseSensitive,
+      ));
+    });
+  }
+
+  QueryBuilder<ManpowerIsar, ManpowerIsar, QAfterFilterCondition>
+      sitesElementBetween(
+    String lower,
+    String upper, {
+    bool includeLower = true,
+    bool includeUpper = true,
+    bool caseSensitive = true,
+  }) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(FilterCondition.between(
+        property: r'sites',
+        lower: lower,
+        includeLower: includeLower,
+        upper: upper,
+        includeUpper: includeUpper,
+        caseSensitive: caseSensitive,
+      ));
+    });
+  }
+
+  QueryBuilder<ManpowerIsar, ManpowerIsar, QAfterFilterCondition>
+      sitesElementStartsWith(
+    String value, {
+    bool caseSensitive = true,
+  }) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(FilterCondition.startsWith(
+        property: r'sites',
+        value: value,
+        caseSensitive: caseSensitive,
+      ));
+    });
+  }
+
+  QueryBuilder<ManpowerIsar, ManpowerIsar, QAfterFilterCondition>
+      sitesElementEndsWith(
+    String value, {
+    bool caseSensitive = true,
+  }) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(FilterCondition.endsWith(
+        property: r'sites',
+        value: value,
+        caseSensitive: caseSensitive,
+      ));
+    });
+  }
+
+  QueryBuilder<ManpowerIsar, ManpowerIsar, QAfterFilterCondition>
+      sitesElementContains(String value, {bool caseSensitive = true}) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(FilterCondition.contains(
+        property: r'sites',
+        value: value,
+        caseSensitive: caseSensitive,
+      ));
+    });
+  }
+
+  QueryBuilder<ManpowerIsar, ManpowerIsar, QAfterFilterCondition>
+      sitesElementMatches(String pattern, {bool caseSensitive = true}) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(FilterCondition.matches(
+        property: r'sites',
+        wildcard: pattern,
+        caseSensitive: caseSensitive,
+      ));
+    });
+  }
+
+  QueryBuilder<ManpowerIsar, ManpowerIsar, QAfterFilterCondition>
+      sitesElementIsEmpty() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(FilterCondition.equalTo(
+        property: r'sites',
+        value: '',
+      ));
+    });
+  }
+
+  QueryBuilder<ManpowerIsar, ManpowerIsar, QAfterFilterCondition>
+      sitesElementIsNotEmpty() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(FilterCondition.greaterThan(
+        property: r'sites',
+        value: '',
+      ));
+    });
+  }
+
+  QueryBuilder<ManpowerIsar, ManpowerIsar, QAfterFilterCondition>
+      sitesLengthEqualTo(int length) {
+    return QueryBuilder.apply(this, (query) {
+      return query.listLength(
+        r'sites',
+        length,
+        true,
+        length,
+        true,
+      );
+    });
+  }
+
+  QueryBuilder<ManpowerIsar, ManpowerIsar, QAfterFilterCondition>
+      sitesIsEmpty() {
+    return QueryBuilder.apply(this, (query) {
+      return query.listLength(
+        r'sites',
+        0,
+        true,
+        0,
+        true,
+      );
+    });
+  }
+
+  QueryBuilder<ManpowerIsar, ManpowerIsar, QAfterFilterCondition>
+      sitesIsNotEmpty() {
+    return QueryBuilder.apply(this, (query) {
+      return query.listLength(
+        r'sites',
+        0,
+        false,
+        999999,
+        true,
+      );
+    });
+  }
+
+  QueryBuilder<ManpowerIsar, ManpowerIsar, QAfterFilterCondition>
+      sitesLengthLessThan(
+    int length, {
+    bool include = false,
+  }) {
+    return QueryBuilder.apply(this, (query) {
+      return query.listLength(
+        r'sites',
+        0,
+        true,
+        length,
+        include,
+      );
+    });
+  }
+
+  QueryBuilder<ManpowerIsar, ManpowerIsar, QAfterFilterCondition>
+      sitesLengthGreaterThan(
+    int length, {
+    bool include = false,
+  }) {
+    return QueryBuilder.apply(this, (query) {
+      return query.listLength(
+        r'sites',
+        length,
+        include,
+        999999,
+        true,
+      );
+    });
+  }
+
+  QueryBuilder<ManpowerIsar, ManpowerIsar, QAfterFilterCondition>
+      sitesLengthBetween(
+    int lower,
+    int upper, {
+    bool includeLower = true,
+    bool includeUpper = true,
+  }) {
+    return QueryBuilder.apply(this, (query) {
+      return query.listLength(
+        r'sites',
+        lower,
+        includeLower,
+        upper,
+        includeUpper,
+      );
+    });
+  }
+
+  QueryBuilder<ManpowerIsar, ManpowerIsar, QAfterFilterCondition>
       specialAllowanceIsNull() {
     return QueryBuilder.apply(this, (query) {
       return query.addFilterCondition(const FilterCondition.isNull(
@@ -6306,6 +6547,12 @@ extension ManpowerIsarQueryWhereDistinct
     });
   }
 
+  QueryBuilder<ManpowerIsar, ManpowerIsar, QDistinct> distinctBySites() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addDistinctBy(r'sites');
+    });
+  }
+
   QueryBuilder<ManpowerIsar, ManpowerIsar, QDistinct>
       distinctBySpecialAllowance() {
     return QueryBuilder.apply(this, (query) {
@@ -6532,6 +6779,12 @@ extension ManpowerIsarQueryProperty
   QueryBuilder<ManpowerIsar, double?, QQueryOperations> salaryProperty() {
     return QueryBuilder.apply(this, (query) {
       return query.addPropertyName(r'salary');
+    });
+  }
+
+  QueryBuilder<ManpowerIsar, List<String>, QQueryOperations> sitesProperty() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addPropertyName(r'sites');
     });
   }
 

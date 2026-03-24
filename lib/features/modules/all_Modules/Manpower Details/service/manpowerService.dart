@@ -7,133 +7,56 @@ import '../../../../../core/api/dio.dart';
 
 class ManpowerAPI {
   static final dio = DioClient.dio;
-  /// Delete manpower by ID
-  ///
-  ///
+
+  // ─────────────────────────────────────────────
+  // DELETE
+  // ─────────────────────────────────────────────
+
   static Future<Map<String, dynamic>> deleteManpower(String id) async {
     try {
       final res = await dio.delete("/manpower/$id");
-
-      return {
-        "success": true,
-        "data": res.data,
-        "statusCode": res.statusCode,
-      };
+      return {"success": true, "data": res.data, "statusCode": res.statusCode};
     } on DioException catch (e) {
-      String errorMessage = "Delete failed";
-
-      if (e.response != null) {
-        if (e.response!.data is Map) {
-          errorMessage =
-              e.response!.data['message'] ??
-                  e.response!.data['error'] ??
-                  errorMessage;
-        } else if (e.response!.data is String) {
-          errorMessage = e.response!.data;
-        }
-      } else if (e.message != null) {
-        errorMessage = e.message!;
-      }
-
-      return {
-        "success": false,
-        "error": "Delete Error",
-        "message": errorMessage,
-        "statusCode": e.response?.statusCode,
-      };
+      return _dioError("Delete Error", e);
     } catch (e) {
-      return {
-        "success": false,
-        "error": "Unexpected Error",
-        "message": e.toString(),
-      };
+      return _unexpectedError(e);
     }
   }
+
   static Future<Map<String, dynamic>> bulkDeleteManpower(
       List<String> manpowerIds,
       ) async {
     if (manpowerIds.isEmpty) {
-      return {
-        "success": false,
-        "message": "Manpower IDs list cannot be empty",
-      };
+      return {"success": false, "message": "Manpower IDs list cannot be empty"};
     }
-
     try {
       final res = await dio.post(
         "/manpower/bulk-delete",
-        data: {
-          "ids": manpowerIds,
-        },
-        options: Options(
-          headers: {
-            "Content-Type": "application/json",
-            "Accept": "application/json",
-          },
-        ),
+        data: {"ids": manpowerIds},
+        options: Options(headers: {"Content-Type": "application/json"}),
       );
-
-      return {
-        "success": true,
-        "data": res.data,
-        "statusCode": res.statusCode,
-      };
+      return {"success": true, "data": res.data, "statusCode": res.statusCode};
     } on DioException catch (e) {
-      String errorMessage = "Bulk delete failed";
-
-      if (e.response?.data is Map) {
-        errorMessage =
-            e.response?.data['message'] ??
-                e.response?.data['error'] ??
-                errorMessage;
-      } else if (e.response?.data is String) {
-        errorMessage = e.response!.data;
-      } else if (e.message != null) {
-        errorMessage = e.message!;
-      }
-
-      return {
-        "success": false,
-        "error": "Bulk Delete Error",
-        "message": errorMessage,
-        "statusCode": e.response?.statusCode,
-      };
+      return _dioError("Bulk Delete Error", e);
     } catch (e) {
-      return {
-        "success": false,
-        "error": "Unexpected Error",
-        "message": e.toString(),
-      };
+      return _unexpectedError(e);
     }
   }
 
+  // ─────────────────────────────────────────────
+  // READ
+  // ─────────────────────────────────────────────
 
-
-  /// Fetch manpower list by type
+  /// Fetch ALL manpower for a type (company-wide)
   static Future<Map<String, dynamic>> fetchManpower(String type) async {
     try {
       final res = await dio.get(
         "/manpower",
         queryParameters: {"type": type},
       );
-
-      return {
-        "success": true,
-        "data": res.data,
-      };
-    } on DioException catch (e, stackTrace) {
-      // 🔥 FULL ERROR LOG
-      debugPrint("❌ DIO ERROR");
-      debugPrint("➡️ URL: ${e.requestOptions.uri}");
-      debugPrint("➡️ Method: ${e.requestOptions.method}");
-      debugPrint("➡️ Query: ${e.requestOptions.queryParameters}");
-      debugPrint("➡️ Status Code: ${e.response?.statusCode}");
-      debugPrint("➡️ Response Data: ${e.response?.data}");
-      debugPrint("➡️ Headers: ${e.response?.headers}");
-      debugPrint("➡️ Error Type: ${e.type}");
-      debugPrint("➡️ Message: ${e.message}");
-      debugPrint("➡️ StackTrace:\n$stackTrace");
-
+      return {"success": true, "data": res.data};
+    } on DioException catch (e, st) {
+      debugPrint("❌ fetchManpower DIO ERROR\n${e.requestOptions.uri}\n${e.response?.data}\n$st");
       return {
         "success": false,
         "data": null,
@@ -145,80 +68,121 @@ class ManpowerAPI {
           "path": e.requestOptions.path,
         },
       };
-    } catch (e, stackTrace) {
-      // 🔥 NON-DIO ERROR
-      debugPrint("❌ UNKNOWN ERROR");
-      debugPrint("➡️ Error: $e");
-      debugPrint("➡️ StackTrace:\n$stackTrace");
-
-      return {
-        "success": false,
-        "data": null,
-        "error": {
-          "type": "Unknown",
-          "message": e.toString(),
-        },
-      };
+    } catch (e, st) {
+      debugPrint("❌ fetchManpower UNKNOWN ERROR\n$e\n$st");
+      return {"success": false, "data": null, "error": {"type": "Unknown", "message": e.toString()}};
     }
   }
 
-  /// Create manpower
+  /// Fetch manpower assigned to a specific site
+  /// Uses GET /api/v1/site/[siteId]/manpower?type=...
+  static Future<Map<String, dynamic>> fetchManpowerBySite({
+    required String siteId,
+    required String type,
+  }) async {
+    try {
+      final res = await dio.get(
+        "/site/$siteId/manpower",
+        queryParameters: {"type": type},
+      );
+      return {"success": true, "data": res.data};
+    } on DioException catch (e) {
+      return _dioError("Fetch By Site Error", e);
+    } catch (e) {
+      return _unexpectedError(e);
+    }
+  }
+
+  static Future<Map<String, dynamic>> fetchManpowerById(String id) async {
+    try {
+      final res = await dio.get("/manpower/$id");
+      return {"success": true, "data": res.data};
+    } catch (e) {
+      return {"success": false, "data": null, "error": e.toString()};
+    }
+  }
+
+  // ─────────────────────────────────────────────
+  // CREATE / UPDATE
+  // ─────────────────────────────────────────────
+
   static Future<Map<String, dynamic>> postManpower(
-      String type, dynamic data) async {
+      String type,
+      dynamic data,
+      ) async {
     try {
       final res = await dio.post(
         "/manpower",
         queryParameters: {"type": type},
         data: data,
       );
-      return {
-        "success": true,
-        "data": res.data,
-      };
+      return {"success": true, "data": res.data};
     } catch (e) {
-      return {
-        "success": false,
-        "data": null,
-        "error": e.toString(),
-      };
+      return {"success": false, "data": null, "error": e.toString()};
     }
   }
 
-  /// Fetch manpower by ID
-  static Future<Map<String, dynamic>> fetchManpowerById(String id) async {
-    try {
-      final res = await dio.get("/manpower/$id");
-      return {
-        "success": true,
-        "data": res.data,
-      };
-    } catch (e) {
-      return {
-        "success": false,
-        "data": null,
-        "error": e.toString(),
-      };
-    }
-  }
-
-  /// Update manpower
   static Future<Map<String, dynamic>> updateManpower(
-      String id, dynamic data) async {
+      String id,
+      dynamic data,
+      ) async {
     try {
       final res = await dio.put("/manpower/$id", data: data);
-      return {
-        "success": true,
-        "data": res.data,
-      };
+      return {"success": true, "data": res.data};
     } catch (e) {
-      return {
-        "success": false,
-        "data": null,
-        "error": e.toString(),
-      };
+      return {"success": false, "data": null, "error": e.toString()};
     }
   }
-  /// Upload Excel via flexible-upload API
+
+  // ─────────────────────────────────────────────
+  // ✅ SITE MANAGEMENT  (NEW)
+  // PUT /api/v1/manpower/[id]/sites
+  // ─────────────────────────────────────────────
+
+  /// Manage sites for a manpower: action = "add" | "remove" | "set"
+  static Future<Map<String, dynamic>> manageManpowerSites({
+    required String manpowerId,
+    required String action,        // "add" | "remove" | "set"
+    required List<String> siteIds,
+  }) async {
+    try {
+      final res = await dio.put(
+        "/manpower/$manpowerId/sites",
+        data: {"action": action, "siteIds": siteIds},
+        options: Options(headers: {"Content-Type": "application/json"}),
+      );
+      return {"success": true, "data": res.data};
+    } on DioException catch (e) {
+      return _dioError("Manage Sites Error", e);
+    } catch (e) {
+      return _unexpectedError(e);
+    }
+  }
+
+  // ─────────────────────────────────────────────
+  // ✅ MARK LEFT  (FIXED endpoint)
+  // Was: PUT /left-manpower/:id
+  // Now: POST /manpower/:id/left
+  // ─────────────────────────────────────────────
+
+  static Future<Map<String, dynamic>> leftManpower(
+      String id,
+      dynamic data,
+      ) async {
+    try {
+      final res = await dio.post("/manpower/$id/left", data: data);
+      return {"success": true, "data": res.data};
+    } on DioException catch (e) {
+      return _dioError("Mark Left Error", e);
+    } catch (e) {
+      return _unexpectedError(e);
+    }
+  }
+
+  // ─────────────────────────────────────────────
+  // EXCEL / BULK
+  // ─────────────────────────────────────────────
+
   static Future<Map<String, dynamic>> flexibleUploadExcel({
     required File file,
     required String type,
@@ -226,127 +190,44 @@ class ManpowerAPI {
   }) async {
     try {
       final mappedType = mapManpowerType(type);
-
       final formData = FormData.fromMap({
         "file": await MultipartFile.fromFile(
           file.path,
           filename: file.path.split('/').last,
         ),
       });
-
-      debugPrint("📤 Uploading excel using flexible-upload...");
-      debugPrint("📌 Type: $mappedType | Analyze: $analyze");
-      debugPrint("📁 File: ${file.path}");
-
       final res = await dio.post(
         "/manpower/flexible-upload",
-        queryParameters: {
-          "type": mappedType,
-          if (analyze) "analyze": true,
-        },
+        queryParameters: {"type": mappedType, if (analyze) "analyze": true},
         data: formData,
-        options: Options(
-          headers: {
-            "Accept": "application/json",
-            "Content-Type": "multipart/form-data",
-          },
-        ),
+        options: Options(headers: {"Accept": "application/json", "Content-Type": "multipart/form-data"}),
       );
-
-      debugPrint("✅ flexible-upload success: ${res.statusCode}");
-      debugPrint("📦 Response: ${res.data}");
-
-      return {
-        "success": true,
-        "data": res.data,
-        "statusCode": res.statusCode,
-      };
-    } on DioException catch (e, stackTrace) {
-      debugPrint("❌ flexible-upload DIO ERROR");
-      debugPrint("➡️ URL: ${e.requestOptions.uri}");
-      debugPrint("➡️ Method: ${e.requestOptions.method}");
-      debugPrint("➡️ Query: ${e.requestOptions.queryParameters}");
-      debugPrint("➡️ Status Code: ${e.response?.statusCode}");
-      debugPrint("➡️ Response Data: ${e.response?.data}");
-      debugPrint("➡️ Message: ${e.message}");
-      debugPrint("➡️ StackTrace:\n$stackTrace");
-
-      String errorMessage = "Upload failed";
-
-      if (e.response?.data is Map) {
-        errorMessage =
-            e.response?.data['message'] ??
-                e.response?.data['error'] ??
-                errorMessage;
-      } else if (e.response?.data is String) {
-        errorMessage = e.response!.data;
-      } else if (e.message != null) {
-        errorMessage = e.message!;
-      }
-
-      return {
-        "success": false,
-        "error": "Flexible Upload Error",
-        "message": errorMessage,
-        "statusCode": e.response?.statusCode,
-        "data": e.response?.data,
-      };
-    } catch (e, stackTrace) {
-      debugPrint("❌ flexible-upload UNKNOWN ERROR: $e");
-      debugPrint("➡️ StackTrace:\n$stackTrace");
-
-      return {
-        "success": false,
-        "error": "Unexpected Error",
-        "message": e.toString(),
-      };
+      return {"success": true, "data": res.data, "statusCode": res.statusCode};
+    } on DioException catch (e) {
+      return _dioError("Flexible Upload Error", e);
+    } catch (e) {
+      return _unexpectedError(e);
     }
   }
 
-  /// Shortcut: Upload only
-  static Future<Map<String, dynamic>> uploadExcel({
-    required File file,
-    required String type,
-  }) {
-    return flexibleUploadExcel(file: file, type: type, analyze: false);
-  }
+  static Future<Map<String, dynamic>> uploadExcel({required File file, required String type}) =>
+      flexibleUploadExcel(file: file, type: type, analyze: false);
 
-  /// Shortcut: Upload + Analyze
-  static Future<Map<String, dynamic>> analyzeExcel({
-    required File file,
-    required String type,
-  }) {
-    return flexibleUploadExcel(file: file, type: type, analyze: true);
-  }
+  static Future<Map<String, dynamic>> analyzeExcel({required File file, required String type}) =>
+      flexibleUploadExcel(file: file, type: type, analyze: true);
 
-  static Future<Map<String, dynamic>> uploadManpowerBulk(FormData formData,String type) async {
+  static Future<Map<String, dynamic>> uploadManpowerBulk(
+      FormData formData,
+      String type,
+      ) async {
     try {
-      print('📤 Uploading manpower file...');
-      print('📊 FormData fields: ${formData.fields.length}');
-      print('📁 FormData files: ${formData.files.length}');
-      print('📦 FormData: ${formData.files}');
       final mappedType = mapManpowerType(type);
-
-      print('📤 Uploading manpower file...');
-      print('📌 Final type sent: $mappedType');
-
-
-
       final response = await DioClient.dio.post(
-        '/manpower/bulk-upload', // Make sure the endpoint is correct
+        '/manpower/bulk-upload',
         data: formData,
         queryParameters: {"type": mappedType},
-        options: Options(
-          headers: {
-
-            'Accept': 'application/json',
-          },
-        ),
+        options: Options(headers: {'Accept': 'application/json'}),
       );
-
-      print('✅ Upload successful: ${response.statusCode}');
-      print('📦 Response: ${response.data}');
-
       return {
         'success': true,
         'data': response.data,
@@ -354,82 +235,26 @@ class ManpowerAPI {
         'statusCode': response.statusCode,
       };
     } on DioException catch (e) {
-      print('❌ DioException: ${e.type}');
-      print('❌ Message: ${e.message}');
-      print('❌ Response: ${e.response?.data}');
-      print('❌ Status code: ${e.response?.statusCode}');
-      print('❌ Headers: ${e.response?.headers}');
-
-      String errorMessage = 'Upload failed';
-
-      if (e.response != null) {
-        if (e.response!.data != null) {
-          try {
-            // Try to parse error message from response
-            if (e.response!.data is Map) {
-              errorMessage = e.response!.data['message'] ??
-                  e.response!.data['error'] ??
-                  'Upload failed';
-            } else if (e.response!.data is String) {
-              errorMessage = e.response!.data;
-            }
-          } catch (parseError) {
-            errorMessage = 'Server error: ${e.response!.statusCode}';
-          }
-        } else {
-          errorMessage = 'Server error: ${e.response!.statusCode}';
-        }
-      } else if (e.message != null) {
-        errorMessage = e.message!;
-      }
-
-      return {
-        'success': false,
-        'error': 'Upload Error',
-        'message': errorMessage,
-        'statusCode': e.response?.statusCode,
-      };
-    } catch (e, stack) {
-      print('❌ Unexpected error: $e');
-      print('❌ Stack trace: $stack');
-      return {
-        'success': false,
-        'error': 'Unexpected Error',
-        'message': e.toString()
-      };
-    }
-  }
-  /// Mark manpower as left
-  static Future<Map<String, dynamic>> leftManpower(
-      String id, dynamic data) async {
-    try {
-      final res = await dio.put("/left-manpower/$id", data: data);
-      return {
-        "success": true,
-        "data": res.data,
-      };
+      return _dioError("Bulk Upload Error", e);
     } catch (e) {
-      return {
-        "success": false,
-        "data": null,
-        "error": e.toString(),
-      };
+      return _unexpectedError(e);
     }
   }
 
-  /// Fetch manpower list as file (excel/pdf)
+  // ─────────────────────────────────────────────
+  // DOWNLOAD / VIEW
+  // ─────────────────────────────────────────────
+
+  /// Download manpower sheet as excel or pdf
+  /// GET /api/v1/manpower/view?format=excel|pdf
   static Future<Uint8List> downloadManpowerSheet({
     String format = 'excel',
   }) async {
     try {
       final response = await DioClient.dio.get(
         "/manpower/view",
-        queryParameters: {
-          "format": format,
-        },
-        options: Options(
-          responseType: ResponseType.bytes, // ✅ raw bytes
-        ),
+        queryParameters: {"format": format},
+        options: Options(responseType: ResponseType.bytes),
       );
       return Uint8List.fromList(response.data as List<int>);
     } catch (e) {
@@ -437,38 +262,58 @@ class ManpowerAPI {
     }
   }
 
-  /// Get all left manpower
-  static Future<Map<String, dynamic>> getLeftManpower() async {
-    try {
-      final res = await dio.put("/left-manpower");
-      return {
-        "success": true,
-        "data": res.data,
-      };
-    } catch (e) {
-      return {
-        "success": false,
-        "data": null,
-        "error": e.toString(),
-      };
-    }
-  }
-
-  /// Fetch manpower view
   static Future<Map<String, dynamic>> fetchManpowerView() async {
     try {
       final res = await dio.get("/manpower/view");
-      return {
-        "success": true,
-        "data": res.data,
-      };
+      return {"success": true, "data": res.data};
     } catch (e) {
-      return {
-        "success": false,
-        "data": null,
-        "error": e.toString(),
-      };
+      return {"success": false, "data": null, "error": e.toString()};
     }
+  }
+
+  // ─────────────────────────────────────────────
+  // LEFT MANPOWER
+  // ─────────────────────────────────────────────
+
+  /// GET /api/v1/left-manpower
+  static Future<Map<String, dynamic>> getLeftManpower({String? type}) async {
+    try {
+      final res = await dio.get(
+          "/left-manpower",
+        queryParameters: {
+          if (type != null) "type": type,
+        }
+      ,
+    );
+    return {"success": true, "data": res.data};
+    } catch (e) {
+    return {"success": false, "data": null, "error": e.toString()};
+    }
+  }
+
+  // ─────────────────────────────────────────────
+  // HELPERS
+  // ─────────────────────────────────────────────
+
+  static Map<String, dynamic> _dioError(String label, DioException e) {
+    String msg = "Request failed";
+    if (e.response?.data is Map) {
+      msg = e.response?.data['message'] ?? e.response?.data['error'] ?? msg;
+    } else if (e.response?.data is String) {
+      msg = e.response!.data;
+    } else if (e.message != null) {
+      msg = e.message!;
+    }
+    return {
+      "success": false,
+      "error": label,
+      "message": msg,
+      "statusCode": e.response?.statusCode,
+    };
+  }
+
+  static Map<String, dynamic> _unexpectedError(Object e) {
+    return {"success": false, "error": "Unexpected Error", "message": e.toString()};
   }
 }
 
@@ -477,11 +322,9 @@ String mapManpowerType(String rawType) {
     case 'mechanical':
     case 'mechanical_work':
       return 'mechanical_work';
-
     case 'insulation':
     case 'insulation_work':
       return 'insulation_work';
-
     default:
       throw Exception(
         "Invalid manpower type: $rawType. Allowed: mechanical_work, insulation_work",
@@ -492,13 +335,8 @@ String mapManpowerType(String rawType) {
 class ExcelUploadIssue {
   final int? row;
   final String message;
-
   ExcelUploadIssue({this.row, required this.message});
 
   @override
-  String toString() {
-    if (row == null) return message;
-    return "Row $row: $message";
-  }
+  String toString() => row == null ? message : "Row $row: $message";
 }
-
