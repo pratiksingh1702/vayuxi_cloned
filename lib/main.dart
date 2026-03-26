@@ -1,5 +1,4 @@
 import 'dart:async';
-import 'dart:io';
 
 
 import 'package:firebase_core/firebase_core.dart';
@@ -73,9 +72,7 @@ Future<void> main() async {
     await notifier.initialize();
 
     final fcm = FCMService(notifier);
-    if (Platform.isAndroid) {
-      await fcm.initialize();
-    }
+    await fcm.initialize();
     // await MobileRag.initialize(
     //   tokenizerAsset: 'assets/model/tokenizer.json',
     //   modelAsset: 'assets/model/model.onnx',

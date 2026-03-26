@@ -1,0 +1,723 @@
+xcrun simctl install booted /Users/shahdhruvil/Library/Developer/Xcode/DerivedData/Runner-fobrbimpuiusovgxxbeuhcqdarcb/Build/Products/Debug-iphonesimulator/Runner.app
+shahdhruvil@Shahs-Mac-mini FE-V2-Vayuxi % xcrun simctl launch booted com.dhruvil.vayuxi123
+com.dhruvil.vayuxi123: 51005
+shahdhruvil@Shahs-Mac-mini FE-V2-Vayuxi % flutter run -d "iPhone 16e"
+Launching lib/main.dart on iPhone 16e in debug mode...
+Running pod install...                                           2,204ms
+Running Xcode build...                                                  
+Xcode build done.                                           53.6s
+Failed to build iOS app
+Error output from Xcode build:
+↳
+    ** BUILD FAILED **
+
+
+Xcode's output:
+↳
+    Writing result bundle at path:
+    	/var/folders/z3/r1b4lpyj18bgpl7c9hpq2vjh0000gn/T/flutter_tools.SQwtWI/flutter_ios_build_temp_dirqNtEsH/temporary_xcresult_bundle
+
+    /Users/shahdhruvil/.pub-cache/hosted/pub.dev/flutter_tts-4.2.5/ios/Classes/SwiftFlutterTtsPlugin.swift:10:7: warning: stored property 'synthesizer' of 'Sendable'-conforming class 'SwiftFlutterTtsPlugin' has non-Sendable type 'AVSpeechSynthesizer'
+      let synthesizer = AVSpeechSynthesizer()
+          ^
+    /Applications/Xcode.app/Contents/Developer/Platforms/iPhoneSimulator.platform/Developer/SDKs/iPhoneSimulator26.2.sdk/System/Library/Frameworks/AVFAudio.framework/Headers/AVSpeechSynthesis.h:227:12: note: class 'AVSpeechSynthesizer' does not conform to the
+    'Sendable' protocol
+    @interface AVSpeechSynthesizer : NSObject
+               ^
+    /Users/shahdhruvil/.pub-cache/hosted/pub.dev/flutter_tts-4.2.5/ios/Classes/SwiftFlutterTtsPlugin.swift:10:7: warning: stored property 'synthesizer' of 'Sendable'-conforming class 'SwiftFlutterTtsPlugin' has non-Sendable type 'AVSpeechSynthesizer'
+      let synthesizer = AVSpeechSynthesizer()
+          ^
+    /Applications/Xcode.app/Contents/Developer/Platforms/iPhoneSimulator.platform/Developer/SDKs/iPhoneSimulator26.2.sdk/System/Library/Frameworks/AVFAudio.framework/Headers/AVSpeechSynthesis.h:227:12: note: class 'AVSpeechSynthesizer' does not conform to the
+    'Sendable' protocol
+    @interface AVSpeechSynthesizer : NSObject
+               ^
+    /Users/shahdhruvil/.pub-cache/hosted/pub.dev/record_ios-1.2.0/ios/record_ios/Sources/record_ios/RecordIosPlugin.swift:294:47: warning: 'allowBluetooth' was deprecated in iOS 8.0: renamed to 'AVAudioSession.CategoryOptions.allowBluetoothHFP'
+            case "allowBluetooth": result.insert(.allowBluetooth)
+                                                  ^
+    /Users/shahdhruvil/.pub-cache/hosted/pub.dev/record_ios-1.2.0/ios/record_ios/Sources/record_ios/RecordIosPlugin.swift:294:47: note: use 'AVAudioSession.CategoryOptions.allowBluetoothHFP' instead
+            case "allowBluetooth": result.insert(.allowBluetooth)
+                                                  ^~~~~~~~~~~~~~
+                                                  AVAudioSession.CategoryOptions.allowBluetoothHFP
+    /Users/shahdhruvil/.pub-cache/hosted/pub.dev/record_ios-1.2.0/ios/record_ios/Sources/record_ios/InputHelper.swift:15:70: warning: 'allowBluetooth' was deprecated in iOS 8.0: renamed to 'AVAudioSession.CategoryOptions.allowBluetoothHFP'
+      let options: AVAudioSession.CategoryOptions = [.defaultToSpeaker, .allowBluetooth]
+                                                                         ^
+    /Users/shahdhruvil/.pub-cache/hosted/pub.dev/record_ios-1.2.0/ios/record_ios/Sources/record_ios/InputHelper.swift:15:70: note: use 'AVAudioSession.CategoryOptions.allowBluetoothHFP' instead
+      let options: AVAudioSession.CategoryOptions = [.defaultToSpeaker, .allowBluetooth]
+                                                                         ^~~~~~~~~~~~~~
+                                                                         AVAudioSession.CategoryOptions.allowBluetoothHFP
+    /Users/shahdhruvil/.pub-cache/hosted/pub.dev/record_ios-1.2.0/ios/record_ios/Sources/record_ios/RecordIosPlugin.swift:294:47: warning: 'allowBluetooth' was deprecated in iOS 8.0: renamed to 'AVAudioSession.CategoryOptions.allowBluetoothHFP'
+            case "allowBluetooth": result.insert(.allowBluetooth)
+                                                  ^
+    /Users/shahdhruvil/.pub-cache/hosted/pub.dev/record_ios-1.2.0/ios/record_ios/Sources/record_ios/RecordIosPlugin.swift:294:47: note: use 'AVAudioSession.CategoryOptions.allowBluetoothHFP' instead
+            case "allowBluetooth": result.insert(.allowBluetooth)
+                                                  ^~~~~~~~~~~~~~
+                                                  AVAudioSession.CategoryOptions.allowBluetoothHFP
+    /Users/shahdhruvil/.pub-cache/hosted/pub.dev/record_ios-1.2.0/ios/record_ios/Sources/record_ios/InputHelper.swift:15:70: warning: 'allowBluetooth' was deprecated in iOS 8.0: renamed to 'AVAudioSession.CategoryOptions.allowBluetoothHFP'
+      let options: AVAudioSession.CategoryOptions = [.defaultToSpeaker, .allowBluetooth]
+                                                                         ^
+    /Users/shahdhruvil/.pub-cache/hosted/pub.dev/record_ios-1.2.0/ios/record_ios/Sources/record_ios/InputHelper.swift:15:70: note: use 'AVAudioSession.CategoryOptions.allowBluetoothHFP' instead
+      let options: AVAudioSession.CategoryOptions = [.defaultToSpeaker, .allowBluetooth]
+                                                                         ^~~~~~~~~~~~~~
+                                                                         AVAudioSession.CategoryOptions.allowBluetoothHFP
+    /Users/shahdhruvil/.pub-cache/hosted/pub.dev/printing-5.14.3/ios/Classes/PrintJob.swift:269:70: warning: 'keyWindow' was deprecated in iOS 13.0: Should not be used for applications that support multiple scenes as it returns a key window across all connected scenes
+                let controller: UIViewController? = UIApplication.shared.keyWindow?.rootViewController
+                                                                         ^
+    /Users/shahdhruvil/.pub-cache/hosted/pub.dev/printing-5.14.3/ios/Classes/PrintJob.swift:273:30: warning: 'keyWindow' was deprecated in iOS 13.0: Should not be used for applications that support multiple scenes as it returns a key window across all connected scenes
+            UIApplication.shared.keyWindow?.rootViewController?.present(activityViewController, animated: true)
+                                 ^
+    /Users/shahdhruvil/.pub-cache/hosted/pub.dev/printing-5.14.3/ios/Classes/PrintJob.swift:356:74: warning: 'keyWindow' was deprecated in iOS 13.0: Should not be used for applications that support multiple scenes as it returns a key window across all connected scenes
+                let viewController: UIViewController? = UIApplication.shared.keyWindow?.rootViewController
+                                                                             ^
+    /Users/shahdhruvil/.pub-cache/hosted/pub.dev/printing-5.14.3/ios/Classes/PrintJob.swift:269:70: warning: 'keyWindow' was deprecated in iOS 13.0: Should not be used for applications that support multiple scenes as it returns a key window across all connected scenes
+                let controller: UIViewController? = UIApplication.shared.keyWindow?.rootViewController
+                                                                         ^
+    /Users/shahdhruvil/.pub-cache/hosted/pub.dev/printing-5.14.3/ios/Classes/PrintJob.swift:273:30: warning: 'keyWindow' was deprecated in iOS 13.0: Should not be used for applications that support multiple scenes as it returns a key window across all connected scenes
+            UIApplication.shared.keyWindow?.rootViewController?.present(activityViewController, animated: true)
+                                 ^
+    /Users/shahdhruvil/.pub-cache/hosted/pub.dev/printing-5.14.3/ios/Classes/PrintJob.swift:356:74: warning: 'keyWindow' was deprecated in iOS 13.0: Should not be used for applications that support multiple scenes as it returns a key window across all connected scenes
+                let viewController: UIViewController? = UIApplication.shared.keyWindow?.rootViewController
+                                                                             ^
+    /Users/shahdhruvil/.pub-cache/hosted/pub.dev/flutter_tts-4.2.5/ios/Classes/AudioCategoryOptions.swift:25:15: warning: 'allowBluetooth' was deprecated in iOS 8.0: renamed to 'AVAudioSession.CategoryOptions.allowBluetoothHFP'
+          return .allowBluetooth
+                  ^
+    /Users/shahdhruvil/.pub-cache/hosted/pub.dev/flutter_tts-4.2.5/ios/Classes/AudioCategoryOptions.swift:25:15: note: use 'AVAudioSession.CategoryOptions.allowBluetoothHFP' instead
+          return .allowBluetooth
+                  ^~~~~~~~~~~~~~
+                  AVAudioSession.CategoryOptions.allowBluetoothHFP
+    /Users/shahdhruvil/.pub-cache/hosted/pub.dev/flutter_tts-4.2.5/ios/Classes/SwiftFlutterTtsPlugin.swift:10:7: warning: stored property 'synthesizer' of 'Sendable'-conforming class 'SwiftFlutterTtsPlugin' has non-Sendable type 'AVSpeechSynthesizer'
+      let synthesizer = AVSpeechSynthesizer()
+          ^
+    /Applications/Xcode.app/Contents/Developer/Platforms/iPhoneSimulator.platform/Developer/SDKs/iPhoneSimulator26.2.sdk/System/Library/Frameworks/AVFAudio.framework/Headers/AVSpeechSynthesis.h:227:12: note: class 'AVSpeechSynthesizer' does not conform to the
+    'Sendable' protocol
+    @interface AVSpeechSynthesizer : NSObject
+               ^
+    /Users/shahdhruvil/.pub-cache/hosted/pub.dev/flutter_tts-4.2.5/ios/Classes/SwiftFlutterTtsPlugin.swift:10:7: warning: stored property 'synthesizer' of 'Sendable'-conforming class 'SwiftFlutterTtsPlugin' has non-Sendable type 'AVSpeechSynthesizer'
+      let synthesizer = AVSpeechSynthesizer()
+          ^
+    /Applications/Xcode.app/Contents/Developer/Platforms/iPhoneSimulator.platform/Developer/SDKs/iPhoneSimulator26.2.sdk/System/Library/Frameworks/AVFAudio.framework/Headers/AVSpeechSynthesis.h:227:12: note: class 'AVSpeechSynthesizer' does not conform to the
+    'Sendable' protocol
+    @interface AVSpeechSynthesizer : NSObject
+               ^
+    /Users/shahdhruvil/.pub-cache/hosted/pub.dev/flutter_tts-4.2.5/ios/Classes/AudioCategoryOptions.swift:25:15: warning: 'allowBluetooth' was deprecated in iOS 8.0: renamed to 'AVAudioSession.CategoryOptions.allowBluetoothHFP'
+          return .allowBluetooth
+                  ^
+    /Users/shahdhruvil/.pub-cache/hosted/pub.dev/flutter_tts-4.2.5/ios/Classes/AudioCategoryOptions.swift:25:15: note: use 'AVAudioSession.CategoryOptions.allowBluetoothHFP' instead
+          return .allowBluetooth
+                  ^~~~~~~~~~~~~~
+                  AVAudioSession.CategoryOptions.allowBluetoothHFP
+    /Users/shahdhruvil/.pub-cache/hosted/pub.dev/flutter_file_dialog-3.0.3/ios/Classes/SaveFileDialog.swift:159:63: warning: 'keyWindow' was deprecated in iOS 13.0: Should not be used for applications that support multiple scenes as it returns a key window across all
+    connected scenes
+            guard let parentViewController = UIApplication.shared.keyWindow?.rootViewController else {
+                                                                  ^
+    /Users/shahdhruvil/.pub-cache/hosted/pub.dev/flutter_file_dialog-3.0.3/ios/Classes/SaveFileDialog.swift:168:44: warning: 'init(url:in:)' was deprecated in iOS 14.0
+            let documentPickerViewController = UIDocumentPickerViewController(url: fileUrl!, in: .exportToService)
+                                               ^
+    /Users/shahdhruvil/.pub-cache/hosted/pub.dev/flutter_file_dialog-3.0.3/ios/Classes/OpenFileDialog.swift:28:57: warning: 'keyWindow' was deprecated in iOS 13.0: Should not be used for applications that support multiple scenes as it returns a key window across all
+    connected scenes
+            guard let viewController = UIApplication.shared.keyWindow?.rootViewController else {
+                                                            ^
+    /Users/shahdhruvil/.pub-cache/hosted/pub.dev/flutter_file_dialog-3.0.3/ios/Classes/OpenFileDialog.swift:50:67: warning: 'kUTTypeText' was deprecated in iOS 15.0: Use UTTypeText or UTType.text (swift) instead.
+                let documentTypes = params.allowedUtiTypes ?? [String(kUTTypeText), String(kUTTypeContent), String(kUTTypeItem), String(kUTTypeData)]
+                                                                      ^
+    /Users/shahdhruvil/.pub-cache/hosted/pub.dev/flutter_file_dialog-3.0.3/ios/Classes/OpenFileDialog.swift:50:88: warning: 'kUTTypeContent' was deprecated in iOS 15.0: Use UTTypeContent or UTType.content (swift) instead.
+                let documentTypes = params.allowedUtiTypes ?? [String(kUTTypeText), String(kUTTypeContent), String(kUTTypeItem), String(kUTTypeData)]
+                                                                                           ^
+    /Users/shahdhruvil/.pub-cache/hosted/pub.dev/flutter_file_dialog-3.0.3/ios/Classes/OpenFileDialog.swift:50:112: warning: 'kUTTypeItem' was deprecated in iOS 15.0: Use UTTypeItem or UTType.item (swift) instead.
+                let documentTypes = params.allowedUtiTypes ?? [String(kUTTypeText), String(kUTTypeContent), String(kUTTypeItem), String(kUTTypeData)]
+                                                                                                                   ^
+    /Users/shahdhruvil/.pub-cache/hosted/pub.dev/flutter_file_dialog-3.0.3/ios/Classes/OpenFileDialog.swift:50:133: warning: 'kUTTypeData' was deprecated in iOS 15.0: Use UTTypeData or UTType.data (swift) instead.
+                let documentTypes = params.allowedUtiTypes ?? [String(kUTTypeText), String(kUTTypeContent), String(kUTTypeItem), String(kUTTypeData)]
+                                                                                                                                        ^
+    /Users/shahdhruvil/.pub-cache/hosted/pub.dev/flutter_file_dialog-3.0.3/ios/Classes/OpenFileDialog.swift:52:48: warning: 'init(documentTypes:in:)' was deprecated in iOS 14.0
+                let documentPickerViewController = UIDocumentPickerViewController(documentTypes: documentTypes, in: .import)
+                                                   ^
+    /Users/shahdhruvil/.pub-cache/hosted/pub.dev/flutter_file_dialog-3.0.3/ios/Classes/OpenFileDialog.swift:81:57: warning: 'keyWindow' was deprecated in iOS 13.0: Should not be used for applications that support multiple scenes as it returns a key window across all
+    connected scenes
+            guard let viewController = UIApplication.shared.keyWindow?.rootViewController else {
+                                                            ^
+    /Users/shahdhruvil/.pub-cache/hosted/pub.dev/flutter_file_dialog-3.0.3/ios/Classes/OpenFileDialog.swift:89:44: warning: 'init(documentTypes:in:)' was deprecated in iOS 14.0
+            let documentPickerViewController = UIDocumentPickerViewController(documentTypes: [kUTTypeFolder as String], in: .open)
+                                               ^
+    /Users/shahdhruvil/.pub-cache/hosted/pub.dev/flutter_file_dialog-3.0.3/ios/Classes/OpenFileDialog.swift:89:91: warning: 'kUTTypeFolder' was deprecated in iOS 15.0: Use UTTypeFolder or UTType.folder (swift) instead.
+            let documentPickerViewController = UIDocumentPickerViewController(documentTypes: [kUTTypeFolder as String], in: .open)
+                                                                                              ^
+    /Users/shahdhruvil/.pub-cache/hosted/pub.dev/flutter_file_dialog-3.0.3/ios/Classes/OpenFileDialog.swift:28:57: warning: 'keyWindow' was deprecated in iOS 13.0: Should not be used for applications that support multiple scenes as it returns a key window across all
+    connected scenes
+            guard let viewController = UIApplication.shared.keyWindow?.rootViewController else {
+                                                            ^
+    /Users/shahdhruvil/.pub-cache/hosted/pub.dev/flutter_file_dialog-3.0.3/ios/Classes/OpenFileDialog.swift:50:67: warning: 'kUTTypeText' was deprecated in iOS 15.0: Use UTTypeText or UTType.text (swift) instead.
+                let documentTypes = params.allowedUtiTypes ?? [String(kUTTypeText), String(kUTTypeContent), String(kUTTypeItem), String(kUTTypeData)]
+                                                                      ^
+    /Users/shahdhruvil/.pub-cache/hosted/pub.dev/flutter_file_dialog-3.0.3/ios/Classes/OpenFileDialog.swift:50:88: warning: 'kUTTypeContent' was deprecated in iOS 15.0: Use UTTypeContent or UTType.content (swift) instead.
+                let documentTypes = params.allowedUtiTypes ?? [String(kUTTypeText), String(kUTTypeContent), String(kUTTypeItem), String(kUTTypeData)]
+                                                                                           ^
+    /Users/shahdhruvil/.pub-cache/hosted/pub.dev/flutter_file_dialog-3.0.3/ios/Classes/OpenFileDialog.swift:50:112: warning: 'kUTTypeItem' was deprecated in iOS 15.0: Use UTTypeItem or UTType.item (swift) instead.
+                let documentTypes = params.allowedUtiTypes ?? [String(kUTTypeText), String(kUTTypeContent), String(kUTTypeItem), String(kUTTypeData)]
+                                                                                                                   ^
+    /Users/shahdhruvil/.pub-cache/hosted/pub.dev/flutter_file_dialog-3.0.3/ios/Classes/OpenFileDialog.swift:50:133: warning: 'kUTTypeData' was deprecated in iOS 15.0: Use UTTypeData or UTType.data (swift) instead.
+                let documentTypes = params.allowedUtiTypes ?? [String(kUTTypeText), String(kUTTypeContent), String(kUTTypeItem), String(kUTTypeData)]
+                                                                                                                                        ^
+    /Users/shahdhruvil/.pub-cache/hosted/pub.dev/flutter_file_dialog-3.0.3/ios/Classes/OpenFileDialog.swift:52:48: warning: 'init(documentTypes:in:)' was deprecated in iOS 14.0
+                let documentPickerViewController = UIDocumentPickerViewController(documentTypes: documentTypes, in: .import)
+                                                   ^
+    /Users/shahdhruvil/.pub-cache/hosted/pub.dev/flutter_file_dialog-3.0.3/ios/Classes/OpenFileDialog.swift:81:57: warning: 'keyWindow' was deprecated in iOS 13.0: Should not be used for applications that support multiple scenes as it returns a key window across all
+    connected scenes
+            guard let viewController = UIApplication.shared.keyWindow?.rootViewController else {
+                                                            ^
+    /Users/shahdhruvil/.pub-cache/hosted/pub.dev/flutter_file_dialog-3.0.3/ios/Classes/OpenFileDialog.swift:89:44: warning: 'init(documentTypes:in:)' was deprecated in iOS 14.0
+            let documentPickerViewController = UIDocumentPickerViewController(documentTypes: [kUTTypeFolder as String], in: .open)
+                                               ^
+    /Users/shahdhruvil/.pub-cache/hosted/pub.dev/flutter_file_dialog-3.0.3/ios/Classes/OpenFileDialog.swift:89:91: warning: 'kUTTypeFolder' was deprecated in iOS 15.0: Use UTTypeFolder or UTType.folder (swift) instead.
+            let documentPickerViewController = UIDocumentPickerViewController(documentTypes: [kUTTypeFolder as String], in: .open)
+                                                                                              ^
+    /Users/shahdhruvil/.pub-cache/hosted/pub.dev/flutter_file_dialog-3.0.3/ios/Classes/SaveFileDialog.swift:159:63: warning: 'keyWindow' was deprecated in iOS 13.0: Should not be used for applications that support multiple scenes as it returns a key window across all
+    connected scenes
+            guard let parentViewController = UIApplication.shared.keyWindow?.rootViewController else {
+                                                                  ^
+    /Users/shahdhruvil/.pub-cache/hosted/pub.dev/flutter_file_dialog-3.0.3/ios/Classes/SaveFileDialog.swift:168:44: warning: 'init(url:in:)' was deprecated in iOS 14.0
+            let documentPickerViewController = UIDocumentPickerViewController(url: fileUrl!, in: .exportToService)
+                                               ^
+    /Users/shahdhruvil/.pub-cache/hosted/pub.dev/file_selector_ios-0.5.3+5/ios/file_selector_ios/Sources/file_selector_ios/FileSelectorPlugin.swift:66:10: warning: 'init(documentTypes:in:)' was deprecated in iOS 14.0
+          ?? UIDocumentPickerViewController(
+             ^
+    /Users/shahdhruvil/.pub-cache/hosted/pub.dev/file_selector_ios-0.5.3+5/ios/file_selector_ios/Sources/file_selector_ios/FileSelectorPlugin.swift:66:10: warning: 'init(documentTypes:in:)' was deprecated in iOS 14.0
+          ?? UIDocumentPickerViewController(
+             ^
+    /Users/shahdhruvil/.pub-cache/hosted/pub.dev/file_saver-0.3.1/ios/Classes/Dialog.swift:26:55: warning: 'keyWindow' was deprecated in iOS 13.0: Should not be used for applications that support multiple scenes as it returns a key window across all connected scenes
+                let viewController = UIApplication.shared.keyWindow?
+                                                          ^
+    /Users/shahdhruvil/.pub-cache/hosted/pub.dev/file_saver-0.3.1/ios/Classes/Dialog.swift:26:55: warning: 'keyWindow' was deprecated in iOS 13.0: Should not be used for applications that support multiple scenes as it returns a key window across all connected scenes
+                let viewController = UIApplication.shared.keyWindow?
+                                                          ^
+    /Users/shahdhruvil/.pub-cache/hosted/pub.dev/device_info_plus-12.3.0/ios/device_info_plus/Sources/device_info_plus/FPPDeviceInfoPlusPlugin.m:96:45: warning: implicit conversion loses integer precision: 'vm_size_t' (aka 'unsigned long') to 'natural_t' (aka 'unsigned
+    int') [-Wshorten-64-to-32]
+       96 |     natural_t mem_free = vm_stat.free_count * page_size;
+          |               ~~~~~~~~   ~~~~~~~~~~~~~~~~~~~^~~~~~~~~~~
+    1 warning generated.
+    /Users/shahdhruvil/.pub-cache/hosted/pub.dev/device_info_plus-12.3.0/ios/device_info_plus/Sources/device_info_plus/FPPDeviceInfoPlusPlugin.m:96:45: warning: implicit conversion loses integer precision: 'vm_size_t' (aka 'unsigned long') to 'natural_t' (aka 'unsigned
+    int') [-Wshorten-64-to-32]
+       96 |     natural_t mem_free = vm_stat.free_count * page_size;
+          |               ~~~~~~~~   ~~~~~~~~~~~~~~~~~~~^~~~~~~~~~~
+    1 warning generated.
+    /Users/shahdhruvil/.pub-cache/hosted/pub.dev/audio_waveforms-2.0.2/ios/Classes/AudioRecorder.swift:37:76: warning: 'allowBluetooth' was deprecated in iOS 8.0: renamed to 'AVAudioSession.CategoryOptions.allowBluetoothHFP'
+            let options: AVAudioSession.CategoryOptions = [.defaultToSpeaker, .allowBluetooth]
+                                                                               ^
+    /Users/shahdhruvil/.pub-cache/hosted/pub.dev/audio_waveforms-2.0.2/ios/Classes/AudioRecorder.swift:37:76: note: use 'AVAudioSession.CategoryOptions.allowBluetoothHFP' instead
+            let options: AVAudioSession.CategoryOptions = [.defaultToSpeaker, .allowBluetooth]
+                                                                               ^~~~~~~~~~~~~~
+                                                                               AVAudioSession.CategoryOptions.allowBluetoothHFP
+    /Users/shahdhruvil/.pub-cache/hosted/pub.dev/audio_waveforms-2.0.2/ios/Classes/AudioRecorder.swift:138:82: warning: capture 'self' was never used
+                AVAudioSession.sharedInstance().requestRecordPermission() { [unowned self] allowed in
+                                                                                     ^
+    /Users/shahdhruvil/.pub-cache/hosted/pub.dev/audio_waveforms-2.0.2/ios/Classes/AudioRecorder.swift:37:76: warning: 'allowBluetooth' was deprecated in iOS 8.0: renamed to 'AVAudioSession.CategoryOptions.allowBluetoothHFP'
+            let options: AVAudioSession.CategoryOptions = [.defaultToSpeaker, .allowBluetooth]
+                                                                               ^
+    /Users/shahdhruvil/.pub-cache/hosted/pub.dev/audio_waveforms-2.0.2/ios/Classes/AudioRecorder.swift:37:76: note: use 'AVAudioSession.CategoryOptions.allowBluetoothHFP' instead
+            let options: AVAudioSession.CategoryOptions = [.defaultToSpeaker, .allowBluetooth]
+                                                                               ^~~~~~~~~~~~~~
+                                                                               AVAudioSession.CategoryOptions.allowBluetoothHFP
+    /Users/shahdhruvil/.pub-cache/hosted/pub.dev/audio_waveforms-2.0.2/ios/Classes/AudioRecorder.swift:138:82: warning: capture 'self' was never used
+                AVAudioSession.sharedInstance().requestRecordPermission() { [unowned self] allowed in
+                                                                                     ^
+    /Users/shahdhruvil/.pub-cache/hosted/pub.dev/audio_waveforms-2.0.2/ios/Classes/WaveformExtractor.swift:171:13: warning: capture of 'self' with non-Sendable type 'WaveformExtractor' in a '@Sendable' closure
+                self.flutterChannel.invokeMethod(
+                ^
+    /Users/shahdhruvil/.pub-cache/hosted/pub.dev/audio_waveforms-2.0.2/ios/Classes/WaveformExtractor.swift:4:14: note: class 'WaveformExtractor' does not conform to the 'Sendable' protocol
+    public class WaveformExtractor {
+                 ^
+    /Users/shahdhruvil/.pub-cache/hosted/pub.dev/audio_waveforms-2.0.2/ios/Classes/WaveformExtractor.swift:171:13: warning: capture of 'self' with non-Sendable type 'WaveformExtractor' in a '@Sendable' closure
+                self.flutterChannel.invokeMethod(
+                ^
+    /Users/shahdhruvil/.pub-cache/hosted/pub.dev/audio_waveforms-2.0.2/ios/Classes/WaveformExtractor.swift:4:14: note: class 'WaveformExtractor' does not conform to the 'Sendable' protocol
+    public class WaveformExtractor {
+                 ^
+    /Users/shahdhruvil/Documents/Project/FE-V2-Vayuxi/ios/Pods/SwiftyGif/SwiftyGif/ObjcAssociatedWeakObject.swift:13:14: warning: weak variable 'weakValue' was never mutated; consider changing to 'let' constant
+        weak var weakValue = value
+             ~~~ ^
+             let
+    /Users/shahdhruvil/Documents/Project/FE-V2-Vayuxi/ios/Pods/SwiftyGif/SwiftyGif/ObjcAssociatedWeakObject.swift:13:14: warning: weak variable 'weakValue' was never mutated; consider changing to 'let' constant
+        weak var weakValue = value
+             ~~~ ^
+             let
+    /Users/shahdhruvil/.pub-cache/hosted/pub.dev/razorpay_flutter-1.4.3/ios/Classes/SwiftRazorpayFlutterPlugin.swift:33:37: warning: 'keyWindow' was deprecated in iOS 13.0: Should not be used for applications that support multiple scenes as it returns a key window
+    across all connected scenes
+            return UIApplication.shared.keyWindow?.rootViewController
+                                        ^
+    /Users/shahdhruvil/.pub-cache/hosted/pub.dev/razorpay_flutter-1.4.3/ios/Classes/SwiftRazorpayFlutterPlugin.swift:33:37: warning: 'keyWindow' was deprecated in iOS 13.0: Should not be used for applications that support multiple scenes as it returns a key window
+    across all connected scenes
+            return UIApplication.shared.keyWindow?.rootViewController
+                                        ^
+    /Users/shahdhruvil/Documents/Project/FE-V2-Vayuxi/ios/Pods/DKPhotoGallery/DKPhotoGallery/Preview/PDFPreview/DKPDFView.swift:50:48: warning: 'gray' was deprecated in iOS 13.0: renamed to 'UIActivityIndicatorView.Style.medium'
+            return UIActivityIndicatorView(style: .gray)
+                                                   ^
+    /Users/shahdhruvil/Documents/Project/FE-V2-Vayuxi/ios/Pods/DKPhotoGallery/DKPhotoGallery/Preview/PDFPreview/DKPDFView.swift:50:48: note: use 'UIActivityIndicatorView.Style.medium' instead
+            return UIActivityIndicatorView(style: .gray)
+                                                   ^~~~
+                                                   UIActivityIndicatorView.Style.medium
+    /Users/shahdhruvil/Documents/Project/FE-V2-Vayuxi/ios/Pods/DKPhotoGallery/DKPhotoGallery/DKPhotoGallery.swift:144:62: warning: 'statusBarStyle' was deprecated in iOS 13.0: Use the statusBarManager property of the window scene instead.
+        private let defaultStatusBarStyle = UIApplication.shared.statusBarStyle
+                                                                 ^
+    /Users/shahdhruvil/Documents/Project/FE-V2-Vayuxi/ios/Pods/DKPhotoGallery/DKPhotoGallery/DKPhotoGalleryContentVC.swift:39:52: warning: using 'class' keyword to define a class-constrained protocol is deprecated; use 'AnyObject' instead
+    internal protocol DKPhotoGalleryContentDataSource: class {
+                                                       ^~~~~
+                                                       AnyObject
+    /Users/shahdhruvil/Documents/Project/FE-V2-Vayuxi/ios/Pods/DKPhotoGallery/DKPhotoGallery/DKPhotoGalleryContentVC.swift:55:50: warning: using 'class' keyword to define a class-constrained protocol is deprecated; use 'AnyObject' instead
+    internal protocol DKPhotoGalleryContentDelegate: class {
+                                                     ^~~~~
+                                                     AnyObject
+    /Users/shahdhruvil/Documents/Project/FE-V2-Vayuxi/ios/Pods/DKPhotoGallery/DKPhotoGallery/Preview/PlayerPreview/DKPlayerView.swift:152:48: warning: 'gray' was deprecated in iOS 13.0: renamed to 'UIActivityIndicatorView.Style.medium'
+            return UIActivityIndicatorView(style: .gray)
+                                                   ^
+    /Users/shahdhruvil/Documents/Project/FE-V2-Vayuxi/ios/Pods/DKPhotoGallery/DKPhotoGallery/Preview/PlayerPreview/DKPlayerView.swift:152:48: note: use 'UIActivityIndicatorView.Style.medium' instead
+            return UIActivityIndicatorView(style: .gray)
+                                                   ^~~~
+                                                   UIActivityIndicatorView.Style.medium
+    /Users/shahdhruvil/Documents/Project/FE-V2-Vayuxi/ios/Pods/DKPhotoGallery/DKPhotoGallery/Preview/PDFPreview/DKPDFView.swift:50:48: warning: 'gray' was deprecated in iOS 13.0: renamed to 'UIActivityIndicatorView.Style.medium'
+            return UIActivityIndicatorView(style: .gray)
+                                                   ^
+    /Users/shahdhruvil/Documents/Project/FE-V2-Vayuxi/ios/Pods/DKPhotoGallery/DKPhotoGallery/Preview/PDFPreview/DKPDFView.swift:50:48: note: use 'UIActivityIndicatorView.Style.medium' instead
+            return UIActivityIndicatorView(style: .gray)
+                                                   ^~~~
+                                                   UIActivityIndicatorView.Style.medium
+    /Users/shahdhruvil/Documents/Project/FE-V2-Vayuxi/ios/Pods/DKPhotoGallery/DKPhotoGallery/DKPhotoGallery.swift:144:62: warning: 'statusBarStyle' was deprecated in iOS 13.0: Use the statusBarManager property of the window scene instead.
+        private let defaultStatusBarStyle = UIApplication.shared.statusBarStyle
+                                                                 ^
+    /Users/shahdhruvil/Documents/Project/FE-V2-Vayuxi/ios/Pods/DKPhotoGallery/DKPhotoGallery/DKPhotoGalleryContentVC.swift:39:52: warning: using 'class' keyword to define a class-constrained protocol is deprecated; use 'AnyObject' instead
+    internal protocol DKPhotoGalleryContentDataSource: class {
+                                                       ^~~~~
+                                                       AnyObject
+    /Users/shahdhruvil/Documents/Project/FE-V2-Vayuxi/ios/Pods/DKPhotoGallery/DKPhotoGallery/DKPhotoGalleryContentVC.swift:55:50: warning: using 'class' keyword to define a class-constrained protocol is deprecated; use 'AnyObject' instead
+    internal protocol DKPhotoGalleryContentDelegate: class {
+                                                     ^~~~~
+                                                     AnyObject
+    /Users/shahdhruvil/Documents/Project/FE-V2-Vayuxi/ios/Pods/DKPhotoGallery/DKPhotoGallery/Preview/PlayerPreview/DKPlayerView.swift:152:48: warning: 'gray' was deprecated in iOS 13.0: renamed to 'UIActivityIndicatorView.Style.medium'
+            return UIActivityIndicatorView(style: .gray)
+                                                   ^
+    /Users/shahdhruvil/Documents/Project/FE-V2-Vayuxi/ios/Pods/DKPhotoGallery/DKPhotoGallery/Preview/PlayerPreview/DKPlayerView.swift:152:48: note: use 'UIActivityIndicatorView.Style.medium' instead
+            return UIActivityIndicatorView(style: .gray)
+                                                   ^~~~
+                                                   UIActivityIndicatorView.Style.medium
+    /Users/shahdhruvil/Documents/Project/FE-V2-Vayuxi/ios/Pods/DKPhotoGallery/DKPhotoGallery/Preview/QRCode/DKPhotoWebVC.swift:46:56: warning: 'gray' was deprecated in iOS 13.0: renamed to 'UIActivityIndicatorView.Style.medium'
+            self.spinner = UIActivityIndicatorView(style: .gray)
+                                                           ^
+    /Users/shahdhruvil/Documents/Project/FE-V2-Vayuxi/ios/Pods/DKPhotoGallery/DKPhotoGallery/Preview/QRCode/DKPhotoWebVC.swift:46:56: note: use 'UIActivityIndicatorView.Style.medium' instead
+            self.spinner = UIActivityIndicatorView(style: .gray)
+                                                           ^~~~
+                                                           UIActivityIndicatorView.Style.medium
+    /Users/shahdhruvil/Documents/Project/FE-V2-Vayuxi/ios/Pods/DKPhotoGallery/DKPhotoGallery/Preview/PlayerPreview/DKPlayerView.swift:152:48: warning: 'gray' was deprecated in iOS 13.0: renamed to 'UIActivityIndicatorView.Style.medium'
+            return UIActivityIndicatorView(style: .gray)
+                                                   ^
+    /Users/shahdhruvil/Documents/Project/FE-V2-Vayuxi/ios/Pods/DKPhotoGallery/DKPhotoGallery/Preview/PlayerPreview/DKPlayerView.swift:152:48: note: use 'UIActivityIndicatorView.Style.medium' instead
+            return UIActivityIndicatorView(style: .gray)
+                                                   ^~~~
+                                                   UIActivityIndicatorView.Style.medium
+    /Users/shahdhruvil/Documents/Project/FE-V2-Vayuxi/ios/Pods/DKPhotoGallery/DKPhotoGallery/Preview/QRCode/DKPhotoWebVC.swift:46:56: warning: 'gray' was deprecated in iOS 13.0: renamed to 'UIActivityIndicatorView.Style.medium'
+            self.spinner = UIActivityIndicatorView(style: .gray)
+                                                           ^
+    /Users/shahdhruvil/Documents/Project/FE-V2-Vayuxi/ios/Pods/DKPhotoGallery/DKPhotoGallery/Preview/QRCode/DKPhotoWebVC.swift:46:56: note: use 'UIActivityIndicatorView.Style.medium' instead
+            self.spinner = UIActivityIndicatorView(style: .gray)
+                                                           ^~~~
+                                                           UIActivityIndicatorView.Style.medium
+    /Users/shahdhruvil/Documents/Project/FE-V2-Vayuxi/ios/Pods/DKPhotoGallery/DKPhotoGallery/Preview/PlayerPreview/DKPlayerView.swift:152:48: warning: 'gray' was deprecated in iOS 13.0: renamed to 'UIActivityIndicatorView.Style.medium'
+            return UIActivityIndicatorView(style: .gray)
+                                                   ^
+    /Users/shahdhruvil/Documents/Project/FE-V2-Vayuxi/ios/Pods/DKPhotoGallery/DKPhotoGallery/Preview/PlayerPreview/DKPlayerView.swift:152:48: note: use 'UIActivityIndicatorView.Style.medium' instead
+            return UIActivityIndicatorView(style: .gray)
+                                                   ^~~~
+                                                   UIActivityIndicatorView.Style.medium
+    /Users/shahdhruvil/Documents/Project/FE-V2-Vayuxi/ios/Pods/DKPhotoGallery/DKPhotoGallery/Preview/PDFPreview/DKPDFView.swift:50:48: warning: 'gray' was deprecated in iOS 13.0: renamed to 'UIActivityIndicatorView.Style.medium'
+            return UIActivityIndicatorView(style: .gray)
+                                                   ^
+    /Users/shahdhruvil/Documents/Project/FE-V2-Vayuxi/ios/Pods/DKPhotoGallery/DKPhotoGallery/Preview/PDFPreview/DKPDFView.swift:50:48: note: use 'UIActivityIndicatorView.Style.medium' instead
+            return UIActivityIndicatorView(style: .gray)
+                                                   ^~~~
+                                                   UIActivityIndicatorView.Style.medium
+    /Users/shahdhruvil/Documents/Project/FE-V2-Vayuxi/ios/Pods/DKPhotoGallery/DKPhotoGallery/Preview/ImagePreview/DKPhotoBaseImagePreviewVC.swift:171:30: warning: 'UIPreviewAction' was deprecated in iOS 13.0: Please use UIContextMenuInteraction.
+            let saveActionItem = UIPreviewAction(title: DKPhotoGalleryResource.localizedStringWithKey("preview.3DTouch.saveImage.title"),
+                                 ^
+    /Users/shahdhruvil/Documents/Project/FE-V2-Vayuxi/ios/Pods/DKPhotoGallery/DKPhotoGallery/Preview/PDFPreview/DKPDFView.swift:50:48: warning: 'gray' was deprecated in iOS 13.0: renamed to 'UIActivityIndicatorView.Style.medium'
+            return UIActivityIndicatorView(style: .gray)
+                                                   ^
+    /Users/shahdhruvil/Documents/Project/FE-V2-Vayuxi/ios/Pods/DKPhotoGallery/DKPhotoGallery/Preview/PDFPreview/DKPDFView.swift:50:48: note: use 'UIActivityIndicatorView.Style.medium' instead
+            return UIActivityIndicatorView(style: .gray)
+                                                   ^~~~
+                                                   UIActivityIndicatorView.Style.medium
+    /Users/shahdhruvil/Documents/Project/FE-V2-Vayuxi/ios/Pods/DKPhotoGallery/DKPhotoGallery/Preview/ImagePreview/DKPhotoBaseImagePreviewVC.swift:171:30: warning: 'UIPreviewAction' was deprecated in iOS 13.0: Please use UIContextMenuInteraction.
+            let saveActionItem = UIPreviewAction(title: DKPhotoGalleryResource.localizedStringWithKey("preview.3DTouch.saveImage.title"),
+                                 ^
+    /Users/shahdhruvil/Documents/Project/FE-V2-Vayuxi/ios/Pods/DKPhotoGallery/DKPhotoGallery/DKPhotoGallery.swift:144:62: warning: 'statusBarStyle' was deprecated in iOS 13.0: Use the statusBarManager property of the window scene instead.
+        private let defaultStatusBarStyle = UIApplication.shared.statusBarStyle
+                                                                 ^
+    /Users/shahdhruvil/Documents/Project/FE-V2-Vayuxi/ios/Pods/DKPhotoGallery/DKPhotoGallery/Preview/ImagePreview/DKPhotoImageDownloader.swift:92:87: warning: 'kUTTypeGIF' was deprecated in iOS 15.0: Use UTTypeGIF or UTType.gif (swift) instead.
+                let isGif = (asset.value(forKey: "uniformTypeIdentifier") as? String) == (kUTTypeGIF as String)
+                                                                                          ^
+    /Users/shahdhruvil/Documents/Project/FE-V2-Vayuxi/ios/Pods/DKPhotoGallery/DKPhotoGallery/Preview/ImagePreview/DKPhotoImageDownloader.swift:94:42: warning: 'requestImageData(for:options:resultHandler:)' was deprecated in iOS 13
+                    PHImageManager.default().requestImageData(for: asset,
+                                             ^
+    /Users/shahdhruvil/Documents/Project/FE-V2-Vayuxi/ios/Pods/DKPhotoGallery/DKPhotoGallery/Preview/ImagePreview/DKPhotoImagePreviewVC.swift:34:42: warning: 'contentEdgeInsets' was deprecated in iOS 15.0: This property is ignored when using UIButtonConfiguration
+            self.downloadOriginalImageButton.contentEdgeInsets = UIEdgeInsets(top: 0, left: 5, bottom: 0, right: 5)
+                                             ^
+    /Users/shahdhruvil/Documents/Project/FE-V2-Vayuxi/ios/Pods/DKPhotoGallery/DKPhotoGallery/DKPhotoGallery.swift:144:62: warning: 'statusBarStyle' was deprecated in iOS 13.0: Use the statusBarManager property of the window scene instead.
+        private let defaultStatusBarStyle = UIApplication.shared.statusBarStyle
+                                                                 ^
+    /Users/shahdhruvil/Documents/Project/FE-V2-Vayuxi/ios/Pods/DKPhotoGallery/DKPhotoGallery/DKPhotoGalleryContentVC.swift:39:52: warning: using 'class' keyword to define a class-constrained protocol is deprecated; use 'AnyObject' instead
+    internal protocol DKPhotoGalleryContentDataSource: class {
+                                                       ^~~~~
+                                                       AnyObject
+    /Users/shahdhruvil/Documents/Project/FE-V2-Vayuxi/ios/Pods/DKPhotoGallery/DKPhotoGallery/DKPhotoGalleryContentVC.swift:55:50: warning: using 'class' keyword to define a class-constrained protocol is deprecated; use 'AnyObject' instead
+    internal protocol DKPhotoGalleryContentDelegate: class {
+                                                     ^~~~~
+                                                     AnyObject
+    /Users/shahdhruvil/Documents/Project/FE-V2-Vayuxi/ios/Pods/DKPhotoGallery/DKPhotoGallery/DKPhotoGalleryContentVC.swift:107:14: warning: 'automaticallyAdjustsScrollViewInsets' was deprecated in iOS 11.0: Use UIScrollView's contentInsetAdjustmentBehavior instead
+            self.automaticallyAdjustsScrollViewInsets = false
+                 ^
+    /Users/shahdhruvil/Documents/Project/FE-V2-Vayuxi/ios/Pods/DKPhotoGallery/DKPhotoGallery/DKPhotoGallery.swift:144:62: warning: 'statusBarStyle' was deprecated in iOS 13.0: Use the statusBarManager property of the window scene instead.
+        private let defaultStatusBarStyle = UIApplication.shared.statusBarStyle
+                                                                 ^
+    /Users/shahdhruvil/Documents/Project/FE-V2-Vayuxi/ios/Pods/DKPhotoGallery/DKPhotoGallery/DKPhotoIncrementalIndicator.swift:161:124: warning: forming 'UnsafeMutableRawPointer' to an inout variable of type String exposes the internal representation rather than the
+    string contents.
+            scrollView.addObserver(self, forKeyPath: DKPhotoIncrementalIndicator.contentSizeKeyPath, options: [.new], context: &DKPhotoIncrementalIndicator.context)
+                                                                                                                               ^
+    /Users/shahdhruvil/Documents/Project/FE-V2-Vayuxi/ios/Pods/DKPhotoGallery/DKPhotoGallery/DKPhotoIncrementalIndicator.swift:162:126: warning: forming 'UnsafeMutableRawPointer' to an inout variable of type String exposes the internal representation rather than the
+    string contents.
+            scrollView.addObserver(self, forKeyPath: DKPhotoIncrementalIndicator.contentOffsetKeyPath, options: [.new], context: &DKPhotoIncrementalIndicator.context)
+                                                                                                                                 ^
+    /Users/shahdhruvil/Documents/Project/FE-V2-Vayuxi/ios/Pods/DKPhotoGallery/DKPhotoGallery/DKPhotoIncrementalIndicator.swift:171:23: warning: forming 'UnsafeMutableRawPointer' to an inout variable of type String exposes the internal representation rather than the
+    string contents.
+            if context == &DKPhotoIncrementalIndicator.context {
+                          ^
+    /Users/shahdhruvil/Documents/Project/FE-V2-Vayuxi/ios/Pods/DKPhotoGallery/DKPhotoGallery/DKPhotoGallery.swift:144:62: warning: 'statusBarStyle' was deprecated in iOS 13.0: Use the statusBarManager property of the window scene instead.
+        private let defaultStatusBarStyle = UIApplication.shared.statusBarStyle
+                                                                 ^
+    /Users/shahdhruvil/Documents/Project/FE-V2-Vayuxi/ios/Pods/DKPhotoGallery/DKPhotoGallery/DKPhotoGallery.swift:144:62: warning: 'statusBarStyle' was deprecated in iOS 13.0: Use the statusBarManager property of the window scene instead.
+        private let defaultStatusBarStyle = UIApplication.shared.statusBarStyle
+                                                                 ^
+    /Users/shahdhruvil/Documents/Project/FE-V2-Vayuxi/ios/Pods/DKPhotoGallery/DKPhotoGallery/DKPhotoGallery.swift:144:62: warning: 'statusBarStyle' was deprecated in iOS 13.0: Use the statusBarManager property of the window scene instead.
+        private let defaultStatusBarStyle = UIApplication.shared.statusBarStyle
+                                                                 ^
+    /Users/shahdhruvil/Documents/Project/FE-V2-Vayuxi/ios/Pods/DKPhotoGallery/DKPhotoGallery/Preview/ImagePreview/DKPhotoImageDownloader.swift:92:87: warning: 'kUTTypeGIF' was deprecated in iOS 15.0: Use UTTypeGIF or UTType.gif (swift) instead.
+                let isGif = (asset.value(forKey: "uniformTypeIdentifier") as? String) == (kUTTypeGIF as String)
+                                                                                          ^
+    /Users/shahdhruvil/Documents/Project/FE-V2-Vayuxi/ios/Pods/DKPhotoGallery/DKPhotoGallery/Preview/ImagePreview/DKPhotoImageDownloader.swift:94:42: warning: 'requestImageData(for:options:resultHandler:)' was deprecated in iOS 13
+                    PHImageManager.default().requestImageData(for: asset,
+                                             ^
+    /Users/shahdhruvil/Documents/Project/FE-V2-Vayuxi/ios/Pods/DKPhotoGallery/DKPhotoGallery/Preview/ImagePreview/DKPhotoImagePreviewVC.swift:34:42: warning: 'contentEdgeInsets' was deprecated in iOS 15.0: This property is ignored when using UIButtonConfiguration
+            self.downloadOriginalImageButton.contentEdgeInsets = UIEdgeInsets(top: 0, left: 5, bottom: 0, right: 5)
+                                             ^
+    /Users/shahdhruvil/Documents/Project/FE-V2-Vayuxi/ios/Pods/DKPhotoGallery/DKPhotoGallery/DKPhotoGallery.swift:144:62: warning: 'statusBarStyle' was deprecated in iOS 13.0: Use the statusBarManager property of the window scene instead.
+        private let defaultStatusBarStyle = UIApplication.shared.statusBarStyle
+                                                                 ^
+    /Users/shahdhruvil/Documents/Project/FE-V2-Vayuxi/ios/Pods/DKPhotoGallery/DKPhotoGallery/DKPhotoIncrementalIndicator.swift:161:124: warning: forming 'UnsafeMutableRawPointer' to an inout variable of type String exposes the internal representation rather than the
+    string contents.
+            scrollView.addObserver(self, forKeyPath: DKPhotoIncrementalIndicator.contentSizeKeyPath, options: [.new], context: &DKPhotoIncrementalIndicator.context)
+                                                                                                                               ^
+    /Users/shahdhruvil/Documents/Project/FE-V2-Vayuxi/ios/Pods/DKPhotoGallery/DKPhotoGallery/DKPhotoIncrementalIndicator.swift:162:126: warning: forming 'UnsafeMutableRawPointer' to an inout variable of type String exposes the internal representation rather than the
+    string contents.
+            scrollView.addObserver(self, forKeyPath: DKPhotoIncrementalIndicator.contentOffsetKeyPath, options: [.new], context: &DKPhotoIncrementalIndicator.context)
+                                                                                                                                 ^
+    /Users/shahdhruvil/Documents/Project/FE-V2-Vayuxi/ios/Pods/DKPhotoGallery/DKPhotoGallery/DKPhotoIncrementalIndicator.swift:171:23: warning: forming 'UnsafeMutableRawPointer' to an inout variable of type String exposes the internal representation rather than the
+    string contents.
+            if context == &DKPhotoIncrementalIndicator.context {
+                          ^
+    /Users/shahdhruvil/Documents/Project/FE-V2-Vayuxi/ios/Pods/DKPhotoGallery/DKPhotoGallery/DKPhotoGallery.swift:144:62: warning: 'statusBarStyle' was deprecated in iOS 13.0: Use the statusBarManager property of the window scene instead.
+        private let defaultStatusBarStyle = UIApplication.shared.statusBarStyle
+                                                                 ^
+    /Users/shahdhruvil/Documents/Project/FE-V2-Vayuxi/ios/Pods/DKPhotoGallery/DKPhotoGallery/DKPhotoGalleryContentVC.swift:39:52: warning: using 'class' keyword to define a class-constrained protocol is deprecated; use 'AnyObject' instead
+    internal protocol DKPhotoGalleryContentDataSource: class {
+                                                       ^~~~~
+                                                       AnyObject
+    /Users/shahdhruvil/Documents/Project/FE-V2-Vayuxi/ios/Pods/DKPhotoGallery/DKPhotoGallery/DKPhotoGalleryContentVC.swift:55:50: warning: using 'class' keyword to define a class-constrained protocol is deprecated; use 'AnyObject' instead
+    internal protocol DKPhotoGalleryContentDelegate: class {
+                                                     ^~~~~
+                                                     AnyObject
+    /Users/shahdhruvil/Documents/Project/FE-V2-Vayuxi/ios/Pods/DKPhotoGallery/DKPhotoGallery/DKPhotoGalleryContentVC.swift:107:14: warning: 'automaticallyAdjustsScrollViewInsets' was deprecated in iOS 11.0: Use UIScrollView's contentInsetAdjustmentBehavior instead
+            self.automaticallyAdjustsScrollViewInsets = false
+                 ^
+    /Users/shahdhruvil/.pub-cache/hosted/pub.dev/firebase_core-4.6.0/ios/firebase_core/Sources/firebase_core/FLTFirebaseCorePlugin.m:92:35: warning: incompatible pointer types assigning to 'NSString * _Nullable' from 'NSNull * _Nonnull' [-Wincompatible-pointer-types]
+       92 |   pigeonOptions.deepLinkURLScheme = [NSNull null];
+          |                                   ^ ~~~~~~~~~~~~~
+    1 warning generated.
+    /Users/shahdhruvil/.pub-cache/hosted/pub.dev/firebase_messaging-16.1.3/ios/firebase_messaging/Sources/firebase_messaging/FLTFirebaseMessagingPlugin.m:392:10: warning: @available does not guard availability here; use if (@available) instead
+    [-Wunsupported-availability-guard]
+      392 |     if (!@available(iOS 18.1, *)) {
+          |          ^
+    /Users/shahdhruvil/.pub-cache/hosted/pub.dev/firebase_messaging-16.1.3/ios/firebase_messaging/Sources/firebase_messaging/FLTFirebaseMessagingPlugin.m:432:10: warning: @available does not guard availability here; use if (@available) instead
+    [-Wunsupported-availability-guard]
+      432 |     if (!@available(iOS 18.1, *)) {
+          |          ^
+    2 warnings generated.
+    /Users/shahdhruvil/.pub-cache/hosted/pub.dev/firebase_core-4.6.0/ios/firebase_core/Sources/firebase_core/FLTFirebaseCorePlugin.m:92:35: warning: incompatible pointer types assigning to 'NSString * _Nullable' from 'NSNull * _Nonnull' [-Wincompatible-pointer-types]
+       92 |   pigeonOptions.deepLinkURLScheme = [NSNull null];
+          |                                   ^ ~~~~~~~~~~~~~
+    1 warning generated.
+    /Users/shahdhruvil/Documents/Project/FE-V2-Vayuxi/ios/Pods/DKImagePickerController/Sources/DKImagePickerController/View/DKAssetGroupDetailVC.swift:344:14: warning: 'frameInterval' was deprecated in iOS 10.0: preferredFramesPerSecond
+            link.frameInterval = 1
+                 ^
+    /Users/shahdhruvil/Documents/Project/FE-V2-Vayuxi/ios/Pods/DKImagePickerController/Sources/DKImagePickerController/View/DKAssetGroupDetailVC.swift:344:14: warning: 'frameInterval' was deprecated in iOS 10.0: preferredFramesPerSecond
+            link.frameInterval = 1
+                 ^
+    /Users/shahdhruvil/Documents/Project/FE-V2-Vayuxi/ios/Pods/DKImagePickerController/Sources/DKImagePickerController/DKImagePickerController.swift:265:45: warning: 'keyWindow' was deprecated in iOS 13.0: Should not be used for applications that support multiple
+    scenes as it returns a key window across all connected scenes
+                targetVC = UIApplication.shared.keyWindow!.rootViewController!
+                                                ^
+    /Users/shahdhruvil/Documents/Project/FE-V2-Vayuxi/ios/Pods/DKImagePickerController/Sources/DKImagePickerController/DKImagePickerController.swift:281:34: warning: 'keyWindow' was deprecated in iOS 13.0: Should not be used for applications that support multiple
+    scenes as it returns a key window across all connected scenes
+                UIApplication.shared.keyWindow!.rootViewController!.dismiss(animated: true,
+                                     ^
+    /Users/shahdhruvil/Documents/Project/FE-V2-Vayuxi/ios/Pods/DKImagePickerController/Sources/Extensions/DKImageExtensionGallery.swift:35:38: warning: 'keyWindow' was deprecated in iOS 13.0: Should not be used for applications that support multiple scenes as it
+    returns a key window across all connected scenes
+                    UIApplication.shared.keyWindow!.rootViewController!.present(photoGallery: gallery)
+                                         ^
+    /Users/shahdhruvil/.pub-cache/hosted/pub.dev/firebase_messaging-16.1.3/ios/firebase_messaging/Sources/firebase_messaging/FLTFirebaseMessagingPlugin.m:392:10: warning: @available does not guard availability here; use if (@available) instead
+    [-Wunsupported-availability-guard]
+      392 |     if (!@available(iOS 18.1, *)) {
+          |          ^
+    /Users/shahdhruvil/.pub-cache/hosted/pub.dev/firebase_messaging-16.1.3/ios/firebase_messaging/Sources/firebase_messaging/FLTFirebaseMessagingPlugin.m:432:10: warning: @available does not guard availability here; use if (@available) instead
+    [-Wunsupported-availability-guard]
+      432 |     if (!@available(iOS 18.1, *)) {
+          |          ^
+    2 warnings generated.
+    /Users/shahdhruvil/Documents/Project/FE-V2-Vayuxi/ios/Pods/DKImagePickerController/Sources/DKImagePickerController/View/DKAssetGroupDetailVC.swift:344:14: warning: 'frameInterval' was deprecated in iOS 10.0: preferredFramesPerSecond
+            link.frameInterval = 1
+                 ^
+    /Users/shahdhruvil/Documents/Project/FE-V2-Vayuxi/ios/Pods/DKImagePickerController/Sources/DKImageDataManager/DKImageDataManager.swift:154:43: warning: 'requestImageData(for:options:resultHandler:)' was deprecated in iOS 13
+            let imageRequestID = self.manager.requestImageData(
+                                              ^
+    /Users/shahdhruvil/Documents/Project/FE-V2-Vayuxi/ios/Pods/DKImagePickerController/Sources/Extensions/DKImageExtensionGallery.swift:35:38: warning: 'keyWindow' was deprecated in iOS 13.0: Should not be used for applications that support multiple scenes as it
+    returns a key window across all connected scenes
+                    UIApplication.shared.keyWindow!.rootViewController!.present(photoGallery: gallery)
+                                         ^
+    /Users/shahdhruvil/Documents/Project/FE-V2-Vayuxi/ios/Pods/DKImagePickerController/Sources/DKImagePickerController/DKPopoverViewController.swift:30:43: warning: 'keyWindow' was deprecated in iOS 13.0: Should not be used for applications that support multiple scenes
+    as it returns a key window across all connected scenes
+            let window = UIApplication.shared.keyWindow!
+                                              ^
+    /Users/shahdhruvil/Documents/Project/FE-V2-Vayuxi/ios/Pods/DKImagePickerController/Sources/DKImagePickerController/DKPopoverViewController.swift:43:43: warning: 'keyWindow' was deprecated in iOS 13.0: Should not be used for applications that support multiple scenes
+    as it returns a key window across all connected scenes
+            let window = UIApplication.shared.keyWindow!
+                                              ^
+    /Users/shahdhruvil/Documents/Project/FE-V2-Vayuxi/ios/Pods/DKImagePickerController/Sources/DKImagePickerController/DKImagePickerController.swift:265:45: warning: 'keyWindow' was deprecated in iOS 13.0: Should not be used for applications that support multiple
+    scenes as it returns a key window across all connected scenes
+                targetVC = UIApplication.shared.keyWindow!.rootViewController!
+                                                ^
+    /Users/shahdhruvil/Documents/Project/FE-V2-Vayuxi/ios/Pods/DKImagePickerController/Sources/DKImagePickerController/DKImagePickerController.swift:281:34: warning: 'keyWindow' was deprecated in iOS 13.0: Should not be used for applications that support multiple
+    scenes as it returns a key window across all connected scenes
+                UIApplication.shared.keyWindow!.rootViewController!.dismiss(animated: true,
+                                     ^
+    /Users/shahdhruvil/Documents/Project/FE-V2-Vayuxi/ios/Pods/DKImagePickerController/Sources/DKImagePickerController/DKImageAssetExporter.swift:557:38: warning: capture of 'fileManager' with non-Sendable type 'FileManager' in an isolated local function; this is an
+    error in the Swift 6 language mode
+                                    try? fileManager.removeItem(at: auxiliaryDirectory)
+                                         ^
+    /Applications/Xcode.app/Contents/Developer/Platforms/iPhoneSimulator.platform/Developer/SDKs/iPhoneSimulator26.2.sdk/System/Library/Frameworks/Foundation.framework/Headers/NSFileManager.h:96:12: note: class 'FileManager' does not conform to the 'Sendable' protocol
+    @interface NSFileManager : NSObject
+               ^
+    /Users/shahdhruvil/Documents/Project/FE-V2-Vayuxi/ios/Pods/DKImagePickerController/Sources/DKImagePickerController/DKPopoverViewController.swift:30:43: warning: 'keyWindow' was deprecated in iOS 13.0: Should not be used for applications that support multiple scenes
+    as it returns a key window across all connected scenes
+            let window = UIApplication.shared.keyWindow!
+                                              ^
+    /Users/shahdhruvil/Documents/Project/FE-V2-Vayuxi/ios/Pods/DKImagePickerController/Sources/DKImagePickerController/DKPopoverViewController.swift:43:43: warning: 'keyWindow' was deprecated in iOS 13.0: Should not be used for applications that support multiple scenes
+    as it returns a key window across all connected scenes
+            let window = UIApplication.shared.keyWindow!
+                                              ^
+    /Users/shahdhruvil/Documents/Project/FE-V2-Vayuxi/ios/Pods/DKImagePickerController/Sources/DKImageDataManager/DKImageDataManager.swift:154:43: warning: 'requestImageData(for:options:resultHandler:)' was deprecated in iOS 13
+            let imageRequestID = self.manager.requestImageData(
+                                              ^
+    /Users/shahdhruvil/Documents/Project/FE-V2-Vayuxi/ios/Pods/DKImagePickerController/Sources/DKImagePickerController/DKImageAssetExporter.swift:557:38: warning: capture of 'fileManager' with non-Sendable type 'FileManager' in an isolated local function; this is an
+    error in the Swift 6 language mode
+                                    try? fileManager.removeItem(at: auxiliaryDirectory)
+                                         ^
+    /Applications/Xcode.app/Contents/Developer/Platforms/iPhoneSimulator.platform/Developer/SDKs/iPhoneSimulator26.2.sdk/System/Library/Frameworks/Foundation.framework/Headers/NSFileManager.h:96:12: note: class 'FileManager' does not conform to the 'Sendable' protocol
+    @interface NSFileManager : NSObject
+               ^
+    /Users/shahdhruvil/Documents/Project/FE-V2-Vayuxi/ios/Pods/DKImagePickerController/Sources/DKImagePickerController/View/DKAssetGroupDetailVC.swift:344:14: warning: 'frameInterval' was deprecated in iOS 10.0: preferredFramesPerSecond
+            link.frameInterval = 1
+                 ^
+    ld: warning: ignoring duplicate libraries: '-lc++'
+    ld: warning: ignoring duplicate libraries: '-lc++'
+    /Users/shahdhruvil/.pub-cache/hosted/pub.dev/file_picker-8.3.7/ios/file_picker/Sources/file_picker/FilePickerPlugin.m:409:17: warning: incompatible pointer types assigning to 'NSMutableArray<NSURL *> *' from 'NSArray<NSURL *> *' [-Wincompatible-pointer-types]
+      409 |         newUrls = urls;
+          |                 ^ ~~~~
+    1 warning generated.
+    /Users/shahdhruvil/.pub-cache/hosted/pub.dev/file_picker-8.3.7/ios/file_picker/Sources/file_picker/FilePickerPlugin.m:409:17: warning: incompatible pointer types assigning to 'NSMutableArray<NSURL *> *' from 'NSArray<NSURL *> *' [-Wincompatible-pointer-types]
+      409 |         newUrls = urls;
+          |                 ^ ~~~~
+    1 warning generated.
+    Target install_code_assets failed: Error: Failed to code sign binary: exit code: 1  /Users/shahdhruvil/Documents/Project/FE-V2-Vayuxi/build/native_assets/ios/objective_c.framework: replacing existing signature
+    /Users/shahdhruvil/Documents/Project/FE-V2-Vayuxi/build/native_assets/ios/objective_c.framework: resource fork, Finder information, or similar detritus not allowed
+    Failed to package /Users/shahdhruvil/Documents/Project/FE-V2-Vayuxi.
+    Command PhaseScriptExecution failed with a nonzero exit code
+    note: Removed stale file '/Users/shahdhruvil/Library/Developer/Xcode/DerivedData/Runner-fobrbimpuiusovgxxbeuhcqdarcb/Build/Products/Debug-iphonesimulator/XCFrameworkIntermediates/razorpay-core-pod/Razorpay.framework'
+
+    note: Removed stale file '/Users/shahdhruvil/Library/Developer/Xcode/DerivedData/Runner-fobrbimpuiusovgxxbeuhcqdarcb/Build/Products/Debug-iphonesimulator/XCFrameworkIntermediates/razorpay-pod/RazorpayStandard.framework'
+
+    note: Removed stale file '/Users/shahdhruvil/Library/Developer/Xcode/DerivedData/Runner-fobrbimpuiusovgxxbeuhcqdarcb/Build/Products/Debug-iphonesimulator/XCFrameworkIntermediates/razorpay-core-pod/RazorpayCore.framework'
+
+    note: Removed stale file '/Users/shahdhruvil/Library/Developer/Xcode/DerivedData/Runner-fobrbimpuiusovgxxbeuhcqdarcb/Build/Products/Debug-iphonesimulator/FirebaseCoreInternal/FirebaseCoreInternal_Privacy.bundle'
+
+    note: Removed stale file '/Users/shahdhruvil/Library/Developer/Xcode/DerivedData/Runner-fobrbimpuiusovgxxbeuhcqdarcb/Build/Products/Debug-iphonesimulator/FirebaseMessaging/FirebaseMessaging_Privacy.bundle'
+
+    note: Removed stale file '/Users/shahdhruvil/Library/Developer/Xcode/DerivedData/Runner-fobrbimpuiusovgxxbeuhcqdarcb/Build/Products/Debug-iphonesimulator/FirebaseCoreExtension/FirebaseCoreExtension_Privacy.bundle'
+
+    note: Removed stale file '/Users/shahdhruvil/Library/Developer/Xcode/DerivedData/Runner-fobrbimpuiusovgxxbeuhcqdarcb/Build/Products/Debug-iphonesimulator/FirebaseCore/FirebaseCore_Privacy.bundle'
+
+    note: Removed stale file '/Users/shahdhruvil/Library/Developer/Xcode/DerivedData/Runner-fobrbimpuiusovgxxbeuhcqdarcb/Build/Products/Debug-iphonesimulator/FirebaseInstallations/FirebaseInstallations_Privacy.bundle'
+
+    note: Removed stale file '/Users/shahdhruvil/Library/Developer/Xcode/DerivedData/Runner-fobrbimpuiusovgxxbeuhcqdarcb/Build/Products/Debug-iphonesimulator/FirebaseCrashlytics/FirebaseCrashlytics_Privacy.bundle'
+
+    note: Removed stale file '/Users/shahdhruvil/Library/Developer/Xcode/DerivedData/Runner-fobrbimpuiusovgxxbeuhcqdarcb/Build/Products/Debug-iphonesimulator/GoogleDataTransport/GoogleDataTransport_Privacy.bundle'
+
+    note: Removed stale file '/Users/shahdhruvil/Library/Developer/Xcode/DerivedData/Runner-fobrbimpuiusovgxxbeuhcqdarcb/Build/Products/Debug-iphonesimulator/vibration/vibration_privacy.bundle'
+
+    note: Removed stale file '/Users/shahdhruvil/Library/Developer/Xcode/DerivedData/Runner-fobrbimpuiusovgxxbeuhcqdarcb/Build/Products/Debug-iphonesimulator/url_launcher_ios/url_launcher_ios_privacy.bundle'
+
+    note: Removed stale file '/Users/shahdhruvil/Library/Developer/Xcode/DerivedData/Runner-fobrbimpuiusovgxxbeuhcqdarcb/Build/Products/Debug-iphonesimulator/shared_preferences_foundation/shared_preferences_foundation_privacy.bundle'
+
+    note: Removed stale file '/Users/shahdhruvil/Library/Developer/Xcode/DerivedData/Runner-fobrbimpuiusovgxxbeuhcqdarcb/Build/Products/Debug-iphonesimulator/sqflite_darwin/sqflite_darwin_privacy.bundle'
+
+    note: Removed stale file '/Users/shahdhruvil/Library/Developer/Xcode/DerivedData/Runner-fobrbimpuiusovgxxbeuhcqdarcb/Build/Products/Debug-iphonesimulator/share_plus/share_plus_privacy.bundle'
+
+    note: Removed stale file '/Users/shahdhruvil/Library/Developer/Xcode/DerivedData/Runner-fobrbimpuiusovgxxbeuhcqdarcb/Build/Products/Debug-iphonesimulator/record_ios/record_ios_privacy.bundle'
+
+    note: Removed stale file '/Users/shahdhruvil/Library/Developer/Xcode/DerivedData/Runner-fobrbimpuiusovgxxbeuhcqdarcb/Build/Products/Debug-iphonesimulator/share_plus/share_plus.framework'
+
+    note: Removed stale file '/Users/shahdhruvil/Library/Developer/Xcode/DerivedData/Runner-fobrbimpuiusovgxxbeuhcqdarcb/Build/Products/Debug-iphonesimulator/shared_preferences_foundation/shared_preferences_foundation.framework'
+
+    note: Removed stale file '/Users/shahdhruvil/Library/Developer/Xcode/DerivedData/Runner-fobrbimpuiusovgxxbeuhcqdarcb/Build/Products/Debug-iphonesimulator/DKPhotoGallery/DKPhotoGallery.bundle'
+
+    note: Removed stale file '/Users/shahdhruvil/Library/Developer/Xcode/DerivedData/Runner-fobrbimpuiusovgxxbeuhcqdarcb/Build/Products/Debug-iphonesimulator/sqflite_darwin/sqflite_darwin.framework'
+
+    note: Removed stale file '/Users/shahdhruvil/Library/Developer/Xcode/DerivedData/Runner-fobrbimpuiusovgxxbeuhcqdarcb/Build/Products/Debug-iphonesimulator/url_launcher_ios/url_launcher_ios.framework'
+
+    note: Removed stale file '/Users/shahdhruvil/Library/Developer/Xcode/DerivedData/Runner-fobrbimpuiusovgxxbeuhcqdarcb/Build/Products/Debug-iphonesimulator/vibration/vibration.framework'
+
+    note: Removed stale file '/Users/shahdhruvil/Library/Developer/Xcode/DerivedData/Runner-fobrbimpuiusovgxxbeuhcqdarcb/Build/Products/Debug-iphonesimulator/record_ios/record_ios.framework'
+
+    note: Removed stale file '/Users/shahdhruvil/Library/Developer/Xcode/DerivedData/Runner-fobrbimpuiusovgxxbeuhcqdarcb/Build/Products/Debug-iphonesimulator/image_picker_ios/image_picker_ios_privacy.bundle'
+
+    note: Removed stale file '/Users/shahdhruvil/Library/Developer/Xcode/DerivedData/Runner-fobrbimpuiusovgxxbeuhcqdarcb/Build/Products/Debug-iphonesimulator/nanopb/nanopb_Privacy.bundle'
+
+    note: Removed stale file '/Users/shahdhruvil/Library/Developer/Xcode/DerivedData/Runner-fobrbimpuiusovgxxbeuhcqdarcb/Build/Products/Debug-iphonesimulator/image_cropper/image_cropper.framework'
+
+    note: Removed stale file '/Users/shahdhruvil/Library/Developer/Xcode/DerivedData/Runner-fobrbimpuiusovgxxbeuhcqdarcb/Build/Products/Debug-iphonesimulator/printing/printing.framework'
+
+    note: Removed stale file '/Users/shahdhruvil/Library/Developer/Xcode/DerivedData/Runner-fobrbimpuiusovgxxbeuhcqdarcb/Build/Products/Debug-iphonesimulator/permission_handler_apple/permission_handler_apple_privacy.bundle'
+
+    note: Removed stale file '/Users/shahdhruvil/Library/Developer/Xcode/DerivedData/Runner-fobrbimpuiusovgxxbeuhcqdarcb/Build/Products/Debug-iphonesimulator/open_file_ios/open_file_ios.framework'
+
+    note: Removed stale file '/Users/shahdhruvil/Library/Developer/Xcode/DerivedData/Runner-fobrbimpuiusovgxxbeuhcqdarcb/Build/Products/Debug-iphonesimulator/flutter_local_notifications/flutter_local_notifications_privacy.bundle'
+
+    note: Removed stale file '/Users/shahdhruvil/Library/Developer/Xcode/DerivedData/Runner-fobrbimpuiusovgxxbeuhcqdarcb/Build/Products/Debug-iphonesimulator/flutter_keyboard_visibility/flutter_keyboard_visibility.framework'
+
+    note: Removed stale file '/Users/shahdhruvil/Library/Developer/Xcode/DerivedData/Runner-fobrbimpuiusovgxxbeuhcqdarcb/Build/Products/Debug-iphonesimulator/firebase_messaging/firebase_messaging_Privacy.bundle'
+
+    note: Removed stale file '/Users/shahdhruvil/Library/Developer/Xcode/DerivedData/Runner-fobrbimpuiusovgxxbeuhcqdarcb/Build/Products/Debug-iphonesimulator/flutter_local_notifications/flutter_local_notifications.framework'
+
+    note: Removed stale file '/Users/shahdhruvil/Library/Developer/Xcode/DerivedData/Runner-fobrbimpuiusovgxxbeuhcqdarcb/Build/Products/Debug-iphonesimulator/flutter_file_dialog/flutter_file_dialog.framework'
+
+    note: Removed stale file '/Users/shahdhruvil/Library/Developer/Xcode/DerivedData/Runner-fobrbimpuiusovgxxbeuhcqdarcb/Build/Products/Debug-iphonesimulator/firebase_messaging/firebase_messaging.framework'
+
+    note: Removed stale file '/Users/shahdhruvil/Library/Developer/Xcode/DerivedData/Runner-fobrbimpuiusovgxxbeuhcqdarcb/Build/Products/Debug-iphonesimulator/file_selector_ios/file_selector_ios_privacy.bundle'
+
+    note: Removed stale file '/Users/shahdhruvil/Library/Developer/Xcode/DerivedData/Runner-fobrbimpuiusovgxxbeuhcqdarcb/Build/Products/Debug-iphonesimulator/nanopb/nanopb.framework'
+
+    note: Removed stale file '/Users/shahdhruvil/Library/Developer/Xcode/DerivedData/Runner-fobrbimpuiusovgxxbeuhcqdarcb/Build/Products/Debug-iphonesimulator/razorpay_flutter/razorpay_flutter.framework'
+
+    note: Removed stale file '/Users/shahdhruvil/Library/Developer/Xcode/DerivedData/Runner-fobrbimpuiusovgxxbeuhcqdarcb/Build/Products/Debug-iphonesimulator/image_picker_ios/image_picker_ios.framework'
+
+    note: Removed stale file '/Users/shahdhruvil/Library/Developer/Xcode/DerivedData/Runner-fobrbimpuiusovgxxbeuhcqdarcb/Build/Products/Debug-iphonesimulator/device_info_plus/device_info_plus_privacy.bundle'
+
+    note: Removed stale file '/Users/shahdhruvil/Library/Developer/Xcode/DerivedData/Runner-fobrbimpuiusovgxxbeuhcqdarcb/Build/Products/Debug-iphonesimulator/firebase_crashlytics/firebase_crashlytics.framework'
+
+    note: Removed stale file '/Users/shahdhruvil/Library/Developer/Xcode/DerivedData/Runner-fobrbimpuiusovgxxbeuhcqdarcb/Build/Products/Debug-iphonesimulator/connectivity_plus/connectivity_plus_privacy.bundle'
+
+    note: Removed stale file '/Users/shahdhruvil/Library/Developer/Xcode/DerivedData/Runner-fobrbimpuiusovgxxbeuhcqdarcb/Build/Products/Debug-iphonesimulator/firebase_core/firebase_core.framework'
+
+    note: Removed stale file '/Users/shahdhruvil/Library/Developer/Xcode/DerivedData/Runner-fobrbimpuiusovgxxbeuhcqdarcb/Build/Products/Debug-iphonesimulator/file_picker/file_picker_ios_privacy.bundle'
+
+    note: Removed stale file '/Users/shahdhruvil/Library/Developer/Xcode/DerivedData/Runner-fobrbimpuiusovgxxbeuhcqdarcb/Build/Products/Debug-iphonesimulator/permission_handler_apple/permission_handler_apple.framework'
+
+    note: Removed stale file '/Users/shahdhruvil/Library/Developer/Xcode/DerivedData/Runner-fobrbimpuiusovgxxbeuhcqdarcb/Build/Products/Debug-iphonesimulator/isar_flutter_libs/isar_flutter_libs.framework'
+
+    note: Removed stale file '/Users/shahdhruvil/Library/Developer/Xcode/DerivedData/Runner-fobrbimpuiusovgxxbeuhcqdarcb/Build/Products/Debug-iphonesimulator/SwiftyGif/SwiftyGif.bundle'
+
+    note: Removed stale file '/Users/shahdhruvil/Library/Developer/Xcode/DerivedData/Runner-fobrbimpuiusovgxxbeuhcqdarcb/Build/Products/Debug-iphonesimulator/file_picker/file_picker.framework'
+
+    note: Removed stale file '/Users/shahdhruvil/Library/Developer/Xcode/DerivedData/Runner-fobrbimpuiusovgxxbeuhcqdarcb/Build/Products/Debug-iphonesimulator/flutter_tts/flutter_tts.framework'
+
+    note: Removed stale file '/Users/shahdhruvil/Library/Developer/Xcode/DerivedData/Runner-fobrbimpuiusovgxxbeuhcqdarcb/Build/Products/Debug-iphonesimulator/SDWebImage/SDWebImage.bundle'
+
+    note: Removed stale file '/Users/shahdhruvil/Library/Developer/Xcode/DerivedData/Runner-fobrbimpuiusovgxxbeuhcqdarcb/Build/Products/Debug-iphonesimulator/device_info_plus/device_info_plus.framework'
+
+    note: Removed stale file '/Users/shahdhruvil/Library/Developer/Xcode/DerivedData/Runner-fobrbimpuiusovgxxbeuhcqdarcb/Build/Products/Debug-iphonesimulator/PromisesSwift/Promises_Privacy.bundle'
+
+    note: Removed stale file '/Users/shahdhruvil/Library/Developer/Xcode/DerivedData/Runner-fobrbimpuiusovgxxbeuhcqdarcb/Build/Products/Debug-iphonesimulator/SwiftyGif/SwiftyGif.framework'
+
+    note: Removed stale file '/Users/shahdhruvil/Library/Developer/Xcode/DerivedData/Runner-fobrbimpuiusovgxxbeuhcqdarcb/Build/Products/Debug-iphonesimulator/file_saver/file_saver.framework'
+
+    note: Removed stale file '/Users/shahdhruvil/Library/Developer/Xcode/DerivedData/Runner-fobrbimpuiusovgxxbeuhcqdarcb/Build/Products/Debug-iphonesimulator/audio_waveforms/audio_waveforms.framework'
+
+    note: Removed stale file '/Users/shahdhruvil/Library/Developer/Xcode/DerivedData/Runner-fobrbimpuiusovgxxbeuhcqdarcb/Build/Products/Debug-iphonesimulator/file_selector_ios/file_selector_ios.framework'
+
+    note: Removed stale file '/Users/shahdhruvil/Library/Developer/Xcode/DerivedData/Runner-fobrbimpuiusovgxxbeuhcqdarcb/Build/Products/Debug-iphonesimulator/PromisesObjC/FBLPromises_Privacy.bundle'
+
+    note: Removed stale file '/Users/shahdhruvil/Library/Developer/Xcode/DerivedData/Runner-fobrbimpuiusovgxxbeuhcqdarcb/Build/Products/Debug-iphonesimulator/GoogleUtilities/GoogleUtilities_Privacy.bundle'
+
+    note: Removed stale file '/Users/shahdhruvil/Library/Developer/Xcode/DerivedData/Runner-fobrbimpuiusovgxxbeuhcqdarcb/Build/Products/Debug-iphonesimulator/TOCropViewController/TOCropViewControllerBundle.bundle'
+
+    note: Removed stale file '/Users/shahdhruvil/Library/Developer/Xcode/DerivedData/Runner-fobrbimpuiusovgxxbeuhcqdarcb/Build/Products/Debug-iphonesimulator/PromisesSwift/Promises.framework'
+
+    note: Removed stale file '/Users/shahdhruvil/Library/Developer/Xcode/DerivedData/Runner-fobrbimpuiusovgxxbeuhcqdarcb/Build/Products/Debug-iphonesimulator/Pods_Runner.framework'
+
+    note: Removed stale file '/Users/shahdhruvil/Library/Developer/Xcode/DerivedData/Runner-fobrbimpuiusovgxxbeuhcqdarcb/Build/Products/Debug-iphonesimulator/FirebaseMessaging/FirebaseMessaging.framework'
+
+    note: Removed stale file '/Users/shahdhruvil/Library/Developer/Xcode/DerivedData/Runner-fobrbimpuiusovgxxbeuhcqdarcb/Build/Products/Debug-iphonesimulator/GoogleUtilities/GoogleUtilities.framework'
+
+    note: Removed stale file '/Users/shahdhruvil/Library/Developer/Xcode/DerivedData/Runner-fobrbimpuiusovgxxbeuhcqdarcb/Build/Products/Debug-iphonesimulator/GoogleDataTransport/GoogleDataTransport.framework'
+
+    note: Removed stale file '/Users/shahdhruvil/Library/Developer/Xcode/DerivedData/Runner-fobrbimpuiusovgxxbeuhcqdarcb/Build/Products/Debug-iphonesimulator/FirebaseSessions/FirebaseSessions.framework'
+
+    note: Removed stale file '/Users/shahdhruvil/Library/Developer/Xcode/DerivedData/Runner-fobrbimpuiusovgxxbeuhcqdarcb/Build/Products/Debug-iphonesimulator/connectivity_plus/connectivity_plus.framework'
+
+    note: Removed stale file '/Users/shahdhruvil/Library/Developer/Xcode/DerivedData/Runner-fobrbimpuiusovgxxbeuhcqdarcb/Build/Products/Debug-iphonesimulator/FirebaseRemoteConfigInterop/FirebaseRemoteConfigInterop.framework'
+
+    note: Removed stale file '/Users/shahdhruvil/Library/Developer/Xcode/DerivedData/Runner-fobrbimpuiusovgxxbeuhcqdarcb/Build/Products/Debug-iphonesimulator/PromisesObjC/FBLPromises.framework'
+
+    note: Removed stale file '/Users/shahdhruvil/Library/Developer/Xcode/DerivedData/Runner-fobrbimpuiusovgxxbeuhcqdarcb/Build/Products/Debug-iphonesimulator/SDWebImage/SDWebImage.framework'
+
+    note: Removed stale file '/Users/shahdhruvil/Library/Developer/Xcode/DerivedData/Runner-fobrbimpuiusovgxxbeuhcqdarcb/Build/Products/Debug-iphonesimulator/FirebaseCore/FirebaseCore.framework'
+
+    note: Removed stale file '/Users/shahdhruvil/Library/Developer/Xcode/DerivedData/Runner-fobrbimpuiusovgxxbeuhcqdarcb/Build/Products/Debug-iphonesimulator/FirebaseCrashlytics/FirebaseCrashlytics.framework'
+
+    note: Removed stale file '/Users/shahdhruvil/Library/Developer/Xcode/DerivedData/Runner-fobrbimpuiusovgxxbeuhcqdarcb/Build/Products/Debug-iphonesimulator/FirebaseInstallations/FirebaseInstallations.framework'
+
+    note: Removed stale file '/Users/shahdhruvil/Library/Developer/Xcode/DerivedData/Runner-fobrbimpuiusovgxxbeuhcqdarcb/Build/Products/Debug-iphonesimulator/FirebaseCoreExtension/FirebaseCoreExtension.framework'
+
+    note: Removed stale file '/Users/shahdhruvil/Library/Developer/Xcode/DerivedData/Runner-fobrbimpuiusovgxxbeuhcqdarcb/Build/Products/Debug-iphonesimulator/FirebaseCoreInternal/FirebaseCoreInternal.framework'
+
+    note: Removed stale file '/Users/shahdhruvil/Library/Developer/Xcode/DerivedData/Runner-fobrbimpuiusovgxxbeuhcqdarcb/Build/Products/Debug-iphonesimulator/DKPhotoGallery/DKPhotoGallery.framework'
+
+    note: Removed stale file '/Users/shahdhruvil/Library/Developer/Xcode/DerivedData/Runner-fobrbimpuiusovgxxbeuhcqdarcb/Build/Products/Debug-iphonesimulator/DKImagePickerController/DKImagePickerController.bundle'
+
+    note: Removed stale file '/Users/shahdhruvil/Library/Developer/Xcode/DerivedData/Runner-fobrbimpuiusovgxxbeuhcqdarcb/Build/Products/Debug-iphonesimulator/TOCropViewController/TOCropViewController.framework'
+
+    note: Removed stale file '/Users/shahdhruvil/Library/Developer/Xcode/DerivedData/Runner-fobrbimpuiusovgxxbeuhcqdarcb/Build/Products/Debug-iphonesimulator/DKImagePickerController/DKImagePickerController.framework'
+
+    note: Removed stale file '/Users/shahdhruvil/Library/Developer/Xcode/DerivedData/Runner-fobrbimpuiusovgxxbeuhcqdarcb/Build/Products/Debug-iphonesimulator/Runner.app'
+
+    note: Removed stale file '/Users/shahdhruvil/Library/Developer/Xcode/DerivedData/Runner-fobrbimpuiusovgxxbeuhcqdarcb/Build/Products/Debug-iphonesimulator/Runner.app.dSYM/Contents/Resources/DWARF/Runner'
+
+    note: Removed stale file '/Users/shahdhruvil/Library/Developer/Xcode/DerivedData/Runner-fobrbimpuiusovgxxbeuhcqdarcb/Build/Products/Debug-iphonesimulator/Runner.app.dSYM/Contents/Resources/DWARF/Runner.debug.dylib'
+
+    note: Removed stale file '/Users/shahdhruvil/Library/Developer/Xcode/DerivedData/Runner-fobrbimpuiusovgxxbeuhcqdarcb/Build/Products/Debug-iphonesimulator/Runner.swiftmodule/Project/arm64-apple-ios-simulator.swiftsourceinfo'
+
+    note: Removed stale file '/Users/shahdhruvil/Library/Developer/Xcode/DerivedData/Runner-fobrbimpuiusovgxxbeuhcqdarcb/Build/Products/Debug-iphonesimulator/Runner.swiftmodule/arm64-apple-ios-simulator.abi.json'
+
+    note: Removed stale file '/Users/shahdhruvil/Library/Developer/Xcode/DerivedData/Runner-fobrbimpuiusovgxxbeuhcqdarcb/Build/Products/Debug-iphonesimulator/Runner.swiftmodule/arm64-apple-ios-simulator.swiftdoc'
+
+    note: Removed stale file '/Users/shahdhruvil/Library/Developer/Xcode/DerivedData/Runner-fobrbimpuiusovgxxbeuhcqdarcb/Build/Products/Debug-iphonesimulator/Runner.swiftmodule/arm64-apple-ios-simulator.swiftmodule'
+
+    note: Run script build phase 'Run Script' will be run during every build because the option to run the script phase "Based on dependency analysis" is unchecked. (in target 'Runner' from project 'Runner')
+    note: Run script build phase 'Thin Binary' will be run during every build because the option to run the script phase "Based on dependency analysis" is unchecked. (in target 'Runner' from project 'Runner')
+
+Could not build the application for the simulator.
+Error launching application on iPhone 16e.
+shahdhruvil@Shahs-Mac-mini FE-V2-Vayuxi % 
