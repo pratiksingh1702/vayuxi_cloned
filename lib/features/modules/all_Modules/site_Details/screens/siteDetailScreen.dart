@@ -200,7 +200,7 @@ print(_formatDocumentDate(site?.documentDate));
 
       ref.read(siteProvider.notifier).fetchSites();
       if (mounted) {
-        Navigator.pop(context, true);
+        context.pop(true);
         context.push("/site-list/site");
       }
     } on ValidationException catch (e) {
@@ -315,14 +315,14 @@ print(_formatDocumentDate(site?.documentDate));
         ),
         actions: [
           TextButton(
-            onPressed: () => Navigator.pop(context, false),
+            onPressed: () => context.pop(false),
             child: const Text("Cancel"),
           ),
           ElevatedButton(
             style: ElevatedButton.styleFrom(
               backgroundColor: Colors.red,
             ),
-            onPressed: () => Navigator.pop(context, true),
+            onPressed: () => context.pop(true),
             child: const Text("Delete"),
           ),
         ],
@@ -346,7 +346,7 @@ print(_formatDocumentDate(site?.documentDate));
 
       _showSnackBar("Site deleted successfully!", isError: false);
 
-      Navigator.pop(context); // leave detail screen
+      context.pop(); // leave detail screen
 
 
     } on DioException catch (e) {
@@ -436,26 +436,56 @@ print(_formatDocumentDate(site?.documentDate));
                   const SizedBox(height: 24),
 
                   const SizedBox(height: 12),
-                  CustomTextField(
-                    label: "Site Name",
-                    controller: siteNameController,
-                    TextSize: 22,
+                  Row(
+                    children: [
+                      Text(
+                        "Site Name",
+                        style: TextStyle(
+                          fontSize: 18,
+                          fontWeight: FontWeight.w500,
+                          color: Colors.black87,
+                        ),
+                      ),
+                      Text(
+                        " *",
+                        style: TextStyle(
+                          color: Colors.red,
+                          fontSize: 18,
+                          fontWeight: FontWeight.bold,
+                        ),
+                      ),
+                    ],
                   ),
+                  const SizedBox(height: 8),
+                  CustomTextField(
+                    label: "", // Label is handled by Row above
+                    controller: siteNameController,
+                    TextSize: 18,
+                    validator: (value) {
+                      if (value == null || value.trim().isEmpty) {
+                        return 'Site name is required';
+                      }
+                      return null;
+                    },
+                  ),
+                  const SizedBox(height: 16),
                   CustomTextField(
                     label: "GST Number",
                     controller: gstNoController,
-                    TextSize: 22,
+                    TextSize: 18,
                   ),
+                  const SizedBox(height: 16),
                   CustomTextField(
                     label: "Address",
                     controller: addressController,
-                    TextSize: 22,
+                    TextSize: 18,
                     maxLines: 3,
                   ),
+                  const SizedBox(height: 16),
                   CustomTextField(
                     label: "Shipping Address",
                     controller: shippingAddressController,
-                    TextSize: 22,
+                    TextSize: 18,
                     maxLines: 3,
                   ),
 
@@ -465,36 +495,52 @@ print(_formatDocumentDate(site?.documentDate));
                   CustomTextField(
                     label: "Contact Person",
                     controller: contactPersonController,
-                    TextSize: 22,
+                    TextSize: 18,
                   ),
-                  PhoneInputField(controller: phoneController),
+                  const SizedBox(height: 16),
+                  Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      const Text(
+                        "Phone Number",
+                        style: TextStyle(
+                          fontSize: 18,
+                          fontWeight: FontWeight.w500,
+                          color: Colors.black87,
+                        ),
+                      ),
+                      const SizedBox(height: 8),
+                      PhoneInputField(controller: phoneController),
+                    ],
+                  ),
+                  const SizedBox(height: 16),
                   CustomTextField(
                     label: "Email ID",
                     controller: emailController,
                     keyboardType: TextInputType.emailAddress,
-                    TextSize: 22,
+                    TextSize: 18,
                   ),
 
-                  const SizedBox(height: 12),
+                  const SizedBox(height: 16),
 
                   // Date Selection Field
                   GestureDetector(
                     onTap: _selectDate,
                     child: AbsorbPointer(
                       child: CustomTextField(
-                        label: "Select Date",
+                        label: "Select Date / AMC/WO/PO/ARC",
                         controller: dateController,
-                        TextSize: 22,
+                        TextSize: 18,
                         prefixIcon: Icon(Icons.calendar_today, color: Colors.grey[600]),
                         hint: "DD/MM/YYYY",
                       ),
                     ),
                   ),
-
+                  const SizedBox(height: 16),
                   CustomTextField(
-                    label: "AMC Number",
+                    label: "AMC/WO/PO/ARC",
                     controller: documentNumberController,
-                    TextSize: 22,
+                    TextSize: 18,
                   ),
 
                   const SizedBox(height: 28),

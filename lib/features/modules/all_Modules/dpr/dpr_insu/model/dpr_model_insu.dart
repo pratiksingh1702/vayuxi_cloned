@@ -4,6 +4,7 @@ import 'eqip_insu.dart';
 
 class InsulationDprModel {
   String id;
+  String? teamId;
 
   // Basic Info
   String workDescription;
@@ -77,6 +78,7 @@ class InsulationDprModel {
     required this.totalEquipmentArea,
     required this.grandTotalArea,
     required this.totalAmount,
+    this.teamId,
 
     required this.status,
     required this.date,
@@ -88,10 +90,25 @@ class InsulationDprModel {
     String safeString(dynamic value) {
       if (value == null) return '';
       if (value is String) return value.trim();
+      if (value is Map && value.containsKey('_id')) {
+        return safeString(value['_id']);
+      }
       return value.toString().trim();
     }
+    // Helper function to safely parse dates
+    DateTime parseDate(dynamic value) {
+      if (value == null || value == "") return DateTime.now();
+      try {
+        return DateTime.parse(safeString(value));
+      } catch (e) {
+        print("❌ Insulation Date parsing error: $e for value: $value");
+        return DateTime.now();
+      }
+    }
+
     return InsulationDprModel(
       id: json['_id'] ?? '',
+      teamId: safeString(json['teamId']),
       workDescription: json['work_description'] ?? '',
       designation: List<String>.from(json['designation'] ?? []),
       plant: json['plant'] ?? '',
@@ -129,14 +146,16 @@ class InsulationDprModel {
       totalAmount: (json['totalAmount'] ?? 0).toDouble(),
 
       status: json['status'] ?? 'draft',
-      date: DateTime.parse(json['date'] ?? DateTime.now().toIso8601String()),
-      createdAt: DateTime.parse(safeString(json['createdAt'])),
-      updatedAt: DateTime.parse(safeString(json['updatedAt'])),
+      date: parseDate(json['date']),
+      createdAt: parseDate(json['createdAt']),
+      updatedAt: parseDate(json['updatedAt']),
     );
   }
 
   Map<String, dynamic> toJson() {
     return {
+      '_id': id,
+      'teamId': teamId,
       'work_description': workDescription,
       'designation': designation,
       'plant': plant,
@@ -175,6 +194,7 @@ class InsulationDprModel {
 
     return InsulationDprModel(
       id: '',
+      teamId: null,
 
       workDescription: '',
       designation: [],

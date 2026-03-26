@@ -308,7 +308,7 @@ class _MOCSelectionPageState extends ConsumerState<MOCSelectionPage> {
                     if (!_isMultiSelectMode)
                       IconButton(
                         icon: const Icon(
-                          Icons.delete_outline,
+                          Icons.delete_sweep,
                           color: Colors.red,
                         ),
                         onPressed: () {

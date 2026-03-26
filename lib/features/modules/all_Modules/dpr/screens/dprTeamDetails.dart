@@ -1,6 +1,7 @@
 import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:go_router/go_router.dart';
 import 'package:untitled2/core/utlis/widgets/Button_wrapper.dart';
 import 'package:untitled2/core/utlis/widgets/afd.dart';
 import 'package:intl/intl.dart';
@@ -8,6 +9,7 @@ import 'package:untitled2/features/modules/all_Modules/dpr/screens/work_type.dar
 import 'package:untitled2/features/modules/all_Modules/team/provider/teamProvider.dart';
 
 // Mechanical imports
+import '../../../../../core/router/routes.dart';
 import '../../../../../core/utlis/widgets/custom_appBar.dart';
 import '../../../../../core/utlis/widgets/date_picker.dart';
 import '../../../../../typeProvider/type_provider.dart';
@@ -23,14 +25,12 @@ import 'package:untitled2/features/modules/all_Modules/dpr/dpr_insu/model/dpr_mo
 
 class DprWorkScreen extends ConsumerStatefulWidget {
   final String siteId;
-  final String teamId;
   final String name;
   final DateTime? selectedStartDate;
   final DateTime? selectedEndDate;
 
   const DprWorkScreen({
     required this.siteId,
-    required this.teamId,
     required this.name,
     this.selectedEndDate,
     this.selectedStartDate,
@@ -45,6 +45,9 @@ class _DprWorkScreenState extends ConsumerState<DprWorkScreen> {
   DateTime? selectedDate;
   DateTime? _selectedStartDate;
   DateTime? _selectedEndDate;
+
+  // Multi-select team filter
+  Set<String> _selectedTeamIds = {};
 
   // Insulation-specific state
   List<InsulationDprModel> insulationList = [];
@@ -61,8 +64,18 @@ class _DprWorkScreenState extends ConsumerState<DprWorkScreen> {
     Future.microtask(() {
       _selectedStartDate = widget.selectedStartDate;
       _selectedEndDate = widget.selectedEndDate;
+      _fetchTeams();
       _fetchDataBasedOnType();
     });
+  }
+
+  Future<void> _fetchTeams() async {
+    final workType = ref.read(typeProvider);
+    if (workType == WorkType.mechanical) {
+      await ref.read(teamProvider.notifier).fetchMechanicalCombined(siteId: widget.siteId);
+    } else if (workType == WorkType.insulation) {
+      await ref.read(teamProvider.notifier).fetchInsulationCombined(siteId: widget.siteId);
+    }
   }
 
   @override
@@ -112,9 +125,8 @@ class _DprWorkScreenState extends ConsumerState<DprWorkScreen> {
     final workType = ref.read(typeProvider);
 
     if (workType == WorkType.mechanical) {
-      ref.read(dprProvider.notifier).fetchDprWork(
+      ref.read(dprProvider.notifier).fetchSiteDprWork(
         siteId: widget.siteId,
-        teamId: widget.teamId,
       );
     } else if (workType == WorkType.insulation) {
       _fetchInsulationData();
@@ -130,9 +142,8 @@ class _DprWorkScreenState extends ConsumerState<DprWorkScreen> {
     });
 
     try {
-      final result = await InsulationDprApi.fetchInsulationDprList(
+      final result = await InsulationDprApi.fetchSiteInsulationDprV2(
         siteId: widget.siteId,
-        teamId: widget.teamId,
       );
 
       setState(() {
@@ -254,6 +265,70 @@ class _DprWorkScreenState extends ConsumerState<DprWorkScreen> {
           'Location: ${insulationDpr.location}';
     }
   }
+
+  Widget _buildTeamFilter() {
+    final teamState = ref.watch(teamProvider);
+    if (teamState.teams.isEmpty) return const SizedBox.shrink();
+
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        const Padding(
+          padding: EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+          child: Text(
+            "Filter by Teams",
+            style: TextStyle(fontSize: 13, fontWeight: FontWeight.w600, color: Colors.grey),
+          ),
+        ),
+        SizedBox(
+          height: 45,
+          child: ListView.builder(
+            scrollDirection: Axis.horizontal,
+            padding: const EdgeInsets.symmetric(horizontal: 12),
+            itemCount: teamState.teams.length,
+            itemBuilder: (context, index) {
+              final team = teamState.teams[index];
+              final isSelected = _selectedTeamIds.contains(team.id);
+
+              return Padding(
+                padding: const EdgeInsets.only(right: 8),
+                child: FilterChip(
+                  label: Text(
+                    team.teamName,
+                    style: TextStyle(
+                      fontSize: 12,
+                      color: isSelected ? Colors.white : Colors.black87,
+                      fontWeight: isSelected ? FontWeight.bold : FontWeight.normal,
+                    ),
+                  ),
+                  selected: isSelected,
+                  onSelected: (selected) {
+                    setState(() {
+                      if (selected) {
+                        _selectedTeamIds.add(team.id);
+                      } else {
+                        _selectedTeamIds.remove(team.id);
+                      }
+                    });
+                  },
+                  selectedColor: Colors.blue,
+                  checkmarkColor: Colors.white,
+                  backgroundColor: Colors.grey.shade100,
+                  shape: RoundedRectangleBorder(
+                    borderRadius: BorderRadius.circular(20),
+                    side: BorderSide(
+                      color: isSelected ? Colors.blue : Colors.grey.shade300,
+                    ),
+                  ),
+                ),
+              );
+            },
+          ),
+        ),
+        const SizedBox(height: 8),
+      ],
+    );
+  }
   Future<void> _deleteDpr(dynamic dpr) async {
     final workType = ref.read(typeProvider);
 
@@ -348,18 +423,46 @@ class _DprWorkScreenState extends ConsumerState<DprWorkScreen> {
 
       if (dprState.data != null) {
         final list = dprState.data as List<DprModel>;
-        filteredList = list.where((dpr) => _matchesDate(dpr.date)).toList();
+
+        print("🔍 Total DPRs received: ${list.length}");
+        print("🎯 Selected Team IDs: $_selectedTeamIds");
+
+        filteredList = list.where((dpr) {
+          final matchesDate = _matchesDate(dpr.date);
+          final cleanTeamId = dpr.teamId.trim();
+          final matchesTeam = _selectedTeamIds.isEmpty ||
+              _selectedTeamIds.any((id) => id.trim() == cleanTeamId);
+
+          // 🔥 Debug each item
+          print("""
+📌 DPR CHECK:
+- Date: ${dpr.date}
+- TeamId (raw): '${dpr.teamId}'
+- TeamId (clean): '$cleanTeamId'
+- Matches Date: $matchesDate
+- Matches Team: $matchesTeam
+- FINAL RESULT: ${matchesDate && matchesTeam}
+""");
+
+          return matchesDate && matchesTeam;
+        }).toList();
+
+        print("✅ Filtered DPR count: ${filteredList.length}");
       }
     } else {
       isLoading = isLoadingInsulation;
       error = insulationError;
-      filteredList = insulationList.where((dpr) => _matchesDate(dpr.date)).toList();
+      filteredList = insulationList.where((dpr) {
+        final matchesDate = _matchesDate(dpr.date);
+        final cleanTeamId = (dpr.teamId ?? "").trim();
+        final matchesTeam = _selectedTeamIds.isEmpty || (dpr.teamId != null && _selectedTeamIds.any((id) => id.trim() == cleanTeamId));
+        return matchesDate && matchesTeam;
+      }).toList();
     }
 
     return Scaffold(
       appBar: CustomAppBar(
-        title: "${team?.teamName} Work Descriptions",
-
+        title: "Work Descriptions",
       ),
       body: BottomButtonWrapper(
         child: Column(
@@ -549,9 +652,17 @@ class _DprWorkScreenState extends ConsumerState<DprWorkScreen> {
                       ),
                     ],
                   ),
+                ],
+              ),
+            ),
 
-                  const SizedBox(height: 8),
+            // Team Filter Section
+            _buildTeamFilter(),
 
+            Padding(
+              padding: const EdgeInsets.symmetric(horizontal: 12),
+              child: Row(
+                children: [
                   Text(
                     workType == WorkType.mechanical ? 'Mechanical Works' : 'Insulation Works',
                     style: TextStyle(
@@ -723,23 +834,9 @@ class _DprWorkScreenState extends ConsumerState<DprWorkScreen> {
 
                         onTap: () {
                           if (workType == WorkType.mechanical) {
-                            Navigator.push(
-                              context,
-                              MaterialPageRoute(
-                                builder: (_) => AddDescriptionScreen(
-                                  work: dpr as DprModel,
-                                ),
-                              ),
-                            );
+                            context.push(Routes.dprDescription, extra: dpr as DprModel);
                           } else {
-                            Navigator.push(
-                              context,
-                              MaterialPageRoute(
-                                builder: (_) => AddInsulationDescriptionScreen(
-                                  work: dpr as InsulationDprModel,
-                                ),
-                              ),
-                            );
+                            context.push(Routes.dprInsuDescription, extra: dpr as InsulationDprModel);
                           }
                         },
                       ),

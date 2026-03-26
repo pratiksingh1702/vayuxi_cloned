@@ -32,6 +32,8 @@ class InventoryIsar {
   late String categoryId;
 
   late String name;
+  late String categoryName;
+  late String categoryType;
   late String type; // consumable
 
   String? uom;
@@ -113,8 +115,8 @@ extension InventoryIsarMapper on InventoryIsar {
     name: name,
     category: Category(
       id: categoryId,
-      name: '',
-      type: '',
+      name: categoryName,
+      type: categoryType,
     ),
     type: type,
     uom: uom,
@@ -125,34 +127,54 @@ extension InventoryIsarMapper on InventoryIsar {
     availableUnits: availableUnits,
     condition: condition,
     remarks: remarks,
+    isDeleted: isDeleted,
     createdAt: updatedAt,
   );
 }
 
 extension UsageIsarMapper on InventoryUsageIsar {
-  InventoryUsage toModel() => InventoryUsage(
-    id: id,
-    inventory: inventory.value!.toModel(),
-    quantityUsed: quantityUsed,
-    uom: uom,
-    usedByName: usedByName,
-    usedBy: null, // not persisted fully locally
-    usageDate: usageDate,
-    remarks: remarks,
-    isDeleted: isDeleted,
-    createdAt: createdAt,
-    updatedAt: updatedAt,
-  );
+  InventoryUsage toModel() {
+    final invModel = inventory.value?.toModel() ?? Inventory(
+      id: '',
+      name: 'Unknown',
+      category: Category(id: '', name: '', type: ''),
+      type: '',
+      createdAt: DateTime.now(),
+    );
+
+    return InventoryUsage(
+      id: id,
+      inventory: invModel,
+      quantityUsed: quantityUsed,
+      uom: uom,
+      usedByName: usedByName,
+      usedBy: null, // not persisted fully locally
+      usageDate: usageDate,
+      remarks: remarks,
+      isDeleted: isDeleted,
+      createdAt: createdAt,
+      updatedAt: updatedAt,
+    );
+  }
 }
 extension CheckoutIsarMapper on InventoryCheckoutIsar {
-  InventoryCheckout toModel() => InventoryCheckout(
-    id: id,
-    inventory: inventory.value!.toModel(),
+  InventoryCheckout toModel() {
+    final invModel = inventory.value?.toModel() ?? Inventory(
+      id: '',
+      name: 'Unknown',
+      category: Category(id: '', name: '', type: ''),
+      type: '',
+      createdAt: DateTime.now(),
+    );
 
-    issuedToName: issuedToName,
-    status: status,
-    quantity: quantity,
-    actualReturnDate: actualReturnDate,
-    returnRemarks: returnRemarks,
-  );
+    return InventoryCheckout(
+      id: id,
+      inventory: invModel,
+      issuedToName: issuedToName,
+      status: status,
+      quantity: quantity,
+      actualReturnDate: actualReturnDate,
+      returnRemarks: returnRemarks,
+    );
+  }
 }

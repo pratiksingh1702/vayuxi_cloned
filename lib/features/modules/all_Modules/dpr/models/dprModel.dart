@@ -48,6 +48,9 @@ class DprModel {
       String safeString(dynamic value) {
         if (value == null) return '';
         if (value is String) return value.trim();
+        if (value is Map && value.containsKey('_id')) {
+          return safeString(value['_id']);
+        }
         return value.toString().trim();
       }
 
@@ -70,6 +73,17 @@ class DprModel {
           return value.split(',').map((e) => e.trim()).where((e) => e.isNotEmpty).toList();
         }
         return [];
+      }
+
+      // Helper function to safely parse dates
+      DateTime parseDate(dynamic value) {
+        if (value == null || value == "") return DateTime.now();
+        try {
+          return DateTime.parse(safeString(value));
+        } catch (e) {
+          print("❌ Date parsing error: $e for value: $value");
+          return DateTime.now();
+        }
       }
 
       return DprModel(
@@ -96,9 +110,9 @@ class DprModel {
           return EquipmentItem.empty();
         }),
         designation: parseDesignation(json['designation']),
-        date: DateTime.parse(safeString(json['date'])),
-        createdAt: DateTime.parse(safeString(json['createdAt'])),
-        updatedAt: DateTime.parse(safeString(json['updatedAt'])),
+        date: parseDate(json['date']),
+        createdAt: parseDate(json['createdAt']),
+        updatedAt: parseDate(json['updatedAt']),
       );
     } catch (e, stack) {
       print('❌ Error parsing DprModel: $e');

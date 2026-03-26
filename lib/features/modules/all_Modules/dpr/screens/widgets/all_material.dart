@@ -677,6 +677,24 @@ class _AllMaterialsScreenState extends ConsumerState<AllMaterialsScreen>
         lineItemId: lineItemId,
       );
 
+      final repo = RateRepository(AppIsarDB.isar);
+
+      // ✅ 1. Delete from Isar FIRST — stream fires immediately, UI updates
+      await AppIsarDB.isar.writeTxn(() async {
+        await AppIsarDB.isar.rateFileMaterialIsars
+            .filter()
+            .materialIdEqualTo(lineItemId)
+            .deleteAll();
+        await AppIsarDB.isar.rateVariantIsars
+            .filter()
+            .materialIdEqualTo(lineItemId)
+            .deleteAll();
+      });
+
+      // ✅ 2. Sync once (you had it called twice before)
+      await repo.syncRateFile(siteId);
+
+      // ✅ 3. Invalidate after sync so providers re-read fresh Isar data
       ref.invalidate(rateFileAnalysisProvider(siteId));
 
       if (mounted) {
@@ -687,6 +705,8 @@ class _AllMaterialsScreenState extends ConsumerState<AllMaterialsScreen>
           ),
         );
       }
+
+
     } catch (e) {
       debugPrint("❌ Delete line item failed: $e");
       if (mounted) {
@@ -1368,11 +1388,7 @@ class _AllMaterialsScreenState extends ConsumerState<AllMaterialsScreen>
                       ),
                     ),
                   ] else ...[
-                    IconButton(
-                      icon: Icon(Icons.filter_list, color: color),
-                      onPressed: () => _showFilterOptions(context, category),
-                      tooltip: 'Filter',
-                    ),
+
                     IconButton(
                       icon: const Icon(Icons.delete_sweep, color: Colors.red),
                       onPressed: materials.isEmpty

@@ -1,5 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:go_router/go_router.dart';
+import 'package:untitled2/core/router/routes.dart';
 import 'package:untitled2/core/utlis/widgets/Button_wrapper.dart';
 import 'package:untitled2/features/modules/all_Modules/inventory/offline/repo/inventory_sync.dart';
 import '../../../../../core/utlis/colors/colors.dart';
@@ -30,8 +32,7 @@ class _InventoryListScreenState extends ConsumerState<InventoryListScreen> {
       final siteId = ref.read(selectedSiteIdProvider);
 
       if (siteId != null) {
-        // force provider to re-run even if cached
-        ref.invalidate(inventorySyncControllerProvider(siteId));
+        // SINGLE sync trigger in screen init ONLY
         ref.read(inventorySyncControllerProvider(siteId));
       }
     });
@@ -118,20 +119,62 @@ class _InventoryListScreenState extends ConsumerState<InventoryListScreen> {
                           subtitle: Text(
                             "Qty: ${totalQuantity} | Min: ${inventory.minimumStockLevel} | UOM: ${inventory.uom}",
                           ),
-                          trailing: const Icon(Icons.mode_edit_outline_outlined),
-                          onTap: () async {
-                            final updated = await Navigator.push(
-                              context,
-                              MaterialPageRoute(
-                                builder: (_) => EditInventoryScreen(inventory: inventory),
+                          trailing: Row(
+                            mainAxisSize: MainAxisSize.min,
+                            children: [
+                              IconButton(
+                                icon: const Icon(Icons.mode_edit_outline_outlined, color: Colors.blue),
+                                onPressed: () async {
+                                  await context.push(
+                                    Routes.editInventory,
+                                    extra: inventory,
+                                  );
+                                },
                               ),
+                              IconButton(
+                                icon: const Icon(Icons.delete_outline, color: Colors.red),
+                                onPressed: () async {
+                                  final confirmed = await showDialog<bool>(
+                                    context: context,
+                                    builder: (ctx) => AlertDialog(
+                                      title: const Text("Delete Item"),
+                                      content: const Text("Are you sure you want to delete this item?"),
+                                      actions: [
+                                        TextButton(
+                                          onPressed: () => Navigator.pop(ctx, false),
+                                          child: const Text("Cancel"),
+                                        ),
+                                        TextButton(
+                                          onPressed: () => Navigator.pop(ctx, true),
+                                          child: const Text("Delete", style: TextStyle(color: Colors.red)),
+                                        ),
+                                      ],
+                                    ),
+                                  );
+
+                                  if (confirmed == true && siteId != null) {
+                                    try {
+                                      await ref.read(deleteInventoryProvider(DeleteInventoryParams(
+                                        siteId: siteId,
+                                        inventoryId: inventory.id,
+                                      )).future);
+                                    } catch (e) {
+                                      if (mounted) {
+                                        ScaffoldMessenger.of(context).showSnackBar(
+                                          SnackBar(content: Text("Failed to delete: $e")),
+                                        );
+                                      }
+                                    }
+                                  }
+                                },
+                              ),
+                            ],
+                          ),
+                          onTap: () async {
+                            await context.push(
+                              Routes.editInventory,
+                              extra: inventory,
                             );
-
-                            if (updated == true) {
-                              // 🔥 Refresh API
-                              ref.invalidate(inventoryProvider);
-                            }
-
                           },
                         ),
                       );

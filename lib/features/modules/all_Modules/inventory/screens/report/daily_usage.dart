@@ -828,7 +828,7 @@ class _DailyUsagePageState extends ConsumerState<DailyUsagePage> {
     final inventoriesAsync = ref.watch(inventoryProvider(siteId));
 
     final usageAsync = ref.watch(
-      inventoryUsageRangeProvider((
+      inventoryUsageRangeProvider(InventoryUsageRangeParams(
         siteId: siteId,
         startDate: _selectedStartDate,
         endDate: _selectedEndDate,

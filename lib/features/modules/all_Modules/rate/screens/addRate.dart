@@ -132,7 +132,7 @@ class _AddRateScreenState extends ConsumerState<AddRateScreen> {
       "serviceName": siteNameController.text,
       "hsnSacCode": hsnCodeController.text,
       "rate": double.tryParse(rateController.text) ?? 0,
-      "uom": "M", // Use whatever is in the field
+      "uom": uomController.text, // Use whatever is in the field
       "remarks": remarkController.text,
     };
 

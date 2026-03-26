@@ -35,6 +35,16 @@ class DprNotifier extends StateNotifier<DprState> {
     }
   }
 
+  Future<void> fetchSiteDprWork({required String siteId}) async {
+    try {
+      state = state.copyWith(isLoading: true, error: null);
+      final List<DprModel> dprList = await DprApi.fetchSiteDprMechanicalV2(siteId: siteId);
+      state = state.copyWith(isLoading: false, data: dprList);
+    } catch (e) {
+      state = state.copyWith(isLoading: false, error: e.toString());
+    }
+  }
+
   // Fetch DPR by ID
   Future<DprModel?> fetchDprById({
     required String siteId,

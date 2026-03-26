@@ -1,11 +1,13 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:go_router/go_router.dart';
 import 'package:untitled2/core/utlis/common_functions.dart';
 import 'package:untitled2/core/utlis/widgets/custom_appBar.dart';
 import 'package:untitled2/features/language/service/providers.dart';
 import 'package:untitled2/features/modules/all_Modules/site_Details/providers/site_current_provider.dart';
 import 'package:untitled2/features/modules/all_Modules/site_Details/repository/siteModel.dart';
 import 'package:untitled2/features/modules/all_Modules/team/provider/teamProvider.dart';
+import '../../../../../core/router/routes.dart';
 import '../../../../../core/utlis/app_toasts.dart';
 import '../../../../../core/utlis/widgets/Button_wrapper.dart';
 import '../../../../../core/utlis/widgets/buttons.dart';
@@ -124,13 +126,9 @@ class _AttendanceScreenState extends ConsumerState<AttendanceScreen> {
       if (isDeviceAuthError(e)) {
         print("🔐 Device not authorized → opening OTP screen");
 
-        final result = await Navigator.push(
-          context,
-          MaterialPageRoute(
-            builder: (_) => const DeviceOtpScreen(),
-          ),
+        final result = await context.push<bool>(
+          Routes.deviceOtp, // you MUST add this route
         );
-
         // 🔥 After OTP success → retry
         if (result == true) {
           print("✅ Device authorized → reloading full screen");
@@ -534,7 +532,9 @@ class _AttendanceScreenState extends ConsumerState<AttendanceScreen> {
           behavior: SnackBarBehavior.floating,
         ),
       );
-
+      if (mounted) {
+        Navigator.pop(context);
+      }
       _isFirstOTEntry = true;
       _firstOTValue = null;
 
@@ -565,8 +565,9 @@ class _AttendanceScreenState extends ConsumerState<AttendanceScreen> {
           // ✅ Prevent build() from overwriting with stale stream data
           _draftLoadedForDate = _selectedDate;
         }
-        Navigator.pop(context);
-      } catch (syncError) {
+
+      } catch (syncError,s) {
+        print(s);
         // Sync failed — draft stays as-is (what user saved), not a critical error
         print("⚠️ Post-save sync failed: $syncError");
       }
@@ -587,7 +588,10 @@ class _AttendanceScreenState extends ConsumerState<AttendanceScreen> {
         ),
       );
     } finally {
-      setState(() => isLoading = false);
+
+      if (mounted) {
+        setState(() => isLoading = false);
+      }
     }
   }
 
@@ -956,7 +960,17 @@ class _AttendanceCardState extends State<AttendanceCard> {
   void initState() {
     super.initState();
     _present = widget.status != "absent";
-    _hours = widget.totalHours;
+
+    // ✅ Only trust totalHours if attendance was already recorded (status is set)
+    // If status is default/unset and hours == 8, prefer maxAllowedHours
+    final hasRecordedAttendance = widget.status == "present" || widget.status == "absent";
+
+    if (hasRecordedAttendance && widget.totalHours > 0) {
+      _hours = widget.totalHours; // use saved value
+    } else {
+      _hours = widget.maxAllowedHours > 0 ? widget.maxAllowedHours : 8.0; // use contract hours
+    }
+
     _otHours = widget.otValue;
   }
 
@@ -968,7 +982,15 @@ class _AttendanceCardState extends State<AttendanceCard> {
         oldWidget.otValue != widget.otValue) {
       setState(() {
         _present = widget.status != "absent";
-        _hours = widget.totalHours;
+
+        final hasRecordedAttendance = widget.status == "present" || widget.status == "absent";
+
+        if (hasRecordedAttendance && widget.totalHours > 0) {
+          _hours = widget.totalHours;
+        } else {
+          _hours = widget.maxAllowedHours > 0 ? widget.maxAllowedHours : 8.0;
+        }
+
         _otHours = widget.otValue;
       });
     }
@@ -1242,18 +1264,30 @@ class _AttendanceCardState extends State<AttendanceCard> {
   Widget _buildHoursDropdown() {
     final maxAllowedHours =
     widget.maxAllowedHours > 0 ? widget.maxAllowedHours : 8.0;
+    print("⏱ HOURS DROPDOWN --------------------");
+    print("👤 ${widget.name}");
+    print("📊 maxAllowedHours: $maxAllowedHours");
+    print("📊 current _hours: $_hours");
+
+
 
     final hoursOptions = _present
         ? List.generate((maxAllowedHours * 2).floor() + 1, (i) {
       final val = i * 0.5;
-      return {
-        "label": "${val.toString()}h",
-        "value": val,
-      };
+      return {"label": "${val.toString()}h", "value": val};
     })
-        : [
-      {"value": 0.0, "label": "0h"}
-    ];
+        : [{"value": 0.0, "label": "0h"}];
+
+// ✅ Use _hours as value, fallback to maxAllowedHours if not in list
+    final defaultValue = _present
+        ? (maxAllowedHours)
+        : 0.0;
+    print("📋 hoursOptions:");
+    for (var e in hoursOptions) {
+      print("   ${e["value"]}");
+    }
+    print("🔑 defaultValue: $defaultValue");
+
 
     return MouseRegion(
       cursor: widget.isEditMode
@@ -1272,9 +1306,7 @@ class _AttendanceCardState extends State<AttendanceCard> {
         ),
         child: DropdownButtonHideUnderline(
           child: DropdownButton<double>(
-            value: hoursOptions.any((e) => e["value"] == _hours)
-                ? _hours
-                : hoursOptions.first["value"] as double,
+            value: defaultValue,
             iconSize: 16,
             isDense: true,
             items: hoursOptions

@@ -303,6 +303,7 @@ class _InventorySelectionPageState
 
     final siteId = ref.read(selectedSiteIdProvider);
     if (siteId != null) {
+      // SINGLE sync trigger in screen init ONLY
       ref.read(inventorySyncControllerProvider(siteId));
     }
   }/**/
@@ -417,23 +418,18 @@ class _InventorySelectionPageState
           duration: Duration(seconds: 3), // Long duration for async operation
         ),
       );
-      final api = ref.read(inventoryApiProvider);
-
-      await api.recordUsage(
+      await ref.read(recordUsageProvider(RecordUsageParams(
         siteId: siteId,
         inventoryId: selected.id,
         quantityUsed: quantityUsed,
         usedByName: "Site User", // later replace with logged user
         usageDate: _selectedDate,
         remarks: "Usage recorded via mobile app",
-      );
+      )).future);
 
+      if (!mounted) return;
+      ScaffoldMessenger.of(context).hideCurrentSnackBar();
       ref.invalidate(inventoryProvider(siteId));
-      ref.invalidate(inventorySyncControllerProvider(siteId));
-
-
-      ref.read(inventorySyncControllerProvider(siteId));
-
 
       // Clear form
       setState(() {
@@ -496,7 +492,9 @@ class _InventorySelectionPageState
               key: _formKey,
               child: inventoryAsync.when(
                 loading: () => const Center(child: CircularProgressIndicator()),
-                error: (err, _) => Center(
+                error: (err, _) {
+                  print(err.toString());
+                  return Center(
                   child: Column(
                     mainAxisAlignment: MainAxisAlignment.center,
                     children: [
@@ -519,13 +517,38 @@ class _InventorySelectionPageState
                       ),
                     ],
                   ),
-                ),
+                );},
                 data: (inventoryList) {
                   // Filter out items with no stock if needed
                   /// show only consumables
                   final consumableItems =
                   inventoryList.where((e) => e.type == "consumable").toList();
 
+                  if (consumableItems.isEmpty) {
+                    return Center(
+                      child: Column(
+                        mainAxisAlignment: MainAxisAlignment.center,
+                        children: [
+                          const Icon(Icons.inventory_2_outlined, size: 60, color: Colors.grey),
+                          const SizedBox(height: 12),
+                          const Text(
+                            "No inventory available",
+                            style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold, color: Colors.grey),
+                          ),
+                          const SizedBox(height: 6),
+                          const Text(
+                            "Complete inventory setup first",
+                            style: TextStyle(color: Colors.grey),
+                          ),
+                          const SizedBox(height: 24),
+                          ElevatedButton(
+                            onPressed: () => ref.invalidate(inventoryProvider(siteId)),
+                            child: const Text("Refresh"),
+                          ),
+                        ],
+                      ),
+                    );
+                  }
 
                   return Column(
                     crossAxisAlignment: CrossAxisAlignment.start,

@@ -341,7 +341,7 @@ class _FloorSelectionPageState extends ConsumerState<FloorSelectionPage> {
                   child: !_isSelectionMode
                       ? IconButton(
                     icon: const Icon(
-                      Icons.delete_outline,
+                      Icons.delete_sweep,
                       color: Colors.red,
                     ),
                     onPressed: _toggleSelectionMode,

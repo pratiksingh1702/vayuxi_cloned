@@ -99,7 +99,6 @@ class _WorkTeamListPageState extends ConsumerState<WorkTeamListPage> {
       MaterialPageRoute(
         builder: (context) => DprWorkScreen(
           siteId: site!.id,
-          teamId: teamId,
           name: teamName,
           selectedEndDate: widget.selectedEndDate,
           selectedStartDate: widget.selectedStartDate,
@@ -172,14 +171,13 @@ class _WorkTeamListPageState extends ConsumerState<WorkTeamListPage> {
 
                         return GestureDetector(
                           onTap: () {
-                            ref.read(selectedTeamIdProvider.notifier).state = team.id;
+                            ref.read(selectedTeamProvider.notifier).select(team);
 
                             Navigator.push(
                               context,
                               MaterialPageRoute(
                                 builder: (context) => DprWorkScreen(
                                   siteId: site!.id,
-                                  teamId: team.id,
                                   name: team.teamName,
                                   selectedEndDate: widget.selectedEndDate,
                                   selectedStartDate: widget.selectedStartDate,

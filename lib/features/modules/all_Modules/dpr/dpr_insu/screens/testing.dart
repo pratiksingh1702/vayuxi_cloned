@@ -1932,7 +1932,7 @@ class _AddInsulationDescriptionScreenState
 
                   /// Delete
                   IconButton(
-                    icon: const Icon(Icons.delete, color: Colors.red),
+                    icon: const Icon(Icons.delete_outline, color: Colors.red),
                     onPressed: () => notifier.delete(lagging.id),
                   ),
                 ],

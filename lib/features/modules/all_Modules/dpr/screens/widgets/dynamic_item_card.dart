@@ -356,7 +356,7 @@ class _DynamicItemCardState extends State<DynamicItemCard>
                                   Expanded(
                                     child: IconButton(
                                       onPressed: widget.onDelete,
-                                      icon: const Icon(Icons.delete, size: 18),
+                                      icon: const Icon(Icons.delete_outline, size: 18),
                                       color: Colors.red,
                                       style: IconButton.styleFrom(
                                         padding: const EdgeInsets.all(6),

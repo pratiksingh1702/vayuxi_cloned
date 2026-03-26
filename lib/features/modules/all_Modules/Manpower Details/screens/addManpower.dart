@@ -128,9 +128,10 @@ class _NewManpowerScreenState extends ConsumerState<NewManpowerScreen> {
   }
 
   Future<void> _pickDate(BuildContext context, bool isDOB) async {
+    final currentDate = isDOB ? _dob : _doj; // ✅ YOU MISSED THIS
     final picked = await showDatePicker(
       context: context,
-      initialDate: DateTime(1990),
+      initialDate: currentDate ?? DateTime.now(),
       firstDate: DateTime(1950),
       lastDate: DateTime.now(),
     );

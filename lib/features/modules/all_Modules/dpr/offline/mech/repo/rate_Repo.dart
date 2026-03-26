@@ -156,29 +156,29 @@ class RateRepository {
 
     final materials = <RateFileMaterialIsar>[];
     final variants = <RateVariantIsar>[];
-    for (final m in analysis.lineItems) {
-
-      print("━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━");
-      print("📦 MATERIAL: ${m.MaterialName}");
-      print("🆔 ID: ${m.id}");
-      print("🧠 Raw: ${m.rawMaterialName}");
-      print("🧠 Normalized: ${m.normalizedMaterialName}");
-      print("🔢 Dynamic Fields Count: ${m.dynamicFields.length}");
-
-      if (m.dynamicFields.isEmpty) {
-        print("⚠️ NO DYNAMIC FIELDS");
-      } else {
-        for (final f in m.dynamicFields) {
-          print("""
-  🔸 FIELD
-     key: ${f.key}
-     label: ${f.label}
-     unit: ${f.unit}
-     displayText: ${f.displayText}
-     value: ${f.value}
-""");
-        }
-      }}
+//     for (final m in analysis.lineItems) {
+//
+//       print("━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━");
+//       print("📦 MATERIAL: ${m.MaterialName}");
+//       print("🆔 ID: ${m.id}");
+//       print("🧠 Raw: ${m.rawMaterialName}");
+//       print("🧠 Normalized: ${m.normalizedMaterialName}");
+//       print("🔢 Dynamic Fields Count: ${m.dynamicFields.length}");
+//
+//       if (m.dynamicFields.isEmpty) {
+//         print("⚠️ NO DYNAMIC FIELDS");
+//       } else {
+//         for (final f in m.dynamicFields) {
+//           print("""
+//   🔸 FIELD
+//      key: ${f.key}
+//      label: ${f.label}
+//      unit: ${f.unit}
+//      displayText: ${f.displayText}
+//      value: ${f.value}
+// """);
+//         }
+//       }}
 
     for (final m in analysis.lineItems) {
       final material = RateFileMaterialIsar()

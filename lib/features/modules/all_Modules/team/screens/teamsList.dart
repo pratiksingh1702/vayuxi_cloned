@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import 'package:liquid_pull_to_refresh/liquid_pull_to_refresh.dart';
+import 'package:untitled2/core/router/routes.dart';
 import 'package:untitled2/core/utlis/widgets/Button_wrapper.dart';
 import 'package:untitled2/core/utlis/widgets/buttons.dart';
 import '../../../../../core/utlis/common_functions.dart';
@@ -167,11 +168,8 @@ class _TeamListPageState extends ConsumerState<TeamListPage> {
               color: Colors.blue,
               textColor: Colors.white,
               onPressed: () {
-                Navigator.push(
-                  context,
-                  MaterialPageRoute(builder: (context) => AddTeamScreen()),
-                );
-              },
+                  context.push(Routes.addTeam);
+                },
             ),
           ),
         ],
@@ -291,15 +289,10 @@ class _TeamListPageState extends ConsumerState<TeamListPage> {
             onTap: _isSelectionMode
                 ? () => _toggleTeamSelection(team.id)
                 : () {
-              Navigator.push(
-                context,
-                MaterialPageRoute(
-                  builder: (context) => EditTeamScreen(
-                    site: site!,
-                    team: team,
-                  ),
-                ),
-              );
+              context.push(Routes.editTeam, extra: {
+                'site': site!,
+                'team': team,
+              });
             },
             child: Card(
               color: Colors.white,
@@ -361,7 +354,7 @@ class _TeamListPageState extends ConsumerState<TeamListPage> {
                             shape: BoxShape.circle,
                           ),
                           child: const Icon(
-                            Icons.delete,
+                            Icons.delete_outline,
                             color: Colors.white,
                             size: 18,
                           ),

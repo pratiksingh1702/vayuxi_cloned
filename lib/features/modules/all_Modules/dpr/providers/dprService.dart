@@ -42,6 +42,41 @@ class DprApi {
     }
   }
 
+  static Future<List<DprModel>> fetchSiteDprMechanicalV2({
+    required String siteId,
+  }) async {
+    try {
+      // Trying the URL confirmed to work in user logs first
+      final response = await DioClient.dio.get(
+        "/site/$siteId/team/dpr-mechanical",
+        options: Options(extra: {"withCredentials": true}),
+      );
+
+      if (response.statusCode == 200) {
+        return (response.data as List)
+            .map((e) => DprModel.fromJson(e))
+            .toList();
+      }
+
+      // Fallback to the v2 URL if requested
+      final v2Response = await DioClient.dio.get(
+        "/site/$siteId/dpr-mechanical-v2",
+        options: Options(extra: {"withCredentials": true}),
+      );
+
+      if (v2Response.statusCode == 200) {
+        return (v2Response.data as List)
+            .map((e) => DprModel.fromJson(e))
+            .toList();
+      }
+
+      throw Exception("Failed to fetch site mechanical DPRs");
+    } catch (e) {
+      print("❌ Error fetching site mechanical DPRs: $e");
+      rethrow;
+    }
+  }
+
   // ----------------------------
   // 2. Fetch DPR Work by ID
   // ----------------------------

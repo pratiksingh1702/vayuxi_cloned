@@ -539,7 +539,7 @@
 //       ),
 //       actions: [
 //         IconButton(
-//           icon: const Icon(Icons.delete_sweep_rounded, color: _textSecondary),
+//           icon: const Icon(Icons.delete_sweep, color: _textSecondary),
 //           tooltip: 'Clear index',
 //           onPressed: _indexedFiles.isEmpty ? null : _clearIndex,
 //         ),

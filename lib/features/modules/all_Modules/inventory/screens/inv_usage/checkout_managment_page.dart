@@ -308,7 +308,8 @@ class _CheckoutManagementPageState
 
     final siteId = ref.read(selectedSiteIdProvider);
     if (siteId != null) {
-      ref.read(inventorySyncControllerProvider(siteId)).runSync();
+      // SINGLE sync trigger in screen init ONLY
+      ref.read(inventorySyncControllerProvider(siteId));
     }
     final type=ref.read(typeProvider);
     Future.microtask(() {
@@ -429,7 +430,7 @@ class _CheckoutManagementPageState
         ),
       );
 
-      await ref.read(createCheckoutProvider((
+      await ref.read(createCheckoutProvider(CreateCheckoutParams(
       siteId: siteId,
       inventoryId: selectedInventoryId!,
       issuedToName: issuedToController.text,
@@ -481,7 +482,7 @@ class _CheckoutManagementPageState
     final returnRemarksController = TextEditingController();
     String? selectedCondition;
 
-    const conditions = ['issued', 'returned', 'lost', 'damaged'];
+    const conditions = ['good', 'damaged', 'under_repair', 'scrapped'];
 
     showModalBottomSheet(
       context: context,
@@ -705,7 +706,7 @@ class _CheckoutManagementPageState
                           Navigator.pop(sheetContext);
 
                           try {
-                            await ref.read(updateCheckoutProvider((
+                            await ref.read(updateCheckoutProvider(UpdateCheckoutParams(
                             siteId: siteId,
                             checkoutId: checkout.id,
                             status: "returned",
@@ -827,6 +828,33 @@ class _CheckoutManagementPageState
         data: (inventory) {
           // Only FIXED items
           final fixedItems = inventory.where((e) => e.type == "fixed").toList();
+
+          if (fixedItems.isEmpty) {
+            return Center(
+              child: Column(
+                mainAxisAlignment: MainAxisAlignment.center,
+                children: [
+                  const Icon(Icons.inventory_2_outlined, size: 60, color: Colors.grey),
+                  const SizedBox(height: 12),
+                  const Text(
+                    "No inventory available",
+                    style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold, color: Colors.grey),
+                  ),
+                  const SizedBox(height: 6),
+                  const Text(
+                    "Complete inventory setup first",
+                    style: TextStyle(color: Colors.grey),
+                  ),
+                  const SizedBox(height: 24),
+                  ElevatedButton(
+                    onPressed: () => ref.invalidate(inventoryProvider(siteId)),
+                    child: const Text("Refresh"),
+                  ),
+                ],
+              ),
+            );
+          }
+
           final inventoryMap = {
             for (final i in inventory) i.id: i.name,
           };

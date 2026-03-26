@@ -263,7 +263,7 @@ class _DynamicItemCard2State extends State<DynamicItemCard2>
           alignment: Alignment.centerRight,
           child: GestureDetector(
             onTap: () => setState(() => draftFields.removeAt(index)),
-            child: const Icon(Icons.delete, size: 14, color: Colors.red),
+            child: const Icon(Icons.delete_outline, size: 14, color: Colors.red),
           ),
         ),
       ],
@@ -467,9 +467,9 @@ class _DynamicItemCard2State extends State<DynamicItemCard2>
                               if (widget.onDelete != null)
                                 Expanded(
                                   child: IconButton(
-                                    onPressed: widget.onDelete,
-                                    icon: const Icon(Icons.delete, size: 18),
-                                    color: Colors.red,
+                                      onPressed: widget.onDelete,
+                                      icon: const Icon(Icons.delete_outline, size: 18),
+                                      color: Colors.red,
                                     style: IconButton.styleFrom(
                                       padding: const EdgeInsets.all(6),
                                       minimumSize: const Size(0, 32),

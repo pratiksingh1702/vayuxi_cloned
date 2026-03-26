@@ -1,10 +1,12 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:go_router/go_router.dart';
 import 'package:untitled2/core/utlis/widgets/Button_wrapper.dart';
 import 'package:untitled2/core/utlis/widgets/custom_appBar.dart';
 import 'package:untitled2/core/utlis/widgets/buttons.dart';
 import 'package:untitled2/core/utlis/widgets/image_clipped.dart';
 import 'package:untitled2/typeProvider/type_provider.dart';
+import '../../../../../core/router/routes.dart';
 import '../../../../../core/utlis/widgets/custom.dart';
 import '../../../../../core/utlis/widgets/sidebar.dart';
 import '../model/expense_model.dart';
@@ -220,7 +222,7 @@ class _ExpenseListScreenState extends ConsumerState<ExpenseListScreen> {
       context: context,
       builder: (context) => _CategoryModal(
         onCategorySelected: (category) {
-          Navigator.pop(context);
+          context.pop();
           _navigateToAddExpense(category);
         },
       ),
@@ -228,29 +230,21 @@ class _ExpenseListScreenState extends ConsumerState<ExpenseListScreen> {
   }
 
   void _navigateToAddExpense(String category) {
-    Navigator.push(
-      context,
-      MaterialPageRoute(
-        builder: (context) =>
-            ExpenseFormScreen(siteId: widget.siteId, expenseType: category),
-      ),
-    ).then((_) {
+    context.push(Routes.expenseForm, extra: {
+      'siteId': widget.siteId,
+      'expenseType': category,
+    }).then((_) {
       _fetchExpenses();
     });
   }
 
   void _navigateToEditExpense(ExpenseModel expense) {
-    Navigator.push(
-      context,
-      MaterialPageRoute(
-        builder: (context) => ExpenseFormScreen(
-          siteId: widget.siteId,
-          expenseType: expense.expenseType!,
-          expenseId: expense.id,
-          expense: expense,
-        ),
-      ),
-    ).then((_) {
+    context.push(Routes.expenseForm, extra: {
+      'siteId': widget.siteId,
+      'expenseType': expense.expenseType!,
+      'expenseId': expense.id,
+      'expense': expense,
+    }).then((_) {
       _fetchExpenses();
     });
   }
@@ -532,7 +526,7 @@ class _ExpenseListScreenState extends ConsumerState<ExpenseListScreen> {
                                 tooltip: "Edit",
                               ),
                               IconButton(
-                                icon: const Icon(Icons.delete, color: Colors.red),
+                                icon: const Icon(Icons.delete_outline, color: Colors.red),
                                 onPressed: () => _deleteSingleExpense(expense.id!),
                                 tooltip: "Delete",
                               ),

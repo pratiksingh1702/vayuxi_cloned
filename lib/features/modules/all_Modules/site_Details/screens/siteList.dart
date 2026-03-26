@@ -1,6 +1,7 @@
 import 'package:dio/dio.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:go_router/go_router.dart';
 import 'package:showcaseview/showcaseview.dart';
 import 'package:untitled2/core/utlis/app_toasts.dart';
 import 'package:untitled2/core/utlis/widgets/buttons.dart';
@@ -9,6 +10,7 @@ import 'package:untitled2/core/utlis/widgets/sidebar.dart';
 import 'package:untitled2/features/language/service/providers.dart';
 import 'package:untitled2/features/modules/all_Modules/site_Details/screens/site_entry_select_page.dart';
 
+import '../../../../../core/router/routes.dart';
 import '../../../../../core/utlis/colors/colors.dart';
 import '../../../../../core/utlis/common_functions.dart';
 import '../../../../../core/utlis/widgets/Button_wrapper.dart';
@@ -46,16 +48,18 @@ class _SiteListScreenState extends ConsumerState<SiteListScreen>
 
     WidgetsBinding.instance.addPostFrameCallback((_) {
       final tour = ref.read(tourControllerProvider);
-      final selectedSiteId = ref.read(selectedSiteIdProvider);
-      final currentSite = ref.read(currentSiteProvider);
+      final siteDropdownValue = ref.read(siteDropdownValueProvider);
 
       final tourRunning = tour.status == TourStatus.running;
 
-      if (!tourRunning && selectedSiteId != null && currentSite != null) {
+      if (!tourRunning && siteDropdownValue != null) {
+        // Sync the ID provider with the dropdown value
+        ref.read(selectedSiteIdProvider.notifier).state = siteDropdownValue.id;
+
         Navigator.pushReplacement(
           context,
           MaterialPageRoute(
-            builder: (_) => widget.pageBuilder(currentSite),
+            builder: (_) => widget.pageBuilder(siteDropdownValue),
           ),
         );
       }
@@ -244,12 +248,8 @@ class _SiteListScreenState extends ConsumerState<SiteListScreen>
                 color: Colors.blue,
                 textColor: Colors.white,
                 onPressed: () async {
-                  Navigator.push(
-                    context,
-                    MaterialPageRoute(builder: (context) => SiteEntrySelectCardGrid()),
-                  );
+                  context.push(Routes.siteEntrySelect);
                   await TourPersistence().markCompleted();
-
                 },
                 isOutlined: false,
               ),
@@ -411,6 +411,8 @@ class _SiteListScreenState extends ConsumerState<SiteListScreen>
                     final ew = ref.read(currentSiteProvider);
                     print(ew?.siteName);
 
+                    // context.push(Routes.siteDetail, extra: site);
+                    // For now, let's stick to pushing the page since pageBuilder is a closure
                     Navigator.push(
                       context,
                       MaterialPageRoute(

@@ -38,6 +38,7 @@ class Inventory {
   final String? condition;
 
   final String? remarks;
+  final bool isDeleted;
   final DateTime createdAt;
 
   Inventory({
@@ -53,6 +54,7 @@ class Inventory {
     this.availableUnits,
     this.condition,
     this.remarks,
+    this.isDeleted = false,
     required this.createdAt,
   });
 
@@ -95,6 +97,7 @@ class Inventory {
 
       condition: json['condition']?.toString(),
       remarks: json['remarks']?.toString(),
+      isDeleted: json['isDeleted'] ?? false,
 
       createdAt: json['createdAt'] != null
           ? DateTime.tryParse(json['createdAt']) ?? DateTime.now()
@@ -141,9 +144,31 @@ this.uom,
   }
 
   factory InventoryUsage.fromJson(Map<String, dynamic> json) {
+
+    // 'inventory' can be a populated Map OR a plain String ID
+    // When it's a string (e.g. from recordUsage response), use the
+    // sibling 'inventory' key at the parent level if available
+    final rawInventory = json['inventory'];
+
+    Inventory inventory;
+    if (rawInventory is Map<String, dynamic>) {
+      inventory = Inventory.fromJson(rawInventory);
+    } else {
+      // rawInventory is a String ID — build a minimal placeholder
+      // The caller (InventoryApi.recordUsage) passes res.data['usage'],
+      // but res.data also has a populated 'inventory' object at top level
+      inventory = Inventory(
+        id: rawInventory?.toString() ?? '',
+        name: '',
+        category: Category(id: '', name: '', type: ''),
+        type: '',
+        createdAt: DateTime.now(),
+      );
+    }
+
     return InventoryUsage(
       id: json['_id']?.toString() ?? '',
-      inventory: Inventory.fromJson(json['inventory']),
+      inventory: inventory,
       quantityUsed: (json['quantityUsed'] as num?)?.toDouble() ?? 0.0,
       uom: json['uom']?.toString() ?? '',
       usedByName: json['usedByName']?.toString() ?? '',
@@ -153,10 +178,8 @@ this.uom,
       usageDate: DateTime.tryParse(json['usageDate'] ?? '') ?? DateTime.now(),
       remarks: json['remarks']?.toString(),
       isDeleted: json['isDeleted'] ?? false,
-      createdAt:
-      DateTime.tryParse(json['createdAt'] ?? '') ?? DateTime.now(),
-      updatedAt:
-      DateTime.tryParse(json['updatedAt'] ?? '') ?? DateTime.now(),
+      createdAt: DateTime.tryParse(json['createdAt'] ?? '') ?? DateTime.now(),
+      updatedAt: DateTime.tryParse(json['updatedAt'] ?? '') ?? DateTime.now(),
     );
   }
 }

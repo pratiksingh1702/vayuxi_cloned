@@ -311,7 +311,7 @@ class _EditMaterialScreenState extends ConsumerState<EditMaterialScreen> {
                   Expanded(
                     child: OutlinedButton.icon(
                       onPressed: _removeImage,
-                      icon: const Icon(Icons.delete, color: Colors.red),
+                      icon: const Icon(Icons.delete_outline, color: Colors.red),
                       label: const Text('Remove', style: TextStyle(color: Colors.red)),
                       style: OutlinedButton.styleFrom(
                         padding: const EdgeInsets.symmetric(vertical: 12),

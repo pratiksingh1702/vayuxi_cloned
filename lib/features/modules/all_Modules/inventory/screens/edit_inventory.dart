@@ -68,7 +68,7 @@ class _EditInventoryScreenState extends ConsumerState<EditInventoryScreen> {
       ScaffoldMessenger.of(context)
           .showSnackBar(const SnackBar(content: Text("Updating...")));
 
-      await ref.read(updateInventoryProvider((
+      await ref.read(updateInventoryProvider(UpdateInventoryParams(
       siteId: siteId,
       inventoryId: widget.inventory.id,
       name: _nameController.text.trim(),
@@ -83,18 +83,7 @@ class _EditInventoryScreenState extends ConsumerState<EditInventoryScreen> {
           ? null
           : _remarksController.text.trim(),
       condition: null,
-      ) as ({
-      String? condition,
-      String inventoryId,
-      double? minimumStockLevel,
-      String? name,
-      String? remarks,
-      String siteId,
-      int? totalUnits,
-      String? uom
-      })).future);
-
-      ref.invalidate(inventoryProvider(siteId));
+      )).future);
 
       _success("Updated successfully");
       Navigator.pop(context, true);
@@ -141,6 +130,7 @@ class _EditInventoryScreenState extends ConsumerState<EditInventoryScreen> {
                 label: 'Inventory Name',
                 isRequired: true,
                 controller: _nameController,
+                validator: (v) => (v == null || v.trim().isEmpty) ? "Name required" : null,
               ),
 
               const SizedBox(height: 16),
@@ -154,7 +144,14 @@ class _EditInventoryScreenState extends ConsumerState<EditInventoryScreen> {
                         label: 'Quantity',
                         isRequired: true,
                         controller: _quantityController,
-                        keyboardType: TextInputType.number,
+                        keyboardType: const TextInputType.numberWithOptions(decimal: true),
+                        validator: (v) {
+                          if (v == null || v.isEmpty) return "Required";
+                          final n = double.tryParse(v);
+                          if (n == null) return "Invalid";
+                          if (n < 0) return "Negative";
+                          return null;
+                        },
                       ),
                     ),
                     const SizedBox(width: 12),
@@ -163,6 +160,7 @@ class _EditInventoryScreenState extends ConsumerState<EditInventoryScreen> {
                         label: 'UOM',
                         isRequired: true,
                         controller: _uomController,
+                        validator: (v) => (v == null || v.isEmpty) ? "Required" : null,
                       ),
                     ),
                   ],
@@ -172,7 +170,14 @@ class _EditInventoryScreenState extends ConsumerState<EditInventoryScreen> {
                   label: 'Minimum Stock Level',
                   isRequired: true,
                   controller: _minStockController,
-                  keyboardType: TextInputType.number,
+                  keyboardType: const TextInputType.numberWithOptions(decimal: true),
+                  validator: (v) {
+                    if (v == null || v.isEmpty) return "Required";
+                    final n = double.tryParse(v);
+                    if (n == null) return "Invalid";
+                    if (n < 0) return "Negative";
+                    return null;
+                  },
                 ),
               ],
 
@@ -186,6 +191,13 @@ class _EditInventoryScreenState extends ConsumerState<EditInventoryScreen> {
                         isRequired: true,
                         controller: _quantityController,
                         keyboardType: TextInputType.number,
+                        validator: (v) {
+                          if (v == null || v.isEmpty) return "Required";
+                          final n = int.tryParse(v);
+                          if (n == null) return "Invalid";
+                          if (n < 0) return "Negative";
+                          return null;
+                        },
                       ),
                     ),
                     const SizedBox(width: 12),
@@ -194,6 +206,7 @@ class _EditInventoryScreenState extends ConsumerState<EditInventoryScreen> {
                         label: 'UOM',
                         isRequired: true,
                         controller: _uomController,
+                        validator: (v) => (v == null || v.isEmpty) ? "Required" : null,
                       ),
                     ),
                   ],

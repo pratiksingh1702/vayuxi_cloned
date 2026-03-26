@@ -1323,68 +1323,78 @@ const InventoryIsarSchema = CollectionSchema(
       name: r'categoryId',
       type: IsarType.string,
     ),
-    r'condition': PropertySchema(
+    r'categoryName': PropertySchema(
       id: 2,
+      name: r'categoryName',
+      type: IsarType.string,
+    ),
+    r'categoryType': PropertySchema(
+      id: 3,
+      name: r'categoryType',
+      type: IsarType.string,
+    ),
+    r'condition': PropertySchema(
+      id: 4,
       name: r'condition',
       type: IsarType.string,
     ),
     r'currentBalance': PropertySchema(
-      id: 3,
+      id: 5,
       name: r'currentBalance',
       type: IsarType.double,
     ),
     r'id': PropertySchema(
-      id: 4,
+      id: 6,
       name: r'id',
       type: IsarType.string,
     ),
     r'isDeleted': PropertySchema(
-      id: 5,
+      id: 7,
       name: r'isDeleted',
       type: IsarType.bool,
     ),
     r'minimumStockLevel': PropertySchema(
-      id: 6,
+      id: 8,
       name: r'minimumStockLevel',
       type: IsarType.double,
     ),
     r'name': PropertySchema(
-      id: 7,
+      id: 9,
       name: r'name',
       type: IsarType.string,
     ),
     r'remarks': PropertySchema(
-      id: 8,
+      id: 10,
       name: r'remarks',
       type: IsarType.string,
     ),
     r'siteId': PropertySchema(
-      id: 9,
+      id: 11,
       name: r'siteId',
       type: IsarType.string,
     ),
     r'totalQuantityAdded': PropertySchema(
-      id: 10,
+      id: 12,
       name: r'totalQuantityAdded',
       type: IsarType.double,
     ),
     r'totalUnits': PropertySchema(
-      id: 11,
+      id: 13,
       name: r'totalUnits',
       type: IsarType.long,
     ),
     r'type': PropertySchema(
-      id: 12,
+      id: 14,
       name: r'type',
       type: IsarType.string,
     ),
     r'uom': PropertySchema(
-      id: 13,
+      id: 15,
       name: r'uom',
       type: IsarType.string,
     ),
     r'updatedAt': PropertySchema(
-      id: 14,
+      id: 16,
       name: r'updatedAt',
       type: IsarType.dateTime,
     )
@@ -1450,6 +1460,8 @@ int _inventoryIsarEstimateSize(
 ) {
   var bytesCount = offsets.last;
   bytesCount += 3 + object.categoryId.length * 3;
+  bytesCount += 3 + object.categoryName.length * 3;
+  bytesCount += 3 + object.categoryType.length * 3;
   {
     final value = object.condition;
     if (value != null) {
@@ -1483,19 +1495,21 @@ void _inventoryIsarSerialize(
 ) {
   writer.writeLong(offsets[0], object.availableUnits);
   writer.writeString(offsets[1], object.categoryId);
-  writer.writeString(offsets[2], object.condition);
-  writer.writeDouble(offsets[3], object.currentBalance);
-  writer.writeString(offsets[4], object.id);
-  writer.writeBool(offsets[5], object.isDeleted);
-  writer.writeDouble(offsets[6], object.minimumStockLevel);
-  writer.writeString(offsets[7], object.name);
-  writer.writeString(offsets[8], object.remarks);
-  writer.writeString(offsets[9], object.siteId);
-  writer.writeDouble(offsets[10], object.totalQuantityAdded);
-  writer.writeLong(offsets[11], object.totalUnits);
-  writer.writeString(offsets[12], object.type);
-  writer.writeString(offsets[13], object.uom);
-  writer.writeDateTime(offsets[14], object.updatedAt);
+  writer.writeString(offsets[2], object.categoryName);
+  writer.writeString(offsets[3], object.categoryType);
+  writer.writeString(offsets[4], object.condition);
+  writer.writeDouble(offsets[5], object.currentBalance);
+  writer.writeString(offsets[6], object.id);
+  writer.writeBool(offsets[7], object.isDeleted);
+  writer.writeDouble(offsets[8], object.minimumStockLevel);
+  writer.writeString(offsets[9], object.name);
+  writer.writeString(offsets[10], object.remarks);
+  writer.writeString(offsets[11], object.siteId);
+  writer.writeDouble(offsets[12], object.totalQuantityAdded);
+  writer.writeLong(offsets[13], object.totalUnits);
+  writer.writeString(offsets[14], object.type);
+  writer.writeString(offsets[15], object.uom);
+  writer.writeDateTime(offsets[16], object.updatedAt);
 }
 
 InventoryIsar _inventoryIsarDeserialize(
@@ -1507,20 +1521,22 @@ InventoryIsar _inventoryIsarDeserialize(
   final object = InventoryIsar();
   object.availableUnits = reader.readLongOrNull(offsets[0]);
   object.categoryId = reader.readString(offsets[1]);
-  object.condition = reader.readStringOrNull(offsets[2]);
-  object.currentBalance = reader.readDoubleOrNull(offsets[3]);
-  object.id = reader.readString(offsets[4]);
-  object.isDeleted = reader.readBool(offsets[5]);
+  object.categoryName = reader.readString(offsets[2]);
+  object.categoryType = reader.readString(offsets[3]);
+  object.condition = reader.readStringOrNull(offsets[4]);
+  object.currentBalance = reader.readDoubleOrNull(offsets[5]);
+  object.id = reader.readString(offsets[6]);
+  object.isDeleted = reader.readBool(offsets[7]);
   object.isarId = id;
-  object.minimumStockLevel = reader.readDoubleOrNull(offsets[6]);
-  object.name = reader.readString(offsets[7]);
-  object.remarks = reader.readStringOrNull(offsets[8]);
-  object.siteId = reader.readString(offsets[9]);
-  object.totalQuantityAdded = reader.readDoubleOrNull(offsets[10]);
-  object.totalUnits = reader.readLongOrNull(offsets[11]);
-  object.type = reader.readString(offsets[12]);
-  object.uom = reader.readStringOrNull(offsets[13]);
-  object.updatedAt = reader.readDateTime(offsets[14]);
+  object.minimumStockLevel = reader.readDoubleOrNull(offsets[8]);
+  object.name = reader.readString(offsets[9]);
+  object.remarks = reader.readStringOrNull(offsets[10]);
+  object.siteId = reader.readString(offsets[11]);
+  object.totalQuantityAdded = reader.readDoubleOrNull(offsets[12]);
+  object.totalUnits = reader.readLongOrNull(offsets[13]);
+  object.type = reader.readString(offsets[14]);
+  object.uom = reader.readStringOrNull(offsets[15]);
+  object.updatedAt = reader.readDateTime(offsets[16]);
   return object;
 }
 
@@ -1536,30 +1552,34 @@ P _inventoryIsarDeserializeProp<P>(
     case 1:
       return (reader.readString(offset)) as P;
     case 2:
-      return (reader.readStringOrNull(offset)) as P;
+      return (reader.readString(offset)) as P;
     case 3:
-      return (reader.readDoubleOrNull(offset)) as P;
+      return (reader.readString(offset)) as P;
     case 4:
-      return (reader.readString(offset)) as P;
-    case 5:
-      return (reader.readBool(offset)) as P;
-    case 6:
-      return (reader.readDoubleOrNull(offset)) as P;
-    case 7:
-      return (reader.readString(offset)) as P;
-    case 8:
       return (reader.readStringOrNull(offset)) as P;
+    case 5:
+      return (reader.readDoubleOrNull(offset)) as P;
+    case 6:
+      return (reader.readString(offset)) as P;
+    case 7:
+      return (reader.readBool(offset)) as P;
+    case 8:
+      return (reader.readDoubleOrNull(offset)) as P;
     case 9:
       return (reader.readString(offset)) as P;
     case 10:
-      return (reader.readDoubleOrNull(offset)) as P;
-    case 11:
-      return (reader.readLongOrNull(offset)) as P;
-    case 12:
-      return (reader.readString(offset)) as P;
-    case 13:
       return (reader.readStringOrNull(offset)) as P;
+    case 11:
+      return (reader.readString(offset)) as P;
+    case 12:
+      return (reader.readDoubleOrNull(offset)) as P;
+    case 13:
+      return (reader.readLongOrNull(offset)) as P;
     case 14:
+      return (reader.readString(offset)) as P;
+    case 15:
+      return (reader.readStringOrNull(offset)) as P;
+    case 16:
       return (reader.readDateTime(offset)) as P;
     default:
       throw IsarError('Unknown property with id $propertyId');
@@ -2056,6 +2076,278 @@ extension InventoryIsarQueryFilter
     return QueryBuilder.apply(this, (query) {
       return query.addFilterCondition(FilterCondition.greaterThan(
         property: r'categoryId',
+        value: '',
+      ));
+    });
+  }
+
+  QueryBuilder<InventoryIsar, InventoryIsar, QAfterFilterCondition>
+      categoryNameEqualTo(
+    String value, {
+    bool caseSensitive = true,
+  }) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(FilterCondition.equalTo(
+        property: r'categoryName',
+        value: value,
+        caseSensitive: caseSensitive,
+      ));
+    });
+  }
+
+  QueryBuilder<InventoryIsar, InventoryIsar, QAfterFilterCondition>
+      categoryNameGreaterThan(
+    String value, {
+    bool include = false,
+    bool caseSensitive = true,
+  }) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(FilterCondition.greaterThan(
+        include: include,
+        property: r'categoryName',
+        value: value,
+        caseSensitive: caseSensitive,
+      ));
+    });
+  }
+
+  QueryBuilder<InventoryIsar, InventoryIsar, QAfterFilterCondition>
+      categoryNameLessThan(
+    String value, {
+    bool include = false,
+    bool caseSensitive = true,
+  }) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(FilterCondition.lessThan(
+        include: include,
+        property: r'categoryName',
+        value: value,
+        caseSensitive: caseSensitive,
+      ));
+    });
+  }
+
+  QueryBuilder<InventoryIsar, InventoryIsar, QAfterFilterCondition>
+      categoryNameBetween(
+    String lower,
+    String upper, {
+    bool includeLower = true,
+    bool includeUpper = true,
+    bool caseSensitive = true,
+  }) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(FilterCondition.between(
+        property: r'categoryName',
+        lower: lower,
+        includeLower: includeLower,
+        upper: upper,
+        includeUpper: includeUpper,
+        caseSensitive: caseSensitive,
+      ));
+    });
+  }
+
+  QueryBuilder<InventoryIsar, InventoryIsar, QAfterFilterCondition>
+      categoryNameStartsWith(
+    String value, {
+    bool caseSensitive = true,
+  }) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(FilterCondition.startsWith(
+        property: r'categoryName',
+        value: value,
+        caseSensitive: caseSensitive,
+      ));
+    });
+  }
+
+  QueryBuilder<InventoryIsar, InventoryIsar, QAfterFilterCondition>
+      categoryNameEndsWith(
+    String value, {
+    bool caseSensitive = true,
+  }) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(FilterCondition.endsWith(
+        property: r'categoryName',
+        value: value,
+        caseSensitive: caseSensitive,
+      ));
+    });
+  }
+
+  QueryBuilder<InventoryIsar, InventoryIsar, QAfterFilterCondition>
+      categoryNameContains(String value, {bool caseSensitive = true}) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(FilterCondition.contains(
+        property: r'categoryName',
+        value: value,
+        caseSensitive: caseSensitive,
+      ));
+    });
+  }
+
+  QueryBuilder<InventoryIsar, InventoryIsar, QAfterFilterCondition>
+      categoryNameMatches(String pattern, {bool caseSensitive = true}) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(FilterCondition.matches(
+        property: r'categoryName',
+        wildcard: pattern,
+        caseSensitive: caseSensitive,
+      ));
+    });
+  }
+
+  QueryBuilder<InventoryIsar, InventoryIsar, QAfterFilterCondition>
+      categoryNameIsEmpty() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(FilterCondition.equalTo(
+        property: r'categoryName',
+        value: '',
+      ));
+    });
+  }
+
+  QueryBuilder<InventoryIsar, InventoryIsar, QAfterFilterCondition>
+      categoryNameIsNotEmpty() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(FilterCondition.greaterThan(
+        property: r'categoryName',
+        value: '',
+      ));
+    });
+  }
+
+  QueryBuilder<InventoryIsar, InventoryIsar, QAfterFilterCondition>
+      categoryTypeEqualTo(
+    String value, {
+    bool caseSensitive = true,
+  }) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(FilterCondition.equalTo(
+        property: r'categoryType',
+        value: value,
+        caseSensitive: caseSensitive,
+      ));
+    });
+  }
+
+  QueryBuilder<InventoryIsar, InventoryIsar, QAfterFilterCondition>
+      categoryTypeGreaterThan(
+    String value, {
+    bool include = false,
+    bool caseSensitive = true,
+  }) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(FilterCondition.greaterThan(
+        include: include,
+        property: r'categoryType',
+        value: value,
+        caseSensitive: caseSensitive,
+      ));
+    });
+  }
+
+  QueryBuilder<InventoryIsar, InventoryIsar, QAfterFilterCondition>
+      categoryTypeLessThan(
+    String value, {
+    bool include = false,
+    bool caseSensitive = true,
+  }) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(FilterCondition.lessThan(
+        include: include,
+        property: r'categoryType',
+        value: value,
+        caseSensitive: caseSensitive,
+      ));
+    });
+  }
+
+  QueryBuilder<InventoryIsar, InventoryIsar, QAfterFilterCondition>
+      categoryTypeBetween(
+    String lower,
+    String upper, {
+    bool includeLower = true,
+    bool includeUpper = true,
+    bool caseSensitive = true,
+  }) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(FilterCondition.between(
+        property: r'categoryType',
+        lower: lower,
+        includeLower: includeLower,
+        upper: upper,
+        includeUpper: includeUpper,
+        caseSensitive: caseSensitive,
+      ));
+    });
+  }
+
+  QueryBuilder<InventoryIsar, InventoryIsar, QAfterFilterCondition>
+      categoryTypeStartsWith(
+    String value, {
+    bool caseSensitive = true,
+  }) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(FilterCondition.startsWith(
+        property: r'categoryType',
+        value: value,
+        caseSensitive: caseSensitive,
+      ));
+    });
+  }
+
+  QueryBuilder<InventoryIsar, InventoryIsar, QAfterFilterCondition>
+      categoryTypeEndsWith(
+    String value, {
+    bool caseSensitive = true,
+  }) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(FilterCondition.endsWith(
+        property: r'categoryType',
+        value: value,
+        caseSensitive: caseSensitive,
+      ));
+    });
+  }
+
+  QueryBuilder<InventoryIsar, InventoryIsar, QAfterFilterCondition>
+      categoryTypeContains(String value, {bool caseSensitive = true}) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(FilterCondition.contains(
+        property: r'categoryType',
+        value: value,
+        caseSensitive: caseSensitive,
+      ));
+    });
+  }
+
+  QueryBuilder<InventoryIsar, InventoryIsar, QAfterFilterCondition>
+      categoryTypeMatches(String pattern, {bool caseSensitive = true}) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(FilterCondition.matches(
+        property: r'categoryType',
+        wildcard: pattern,
+        caseSensitive: caseSensitive,
+      ));
+    });
+  }
+
+  QueryBuilder<InventoryIsar, InventoryIsar, QAfterFilterCondition>
+      categoryTypeIsEmpty() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(FilterCondition.equalTo(
+        property: r'categoryType',
+        value: '',
+      ));
+    });
+  }
+
+  QueryBuilder<InventoryIsar, InventoryIsar, QAfterFilterCondition>
+      categoryTypeIsNotEmpty() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(FilterCondition.greaterThan(
+        property: r'categoryType',
         value: '',
       ));
     });
@@ -3545,6 +3837,34 @@ extension InventoryIsarQuerySortBy
     });
   }
 
+  QueryBuilder<InventoryIsar, InventoryIsar, QAfterSortBy>
+      sortByCategoryName() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addSortBy(r'categoryName', Sort.asc);
+    });
+  }
+
+  QueryBuilder<InventoryIsar, InventoryIsar, QAfterSortBy>
+      sortByCategoryNameDesc() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addSortBy(r'categoryName', Sort.desc);
+    });
+  }
+
+  QueryBuilder<InventoryIsar, InventoryIsar, QAfterSortBy>
+      sortByCategoryType() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addSortBy(r'categoryType', Sort.asc);
+    });
+  }
+
+  QueryBuilder<InventoryIsar, InventoryIsar, QAfterSortBy>
+      sortByCategoryTypeDesc() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addSortBy(r'categoryType', Sort.desc);
+    });
+  }
+
   QueryBuilder<InventoryIsar, InventoryIsar, QAfterSortBy> sortByCondition() {
     return QueryBuilder.apply(this, (query) {
       return query.addSortBy(r'condition', Sort.asc);
@@ -3738,6 +4058,34 @@ extension InventoryIsarQuerySortThenBy
       thenByCategoryIdDesc() {
     return QueryBuilder.apply(this, (query) {
       return query.addSortBy(r'categoryId', Sort.desc);
+    });
+  }
+
+  QueryBuilder<InventoryIsar, InventoryIsar, QAfterSortBy>
+      thenByCategoryName() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addSortBy(r'categoryName', Sort.asc);
+    });
+  }
+
+  QueryBuilder<InventoryIsar, InventoryIsar, QAfterSortBy>
+      thenByCategoryNameDesc() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addSortBy(r'categoryName', Sort.desc);
+    });
+  }
+
+  QueryBuilder<InventoryIsar, InventoryIsar, QAfterSortBy>
+      thenByCategoryType() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addSortBy(r'categoryType', Sort.asc);
+    });
+  }
+
+  QueryBuilder<InventoryIsar, InventoryIsar, QAfterSortBy>
+      thenByCategoryTypeDesc() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addSortBy(r'categoryType', Sort.desc);
     });
   }
 
@@ -3936,6 +4284,20 @@ extension InventoryIsarQueryWhereDistinct
     });
   }
 
+  QueryBuilder<InventoryIsar, InventoryIsar, QDistinct> distinctByCategoryName(
+      {bool caseSensitive = true}) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addDistinctBy(r'categoryName', caseSensitive: caseSensitive);
+    });
+  }
+
+  QueryBuilder<InventoryIsar, InventoryIsar, QDistinct> distinctByCategoryType(
+      {bool caseSensitive = true}) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addDistinctBy(r'categoryType', caseSensitive: caseSensitive);
+    });
+  }
+
   QueryBuilder<InventoryIsar, InventoryIsar, QDistinct> distinctByCondition(
       {bool caseSensitive = true}) {
     return QueryBuilder.apply(this, (query) {
@@ -4042,6 +4404,18 @@ extension InventoryIsarQueryProperty
   QueryBuilder<InventoryIsar, String, QQueryOperations> categoryIdProperty() {
     return QueryBuilder.apply(this, (query) {
       return query.addPropertyName(r'categoryId');
+    });
+  }
+
+  QueryBuilder<InventoryIsar, String, QQueryOperations> categoryNameProperty() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addPropertyName(r'categoryName');
+    });
+  }
+
+  QueryBuilder<InventoryIsar, String, QQueryOperations> categoryTypeProperty() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addPropertyName(r'categoryType');
     });
   }
 

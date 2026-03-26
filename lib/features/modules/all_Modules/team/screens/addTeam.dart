@@ -2,6 +2,7 @@ import 'dart:io';
 import 'package:dio/dio.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:go_router/go_router.dart';
 import 'package:image_picker/image_picker.dart';
 import 'package:image_cropper/image_cropper.dart';
 import 'package:dropdown_search/dropdown_search.dart';
@@ -149,7 +150,7 @@ class _AddTeamScreenState extends ConsumerState<AddTeamScreen> {
                 leading: const Icon(Icons.photo_library, color: Colors.blue),
                 title: const Text('Gallery'),
                 onTap: () {
-                  Navigator.pop(context);
+                  context.pop();
                   _pickImageFromSource(ImageSource.gallery);
                 },
               ),
@@ -157,7 +158,7 @@ class _AddTeamScreenState extends ConsumerState<AddTeamScreen> {
                 leading: const Icon(Icons.camera_alt, color: Colors.blue),
                 title: const Text('Camera'),
                 onTap: () {
-                  Navigator.pop(context);
+                  context.pop();
                   _pickImageFromSource(ImageSource.camera);
                 },
               ),
@@ -482,7 +483,7 @@ class _AddTeamScreenState extends ConsumerState<AddTeamScreen> {
                         color: Colors.white,
                         textColor: Colors.black,
                         onPressed: () {
-                          Navigator.pop(context);
+                          context.pop();
                         },
                       ),
                     ),
@@ -515,7 +516,7 @@ class _AddTeamScreenState extends ConsumerState<AddTeamScreen> {
                             await ref.read(tourPersistenceProvider).markTeamDone();
 
 
-                            Navigator.pop(context);
+                            context.pop();
                           }
                         },
                       ),

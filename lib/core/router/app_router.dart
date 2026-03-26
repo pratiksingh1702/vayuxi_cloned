@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
+import 'package:untitled2/features/modules/all_Modules/ai_analyze/model/ai_analyze_model.dart';
 import 'package:untitled2/features/modules/all_Modules/site_Details/repository/siteModel.dart';
 import 'package:untitled2/features/modules/all_Modules/site_Details/screens/siteList.dart';
 import 'package:untitled2/features/modules/all_Modules/summary/screens/summaru_screen.dart';
@@ -20,6 +21,8 @@ import '../../features/modules/all_Modules/Manpower Details/screens/addManpower.
 import '../../features/modules/all_Modules/Manpower Details/screens/editManpower.dart';
 import '../../features/modules/all_Modules/Manpower Details/screens/manpowerList.dart';
 
+import '../../features/modules/all_Modules/dpr/models/dprModel.dart';
+import '../../features/modules/all_Modules/dpr/dpr_insu/model/dpr_model_insu.dart';
 import '../../features/modules/all_Modules/Manpower Details/screens/view_add_manpower.dart';
 import '../../features/modules/all_Modules/ai_analyze/screen/audio_upload.dart';
 import '../../features/modules/all_Modules/ai_analyze/screen/selection_page.dart';
@@ -32,6 +35,7 @@ import '../../features/modules/all_Modules/dpr/dpr-setup/screens/add/add_floor.d
 import '../../features/modules/all_Modules/dpr/dpr-setup/screens/add/add_moc.dart';
 import '../../features/modules/all_Modules/dpr/dpr-setup/screens/add/select_page.dart';
 import '../../features/modules/all_Modules/dpr/dpr-setup/screens/view_add.dart';
+import '../../features/modules/all_Modules/dpr/dpr-setup/screens/view/view_select_page.dart';
 import '../../features/modules/all_Modules/dpr/dpr_insu/screens/cladding_selection.dart';
 import '../../features/modules/all_Modules/dpr/dpr_insu/screens/dpr_insu.dart';
 import '../../features/modules/all_Modules/dpr/dpr_insu/screens/lagging_Selection.dart';
@@ -39,12 +43,16 @@ import '../../features/modules/all_Modules/dpr/dpr_insu/screens/testing.dart';
 import '../../features/modules/all_Modules/dpr/dpr_report/screens/download_sheets.dart';
 import '../../features/modules/all_Modules/dpr/screens/dprTeamDetails.dart';
 import '../../features/modules/all_Modules/dpr/screens/dprTeamPage.dart';
+import '../../features/modules/all_Modules/dpr/screens/add_description.dart';
 import '../../features/modules/all_Modules/dpr/screens/widgets/moc_selection_page.dart';
 import '../../features/modules/all_Modules/expense/screens/add-exp/add_expense.dart';
 import '../../features/modules/all_Modules/expense/screens/expense_screen.dart';
+import '../../features/modules/all_Modules/expense/screens/genericFormScreen.dart';
 import '../../features/modules/all_Modules/expense/screens/view_sheet.dart';
+import '../../features/modules/all_Modules/inventory/models/inventory_model.dart';
 import '../../features/modules/all_Modules/inventory/screens/add_bulk_inven.dart';
 import '../../features/modules/all_Modules/inventory/screens/add_inven.dart';
+import '../../features/modules/all_Modules/inventory/screens/edit_inventory.dart';
 import '../../features/modules/all_Modules/inventory/screens/inv_usage/checkout_managment_page.dart';
 import '../../features/modules/all_Modules/inventory/screens/inv_usage/inv_usage.dart';
 import '../../features/modules/all_Modules/inventory/screens/inv_usage/inventory_cat.dart';
@@ -60,15 +68,21 @@ import '../../features/modules/all_Modules/more/theme/screen/theme_screen.dart';
 import '../../features/modules/all_Modules/more/themes.dart';
 import '../../features/modules/all_Modules/more/upcoming.dart';
 import '../../features/modules/all_Modules/rate/screens/rate.dart';
+import '../../features/modules/all_Modules/rate/screens/addRate.dart';
+import '../../features/modules/all_Modules/rate/screens/editRate.dart';
 import '../../features/modules/all_Modules/rate/screens/view_add_rate.dart';
 import '../../features/modules/all_Modules/salary/screens/individual.dart';
 import '../../features/modules/all_Modules/salary/screens/salarycat.dart';
+import '../../features/modules/all_Modules/salary/screens/download_all.dart';
 import '../../features/modules/all_Modules/salary/screens/site.dart';
 import '../../features/modules/all_Modules/site_Details/screens/siteDetailScreen.dart';
 import '../../features/modules/all_Modules/site_Details/screens/view_add_site.dart';
+import '../../features/modules/all_Modules/site_Details/screens/site_entry_select_page.dart';
 import '../../features/modules/all_Modules/team/screens/addTeam.dart';
+import '../../features/modules/all_Modules/team/screens/editTeam.dart';
 import '../../features/modules/all_Modules/team/screens/teamsList.dart';
 import '../../features/modules/all_Modules/team/screens/view_add.dart';
+import '../../features/modules/screen/device_id.dart';
 import '../../features/pricing/Screens/subsciption_screen.dart';
 import '../../features/pricing/providers/razorpay_provider.dart';
 import '../../features/profile_page/screens/profilePage.dart';
@@ -149,12 +163,12 @@ final appRouterProvider = Provider<GoRouter>((ref) {
         builder: (context, state) => const SplashScreen(),
       ),
       GoRoute(
-        path: '/plan-select',
+        path: Routes.planSelect,
         builder: (context, state) => const PlanSelectScreen(),
       ),
 
       GoRoute(
-        path: '/onboarding',
+        path: Routes.onboarding,
         builder: (context, state) => const OnboardingScreen(),
       ),
       GoRoute(
@@ -162,7 +176,7 @@ final appRouterProvider = Provider<GoRouter>((ref) {
         builder: (context, state) => const LoginScreen(),
       ),
       GoRoute(
-        path: '/manpower-login',
+        path: Routes.manpowerLogin,
         name: 'manpower-login',
         builder: (context, state) => const ManpowerLoginScreen(),
       ),
@@ -174,12 +188,8 @@ final appRouterProvider = Provider<GoRouter>((ref) {
         path: Routes.selectModule,
         builder: (context, state) => const ModuleScreen(),
       ),
-      // GoRoute(
-      //   path: Routes.siteList,
-      //   builder: (context, state) => const SiteListScreen(),
-      // ),
       GoRoute(
-        path: '/site-list/:module',
+        path: '${Routes.siteList}/:module',
         builder: (context, state) {
           final module = state.pathParameters['module'] ?? 'site';
 
@@ -209,20 +219,24 @@ final appRouterProvider = Provider<GoRouter>((ref) {
                   case 'addMoc':
                   return DprSelectCardGrid();
                 case 'dprReport':
-                  return DateRangeSelectionScreen(onDatesSelected: (DateTime startDate, DateTime endDate) {    Navigator.push(
-                    context,
-                    MaterialPageRoute(builder: (context) => SheetDownloadPage(selectedStartDate: startDate,selectedEndDate: endDate,)),
-                  ); },);
+                  return DateRangeSelectionScreen(onDatesSelected: (DateTime startDate, DateTime endDate) {
+                    context.push(Routes.dprReportDownload, extra: {
+                      'startDate': startDate,
+                      'endDate': endDate,
+                    });
+                  });
                   case 'inv-entry':
                     // return InventorySelectionPage();
                   return InventoryCategorySelectionScreen();
                 case 'inv-setup':
                   return ViewAddInventorySetup();
                   case 'inv-Report':
-                  return  DateRangeSelectionScreen(onDatesSelected: (DateTime startDate, DateTime endDate) {    Navigator.push(
-                    context,
-                    MaterialPageRoute(builder: (context) => DailyUsagePage(selectedStartDate: startDate,selectedEndDate: endDate,)),
-                  ); },);
+                  return  DateRangeSelectionScreen(onDatesSelected: (DateTime startDate, DateTime endDate) {
+                    context.push(Routes.inventoryReportDownload, extra: {
+                      'startDate': startDate,
+                      'endDate': endDate,
+                    });
+                  });
 
                 case 'att-sheet':
                   return GenerateAttendanceSheetScreen();
@@ -240,28 +254,26 @@ final appRouterProvider = Provider<GoRouter>((ref) {
         },
       ),
       GoRoute(
-        path: '/register',
+        path: Routes.register,
         name: 'register',
         builder: (context, state) => const RegisterScreen(),
       ),
       GoRoute(
-        path: '/trial',
+        path: Routes.trial,
         builder: (context, state) => const TrialScreen(),
       ),
-
       GoRoute(
-        path: '/site',
+        path: Routes.site,
         name: 'site',
         builder: (context, state) => const SiteSelectCardGrid(),
       ),
       GoRoute(
-        path: '/analysis',
+        path: Routes.analysis,
         name: 'analysis',
         builder: (context, state) => const AudioUploadAnalysisScreen(),
-        // builder: (context, state) =>  TtsTestPage(),
       ),
       GoRoute(
-        path: '/moc-selection',
+        path: Routes.mocSelection,
         name: 'mocSelection',
         builder: (context, state) {
           final data = state.extra as Map<String, dynamic>;
@@ -277,15 +289,15 @@ final appRouterProvider = Provider<GoRouter>((ref) {
 
 
       GoRoute(
-        path: '/manpower',
+        path: Routes.manpower,
         builder: (context, state) => const ManSelectCardGrid(),
       ),
       GoRoute(
-        path: '/manpower/addDetails',
+        path: Routes.manpowerAddDetails,
         builder: (context, state) => const NewManpowerScreen(),
       ),
       GoRoute(
-        path: '/edit-manpower',
+        path: Routes.editManpower,
         builder: (context, state) {
           final manpower = state.extra as ManpowerModel;
           return EditManpowerScreen(manpower: manpower);
@@ -293,122 +305,98 @@ final appRouterProvider = Provider<GoRouter>((ref) {
       ),
 
       GoRoute(
-        path: '/dpr-work-list/:siteId/:teamId/:name',
+        path: '${Routes.dprWorkList}/:siteId/:name',
         builder: (context, state) {
           final siteId = state.pathParameters['siteId']!;
-          final teamId = state.pathParameters['teamId']!;
-          final name=state.pathParameters['name']!;
-          return DprWorkScreen(siteId: siteId, teamId: teamId, name: name,);
+          final name = state.pathParameters['name']!;
+          final extra = state.extra as Map<String, dynamic>?;
+
+          return DprWorkScreen(
+            siteId: siteId,
+            name: name,
+            selectedStartDate: extra?['startDate'],
+            selectedEndDate: extra?['endDate'],
+          );
         },
       ),
 
       GoRoute(
-        path: '/profile',
+        path: Routes.profile,
         builder: (context, state) {
           return ProfileScreen();
-          // return RagScreen();
-
-
         },
       ),
       GoRoute(
-        path: '/theme',
+        path: Routes.theme,
         builder: (context, state) {
           return ThemeScreen();
-
-
         },
       ),
       GoRoute(
-        path: '/upcoming-update',
+        path: Routes.upcomingUpdate,
         builder: (context, state) {
           return Updates();
-          // return ConstructionSiteScreen();
-
-
         },
       ),
       GoRoute(
-        path: '/subscription',
+        path: Routes.subscription,
         builder: (context, state) {
           return SubscriptionScreen();
-
-
         },
       ),
       GoRoute(
-        path: '/language',
+        path: Routes.language,
         builder: (context, state) {
           return LanguageSelectionScreen();
-
-
         },
       ),
       GoRoute(
-        path: '/help',
+        path: Routes.help,
         builder: (context, state) {
           return HelpCenterScreen();
-
-
         },
       ),
 
       GoRoute(
-        path: '/salary',
+        path: Routes.salary,
         builder: (context, state) => const CategoryScreen(),
         routes: [
           GoRoute(
             path: 'individual', // 👈 becomes /salary/individual
             builder: (context, state) => const SalarySlipScreen(),
           ),
-          // GoRoute(
-          //   path: 'many', // 👈 becomes /salary/many
-          //   builder: (context, state) => const SalaryBulkScreen(),
-          // ),
         ],
       ),
       GoRoute(
-        path: '/summary',
+        path: Routes.summary,
         builder: (context, state) {
-
           return SummaryScreen();
         },
       ),
 
-
-
-
-
       GoRoute(
-        path: '/module/:name',
+        path: '${Routes.moduleDetail}/:name',
         builder: (context, state) {
           final moduleName = state.pathParameters['name']!;
           return ModuleDetailScreen(moduleName: moduleName);
         },
       ),
       GoRoute(
-        path: '/dpr-insu-review',
+        path: Routes.dprInsuReview,
         name: 'dpr-screen-insu',
         builder: (context, state) {
-          final data = state.extra as Map<String, dynamic>;
           return AddInsulationDescriptionScreen();
-          // return DprInsulationScreen(
-          //   siteId: data['siteId'],
-          //   teamId: data['teamId'],
-          //   siteName: data['siteName'],
-          //   teamName: data['teamName'],
-          // );
         },
       ),
 
       GoRoute(
-        path: '/terms',
+        path: Routes.terms,
         name: 'terms',
         builder: (context, state) => const TermsAndConditionsScreen(),
       ),
 
       GoRoute(
-        path: '/lagging-material',
+        path: Routes.laggingMaterial,
         name: 'lagging-material',
         builder: (context, state) {
           final data = state.extra as Map<String, dynamic>;
@@ -423,7 +411,7 @@ final appRouterProvider = Provider<GoRouter>((ref) {
       ),
 
       GoRoute(
-        path: '/cladding',
+        path: Routes.cladding,
         name: 'cladding',
         builder: (context, state) {
           final data = state.extra as Map<String, dynamic>;
@@ -436,7 +424,129 @@ final appRouterProvider = Provider<GoRouter>((ref) {
         },
       ),
 
+      // Migration routes
+      GoRoute(
+        path: Routes.addTeam,
+        builder: (context, state) => const AddTeamScreen(),
+      ),
+      GoRoute(
+        path: Routes.siteEntrySelect,
+        builder: (context, state) => const SiteEntrySelectCardGrid(),
+      ),
+      GoRoute(
+        path: Routes.dprReportDownload,
+        builder: (context, state) {
+          final extra = state.extra as Map<String, dynamic>;
+          return SheetDownloadPage(
+            selectedStartDate: extra['startDate'],
+            selectedEndDate: extra['endDate'],
+          );
+        },
+      ),
+      GoRoute(
+        path: Routes.inventoryReportDownload,
+        builder: (context, state) {
+          final extra = state.extra as Map<String, dynamic>;
+          return DailyUsagePage(
+            selectedStartDate: extra['startDate'],
+            selectedEndDate: extra['endDate'],
+          );
+        },
+      ),
+      GoRoute(
+         path: Routes.dprDescription,
+         builder: (context, state) {
+           final work = state.extra as DprModel?;
+           return AddDescriptionScreen(work: work);
+         },
+       ),
+       GoRoute(
+         path: Routes.dprInsuDescription,
+         builder: (context, state) {
+           final work = state.extra as InsulationDprModel?;
+           return AddInsulationDescriptionScreen(work: work);
+         },
+       ),
+      GoRoute(
+        path: Routes.dprViewSelect,
+        builder: (context, state) => const ViewSelectCardGrid(),
+      ),
+      GoRoute(
+        path: Routes.addMoc,
+        builder: (context, state) => const AddMOCPage(),
+      ),
+      GoRoute(
+        path: Routes.addFloor,
+        builder: (context, state) => const AddFloorPage(),
+      ),
+      GoRoute(
+        path: Routes.salarySelectRange,
+        builder: (context, state) => const SelectRangeScreen(),
+      ),
+      GoRoute(
+        path: Routes.inventoryList,
+        builder: (context, state) => const InventoryListScreen(),
+      ),
+      GoRoute(
+        path: Routes.editRate,
+        builder: (context, state) {
+          final extra = state.extra as Map<String, dynamic>;
+          return EditRateScreen(
+            site: extra['site'],
+            rate: extra['rate'],
+          );
+        },
+      ),
+      GoRoute(
+        path: Routes.addRate,
+        builder: (context, state) {
+          final siteId = state.extra as String;
+          return AddRateScreen();
+        },
+      ),
+      GoRoute(
+         path: Routes.datePicker,
+         builder: (context, state) {
+           final extra = state.extra as Map<String, dynamic>;
+           return DateRangeSelectionScreen(
+             onDatesSelected: extra['onDatesSelected'],
+           );
+         },
+       ),
+       GoRoute(
+         path: Routes.expenseForm,
+         builder: (context, state) {
+           final extra = state.extra as Map<String, dynamic>;
+           return ExpenseFormScreen(
+             siteId: extra['siteId'],
+             expenseType: extra['expenseType'],
+             expenseId: extra['expenseId'],
+             expense: extra['expense'],
+           );
+         },
+       ),
+       GoRoute(
+         path: Routes.editInventory,
+         builder: (context, state) {
+           final inventory = state.extra as Inventory;
+           return EditInventoryScreen(inventory: inventory);
+         },
+       ),
+       GoRoute(
+         path: Routes.editTeam,
+         builder: (context, state) {
+           final extra = state.extra as Map<String, dynamic>;
+           return EditTeamScreen(
+             site: extra['site'],
+             team: extra['team'],
+           );
+         },
+       ),
 
-    ],
-  );
-});
+      GoRoute(
+        path: Routes.deviceOtp,
+        builder: (context, state) => const DeviceOtpScreen(),
+      ),
+      ],
+    );
+  });

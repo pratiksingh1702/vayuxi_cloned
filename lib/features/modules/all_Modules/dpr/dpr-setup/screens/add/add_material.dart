@@ -622,7 +622,7 @@ class _PersistDPRScreenState extends ConsumerState<PersistDPRScreen> {
                       onTap: () {
                         setState(() => _dynamicFields.removeAt(i));
                       },
-                      child: const Icon(Icons.delete, color: Colors.red),
+                      child: const Icon(Icons.delete_outline, color: Colors.red),
                     )
                   ],
                 ),

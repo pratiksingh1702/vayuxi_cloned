@@ -42,6 +42,7 @@ import '../providers/rate_variant_provider.dart';
 import '../providers/selectedSize_provider.dart';
 import '../providers/selection_provider.dart';
 import '../providers/service/rate_upload_material_dpr.dart';
+import 'controllers/dpr_session_provider.dart';
 import 'material_sync_util.dart';
 
 class AddDescriptionScreen extends ConsumerStatefulWidget {
@@ -97,6 +98,7 @@ class _AddDescriptionScreenState extends ConsumerState<AddDescriptionScreen>
   bool get isEditing => _mechanicalId != null;
   Set<String> _updatingMaterialIds = {};
   bool _headerInitialized = false;
+  bool _isDateOverrideMode = false;
 
 
 
@@ -113,36 +115,38 @@ class _AddDescriptionScreenState extends ConsumerState<AddDescriptionScreen>
   //   });
   // }
   @override
+  @override
   void initState() {
     super.initState();
-
     WidgetsBinding.instance.addObserver(this);
     _initializeControllers();
     _initializeData();
 
-    if (widget.work != null) {
-      _mechanicalId = widget.work!.id;
-
-      // ADD THIS
-      WidgetsBinding.instance.addPostFrameCallback((_) {
-        final jsonString = const JsonEncoder.withIndent('  ').convert(widget.work!.toJson());
-        debugPrint('🔴 WIDGET.WORK JSON:');
-        for (int i = 0; i < jsonString.length; i += 800) {
-          final end = (i + 800 < jsonString.length) ? i + 800 : jsonString.length;
-          debugPrint(jsonString.substring(i, end));
-        }
-      });
-    }
-
     WidgetsBinding.instance.addPostFrameCallback((_) async {
+      // 🔴 Read persisted session
+      final session = ref.read(dprSessionProvider);
+
+      // Restore date
+      _selectedDate = session.selectedDate;
+      _globalEditMode = session.isEditMode;
+
+      if (widget.work != null) {
+        _mechanicalId = widget.work!.id;
+      }
+
       await loadScreenState(Dpr: widget.work);
-      if(widget.work==null)_applyHeaderValuesToMaterials();
+
+      // 🔴 If edit mode was on for a past date, fetch DPR list for that date
+      if (session.isEditMode && !_isToday(session.selectedDate)) {
+        await _fetchDprListForDate(session.selectedDate);
+      }
+
+      if (widget.work == null) _applyHeaderValuesToMaterials();
     });
 
     _floorController.addListener(_applyHeaderValuesToMaterials);
     _mocController.addListener(_applyHeaderValuesToMaterials);
     _sizeController.addListener(_applyHeaderValuesToMaterials);
-
   }
   void _setControllerSilently(
       TextEditingController controller,
@@ -882,10 +886,10 @@ class _AddDescriptionScreenState extends ConsumerState<AddDescriptionScreen>
 
     if (picked == null || picked == _selectedDate) return;
 
-    setState(() {
-      _selectedDate = picked;
-    });
 
+    ref.read(dprSessionProvider.notifier).setDate(picked);
+
+    setState(() => _selectedDate = picked);
     await _fetchDprListForDate(picked);
 
     /// ALWAYS initialize new DPR
@@ -1298,34 +1302,22 @@ class _AddDescriptionScreenState extends ConsumerState<AddDescriptionScreen>
         _globalEditMode && _dprListForSelectedDate.isNotEmpty;
     final team = ref.read(currentTeamProvider);
     final site = ref.read(currentSiteProvider);
-    final teamid = ref.read(selectedTeamIdProvider)!;
-    final siteid = ref.read(selectedSiteIdProvider)!;
 
-    debugPrint("Team -> $team");
-    debugPrint("Site -> $site");
-    debugPrint("Teamid -> $teamid");
-    debugPrint("Siteid -> $siteid");
-
-    final appBarTitle = team?.isDefaultTeam == true
-        ? (site?.siteName ?? "DPR")
-        : (team?.teamName ?? "DPR");
 
     return Scaffold(
       backgroundColor: Colors.grey[50],
       drawer: const CustomDrawer(),
       body: NestedScrollView(
         headerSliverBuilder: (context, innerBoxIsScrolled) {
-          final appBarTitle = (team == null || team.isDefaultTeam)
-              ? (site?.siteName ?? "DPR")
-              : (team.teamName ?? "DPR");
-          return [CustomSliverAppBar(title: appBarTitle)];
+
+          return [CustomSliverAppBar(title: "Dpr Entry")];
         },
         body: BottomButtonWrapper(
           customButtons: [
             CustomButton(
               button: RoundedButton(
                 text: _isSubmitting ? 'Saving..' : 'Save',
-                color: _isEditable ? const Color(0xFF1B6DCE) : Colors.grey,
+                color: _isEditable||_isDateOverrideMode ? const Color(0xFF1B6DCE) : Colors.grey,
                 textColor: Colors.white,
                 onPressed: _isSubmitting ? () {} : _handleSubmitFields,
                 isOutlined: false,
@@ -1349,20 +1341,36 @@ class _AddDescriptionScreenState extends ConsumerState<AddDescriptionScreen>
                       Row(
                         mainAxisAlignment: MainAxisAlignment.spaceBetween,
                         children: [
-                          IconButton(
-                            tooltip: "Reset Materials",
-                            icon: const Icon(
-                              Icons.refresh,
-                              color: Colors.red,
-                            ),
-                            onPressed: () async {
-                              await _resetMaterialProviders();
+                          Row(
+                            children: [
 
-                              _showSnackBar("Materials reset");
-                            },
+                              Column(
+                                crossAxisAlignment: CrossAxisAlignment.start,
+                                children: [
+                                  Text(
+                                    site?.siteName ?? "DPR",
+                                    style: const TextStyle(
+                                      fontSize: 14,
+                                      fontWeight: FontWeight.bold,
+                                      color: Colors.black,
+                                    ),
+                                    maxLines: 1,
+                                    overflow: TextOverflow.ellipsis,
+                                  ),
+                                  Text(
+                                    team?.teamName ?? "Default Team",
+                                    style: TextStyle(
+                                      fontSize: 10,
+                                      color: Colors.grey[600],
+                                      fontStyle: FontStyle.italic,
+                                    ),
+                                    maxLines: 1,
+                                    overflow: TextOverflow.ellipsis,
+                                  ),
+                                ],
+                              ),
+                            ],
                           ),
-
-
                           _buildEditModeButton(),
                         ],
                       ),
@@ -1636,67 +1644,140 @@ class _AddDescriptionScreenState extends ConsumerState<AddDescriptionScreen>
 
   Widget _buildDateSection() {
     final lang = ref.watch(dailyEntryTranslationHelperProvider);
-    return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
-      decoration: BoxDecoration(
-        gradient: LinearGradient(
-          colors: [Colors.blue[50]!, Colors.blue[100]!],
-        ),
-        borderRadius: BorderRadius.circular(12),
-      ),
-      child: Row(
-        mainAxisAlignment: MainAxisAlignment.spaceBetween,
-        children: [
-          Row(
+    final isEditingDpr = widget.work != null;
+    final showPencil = isEditingDpr; // Always show if work is not null
+    final canChangeDateNormal = !isEditingDpr && _globalEditMode;
+
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Container(
+          padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+          decoration: BoxDecoration(
+            gradient: LinearGradient(
+              colors: _isDateOverrideMode
+                  ? [Colors.blue[50]!, Colors.blue[100]!]
+                  : [Colors.blue[50]!, Colors.blue[100]!],
+            ),
+            color: _isDateOverrideMode ? Colors.blue.shade50 : null,
+            borderRadius: BorderRadius.circular(12),
+            border: _isDateOverrideMode
+                ? Border.all(color: Colors.blue.shade700, width: 2)
+                : null,
+          ),
+          child: Row(
+            mainAxisAlignment: MainAxisAlignment.spaceBetween,
             children: [
-              const SizedBox(width: 8),
-              Text(
-                "${lang.dailyReportTitle}",
-                style:
-                    const TextStyle(fontSize: 15, fontWeight: FontWeight.w600),
+              Row(
+                children: [
+                  const SizedBox(width: 8),
+                  Text(
+                    "${lang.dailyReportTitle}",
+                    style: const TextStyle(
+                        fontSize: 15, fontWeight: FontWeight.w600),
+                  ),
+                ],
+              ),
+              Row(
+                children: [
+                  GestureDetector(
+                    onTap: canChangeDateNormal ? () => _selectDate(context) : null,
+                    child: Container(
+                      padding: const EdgeInsets.symmetric(
+                          horizontal: 12, vertical: 6),
+                      decoration: BoxDecoration(
+                        color: _globalEditMode
+                            ? Colors.blue.shade50
+                            : Colors.transparent,
+                        borderRadius: BorderRadius.circular(8),
+                        border: Border.all(
+                          color: _globalEditMode
+                              ? Colors.blue.shade200
+                              : Colors.transparent,
+                          width: 1,
+                        ),
+                      ),
+                      child: Row(
+                        children: [
+                          const SizedBox(width: 6),
+                          Text(
+                            _formatDate(_selectedDate),
+                            style: TextStyle(
+                              fontSize: 14,
+                              fontWeight: FontWeight.w600,
+                              color:
+                                  _globalEditMode ? Colors.blue : Colors.black,
+                            ),
+                          ),
+                          if (canChangeDateNormal) ...[
+                            const SizedBox(width: 6),
+                            const Icon(
+                              Icons.calendar_month,
+                              size: 14,
+                              color: Colors.blue,
+                            ),
+                          ],
+                        ],
+                      ),
+                    ),
+                  ),
+                  if (showPencil) ...[
+                    const SizedBox(width: 8),
+                    IconButton(
+                      icon: const Icon(Icons.edit, color: Colors.blue, size: 20),
+                      onPressed: () => _handleDateOverride(context),
+                      padding: EdgeInsets.zero,
+                      constraints: const BoxConstraints(),
+                    ),
+                  ],
+                ],
               ),
             ],
           ),
-          GestureDetector(
-            onTap: () => _selectDate(context),
-            child: Container(
-              padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
-              decoration: BoxDecoration(
-                color:
-                    _globalEditMode ? Colors.blue.shade50 : Colors.transparent,
-                borderRadius: BorderRadius.circular(8),
-                border: Border.all(
-                  color: _globalEditMode
-                      ? Colors.blue.shade200
-                      : Colors.transparent,
-                  width: 1,
-                ),
-              ),
-              child: Row(
-                children: [
-                  const SizedBox(width: 6),
-                  Text(
-                    _formatDate(_selectedDate),
-                    style: TextStyle(
-                      fontSize: 14,
-                      fontWeight: FontWeight.w600,
-                      color: _globalEditMode ? Colors.blue : Colors.black,
-                    ),
+        ),
+        if (_isDateOverrideMode)
+          Padding(
+            padding: const EdgeInsets.only(left: 16, top: 4),
+            child: Row(
+              children: [
+                Container(
+                  width: 8,
+                  height: 8,
+                  decoration: const BoxDecoration(
+                    color: Colors.blue,
+                    shape: BoxShape.circle,
                   ),
-                  if (!_globalEditMode) const SizedBox(width: 6),
-                  if (_globalEditMode)
-                    const Icon(
-                      Icons.calendar_month,
-                      size: 14,
-                      color: Colors.blue,
-                    ),
-                ],
-              ),
+                ),
+                const SizedBox(width: 6),
+                const Text(
+                  "Date modified",
+                  style: TextStyle(
+                    fontSize: 12,
+                    color: Colors.blue,
+                    fontWeight: FontWeight.bold,
+                  ),
+                ),
+              ],
             ),
           ),
-        ],
-      ),
+      ],
     );
+  }
+
+  Future<void> _handleDateOverride(BuildContext context) async {
+    final picked = await showDatePicker(
+      context: context,
+      initialDate: _selectedDate,
+      firstDate: DateTime(2020),
+      lastDate: DateTime.now(),
+    );
+
+    if (picked == null || picked == _selectedDate) return;
+
+    setState(() {
+      _selectedDate = picked;
+      _isDateOverrideMode = true;
+    });
   }
 
   Widget _buildEditModeButton() {
@@ -2462,12 +2543,12 @@ class _AddDescriptionScreenState extends ConsumerState<AddDescriptionScreen>
         ),
         actions: [
           TextButton(
-            onPressed: () => Navigator.pop(context),
+            onPressed: () => context.pop(),
             child: Text('Cancel', style: TextStyle(color: Colors.grey[600])),
           ),
           ElevatedButton(
             onPressed: () {
-              Navigator.pop(context);
+              context.pop();
               _updateMaterialRemark(materialId, remarkController.text,
                   isPiping: isPiping);
             },
@@ -2582,8 +2663,20 @@ class _AddDescriptionScreenState extends ConsumerState<AddDescriptionScreen>
   }
 
   void _toggleGlobalEditMode() {
+    final newMode = !_globalEditMode;
+
+    ref.read(dprSessionProvider.notifier).setEditMode(
+      newMode,
+      date: newMode ? _selectedDate : null,
+    );
+
     setState(() {
-      _globalEditMode = !_globalEditMode;
+      _globalEditMode = newMode;
+      if (!newMode) {
+        // Reset to today
+        _selectedDate = DateTime.now();
+        _isDateOverrideMode = false;
+      }
     });
 
     if (_globalEditMode) {
@@ -2922,23 +3015,28 @@ class _AddDescriptionScreenState extends ConsumerState<AddDescriptionScreen>
 
       final dateString = DateFormat('yyyy-MM-dd').format(pureDate);
 
-      final updateData = {
-        'dprName': _dprNameController.text.trim(),
-        'moc': _mocController.text.trim(),
-        'size': _sizeController.text.trim(),
-        'sizeUom':_sizeUomController.text.trim(),
-        'location': _floorController.text.trim(),
-        'plant': _plantController.text.trim(),
-        (_mechanicalId == null || _mechanicalId!.isEmpty)
-            ? 'date'
-            : 'updatedDate':dateString,
+      final Map<String, dynamic> updateData;
 
-        if (_mechanicalId == null && dprDesignation.isNotEmpty)
-          'designation': dprDesignation,
-
-        // ✅ new merged key
-        if (items.isNotEmpty) 'items': items,
-      };
+      if (_isDateOverrideMode) {
+        updateData = {
+          'date': _selectedDate.toIso8601String(),
+        };
+      } else {
+        updateData = {
+          'dprName': _dprNameController.text.trim(),
+          'moc': _mocController.text.trim(),
+          'size': _sizeController.text.trim(),
+          'sizeUom': _sizeUomController.text.trim(),
+          'location': _floorController.text.trim(),
+          'plant': _plantController.text.trim(),
+          (_mechanicalId == null || _mechanicalId!.isEmpty)
+              ? 'date'
+              : 'updatedDate': dateString,
+          if (_mechanicalId == null && dprDesignation.isNotEmpty)
+            'designation': dprDesignation,
+          if (items.isNotEmpty) 'items': items,
+        };
+      }
 
       print('Sending update data: ${dateString}');
 

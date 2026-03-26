@@ -48,6 +48,43 @@ class InsulationDprApi {
     }
   }
 
+  static Future<List<InsulationDprModel>> fetchSiteInsulationDprV2({
+    required String siteId,
+  }) async {
+    try {
+      // Trying the URL confirmed to work in user logs first
+      final response = await DioClient.dio.get(
+        "/site/$siteId/team/dpr-insulation",
+        options: Options(extra: {"withCredentials": true}),
+      );
+
+      if (response.statusCode == 200) {
+        final data = response.data;
+        if (data is List) {
+          return data.map((e) => InsulationDprModel.fromJson(e)).toList();
+        }
+      }
+
+      // Fallback to the v2 URL if requested
+      final v2Response = await DioClient.dio.get(
+        "/site/$siteId/dpr-insulation-v2",
+        options: Options(extra: {"withCredentials": true}),
+      );
+
+      if (v2Response.statusCode == 200) {
+        final data = v2Response.data;
+        if (data is List) {
+          return data.map((e) => InsulationDprModel.fromJson(e)).toList();
+        }
+      }
+
+      throw Exception("Failed to fetch site insulation DPRs");
+    } catch (e) {
+      print("❌ Error fetching site insulation DPRs: $e");
+      rethrow;
+    }
+  }
+
   // ----------------------------
 // 10. Bulk Delete Materials
 // ----------------------------

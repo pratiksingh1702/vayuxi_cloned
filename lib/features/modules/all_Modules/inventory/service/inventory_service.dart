@@ -630,7 +630,15 @@ class InventoryApi {
       data: payload,
     );
 
-    return InventoryUsage.fromJson(res.data['usage'] ?? res.data);
+    // res.data = { usage: { inventory: "id_string", ... }, inventory: { _id, currentBalance, ... } }
+    final Map<String, dynamic> usageMap = Map<String, dynamic>.from(res.data['usage']);
+
+    // Inject the populated inventory object into the usage map before parsing
+    if (res.data['inventory'] is Map<String, dynamic>) {
+      usageMap['inventory'] = res.data['inventory'];
+    }
+
+    return InventoryUsage.fromJson(usageMap);
   }
 
 

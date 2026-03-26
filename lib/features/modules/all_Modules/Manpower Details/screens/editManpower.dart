@@ -177,12 +177,12 @@ class _EditManpowerScreenState extends ConsumerState<EditManpowerScreen> {
   }
 
   Future<void> _pickDate(BuildContext context, bool isDOB) async {
+    final currentDate = isDOB ? _dob : _doj; // ✅ YOU MISSED THIS
     final picked = await showDatePicker(
       context: context,
-      initialDate:
-      isDOB ? (_dob ?? DateTime(1990)) : (_doj ?? DateTime.now()),
+      initialDate:currentDate ?? DateTime.now(),
       firstDate: DateTime(1950),
-      lastDate: DateTime(2100),
+        lastDate: DateTime.now()
     );
     if (picked != null) {
       setState(() {
@@ -500,6 +500,7 @@ class _EditManpowerScreenState extends ConsumerState<EditManpowerScreen> {
                   ),
 
                   // ── Phone ──
+                  const SizedBox(height: 16),
                   PhoneInputField(controller: _phoneController),
 
                   // ── ✅ Site Selector (pre-filled) ──
@@ -880,7 +881,7 @@ class _EditManpowerScreenState extends ConsumerState<EditManpowerScreen> {
                 Text(
                   date != null
                       ? "${date.day}-${date.month}-${date.year}"
-                      : "Input Text",
+                      :  "Select Date",
                   style: TextStyle(
                     fontSize: 15,
                     color: date != null

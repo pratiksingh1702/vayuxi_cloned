@@ -1,6 +1,7 @@
 // screens/expense/expense_form_screen.dart
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:go_router/go_router.dart';
 import 'package:untitled2/core/utlis/app_toasts.dart';
 import 'package:untitled2/core/utlis/colors/colors.dart';
 import 'package:untitled2/core/utlis/widgets/Button_wrapper.dart';
@@ -320,7 +321,7 @@ class _ExpenseFormScreenState extends ConsumerState<ExpenseFormScreen> {
        AppToast.success("Expense created successfully");
       }
 
-      Navigator.pop(context);
+      context.pop();
     } catch (e) {
       AppToast.error("Failed to save expense: $e");
     } finally {
@@ -336,11 +337,11 @@ class _ExpenseFormScreenState extends ConsumerState<ExpenseFormScreen> {
         content: const Text("Are you sure you want to delete this expense?"),
         actions: [
           TextButton(
-            onPressed: () => Navigator.pop(context, false),
+            onPressed: () => context.pop(false),
             child: const Text("Cancel"),
           ),
           TextButton(
-            onPressed: () => Navigator.pop(context, true),
+            onPressed: () => context.pop(true),
             child: const Text("Delete", style: TextStyle(color: Colors.red)),
           ),
         ],
@@ -357,7 +358,7 @@ class _ExpenseFormScreenState extends ConsumerState<ExpenseFormScreen> {
         ScaffoldMessenger.of(context).showSnackBar(
           const SnackBar(content: Text("Expense deleted successfully")),
         );
-        Navigator.pop(context);
+        context.pop();
       } catch (e) {
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(content: Text("Failed to delete expense: $e")),

@@ -38,6 +38,7 @@ class _CreateInventoryScreenState extends ConsumerState<CreateInventoryScreen> {
 
     final siteId = ref.read(selectedSiteIdProvider);
     if (siteId != null) {
+      // SINGLE sync trigger in screen init ONLY
       ref.read(inventorySyncControllerProvider(siteId));
     }
   }
@@ -86,7 +87,7 @@ class _CreateInventoryScreenState extends ConsumerState<CreateInventoryScreen> {
         return;
       }
 
-      await ref.read(createInventoryProvider((
+      await ref.read(createInventoryProvider(CreateInventoryParams(
         siteId: siteId,
         condition: null,
         name: _nameController.text.trim(),
@@ -105,10 +106,6 @@ class _CreateInventoryScreenState extends ConsumerState<CreateInventoryScreen> {
             ? null
             : _remarksController.text.trim(),
       )).future);
-
-      ref.invalidate(inventoryProvider(siteId));
-
-      ref.read(inventorySyncControllerProvider(siteId));
 
       Navigator.pop(context);
       _success("Inventory created");
@@ -188,6 +185,10 @@ class _CreateInventoryScreenState extends ConsumerState<CreateInventoryScreen> {
                     label: 'Inventory Name',
                     isRequired: true,
                     controller: _nameController,
+                    validator: (v) {
+                      if (v == null || v.trim().isEmpty) return "Name is required";
+                      return null;
+                    },
                   ),
 
                   const SizedBox(height: 16),
@@ -200,7 +201,14 @@ class _CreateInventoryScreenState extends ConsumerState<CreateInventoryScreen> {
                             label: 'Quantity',
                             isRequired: true,
                             controller: _quantityController,
-                            keyboardType: TextInputType.number,
+                            keyboardType: const TextInputType.numberWithOptions(decimal: true),
+                            validator: (v) {
+                              if (v == null || v.isEmpty) return "Required";
+                              final n = double.tryParse(v);
+                              if (n == null) return "Invalid";
+                              if (n < 0) return "Negative";
+                              return null;
+                            },
                           ),
                         ),
                         const SizedBox(width: 12),
@@ -209,6 +217,7 @@ class _CreateInventoryScreenState extends ConsumerState<CreateInventoryScreen> {
                             label: 'UOM',
                             isRequired: true,
                             controller: _uomController,
+                            validator: (v) => (v == null || v.isEmpty) ? "Required" : null,
                           ),
                         ),
                       ],
@@ -218,7 +227,14 @@ class _CreateInventoryScreenState extends ConsumerState<CreateInventoryScreen> {
                       label: 'Minimum Stock Level',
                       isRequired: true,
                       controller: _minStockController,
-                      keyboardType: TextInputType.number,
+                      keyboardType: const TextInputType.numberWithOptions(decimal: true),
+                      validator: (v) {
+                        if (v == null || v.isEmpty) return "Required";
+                        final n = double.tryParse(v);
+                        if (n == null) return "Invalid";
+                        if (n < 0) return "Negative";
+                        return null;
+                      },
                     ),
                   ],
 
@@ -231,6 +247,13 @@ class _CreateInventoryScreenState extends ConsumerState<CreateInventoryScreen> {
                             isRequired: true,
                             controller: _unitsController,
                             keyboardType: TextInputType.number,
+                            validator: (v) {
+                              if (v == null || v.isEmpty) return "Required";
+                              final n = int.tryParse(v);
+                              if (n == null) return "Invalid";
+                              if (n < 0) return "Negative";
+                              return null;
+                            },
                           ),
                         ),
                         const SizedBox(width: 12),
@@ -239,6 +262,7 @@ class _CreateInventoryScreenState extends ConsumerState<CreateInventoryScreen> {
                             label: 'UOM',
                             isRequired: true,
                             controller: _uomController,
+                            validator: (v) => (v == null || v.isEmpty) ? "Required" : null,
                           ),
                         ),
                       ],

@@ -267,7 +267,7 @@ class _PipingMaterialCardState extends State<PipingMaterialCard> {
                             const SizedBox(width: 6),
                             _actionBtn(Icons.copy, Colors.green, widget.onAdd),
                             const SizedBox(width: 6),
-                            _actionBtn(Icons.delete, Colors.red, widget.onDelete),
+                            _actionBtn(Icons.delete_outline, Colors.red, widget.onDelete),
                           ],
                         ),
                       ],

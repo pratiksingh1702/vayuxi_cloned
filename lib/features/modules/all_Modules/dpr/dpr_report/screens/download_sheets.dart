@@ -2,6 +2,7 @@ import 'dart:io';
 import 'dart:typed_data';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:go_router/go_router.dart';
 import 'package:file_picker/file_picker.dart';
 import 'package:path_provider/path_provider.dart';
 import 'package:open_file/open_file.dart';
@@ -16,8 +17,6 @@ import 'package:untitled2/typeProvider/type_provider.dart';
 import '../../../../../../core/utlis/widgets/date_picker.dart';
 import '../../providers/dpr.dart';
 import '../../providers/dprService.dart';
-import '../../screens/dprTeamDetails.dart';
-import '../../screens/workTeamList.dart';
 
 class SheetDownloadPage extends ConsumerStatefulWidget {
   final DateTime? selectedStartDate;
@@ -762,29 +761,43 @@ class _SheetDownloadPageState extends ConsumerState<SheetDownloadPage> {
                       label: "Description Sheet",
                       onTap: () async {
                         final sid = ref.read(selectedSiteIdProvider);
-                        final tid = ref.read(selectedTeamIdProvider);
+                        final selectedTeam = ref.read(selectedTeamProvider);
 
-                        if (sid == null ) {
+                        if (sid == null) {
                           ScaffoldMessenger.of(context).showSnackBar(
                             const SnackBar(
                               content: Text(
-                                "Please select a site home screen drop-downs",
+                                "Please select a site from the home screen dropdown",
                               ),
                               backgroundColor: Colors.orange,
                               behavior: SnackBarBehavior.floating,
                               duration: Duration(seconds: 2),
                             ),
                           );
-                          return; // ← THIS IS THE IMPORTANT LINE
+                          return;
                         }
 
-                        Navigator.push(
-                          context,
-                          MaterialPageRoute(
-                            builder: (context) =>WorkTeamListPage(selectedStartDate:_selectedStartDate??widget.selectedStartDate,selectedEndDate:_selectedEndDate??widget.selectedEndDate,),
+                        if (selectedTeam == null) {
+                          ScaffoldMessenger.of(context).showSnackBar(
+                            const SnackBar(
+                              content: Text(
+                                "Please select a team from the home screen dropdown",
+                              ),
+                              backgroundColor: Colors.orange,
+                              behavior: SnackBarBehavior.floating,
+                              duration: Duration(seconds: 2),
                             ),
-                        );
+                          );
+                        }
+                        final teamName = selectedTeam!=null?selectedTeam.teamName :'no-team';
 
+                        context.push(
+                          '/dpr-work-list/$sid/$teamName',
+                          extra: {
+                            'startDate': _selectedStartDate ?? widget.selectedStartDate,
+                            'endDate': _selectedEndDate ?? widget.selectedEndDate,
+                          },
+                        );
 
                       },
 

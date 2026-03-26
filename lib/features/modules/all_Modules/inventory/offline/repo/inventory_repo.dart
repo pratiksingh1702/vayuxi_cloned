@@ -89,6 +89,8 @@ class InventoryRepository {
           ..id = created.id
           ..siteId = siteId
           ..categoryId = created.category.id
+          ..categoryName = created.category.name
+          ..categoryType = created.category.type
           ..name = created.name
           ..type = created.type
           ..uom = created.uom
@@ -111,6 +113,238 @@ class InventoryRepository {
     print("🔎 DB CHECK: ${check?.name}");
 
     return created;
+  }
+
+  Future<Inventory> updateInventory({
+    required String siteId,
+    required String inventoryId,
+    String? name,
+    String? uom,
+    double? minimumStockLevel,
+    int? totalUnits,
+    String? condition,
+    String? remarks,
+  }) async {
+    // 1️⃣ API call
+    final updated = await api.updateInventory(
+      siteId: siteId,
+      inventoryId: inventoryId,
+      name: name,
+      uom: uom,
+      minimumStockLevel: minimumStockLevel,
+      totalUnits: totalUnits,
+      condition: condition,
+      remarks: remarks,
+    );
+
+    // 2️⃣ Update Isar
+    await isar.writeTxn(() async {
+      final existing = await isar.inventoryIsars
+          .filter()
+          .idEqualTo(inventoryId)
+          .findFirst();
+
+      if (existing != null) {
+        await isar.inventoryIsars.put(
+          existing
+            ..name = updated.name
+            ..categoryId = updated.category.id
+            ..categoryName = updated.category.name
+            ..categoryType = updated.category.type
+            ..type = updated.type
+            ..uom = updated.uom
+            ..totalQuantityAdded = updated.totalQuantityAdded
+            ..currentBalance = updated.currentBalance
+            ..minimumStockLevel = updated.minimumStockLevel
+            ..totalUnits = updated.totalUnits
+            ..availableUnits = updated.availableUnits
+            ..condition = updated.condition
+            ..remarks = updated.remarks
+            ..updatedAt = DateTime.now(),
+        );
+      }
+    });
+
+    return updated;
+  }
+
+  Future<void> deleteInventory({
+    required String siteId,
+    required String inventoryId,
+  }) async {
+    // 1️⃣ API call
+    await api.deleteInventory(siteId: siteId, inventoryId: inventoryId);
+
+    // 2️⃣ Soft delete in Isar
+    await isar.writeTxn(() async {
+      final existing = await isar.inventoryIsars
+          .filter()
+          .idEqualTo(inventoryId)
+          .findFirst();
+
+      if (existing != null) {
+        await isar.inventoryIsars.put(
+          existing
+            ..isDeleted = true
+            ..updatedAt = DateTime.now(),
+        );
+      }
+    });
+  }
+
+  Future<InventoryUsage> recordUsage({
+    required String siteId,
+    required String inventoryId,
+    required double quantityUsed,
+    required String usedByName,
+    DateTime? usageDate,
+    String? remarks,
+  }) async {
+    // 1️⃣ API call
+    final recorded = await api.recordUsage(
+      siteId: siteId,
+      inventoryId: inventoryId,
+      quantityUsed: quantityUsed,
+      usedByName: usedByName,
+      usageDate: usageDate,
+      remarks: remarks,
+    );
+
+    // 2️⃣ Update Isar
+    await isar.writeTxn(() async {
+      // Update inventory balance
+      final inventoryIsar = await isar.inventoryIsars
+          .filter()
+          .idEqualTo(inventoryId)
+          .findFirst();
+
+      if (inventoryIsar != null) {
+        inventoryIsar.currentBalance = recorded.inventory.currentBalance;
+        await isar.inventoryIsars.put(inventoryIsar);
+      }
+
+      // Add usage record
+      final usageIsar = InventoryUsageIsar()
+        ..id = recorded.id
+        ..siteId = siteId
+        ..quantityUsed = recorded.quantityUsed
+        ..uom = recorded.uom
+        ..usedByName = recorded.usedByName
+        ..usedById = recorded.usedBy?.id
+        ..usageDate = recorded.usageDate
+        ..remarks = recorded.remarks
+        ..isDeleted = recorded.isDeleted
+        ..createdAt = recorded.createdAt
+        ..updatedAt = recorded.updatedAt;
+
+      await isar.inventoryUsageIsars.put(usageIsar);
+
+      // Link relation
+      usageIsar.inventory.value = inventoryIsar;
+      await usageIsar.inventory.save();
+    });
+
+    return recorded;
+  }
+
+  Future<InventoryCheckout> checkoutItem({
+    required String siteId,
+    required String inventoryId,
+    required String issuedToName,
+    int quantity = 1,
+    DateTime? expectedReturnDate,
+    String? remarks,
+  }) async {
+    // 1️⃣ API call
+    final recorded = await api.checkoutItem(
+      siteId: siteId,
+      inventoryId: inventoryId,
+      issuedToName: issuedToName,
+      quantity: quantity,
+      expectedReturnDate: expectedReturnDate,
+      remarks: remarks,
+    );
+
+    // 2️⃣ Update Isar
+    await isar.writeTxn(() async {
+      // Update inventory available units
+      final inventoryIsar = await isar.inventoryIsars
+          .filter()
+          .idEqualTo(inventoryId)
+          .findFirst();
+
+      if (inventoryIsar != null) {
+        inventoryIsar.availableUnits = recorded.inventory.availableUnits;
+        await isar.inventoryIsars.put(inventoryIsar);
+      }
+
+      // Add checkout record
+      final checkoutIsar = InventoryCheckoutIsar()
+        ..id = recorded.id
+        ..siteId = siteId
+        ..issuedToName = recorded.issuedToName
+        ..status = recorded.status
+        ..quantity = recorded.quantity
+        ..actualReturnDate = recorded.actualReturnDate
+        ..returnRemarks = recorded.returnRemarks
+        ..updatedAt = DateTime.now();
+
+      await isar.inventoryCheckoutIsars.put(checkoutIsar);
+
+      // Link relation
+      checkoutIsar.inventory.value = inventoryIsar;
+      await checkoutIsar.inventory.save();
+    });
+
+    return recorded;
+  }
+
+  Future<InventoryCheckout> updateCheckout({
+    required String siteId,
+    required String checkoutId,
+    required String status,
+    DateTime? actualReturnDate,
+    String? returnRemarks,
+    String? condition,
+  }) async {
+    // 1️⃣ API call
+    final updated = await api.updateCheckout(
+      siteId: siteId,
+      checkoutId: checkoutId,
+      status: status,
+      actualReturnDate: actualReturnDate,
+      returnRemarks: returnRemarks,
+      condition: condition,
+    );
+
+    // 2️⃣ Update Isar
+    await isar.writeTxn(() async {
+      final checkoutIsar = await isar.inventoryCheckoutIsars
+          .filter()
+          .idEqualTo(checkoutId)
+          .findFirst();
+
+      if (checkoutIsar != null) {
+        checkoutIsar.status = updated.status;
+        checkoutIsar.actualReturnDate = updated.actualReturnDate;
+        checkoutIsar.returnRemarks = updated.returnRemarks;
+        checkoutIsar.updatedAt = DateTime.now();
+        await isar.inventoryCheckoutIsars.put(checkoutIsar);
+
+        // Update inventory available units if it was returned
+        final inventoryIsar = await isar.inventoryIsars
+            .filter()
+            .idEqualTo(updated.inventory.id)
+            .findFirst();
+
+        if (inventoryIsar != null) {
+          inventoryIsar.availableUnits = updated.inventory.availableUnits;
+          await isar.inventoryIsars.put(inventoryIsar);
+        }
+      }
+    });
+
+    return updated;
   }
 
   // ---------------------------------------------------------------------------
@@ -208,6 +442,8 @@ class InventoryRepository {
           ..id = i.id
           ..siteId = siteId
           ..categoryId = i.category.id
+          ..categoryName = i.category.name
+          ..categoryType = i.category.type
           ..name = i.name
           ..type = i.type
           ..uom = i.uom
@@ -218,7 +454,7 @@ class InventoryRepository {
           ..availableUnits = i.availableUnits
           ..condition = i.condition
           ..remarks = i.remarks
-          ..isDeleted = false
+          ..isDeleted = i.isDeleted
           ..updatedAt = i.createdAt).toList(),
       );
 

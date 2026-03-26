@@ -711,7 +711,7 @@ class _ManpowerListScreenState extends ConsumerState<ManpowerListScreen> {
 
                   // 🗑 Delete
                   IconButton(
-                    icon: const Icon(Icons.delete, color: Colors.red),
+                    icon: const Icon(Icons.delete_outline, color: Colors.red),
                     onPressed: () {
                       _confirmDelete(context, manpower.id!);
                     },

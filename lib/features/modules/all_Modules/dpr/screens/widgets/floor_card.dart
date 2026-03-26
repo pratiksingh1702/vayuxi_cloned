@@ -139,7 +139,7 @@ class FloorCard extends StatelessWidget {
                           ],
                         ),
                         child: const Icon(
-                          Icons.delete,
+                          Icons.delete_outline,
                           size: 16,
                           color: Colors.red,
                         ),

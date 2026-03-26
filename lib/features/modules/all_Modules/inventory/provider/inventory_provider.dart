@@ -44,13 +44,33 @@ StreamProvider.family<List<InventoryUsage>, String>((ref, siteId) {
   ref.watch(inventorySyncControllerProvider(siteId));
   return ref.read(repositoryProvider).watchUsage(siteId);
 });
+class InventoryUsageRangeParams {
+  final String siteId;
+  final DateTime? startDate;
+  final DateTime? endDate;
+
+  InventoryUsageRangeParams({
+    required this.siteId,
+    this.startDate,
+    this.endDate,
+  });
+
+  @override
+  bool operator ==(Object other) =>
+      identical(this, other) ||
+      other is InventoryUsageRangeParams &&
+          runtimeType == other.runtimeType &&
+          siteId == other.siteId &&
+          startDate == other.startDate &&
+          endDate == other.endDate;
+
+  @override
+  int get hashCode => siteId.hashCode ^ startDate.hashCode ^ endDate.hashCode;
+}
+
 final inventoryUsageRangeProvider = StreamProvider.family<
     List<InventoryUsage>,
-    ({
-    String siteId,
-    DateTime? startDate,
-    DateTime? endDate,
-    })
+    InventoryUsageRangeParams
 >((ref, args) {
 
   print("🟣 RANGE PROVIDER CALLED");
@@ -92,19 +112,49 @@ StreamProvider.family<List<InventoryCheckout>, String>((ref, siteId) {
   ref.watch(inventorySyncControllerProvider(siteId));
   return ref.read(repositoryProvider).watchCheckouts(siteId);
 });
-final createCheckoutProvider = FutureProvider.family<
-    InventoryCheckout,
-    ({
-    String siteId,
-    String inventoryId,
-    String issuedToName,
-    int quantity,
-    DateTime? expectedReturnDate,
-    String? remarks,
-    })>((ref, args) async {
-  final api = ref.read(inventoryApiProvider);
+class CreateCheckoutParams {
+  final String siteId;
+  final String inventoryId;
+  final String issuedToName;
+  final int quantity;
+  final DateTime? expectedReturnDate;
+  final String? remarks;
 
-  final result = await api.checkoutItem(
+  CreateCheckoutParams({
+    required this.siteId,
+    required this.inventoryId,
+    required this.issuedToName,
+    required this.quantity,
+    this.expectedReturnDate,
+    this.remarks,
+  });
+
+  @override
+  bool operator ==(Object other) =>
+      identical(this, other) ||
+      other is CreateCheckoutParams &&
+          runtimeType == other.runtimeType &&
+          siteId == other.siteId &&
+          inventoryId == other.inventoryId &&
+          issuedToName == other.issuedToName &&
+          quantity == other.quantity &&
+          expectedReturnDate == other.expectedReturnDate &&
+          remarks == other.remarks;
+
+  @override
+  int get hashCode =>
+      siteId.hashCode ^
+      inventoryId.hashCode ^
+      issuedToName.hashCode ^
+      quantity.hashCode ^
+      expectedReturnDate.hashCode ^
+      remarks.hashCode;
+}
+
+final createCheckoutProvider = FutureProvider.family<InventoryCheckout, CreateCheckoutParams>((ref, args) async {
+  final repo = ref.read(repositoryProvider);
+
+  return repo.checkoutItem(
     siteId: args.siteId,
     inventoryId: args.inventoryId,
     issuedToName: args.issuedToName,
@@ -112,26 +162,51 @@ final createCheckoutProvider = FutureProvider.family<
     expectedReturnDate: args.expectedReturnDate,
     remarks: args.remarks,
   );
-
-  /// 🔥 refresh after success
-  ref.invalidate(checkoutProvider(args.siteId));
-  ref.invalidate(inventoryProvider(args.siteId));
-
-  return result;
 });
-final updateCheckoutProvider = FutureProvider.family<
-    InventoryCheckout,
-    ({
-    String siteId,
-    String checkoutId,
-    String status,
-    DateTime? actualReturnDate,
-    String? returnRemarks,
-    String? condition,
-    })>((ref, args) async {
-  final api = ref.read(inventoryApiProvider);
 
-  final result = await api.updateCheckout(
+class UpdateCheckoutParams {
+  final String siteId;
+  final String checkoutId;
+  final String status;
+  final DateTime? actualReturnDate;
+  final String? returnRemarks;
+  final String? condition;
+
+  UpdateCheckoutParams({
+    required this.siteId,
+    required this.checkoutId,
+    required this.status,
+    this.actualReturnDate,
+    this.returnRemarks,
+    this.condition,
+  });
+
+  @override
+  bool operator ==(Object other) =>
+      identical(this, other) ||
+      other is UpdateCheckoutParams &&
+          runtimeType == other.runtimeType &&
+          siteId == other.siteId &&
+          checkoutId == other.checkoutId &&
+          status == other.status &&
+          actualReturnDate == other.actualReturnDate &&
+          returnRemarks == other.returnRemarks &&
+          condition == other.condition;
+
+  @override
+  int get hashCode =>
+      siteId.hashCode ^
+      checkoutId.hashCode ^
+      status.hashCode ^
+      actualReturnDate.hashCode ^
+      returnRemarks.hashCode ^
+      condition.hashCode;
+}
+
+final updateCheckoutProvider = FutureProvider.family<InventoryCheckout, UpdateCheckoutParams>((ref, args) async {
+  final repo = ref.read(repositoryProvider);
+
+  return repo.updateCheckout(
     siteId: args.siteId,
     checkoutId: args.checkoutId,
     status: args.status,
@@ -139,12 +214,6 @@ final updateCheckoutProvider = FutureProvider.family<
     returnRemarks: args.returnRemarks,
     condition: args.condition,
   );
-
-  /// 🔥 refresh lists
-  ref.invalidate(checkoutProvider(args.siteId));
-  ref.invalidate(inventoryProvider(args.siteId));
-
-  return result;
 });
 final checkoutByStatusProvider = FutureProvider.family<
     List<InventoryCheckout>,
@@ -169,22 +238,59 @@ FutureProvider.family<Uint8List, ({String siteId, DateTime from})>((ref, args) a
 
   );
 });
-final createInventoryProvider = FutureProvider.family<
-    Inventory,
-    ({
-    String siteId,
-    String name,
-    String categoryId,
-    String? uom,
-    double? totalQuantityAdded,
-    double? minimumStockLevel,
-    int? totalUnits,
-    String? condition,
-    String? remarks,
-    })>((ref, args) {
+class CreateInventoryParams {
+  final String siteId;
+  final String name;
+  final String categoryId;
+  final String? uom;
+  final double? totalQuantityAdded;
+  final double? minimumStockLevel;
+  final int? totalUnits;
+  final String? condition;
+  final String? remarks;
 
+  CreateInventoryParams({
+    required this.siteId,
+    required this.name,
+    required this.categoryId,
+    this.uom,
+    this.totalQuantityAdded,
+    this.minimumStockLevel,
+    this.totalUnits,
+    this.condition,
+    this.remarks,
+  });
+
+  @override
+  bool operator ==(Object other) =>
+      identical(this, other) ||
+      other is CreateInventoryParams &&
+          runtimeType == other.runtimeType &&
+          siteId == other.siteId &&
+          name == other.name &&
+          categoryId == other.categoryId &&
+          uom == other.uom &&
+          totalQuantityAdded == other.totalQuantityAdded &&
+          minimumStockLevel == other.minimumStockLevel &&
+          totalUnits == other.totalUnits &&
+          condition == other.condition &&
+          remarks == other.remarks;
+
+  @override
+  int get hashCode =>
+      siteId.hashCode ^
+      name.hashCode ^
+      categoryId.hashCode ^
+      uom.hashCode ^
+      totalQuantityAdded.hashCode ^
+      minimumStockLevel.hashCode ^
+      totalUnits.hashCode ^
+      condition.hashCode ^
+      remarks.hashCode;
+}
+
+final createInventoryProvider = FutureProvider.family<Inventory, CreateInventoryParams>((ref, args) {
   final repo = ref.read(repositoryProvider);
-
   return repo.createInventory(
     siteId: args.siteId,
     name: args.name,
@@ -197,21 +303,57 @@ final createInventoryProvider = FutureProvider.family<
     remarks: args.remarks,
   );
 });
-final updateInventoryProvider = FutureProvider.family<
-    Inventory,
-    ({
-    String siteId,
-    String inventoryId,
-    String? name,
-    String? uom,
-    double? minimumStockLevel,
-    int? totalUnits,
-    String? condition,
-    String? remarks,
-    })>((ref, args) async {
-  final api = ref.read(inventoryApiProvider);
 
-  final result = await api.updateInventory(
+class UpdateInventoryParams {
+  final String siteId;
+  final String inventoryId;
+  final String? name;
+  final String? uom;
+  final double? minimumStockLevel;
+  final int? totalUnits;
+  final String? condition;
+  final String? remarks;
+
+  UpdateInventoryParams({
+    required this.siteId,
+    required this.inventoryId,
+    this.name,
+    this.uom,
+    this.minimumStockLevel,
+    this.totalUnits,
+    this.condition,
+    this.remarks,
+  });
+
+  @override
+  bool operator ==(Object other) =>
+      identical(this, other) ||
+      other is UpdateInventoryParams &&
+          runtimeType == other.runtimeType &&
+          siteId == other.siteId &&
+          inventoryId == other.inventoryId &&
+          name == other.name &&
+          uom == other.uom &&
+          minimumStockLevel == other.minimumStockLevel &&
+          totalUnits == other.totalUnits &&
+          condition == other.condition &&
+          remarks == other.remarks;
+
+  @override
+  int get hashCode =>
+      siteId.hashCode ^
+      inventoryId.hashCode ^
+      name.hashCode ^
+      uom.hashCode ^
+      minimumStockLevel.hashCode ^
+      totalUnits.hashCode ^
+      condition.hashCode ^
+      remarks.hashCode;
+}
+
+final updateInventoryProvider = FutureProvider.family<Inventory, UpdateInventoryParams>((ref, args) async {
+  final repo = ref.read(repositoryProvider);
+  return repo.updateInventory(
     siteId: args.siteId,
     inventoryId: args.inventoryId,
     name: args.name,
@@ -221,12 +363,103 @@ final updateInventoryProvider = FutureProvider.family<
     condition: args.condition,
     remarks: args.remarks,
   );
+});
 
-  return result;
+class DeleteInventoryParams {
+  final String siteId;
+  final String inventoryId;
+  DeleteInventoryParams({required this.siteId, required this.inventoryId});
+
+  @override
+  bool operator ==(Object other) =>
+      identical(this, other) ||
+      other is DeleteInventoryParams &&
+          runtimeType == other.runtimeType &&
+          siteId == other.siteId &&
+          inventoryId == other.inventoryId;
+
+  @override
+  int get hashCode => siteId.hashCode ^ inventoryId.hashCode;
+}
+
+final deleteInventoryProvider = FutureProvider.family<void, DeleteInventoryParams>((ref, args) async {
+  final repo = ref.read(repositoryProvider);
+  await repo.deleteInventory(
+    siteId: args.siteId,
+    inventoryId: args.inventoryId,
+  );
+});
+
+class RecordUsageParams {
+  final String siteId;
+  final String inventoryId;
+  final double quantityUsed;
+  final String usedByName;
+  final DateTime? usageDate;
+  final String? remarks;
+
+  RecordUsageParams({
+    required this.siteId,
+    required this.inventoryId,
+    required this.quantityUsed,
+    required this.usedByName,
+    this.usageDate,
+    this.remarks,
+  });
+
+  @override
+  bool operator ==(Object other) =>
+      identical(this, other) ||
+      other is RecordUsageParams &&
+          runtimeType == other.runtimeType &&
+          siteId == other.siteId &&
+          inventoryId == other.inventoryId &&
+          quantityUsed == other.quantityUsed &&
+          usedByName == other.usedByName &&
+          usageDate == other.usageDate &&
+          remarks == other.remarks;
+
+  @override
+  int get hashCode =>
+      siteId.hashCode ^
+      inventoryId.hashCode ^
+      quantityUsed.hashCode ^
+      usedByName.hashCode ^
+      usageDate.hashCode ^
+      remarks.hashCode;
+}
+
+final recordUsageProvider = FutureProvider.family<InventoryUsage, RecordUsageParams>((ref, args) async {
+  final repo = ref.read(repositoryProvider);
+  return repo.recordUsage(
+    siteId: args.siteId,
+    inventoryId: args.inventoryId,
+    quantityUsed: args.quantityUsed,
+    usedByName: args.usedByName,
+    usageDate: args.usageDate,
+    remarks: args.remarks,
+  );
 });
 
 
-final bulkUploadProvider = FutureProvider.family<Map<String, dynamic>, ({String siteId, File file})>((ref, args) async {
+class BulkUploadParams {
+  final String siteId;
+  final File file;
+  BulkUploadParams({required this.siteId, required this.file});
+
+  @override
+  bool operator ==(Object other) =>
+      identical(this, other) ||
+      other is BulkUploadParams &&
+          runtimeType == other.runtimeType &&
+          siteId == other.siteId &&
+          file == other.file;
+
+  @override
+  int get hashCode => siteId.hashCode ^ file.hashCode;
+}
+
+final bulkUploadProvider = FutureProvider.family<Map<String, dynamic>, BulkUploadParams>((ref, args) async {
   final api = ref.read(inventoryApiProvider);
   return api.bulkUploadInventory(
     siteId: args.siteId,

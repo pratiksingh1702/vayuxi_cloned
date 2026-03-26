@@ -137,7 +137,7 @@ class _BulkUploadScreenState extends ConsumerState<BulkUploadScreen> {
               //                   ),
               //                   if (_selectedFile != null)
               //                     ElevatedButton.icon(
-              //                       icon: const Icon(Icons.delete),
+              //                       icon: const Icon(Icons.delete_outline),
               //                       label: const Text('Remove'),
               //                       onPressed: _removeFile,
               //                       style: ElevatedButton.styleFrom(
@@ -485,7 +485,7 @@ class _BulkUploadScreenState extends ConsumerState<BulkUploadScreen> {
       print(siteId);
 
       final result = await ref.read(
-        bulkUploadProvider((siteId: siteId!, file: _selectedFile!)).future,
+        bulkUploadProvider(BulkUploadParams(siteId: siteId!, file: _selectedFile!)).future,
       );
       print(result);
 
@@ -493,6 +493,12 @@ class _BulkUploadScreenState extends ConsumerState<BulkUploadScreen> {
         _uploadStatus = "Upload successful!";
         // _errors = result['errors'] ?? [];
       });
+
+      // Trigger sync after bulk upload to reflect changes
+
+      if (siteId != null) {
+        ref.read(repositoryProvider).syncAll(siteId);
+      }
     } catch (e) {
       print("Uploading failed 😢: $e");
       setState(() {

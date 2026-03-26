@@ -93,7 +93,7 @@ class CompanyCard extends StatelessWidget {
                       shape: BoxShape.circle,
                     ),
                     child: const Icon(
-                      Icons.delete,
+                      Icons.delete_outline,
                       color: Colors.white,
                       size: 18,
                     ),
