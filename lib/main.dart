@@ -1,6 +1,5 @@
 import 'dart:async';
 
-
 import 'package:firebase_core/firebase_core.dart';
 import 'package:firebase_crashlytics/firebase_crashlytics.dart';
 import 'package:firebase_messaging/firebase_messaging.dart';
@@ -9,8 +8,9 @@ import 'package:flutter/material.dart';
 import 'package:flutter/rendering.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:hive_flutter/hive_flutter.dart';
-// import 'package:mobile_rag_engine/mobile_rag_engine.dart';
 import 'package:path_provider/path_provider.dart' as path_provider;
+import 'package:flutter/foundation.dart';
+import 'dart:io';
 
 import 'app.dart';
 import 'core/api/dio.dart';
@@ -27,28 +27,34 @@ import 'features/noti_system/noti_services/bg_handler.dart';
 import 'features/noti_system/noti_services/fcm_service.dart';
 import 'features/noti_system/noti_services/noti_service.dart';
 
+
 Future<void> main() async {
+  WidgetsFlutterBinding.ensureInitialized();
+
+  // ✅ STEP 1: Initialize Firebase BEFORE everything
+  await Firebase.initializeApp();
+
+  // Debug flags
   debugPaintBaselinesEnabled = false;
   debugPaintSizeEnabled = false;
   debugPaintPointersEnabled = false;
   debugRepaintRainbowEnabled = false;
 
+  // ✅ STEP 2: Setup Crashlytics safely
+  await FirebaseCrashlytics.instance
+      .setCrashlyticsCollectionEnabled(true);
+
+  FlutterError.onError = (FlutterErrorDetails details) {
+    FirebaseCrashlytics.instance.recordFlutterFatalError(details);
+  };
+
+  // ✅ STEP 3: Wrap ONLY runApp part inside zone
   runZonedGuarded(() async {
-    WidgetsFlutterBinding.ensureInitialized();
-
-    await Firebase.initializeApp();
-
-    FirebaseMessaging.onBackgroundMessage(firebaseMessagingBackgroundHandler);
-
-    await FirebaseCrashlytics.instance
-        .setCrashlyticsCollectionEnabled(true);
-
-    FlutterError.onError = (FlutterErrorDetails details) {
-      FirebaseCrashlytics.instance.recordFlutterFatalError(details);
-    };
+    FirebaseMessaging.onBackgroundMessage(
+        firebaseMessagingBackgroundHandler);
 
     final appDocDir =
-    await path_provider.getApplicationDocumentsDirectory();
+        await path_provider.getApplicationDocumentsDirectory();
 
     await AppIsarDB.init();
     await Hive.initFlutter(appDocDir.path);
@@ -72,12 +78,9 @@ Future<void> main() async {
     await notifier.initialize();
 
     final fcm = FCMService(notifier);
-    await fcm.initialize();
-    // await MobileRag.initialize(
-    //   tokenizerAsset: 'assets/model/tokenizer.json',
-    //   modelAsset: 'assets/model/model.onnx',
-    //   deferIndexWarmup: true,
-    // );
+    if (Platform.isAndroid) {
+  await fcm.initialize();
+}
 
     final container = ProviderContainer();
     DioClient.syncRef = container;
@@ -85,12 +88,15 @@ Future<void> main() async {
     runApp(
       UncontrolledProviderScope(
         container: container,
-        child:  const MyApp(),
-
+        child: const MyApp(),
       ),
     );
-
   }, (error, stack) {
-    FirebaseCrashlytics.instance.recordError(error, stack, fatal: true);
+    // ✅ Firebase is guaranteed initialized here
+    FirebaseCrashlytics.instance.recordError(
+      error,
+      stack,
+      fatal: true,
+    );
   });
 }
