@@ -14,8 +14,10 @@ import '../../offline/data/constants/material_constants.dart';
 import '../../offline/data/local/local_material.dart';
 import '../../offline/data/repo/material_provider.dart';
 import '../../offline/data/repo/material_repo_provider.dart';
+import '../../offline/data/material_sync_service.dart';
 import '../model/eqip_insu.dart';
 import '../model/piping_insu.dart';
+import '../model/material_setup.dart';
 import '../widgets/equipment_card.dart';
 
 class AllInsulationMaterialsScreen extends ConsumerStatefulWidget {
@@ -28,6 +30,12 @@ class AllInsulationMaterialsScreen extends ConsumerStatefulWidget {
 class _AllInsulationMaterialsScreenState extends ConsumerState<AllInsulationMaterialsScreen>
     with SingleTickerProviderStateMixin {
   late TabController _tabController;
+  
+  // NEW: Material setup state
+  final MaterialSyncService _syncService = MaterialSyncService();
+  List<MaterialSetup> _pipingSetups = [];
+  List<MaterialSetup> _equipmentSetups = [];
+  bool _setupsLoaded = false;
 
   // Selection mode state
   bool _isSelectionMode = false;
@@ -40,16 +48,54 @@ class _AllInsulationMaterialsScreenState extends ConsumerState<AllInsulationMate
     final siteId = ref.read(selectedSiteIdProvider)!;
 
     WidgetsBinding.instance.addPostFrameCallback((_) {
-
-    repo.syncInBackground(
-      siteId: siteId,
-      domain: 'insulation', designation: '',
-
-    );
-
-
-  });
+      repo.syncInBackground(
+        siteId: siteId,
+        domain: 'insulation', 
+        designation: '',
+      );
+      
+      // NEW: Load material setups for dynamic fields
+      _loadMaterialSetups(siteId);
+    });
+    
     _tabController = TabController(length: 2, vsync: this);
+  }
+  
+  // NEW: Load MaterialSetup configurations
+  Future<void> _loadMaterialSetups(String siteId) async {
+    try {
+      // Load piping setups
+      final pipingSetups = await _syncService.getMaterials(
+        siteId: siteId,
+        designation: 'piping',
+        preferLocal: true,
+      );
+      
+      // Load equipment setups
+      final equipmentSetups = await _syncService.getMaterials(
+        siteId: siteId,
+        designation: 'equipment',
+        preferLocal: true,
+      );
+      
+      if (mounted) {
+        setState(() {
+          _pipingSetups = pipingSetups;
+          _equipmentSetups = equipmentSetups;
+          _setupsLoaded = true;
+        });
+        
+        print('✅ Loaded ${pipingSetups.length} piping setups');
+        print('✅ Loaded ${equipmentSetups.length} equipment setups');
+      }
+    } catch (e) {
+      print('❌ Failed to load material setups: $e');
+      if (mounted) {
+        setState(() {
+          _setupsLoaded = true; // Mark as loaded even on error
+        });
+      }
+    }
   }
 
   @override
@@ -58,6 +104,43 @@ class _AllInsulationMaterialsScreenState extends ConsumerState<AllInsulationMate
     super.dispose();
   }
 
+  // NEW: Find MaterialSetup for a material
+  MaterialSetup? _findMaterialSetup(LocalMaterial localMaterial) {
+    final materialCode = localMaterial.materialCode;
+    final designation = localMaterial.designation;
+    
+    if (materialCode == null || materialCode.isEmpty) {
+      // Fallback: return first setup of matching designation
+      if (designation == MaterialDesignation.piping.key) {
+        return _pipingSetups.isNotEmpty ? _pipingSetups.first : null;
+      } else if (designation == MaterialDesignation.equipment.key) {
+        return _equipmentSetups.isNotEmpty ? _equipmentSetups.first : null;
+      }
+      return null;
+    }
+    
+    try {
+      if (designation == MaterialDesignation.piping.key) {
+        return _pipingSetups.firstWhere(
+          (setup) => setup.materialCode == materialCode,
+        );
+      } else if (designation == MaterialDesignation.equipment.key) {
+        return _equipmentSetups.firstWhere(
+          (setup) => setup.materialCode == materialCode,
+        );
+      }
+    } catch (e) {
+      // Material code not found, return first setup as fallback
+      if (designation == MaterialDesignation.piping.key) {
+        return _pipingSetups.isNotEmpty ? _pipingSetups.first : null;
+      } else if (designation == MaterialDesignation.equipment.key) {
+        return _equipmentSetups.isNotEmpty ? _equipmentSetups.first : null;
+      }
+    }
+    
+    return null;
+  }
+  
   // ✅ CONVERT LocalMaterial → PipingMaterial (UI edge only)
   PipingMaterial _toPiping(LocalMaterial m) {
     if (m.materialDataJson != null) {
@@ -557,6 +640,9 @@ class _AllInsulationMaterialsScreenState extends ConsumerState<AllInsulationMate
 
   Widget _buildPipingCard(LocalMaterial localMaterial, PipingMaterial material, Color color) {
     final isSelected = _selectedMaterialIds.contains(localMaterial.id);
+    
+    // NEW: Find MaterialSetup for dynamic fields
+    final materialSetup = _setupsLoaded ? _findMaterialSetup(localMaterial) : null;
 
     return Stack(
       children: [
@@ -564,8 +650,8 @@ class _AllInsulationMaterialsScreenState extends ConsumerState<AllInsulationMate
           opacity: _isSelectionMode && !isSelected ? 0.5 : 1.0,
           child: PipingMaterialCard(
             key: ValueKey(localMaterial.materialDataJson),
-
             material: material,
+            materialSetup: materialSetup, // ✅ Pass MaterialSetup for dynamic mode
             onChanged: (updated) async {
               await _updatePipingMaterial(localMaterial, updated);
             },
@@ -608,6 +694,9 @@ class _AllInsulationMaterialsScreenState extends ConsumerState<AllInsulationMate
 
   Widget _buildEquipmentCard(LocalMaterial localMaterial, EquipmentMaterial material, Color color) {
     final isSelected = _selectedMaterialIds.contains(localMaterial.id);
+    
+    // NEW: Find MaterialSetup for dynamic fields
+    final materialSetup = _setupsLoaded ? _findMaterialSetup(localMaterial) : null;
 
     return Stack(
       children: [
@@ -615,6 +704,7 @@ class _AllInsulationMaterialsScreenState extends ConsumerState<AllInsulationMate
           opacity: _isSelectionMode && !isSelected ? 0.5 : 1.0,
           child: EquipmentMaterialCard(
             material: material,
+            materialSetup: materialSetup, // ✅ Pass MaterialSetup for dynamic mode
             onChanged: (updated) async {
               await _updateEquipmentMaterial(localMaterial, updated);
             },
