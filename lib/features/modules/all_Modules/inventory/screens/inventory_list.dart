@@ -8,6 +8,7 @@ import '../../../../../core/utlis/colors/colors.dart';
 import '../../../../../core/utlis/widgets/buttons.dart';
 import '../../../../../core/utlis/widgets/custom_appBar.dart';
 import '../../../../../core/utlis/widgets/sidebar.dart';
+import '../../../../../core/utlis/widgets/custom_scrollbar.dart';
 import '../../site_Details/providers/site_current_provider.dart';
 import '../models/inventory_model.dart';
 import '../provider/inventory_provider.dart';
@@ -24,6 +25,13 @@ class InventoryListScreen extends ConsumerStatefulWidget {
 
 class _InventoryListScreenState extends ConsumerState<InventoryListScreen> {
   String _search = "";
+  final ScrollController _scrollController = ScrollController();
+
+  @override
+  void dispose() {
+    _scrollController.dispose();
+    super.dispose();
+  }
   @override
   void initState() {
     super.initState();
@@ -97,10 +105,14 @@ class _InventoryListScreenState extends ConsumerState<InventoryListScreen> {
                     return const Center(child: Text("No inventory found"));
                   }
 
-                  return ListView.builder(
-                    itemCount: filtered.length,
-                    itemBuilder: (_, i) {
-                      final inventory = filtered[i];
+                  return CustomScrollbar(
+                    controller: _scrollController,
+                    child: ListView.builder(
+                      controller: _scrollController,
+                      physics: const AlwaysScrollableScrollPhysics(),
+                      itemCount: filtered.length,
+                      itemBuilder: (_, i) {
+                        final inventory = filtered[i];
                       final num totalQuantity = inventory.type == "consumable"
                           ? (inventory.totalQuantityAdded ?? 0)
                           : (inventory.totalUnits ?? 0);
@@ -179,7 +191,7 @@ class _InventoryListScreenState extends ConsumerState<InventoryListScreen> {
                         ),
                       );
                     },
-                  );
+                    )     );
                 },
               ),
             )

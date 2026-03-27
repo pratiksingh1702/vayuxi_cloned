@@ -9,6 +9,7 @@ import 'package:untitled2/typeProvider/type_provider.dart';
 import '../../../../../core/router/routes.dart';
 import '../../../../../core/utlis/widgets/custom.dart';
 import '../../../../../core/utlis/widgets/sidebar.dart';
+import '../../../../../core/utlis/widgets/custom_scrollbar.dart';
 import '../model/expense_model.dart';
 import '../service/expense_service.dart';
 import 'genericFormScreen.dart';
@@ -29,6 +30,13 @@ class _ExpenseListScreenState extends ConsumerState<ExpenseListScreen> {
   // Selection mode state
   bool _isSelectionMode = false;
   Set<String> _selectedExpenseIds = {};
+  final ScrollController _scrollController = ScrollController();
+
+  @override
+  void dispose() {
+    _scrollController.dispose();
+    super.dispose();
+  }
 
   @override
   void initState() {
@@ -356,22 +364,27 @@ class _ExpenseListScreenState extends ConsumerState<ExpenseListScreen> {
                       ],
                     ),
                   )
-                      : ListView.builder(
-                    padding: const EdgeInsets.symmetric(
-                      horizontal: 10,
-                    ),
-                    itemCount: expenseList.length,
-                    itemBuilder: (context, index) {
-                      final expense = expenseList[index];
-                      final isSelected = _selectedExpenseIds.contains(
-                        expense.id,
-                      );
+                      : CustomScrollbar(
+                    controller: _scrollController,
+                    child: ListView.builder(
+                      controller: _scrollController,
+                      physics: const AlwaysScrollableScrollPhysics(),
+                      padding: const EdgeInsets.symmetric(
+                        horizontal: 10,
+                      ),
+                      itemCount: expenseList.length,
+                      itemBuilder: (context, index) {
+                        final expense = expenseList[index];
+                        final isSelected = _selectedExpenseIds.contains(
+                          expense.id,
+                        );
 
-                      return _buildExpenseCard(
-                        expense,
-                        isSelected,
-                      );
-                    },
+                        return _buildExpenseCard(
+                          expense,
+                          isSelected,
+                        );
+                      },
+                    ),
                   ),
                 ),
               ],

@@ -9,6 +9,7 @@ class SearchableDropdown extends StatefulWidget {
   final InputDecoration? inputDecoration;
   final TextStyle? textStyle;
   final double? maxHeight;
+  final bool allowAddNew; // 🔥 NEW
 
   const SearchableDropdown({
     super.key,
@@ -20,6 +21,7 @@ class SearchableDropdown extends StatefulWidget {
     this.inputDecoration,
     this.textStyle,
     this.maxHeight = 180,
+    this.allowAddNew =true
   });
 
   @override
@@ -161,7 +163,8 @@ class _SearchableDropdownState extends State<SearchableDropdown> {
     final hasExactMatch =
     _localData.any((item) => item.toLowerCase() == text.toLowerCase());
 
-    final showAddOption = text.isNotEmpty && !hasExactMatch;
+    final showAddOption =
+        widget.allowAddNew && text.isNotEmpty && !hasExactMatch;
 
     final totalItems = _filteredData.length + (showAddOption ? 1 : 0);
 

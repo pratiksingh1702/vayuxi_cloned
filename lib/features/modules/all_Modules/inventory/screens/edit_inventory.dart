@@ -101,7 +101,6 @@ class _EditInventoryScreenState extends ConsumerState<EditInventoryScreen> {
       drawer: const CustomDrawer(),
       backgroundColor: AppColors.lightBlue,
       body: BottomButtonWrapper(
-        key: _formKey,
         customButtons: [
           CustomButton(
             button: RoundedButton(
@@ -114,116 +113,119 @@ class _EditInventoryScreenState extends ConsumerState<EditInventoryScreen> {
         ],
         child: Padding(
           padding: const EdgeInsets.all(8.0),
-          child: ListView(
-            children: [
-              // ---------- CATEGORY (read-only display) ----------
-              _ReadOnlyField(
-                label: "Category",
-                value:  widget.inventory.type,
-                icon: Icons.category,
-              ),
-
-              const SizedBox(height: 16),
-
-              // ---------- NAME ----------
-              CustomTextField(
-                label: 'Inventory Name',
-                isRequired: true,
-                controller: _nameController,
-                validator: (v) => (v == null || v.trim().isEmpty) ? "Name required" : null,
-              ),
-
-              const SizedBox(height: 16),
-
-              // ---------- CONSUMABLE FIELDS ----------
-              if (isConsumable) ...[
-                Row(
-                  children: [
-                    Expanded(
-                      child: CustomTextField(
-                        label: 'Quantity',
-                        isRequired: true,
-                        controller: _quantityController,
-                        keyboardType: const TextInputType.numberWithOptions(decimal: true),
-                        validator: (v) {
-                          if (v == null || v.isEmpty) return "Required";
-                          final n = double.tryParse(v);
-                          if (n == null) return "Invalid";
-                          if (n < 0) return "Negative";
-                          return null;
-                        },
-                      ),
-                    ),
-                    const SizedBox(width: 12),
-                    Expanded(
-                      child: CustomTextField(
-                        label: 'UOM',
-                        isRequired: true,
-                        controller: _uomController,
-                        validator: (v) => (v == null || v.isEmpty) ? "Required" : null,
-                      ),
-                    ),
-                  ],
+          child: Form(
+            key: _formKey,
+            child: ListView(
+              children: [
+                // ---------- CATEGORY (read-only display) ----------
+                _ReadOnlyField(
+                  label: "Category",
+                  value:  widget.inventory.type,
+                  icon: Icons.category,
                 ),
+
                 const SizedBox(height: 16),
+
+                // ---------- NAME ----------
                 CustomTextField(
-                  label: 'Minimum Stock Level',
+                  label: 'Inventory Name',
                   isRequired: true,
-                  controller: _minStockController,
-                  keyboardType: const TextInputType.numberWithOptions(decimal: true),
-                  validator: (v) {
-                    if (v == null || v.isEmpty) return "Required";
-                    final n = double.tryParse(v);
-                    if (n == null) return "Invalid";
-                    if (n < 0) return "Negative";
-                    return null;
-                  },
+                  controller: _nameController,
+                  validator: (v) => (v == null || v.trim().isEmpty) ? "Name required" : null,
                 ),
-              ],
 
-              // ---------- FIXED FIELDS ----------
-              if (!isConsumable) ...[
-                Row(
-                  children: [
-                    Expanded(
-                      child: CustomTextField(
-                        label: 'Total Units',
-                        isRequired: true,
-                        controller: _quantityController,
-                        keyboardType: TextInputType.number,
-                        validator: (v) {
-                          if (v == null || v.isEmpty) return "Required";
-                          final n = int.tryParse(v);
-                          if (n == null) return "Invalid";
-                          if (n < 0) return "Negative";
-                          return null;
-                        },
+                const SizedBox(height: 16),
+
+                // ---------- CONSUMABLE FIELDS ----------
+                if (isConsumable) ...[
+                  Row(
+                    children: [
+                      Expanded(
+                        child: CustomTextField(
+                          label: 'Quantity',
+                          isRequired: true,
+                          controller: _quantityController,
+                          keyboardType: const TextInputType.numberWithOptions(decimal: true),
+                          validator: (v) {
+                            if (v == null || v.isEmpty) return "Required";
+                            final n = double.tryParse(v);
+                            if (n == null) return "Invalid";
+                            if (n < 0) return "Negative";
+                            return null;
+                          },
+                        ),
                       ),
-                    ),
-                    const SizedBox(width: 12),
-                    Expanded(
-                      child: CustomTextField(
-                        label: 'UOM',
-                        isRequired: true,
-                        controller: _uomController,
-                        validator: (v) => (v == null || v.isEmpty) ? "Required" : null,
+                      const SizedBox(width: 12),
+                      Expanded(
+                        child: CustomTextField(
+                          label: 'UOM',
+                          isRequired: true,
+                          controller: _uomController,
+                          validator: (v) => (v == null || v.isEmpty) ? "Required" : null,
+                        ),
                       ),
-                    ),
-                  ],
+                    ],
+                  ),
+                  const SizedBox(height: 16),
+                  CustomTextField(
+                    label: 'Minimum Stock Level',
+                    isRequired: true,
+                    controller: _minStockController,
+                    keyboardType: const TextInputType.numberWithOptions(decimal: true),
+                    validator: (v) {
+                      if (v == null || v.isEmpty) return "Required";
+                      final n = double.tryParse(v);
+                      if (n == null) return "Invalid";
+                      if (n < 0) return "Negative";
+                      return null;
+                    },
+                  ),
+                ],
+
+                // ---------- FIXED FIELDS ----------
+                if (!isConsumable) ...[
+                  Row(
+                    children: [
+                      Expanded(
+                        child: CustomTextField(
+                          label: 'Total Units',
+                          isRequired: true,
+                          controller: _quantityController,
+                          keyboardType: TextInputType.number,
+                          validator: (v) {
+                            if (v == null || v.isEmpty) return "Required";
+                            final n = int.tryParse(v);
+                            if (n == null) return "Invalid";
+                            if (n < 0) return "Negative";
+                            return null;
+                          },
+                        ),
+                      ),
+                      const SizedBox(width: 12),
+                      Expanded(
+                        child: CustomTextField(
+                          label: 'UOM',
+                          isRequired: true,
+                          controller: _uomController,
+                          validator: (v) => (v == null || v.isEmpty) ? "Required" : null,
+                        ),
+                      ),
+                    ],
+                  ),
+                ],
+
+                const SizedBox(height: 16),
+
+                // ---------- REMARKS ----------
+                CustomTextField(
+                  label: 'Remarks',
+                  controller: _remarksController,
+                  maxLines: 3,
                 ),
+
+                const SizedBox(height: 24),
               ],
-
-              const SizedBox(height: 16),
-
-              // ---------- REMARKS ----------
-              CustomTextField(
-                label: 'Remarks',
-                controller: _remarksController,
-                maxLines: 3,
-              ),
-
-              const SizedBox(height: 24),
-            ],
+            ),
           ),
         ),
       ),

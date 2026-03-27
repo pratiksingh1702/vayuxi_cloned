@@ -7,6 +7,7 @@ import 'package:untitled2/core/utlis/app_toasts.dart';
 import 'package:untitled2/core/utlis/widgets/buttons.dart';
 import 'package:untitled2/core/utlis/widgets/custom_appBar.dart';
 import 'package:untitled2/core/utlis/widgets/sidebar.dart';
+import 'package:untitled2/core/utlis/widgets/custom_scrollbar.dart';
 import 'package:untitled2/features/language/service/providers.dart';
 import 'package:untitled2/features/modules/all_Modules/site_Details/screens/site_entry_select_page.dart';
 
@@ -41,6 +42,13 @@ class _SiteListScreenState extends ConsumerState<SiteListScreen>
   // Selection mode state
   bool _isSelectionMode = false;
   Set<String> _selectedSiteIds = {};
+  final ScrollController _gridScrollController = ScrollController();
+
+  @override
+  void dispose() {
+    _gridScrollController.dispose();
+    super.dispose();
+  }
 
   @override
   void initState() {
@@ -379,16 +387,20 @@ class _SiteListScreenState extends ConsumerState<SiteListScreen>
     print("🎯 Showing ${siteState.sites.length} sites in grid");
     return Container(
       color: AppColors.lightBlue,
-      child: GridView.builder(
-        padding: const EdgeInsets.all(8),
-        gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
-          crossAxisCount: 2,
-          mainAxisSpacing: 16,
-          crossAxisSpacing: 1,
-          childAspectRatio: 1.1,
-        ),
-        itemCount: siteState.sites.length,
-        itemBuilder: (context, index) {
+      child: CustomScrollbar(
+        controller: _gridScrollController,
+        child: GridView.builder(
+          controller: _gridScrollController,
+          physics: const AlwaysScrollableScrollPhysics(),
+          padding: const EdgeInsets.all(8),
+          gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
+            crossAxisCount: 2,
+            mainAxisSpacing: 16,
+            crossAxisSpacing: 1,
+            childAspectRatio: 1.1,
+          ),
+          itemCount: siteState.sites.length,
+          itemBuilder: (context, index) {
           final site = siteState.sites[index];
           final isSelected = _selectedSiteIds.contains(site.id);
 
@@ -466,6 +478,6 @@ class _SiteListScreenState extends ConsumerState<SiteListScreen>
           );
         },
       ),
-    );
+    ));
   }
 }

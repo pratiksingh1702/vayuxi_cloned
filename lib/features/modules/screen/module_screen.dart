@@ -35,6 +35,7 @@ import 'package:untitled2/typeProvider/type_provider.dart';
 
 import '../../../core/router/access_control_provider.dart';
 import '../../../core/utlis/widgets/sidebar.dart';
+import '../../../core/utlis/widgets/custom_scrollbar.dart';
 import '../../language/service/lang_providers.dart';
 import '../../language/service/providers.dart';
 import '../../language/service/translator.dart';
@@ -48,16 +49,30 @@ import 'craosule_banner.dart';
 import 'widgets/access_overlay.dart';
 
 class ModuleScreen extends ConsumerStatefulWidget {
-  const ModuleScreen({super.key});
+  final int initialIndex;
+  const ModuleScreen({super.key, this.initialIndex = 0});
 
   @override
   ConsumerState<ModuleScreen> createState() => _ModuleScreenState();
 }
 
 class _ModuleScreenState extends ConsumerState<ModuleScreen> {
-  int _currentIndex = 0;
+  late int _currentIndex;
   SiteModel? _selectedSite;
   TeamModel? _selectedTeam;
+  final ScrollController _gridScrollController = ScrollController();
+
+  @override
+  void dispose() {
+    _gridScrollController.dispose();
+    super.dispose();
+  }
+
+  @override
+  void initState() {
+    super.initState();
+    _currentIndex = widget.initialIndex;
+  }
   BuildContext? _showcaseContext;
   bool _tourChecked = false;
   TourCheckpoint? _checkpoint;
@@ -311,13 +326,7 @@ class _ModuleScreenState extends ConsumerState<ModuleScreen> {
     }
   }
 
-  @override
-  void initState() {
-    super.initState();
-    WidgetsBinding.instance.addPostFrameCallback((_) {
-      ref.read(siteProvider.notifier).fetchSites();
-    });
-  }
+
 
   void _onSiteChanged(SiteModel? newSite) {
     setState(() { _selectedSite = newSite; _selectedTeam = null; });
@@ -443,15 +452,19 @@ class _ModuleScreenState extends ConsumerState<ModuleScreen> {
                                   padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 16),
                                   child: _currentModules.isEmpty
                                       ? const Center(child: Text("No modules available", style: TextStyle(fontSize: 16, color: Colors.grey)))
-                                      : GridView.builder(
-                                    physics: _overlayType != null ? const NeverScrollableScrollPhysics() : null,
-                                    itemCount: _currentModules.length,
-                                    gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
-                                      crossAxisCount: 2,
-                                      mainAxisSpacing: 16,
-                                      crossAxisSpacing: 16,
-                                      childAspectRatio: 1,
-                                    ),
+                                      : CustomScrollbar(
+                                    enabled: false,
+                                    controller: _gridScrollController,
+                                    child: GridView.builder(
+                                      controller: _gridScrollController,
+                                      physics: _overlayType != null ? const NeverScrollableScrollPhysics() : const AlwaysScrollableScrollPhysics(),
+                                      itemCount: _currentModules.length,
+                                      gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
+                                        crossAxisCount: 2,
+                                        mainAxisSpacing: 16,
+                                        crossAxisSpacing: 16,
+                                        childAspectRatio: 1,
+                                      ),
                                     itemBuilder: (context, index) {
                                       final item = _currentModules[index];
                                       if (item.isEmpty) {
@@ -508,7 +521,7 @@ class _ModuleScreenState extends ConsumerState<ModuleScreen> {
                                   ),
                                 ),
                               ),
-                            ],
+                              ) ],
                           ),
                         ),
                       ),

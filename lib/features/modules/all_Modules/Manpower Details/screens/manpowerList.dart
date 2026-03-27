@@ -18,6 +18,7 @@ import '../../../../../core/utlis/widgets/Button_wrapper.dart';
 import '../../../../../core/utlis/widgets/custom.dart';
 import '../../../../../core/utlis/widgets/image_clipped.dart';
 import '../../../../../core/utlis/widgets/sidebar.dart';
+import '../../../../../core/utlis/widgets/custom_scrollbar.dart';
 import '../../../../../typeProvider/type_provider.dart';
 import '../../attendance/offline/repo/att_offline_provider.dart';
 import '../model/manpower_model.dart';
@@ -37,6 +38,13 @@ class _ManpowerListScreenState extends ConsumerState<ManpowerListScreen> {
   bool _isSelectionMode = false;
   Set<String> _selectedManpowerIds = {};
   String _searchQuery = '';
+  final ScrollController _scrollController = ScrollController();
+
+  @override
+  void dispose() {
+    _scrollController.dispose();
+    super.dispose();
+  }
 
   @override
   void initState() {
@@ -631,15 +639,20 @@ class _ManpowerListScreenState extends ConsumerState<ManpowerListScreen> {
                   Expanded(
                     child: filteredList.isEmpty
                         ? const Center(child: Text("No results found"))
-                        : ListView.builder(
-                      padding: const EdgeInsets.symmetric(horizontal: 16),
-                      itemCount: filteredList.length,       // ✅ filteredList
-                      itemBuilder: (context, index) {
-                        final manpower = filteredList[index]; // ✅ filteredList
-                        final isSelected =
-                        _selectedManpowerIds.contains(manpower.id);
-                        return _buildManpowerTile(manpower, isSelected);
-                      },
+                        : CustomScrollbar(
+                      controller: _scrollController,
+                      child: ListView.builder(
+                        controller: _scrollController,
+                        physics: const AlwaysScrollableScrollPhysics(),
+                        padding: const EdgeInsets.symmetric(horizontal: 16),
+                        itemCount: filteredList.length,
+                        itemBuilder: (context, index) {
+                          final manpower = filteredList[index];
+                          final isSelected =
+                          _selectedManpowerIds.contains(manpower.id);
+                          return _buildManpowerTile(manpower, isSelected);
+                        },
+                      ),
                     ),
                   ),
                 ],

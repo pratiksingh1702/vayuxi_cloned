@@ -4,6 +4,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:pin_code_fields/pin_code_fields.dart';
 import 'package:go_router/go_router.dart';
+import 'package:dio/dio.dart';
 
 import '../../modules/screen/craosule_banner.dart';
 import '../provider/auth_provider.dart';
@@ -78,6 +79,16 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
       _startResendCooldown();
       _showSuccessSnackBar("OTP sent successfully!");
     } catch (e) {
+      if (e is DioException) {
+        final data = e.response?.data;
+        final code = data?['code'];
+
+        if (code == 'USER_NOT_FOUND') {
+          _showAccountNotFoundDialog();
+          return;
+        }
+      }
+
       _showErrorSnackBar(
         e.toString().contains('timeout')
             ? "Network timeout. Please check your connection"
@@ -86,6 +97,48 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
     } finally {
       if (mounted) setState(() => isSendingOtp = false);
     }
+  }
+
+  void _showAccountNotFoundDialog() {
+    showDialog(
+      context: context,
+      builder: (context) => AlertDialog(
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+        title: const Text(
+          "Account Not Found",
+          style: TextStyle(fontWeight: FontWeight.bold),
+        ),
+        content: const Text(
+          "No account found with this email. Please register to continue.",
+          style: TextStyle(fontSize: 15),
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(context),
+            child: Text(
+              "Cancel",
+              style: TextStyle(color: Colors.grey.shade600),
+            ),
+          ),
+          ElevatedButton(
+            onPressed: () {
+              Navigator.pop(context);
+              context.push('/register');
+            },
+            style: ElevatedButton.styleFrom(
+              backgroundColor: const Color(0xFF218AE6),
+              shape: RoundedRectangleBorder(
+                borderRadius: BorderRadius.circular(8),
+              ),
+            ),
+            child: const Text(
+              "Register",
+              style: TextStyle(color: Colors.white),
+            ),
+          ),
+        ],
+      ),
+    );
   }
 
   Future<void> verifyOtp() async {

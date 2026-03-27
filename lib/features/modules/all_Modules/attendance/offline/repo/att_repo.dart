@@ -23,38 +23,113 @@ class AttendanceRepository {
       queryParameters: {"type": type},
     );
 
-    print("SYNC MANPOWER RUNNING — type: $type");
+    print("\n🚀 SYNC (UPSERT BY EMPLOYEE CODE) START — type: $type");
 
-    final list =
-    (res.data as List).map((e) => ManpowerModel.fromJson(e)).toList();
-    final serverIds = list.map((e) => e.id ?? "").toSet();
+    final rawList = (res.data as List)
+        .map((e) => ManpowerModel.fromJson(e))
+        .toList();
+
+    print("📦 RAW COUNT: ${rawList.length}");
+
+    /// ✅ STEP 1: Clean + dedupe by manpowerId
+    final Map<String, ManpowerModel> cleanMap = {};
+
+    for (final m in rawList) {
+      if (m.id == null || m.id!.isEmpty) {
+        print("❌ SKIP garbage ID → ${m.employeeCode}");
+        continue;
+      }
+
+      final existing = cleanMap[m.id!];
+      if (existing == null) {
+        cleanMap[m.id!] = m;
+      } else {
+        final oldTime = DateTime.tryParse(existing.updatedAt ?? "");
+        final newTime = DateTime.tryParse(m.updatedAt ?? "");
+
+        if (newTime != null &&
+            (oldTime == null || newTime.isAfter(oldTime))) {
+          cleanMap[m.id!] = m;
+        }
+      }
+    }
+
+    final cleanList = cleanMap.values.toList();
+    print("🧹 CLEAN COUNT: ${cleanList.length}");
 
     await isar.writeTxn(() async {
       final local =
       await isar.manpowerIsars.filter().typeEqualTo(type).findAll();
-      final Map<String, ManpowerIsar> localMap = {
+
+      /// Map by manpowerId
+      final Map<String, ManpowerIsar> localById = {
         for (var item in local) item.manpowerId: item
       };
 
-      final idsToDelete = local
-          .where((row) => !serverIds.contains(row.manpowerId))
-          .map((e) => e.isarId)
-          .toList();
-      if (idsToDelete.isNotEmpty) {
-        await isar.manpowerIsars.deleteAll(idsToDelete);
+      int inserted = 0;
+      int updated = 0;
+      int skipped = 0;
+
+      final List<ManpowerIsar> toSave = [];
+
+      for (final m in cleanList) {
+        ManpowerIsar? existing;
+
+        /// 🔥 PRIMARY MATCH → employeeCode
+        if (m.employeeCode != null && m.employeeCode!.isNotEmpty) {
+          existing = await isar.manpowerIsars
+              .filter()
+              .employeeCodeEqualTo(m.employeeCode!)
+              .findFirst();
+        }
+
+        /// fallback → manpowerId
+        existing ??= localById[m.id!];
+
+        if (existing != null) {
+          /// ✅ UPDATE
+          final localTime = existing.updatedAt;
+          final newTime = DateTime.tryParse(m.updatedAt ?? "");
+
+          if (newTime != null && !newTime.isAfter(localTime)) {
+            skipped++;
+            continue;
+          }
+
+          updated++;
+          print("🔄 UPDATE: emp=${m.employeeCode}, id=${m.id}");
+
+          _fillIsar(existing, m, type);
+
+          /// IMPORTANT: ensure ID updated if backend changed it
+          existing.manpowerId = m.id!;
+
+          toSave.add(existing);
+        } else {
+          /// ✅ INSERT
+          inserted++;
+          print("➕ INSERT: emp=${m.employeeCode}, id=${m.id}");
+
+          final obj = ManpowerIsar();
+          _fillIsar(obj, m, type);
+
+          toSave.add(obj);
+        }
       }
 
-      final List<ManpowerIsar> isarList = [];
-      for (final m in list) {
-        final obj = localMap[m.id ?? ""] ?? ManpowerIsar();
-        _fillIsar(obj, m, type);
-        isarList.add(obj);
+      if (toSave.isNotEmpty) {
+        await isar.manpowerIsars.putAll(toSave);
       }
 
-      await isar.manpowerIsars.putAll(isarList);
+      print("📊 SUMMARY:");
+      print("   ➕ Inserted: $inserted");
+      print("   🔄 Updated: $updated");
+      print("   ⏭️ Skipped: $skipped");
+      print("   💾 Saved: ${toSave.length}");
     });
-  }
 
+    print("✅ SYNC END\n");
+  }
   Future<void> syncManpowerBySite({
     required String siteId,
     required String type,
@@ -64,27 +139,119 @@ class AttendanceRepository {
       queryParameters: {"type": type},
     );
 
-    print("SYNC MANPOWER BY SITE — site: $siteId, type: $type");
+    print("\n🚀 SYNC START — site: $siteId, type: $type");
 
-    final list =
-    (res.data as List).map((e) => ManpowerModel.fromJson(e)).toList();
+    final rawList = (res.data as List)
+        .map((e) => ManpowerModel.fromJson(e))
+        .toList();
+
+    print("📦 RAW COUNT: ${rawList.length}");
+
+    /// DEBUG counters
+    int skippedGarbage = 0;
+    int duplicateReplaced = 0;
+
+    /// ✅ STEP 1: Clean + dedupe
+    final Map<String, ManpowerModel> cleanMap = {};
+
+    for (final m in rawList) {
+      if (m.id == null || m.id!.isEmpty) {
+        skippedGarbage++;
+        print("❌ SKIP garbage ID → ${m.employeeCode}");
+        continue;
+      }
+
+      final existing = cleanMap[m.id!];
+      if (existing == null) {
+        cleanMap[m.id!] = m;
+      } else {
+        final existingTime = DateTime.tryParse(existing.updatedAt ?? "");
+        final newTime = DateTime.tryParse(m.updatedAt ?? "");
+
+        if (newTime != null &&
+            (existingTime == null || newTime.isAfter(existingTime))) {
+          cleanMap[m.id!] = m;
+          duplicateReplaced++;
+          print("♻️ DUPLICATE replaced for ID: ${m.id}");
+        }
+      }
+    }
+
+    final cleanList = cleanMap.values.toList();
+
+    print("🧹 CLEAN COUNT: ${cleanList.length}");
+    print("⚠️ GARBAGE SKIPPED: $skippedGarbage");
+    print("♻️ DUPLICATES HANDLED: $duplicateReplaced");
 
     await isar.writeTxn(() async {
       final local =
       await isar.manpowerIsars.filter().typeEqualTo(type).findAll();
+
       final Map<String, ManpowerIsar> localMap = {
         for (var item in local) item.manpowerId: item
       };
 
-      final List<ManpowerIsar> isarList = [];
-      for (final m in list) {
-        final obj = localMap[m.id ?? ""] ?? ManpowerIsar();
+      print("💾 LOCAL COUNT: ${local.length}");
+
+      int skippedOld = 0;
+      int updated = 0;
+      int inserted = 0;
+
+      final List<ManpowerIsar> toSave = [];
+
+      for (final m in cleanList) {
+        final existing = localMap[m.id!];
+
+        /// DEBUG employeeCode conflict (if still unique in schema)
+        if (m.employeeCode != null) {
+          final conflict = await isar.manpowerIsars
+              .filter()
+              .employeeCodeEqualTo(m.employeeCode!)
+              .findFirst();
+
+          if (conflict != null && conflict.manpowerId != m.id) {
+            print(
+                "💥 CONFLICT employeeCode=${m.employeeCode} between ${conflict.manpowerId} and ${m.id}");
+          }
+        }
+
+        /// Skip outdated
+        if (existing != null) {
+          final localTime = existing.updatedAt;
+          final newTime = DateTime.tryParse(m.updatedAt ?? "");
+
+          if (newTime != null && !newTime.isAfter(localTime)) {
+            skippedOld++;
+            continue;
+          }
+        }
+
+        final obj = existing ?? ManpowerIsar();
+
+        if (existing == null) {
+          inserted++;
+          print("➕ INSERT: ${m.id}");
+        } else {
+          updated++;
+          print("🔄 UPDATE: ${m.id}");
+        }
+
         _fillIsar(obj, m, type);
-        isarList.add(obj);
+        toSave.add(obj);
       }
 
-      await isar.manpowerIsars.putAll(isarList);
+      if (toSave.isNotEmpty) {
+        await isar.manpowerIsars.putAll(toSave);
+      }
+
+      print("📊 SUMMARY:");
+      print("   ➕ Inserted: $inserted");
+      print("   🔄 Updated: $updated");
+      print("   ⏭️ Skipped old: $skippedOld");
+      print("   💾 Saved: ${toSave.length}");
     });
+
+    print("✅ SYNC END\n");
   }
 
   void _fillIsar(ManpowerIsar obj, ManpowerModel m, String type) {
@@ -93,7 +260,9 @@ class AttendanceRepository {
       ..type = m.type ?? type
       ..fullName = m.fullName
       ..designation = m.designation
-      ..employeeCode = m.employeeCode
+      ..employeeCode = (m.employeeCode == null || m.employeeCode!.isEmpty)
+          ? null
+          : m.employeeCode
       ..phoneNumber = m.phoneNumber
       ..aadharNumber = m.aadharNumber
       ..panNumber = m.panNumber

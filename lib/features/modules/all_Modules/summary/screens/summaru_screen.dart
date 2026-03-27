@@ -5,6 +5,7 @@ import 'package:shimmer/shimmer.dart';
 import 'package:untitled2/core/utlis/colors/colors.dart';
 import 'package:untitled2/core/utlis/widgets/custom_appBar.dart';
 import 'package:untitled2/core/utlis/widgets/sidebar.dart';
+import 'package:untitled2/core/utlis/widgets/custom_scrollbar.dart';
 import 'package:untitled2/features/modules/all_Modules/summary/screens/profit_loss_fusion.dart';
 
 import '../data/model_enums.dart';
@@ -26,6 +27,13 @@ class _SummaryScreenState extends ConsumerState<SummaryScreen> {
   };
 
   late List<String> _yearOptions;
+  final ScrollController _scrollController = ScrollController();
+
+  @override
+  void dispose() {
+    _scrollController.dispose();
+    super.dispose();
+  }
 
   @override
   void initState() {
@@ -67,13 +75,18 @@ class _SummaryScreenState extends ConsumerState<SummaryScreen> {
               error: (e, _) => _ErrorView(onRetry: () => ref.refresh(summaryDataProvider)),
               data: (sites) {
                 if (sites.isEmpty) return const _EmptyView();
-                return ListView.builder(
-                  padding: const EdgeInsets.only(bottom: 20),
-                  itemCount: sites.length,
-                  itemBuilder: (ctx, i) => _SiteTile(
-                    site: sites[i],
-                    filter: filter,
-                    monthName: selectedMonthName,
+                return CustomScrollbar(
+                  controller: _scrollController,
+                  child: ListView.builder(
+                    controller: _scrollController,
+                    physics: const AlwaysScrollableScrollPhysics(),
+                    padding: const EdgeInsets.only(bottom: 20),
+                    itemCount: sites.length,
+                    itemBuilder: (ctx, i) => _SiteTile(
+                      site: sites[i],
+                      filter: filter,
+                      monthName: selectedMonthName,
+                    ),
                   ),
                 );
               },

@@ -280,7 +280,9 @@ class _NewManpowerScreenState extends ConsumerState<NewManpowerScreen> {
 
       Navigator.pop(context);
       context.push("/manpower");
-    } catch (e) {
+    } catch (e,s) {
+      print(s);
+      print("Error 😑😑😑😑😑😑😑: $e");
       final message = extractBackendError(e);
       AppToast.error(message);
     } finally {

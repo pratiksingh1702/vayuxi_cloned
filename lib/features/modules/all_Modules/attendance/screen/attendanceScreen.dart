@@ -13,6 +13,7 @@ import '../../../../../core/utlis/widgets/Button_wrapper.dart';
 import '../../../../../core/utlis/widgets/buttons.dart';
 import '../../../../../core/utlis/widgets/image_clipped.dart';
 import '../../../../../core/utlis/widgets/sidebar.dart';
+import '../../../../../core/utlis/widgets/custom_scrollbar.dart';
 import '../../../../../typeProvider/type_provider.dart';
 import '../../../screen/device_id.dart';
 import '../model/attModel.dart';
@@ -30,6 +31,7 @@ class AttendanceScreen extends ConsumerStatefulWidget {
 class _AttendanceScreenState extends ConsumerState<AttendanceScreen> {
   bool allPresent = false;
   bool allAbsent = false;
+  final ScrollController _scrollController = ScrollController();
 
   // ✅ Track which date the draft was loaded for (replaces _draftInitialized bool)
   DateTime? _draftLoadedForDate;
@@ -76,6 +78,7 @@ class _AttendanceScreenState extends ConsumerState<AttendanceScreen> {
   @override
   void dispose() {
     _isEditMode = false;
+    _scrollController.dispose();
     super.dispose();
   }
   Future<void> _reloadAll() async {
@@ -850,10 +853,14 @@ class _AttendanceScreenState extends ConsumerState<AttendanceScreen> {
 
                   // Attendance List
                   Expanded(
-                    child: ListView.builder(
-                      itemCount: draft.length,
-                      itemBuilder: (context, i) {
-                        final emp = draft[i];
+                    child: CustomScrollbar(
+                      controller: _scrollController,
+                      child: ListView.builder(
+                        controller: _scrollController,
+                        physics: const AlwaysScrollableScrollPhysics(),
+                        itemCount: draft.length,
+                        itemBuilder: (context, i) {
+                          final emp = draft[i];
                         final totalHours =
                             double.tryParse(emp.manpower.totalHour ?? "") ?? 0;
 
@@ -903,7 +910,7 @@ class _AttendanceScreenState extends ConsumerState<AttendanceScreen> {
                         );
                       },
                     ),
-                  ),
+                  ),)
                 ],
               ),
             );

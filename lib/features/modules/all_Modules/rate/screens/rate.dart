@@ -17,6 +17,7 @@ import '../../../../../core/utlis/common_functions.dart';
 import '../../../../../core/utlis/widgets/custom.dart';
 import '../../../../../core/utlis/widgets/custom_appBar.dart';
 import '../../../../../core/utlis/widgets/sidebar.dart';
+import '../../../../../core/utlis/widgets/custom_scrollbar.dart';
 import '../../../../../typeProvider/type_provider.dart';
 import '../data/rate_provider.dart';
 import '../domain/rateModel.dart';
@@ -35,6 +36,13 @@ class _RateScreenState extends ConsumerState<RateScreen> {
   // Selection mode state
   bool _isSelectionMode = false;
   Set<String> _selectedRateIds = {};
+  final ScrollController _scrollController = ScrollController();
+
+  @override
+  void dispose() {
+    _scrollController.dispose();
+    super.dispose();
+  }
 
   @override
   void initState() {
@@ -230,10 +238,14 @@ class _RateScreenState extends ConsumerState<RateScreen> {
                     ? Center(child: Text('Error: ${state.error}'))
                     : state.data == null || state.data!.isEmpty
                     ? const Center(child: Text('No rates available'))
-                    : ListView.builder(
-                  itemCount: state.data!.length,
-                  itemBuilder: (context, index) {
-                    final rate = state.data![index];
+                    : CustomScrollbar(
+                  controller: _scrollController,
+                  child: ListView.builder(
+                    controller: _scrollController,
+                    physics: const AlwaysScrollableScrollPhysics(),
+                    itemCount: state.data!.length,
+                    itemBuilder: (context, index) {
+                      final rate = state.data![index];
                     final isSelected = _selectedRateIds.contains(rate.id);
 
                     return _buildRateTile(
@@ -245,7 +257,7 @@ class _RateScreenState extends ConsumerState<RateScreen> {
                     );
                   },
                 ),
-              ),
+              ),)
             ],
           ),
         ),

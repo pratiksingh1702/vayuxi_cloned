@@ -8,6 +8,7 @@ import 'package:untitled2/core/utlis/widgets/buttons.dart';
 import '../../../../../core/utlis/common_functions.dart';
 import '../../../../../core/utlis/widgets/custom_appBar.dart';
 import '../../../../../core/utlis/widgets/sidebar.dart';
+import '../../../../../core/utlis/widgets/custom_scrollbar.dart';
 import '../../../../../typeProvider/type_provider.dart';
 import '../../site_Details/providers/site_current_provider.dart';
 import '../model/teamModel.dart';
@@ -28,6 +29,13 @@ class _TeamListPageState extends ConsumerState<TeamListPage> {
   // Selection mode state
   bool _isSelectionMode = false;
   Set<String> _selectedTeamIds = {};
+  final ScrollController _scrollController = ScrollController();
+
+  @override
+  void dispose() {
+    _scrollController.dispose();
+    super.dispose();
+  }
 
   Future<void> _refreshTeams() async {
     final type = ref.read(typeProvider);
@@ -254,19 +262,24 @@ class _TeamListPageState extends ConsumerState<TeamListPage> {
                     padding: const EdgeInsets.all(16),
                     child: LiquidPullToRefresh(
                       onRefresh: _refreshTeams,
-                      child: GridView.builder(
-                        itemCount: teams.length,
-                        gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
-                          crossAxisCount: 2,
-                          mainAxisSpacing: 16,
-                          crossAxisSpacing: 16,
-                          childAspectRatio: 0.9,
+                      child: CustomScrollbar(
+                        controller: _scrollController,
+                        child: GridView.builder(
+                          controller: _scrollController,
+                          physics: const AlwaysScrollableScrollPhysics(),
+                          itemCount: teams.length,
+                          gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
+                            crossAxisCount: 2,
+                            mainAxisSpacing: 16,
+                            crossAxisSpacing: 16,
+                            childAspectRatio: 0.9,
+                          ),
+                          itemBuilder: (context, index) {
+                            final team = teams[index];
+                            final isSelected = _selectedTeamIds.contains(team.id);
+                            return _buildTeamCard(team, isSelected, site);
+                          },
                         ),
-                        itemBuilder: (context, index) {
-                          final team = teams[index];
-                          final isSelected = _selectedTeamIds.contains(team.id);
-                          return _buildTeamCard(team, isSelected, site);
-                        },
                       ),
                     ),
                   ),

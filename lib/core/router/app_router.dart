@@ -186,7 +186,11 @@ final appRouterProvider = Provider<GoRouter>((ref) {
       ),
       GoRoute(
         path: Routes.selectModule,
-        builder: (context, state) => const ModuleScreen(),
+        builder: (context, state) {
+          final indexStr = state.uri.queryParameters['index'];
+          final initialIndex = int.tryParse(indexStr ?? '0') ?? 0;
+          return ModuleScreen(initialIndex: initialIndex);
+        },
       ),
       GoRoute(
         path: '${Routes.siteList}/:module',

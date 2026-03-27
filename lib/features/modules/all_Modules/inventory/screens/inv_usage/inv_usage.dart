@@ -9,6 +9,7 @@ import 'package:untitled2/features/language/service/providers.dart';
 import '../../../../../../core/utlis/widgets/custom_dropdown.dart';
 import '../../../../../../core/utlis/widgets/fields/custom_textField.dart';
 import '../../../../../../core/utlis/widgets/sidebar.dart';
+import '../../../../../../core/utlis/widgets/custom_scrollbar.dart';
 import '../../../site_Details/providers/site_current_provider.dart';
 import '../../models/inventory_model.dart';
 import '../../offline/repo/inventory_sync.dart';
@@ -296,6 +297,7 @@ class _InventorySelectionPageState
   final TextEditingController _quantityController = TextEditingController();
   final GlobalKey<FormState> _formKey = GlobalKey<FormState>();
   DateTime _selectedDate = DateTime.now();
+  final ScrollController _scrollController = ScrollController();
 
   @override
   void initState() {
@@ -312,6 +314,7 @@ class _InventorySelectionPageState
   void dispose() {
     _uomController.dispose();
     _quantityController.dispose();
+    _scrollController.dispose();
     super.dispose();
   }
 
@@ -485,9 +488,13 @@ class _InventorySelectionPageState
       appBar: CustomAppBar(title: "Inventory usage"),
       body: BottomButtonWrapper(
 
-        child: SingleChildScrollView(
-          child: Padding(
-            padding: const EdgeInsets.all(16),
+        child: CustomScrollbar(
+          controller: _scrollController,
+          child: SingleChildScrollView(
+            controller: _scrollController,
+            physics: const AlwaysScrollableScrollPhysics(),
+            child: Padding(
+              padding: const EdgeInsets.all(16),
             child: Form(
               key: _formKey,
               child: inventoryAsync.when(
@@ -846,7 +853,7 @@ class _InventorySelectionPageState
             ),
           ),
         ),
-      ),
+      ),)
     );
   }
 }

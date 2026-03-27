@@ -24,6 +24,7 @@ import '../../providers/material_service.dart';
 import '../../providers/rate_variant_provider.dart';
 import '../../providers/service/rate_upload_material_dpr.dart';
 import 'calculation/expand_wrapper.dart';
+import '../../../../../../core/utlis/widgets/custom_scrollbar.dart';
 import 'dynamic_item_card.dart';
 import 'dynamic_item_card2.dart';
 import 'edit_material.dart';
@@ -58,6 +59,10 @@ class _AllMaterialsScreenState extends ConsumerState<AllMaterialsScreen>
     with SingleTickerProviderStateMixin {
   late TabController _tabController;
   String? editingMaterialId;
+  final ScrollController _approvedPipingController = ScrollController();
+  final ScrollController _approvedEquipmentController = ScrollController();
+  final ScrollController _suggestedPipingController = ScrollController();
+  final ScrollController _suggestedEquipmentController = ScrollController();
 
   bool _isLoading = false;
   bool _isInitialized = false;
@@ -79,6 +84,10 @@ class _AllMaterialsScreenState extends ConsumerState<AllMaterialsScreen>
   @override
   void dispose() {
     _tabController.dispose();
+    _approvedPipingController.dispose();
+    _approvedEquipmentController.dispose();
+    _suggestedPipingController.dispose();
+    _suggestedEquipmentController.dispose();
     super.dispose();
   }
 
@@ -1042,16 +1051,21 @@ class _AllMaterialsScreenState extends ConsumerState<AllMaterialsScreen>
                     ? const Center(
                         child: Text('No suggested piping materials'),
                       )
-                    : ListView.builder(
-                        padding: const EdgeInsets.all(8),
-                        itemCount: pipingItems.length,
-                        itemBuilder: (context, index) {
-                          print(pipingItems[index].image);
-                          return _buildPipingCard(
-                            pipingItems[index],
-                            Colors.orange,
-                          );
-                        },
+                    : CustomScrollbar(
+                        controller: _suggestedPipingController,
+                        child: ListView.builder(
+                          controller: _suggestedPipingController,
+                          physics: const AlwaysScrollableScrollPhysics(),
+                          padding: const EdgeInsets.all(8),
+                          itemCount: pipingItems.length,
+                          itemBuilder: (context, index) {
+                            print(pipingItems[index].image);
+                            return _buildPipingCard(
+                              pipingItems[index],
+                              Colors.orange,
+                            );
+                          },
+                        ),
                       ),
 
                 // Suggested Equipment
@@ -1059,15 +1073,20 @@ class _AllMaterialsScreenState extends ConsumerState<AllMaterialsScreen>
                     ? const Center(
                         child: Text('No suggested equipment materials'),
                       )
-                    : ListView.builder(
-                        padding: const EdgeInsets.all(8),
-                        itemCount: equipmentItems.length,
-                        itemBuilder: (context, index) {
-                          return _buildEquipmentCard(
-                            equipmentItems[index],
-                            Colors.orange,
-                          );
-                        },
+                    : CustomScrollbar(
+                        controller: _suggestedEquipmentController,
+                        child: ListView.builder(
+                          controller: _suggestedEquipmentController,
+                          physics: const AlwaysScrollableScrollPhysics(),
+                          padding: const EdgeInsets.all(8),
+                          itemCount: equipmentItems.length,
+                          itemBuilder: (context, index) {
+                            return _buildEquipmentCard(
+                              equipmentItems[index],
+                              Colors.orange,
+                            );
+                          },
+                        ),
                       ),
               ],
             ),
@@ -1410,10 +1429,14 @@ class _AllMaterialsScreenState extends ConsumerState<AllMaterialsScreen>
         Expanded(
           child: RefreshIndicator(
             onRefresh: _refreshMaterials,
-            child: ListView.builder(
-              padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 10),
-              itemCount: materials.length,
-              itemBuilder: (context, index) {
+            child: CustomScrollbar(
+              controller: category == 'piping' ? _approvedPipingController : _approvedEquipmentController,
+              child: ListView.builder(
+                controller: category == 'piping' ? _approvedPipingController : _approvedEquipmentController,
+                physics: const AlwaysScrollableScrollPhysics(),
+                padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 10),
+                itemCount: materials.length,
+                itemBuilder: (context, index) {
                 final item = materials[index];
 
                 return Padding(
@@ -1425,7 +1448,7 @@ class _AllMaterialsScreenState extends ConsumerState<AllMaterialsScreen>
               },
             ),
           ),
-        ),
+        ),)
       ],
     );
   }

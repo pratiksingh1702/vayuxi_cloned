@@ -16,6 +16,7 @@ import 'package:pdf/widgets.dart' as pw;
 import 'package:untitled2/core/utlis/colors/colors.dart';
 import 'package:untitled2/core/utlis/widgets/Button_wrapper.dart';
 import 'package:untitled2/core/utlis/widgets/custom_appBar.dart';
+import 'package:untitled2/core/utlis/widgets/custom_scrollbar.dart';
 import 'package:untitled2/features/modules/all_Modules/Manpower%20Details/service/manPowerProvider.dart';
 import 'package:untitled2/features/modules/all_Modules/site_Details/repository/siteModel.dart';
 import 'package:untitled2/typeProvider/type_provider.dart';
@@ -52,6 +53,13 @@ class _SiteSalaryScreenState extends ConsumerState<SiteSalaryScreen> {
   bool isLoading = false;
   bool isFetchingWorkData = false;
   bool isDownloading = false;
+  final ScrollController _scrollController = ScrollController();
+
+  @override
+  void dispose() {
+    _scrollController.dispose();
+    super.dispose();
+  }
 
   static const Map<String, int> _monthMap = {
     "January": 1,
@@ -792,11 +800,15 @@ class _SiteSalaryScreenState extends ConsumerState<SiteSalaryScreen> {
       );
     }
 
-    return ListView.builder(
-      padding: const EdgeInsets.symmetric(horizontal: 10),
-      itemCount: filteredList.length,
-      itemBuilder: (_, index) {
-        final emp = filteredList[index];
+    return CustomScrollbar(
+      controller: _scrollController,
+      child: ListView.builder(
+        controller: _scrollController,
+        physics: const AlwaysScrollableScrollPhysics(),
+        padding: const EdgeInsets.symmetric(horizontal: 10),
+        itemCount: filteredList.length,
+        itemBuilder: (_, index) {
+          final emp = filteredList[index];
 
         return Card(
           color: Colors.white,
@@ -831,8 +843,8 @@ class _SiteSalaryScreenState extends ConsumerState<SiteSalaryScreen> {
           ),
         );
       },
-    );
-  }}
+    ));
+     }}
 
 // =============================================================================
 // SUPPORTING WIDGETS (kept in same file as drop-in replacement)

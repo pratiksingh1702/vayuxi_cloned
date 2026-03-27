@@ -1,8 +1,10 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
+import '../../../../../core/utlis/widgets/custom_scrollbar.dart';
 import '../models/boq_model.dart';
 import '../providers/boq_provider.dart';
+
 import 'boq_Settings.dart';
 import 'boq_add_screen.dart';
 import 'boq_detail_screen.dart';
@@ -132,6 +134,13 @@ class _BoqViewTab extends ConsumerStatefulWidget {
 
 class _BoqViewTabState extends ConsumerState<_BoqViewTab> {
   String? _filterStatus;
+  final ScrollController _scrollController = ScrollController();
+
+  @override
+  void dispose() {
+    _scrollController.dispose();
+    super.dispose();
+  }
 
   static const _statusFilters = [
     (label: 'All', value: null),
@@ -211,12 +220,17 @@ class _BoqViewTabState extends ConsumerState<_BoqViewTab> {
                 onRefresh: () async {
                   ref.invalidate(boqListProvider);
                 },
-                child: ListView.builder(
-                  padding: const EdgeInsets.all(16),
-                  itemCount: data.boqs.length,
-                  itemBuilder: (ctx, i) => _BoqCard(
-                    boq: data.boqs[i],
-                    siteId: widget.siteId,
+                child: CustomScrollbar(
+                  controller: _scrollController,
+                  child: ListView.builder(
+                    controller: _scrollController,
+                    physics: const AlwaysScrollableScrollPhysics(),
+                    padding: const EdgeInsets.all(16),
+                    itemCount: data.boqs.length,
+                    itemBuilder: (ctx, i) => _BoqCard(
+                      boq: data.boqs[i],
+                      siteId: widget.siteId,
+                    ),
                   ),
                 ),
               );

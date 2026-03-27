@@ -9,6 +9,7 @@ import 'package:untitled2/features/modules/all_Modules/salary/screens/widget/pdf
 import 'package:untitled2/typeProvider/type_provider.dart';
 import '../../../../../core/utlis/widgets/custom_appBar.dart';
 import '../../../../../core/utlis/widgets/sidebar.dart';
+import '../../../../../core/utlis/widgets/fields/searchableDropdown.dart';
 import '../../Manpower Details/service/manPowerProvider.dart';
 import '../service-provider/salaryClient.dart';
 import '../../../../profile_page/provider/userProvider.dart';
@@ -209,26 +210,26 @@ class _SalarySlipScreenState extends ConsumerState<SalarySlipScreen> {
                   style: TextStyle(
                       fontWeight: FontWeight.w600, fontSize: 14)),
               const SizedBox(height: 6),
-              DropdownButtonFormField<String>(
-                value: selectedEmployee?.fullName,
-                items: manpowerState.manpowerList
-                    .map((emp) => DropdownMenuItem(
-                  value: emp.fullName,
-                  child: Text(emp.fullName!),
-                ))
+              SearchableDropdown(
+                data: manpowerState.manpowerList
+                    .map((emp) => emp.fullName!)
                     .toList(),
-                onChanged: (val) =>
-                    handleSelectByName(val!, manpowerState.manpowerList),
-                decoration: InputDecoration(
+                onSelect: (val) =>
+                    handleSelectByName(val, manpowerState.manpowerList),
+                value: selectedEmployee?.fullName,
+                placeholder: "Select Employee",
+                allowAddNew: false,
+                containerDecoration: BoxDecoration(
+                  color: Colors.white,
+                  borderRadius: BorderRadius.circular(8),
+                ),
+                inputDecoration: const InputDecoration(
                   hintText: "Select Employee",
-                  filled: true,
-                  fillColor: Colors.white,
-                  contentPadding: const EdgeInsets.symmetric(
+                  hintStyle: TextStyle(color: Colors.grey),
+                  isDense: true,
+                  contentPadding: EdgeInsets.symmetric(
                       horizontal: 12, vertical: 14),
-                  border: OutlineInputBorder(
-                    borderRadius: BorderRadius.circular(8),
-                    borderSide: BorderSide.none,
-                  ),
+                  border: InputBorder.none,
                 ),
               ),
 
@@ -239,26 +240,26 @@ class _SalarySlipScreenState extends ConsumerState<SalarySlipScreen> {
                   style: TextStyle(
                       fontWeight: FontWeight.w600, fontSize: 14)),
               const SizedBox(height: 6),
-              DropdownButtonFormField<String>(
-                value: selectedEmployee?.employeeCode,
-                items: manpowerState.manpowerList
-                    .map((emp) => DropdownMenuItem(
-                  value: emp.employeeCode,
-                  child: Text(emp.employeeCode!),
-                ))
+              SearchableDropdown(
+                data: manpowerState.manpowerList
+                    .map((emp) => emp.employeeCode!)
                     .toList(),
-                onChanged: (val) =>
-                    handleSelectByCode(val!, manpowerState.manpowerList),
-                decoration: InputDecoration(
+                onSelect: (val) =>
+                    handleSelectByCode(val, manpowerState.manpowerList),
+                value: selectedEmployee?.employeeCode,
+                placeholder: "Select Code",
+                allowAddNew: false,
+                containerDecoration: BoxDecoration(
+                  color: Colors.white,
+                  borderRadius: BorderRadius.circular(8),
+                ),
+                inputDecoration: const InputDecoration(
                   hintText: "Select Code",
-                  filled: true,
-                  fillColor: Colors.white,
-                  contentPadding: const EdgeInsets.symmetric(
+                  hintStyle: TextStyle(color: Colors.grey),
+                  isDense: true,
+                  contentPadding: EdgeInsets.symmetric(
                       horizontal: 12, vertical: 14),
-                  border: OutlineInputBorder(
-                    borderRadius: BorderRadius.circular(8),
-                    borderSide: BorderSide.none,
-                  ),
+                  border: InputBorder.none,
                 ),
               ),
 
