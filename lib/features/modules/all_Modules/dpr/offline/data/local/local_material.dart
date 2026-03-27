@@ -15,12 +15,19 @@ class LocalMaterial {
   String? serverId;
 
   /// SCOPE
-
   late String siteId;
   late String domain;       // insulation | mechanical
   late String designation;  // piping | equipment
 
+  /// MATERIAL SETUP DATA
+  String? materialCode;
+  String? calculationType;
+  String? fieldConfigJson;  // Stores FieldConfig as JSON
+  String? calculationConfigJson;  // Stores CalculationConfig as JSON
+  bool isDefault = false;
+  int displayOrder = 0;
 
+  /// LEGACY FIELDS (for backward compatibility)
   int qty = 0;
   double length = 0;
   String? size;
@@ -29,6 +36,9 @@ class LocalMaterial {
   double circumference = 0;
   double zHeight = 0;
   String? materialDataJson;
+
+  /// DYNAMIC FIELD VALUES
+  String? fieldValuesJson;  // Stores dynamic field values as JSON
 
   /// DATA
   late String name;

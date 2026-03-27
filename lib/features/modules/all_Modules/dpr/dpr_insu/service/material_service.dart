@@ -4,23 +4,46 @@ import 'package:dio/dio.dart';
 import '../../../../../../core/api/dio.dart';
 import '../model/eqip_insu.dart';
 import '../model/piping_insu.dart';
+import '../model/material_setup.dart';
 
 
 class InsulationMaterialSetupService {
   final Dio _dio = DioClient.dio;
 
   /// ================================
-  /// FETCH MATERIALS
+  /// FETCH MATERIALS WITH SETUP CONFIG
   /// ================================
-  /// FETCH ALL MATERIALS
+  
+  /// Fetch raw material setup data (includes fieldConfig)
   Future<Map<String, dynamic>> fetchInsulationRaw(String siteId) async {
+    final response = await _dio.get(
+      '/insulation-dpr-setup/materials',
+      queryParameters: {'siteId': siteId},
+    );
+    return Map<String, dynamic>.from(response.data);
+  }
+
+  /// Fetch material setup configurations
+  Future<List<MaterialSetup>> fetchMaterialSetup({
+    required String siteId,
+    String? designation,
+  }) async {
+    try {
       final response = await _dio.get(
         '/insulation-dpr-setup/materials',
-        queryParameters: {'siteId': siteId},
+        queryParameters: {
+          'siteId': siteId,
+          if (designation != null) 'designation': designation,
+        },
       );
 
-      return Map<String, dynamic>.from(response.data);
+      final List list = response.data['data'] ?? [];
+      return list.map((json) => MaterialSetup.fromJson(json)).toList();
+    } catch (e) {
+      print('❌ Error fetching material setup: $e');
+      rethrow;
     }
+  }
   Future<Map<String, dynamic>> getMaterials({
     required String siteId,
     String? designation, // piping | equipment
@@ -60,43 +83,16 @@ class InsulationMaterialSetupService {
     }
   }
 
-  /// MAPPERS
+  /// MAPPERS - Convert MaterialSetup to runtime materials
   PipingMaterial _toPipingMaterial(Map<String, dynamic> json) {
     return PipingMaterial(
       id: json['_id'] ?? '',
       name: json['name'] ?? '',
       image: List<String>.from(json['image'] ?? []),
       uom: json['uom'] ?? '',
-      size: "", // Default value - will be set during DPR creation
-
-      // DPR-runtime values → ZERO for setup
-      qty: 0,
-      length: 0,
-      circumference: 0,
-      circumference1: 0,
-      circumference2: 0,
-      zHeight: 0,
-      gSlantHeight: 0,
-      constant: 0,
-      totalArea: 0,
-      diameterA3: 0,
-      diameterB3: 0,
-      diameterA2: 0,
-      diameterB2: 0,
-      diameterA1: 0,
-      diameterB1: 0,
-      circumferenceFinal: 0,
-      layer1Area: 0,
-      layer2Area: 0,
-      layer3Area: 0,
-      circumference3: 0,
-      circumference2Calc: 0,
-      circumference1Calc: 0,
-      o3: 0,
-      o2: 0,
-      o1: 0,
-      remarks: '',
-
+      materialCode: json['materialCode'] ?? json['material_code'],
+      size: json['size']?.toString(),
+      sizeUom: json['sizeUom'] ?? json['size_uom'],
     );
   }
 
@@ -106,35 +102,29 @@ class InsulationMaterialSetupService {
       name: json['name'] ?? '',
       image: List<String>.from(json['image'] ?? []),
       uom: json['uom'] ?? '',
+      materialCode: json['materialCode'] ?? json['material_code'],
+    );
+  }
 
-      // DPR-runtime values → ZERO for setup
-      qty: 0,
-      length: 0,
-      circumference: 0,
-      circumference1: 0,
-      circumference2: 0,
-      zHeight: 0,
-      gSlantHeight: 0,
-      constant: 0,
-      totalArea: 0,
-      diameterA3: 0,
-      diameterB3: 0,
-      diameterA2: 0,
-      diameterB2: 0,
-      diameterA1: 0,
-      diameterB1: 0,
-      circumferenceFinal: 0,
-      layer1Area: 0,
-      layer2Area: 0,
-      layer3Area: 0,
-      circumference3: 0,
-      circumference2Calc: 0,
-      circumference1Calc: 0,
-      o3: 0,
-      o2: 0,
-      o1: 0,
-      remarks: '',
+  /// Convert MaterialSetup to PipingMaterial for UI
+  PipingMaterial materialSetupToPiping(MaterialSetup setup) {
+    return PipingMaterial(
+      id: setup.id,
+      name: setup.name,
+      image: setup.image,
+      uom: setup.uom,
+      materialCode: setup.materialCode,
+    );
+  }
 
+  /// Convert MaterialSetup to EquipmentMaterial for UI
+  EquipmentMaterial materialSetupToEquipment(MaterialSetup setup) {
+    return EquipmentMaterial(
+      id: setup.id,
+      name: setup.name,
+      image: setup.image,
+      uom: setup.uom,
+      materialCode: setup.materialCode,
     );
   }
 
@@ -230,7 +220,57 @@ class InsulationMaterialSetupService {
   }
 
   /// ================================
-  /// MAPPERS (IMPORTANT)
+  /// FIELD CONFIGURATION MANAGEMENT
   /// ================================
+
+  /// Update field configuration for a material
+  Future<MaterialSetup> updateFieldConfig({
+    required String materialId,
+    required List<Map<String, dynamic>> fieldUpdates,
+  }) async {
+    try {
+      final response = await _dio.put(
+        '/insulation-dpr-setup/materials/$materialId/field-config',
+        data: {'fieldUpdates': fieldUpdates},
+      );
+      return MaterialSetup.fromJson(response.data['material']);
+    } catch (e) {
+      print('❌ Error updating field config: $e');
+      rethrow;
+    }
+  }
+
+  /// Add custom field to a material
+  Future<MaterialSetup> addCustomField({
+    required String materialId,
+    required Map<String, dynamic> fieldDef,
+  }) async {
+    try {
+      final response = await _dio.post(
+        '/insulation-dpr-setup/materials/$materialId/custom-field',
+        data: {'fieldDef': fieldDef},
+      );
+      return MaterialSetup.fromJson(response.data['material']);
+    } catch (e) {
+      print('❌ Error adding custom field: $e');
+      rethrow;
+    }
+  }
+
+  /// Remove custom field from a material
+  Future<MaterialSetup> removeCustomField({
+    required String materialId,
+    required String fieldKey,
+  }) async {
+    try {
+      final response = await _dio.delete(
+        '/insulation-dpr-setup/materials/$materialId/custom-field/$fieldKey',
+      );
+      return MaterialSetup.fromJson(response.data['material']);
+    } catch (e) {
+      print('❌ Error removing custom field: $e');
+      rethrow;
+    }
+  }
 
 }

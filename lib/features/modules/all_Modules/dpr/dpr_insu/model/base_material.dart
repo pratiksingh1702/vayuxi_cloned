@@ -1,8 +1,13 @@
-abstract class BaseMaterial {
-  final String id; // ✅ identity belongs in base
+import 'material_setup.dart';
 
+abstract class BaseMaterial {
+  final String id;
   final String name;
   final List<String> image;
+  final String uom;
+  final String remarks;
+  
+  // Legacy fields for backward compatibility
   final int qty;
   final double length;
   final double circumference;
@@ -28,40 +33,46 @@ abstract class BaseMaterial {
   final double o3;
   final double o2;
   final double o1;
-  final String remarks;
-  final String uom;
+  
+  // New dynamic fields support
+  final String? materialCode;
+  final FieldValues? fieldValues;
+  final Map<String, String>? customLabels;
 
   const BaseMaterial({
     required this.id,
     required this.name,
     required this.image,
-    required this.qty,
-    required this.length,
-    required this.circumference,
-    required this.circumference1,
-    required this.circumference2,
-    required this.zHeight,
-    required this.gSlantHeight,
-    required this.constant,
-    required this.totalArea,
-    required this.diameterA3,
-    required this.diameterB3,
-    required this.diameterA2,
-    required this.diameterB2,
-    required this.diameterA1,
-    required this.diameterB1,
-    required this.circumferenceFinal,
-    required this.layer1Area,
-    required this.layer2Area,
-    required this.layer3Area,
-    required this.circumference3,
-    required this.circumference2Calc,
-    required this.circumference1Calc,
-    required this.o3,
-    required this.o2,
-    required this.o1,
-    required this.remarks,
     required this.uom,
+    required this.remarks,
+    this.materialCode,
+    this.fieldValues,
+    this.customLabels,
+    this.qty = 0,
+    this.length = 0,
+    this.circumference = 0,
+    this.circumference1 = 0,
+    this.circumference2 = 0,
+    this.zHeight = 0,
+    this.gSlantHeight = 0,
+    this.constant = 0,
+    this.totalArea = 0,
+    this.diameterA3 = 0,
+    this.diameterB3 = 0,
+    this.diameterA2 = 0,
+    this.diameterB2 = 0,
+    this.diameterA1 = 0,
+    this.diameterB1 = 0,
+    this.circumferenceFinal = 0,
+    this.layer1Area = 0,
+    this.layer2Area = 0,
+    this.layer3Area = 0,
+    this.circumference3 = 0,
+    this.circumference2Calc = 0,
+    this.circumference1Calc = 0,
+    this.o3 = 0,
+    this.o2 = 0,
+    this.o1 = 0,
   });
 
   /// Child classes must implement their own factories
@@ -75,6 +86,11 @@ abstract class BaseMaterial {
     String? id,
     String? name,
     List<String>? image,
+    String? uom,
+    String? remarks,
+    String? materialCode,
+    FieldValues? fieldValues,
+    Map<String, String>? customLabels,
     int? qty,
     double? length,
     double? circumference,
@@ -100,7 +116,5 @@ abstract class BaseMaterial {
     double? o3,
     double? o2,
     double? o1,
-    String? remarks,
-    String? uom,
   });
 }
