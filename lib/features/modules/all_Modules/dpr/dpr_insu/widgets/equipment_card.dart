@@ -1088,13 +1088,7 @@ class _EquipmentMaterialCardState extends State<EquipmentMaterialCard> {
         widget.materialSetup!.fieldConfig.defaults.toJson()[dropdownKey]?.toString() ??
         options.first.toString();
 
-    if (_isEditMode) {
-      return Text(
-        currentUnit,
-        style: const TextStyle(fontSize: 11, color: Colors.black54, fontWeight: FontWeight.w500),
-      );
-    }
-
+    // ✅ Enable dropdowns in BOTH normal and edit mode
     return Row(
       children: [
         Expanded(
@@ -1139,22 +1133,7 @@ class _EquipmentMaterialCardState extends State<EquipmentMaterialCard> {
   }
 
   Widget _buildDynamicFieldInput(FieldDefinition field) {
-    if (_isEditMode) {
-      final value = _fieldValues[field.key];
-      return Container(
-        height: 36,
-        alignment: Alignment.center,
-        decoration: BoxDecoration(
-          color: Colors.grey.shade100,
-          borderRadius: BorderRadius.circular(6),
-        ),
-        child: Text(
-          value?.toString() ?? '0',
-          style: const TextStyle(fontSize: 16, fontWeight: FontWeight.w700, color: Colors.black54),
-        ),
-      );
-    }
-
+    // ✅ Enable editing in BOTH normal and edit mode
     return TextFormField(
       controller: _dynamicValueControllers[field.key],
       focusNode: _dynamicFocusNodes[field.key],
@@ -1162,17 +1141,28 @@ class _EquipmentMaterialCardState extends State<EquipmentMaterialCard> {
       keyboardType: field.type == 'NUMBER'
           ? const TextInputType.numberWithOptions(decimal: true)
           : TextInputType.text,
-      style: const TextStyle(fontSize: 10),
+      style: TextStyle(
+        fontSize: _isEditMode ? 14 : 10,
+        fontWeight: _isEditMode ? FontWeight.w600 : FontWeight.normal,
+      ),
       decoration: InputDecoration(
         isDense: true,
         filled: true,
-        fillColor: const Color(0xFFD0EAFD),
+        fillColor: _isEditMode ? Colors.white : const Color(0xFFD0EAFD),
         hintText: field.required ? 'Required' : '',
         hintStyle: const TextStyle(fontSize: 9, color: Colors.black38),
         contentPadding: const EdgeInsets.symmetric(vertical: 8, horizontal: 6),
         border: OutlineInputBorder(
           borderRadius: BorderRadius.circular(6),
-          borderSide: BorderSide.none,
+          borderSide: _isEditMode ? const BorderSide(color: Colors.grey) : BorderSide.none,
+        ),
+        enabledBorder: OutlineInputBorder(
+          borderRadius: BorderRadius.circular(6),
+          borderSide: _isEditMode ? const BorderSide(color: Colors.grey) : BorderSide.none,
+        ),
+        focusedBorder: OutlineInputBorder(
+          borderRadius: BorderRadius.circular(6),
+          borderSide: BorderSide(color: _isEditMode ? Colors.blue : Colors.transparent, width: 2),
         ),
       ),
       validator: field.required

@@ -1103,6 +1103,7 @@ class _PipingMaterialCardState extends State<PipingMaterialCard> {
         widget.materialSetup!.fieldConfig.defaults.toJson()[dropdownKey]?.toString() ??
         options.first.toString();
 
+    // ✅ Enable dropdowns in BOTH normal and edit mode
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
       decoration: BoxDecoration(
@@ -1137,26 +1138,7 @@ class _PipingMaterialCardState extends State<PipingMaterialCard> {
   }
 
   Widget _buildDynamicFieldInput(FieldDefinition field, {bool compact = false}) {
-    if (_isEditMode) {
-      final value = _fieldValues[field.key];
-      return Container(
-        height: compact ? 24 : 36,
-        alignment: Alignment.center,
-        decoration: BoxDecoration(
-          color: Colors.grey.shade100,
-          borderRadius: BorderRadius.circular(6),
-        ),
-        child: Text(
-          value?.toString() ?? '0',
-          style: TextStyle(
-            fontSize: compact ? 11 : 16,
-            fontWeight: FontWeight.w700,
-            color: Colors.black54,
-          ),
-        ),
-      );
-    }
-
+    // ✅ Enable editing in BOTH normal and edit mode
     return TextFormField(
       controller: _dynamicValueControllers[field.key],
       focusNode: _dynamicFocusNodes[field.key],
@@ -1165,8 +1147,8 @@ class _PipingMaterialCardState extends State<PipingMaterialCard> {
           ? const TextInputType.numberWithOptions(decimal: true)
           : TextInputType.text,
       style: TextStyle(
-        fontSize: compact ? 11 : 12,
-        fontWeight: compact ? FontWeight.normal : FontWeight.w700,
+        fontSize: _isEditMode ? (compact ? 12 : 14) : (compact ? 11 : 12),
+        fontWeight: _isEditMode ? FontWeight.w600 : (compact ? FontWeight.normal : FontWeight.w700),
         height: 1,
       ),
       decoration: InputDecoration(
@@ -1176,10 +1158,18 @@ class _PipingMaterialCardState extends State<PipingMaterialCard> {
           vertical: compact ? 6 : 10,
         ),
         filled: true,
-        fillColor: compact ? const Color(0xFFD0EAFD) : Colors.white,
+        fillColor: _isEditMode ? Colors.white : (compact ? const Color(0xFFD0EAFD) : Colors.white),
         border: OutlineInputBorder(
           borderRadius: BorderRadius.circular(6),
-          borderSide: compact ? BorderSide.none : const BorderSide(),
+          borderSide: _isEditMode ? const BorderSide(color: Colors.grey) : (compact ? BorderSide.none : const BorderSide()),
+        ),
+        enabledBorder: OutlineInputBorder(
+          borderRadius: BorderRadius.circular(6),
+          borderSide: _isEditMode ? const BorderSide(color: Colors.grey) : (compact ? BorderSide.none : const BorderSide()),
+        ),
+        focusedBorder: OutlineInputBorder(
+          borderRadius: BorderRadius.circular(6),
+          borderSide: BorderSide(color: _isEditMode ? Colors.blue : Colors.transparent, width: 2),
         ),
       ),
       validator: field.required
