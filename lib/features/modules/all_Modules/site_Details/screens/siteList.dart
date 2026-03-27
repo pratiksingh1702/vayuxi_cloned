@@ -57,6 +57,7 @@ class _SiteListScreenState extends ConsumerState<SiteListScreen>
     WidgetsBinding.instance.addPostFrameCallback((_) {
       final tour = ref.read(tourControllerProvider);
       final siteDropdownValue = ref.read(siteDropdownValueProvider);
+      ref.read(siteProvider.notifier).fetchSites();
 
       final tourRunning = tour.status == TourStatus.running;
 

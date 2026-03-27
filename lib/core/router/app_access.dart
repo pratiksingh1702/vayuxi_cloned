@@ -229,7 +229,7 @@ class AppAccessNotifier extends StateNotifier<AppAccessState> {
     print('🔄 [AppAccess] Starting parallel background syncs...');
     await Future.wait([
       _syncOnboardingAndSubscription(cached),
-      _prewarmSites(auth),
+      // _prewarmSites(auth),
       _prewarmLanguage(auth),
     ]);
 
