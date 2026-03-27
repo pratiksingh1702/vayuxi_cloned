@@ -4,11 +4,14 @@ import 'package:flutter/material.dart';
 import '../../../../../../core/utlis/widgets/file_upload.dart';
 import '../../../../../../core/utlis/widgets/image.dart';
 import '../model/piping_insu.dart';
+import '../model/material_setup.dart';
+import '../model/field_config.dart';
 import '../service/material_service.dart';
 import 'config/piping_config.dart';
 
 class PipingMaterialCard extends StatefulWidget {
   final PipingMaterial material;
+  final MaterialSetup? materialSetup; // NEW: For dynamic field rendering
   final ValueChanged<PipingMaterial> onChanged;
   final VoidCallback onAdd;
   final VoidCallback onEdit;
@@ -18,6 +21,7 @@ class PipingMaterialCard extends StatefulWidget {
   const PipingMaterialCard({
     super.key,
     required this.material,
+    this.materialSetup, // Optional: enables dynamic mode
     required this.onChanged,
     this.customLabels,
     required this.onAdd,
@@ -31,6 +35,7 @@ class PipingMaterialCard extends StatefulWidget {
 }
 
 class _PipingMaterialCardState extends State<PipingMaterialCard> {
+  // Legacy fields
   File? _draftImageFile;
   String? _draftImageUrl;
   final Map<PipingFieldType, FocusNode> _focusNodes = {
@@ -41,18 +46,39 @@ class _PipingMaterialCardState extends State<PipingMaterialCard> {
   late Map<PipingFieldType, TextEditingController> _valueControllers;
   late Map<PipingFieldType, TextEditingController> _labelControllers;
   late TextEditingController _sizeUomController;
+  
+  // Dynamic field controllers
+  final Map<String, TextEditingController> _dynamicValueControllers = {};
+  final Map<String, TextEditingController> _dynamicLabelControllers = {};
+  final Map<String, FocusNode> _dynamicFocusNodes = {};
+  
   bool _isEditMode = false;
   late PipingMaterial _draftMaterial;
+  late FieldValues _fieldValues;
+  late Map<String, String> _customLabels;
+  
+  /// Check if using dynamic mode
+  bool get _isDynamicMode => widget.materialSetup != null;
   @override
   void initState() {
     super.initState();
 
     _draftMaterial = widget.material.copyWith();
+    _fieldValues = widget.material.fieldValues ?? FieldValues({});
+    _customLabels = Map.from(widget.material.customLabels ?? {});
 
     _draftImageUrl = widget.material.image.isNotEmpty
         ? widget.material.image.first
         : null;
 
+    if (_isDynamicMode) {
+      _initDynamicControllers();
+    } else {
+      _initLegacyControllers();
+    }
+  }
+  
+  void _initLegacyControllers() {
     _valueControllers = {
       PipingFieldType.size: TextEditingController(text: widget.material.size ?? ''),
       PipingFieldType.length: TextEditingController(text: widget.material.length.toString()),
@@ -71,6 +97,27 @@ class _PipingMaterialCardState extends State<PipingMaterialCard> {
     _sizeUomController =
         TextEditingController(text: widget.material.sizeUom ?? 'inch');
   }
+  
+  void _initDynamicControllers() {
+    if (widget.materialSetup == null) return;
+    
+    // Initialize controllers for each dynamic field
+    for (final field in widget.materialSetup!.fieldConfig.fields) {
+      // Value controller
+      final value = _fieldValues[field.key];
+      _dynamicValueControllers[field.key] = TextEditingController(
+        text: value?.toString() ?? '',
+      );
+      
+      // Label controller
+      final label = _customLabels[field.key] ?? field.label;
+      _dynamicLabelControllers[field.key] = TextEditingController(text: label);
+      
+      // Focus node
+      _dynamicFocusNodes[field.key] = FocusNode();
+    }
+  }
+  
   @override
   void didUpdateWidget(covariant PipingMaterialCard oldWidget) {
     super.didUpdateWidget(oldWidget);
@@ -95,16 +142,25 @@ class _PipingMaterialCardState extends State<PipingMaterialCard> {
   }
   @override
   void dispose() {
+    // Dispose legacy controllers
     for (final f in _focusNodes.values) {
       f.dispose();
     }
-    for (final c in _valueControllers.values) {
-      c.dispose();
+    if (!_isDynamicMode) {
+      for (final c in _valueControllers.values) {
+        c.dispose();
+      }
+      for (final c in _labelControllers.values) {
+        c.dispose();
+      }
+      _sizeUomController.dispose();
     }
-    for (final c in _labelControllers.values) {
-      c.dispose();
-    }
-    _sizeUomController.dispose();
+    
+    // Dispose dynamic controllers
+    for (final c in _dynamicValueControllers.values) c.dispose();
+    for (final c in _dynamicLabelControllers.values) c.dispose();
+    for (final n in _dynamicFocusNodes.values) n.dispose();
+    
     super.dispose();
   }
   Widget _buildSmartImage({
@@ -194,10 +250,15 @@ class _PipingMaterialCardState extends State<PipingMaterialCard> {
 
 
   @override
-  Widget build(BuildContext context) {/**/
+  Widget build(BuildContext context) {
+    // Use dynamic mode if MaterialSetup is provided
+    if (_isDynamicMode) {
+      return _buildDynamicCard();
+    }
+    
+    // Legacy mode
     final key = _resolveConfigKey(widget.material.name);
     final fields = pipingFieldConfig[key]!;
-
 
     return GestureDetector(
       behavior: HitTestBehavior.translucent,
@@ -816,6 +877,438 @@ class _PipingMaterialCardState extends State<PipingMaterialCard> {
     return pipingFieldConfig.keys.firstWhere(
       (k) => upper.startsWith(k),
       orElse: () => 'DEFAULT',
+    );
+  }
+
+  // --------------------------------------------------
+  // DYNAMIC FIELD RENDERING
+  // --------------------------------------------------
+
+  Widget _buildDynamicCard() {
+    return GestureDetector(
+      behavior: HitTestBehavior.translucent,
+      onTap: () => _focusFirstDynamicField(),
+      child: Container(
+        margin: const EdgeInsets.only(bottom: 8),
+        padding: const EdgeInsets.all(8),
+        decoration: BoxDecoration(
+          color: Colors.white,
+          borderRadius: BorderRadius.circular(14),
+        ),
+        child: Column(
+          children: [
+            _buildHeader(),
+            const SizedBox(height: 8),
+            
+            IntrinsicHeight(
+              child: Row(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  // Image and actions
+                  SizedBox(
+                    width: 140,
+                    child: Column(
+                      children: [
+                        if (_isEditMode)
+                          TextButton.icon(
+                            onPressed: _changeDynamicImage,
+                            icon: const Icon(Icons.photo),
+                            label: const Text("Change"),
+                          ),
+                        _buildSmartImage(
+                          imageFile: _isEditMode ? _draftImageFile : null,
+                          imageUrl: _isEditMode
+                              ? _draftImageUrl
+                              : widget.material.image.isNotEmpty
+                                  ? widget.material.image.first
+                                  : null,
+                          height: 100,
+                        ),
+                        const SizedBox(height: 8),
+                        Row(
+                          children: [
+                            _buildActionBtn(Icons.edit, Colors.blue, () {
+                              setState(() => _isEditMode = !_isEditMode);
+                            }),
+                            const SizedBox(width: 6),
+                            _buildActionBtn(Icons.copy, Colors.green, widget.onAdd),
+                            const SizedBox(width: 6),
+                            _buildActionBtn(Icons.delete_outline, Colors.red, widget.onDelete),
+                          ],
+                        ),
+                      ],
+                    ),
+                  ),
+                  
+                  const SizedBox(width: 8),
+                  
+                  // Dynamic fields
+                  Expanded(
+                    child: Column(
+                      children: _buildDynamicFields(),
+                    ),
+                  ),
+                ],
+              ),
+            ),
+            
+            if (_isEditMode) ...[
+              const SizedBox(height: 8),
+              _buildEditActions(),
+            ],
+          ],
+        ),
+      ),
+    );
+  }
+
+  void _focusFirstDynamicField() {
+    if (widget.materialSetup == null) return;
+    final firstField = widget.materialSetup!.fieldConfig.fields.first;
+    _dynamicFocusNodes[firstField.key]?.requestFocus();
+  }
+
+  Future<void> _changeDynamicImage() async {
+    final helper = ImageUploadHelper(context);
+    final file = await helper.pickAndCropImage(
+      enableCropping: true,
+      cropTitle: "Crop Material Image",
+    );
+    if (file != null) {
+      setState(() {
+        _draftImageFile = file;
+        _draftImageUrl = null;
+      });
+    }
+  }
+
+  List<Widget> _buildDynamicFields() {
+    if (widget.materialSetup == null) return [];
+    
+    final fields = widget.materialSetup!.fieldConfig.fields;
+    final widgets = <Widget>[];
+    
+    for (final field in fields) {
+      widgets.add(_buildDynamicField(field));
+    }
+    
+    return widgets;
+  }
+
+  Widget _buildDynamicField(FieldDefinition field) {
+    final customLabel = _customLabels[field.key] ?? field.label;
+    final isMainField = field.role == 'QUANTITY' || field.role == 'LENGTH';
+    
+    if (isMainField) {
+      return _buildMainDynamicField(field, customLabel);
+    } else {
+      return _buildCompactDynamicField(field, customLabel);
+    }
+  }
+
+  Widget _buildMainDynamicField(FieldDefinition field, String customLabel) {
+    return Padding(
+      padding: const EdgeInsets.only(bottom: 8),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          _buildDynamicFieldLabel(field, customLabel, showUnit: true),
+          const SizedBox(height: 8),
+          _buildDynamicFieldInput(field),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildCompactDynamicField(FieldDefinition field, String customLabel) {
+    return Padding(
+      padding: const EdgeInsets.only(bottom: 6),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          _buildDynamicFieldLabel(field, customLabel, showUnit: false),
+          const SizedBox(height: 4),
+          SizedBox(
+            height: 24,
+            width: 70,
+            child: _buildDynamicFieldInput(field, compact: true),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildDynamicFieldLabel(FieldDefinition field, String customLabel, {required bool showUnit}) {
+    if (_isEditMode && widget.materialSetup!.fieldConfig.ui.allowRename) {
+      return SizedBox(
+        height: 22,
+        child: TextFormField(
+          controller: _dynamicLabelControllers[field.key],
+          decoration: InputDecoration(
+            isDense: true,
+            filled: true,
+            fillColor: const Color(0xFFD0EAFD),
+            hintText: "Enter Label",
+            contentPadding: const EdgeInsets.symmetric(horizontal: 8, vertical: 8),
+            border: OutlineInputBorder(
+              borderRadius: BorderRadius.circular(6),
+              borderSide: BorderSide.none,
+            ),
+          ),
+          onChanged: (val) {
+            _customLabels[field.key] = val;
+          },
+        ),
+      );
+    }
+
+    // Get unit for display
+    String unitText = '';
+    if (showUnit && field.dropdown != null) {
+      final unitKey = '${field.key}Uom';
+      final dropdownKey = field.dropdown!;
+      final currentUnit = _fieldValues[unitKey]?.toString() ??
+          widget.materialSetup!.fieldConfig.defaults.toJson()[dropdownKey]?.toString() ??
+          '';
+      unitText = currentUnit.isNotEmpty ? ' ($currentUnit)' : '';
+    }
+
+    return Row(
+      children: [
+        Expanded(
+          child: Text(
+            '$customLabel$unitText',
+            style: TextStyle(
+              fontSize: showUnit ? 11 : 9,
+              fontWeight: FontWeight.w600,
+              color: Colors.black87,
+            ),
+          ),
+        ),
+        if (showUnit && field.dropdown != null && !_isEditMode)
+          _buildDynamicUnitDropdown(field),
+      ],
+    );
+  }
+
+  Widget _buildDynamicUnitDropdown(FieldDefinition field) {
+    final unitKey = '${field.key}Uom';
+    final dropdownKey = field.dropdown!;
+    final unitDropdowns = widget.materialSetup!.fieldConfig.unitDropdowns.toJson();
+    final options = unitDropdowns[dropdownKey] as List?;
+
+    if (options == null || options.isEmpty) return const SizedBox.shrink();
+
+    final currentUnit = _fieldValues[unitKey]?.toString() ??
+        widget.materialSetup!.fieldConfig.defaults.toJson()[dropdownKey]?.toString() ??
+        options.first.toString();
+
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
+      decoration: BoxDecoration(
+        color: Colors.white,
+        border: Border.all(color: Colors.grey.shade400),
+        borderRadius: BorderRadius.circular(4),
+      ),
+      child: DropdownButtonHideUnderline(
+        child: DropdownButton<String>(
+          value: currentUnit,
+          isDense: true,
+          style: const TextStyle(fontSize: 10, color: Colors.black87),
+          items: options.map((opt) {
+            return DropdownMenuItem<String>(
+              value: opt.toString(),
+              child: Text(opt.toString()),
+            );
+          }).toList(),
+          onChanged: (value) {
+            if (value != null) {
+              setState(() {
+                _fieldValues[unitKey] = value;
+              });
+              widget.onChanged(
+                widget.material.copyWith(fieldValues: _fieldValues),
+              );
+            }
+          },
+        ),
+      ),
+    );
+  }
+
+  Widget _buildDynamicFieldInput(FieldDefinition field, {bool compact = false}) {
+    if (_isEditMode) {
+      final value = _fieldValues[field.key];
+      return Container(
+        height: compact ? 24 : 36,
+        alignment: Alignment.center,
+        decoration: BoxDecoration(
+          color: Colors.grey.shade100,
+          borderRadius: BorderRadius.circular(6),
+        ),
+        child: Text(
+          value?.toString() ?? '0',
+          style: TextStyle(
+            fontSize: compact ? 11 : 16,
+            fontWeight: FontWeight.w700,
+            color: Colors.black54,
+          ),
+        ),
+      );
+    }
+
+    return TextFormField(
+      controller: _dynamicValueControllers[field.key],
+      focusNode: _dynamicFocusNodes[field.key],
+      textAlign: TextAlign.center,
+      keyboardType: field.type == 'NUMBER'
+          ? const TextInputType.numberWithOptions(decimal: true)
+          : TextInputType.text,
+      style: TextStyle(
+        fontSize: compact ? 11 : 12,
+        fontWeight: compact ? FontWeight.normal : FontWeight.w700,
+        height: 1,
+      ),
+      decoration: InputDecoration(
+        isDense: true,
+        contentPadding: EdgeInsets.symmetric(
+          horizontal: compact ? 4 : 8,
+          vertical: compact ? 6 : 10,
+        ),
+        filled: true,
+        fillColor: compact ? const Color(0xFFD0EAFD) : Colors.white,
+        border: OutlineInputBorder(
+          borderRadius: BorderRadius.circular(6),
+          borderSide: compact ? BorderSide.none : const BorderSide(),
+        ),
+      ),
+      validator: field.required
+          ? (value) => (value?.isEmpty ?? true) ? 'Required' : null
+          : null,
+      onChanged: (val) {
+        if (field.type == 'NUMBER') {
+          final numValue = num.tryParse(val);
+          if (numValue != null) {
+            _fieldValues[field.key] = numValue;
+            widget.onChanged(
+              widget.material.copyWith(fieldValues: _fieldValues),
+            );
+          }
+        } else {
+          _fieldValues[field.key] = val;
+          widget.onChanged(
+            widget.material.copyWith(fieldValues: _fieldValues),
+          );
+        }
+      },
+    );
+  }
+
+  Widget _buildHeader() {
+    return Row(
+      children: [
+        Expanded(
+          child: _isEditMode
+              ? TextFormField(
+                  initialValue: _draftMaterial.name,
+                  decoration: InputDecoration(
+                    isDense: true,
+                    filled: true,
+                    fillColor: const Color(0xFFD0EAFD),
+                    hintText: "Enter Name",
+                    contentPadding: const EdgeInsets.symmetric(horizontal: 8, vertical: 8),
+                    border: OutlineInputBorder(
+                      borderRadius: BorderRadius.circular(6),
+                      borderSide: BorderSide.none,
+                    ),
+                  ),
+                  onChanged: (val) {
+                    setState(() {
+                      _draftMaterial = _draftMaterial.copyWith(name: val);
+                    });
+                  },
+                )
+              : Text(
+                  widget.material.name,
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
+                  style: const TextStyle(fontSize: 16, fontWeight: FontWeight.w600),
+                ),
+        ),
+        const SizedBox(width: 8),
+        InkWell(
+          onTap: widget.onRemark,
+          child: Container(
+            padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 4),
+            decoration: BoxDecoration(
+              color: const Color(0xFFD0EAFD),
+              border: Border.all(color: Colors.black),
+              borderRadius: BorderRadius.circular(4),
+            ),
+            child: const Text(
+              'Remark',
+              style: TextStyle(fontSize: 9, fontWeight: FontWeight.w600),
+            ),
+          ),
+        ),
+      ],
+    );
+  }
+
+  Widget _buildActionBtn(IconData icon, Color color, VoidCallback onTap) {
+    return Expanded(
+      child: IconButton(
+        onPressed: onTap,
+        icon: Icon(icon, size: 18),
+        color: color,
+        style: IconButton.styleFrom(
+          padding: const EdgeInsets.all(6),
+          side: BorderSide(color: color, width: 1.5),
+          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(6)),
+        ),
+      ),
+    );
+  }
+
+  Widget _buildEditActions() {
+    return Row(
+      children: [
+        Expanded(
+          child: ElevatedButton(
+            onPressed: () async {
+              try {
+                if (_draftImageFile != null || _draftMaterial.name != widget.material.name) {
+                  await InsulationMaterialSetupService().updateMaterial(
+                    materialId: widget.material.id,
+                    name: _draftMaterial.name,
+                    images: _draftImageFile != null ? [_draftImageFile!] : null,
+                  );
+                }
+                widget.onChanged(_draftMaterial);
+                setState(() {
+                  _isEditMode = false;
+                  _draftImageFile = null;
+                });
+              } catch (e) {
+                print("Update failed: $e");
+              }
+            },
+            child: const Text("Save"),
+          ),
+        ),
+        const SizedBox(width: 6),
+        Expanded(
+          child: OutlinedButton(
+            onPressed: () {
+              setState(() {
+                _draftMaterial = widget.material.copyWith();
+                _isEditMode = false;
+              });
+            },
+            child: const Text("Cancel"),
+          ),
+        ),
+      ],
     );
   }
 }

@@ -4,11 +4,14 @@ import 'package:flutter/material.dart';
 import '../../../../../../core/utlis/widgets/file_upload.dart';
 import '../../../../../../core/utlis/widgets/image.dart';
 import '../model/eqip_insu.dart';
+import '../model/material_setup.dart';
+import '../model/field_config.dart';
 import '../service/material_service.dart';
 import 'config/equipment_config.dart';
 
 class EquipmentMaterialCard extends StatefulWidget {
   final EquipmentMaterial material;
+  final MaterialSetup? materialSetup; // NEW: For dynamic field rendering
   final ValueChanged<EquipmentMaterial> onChanged;
   final VoidCallback onAdd;
   final VoidCallback onEdit;
@@ -18,6 +21,7 @@ class EquipmentMaterialCard extends StatefulWidget {
   const EquipmentMaterialCard({
     super.key,
     required this.material,
+    this.materialSetup, // Optional: enables dynamic mode
     required this.onChanged,
     required this.onAdd,
     required this.onEdit,
@@ -30,6 +34,7 @@ class EquipmentMaterialCard extends StatefulWidget {
 }
 
 class _EquipmentMaterialCardState extends State<EquipmentMaterialCard> {
+  // Legacy field controllers
   final Map<EquipmentFieldType, FocusNode> _focusNodes = {
     EquipmentFieldType.qty: FocusNode(),
     EquipmentFieldType.length: FocusNode(),
@@ -46,11 +51,21 @@ class _EquipmentMaterialCardState extends State<EquipmentMaterialCard> {
   late Map<EquipmentFieldType, TextEditingController> _labelControllers;
   late Map<EquipmentFieldType, TextEditingController> _uomControllers;
 
+  // Dynamic field controllers
+  final Map<String, TextEditingController> _dynamicValueControllers = {};
+  final Map<String, TextEditingController> _dynamicLabelControllers = {};
+  final Map<String, FocusNode> _dynamicFocusNodes = {};
+  
   bool _isEditMode = false;
   late EquipmentMaterial _draftMaterial;
+  late FieldValues _fieldValues;
+  late Map<String, String> _customLabels;
 
   /// Per-field draft image files (index matches field.imageIndex)
   final Map<int, File?> _draftImageFiles = {};
+  
+  /// Check if using dynamic mode
+  bool get _isDynamicMode => widget.materialSetup != null;
 
   @override
   void initState() {
@@ -59,7 +74,14 @@ class _EquipmentMaterialCardState extends State<EquipmentMaterialCard> {
       text: widget.material.qty.toString(),
     );
     _draftMaterial = widget.material.copyWith();
-    _initControllers(widget.material);
+    _fieldValues = widget.material.fieldValues ?? FieldValues({});
+    _customLabels = Map.from(widget.material.customLabels ?? {});
+    
+    if (_isDynamicMode) {
+      _initDynamicControllers();
+    } else {
+      _initControllers(widget.material);
+    }
   }
 
   void _initControllers(EquipmentMaterial m) {
@@ -116,6 +138,26 @@ class _EquipmentMaterialCardState extends State<EquipmentMaterialCard> {
     };
   }
 
+  void _initDynamicControllers() {
+    if (widget.materialSetup == null) return;
+    
+    // Initialize controllers for each dynamic field
+    for (final field in widget.materialSetup!.fieldConfig.fields) {
+      // Value controller
+      final value = _fieldValues[field.key];
+      _dynamicValueControllers[field.key] = TextEditingController(
+        text: value?.toString() ?? '',
+      );
+      
+      // Label controller
+      final label = _customLabels[field.key] ?? field.label;
+      _dynamicLabelControllers[field.key] = TextEditingController(text: label);
+      
+      // Focus node
+      _dynamicFocusNodes[field.key] = FocusNode();
+    }
+  }
+
   @override
   void didUpdateWidget(covariant EquipmentMaterialCard oldWidget) {
     super.didUpdateWidget(oldWidget);
@@ -135,10 +177,19 @@ class _EquipmentMaterialCardState extends State<EquipmentMaterialCard> {
   }
   @override
   void dispose() {
+    // Dispose legacy controllers
     for (final n in _focusNodes.values) n.dispose();
-    for (final c in _valueControllers.values) c.dispose();
-    for (final c in _labelControllers.values) c.dispose();
-    for (final c in _uomControllers.values) c.dispose();
+    if (!_isDynamicMode) {
+      for (final c in _valueControllers.values) c.dispose();
+      for (final c in _labelControllers.values) c.dispose();
+      for (final c in _uomControllers.values) c.dispose();
+    }
+    
+    // Dispose dynamic controllers
+    for (final c in _dynamicValueControllers.values) c.dispose();
+    for (final c in _dynamicLabelControllers.values) c.dispose();
+    for (final n in _dynamicFocusNodes.values) n.dispose();
+    
     _qtyController.dispose();
     super.dispose();
   }
@@ -228,6 +279,12 @@ class _EquipmentMaterialCardState extends State<EquipmentMaterialCard> {
 
   @override
   Widget build(BuildContext context) {
+    // Use dynamic mode if MaterialSetup is provided
+    if (_isDynamicMode) {
+      return _buildDynamicCard();
+    }
+    
+    // Legacy mode
     final key = _resolveConfigKey(widget.material.name);
     final fields = equipmentFieldConfig[key]!;
 
@@ -762,5 +819,445 @@ class _EquipmentMaterialCardState extends State<EquipmentMaterialCard> {
 
   String _defaultUom(EquipmentFieldType type) {
     return type == EquipmentFieldType.qty ? 'NOS' : 'mm';
+  }
+
+  // --------------------------------------------------
+  // DYNAMIC FIELD RENDERING
+  // --------------------------------------------------
+
+  Widget _buildDynamicCard() {
+    return GestureDetector(
+      behavior: HitTestBehavior.translucent,
+      onTap: () => _focusFirstDynamicField(),
+      child: Container(
+        margin: const EdgeInsets.only(bottom: 8),
+        padding: const EdgeInsets.all(8),
+        decoration: BoxDecoration(
+          color: Colors.white,
+          borderRadius: BorderRadius.circular(14),
+        ),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            _header(),
+            const SizedBox(height: 8),
+
+            // Geometry mode switch (for SHELL material)
+            if (widget.materialSetup!.fieldConfig.ui.allowGeometrySwitch)
+              _buildGeometryModeSwitch(),
+
+            // Dynamic fields
+            ..._buildDynamicFields(),
+
+            const SizedBox(height: 8),
+
+            // Quantity field
+            Row(
+              mainAxisAlignment: MainAxisAlignment.spaceBetween,
+              crossAxisAlignment: CrossAxisAlignment.end,
+              children: [
+                _actionRow(),
+                _buildQuantityField(),
+              ],
+            ),
+
+            // Save/Cancel in edit mode
+            if (_isEditMode) ...[
+              const SizedBox(height: 8),
+              _buildEditActions(),
+            ],
+          ],
+        ),
+      ),
+    );
+  }
+
+  void _focusFirstDynamicField() {
+    if (widget.materialSetup == null) return;
+    
+    // Focus first required field
+    final firstRequired = widget.materialSetup!.fieldConfig.fields
+        .firstWhere((f) => f.required, orElse: () => widget.materialSetup!.fieldConfig.fields.first);
+    
+    _dynamicFocusNodes[firstRequired.key]?.requestFocus();
+  }
+
+  Widget _buildGeometryModeSwitch() {
+    final currentMode = _fieldValues['geometryMode']?.toString() ?? 'DIAMETER';
+    final options = widget.materialSetup!.fieldConfig.unitDropdowns.geometryMode ?? [];
+
+    if (options.isEmpty) return const SizedBox.shrink();
+
+    return Padding(
+      padding: const EdgeInsets.only(bottom: 12),
+      child: Row(
+        children: options.map((mode) {
+          final isSelected = currentMode == mode;
+          return Expanded(
+            child: Padding(
+              padding: const EdgeInsets.symmetric(horizontal: 4),
+              child: ElevatedButton(
+                onPressed: _isEditMode
+                    ? null
+                    : () {
+                        setState(() {
+                          _fieldValues['geometryMode'] = mode;
+                        });
+                        widget.onChanged(
+                          widget.material.copyWith(fieldValues: _fieldValues),
+                        );
+                      },
+                style: ElevatedButton.styleFrom(
+                  backgroundColor: isSelected ? Colors.blue : Colors.grey.shade200,
+                  foregroundColor: isSelected ? Colors.white : Colors.black87,
+                  padding: const EdgeInsets.symmetric(vertical: 8),
+                  shape: RoundedRectangleBorder(
+                    borderRadius: BorderRadius.circular(6),
+                  ),
+                ),
+                child: Text(
+                  mode,
+                  style: const TextStyle(fontSize: 11, fontWeight: FontWeight.w600),
+                ),
+              ),
+            ),
+          );
+        }).toList(),
+      ),
+    );
+  }
+
+  List<Widget> _buildDynamicFields() {
+    if (widget.materialSetup == null) return [];
+
+    return widget.materialSetup!.fieldConfig.fields
+        .where((f) => f.key != 'geometryMode' && _isFieldVisible(f))
+        .map((field) => _buildDynamicFieldCard(field))
+        .toList();
+  }
+
+  bool _isFieldVisible(FieldDefinition field) {
+    if (field.visibleWhen == null) return true;
+
+    // Check geometry mode visibility
+    if (field.visibleWhen!.geometryMode != null) {
+      final currentMode = _fieldValues['geometryMode'];
+      return currentMode == field.visibleWhen!.geometryMode;
+    }
+
+    return true;
+  }
+
+  Widget _buildDynamicFieldCard(FieldDefinition field) {
+    final customLabel = _customLabels[field.key] ?? field.label;
+    final imageIndex = _getImageIndexForField(field);
+    final imageUrl = widget.material.image.length > imageIndex
+        ? widget.material.image[imageIndex]
+        : null;
+
+    return GestureDetector(
+      behavior: HitTestBehavior.opaque,
+      onTap: () => _dynamicFocusNodes[field.key]?.requestFocus(),
+      child: Container(
+        margin: const EdgeInsets.only(bottom: 10),
+        padding: const EdgeInsets.all(8),
+        decoration: BoxDecoration(
+          color: Colors.grey.shade50,
+          border: Border.all(color: Colors.grey.shade400),
+          borderRadius: BorderRadius.circular(10),
+        ),
+        child: Row(
+          crossAxisAlignment: CrossAxisAlignment.center,
+          children: [
+            // Image section
+            SizedBox(
+              width: 120,
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.center,
+                children: [
+                  if (_isEditMode)
+                    TextButton.icon(
+                      onPressed: () => _changeDynamicFieldImage(field, imageIndex),
+                      icon: const Icon(Icons.photo, size: 14),
+                      label: const Text("Change", style: TextStyle(fontSize: 12)),
+                    ),
+                  _buildSmartImage(
+                    imageFile: _isEditMode ? _draftImageFiles[imageIndex] : null,
+                    imageUrl: _isEditMode
+                        ? (_draftImageFiles[imageIndex] == null ? imageUrl : null)
+                        : imageUrl,
+                    height: 80,
+                  ),
+                  const SizedBox(height: 6),
+                  _buildDynamicFieldLabel(field, customLabel),
+                ],
+              ),
+            ),
+
+            const SizedBox(width: 8),
+
+            // Value and unit section
+            Expanded(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  _buildDynamicFieldUnit(field),
+                  const SizedBox(height: 6),
+                  _buildDynamicFieldInput(field),
+                ],
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  int _getImageIndexForField(FieldDefinition field) {
+    // Map field roles to image indices
+    final roleToIndex = {
+      'LENGTH': 0,
+      'CIRCUMFERENCE': 0,
+      'DIAMETER': 0,
+      'Z_HEIGHT': 1,
+      'G_SLANT_HEIGHT': 1,
+      'CIRCUMFERENCE_1': 1,
+      'CIRCUMFERENCE_2': 2,
+      'CIRCUMFERENCE_3': 3,
+    };
+    return roleToIndex[field.role] ?? 0;
+  }
+
+  Future<void> _changeDynamicFieldImage(FieldDefinition field, int imageIndex) async {
+    final helper = ImageUploadHelper(context);
+    final file = await helper.pickAndCropImage(
+      enableCropping: true,
+      cropTitle: "Crop Image",
+    );
+    if (file != null) {
+      setState(() {
+        _draftImageFiles[imageIndex] = file;
+      });
+    }
+  }
+
+  Widget _buildDynamicFieldLabel(FieldDefinition field, String customLabel) {
+    if (_isEditMode && widget.materialSetup!.fieldConfig.ui.allowRename) {
+      return SizedBox(
+        height: 28,
+        child: TextFormField(
+          controller: _dynamicLabelControllers[field.key],
+          textAlign: TextAlign.center,
+          decoration: InputDecoration(
+            isDense: true,
+            filled: true,
+            fillColor: const Color(0xFFD0EAFD),
+            hintText: "Label",
+            hintStyle: const TextStyle(fontSize: 11, color: Colors.black54),
+            contentPadding: const EdgeInsets.symmetric(horizontal: 6, vertical: 6),
+            border: OutlineInputBorder(
+              borderRadius: BorderRadius.circular(6),
+              borderSide: BorderSide.none,
+            ),
+          ),
+          onChanged: (val) {
+            _customLabels[field.key] = val;
+          },
+        ),
+      );
+    }
+
+    return Text(
+      customLabel,
+      textAlign: TextAlign.center,
+      style: const TextStyle(fontSize: 13, fontWeight: FontWeight.w600),
+    );
+  }
+
+  Widget _buildDynamicFieldUnit(FieldDefinition field) {
+    if (field.dropdown == null) return const SizedBox.shrink();
+
+    final unitKey = '${field.key}Uom';
+    final dropdownKey = field.dropdown!;
+    final unitDropdowns = widget.materialSetup!.fieldConfig.unitDropdowns.toJson();
+    final options = unitDropdowns[dropdownKey] as List?;
+
+    if (options == null || options.isEmpty) return const SizedBox.shrink();
+
+    final currentUnit = _fieldValues[unitKey]?.toString() ??
+        widget.materialSetup!.fieldConfig.defaults.toJson()[dropdownKey]?.toString() ??
+        options.first.toString();
+
+    if (_isEditMode) {
+      return Text(
+        currentUnit,
+        style: const TextStyle(fontSize: 11, color: Colors.black54, fontWeight: FontWeight.w500),
+      );
+    }
+
+    return Row(
+      children: [
+        Expanded(
+          child: Text(
+            'Unit:',
+            style: const TextStyle(fontSize: 11, color: Colors.black54, fontWeight: FontWeight.w500),
+          ),
+        ),
+        Container(
+          padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+          decoration: BoxDecoration(
+            color: Colors.white,
+            border: Border.all(color: Colors.grey.shade400),
+            borderRadius: BorderRadius.circular(6),
+          ),
+          child: DropdownButtonHideUnderline(
+            child: DropdownButton<String>(
+              value: currentUnit,
+              isDense: true,
+              style: const TextStyle(fontSize: 11, color: Colors.black87),
+              items: options.map((opt) {
+                return DropdownMenuItem<String>(
+                  value: opt.toString(),
+                  child: Text(opt.toString()),
+                );
+              }).toList(),
+              onChanged: (value) {
+                if (value != null) {
+                  setState(() {
+                    _fieldValues[unitKey] = value;
+                  });
+                  widget.onChanged(
+                    widget.material.copyWith(fieldValues: _fieldValues),
+                  );
+                }
+              },
+            ),
+          ),
+        ),
+      ],
+    );
+  }
+
+  Widget _buildDynamicFieldInput(FieldDefinition field) {
+    if (_isEditMode) {
+      final value = _fieldValues[field.key];
+      return Container(
+        height: 36,
+        alignment: Alignment.center,
+        decoration: BoxDecoration(
+          color: Colors.grey.shade100,
+          borderRadius: BorderRadius.circular(6),
+        ),
+        child: Text(
+          value?.toString() ?? '0',
+          style: const TextStyle(fontSize: 16, fontWeight: FontWeight.w700, color: Colors.black54),
+        ),
+      );
+    }
+
+    return TextFormField(
+      controller: _dynamicValueControllers[field.key],
+      focusNode: _dynamicFocusNodes[field.key],
+      textAlign: TextAlign.center,
+      keyboardType: field.type == 'NUMBER'
+          ? const TextInputType.numberWithOptions(decimal: true)
+          : TextInputType.text,
+      style: const TextStyle(fontSize: 10),
+      decoration: InputDecoration(
+        isDense: true,
+        filled: true,
+        fillColor: const Color(0xFFD0EAFD),
+        hintText: field.required ? 'Required' : '',
+        hintStyle: const TextStyle(fontSize: 9, color: Colors.black38),
+        contentPadding: const EdgeInsets.symmetric(vertical: 8, horizontal: 6),
+        border: OutlineInputBorder(
+          borderRadius: BorderRadius.circular(6),
+          borderSide: BorderSide.none,
+        ),
+      ),
+      validator: field.required
+          ? (value) => (value?.isEmpty ?? true) ? 'Required' : null
+          : null,
+      onChanged: (val) {
+        if (field.type == 'NUMBER') {
+          final numValue = num.tryParse(val);
+          if (numValue != null) {
+            _fieldValues[field.key] = numValue;
+            widget.onChanged(
+              widget.material.copyWith(fieldValues: _fieldValues),
+            );
+          }
+        } else {
+          _fieldValues[field.key] = val;
+          widget.onChanged(
+            widget.material.copyWith(fieldValues: _fieldValues),
+          );
+        }
+      },
+    );
+  }
+
+  Widget _buildQuantityField() {
+    return Container(
+      width: 80,
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          const Text(
+            "Qty",
+            style: TextStyle(fontSize: 8, fontWeight: FontWeight.w600),
+          ),
+          SizedBox(
+            height: 40,
+            child: TextFormField(
+              controller: _qtyController,
+              keyboardType: TextInputType.number,
+              textAlign: TextAlign.center,
+              textAlignVertical: TextAlignVertical.center,
+              onChanged: (val) {
+                final qty = int.tryParse(val) ?? 0;
+                widget.onChanged(widget.material.copyWith(qty: qty));
+              },
+              style: const TextStyle(fontSize: 16, height: 1.5),
+              strutStyle: const StrutStyle(forceStrutHeight: true, height: 1),
+              decoration: InputDecoration(
+                isCollapsed: true,
+                contentPadding: const EdgeInsets.symmetric(horizontal: 8, vertical: 8),
+                filled: true,
+                fillColor: Colors.white,
+                enabledBorder: OutlineInputBorder(
+                  borderRadius: BorderRadius.circular(6),
+                  borderSide: const BorderSide(color: Colors.grey),
+                ),
+                focusedBorder: OutlineInputBorder(
+                  borderRadius: BorderRadius.circular(6),
+                  borderSide: const BorderSide(color: Colors.blue, width: 2),
+                ),
+              ),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildEditActions() {
+    return Row(
+      children: [
+        Expanded(
+          child: ElevatedButton(
+            onPressed: _onSave,
+            child: const Text("Save"),
+          ),
+        ),
+        const SizedBox(width: 6),
+        Expanded(
+          child: OutlinedButton(
+            onPressed: _onCancel,
+            child: const Text("Cancel"),
+          ),
+        ),
+      ],
+    );
   }
 }
