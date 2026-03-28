@@ -1,15 +1,20 @@
+// lib/features/modules/all_Modules/dpr/dpr_insu/model/piping_insu.dart
+
 import 'base_material.dart';
-import 'material_setup.dart';
+import 'card_form_State.dart';
+import 'field_config.dart';
 
 class PipingMaterial extends BaseMaterial {
   final String? size;
   final String? sizeUom;
+
   PipingMaterial({
     required String id,
     required String name,
     required List<String> image,
     required String uom,
     String remarks = '',
+    CardFormState? cardFormState,
     String? materialCode,
     FieldValues? fieldValues,
     Map<String, String>? customLabels,
@@ -41,83 +46,91 @@ class PipingMaterial extends BaseMaterial {
     double o2 = 0,
     double o1 = 0,
   }) : super(
-          id: id,
-          name: name,
-          image: image,
-          uom: uom,
-          remarks: remarks,
-          materialCode: materialCode,
-          fieldValues: fieldValues,
-          customLabels: customLabels,
-          qty: qty,
-          length: length,
-          circumference: circumference,
-          circumference1: circumference1,
-          circumference2: circumference2,
-          zHeight: zHeight,
-          gSlantHeight: gSlantHeight,
-          constant: constant,
-          totalArea: totalArea,
-          diameterA3: diameterA3,
-          diameterB3: diameterB3,
-          diameterA2: diameterA2,
-          diameterB2: diameterB2,
-          diameterA1: diameterA1,
-          diameterB1: diameterB1,
-          circumferenceFinal: circumferenceFinal,
-          layer1Area: layer1Area,
-          layer2Area: layer2Area,
-          layer3Area: layer3Area,
-          circumference3: circumference3,
-          circumference2Calc: circumference2Calc,
-          circumference1Calc: circumference1Calc,
-          o3: o3,
-          o2: o2,
-          o1: o1,
-        );
+    id: id,
+    name: name,
+    image: image,
+    uom: uom,
+    remarks: remarks,
+    cardFormState: cardFormState,
+    materialCode: materialCode,
+    fieldValues: fieldValues,
+    customLabels: customLabels,
+    qty: qty,
+    length: length,
+    circumference: circumference,
+    circumference1: circumference1,
+    circumference2: circumference2,
+    zHeight: zHeight,
+    gSlantHeight: gSlantHeight,
+    constant: constant,
+    totalArea: totalArea,
+    diameterA3: diameterA3,
+    diameterB3: diameterB3,
+    diameterA2: diameterA2,
+    diameterB2: diameterB2,
+    diameterA1: diameterA1,
+    diameterB1: diameterB1,
+    circumferenceFinal: circumferenceFinal,
+    layer1Area: layer1Area,
+    layer2Area: layer2Area,
+    layer3Area: layer3Area,
+    circumference3: circumference3,
+    circumference2Calc: circumference2Calc,
+    circumference1Calc: circumference1Calc,
+    o3: o3,
+    o2: o2,
+    o1: o1,
+  );
 
   factory PipingMaterial.fromJson(Map<String, dynamic> json) {
     return PipingMaterial(
-      id: json['_id'] ?? json['id'] ?? '',
-      name: json['name'] ?? '',
-      image: List<String>.from(json['image'] ?? []),
-      uom: json['uom'] ?? '',
-      remarks: json['remarks'] ?? '',
-      materialCode: json['materialCode'] ?? json['material_code'],
+      id: json['_id'] as String? ?? json['id'] as String? ?? '',
+      name: json['name'] as String? ?? '',
+      image: List<String>.from(json['image'] as List? ?? []),
+      uom: json['uom'] as String? ?? '',
+      remarks: json['remarks'] as String? ?? '',
+      materialCode:
+      json['materialCode'] as String? ?? json['material_code'] as String?,
+      cardFormState: json['cardFormState'] != null
+          ? CardFormState.fromJson(
+          json['cardFormState'] as Map<String, dynamic>)
+          : null,
       fieldValues: json['fieldValues'] != null
           ? FieldValues.fromJson(json['fieldValues'] as Map<String, dynamic>)
           : null,
       customLabels: json['custom_labels'] != null
-          ? Map<String, String>.from(json['custom_labels'])
+          ? Map<String, String>.from(json['custom_labels'] as Map)
           : null,
       size: json['size']?.toString(),
-      sizeUom: json['size_uom']?.toString() ?? '',
-      qty: json['qty'] ?? 0,
-      length: (json['length'] ?? 0).toDouble(),
-      circumference: (json['circumference'] ?? 0).toDouble(),
-      circumference1: (json['circumference_1'] ?? 0).toDouble(),
-      circumference2: (json['circumference_2'] ?? 0).toDouble(),
-      zHeight: (json['z_height'] ?? 0).toDouble(),
-      gSlantHeight: (json['g_slant_height'] ?? 0).toDouble(),
-      constant: (json['constant'] ?? 0).toDouble(),
-      totalArea: (json['total_area'] ?? 0).toDouble(),
-      diameterA3: (json['diameter_a3'] ?? 0).toDouble(),
-      diameterB3: (json['diameter_b3'] ?? 0).toDouble(),
-      diameterA2: (json['diameter_a2'] ?? 0).toDouble(),
-      diameterB2: (json['diameter_b2'] ?? 0).toDouble(),
-      diameterA1: (json['diameter_a1'] ?? 0).toDouble(),
-      diameterB1: (json['diameter_b1'] ?? 0).toDouble(),
-      circumferenceFinal: (json['circumference_final'] ?? 0).toDouble(),
-      layer1Area: (json['layer_1_area'] ?? 0).toDouble(),
-      layer2Area: (json['layer_2_area'] ?? 0).toDouble(),
-      layer3Area: (json['layer_3_area'] ?? 0).toDouble(),
-      circumference3: (json['circumference_3'] ?? 0).toDouble(),
-      circumference2Calc: (json['circumference_2_calc'] ?? 0).toDouble(),
-      circumference1Calc: (json['circumference_1_calc'] ?? 0).toDouble(),
-      o3: (json['o3'] ?? 0).toDouble(),
-      o2: (json['o2'] ?? 0).toDouble(),
-      o1: (json['o1'] ?? 0).toDouble(),
-      remarks: json['remarks'] ?? '',
+      sizeUom: json['size_uom']?.toString(),
+      qty: (json['qty'] as num?)?.toInt() ?? 0,
+      length: (json['length'] as num?)?.toDouble() ?? 0,
+      circumference: (json['circumference'] as num?)?.toDouble() ?? 0,
+      circumference1: (json['circumference_1'] as num?)?.toDouble() ?? 0,
+      circumference2: (json['circumference_2'] as num?)?.toDouble() ?? 0,
+      zHeight: (json['z_height'] as num?)?.toDouble() ?? 0,
+      gSlantHeight: (json['g_slant_height'] as num?)?.toDouble() ?? 0,
+      constant: (json['constant'] as num?)?.toDouble() ?? 0,
+      totalArea: (json['total_area'] as num?)?.toDouble() ?? 0,
+      diameterA3: (json['diameter_a3'] as num?)?.toDouble() ?? 0,
+      diameterB3: (json['diameter_b3'] as num?)?.toDouble() ?? 0,
+      diameterA2: (json['diameter_a2'] as num?)?.toDouble() ?? 0,
+      diameterB2: (json['diameter_b2'] as num?)?.toDouble() ?? 0,
+      diameterA1: (json['diameter_a1'] as num?)?.toDouble() ?? 0,
+      diameterB1: (json['diameter_b1'] as num?)?.toDouble() ?? 0,
+      circumferenceFinal:
+      (json['circumference_final'] as num?)?.toDouble() ?? 0,
+      layer1Area: (json['layer_1_area'] as num?)?.toDouble() ?? 0,
+      layer2Area: (json['layer_2_area'] as num?)?.toDouble() ?? 0,
+      layer3Area: (json['layer_3_area'] as num?)?.toDouble() ?? 0,
+      circumference3: (json['circumference_3'] as num?)?.toDouble() ?? 0,
+      circumference2Calc:
+      (json['circumference_2_calc'] as num?)?.toDouble() ?? 0,
+      circumference1Calc:
+      (json['circumference_1_calc'] as num?)?.toDouble() ?? 0,
+      o3: (json['o3'] as num?)?.toDouble() ?? 0,
+      o2: (json['o2'] as num?)?.toDouble() ?? 0,
+      o1: (json['o1'] as num?)?.toDouble() ?? 0,
     );
   }
 
@@ -130,10 +143,11 @@ class PipingMaterial extends BaseMaterial {
       'uom': uom,
       'remarks': remarks,
       if (materialCode != null) 'materialCode': materialCode,
+      if (cardFormState != null) 'cardFormState': cardFormState!.toJson(),
       if (fieldValues != null) 'fieldValues': fieldValues!.toJson(),
       if (customLabels != null) 'custom_labels': customLabels,
       if (size != null) 'size': size,
-      if (sizeUom != null) 'size_uom': sizeUom,
+      if (sizeUom != null) 'sizeUom': sizeUom,
       'qty': qty,
       'length': length,
       'circumference': circumference,
@@ -143,8 +157,6 @@ class PipingMaterial extends BaseMaterial {
       'g_slant_height': gSlantHeight,
       'constant': constant,
       'total_area': totalArea,
-      'size': size,
-      'uom': uom,
       'diameter_a3': diameterA3,
       'diameter_b3': diameterB3,
       'diameter_a2': diameterA2,
@@ -161,7 +173,6 @@ class PipingMaterial extends BaseMaterial {
       'o3': o3,
       'o2': o2,
       'o1': o1,
-      'remarks': remarks,
     };
   }
 
@@ -172,6 +183,7 @@ class PipingMaterial extends BaseMaterial {
     List<String>? image,
     String? uom,
     String? remarks,
+    CardFormState? cardFormState,
     String? materialCode,
     FieldValues? fieldValues,
     Map<String, String>? customLabels,
@@ -202,7 +214,6 @@ class PipingMaterial extends BaseMaterial {
     double? o3,
     double? o2,
     double? o1,
-    String? remarks,
   }) {
     return PipingMaterial(
       id: id ?? this.id,
@@ -210,6 +221,7 @@ class PipingMaterial extends BaseMaterial {
       image: image ?? this.image,
       uom: uom ?? this.uom,
       remarks: remarks ?? this.remarks,
+      cardFormState: cardFormState ?? this.cardFormState,
       materialCode: materialCode ?? this.materialCode,
       fieldValues: fieldValues ?? this.fieldValues,
       customLabels: customLabels ?? this.customLabels,
@@ -224,9 +236,6 @@ class PipingMaterial extends BaseMaterial {
       gSlantHeight: gSlantHeight ?? this.gSlantHeight,
       constant: constant ?? this.constant,
       totalArea: totalArea ?? this.totalArea,
-      size: size ?? this.size,
-      customLabels: customLabels ?? this.customLabels,
-      uom: uom ?? this.uom,
       diameterA3: diameterA3 ?? this.diameterA3,
       diameterB3: diameterB3 ?? this.diameterB3,
       diameterA2: diameterA2 ?? this.diameterA2,
@@ -243,7 +252,6 @@ class PipingMaterial extends BaseMaterial {
       o3: o3 ?? this.o3,
       o2: o2 ?? this.o2,
       o1: o1 ?? this.o1,
-      remarks: remarks ?? this.remarks,
     );
   }
 }

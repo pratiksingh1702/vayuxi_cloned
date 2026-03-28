@@ -17,93 +17,133 @@ const LocalMaterialSchema = CollectionSchema(
   name: r'LocalMaterial',
   id: 3051801845973986206,
   properties: {
-    r'circumference': PropertySchema(
+    r'calculationConfigJson': PropertySchema(
       id: 0,
+      name: r'calculationConfigJson',
+      type: IsarType.string,
+    ),
+    r'calculationType': PropertySchema(
+      id: 1,
+      name: r'calculationType',
+      type: IsarType.string,
+    ),
+    r'cardFormStateJson': PropertySchema(
+      id: 2,
+      name: r'cardFormStateJson',
+      type: IsarType.string,
+    ),
+    r'circumference': PropertySchema(
+      id: 3,
       name: r'circumference',
       type: IsarType.double,
     ),
     r'designation': PropertySchema(
-      id: 1,
+      id: 4,
       name: r'designation',
       type: IsarType.string,
     ),
+    r'displayOrder': PropertySchema(
+      id: 5,
+      name: r'displayOrder',
+      type: IsarType.long,
+    ),
     r'domain': PropertySchema(
-      id: 2,
+      id: 6,
       name: r'domain',
       type: IsarType.string,
     ),
+    r'fieldConfigJson': PropertySchema(
+      id: 7,
+      name: r'fieldConfigJson',
+      type: IsarType.string,
+    ),
+    r'fieldValuesJson': PropertySchema(
+      id: 8,
+      name: r'fieldValuesJson',
+      type: IsarType.string,
+    ),
     r'images': PropertySchema(
-      id: 3,
+      id: 9,
       name: r'images',
       type: IsarType.stringList,
     ),
+    r'isDefault': PropertySchema(
+      id: 10,
+      name: r'isDefault',
+      type: IsarType.bool,
+    ),
     r'isDeleted': PropertySchema(
-      id: 4,
+      id: 11,
       name: r'isDeleted',
       type: IsarType.bool,
     ),
     r'isDirty': PropertySchema(
-      id: 5,
+      id: 12,
       name: r'isDirty',
       type: IsarType.bool,
     ),
     r'length': PropertySchema(
-      id: 6,
+      id: 13,
       name: r'length',
       type: IsarType.double,
     ),
+    r'materialCode': PropertySchema(
+      id: 14,
+      name: r'materialCode',
+      type: IsarType.string,
+    ),
     r'materialDataJson': PropertySchema(
-      id: 7,
+      id: 15,
       name: r'materialDataJson',
       type: IsarType.string,
     ),
     r'name': PropertySchema(
-      id: 8,
+      id: 16,
       name: r'name',
       type: IsarType.string,
     ),
     r'qty': PropertySchema(
-      id: 9,
+      id: 17,
       name: r'qty',
       type: IsarType.long,
     ),
     r'remarks': PropertySchema(
-      id: 10,
+      id: 18,
       name: r'remarks',
       type: IsarType.string,
     ),
     r'serverId': PropertySchema(
-      id: 11,
+      id: 19,
       name: r'serverId',
       type: IsarType.string,
     ),
     r'siteId': PropertySchema(
-      id: 12,
+      id: 20,
       name: r'siteId',
       type: IsarType.string,
     ),
     r'size': PropertySchema(
-      id: 13,
+      id: 21,
       name: r'size',
       type: IsarType.string,
     ),
     r'sizeUom': PropertySchema(
-      id: 14,
+      id: 22,
       name: r'sizeUom',
       type: IsarType.string,
     ),
     r'uom': PropertySchema(
-      id: 15,
+      id: 23,
       name: r'uom',
       type: IsarType.string,
     ),
     r'updatedAt': PropertySchema(
-      id: 16,
+      id: 24,
       name: r'updatedAt',
       type: IsarType.dateTime,
     ),
     r'zHeight': PropertySchema(
-      id: 17,
+      id: 25,
       name: r'zHeight',
       type: IsarType.double,
     )
@@ -142,13 +182,49 @@ int _localMaterialEstimateSize(
   Map<Type, List<int>> allOffsets,
 ) {
   var bytesCount = offsets.last;
+  {
+    final value = object.calculationConfigJson;
+    if (value != null) {
+      bytesCount += 3 + value.length * 3;
+    }
+  }
+  {
+    final value = object.calculationType;
+    if (value != null) {
+      bytesCount += 3 + value.length * 3;
+    }
+  }
+  {
+    final value = object.cardFormStateJson;
+    if (value != null) {
+      bytesCount += 3 + value.length * 3;
+    }
+  }
   bytesCount += 3 + object.designation.length * 3;
   bytesCount += 3 + object.domain.length * 3;
+  {
+    final value = object.fieldConfigJson;
+    if (value != null) {
+      bytesCount += 3 + value.length * 3;
+    }
+  }
+  {
+    final value = object.fieldValuesJson;
+    if (value != null) {
+      bytesCount += 3 + value.length * 3;
+    }
+  }
   bytesCount += 3 + object.images.length * 3;
   {
     for (var i = 0; i < object.images.length; i++) {
       final value = object.images[i];
       bytesCount += value.length * 3;
+    }
+  }
+  {
+    final value = object.materialCode;
+    if (value != null) {
+      bytesCount += 3 + value.length * 3;
     }
   }
   {
@@ -193,24 +269,32 @@ void _localMaterialSerialize(
   List<int> offsets,
   Map<Type, List<int>> allOffsets,
 ) {
-  writer.writeDouble(offsets[0], object.circumference);
-  writer.writeString(offsets[1], object.designation);
-  writer.writeString(offsets[2], object.domain);
-  writer.writeStringList(offsets[3], object.images);
-  writer.writeBool(offsets[4], object.isDeleted);
-  writer.writeBool(offsets[5], object.isDirty);
-  writer.writeDouble(offsets[6], object.length);
-  writer.writeString(offsets[7], object.materialDataJson);
-  writer.writeString(offsets[8], object.name);
-  writer.writeLong(offsets[9], object.qty);
-  writer.writeString(offsets[10], object.remarks);
-  writer.writeString(offsets[11], object.serverId);
-  writer.writeString(offsets[12], object.siteId);
-  writer.writeString(offsets[13], object.size);
-  writer.writeString(offsets[14], object.sizeUom);
-  writer.writeString(offsets[15], object.uom);
-  writer.writeDateTime(offsets[16], object.updatedAt);
-  writer.writeDouble(offsets[17], object.zHeight);
+  writer.writeString(offsets[0], object.calculationConfigJson);
+  writer.writeString(offsets[1], object.calculationType);
+  writer.writeString(offsets[2], object.cardFormStateJson);
+  writer.writeDouble(offsets[3], object.circumference);
+  writer.writeString(offsets[4], object.designation);
+  writer.writeLong(offsets[5], object.displayOrder);
+  writer.writeString(offsets[6], object.domain);
+  writer.writeString(offsets[7], object.fieldConfigJson);
+  writer.writeString(offsets[8], object.fieldValuesJson);
+  writer.writeStringList(offsets[9], object.images);
+  writer.writeBool(offsets[10], object.isDefault);
+  writer.writeBool(offsets[11], object.isDeleted);
+  writer.writeBool(offsets[12], object.isDirty);
+  writer.writeDouble(offsets[13], object.length);
+  writer.writeString(offsets[14], object.materialCode);
+  writer.writeString(offsets[15], object.materialDataJson);
+  writer.writeString(offsets[16], object.name);
+  writer.writeLong(offsets[17], object.qty);
+  writer.writeString(offsets[18], object.remarks);
+  writer.writeString(offsets[19], object.serverId);
+  writer.writeString(offsets[20], object.siteId);
+  writer.writeString(offsets[21], object.size);
+  writer.writeString(offsets[22], object.sizeUom);
+  writer.writeString(offsets[23], object.uom);
+  writer.writeDateTime(offsets[24], object.updatedAt);
+  writer.writeDouble(offsets[25], object.zHeight);
 }
 
 LocalMaterial _localMaterialDeserialize(
@@ -220,25 +304,33 @@ LocalMaterial _localMaterialDeserialize(
   Map<Type, List<int>> allOffsets,
 ) {
   final object = LocalMaterial();
-  object.circumference = reader.readDouble(offsets[0]);
-  object.designation = reader.readString(offsets[1]);
-  object.domain = reader.readString(offsets[2]);
+  object.calculationConfigJson = reader.readStringOrNull(offsets[0]);
+  object.calculationType = reader.readStringOrNull(offsets[1]);
+  object.cardFormStateJson = reader.readStringOrNull(offsets[2]);
+  object.circumference = reader.readDouble(offsets[3]);
+  object.designation = reader.readString(offsets[4]);
+  object.displayOrder = reader.readLong(offsets[5]);
+  object.domain = reader.readString(offsets[6]);
+  object.fieldConfigJson = reader.readStringOrNull(offsets[7]);
+  object.fieldValuesJson = reader.readStringOrNull(offsets[8]);
   object.id = id;
-  object.images = reader.readStringList(offsets[3]) ?? [];
-  object.isDeleted = reader.readBool(offsets[4]);
-  object.isDirty = reader.readBool(offsets[5]);
-  object.length = reader.readDouble(offsets[6]);
-  object.materialDataJson = reader.readStringOrNull(offsets[7]);
-  object.name = reader.readString(offsets[8]);
-  object.qty = reader.readLong(offsets[9]);
-  object.remarks = reader.readString(offsets[10]);
-  object.serverId = reader.readStringOrNull(offsets[11]);
-  object.siteId = reader.readString(offsets[12]);
-  object.size = reader.readStringOrNull(offsets[13]);
-  object.sizeUom = reader.readStringOrNull(offsets[14]);
-  object.uom = reader.readStringOrNull(offsets[15]);
-  object.updatedAt = reader.readDateTime(offsets[16]);
-  object.zHeight = reader.readDouble(offsets[17]);
+  object.images = reader.readStringList(offsets[9]) ?? [];
+  object.isDefault = reader.readBool(offsets[10]);
+  object.isDeleted = reader.readBool(offsets[11]);
+  object.isDirty = reader.readBool(offsets[12]);
+  object.length = reader.readDouble(offsets[13]);
+  object.materialCode = reader.readStringOrNull(offsets[14]);
+  object.materialDataJson = reader.readStringOrNull(offsets[15]);
+  object.name = reader.readString(offsets[16]);
+  object.qty = reader.readLong(offsets[17]);
+  object.remarks = reader.readString(offsets[18]);
+  object.serverId = reader.readStringOrNull(offsets[19]);
+  object.siteId = reader.readString(offsets[20]);
+  object.size = reader.readStringOrNull(offsets[21]);
+  object.sizeUom = reader.readStringOrNull(offsets[22]);
+  object.uom = reader.readStringOrNull(offsets[23]);
+  object.updatedAt = reader.readDateTime(offsets[24]);
+  object.zHeight = reader.readDouble(offsets[25]);
   return object;
 }
 
@@ -250,40 +342,56 @@ P _localMaterialDeserializeProp<P>(
 ) {
   switch (propertyId) {
     case 0:
-      return (reader.readDouble(offset)) as P;
+      return (reader.readStringOrNull(offset)) as P;
     case 1:
-      return (reader.readString(offset)) as P;
+      return (reader.readStringOrNull(offset)) as P;
     case 2:
-      return (reader.readString(offset)) as P;
+      return (reader.readStringOrNull(offset)) as P;
     case 3:
-      return (reader.readStringList(offset) ?? []) as P;
-    case 4:
-      return (reader.readBool(offset)) as P;
-    case 5:
-      return (reader.readBool(offset)) as P;
-    case 6:
       return (reader.readDouble(offset)) as P;
+    case 4:
+      return (reader.readString(offset)) as P;
+    case 5:
+      return (reader.readLong(offset)) as P;
+    case 6:
+      return (reader.readString(offset)) as P;
     case 7:
       return (reader.readStringOrNull(offset)) as P;
     case 8:
-      return (reader.readString(offset)) as P;
+      return (reader.readStringOrNull(offset)) as P;
     case 9:
-      return (reader.readLong(offset)) as P;
+      return (reader.readStringList(offset) ?? []) as P;
     case 10:
-      return (reader.readString(offset)) as P;
+      return (reader.readBool(offset)) as P;
     case 11:
-      return (reader.readStringOrNull(offset)) as P;
+      return (reader.readBool(offset)) as P;
     case 12:
-      return (reader.readString(offset)) as P;
+      return (reader.readBool(offset)) as P;
     case 13:
-      return (reader.readStringOrNull(offset)) as P;
+      return (reader.readDouble(offset)) as P;
     case 14:
       return (reader.readStringOrNull(offset)) as P;
     case 15:
       return (reader.readStringOrNull(offset)) as P;
     case 16:
-      return (reader.readDateTime(offset)) as P;
+      return (reader.readString(offset)) as P;
     case 17:
+      return (reader.readLong(offset)) as P;
+    case 18:
+      return (reader.readString(offset)) as P;
+    case 19:
+      return (reader.readStringOrNull(offset)) as P;
+    case 20:
+      return (reader.readString(offset)) as P;
+    case 21:
+      return (reader.readStringOrNull(offset)) as P;
+    case 22:
+      return (reader.readStringOrNull(offset)) as P;
+    case 23:
+      return (reader.readStringOrNull(offset)) as P;
+    case 24:
+      return (reader.readDateTime(offset)) as P;
+    case 25:
       return (reader.readDouble(offset)) as P;
     default:
       throw IsarError('Unknown property with id $propertyId');
@@ -509,6 +617,469 @@ extension LocalMaterialQueryWhere
 extension LocalMaterialQueryFilter
     on QueryBuilder<LocalMaterial, LocalMaterial, QFilterCondition> {
   QueryBuilder<LocalMaterial, LocalMaterial, QAfterFilterCondition>
+      calculationConfigJsonIsNull() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(const FilterCondition.isNull(
+        property: r'calculationConfigJson',
+      ));
+    });
+  }
+
+  QueryBuilder<LocalMaterial, LocalMaterial, QAfterFilterCondition>
+      calculationConfigJsonIsNotNull() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(const FilterCondition.isNotNull(
+        property: r'calculationConfigJson',
+      ));
+    });
+  }
+
+  QueryBuilder<LocalMaterial, LocalMaterial, QAfterFilterCondition>
+      calculationConfigJsonEqualTo(
+    String? value, {
+    bool caseSensitive = true,
+  }) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(FilterCondition.equalTo(
+        property: r'calculationConfigJson',
+        value: value,
+        caseSensitive: caseSensitive,
+      ));
+    });
+  }
+
+  QueryBuilder<LocalMaterial, LocalMaterial, QAfterFilterCondition>
+      calculationConfigJsonGreaterThan(
+    String? value, {
+    bool include = false,
+    bool caseSensitive = true,
+  }) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(FilterCondition.greaterThan(
+        include: include,
+        property: r'calculationConfigJson',
+        value: value,
+        caseSensitive: caseSensitive,
+      ));
+    });
+  }
+
+  QueryBuilder<LocalMaterial, LocalMaterial, QAfterFilterCondition>
+      calculationConfigJsonLessThan(
+    String? value, {
+    bool include = false,
+    bool caseSensitive = true,
+  }) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(FilterCondition.lessThan(
+        include: include,
+        property: r'calculationConfigJson',
+        value: value,
+        caseSensitive: caseSensitive,
+      ));
+    });
+  }
+
+  QueryBuilder<LocalMaterial, LocalMaterial, QAfterFilterCondition>
+      calculationConfigJsonBetween(
+    String? lower,
+    String? upper, {
+    bool includeLower = true,
+    bool includeUpper = true,
+    bool caseSensitive = true,
+  }) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(FilterCondition.between(
+        property: r'calculationConfigJson',
+        lower: lower,
+        includeLower: includeLower,
+        upper: upper,
+        includeUpper: includeUpper,
+        caseSensitive: caseSensitive,
+      ));
+    });
+  }
+
+  QueryBuilder<LocalMaterial, LocalMaterial, QAfterFilterCondition>
+      calculationConfigJsonStartsWith(
+    String value, {
+    bool caseSensitive = true,
+  }) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(FilterCondition.startsWith(
+        property: r'calculationConfigJson',
+        value: value,
+        caseSensitive: caseSensitive,
+      ));
+    });
+  }
+
+  QueryBuilder<LocalMaterial, LocalMaterial, QAfterFilterCondition>
+      calculationConfigJsonEndsWith(
+    String value, {
+    bool caseSensitive = true,
+  }) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(FilterCondition.endsWith(
+        property: r'calculationConfigJson',
+        value: value,
+        caseSensitive: caseSensitive,
+      ));
+    });
+  }
+
+  QueryBuilder<LocalMaterial, LocalMaterial, QAfterFilterCondition>
+      calculationConfigJsonContains(String value, {bool caseSensitive = true}) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(FilterCondition.contains(
+        property: r'calculationConfigJson',
+        value: value,
+        caseSensitive: caseSensitive,
+      ));
+    });
+  }
+
+  QueryBuilder<LocalMaterial, LocalMaterial, QAfterFilterCondition>
+      calculationConfigJsonMatches(String pattern,
+          {bool caseSensitive = true}) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(FilterCondition.matches(
+        property: r'calculationConfigJson',
+        wildcard: pattern,
+        caseSensitive: caseSensitive,
+      ));
+    });
+  }
+
+  QueryBuilder<LocalMaterial, LocalMaterial, QAfterFilterCondition>
+      calculationConfigJsonIsEmpty() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(FilterCondition.equalTo(
+        property: r'calculationConfigJson',
+        value: '',
+      ));
+    });
+  }
+
+  QueryBuilder<LocalMaterial, LocalMaterial, QAfterFilterCondition>
+      calculationConfigJsonIsNotEmpty() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(FilterCondition.greaterThan(
+        property: r'calculationConfigJson',
+        value: '',
+      ));
+    });
+  }
+
+  QueryBuilder<LocalMaterial, LocalMaterial, QAfterFilterCondition>
+      calculationTypeIsNull() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(const FilterCondition.isNull(
+        property: r'calculationType',
+      ));
+    });
+  }
+
+  QueryBuilder<LocalMaterial, LocalMaterial, QAfterFilterCondition>
+      calculationTypeIsNotNull() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(const FilterCondition.isNotNull(
+        property: r'calculationType',
+      ));
+    });
+  }
+
+  QueryBuilder<LocalMaterial, LocalMaterial, QAfterFilterCondition>
+      calculationTypeEqualTo(
+    String? value, {
+    bool caseSensitive = true,
+  }) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(FilterCondition.equalTo(
+        property: r'calculationType',
+        value: value,
+        caseSensitive: caseSensitive,
+      ));
+    });
+  }
+
+  QueryBuilder<LocalMaterial, LocalMaterial, QAfterFilterCondition>
+      calculationTypeGreaterThan(
+    String? value, {
+    bool include = false,
+    bool caseSensitive = true,
+  }) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(FilterCondition.greaterThan(
+        include: include,
+        property: r'calculationType',
+        value: value,
+        caseSensitive: caseSensitive,
+      ));
+    });
+  }
+
+  QueryBuilder<LocalMaterial, LocalMaterial, QAfterFilterCondition>
+      calculationTypeLessThan(
+    String? value, {
+    bool include = false,
+    bool caseSensitive = true,
+  }) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(FilterCondition.lessThan(
+        include: include,
+        property: r'calculationType',
+        value: value,
+        caseSensitive: caseSensitive,
+      ));
+    });
+  }
+
+  QueryBuilder<LocalMaterial, LocalMaterial, QAfterFilterCondition>
+      calculationTypeBetween(
+    String? lower,
+    String? upper, {
+    bool includeLower = true,
+    bool includeUpper = true,
+    bool caseSensitive = true,
+  }) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(FilterCondition.between(
+        property: r'calculationType',
+        lower: lower,
+        includeLower: includeLower,
+        upper: upper,
+        includeUpper: includeUpper,
+        caseSensitive: caseSensitive,
+      ));
+    });
+  }
+
+  QueryBuilder<LocalMaterial, LocalMaterial, QAfterFilterCondition>
+      calculationTypeStartsWith(
+    String value, {
+    bool caseSensitive = true,
+  }) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(FilterCondition.startsWith(
+        property: r'calculationType',
+        value: value,
+        caseSensitive: caseSensitive,
+      ));
+    });
+  }
+
+  QueryBuilder<LocalMaterial, LocalMaterial, QAfterFilterCondition>
+      calculationTypeEndsWith(
+    String value, {
+    bool caseSensitive = true,
+  }) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(FilterCondition.endsWith(
+        property: r'calculationType',
+        value: value,
+        caseSensitive: caseSensitive,
+      ));
+    });
+  }
+
+  QueryBuilder<LocalMaterial, LocalMaterial, QAfterFilterCondition>
+      calculationTypeContains(String value, {bool caseSensitive = true}) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(FilterCondition.contains(
+        property: r'calculationType',
+        value: value,
+        caseSensitive: caseSensitive,
+      ));
+    });
+  }
+
+  QueryBuilder<LocalMaterial, LocalMaterial, QAfterFilterCondition>
+      calculationTypeMatches(String pattern, {bool caseSensitive = true}) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(FilterCondition.matches(
+        property: r'calculationType',
+        wildcard: pattern,
+        caseSensitive: caseSensitive,
+      ));
+    });
+  }
+
+  QueryBuilder<LocalMaterial, LocalMaterial, QAfterFilterCondition>
+      calculationTypeIsEmpty() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(FilterCondition.equalTo(
+        property: r'calculationType',
+        value: '',
+      ));
+    });
+  }
+
+  QueryBuilder<LocalMaterial, LocalMaterial, QAfterFilterCondition>
+      calculationTypeIsNotEmpty() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(FilterCondition.greaterThan(
+        property: r'calculationType',
+        value: '',
+      ));
+    });
+  }
+
+  QueryBuilder<LocalMaterial, LocalMaterial, QAfterFilterCondition>
+      cardFormStateJsonIsNull() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(const FilterCondition.isNull(
+        property: r'cardFormStateJson',
+      ));
+    });
+  }
+
+  QueryBuilder<LocalMaterial, LocalMaterial, QAfterFilterCondition>
+      cardFormStateJsonIsNotNull() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(const FilterCondition.isNotNull(
+        property: r'cardFormStateJson',
+      ));
+    });
+  }
+
+  QueryBuilder<LocalMaterial, LocalMaterial, QAfterFilterCondition>
+      cardFormStateJsonEqualTo(
+    String? value, {
+    bool caseSensitive = true,
+  }) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(FilterCondition.equalTo(
+        property: r'cardFormStateJson',
+        value: value,
+        caseSensitive: caseSensitive,
+      ));
+    });
+  }
+
+  QueryBuilder<LocalMaterial, LocalMaterial, QAfterFilterCondition>
+      cardFormStateJsonGreaterThan(
+    String? value, {
+    bool include = false,
+    bool caseSensitive = true,
+  }) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(FilterCondition.greaterThan(
+        include: include,
+        property: r'cardFormStateJson',
+        value: value,
+        caseSensitive: caseSensitive,
+      ));
+    });
+  }
+
+  QueryBuilder<LocalMaterial, LocalMaterial, QAfterFilterCondition>
+      cardFormStateJsonLessThan(
+    String? value, {
+    bool include = false,
+    bool caseSensitive = true,
+  }) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(FilterCondition.lessThan(
+        include: include,
+        property: r'cardFormStateJson',
+        value: value,
+        caseSensitive: caseSensitive,
+      ));
+    });
+  }
+
+  QueryBuilder<LocalMaterial, LocalMaterial, QAfterFilterCondition>
+      cardFormStateJsonBetween(
+    String? lower,
+    String? upper, {
+    bool includeLower = true,
+    bool includeUpper = true,
+    bool caseSensitive = true,
+  }) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(FilterCondition.between(
+        property: r'cardFormStateJson',
+        lower: lower,
+        includeLower: includeLower,
+        upper: upper,
+        includeUpper: includeUpper,
+        caseSensitive: caseSensitive,
+      ));
+    });
+  }
+
+  QueryBuilder<LocalMaterial, LocalMaterial, QAfterFilterCondition>
+      cardFormStateJsonStartsWith(
+    String value, {
+    bool caseSensitive = true,
+  }) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(FilterCondition.startsWith(
+        property: r'cardFormStateJson',
+        value: value,
+        caseSensitive: caseSensitive,
+      ));
+    });
+  }
+
+  QueryBuilder<LocalMaterial, LocalMaterial, QAfterFilterCondition>
+      cardFormStateJsonEndsWith(
+    String value, {
+    bool caseSensitive = true,
+  }) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(FilterCondition.endsWith(
+        property: r'cardFormStateJson',
+        value: value,
+        caseSensitive: caseSensitive,
+      ));
+    });
+  }
+
+  QueryBuilder<LocalMaterial, LocalMaterial, QAfterFilterCondition>
+      cardFormStateJsonContains(String value, {bool caseSensitive = true}) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(FilterCondition.contains(
+        property: r'cardFormStateJson',
+        value: value,
+        caseSensitive: caseSensitive,
+      ));
+    });
+  }
+
+  QueryBuilder<LocalMaterial, LocalMaterial, QAfterFilterCondition>
+      cardFormStateJsonMatches(String pattern, {bool caseSensitive = true}) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(FilterCondition.matches(
+        property: r'cardFormStateJson',
+        wildcard: pattern,
+        caseSensitive: caseSensitive,
+      ));
+    });
+  }
+
+  QueryBuilder<LocalMaterial, LocalMaterial, QAfterFilterCondition>
+      cardFormStateJsonIsEmpty() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(FilterCondition.equalTo(
+        property: r'cardFormStateJson',
+        value: '',
+      ));
+    });
+  }
+
+  QueryBuilder<LocalMaterial, LocalMaterial, QAfterFilterCondition>
+      cardFormStateJsonIsNotEmpty() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(FilterCondition.greaterThan(
+        property: r'cardFormStateJson',
+        value: '',
+      ));
+    });
+  }
+
+  QueryBuilder<LocalMaterial, LocalMaterial, QAfterFilterCondition>
       circumferenceEqualTo(
     double value, {
     double epsilon = Query.epsilon,
@@ -711,6 +1282,62 @@ extension LocalMaterialQueryFilter
   }
 
   QueryBuilder<LocalMaterial, LocalMaterial, QAfterFilterCondition>
+      displayOrderEqualTo(int value) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(FilterCondition.equalTo(
+        property: r'displayOrder',
+        value: value,
+      ));
+    });
+  }
+
+  QueryBuilder<LocalMaterial, LocalMaterial, QAfterFilterCondition>
+      displayOrderGreaterThan(
+    int value, {
+    bool include = false,
+  }) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(FilterCondition.greaterThan(
+        include: include,
+        property: r'displayOrder',
+        value: value,
+      ));
+    });
+  }
+
+  QueryBuilder<LocalMaterial, LocalMaterial, QAfterFilterCondition>
+      displayOrderLessThan(
+    int value, {
+    bool include = false,
+  }) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(FilterCondition.lessThan(
+        include: include,
+        property: r'displayOrder',
+        value: value,
+      ));
+    });
+  }
+
+  QueryBuilder<LocalMaterial, LocalMaterial, QAfterFilterCondition>
+      displayOrderBetween(
+    int lower,
+    int upper, {
+    bool includeLower = true,
+    bool includeUpper = true,
+  }) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(FilterCondition.between(
+        property: r'displayOrder',
+        lower: lower,
+        includeLower: includeLower,
+        upper: upper,
+        includeUpper: includeUpper,
+      ));
+    });
+  }
+
+  QueryBuilder<LocalMaterial, LocalMaterial, QAfterFilterCondition>
       domainEqualTo(
     String value, {
     bool caseSensitive = true,
@@ -841,6 +1468,314 @@ extension LocalMaterialQueryFilter
     return QueryBuilder.apply(this, (query) {
       return query.addFilterCondition(FilterCondition.greaterThan(
         property: r'domain',
+        value: '',
+      ));
+    });
+  }
+
+  QueryBuilder<LocalMaterial, LocalMaterial, QAfterFilterCondition>
+      fieldConfigJsonIsNull() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(const FilterCondition.isNull(
+        property: r'fieldConfigJson',
+      ));
+    });
+  }
+
+  QueryBuilder<LocalMaterial, LocalMaterial, QAfterFilterCondition>
+      fieldConfigJsonIsNotNull() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(const FilterCondition.isNotNull(
+        property: r'fieldConfigJson',
+      ));
+    });
+  }
+
+  QueryBuilder<LocalMaterial, LocalMaterial, QAfterFilterCondition>
+      fieldConfigJsonEqualTo(
+    String? value, {
+    bool caseSensitive = true,
+  }) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(FilterCondition.equalTo(
+        property: r'fieldConfigJson',
+        value: value,
+        caseSensitive: caseSensitive,
+      ));
+    });
+  }
+
+  QueryBuilder<LocalMaterial, LocalMaterial, QAfterFilterCondition>
+      fieldConfigJsonGreaterThan(
+    String? value, {
+    bool include = false,
+    bool caseSensitive = true,
+  }) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(FilterCondition.greaterThan(
+        include: include,
+        property: r'fieldConfigJson',
+        value: value,
+        caseSensitive: caseSensitive,
+      ));
+    });
+  }
+
+  QueryBuilder<LocalMaterial, LocalMaterial, QAfterFilterCondition>
+      fieldConfigJsonLessThan(
+    String? value, {
+    bool include = false,
+    bool caseSensitive = true,
+  }) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(FilterCondition.lessThan(
+        include: include,
+        property: r'fieldConfigJson',
+        value: value,
+        caseSensitive: caseSensitive,
+      ));
+    });
+  }
+
+  QueryBuilder<LocalMaterial, LocalMaterial, QAfterFilterCondition>
+      fieldConfigJsonBetween(
+    String? lower,
+    String? upper, {
+    bool includeLower = true,
+    bool includeUpper = true,
+    bool caseSensitive = true,
+  }) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(FilterCondition.between(
+        property: r'fieldConfigJson',
+        lower: lower,
+        includeLower: includeLower,
+        upper: upper,
+        includeUpper: includeUpper,
+        caseSensitive: caseSensitive,
+      ));
+    });
+  }
+
+  QueryBuilder<LocalMaterial, LocalMaterial, QAfterFilterCondition>
+      fieldConfigJsonStartsWith(
+    String value, {
+    bool caseSensitive = true,
+  }) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(FilterCondition.startsWith(
+        property: r'fieldConfigJson',
+        value: value,
+        caseSensitive: caseSensitive,
+      ));
+    });
+  }
+
+  QueryBuilder<LocalMaterial, LocalMaterial, QAfterFilterCondition>
+      fieldConfigJsonEndsWith(
+    String value, {
+    bool caseSensitive = true,
+  }) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(FilterCondition.endsWith(
+        property: r'fieldConfigJson',
+        value: value,
+        caseSensitive: caseSensitive,
+      ));
+    });
+  }
+
+  QueryBuilder<LocalMaterial, LocalMaterial, QAfterFilterCondition>
+      fieldConfigJsonContains(String value, {bool caseSensitive = true}) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(FilterCondition.contains(
+        property: r'fieldConfigJson',
+        value: value,
+        caseSensitive: caseSensitive,
+      ));
+    });
+  }
+
+  QueryBuilder<LocalMaterial, LocalMaterial, QAfterFilterCondition>
+      fieldConfigJsonMatches(String pattern, {bool caseSensitive = true}) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(FilterCondition.matches(
+        property: r'fieldConfigJson',
+        wildcard: pattern,
+        caseSensitive: caseSensitive,
+      ));
+    });
+  }
+
+  QueryBuilder<LocalMaterial, LocalMaterial, QAfterFilterCondition>
+      fieldConfigJsonIsEmpty() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(FilterCondition.equalTo(
+        property: r'fieldConfigJson',
+        value: '',
+      ));
+    });
+  }
+
+  QueryBuilder<LocalMaterial, LocalMaterial, QAfterFilterCondition>
+      fieldConfigJsonIsNotEmpty() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(FilterCondition.greaterThan(
+        property: r'fieldConfigJson',
+        value: '',
+      ));
+    });
+  }
+
+  QueryBuilder<LocalMaterial, LocalMaterial, QAfterFilterCondition>
+      fieldValuesJsonIsNull() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(const FilterCondition.isNull(
+        property: r'fieldValuesJson',
+      ));
+    });
+  }
+
+  QueryBuilder<LocalMaterial, LocalMaterial, QAfterFilterCondition>
+      fieldValuesJsonIsNotNull() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(const FilterCondition.isNotNull(
+        property: r'fieldValuesJson',
+      ));
+    });
+  }
+
+  QueryBuilder<LocalMaterial, LocalMaterial, QAfterFilterCondition>
+      fieldValuesJsonEqualTo(
+    String? value, {
+    bool caseSensitive = true,
+  }) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(FilterCondition.equalTo(
+        property: r'fieldValuesJson',
+        value: value,
+        caseSensitive: caseSensitive,
+      ));
+    });
+  }
+
+  QueryBuilder<LocalMaterial, LocalMaterial, QAfterFilterCondition>
+      fieldValuesJsonGreaterThan(
+    String? value, {
+    bool include = false,
+    bool caseSensitive = true,
+  }) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(FilterCondition.greaterThan(
+        include: include,
+        property: r'fieldValuesJson',
+        value: value,
+        caseSensitive: caseSensitive,
+      ));
+    });
+  }
+
+  QueryBuilder<LocalMaterial, LocalMaterial, QAfterFilterCondition>
+      fieldValuesJsonLessThan(
+    String? value, {
+    bool include = false,
+    bool caseSensitive = true,
+  }) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(FilterCondition.lessThan(
+        include: include,
+        property: r'fieldValuesJson',
+        value: value,
+        caseSensitive: caseSensitive,
+      ));
+    });
+  }
+
+  QueryBuilder<LocalMaterial, LocalMaterial, QAfterFilterCondition>
+      fieldValuesJsonBetween(
+    String? lower,
+    String? upper, {
+    bool includeLower = true,
+    bool includeUpper = true,
+    bool caseSensitive = true,
+  }) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(FilterCondition.between(
+        property: r'fieldValuesJson',
+        lower: lower,
+        includeLower: includeLower,
+        upper: upper,
+        includeUpper: includeUpper,
+        caseSensitive: caseSensitive,
+      ));
+    });
+  }
+
+  QueryBuilder<LocalMaterial, LocalMaterial, QAfterFilterCondition>
+      fieldValuesJsonStartsWith(
+    String value, {
+    bool caseSensitive = true,
+  }) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(FilterCondition.startsWith(
+        property: r'fieldValuesJson',
+        value: value,
+        caseSensitive: caseSensitive,
+      ));
+    });
+  }
+
+  QueryBuilder<LocalMaterial, LocalMaterial, QAfterFilterCondition>
+      fieldValuesJsonEndsWith(
+    String value, {
+    bool caseSensitive = true,
+  }) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(FilterCondition.endsWith(
+        property: r'fieldValuesJson',
+        value: value,
+        caseSensitive: caseSensitive,
+      ));
+    });
+  }
+
+  QueryBuilder<LocalMaterial, LocalMaterial, QAfterFilterCondition>
+      fieldValuesJsonContains(String value, {bool caseSensitive = true}) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(FilterCondition.contains(
+        property: r'fieldValuesJson',
+        value: value,
+        caseSensitive: caseSensitive,
+      ));
+    });
+  }
+
+  QueryBuilder<LocalMaterial, LocalMaterial, QAfterFilterCondition>
+      fieldValuesJsonMatches(String pattern, {bool caseSensitive = true}) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(FilterCondition.matches(
+        property: r'fieldValuesJson',
+        wildcard: pattern,
+        caseSensitive: caseSensitive,
+      ));
+    });
+  }
+
+  QueryBuilder<LocalMaterial, LocalMaterial, QAfterFilterCondition>
+      fieldValuesJsonIsEmpty() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(FilterCondition.equalTo(
+        property: r'fieldValuesJson',
+        value: '',
+      ));
+    });
+  }
+
+  QueryBuilder<LocalMaterial, LocalMaterial, QAfterFilterCondition>
+      fieldValuesJsonIsNotEmpty() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(FilterCondition.greaterThan(
+        property: r'fieldValuesJson',
         value: '',
       ));
     });
@@ -1126,6 +2061,16 @@ extension LocalMaterialQueryFilter
   }
 
   QueryBuilder<LocalMaterial, LocalMaterial, QAfterFilterCondition>
+      isDefaultEqualTo(bool value) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(FilterCondition.equalTo(
+        property: r'isDefault',
+        value: value,
+      ));
+    });
+  }
+
+  QueryBuilder<LocalMaterial, LocalMaterial, QAfterFilterCondition>
       isDeletedEqualTo(bool value) {
     return QueryBuilder.apply(this, (query) {
       return query.addFilterCondition(FilterCondition.equalTo(
@@ -1207,6 +2152,160 @@ extension LocalMaterialQueryFilter
         upper: upper,
         includeUpper: includeUpper,
         epsilon: epsilon,
+      ));
+    });
+  }
+
+  QueryBuilder<LocalMaterial, LocalMaterial, QAfterFilterCondition>
+      materialCodeIsNull() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(const FilterCondition.isNull(
+        property: r'materialCode',
+      ));
+    });
+  }
+
+  QueryBuilder<LocalMaterial, LocalMaterial, QAfterFilterCondition>
+      materialCodeIsNotNull() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(const FilterCondition.isNotNull(
+        property: r'materialCode',
+      ));
+    });
+  }
+
+  QueryBuilder<LocalMaterial, LocalMaterial, QAfterFilterCondition>
+      materialCodeEqualTo(
+    String? value, {
+    bool caseSensitive = true,
+  }) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(FilterCondition.equalTo(
+        property: r'materialCode',
+        value: value,
+        caseSensitive: caseSensitive,
+      ));
+    });
+  }
+
+  QueryBuilder<LocalMaterial, LocalMaterial, QAfterFilterCondition>
+      materialCodeGreaterThan(
+    String? value, {
+    bool include = false,
+    bool caseSensitive = true,
+  }) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(FilterCondition.greaterThan(
+        include: include,
+        property: r'materialCode',
+        value: value,
+        caseSensitive: caseSensitive,
+      ));
+    });
+  }
+
+  QueryBuilder<LocalMaterial, LocalMaterial, QAfterFilterCondition>
+      materialCodeLessThan(
+    String? value, {
+    bool include = false,
+    bool caseSensitive = true,
+  }) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(FilterCondition.lessThan(
+        include: include,
+        property: r'materialCode',
+        value: value,
+        caseSensitive: caseSensitive,
+      ));
+    });
+  }
+
+  QueryBuilder<LocalMaterial, LocalMaterial, QAfterFilterCondition>
+      materialCodeBetween(
+    String? lower,
+    String? upper, {
+    bool includeLower = true,
+    bool includeUpper = true,
+    bool caseSensitive = true,
+  }) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(FilterCondition.between(
+        property: r'materialCode',
+        lower: lower,
+        includeLower: includeLower,
+        upper: upper,
+        includeUpper: includeUpper,
+        caseSensitive: caseSensitive,
+      ));
+    });
+  }
+
+  QueryBuilder<LocalMaterial, LocalMaterial, QAfterFilterCondition>
+      materialCodeStartsWith(
+    String value, {
+    bool caseSensitive = true,
+  }) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(FilterCondition.startsWith(
+        property: r'materialCode',
+        value: value,
+        caseSensitive: caseSensitive,
+      ));
+    });
+  }
+
+  QueryBuilder<LocalMaterial, LocalMaterial, QAfterFilterCondition>
+      materialCodeEndsWith(
+    String value, {
+    bool caseSensitive = true,
+  }) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(FilterCondition.endsWith(
+        property: r'materialCode',
+        value: value,
+        caseSensitive: caseSensitive,
+      ));
+    });
+  }
+
+  QueryBuilder<LocalMaterial, LocalMaterial, QAfterFilterCondition>
+      materialCodeContains(String value, {bool caseSensitive = true}) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(FilterCondition.contains(
+        property: r'materialCode',
+        value: value,
+        caseSensitive: caseSensitive,
+      ));
+    });
+  }
+
+  QueryBuilder<LocalMaterial, LocalMaterial, QAfterFilterCondition>
+      materialCodeMatches(String pattern, {bool caseSensitive = true}) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(FilterCondition.matches(
+        property: r'materialCode',
+        wildcard: pattern,
+        caseSensitive: caseSensitive,
+      ));
+    });
+  }
+
+  QueryBuilder<LocalMaterial, LocalMaterial, QAfterFilterCondition>
+      materialCodeIsEmpty() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(FilterCondition.equalTo(
+        property: r'materialCode',
+        value: '',
+      ));
+    });
+  }
+
+  QueryBuilder<LocalMaterial, LocalMaterial, QAfterFilterCondition>
+      materialCodeIsNotEmpty() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(FilterCondition.greaterThan(
+        property: r'materialCode',
+        value: '',
       ));
     });
   }
@@ -2571,6 +3670,48 @@ extension LocalMaterialQueryLinks
 extension LocalMaterialQuerySortBy
     on QueryBuilder<LocalMaterial, LocalMaterial, QSortBy> {
   QueryBuilder<LocalMaterial, LocalMaterial, QAfterSortBy>
+      sortByCalculationConfigJson() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addSortBy(r'calculationConfigJson', Sort.asc);
+    });
+  }
+
+  QueryBuilder<LocalMaterial, LocalMaterial, QAfterSortBy>
+      sortByCalculationConfigJsonDesc() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addSortBy(r'calculationConfigJson', Sort.desc);
+    });
+  }
+
+  QueryBuilder<LocalMaterial, LocalMaterial, QAfterSortBy>
+      sortByCalculationType() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addSortBy(r'calculationType', Sort.asc);
+    });
+  }
+
+  QueryBuilder<LocalMaterial, LocalMaterial, QAfterSortBy>
+      sortByCalculationTypeDesc() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addSortBy(r'calculationType', Sort.desc);
+    });
+  }
+
+  QueryBuilder<LocalMaterial, LocalMaterial, QAfterSortBy>
+      sortByCardFormStateJson() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addSortBy(r'cardFormStateJson', Sort.asc);
+    });
+  }
+
+  QueryBuilder<LocalMaterial, LocalMaterial, QAfterSortBy>
+      sortByCardFormStateJsonDesc() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addSortBy(r'cardFormStateJson', Sort.desc);
+    });
+  }
+
+  QueryBuilder<LocalMaterial, LocalMaterial, QAfterSortBy>
       sortByCircumference() {
     return QueryBuilder.apply(this, (query) {
       return query.addSortBy(r'circumference', Sort.asc);
@@ -2597,6 +3738,20 @@ extension LocalMaterialQuerySortBy
     });
   }
 
+  QueryBuilder<LocalMaterial, LocalMaterial, QAfterSortBy>
+      sortByDisplayOrder() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addSortBy(r'displayOrder', Sort.asc);
+    });
+  }
+
+  QueryBuilder<LocalMaterial, LocalMaterial, QAfterSortBy>
+      sortByDisplayOrderDesc() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addSortBy(r'displayOrder', Sort.desc);
+    });
+  }
+
   QueryBuilder<LocalMaterial, LocalMaterial, QAfterSortBy> sortByDomain() {
     return QueryBuilder.apply(this, (query) {
       return query.addSortBy(r'domain', Sort.asc);
@@ -2606,6 +3761,47 @@ extension LocalMaterialQuerySortBy
   QueryBuilder<LocalMaterial, LocalMaterial, QAfterSortBy> sortByDomainDesc() {
     return QueryBuilder.apply(this, (query) {
       return query.addSortBy(r'domain', Sort.desc);
+    });
+  }
+
+  QueryBuilder<LocalMaterial, LocalMaterial, QAfterSortBy>
+      sortByFieldConfigJson() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addSortBy(r'fieldConfigJson', Sort.asc);
+    });
+  }
+
+  QueryBuilder<LocalMaterial, LocalMaterial, QAfterSortBy>
+      sortByFieldConfigJsonDesc() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addSortBy(r'fieldConfigJson', Sort.desc);
+    });
+  }
+
+  QueryBuilder<LocalMaterial, LocalMaterial, QAfterSortBy>
+      sortByFieldValuesJson() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addSortBy(r'fieldValuesJson', Sort.asc);
+    });
+  }
+
+  QueryBuilder<LocalMaterial, LocalMaterial, QAfterSortBy>
+      sortByFieldValuesJsonDesc() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addSortBy(r'fieldValuesJson', Sort.desc);
+    });
+  }
+
+  QueryBuilder<LocalMaterial, LocalMaterial, QAfterSortBy> sortByIsDefault() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addSortBy(r'isDefault', Sort.asc);
+    });
+  }
+
+  QueryBuilder<LocalMaterial, LocalMaterial, QAfterSortBy>
+      sortByIsDefaultDesc() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addSortBy(r'isDefault', Sort.desc);
     });
   }
 
@@ -2643,6 +3839,20 @@ extension LocalMaterialQuerySortBy
   QueryBuilder<LocalMaterial, LocalMaterial, QAfterSortBy> sortByLengthDesc() {
     return QueryBuilder.apply(this, (query) {
       return query.addSortBy(r'length', Sort.desc);
+    });
+  }
+
+  QueryBuilder<LocalMaterial, LocalMaterial, QAfterSortBy>
+      sortByMaterialCode() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addSortBy(r'materialCode', Sort.asc);
+    });
+  }
+
+  QueryBuilder<LocalMaterial, LocalMaterial, QAfterSortBy>
+      sortByMaterialCodeDesc() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addSortBy(r'materialCode', Sort.desc);
     });
   }
 
@@ -2786,6 +3996,48 @@ extension LocalMaterialQuerySortBy
 extension LocalMaterialQuerySortThenBy
     on QueryBuilder<LocalMaterial, LocalMaterial, QSortThenBy> {
   QueryBuilder<LocalMaterial, LocalMaterial, QAfterSortBy>
+      thenByCalculationConfigJson() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addSortBy(r'calculationConfigJson', Sort.asc);
+    });
+  }
+
+  QueryBuilder<LocalMaterial, LocalMaterial, QAfterSortBy>
+      thenByCalculationConfigJsonDesc() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addSortBy(r'calculationConfigJson', Sort.desc);
+    });
+  }
+
+  QueryBuilder<LocalMaterial, LocalMaterial, QAfterSortBy>
+      thenByCalculationType() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addSortBy(r'calculationType', Sort.asc);
+    });
+  }
+
+  QueryBuilder<LocalMaterial, LocalMaterial, QAfterSortBy>
+      thenByCalculationTypeDesc() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addSortBy(r'calculationType', Sort.desc);
+    });
+  }
+
+  QueryBuilder<LocalMaterial, LocalMaterial, QAfterSortBy>
+      thenByCardFormStateJson() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addSortBy(r'cardFormStateJson', Sort.asc);
+    });
+  }
+
+  QueryBuilder<LocalMaterial, LocalMaterial, QAfterSortBy>
+      thenByCardFormStateJsonDesc() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addSortBy(r'cardFormStateJson', Sort.desc);
+    });
+  }
+
+  QueryBuilder<LocalMaterial, LocalMaterial, QAfterSortBy>
       thenByCircumference() {
     return QueryBuilder.apply(this, (query) {
       return query.addSortBy(r'circumference', Sort.asc);
@@ -2812,6 +4064,20 @@ extension LocalMaterialQuerySortThenBy
     });
   }
 
+  QueryBuilder<LocalMaterial, LocalMaterial, QAfterSortBy>
+      thenByDisplayOrder() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addSortBy(r'displayOrder', Sort.asc);
+    });
+  }
+
+  QueryBuilder<LocalMaterial, LocalMaterial, QAfterSortBy>
+      thenByDisplayOrderDesc() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addSortBy(r'displayOrder', Sort.desc);
+    });
+  }
+
   QueryBuilder<LocalMaterial, LocalMaterial, QAfterSortBy> thenByDomain() {
     return QueryBuilder.apply(this, (query) {
       return query.addSortBy(r'domain', Sort.asc);
@@ -2824,6 +4090,34 @@ extension LocalMaterialQuerySortThenBy
     });
   }
 
+  QueryBuilder<LocalMaterial, LocalMaterial, QAfterSortBy>
+      thenByFieldConfigJson() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addSortBy(r'fieldConfigJson', Sort.asc);
+    });
+  }
+
+  QueryBuilder<LocalMaterial, LocalMaterial, QAfterSortBy>
+      thenByFieldConfigJsonDesc() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addSortBy(r'fieldConfigJson', Sort.desc);
+    });
+  }
+
+  QueryBuilder<LocalMaterial, LocalMaterial, QAfterSortBy>
+      thenByFieldValuesJson() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addSortBy(r'fieldValuesJson', Sort.asc);
+    });
+  }
+
+  QueryBuilder<LocalMaterial, LocalMaterial, QAfterSortBy>
+      thenByFieldValuesJsonDesc() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addSortBy(r'fieldValuesJson', Sort.desc);
+    });
+  }
+
   QueryBuilder<LocalMaterial, LocalMaterial, QAfterSortBy> thenById() {
     return QueryBuilder.apply(this, (query) {
       return query.addSortBy(r'id', Sort.asc);
@@ -2833,6 +4127,19 @@ extension LocalMaterialQuerySortThenBy
   QueryBuilder<LocalMaterial, LocalMaterial, QAfterSortBy> thenByIdDesc() {
     return QueryBuilder.apply(this, (query) {
       return query.addSortBy(r'id', Sort.desc);
+    });
+  }
+
+  QueryBuilder<LocalMaterial, LocalMaterial, QAfterSortBy> thenByIsDefault() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addSortBy(r'isDefault', Sort.asc);
+    });
+  }
+
+  QueryBuilder<LocalMaterial, LocalMaterial, QAfterSortBy>
+      thenByIsDefaultDesc() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addSortBy(r'isDefault', Sort.desc);
     });
   }
 
@@ -2870,6 +4177,20 @@ extension LocalMaterialQuerySortThenBy
   QueryBuilder<LocalMaterial, LocalMaterial, QAfterSortBy> thenByLengthDesc() {
     return QueryBuilder.apply(this, (query) {
       return query.addSortBy(r'length', Sort.desc);
+    });
+  }
+
+  QueryBuilder<LocalMaterial, LocalMaterial, QAfterSortBy>
+      thenByMaterialCode() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addSortBy(r'materialCode', Sort.asc);
+    });
+  }
+
+  QueryBuilder<LocalMaterial, LocalMaterial, QAfterSortBy>
+      thenByMaterialCodeDesc() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addSortBy(r'materialCode', Sort.desc);
     });
   }
 
@@ -3013,6 +4334,30 @@ extension LocalMaterialQuerySortThenBy
 extension LocalMaterialQueryWhereDistinct
     on QueryBuilder<LocalMaterial, LocalMaterial, QDistinct> {
   QueryBuilder<LocalMaterial, LocalMaterial, QDistinct>
+      distinctByCalculationConfigJson({bool caseSensitive = true}) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addDistinctBy(r'calculationConfigJson',
+          caseSensitive: caseSensitive);
+    });
+  }
+
+  QueryBuilder<LocalMaterial, LocalMaterial, QDistinct>
+      distinctByCalculationType({bool caseSensitive = true}) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addDistinctBy(r'calculationType',
+          caseSensitive: caseSensitive);
+    });
+  }
+
+  QueryBuilder<LocalMaterial, LocalMaterial, QDistinct>
+      distinctByCardFormStateJson({bool caseSensitive = true}) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addDistinctBy(r'cardFormStateJson',
+          caseSensitive: caseSensitive);
+    });
+  }
+
+  QueryBuilder<LocalMaterial, LocalMaterial, QDistinct>
       distinctByCircumference() {
     return QueryBuilder.apply(this, (query) {
       return query.addDistinctBy(r'circumference');
@@ -3026,6 +4371,13 @@ extension LocalMaterialQueryWhereDistinct
     });
   }
 
+  QueryBuilder<LocalMaterial, LocalMaterial, QDistinct>
+      distinctByDisplayOrder() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addDistinctBy(r'displayOrder');
+    });
+  }
+
   QueryBuilder<LocalMaterial, LocalMaterial, QDistinct> distinctByDomain(
       {bool caseSensitive = true}) {
     return QueryBuilder.apply(this, (query) {
@@ -3033,9 +4385,31 @@ extension LocalMaterialQueryWhereDistinct
     });
   }
 
+  QueryBuilder<LocalMaterial, LocalMaterial, QDistinct>
+      distinctByFieldConfigJson({bool caseSensitive = true}) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addDistinctBy(r'fieldConfigJson',
+          caseSensitive: caseSensitive);
+    });
+  }
+
+  QueryBuilder<LocalMaterial, LocalMaterial, QDistinct>
+      distinctByFieldValuesJson({bool caseSensitive = true}) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addDistinctBy(r'fieldValuesJson',
+          caseSensitive: caseSensitive);
+    });
+  }
+
   QueryBuilder<LocalMaterial, LocalMaterial, QDistinct> distinctByImages() {
     return QueryBuilder.apply(this, (query) {
       return query.addDistinctBy(r'images');
+    });
+  }
+
+  QueryBuilder<LocalMaterial, LocalMaterial, QDistinct> distinctByIsDefault() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addDistinctBy(r'isDefault');
     });
   }
 
@@ -3054,6 +4428,13 @@ extension LocalMaterialQueryWhereDistinct
   QueryBuilder<LocalMaterial, LocalMaterial, QDistinct> distinctByLength() {
     return QueryBuilder.apply(this, (query) {
       return query.addDistinctBy(r'length');
+    });
+  }
+
+  QueryBuilder<LocalMaterial, LocalMaterial, QDistinct> distinctByMaterialCode(
+      {bool caseSensitive = true}) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addDistinctBy(r'materialCode', caseSensitive: caseSensitive);
     });
   }
 
@@ -3141,6 +4522,27 @@ extension LocalMaterialQueryProperty
     });
   }
 
+  QueryBuilder<LocalMaterial, String?, QQueryOperations>
+      calculationConfigJsonProperty() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addPropertyName(r'calculationConfigJson');
+    });
+  }
+
+  QueryBuilder<LocalMaterial, String?, QQueryOperations>
+      calculationTypeProperty() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addPropertyName(r'calculationType');
+    });
+  }
+
+  QueryBuilder<LocalMaterial, String?, QQueryOperations>
+      cardFormStateJsonProperty() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addPropertyName(r'cardFormStateJson');
+    });
+  }
+
   QueryBuilder<LocalMaterial, double, QQueryOperations>
       circumferenceProperty() {
     return QueryBuilder.apply(this, (query) {
@@ -3154,15 +4556,41 @@ extension LocalMaterialQueryProperty
     });
   }
 
+  QueryBuilder<LocalMaterial, int, QQueryOperations> displayOrderProperty() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addPropertyName(r'displayOrder');
+    });
+  }
+
   QueryBuilder<LocalMaterial, String, QQueryOperations> domainProperty() {
     return QueryBuilder.apply(this, (query) {
       return query.addPropertyName(r'domain');
     });
   }
 
+  QueryBuilder<LocalMaterial, String?, QQueryOperations>
+      fieldConfigJsonProperty() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addPropertyName(r'fieldConfigJson');
+    });
+  }
+
+  QueryBuilder<LocalMaterial, String?, QQueryOperations>
+      fieldValuesJsonProperty() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addPropertyName(r'fieldValuesJson');
+    });
+  }
+
   QueryBuilder<LocalMaterial, List<String>, QQueryOperations> imagesProperty() {
     return QueryBuilder.apply(this, (query) {
       return query.addPropertyName(r'images');
+    });
+  }
+
+  QueryBuilder<LocalMaterial, bool, QQueryOperations> isDefaultProperty() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addPropertyName(r'isDefault');
     });
   }
 
@@ -3181,6 +4609,13 @@ extension LocalMaterialQueryProperty
   QueryBuilder<LocalMaterial, double, QQueryOperations> lengthProperty() {
     return QueryBuilder.apply(this, (query) {
       return query.addPropertyName(r'length');
+    });
+  }
+
+  QueryBuilder<LocalMaterial, String?, QQueryOperations>
+      materialCodeProperty() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addPropertyName(r'materialCode');
     });
   }
 

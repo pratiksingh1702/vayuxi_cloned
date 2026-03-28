@@ -1,6 +1,7 @@
 // providers/insulation_piping_provider.dart
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
+import '../model/material_setup.dart';
 import '../model/piping_insu.dart';
 
 
@@ -15,6 +16,20 @@ StateNotifierProvider<InsulationPipingMaterialsNotifier, List<PipingMaterial>>(
 
 class InsulationPipingMaterialsNotifier extends StateNotifier<List<PipingMaterial>> {
   InsulationPipingMaterialsNotifier() : super(const []);
+  List<MaterialSetup> _setups = [];
+
+  void updateSetups(List<MaterialSetup> setups) {
+    _setups = setups;
+  }
+
+  MaterialSetup? findSetup(String? materialCode) {
+    if (materialCode == null || materialCode.isEmpty) return null;
+    try {
+      return _setups.firstWhere((s) => s.materialCode == materialCode);
+    } catch (_) {
+      return null;
+    }
+  }
 
   void updateAllSizes({
     required String size,

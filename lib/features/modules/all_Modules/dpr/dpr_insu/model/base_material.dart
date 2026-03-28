@@ -1,4 +1,7 @@
-import 'material_setup.dart';
+// lib/features/modules/all_Modules/dpr/dpr_insu/model/base_material.dart
+
+import 'card_form_State.dart';
+import 'field_config.dart';
 
 abstract class BaseMaterial {
   final String id;
@@ -6,8 +9,14 @@ abstract class BaseMaterial {
   final List<String> image;
   final String uom;
   final String remarks;
-  
-  // Legacy fields for backward compatibility
+
+  // Dynamic card-level form state (new, isolated per card)
+   CardFormState? cardFormState;
+
+  // Legacy fields (backward compat)
+  final String? materialCode;
+  final FieldValues? fieldValues;
+  final Map<String, String>? customLabels;
   final int qty;
   final double length;
   final double circumference;
@@ -33,18 +42,14 @@ abstract class BaseMaterial {
   final double o3;
   final double o2;
   final double o1;
-  
-  // New dynamic fields support
-  final String? materialCode;
-  final FieldValues? fieldValues;
-  final Map<String, String>? customLabels;
 
-  const BaseMaterial({
+ BaseMaterial({
     required this.id,
     required this.name,
     required this.image,
     required this.uom,
     required this.remarks,
+    this.cardFormState,
     this.materialCode,
     this.fieldValues,
     this.customLabels,
@@ -75,11 +80,6 @@ abstract class BaseMaterial {
     this.o1 = 0,
   });
 
-  /// Child classes must implement their own factories
-  factory BaseMaterial.fromJson(Map<String, dynamic> json) {
-    throw UnimplementedError('Use concrete material fromJson');
-  }
-
   Map<String, dynamic> toJson();
 
   BaseMaterial copyWith({
@@ -88,6 +88,7 @@ abstract class BaseMaterial {
     List<String>? image,
     String? uom,
     String? remarks,
+    CardFormState? cardFormState,
     String? materialCode,
     FieldValues? fieldValues,
     Map<String, String>? customLabels,

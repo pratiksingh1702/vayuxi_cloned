@@ -1,3 +1,5 @@
+// lib/features/modules/all_Modules/dpr/dpr_insu/model/material_setup.dart
+
 import 'field_config.dart';
 
 class MaterialSetup {
@@ -51,14 +53,14 @@ class MaterialSetup {
       fieldConfig: json['fieldConfig'] != null
           ? FieldConfig.fromJson(json['fieldConfig'] as Map<String, dynamic>)
           : FieldConfig(
-              fields: [],
-              unitDropdowns: UnitDropdowns.fromJson({}),
-              defaults: FieldDefaults.fromJson({}),
-              ui: UiConfig.fromJson({}),
-            ),
+        fields: [],
+        unitDropdowns: UnitDropdowns.fromJson({}),
+        defaults: FieldDefaults.fromJson({}),
+        ui: UiConfig.fromJson({}),
+      ),
       calculationConfig: json['calculationConfig'] != null
           ? CalculationConfig.fromJson(
-              json['calculationConfig'] as Map<String, dynamic>)
+          json['calculationConfig'] as Map<String, dynamic>)
           : null,
       isConstants: json['isConstants'] as Map<String, dynamic>?,
       isDefault: json['isDefault'] as bool? ?? false,
@@ -67,10 +69,10 @@ class MaterialSetup {
       siteId: _extractId(json['siteId']),
       companyId: _extractId(json['company']),
       createdAt: json['createdAt'] != null
-          ? DateTime.parse(json['createdAt'] as String)
+          ? DateTime.tryParse(json['createdAt'] as String)
           : null,
       updatedAt: json['updatedAt'] != null
-          ? DateTime.parse(json['updatedAt'] as String)
+          ? DateTime.tryParse(json['updatedAt'] as String)
           : null,
     );
   }
@@ -143,27 +145,4 @@ class MaterialSetup {
       updatedAt: updatedAt ?? this.updatedAt,
     );
   }
-}
-
-class FieldValues {
-  final Map<String, dynamic> values;
-
-  FieldValues(this.values);
-
-  factory FieldValues.fromJson(Map<String, dynamic> json) {
-    return FieldValues(Map<String, dynamic>.from(json));
-  }
-
-  Map<String, dynamic> toJson() => Map<String, dynamic>.from(values);
-
-  dynamic operator [](String key) => values[key];
-
-  void operator []=(String key, dynamic value) => values[key] = value;
-
-  bool containsKey(String key) => values.containsKey(key);
-
-  T? get<T>(String key) => values[key] as T?;
-
-  T getOrDefault<T>(String key, T defaultValue) =>
-      values[key] as T? ?? defaultValue;
 }

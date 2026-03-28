@@ -7,6 +7,7 @@ import 'package:untitled2/core/utlis/colors/colors.dart';
 import 'package:untitled2/core/utlis/widgets/card.dart';
 import 'package:untitled2/core/utlis/widgets/custom_appBar.dart';
 import 'package:untitled2/core/utlis/widgets/image_clipped.dart';
+import 'package:untitled2/features/modules/all_Modules/site_Details/providers/siteProvider.dart';
 import 'package:untitled2/typeProvider/type_provider.dart';
 import 'core/router/routes.dart';
 import 'core/utlis/common_functions.dart';
@@ -114,6 +115,7 @@ class _WorkCategoryScreenState extends ConsumerState<WorkCategoryScreen> {
     } else if (id == "insulation") {
       typeNotifier.setType("insulation_work");
     }
+    ref.read(siteProvider.notifier).fetchSites();
 
     context.push(
       Routes.selectModule,

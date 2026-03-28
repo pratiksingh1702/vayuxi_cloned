@@ -1,9 +1,11 @@
+// lib/features/modules/all_Modules/offline/data/local/local_material.dart
+
 import 'dart:convert';
-
 import 'package:isar/isar.dart';
-
+import '../../../dpr_insu/model/card_form_State.dart';
 import '../../../dpr_insu/model/eqip_insu.dart';
 import '../../../dpr_insu/model/piping_insu.dart';
+import '../../../dpr_insu/model/field_config.dart';
 
 part 'local_material.g.dart';
 
@@ -19,15 +21,16 @@ class LocalMaterial {
   late String domain;       // insulation | mechanical
   late String designation;  // piping | equipment
 
-  /// MATERIAL SETUP DATA
+  /// MATERIAL SETUP DATA (synced from server, not user-editable)
   String? materialCode;
   String? calculationType;
-  String? fieldConfigJson;  // Stores FieldConfig as JSON
-  String? calculationConfigJson;  // Stores CalculationConfig as JSON
+  String? fieldConfigJson;        // FieldConfig JSON from server
+  String? calculationConfigJson;  // CalculationConfig JSON from server
   bool isDefault = false;
   int displayOrder = 0;
+  String? fieldValuesJson;
 
-  /// LEGACY FIELDS (for backward compatibility)
+  /// LEGACY FIELDS (backward compat)
   int qty = 0;
   double length = 0;
   String? size;
@@ -35,10 +38,28 @@ class LocalMaterial {
   String remarks = '';
   double circumference = 0;
   double zHeight = 0;
-  String? materialDataJson;
+  String? materialDataJson;       // Full material toJson() snapshot
 
-  /// DYNAMIC FIELD VALUES
-  String? fieldValuesJson;  // Stores dynamic field values as JSON
+  /// ───────────────────────────────────────────────
+  /// CARD-LEVEL FORM STATE (new — isolated per card)
+  ///
+  /// Stores the CardFormState as JSON.
+  /// Structure:
+  /// {
+  ///   "geometryMode": "DIAMETER",
+  ///   "fieldEntries": {
+  ///     "length":        { "value": 100, "unit": "MM" },
+  ///     "diameter":      { "value": 50,  "unit": "MM" },
+  ///     "circumference": { "value": null, "unit": "MM" },
+  ///     "quantity":      { "value": 1,   "unit": "NOS" }
+  ///   },
+  ///   "customLabels": { "length": "My Length" }
+  /// }
+  ///
+  /// This is NEVER shared between cards. Each LocalMaterial row
+  /// stores its own independent form state.
+  /// ───────────────────────────────────────────────
+  String? cardFormStateJson;
 
   /// DATA
   late String name;
@@ -51,28 +72,61 @@ class LocalMaterial {
   DateTime updatedAt = DateTime.now();
 }
 
+// ─────────────────────────────────────────────────
+// EXTENSION: Convert LocalMaterial ↔ domain models
+// ─────────────────────────────────────────────────
 extension LocalMaterialMapper on LocalMaterial {
 
+  // ── Read card-form-state ──────────────────────
+
+  /// Deserialize the persisted CardFormState for this card.
+  /// Returns null if none saved yet.
+  CardFormState? get savedCardFormState {
+    if (cardFormStateJson == null || cardFormStateJson!.isEmpty) return null;
+    try {
+      return CardFormState.fromJson(
+          jsonDecode(cardFormStateJson!) as Map<String, dynamic>);
+    } catch (_) {
+      return null;
+    }
+  }
+
+// In local_material.dart
   PipingMaterial toPiping() {
+    // 1️⃣ Prefer full materialDataJson snapshot
     if (materialDataJson != null && materialDataJson!.isNotEmpty) {
-      return PipingMaterial.fromJson(
-        jsonDecode(materialDataJson!),
-      );
+      try {
+        final m = PipingMaterial.fromJson(
+            jsonDecode(materialDataJson!) as Map<String, dynamic>);
+
+        // ✅ FIX: Always override name AND materialCode with local DB values
+        final updated = m.copyWith(
+          name: name.isNotEmpty ? name : m.name,
+          image: images.isNotEmpty ? images : m.image,  // ✅ Preserve images
+          materialCode: materialCode ?? m.materialCode,
+          cardFormState: savedCardFormState,
+        );
+
+        return updated;
+      } catch (_) {}
     }
 
+    // 2️⃣ Fallback: construct from individual fields
     return PipingMaterial(
       id: serverId ?? id.toString(),
-      name: name,
+      name: name,  // ✅ This is correct
       image: images,
       uom: uom ?? '',
-      size: '',
-      sizeUom: 'inch',
-      qty: 0,
-      length: 0,
-      circumference: 0,
+      materialCode: materialCode,
+      cardFormState: savedCardFormState,
+      size: size ?? '',
+      sizeUom: sizeUom ?? 'inch',
+      qty: qty,
+      length: length,
+      circumference: circumference,
       circumference1: 0,
       circumference2: 0,
-      zHeight: 0,
+      zHeight: zHeight,
       gSlantHeight: 0,
       constant: 0,
       totalArea: 0,
@@ -92,28 +146,43 @@ extension LocalMaterialMapper on LocalMaterial {
       o3: 0,
       o2: 0,
       o1: 0,
-      remarks: '',
+      remarks: remarks,
     );
   }
 
   EquipmentMaterial toEquipment() {
+    // 1️⃣ Prefer full materialDataJson snapshot
     if (materialDataJson != null && materialDataJson!.isNotEmpty) {
-      return EquipmentMaterial.fromJson(
-        jsonDecode(materialDataJson!),
-      );
+      try {
+        final m = EquipmentMaterial.fromJson(
+            jsonDecode(materialDataJson!) as Map<String, dynamic>);
+
+        // ✅ FIX: Always override name AND materialCode with local DB values
+        final updated = m.copyWith(
+          name: name.isNotEmpty ? name : m.name,
+          image: images.isNotEmpty ? images : m.image,  // ✅ Preserve images
+          materialCode: materialCode ?? m.materialCode,
+          cardFormState: savedCardFormState,
+        );
+
+        return updated;
+      } catch (_) {}
     }
 
+    // 2️⃣ Fallback
     return EquipmentMaterial(
       id: serverId ?? id.toString(),
-      name: name,
+      name: name,  // ✅ This is correct
       image: images,
       uom: uom ?? '',
-      qty: 0,
-      length: 0,
-      circumference: 0,
+      materialCode: materialCode,
+      cardFormState: savedCardFormState,
+      qty: qty,
+      length: length,
+      circumference: circumference,
       circumference1: 0,
       circumference2: 0,
-      zHeight: 0,
+      zHeight: zHeight,
       gSlantHeight: 0,
       constant: 0,
       totalArea: 0,
@@ -133,7 +202,7 @@ extension LocalMaterialMapper on LocalMaterial {
       o3: 0,
       o2: 0,
       o1: 0,
-      remarks: '',
+      remarks: remarks,
     );
   }
 }

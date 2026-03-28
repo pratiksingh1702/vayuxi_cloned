@@ -20,12 +20,14 @@ import 'package:untitled2/features/modules/all_Modules/team/provider/teamProvide
 import '../../../../../../core/utlis/colors/colors.dart';
 import '../../../../../../core/utlis/common_functions.dart';
 import '../../../../../../core/utlis/widgets/sidebar.dart';
+import '../../offline/data/material_sync_service.dart';
 import '../../offline/data/repo/material_repo_provider.dart';
 import '../../providers/selectedSize_provider.dart';
 import '../../screens/add_description.dart';
 import '../model/dpr_model_insu.dart';
 import '../model/eqip_insu.dart';
 import '../model/insu_step_date.dart';
+import '../model/material_setup.dart';
 import '../model/piping_insu.dart';
 import '../providers/draft_insu.dart';
 import '../providers/insu_equipment.dart';
@@ -80,6 +82,12 @@ class _AddInsulationDescriptionScreenState
 
   DateTime _selectedDate = DateTime.now();
 
+  // Material setup state
+  final MaterialSyncService _syncService = MaterialSyncService();
+  List<MaterialSetup> _pipingSetups = [];
+  List<MaterialSetup> _equipmentSetups = [];
+  bool _setupsLoaded = false;
+
   bool _isLoadingMaterials = false;
   bool _isSubmitting = false;
   bool _isCreatingWork = false;
@@ -97,6 +105,9 @@ class _AddInsulationDescriptionScreenState
   final List<LayerData> _layers = [];
   LayerData _cladding = LayerData.empty();
 
+  // 🔥 State Sync Keys
+  final Map<String, GlobalKey<State<EquipmentMaterialCard>>> _equipmentKeys = {};
+
   bool get isCreatingDpr => _insulationId == null;
   bool get isEditingDpr => _insulationId != null;
   bool get isEditing => _insulationId != null;
@@ -112,7 +123,8 @@ class _AddInsulationDescriptionScreenState
         _isLoadingMaterials = true;
       });
       WidgetsBinding.instance.addPostFrameCallback((_) {
-        _loadMaterials();   // 👈 run async loader
+        // _loadMaterials();   // 👈 run async loader
+        _loadMaterialSetups(siteId); // 👈 load setups
       });
 
 
@@ -121,6 +133,7 @@ class _AddInsulationDescriptionScreenState
     WidgetsBinding.instance.addPostFrameCallback((_) {
       if (widget.work != null) {
         _initializeFromWork(widget.work!);
+        _loadMaterialSetups(siteId); // 👈 load setups even if work exists
       } else {
         setState(() => _loadLayersFromProvider());
       }
@@ -146,6 +159,7 @@ class _AddInsulationDescriptionScreenState
         domain: 'insulation',
         designation: '',
       );
+
       _attachMaterialListeners();
     } catch (e, stack) {
       debugPrint("❌ Material sync failed: $e");
@@ -159,79 +173,202 @@ class _AddInsulationDescriptionScreenState
     }
   }
 
+  // ─────────────────────────────────────────────
+  // MATERIAL SETUP LOADING
+  // ─────────────────────────────────────────────
+
+  Future<void> _loadMaterialSetups(String siteId) async {
+    try {
+      final piping = await _syncService.getMaterials(
+        siteId: siteId,
+        designation: 'piping',
+        preferLocal: true,
+      );
+      final equipment = await _syncService.getMaterials(
+        siteId: siteId,
+        designation: 'equipment',
+        preferLocal: true,
+      );
+
+      if (mounted) {
+        setState(() {
+          _pipingSetups = piping;
+          _equipmentSetups = equipment;
+          _setupsLoaded = true;
+        });
+        debugPrint('✅ Loaded ${piping.length} piping / '
+            '${equipment.length} equipment setups');
+      }
+      ref.read(insulationPipingMaterialsProvider.notifier).updateSetups(piping);
+      // ref.read(insulationEquipmentMaterialsProvider.notifier).updateSetups(equipment);
+      _attachMaterialListeners();
+    } catch (e) {
+      debugPrint('❌ Failed to load material setups: $e');
+      if (mounted) setState(() => _setupsLoaded = true);
+    }
+  }
+
+  MaterialSetup? _findMaterialSetup(String? code, String designation) {
+
+    if (!_setupsLoaded) {
+      print("⏳ Setups not loaded yet → returning null");
+      // ✅ FIX: Trigger a reload if setups aren't loaded
+      WidgetsBinding.instance.addPostFrameCallback((_) {
+        if (!_setupsLoaded && mounted) {
+          final siteId = ref.read(selectedSiteIdProvider);
+          if (siteId != null) {
+            _loadMaterialSetups(siteId);
+          }
+        }
+      });
+      return null;
+    }
+
+    final pool = designation == 'piping'
+        ? _pipingSetups
+        : _equipmentSetups;
+
+
+
+    if (pool.isEmpty) {
+      print("❌ No setups available → returning null");
+      return null;
+    }
+
+
+    if (code == null || code.isEmpty) {
+      print("❌ INVALID materialCode (null or empty)");
+      return null;
+    }
+
+    // 🔍 Try exact match
+    final matches = pool.where((s) => s.materialCode == code).toList();
+
+    if (matches.isNotEmpty) {
+
+      return matches.first;
+    }
+
+    print("❌ NO MATCH FOUND FOR: $code");
+    return null;
+  }
+
   void _attachMaterialListeners() {
     final size = ref.read(selectedSizeProvider) ?? '';
     final unit = ref.read(selectedUnitProvider);
 
     ref.listenManual(
       materialsStreamProvider((
-        siteId: siteId,
-        domain: 'insulation',
-        designation: 'piping',
+      siteId: siteId,
+      domain: 'insulation',
+      designation: 'piping',
       )),
-      (previous, next) {
+          (previous, next) {
         next.whenData((localMaterials) {
           if (!mounted) return;
 
+          // ✅ DEBUG: Check what's coming from the database
+          for (var m in localMaterials) {
+            print("🔍 LocalMaterial: id=${m.id}, name=${m.name}, materialCode=${m.materialCode}");
+          }
+
           final incoming = localMaterials
               .where((m) => !m.isDeleted)
-              .map((m) => m.toPiping())
+              .map((m) {
+            final piping = m.toPiping();
+            // ✅ FIX: Explicitly set materialCode from LocalMaterial
+            if (piping.materialCode!.isEmpty && m.materialCode != null) {
+              return piping.copyWith(materialCode: m.materialCode);
+            }
+            return piping;
+          })
               .toList();
 
-          /// 🔥 Delay provider modification
+
           Future.microtask(() {
             if (!mounted) return;
 
-            final notifier =
-                ref.read(insulationPipingMaterialsProvider.notifier);
+            final notifier = ref.read(insulationPipingMaterialsProvider.notifier);
+            final existing = ref.read(insulationPipingMaterialsProvider);
 
-            notifier.clear();
+            final merged = incoming.map((newMat) {
+              final old = existing.firstWhere(
+                    (e) => e.id == newMat.id,
+                orElse: () => newMat,
+              );
 
-            if (incoming.isNotEmpty) {
-              notifier.addMaterials(incoming);
-              notifier.updateAllSizes(size: size, unit: unit);
-            }
+              return newMat.copyWith(
+                cardFormState: old.cardFormState ?? newMat.cardFormState,
+                // ✅ Also preserve materialCode if it was set in old
+                materialCode: newMat.materialCode!.isNotEmpty
+                    ? newMat.materialCode
+                    : old.materialCode,
+              );
+            }).toList();
+
+            notifier.setMaterials(merged);
+            notifier.updateAllSizes(size: size, unit: unit);
           });
         });
       },
       fireImmediately: true,
     );
 
+    // Equipment listener already works, but we need to ensure materialCode is preserved
     ref.listenManual(
       materialsStreamProvider((
-        siteId: siteId,
-        domain: 'insulation',
-        designation: 'equipment',
+      siteId: siteId,
+      domain: 'insulation',
+      designation: 'equipment',
       )),
-      (previous, next) {
+          (previous, next) {
         next.whenData((localMaterials) {
           if (!mounted) return;
 
           final incoming = localMaterials
               .where((m) => !m.isDeleted)
-              .map((m) => m.toEquipment())
+              .map((m) {
+            final equipment = m.toEquipment();
+            // ✅ FIX: Ensure materialCode is set
+
+            return equipment;
+          })
               .toList();
+
+          for (var p in incoming) {
+            print("🔍 EquipmentMaterial: id=${p.id}, name=${p.name}, materialCode=${p.materialCode}");
+          }
 
           /// 🔥 Delay provider modification
           Future.microtask(() {
             if (!mounted) return;
 
-            final notifier =
-                ref.read(insulationEquipmentMaterialsProvider.notifier);
+            final notifier = ref.read(insulationEquipmentMaterialsProvider.notifier);
+            final existing = ref.read(insulationEquipmentMaterialsProvider);
 
-            notifier.clear();
+            // ✅ FIX: Don't clear! Merge existing data
+            final merged = incoming.map((newMat) {
+              final old = existing.firstWhere(
+                    (e) => e.id == newMat.id,
+                orElse: () => newMat,
+              );
 
-            if (incoming.isNotEmpty) {
-              notifier.addMaterials(incoming);
-            }
+              return newMat.copyWith(
+                cardFormState: old.cardFormState ?? newMat.cardFormState,
+                // ✅ Preserve materialCode
+                materialCode: newMat.materialCode!.isNotEmpty
+                    ? newMat.materialCode
+                    : old.materialCode,
+              );
+            }).toList();
+
+            notifier.setMaterials(merged);
           });
         });
       },
       fireImmediately: true,
     );
-
   }
-
   // Future<void> _hydrateFromMaterialStream() async {
   //   final siteId = ref.read(selectedSiteIdProvider)!;
   //   ref.read(insulationPipingMaterialsProvider).clear();
@@ -2719,6 +2856,8 @@ class _AddInsulationDescriptionScreenState
 
   List<Widget> _buildPipingMaterials(List<PipingMaterial> materials) {
     return materials.map((material) {
+      final materialSetup = _findMaterialSetup(material.materialCode, 'piping');
+
       return Padding(
           key: ValueKey(
             material.id.isNotEmpty
@@ -2728,6 +2867,7 @@ class _AddInsulationDescriptionScreenState
           padding: const EdgeInsets.only(bottom: 12),
           child: PipingMaterialCard(
             material: material,
+            materialSetup: materialSetup,
             onChanged: (updated) {
               ref
                   .read(insulationPipingMaterialsProvider.notifier)
@@ -2750,6 +2890,14 @@ class _AddInsulationDescriptionScreenState
 
   List<Widget> _buildEquipmentMaterials(List<EquipmentMaterial> materials) {
     return materials.map((material) {
+      final materialSetup = _findMaterialSetup(material.materialCode, 'equipment');
+      
+      // 🔥 Assign/Retrieve GlobalKey for state sync
+      final key = _equipmentKeys.putIfAbsent(
+        material.id, 
+        () => GlobalKey<State<EquipmentMaterialCard>>()
+      );
+
       return Padding(
           key: ValueKey(
             material.id.isNotEmpty
@@ -2758,7 +2906,9 @@ class _AddInsulationDescriptionScreenState
           ),
           padding: const EdgeInsets.only(bottom: 12),
           child: EquipmentMaterialCard(
+            key: key,
             material: material,
+            materialSetup: materialSetup,
             onChanged: (updated) {
               ref
                   .read(insulationEquipmentMaterialsProvider.notifier)
@@ -2884,6 +3034,7 @@ class _AddInsulationDescriptionScreenState
     // Implementation for auto-creating insulation DPR
     // Similar to the DPR version but with insulation-specific data
   }
+
   Map<String, dynamic> buildInsulationDprPayload({
     required List<PipingMaterial> pipingMaterials,
     required List<EquipmentMaterial> equipmentMaterials,
@@ -2920,12 +3071,16 @@ class _AddInsulationDescriptionScreenState
       orElse: () => '',
     );
 
+    // ✅ Get location, default to 'Ground' if empty
+    final location = _floorController.text.trim().isNotEmpty
+        ? _floorController.text.trim()
+        : 'Ground';
 
     return {
       'designation': designation,
       'plant': _plantController.text.trim(),
-      'location': _floorController.text.trim(),
-      'layer': _selectedLayerType.name,       // ✅ local enum
+      'location': location,  // ✅ Updated: default to 'Ground' if empty
+      'layer': _selectedLayerType.name,
       'work_description': _dprNameController.text,
       'size': size,
       'sizeUom': ref.read(selectedUnitProvider),
@@ -2935,14 +3090,63 @@ class _AddInsulationDescriptionScreenState
       'legging_thickness_2': lt2,
       'legging_material_3': lm3,
       'legging_thickness_3': lt3,
-      'cladding_material': _cladding.name.isNotEmpty ? _cladding.name : null,  // ✅ local
-      'cladding_swg': _cladding.thickness.toInt(),                              // ✅ local
+      'cladding_material': _cladding.name.isNotEmpty ? _cladding.name : null,
+      'cladding_swg': _cladding.thickness.toInt(),
       'lagging_removal': _removeLagging,
       'cladding_removal': _removeCladding,
+
       if (equipmentMaterials.isNotEmpty)
-        'equipment_materials': equipmentMaterials.map((e) => e.toJson()).toList(),
+        'equipment_materials': equipmentMaterials.map((e) {
+          final fieldValues = <String, dynamic>{};
+          final state = e.cardFormState;
+
+          if (state != null) {
+            // 1. Map all dynamic fields from cardFormState (excluding quantity)
+            state.fieldEntries.forEach((key, entry) {
+              if (key.toLowerCase() == 'quantity' || key.toLowerCase() == 'qty') return;
+
+              final val = entry.value;
+              // Skip null/empty/zero values
+              if (val == null || val == "" || val == 0) return;
+
+              fieldValues[key] = val;
+              if (entry.unit != null && entry.unit!.isNotEmpty) {
+                fieldValues["${key}Uom"] = entry.unit;
+              }
+            });
+
+            // 2. Add geometryMode
+            if (state.geometryMode != null) {
+              fieldValues["geometryMode"] = state.geometryMode;
+            }
+
+            // 3. ✅ Add quantity with default to 1 if null or 0
+            final qtyValue = e.qty;
+            final quantity = (qtyValue == null || qtyValue == 0) ? 1 : qtyValue;
+            fieldValues["quantity"] = quantity;
+
+            // 4. Add qty unit (take from state, fallback to NOS)
+            final qtyEntry = state.fieldEntries['quantity'] ?? state.fieldEntries['qty'];
+            fieldValues["qtyUom"] = (qtyEntry?.unit != null && qtyEntry!.unit!.isNotEmpty)
+                ? qtyEntry.unit
+                : "NOS";
+          }
+
+          return {
+            "name": e.name,
+            "materialCode": e.materialCode,
+            "fieldValues": fieldValues,
+          };
+        }).toList(),
+
       if (pipingMaterials.isNotEmpty)
-        'piping_materials': pipingMaterials.map((p) => p.toJson()).toList(),
+        'piping_materials': pipingMaterials.map((p) {
+          // ✅ For piping materials, also ensure quantity defaults to 1
+          final updatedPiping = p.copyWith(
+            qty: (p.qty == null || p.qty == 0) ? 1 : p.qty,
+          );
+          return updatedPiping.toJson();
+        }).toList(),
     };
   }
 
@@ -3014,6 +3218,9 @@ class _AddInsulationDescriptionScreenState
     setState(() => _isSubmitting = true);
 
     try {
+      // 🔥 1. Sync UI → Provider (only for equipment cards which use controllers)
+      _syncEquipmentBeforeSubmit();
+
       final pipingMaterials = ref.read(insulationPipingMaterialsProvider);
       final equipmentMaterials = ref.read(insulationEquipmentMaterialsProvider);
 
@@ -3039,8 +3246,22 @@ class _AddInsulationDescriptionScreenState
       }
 
       _showSnackBar("Insulation DPR Saved Successfully");
-    } catch (e) {
+      WidgetsBinding.instance.addPostFrameCallback((_) {
+        if (mounted && !_isDisposed) {
+          int count = 0;
+
+
+          Navigator.of(context).popUntil((_) => count++ >= 5);
+
+          _showSnackBar("Successfully Saved");
+
+          // ❌ DO NOT auto-disable edit mode for past dates
+        }
+      });
+    } catch (e, s) {
       await _autoSaveDraft();
+      print(s);
+      print(e);
 
       _showSnackBar(
         'Failed to save Insulation DPR: ${extractBackendError(e)}',
@@ -3049,6 +3270,34 @@ class _AddInsulationDescriptionScreenState
     } finally {
       if (mounted) setState(() => _isSubmitting = false);
     }
+  }
+
+  /// NEW: Synchronizes all equipment cards by calling getLatestMaterial() on each.
+  void _syncEquipmentBeforeSubmit() {
+    final notifier = ref.read(insulationEquipmentMaterialsProvider.notifier);
+    final materials = ref.read(insulationEquipmentMaterialsProvider);
+    final List<EquipmentMaterial> updatedList = [];
+
+    for (final m in materials) {
+      final key = _equipmentKeys[m.id];
+      // Access the state via the GlobalKey. Note: using dynamic to avoid strict casting issues.
+      final dynamic cardState = key?.currentState;
+      
+      if (cardState != null && cardState.mounted) {
+        try {
+          // Call the public getLatestMaterial() method we added to _EquipmentMaterialCardState
+          final updated = cardState.getLatestMaterial();
+          updatedList.add(updated);
+        } catch (e) {
+          debugPrint("Failed to sync equipment material ${m.id}: $e");
+          updatedList.add(m);
+        }
+      } else {
+        updatedList.add(m);
+      }
+    }
+
+    notifier.setMaterials(updatedList);
   }
 
   @override
