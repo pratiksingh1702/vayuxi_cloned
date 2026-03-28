@@ -148,8 +148,8 @@ class _EquipmentMaterialCardState extends State<EquipmentMaterialCard> {
       EquipmentFieldType.circumference3:
       TextEditingController(text: tv(m.circumference3)),
       EquipmentFieldType.zHeight: TextEditingController(text: tv(m.zHeight)),
-      EquipmentFieldType.gSlantHeight:
-      TextEditingController(text: tv(m.gSlantHeight)),
+      EquipmentFieldType.SlantHeight:
+      TextEditingController(text: tv(m.SlantHeight)),
     };
     _legacyLabelControllers = {
       EquipmentFieldType.qty:
@@ -166,8 +166,8 @@ class _EquipmentMaterialCardState extends State<EquipmentMaterialCard> {
           text: m.customLabels?['circumference3'] ?? 'Circumference 3'),
       EquipmentFieldType.zHeight:
       TextEditingController(text: m.customLabels?['zHeight'] ?? 'Height'),
-      EquipmentFieldType.gSlantHeight: TextEditingController(
-          text: m.customLabels?['gSlantHeight'] ?? 'Slant Height'),
+      EquipmentFieldType.SlantHeight: TextEditingController(
+          text: m.customLabels?['SlantHeight'] ?? 'Slant Height'),
     };
     _legacyUomControllers = {
       EquipmentFieldType.qty:
@@ -184,8 +184,8 @@ class _EquipmentMaterialCardState extends State<EquipmentMaterialCard> {
           text: m.customLabels?['circumference3_uom'] ?? 'mm'),
       EquipmentFieldType.zHeight:
       TextEditingController(text: m.customLabels?['zHeight_uom'] ?? 'mm'),
-      EquipmentFieldType.gSlantHeight: TextEditingController(
-          text: m.customLabels?['gSlantHeight_uom'] ?? 'mm'),
+      EquipmentFieldType.SlantHeight: TextEditingController(
+          text: m.customLabels?['SlantHeight_uom'] ?? 'mm'),
     };
     _legacyQtyController = TextEditingController(text: m.qty.toString());
   }
@@ -266,11 +266,11 @@ class _EquipmentMaterialCardState extends State<EquipmentMaterialCard> {
             _legacyValueControllers[EquipmentFieldType.zHeight]?.text ??
                 '') ??
             _draftMaterial.zHeight,
-        gSlantHeight: double.tryParse(
-            _legacyValueControllers[EquipmentFieldType.gSlantHeight]
+        SlantHeight: double.tryParse(
+            _legacyValueControllers[EquipmentFieldType.SlantHeight]
                 ?.text ??
                 '') ??
-            _draftMaterial.gSlantHeight,
+            _draftMaterial.SlantHeight,
         qty: int.tryParse(
             _legacyValueControllers[EquipmentFieldType.qty]?.text ?? '') ??
             _draftMaterial.qty,
@@ -307,8 +307,8 @@ class _EquipmentMaterialCardState extends State<EquipmentMaterialCard> {
         return _draftMaterial.copyWith(circumference3: value);
       case EquipmentFieldType.zHeight:
         return _draftMaterial.copyWith(zHeight: value);
-      case EquipmentFieldType.gSlantHeight:
-        return _draftMaterial.copyWith(gSlantHeight: value);
+      case EquipmentFieldType.SlantHeight:
+        return _draftMaterial.copyWith(SlantHeight: value);
     }
   }
 
@@ -417,11 +417,83 @@ class _EquipmentMaterialCardState extends State<EquipmentMaterialCard> {
   // DYNAMIC CARD
   // ─────────────────────────────────────────────
 
+  // Widget _buildDynamicCard() {
+  //   final fields = _config!.fields
+  //       .where((f) => _isFieldVisible(f))
+  //       .where((f) => f.role != 'QUANTITY' && f.role != 'QTY')
+  //       .toList();
+  //
+  //   return Container(
+  //     margin: const EdgeInsets.only(bottom: 8),
+  //     padding: const EdgeInsets.all(10),
+  //     decoration: BoxDecoration(
+  //       color: Colors.white,
+  //       borderRadius: BorderRadius.circular(14),
+  //       boxShadow: [
+  //         BoxShadow(
+  //           color: Colors.black.withOpacity(0.05),
+  //           blurRadius: 4,
+  //           offset: const Offset(0, 2),
+  //         ),
+  //       ],
+  //     ),
+  //     child: Column(
+  //       crossAxisAlignment: CrossAxisAlignment.start,
+  //       children: [
+  //         _buildHeader(),
+  //         const SizedBox(height: 8),
+  //         ...fields.map(_buildDynamicFieldCard),
+  //         const SizedBox(height: 8),
+  //         Row(
+  //           mainAxisAlignment: MainAxisAlignment.spaceBetween,
+  //           crossAxisAlignment: CrossAxisAlignment.end,
+  //           children: [
+  //             _buildActionRow(),
+  //             _buildQtyField(),
+  //           ],
+  //         ),
+  //         if (_isEditMode) ...[
+  //           const SizedBox(height: 8),
+  //           _buildEditActions(),
+  //         ],
+  //       ],
+  //     ),
+  //   );
+  // }
+
   Widget _buildDynamicCard() {
-    final fields = _config!.fields
+    // First get ALL fields (including invisible ones to maintain indices)
+    final allFields = _config!.fields;
+
+    // Then filter visible fields for display
+    final visibleFields = allFields
         .where((f) => _isFieldVisible(f))
         .where((f) => f.role != 'QUANTITY' && f.role != 'QTY')
         .toList();
+
+    // Create a mapping from original index to visible index
+    final Map<int, int> originalToVisibleIndex = {};
+    for (int i = 0; i < allFields.length; i++) {
+      final field = allFields[i];
+      final visibleIndex = visibleFields.indexWhere((f) => f.key == field.key);
+      if (visibleIndex != -1) {
+        originalToVisibleIndex[i] = visibleIndex;
+      }
+    }
+
+    debugPrint("━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━");
+    debugPrint("🏗️ Building card for: ${widget.material.name}");
+    debugPrint("📸 Total images in material: ${widget.material.image.length}");
+    for (int i = 0; i < widget.material.image.length; i++) {
+      debugPrint("   Image[$i]: ${widget.material.image[i]}");
+    }
+    debugPrint("📋 Total fields: ${allFields.length}, Visible fields: ${visibleFields.length}");
+    for (int i = 0; i < allFields.length; i++) {
+      final field = allFields[i];
+      final visibleIndex = originalToVisibleIndex[i];
+      debugPrint("   Field[$i]: ${field.label} (${field.role}) - Visible: ${visibleIndex != null ? "Yes (visible index $visibleIndex)" : "No"}");
+    }
+    debugPrint("━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━");
 
     return Container(
       margin: const EdgeInsets.only(bottom: 8),
@@ -442,7 +514,7 @@ class _EquipmentMaterialCardState extends State<EquipmentMaterialCard> {
         children: [
           _buildHeader(),
           const SizedBox(height: 8),
-          ...fields.map(_buildDynamicFieldCard),
+          ...visibleFields.map((field) => _buildDynamicFieldCard(field, allFields)),
           const SizedBox(height: 8),
           Row(
             mainAxisAlignment: MainAxisAlignment.spaceBetween,
@@ -461,11 +533,23 @@ class _EquipmentMaterialCardState extends State<EquipmentMaterialCard> {
     );
   }
 
-  Widget _buildDynamicFieldCard(FieldDefinition field) {
-    final imageIndex = _imageIndexForRole(field.role);
-    final imageUrl = widget.material.image.length > imageIndex
-        ? widget.material.image[imageIndex]
+// Update _buildDynamicFieldCard to accept allFields parameter
+  Widget _buildDynamicFieldCard(FieldDefinition field, List<FieldDefinition> allFields) {
+    // Get the original index in the full fields list
+    final originalIndex = allFields.indexWhere((f) => f.key == field.key);
+
+    // Get the visible index (position in visible fields list)
+    final visibleIndex = _config!.fields
+        .where((f) => _isFieldVisible(f) && f.role != 'QUANTITY' && f.role != 'QTY')
+        .toList()
+        .indexWhere((f) => f.key == field.key);
+
+    // Use visible index for image URL
+    final imageUrl = visibleIndex >= 0 && visibleIndex < widget.material.image.length
+        ? widget.material.image[visibleIndex]
         : null;
+
+    debugPrint("🔍 [${widget.material.name}] Field: ${field.label} (${field.role}) - Original Index: $originalIndex, Visible Index: $visibleIndex - Image URL: ${imageUrl ?? 'null'}");
 
     return GestureDetector(
       behavior: HitTestBehavior.opaque,
@@ -488,16 +572,16 @@ class _EquipmentMaterialCardState extends State<EquipmentMaterialCard> {
                 children: [
                   if (_isEditMode)
                     TextButton.icon(
-                      onPressed: () => _pickImageForField(imageIndex),
+                      onPressed: () => _pickImageForField(visibleIndex), // Use visible index
                       icon: const Icon(Icons.photo, size: 13),
                       label: const Text('Change',
                           style: TextStyle(fontSize: 11)),
                     ),
                   _buildSmartImage(
                     imageFile:
-                    _isEditMode ? _draftImageFiles[imageIndex] : null,
+                    _isEditMode ? _draftImageFiles[visibleIndex] : null, // Use visible index
                     imageUrl: _isEditMode
-                        ? (_draftImageFiles[imageIndex] == null
+                        ? (_draftImageFiles[visibleIndex] == null
                         ? imageUrl
                         : null)
                         : imageUrl,
@@ -680,6 +764,7 @@ class _EquipmentMaterialCardState extends State<EquipmentMaterialCard> {
 
     return Container(
       height: 36,
+      width: 110, // Added fixed width to prevent overflow and ensure space for arrow
       padding: const EdgeInsets.symmetric(horizontal: 6),
       decoration: BoxDecoration(
         color: Colors.white,
@@ -690,6 +775,7 @@ class _EquipmentMaterialCardState extends State<EquipmentMaterialCard> {
         child: DropdownButton<String>(
           value: safeValue,
           isDense: true,
+          isExpanded: true, // Allow content to use available space
           style: const TextStyle(fontSize: 11, color: Colors.black87),
           items: options
               .map((o) => DropdownMenuItem(value: o, child: Text(o)))
@@ -941,10 +1027,10 @@ class _EquipmentMaterialCardState extends State<EquipmentMaterialCard> {
         widget.material.zHeight == 0
             ? ''
             : widget.material.zHeight.toString();
-        _legacyValueControllers[EquipmentFieldType.gSlantHeight]?.text =
-        widget.material.gSlantHeight == 0
+        _legacyValueControllers[EquipmentFieldType.SlantHeight]?.text =
+        widget.material.SlantHeight == 0
             ? ''
-            : widget.material.gSlantHeight.toString();
+            : widget.material.SlantHeight.toString();
         _legacyValueControllers[EquipmentFieldType.qty]?.text =
             widget.material.qty.toString();
       }
@@ -973,7 +1059,7 @@ class _EquipmentMaterialCardState extends State<EquipmentMaterialCard> {
       'DIAMETER': 0,
       'AREA': 0,
       'Z_HEIGHT': 1,
-      'G_SLANT_HEIGHT': 1,
+      'slant_height': 1,
       'CIRCUMFERENCE_1': 1,
       'CIRCUMFERENCE_2': 2,
       'CIRCUMFERENCE_3': 3,
@@ -981,14 +1067,14 @@ class _EquipmentMaterialCardState extends State<EquipmentMaterialCard> {
     return roleMap[role] ?? 0;
   }
 
-  Future<void> _pickImageForField(int imageIndex) async {
+  Future<void> _pickImageForField(int fieldIndex) async {
     final helper = ImageUploadHelper(context);
     final file = await helper.pickAndCropImage(
       enableCropping: true,
       cropTitle: 'Crop Image',
     );
     if (file != null) {
-      setState(() => _draftImageFiles[imageIndex] = file);
+      setState(() => _draftImageFiles[fieldIndex] = file);
     }
   }
 
@@ -1011,7 +1097,6 @@ class _EquipmentMaterialCardState extends State<EquipmentMaterialCard> {
   // ─────────────────────────────────────────────
   // IMAGE HELPERS
   // ─────────────────────────────────────────────
-
   Widget _buildSmartImage({
     File? imageFile,
     String? imageUrl,
@@ -1025,6 +1110,10 @@ class _EquipmentMaterialCardState extends State<EquipmentMaterialCard> {
     if (imageUrl == null || imageUrl.isEmpty) {
       return _imagePlaceholder(height, width);
     }
+
+    // ✅ Add debug print to see what's being passed
+    debugPrint("🖼️ Displaying image: $imageUrl");
+
     if (imageUrl.startsWith('http://') || imageUrl.startsWith('https://')) {
       return Image.network(
         imageUrl,
@@ -1038,24 +1127,37 @@ class _EquipmentMaterialCardState extends State<EquipmentMaterialCard> {
             width: width,
             child: const Center(
                 child: CircularProgressIndicator(strokeWidth: 2))),
-        errorBuilder: (_, __, ___) => _imagePlaceholder(height, width),
+        errorBuilder: (_, __, ___) {
+          debugPrint("❌ Failed to load network image: $imageUrl");
+          return _imagePlaceholder(height, width);
+        },
       );
     }
+
+    // Handle local file paths
     if (imageUrl.startsWith('/') || imageUrl.startsWith('file://')) {
       final path = imageUrl.replaceFirst('file://', '');
-      return Image.file(File(path),
-          height: height,
-          width: width,
-          fit: fit,
-          errorBuilder: (_, __, ___) => _imagePlaceholder(height, width));
-    }
-    return Image.asset(imageUrl,
+      debugPrint("📁 Loading local file: $path");
+      return Image.file(
+        File(path),
         height: height,
         width: width,
         fit: fit,
-        errorBuilder: (_, __, ___) => _imagePlaceholder(height, width));
-  }
+        errorBuilder: (_, __, ___) {
+          debugPrint("❌ Failed to load local file: $path");
+          return _imagePlaceholder(height, width);
+        },
+      );
+    }
 
+    return Image.asset(
+      imageUrl,
+      height: height,
+      width: width,
+      fit: fit,
+      errorBuilder: (_, __, ___) => _imagePlaceholder(height, width),
+    );
+  }
   Widget _imagePlaceholder(double height, double width) {
     return Container(
       height: height,
@@ -1094,9 +1196,7 @@ class _EquipmentMaterialCardState extends State<EquipmentMaterialCard> {
             const SizedBox(height: 8),
             ...fields.map((f) => _legacyFieldCard(
               field: f,
-              imageUrl: widget.material.image.length > f.imageIndex
-                  ? widget.material.image[f.imageIndex]
-                  : null,
+              fields: fields, // Pass the fields list
             )),
             const SizedBox(height: 6),
             Row(
@@ -1119,8 +1219,14 @@ class _EquipmentMaterialCardState extends State<EquipmentMaterialCard> {
 
   Widget _legacyFieldCard({
     required EquipmentFieldConfig field,
-    String? imageUrl,
+    required List<EquipmentFieldConfig> fields, // Add this parameter
   }) {
+    // Get the actual index of this field in the fields list
+    final fieldIndex = fields.indexOf(field);
+    final imageUrl = fieldIndex >= 0 && fieldIndex < widget.material.image.length
+        ? widget.material.image[fieldIndex]
+        : null;
+
     final labelKey = field.type.name;
     final material = _isEditMode ? _draftMaterial : widget.material;
     final customLabel = material.customLabels?[labelKey] ?? field.label;
@@ -1170,7 +1276,6 @@ class _EquipmentMaterialCardState extends State<EquipmentMaterialCard> {
       ),
     );
   }
-
   Widget _buildLegacyFieldView(EquipmentFieldConfig field, String uom) {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
@@ -1217,8 +1322,8 @@ class _EquipmentMaterialCardState extends State<EquipmentMaterialCard> {
       case EquipmentFieldType.zHeight:
         v = m.zHeight;
         break;
-      case EquipmentFieldType.gSlantHeight:
-        v = m.gSlantHeight;
+      case EquipmentFieldType.SlantHeight:
+        v = m.SlantHeight;
         break;
     }
     return v == 0 ? '—' : v.toString();

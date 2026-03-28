@@ -650,10 +650,10 @@ final fieldValues = FieldValues.fromJson(
 
 #### CONE END
 **Fields:**
-- g_slant_height (G_SLANT_HEIGHT)
+- slant_height (slant_height)
 - quantity (QUANTITY)
 
-**Constant Rule:** `if g_slant_height > 3000 then 1 else 1.5`
+**Constant Rule:** `if slant_height > 3000 then 1 else 1.5`
 
 #### REDUCER
 **Fields:**

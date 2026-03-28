@@ -3122,7 +3122,7 @@ class _AddInsulationDescriptionScreenState
 
             // 3. ✅ Add quantity with default to 1 if null or 0
             final qtyValue = e.qty;
-            final quantity = (qtyValue == null || qtyValue == 0) ? 1 : qtyValue;
+            final quantity = (qtyValue == null || qtyValue == 0) ? 0 : qtyValue;
             fieldValues["quantity"] = quantity;
 
             // 4. Add qty unit (take from state, fallback to NOS)
@@ -3143,7 +3143,7 @@ class _AddInsulationDescriptionScreenState
         'piping_materials': pipingMaterials.map((p) {
           // ✅ For piping materials, also ensure quantity defaults to 1
           final updatedPiping = p.copyWith(
-            qty: (p.qty == null || p.qty == 0) ? 1 : p.qty,
+            qty: (p.qty == null || p.qty == 0) ? 0 : p.qty,
           );
           return updatedPiping.toJson();
         }).toList(),

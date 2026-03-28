@@ -112,7 +112,7 @@ class InsulationPipingMaterialsNotifier extends StateNotifier<List<PipingMateria
           circumference1: updates['circumference1'] ?? material.circumference1,
           circumference2: updates['circumference2'] ?? material.circumference2,
           zHeight: updates['zHeight'] ?? material.zHeight,
-          gSlantHeight: updates['gSlantHeight'] ?? material.gSlantHeight,
+          SlantHeight: updates['SlantHeight'] ?? material.SlantHeight,
           constant: updates['constant'] ?? material.constant,
           totalArea: updates['totalArea'] ?? material.totalArea,
           size: updates['size'] ?? material.size,

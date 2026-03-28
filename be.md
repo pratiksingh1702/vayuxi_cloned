@@ -471,9 +471,9 @@ curl --location 'http://localhost:3000/api/v1/insulation-dpr-setup/materials?sit
             "fieldConfig": {
                 "fields": [
                     {
-                        "key": "g_slant_height",
+                        "key": "slant_height",
                         "label": "G Slant Height",
-                        "role": "G_SLANT_HEIGHT",
+                        "role": "slant_height",
                         "type": "NUMBER",
                         "unitType": "LENGTH",
                         "required": true,
@@ -535,7 +535,7 @@ curl --location 'http://localhost:3000/api/v1/insulation-dpr-setup/materials?sit
             "calculationType": "AREA",
             "calculationConfig": {
                 "formulaType": "CONE_END",
-                "constantRules": "if g_slant_height > 3000 then 1 else 1.5",
+                "constantRules": "if slant_height > 3000 then 1 else 1.5",
                 "_id": "69c6d7c517dee0c334899a0c"
             },
             "siteId": {

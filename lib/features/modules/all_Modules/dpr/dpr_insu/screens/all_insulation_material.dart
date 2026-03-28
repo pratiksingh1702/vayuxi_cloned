@@ -17,6 +17,7 @@ import '../../offline/data/local/local_material_dao.dart';
 import '../../offline/data/repo/material_provider.dart';
 import '../../offline/data/repo/material_repo_provider.dart';
 import '../../offline/data/material_sync_service.dart';
+import '../../screens/widgets/delete_mode_mixin.dart';
 import '../model/card_form_state.dart';
 import '../model/eqip_insu.dart';
 import '../model/piping_insu.dart';
@@ -33,7 +34,7 @@ class AllInsulationMaterialsScreen extends ConsumerStatefulWidget {
 
 class _AllInsulationMaterialsScreenState
     extends ConsumerState<AllInsulationMaterialsScreen>
-    with SingleTickerProviderStateMixin {
+    with SingleTickerProviderStateMixin, DeleteModeMixin<int> {
   late TabController _tabController;
 
   // Material setup state
@@ -41,10 +42,6 @@ class _AllInsulationMaterialsScreenState
   List<MaterialSetup> _pipingSetups = [];
   List<MaterialSetup> _equipmentSetups = [];
   bool _setupsLoaded = false;
-
-  // Selection mode
-  bool _isSelectionMode = false;
-  final Set<int> _selectedMaterialIds = {};
 
   @override
   void initState() {
@@ -168,7 +165,7 @@ class _AllInsulationMaterialsScreenState
       circumference1: (cachedJson?['circumference_1'] as num?)?.toDouble() ?? 0,
       circumference2: (cachedJson?['circumference_2'] as num?)?.toDouble() ?? 0,
       circumference3: (cachedJson?['circumference_3'] as num?)?.toDouble() ?? 0,
-      gSlantHeight: (cachedJson?['g_slant_height'] as num?)?.toDouble() ?? 0,
+      SlantHeight: (cachedJson?['slant_height'] as num?)?.toDouble() ?? 0,
       constant: (cachedJson?['constant'] as num?)?.toDouble() ?? 0,
       totalArea: (cachedJson?['total_area'] as num?)?.toDouble() ?? 0,
       diameterA3: (cachedJson?['diameter_a3'] as num?)?.toDouble() ?? 0,
@@ -210,7 +207,7 @@ class _AllInsulationMaterialsScreenState
       circumference1: 0,
       circumference2: 0,
       zHeight: m.zHeight,
-      gSlantHeight: 0,
+      SlantHeight: 0,
       constant: 0,
       totalArea: 0,
       diameterA3: 0,
@@ -290,53 +287,24 @@ class _AllInsulationMaterialsScreenState
   }
 
   // ─────────────────────────────────────────────
-  // SELECTION
-  // ─────────────────────────────────────────────
-
-  void _toggleSelectionMode() {
-    setState(() {
-      _isSelectionMode = !_isSelectionMode;
-      if (!_isSelectionMode) _selectedMaterialIds.clear();
-    });
-  }
-
-  void _toggleMaterialSelection(int id) {
-    setState(() {
-      if (_selectedMaterialIds.contains(id)) {
-        _selectedMaterialIds.remove(id);
-      } else {
-        _selectedMaterialIds.add(id);
-      }
-    });
-  }
-
-  void _selectAllMaterials(List<LocalMaterial> materials) {
-    setState(() {
-      for (final m in materials) {
-        _selectedMaterialIds.add(m.id);
-      }
-    });
-  }
-
-  // ─────────────────────────────────────────────
   // DELETE
   // ─────────────────────────────────────────────
 
   Future<void> _deleteSelectedMaterials(
       List<LocalMaterial> materials) async {
-    if (_selectedMaterialIds.isEmpty) return;
+    if (selectedIds.isEmpty) return;
 
     final confirmed = await _confirmDialog(
       title: 'Delete Selected Materials',
       message:
-      'Delete ${_selectedMaterialIds.length} material(s)?',
+      'Delete ${selectedIds.length} material(s)?',
     );
     if (confirmed != true) return;
 
     try {
       final repo = ref.read(materialRepositoryProvider);
       final selected = materials
-          .where((m) => _selectedMaterialIds.contains(m.id))
+          .where((m) => selectedIds.contains(m.id))
           .toList();
       final serverIds = selected
           .where((m) => m.serverId != null)
@@ -354,8 +322,8 @@ class _AllInsulationMaterialsScreenState
       _showSnack('Deleted ${selected.length} material(s)',
           isError: false);
       setState(() {
-        _selectedMaterialIds.clear();
-        _isSelectionMode = false;
+        selectedIds.clear();
+        isDeleteMode = false;
       });
     } catch (e) {
       debugPrint('❌ Bulk delete failed: $e');
@@ -469,8 +437,8 @@ class _AllInsulationMaterialsScreenState
       drawer: CustomDrawer(),
       backgroundColor: AppColors.lightBlue,
       appBar: CustomAppBar(
-        title: _isSelectionMode
-            ? '${_selectedMaterialIds.length} Selected'
+        title: isDeleteMode
+            ? '${selectedIds.length} Selected'
             : 'Insulation Materials',
       ),
       body: pipingAsync.when(
@@ -622,29 +590,31 @@ class _AllInsulationMaterialsScreenState
             mainAxisAlignment: MainAxisAlignment.spaceBetween,
             children: [
               Text(
-                _isSelectionMode
-                    ? '${_selectedMaterialIds.length} / ${materials.length} selected'
+                isDeleteMode
+                    ? '${selectedIds.length} / ${materials.length} selected'
                     : 'Total: ${materials.length}',
                 style: TextStyle(
                     fontWeight: FontWeight.bold, color: color),
               ),
               Row(
                 children: [
-                  if (_isSelectionMode) ...[
+                  if (isDeleteMode) ...[
                     IconButton(
                       icon: const Icon(Icons.close),
-                      onPressed: _toggleSelectionMode,
+                      onPressed: () => setState(() => toggleDeleteMode()),
                     ),
                     TextButton(
-                      onPressed: () => _selectAllMaterials(materials),
-                      child: const Text('Select All'),
+                      onPressed: () => setState(() {
+                        handleSelectAllToggle(materials.map((m) => m.id).toList());
+                      }),
+                      child: Text(selectAllLabel(materials.map((m) => m.id).toList())),
                     ),
                     const SizedBox(width: 8),
                     ElevatedButton.icon(
                       icon:
                       const Icon(Icons.delete_sweep, size: 18),
                       label: const Text('Delete'),
-                      onPressed: _selectedMaterialIds.isEmpty
+                      onPressed: selectedIds.isEmpty
                           ? null
                           : () =>
                           _deleteSelectedMaterials(materials),
@@ -659,7 +629,7 @@ class _AllInsulationMaterialsScreenState
                           color: Colors.red),
                       onPressed: materials.isEmpty
                           ? null
-                          : _toggleSelectionMode,
+                          : () => setState(() => toggleDeleteMode()),
                       tooltip: 'Select Items',
                     ),
                     IconButton(
@@ -699,7 +669,7 @@ class _AllInsulationMaterialsScreenState
 
   Widget _buildPipingCard(LocalMaterial local, Color color) {
     final material = _toPiping(local);
-    final isSelected = _selectedMaterialIds.contains(local.id);
+    final isSelected = selectedIds.contains(local.id);
 
     // ✅ Correct MaterialSetup lookup — never falls back incorrectly
     final materialSetup = _findMaterialSetup(local);
@@ -708,28 +678,31 @@ class _AllInsulationMaterialsScreenState
       children: [
         Opacity(
           opacity:
-          _isSelectionMode && !isSelected ? 0.5 : 1.0,
-          child: PipingMaterialCard(
-            // Key by materialDataJson so card rebuilds when data changes
-            key: ValueKey('piping_${local.id}_${local.materialDataJson?.hashCode}'),
-            material: material,
-            materialSetup: materialSetup, // ✅ drives dynamic mode
-            onChanged: (updated) =>
-                _updatePipingMaterial(local, updated),
-            onAdd: () => _copyMaterial(local),
-            onEdit: () {},
-            onDelete: () => _deleteMaterial(local),
-            onRemark: () {},
+          isDeleteMode && !isSelected ? 0.5 : 1.0,
+          child: IgnorePointer(
+            ignoring: isDeleteMode,
+            child: PipingMaterialCard(
+              // Key by materialDataJson so card rebuilds when data changes
+              key: ValueKey('piping_${local.id}_${local.materialDataJson?.hashCode}'),
+              material: material,
+              materialSetup: materialSetup, // ✅ drives dynamic mode
+              onChanged: (updated) =>
+                  _updatePipingMaterial(local, updated),
+              onAdd: () => _copyMaterial(local),
+              onEdit: () {},
+              onDelete: () => _deleteMaterial(local),
+              onRemark: () {},
+            ),
           ),
         ),
-        if (_isSelectionMode) _selectionOverlay(local.id, isSelected),
+        if (isDeleteMode) _selectionOverlay(local.id, isSelected),
       ],
     );
   }
 
   Widget _buildEquipmentCard(LocalMaterial local, Color color) {
     final material = _toEquipment(local);
-    final isSelected = _selectedMaterialIds.contains(local.id);
+    final isSelected = selectedIds.contains(local.id);
 
     // ✅ Correct MaterialSetup lookup
     final materialSetup = _findMaterialSetup(local);
@@ -738,48 +711,61 @@ class _AllInsulationMaterialsScreenState
       children: [
         Opacity(
           opacity:
-          _isSelectionMode && !isSelected ? 0.5 : 1.0,
-          child: EquipmentMaterialCard(
-            key: ValueKey('equipment_${local.id}_${local.materialDataJson?.hashCode}'),
-            material: material,
-            materialSetup: materialSetup, // ✅ drives dynamic mode
-            onChanged: (updated) =>
-                _updateEquipmentMaterial(local, updated),
-            onAdd: () => _copyMaterial(local),
-            onEdit: () {},
-            onDelete: () => _deleteMaterial(local),
-            onRemark: () {},
+          isDeleteMode && !isSelected ? 0.5 : 1.0,
+          child: IgnorePointer(
+            ignoring: isDeleteMode,
+            child: EquipmentMaterialCard(
+              key: ValueKey('equipment_${local.id}_${local.materialDataJson?.hashCode}'),
+              material: material,
+              materialSetup: materialSetup, // ✅ drives dynamic mode
+              onChanged: (updated) =>
+                  _updateEquipmentMaterial(local, updated),
+              onAdd: () => _copyMaterial(local),
+              onEdit: () {},
+              onDelete: () => _deleteMaterial(local),
+              onRemark: () {},
+            ),
           ),
         ),
-        if (_isSelectionMode) _selectionOverlay(local.id, isSelected),
+        if (isDeleteMode) _selectionOverlay(local.id, isSelected),
       ],
     );
   }
 
   Widget _selectionOverlay(int materialId, bool isSelected) {
-    return Positioned(
-      top: 8,
-      right: 8,
+    return Positioned.fill(
       child: GestureDetector(
-        onTap: () => _toggleMaterialSelection(materialId),
+        onTap: () => setState(() => toggleSelection(materialId)),
+        behavior: HitTestBehavior.opaque,
         child: Container(
-          width: 32,
-          height: 32,
-          decoration: BoxDecoration(
-            shape: BoxShape.circle,
-            color: isSelected ? Colors.red : Colors.white,
-            border: Border.all(color: Colors.red, width: 2),
-            boxShadow: [
-              BoxShadow(
-                color: Colors.black.withOpacity(0.2),
-                blurRadius: 4,
-                offset: const Offset(0, 2),
+          color: Colors.black.withOpacity(0.05),
+          child: Stack(
+            children: [
+              Positioned(
+                top: 8,
+                right: 8,
+                child: Container(
+                  width: 32,
+                  height: 32,
+                  decoration: BoxDecoration(
+                    shape: BoxShape.circle,
+                    color: isSelected ? Colors.red : Colors.white,
+                    border: Border.all(color: Colors.red, width: 2),
+                    boxShadow: [
+                      BoxShadow(
+                        color: Colors.black.withOpacity(0.2),
+                        blurRadius: 4,
+                        offset: const Offset(0, 2),
+                      ),
+                    ],
+                  ),
+                  child: isSelected
+                      ? const Icon(Icons.check, color: Colors.white, size: 20)
+                      : null,
+                ),
               ),
             ],
           ),
-          child: isSelected
-              ? const Icon(Icons.check, color: Colors.white, size: 20)
-              : null,
         ),
       ),
     );

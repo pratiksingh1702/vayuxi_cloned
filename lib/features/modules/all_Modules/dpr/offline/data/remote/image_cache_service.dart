@@ -14,31 +14,54 @@ class ImageCacheService {
     required String url,
     required String fileName,
   }) async {
-    // 🔥 STEP 1: Check Isar for existing mapping
-    final existing = await _dao.getLocalPath(url);
-    if (existing != null && await File(existing).exists()) {
-      return existing; // ✅ already downloaded, reuse across all sites
-    }
-
-    // 🔥 STEP 2: Download fresh
-    final dir = await _imageDir();
-    final file = File('${dir.path}/$fileName');
+    debugPrint("📥 Incoming URL to cache: $url");
 
     try {
-      if (!await file.exists()) {
-        final encodedUrl = Uri.encodeFull(url);
-        await _dio.download(encodedUrl, file.path);
+      // Check Isar for existing mapping
+      final existing = await _dao.getLocalPath(url);
+      if (existing != null) {
+        final file = File(existing);
+        if (await file.exists()) {
+          debugPrint("✅ Using cached image: $existing");
+          return existing;
+        } else {
+          debugPrint("⚠️ Cached path exists but file missing: $existing");
+          // Remove stale cache entry
+          await _dao.delete(url);
+        }
+      }
+
+      // Download fresh
+      final dir = await _imageDir();
+      final file = File('${dir.path}/$fileName');
+
+      // Ensure directory exists
+      if (!await dir.exists()) {
+        await dir.create(recursive: true);
+      }
+
+      debugPrint("🔄 Downloading: $url to ${file.path}");
+      final encodedUrl = Uri.encodeFull(url);
+
+      await _dio.download(
+        encodedUrl,
+        file.path,
+
+      );
+
+      if (await file.exists()) {
+        debugPrint("✅ Downloaded successfully: ${file.path}");
+        // Persist mapping
+        await _dao.save(serverUrl: url, localPath: file.path);
+        return file.path;
+      } else {
+        throw Exception("File not created after download");
       }
     } catch (e) {
-      debugPrint("Image download failed: $url → $e");
+      debugPrint("❌ Image cache failed for $url: $e");
+      return ''; // Return empty string on failure
     }
-
-    // 🔥 STEP 3: Persist mapping to Isar
-    await _dao.save(serverUrl: url, localPath: file.path);
-
-    return file.path;
   }
-
   static Future<Directory> _imageDir() async {
     final base = await getApplicationDocumentsDirectory();
     final dir = Directory('${base.path}/material_images');

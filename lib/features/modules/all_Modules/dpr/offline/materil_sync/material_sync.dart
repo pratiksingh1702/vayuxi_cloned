@@ -92,7 +92,8 @@ class MaterialSyncEngine {
             remoteDesignation != designation.toLowerCase()) {
           continue;
         }
-
+        final materialName = item['name'] ?? 'Unnamed'; // Get material name
+        debugPrint("🏭 Processing material: $materialName");
         final remoteSiteId = item['siteId']?['_id'];
         if (remoteSiteId != siteId) continue;
 

@@ -20,6 +20,7 @@ import '../../providers/rate_variant_provider.dart';
 import '../../providers/selection_provider.dart';
 import 'floor_selection_page.dart';
 import 'moc_card_widget.dart';
+import 'delete_mode_mixin.dart';
 
 class MOCSelectionPage extends ConsumerStatefulWidget {
   final Function(String moc)? onMOCSelected;
@@ -41,34 +42,25 @@ class MOCSelectionPage extends ConsumerStatefulWidget {
   ConsumerState<MOCSelectionPage> createState() => _MOCSelectionPageState();
 }
 
-class _MOCSelectionPageState extends ConsumerState<MOCSelectionPage> {
+class _MOCSelectionPageState extends ConsumerState<MOCSelectionPage> with DeleteModeMixin<String> {
   String? _selectedMoc;
-  bool _isMultiSelectMode = false;
-  final Set<String> _selectedForAction = {};
-  void _toggleMultiSelect() {
-    setState(() {
-      _isMultiSelectMode = !_isMultiSelectMode;
-      _selectedForAction.clear();
-    });
-  }
+
   void _selectAll(List<NamedImage> mocList) {
     setState(() {
-      _selectedForAction
-        ..clear()
-        ..addAll(mocList.map((e) => e.name));
+      handleSelectAllToggle(mocList.map((e) => e.name).toList());
     });
   }
   Future<void> _deleteSelected() async {
     final siteId = ref.read(selectedSiteIdProvider)!;
 
-    if (_selectedForAction.isEmpty) return;
+    if (selectedIds.isEmpty) return;
 
     final confirm = await showDialog<bool>(
       context: context,
       builder: (_) => AlertDialog(
         title: const Text("Delete Selected MOCs"),
         content: Text(
-            "Are you sure you want to delete ${_selectedForAction.length} items?"),
+            "Are you sure you want to delete ${selectedIds.length} items?"),
         actions: [
           TextButton(
             onPressed: () => Navigator.pop(context, false),
@@ -90,11 +82,11 @@ class _MOCSelectionPageState extends ConsumerState<MOCSelectionPage> {
       ref.read(mocWithImagesProvider(siteId));
 
       final updatedNames = existingNames
-          .where((name) => !_selectedForAction.contains(name))
+          .where((name) => !selectedIds.contains(name))
           .toList();
 
       final updatedWithImages = existingWithImages
-          .where((e) => !_selectedForAction.contains(e.name))
+          .where((e) => !selectedIds.contains(e.name))
           .toList();
 
       final rateFileMeta = ref.read(rateFileMetaProvider(siteId));
@@ -109,8 +101,8 @@ class _MOCSelectionPageState extends ConsumerState<MOCSelectionPage> {
       );
 
       setState(() {
-        _isMultiSelectMode = false;
-        _selectedForAction.clear();
+        isDeleteMode = false;
+        selectedIds.clear();
       });
 
       ref.invalidate(rateFileAnalysisProvider(siteId));
@@ -302,10 +294,16 @@ class _MOCSelectionPageState extends ConsumerState<MOCSelectionPage> {
                   children: [
 
                     /// LEFT SIDE — TITLE OR EMPTY
-                    const SizedBox(),
+                    Text(
+                      isDeleteMode
+                          ? '${selectedIds.length} / ${mocImages.length} selected'
+                          : 'Total: ${mocImages.length}',
+                      style: const TextStyle(
+                          fontWeight: FontWeight.bold, color: Colors.blue),
+                    ),
 
                     /// RIGHT SIDE
-                    if (!_isMultiSelectMode)
+                    if (!isDeleteMode)
                       IconButton(
                         icon: const Icon(
                           Icons.delete_sweep,
@@ -313,37 +311,41 @@ class _MOCSelectionPageState extends ConsumerState<MOCSelectionPage> {
                         ),
                         onPressed: () {
                           setState(() {
-                            _isMultiSelectMode = true;
+                            toggleDeleteMode();
                           });
                         },
                       )
                     else
                       Row(
                         children: [
-                          /// Select All
-                          TextButton(
-                            onPressed: () => _selectAll(mocImages),
-                            child: const Text("Select All"),
-                          ),
-
-                          /// Delete Selected
-                          TextButton(
-                            onPressed: _deleteSelected,
-                            child: const Text(
-                              "Delete",
-                              style: TextStyle(color: Colors.red),
-                            ),
-                          ),
-
                           /// Close Multi-Select
                           IconButton(
                             icon: const Icon(Icons.close),
                             onPressed: () {
                               setState(() {
-                                _isMultiSelectMode = false;
-                                _selectedForAction.clear();
+                                toggleDeleteMode();
                               });
                             },
+                          ),
+
+                          /// Select All
+                          TextButton(
+                            onPressed: () => _selectAll(mocImages),
+                            child: Text(selectAllLabel(mocImages.map((e) => e.name).toList())),
+                          ),
+
+                          const SizedBox(width: 8),
+
+                          /// Delete Selected
+                          ElevatedButton.icon(
+                            icon: const Icon(Icons.delete_sweep, size: 18),
+                            label: const Text("Delete"),
+                            onPressed: selectedIds.isEmpty ? null : _deleteSelected,
+                            style: ElevatedButton.styleFrom(
+                              backgroundColor: Colors.red,
+                              foregroundColor: Colors.white,
+                              padding: const EdgeInsets.symmetric(horizontal: 12),
+                            ),
                           ),
                         ],
                       ),
@@ -373,88 +375,86 @@ class _MOCSelectionPageState extends ConsumerState<MOCSelectionPage> {
 
                           return Stack(
                             children: [
-                              MOCCard(
-                                showEditButton:
-                                widget.showEditOptions && !_isMultiSelectMode,
-                                moc: moc,
-                                isSelected: _isMultiSelectMode
-                                    ? _selectedForAction.contains(moc.name)
-                                    : _selectedMoc == moc.name,
-                                onEdit: () async {
-                                  final result = await Navigator.push(
-                                    context,
-                                    MaterialPageRoute(
-                                      builder: (_) => AddMOCPage(moc: moc),
-                                    ),
-                                  );
+                              Opacity(
+                                opacity: isDeleteMode && !selectedIds.contains(moc.name) ? 0.5 : 1.0,
+                                child: IgnorePointer(
+                                  ignoring: isDeleteMode,
+                                  child: MOCCard(
+                                    showEditButton:
+                                    widget.showEditOptions && !isDeleteMode,
+                                    moc: moc,
+                                    isSelected: !isDeleteMode && _selectedMoc == moc.name,
+                                    onEdit: () async {
+                                      final result = await Navigator.push(
+                                        context,
+                                        MaterialPageRoute(
+                                          builder: (_) => AddMOCPage(moc: moc),
+                                        ),
+                                      );
 
-                                  if (result == true) {
-                                    ref.invalidate(rateFileAnalysisProvider(siteId));
-                                  }
-                                },
-                                onDelete: () => _deleteMoc(moc),
-                                onTap: () {
-                                  if (_isMultiSelectMode) {
-                                    setState(() {
-                                      if (_selectedForAction.contains(moc.name)) {
-                                        _selectedForAction.remove(moc.name);
-                                      } else {
-                                        _selectedForAction.add(moc.name);
+                                      if (result == true) {
+                                        ref.invalidate(rateFileAnalysisProvider(siteId));
                                       }
-                                    });
-                                  } else {
-                                    setState(() => _selectedMoc = moc.name);
-                                    ref
-                                        .read(selectedMocNameProvider.notifier)
-                                        .state = moc.name;
-                                  }
-                                },
+                                    },
+                                    onDelete: () => _deleteMoc(moc),
+                                    onTap: () {
+                                      setState(() => _selectedMoc = moc.name);
+                                      ref
+                                          .read(selectedMocNameProvider.notifier)
+                                          .state = moc.name;
+                                    },
+                                  ),
+                                ),
                               ),
 
                               /// 🔥 Selection Circle Overlay
-                              if (_isMultiSelectMode)
-                                Positioned(
-                                  top: 8,
-                                  right: 8,
+                              if (isDeleteMode)
+                                Positioned.fill(
                                   child: GestureDetector(
                                     onTap: () {
                                       setState(() {
-                                        if (_selectedForAction.contains(moc.name)) {
-                                          _selectedForAction.remove(moc.name);
-                                        } else {
-                                          _selectedForAction.add(moc.name);
-                                        }
+                                        toggleSelection(moc.name);
                                       });
                                     },
-                                    child: AnimatedContainer(
-                                      duration: const Duration(milliseconds: 200),
-                                      width: 28,
-                                      height: 28,
-                                      decoration: BoxDecoration(
-                                        shape: BoxShape.circle,
-                                        color: _selectedForAction.contains(moc.name)
-                                            ? Colors.red
-                                            : Colors.white,
-                                        border: Border.all(
-                                          color: _selectedForAction.contains(moc.name)
-                                              ? Colors.red
-                                              : Colors.grey,
-                                          width: 2,
-                                        ),
-                                        boxShadow: const [
-                                          BoxShadow(
-                                            blurRadius: 4,
-                                            color: Colors.black26,
+                                    behavior: HitTestBehavior.opaque,
+                                    child: Container(
+                                      color: Colors.black.withOpacity(0.05),
+                                      child: Stack(
+                                        children: [
+                                          Positioned(
+                                            top: 8,
+                                            right: 8,
+                                            child: AnimatedContainer(
+                                              duration: const Duration(milliseconds: 200),
+                                              width: 32,
+                                              height: 32,
+                                              decoration: BoxDecoration(
+                                                shape: BoxShape.circle,
+                                                color: selectedIds.contains(moc.name)
+                                                    ? Colors.red
+                                                    : Colors.white,
+                                                border: Border.all(
+                                                  color: Colors.red,
+                                                  width: 2,
+                                                ),
+                                                boxShadow: const [
+                                                  BoxShadow(
+                                                    blurRadius: 4,
+                                                    color: Colors.black26,
+                                                  ),
+                                                ],
+                                              ),
+                                              child: selectedIds.contains(moc.name)
+                                                  ? const Icon(
+                                                Icons.check,
+                                                size: 20,
+                                                color: Colors.white,
+                                              )
+                                                  : null,
+                                            ),
                                           ),
                                         ],
                                       ),
-                                      child: _selectedForAction.contains(moc.name)
-                                          ? const Icon(
-                                        Icons.check,
-                                        size: 18,
-                                        color: Colors.white,
-                                      )
-                                          : null,
                                     ),
                                   ),
                                 ),

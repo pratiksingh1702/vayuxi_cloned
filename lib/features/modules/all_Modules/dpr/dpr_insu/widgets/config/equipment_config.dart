@@ -6,7 +6,7 @@ enum EquipmentFieldType {
   circumference2,
   circumference3,
   zHeight,
-  gSlantHeight,
+  SlantHeight,
 }
 
 /// Enhanced config matching FieldConfig structure
@@ -106,13 +106,13 @@ final Map<String, List<EquipmentFieldConfig>> equipmentFieldConfig = {
     ),
     EquipmentFieldConfig(
       label: 'Slant Height',
-      type: EquipmentFieldType.gSlantHeight,
+      type: EquipmentFieldType.SlantHeight,
       imageIndex: 1,
       unitType: 'LENGTH',
       dropdown: 'lengthUom',
       required: true,
       editable: true,
-      role: 'G_SLANT_HEIGHT',
+      role: 'slant_height',
     ),
   ],
 

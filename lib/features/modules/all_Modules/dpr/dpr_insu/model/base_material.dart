@@ -23,7 +23,7 @@ abstract class BaseMaterial {
   final double circumference1;
   final double circumference2;
   final double zHeight;
-  final double gSlantHeight;
+  final double SlantHeight;
   final double constant;
   final double totalArea;
   final double diameterA3;
@@ -59,7 +59,7 @@ abstract class BaseMaterial {
     this.circumference1 = 0,
     this.circumference2 = 0,
     this.zHeight = 0,
-    this.gSlantHeight = 0,
+    this.SlantHeight = 0,
     this.constant = 0,
     this.totalArea = 0,
     this.diameterA3 = 0,
@@ -98,7 +98,7 @@ abstract class BaseMaterial {
     double? circumference1,
     double? circumference2,
     double? zHeight,
-    double? gSlantHeight,
+    double? SlantHeight,
     double? constant,
     double? totalArea,
     double? diameterA3,
