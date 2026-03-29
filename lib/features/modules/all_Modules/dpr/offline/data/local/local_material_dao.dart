@@ -25,6 +25,25 @@ class LocalMaterialDao {
     });
   }
 
+  // In local_material_dao.dart — add this method
+
+  Future<void> updateMaterialImage({
+    required String serverId,
+    required List<String> images,
+  }) async {
+    final material = await _isar.localMaterials
+        .filter()
+        .serverIdEqualTo(serverId)
+        .findFirst();
+    if (material == null) return;
+
+    await _isar.writeTxn(() async {
+      material.images = images;
+      material.updatedAt = DateTime.now();
+      // isDirty stays false — we just synced from server
+      await _isar.localMaterials.put(material);
+    });
+  }
   Stream<List<LocalMaterial>> watchAll({
     required String siteId,
     required String domain,

@@ -5,6 +5,7 @@ import 'dart:io';
 import 'package:flutter/material.dart';
 
 import '../../../../../../core/utlis/widgets/file_upload.dart';
+import '../../offline/data/local/local_material_dao.dart';
 import '../model/piping_insu.dart';
 import '../model/material_setup.dart';
 import '../model/field_config.dart';
@@ -38,6 +39,7 @@ class PipingMaterialCard extends StatefulWidget {
 
 class _PipingMaterialCardState extends State<PipingMaterialCard> {
   bool _isEditMode = false;
+  bool _isLoading = false;
   late PipingMaterial _draftMaterial;
 
   // Per-card isolated form state (nullable to avoid LateInitializationError)
@@ -83,7 +85,7 @@ class _PipingMaterialCardState extends State<PipingMaterialCard> {
     _draftImageUrl =
         widget.material.image.isNotEmpty ? widget.material.image.first : null;
     _qtyController =
-        TextEditingController(text: widget.material.qty.toString());
+        TextEditingController();
 
     if (_isDynamic) {
       _initCardState();
@@ -170,7 +172,26 @@ class _PipingMaterialCardState extends State<PipingMaterialCard> {
         }
       }
 
-      if (!_isDynamic) {
+      if (_isDynamic) {
+        // ✅ Sync dynamic controllers when cardFormState changes (e.g., from updateAllSizes)
+        final incomingState = widget.material.cardFormState;
+        if (incomingState != null) {
+          _cardState = incomingState;
+          for (final field in _config!.fields) {
+            if (field.role == 'QTY' || field.role == 'QUANTITY') continue;
+            final controller = _valueControllers[field.key];
+            final focusNode = _focusNodes[field.key];
+            if (controller != null) {
+              final newValue = _cardState.getValue(field.key)?.toString() ?? '';
+              // Force update if not focused
+              if (controller.text != newValue && (focusNode == null || !focusNode.hasFocus)) {
+                debugPrint('✅ Updating controller for ${widget.material.name} - field ${field.key} to $newValue');
+                controller.text = newValue;
+              }
+            }
+          }
+        }
+      } else {
         // same guard for legacy controllers
         final sizeVal = widget.material.size ?? '';
         if (_legacyValueControllers[PipingFieldType.size]?.text != sizeVal &&
@@ -257,8 +278,23 @@ class _PipingMaterialCardState extends State<PipingMaterialCard> {
 
   @override
   Widget build(BuildContext context) {
-    if (_isDynamic) return _buildDynamicCard();
-    return _buildLegacyCard();
+    return Stack(
+      children: [
+        Opacity(
+          opacity: _isLoading ? 0.5 : 1.0,
+          child: IgnorePointer(
+            ignoring: _isLoading,
+            child: _isDynamic ? _buildDynamicCard() : _buildLegacyCard(),
+          ),
+        ),
+        if (_isLoading)
+          const Positioned.fill(
+            child: Center(
+              child: CircularProgressIndicator(),
+            ),
+          ),
+      ],
+    );
   }
 
   // ─────────────────────────────────────────────
@@ -298,12 +334,13 @@ class _PipingMaterialCardState extends State<PipingMaterialCard> {
             const SizedBox(height: 8),
             IntrinsicHeight(
               child: Row(
-                crossAxisAlignment: CrossAxisAlignment.start,
+                crossAxisAlignment: CrossAxisAlignment.stretch,
                 children: [
-                  // LEFT: image
+                  // LEFT: image + action row
                   SizedBox(
                     width: 110,
                     child: Column(
+                      mainAxisSize: MainAxisSize.min,
                       children: [
                         if (_isEditMode)
                           TextButton.icon(
@@ -320,32 +357,30 @@ class _PipingMaterialCardState extends State<PipingMaterialCard> {
                                   : null)
                               : savedImageUrl,
                           height: 90,
+                          width: 110,
                         ),
+                        const Spacer(),
+                        const SizedBox(height: 6),
+                        _buildActionRow(),
                       ],
                     ),
                   ),
 
                   const SizedBox(width: 8),
 
-                  // RIGHT: fields
+                  // RIGHT: fields + qty
                   Expanded(
                     child: Column(
                       crossAxisAlignment: CrossAxisAlignment.start,
-                      children:
-                          visibleFields.map(_buildDynamicFieldRow).toList(),
+                      children: [
+                        ...visibleFields.map(_buildDynamicFieldRow).toList(),
+                        const Spacer(),
+                        _buildQtyField(),
+                      ],
                     ),
                   ),
                 ],
               ),
-            ),
-            const SizedBox(height: 6),
-            Row(
-              mainAxisAlignment: MainAxisAlignment.spaceBetween,
-              crossAxisAlignment: CrossAxisAlignment.end,
-              children: [
-                _buildActionRow(),
-                _buildQtyField(),
-              ],
             ),
             if (_isEditMode) ...[
               const SizedBox(height: 8),
@@ -401,6 +436,7 @@ class _PipingMaterialCardState extends State<PipingMaterialCard> {
           height: 36,
           child: TextFormField(
             controller: _valueControllers[field.key],
+            focusNode: _focusNodes[field.key], // Attached focusNode
             readOnly: false, // 🔥 MUST allow typing
             keyboardType: field.type == 'NUMBER'
                 ? const TextInputType.numberWithOptions(decimal: true)
@@ -611,18 +647,17 @@ class _PipingMaterialCardState extends State<PipingMaterialCard> {
   // ─────────────────────────────────────────────
 
   Widget _buildQtyField() {
-    return SizedBox(
-      width: 80,
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          const Text('Qty',
-              style: TextStyle(fontSize: 8, fontWeight: FontWeight.w600)),
-          SizedBox(
-            height: 40,
-            child: TextFormField(
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        const Text('Qty',
+            style: TextStyle(fontSize: 8, fontWeight: FontWeight.w600)),
+        SizedBox(
+          height: 40,
+          child: TextFormField(
               controller: _qtyController,
               keyboardType: const TextInputType.numberWithOptions(decimal: true),
+
               textAlign: TextAlign.center,
               textAlignVertical: TextAlignVertical.center,
               onChanged: (v) {
@@ -635,10 +670,11 @@ class _PipingMaterialCardState extends State<PipingMaterialCard> {
                 // Save to parent when editing is complete
                 widget.onChanged(_draftMaterial);
               },
-              style: const TextStyle(fontSize: 16, height: 1.5),
+              style: const TextStyle(fontSize: 25, height: 2),
               strutStyle: const StrutStyle(forceStrutHeight: true, height: 1),
               decoration: InputDecoration(
                 isCollapsed: true,
+
                 contentPadding: const EdgeInsets.symmetric(horizontal: 8, vertical: 8),
                 filled: true,
                 fillColor: Colors.white,
@@ -654,8 +690,7 @@ class _PipingMaterialCardState extends State<PipingMaterialCard> {
             ),
           ),
         ],
-      ),
-    );
+      );
   }
   // ─────────────────────────────────────────────
   // HEADER
@@ -714,14 +749,20 @@ class _PipingMaterialCardState extends State<PipingMaterialCard> {
 
   Widget _buildActionRow() {
     return Row(
-      mainAxisAlignment: MainAxisAlignment.start,
+      mainAxisAlignment: MainAxisAlignment.spaceBetween,
       children: [
-        _actionBtn(Icons.edit, Colors.blue,
-            () => setState(() => _isEditMode = !_isEditMode)),
-        const SizedBox(width: 6),
-        _actionBtn(Icons.copy, Colors.green, widget.onAdd),
-        const SizedBox(width: 6),
-        _actionBtn(Icons.delete_outline, Colors.red, widget.onDelete),
+        Expanded(
+          child: _actionBtn(Icons.edit, Colors.blue,
+              () => setState(() => _isEditMode = !_isEditMode)),
+        ),
+        const SizedBox(width: 4),
+        Expanded(
+          child: _actionBtn(Icons.copy, Colors.green, widget.onAdd),
+        ),
+        const SizedBox(width: 4),
+        Expanded(
+          child: _actionBtn(Icons.delete_outline, Colors.red, widget.onDelete),
+        ),
       ],
     );
   }
@@ -732,8 +773,8 @@ class _PipingMaterialCardState extends State<PipingMaterialCard> {
       icon: Icon(icon, size: 18),
       color: color,
       style: IconButton.styleFrom(
-        padding: const EdgeInsets.all(6),
-        minimumSize: const Size(32, 32),
+        padding: const EdgeInsets.all(4), // Slightly tighter padding to fit well
+        minimumSize: const Size(0, 32), // Height fixed, width flexible for Expanded
         side: BorderSide(color: color, width: 1.5),
         shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(6)),
       ),
@@ -765,22 +806,47 @@ class _PipingMaterialCardState extends State<PipingMaterialCard> {
   }
 
   Future<void> _onSave() async {
+    setState(() => _isLoading = true);
     try {
-      if (_draftImageFile != null ||
-          _draftMaterial.name != widget.material.name) {
-        await InsulationMaterialSetupService().updateMaterial(
+      List<String>? newImages;
+
+      if (_draftImageFile != null || _draftMaterial.name != widget.material.name) {
+        newImages = await InsulationMaterialSetupService().updateMaterial(
           materialId: widget.material.id,
           name: _draftMaterial.name,
           images: _draftImageFile != null ? [_draftImageFile!] : null,
         );
+
+        // ✅ Write new image URL back to local DB so the card reflects it
+        if (newImages.isNotEmpty) {
+          await LocalMaterialDao().updateMaterialImage(
+            serverId: widget.material.id,
+            images: newImages,
+          );
+        }
       }
-      widget.onChanged(_draftMaterial.copyWith(cardFormState: _cardState));
+
+      // Propagate updated image list to the draft before notifying parent
+      final updatedMaterial = _draftMaterial.copyWith(
+        cardFormState: _cardState,
+        image: newImages ?? _draftMaterial.image,
+      );
+
+      widget.onChanged(updatedMaterial);
+
       setState(() {
         _isEditMode = false;
         _draftImageFile = null;
+        _isLoading = false;
+        // ✅ Also update the local draft URL so the card repaints immediately
+        // without waiting for the Isar stream to fire
+        _draftImageUrl = newImages?.isNotEmpty == true
+            ? newImages!.first
+            : _draftImageUrl;
       });
     } catch (e) {
       debugPrint('Piping save error: $e');
+      setState(() => _isLoading = false);
     }
   }
 
@@ -809,11 +875,21 @@ class _PipingMaterialCardState extends State<PipingMaterialCard> {
 
   void _focusFirstDynamicField() {
     if (_config == null || _config!.fields.isEmpty) return;
-    final first = _config!.fields
+
+    final visibleFields = _config!.fields
         .where((f) =>
             _isFieldVisible(f) && f.role != 'QTY' && f.role != 'QUANTITY')
-        .firstOrNull;
-    if (first != null) _focusNodes[first.key]?.requestFocus();
+        .toList();
+
+    if (visibleFields.isEmpty) return;
+
+    // Prioritize focusing the SIZE field
+    final sizeField = visibleFields.firstWhere(
+      (f) => f.role == 'SIZE' || f.key.toLowerCase().contains('size'),
+      orElse: () => visibleFields.first,
+    );
+
+    _focusNodes[sizeField.key]?.requestFocus();
   }
 
   String? _resolveDefaultUnit(FieldDefinition field) {
@@ -1040,6 +1116,7 @@ class _PipingMaterialCardState extends State<PipingMaterialCard> {
   }
 
   Future<void> _onSaveLegacy() async {
+    setState(() => _isLoading = true);
     try {
       if (_draftImageFile != null ||
           _draftMaterial.name != widget.material.name) {
@@ -1053,9 +1130,11 @@ class _PipingMaterialCardState extends State<PipingMaterialCard> {
       setState(() {
         _isEditMode = false;
         _draftImageFile = null;
+        _isLoading = false;
       });
     } catch (e) {
       debugPrint('Piping legacy save error: $e');
+      setState(() => _isLoading = false);
     }
   }
 
@@ -1243,6 +1322,11 @@ class _PipingMaterialCardState extends State<PipingMaterialCard> {
   }
 
   void _focusLegacyMainField(List<PipingFieldConfig> fields) {
+    // Prioritize focusing the SIZE field in legacy mode
+    if (fields.any((f) => f.type == PipingFieldType.size)) {
+      _legacyFocusNodes[PipingFieldType.size]?.requestFocus();
+      return;
+    }
     if (fields.any((f) => f.type == PipingFieldType.length)) {
       _legacyFocusNodes[PipingFieldType.length]?.requestFocus();
       return;
@@ -1251,7 +1335,6 @@ class _PipingMaterialCardState extends State<PipingMaterialCard> {
       _legacyFocusNodes[PipingFieldType.qty]?.requestFocus();
       return;
     }
-    _legacyFocusNodes[PipingFieldType.size]?.requestFocus();
   }
 
   String _resolveLegacyKey(String name) {

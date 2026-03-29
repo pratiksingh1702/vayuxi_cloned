@@ -96,6 +96,7 @@ class _AddInsulationDescriptionScreenState
   bool _autoCreateAttempted = false;
   bool _removeLagging = false;
   bool _removeCladding = false;
+  bool _materialListenerAttached = false;
 
   List<InsulationDprModel> _dprListForSelectedDate = [];
   bool _isLoadingDprList = false;
@@ -200,6 +201,13 @@ class _AddInsulationDescriptionScreenState
             '${equipment.length} equipment setups');
       }
       ref.read(insulationPipingMaterialsProvider.notifier).updateSetups(piping);
+      final size = ref.read(selectedSizeProvider);
+      final unit = ref.read(selectedUnitProvider);
+      debugPrint('🚀 Triggering updateAllSizes with: $size ($unit)');
+      ref.read(insulationPipingMaterialsProvider.notifier).updateAllSizes(
+        size: size!,
+        unit: unit,
+      );
       // ref.read(insulationEquipmentMaterialsProvider.notifier).updateSetups(equipment);
       _attachMaterialListeners();
     } catch (e) {
@@ -254,6 +262,9 @@ class _AddInsulationDescriptionScreenState
   }
 
   void _attachMaterialListeners() {
+    if (_materialListenerAttached) return;
+    _materialListenerAttached = true;
+
     final size = ref.read(selectedSizeProvider) ?? '';
     final unit = ref.read(selectedUnitProvider);
 

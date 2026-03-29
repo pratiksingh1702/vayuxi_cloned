@@ -5,6 +5,7 @@ import 'dart:io';
 import 'package:flutter/material.dart';
 
 import '../../../../../../core/utlis/widgets/file_upload.dart';
+import '../../offline/data/local/local_material_dao.dart';
 import '../model/eqip_insu.dart';
 import '../model/material_setup.dart';
 import '../model/field_config.dart';
@@ -38,6 +39,7 @@ class EquipmentMaterialCard extends StatefulWidget {
 
 class _EquipmentMaterialCardState extends State<EquipmentMaterialCard> {
   bool _isEditMode = false;
+  bool _isLoading = false;
   late EquipmentMaterial _draftMaterial;
 
   CardFormState? _cardStateField;
@@ -82,7 +84,7 @@ class _EquipmentMaterialCardState extends State<EquipmentMaterialCard> {
     super.initState();
     _draftMaterial = widget.material;
     _qtyController =
-        TextEditingController(text: widget.material.qty.toString());
+        TextEditingController();
     _qtyFocusNode = FocusNode();
 
     _qtyFocusNode.addListener(() {
@@ -409,8 +411,23 @@ class _EquipmentMaterialCardState extends State<EquipmentMaterialCard> {
 
   @override
   Widget build(BuildContext context) {
-    if (_isDynamic) return _buildDynamicCard();
-    return _buildLegacyCard();
+    return Stack(
+      children: [
+        Opacity(
+          opacity: _isLoading ? 0.5 : 1.0,
+          child: IgnorePointer(
+            ignoring: _isLoading,
+            child: _isDynamic ? _buildDynamicCard() : _buildLegacyCard(),
+          ),
+        ),
+        if (_isLoading)
+          const Positioned.fill(
+            child: Center(
+              child: CircularProgressIndicator(),
+            ),
+          ),
+      ],
+    );
   }
 
   // ─────────────────────────────────────────────
@@ -495,40 +512,46 @@ class _EquipmentMaterialCardState extends State<EquipmentMaterialCard> {
     }
     debugPrint("━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━");
 
-    return Container(
-      margin: const EdgeInsets.only(bottom: 8),
-      padding: const EdgeInsets.all(10),
-      decoration: BoxDecoration(
-        color: Colors.white,
-        borderRadius: BorderRadius.circular(14),
-        boxShadow: [
-          BoxShadow(
-            color: Colors.black.withOpacity(0.05),
-            blurRadius: 4,
-            offset: const Offset(0, 2),
-          ),
-        ],
-      ),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          _buildHeader(),
-          const SizedBox(height: 8),
-          ...visibleFields.map((field) => _buildDynamicFieldCard(field, allFields)),
-          const SizedBox(height: 8),
-          Row(
-            mainAxisAlignment: MainAxisAlignment.spaceBetween,
-            crossAxisAlignment: CrossAxisAlignment.end,
-            children: [
-              _buildActionRow(),
-              _buildQtyField(),
-            ],
-          ),
-          if (_isEditMode) ...[
-            const SizedBox(height: 8),
-            _buildEditActions(),
+    return GestureDetector(
+      behavior: HitTestBehavior.translucent,
+      onTap: () {
+        _qtyFocusNode.requestFocus();
+      },
+      child: Container(
+        margin: const EdgeInsets.only(bottom: 8),
+        padding: const EdgeInsets.all(10),
+        decoration: BoxDecoration(
+          color: Colors.white,
+          borderRadius: BorderRadius.circular(14),
+          boxShadow: [
+            BoxShadow(
+              color: Colors.black.withOpacity(0.05),
+              blurRadius: 4,
+              offset: const Offset(0, 2),
+            ),
           ],
-        ],
+        ),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            _buildHeader(),
+            const SizedBox(height: 8),
+            ...visibleFields.map((field) => _buildDynamicFieldCard(field, allFields)),
+            const SizedBox(height: 8),
+            Row(
+              mainAxisAlignment: MainAxisAlignment.spaceBetween,
+              crossAxisAlignment: CrossAxisAlignment.end,
+              children: [
+                _buildActionRow(),
+                _buildQtyField(),
+              ],
+            ),
+            if (_isEditMode) ...[
+              const SizedBox(height: 8),
+              _buildEditActions(),
+            ],
+          ],
+        ),
       ),
     );
   }
@@ -553,7 +576,7 @@ class _EquipmentMaterialCardState extends State<EquipmentMaterialCard> {
 
     return GestureDetector(
       behavior: HitTestBehavior.opaque,
-      onTap: () => _isEditMode ? _focusNodes[field.key]?.requestFocus() : null,
+      onTap: () => _focusNodes[field.key]?.requestFocus(),
       child: Container(
         margin: const EdgeInsets.only(bottom: 10),
         padding: const EdgeInsets.all(8),
@@ -954,34 +977,47 @@ class _EquipmentMaterialCardState extends State<EquipmentMaterialCard> {
       ],
     );
   }
-
   Future<void> _onSave() async {
+    setState(() => _isLoading = true);
     try {
-      // Flush every controller — captures any field whose focus-loss
-      // listener hasn't fired yet (e.g. last field still focused when
-      // user taps Save).
       _flushAllControllersToDraft();
 
       final hasImageChange = _draftImageFiles.values.any((f) => f != null);
       final hasNameChange = _draftMaterial.name != widget.material.name;
 
+      List<String>? newImages;
+
       if (hasImageChange || hasNameChange) {
-        await InsulationMaterialSetupService().updateMaterial(
+        newImages = await InsulationMaterialSetupService().updateMaterial(
           materialId: widget.material.id,
           name: _draftMaterial.name,
           images: hasImageChange
               ? _draftImageFiles.values.whereType<File>().toList()
               : null,
         );
+
+        if (newImages.isNotEmpty) {
+          await LocalMaterialDao().updateMaterialImage(
+            serverId: widget.material.id,
+            images: newImages,
+          );
+        }
       }
 
-      widget.onChanged(_draftMaterial);
+      final updatedMaterial = _draftMaterial.copyWith(
+        image: newImages ?? _draftMaterial.image,
+      );
+
+      widget.onChanged(updatedMaterial);
+
       setState(() {
         _isEditMode = false;
         _draftImageFiles.clear();
+        _isLoading = false;
       });
     } catch (e) {
       debugPrint('Equipment save error: $e');
+      setState(() => _isLoading = false);
     }
   }
 
@@ -1181,7 +1217,9 @@ class _EquipmentMaterialCardState extends State<EquipmentMaterialCard> {
 
     return GestureDetector(
       behavior: HitTestBehavior.translucent,
-      onTap: () => _focusLegacyMainField(fields),
+      onTap: () {
+        _legacyFocusNodes[EquipmentFieldType.qty]?.requestFocus();
+      },
       child: Container(
         margin: const EdgeInsets.only(bottom: 8),
         padding: const EdgeInsets.all(8),
@@ -1236,8 +1274,7 @@ class _EquipmentMaterialCardState extends State<EquipmentMaterialCard> {
 
     return GestureDetector(
       behavior: HitTestBehavior.opaque,
-      onTap: () =>
-      _isEditMode ? _legacyFocusNodes[field.type]?.requestFocus() : null,
+      onTap: () => _legacyFocusNodes[field.type]?.requestFocus(),
       child: Container(
         margin: const EdgeInsets.only(bottom: 10),
         padding: const EdgeInsets.all(8),
@@ -1287,12 +1324,29 @@ class _EquipmentMaterialCardState extends State<EquipmentMaterialCard> {
                 color: Colors.black54,
                 fontWeight: FontWeight.w500)),
         const SizedBox(height: 4),
-        Text(
-          _legacyDisplayValue(field),
-          style: const TextStyle(
-              fontSize: 14,
-              fontWeight: FontWeight.w700,
-              color: Colors.black87),
+        SizedBox(
+          height: 42,
+          child: TextFormField(
+            controller: _legacyValueControllers[field.type],
+            focusNode: _legacyFocusNodes[field.type],
+            textAlign: TextAlign.center,
+            textAlignVertical: TextAlignVertical.center,
+            keyboardType: const TextInputType.numberWithOptions(decimal: true),
+            decoration: InputDecoration(
+              filled: true,
+              fillColor: const Color(0xFFD0EAFD),
+              contentPadding:
+              const EdgeInsets.symmetric(vertical: 10, horizontal: 8),
+              border: OutlineInputBorder(
+                borderRadius: BorderRadius.circular(6),
+                borderSide: BorderSide.none,
+              ),
+            ),
+            onChanged: (v) {
+               final val = double.tryParse(v) ?? 0;
+               _draftMaterial = _legacyBuildMaterial(field.type, val);
+             },
+          ),
         ),
       ],
     );

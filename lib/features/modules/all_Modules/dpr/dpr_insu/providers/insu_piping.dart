@@ -1,6 +1,8 @@
 // providers/insulation_piping_provider.dart
+import 'package:flutter/cupertino.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
+import '../model/card_form_State.dart';
 import '../model/material_setup.dart';
 import '../model/piping_insu.dart';
 
@@ -35,13 +37,43 @@ class InsulationPipingMaterialsNotifier extends StateNotifier<List<PipingMateria
     required String size,
     required String unit,
   }) {
+    debugPrint('🔄 updateAllSizes: Processing ${state.length} materials. Available setups: ${_setups.length}. Size: $size, Unit: $unit');
     state = [
       for (final material in state)
-        material.copyWith(
-          size: size,
-          sizeUom: unit,
-        ),
+        _syncSizeToMaterial(material, size, unit),
     ];
+  }
+
+  PipingMaterial _syncSizeToMaterial(PipingMaterial material, String size, String unit) {
+    var updated = material.copyWith(
+      size: size,
+      sizeUom: unit,
+    );
+
+    final setup = findSetup(material.materialCode);
+    if (setup != null && setup.fieldConfig != null) {
+      // ✅ Force build initial state if null, so size can be synced
+      var newState = material.cardFormState ?? 
+          CardFormState.buildInitial(fieldConfig: setup.fieldConfig!);
+      
+      bool changed = false;
+      for (final field in setup.fieldConfig!.fields) {
+        if (field.role == 'SIZE' || field.key.toLowerCase().contains('size')) {
+          newState = newState.updateValue(field.key, size);
+          newState = newState.updateUnit(field.key, unit);
+          changed = true;
+        }
+      }
+      if (changed) {
+        updated = updated.copyWith(cardFormState: newState);
+        debugPrint('✅ Synced size $size to cardFormState for material: ${material.name} (Code: ${material.materialCode})');
+      } else {
+        debugPrint('⚠️ No size field found in config for ${material.name} (Code: ${material.materialCode})');
+      }
+    } else {
+      debugPrint('❌ findSetup failed for ${material.name} (Code: ${material.materialCode}). Available codes: ${_setups.map((s) => s.materialCode).join(", ")}');
+    }
+    return updated;
   }
   void addMaterials(List<PipingMaterial> newMaterials) {
     state = [...state, ...newMaterials];

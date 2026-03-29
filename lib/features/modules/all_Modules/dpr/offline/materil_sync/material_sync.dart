@@ -23,13 +23,12 @@ class MaterialSyncEngine {
   // In material_sync.dart — add at the top of the class:
   final _progressController = StreamController<double>.broadcast();
   Stream<double> get progressStream => _progressController.stream;
-
   Future<void> sync({
     required String siteId,
     required String domain,
     required String designation,
   }) async {
-    _progressController.add(0.0); // started
+    _progressController.add(0.0);
     debugPrint("🔵 SYNC STARTED $designation");
 
     if (!await _online()) {
@@ -45,7 +44,6 @@ class MaterialSyncEngine {
     _syncRunning = true;
 
     try {
-
       if (domain != MaterialDomain.insulation.key) {
         debugPrint("⚠️ Domain not insulation");
         return;
@@ -61,8 +59,7 @@ class MaterialSyncEngine {
       }
 
       debugPrint("📦 Server returned ${raw.length} materials");
-
-      _progressController.add(0.15); // fetched remote list
+      _progressController.add(0.15);
 
       /// 🔹 LOAD LOCAL MATERIALS
       final localMaterials = await local.getAll(
@@ -75,13 +72,13 @@ class MaterialSyncEngine {
         for (var m in localMaterials)
           if (m.serverId != null) m.serverId!: m
       };
+
       _progressController.add(0.25);
 
-      /// 🔹 COLLECT UPSERT LIST
       final total = raw.length;
       final List<LocalMaterial> materialsToUpsert = [];
 
-      /// 🔹 PROCESS SERVER MATERIALS
+      /// 🔥 PROCESS MATERIALS (STRICT MODE)
       for (int i = 0; i < total; i++) {
         final item = raw[i];
 
@@ -92,20 +89,20 @@ class MaterialSyncEngine {
             remoteDesignation != designation.toLowerCase()) {
           continue;
         }
-        final materialName = item['name'] ?? 'Unnamed'; // Get material name
-        debugPrint("🏭 Processing material: $materialName");
+
         final remoteSiteId = item['siteId']?['_id'];
         if (remoteSiteId != siteId) continue;
 
         final serverId = item['_id'];
+        final materialName = item['name'] ?? 'Unnamed';
 
-        /// 🔹 IMAGE CACHE (PARALLEL)
+        debugPrint("🏭 Processing: $materialName");
+
+        /// 🔹 IMAGE CACHE (STRICT + BLOCKING)
         final images = item['image'];
-
         List<String> localImages = [];
 
-        if (images is List) {
-
+        if (images is List && images.isNotEmpty) {
           final futures = images
               .whereType<String>()
               .where((e) => e.startsWith("http"))
@@ -116,13 +113,20 @@ class MaterialSyncEngine {
             );
           }).toList();
 
-          localImages = await Future.wait(futures);
+          final results = await Future.wait(futures);
+
+          /// ❌ HARD FAIL: skip material if ANY image failed
+          if (results.any((p) => p.isEmpty)) {
+            debugPrint("❌ Skipping $materialName (image failed)");
+            continue;
+          }
+
+          localImages = results;
         }
 
         final existing = localByServerId[serverId];
 
         if (existing == null) {
-
           final material = LocalMaterial()
             ..serverId = serverId
             ..siteId = siteId
@@ -136,9 +140,7 @@ class MaterialSyncEngine {
             ..updatedAt = DateTime.now();
 
           materialsToUpsert.add(material);
-
         } else {
-
           existing
             ..name = item['name'] ?? existing.name
             ..uom = item['uom']
@@ -149,24 +151,23 @@ class MaterialSyncEngine {
           materialsToUpsert.add(existing);
         }
 
+        /// 🔹 PROGRESS UPDATE
         _progressController.add(0.25 + 0.50 * ((i + 1) / total));
       }
 
-      /// 🔹 BATCH DATABASE WRITE (VERY FAST)
+      /// 🔥 WRITE ONLY AFTER EVERYTHING READY
       if (materialsToUpsert.isNotEmpty) {
         await local.upsertBatch(materialsToUpsert);
         debugPrint("💾 Upserted ${materialsToUpsert.length} materials");
       }
 
-      /// 🔹 PUSH LOCAL DIRTY
+      /// 🔹 PUSH DIRTY
       final dirty = await local.dirty(siteId);
 
       if (dirty.isNotEmpty) {
-
         debugPrint("⬆️ ${dirty.length} dirty materials");
 
         for (final m in dirty) {
-
           if (m.isDeleted) continue;
 
           if (m.serverId == null) {
@@ -181,38 +182,31 @@ class MaterialSyncEngine {
         await local.upsertBatch(dirty);
       }
 
-      /// 🔹 PROCESS DELETES
+      /// 🔹 DELETE
       final deleted = await local.deleted(siteId);
 
       if (deleted.isNotEmpty) {
-
         debugPrint("🗑 ${deleted.length} deleted materials");
 
         for (final m in deleted) {
-
           if (m.serverId != null) {
             await remote.deleteInsulation(m);
           }
-
           await local.deleteHard(m.id);
         }
       }
 
+      /// ✅ FINAL PROGRESS (MANDATORY)
       _progressController.add(1.0);
 
       debugPrint("✅ SYNC COMPLETE");
-
     } catch (e) {
-
       debugPrint("❌ Sync failed: $e");
-
     } finally {
-
       _syncRunning = false;
       debugPrint("🔵 SYNC FINISHED");
     }
   }
-
   /// 🔥 THIS WAS MISSING
   Future<void> _initialPull(
       String siteId,

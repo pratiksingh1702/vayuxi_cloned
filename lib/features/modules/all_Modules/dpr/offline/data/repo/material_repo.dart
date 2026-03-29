@@ -3,6 +3,7 @@ import 'dart:convert';
 
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
+import '../../../dpr_insu/model/card_form_State.dart';
 import '../../materil_sync/material_sync.dart';
 import '../local/local_material.dart';
 import '../local/local_material_dao.dart';
@@ -47,10 +48,27 @@ class MaterialRepository {
     );
 
     for (final local in materials) {
-      final piping = local.toPiping().copyWith(
+      var piping = local.toPiping().copyWith(
         size: size,
         sizeUom: unit,
       );
+
+      // ✅ Sync size into cardFormState if it exists (for dynamic cards)
+      if (piping.cardFormState != null) {
+        var newState = piping.cardFormState!;
+        bool changed = false;
+        final updatedEntries = Map<String, FieldEntry>.from(newState.fieldEntries);
+        for (final key in updatedEntries.keys) {
+          if (key.toLowerCase().contains('size')) {
+            updatedEntries[key] = FieldEntry(value: size, unit: unit);
+            changed = true;
+          }
+        }
+        if (changed) {
+          newState = newState.copyWith(fieldEntries: updatedEntries);
+          piping = piping.copyWith(cardFormState: newState);
+        }
+      }
 
       local
         ..materialDataJson = jsonEncode(piping.toJson())

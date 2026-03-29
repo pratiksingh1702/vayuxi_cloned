@@ -159,26 +159,32 @@ class InsulationMaterialSetupService {
   /// ================================
   /// UPDATE MATERIAL
   /// ================================
-
-  Future<void> updateMaterial({
+  Future<List<String>> updateMaterial({
     required String materialId,
     String? name,
     List<File>? images,
   }) async {
-    final formData = FormData.fromMap({
-      if (name != null) 'name': name,
-      if (images != null)
-        'images': images.map(
-              (f) => MultipartFile.fromFileSync(f.path),
-        ),
-    });
+    final formData = FormData();
+    if (name != null) formData.fields.add(MapEntry('name', name));
+    if (images != null && images.isNotEmpty) {
+      for (final image in images) {
+        formData.files.add(MapEntry(
+          'images',
+          MultipartFile.fromFileSync(image.path, filename: image.path.split('/').last),
+        ));
+      }
+    }
 
-    await _dio.put(
+    final response = await _dio.put(
       '/insulation-dpr-setup/materials/$materialId',
       data: formData,
     );
-  }
 
+    // Parse the returned image list from server response
+    final data = response.data['data'] as Map<String, dynamic>?;
+    final rawImages = data?['image'] as List<dynamic>?;
+    return rawImages?.map((e) => e.toString()).toList() ?? [];
+  }
   /// ================================
   /// DELETE MATERIAL
   /// ================================
