@@ -3,6 +3,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 
 import '../model/eqip_insu.dart';
+import '../model/material_setup.dart';
 
 // ==============================================
 // MAIN EQUIPMENT MATERIALS PROVIDER
@@ -15,6 +16,11 @@ StateNotifierProvider<InsulationEquipmentMaterialsNotifier, List<EquipmentMateri
 
 class InsulationEquipmentMaterialsNotifier extends StateNotifier<List<EquipmentMaterial>> {
   InsulationEquipmentMaterialsNotifier() : super(const []);
+  List<MaterialSetup> _setups = [];
+
+  void updateSetups(List<MaterialSetup> setups) {
+    _setups = setups;
+  }
 
   // PRIMARY METHOD: Set materials from external source
   void setMaterials(List<EquipmentMaterial> materials) {
@@ -172,7 +178,7 @@ class InsulationEquipmentMaterialsNotifier extends StateNotifier<List<EquipmentM
   }
 
   // Get total quantity of all materials
-  int getTotalQuantity() {
+  double getTotalQuantity() {
     return state.fold(0, (sum, material) => sum + material.qty);
   }
 
@@ -224,7 +230,7 @@ final insulationEquipmentMaterialsCountProvider = Provider<int>((ref) {
 });
 
 // Total quantity of all equipment materials
-final insulationEquipmentTotalQuantityProvider = Provider<int>((ref) {
+final insulationEquipmentTotalQuantityProvider = Provider<double>((ref) {
   final materials = ref.watch(insulationEquipmentMaterialsProvider);
   return materials.fold(0, (sum, material) => sum + material.qty);
 });
@@ -248,31 +254,31 @@ final insulationEquipmentMaterialsByTypeProvider = Provider<Map<String, List<Equ
   return grouped;
 });
 
-// Equipment materials statistics
-final insulationEquipmentMaterialsStatsProvider = Provider<Map<String, dynamic>>((ref) {
-  final materials = ref.watch(insulationEquipmentMaterialsProvider);
-
-  if (materials.isEmpty) {
-    return {
-      'totalCount': 0,
-      'totalQty': 0,
-      'totalArea': 0.0,
-      'avgQty': 0,
-      'avgArea': 0.0,
-    };
-  }
-
-  final totalQty = materials.fold(0, (sum, m) => sum + m.qty);
-  final totalArea = materials.fold(0.0, (sum, m) => sum + m.totalArea);
-
-  return {
-    'totalCount': materials.length,
-    'totalQty': totalQty,
-    'totalArea': totalArea,
-    'avgQty': totalQty / materials.length,
-    'avgArea': totalArea / materials.length,
-  };
-});
+// // Equipment materials statistics
+// final insulationEquipmentMaterialsStatsProvider = Provider<Map<String, dynamic>>((ref) {
+//   final materials = ref.watch(insulationEquipmentMaterialsProvider);
+//
+//   if (materials.isEmpty) {
+//     return {
+//       'totalCount': 0,
+//       'totalQty': 0,
+//       'totalArea': 0.0,
+//       'avgQty': 0,
+//       'avgArea': 0.0,
+//     };
+//   }
+//
+//   final totalQty = materials.fold(0, (sum, m) => sum + m.qty);
+//   final totalArea = materials.fold(0.0, (sum, m) => sum + m.totalArea);
+//
+//   return {
+//     'totalCount': materials.length,
+//     'totalQty': totalQty,
+//     'totalArea': totalArea,
+//     'avgQty': totalQty / materials.length,
+//     'avgArea': totalArea / materials.length,
+//   };
+// });
 
 // Equipment materials by component type
 final insulationEquipmentByComponentProvider = Provider<Map<String, List<EquipmentMaterial>>>((ref) {

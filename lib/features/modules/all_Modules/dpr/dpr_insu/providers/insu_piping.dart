@@ -234,7 +234,7 @@ class InsulationPipingMaterialsNotifier extends StateNotifier<List<PipingMateria
   }
 
   // Get total quantity of all materials
-  int getTotalQuantity() {
+  num getTotalQuantity() {
     return state.fold(0, (sum, material) => sum + material.qty);
   }
 
@@ -281,7 +281,7 @@ final insulationPipingMaterialsCountProvider = Provider<int>((ref) {
 });
 
 // Total quantity of all piping materials
-final insulationPipingTotalQuantityProvider = Provider<int>((ref) {
+final insulationPipingTotalQuantityProvider = Provider<num>((ref) {
   final materials = ref.watch(insulationPipingMaterialsProvider);
   return materials.fold(0, (sum, material) => sum + material.qty);
 });
@@ -303,30 +303,4 @@ final insulationPipingMaterialsByTypeProvider = Provider<Map<String, List<Piping
   }
 
   return grouped;
-});
-
-// Piping materials statistics
-final insulationPipingMaterialsStatsProvider = Provider<Map<String, dynamic>>((ref) {
-  final materials = ref.watch(insulationPipingMaterialsProvider);
-
-  if (materials.isEmpty) {
-    return {
-      'totalCount': 0,
-      'totalQty': 0,
-      'totalArea': 0.0,
-      'avgQty': 0,
-      'avgArea': 0.0,
-    };
-  }
-
-  final totalQty = materials.fold(0, (sum, m) => sum + m.qty);
-  final totalArea = materials.fold(0.0, (sum, m) => sum + m.totalArea);
-
-  return {
-    'totalCount': materials.length,
-    'totalQty': totalQty,
-    'totalArea': totalArea,
-    'avgQty': totalQty / materials.length,
-    'avgArea': totalArea / materials.length,
-  };
 });

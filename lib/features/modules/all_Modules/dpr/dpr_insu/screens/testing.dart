@@ -24,8 +24,10 @@ import '../../offline/data/material_sync_service.dart';
 import '../../offline/data/repo/material_repo_provider.dart';
 import '../../providers/selectedSize_provider.dart';
 import '../../screens/add_description.dart';
+import '../model/card_form_State.dart';
 import '../model/dpr_model_insu.dart';
 import '../model/eqip_insu.dart';
+import '../model/field_config.dart';
 import '../model/insu_step_date.dart';
 import '../model/material_setup.dart';
 import '../model/piping_insu.dart';
@@ -200,22 +202,44 @@ class _AddInsulationDescriptionScreenState
         debugPrint('✅ Loaded ${piping.length} piping / '
             '${equipment.length} equipment setups');
       }
+
+      // ✅ CRITICAL FIX: Initialize equipment materials with cardFormState
+      final equipmentWithState = equipment.map((setup) {
+        return EquipmentMaterial(
+          id: setup.id,
+          name: setup.name,
+          materialCode: setup.materialCode,
+          image: setup.image,
+          uom: setup.uom,
+          remarks: '',
+          // 🔥 Initialize cardFormState from the setup's fieldConfig
+          cardFormState: CardFormState.buildInitial(
+            fieldConfig: setup.fieldConfig,
+          ),
+          qty: 0,
+          customLabels: {},
+        );
+      }).toList();
+
+      // Update the equipment provider with initialized materials
+      ref.read(insulationEquipmentMaterialsProvider.notifier).updateSetups(equipment);
+
       ref.read(insulationPipingMaterialsProvider.notifier).updateSetups(piping);
+
       final size = ref.read(selectedSizeProvider);
       final unit = ref.read(selectedUnitProvider);
       debugPrint('🚀 Triggering updateAllSizes with: $size ($unit)');
       ref.read(insulationPipingMaterialsProvider.notifier).updateAllSizes(
-        size: size!,
-        unit: unit,
+        size: size ?? '',
+        unit: unit ?? '',
       );
-      // ref.read(insulationEquipmentMaterialsProvider.notifier).updateSetups(equipment);
+
       _attachMaterialListeners();
-    } catch (e) {
+    } catch (e,s) {
       debugPrint('❌ Failed to load material setups: $e');
       if (mounted) setState(() => _setupsLoaded = true);
     }
   }
-
   MaterialSetup? _findMaterialSetup(String? code, String designation) {
 
     if (!_setupsLoaded) {
@@ -336,37 +360,65 @@ class _AddInsulationDescriptionScreenState
         next.whenData((localMaterials) {
           if (!mounted) return;
 
+          // ✅ FIX: Initialize each equipment material with proper cardFormState
           final incoming = localMaterials
               .where((m) => !m.isDeleted)
               .map((m) {
             final equipment = m.toEquipment();
-            // ✅ FIX: Ensure materialCode is set
+
+            // 🔥 Find the corresponding MaterialSetup to get fieldConfig
+            final setup = _equipmentSetups.firstWhere(
+                  (s) => s.id == equipment.id,
+              orElse: () => MaterialSetup(
+                id: equipment.id,
+                name: equipment.name,
+                materialCode: equipment.materialCode ?? '',
+                image: equipment.image,
+                uom: equipment.uom ?? '',
+                designation: 'equipment',
+                calculationType: '',
+                fieldConfig: FieldConfig(
+                  fields: [],
+                  unitDropdowns: UnitDropdowns.fromJson({}),
+                  defaults: FieldDefaults.fromJson({}),
+                  ui: UiConfig.fromJson({}),
+                ),
+                siteId: siteId,
+                companyId: '',
+              ),
+            );
+
+            // ✅ Initialize cardFormState if it's null or empty
+            if (equipment.cardFormState == null ||
+                equipment.cardFormState!.fieldEntries.isEmpty) {
+              return equipment.copyWith(
+                cardFormState: CardFormState.buildInitial(
+                  fieldConfig: setup.fieldConfig,
+                ),
+              );
+            }
 
             return equipment;
           })
               .toList();
 
-          for (var p in incoming) {
-            print("🔍 EquipmentMaterial: id=${p.id}, name=${p.name}, materialCode=${p.materialCode}");
-          }
-
-          /// 🔥 Delay provider modification
           Future.microtask(() {
             if (!mounted) return;
 
             final notifier = ref.read(insulationEquipmentMaterialsProvider.notifier);
             final existing = ref.read(insulationEquipmentMaterialsProvider);
 
-            // ✅ FIX: Don't clear! Merge existing data
             final merged = incoming.map((newMat) {
               final old = existing.firstWhere(
                     (e) => e.id == newMat.id,
                 orElse: () => newMat,
               );
 
+              // ✅ Preserve existing values while ensuring cardFormState is initialized
+              final updatedCardState = old.cardFormState ?? newMat.cardFormState;
+
               return newMat.copyWith(
-                cardFormState: old.cardFormState ?? newMat.cardFormState,
-                // ✅ Preserve materialCode
+                cardFormState: updatedCardState,
                 materialCode: newMat.materialCode!.isNotEmpty
                     ? newMat.materialCode
                     : old.materialCode,
@@ -3112,35 +3164,46 @@ class _AddInsulationDescriptionScreenState
           final state = e.cardFormState;
 
           if (state != null) {
-            // 1. Map all dynamic fields from cardFormState (excluding quantity)
+            // Log what's in the state
+            debugPrint("📦 Equipment [${e.name}] - FieldEntries: ${state.fieldEntries.keys} with values: ${state.fieldEntries.values}");
+            debugPrint("📦 Equipment [${e.name}] - GeometryMode: ${state.geometryMode}");
+
+            // Map ALL dynamic fields from cardFormState
             state.fieldEntries.forEach((key, entry) {
-              if (key.toLowerCase() == 'quantity' || key.toLowerCase() == 'qty') return;
-
               final val = entry.value;
-              // Skip null/empty/zero values
-              if (val == null || val == "" || val == 0) return;
 
+              // Always include the field, even if null
               fieldValues[key] = val;
+
+              // Always include unit if it exists
               if (entry.unit != null && entry.unit!.isNotEmpty) {
                 fieldValues["${key}Uom"] = entry.unit;
               }
             });
 
-            // 2. Add geometryMode
-            if (state.geometryMode != null) {
+            // Include geometryMode
+            if (state.geometryMode != null && state.geometryMode!.isNotEmpty) {
               fieldValues["geometryMode"] = state.geometryMode;
             }
 
-            // 3. ✅ Add quantity with default to 1 if null or 0
-            final qtyValue = e.qty;
-            final quantity = (qtyValue == null || qtyValue == 0) ? 0 : qtyValue;
-            fieldValues["quantity"] = quantity;
-
-            // 4. Add qty unit (take from state, fallback to NOS)
+            // Handle quantity
             final qtyEntry = state.fieldEntries['quantity'] ?? state.fieldEntries['qty'];
-            fieldValues["qtyUom"] = (qtyEntry?.unit != null && qtyEntry!.unit!.isNotEmpty)
+            fieldValues["quantity"] = qtyEntry != null && qtyEntry.value != null && qtyEntry.value != 0
+                ? qtyEntry.value
+                : (e.qty != null && e.qty != 0 ? e.qty : null);
+
+            fieldValues["qtyUom"] = qtyEntry?.unit != null && qtyEntry!.unit!.isNotEmpty
                 ? qtyEntry.unit
                 : "NOS";
+
+            fieldValues["qtyUom"] = qtyEntry?.unit != null && qtyEntry!.unit!.isNotEmpty
+                ? qtyEntry.unit
+                : "NOS";
+            debugPrint("📦 Equipment [${e.name}] - Final fieldValues: $fieldValues");
+          } else {
+            fieldValues["quantity"] = e.qty ?? 0;
+            fieldValues["qtyUom"] = "NOS";
+            debugPrint("📦 Equipment [${e.name}] - No state, using default: $fieldValues");
           }
 
           return {
@@ -3149,14 +3212,14 @@ class _AddInsulationDescriptionScreenState
             "fieldValues": fieldValues,
           };
         }).toList(),
-
       if (pipingMaterials.isNotEmpty)
         'piping_materials': pipingMaterials.map((p) {
-          // ✅ For piping materials, also ensure quantity defaults to 1
-          final updatedPiping = p.copyWith(
-            qty: (p.qty == null || p.qty == 0) ? 0 : p.qty,
-          );
-          return updatedPiping.toJson();
+          // ✅ Ensure quantity is treated as an integer and defaults to 0 if null
+          final qty = (p.qty == null) ? 0 : p.qty;
+          final updatedPiping = p.copyWith(qty: qty);
+          final json = updatedPiping.toJson();
+          debugPrint('📦 Piping Material Payload [${p.name}]: Qty=$qty');
+          return json;
         }).toList(),
     };
   }
@@ -3235,6 +3298,12 @@ class _AddInsulationDescriptionScreenState
       final pipingMaterials = ref.read(insulationPipingMaterialsProvider);
       final equipmentMaterials = ref.read(insulationEquipmentMaterialsProvider);
 
+      debugPrint("🔍 PRE-SUBMIT CHECK:");
+      debugPrint("   Piping Count: ${pipingMaterials.length}");
+      for (var p in pipingMaterials) {
+        debugPrint("   Piping [${p.name}] - Qty: ${p.qty}, Size: ${p.size}");
+      }
+
       final payload = buildInsulationDprPayload(
         pipingMaterials: pipingMaterials,
         equipmentMaterials: equipmentMaterials,
@@ -3262,7 +3331,7 @@ class _AddInsulationDescriptionScreenState
           int count = 0;
 
 
-          Navigator.of(context).popUntil((_) => count++ >= 5);
+          // Navigator.of(context).popUntil((_) => count++ >= 5);
 
           _showSnackBar("Successfully Saved");
 
@@ -3291,14 +3360,17 @@ class _AddInsulationDescriptionScreenState
 
     for (final m in materials) {
       final key = _equipmentKeys[m.id];
-      // Access the state via the GlobalKey. Note: using dynamic to avoid strict casting issues.
       final dynamic cardState = key?.currentState;
-      
+
       if (cardState != null && cardState.mounted) {
         try {
-          // Call the public getLatestMaterial() method we added to _EquipmentMaterialCardState
-          final updated = cardState.getLatestMaterial();
-          updatedList.add(updated);
+          // Check if the method exists
+          if (cardState.getLatestMaterial != null) {
+            final updated = cardState.getLatestMaterial();
+            updatedList.add(updated);
+          } else {
+            updatedList.add(m);
+          }
         } catch (e) {
           debugPrint("Failed to sync equipment material ${m.id}: $e");
           updatedList.add(m);

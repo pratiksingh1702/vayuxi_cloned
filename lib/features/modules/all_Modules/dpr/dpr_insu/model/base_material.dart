@@ -17,7 +17,7 @@ abstract class BaseMaterial {
   final String? materialCode;
   final FieldValues? fieldValues;
   final Map<String, String>? customLabels;
-  final int qty;
+  final num qty;
   final double length;
   final double circumference;
   final double circumference1;

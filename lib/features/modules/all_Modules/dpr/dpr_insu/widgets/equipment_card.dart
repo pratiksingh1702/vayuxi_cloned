@@ -223,10 +223,16 @@ class _EquipmentMaterialCardState extends State<EquipmentMaterialCard> {
       for (final field in _config!.fields) {
         if (field.role == 'QUANTITY' || field.role == 'QTY') continue;
         final text = _valueControllers[field.key]?.text ?? '';
-        if (text.isEmpty) continue;
         final parsed = num.tryParse(text);
-        state = state.updateValue(field.key, parsed ?? text);
+
+        // IMPORTANT: Update the state even if the value is empty/null
+        if (text.isEmpty) {
+          state = state.updateValue(field.key, null);
+        } else {
+          state = state.updateValue(field.key, parsed ?? text);
+        }
       }
+
       // 3. dynamic labels
       for (final field in _config!.fields) {
         if (field.role == 'QUANTITY' || field.role == 'QTY') continue;
@@ -235,6 +241,7 @@ class _EquipmentMaterialCardState extends State<EquipmentMaterialCard> {
           state = state.updateLabel(field.key, labelText);
         }
       }
+
       _cardStateField = state;
       _draftMaterial = _draftMaterial.copyWith(cardFormState: state);
     } else if (!_isDynamic) {
@@ -273,7 +280,7 @@ class _EquipmentMaterialCardState extends State<EquipmentMaterialCard> {
                 ?.text ??
                 '') ??
             _draftMaterial.SlantHeight,
-        qty: int.tryParse(
+        qty: num.tryParse(
             _legacyValueControllers[EquipmentFieldType.qty]?.text ?? '') ??
             _draftMaterial.qty,
       );
@@ -404,6 +411,11 @@ class _EquipmentMaterialCardState extends State<EquipmentMaterialCard> {
     }
     return true;
   }
+  // Add this method to _EquipmentMaterialCardState class
+  EquipmentMaterial getLatestMaterial() {
+    _flushAllControllersToDraft();
+    return _draftMaterial;
+  }
 
   // ─────────────────────────────────────────────
   // BUILD
@@ -482,12 +494,18 @@ class _EquipmentMaterialCardState extends State<EquipmentMaterialCard> {
     // First get ALL fields (including invisible ones to maintain indices)
     final allFields = _config!.fields;
 
-    // Then filter visible fields for display
-    final visibleFields = allFields
-        .where((f) => _isFieldVisible(f))
-        .where((f) => f.role != 'QUANTITY' && f.role != 'QTY')
-        .toList();
+    final isPatch = widget.material.name.trim().toLowerCase() == 'patch';
 
+    final visibleFields = allFields.where((f) {
+      if (!_isFieldVisible(f)) return false;
+
+      // Only remove quantity if NOT patch
+      if (!isPatch && (f.role == 'QUANTITY' || f.role == 'QTY')) {
+        return false;
+      }
+
+      return true;
+    }).toList();
     // Create a mapping from original index to visible index
     final Map<int, int> originalToVisibleIndex = {};
     for (int i = 0; i < allFields.length; i++) {
@@ -543,7 +561,7 @@ class _EquipmentMaterialCardState extends State<EquipmentMaterialCard> {
               crossAxisAlignment: CrossAxisAlignment.end,
               children: [
                 _buildActionRow(),
-                _buildQtyField(),
+                if (!isPatch) _buildQtyField(),
               ],
             ),
             if (_isEditMode) ...[
@@ -560,12 +578,22 @@ class _EquipmentMaterialCardState extends State<EquipmentMaterialCard> {
   Widget _buildDynamicFieldCard(FieldDefinition field, List<FieldDefinition> allFields) {
     // Get the original index in the full fields list
     final originalIndex = allFields.indexWhere((f) => f.key == field.key);
+    final isPatch = widget.material.name.trim().toLowerCase() == 'patch'; // or however you identify it
+
+    final visibleFields = _config!.fields.where((f) {
+      if (!_isFieldVisible(f)) return false;
+
+      // Only exclude quantity if NOT patch
+      if (!isPatch && (f.role == 'QUANTITY' || f.role == 'QTY')) {
+        return false;
+      }
+
+      return true;
+    }).toList();
 
     // Get the visible index (position in visible fields list)
-    final visibleIndex = _config!.fields
-        .where((f) => _isFieldVisible(f) && f.role != 'QUANTITY' && f.role != 'QTY')
-        .toList()
-        .indexWhere((f) => f.key == field.key);
+    final visibleIndex =
+    visibleFields.indexWhere((f) => f.key == field.key);
 
     // Use visible index for image URL
     final imageUrl = visibleIndex >= 0 && visibleIndex < widget.material.image.length
@@ -733,10 +761,9 @@ class _EquipmentMaterialCardState extends State<EquipmentMaterialCard> {
   }
 
   Widget _buildFieldLabel(FieldDefinition field) {
+    final isPatch = widget.material.name.trim().toLowerCase() == 'patch';
     final label = _cardState.getLabel(field.key, field.label);
-    final isGeometry =
-        field.role == 'DIAMETER' || field.role == 'CIRCUMFERENCE';
-
+    final isGeometry = field.visibleWhen?.geometryMode != null;
     return Column(
       children: [
         if (_isEditMode && _config!.ui.allowRename && !isGeometry)
@@ -752,7 +779,7 @@ class _EquipmentMaterialCardState extends State<EquipmentMaterialCard> {
           )
         else
           Text(
-            label,
+            isPatch ? 'Patch' : label,
             textAlign: TextAlign.center,
             style: const TextStyle(fontSize: 12, fontWeight: FontWeight.w600),
           ),
@@ -784,6 +811,7 @@ class _EquipmentMaterialCardState extends State<EquipmentMaterialCard> {
     final safeValue = (currentUnit != null && options.contains(currentUnit))
         ? currentUnit
         : options.first;
+    debugPrint('🔧 Dropdown for ${field.key}: dropdownKey=${field.dropdown}, optionsRaw=$optionsRaw');
 
     return Container(
       height: 36,

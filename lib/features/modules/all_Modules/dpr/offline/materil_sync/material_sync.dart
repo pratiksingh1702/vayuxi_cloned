@@ -241,7 +241,7 @@ class MaterialSyncEngine {
             print(url);
             if (url is String && url.startsWith('http')) {
               final path = await ImageCacheService.cacheImage(
-                url: url,
+                  url: url,
                   fileName: '${item['_id']}_${_safeName(url)}.png'
 
               );
@@ -274,4 +274,3 @@ class MaterialSyncEngine {
 
 
 }
-

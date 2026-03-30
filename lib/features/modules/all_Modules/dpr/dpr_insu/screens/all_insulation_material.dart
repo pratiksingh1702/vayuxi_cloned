@@ -653,9 +653,13 @@ class _AllInsulationMaterialsScreenState
               itemCount: materials.length,
               itemBuilder: (context, index) {
                 final local = materials[index];
-                return category == 'piping'
-                    ? _buildPipingCard(local, color)
-                    : _buildEquipmentCard(local, color);
+
+                return Padding(
+                  padding: const EdgeInsets.only(bottom: 12), // adjust spacing here
+                  child: category == 'piping'
+                      ? _buildPipingCard(local, color)
+                      : _buildEquipmentCard(local, color),
+                );
               },
             ),
           ),

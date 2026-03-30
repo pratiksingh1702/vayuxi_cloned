@@ -58,17 +58,23 @@ class AttendanceRepository {
     print("🧹 CLEAN COUNT: ${cleanList.length}");
 
     await isar.writeTxn(() async {
-      final local =
-      await isar.manpowerIsars.filter().typeEqualTo(type).findAll();
+      final local = await isar.manpowerIsars.filter().typeEqualTo(type).findAll();
 
-      /// Map by manpowerId
+      /// Map by manpowerId and employeeCode for faster lookups
       final Map<String, ManpowerIsar> localById = {
         for (var item in local) item.manpowerId: item
+      };
+
+      final Map<String, ManpowerIsar> localByEmpCode = {
+        for (var item in local)
+          if (item.employeeCode != null && item.employeeCode!.isNotEmpty)
+            item.employeeCode!: item
       };
 
       int inserted = 0;
       int updated = 0;
       int skipped = 0;
+      int noChanges = 0;
 
       final List<ManpowerIsar> toSave = [];
 
@@ -77,23 +83,29 @@ class AttendanceRepository {
 
         /// 🔥 PRIMARY MATCH → employeeCode
         if (m.employeeCode != null && m.employeeCode!.isNotEmpty) {
-          existing = await isar.manpowerIsars
-              .filter()
-              .employeeCodeEqualTo(m.employeeCode!)
-              .findFirst();
+          existing = localByEmpCode[m.employeeCode!];
         }
 
         /// fallback → manpowerId
         existing ??= localById[m.id!];
 
         if (existing != null) {
-          /// ✅ UPDATE
+          /// Check if any field has actually changed
+          final hasChanges = _hasChanges(existing, m);
+
+          if (!hasChanges) {
+            noChanges++;
+            continue;
+          }
+
+          /// Optional: Check timestamp as an additional optimization
           final localTime = existing.updatedAt;
           final newTime = DateTime.tryParse(m.updatedAt ?? "");
 
           if (newTime != null && !newTime.isAfter(localTime)) {
-            skipped++;
-            continue;
+            // Server timestamp is older or equal, but fields have changed
+            // This could happen if server doesn't update timestamps properly
+            print("⚠️ Field changes detected but server timestamp is older: emp=${m.employeeCode}");
           }
 
           updated++;
@@ -124,11 +136,91 @@ class AttendanceRepository {
       print("📊 SUMMARY:");
       print("   ➕ Inserted: $inserted");
       print("   🔄 Updated: $updated");
-      print("   ⏭️ Skipped: $skipped");
+      print("   ⏭️ Skipped (no changes): $noChanges");
+      print("   ⏭️ Skipped (timestamp check): $skipped");
       print("   💾 Saved: ${toSave.length}");
     });
 
     print("✅ SYNC END\n");
+  }
+  /// Helper method to check if any field has changed between local and server data
+  bool _hasChanges(ManpowerIsar existing, ManpowerModel newData) {
+    // Basic identification fields
+    if (existing.manpowerId != newData.id) return true;
+    if (existing.type != (newData.type ?? existing.type)) return true;
+    if (existing.fullName != newData.fullName) return true;
+    if (existing.designation != newData.designation) return true;
+    if (existing.employeeCode != newData.employeeCode) return true;
+
+    // Contact information
+    if (existing.phoneNumber != newData.phoneNumber) return true;
+
+    // Government IDs
+    if (existing.aadharNumber != newData.aadharNumber) return true;
+    if (existing.panNumber != newData.panNumber) return true;
+
+    // Dates
+    if (existing.dateOfBirth != newData.dateOfBirth) return true;
+    if (existing.dateOfJoining != newData.dateOfJoining) return true;
+
+    // Banking information
+    if (existing.bankAccountNumber != newData.bankAccountNumber) return true;
+    if (existing.ifscCode != newData.ifscCode) return true;
+    if (existing.epfNumber != newData.epfNumber) return true;
+    if (existing.uanNumber != newData.uanNumber) return true;
+    if (existing.esicNumber != newData.esicNumber) return true;
+
+    // Payroll fields
+    if (existing.payBasics != newData.payBasics) return true;
+    if (existing.salary != newData.salary) return true;
+    if (existing.basicSalary != newData.basicSalary) return true;
+    if (existing.hra != newData.hra) return true;
+    if (existing.dearnessAllowance != newData.dearnessAllowance) return true;
+    if (existing.specialAllowance != newData.specialAllowance) return true;
+    if (existing.travelAllowance != newData.travelAllowance) return true;
+    if (existing.medicalAllowance != newData.medicalAllowance) return true;
+    if (existing.totalHour != newData.totalHour?.toString()) return true;
+    if (existing.pfApplicable != newData.pfApplicable) return true;
+
+    // Employment status
+    if (existing.remarks != newData.remarks) return true;
+    if (existing.company != newData.company) return true;
+    if (existing.isDeleted != (newData.isDeleted ?? false)) return true;
+    if (existing.isLeft != (newData.isLeft ?? false)) return true;
+    if (existing.reason != newData.reason) return true;
+
+    // Sites assignment (compare lists)
+    if (!_areListsEqual(existing.sites, newData.sites)) return true;
+
+    // Login credentials
+    if (existing.loginEmail != newData.loginEmail) return true;
+    if (existing.loginPassword != newData.loginPassword) return true;
+    if (existing.isLoginEnabled != newData.isLoginEnabled) return true;
+
+    // Timestamp comparison (server timestamp vs local)
+    final serverUpdatedAt = DateTime.tryParse(newData.updatedAt ?? "");
+    if (serverUpdatedAt != null && existing.updatedAt != serverUpdatedAt) {
+      // If timestamps differ, consider it a change
+      return true;
+    }
+
+    return false;
+  }
+
+  /// Helper to compare two lists
+  bool _areListsEqual(List<String>? list1, List<String>? list2) {
+    if (list1 == null && list2 == null) return true;
+    if (list1 == null || list2 == null) return false;
+    if (list1.length != list2.length) return false;
+
+    // Sort both lists for consistent comparison
+    final sorted1 = List<String>.from(list1)..sort();
+    final sorted2 = List<String>.from(list2)..sort();
+
+    for (int i = 0; i < sorted1.length; i++) {
+      if (sorted1[i] != sorted2[i]) return false;
+    }
+    return true;
   }
   Future<void> syncManpowerBySite({
     required String siteId,
@@ -147,11 +239,9 @@ class AttendanceRepository {
 
     print("📦 RAW COUNT: ${rawList.length}");
 
-    /// DEBUG counters
     int skippedGarbage = 0;
     int duplicateReplaced = 0;
 
-    /// ✅ STEP 1: Clean + dedupe
     final Map<String, ManpowerModel> cleanMap = {};
 
     for (final m in rawList) {
@@ -184,60 +274,67 @@ class AttendanceRepository {
     print("♻️ DUPLICATES HANDLED: $duplicateReplaced");
 
     await isar.writeTxn(() async {
-      final local =
-      await isar.manpowerIsars.filter().typeEqualTo(type).findAll();
+      final local = await isar.manpowerIsars.filter().typeEqualTo(type).findAll();
 
       final Map<String, ManpowerIsar> localMap = {
         for (var item in local) item.manpowerId: item
       };
 
+      final Map<String, ManpowerIsar> localByEmpCode = {
+        for (var item in local)
+          if (item.employeeCode != null && item.employeeCode!.isNotEmpty)
+            item.employeeCode!: item
+      };
+
       print("💾 LOCAL COUNT: ${local.length}");
 
-      int skippedOld = 0;
       int updated = 0;
       int inserted = 0;
+      int noChanges = 0;
 
       final List<ManpowerIsar> toSave = [];
 
       for (final m in cleanList) {
-        final existing = localMap[m.id!];
+        ManpowerIsar? existing;
 
-        /// DEBUG employeeCode conflict (if still unique in schema)
+        /// Primary match by employeeCode
+        if (m.employeeCode != null && m.employeeCode!.isNotEmpty) {
+          existing = localByEmpCode[m.employeeCode!];
+        }
+
+        /// Fallback to manpowerId
+        existing ??= localMap[m.id!];
+
+        /// Check for conflicts
         if (m.employeeCode != null) {
-          final conflict = await isar.manpowerIsars
-              .filter()
-              .employeeCodeEqualTo(m.employeeCode!)
-              .findFirst();
-
+          final conflict = localByEmpCode[m.employeeCode!];
           if (conflict != null && conflict.manpowerId != m.id) {
-            print(
-                "💥 CONFLICT employeeCode=${m.employeeCode} between ${conflict.manpowerId} and ${m.id}");
+            print("💥 CONFLICT employeeCode=${m.employeeCode} between ${conflict.manpowerId} and ${m.id}");
           }
         }
 
-        /// Skip outdated
         if (existing != null) {
-          final localTime = existing.updatedAt;
-          final newTime = DateTime.tryParse(m.updatedAt ?? "");
+          /// Check if any field has actually changed
+          final hasChanges = _hasChanges(existing, m);
 
-          if (newTime != null && !newTime.isAfter(localTime)) {
-            skippedOld++;
+          if (!hasChanges) {
+            noChanges++;
             continue;
           }
-        }
 
-        final obj = existing ?? ManpowerIsar();
-
-        if (existing == null) {
-          inserted++;
-          print("➕ INSERT: ${m.id}");
-        } else {
           updated++;
           print("🔄 UPDATE: ${m.id}");
-        }
 
-        _fillIsar(obj, m, type);
-        toSave.add(obj);
+          _fillIsar(existing, m, type);
+          toSave.add(existing);
+        } else {
+          inserted++;
+          print("➕ INSERT: ${m.id}");
+
+          final obj = ManpowerIsar();
+          _fillIsar(obj, m, type);
+          toSave.add(obj);
+        }
       }
 
       if (toSave.isNotEmpty) {
@@ -247,7 +344,7 @@ class AttendanceRepository {
       print("📊 SUMMARY:");
       print("   ➕ Inserted: $inserted");
       print("   🔄 Updated: $updated");
-      print("   ⏭️ Skipped old: $skippedOld");
+      print("   ⏭️ Skipped (no changes): $noChanges");
       print("   💾 Saved: ${toSave.length}");
     });
 
