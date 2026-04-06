@@ -16,6 +16,9 @@ import 'app.dart';
 import 'core/api/dio.dart';
 import 'core/api/requestQueue.dart';
 import 'core/local/isar_db.dart';
+import 'core/upload/handlers/manpower_upload_handler.dart';
+import 'core/upload/handlers/rate_upload_handler.dart';
+import 'core/upload/upload_exports.dart';
 import 'features/language/model/download_language.dart';
 import 'features/language/model/language_model.dart';
 import 'features/modules/all_Modules/dpr/models/hive_storage_service.dart';
@@ -32,6 +35,7 @@ Future<void> main() async {
   debugPaintSizeEnabled = false;
   debugPaintPointersEnabled = false;
   debugRepaintRainbowEnabled = false;
+
 
   runZonedGuarded(() async {
     WidgetsFlutterBinding.ensureInitialized();
@@ -81,7 +85,9 @@ Future<void> main() async {
 
     final container = ProviderContainer();
     DioClient.syncRef = container;
-
+    UploadHandlerRegistry.instance
+      ..register(RateUploadHandler())
+       ..register(ManpowerUploadHandler());
     runApp(
       UncontrolledProviderScope(
         container: container,

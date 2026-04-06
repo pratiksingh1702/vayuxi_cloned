@@ -1,3 +1,4 @@
+import '../../../../../../core/utlis/widgets/shimmer.dart';
 import 'package:flutter/material.dart';
 
 import '../../models/rate_file_models.dart';
@@ -206,7 +207,11 @@ class _DynamicItemCardState extends State<DynamicItemCard>
             _imagePlaceholder(height, width),
         loadingBuilder: (context, child, loadingProgress) {
           if (loadingProgress == null) return child;
-          return const Center(child: CircularProgressIndicator(strokeWidth: 2));
+          return ShimmerImage(
+            height: height,
+            width: width,
+            borderRadius: 8,
+          );
         },
       )
           : Image.asset(

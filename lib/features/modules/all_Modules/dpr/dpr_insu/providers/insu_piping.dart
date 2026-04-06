@@ -116,6 +116,8 @@ class InsulationPipingMaterialsNotifier extends StateNotifier<List<PipingMateria
   void editPipingMaterial(String id, PipingMaterial updatedMaterial) {
     final newState = state.map((material) {
       if (material.id == id) {
+        print("Updating material with ID: $id");
+        print("😭😭😭😭😭😭");
         return updatedMaterial;
       }
       return material;

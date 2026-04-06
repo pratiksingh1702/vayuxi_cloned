@@ -8,6 +8,7 @@ import 'package:untitled2/core/utlis/widgets/image_clipped.dart';
 import 'package:untitled2/typeProvider/type_provider.dart';
 import '../../../../../core/router/routes.dart';
 import '../../../../../core/utlis/widgets/custom.dart';
+import '../../../../../core/utlis/widgets/shimmer.dart';
 import '../../../../../core/utlis/widgets/sidebar.dart';
 import '../../../../../core/utlis/widgets/custom_scrollbar.dart';
 import '../model/expense_model.dart';
@@ -337,7 +338,10 @@ class _ExpenseListScreenState extends ConsumerState<ExpenseListScreen> {
                 // Expense List
                 Expanded(
                   child: isLoading
-                      ? const Center(child: CircularProgressIndicator())
+                      ? const ShimmerList(
+                          type: ShimmerListType.card,
+                          itemCount: 6,
+                        )
                       : expenseList.isEmpty
                       ? Center(
                     child: Column(

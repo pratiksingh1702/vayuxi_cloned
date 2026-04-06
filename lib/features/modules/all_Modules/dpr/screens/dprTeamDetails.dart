@@ -214,12 +214,12 @@ class _DprWorkScreenState extends ConsumerState<DprWorkScreen> {
   }
 
   // Generic date matching helper
-  bool _matchesDate(DateTime createdAt) {
+  bool _matchesDate(DateTime date) {
     // 🔥 DO NOT convert to local
     final dprDate = DateTime(
-      createdAt.year,
-      createdAt.month,
-      createdAt.day,
+      date.year,
+      date.month,
+      date.day,
     );
 
     if (_selectedStartDate != null && _selectedEndDate != null) {
@@ -789,7 +789,7 @@ class _DprWorkScreenState extends ConsumerState<DprWorkScreen> {
 
                         trailing: Row(
                           mainAxisSize: MainAxisSize.min,
-                          children: [
+                          children: [ 
                             Column(
                               mainAxisAlignment: MainAxisAlignment.center,
                               crossAxisAlignment: CrossAxisAlignment.end,
@@ -798,16 +798,16 @@ class _DprWorkScreenState extends ConsumerState<DprWorkScreen> {
                                   DateFormat('MMM dd').format(
                                     DateTime(
                                       (workType == WorkType.mechanical
-                                          ? (dpr as DprModel).createdAt
-                                          : (dpr as InsulationDprModel).createdAt)
+                                          ? (dpr as DprModel).date
+                                          : (dpr as InsulationDprModel).date)
                                           .year,
                                       (workType == WorkType.mechanical
-                                          ? (dpr as DprModel).createdAt
-                                          : (dpr as InsulationDprModel).createdAt)
+                                          ? (dpr as DprModel).date
+                                          : (dpr as InsulationDprModel).date)
                                           .month,
                                       (workType == WorkType.mechanical
-                                          ? (dpr as DprModel).createdAt
-                                          : (dpr as InsulationDprModel).createdAt)
+                                          ? (dpr as DprModel).date
+                                          : (dpr as InsulationDprModel).date)
                                           .day,
                                     ),
                                   ),

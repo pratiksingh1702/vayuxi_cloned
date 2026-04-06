@@ -14,6 +14,40 @@ class CachedImageDao {
     return result?.localPath;
   }
 
+  // ✅ NEW: Get server URL from local path
+  Future<String?> getServerUrl(String localPath) async {
+    final result = await _isar.cachedImages
+        .filter()
+        .localPathEqualTo(localPath)
+        .findFirst();
+    return result?.serverUrl;
+  }
+
+  // ✅ NEW: Get or create mapping between local path and server URL
+  Future<String?> getOrCreateServerUrl(String localPath, {String? serverUrl}) async {
+    // First, try to find existing mapping
+    final existing = await _isar.cachedImages
+        .filter()
+        .localPathEqualTo(localPath)
+        .findFirst();
+    
+    if (existing != null && existing.serverUrl.isNotEmpty) {
+      debugPrint('✅ Found cached server URL for $localPath -> ${existing.serverUrl}');
+      return existing.serverUrl;
+    }
+    
+    // If serverUrl provided, save it
+    if (serverUrl != null && serverUrl.isNotEmpty) {
+      await save(
+        serverUrl: serverUrl,
+        localPath: localPath,
+      );
+      return serverUrl;
+    }
+    
+    return null;
+  }
+
   Future<void> save({
     required String serverUrl,
     required String localPath,
@@ -21,16 +55,17 @@ class CachedImageDao {
     // Check if entry already exists
     final existing = await _isar.cachedImages
         .filter()
-        .serverUrlEqualTo(serverUrl)
+        .localPathEqualTo(localPath)
         .findFirst();
 
     await _isar.writeTxn(() async {
       if (existing != null) {
         // Update existing entry
+        existing.serverUrl = serverUrl;
         existing.localPath = localPath;
         existing.cachedAt = DateTime.now();
         await _isar.cachedImages.put(existing);
-        debugPrint("📝 Updated cached image: $serverUrl -> $localPath");
+        debugPrint("📝 Updated cached image: $localPath -> $serverUrl");
       } else {
         // Create new entry
         final entry = CachedImage()
@@ -38,27 +73,25 @@ class CachedImageDao {
           ..localPath = localPath
           ..cachedAt = DateTime.now();
         await _isar.cachedImages.put(entry);
-        debugPrint("💾 Saved new cached image: $serverUrl -> $localPath");
+        debugPrint("💾 Saved new cached image: $localPath -> $serverUrl");
       }
     });
   }
 
-  // Optional: Add method to delete stale entries
-  Future<void> delete(String serverUrl) async {
+  Future<void> delete(String localPath) async {
     final existing = await _isar.cachedImages
         .filter()
-        .serverUrlEqualTo(serverUrl)
+        .localPathEqualTo(localPath)
         .findFirst();
 
     if (existing != null) {
       await _isar.writeTxn(() async {
         await _isar.cachedImages.delete(existing.id);
-        debugPrint("🗑️ Deleted cached image entry: $serverUrl");
+        debugPrint("🗑️ Deleted cached image entry: $localPath");
       });
     }
   }
 
-  // Optional: Add cleanup method for old/unused cache entries
   Future<int> cleanupOldCache({Duration olderThan = const Duration(days: 30)}) async {
     final cutoff = DateTime.now().subtract(olderThan);
 

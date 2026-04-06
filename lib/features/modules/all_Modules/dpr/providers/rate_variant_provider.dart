@@ -44,81 +44,51 @@ StreamProvider.family<RateFileAnalysis?, String>((ref, siteId) {
 
 final mocWithImagesProvider =
 Provider.family<List<NamedImage>, String>((ref, siteId) {
+  final asyncAnalysis = ref.watch(rateFileAnalysisProvider(siteId));
+
+  // ✅ Still loading → return EMPTY, not defaults
+  // This prevents the flash of default content before real data arrives
+  final isLoading = asyncAnalysis.isLoading ||
+      (!asyncAnalysis.hasValue && !asyncAnalysis.hasError);
+
+  if (isLoading) return [];
+
   final detected = ref.watch(detectedFieldsProvider(siteId));
 
-  print("📦 DEFAULT MOCs:");
-  for (final m in defaultMOCList) {
-    print("   → ${m.name} = ${m.imageUrl}");
-  }
-
-  /// 🚫 If backend has no MOC → return defaults
+  // ✅ Only use defaults when we KNOW backend has no MOC
+  // (data arrived, but hasMoc is explicitly false)
   if (detected?.hasMoc != true) {
-    print("🚫 Backend has NO MOC → using DEFAULTS");
-
     return defaultMOCList
-        .map((e) => NamedImage(
-      name: e.name,
-      image: e.imageUrl!,
-    ))
+        .map((e) => NamedImage(name: e.name, image: e.imageUrl!))
         .toList();
   }
 
-  print("✅ Backend MOCs:");
-  for (final m in detected!.mocs) {
-    print("   → $m");
-  }
-
-  /// ✅ STEP 1: Build UNIQUE map using normalized keys
+  // ... rest of your existing logic unchanged
   final Map<String, String> uniqueMocs = {};
-
-  // Add raw moc names
-  for (final name in detected.mocs) {
+  for (final name in detected!.mocs) {
     final normalized = normalize(name);
     uniqueMocs[normalized] = name;
   }
-
-  // Add mocWithImages (override if duplicate)
   for (final m in detected.mocsWithImages) {
     final normalized = normalize(m.name);
     uniqueMocs[normalized] = m.name;
   }
 
-  /// ✅ STEP 2: Precompute server image map (FAST lookup)
   final Map<String, String> serverImageMap = {
     for (final e in detected.mocsWithImages)
       normalize(e.name): e.image
   };
 
-  /// ✅ STEP 3: Build final list
   return uniqueMocs.entries.map((entry) {
     final normalized = entry.key;
     final rawName = entry.value;
-
-    // alias correction
     final finalKey = mocAliases[normalized] ?? normalized;
-
     final asset = defaultMocImages[finalKey];
-
-    // server image lookup
     final serverImage = serverImageMap[normalized] ?? '';
-
     final finalImage = asset ??
-        (serverImage.isNotEmpty
-            ? serverImage
-            : 'assets/images/default_moc.webp');
+        (serverImage.isNotEmpty ? serverImage : 'assets/images/default_moc.webp');
 
-    if (asset != null) {
-      print("🎯 ASSET MATCH → $rawName → $asset");
-    } else if (serverImage.isNotEmpty) {
-      print("🌐 SERVER IMAGE → $rawName → $serverImage");
-    } else {
-      print("❌ NO MATCH → $rawName → generic");
-    }
-
-    return NamedImage(
-      name: rawName,
-      image: finalImage,
-    );
+    return NamedImage(name: rawName, image: finalImage);
   }).toList();
 });
 String normalize(String input) {

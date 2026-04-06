@@ -26,6 +26,7 @@ import 'package:untitled2/core/utlis/widgets/custom.dart';
 import 'package:untitled2/features/modules/all_Modules/team/provider/teamProvider.dart';
 import '../../../../../core/local/isar_db.dart';
 import '../../../../../core/utlis/common_functions.dart';
+import '../../../../../core/utlis/widgets/shimmer.dart';
 import '../../../../../core/utlis/widgets/sidebar.dart';
 import '../../../../language/service/providers.dart';
 import '../dpr-setup/screens/add/add_material.dart';
@@ -44,6 +45,7 @@ import '../providers/selection_provider.dart';
 import '../providers/service/rate_upload_material_dpr.dart';
 import 'controllers/dpr_session_provider.dart';
 import 'material_sync_util.dart';
+import 'widgets/material_overlay_edit.dart';
 
 class AddDescriptionScreen extends ConsumerStatefulWidget {
   final DprModel? work;
@@ -1067,35 +1069,53 @@ class _AddDescriptionScreenState extends ConsumerState<AddDescriptionScreen>
                 ),
                 const SizedBox(height: 16),
                 const Text(
-                  "Are these changes permanent or only for this DPR?",
+                  "How should these changes be applied?",
                   style: TextStyle(
                     fontSize: 14,
                     color: Colors.black87,
                   ),
                 ),
                 const SizedBox(height: 24),
-                Row(
-                  mainAxisAlignment: MainAxisAlignment.end,
+                Column(
+                  mainAxisSize: MainAxisSize.min,
                   children: [
-                    TextButton(
-                      style: TextButton.styleFrom(
-                        foregroundColor: Colors.black,
-                      ),
-                      onPressed: () => Navigator.pop(context, false),
-                      child: const Text("Only This DPR"),
-                    ),
-                    const SizedBox(width: 12),
-                    ElevatedButton(
-                      style: ElevatedButton.styleFrom(
-                        backgroundColor: Colors.black,
-                        foregroundColor: Colors.white,
-                        shape: const RoundedRectangleBorder(
-                          borderRadius: BorderRadius.zero, // sharp button
+                    SizedBox(
+                      width: double.infinity,
+                      child: ElevatedButton(
+                        style: ElevatedButton.styleFrom(
+                          backgroundColor: const Color(0xFF1B6DCE),
+                          foregroundColor: Colors.white,
+                          padding: const EdgeInsets.symmetric(vertical: 12),
+                          shape: RoundedRectangleBorder(
+                            borderRadius: BorderRadius.circular(8),
+                          ),
+                          elevation: 0,
                         ),
-                        elevation: 0,
+                        onPressed: () => Navigator.pop(context, true),
+                        child: const Text(
+                          "Permanent Changes",
+                          style: TextStyle(fontWeight: FontWeight.bold),
+                        ),
                       ),
-                      onPressed: () => Navigator.pop(context, true),
-                      child: const Text("Permanent"),
+                    ),
+                    const SizedBox(height: 12),
+                    SizedBox(
+                      width: double.infinity,
+                      child: OutlinedButton(
+                        style: OutlinedButton.styleFrom(
+                          foregroundColor: const Color(0xFF1B6DCE),
+                          side: const BorderSide(color: Color(0xFF1B6DCE)),
+                          padding: const EdgeInsets.symmetric(vertical: 12),
+                          shape: RoundedRectangleBorder(
+                            borderRadius: BorderRadius.circular(8),
+                          ),
+                        ),
+                        onPressed: () => Navigator.pop(context, false),
+                        child: const Text(
+                          "Temporary Changes",
+                          style: TextStyle(fontWeight: FontWeight.bold),
+                        ),
+                      ),
                     ),
                   ],
                 ),
@@ -1204,6 +1224,104 @@ class _AddDescriptionScreenState extends ConsumerState<AddDescriptionScreen>
       setState(() {
         _updatingMaterialIds.remove(material.id);
       });
+    }
+  }
+
+  Future<void> _openEditOverlay(dynamic material, bool isPiping) async {
+    if (!_isEditable) {
+      _showEditRequiredMessage();
+      return;
+    }
+
+    final isPermanent = await _askMaterialScope();
+    if (isPermanent == null) return;
+
+    final rateFileMeta = ref.read(rateFileMetaProvider(siteId));
+    final rateUploadId = rateFileMeta['rateFileId'] as String?;
+
+    if (isPermanent) {
+      // ── PERMANENT CHANGES (Calls Rate API inside overlay) ──
+      final success = isPiping
+          ? await showPipingEditOverlay(
+              context: context,
+              material: material as PipingItem,
+              rateUploadId: rateUploadId,
+              siteId: siteId,
+              returnResult: false, // Calls API
+            )
+          : await showEquipmentEditOverlay(
+              context: context,
+              material: material as EquipmentItem,
+              rateUploadId: rateUploadId,
+              siteId: siteId,
+              returnResult: false, // Calls API
+            );
+
+      if (success == true) {
+        // After master rate is updated, we still need to update the local DPR card
+        // to match the new master data (or at least reflect the change)
+        // Since the overlay updated the master rate, the easiest way is to re-sync.
+        // But for now, let's just update the local material fields too.
+        // The overlay doesn't return the result when success=true, it just pops.
+        // Actually, I should probably make it return the result even on success
+        // so we can update the local DPR state without another fetch.
+        // BUT the user said "integrate with existing rate APIs", which I did.
+        
+        // Let's just trigger a local refresh if needed.
+        // Actually, if it was permanent, the user likely wants the DPR to reflect it too.
+        // I'll re-fetch the DPR work to be safe if _mechanicalId exists.
+        if (_mechanicalId != null) {
+          await _fetchDprWorkById();
+        }
+      }
+    } else {
+      // ── TEMPORARY CHANGES (Local only) ──
+      final result = isPiping
+          ? await showPipingEditOverlay(
+              context: context,
+              material: material as PipingItem,
+              rateUploadId: rateUploadId,
+              siteId: siteId,
+              returnResult: true, // Returns MaterialEditResult
+            )
+          : await showEquipmentEditOverlay(
+              context: context,
+              material: material as EquipmentItem,
+              rateUploadId: rateUploadId,
+              siteId: siteId,
+              returnResult: true, // Returns MaterialEditResult
+            );
+
+      if (result is MaterialEditResult) {
+        if (isPiping) {
+          final materials = ref.read(pipingMaterialsProvider);
+          final updated = materials.map((m) {
+            if (m.id != (material as PipingItem).id) return m;
+            return m.copyWith(
+              materialName: result.name,
+              uom: result.uom,
+              calculationCategory: result.categoryId ?? m.calculationCategory,
+              dynamicFields: result.fields,
+              image: result.imageFile?.path ?? m.image,
+            );
+          }).toList();
+          ref.read(pipingMaterialsProvider.notifier).state = updated;
+        } else {
+          final materials = ref.read(equipmentMaterialsProvider);
+          final updated = materials.map((m) {
+            if (m.id != (material as EquipmentItem).id) return m;
+            return m.copyWith(
+              materialName: result.name,
+              uom: result.uom,
+              calculationCategory: result.categoryId ?? m.calculationCategory,
+              dynamicFields: result.fields,
+              image: result.imageFile?.path ?? m.image,
+            );
+          }).toList();
+          ref.read(equipmentMaterialsProvider.notifier).state = updated;
+        }
+        _showSnackBar('Temporary changes applied to this DPR');
+      }
     }
   }
 
@@ -1325,14 +1443,15 @@ class _AddDescriptionScreenState extends ConsumerState<AddDescriptionScreen>
             ),
           ],
           child: Column(
-            children: [
-              if (_isLoading)
-                const LinearProgressIndicator(
-                  backgroundColor: Colors.transparent,
-                  valueColor: AlwaysStoppedAnimation<Color>(Color(0xFF1B6DCE)),
-                ),
-              Expanded(
-                child: SingleChildScrollView(
+              children: [
+                if (_isLoading)
+                  const ShimmerList(
+                    type: ShimmerListType.card,
+                    itemCount: 3,
+                    scrollable: false,
+                  ),
+                Expanded(
+                  child: SingleChildScrollView(
                   padding: const EdgeInsets.all(6),
                   physics: const BouncingScrollPhysics(),
                   child: Column(
@@ -2206,14 +2325,7 @@ class _AddDescriptionScreenState extends ConsumerState<AddDescriptionScreen>
         child: Column(
           children: [
             if (isLoading)
-              SizedBox(
-                width: 28,
-                height: 28,
-                child: CircularProgressIndicator(
-                  strokeWidth: 3,
-                  color: value ? Colors.white : const Color(0xFF1B6DCE),
-                ),
-              ),
+              const ShimmerCircle(size: 28),
             Text(
               title,
               textAlign: TextAlign.center,
@@ -2398,11 +2510,7 @@ class _AddDescriptionScreenState extends ConsumerState<AddDescriptionScreen>
                   copyDprMaterialLocal(material: material, isPiping: true,rateUploadId: rateUploadId!),
               onDelete: () =>
                   deleteDprMaterialLocal(materialId: material.id, isPiping: true),
-              onEdit:  () {
-                setState(() {
-                  editingMaterialId = material.id;
-                });
-              },
+              onEdit: () => _openEditOverlay(material, true),
               onRemark: () => _showRemarkDialog(
                   material.id, material.remarks ?? '',
                   isPiping: true),
@@ -2508,7 +2616,7 @@ class _AddDescriptionScreenState extends ConsumerState<AddDescriptionScreen>
                 copyDprMaterialLocal(material: material, isPiping: false,rateUploadId: rateUploadId!),
             onDelete: () => deleteDprMaterialLocal(
                 materialId: material.id, isPiping: false),
-            onEdit: () => _editDprMaterial(material, ""),
+            onEdit: () => _openEditOverlay(material, false),
             isEditable: _isEditable,
             onRemark: () => _showRemarkDialog(
               material.id,
@@ -2749,7 +2857,7 @@ class _AddDescriptionScreenState extends ConsumerState<AddDescriptionScreen>
   Future<void> _handleSubmitFields() async {
     if (_isDisposed) return;
 
-    if (!_isEditable) {
+    if (!_isEditable&&! _isDateOverrideMode ) {
       _showEditRequiredMessage();
       return;
     }
@@ -2781,82 +2889,82 @@ class _AddDescriptionScreenState extends ConsumerState<AddDescriptionScreen>
 
       debugPrint("🟦 RAW PIPING MATERIALS (${pipingMaterials.length})");
 
-      for (final m in pipingMaterials) {
-        debugPrint("""
-🧱 PIPING
-  id: ${m.id}
-
-  🔍 TRACEABILITY
-  rawName: ${m.rawMaterialName}
-  normalizedName: ${m.normalizedMaterialName}
-  displayName: ${m.materialName}
-  isFromRateFile: ${m.isFromRateFile}
-  rateFileId: ${m.rateFileId}
-  rateVariantId: ${m.rateVariantId}
-  rateId: ${m.rateId}
-
-  
-
-  📦 VALUES
-  qty(dynamic): ${_getDynamicQty(m)}
-  size(dynamic): ${_getDynamicValue(m.dynamicFields, 'size')}
-  length: ${m.length}
-  uom: ${m.uom}
-  moc: ${m.moc}
-  calcCat: ${m.calculationCategory}
-  remarks: ${m.remarks}
-""");
-
-        if (m.dynamicFields.isEmpty) {
-          debugPrint("  ⚠️ No dynamic fields");
-        } else {
-          debugPrint("  🔸 Dynamic Fields:");
-          for (final f in m.dynamicFields) {
-            debugPrint(
-              "     → key: ${f.key}, label: ${f.label}, value: ${f.value}, unit: ${f.unit}, display: ${f.displayText}",
-            );
-          }
-        }
-      }
-      debugPrint("🟩 RAW EQUIPMENT MATERIALS (${equipmentMaterials.length})");
-
-
-      for (final m in equipmentMaterials) {
-        debugPrint("""
-🔩 EQUIPMENT
-  id: ${m.id}
-
-  🔍 TRACEABILITY
-  rawName: ${m.rawMaterialName}
-  normalizedName: ${m.normalizedMaterialName}
-  displayName: ${m.materialName}
-  isFromRateFile: ${m.isFromRateFile}
-  rateFileId: ${m.rateFileId}
-  rateVariantId: ${m.rateVariantId}
-
-  📦 VALUES
-  qty: ${m.qty}
-  weight: ${m.weight}
-  length: ${m.length}
-  diameter: ${m.diameter}
-  power: ${m.power}
-  uom: ${m.uom}
-  moc: ${m.moc}
-  calcCat: ${m.calculationCategory}
-  remarks: ${m.remarks}
-""");
-
-        if (m.dynamicFields.isEmpty) {
-          debugPrint("  ⚠️ No dynamic fields");
-        } else {
-          debugPrint("  🔸 Dynamic Fields:");
-          for (final f in m.dynamicFields) {
-            debugPrint(
-              "     → key: ${f.key}, label: ${f.label}, value: ${f.value}, unit: ${f.unit}, display: ${f.displayText}",
-            );
-          }
-        }
-      }
+//       for (final m in pipingMaterials) {
+//         debugPrint("""
+// 🧱 PIPING
+//   id: ${m.id}
+//
+//   🔍 TRACEABILITY
+//   rawName: ${m.rawMaterialName}
+//   normalizedName: ${m.normalizedMaterialName}
+//   displayName: ${m.materialName}
+//   isFromRateFile: ${m.isFromRateFile}
+//   rateFileId: ${m.rateFileId}
+//   rateVariantId: ${m.rateVariantId}
+//   rateId: ${m.rateId}
+//
+//
+//
+//   📦 VALUES
+//   qty(dynamic): ${_getDynamicQty(m)}
+//   size(dynamic): ${_getDynamicValue(m.dynamicFields, 'size')}
+//   length: ${m.length}
+//   uom: ${m.uom}
+//   moc: ${m.moc}
+//   calcCat: ${m.calculationCategory}
+//   remarks: ${m.remarks}
+// """);
+//
+//         if (m.dynamicFields.isEmpty) {
+//           debugPrint("  ⚠️ No dynamic fields");
+//         } else {
+//           debugPrint("  🔸 Dynamic Fields:");
+//           for (final f in m.dynamicFields) {
+//             debugPrint(
+//               "     → key: ${f.key}, label: ${f.label}, value: ${f.value}, unit: ${f.unit}, display: ${f.displayText}",
+//             );
+//           }
+//         }
+//       }
+//       debugPrint("🟩 RAW EQUIPMENT MATERIALS (${equipmentMaterials.length})");
+//
+//
+//       for (final m in equipmentMaterials) {
+//         debugPrint("""
+// 🔩 EQUIPMENT
+//   id: ${m.id}
+//
+//   🔍 TRACEABILITY
+//   rawName: ${m.rawMaterialName}
+//   normalizedName: ${m.normalizedMaterialName}
+//   displayName: ${m.materialName}
+//   isFromRateFile: ${m.isFromRateFile}
+//   rateFileId: ${m.rateFileId}
+//   rateVariantId: ${m.rateVariantId}
+//
+//   📦 VALUES
+//   qty: ${m.qty}
+//   weight: ${m.weight}
+//   length: ${m.length}
+//   diameter: ${m.diameter}
+//   power: ${m.power}
+//   uom: ${m.uom}
+//   moc: ${m.moc}
+//   calcCat: ${m.calculationCategory}
+//   remarks: ${m.remarks}
+// """);
+//
+//         if (m.dynamicFields.isEmpty) {
+//           debugPrint("  ⚠️ No dynamic fields");
+//         } else {
+//           debugPrint("  🔸 Dynamic Fields:");
+//           for (final f in m.dynamicFields) {
+//             debugPrint(
+//               "     → key: ${f.key}, label: ${f.label}, value: ${f.value}, unit: ${f.unit}, display: ${f.displayText}",
+//             );
+//           }
+//         }
+//       }
 
       // Transform piping materials to API format
       // ✅ merge piping + equipment into ONE list
@@ -3201,11 +3309,7 @@ class MaterialCardWrapper extends StatelessWidget {
                   child: const Column(
                     mainAxisSize: MainAxisSize.min,
                     children: [
-                      SizedBox(
-                        width: 24,
-                        height: 24,
-                        child: CircularProgressIndicator(strokeWidth: 2.5),
-                      ),
+                      const ShimmerCircle(size: 24),
                       SizedBox(height: 8),
                       Text(
                         'Updating...',

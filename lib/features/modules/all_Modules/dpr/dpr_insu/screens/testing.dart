@@ -1,11 +1,13 @@
 import 'dart:convert';
 import 'dart:math';
+import 'dart:io';
 
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import 'package:intl/intl.dart';
 import 'package:cached_network_image/cached_network_image.dart';
+import 'package:untitled2/core/utlis/app_toasts.dart';
 import 'package:untitled2/core/utlis/widgets/Button_wrapper.dart';
 import 'package:untitled2/core/utlis/widgets/custom_appBar.dart';
 import 'package:untitled2/features/modules/all_Modules/dpr/offline/data/local/local_material.dart';
@@ -17,17 +19,19 @@ import 'package:untitled2/features/modules/all_Modules/team/model/teamModel.dart
 import 'package:untitled2/core/utlis/widgets/buttons.dart';
 import 'package:untitled2/core/utlis/widgets/custom.dart';
 import 'package:untitled2/features/modules/all_Modules/team/provider/teamProvider.dart';
-import '../../../../../../core/utlis/colors/colors.dart';
 import '../../../../../../core/utlis/common_functions.dart';
 import '../../../../../../core/utlis/widgets/sidebar.dart';
+import '../../offline/data/local/cache_image_dao.dart';
+import '../../offline/data/local/local_material_dao.dart';
 import '../../offline/data/material_sync_service.dart';
 import '../../offline/data/repo/material_repo_provider.dart';
 import '../../providers/selectedSize_provider.dart';
 import '../../screens/add_description.dart';
+import '../../utils/image_track/material_image_upload_service.dart';
 import '../model/card_form_State.dart';
 import '../model/dpr_model_insu.dart';
 import '../model/eqip_insu.dart';
-import '../model/field_config.dart';
+import '../model/field_config.dart' hide FieldEntry;
 import '../model/insu_step_date.dart';
 import '../model/material_setup.dart';
 import '../model/piping_insu.dart';
@@ -40,6 +44,8 @@ import '../service/insulation_dpr_service.dart';
 import '../service/material_service.dart';
 import '../widgets/equipment_card.dart';
 import '../widgets/piping_card.dart';
+import '../../../../../../core/utlis/widgets/shimmer.dart';
+import '../model/field_config.dart' as fc;
 
 class AddInsulationDescriptionScreen extends ConsumerStatefulWidget {
   final InsulationDprModel? work;
@@ -99,17 +105,20 @@ class _AddInsulationDescriptionScreenState
   bool _removeLagging = false;
   bool _removeCladding = false;
   bool _materialListenerAttached = false;
+  bool _isEditingExistingWork = false;
 
   List<InsulationDprModel> _dprListForSelectedDate = [];
   bool _isLoadingDprList = false;
+  bool _isDateOverrideMode = false;
 
   // Insulation layer state
   LayerType _selectedLayerType = LayerType.single;
   final List<LayerData> _layers = [];
   LayerData _cladding = LayerData.empty();
 
-  // 🔥 State Sync Keys
-  final Map<String, GlobalKey<State<EquipmentMaterialCard>>> _equipmentKeys = {};
+  final Map<String, GlobalKey<State<EquipmentMaterialCard>>> _equipmentKeys =
+      {};
+  final Map<String, GlobalKey<State<PipingMaterialCard>>> _pipingKeys = {};
 
   bool get isCreatingDpr => _insulationId == null;
   bool get isEditingDpr => _insulationId != null;
@@ -117,37 +126,215 @@ class _AddInsulationDescriptionScreenState
   @override
   void initState() {
     super.initState();
-
     _initializeControllers();
     _initializeData();
+    _isEditingExistingWork = widget.work != null;
 
-    if (widget.work == null) {
-      setState(() {
-        _isLoadingMaterials = true;
-      });
-      WidgetsBinding.instance.addPostFrameCallback((_) {
-        // _loadMaterials();   // 👈 run async loader
-        _loadMaterialSetups(siteId); // 👈 load setups
-      });
+    WidgetsBinding.instance.addPostFrameCallback((_) async {
+      ref.read(insulationPipingMaterialsProvider.notifier).clear();
+      ref.read(insulationEquipmentMaterialsProvider.notifier).clear();
 
+      if (!mounted) return;
 
-    }
-
-    WidgetsBinding.instance.addPostFrameCallback((_) {
       if (widget.work != null) {
-        _initializeFromWork(widget.work!);
-        _loadMaterialSetups(siteId); // 👈 load setups even if work exists
+        // ✅ Step 1: immediately set materials from work (no waiting)
+        //    Cards render with correct qty/size from day 1
+        // Set materials FIRST so cards show immediately with correct data
+        _initializeFromWorkImmediate(widget.work!);
+
+        // THEN load setups in background for field config
+        // When setups load, setState triggers rebuild with proper materialSetup
+        await _loadMaterialSetupsOnly(siteId);
+
+        // Re-hydrate equipment cardFormState now that setups are available
+        if (mounted) _rehydrateEquipmentWithSetups();
       } else {
+        setState(() => _isLoadingMaterials = true);
+        _loadMaterialSetups(siteId);
         setState(() => _loadLayersFromProvider());
       }
     });
   }
 
+// ✅ Sets all UI state and providers immediately — no setup dependency
+  void _initializeFromWorkImmediate(InsulationDprModel work) {
+    setState(() {
+      _insulationId = work.id;
+      _selectedDprId = work.id;
+      _selectedDate = work.date;
+      _dprNameController.text = work.workDescription;
+      _plantController.text = work.plant ?? '';
+      _floorController.text = work.location;
+      ref.read(dprSizeProvider.notifier).state = work.size.toString();
+      _sizeController.text = work.size.toString();
+      _pipeInsulationOn = work.pipingMaterials.isNotEmpty;
+      _equipmentInsulationOn = work.equipmentMaterials.isNotEmpty;
+      _showPipingMaterials = _pipeInsulationOn;
+      _showEquipmentMaterials = _equipmentInsulationOn;
+      _loadLayersFromModel(work);
+    });
+
+    // Set piping directly — all data is on the flat model, no setup needed
+    ref
+        .read(insulationPipingMaterialsProvider.notifier)
+        .setMaterials(work.pipingMaterials);
+
+    // Set equipment with cardFormState built from fieldValues (API data)
+    final equipmentWithState = work.equipmentMaterials.map((e) {
+      // Build cardFormState purely from API fieldValues — no setup needed
+      final cardState = _buildCardStateFromFieldValues(e);
+      return e.copyWith(cardFormState: cardState);
+    }).toList();
+
+    ref
+        .read(insulationEquipmentMaterialsProvider.notifier)
+        .setMaterials(equipmentWithState);
+  }
+
+// ✅ Build CardFormState purely from the API's fieldValues map
+//    No setup/schema needed — just read what the server sent
+// ✅ Fix 1 & 2: Remove field_config.dart import conflict
+// In your imports, use a prefix for field_config to avoid FieldEntry clash:
+
+// Now FieldEntry from card_form_State.dart is the default one used everywhere
+// and fc.FieldEntry refers to the one in field_config.dart (which you won't need)
+
+// ✅ Fix 3 & 4: Corrected _buildCardStateFromFieldValues
+  CardFormState _buildCardStateFromFieldValues(EquipmentMaterial e) {
+    if (e.cardFormState != null && e.cardFormState!.fieldEntries.isNotEmpty) {
+      return e.cardFormState!;
+    }
+
+    final fieldValuesMap = e.fieldValues?.values;
+
+    if (fieldValuesMap == null || fieldValuesMap.isEmpty) {
+      return const CardFormState(
+        fieldEntries: {},
+        geometryMode: null,
+        customLabels: {},
+      );
+    }
+
+    final geometryMode = fieldValuesMap['geometryMode']?.toString();
+
+    // ✅ Explicitly typed as card_form_State.dart's FieldEntry
+    final entries =
+        <String, FieldEntry>{}; // FieldEntry from card_form_State.dart
+
+    fieldValuesMap.forEach((key, value) {
+      if (key.endsWith('Uom') || key == 'geometryMode') return;
+      final unit = fieldValuesMap['${key}Uom']?.toString();
+      entries[key] = FieldEntry(value: value, unit: unit ?? '');
+    });
+
+    return CardFormState(
+      fieldEntries: entries,
+      geometryMode: geometryMode,
+      customLabels: const {},
+    );
+  }
+
+// ✅ Fix 4: Corrected _rehydrateEquipmentWithSetups
+// FieldDefinition has no defaultUnit — resolve unit from fieldConfig.defaults
+  void _rehydrateEquipmentWithSetups() {
+    final existing = ref.read(insulationEquipmentMaterialsProvider);
+
+    final rehydrated = existing.map((e) {
+      final setup = _equipmentSetups.firstWhere(
+        (s) => s.materialCode == e.materialCode,
+        orElse: () => _emptySetup(e, siteId),
+      );
+
+      if (e.cardFormState != null && e.cardFormState!.fieldEntries.isNotEmpty) {
+        var state = e.cardFormState!;
+
+        // Add missing fields from setup schema without overwriting existing values
+        for (final field in setup.fieldConfig.fields) {
+          if (!state.fieldEntries.containsKey(field.key)) {
+            // Resolve default unit from fieldConfig.defaults (not field.defaultUnit)
+            String? defaultUnit;
+            if (field.dropdown != null) {
+              defaultUnit =
+                  setup.fieldConfig.defaults.defaultFor(field.dropdown!);
+              // Fallback: first option in the dropdown list
+              if (defaultUnit == null) {
+                final opts =
+                    setup.fieldConfig.unitDropdowns.optionsFor(field.dropdown!);
+                defaultUnit = opts.isNotEmpty ? opts.first : null;
+              }
+            }
+            state = state.updateValue(field.key, null);
+            if (defaultUnit != null) {
+              state = state.updateUnit(field.key, defaultUnit);
+            }
+          }
+        }
+
+        // Set geometryMode from setup defaults if missing in state
+        if ((state.geometryMode == null || state.geometryMode!.isEmpty) &&
+            setup.fieldConfig.defaults.geometryMode != null) {
+          state = state.copyWith(
+            geometryMode: setup.fieldConfig.defaults.geometryMode,
+          );
+        }
+
+        return e.copyWith(cardFormState: state);
+      }
+
+      // No cardFormState — build fresh from setup schema
+      return e.copyWith(
+        cardFormState:
+            CardFormState.buildInitial(fieldConfig: setup.fieldConfig),
+      );
+    }).toList();
+
+    ref
+        .read(insulationEquipmentMaterialsProvider.notifier)
+        .setMaterials(rehydrated);
+  }
+
+// Keep _initializeFromWork for the dropdown DPR selection case
+  void _initializeFromWork(InsulationDprModel work) {
+    ref.read(insulationPipingMaterialsProvider.notifier).clear();
+    ref.read(insulationEquipmentMaterialsProvider.notifier).clear();
+    _initializeFromWorkImmediate(work);
+  }
+
+  Future<void> _loadMaterialSetupsOnly(String siteId) async {
+    try {
+      var piping = await _syncService.getMaterials(
+        siteId: siteId,
+        designation: 'piping',
+        preferLocal: true,
+      );
+      var equipment = await _syncService.getMaterials(
+        siteId: siteId,
+        designation: 'equipment',
+        preferLocal: true,
+      );
+
+      // Resolve cached images
+      piping = await _resolveSetupImages(piping);
+      equipment = await _resolveSetupImages(equipment);
+
+      if (mounted) {
+        setState(() {
+          _pipingSetups = piping;
+          _equipmentSetups = equipment;
+          _setupsLoaded = true;
+        });
+      }
+      // ✅ No _attachMaterialListeners() call — work model owns the state
+    } catch (e) {
+      if (mounted) setState(() => _setupsLoaded = true);
+    } finally {
+      if (mounted) setState(() => _isLoadingMaterials = false);
+    }
+  }
 
   Future<void> _loadMaterials() async {
     final repo = ref.read(materialRepositoryProvider);
     print("77777777777777777777");
-
 
     if (!mounted) return;
 
@@ -222,7 +409,9 @@ class _AddInsulationDescriptionScreenState
       }).toList();
 
       // Update the equipment provider with initialized materials
-      ref.read(insulationEquipmentMaterialsProvider.notifier).updateSetups(equipment);
+      ref
+          .read(insulationEquipmentMaterialsProvider.notifier)
+          .updateSetups(equipment);
 
       ref.read(insulationPipingMaterialsProvider.notifier).updateSetups(piping);
 
@@ -230,18 +419,93 @@ class _AddInsulationDescriptionScreenState
       final unit = ref.read(selectedUnitProvider);
       debugPrint('🚀 Triggering updateAllSizes with: $size ($unit)');
       ref.read(insulationPipingMaterialsProvider.notifier).updateAllSizes(
-        size: size ?? '',
-        unit: unit ?? '',
-      );
+            size: size ?? '',
+            unit: unit ?? '',
+          );
 
       _attachMaterialListeners();
-    } catch (e,s) {
+    } catch (e, s) {
       debugPrint('❌ Failed to load material setups: $e');
       if (mounted) setState(() => _setupsLoaded = true);
+    } finally {
+      if (mounted) setState(() => _isLoadingMaterials = false);
     }
   }
-  MaterialSetup? _findMaterialSetup(String? code, String designation) {
 
+  // ─────────────────────────────────────────────
+  // IMAGE CACHE RESOLUTION
+  // ─────────────────────────────────────────────
+
+  Future<List<MaterialSetup>> _resolveSetupImages(
+      List<MaterialSetup> setups) async {
+    final dao = CachedImageDao();
+    final List<MaterialSetup> resolved = [];
+    for (var setup in setups) {
+      final List<String> updatedImages = [];
+      bool changed = false;
+      for (var url in setup.image) {
+        if (url.startsWith('http')) {
+          final local = await dao.getLocalPath(url);
+          if (local != null && File(local).existsSync()) {
+            updatedImages.add(local);
+            changed = true;
+            continue;
+          }
+        }
+        updatedImages.add(url);
+      }
+      resolved.add(changed ? setup.copyWith(image: updatedImages) : setup);
+    }
+    return resolved;
+  }
+
+  Future<List<PipingMaterial>> _resolvePipingImages(
+      List<PipingMaterial> materials) async {
+    final dao = CachedImageDao();
+    final List<PipingMaterial> resolved = [];
+    for (var m in materials) {
+      final List<String> updatedImages = [];
+      bool changed = false;
+      for (var url in m.image) {
+        if (url.startsWith('http')) {
+          final local = await dao.getLocalPath(url);
+          if (local != null && File(local).existsSync()) {
+            updatedImages.add(local);
+            changed = true;
+            continue;
+          }
+        }
+        updatedImages.add(url);
+      }
+      resolved.add(changed ? m.copyWith(image: updatedImages) : m);
+    }
+    return resolved;
+  }
+
+  Future<List<EquipmentMaterial>> _resolveEquipmentImages(
+      List<EquipmentMaterial> materials) async {
+    final dao = CachedImageDao();
+    final List<EquipmentMaterial> resolved = [];
+    for (var m in materials) {
+      final List<String> updatedImages = [];
+      bool changed = false;
+      for (var url in m.image) {
+        if (url.startsWith('http')) {
+          final local = await dao.getLocalPath(url);
+          if (local != null && File(local).existsSync()) {
+            updatedImages.add(local);
+            changed = true;
+            continue;
+          }
+        }
+        updatedImages.add(url);
+      }
+      resolved.add(changed ? m.copyWith(image: updatedImages) : m);
+    }
+    return resolved;
+  }
+
+  MaterialSetup? _findMaterialSetup(String? code, String designation) {
     if (!_setupsLoaded) {
       print("⏳ Setups not loaded yet → returning null");
       // ✅ FIX: Trigger a reload if setups aren't loaded
@@ -249,24 +513,23 @@ class _AddInsulationDescriptionScreenState
         if (!_setupsLoaded && mounted) {
           final siteId = ref.read(selectedSiteIdProvider);
           if (siteId != null) {
-            _loadMaterialSetups(siteId);
+            if (_isEditingExistingWork) {
+              _loadMaterialSetupsOnly(siteId);
+            } else {
+              _loadMaterialSetups(siteId);
+            }
           }
         }
       });
       return null;
     }
 
-    final pool = designation == 'piping'
-        ? _pipingSetups
-        : _equipmentSetups;
-
-
+    final pool = designation == 'piping' ? _pipingSetups : _equipmentSetups;
 
     if (pool.isEmpty) {
       print("❌ No setups available → returning null");
       return null;
     }
-
 
     if (code == null || code.isEmpty) {
       print("❌ INVALID materialCode (null or empty)");
@@ -277,7 +540,6 @@ class _AddInsulationDescriptionScreenState
     final matches = pool.where((s) => s.materialCode == code).toList();
 
     if (matches.isNotEmpty) {
-
       return matches.first;
     }
 
@@ -288,47 +550,46 @@ class _AddInsulationDescriptionScreenState
   void _attachMaterialListeners() {
     if (_materialListenerAttached) return;
     _materialListenerAttached = true;
+    if (_isEditingExistingWork) return;
 
     final size = ref.read(selectedSizeProvider) ?? '';
     final unit = ref.read(selectedUnitProvider);
 
     ref.listenManual(
       materialsStreamProvider((
-      siteId: siteId,
-      domain: 'insulation',
-      designation: 'piping',
+        siteId: siteId,
+        domain: 'insulation',
+        designation: 'piping',
       )),
-          (previous, next) {
+      (previous, next) {
         next.whenData((localMaterials) {
           if (!mounted) return;
 
           // ✅ DEBUG: Check what's coming from the database
           for (var m in localMaterials) {
-            print("🔍 LocalMaterial: id=${m.id}, name=${m.name}, materialCode=${m.materialCode}");
+            print(
+                "🔍 LocalMaterial: id=${m.serverId}, name=${m.name}, materialCode=${m.materialCode}");
           }
 
-          final incoming = localMaterials
-              .where((m) => !m.isDeleted)
-              .map((m) {
+          final incoming = localMaterials.where((m) => !m.isDeleted).map((m) {
             final piping = m.toPiping();
-            // ✅ FIX: Explicitly set materialCode from LocalMaterial
-            if (piping.materialCode!.isEmpty && m.materialCode != null) {
-              return piping.copyWith(materialCode: m.materialCode);
-            }
-            return piping;
-          })
-              .toList();
+            // ✅ CRITICAL FIX: Always preserve the server ID from LocalMaterial
+            return piping.copyWith(
+              id: m.serverId, // ← Use serverId from LocalMaterial
+              materialCode: m.materialCode ?? piping.materialCode,
+            );
+          }).toList();
 
-
-          Future.microtask(() {
+          Future.microtask(() async {
             if (!mounted) return;
 
-            final notifier = ref.read(insulationPipingMaterialsProvider.notifier);
+            final notifier =
+                ref.read(insulationPipingMaterialsProvider.notifier);
             final existing = ref.read(insulationPipingMaterialsProvider);
 
             final merged = incoming.map((newMat) {
               final old = existing.firstWhere(
-                    (e) => e.id == newMat.id,
+                (e) => e.id == newMat.id,
                 orElse: () => newMat,
               );
 
@@ -341,7 +602,8 @@ class _AddInsulationDescriptionScreenState
               );
             }).toList();
 
-            notifier.setMaterials(merged);
+            final resolved = await _resolvePipingImages(merged);
+            notifier.setMaterials(resolved);
             notifier.updateAllSizes(size: size, unit: unit);
           });
         });
@@ -352,23 +614,21 @@ class _AddInsulationDescriptionScreenState
     // Equipment listener already works, but we need to ensure materialCode is preserved
     ref.listenManual(
       materialsStreamProvider((
-      siteId: siteId,
-      domain: 'insulation',
-      designation: 'equipment',
+        siteId: siteId,
+        domain: 'insulation',
+        designation: 'equipment',
       )),
-          (previous, next) {
+      (previous, next) {
         next.whenData((localMaterials) {
           if (!mounted) return;
 
           // ✅ FIX: Initialize each equipment material with proper cardFormState
-          final incoming = localMaterials
-              .where((m) => !m.isDeleted)
-              .map((m) {
+          final incoming = localMaterials.where((m) => !m.isDeleted).map((m) {
             final equipment = m.toEquipment();
 
             // 🔥 Find the corresponding MaterialSetup to get fieldConfig
             final setup = _equipmentSetups.firstWhere(
-                  (s) => s.id == equipment.id,
+              (s) => s.id == equipment.id,
               orElse: () => MaterialSetup(
                 id: equipment.id,
                 name: equipment.name,
@@ -399,23 +659,24 @@ class _AddInsulationDescriptionScreenState
             }
 
             return equipment;
-          })
-              .toList();
+          }).toList();
 
-          Future.microtask(() {
+          Future.microtask(() async {
             if (!mounted) return;
 
-            final notifier = ref.read(insulationEquipmentMaterialsProvider.notifier);
+            final notifier =
+                ref.read(insulationEquipmentMaterialsProvider.notifier);
             final existing = ref.read(insulationEquipmentMaterialsProvider);
 
             final merged = incoming.map((newMat) {
               final old = existing.firstWhere(
-                    (e) => e.id == newMat.id,
+                (e) => e.id == newMat.id,
                 orElse: () => newMat,
               );
 
               // ✅ Preserve existing values while ensuring cardFormState is initialized
-              final updatedCardState = old.cardFormState ?? newMat.cardFormState;
+              final updatedCardState =
+                  old.cardFormState ?? newMat.cardFormState;
 
               return newMat.copyWith(
                 cardFormState: updatedCardState,
@@ -425,13 +686,15 @@ class _AddInsulationDescriptionScreenState
               );
             }).toList();
 
-            notifier.setMaterials(merged);
+            final resolved = await _resolveEquipmentImages(merged);
+            notifier.setMaterials(resolved);
           });
         });
       },
       fireImmediately: true,
     );
   }
+
   // Future<void> _hydrateFromMaterialStream() async {
   //   final siteId = ref.read(selectedSiteIdProvider)!;
   //   ref.read(insulationPipingMaterialsProvider).clear();
@@ -530,71 +793,69 @@ class _AddInsulationDescriptionScreenState
     _claddingThicknessController = TextEditingController();
     _claddingController = TextEditingController();
   }
-  void _initializeFromWork(InsulationDprModel work) {
-    ref
-        .read(insulationPipingMaterialsProvider.notifier)
-        .clear();
+  // void _initializeFromWork(InsulationDprModel work) {
+  //   ref.read(insulationPipingMaterialsProvider.notifier).clear();
+  //   ref.read(insulationEquipmentMaterialsProvider.notifier).clear();
+  //
+  //   setState(() {
+  //     _insulationId = work.id;
+  //     _selectedDprId = work.id;
+  //     _dprNameController.text = work.workDescription;
+  //     _plantController.text = work.plant ?? '';
+  //     _floorController.text = work.location;
+  //     ref.read(dprSizeProvider.notifier).state = work.size.toString();
+  //     _sizeController.text = work.size.toString();
+  //     _pipeInsulationOn = work.pipingMaterials.isNotEmpty;
+  //     _equipmentInsulationOn = work.equipmentMaterials.isNotEmpty;
+  //     _showPipingMaterials = _pipeInsulationOn;
+  //     _showEquipmentMaterials = _equipmentInsulationOn;
+  //     _loadLayersFromModel(work);
+  //   });
+  //
+  //   // ✅ Hydrate cardFormState from setup fieldConfig IF missing,
+  //   //    but preserve any existing values from the work model
+  //   final hydratedPiping = work.pipingMaterials; // piping cards don't use cardFormState
+  //
+  //   final hydratedEquipment = work.equipmentMaterials.map((e) {
+  //     if (e.cardFormState != null && e.cardFormState!.fieldEntries.isNotEmpty) {
+  //       return e; // ✅ Already has values from API — use as-is
+  //     }
+  //     // cardFormState missing — build from setup schema
+  //     final setup = _equipmentSetups.firstWhere(
+  //           (s) => s.materialCode == e.materialCode,
+  //       orElse: () => _equipmentSetups.firstWhere(
+  //             (s) => s.id == e.id,
+  //         orElse: () => _emptySetup(e, siteId),
+  //       ),
+  //     );
+  //     return e.copyWith(
+  //       cardFormState: CardFormState.buildInitial(fieldConfig: setup.fieldConfig),
+  //     );
+  //   }).toList();
+  //
+  //   ref.read(insulationPipingMaterialsProvider.notifier).setMaterials(hydratedPiping);
+  //   ref.read(insulationEquipmentMaterialsProvider.notifier).setMaterials(hydratedEquipment);
+  // }
 
-    ref
-        .read(insulationEquipmentMaterialsProvider.notifier)
-        .clear();
-
-    debugPrint("========== INITIALIZE FROM WORK ==========");
-
-    debugPrint("DPR ID: ${work.id}");
-    debugPrint("Description: ${work.workDescription}");
-    debugPrint("Plant: ${work.plant}");
-    debugPrint("Location: ${work.location}");
-    debugPrint("Size: ${work.size}");
-    debugPrint("Layer: ${work.layer}");
-
-    debugPrint("Piping Materials Count: ${work.pipingMaterials.length}");
-    debugPrint("Equipment Materials Count: ${work.equipmentMaterials.length}");
-
-    /// FULL JSON PRINT
-    final pipingJson = work.pipingMaterials.map((e) => e.toJson()).toList();
-    final equipmentJson = work.equipmentMaterials.map((e) => e.toJson()).toList();
-
-    debugPrint("---- PIPING MATERIAL JSON ----");
-    debugPrint(const JsonEncoder.withIndent('  ').convert(pipingJson));
-
-    debugPrint("---- EQUIPMENT MATERIAL JSON ----");
-    debugPrint(const JsonEncoder.withIndent('  ').convert(equipmentJson));
-
-    debugPrint("================================");
-
-    setState(() {
-      /// CORE
-      _insulationId = work.id;
-      _selectedDprId = work.id;
-
-      _dprNameController.text = work.workDescription;
-      _plantController.text = work.plant ?? '';
-      _floorController.text = work.location;
-
-      ref.read(dprSizeProvider.notifier).state = work.size.toString();
-      _sizeController.text = work.size.toString();
-
-      /// TOGGLES
-      _pipeInsulationOn = work.pipingMaterials.isNotEmpty;
-      _equipmentInsulationOn = work.equipmentMaterials.isNotEmpty;
-
-      _showPipingMaterials = _pipeInsulationOn;
-      _showEquipmentMaterials = _equipmentInsulationOn;
-
-      /// LAYERS
-      _loadLayersFromModel(work);
-    });
-
-    /// PROVIDERS
-    ref
-        .read(insulationPipingMaterialsProvider.notifier)
-        .setMaterials(work.pipingMaterials);
-
-    ref
-        .read(insulationEquipmentMaterialsProvider.notifier)
-        .setMaterials(work.equipmentMaterials);
-  }
+// Helper to avoid null setup crashes
+  MaterialSetup _emptySetup(EquipmentMaterial e, String siteId) =>
+      MaterialSetup(
+        id: e.id,
+        name: e.name,
+        materialCode: e.materialCode ?? '',
+        image: e.image,
+        uom: e.uom ?? '',
+        designation: 'equipment',
+        calculationType: '',
+        siteId: siteId,
+        companyId: '',
+        fieldConfig: FieldConfig(
+          fields: [],
+          unitDropdowns: UnitDropdowns.fromJson({}),
+          defaults: FieldDefaults.fromJson({}),
+          ui: UiConfig.fromJson({}),
+        ),
+      );
 
   void _loadLayersFromModel(InsulationDprModel work) {
     _selectedLayerType = _mapLayerStringToEnum(work.layer);
@@ -670,15 +931,22 @@ class _AddInsulationDescriptionScreenState
   }
 
   Future<void> loadScreenState() async {
-    ref.read(insulationPipingMaterialsProvider.notifier).clear();
-    ref.read(insulationEquipmentMaterialsProvider.notifier).clear();
+    setState(() => _isLoadingMaterials = true);
+    try {
+      ref.read(insulationPipingMaterialsProvider.notifier).clear();
+      ref.read(insulationEquipmentMaterialsProvider.notifier).clear();
 
-    if (_insulationId != null) {
-      // 🔵 EDITING INSULATION DPR
-      await _loadInsulationDprMaterials();
-    } else {
-      // 🟢 CREATING NEW INSULATION DPR
-      await _loadDefaultInsulationMaterials();
+      if (_insulationId != null) {
+        // 🔵 EDITING INSULATION DPR
+        await _loadInsulationDprMaterials();
+      } else {
+        // 🟢 CREATING NEW INSULATION DPR
+        await _loadDefaultInsulationMaterials();
+      }
+    } finally {
+      if (mounted) {
+        setState(() => _isLoadingMaterials = false);
+      }
     }
   }
 
@@ -839,6 +1107,8 @@ class _AddInsulationDescriptionScreenState
           backgroundColor: Colors.red,
         ),
       );
+    } finally {
+      if (mounted) setState(() => _isLoadingMaterials = false);
     }
   }
 
@@ -895,14 +1165,18 @@ class _AddInsulationDescriptionScreenState
             )
           : LayerData.empty();
 
-      // Materials
+      // Materials resolved from cache
+      final resolvedPiping = await _resolvePipingImages(dpr.pipingMaterials);
+      final resolvedEquipment =
+          await _resolveEquipmentImages(dpr.equipmentMaterials);
+
       ref
           .read(insulationPipingMaterialsProvider.notifier)
-          .setMaterials(dpr.pipingMaterials);
+          .setMaterials(resolvedPiping);
 
       ref
           .read(insulationEquipmentMaterialsProvider.notifier)
-          .setMaterials(dpr.equipmentMaterials);
+          .setMaterials(resolvedEquipment);
 
       // Controllers
       _dprNameController.text = dpr.workDescription;
@@ -912,6 +1186,8 @@ class _AddInsulationDescriptionScreenState
       debugPrint('Error loading insulation DPR: $e');
       debugPrintStack(stackTrace: s);
       _showSnackBar('Failed to load DPR', isError: true);
+    } finally {
+      if (mounted) setState(() => _isLoadingMaterials = false);
     }
   }
 
@@ -969,6 +1245,13 @@ class _AddInsulationDescriptionScreenState
   }
 
   Future<void> _selectDate(BuildContext context) async {
+    if (!_isEditable) {
+      // Show toast message
+      AppToast.error("Edit mode is off");
+      return;
+    }
+
+    if (_isSubmitting) return;
     final picked = await showDatePicker(
       context: context,
       initialDate: _selectedDate,
@@ -994,6 +1277,22 @@ class _AddInsulationDescriptionScreenState
     }
 
     await loadScreenState();
+  }
+
+  Future<void> _handleDateOverride(BuildContext context) async {
+    final picked = await showDatePicker(
+      context: context,
+      initialDate: _selectedDate,
+      firstDate: DateTime(2020),
+      lastDate: DateTime.now(),
+    );
+
+    if (picked == null || picked == _selectedDate) return;
+
+    setState(() {
+      _selectedDate = picked;
+      _isDateOverrideMode = true;
+    });
   }
 
   String _formatDate(DateTime d) => "${d.day}/${d.month}/${d.year}";
@@ -1103,42 +1402,37 @@ class _AddInsulationDescriptionScreenState
     required dynamic material,
     required bool isPiping,
   }) {
-    if (isPiping) {
-      final notifier = ref.read(insulationPipingMaterialsProvider.notifier);
-      final materials = ref.read(insulationPipingMaterialsProvider);
+    final newId = generateObjectId();
 
+    if (isPiping) {
       if (material is! PipingMaterial) return;
 
-      final index = materials.indexWhere((m) => m.id == material.id);
-      if (index == -1) return;
+      // Pre-register GlobalKey so submit sync works for the copy too
+      _pipingKeys.putIfAbsent(
+          newId, () => GlobalKey<State<PipingMaterialCard>>());
 
       final copied = material.copyWith(
-        id: generateObjectId(),
-        name: '${material.name} (Copy)',
+        id: newId,
+        name: material.name,
       );
 
-      final updated = [...materials];
-      updated.insert(index + 1, copied);
-
-      notifier.setMaterials(updated);
+      ref
+          .read(insulationPipingMaterialsProvider.notifier)
+          .addPipingMaterialAfter(copied, material.id);
     } else {
-      final notifier = ref.read(insulationEquipmentMaterialsProvider.notifier);
-      final materials = ref.read(insulationEquipmentMaterialsProvider);
-
       if (material is! EquipmentMaterial) return;
 
-      final index = materials.indexWhere((m) => m.id == material.id);
-      if (index == -1) return;
+      _equipmentKeys.putIfAbsent(
+          newId, () => GlobalKey<State<EquipmentMaterialCard>>());
 
       final copied = material.copyWith(
-        id: generateObjectId(),
-        name: '${material.name} (Copy)',
+        id: newId,
+        name: material.name,
       );
 
-      final updated = [...materials];
-      updated.insert(index + 1, copied);
-
-      notifier.setMaterials(updated);
+      ref
+          .read(insulationEquipmentMaterialsProvider.notifier)
+          .addEquipmentMaterialAfter(copied, material.id);
     }
   }
 
@@ -1214,7 +1508,8 @@ class _AddInsulationDescriptionScreenState
         date.day == now.day;
   }
 
-  bool get _isEditable => _isToday(_selectedDate) || _globalEditMode;
+  bool get _isEditable =>
+      _isToday(_selectedDate) || _globalEditMode || widget.work != null;
   static const List<String> insulationMaterials = [
     'Nitrile Rubber',
     'PUF',
@@ -1952,11 +2247,10 @@ class _AddInsulationDescriptionScreenState
                             if (shouldShowEquipment)
                               ..._buildEquipmentMaterials(equipmentMaterials),
 
-                            if (_pipeInsulationOn && !hasPipingMaterials||(_equipmentInsulationOn &&
-    !hasEquipmentMaterials))
+                            if (_pipeInsulationOn && !hasPipingMaterials ||
+                                (_equipmentInsulationOn &&
+                                    !hasEquipmentMaterials))
                               _buildSetupState(siteId)
-
-
 
                             // if (!_pipeInsulationOn && !_equipmentInsulationOn && _initialDataLoaded)
                             //   _buildEmptyState('Materials will appear here once loaded', Icons.downloading),
@@ -1975,53 +2269,13 @@ class _AddInsulationDescriptionScreenState
       ),
     );
   }
-  Widget _buildSetupState(String siteId) {
-    final progressAsync = ref.watch(syncProgressProvider);
 
-    return Center(
-      child: Padding(
-        padding: const EdgeInsets.symmetric(horizontal: 40),
-        child: Column(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            const Icon(Icons.sync, size: 48, color: Colors.blue),
-            const SizedBox(height: 20),
-            const Text(
-              'Loading your materials…',
-              style: TextStyle(fontSize: 16, fontWeight: FontWeight.w500),
-            ),
-            const SizedBox(height: 24),
-            progressAsync.when(
-              data: (progress) => Column(
-                children: [
-                  ClipRRect(
-                    borderRadius: BorderRadius.circular(8),
-                    child: LinearProgressIndicator(
-                      value: progress,
-                      minHeight: 10,
-                      backgroundColor: Colors.grey.shade200,
-                      valueColor: AlwaysStoppedAnimation<Color>(
-                        AppColors.primary,
-                      ),
-                    ),
-                  ),
-                  const SizedBox(height: 10),
-                  Text(
-                    '${(progress * 100).toInt()}%',
-                    style: TextStyle(
-                      fontSize: 14,
-                      color: Colors.grey.shade600,
-                      fontWeight: FontWeight.w600,
-                    ),
-                  ),
-                ],
-              ),
-              loading: () => const LinearProgressIndicator(),
-              error: (_, __) => const Text('Sync error'),
-            ),
-          ],
-        ),
-      ),
+  Widget _buildSetupState(String siteId) {
+    return const ShimmerList(
+      itemCount: 3,
+      type: ShimmerListType.card,
+      scrollable: false,
+      padding: EdgeInsets.symmetric(horizontal: 10),
     );
   }
 
@@ -2289,65 +2543,118 @@ class _AddInsulationDescriptionScreenState
   }
 
   Widget _buildDateSection() {
-    return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
-      decoration: BoxDecoration(
-        gradient: LinearGradient(
-          colors: [Colors.blue[50]!, Colors.blue[100]!],
-        ),
-        borderRadius: BorderRadius.circular(12),
-      ),
-      child: Row(
-        mainAxisAlignment: MainAxisAlignment.spaceBetween,
-        children: [
-          const Row(
+    final bool canChangeDateNormal = _globalEditMode;
+    final bool showPencil = isEditingDpr;
+
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Container(
+          padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+          decoration: BoxDecoration(
+            gradient: LinearGradient(
+              colors: [Colors.blue[50]!, Colors.blue[100]!],
+            ),
+            borderRadius: BorderRadius.circular(12),
+          ),
+          child: Row(
+            mainAxisAlignment: MainAxisAlignment.spaceBetween,
             children: [
-              SizedBox(width: 8),
-              Text(
-                'Insulation Daily Report',
-                style: TextStyle(fontSize: 15, fontWeight: FontWeight.w600),
+              const Row(
+                children: [
+                  Icon(Icons.description, color: Colors.blue, size: 20),
+                  SizedBox(width: 8),
+                  Text(
+                    'Daily Report',
+                    style: TextStyle(fontSize: 15, fontWeight: FontWeight.w600),
+                  ),
+                ],
+              ),
+              Row(
+                children: [
+                  GestureDetector(
+                    onTap:
+                        canChangeDateNormal ? () => _selectDate(context) : null,
+                    child: Container(
+                      padding: const EdgeInsets.symmetric(
+                          horizontal: 12, vertical: 6),
+                      decoration: BoxDecoration(
+                        color: _globalEditMode
+                            ? Colors.blue.shade50
+                            : Colors.transparent,
+                        borderRadius: BorderRadius.circular(8),
+                        border: Border.all(
+                          color: _globalEditMode
+                              ? Colors.blue.shade200
+                              : Colors.transparent,
+                          width: 1,
+                        ),
+                      ),
+                      child: Row(
+                        children: [
+                          const SizedBox(width: 6),
+                          Text(
+                            _formatDate(_selectedDate),
+                            style: TextStyle(
+                              fontSize: 14,
+                              fontWeight: FontWeight.w600,
+                              color:
+                                  _globalEditMode ? Colors.blue : Colors.black,
+                            ),
+                          ),
+                          if (canChangeDateNormal) ...[
+                            const SizedBox(width: 6),
+                            const Icon(
+                              Icons.calendar_month,
+                              size: 14,
+                              color: Colors.blue,
+                            ),
+                          ],
+                        ],
+                      ),
+                    ),
+                  ),
+                  if (showPencil) ...[
+                    const SizedBox(width: 8),
+                    IconButton(
+                      icon:
+                          const Icon(Icons.edit, color: Colors.blue, size: 20),
+                      onPressed: () => _handleDateOverride(context),
+                      padding: EdgeInsets.zero,
+                      constraints: const BoxConstraints(),
+                    ),
+                  ],
+                ],
               ),
             ],
           ),
-          GestureDetector(
-            onTap: () => _selectDate(context),
-            child: Container(
-              padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
-              decoration: BoxDecoration(
-                color:
-                    _globalEditMode ? Colors.blue.shade50 : Colors.transparent,
-                borderRadius: BorderRadius.circular(8),
-                border: Border.all(
-                  color: _globalEditMode
-                      ? Colors.blue.shade200
-                      : Colors.transparent,
-                  width: 1,
-                ),
-              ),
-              child: Row(
-                children: [
-                  const SizedBox(width: 6),
-                  Text(
-                    _formatDate(_selectedDate),
-                    style: TextStyle(
-                      fontSize: 14,
-                      fontWeight: FontWeight.w600,
-                      color: _globalEditMode ? Colors.blue : Colors.black,
-                    ),
+        ),
+        if (_isDateOverrideMode)
+          Padding(
+            padding: const EdgeInsets.only(left: 16, top: 4),
+            child: Row(
+              children: [
+                Container(
+                  width: 8,
+                  height: 8,
+                  decoration: const BoxDecoration(
+                    color: Colors.blue,
+                    shape: BoxShape.circle,
                   ),
-                  if (!_globalEditMode) const SizedBox(width: 6),
-                  if (_globalEditMode)
-                    const Icon(
-                      Icons.calendar_month,
-                      size: 14,
-                      color: Colors.blue,
-                    ),
-                ],
-              ),
+                ),
+                const SizedBox(width: 6),
+                const Text(
+                  "Date modified",
+                  style: TextStyle(
+                    fontSize: 12,
+                    color: Colors.blue,
+                    fontWeight: FontWeight.bold,
+                  ),
+                ),
+              ],
             ),
           ),
-        ],
-      ),
+      ],
     );
   }
 
@@ -2769,6 +3076,7 @@ class _AddInsulationDescriptionScreenState
     required List<String> items,
     required ValueChanged<String> onChanged,
   }) {
+    final validValue = (value != null && items.contains(value)) ? value : null;
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
@@ -2786,7 +3094,7 @@ class _AddInsulationDescriptionScreenState
         SizedBox(
           height: 34,
           child: DropdownButtonFormField<String>(
-            value: value != null && value.isNotEmpty ? value : null,
+            value: validValue, // ✅ Use validated value
             isExpanded: true,
             decoration: InputDecoration(
               isDense: true,
@@ -2917,9 +3225,49 @@ class _AddInsulationDescriptionScreenState
     );
   }
 
+  Future<void> _persistMaterialUpdate(dynamic updated) async {
+    try {
+      final dao = LocalMaterialDao();
+      final repo = ref.read(materialRepositoryProvider);
+
+      final serverId = updated is PipingMaterial
+          ? updated.id
+          : (updated as EquipmentMaterial).id;
+
+      final local = await dao.findByServerId(serverId);
+      if (local == null) return;
+
+      local
+        ..name = updated.name
+        ..images = updated.image // ← this is the key line for images
+        ..uom = updated.uom ?? ''
+        ..materialDataJson = jsonEncode(updated.toJson())
+        ..isDirty = false
+        ..updatedAt = DateTime.now();
+
+      await repo.update(local);
+
+      if (updated.cardFormState != null) {
+        await dao.saveCardFormState(
+          isarId: local.id,
+          state: updated.cardFormState!,
+        );
+      }
+    } catch (e) {
+      debugPrint('⚠️ Failed to persist material update: $e');
+    }
+  }
+
   List<Widget> _buildPipingMaterials(List<PipingMaterial> materials) {
     return materials.map((material) {
       final materialSetup = _findMaterialSetup(material.materialCode, 'piping');
+      print("materialid ${material.id}");
+      print("materialname ${material.name}");
+
+      final key = _pipingKeys.putIfAbsent(
+        material.id,
+        () => GlobalKey<State<PipingMaterialCard>>(),
+      );
 
       return Padding(
           key: ValueKey(
@@ -2930,6 +3278,7 @@ class _AddInsulationDescriptionScreenState
           padding: const EdgeInsets.only(bottom: 12),
           child: PipingMaterialCard(
             material: material,
+            key: key,
             materialSetup: materialSetup,
             onChanged: (updated) {
               ref
@@ -2946,20 +3295,21 @@ class _AddInsulationDescriptionScreenState
                 isPiping: true,
               );
             },
-            onRemark: () {},
+            onRemark: () {
+              _showRemarkDialog(material.id, material.remarks ?? '');
+            },
           ));
     }).toList();
   }
 
   List<Widget> _buildEquipmentMaterials(List<EquipmentMaterial> materials) {
     return materials.map((material) {
-      final materialSetup = _findMaterialSetup(material.materialCode, 'equipment');
-      
+      final materialSetup =
+          _findMaterialSetup(material.materialCode, 'equipment');
+
       // 🔥 Assign/Retrieve GlobalKey for state sync
       final key = _equipmentKeys.putIfAbsent(
-        material.id, 
-        () => GlobalKey<State<EquipmentMaterialCard>>()
-      );
+          material.id, () => GlobalKey<State<EquipmentMaterialCard>>());
 
       return Padding(
           key: ValueKey(
@@ -2987,7 +3337,9 @@ class _AddInsulationDescriptionScreenState
                 isPiping: false,
               );
             },
-            onRemark: () {},
+            onRemark: () {
+              _showRemarkDialog(material.id, material.remarks ?? '');
+            },
           ));
     }).toList();
   }
@@ -3024,6 +3376,7 @@ class _AddInsulationDescriptionScreenState
             },
             style: ElevatedButton.styleFrom(
               backgroundColor: Colors.blue,
+              foregroundColor: Colors.white,
               shape: RoundedRectangleBorder(
                   borderRadius: BorderRadius.circular(10)),
             ),
@@ -3066,6 +3419,7 @@ class _AddInsulationDescriptionScreenState
   void _toggleGlobalEditMode() {
     setState(() {
       _globalEditMode = !_globalEditMode;
+      _isDateOverrideMode = false;
     });
 
     if (_globalEditMode) {
@@ -3130,7 +3484,10 @@ class _AddInsulationDescriptionScreenState
       ref.read(selectedSizeProvider),
       _sizeController.text
     ].firstWhere(
-          (v) => v != null && v.trim().isNotEmpty && (num.tryParse(v.trim()) ?? 0) != 0,
+      (v) =>
+          v != null &&
+          v.trim().isNotEmpty &&
+          (num.tryParse(v.trim()) ?? 0) != 0,
       orElse: () => '',
     );
 
@@ -3142,7 +3499,7 @@ class _AddInsulationDescriptionScreenState
     return {
       'designation': designation,
       'plant': _plantController.text.trim(),
-      'location': location,  // ✅ Updated: default to 'Ground' if empty
+      'location': location, // ✅ Updated: default to 'Ground' if empty
       'layer': _selectedLayerType.name,
       'work_description': _dprNameController.text,
       'size': size,
@@ -3164,9 +3521,12 @@ class _AddInsulationDescriptionScreenState
           final state = e.cardFormState;
 
           if (state != null) {
+            print("images ${e.image}");
             // Log what's in the state
-            debugPrint("📦 Equipment [${e.name}] - FieldEntries: ${state.fieldEntries.keys} with values: ${state.fieldEntries.values}");
-            debugPrint("📦 Equipment [${e.name}] - GeometryMode: ${state.geometryMode}");
+            debugPrint(
+                "📦 Equipment [${e.name}] - FieldEntries: ${state.fieldEntries.keys} with values: ${state.fieldEntries.values}");
+            debugPrint(
+                "📦 Equipment [${e.name}] - GeometryMode: ${state.geometryMode}");
 
             // Map ALL dynamic fields from cardFormState
             state.fieldEntries.forEach((key, entry) {
@@ -3186,39 +3546,80 @@ class _AddInsulationDescriptionScreenState
               fieldValues["geometryMode"] = state.geometryMode;
             }
 
-            // Handle quantity
-            final qtyEntry = state.fieldEntries['quantity'] ?? state.fieldEntries['qty'];
-            fieldValues["quantity"] = qtyEntry != null && qtyEntry.value != null && qtyEntry.value != 0
+            // With this:
+            final qtyEntry =
+                state.fieldEntries['quantity'] ?? state.fieldEntries['qty'];
+            final hasOtherFields = state.fieldEntries.keys
+                .any((k) => k != 'quantity' && k != 'qty');
+            final resolvedQty = (qtyEntry != null &&
+                    qtyEntry.value != null &&
+                    qtyEntry.value != 0)
                 ? qtyEntry.value
-                : (e.qty != null && e.qty != 0 ? e.qty : null);
+                : (e.qty != null && e.qty != 0
+                    ? e.qty
+                    : (hasOtherFields ? 1 : 0));
+            fieldValues["quantity"] = resolvedQty;
+            fieldValues["qtyUom"] =
+                qtyEntry?.unit != null && qtyEntry!.unit!.isNotEmpty
+                    ? qtyEntry.unit
+                    : "NOS";
 
-            fieldValues["qtyUom"] = qtyEntry?.unit != null && qtyEntry!.unit!.isNotEmpty
-                ? qtyEntry.unit
-                : "NOS";
-
-            fieldValues["qtyUom"] = qtyEntry?.unit != null && qtyEntry!.unit!.isNotEmpty
-                ? qtyEntry.unit
-                : "NOS";
-            debugPrint("📦 Equipment [${e.name}] - Final fieldValues: $fieldValues");
+            fieldValues["qtyUom"] =
+                qtyEntry?.unit != null && qtyEntry!.unit!.isNotEmpty
+                    ? qtyEntry.unit
+                    : "NOS";
+            debugPrint(
+                "📦 Equipment [${e.name}] - Final fieldValues: $fieldValues");
           } else {
             fieldValues["quantity"] = e.qty ?? 0;
             fieldValues["qtyUom"] = "NOS";
-            debugPrint("📦 Equipment [${e.name}] - No state, using default: $fieldValues");
+            debugPrint(
+                "📦 Equipment [${e.name}] - No state, using default: $fieldValues");
           }
 
           return {
             "name": e.name,
             "materialCode": e.materialCode,
             "fieldValues": fieldValues,
+            "image": e.image,
           };
         }).toList(),
       if (pipingMaterials.isNotEmpty)
         'piping_materials': pipingMaterials.map((p) {
           // ✅ Ensure quantity is treated as an integer and defaults to 0 if null
-          final qty = (p.qty == null) ? 0 : p.qty;
+          // ✅ Override size/sizeUom from card field entry when present
+          final sizeEntry = p.cardFormState?.fieldEntries['size'];
+          final qtyEntry = p.cardFormState?.fieldEntries['quantity'];
+          final sizeValue = sizeEntry?.value;
+          final resolvedSize =
+            (sizeValue != null && sizeValue.toString().trim().isNotEmpty)
+              ? sizeValue.toString()
+              : p.size;
+          final resolvedSizeUom =
+            (sizeEntry?.unit != null && sizeEntry!.unit!.isNotEmpty)
+              ? sizeEntry.unit
+              : p.sizeUom;
+
+            final hasFieldValues =
+              p.fieldValues != null && p.fieldValues!.values.isNotEmpty;
+          final qty =
+              (p.qty != null && p.qty != 0) ? p.qty : (hasFieldValues ? 1 : 0);
           final updatedPiping = p.copyWith(qty: qty);
           final json = updatedPiping.toJson();
-          debugPrint('📦 Piping Material Payload [${p.name}]: Qty=$qty');
+          final cardFormState = json['cardFormState'] as Map<String, dynamic>?;
+          final fieldEntries = cardFormState?['fieldEntries'] as Map<String, dynamic>?;
+          final quantityField = fieldEntries?['quantity'] as Map<String, dynamic>?;
+
+          if (quantityField != null) {
+            final qtyEntryValue = qtyEntry?.value;
+            final hasQtyEntryValue = qtyEntryValue != null &&
+                qtyEntryValue.toString().trim().isNotEmpty;
+            quantityField['value'] = hasQtyEntryValue ? qtyEntryValue : qty;
+          }
+
+          json['images'] = p.image;
+          debugPrint(
+            '📦 Piping Material Payload [${p.name}]: Qty=$qty, Size=${json['size']}, SizeUom=${json['sizeUom']}');
           return json;
         }).toList(),
     };
@@ -3287,62 +3688,144 @@ class _AddInsulationDescriptionScreenState
   }
 
   Future<void> _handleSubmitFields() async {
-    if (!_isEditable || _isSubmitting) return;
+    if (!_isEditable && !_isDateOverrideMode) {
+      AppToast.error("Edit mode is off");
+      return;
+    }
+
+    if (_isSubmitting) return;
 
     setState(() => _isSubmitting = true);
 
     try {
-      // 🔥 1. Sync UI → Provider (only for equipment cards which use controllers)
+      // Sync latest state from cards
+      _syncPipingBeforeSubmit();
       _syncEquipmentBeforeSubmit();
 
-      final pipingMaterials = ref.read(insulationPipingMaterialsProvider);
-      final equipmentMaterials = ref.read(insulationEquipmentMaterialsProvider);
+      final imageService = MaterialImageUploadService();
+      final cacheDao = CachedImageDao();
 
-      debugPrint("🔍 PRE-SUBMIT CHECK:");
-      debugPrint("   Piping Count: ${pipingMaterials.length}");
-      for (var p in pipingMaterials) {
-        debugPrint("   Piping [${p.name}] - Qty: ${p.qty}, Size: ${p.size}");
+      var equipmentMaterials = ref.read(insulationEquipmentMaterialsProvider);
+      final pipingMaterials = ref.read(insulationPipingMaterialsProvider);
+
+      // ✅ STEP 1: Check cache for existing server URLs
+      debugPrint('🔍 Step 1: Checking cache for existing server URLs...');
+      for (final material in equipmentMaterials) {
+        for (final imagePath in material.image) {
+          // Skip if already a remote URL
+          if (!imagePath.startsWith('http://') &&
+              !imagePath.startsWith('https://')) {
+            final serverUrl = await cacheDao.getServerUrl(imagePath);
+            if (serverUrl != null && serverUrl.isNotEmpty) {
+              debugPrint('✅ Found cached URL: $imagePath -> $serverUrl');
+            }
+          }
+        }
       }
 
+      // ✅ STEP 2: Process all equipment images - check cache and stage new ones
+      debugPrint(
+          '📷 Step 2: Processing equipment images (check cache + stage new)...');
+      final processedUrls =
+          await imageService.processMaterialImages(equipmentMaterials);
+
+      // Update materials with processed URLs (mixing cached server URLs + placeholders for pending)
+      equipmentMaterials = equipmentMaterials.map((material) {
+        final urls = processedUrls[material.id];
+        if (urls != null && urls.isNotEmpty) {
+          return material.copyWith(image: urls);
+        }
+        return material;
+      }).toList();
+
+      debugPrint('📤 Materials after processing:');
+      for (final m in equipmentMaterials) {
+        debugPrint('   ${m.name}: ${m.image}');
+      }
+
+      // ✅ STEP 3: Upload all staged (new) images to AWS in batch
+      debugPrint('☁️ Step 3: Uploading staged images to AWS...');
+      final uploadedUrls = await imageService.uploadAllStagedImages();
+
+      if (uploadedUrls.isNotEmpty) {
+        debugPrint('✅ AWS upload successful. URLs received:');
+        uploadedUrls.forEach((id, urls) {
+          debugPrint('   [$id]: $urls');
+        });
+
+        // ✅ STEP 4: Replace placeholders with actual AWS URLs
+        debugPrint('🔄 Step 4: Replacing placeholders with AWS URLs...');
+        equipmentMaterials = imageService.replacePlaceholdersWithUrls(
+          equipmentMaterials,
+          uploadedUrls,
+        );
+      } else {
+        debugPrint('ℹ️ No new images to upload (all cached)');
+      }
+
+      // Update provider with final equipment materials
+      ref
+          .read(insulationEquipmentMaterialsProvider.notifier)
+          .setMaterials(equipmentMaterials);
+
+      // ✅ STEP 5: Build final payload with all resolved image URLs
+      debugPrint('📦 Step 5: Building final DPR payload...');
+      final finalEquipment = ref.read(insulationEquipmentMaterialsProvider);
+      final finalPiping = ref.read(insulationPipingMaterialsProvider);
+
       final payload = buildInsulationDprPayload(
-        pipingMaterials: pipingMaterials,
-        equipmentMaterials: equipmentMaterials,
+        pipingMaterials: finalPiping,
+        equipmentMaterials: finalEquipment,
       );
 
+      if (_isDateOverrideMode) {
+        payload['date'] = _selectedDate.toIso8601String();
+      }
+
+      debugPrint("📋 Final DPR Payload - Equipment Images:");
+      for (final eq in finalEquipment) {
+        debugPrint("   ${eq.name}:");
+        for (final img in eq.image) {
+          debugPrint("      - $img");
+        }
+      }
       debugPrint("📤 INSULATION DPR PAYLOAD:");
       debugPrint(const JsonEncoder.withIndent('  ').convert(payload));
 
+
+      // ✅ STEP 6: Send the payload to server
+      debugPrint('📤 Step 6: Sending DPR payload to server...');
       if (_insulationId == null) {
         await InsulationDprApi.createInsulationDpr(
           data: payload,
           siteId: siteId,
           teamId: teamId,
         );
+        debugPrint('✅ Insulation DPR created successfully');
       } else {
         await InsulationDprApi.updateInsulationDpr(
           dprId: _insulationId!,
           data: payload,
         );
+        debugPrint('✅ Insulation DPR updated successfully');
       }
 
+      // Clean up staged images
+      imageService.clearAll();
+
       _showSnackBar("Insulation DPR Saved Successfully");
+
       WidgetsBinding.instance.addPostFrameCallback((_) {
         if (mounted && !_isDisposed) {
           int count = 0;
-
-
-          // Navigator.of(context).popUntil((_) => count++ >= 5);
-
+          Navigator.of(context).popUntil((_) => count++ >= 5);
           _showSnackBar("Successfully Saved");
-
-          // ❌ DO NOT auto-disable edit mode for past dates
         }
       });
     } catch (e, s) {
       await _autoSaveDraft();
-      print(s);
-      print(e);
-
+      debugPrint("❌ Submit error: $e");
+      debugPrint("❌ Stack trace: $s");
       _showSnackBar(
         'Failed to save Insulation DPR: ${extractBackendError(e)}',
         isError: true,
@@ -3350,6 +3833,29 @@ class _AddInsulationDescriptionScreenState
     } finally {
       if (mounted) setState(() => _isSubmitting = false);
     }
+  }
+
+  void _patchPipingImages(Map<String, List<String>> urlMap) {
+    final notifier = ref.read(insulationPipingMaterialsProvider.notifier);
+    final materials = ref.read(insulationPipingMaterialsProvider);
+    final patched = materials.map((m) {
+      final urls = urlMap[m.id];
+      if (urls == null) return m;
+      return m.copyWith(image: urls);
+    }).toList();
+    notifier.setMaterials(patched);
+  }
+
+  /// Patches AWS image URLs into equipment materials after batch upload
+  void _patchEquipmentImages(Map<String, List<String>> urlMap) {
+    final notifier = ref.read(insulationEquipmentMaterialsProvider.notifier);
+    final materials = ref.read(insulationEquipmentMaterialsProvider);
+    final patched = materials.map((m) {
+      final urls = urlMap[m.id];
+      if (urls == null) return m;
+      return m.copyWith(image: urls);
+    }).toList();
+    notifier.setMaterials(patched);
   }
 
   /// NEW: Synchronizes all equipment cards by calling getLatestMaterial() on each.
@@ -3373,6 +3879,31 @@ class _AddInsulationDescriptionScreenState
           }
         } catch (e) {
           debugPrint("Failed to sync equipment material ${m.id}: $e");
+          updatedList.add(m);
+        }
+      } else {
+        updatedList.add(m);
+      }
+    }
+
+    notifier.setMaterials(updatedList);
+  }
+
+  void _syncPipingBeforeSubmit() {
+    final notifier = ref.read(insulationPipingMaterialsProvider.notifier);
+    final materials = ref.read(insulationPipingMaterialsProvider);
+    final List<PipingMaterial> updatedList = [];
+
+    for (final m in materials) {
+      final key = _pipingKeys[m.id];
+      final dynamic cardState = key?.currentState;
+
+      if (cardState != null && cardState.mounted) {
+        try {
+          final updated = cardState.getLatestMaterial();
+          updatedList.add(updated);
+        } catch (e) {
+          debugPrint("Failed to sync piping material ${m.id}: $e");
           updatedList.add(m);
         }
       } else {

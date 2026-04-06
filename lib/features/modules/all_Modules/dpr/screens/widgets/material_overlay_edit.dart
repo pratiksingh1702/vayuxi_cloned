@@ -1,5 +1,13 @@
+import 'dart:convert';
 import 'dart:ui';
+import 'package:dio/dio.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:untitled2/core/local/isar_db.dart';
+import 'package:untitled2/features/modules/all_Modules/dpr/offline/mech/repo/rate_Repo.dart';
+import 'package:untitled2/features/modules/all_Modules/dpr/providers/material_service.dart';
+import 'package:untitled2/features/modules/all_Modules/dpr/providers/rate_variant_provider.dart';
+import 'package:untitled2/features/modules/all_Modules/dpr/providers/service/rate_upload_material_dpr.dart';
 import 'package:untitled2/features/modules/all_Modules/dpr/screens/widgets/test_dynamic.dart';
 
 import '../../models/dprModel.dart';
@@ -13,13 +21,14 @@ import 'dynamic_item_card2.dart';
 // Entry point helpers — call these instead of setting editingMaterialId inline
 // ─────────────────────────────────────────────────────────────────────────────
 
-Future<MaterialEditResult?> showPipingEditOverlay({
+Future<dynamic> showPipingEditOverlay({
   required BuildContext context,
   required PipingItem material,
   required String? rateUploadId,
   required String siteId,
+  bool returnResult = false,
 }) {
-  return showGeneralDialog<MaterialEditResult>(
+  return showGeneralDialog<dynamic>(
     context: context,
     barrierDismissible: false,
     barrierColor: Colors.transparent, // we paint our own
@@ -28,6 +37,7 @@ Future<MaterialEditResult?> showPipingEditOverlay({
       material: material,
       rateUploadId: rateUploadId,
       siteId: siteId,
+      returnResult: returnResult,
     ),
     transitionBuilder: (_, anim, __, child) {
       final curved = CurvedAnimation(parent: anim, curve: Curves.easeOutCubic);
@@ -42,13 +52,14 @@ Future<MaterialEditResult?> showPipingEditOverlay({
   );
 }
 
-Future<MaterialEditResult?> showEquipmentEditOverlay({
+Future<dynamic> showEquipmentEditOverlay({
   required BuildContext context,
   required EquipmentItem material,
   required String? rateUploadId,
   required String siteId,
+  bool returnResult = false,
 }) {
-  return showGeneralDialog<MaterialEditResult>(
+  return showGeneralDialog<dynamic>(
     context: context,
     barrierDismissible: false,
     barrierColor: Colors.transparent,
@@ -57,6 +68,7 @@ Future<MaterialEditResult?> showEquipmentEditOverlay({
       material: material,
       rateUploadId: rateUploadId,
       siteId: siteId,
+      returnResult: returnResult,
     ),
     transitionBuilder: (_, anim, __, child) {
       final curved = CurvedAnimation(parent: anim, curve: Curves.easeOutCubic);
@@ -77,12 +89,13 @@ Future<MaterialEditResult?> showEquipmentEditOverlay({
 
 enum _MaterialType { piping, equipment }
 
-class _MaterialEditOverlay extends StatefulWidget {
+class _MaterialEditOverlay extends ConsumerStatefulWidget {
   final _MaterialType type;
   final PipingItem? pipingMaterial;
   final EquipmentItem? equipmentMaterial;
   final String? rateUploadId;
   final String siteId;
+  final bool returnResult;
 
   const _MaterialEditOverlay._({
     required this.type,
@@ -90,37 +103,42 @@ class _MaterialEditOverlay extends StatefulWidget {
     this.equipmentMaterial,
     required this.rateUploadId,
     required this.siteId,
+    this.returnResult = false,
   });
 
   factory _MaterialEditOverlay.piping({
     required PipingItem material,
     required String? rateUploadId,
     required String siteId,
+    bool returnResult = false,
   }) =>
       _MaterialEditOverlay._(
         type: _MaterialType.piping,
         pipingMaterial: material,
         rateUploadId: rateUploadId,
         siteId: siteId,
+        returnResult: returnResult,
       );
 
   factory _MaterialEditOverlay.equipment({
     required EquipmentItem material,
     required String? rateUploadId,
     required String siteId,
+    bool returnResult = false,
   }) =>
       _MaterialEditOverlay._(
         type: _MaterialType.equipment,
         equipmentMaterial: material,
         rateUploadId: rateUploadId,
         siteId: siteId,
+        returnResult: returnResult,
       );
 
   @override
-  State<_MaterialEditOverlay> createState() => _MaterialEditOverlayState();
+  ConsumerState<_MaterialEditOverlay> createState() => _MaterialEditOverlayState();
 }
 
-class _MaterialEditOverlayState extends State<_MaterialEditOverlay> {
+class _MaterialEditOverlayState extends ConsumerState<_MaterialEditOverlay> {
   // Draft category — mirrors draftCategoryId in AllMaterialsScreen
   String? _draftCategoryId;
 
@@ -128,6 +146,7 @@ class _MaterialEditOverlayState extends State<_MaterialEditOverlay> {
   MaterialEditResult? _pendingResult;
 
   bool _isSaving = false;
+  bool _hasModified = false;
 
   @override
   void initState() {
@@ -135,31 +154,148 @@ class _MaterialEditOverlayState extends State<_MaterialEditOverlay> {
     _draftCategoryId = widget.type == _MaterialType.piping
         ? widget.pipingMaterial!.calculationCategory
         : widget.equipmentMaterial!.calculationCategory;
+
+    // Initialize pending result with current material data
+    if (widget.type == _MaterialType.piping) {
+      final m = widget.pipingMaterial!;
+      _pendingResult = MaterialEditResult(
+        name: m.materialName,
+        uom: m.uom,
+        fields: m.dynamicFields.map((e) => e.copy()).toList(),
+        imageUrl: m.image,
+      );
+    } else {
+      final m = widget.equipmentMaterial!;
+      _pendingResult = MaterialEditResult(
+        name: m.materialName,
+        uom: m.uom, // equipmentItem uses 'meter' for UOM in DynamicItemCard2
+        fields: m.dynamicFields.map((e) => e.copy()).toList(),
+        imageUrl: m.image,
+      );
+    }
   }
 
-  void _cancel() => Navigator.of(context).pop(null);
+  void _cancel() => Navigator.of(context, rootNavigator: true).pop(false);
 
-  void _save() {
-    if (_pendingResult == null) {
+  Future<void> _save() async {
+    if (!_hasModified) {
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(
-          content: Text('Tap "Save" inside the card first to confirm changes'),
+          content: Text('Please make some changes before saving'),
           behavior: SnackBarBehavior.floating,
         ),
       );
       return;
     }
-    Navigator.of(context).pop(
-      MaterialEditResult(
-        name: _pendingResult!.name,
-        imageFile: _pendingResult!.imageFile,
-        imageUrl: _pendingResult!.imageUrl,
-        uom: _pendingResult!.uom,
-        fields: _pendingResult!.fields,
-        categoryId: _draftCategoryId,  // ← carries selected category back
-      ),
-    );
+
+    if (_pendingResult!.name.trim().isEmpty) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text('Material name cannot be empty'),
+          behavior: SnackBarBehavior.floating,
+          backgroundColor: Colors.red,
+        ),
+      );
+      return;
+    }
+
+    if (_pendingResult!.uom.trim().isEmpty) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text('UOM cannot be empty'),
+          behavior: SnackBarBehavior.floating,
+          backgroundColor: Colors.red,
+        ),
+      );
+      return;
+    }
+
+    if (widget.returnResult) {
+      Navigator.of(context, rootNavigator: true).pop(
+        MaterialEditResult(
+          name: _pendingResult!.name,
+          imageFile: _pendingResult!.imageFile,
+          imageUrl: _pendingResult!.imageUrl,
+          uom: _pendingResult!.uom,
+          fields: _pendingResult!.fields,
+          categoryId: _draftCategoryId,
+        ),
+      );
+      return;
+    }
+
+    try {
+      setState(() => _isSaving = true);
+
+      final materialId = widget.type == _MaterialType.piping
+          ? widget.pipingMaterial!.id
+          : widget.equipmentMaterial!.id;
+
+      final designation = widget.type == _MaterialType.piping
+          ? widget.pipingMaterial!.designation
+          : widget.equipmentMaterial!.designation;
+
+      final originalCategory = widget.type == _MaterialType.piping
+          ? widget.pipingMaterial!.calculationCategory
+          : widget.equipmentMaterial!.calculationCategory;
+
+      final formData = FormData.fromMap({
+        "materialName": _pendingResult!.name,
+        "uom": _pendingResult!.uom,
+        "designation": designation,
+        "calculationCategory": _draftCategoryId ?? originalCategory,
+        "isApplied": false,
+        "dynamicFields": jsonEncode(_pendingResult!.fields.map((e) => e.toJson()).toList()),
+        if (_pendingResult!.imageFile != null)
+          "image": await MultipartFile.fromFile(
+            _pendingResult!.imageFile!.path,
+            filename: _pendingResult!.imageFile!.path.split('/').last,
+          ),
+      });
+
+      await RateUploadApi.updateLineItem(
+        rateUploadId: widget.rateUploadId!,
+        lineItemId: materialId,
+        data: formData,
+      );
+
+      final repo = RateRepository(AppIsarDB.isar);
+      await repo.syncRateFile(widget.siteId);
+
+      // Refresh providers
+      ref.invalidate(rateFileAnalysisProvider(widget.siteId));
+      ref.invalidate(approvedPipingMaterialsProvider(widget.siteId));
+      ref.invalidate(approvedEquipmentMaterialsProvider(widget.siteId));
+      ref.invalidate(suggestedPipingMaterialsProvider(widget.siteId));
+      ref.invalidate(suggestedEquipmentMaterialsProvider(widget.siteId));
+      ref.invalidate(allRateVariantsProvider);
+
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(
+            content: Text('Material updated successfully'),
+            backgroundColor: Colors.green,
+            behavior: SnackBarBehavior.floating,
+          ),
+        );
+        Navigator.of(context, rootNavigator: true).pop(true); // Pop with success flag
+      }
+    } catch (e) {
+      debugPrint('❌ Overlay save failed: $e');
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text('Save failed: $e'),
+            backgroundColor: Colors.red,
+            behavior: SnackBarBehavior.floating,
+          ),
+        );
+      }
+    } finally {
+      if (mounted) setState(() => _isSaving = false);
+    }
   }
+
   // ── Build ─────────────────────────────────────────────────────────────────
 
   @override
@@ -229,8 +365,14 @@ class _MaterialEditOverlayState extends State<_MaterialEditOverlay> {
                               MaterialCategoryWrapper(
                                 categoryId: _draftCategoryId,
                                 isEditMode: true,
-                                onChanged: (id) =>
-                                    setState(() => _draftCategoryId = id),
+                                onChanged: (id) {
+                                  if (_draftCategoryId != id) {
+                                    setState(() {
+                                      _draftCategoryId = id;
+                                      _hasModified = true;
+                                    });
+                                  }
+                                },
                               ),
                             ],
                           ),
@@ -245,7 +387,7 @@ class _MaterialEditOverlayState extends State<_MaterialEditOverlay> {
                 // ── Fixed bottom action bar ───────────────────────────────
                 _BottomActionBar(
                   isSaving: _isSaving,
-                  hasChanges: _pendingResult != null,
+                  hasChanges: _hasModified,
                   onCancel: _cancel,
                   onSave: _save,
                 ),
@@ -269,18 +411,16 @@ class _MaterialEditOverlayState extends State<_MaterialEditOverlay> {
         fields: m.dynamicFields,
         isEditable: true,
         isEditMode: true,
-        onCancel: _cancel,
-        onSave: (result) {
-          // Capture result but don't close — user must tap the bottom Save
-          setState(() => _pendingResult = result);
-          ScaffoldMessenger.of(context).showSnackBar(
-            const SnackBar(
-              content: Text('Changes staged — tap Save to apply'),
-              behavior: SnackBarBehavior.floating,
-              duration: Duration(seconds: 2),
-            ),
-          );
+        showInternalSave: false, // 🔥 REMOVE INTERNAL BUTTONS
+        onResultChanged: (result) {
+          // Capture result automatically as user types/picks
+          setState(() {
+            _pendingResult = result;
+            _hasModified = true;
+          });
         },
+        onCancel: _cancel,
+        onSave: (_) {}, // Deprecated for this use-case
         onChanged: (_, __) {},
         quantity: '',
         size: '',
@@ -308,17 +448,15 @@ class _MaterialEditOverlayState extends State<_MaterialEditOverlay> {
         fields: m.dynamicFields,
         isEditMode: true,
         isEditable: true,
-        onCancel: _cancel,
-        onSave: (result) {
-          setState(() => _pendingResult = result);
-          ScaffoldMessenger.of(context).showSnackBar(
-            const SnackBar(
-              content: Text('Changes staged — tap Save to apply'),
-              behavior: SnackBarBehavior.floating,
-              duration: Duration(seconds: 2),
-            ),
-          );
+        showInternalSave: false, // 🔥 REMOVE INTERNAL BUTTONS
+        onResultChanged: (result) {
+          setState(() {
+            _pendingResult = result;
+            _hasModified = true;
+          });
         },
+        onCancel: _cancel,
+        onSave: (_) {}, // Deprecated
         onChanged: (_, __) {},
         floor: '',
         ton: m.weight.toString(),

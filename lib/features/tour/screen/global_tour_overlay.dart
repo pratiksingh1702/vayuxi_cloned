@@ -5,8 +5,9 @@ import 'package:go_router/go_router.dart';
 import '../../../core/api/global_sync_banner.dart';
 import '../../../core/router/app_access.dart';
 import '../../../core/router/app_router.dart';
+import '../../../core/upload/ui/upload_banner.dart';
 import '../../auth/provider/auth_provider.dart';
-import '../../modules/all_Modules/rate/screens/global_screen_banner.dart';
+
 import '../domain/tour_controller.dart';
 import '../domain/tour_step_model.dart';
 import 'buddy_overlay.dart';
@@ -15,17 +16,19 @@ class GlobalTourOverlay extends ConsumerWidget {
   final Widget child;
   const GlobalTourOverlay({super.key, required this.child});
 
-  // The banners are always shown regardless of tour/auth state
   Widget _withBanners(Widget child) {
     return Stack(
       children: [
         child,
-        const Positioned(
-          top: 0,
-          left: 0,
-          right: 0,
+
+        // ✅ CHANGE 1: Positioned.fill instead of Positioned(top:0,left:0,right:0)
+        // Allows the floating ball inside GlobalUploadBanner to self-position
+        // freely across the full screen. Banner mode is unaffected because
+        // GlobalUploadBanner internally wraps in SafeArea + top margin.
+        const Positioned.fill(
           child: GlobalUploadBanner(),
         ),
+
         const Positioned(
           top: 0,
           left: 0,
@@ -40,7 +43,6 @@ class GlobalTourOverlay extends ConsumerWidget {
   Widget build(BuildContext context, WidgetRef ref) {
     final access = ref.watch(appAccessProvider);
 
-    // ADD THIS
     print('''
     isBooting: ${access.isBooting}
     loggedIn: ${access.loggedIn}
@@ -49,13 +51,9 @@ class GlobalTourOverlay extends ConsumerWidget {
     planSelected: ${access.planSelected}
   ''');
 
-
-    // User must be fully inside the app before we even think about tour UI
-    final isInsideApp = !access.isBooting &&
-        access.loggedIn ;
+    final isInsideApp = !access.isBooting && access.loggedIn;
 
     if (!isInsideApp) {
-      // Still booting / on auth/onboarding screens → only show banners
       return _withBanners(child);
     }
 
@@ -64,10 +62,10 @@ class GlobalTourOverlay extends ConsumerWidget {
     final step = ctrl.currentStep;
     final router = ref.read(appRouterProvider);
 
-    final showBuddy =
-        tourState.status == TourStatus.running &&
-            tourState.buddyVisible &&
-            step != null;
+    final showBuddy = tourState.status == TourStatus.running &&
+        tourState.buddyVisible &&
+        step != null;
+
     print('''
   tourStatus: ${tourState.status}
   buddyVisible: ${tourState.buddyVisible}
@@ -77,12 +75,14 @@ class GlobalTourOverlay extends ConsumerWidget {
     return Stack(
       children: [
         child,
-        const Positioned(
-          top: 0,
-          left: 0,
-          right: 0,
+
+        // ✅ CHANGE 2: Same Positioned.fill fix in the main Stack
+        // Floating ball needs full-screen coordinate space to drag freely.
+        // Banner mode still renders at top — no visual difference.
+        const Positioned.fill(
           child: GlobalUploadBanner(),
         ),
+
         const Positioned(
           top: 0,
           left: 0,
@@ -90,6 +90,7 @@ class GlobalTourOverlay extends ConsumerWidget {
           child: GlobalSyncBanner(),
         ),
 
+        // ✅ NO CHANGE — buddy overlay untouched
         if (showBuddy)
           Positioned(
             top: 15,

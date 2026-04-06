@@ -145,6 +145,19 @@ class MOCNotifier extends StateNotifier<MOCState> {
     }
   }
 
+  /// RESET
+  Future<void> reset({required String siteId}) async {
+    state = state.copyWith(isLoading: true, error: null);
+    try {
+      await api.resetMoc(siteId: siteId);
+      // Optional: fetch again to sync local state
+      await fetchBySite(siteId);
+      state = state.copyWith(isLoading: false);
+    } catch (e) {
+      state = state.copyWith(isLoading: false, error: e.toString());
+    }
+  }
+
   /// SELECT
   void select(MOC? moc) {
     state = state.copyWith(selected: moc);

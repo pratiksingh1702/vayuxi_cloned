@@ -20,6 +20,8 @@ class testDynamicItemCard extends StatefulWidget {
   final bool isEditMode;
   final Function(MaterialEditResult)? onSave;
   final bool isDpr;
+  final bool showInternalSave;
+  final Function(MaterialEditResult)? onResultChanged;
 
   final VoidCallback? onCancel;
 
@@ -49,6 +51,8 @@ class testDynamicItemCard extends StatefulWidget {
     this.floorlabel = 'Floor',
     this.isEditMode = false,
     this.onSave,
+    this.onResultChanged,
+    this.showInternalSave = true,
     this.onCancel,
     required this.length,
     required this.floor,
@@ -283,6 +287,20 @@ class _testDynamicItemCardState extends State<testDynamicItemCard>
     }
   }
 
+  void _notifyResultChanged() {
+    if (widget.isEditMode && widget.onResultChanged != null) {
+      widget.onResultChanged!(
+        MaterialEditResult(
+          name: draftName,
+          imageFile: draftImageFile,
+          imageUrl: draftImageUrl,
+          uom: draftUom,
+          fields: draftFields,
+        ),
+      );
+    }
+  }
+
   Widget _buildDynamicFields() {
     final items = widget.isEditMode ? draftFields : widget.fields;
     if (items.isEmpty) return const SizedBox();
@@ -348,11 +366,10 @@ class _testDynamicItemCardState extends State<testDynamicItemCard>
 
     final valueController = _controllers.putIfAbsent(
       field.key,
-          () => TextEditingController(text: ""),
+          () => TextEditingController(text: field.displayText),
     );
 
     final labelController = TextEditingController(text: field.label);
-    final unitController = TextEditingController(text: field.unit);
 
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
@@ -377,6 +394,7 @@ class _testDynamicItemCardState extends State<testDynamicItemCard>
             style: const TextStyle(fontSize: 9, fontWeight: FontWeight.w600),
             onChanged: (v) {
               draftFields[index] = field.copyWith(label: v);
+              _notifyResultChanged();
             },
           ),
         ),
@@ -402,7 +420,8 @@ class _testDynamicItemCardState extends State<testDynamicItemCard>
             ),
             style: const TextStyle(fontSize: 8),
             onChanged: (v) {
-              draftFields[index] = field.copyWith(unit: v);
+              draftFields[index] = field.copyWith(displayText: v);
+              _notifyResultChanged();
             },
           ),
         ),
@@ -415,7 +434,10 @@ class _testDynamicItemCardState extends State<testDynamicItemCard>
         Align(
           alignment: Alignment.centerRight,
           child: GestureDetector(
-            onTap: () => setState(() => draftFields.removeAt(index)),
+            onTap: () {
+              setState(() => draftFields.removeAt(index));
+              _notifyResultChanged();
+            },
             child: const Icon(Icons.delete_outline, size: 14, color: Colors.red),
           ),
         ),
@@ -510,7 +532,10 @@ class _testDynamicItemCardState extends State<testDynamicItemCard>
                   child: widget.isEditMode
                       ? TextFormField(
                     initialValue: draftName,
-                    onChanged: (v) => draftName = v,
+                    onChanged: (v) {
+                      draftName = v;
+                      _notifyResultChanged();
+                    },
                     decoration: const InputDecoration(
                       isDense: true,
                       border: OutlineInputBorder(),
@@ -581,6 +606,7 @@ class _testDynamicItemCardState extends State<testDynamicItemCard>
                                   draftImageFile = file;
                                   draftImageUrl = null; // override server image
                                 });
+                                _notifyResultChanged();
                               }
                             },
                             icon: const Icon(Icons.photo),
@@ -689,6 +715,7 @@ class _testDynamicItemCardState extends State<testDynamicItemCard>
                                 ),
                               );
                             });
+                            _notifyResultChanged();
                           },
                           icon: const Icon(Icons.add),
                           label: const Text("Add Field"),
@@ -704,7 +731,10 @@ class _testDynamicItemCardState extends State<testDynamicItemCard>
                             initialValue: draftUom,
                             decoration:
                             const InputDecoration(labelText: "UOM"),
-                            onChanged: (v) => draftUom = v,
+                            onChanged: (v) {
+                              draftUom = v;
+                              _notifyResultChanged();
+                            },
                           )
                               : _blueBox("UOM", _lengthController,
                               isUOM: true, focusNode: _lengthFocusNode),
@@ -715,7 +745,7 @@ class _testDynamicItemCardState extends State<testDynamicItemCard>
                 ),
               ],
             ),
-            if (widget.isEditMode)
+            if (widget.isEditMode && widget.showInternalSave)
               Row(
                 children: [
                   Expanded(

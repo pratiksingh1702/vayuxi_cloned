@@ -16,6 +16,7 @@ import '../../../../../core/utlis/app_toasts.dart';
 import '../../../../../core/utlis/common_functions.dart';
 import '../../../../../core/utlis/widgets/custom.dart';
 import '../../../../../core/utlis/widgets/custom_appBar.dart';
+import '../../../../../core/utlis/widgets/shimmer.dart';
 import '../../../../../core/utlis/widgets/sidebar.dart';
 import '../../../../../core/utlis/widgets/custom_scrollbar.dart';
 import '../../../../../typeProvider/type_provider.dart';
@@ -233,7 +234,10 @@ class _RateScreenState extends ConsumerState<RateScreen> {
               // Rates list
               Expanded(
                 child: state.loading
-                    ? const Center(child: CircularProgressIndicator())
+                    ? const ShimmerList(
+                        type: ShimmerListType.tile,
+                        itemCount: 8,
+                      )
                     : state.error != null
                     ? Center(child: Text('Error: ${state.error}'))
                     : state.data == null || state.data!.isEmpty

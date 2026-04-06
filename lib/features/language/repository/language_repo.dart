@@ -44,9 +44,9 @@ class LanguageRepository {
   }
 
   Future<void> downloadAndStoreLanguage(
-      String userId,
-      String languageCode,
-      ) async {
+    String userId,
+    String languageCode,
+  ) async {
     final res = await api.downloadLanguage(userId, languageCode);
 
     final data = res.data['data'] as Map<String, dynamic>;
@@ -71,8 +71,9 @@ class LanguageRepository {
   Future<Map<String, dynamic>> loadModule({
     required String userId,
     required String moduleName,
+    String? languageCode,
   }) async {
-    final lang = storage.getActiveLanguage();
+    final lang = languageCode ?? storage.getActiveLanguage();
 
     // ✅ 1) Try local first
     final local = storage.getModule(lang, moduleName);
@@ -80,7 +81,10 @@ class LanguageRepository {
 
     // ✅ 2) If language is downloaded but module missing => corruption
     if (storage.isLanguageDownloaded(lang)) {
-      throw Exception('Offline language corrupted: $moduleName missing for $lang');
+      // If we're already trying English and it's missing, don't throw, just return empty
+      if (lang == "en-IN") return {};
+      throw Exception(
+          'Offline language corrupted: $moduleName missing for $lang');
     }
 
     // ✅ 3) Else fetch from server
@@ -95,26 +99,31 @@ class LanguageRepository {
       if (_isLanguageNotDownloadedError(e)) {
         const defaultLang = "en-IN";
 
-        // download English
-        await api.downloadLanguage(userId, defaultLang);
-        await api.setActiveLanguage(userId, defaultLang);
+        // If we were already trying English, we're in a loop or server error
+        if (lang == defaultLang) return {};
 
-        // IMPORTANT: update local storage too
-        await storage.setActiveLanguage(defaultLang);
+        // Download and persist English modules locally.
+        await downloadAndStoreLanguage(userId, defaultLang);
+        // Note: We don't necessarily want to set English as active here if we're just fetching a fallback
+        // await api.setActiveLanguage(userId, defaultLang);
+        // await storage.setActiveLanguage(defaultLang);
 
+        final localEnglish = storage.getModule(defaultLang, moduleName);
+        if (localEnglish != null) {
+          return localEnglish.content;
+        }
 
-        // retry module
+        // Safe fallback if a single module was missing in payload.
         final res2 = await api.getModule(userId, defaultLang, moduleName);
         final content2 = res2.data['data']['content'][moduleName];
-
         await storage.saveModule(defaultLang, moduleName, content2);
         return content2;
       }
 
       rethrow;
     }
-
   }
+
   bool _isLanguageNotDownloadedError(DioException e) {
     final data = e.response?.data;
     if (data is Map) {
@@ -123,8 +132,6 @@ class LanguageRepository {
     }
     return false;
   }
-
-
 
   // Helper method to check if language change is possible offline
   bool canChangeToLanguageOffline(String languageCode) {

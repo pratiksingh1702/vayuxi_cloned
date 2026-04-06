@@ -1,6 +1,7 @@
 // screens/add_floor_page.dart
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
+
 import 'package:untitled2/core/utlis/colors/colors.dart';
 import 'package:untitled2/core/utlis/widgets/Button_wrapper.dart';
 import 'package:untitled2/core/utlis/widgets/custom_appBar.dart';
@@ -70,10 +71,11 @@ class ManEntrySelectCardGrid extends StatelessWidget {
                     label: "Import Sheet",
                     onTap: () {
 
-                      Navigator.push(
-                        context,
-                        MaterialPageRoute(builder: (context) =>ManImportCsvScreen() ),
-                      );
+                      // Navigator.push(
+                      //   context,
+                      //   MaterialPageRoute(builder: (context) =>ManImportCsvScreen() ),
+                      // );
+                      context.push("/site-list/man-import");
 
                     },
                   ),

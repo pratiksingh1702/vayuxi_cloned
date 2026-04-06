@@ -113,4 +113,18 @@ class MocApi {
       "/moc/$mocId",
     );
   }
+
+  /// RESET MOC (POST)
+  Future<Response> resetMoc({
+    required String siteId,
+    bool isApplied = false,
+  }) async {
+    return await dio.post(
+      "/moc/reset",
+      data: {
+        "siteId": siteId,
+        "isApplied": isApplied,
+      },
+    );
+  }
 }

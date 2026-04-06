@@ -155,6 +155,48 @@ class _MOCSelectionPageState extends ConsumerState<MOCSelectionPage> with Delete
     }
   }
 
+  Future<void> _resetMocs() async {
+    final siteId = ref.read(selectedSiteIdProvider)!;
+
+    final confirm = await showDialog<bool>(
+      context: context,
+      builder: (_) => AlertDialog(
+        title: const Text("Reset MOCs"),
+        content: const Text("This will reset MOCs and restore defaults. Continue?"),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(context, false),
+            child: const Text("Cancel"),
+          ),
+          TextButton(
+            onPressed: () => Navigator.pop(context, true),
+            child: const Text("Reset", style: TextStyle(color: Colors.blue)),
+          ),
+        ],
+      ),
+    );
+
+    if (confirm != true) return;
+
+    try {
+      await ref.read(mocProvider.notifier).reset(siteId: siteId);
+
+      // ✅ Invalidate the rate file analysis provider
+      ref.invalidate(rateFileAnalysisProvider(siteId));
+
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text("MOCs reset successfully")),
+      );
+    } catch (e) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text(e.toString()),
+          backgroundColor: Colors.red,
+        ),
+      );
+    }
+  }
+
   Future<void> _deleteMoc(MOC moc) async {
     final siteId = ref.read(selectedSiteIdProvider)!;
 
@@ -227,7 +269,7 @@ class _MOCSelectionPageState extends ConsumerState<MOCSelectionPage> with Delete
 
     // ✅ ONLY RATE UPLOAD SOURCE
     final asyncRateUpload = ref.watch(rateFileAnalysisProvider(siteId));
-    final mocList = ref.watch(mocWithImagesProvider(siteId));
+
 
     return Scaffold(
       body: NestedScrollView(
@@ -274,13 +316,14 @@ class _MOCSelectionPageState extends ConsumerState<MOCSelectionPage> with Delete
               return Center(child: Text('Error loading rate file'));
             },
             data: (_) {
-              if (mocList.isEmpty) {
-                return const Center(
-                  child: Text("No MOC available"),
-                );
-              }
 
               final mocImages = ref.watch(mocWithImagesProvider(siteId));
+
+              if (mocImages.isEmpty) {
+                return const Center(child: Text("No MOC available"));
+              }
+
+
 
               if (mocImages.isEmpty) {
                 return const Center(child: Text("No MOC available"));
@@ -304,16 +347,25 @@ class _MOCSelectionPageState extends ConsumerState<MOCSelectionPage> with Delete
 
                     /// RIGHT SIDE
                     if (!isDeleteMode)
-                      IconButton(
-                        icon: const Icon(
-                          Icons.delete_sweep,
-                          color: Colors.red,
-                        ),
-                        onPressed: () {
-                          setState(() {
-                            toggleDeleteMode();
-                          });
-                        },
+                      Row(
+                        children: [
+                          IconButton(
+                            tooltip: "Reset MOCs",
+                            icon: const Icon(Icons.restart_alt, color: Colors.blue),
+                            onPressed: _resetMocs,
+                          ),
+                          IconButton(
+                            icon: const Icon(
+                              Icons.delete_sweep,
+                              color: Colors.red,
+                            ),
+                            onPressed: () {
+                              setState(() {
+                                toggleDeleteMode();
+                              });
+                            },
+                          ),
+                        ],
                       )
                     else
                       Row(

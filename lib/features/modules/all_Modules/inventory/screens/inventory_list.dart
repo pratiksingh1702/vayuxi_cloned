@@ -7,6 +7,7 @@ import 'package:untitled2/features/modules/all_Modules/inventory/offline/repo/in
 import '../../../../../core/utlis/colors/colors.dart';
 import '../../../../../core/utlis/widgets/buttons.dart';
 import '../../../../../core/utlis/widgets/custom_appBar.dart';
+import '../../../../../core/utlis/widgets/shimmer.dart';
 import '../../../../../core/utlis/widgets/sidebar.dart';
 import '../../../../../core/utlis/widgets/custom_scrollbar.dart';
 import '../../site_Details/providers/site_current_provider.dart';
@@ -94,7 +95,10 @@ class _InventoryListScreenState extends ConsumerState<InventoryListScreen> {
 
             Expanded(
               child: inventoryAsync.when(
-                loading: () => const Center(child: CircularProgressIndicator()),
+                loading: () => const ShimmerList(
+                  type: ShimmerListType.tile,
+                  itemCount: 8,
+                ),
                 error: (e, _) => Center(child: Text("Failed to load inventory")),
                 data: (inventoryList) {
                   final filtered = inventoryList.where((item) {

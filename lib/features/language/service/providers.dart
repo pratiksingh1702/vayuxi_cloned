@@ -8,8 +8,13 @@ import '../model/translation_helper.dart';
 // Provider to get translator for any module
 final translatorProvider = Provider.family<Translator, String>((ref, moduleName) {
   final asyncModule = ref.watch(languageModuleProvider(moduleName));
+  final asyncEnglish = ref.watch(englishModuleProvider(moduleName));
+  
   return asyncModule.when(
-    data: (data) => Translator(data),
+    data: (data) => Translator(
+      data, 
+      fallbackData: asyncEnglish.valueOrNull,
+    ),
     loading: () => Translator({}),
     error: (_, __) => Translator({}),
   );

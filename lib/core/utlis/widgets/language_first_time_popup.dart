@@ -13,223 +13,199 @@ class LanguageFirstTimePopup extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final size = MediaQuery.of(context).size;
+    final isSmall = size.width < 360;
+
     return Stack(
       children: [
-        // Enhanced Blur Background with gradient
+        // Soft dim + blur backdrop keeps context visible without visual noise.
         BackdropFilter(
-          filter: ImageFilter.blur(sigmaX: 15, sigmaY: 15),
+          filter: ImageFilter.blur(sigmaX: 10, sigmaY: 10),
           child: Container(
             decoration: BoxDecoration(
               gradient: LinearGradient(
-                begin: Alignment.topCenter,
-                end: Alignment.bottomCenter,
+                begin: Alignment.topLeft,
+                end: Alignment.bottomRight,
                 colors: [
-                  Colors.black.withOpacity(0.4),
-                  Colors.black.withOpacity(0.6),
+                  Colors.black.withOpacity(0.36),
+                  Colors.black.withOpacity(0.52),
                 ],
               ),
             ),
           ),
         ),
 
-        // Center Glass Card
+        // Premium white card
         Center(
           child: Padding(
-            padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 20),
-            child: ClipRRect(
-              borderRadius: BorderRadius.circular(28),
-              child: Container(
-                width: double.infinity,
-                constraints: const BoxConstraints(maxWidth: 420),
-                padding: const EdgeInsets.all(28),
-                decoration: BoxDecoration(
-                  borderRadius: BorderRadius.circular(28),
-                  border: Border.all(
-                    color: Colors.white.withOpacity(0.3),
-                    width: 1.5,
+            padding: const EdgeInsets.symmetric(horizontal: 22, vertical: 20),
+            child: Container(
+              width: double.infinity,
+              constraints: const BoxConstraints(maxWidth: 430),
+              padding: EdgeInsets.symmetric(
+                horizontal: isSmall ? 18 : 24,
+                vertical: isSmall ? 20 : 24,
+              ),
+              decoration: BoxDecoration(
+                color: Colors.white,
+                borderRadius: BorderRadius.circular(24),
+                border: Border.all(color: const Color(0xFFE8ECF2), width: 1.2),
+                boxShadow: const [
+                  BoxShadow(
+                    color: Color(0x33111A2E),
+                    blurRadius: 30,
+                    offset: Offset(0, 14),
                   ),
-                  gradient: LinearGradient(
-                    begin: Alignment.topLeft,
-                    end: Alignment.bottomRight,
-                    colors: [
-                      Colors.white.withOpacity(0.15),
-                      Colors.white.withOpacity(0.05),
+                  BoxShadow(
+                    color: Color(0x14111A2E),
+                    blurRadius: 8,
+                    offset: Offset(0, 3),
+                  ),
+                ],
+              ),
+              child: Column(
+                mainAxisSize: MainAxisSize.min,
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Row(
+                    children: [
+                      Container(
+                        height: 54,
+                        width: 54,
+                        decoration: BoxDecoration(
+                          borderRadius: BorderRadius.circular(16),
+                          color: const Color(0xFFEFF4FF),
+                        ),
+                        child: const Icon(
+                          Icons.language_rounded,
+                          size: 28,
+                          color: Color(0xFF1F4DA8),
+                        ),
+                      ),
+                      const SizedBox(width: 12),
+                      const Expanded(
+                        child: Text(
+                          "Language Setup",
+                          style: TextStyle(
+                            fontSize: 15,
+                            fontWeight: FontWeight.w600,
+                            color: Color(0xFF4A5568),
+                            decoration: TextDecoration.none,
+                          ),
+                        ),
+                      ),
                     ],
                   ),
-                  boxShadow: [
-                    BoxShadow(
-                      color: Colors.black.withOpacity(0.25),
-                      blurRadius: 40,
-                      spreadRadius: 2,
-                      offset: const Offset(0, 10),
+                  const SizedBox(height: 16),
+                  Text(
+                    "Choose your app language",
+                    style: TextStyle(
+                      fontSize: isSmall ? 21 : 24,
+                      height: 1.2,
+                      fontWeight: FontWeight.w800,
+                      color: const Color(0xFF121826),
+                      decoration: TextDecoration.none,
                     ),
-                  ],
-                ),
-                child: Column(
-                  mainAxisSize: MainAxisSize.min,
-                  children: [
-                    // Icon with gradient background
-                    Container(
-                      padding: const EdgeInsets.all(20),
-                      decoration: BoxDecoration(
-                        shape: BoxShape.circle,
-                        gradient: LinearGradient(
-                          colors: [
-                            Colors.blueAccent.withOpacity(0.8),
-                            Colors.purpleAccent.withOpacity(0.8),
-                          ],
-                        ),
-                        boxShadow: [
-                          BoxShadow(
-                            color: Colors.blueAccent.withOpacity(0.3),
-                            blurRadius: 15,
-                            spreadRadius: 2,
+                  ),
+                  const SizedBox(height: 10),
+                  const Text(
+                    "Get a personalized experience by selecting and downloading your preferred language pack. English is always available as the default.",
+                    style: TextStyle(
+                      fontSize: 14,
+                      height: 1.5,
+                      color: Color(0xFF5D6B82),
+                      fontWeight: FontWeight.w400,
+                      decoration: TextDecoration.none,
+                    ),
+                  ),
+                  const SizedBox(height: 20),
+                  Container(
+                    width: double.infinity,
+                    padding: const EdgeInsets.symmetric(
+                      horizontal: 12,
+                      vertical: 10,
+                    ),
+                    decoration: BoxDecoration(
+                      color: const Color(0xFFF7FAFF),
+                      borderRadius: BorderRadius.circular(12),
+                      border: Border.all(color: const Color(0xFFDCE8FF)),
+                    ),
+                    child: const Row(
+                      children: [
+                        Icon(Icons.check_circle,
+                            size: 18, color: Color(0xFF1F7A45)),
+                        SizedBox(width: 8),
+                        Expanded(
+                          child: Text(
+                            "Default: English (en-IN)",
+                            style: TextStyle(
+                              fontSize: 13,
+                              color: Color(0xFF2D3A4D),
+                              fontWeight: FontWeight.w600,
+                              decoration: TextDecoration.none,
+                            ),
                           ),
-                        ],
-                      ),
-                      child: const Icon(
-                        Icons.language_rounded,
-                        size: 48,
-                        color: Colors.white,
+                        ),
+                      ],
+                    ),
+                  ),
+                  const SizedBox(height: 22),
+                  SizedBox(
+                    width: double.infinity,
+                    height: 52,
+                    child: ElevatedButton.icon(
+                      onPressed: onSelectLanguage,
+                      icon: const Icon(Icons.translate_rounded, size: 19),
+                      label: const Text("Select Language"),
+                      style: ElevatedButton.styleFrom(
+                        elevation: 0,
+                        backgroundColor: const Color(0xFF1F4DA8),
+                        foregroundColor: Colors.white,
+                        textStyle: const TextStyle(
+                          fontSize: 15,
+                          fontWeight: FontWeight.w700,
+                          letterSpacing: 0.2,
+                        ),
+                        shape: RoundedRectangleBorder(
+                          borderRadius: BorderRadius.circular(14),
+                        ),
                       ),
                     ),
-
-                    const SizedBox(height: 24),
-
-                    // Title with subtle gradient text
-                     Text(
-                      "Choose Your Language",
-                      textAlign: TextAlign.center,
-
-
-                      style: TextStyle(
-                        fontSize: 24,
-                        fontWeight: FontWeight.w800,
-                        color: Colors.white,
-                        letterSpacing: 0.5,
-                        decoration: TextDecoration.none,
+                  ),
+                  const SizedBox(height: 10),
+                  SizedBox(
+                    width: double.infinity,
+                    height: 48,
+                    child: OutlinedButton(
+                      onPressed: onSkip,
+                      style: OutlinedButton.styleFrom(
+                        side: const BorderSide(color: Color(0xFFD7DDEA)),
+                        shape: RoundedRectangleBorder(
+                          borderRadius: BorderRadius.circular(14),
+                        ),
+                        foregroundColor: const Color(0xFF1E2A3A),
+                        textStyle: const TextStyle(
+                          fontSize: 14,
+                          fontWeight: FontWeight.w600,
+                        ),
                       ),
+                      child: const Text("Continue with English"),
                     ),
-
-                    const SizedBox(height: 12),
-
-                    // Description
-                    Text(
-                      "Download and set your preferred language pack for a personalized experience.\nEnglish is selected by default.",
+                  ),
+                  const SizedBox(height: 10),
+                  const Center(
+                    child: Text(
+                      "You can change language anytime from Settings.",
                       textAlign: TextAlign.center,
                       style: TextStyle(
-                        fontSize: 14,
-                        color: Colors.white.withOpacity(0.9),
-                        height: 1.6,
+                        fontSize: 12,
+                        color: Color(0xFF7A869A),
                         fontWeight: FontWeight.w400,
                         decoration: TextDecoration.none,
                       ),
                     ),
-
-                    const SizedBox(height: 28),
-
-                    // Primary Button with gradient
-                    Container(
-                      width: double.infinity,
-                      height: 56,
-                      decoration: BoxDecoration(
-                        borderRadius: BorderRadius.circular(18),
-                        gradient: LinearGradient(
-                          colors: [
-                            Colors.blueAccent,
-                            Colors.purpleAccent,
-                          ],
-                        ),
-                        boxShadow: [
-                          BoxShadow(
-                            color: Colors.blueAccent.withOpacity(0.4),
-                            blurRadius: 12,
-                            offset: const Offset(0, 4),
-                          ),
-                        ],
-                      ),
-                      child: ElevatedButton(
-                        style: ElevatedButton.styleFrom(
-                          backgroundColor: Colors.transparent,
-                          shadowColor: Colors.transparent,
-                          shape: RoundedRectangleBorder(
-                            borderRadius: BorderRadius.circular(18),
-                          ),
-                          padding: const EdgeInsets.symmetric(vertical: 16),
-                        ),
-                        onPressed: onSelectLanguage,
-                        child: const Row(
-                          mainAxisAlignment: MainAxisAlignment.center,
-                          children: [
-                            Icon(Icons.translate, color: Colors.white, size: 20),
-                            SizedBox(width: 10),
-                            Text(
-                              "Select Language",
-                              style: TextStyle(
-                                color: Colors.white,
-                                fontWeight: FontWeight.w700,
-                                fontSize: 16,
-                                letterSpacing: 0.5,
-                              ),
-                            ),
-                          ],
-                        ),
-                      ),
-                    ),
-
-                    const SizedBox(height: 16),
-
-                    // Secondary Button
-                    SizedBox(
-                      width: double.infinity,
-                      child: TextButton(
-                        style: TextButton.styleFrom(
-                          padding: const EdgeInsets.symmetric(
-                            vertical: 16,
-                            horizontal: 24,
-                          ),
-                          shape: RoundedRectangleBorder(
-                            borderRadius: BorderRadius.circular(18),
-                          ),
-                        ),
-                        onPressed: onSkip,
-                        child: Row(
-                          mainAxisAlignment: MainAxisAlignment.center,
-                          children: [
-                            Text(
-                              "Skip for now",
-                              style: TextStyle(
-                                color: Colors.white.withOpacity(0.9),
-                                fontWeight: FontWeight.w600,
-                                fontSize: 15,
-                              ),
-                            ),
-                            const SizedBox(width: 8),
-                            Icon(
-                              Icons.arrow_forward_rounded,
-                              size: 18,
-                              color: Colors.white.withOpacity(0.9),
-                            ),
-                          ],
-                        ),
-                      ),
-                    ),
-
-                    // Optional: Add language suggestion
-                    Padding(
-                      padding: const EdgeInsets.only(top: 20),
-                      child: Text(
-                        "You can change this anytime in settings",
-                        style: TextStyle(
-                          fontSize: 12,
-                          color: Colors.white.withOpacity(0.6),
-                          fontStyle: FontStyle.italic,
-                          decoration: TextDecoration.none,
-                        ),
-                      ),
-                    ),
-                  ],
-                ),
+                  ),
+                ],
               ),
             ),
           ),

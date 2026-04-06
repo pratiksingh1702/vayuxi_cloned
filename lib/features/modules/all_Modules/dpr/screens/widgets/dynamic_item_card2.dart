@@ -30,6 +30,8 @@ class DynamicItemCard2 extends StatefulWidget {
   final List<DynamicField> fields;
   final Function(String key, String value) onChanged;
   final Function(MaterialEditResult)? onSave;
+  final Function(MaterialEditResult)? onResultChanged;
+  final bool showInternalSave;
   final VoidCallback? onCancel;
 
   final Function(String) onQtyChanged;
@@ -63,6 +65,8 @@ class DynamicItemCard2 extends StatefulWidget {
     this.isEditMode = false,
     required this.isEditable,
     this.onSave,
+    this.onResultChanged,
+    this.showInternalSave = true,
     this.onCancel,
     required this.onMeterChanged,
     required this.onQtyChanged,
@@ -128,6 +132,20 @@ class _DynamicItemCard2State extends State<DynamicItemCard2>
     _mocCtrl.addListener(() {
       if (_mocCtrl.text != widget.moc) widget.onMocChanged(_mocCtrl.text);
     });
+  }
+
+  void _notifyResultChanged() {
+    if (widget.isEditMode && widget.onResultChanged != null) {
+      widget.onResultChanged!(
+        MaterialEditResult(
+          name: draftName,
+          imageFile: draftImageFile,
+          imageUrl: draftImageUrl,
+          uom: draftUom,
+          fields: draftFields,
+        ),
+      );
+    }
   }
 
   void _initDraft() {
@@ -232,6 +250,7 @@ class _DynamicItemCard2State extends State<DynamicItemCard2>
             style: const TextStyle(fontSize: 9, fontWeight: FontWeight.w600),
             onChanged: (v) {
               setState(() => draftFields[index] = field.copyWith(label: v));
+              _notifyResultChanged();
             },
           ),
         ),
@@ -255,6 +274,7 @@ class _DynamicItemCard2State extends State<DynamicItemCard2>
             style: const TextStyle(fontSize: 8),
             onChanged: (v) {
               setState(() => draftFields[index] = field.copyWith(displayText: v));
+              _notifyResultChanged();
             },
           ),
         ),
@@ -262,7 +282,10 @@ class _DynamicItemCard2State extends State<DynamicItemCard2>
         Align(
           alignment: Alignment.centerRight,
           child: GestureDetector(
-            onTap: () => setState(() => draftFields.removeAt(index)),
+            onTap: () {
+              setState(() => draftFields.removeAt(index));
+              _notifyResultChanged();
+            },
             child: const Icon(Icons.delete_outline, size: 14, color: Colors.red),
           ),
         ),
@@ -335,7 +358,10 @@ class _DynamicItemCard2State extends State<DynamicItemCard2>
                 child: widget.isEditMode
                     ? TextFormField(
                   initialValue: draftName,
-                  onChanged: (v) => draftName = v,
+                  onChanged: (v) {
+                    draftName = v;
+                    _notifyResultChanged();
+                  },
                   decoration: const InputDecoration(
                     isDense: true,
                     border: OutlineInputBorder(),
@@ -405,6 +431,7 @@ class _DynamicItemCard2State extends State<DynamicItemCard2>
                                 draftImageFile = file;
                                 draftImageUrl = null;
                               });
+                              _notifyResultChanged();
                             }
                           },
                           icon: const Icon(Icons.photo),
@@ -509,6 +536,7 @@ class _DynamicItemCard2State extends State<DynamicItemCard2>
                               displayText: "",
                             ));
                           });
+                          _notifyResultChanged();
                         },
                         icon: const Icon(Icons.add),
                         label: const Text("Add Field"),
@@ -525,7 +553,10 @@ class _DynamicItemCard2State extends State<DynamicItemCard2>
                         decoration: const InputDecoration(
                             labelText: "UOM",
                             border: OutlineInputBorder()),
-                        onChanged: (v) => draftUom = v,
+                        onChanged: (v) {
+                          draftUom = v;
+                          _notifyResultChanged();
+                        },
                       ),
                     )
                         : _buildUomField()// 👈 use the stored controller
@@ -537,7 +568,7 @@ class _DynamicItemCard2State extends State<DynamicItemCard2>
           ),
 
           // ── SAVE / CANCEL (edit mode only) ──
-          if (widget.isEditMode)
+          if (widget.isEditMode && widget.showInternalSave)
             Padding(
               padding: const EdgeInsets.only(top: 8),
               child: Row(
@@ -617,6 +648,7 @@ class _DynamicItemCard2State extends State<DynamicItemCard2>
       ],
     );
   }
+
   Widget _updatedblueBox({
     required String label,
     required TextEditingController controller,
@@ -639,7 +671,9 @@ class _DynamicItemCard2State extends State<DynamicItemCard2>
           child: TextFormField(
             key: ValueKey(keyName),
             controller: controller,
-            onChanged: (v) => widget.onChanged(keyName, v),
+            onChanged: (v) {
+              widget.onChanged(keyName, v);
+            },
             textAlign: TextAlign.center,
             enabled: widget.isEditable,
             decoration: InputDecoration(

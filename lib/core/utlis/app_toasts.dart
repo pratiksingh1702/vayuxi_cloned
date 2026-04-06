@@ -12,6 +12,7 @@ class AppToast {
       AppToastType.success => Colors.green.shade600,
       AppToastType.info => Colors.blue.shade600,
       AppToastType.error => Colors.red.shade600,
+
     };
 
     final icon = switch (type) {

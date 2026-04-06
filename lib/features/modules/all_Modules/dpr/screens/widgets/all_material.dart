@@ -12,6 +12,7 @@ import 'package:untitled2/features/modules/all_Modules/dpr/screens/widgets/test_
 import 'package:untitled2/features/modules/all_Modules/site_Details/providers/site_current_provider.dart';
 
 import '../../../../../../core/local/isar_db.dart';
+import '../../../../../../core/utlis/widgets/shimmer.dart';
 import '../../dpr-setup/screens/add/add_material.dart';
 import '../../models/data/eqipment_provider.dart';
 import '../../models/data/piping_provider.dart';
@@ -112,64 +113,10 @@ class _AllMaterialsScreenState extends ConsumerState<AllMaterialsScreen>
       siteId: siteId,
     );
 
-    if (result == null || !mounted) return;
-
-    // ── Same save logic that was previously inside onSave inline ──────────────
-    try {
+    if (result == true && mounted) {
+      // Reload materials effect
       setState(() => _isLoading = true);
-
-      final formData = FormData.fromMap({
-        "materialName": result.name,
-        "uom": result.uom,
-        "designation": material.designation,
-        "calculationCategory": result.categoryId ?? material.calculationCategory,
-        "isApplied": false,
-        "dynamicFields":
-        jsonEncode(result.fields.map((e) => e.toJson()).toList()),
-        if (result.imageFile != null)
-          "image": await MultipartFile.fromFile(
-            result.imageFile!.path,
-            filename: result.imageFile!.path.split('/').last,
-          ),
-      });
-
-      await RateUploadApi.updateLineItem(
-        rateUploadId: rateUploadId!,
-        lineItemId: material.id,
-        data: formData,
-      );
-
-      final repo = RateRepository(AppIsarDB.isar);
-      await repo.syncRateFile(siteId);
-
-      ref.invalidate(rateFileAnalysisProvider(siteId));
-      ref.invalidate(approvedPipingMaterialsProvider(siteId));
-      ref.invalidate(approvedEquipmentMaterialsProvider(siteId));
-      ref.invalidate(suggestedPipingMaterialsProvider(siteId));
-      ref.invalidate(suggestedEquipmentMaterialsProvider(siteId));
-      ref.invalidate(allRateVariantsProvider);
-
-      if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(
-            content: Text('Material updated successfully'),
-            backgroundColor: Colors.green,
-            behavior: SnackBarBehavior.floating,
-          ),
-        );
-      }
-    } catch (e) {
-      debugPrint('❌ Piping overlay save failed: $e');
-      if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
-            content: Text('Save failed: $e'),
-            backgroundColor: Colors.red,
-            behavior: SnackBarBehavior.floating,
-          ),
-        );
-      }
-    } finally {
+      await Future.delayed(const Duration(milliseconds: 500));
       if (mounted) setState(() => _isLoading = false);
     }
   }
@@ -194,62 +141,10 @@ class _AllMaterialsScreenState extends ConsumerState<AllMaterialsScreen>
       siteId: siteId,
     );
 
-    if (result == null || !mounted) return;
-
-    try {
+    if (result == true && mounted) {
+      // Reload materials effect
       setState(() => _isLoading = true);
-
-      final formData = FormData.fromMap({
-        "materialName": result.name,
-        "uom": result.uom,
-        "designation": material.designation,
-        "calculationCategory": result.categoryId ?? material.calculationCategory,
-        "isApplied": false,
-        "dynamicFields":
-        jsonEncode(result.fields.map((e) => e.toJson()).toList()),
-        if (result.imageFile != null)
-          "image": await MultipartFile.fromFile(
-            result.imageFile!.path,
-            filename: result.imageFile!.path.split('/').last,
-          ),
-      });
-
-      await RateUploadApi.updateLineItem(
-        rateUploadId: rateUploadId!,
-        lineItemId: material.id,
-        data: formData,
-      );
-
-      final repo = RateRepository(AppIsarDB.isar);
-      await repo.syncRateFile(siteId);
-
-      ref.invalidate(rateFileAnalysisProvider(siteId));
-      ref.invalidate(approvedPipingMaterialsProvider(siteId));
-      ref.invalidate(approvedEquipmentMaterialsProvider(siteId));
-      ref.invalidate(suggestedPipingMaterialsProvider(siteId));
-      ref.invalidate(suggestedEquipmentMaterialsProvider(siteId));
-
-      if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(
-            content: Text('Material updated successfully'),
-            backgroundColor: Colors.green,
-            behavior: SnackBarBehavior.floating,
-          ),
-        );
-      }
-    } catch (e) {
-      debugPrint('❌ Equipment overlay save failed: $e');
-      if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
-            content: Text('Save failed: $e'),
-            backgroundColor: Colors.red,
-            behavior: SnackBarBehavior.floating,
-          ),
-        );
-      }
-    } finally {
+      await Future.delayed(const Duration(milliseconds: 500));
       if (mounted) setState(() => _isLoading = false);
     }
   }
@@ -864,7 +759,13 @@ class _AllMaterialsScreenState extends ConsumerState<AllMaterialsScreen>
                   ],
                 ),
               ),
-              if (_isLoading && _isInitialized) const LinearProgressIndicator(),
+              if (_isLoading && _isInitialized)
+                const ShimmerList(
+                  type: ShimmerListType.card,
+                  itemCount: 1,
+                  scrollable: false,
+                  padding: EdgeInsets.zero,
+                ),
               Expanded(
                 child: TabBarView(
                   controller: _tabController,
@@ -903,9 +804,10 @@ class _AllMaterialsScreenState extends ConsumerState<AllMaterialsScreen>
       ),
       if (_isLoading)
         Container(
-          color: Colors.black.withOpacity(0.3),
-          child: const Center(
-            child: CircularProgressIndicator(),
+          color: Colors.white.withOpacity(0.8),
+          child: const ShimmerList(
+            type: ShimmerListType.card,
+            itemCount: 5,
           ),
         ),
     ]);

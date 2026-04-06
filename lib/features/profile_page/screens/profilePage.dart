@@ -1,3 +1,4 @@
+import 'package:untitled2/core/utlis/widgets/shimmer.dart';
 import 'dart:io';
 import 'package:dio/dio.dart';
 import 'package:flutter/material.dart';
@@ -665,14 +666,7 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
                       ),
                       onPressed: userState.isLoading ? null : _submitForm,
                       child: userState.isLoading
-                          ? const SizedBox(
-                        height: 20,
-                        width: 20,
-                        child: CircularProgressIndicator(
-                          strokeWidth: 2,
-                          valueColor: AlwaysStoppedAnimation(Colors.white),
-                        ),
-                      )
+                          ? const ShimmerCircle(size: 24)
                           : const Text(
                         'Save & Submit',
                         style: TextStyle(color: Colors.white),

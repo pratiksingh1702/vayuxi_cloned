@@ -24,7 +24,12 @@ class LocalMaterialDao {
       await _isar.localMaterials.putAll(materials);
     });
   }
-
+  Future<LocalMaterial?> findByServerId(String serverId) async {
+    return await _isar.localMaterials
+        .filter()
+        .serverIdEqualTo(serverId)
+        .findFirst();
+  }
   // In local_material_dao.dart — add this method
 
   Future<void> updateMaterialImage({

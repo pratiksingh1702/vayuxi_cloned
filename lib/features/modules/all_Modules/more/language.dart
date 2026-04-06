@@ -37,8 +37,8 @@ class _LanguageSelectionScreenState
       final user = ref.read(userNotifierProvider).user;
 
       final response = await ref.read(languageApiProvider).listLanguages(
-        userId: user?.id,
-      );
+            userId: user?.id,
+          );
 
       final List<dynamic> languageList = response.data['data'];
 
@@ -55,14 +55,16 @@ class _LanguageSelectionScreenState
           );
         }).toList();
 
-        selectedLanguage = activeLanguage;
+        final activeExists =
+            availableLanguages.any((lang) => lang.code == activeLanguage);
+        selectedLanguage = activeExists ? activeLanguage : 'en-IN';
       });
     } catch (_) {
       // 🔥 OFFLINE FALLBACK
       if (downloadedCodes.isEmpty) {
         setState(() {
           availableLanguages = [];
-          selectedLanguage = activeLanguage;
+          selectedLanguage = 'en-IN';
         });
       } else {
         setState(() {
@@ -76,14 +78,17 @@ class _LanguageSelectionScreenState
             );
           }).toList();
 
-          selectedLanguage = activeLanguage;
+          selectedLanguage = downloadedCodes.contains(activeLanguage)
+              ? activeLanguage
+              : (downloadedCodes.contains('en-IN')
+                  ? 'en-IN'
+                  : downloadedCodes.first);
         });
       }
     } finally {
       setState(() => isLoading = false);
     }
   }
-
 
   Future<void> _downloadLanguage(String languageCode) async {
     final user = ref.read(userNotifierProvider).user;
@@ -98,7 +103,7 @@ class _LanguageSelectionScreenState
 
       setState(() {
         final index =
-        availableLanguages.indexWhere((l) => l.code == languageCode);
+            availableLanguages.indexWhere((l) => l.code == languageCode);
         if (index != -1) {
           availableLanguages[index] =
               availableLanguages[index].copyWith(isDownloaded: true);
@@ -108,7 +113,6 @@ class _LanguageSelectionScreenState
       setState(() => isLoading = false);
     }
   }
-
 
   Future<void> _saveLanguageSelection() async {
     if (selectedLanguage == null) return;
@@ -121,11 +125,8 @@ class _LanguageSelectionScreenState
     setState(() => isLoading = true);
 
     try {
-      final repo = ref.read(languageRepositoryProvider);
-      await repo.changeLanguage(user.id, selectedLanguage!);
-      ref.invalidate(languageModuleProvider);
-      final selected = availableLanguages
-          .firstWhere((l) => l.code == selectedLanguage);
+      final selected =
+          availableLanguages.firstWhere((l) => l.code == selectedLanguage);
 
       if (!selected.isDownloaded) {
         ScaffoldMessenger.of(context).showSnackBar(
@@ -136,7 +137,10 @@ class _LanguageSelectionScreenState
         return;
       }
 
-
+      final repo = ref.read(languageRepositoryProvider);
+      await repo.changeLanguage(user.id, selectedLanguage!);
+      ref.invalidate(activeLanguageProvider);
+      ref.invalidate(languageModuleProvider);
 
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
@@ -159,11 +163,11 @@ class _LanguageSelectionScreenState
   Widget build(BuildContext context) {
     final filteredLanguages = availableLanguages
         .where((lang) =>
-        lang.name.toLowerCase().contains(searchText.toLowerCase().trim()))
+            lang.name.toLowerCase().contains(searchText.toLowerCase().trim()))
         .toList();
 
     final selectedLang = availableLanguages.firstWhere(
-          (lang) => lang.code == selectedLanguage,
+      (lang) => lang.code == selectedLanguage,
       orElse: () => LanguageItem(
         code: '',
         name: 'None',
@@ -191,58 +195,58 @@ class _LanguageSelectionScreenState
       body: isLoading
           ? const Center(child: CircularProgressIndicator())
           : Padding(
-        padding: const EdgeInsets.symmetric(horizontal: 18),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            const Text(
-              "Select your preferred language below. This helps us serve you better.",
-              style: TextStyle(
-                color: Colors.black54,
-                fontSize: 14,
+              padding: const EdgeInsets.symmetric(horizontal: 18),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  const Text(
+                    "Select your preferred language below. This helps us serve you better.",
+                    style: TextStyle(
+                      color: Colors.black54,
+                      fontSize: 14,
+                    ),
+                  ),
+                  const SizedBox(height: 25),
+
+                  // YOU SELECTED
+                  const Text(
+                    "You Selected",
+                    style: TextStyle(
+                      fontSize: 14,
+                      fontWeight: FontWeight.w600,
+                    ),
+                  ),
+                  const SizedBox(height: 6),
+
+                  _buildSelectedLanguageCard(selectedLang),
+
+                  const SizedBox(height: 25),
+
+                  // ALL LANGUAGES
+                  const Text(
+                    "All Languages",
+                    style: TextStyle(
+                      fontSize: 14,
+                      fontWeight: FontWeight.w600,
+                    ),
+                  ),
+
+                  const SizedBox(height: 10),
+
+                  _buildSearchBox(),
+
+                  const SizedBox(height: 10),
+
+                  Expanded(
+                    child: ListView(
+                      children: filteredLanguages
+                          .map((lang) => _buildLanguageTile(lang))
+                          .toList(),
+                    ),
+                  ),
+                ],
               ),
             ),
-            const SizedBox(height: 25),
-
-            // YOU SELECTED
-            const Text(
-              "You Selected",
-              style: TextStyle(
-                fontSize: 14,
-                fontWeight: FontWeight.w600,
-              ),
-            ),
-            const SizedBox(height: 6),
-
-            _buildSelectedLanguageCard(selectedLang),
-
-            const SizedBox(height: 25),
-
-            // ALL LANGUAGES
-            const Text(
-              "All Languages",
-              style: TextStyle(
-                fontSize: 14,
-                fontWeight: FontWeight.w600,
-              ),
-            ),
-
-            const SizedBox(height: 10),
-
-            _buildSearchBox(),
-
-            const SizedBox(height: 10),
-
-            Expanded(
-              child: ListView(
-                children: filteredLanguages
-                    .map((lang) => _buildLanguageTile(lang))
-                    .toList(),
-              ),
-            ),
-          ],
-        ),
-      ),
       bottomNavigationBar: Padding(
         padding: const EdgeInsets.all(16),
         child: Row(

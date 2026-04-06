@@ -7,6 +7,7 @@ import 'package:untitled2/core/utlis/widgets/Button_wrapper.dart';
 import 'package:untitled2/core/utlis/widgets/buttons.dart';
 import '../../../../../core/utlis/common_functions.dart';
 import '../../../../../core/utlis/widgets/custom_appBar.dart';
+import '../../../../../core/utlis/widgets/shimmer.dart';
 import '../../../../../core/utlis/widgets/sidebar.dart';
 import '../../../../../core/utlis/widgets/custom_scrollbar.dart';
 import '../../../../../typeProvider/type_provider.dart';
@@ -185,7 +186,11 @@ class _TeamListPageState extends ConsumerState<TeamListPage> {
           builder: (context) {
             // ✅ loading only when no cached data
             if (teamState.isLoading && !teamState.hasData) {
-              return const Center(child: CircularProgressIndicator());
+              return const ShimmerList(
+                type: ShimmerListType.grid,
+                crossAxisCount: 2,
+                itemCount: 6,
+              );
             }
 
             // ✅ show error only if no data
@@ -317,13 +322,22 @@ class _TeamListPageState extends ConsumerState<TeamListPage> {
                       children: [
                         ClipOval(
                           child: team.teamLeadImage != null &&
-                              team.teamLeadImage!.isNotEmpty
-                              ? Image.network(
-                            team.teamLeadImage!,
-                            height: 80,
-                            width: 80,
-                            fit: BoxFit.cover,
-                            errorBuilder: (_, __, ___) {
+                                    team.teamLeadImage!.isNotEmpty
+                                ? Image.network(
+                                    team.teamLeadImage!,
+                                    height: 80,
+                                    width: 80,
+                                    fit: BoxFit.cover,
+                                    loadingBuilder:
+                                        (context, child, loadingProgress) {
+                                      if (loadingProgress == null) return child;
+                                      return const ShimmerImage(
+                                        height: 80,
+                                        width: 80,
+                                        shape: BoxShape.circle,
+                                      );
+                                    },
+                                    errorBuilder: (_, __, ___) {
                               return Image.asset(
                                 "assets/images/team_def.webp",
                                 height: 80,

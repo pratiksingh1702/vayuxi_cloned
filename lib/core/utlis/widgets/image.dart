@@ -1,5 +1,6 @@
 import 'dart:io';
 import 'package:flutter/material.dart';
+import 'package:untitled2/core/utlis/widgets/shimmer.dart';
 
 Widget buildSmartImage({
   required String image,
@@ -28,8 +29,10 @@ Widget buildSmartImage({
               _imagePlaceholder(height, width),
           loadingBuilder: (context, child, loadingProgress) {
             if (loadingProgress == null) return child;
-            return const Center(
-              child: CircularProgressIndicator(strokeWidth: 2),
+            return ShimmerImage(
+              height: height,
+              width: width,
+              borderRadius: 8,
             );
           },
         );

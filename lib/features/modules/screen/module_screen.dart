@@ -34,6 +34,7 @@ import 'package:showcaseview/showcaseview.dart';
 import 'package:untitled2/typeProvider/type_provider.dart';
 
 import '../../../core/router/access_control_provider.dart';
+import '../../../core/utlis/widgets/shimmer.dart';
 import '../../../core/utlis/widgets/sidebar.dart';
 import '../../../core/utlis/widgets/custom_scrollbar.dart';
 import '../../language/service/lang_providers.dart';
@@ -73,8 +74,10 @@ class _ModuleScreenState extends ConsumerState<ModuleScreen> {
     super.initState();
     _currentIndex = widget.initialIndex;
   }
+
   BuildContext? _showcaseContext;
   bool _tourChecked = false;
+  bool _tourStartPending = false;
   TourCheckpoint? _checkpoint;
 
   // ── Overlay state ──────────────────────────────────────────────────────────
@@ -101,7 +104,8 @@ class _ModuleScreenState extends ConsumerState<ModuleScreen> {
     VoidCallback? previewSwitch,
   }) async {
     if (_checkInProgress) {
-      print('🔒 [ModuleScreen] _checkAccess skipped — check already in progress');
+      print(
+          '🔒 [ModuleScreen] _checkAccess skipped — check already in progress');
       return false;
     }
     _checkInProgress = true;
@@ -137,7 +141,8 @@ class _ModuleScreenState extends ConsumerState<ModuleScreen> {
       // ── noSubscription → redirect to subscription screen ─────────────────
       // Don't show inline plan overlay — use the dedicated subscription page.
       if (result.state == AccessState.noSubscription) {
-        print('🔒 [ModuleScreen] No subscription → redirecting to /subscription');
+        print(
+            '🔒 [ModuleScreen] No subscription → redirecting to /subscription');
         if (mounted) context.push('/subscription');
         return false;
       }
@@ -203,14 +208,19 @@ class _ModuleScreenState extends ConsumerState<ModuleScreen> {
         setState(() {
           _overlayType = null;
           _pendingAction = null;
+          _tourChecked = false;
         });
         action?.call();
       } else if (result.state == AccessState.noSubscription) {
         // Subscription gate appeared after completing another gate
         // (e.g. onboarding done but subscription still needed).
         // Redirect to subscription screen instead of showing overlay.
-        print('🔒 [ModuleScreen] _onUnlocked: noSubscription → redirecting to /subscription');
-        setState(() { _overlayType = null; _pendingAction = null; });
+        print(
+            '🔒 [ModuleScreen] _onUnlocked: noSubscription → redirecting to /subscription');
+        setState(() {
+          _overlayType = null;
+          _pendingAction = null;
+        });
         if (mounted) context.push('/subscription');
       } else {
         print('🔒 [ModuleScreen] Still blocked at: ${result.state}');
@@ -228,51 +238,70 @@ class _ModuleScreenState extends ConsumerState<ModuleScreen> {
   // ─────────────────────────────────────────────────────────────────────────
 
   Future<void> _maybeStartShowcase(BuildContext showcaseContext) async {
-    if (_tourChecked) return;
+    if (_tourChecked || _tourStartPending) return;
+    if (!mounted) return;
+
+    // Don't start tour while page is visually blocked by lock overlays/spinner.
+    if (_overlayLoading || _overlayType != null) return;
+
+    final route = ModalRoute.of(context);
+    if (route != null && !route.isCurrent) return;
+
+    _tourStartPending = true;
     _tourChecked = true;
     final persistence = TourPersistence();
-    if (await persistence.isCompleted()) return;
-    await Future.delayed(const Duration(milliseconds: 200));
+    if (await persistence.isCompleted()) {
+      _tourStartPending = false;
+      return;
+    }
+
+    await WidgetsBinding.instance.endOfFrame;
+    await Future.delayed(const Duration(milliseconds: 90));
+
     final sc = ShowCaseWidget.of(showcaseContext);
-    if (sc == null) return;
+    if (sc == null || !mounted) {
+      _tourStartPending = false;
+      return;
+    }
 
     if (!await persistence.isSetupClicked()) {
       setState(() => _checkpoint = null);
-      await Future.delayed(const Duration(milliseconds: 200));
       sc.startShowCase([TourRegistry.setupBottomNavKey]);
+      _tourStartPending = false;
       return;
     }
     if (!await persistence.isSiteDone()) {
       setState(() => _checkpoint = TourCheckpoint.site);
-      await Future.delayed(const Duration(milliseconds: 200));
       sc.startShowCase([TourRegistry.siteModuleKey]);
+      _tourStartPending = false;
       return;
     }
     if (!await persistence.isRateDone()) {
       setState(() => _checkpoint = TourCheckpoint.rate);
-      await Future.delayed(const Duration(milliseconds: 200));
       sc.startShowCase([TourRegistry.rateModuleKey]);
+      _tourStartPending = false;
       return;
     }
     if (!await persistence.isManpowerDone()) {
       setState(() => _checkpoint = TourCheckpoint.manpower);
-      await Future.delayed(const Duration(milliseconds: 200));
       sc.startShowCase([TourRegistry.manpowerModuleKey]);
+      _tourStartPending = false;
       return;
     }
     if (!await persistence.isTeamDone()) {
       setState(() => _checkpoint = TourCheckpoint.team);
-      await Future.delayed(const Duration(milliseconds: 200));
       sc.startShowCase([TourRegistry.teamModuleKey]);
+      _tourStartPending = false;
       return;
     }
     if (!await persistence.isDprDone()) {
       setState(() => _checkpoint = TourCheckpoint.dpr);
-      await Future.delayed(const Duration(milliseconds: 200));
       sc.startShowCase([TourRegistry.dprModuleKey]);
+      _tourStartPending = false;
       return;
     }
     await persistence.markCompleted();
+    _tourStartPending = false;
   }
 
   // ─────────────────────────────────────────────────────────────────────────
@@ -280,62 +309,159 @@ class _ModuleScreenState extends ConsumerState<ModuleScreen> {
   // ─────────────────────────────────────────────────────────────────────────
 
   final List<ModuleItem> _dailyEntryModules = [
-    ModuleItem(labelKey: 'attendance_card', imagePath: "assets/images/icons/attendance.webp", routeName: "/site-list/attendance", color: Colors.red),
-    ModuleItem(labelKey: 'daily_progress_card', imagePath: "assets/images/icons/dpr.webp", routeName: "/site-list/dpr", color: Colors.purple),
-    ModuleItem(labelKey: 'expense_card', imagePath: "assets/images/icons/expense_daily.webp", routeName: "/site-list/add-exp", color: Colors.indigo),
-    ModuleItem(labelKey: 'inventory_entry_card', imagePath: "assets/images/icons/inventory_entry.webp", routeName: "/site-list/inv-entry", color: Colors.indigo),
+    ModuleItem(
+        labelKey: 'attendance_card',
+        imagePath: "assets/images/icons/attendance.webp",
+        routeName: "/site-list/attendance",
+        color: Colors.red),
+    ModuleItem(
+        labelKey: 'daily_progress_card',
+        imagePath: "assets/images/icons/dpr.webp",
+        routeName: "/site-list/dpr",
+        color: Colors.purple),
+    ModuleItem(
+        labelKey: 'expense_card',
+        imagePath: "assets/images/icons/expense_daily.webp",
+        routeName: "/site-list/add-exp",
+        color: Colors.indigo),
+    ModuleItem(
+        labelKey: 'inventory_entry_card',
+        imagePath: "assets/images/icons/inventory_entry.webp",
+        routeName: "/site-list/inv-entry",
+        color: Colors.indigo),
     ModuleItem(labelKey: '', imagePath: '', routeName: '', isEmpty: true),
     ModuleItem(labelKey: '', imagePath: '', routeName: '', isEmpty: true),
   ];
 
   final List<ModuleItem> _setupModules = [
-    ModuleItem(labelKey: 'site_details_card', imagePath: "assets/images/icons/site_details.webp", routeName: "/site", color: Colors.blue),
-    ModuleItem(labelKey: 'rate_card', imagePath: "assets/images/icons/rate.webp", routeName: "/site-list/rate", color: Colors.green),
-    ModuleItem(labelKey: 'manpower_details_card', imagePath: "assets/images/icons/manpower_setup.webp", routeName: "/manpower", color: Colors.orange),
-    ModuleItem(labelKey: 'create_team_card', imagePath: "assets/images/icons/add_team.webp", routeName: "/site-list/team", color: Colors.teal),
-    ModuleItem(labelKey: 'dpr_setup_card', imagePath: "assets/images/icons/dpr_setup.webp", routeName: "/site-list/addMoc", color: Colors.green),
-    ModuleItem(labelKey: 'inventory_setup_card', imagePath: "assets/images/icons/inventory_setup.webp", routeName: "/site-list/inv-setup", color: Colors.indigo),
-    ModuleItem(labelKey: 'boq_card', imagePath: "assets/images/icons/boq.webp", routeName: "/site-list/boq", color: Colors.indigo),
+    ModuleItem(
+        labelKey: 'site_details_card',
+        imagePath: "assets/images/icons/site_details.webp",
+        routeName: "/site",
+        color: Colors.blue),
+    ModuleItem(
+        labelKey: 'rate_card',
+        imagePath: "assets/images/icons/rate.webp",
+        routeName: "/site-list/rate",
+        color: Colors.green),
+    ModuleItem(
+        labelKey: 'manpower_details_card',
+        imagePath: "assets/images/icons/manpower_setup.webp",
+        routeName: "/manpower",
+        color: Colors.orange),
+    ModuleItem(
+        labelKey: 'create_team_card',
+        imagePath: "assets/images/icons/add_team.webp",
+        routeName: "/site-list/team",
+        color: Colors.teal),
+    ModuleItem(
+        labelKey: 'dpr_setup_card',
+        imagePath: "assets/images/icons/dpr_setup.webp",
+        routeName: "/site-list/addMoc",
+        color: Colors.green),
+    ModuleItem(
+        labelKey: 'inventory_setup_card',
+        imagePath: "assets/images/icons/inventory_setup.webp",
+        routeName: "/site-list/inv-setup",
+        color: Colors.indigo),
+    // ModuleItem(labelKey: 'boq_card', imagePath: "assets/images/icons/boq.webp", routeName: "/site-list/boq", color: Colors.indigo),
   ];
 
   final List<ModuleItem> _reportModules = [
-    ModuleItem(labelKey: 'summary_analysis_card', imagePath: "assets/images/icons/summary_analysis.webp", routeName: "/summary", color: Colors.deepPurple),
-    ModuleItem(labelKey: 'salary_slip_card', imagePath: "assets/images/icons/salary_slip.webp", routeName: "/salary", color: Colors.brown),
-    ModuleItem(labelKey: 'dpr_sheets_card', imagePath: "assets/images/icons/dpr_report.webp", routeName: "/site-list/dprReport", color: Colors.indigo),
-    ModuleItem(labelKey: 'expense_sheet_card', imagePath: "assets/images/icons/expense_sheet.webp", routeName: "/site-list/expense", color: Colors.indigo),
-    ModuleItem(labelKey: 'attendance_sheet_card', imagePath: "assets/images/icons/attendance_sheet.webp", routeName: "/site-list/att-sheet", color: Colors.deepPurple),
-    ModuleItem(labelKey: 'inventory_summary_card', imagePath: "assets/images/icons/inventory_summary.webp", routeName: "/site-list/inv-Report", color: Colors.deepPurple),
+    ModuleItem(
+        labelKey: 'summary_analysis_card',
+        imagePath: "assets/images/icons/summary_analysis.webp",
+        routeName: "/summary",
+        color: Colors.deepPurple),
+    ModuleItem(
+        labelKey: 'salary_slip_card',
+        imagePath: "assets/images/icons/salary_slip.webp",
+        routeName: "/salary",
+        color: Colors.brown),
+    ModuleItem(
+        labelKey: 'dpr_sheets_card',
+        imagePath: "assets/images/icons/dpr_report.webp",
+        routeName: "/site-list/dprReport",
+        color: Colors.indigo),
+    ModuleItem(
+        labelKey: 'expense_sheet_card',
+        imagePath: "assets/images/icons/expense_sheet.webp",
+        routeName: "/site-list/expense",
+        color: Colors.indigo),
+    ModuleItem(
+        labelKey: 'attendance_sheet_card',
+        imagePath: "assets/images/icons/attendance_sheet.webp",
+        routeName: "/site-list/att-sheet",
+        color: Colors.deepPurple),
+    ModuleItem(
+        labelKey: 'inventory_summary_card',
+        imagePath: "assets/images/icons/inventory_summary.webp",
+        routeName: "/site-list/inv-Report",
+        color: Colors.deepPurple),
   ];
 
   final List<ModuleItem> _moreModules = [
-    ModuleItem(labelKey: 'profile_card', imagePath: "assets/images/icons/profile.webp", routeName: "/profile", color: Colors.cyan),
-    ModuleItem(labelKey: 'subscription_card', imagePath: "assets/images/icons/subscription.webp", routeName: "/subscription", color: Colors.amber),
-    ModuleItem(labelKey: 'upcoming_update_card', imagePath: "assets/images/icons/updates.webp", routeName: "/upcoming-update", color: Colors.green),
-    ModuleItem(labelKey: 'theme_card', imagePath: "assets/images/icons/theme.webp", routeName: "/theme", color: Colors.purple),
-    ModuleItem(labelKey: 'language_card', imagePath: "assets/images/icons/language.webp", routeName: "/language", color: Colors.blue),
-    ModuleItem(labelKey: 'help_card', imagePath: "assets/images/icons/help.webp", routeName: "/help", color: Colors.orange),
+    ModuleItem(
+        labelKey: 'profile_card',
+        imagePath: "assets/images/icons/profile.webp",
+        routeName: "/profile",
+        color: Colors.cyan),
+    ModuleItem(
+        labelKey: 'subscription_card',
+        imagePath: "assets/images/icons/subscription.webp",
+        routeName: "/subscription",
+        color: Colors.amber),
+    ModuleItem(
+        labelKey: 'upcoming_update_card',
+        imagePath: "assets/images/icons/updates.webp",
+        routeName: "/upcoming-update",
+        color: Colors.green),
+    ModuleItem(
+        labelKey: 'theme_card',
+        imagePath: "assets/images/icons/theme.webp",
+        routeName: "/theme",
+        color: Colors.purple),
+    ModuleItem(
+        labelKey: 'language_card',
+        imagePath: "assets/images/icons/language.webp",
+        routeName: "/language",
+        color: Colors.blue),
+    ModuleItem(
+        labelKey: 'help_card',
+        imagePath: "assets/images/icons/help.webp",
+        routeName: "/help",
+        color: Colors.orange),
   ];
 
   List<ModuleItem> get _currentModules {
     switch (_currentIndex) {
-      case 0: return _dailyEntryModules;
-      case 1: return _setupModules;
-      case 2: return _reportModules;
-      case 3: return _moreModules;
-      default: return [];
+      case 0:
+        return _dailyEntryModules;
+      case 1:
+        return _setupModules;
+      case 2:
+        return _reportModules;
+      case 3:
+        return _moreModules;
+      default:
+        return [];
     }
   }
-
-
 
   void _onSiteChanged(SiteModel? newSite) {
-    setState(() { _selectedSite = newSite; _selectedTeam = null; });
+    setState(() {
+      _selectedSite = newSite;
+      _selectedTeam = null;
+    });
     if (newSite != null) {
-      ref.read(teamProvider.notifier).fetchTeams(type: newSite.type, siteId: newSite.id);
+      ref
+          .read(teamProvider.notifier)
+          .fetchTeams(type: newSite.type, siteId: newSite.id);
     }
   }
 
-  void _onTeamChanged(TeamModel? newTeam) => setState(() => _selectedTeam = newTeam);
+  void _onTeamChanged(TeamModel? newTeam) =>
+      setState(() => _selectedTeam = newTeam);
 
   // ─────────────────────────────────────────────────────────────────────────
   // NAVIGATION HANDLERS (unchanged)
@@ -345,8 +471,14 @@ class _ModuleScreenState extends ConsumerState<ModuleScreen> {
     if (item.isEmpty) return;
     ref.read(moduleScreenSyncProvider.notifier).syncDropdownToGlobal();
 
-    if (_currentIndex == 3) { _navigateToModule(item); return; }
-    if (_currentIndex == 0) { _navigateToModule(item); return; }
+    if (_currentIndex == 3) {
+      _navigateToModule(item);
+      return;
+    }
+    if (_currentIndex == 0) {
+      _navigateToModule(item);
+      return;
+    }
 
     void navigate() => _navigateToModule(item);
     final ok = await _checkAccess(onAllowed: navigate);
@@ -363,9 +495,9 @@ class _ModuleScreenState extends ConsumerState<ModuleScreen> {
 
   Future<void> _handleAiAnalysisTap() async {
     void navigate() => context.push("/analysis", extra: {
-      'selectedSite': _selectedSite,
-      'selectedTeam': _selectedTeam,
-    });
+          'selectedSite': _selectedSite,
+          'selectedTeam': _selectedTeam,
+        });
     final ok = await _checkAccess(onAllowed: navigate);
     if (ok) navigate();
   }
@@ -380,6 +512,98 @@ class _ModuleScreenState extends ConsumerState<ModuleScreen> {
   }
 
   // ─────────────────────────────────────────────────────────────────────────
+  // LOADING STATE
+  // ─────────────────────────────────────────────────────────────────────────
+
+  Widget _buildLoadingState() {
+    return Scaffold(
+      drawer: const CustomDrawer(),
+      appBar: CustomAppBar(
+        title: _currentIndex == 0
+            ? 'Daily Entry'
+            : _currentIndex == 1
+                ? 'Setup'
+                : _currentIndex == 2
+                    ? 'Report'
+                    : 'More',
+      ),
+      body: CornerClippedScreenSimple(
+        child: SafeArea(
+          child: Column(
+            children: [
+              const SizedBox(height: 10),
+              if (_currentIndex == 0)
+                Column(
+                  children: [
+                    const SizedBox(height: 10),
+                    // Banner shimmer or placeholder
+                    Container(
+                      height: 130,
+                      margin: const EdgeInsets.symmetric(horizontal: 16),
+                      decoration: BoxDecoration(
+                        color: Colors.white,
+                        borderRadius: BorderRadius.circular(20),
+                      ),
+                      child: const ShimmerList(
+                        type: ShimmerListType.card,
+                        itemCount: 1,
+                        scrollable: false,
+                        padding: EdgeInsets.zero,
+                      ),
+                    ),
+                    const SizedBox(height: 16),
+                    // Dropdowns shimmer
+                    Padding(
+                      padding: const EdgeInsets.symmetric(horizontal: 16),
+                      child: Row(children: [
+                        Expanded(child: _skeletonDropdown()),
+                        const SizedBox(width: 8),
+                        Expanded(child: _skeletonDropdown()),
+                      ]),
+                    ),
+                    const SizedBox(height: 1),
+                  ],
+                ),
+              Expanded(
+                child: ShimmerList(
+                  type: ShimmerListType.moduleGrid,
+                  itemCount: 8,
+                  crossAxisCount: 2,
+                  padding:
+                      const EdgeInsets.symmetric(horizontal: 20, vertical: 16),
+                  itemSpacing: 16,
+                  gridChildAspectRatio: 1.0,
+                ),
+              ),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+
+  Widget _skeletonDropdown() {
+    return Container(
+      height: 48,
+      decoration: BoxDecoration(
+        color: Colors.white,
+        borderRadius: BorderRadius.circular(12),
+        border: Border.all(color: Colors.grey.withOpacity(0.2)),
+      ),
+      child: const Padding(
+        padding: EdgeInsets.symmetric(horizontal: 12),
+        child: Row(
+          mainAxisAlignment: MainAxisAlignment.spaceBetween,
+          children: [
+            ShimmerBox(width: 80, height: 14),
+            Icon(Icons.arrow_drop_down, color: Colors.grey),
+          ],
+        ),
+      ),
+    );
+  }
+
+  // ─────────────────────────────────────────────────────────────────────────
   // BUILD
   // ─────────────────────────────────────────────────────────────────────────
 
@@ -391,18 +615,61 @@ class _ModuleScreenState extends ConsumerState<ModuleScreen> {
     final tHelper = ref.watch(homeTranslationHelperProvider);
 
     return homeModuleAsync.when(
-      loading: () => const Scaffold(body: Center(child: CircularProgressIndicator())),
-      error: (e, _) => Scaffold(body: Center(child: Text(e.toString()))),
+      loading: () => _buildLoadingState(),
+      error: (e, _) => Scaffold(
+        body: Center(
+          child: Padding(
+            padding: const EdgeInsets.all(32.0),
+            child: Column(
+              mainAxisAlignment: MainAxisAlignment.center,
+              children: [
+                const Icon(Icons.cloud_off_rounded,
+                    size: 64, color: Colors.redAccent),
+                const SizedBox(height: 24),
+                const Text(
+                  "Something went wrong",
+                  style: TextStyle(fontSize: 20, fontWeight: FontWeight.bold),
+                ),
+                const SizedBox(height: 12),
+                Text(
+                  e.toString(),
+                  textAlign: TextAlign.center,
+                  style: TextStyle(color: Colors.grey.shade600),
+                ),
+                const SizedBox(height: 32),
+                ElevatedButton(
+                  onPressed: () =>
+                      ref.invalidate(languageModuleProvider('home')),
+                  style: ElevatedButton.styleFrom(
+                    backgroundColor: const Color(0xFF1A73E8),
+                    foregroundColor: Colors.white,
+                    padding: const EdgeInsets.symmetric(
+                        horizontal: 32, vertical: 16),
+                    shape: RoundedRectangleBorder(
+                        borderRadius: BorderRadius.circular(16)),
+                  ),
+                  child: const Text("Try Again"),
+                ),
+              ],
+            ),
+          ),
+        ),
+      ),
       data: (homeData) {
         final t = Translator(homeData);
 
         String currentTitle() {
           switch (_currentIndex) {
-            case 0: return t.t('daily_entry_title');
-            case 1: return t.t('setup_title');
-            case 2: return t.t('report_title');
-            case 3: return t.t('more_title');
-            default: return '';
+            case 0:
+              return t.t('daily_entry_title');
+            case 1:
+              return t.t('setup_title');
+            case 2:
+              return t.t('report_title');
+            case 3:
+              return t.t('more_title');
+            default:
+              return '';
           }
         }
 
@@ -410,6 +677,11 @@ class _ModuleScreenState extends ConsumerState<ModuleScreen> {
           builder: (showcaseContext) {
             _showcaseContext = showcaseContext;
             WidgetsBinding.instance.addPostFrameCallback((_) {
+              if (!mounted) return;
+              if (_overlayLoading || _overlayType != null) {
+                _tourChecked = false;
+                return;
+              }
               _maybeStartShowcase(showcaseContext);
             });
 
@@ -440,111 +712,298 @@ class _ModuleScreenState extends ConsumerState<ModuleScreen> {
                                     ),
                                     const SizedBox(height: 16),
                                     Row(children: [
-                                      Expanded(child: _buildSiteDropdown(siteState)),
+                                      Expanded(
+                                          child: _buildSiteDropdown(siteState)),
                                       const SizedBox(width: 8),
-                                      Expanded(child: _buildTeamDropdown(teamState)),
+                                      Expanded(
+                                          child: _buildTeamDropdown(teamState)),
                                     ]),
                                     const SizedBox(height: 1),
                                   ],
                                 ),
                               Expanded(
                                 child: Padding(
-                                  padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 16),
+                                  padding: const EdgeInsets.symmetric(
+                                      horizontal: 20, vertical: 16),
                                   child: _currentModules.isEmpty
-                                      ? const Center(child: Text("No modules available", style: TextStyle(fontSize: 16, color: Colors.grey)))
-                                      : CustomScrollbar(
-                                    enabled: false,
-                                    controller: _gridScrollController,
-                                    child: GridView.builder(
-                                      controller: _gridScrollController,
-                                      physics: _overlayType != null ? const NeverScrollableScrollPhysics() : const AlwaysScrollableScrollPhysics(),
-                                      itemCount: _currentModules.length,
-                                      gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
-                                        crossAxisCount: 2,
-                                        mainAxisSpacing: 16,
-                                        crossAxisSpacing: 16,
-                                        childAspectRatio: 1,
-                                      ),
-                                    itemBuilder: (context, index) {
-                                      final item = _currentModules[index];
-                                      if (item.isEmpty) {
-                                        return Container(decoration: BoxDecoration(color: Colors.transparent, borderRadius: BorderRadius.circular(20)));
-                                      }
-
-                                      Widget card = GestureDetector(
-                                        onTap: _overlayType != null ? null : () => _handleModuleTap(item),
-                                        child: Container(
-                                          decoration: BoxDecoration(
-                                            color: Colors.white,
-                                            borderRadius: BorderRadius.circular(20),
-                                            boxShadow: [BoxShadow(color: Colors.black.withOpacity(0.05), blurRadius: 8, spreadRadius: 1)],
-                                          ),
+                                      ? Center(
                                           child: Column(
-                                            mainAxisAlignment: MainAxisAlignment.center,
+                                            mainAxisAlignment:
+                                                MainAxisAlignment.center,
                                             children: [
-                                              SizedBox(
-                                                height: 90, width: 90,
-                                                child: Container(padding: const EdgeInsets.all(12), child: Image.asset(item.imagePath, fit: BoxFit.contain)),
+                                              Icon(Icons.inventory_2_outlined,
+                                                  size: 64,
+                                                  color: Colors.grey
+                                                      .withOpacity(0.3)),
+                                              const SizedBox(height: 16),
+                                              Text(
+                                                t.t("no_modules_available"),
+                                                style: TextStyle(
+                                                  fontSize: 16,
+                                                  fontWeight: FontWeight.w500,
+                                                  color: Colors.grey.shade600,
+                                                ),
                                               ),
                                               const SizedBox(height: 8),
-                                              Padding(
-                                                padding: const EdgeInsets.symmetric(horizontal: 8),
-                                                child: Text(t.t(item.labelKey),
-                                                    textAlign: TextAlign.center, maxLines: 2, overflow: TextOverflow.ellipsis,
-                                                    style: const TextStyle(fontSize: 14, fontWeight: FontWeight.w600, color: Color(0xFF1B1B1B))),
+                                              Text(
+                                                t.t("try_changing_tab"),
+                                                style: TextStyle(
+                                                  fontSize: 14,
+                                                  color: Colors.grey.shade400,
+                                                ),
                                               ),
                                             ],
                                           ),
+                                        )
+                                      : CustomScrollbar(
+                                          enabled: false,
+                                          controller: _gridScrollController,
+                                          child: GridView.builder(
+                                            controller: _gridScrollController,
+                                            physics: _overlayType != null
+                                                ? const NeverScrollableScrollPhysics()
+                                                : const AlwaysScrollableScrollPhysics(),
+                                            itemCount: _currentModules.length,
+                                            gridDelegate:
+                                                const SliverGridDelegateWithFixedCrossAxisCount(
+                                              crossAxisCount: 2,
+                                              mainAxisSpacing: 16,
+                                              crossAxisSpacing: 16,
+                                              childAspectRatio: 1,
+                                            ),
+                                            itemBuilder: (context, index) {
+                                              final item =
+                                                  _currentModules[index];
+                                              if (item.isEmpty) {
+                                                return Container(
+                                                    decoration: BoxDecoration(
+                                                        color:
+                                                            Colors.transparent,
+                                                        borderRadius:
+                                                            BorderRadius
+                                                                .circular(20)));
+                                              }
+
+                                              Widget card = GestureDetector(
+                                                onTap: _overlayType != null
+                                                    ? null
+                                                    : () =>
+                                                        _handleModuleTap(item),
+                                                child: Container(
+                                                  decoration: BoxDecoration(
+                                                    color: Colors.white,
+                                                    borderRadius:
+                                                        BorderRadius.circular(
+                                                            20),
+                                                    boxShadow: [
+                                                      BoxShadow(
+                                                        color: Colors.black
+                                                            .withOpacity(0.05),
+                                                        blurRadius: 8,
+                                                        spreadRadius: 1,
+                                                      )
+                                                    ],
+                                                  ),
+                                                  child: Column(
+                                                    mainAxisAlignment:
+                                                        MainAxisAlignment
+                                                            .center,
+                                                    children: [
+                                                      SizedBox(
+                                                        height: 90,
+                                                        width: 90,
+                                                        child: Container(
+                                                          padding:
+                                                              const EdgeInsets
+                                                                  .all(12),
+                                                          child: Image.asset(
+                                                              item.imagePath,
+                                                              fit: BoxFit
+                                                                  .contain),
+                                                        ),
+                                                      ),
+                                                      const SizedBox(height: 8),
+                                                      Padding(
+                                                        padding:
+                                                            const EdgeInsets
+                                                                .symmetric(
+                                                                horizontal: 8),
+                                                        child: Text(
+                                                          t.t(item.labelKey),
+                                                          textAlign:
+                                                              TextAlign.center,
+                                                          maxLines: 2,
+                                                          overflow: TextOverflow
+                                                              .ellipsis,
+                                                          style:
+                                                              const TextStyle(
+                                                            fontSize: 14,
+                                                            fontWeight:
+                                                                FontWeight.w600,
+                                                            color: Color(
+                                                                0xFF1B1B1B),
+                                                          ),
+                                                        ),
+                                                      ),
+                                                    ],
+                                                  ),
+                                                ),
+                                              );
+
+                                              final bool isSetupTab =
+                                                  _currentIndex == 1;
+
+                                              if (_checkpoint ==
+                                                      TourCheckpoint.site &&
+                                                  isSetupTab &&
+                                                  item.routeName == "/site") {
+                                                card = Showcase(
+                                                    key: TourRegistry
+                                                        .siteModuleKey,
+                                                    description:
+                                                        "Add your Site here ✅",
+                                                    disposeOnTap: true,
+                                                    onTargetClick: () async {
+                                                      await ref
+                                                          .read(
+                                                              tourPersistenceProvider)
+                                                          .markSiteDone();
+                                                      setState(() =>
+                                                          _tourChecked = false);
+                                                    },
+                                                    child: card);
+                                              } else if (_checkpoint ==
+                                                      TourCheckpoint.rate &&
+                                                  isSetupTab &&
+                                                  item.routeName ==
+                                                      "/site-list/rate") {
+                                                card = Showcase(
+                                                    key: TourRegistry
+                                                        .rateModuleKey,
+                                                    description:
+                                                        "Now add Rate here 💰",
+                                                    disposeOnTap: true,
+                                                    onTargetClick: () async {
+                                                      await ref
+                                                          .read(
+                                                              tourPersistenceProvider)
+                                                          .markRateDone();
+                                                      setState(() =>
+                                                          _tourChecked = false);
+                                                    },
+                                                    child: card);
+                                              } else if (_checkpoint ==
+                                                      TourCheckpoint.manpower &&
+                                                  isSetupTab &&
+                                                  item.routeName ==
+                                                      "/manpower") {
+                                                card = Showcase(
+                                                    key: TourRegistry
+                                                        .manpowerModuleKey,
+                                                    description:
+                                                        "Now add Manpower 👷",
+                                                    disposeOnTap: true,
+                                                    onTargetClick: () async {
+                                                      await ref
+                                                          .read(
+                                                              tourPersistenceProvider)
+                                                          .markManpowerDone();
+                                                      setState(() =>
+                                                          _tourChecked = false);
+                                                    },
+                                                    child: card);
+                                              } else if (_checkpoint ==
+                                                      TourCheckpoint.team &&
+                                                  isSetupTab &&
+                                                  item.routeName ==
+                                                      "/site-list/team") {
+                                                card = Showcase(
+                                                    key: TourRegistry
+                                                        .teamModuleKey,
+                                                    description:
+                                                        "Finally create your Team 👥",
+                                                    disposeOnTap: true,
+                                                    onTargetClick: () async {
+                                                      await ref
+                                                          .read(
+                                                              tourPersistenceProvider)
+                                                          .markTeamDone();
+                                                      setState(() =>
+                                                          _tourChecked = false);
+                                                    },
+                                                    child: card);
+                                              } else if (_checkpoint ==
+                                                      TourCheckpoint.dpr &&
+                                                  isSetupTab &&
+                                                  item.routeName ==
+                                                      "/site-list/addMoc") {
+                                                card = Showcase(
+                                                    key: TourRegistry
+                                                        .dprModuleKey,
+                                                    description:
+                                                        "Now configure DPR settings 📋",
+                                                    disposeOnTap: true,
+                                                    onTargetClick: () async {
+                                                      await ref
+                                                          .read(
+                                                              tourPersistenceProvider)
+                                                          .markDprDone();
+                                                      setState(() =>
+                                                          _tourChecked = false);
+                                                    },
+                                                    child: card);
+                                              }
+
+                                              return card;
+                                            },
+                                          ),
                                         ),
-                                      );
-
-                                      final bool isSetupTab = _currentIndex == 1;
-                                      if (_checkpoint == TourCheckpoint.site && isSetupTab && item.routeName == "/site") {
-                                        card = Showcase(key: TourRegistry.siteModuleKey, description: "Add your Site here ✅", disposeOnTap: true,
-                                            onTargetClick: () async { await ref.read(tourPersistenceProvider).markSiteDone(); setState(() => _tourChecked = false); }, child: card);
-                                      } else if (_checkpoint == TourCheckpoint.rate && isSetupTab && item.routeName == "/site-list/rate") {
-                                        card = Showcase(key: TourRegistry.rateModuleKey, description: "Now add Rate here 💰", disposeOnTap: true,
-                                            onTargetClick: () async { await ref.read(tourPersistenceProvider).markRateDone(); setState(() => _tourChecked = false); }, child: card);
-                                      } else if (_checkpoint == TourCheckpoint.manpower && isSetupTab && item.routeName == "/manpower") {
-                                        card = Showcase(key: TourRegistry.manpowerModuleKey, description: "Now add Manpower 👷", disposeOnTap: true,
-                                            onTargetClick: () async { await ref.read(tourPersistenceProvider).markManpowerDone(); setState(() => _tourChecked = false); }, child: card);
-                                      } else if (_checkpoint == TourCheckpoint.team && isSetupTab && item.routeName == "/site-list/team") {
-                                        card = Showcase(key: TourRegistry.teamModuleKey, description: "Finally create your Team 👥", disposeOnTap: true,
-                                            onTargetClick: () async { await ref.read(tourPersistenceProvider).markTeamDone(); setState(() => _tourChecked = false); }, child: card);
-                                      } else if (_checkpoint == TourCheckpoint.dpr && isSetupTab && item.routeName == "/site-list/addMoc") {
-                                        card = Showcase(key: TourRegistry.dprModuleKey, description: "Now configure DPR settings 📋", disposeOnTap: true,
-                                            onTargetClick: () async { await ref.read(tourPersistenceProvider).markDprDone(); setState(() => _tourChecked = false); }, child: card);
-                                      }
-
-                                      return card;
-                                    },
-                                  ),
                                 ),
-                              ),
-                              ) ],
+                              )
+                            ],
                           ),
                         ),
                       ),
-
                       Positioned(
-                        right: 1, bottom: -1,
+                        right: 1,
+                        bottom: -1,
                         child: GestureDetector(
-                          onTap: _overlayType != null ? null : _handleAiAnalysisTap,
+                          onTap: _overlayType != null
+                              ? null
+                              : _handleAiAnalysisTap,
                           child: Row(
                             mainAxisSize: MainAxisSize.min,
                             children: [
                               Container(
-                                padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 5),
+                                padding: const EdgeInsets.symmetric(
+                                    horizontal: 10, vertical: 5),
                                 decoration: BoxDecoration(
                                   color: Colors.white,
                                   borderRadius: BorderRadius.circular(30),
-                                  border: Border.all(color: const Color(0xFFBBD9FF)),
-                                  boxShadow: [BoxShadow(color: Colors.grey.withOpacity(0.5), spreadRadius: 2, blurRadius: 5, offset: const Offset(0, 3))],
+                                  border: Border.all(
+                                      color: const Color(0xFFBBD9FF)),
+                                  boxShadow: [
+                                    BoxShadow(
+                                      color: Colors.grey.withOpacity(0.5),
+                                      spreadRadius: 2,
+                                      blurRadius: 5,
+                                      offset: const Offset(0, 3),
+                                    )
+                                  ],
                                 ),
-                                child: const Text("Ready to listen you !", style: TextStyle(fontSize: 10, color: Colors.black87)),
+                                child: const Text(
+                                  "Ready to listen you !",
+                                  style: TextStyle(
+                                      fontSize: 10, color: Colors.black87),
+                                ),
                               ),
                               const SizedBox(width: 2),
-                              SizedBox(height: 55, width: 55, child: Image.asset("assets/images/img.png", fit: BoxFit.contain)),
+                              SizedBox(
+                                height: 55,
+                                width: 55,
+                                child: Image.asset("assets/images/img.png",
+                                    fit: BoxFit.contain),
+                              ),
                             ],
                           ),
                         ),
@@ -568,14 +1027,19 @@ class _ModuleScreenState extends ConsumerState<ModuleScreen> {
                     unselectedLabelStyle: const TextStyle(color: Colors.black),
                     type: BottomNavigationBarType.fixed,
                     items: [
-                      BottomNavigationBarItem(icon: const Icon(Icons.edit_note_outlined), label: tHelper.bottomNavDailyEntry),
+                      BottomNavigationBarItem(
+                          icon: const Icon(Icons.edit_note_outlined),
+                          label: tHelper.bottomNavDailyEntry),
                       BottomNavigationBarItem(
                         icon: Showcase(
                           key: TourRegistry.setupBottomNavKey,
-                          description: "Tap Setup to configure Site, Rate, Manpower, Team etc ⚙️",
+                          description:
+                              "Tap Setup to configure Site, Rate, Manpower, Team etc ⚙️",
                           disposeOnTap: true,
                           onTargetClick: () async {
-                            await ref.read(tourPersistenceProvider).markSetupClicked();
+                            await ref
+                                .read(tourPersistenceProvider)
+                                .markSetupClicked();
                             await _handleBottomNavTap(1);
                             setState(() => _tourChecked = false);
                           },
@@ -583,8 +1047,12 @@ class _ModuleScreenState extends ConsumerState<ModuleScreen> {
                         ),
                         label: t.t('bottom_nav_setup'),
                       ),
-                      BottomNavigationBarItem(icon: const Icon(Icons.bar_chart_outlined), label: t.t('bottom_nav_report')),
-                      BottomNavigationBarItem(icon: const Icon(Icons.more_horiz_outlined), label: t.t('bottom_nav_more')),
+                      BottomNavigationBarItem(
+                          icon: const Icon(Icons.bar_chart_outlined),
+                          label: t.t('bottom_nav_report')),
+                      BottomNavigationBarItem(
+                          icon: const Icon(Icons.more_horiz_outlined),
+                          label: t.t('bottom_nav_more')),
                     ],
                   ),
                 ),
@@ -596,14 +1064,18 @@ class _ModuleScreenState extends ConsumerState<ModuleScreen> {
                       filter: ImageFilter.blur(sigmaX: 14, sigmaY: 14),
                       child: Container(
                         color: Colors.black.withOpacity(0.48),
-                        child: const Center(child: CircularProgressIndicator(color: Colors.white, strokeWidth: 3)),
+                        child: const Center(
+                          child: ShimmerCircle(size: 60),
+                        ),
                       ),
                     ),
                   ),
 
                 // Overlay only for onboarding and device OTP gates
                 // noSubscription is handled by navigation to /subscription
-                if (!_overlayLoading && _overlayType != null && _overlayType != AccessState.noSubscription)
+                if (!_overlayLoading &&
+                    _overlayType != null &&
+                    _overlayType != AccessState.noSubscription)
                   Positioned.fill(
                     child: AccessOverlay(
                       type: _overlayType!,
@@ -624,77 +1096,189 @@ class _ModuleScreenState extends ConsumerState<ModuleScreen> {
   // ─────────────────────────────────────────────────────────────────────────
 
   Widget _buildSiteDropdown(SiteState siteState) {
-    final uniqueSites = siteState.sites.fold<Map<String, SiteModel>>({}, (map, site) { map[site.id] = site; return map; }).values.toList();
-    final noneSite = SiteModel(id: "none", siteName: "None", address: '', contactPerson: '', gstNo: '', phoneNumber: '', emailId: '', documentDate: '', documentNumber: '', isDeleted: false, company: '', type: '', createdAt: '', updatedAt: '', shippingAddress: '');
+    final uniqueSites = siteState.sites
+        .fold<Map<String, SiteModel>>({}, (map, site) {
+          map[site.id] = site;
+          return map;
+        })
+        .values
+        .toList();
+    final noneSite = SiteModel(
+        id: "none",
+        siteName: "None",
+        address: '',
+        contactPerson: '',
+        gstNo: '',
+        phoneNumber: '',
+        emailId: '',
+        documentDate: '',
+        documentNumber: '',
+        isDeleted: false,
+        company: '',
+        type: '',
+        createdAt: '',
+        updatedAt: '',
+        shippingAddress: '');
     final dropdownList = [noneSite, ...uniqueSites];
-    final currentSelectedSite = _selectedSite != null ? dropdownList.firstWhere((s) => s.id == _selectedSite!.id, orElse: () => noneSite) : noneSite;
+    final currentSelectedSite = _selectedSite != null
+        ? dropdownList.firstWhere((s) => s.id == _selectedSite!.id,
+            orElse: () => noneSite)
+        : noneSite;
 
     return Padding(
       padding: const EdgeInsets.symmetric(horizontal: 16),
       child: Container(
-        padding: const EdgeInsets.symmetric(horizontal: 16),
-        decoration: BoxDecoration(color: Colors.white, borderRadius: BorderRadius.circular(12), border: Border.all(color: Colors.grey.shade300)),
-        child: DropdownButton<SiteModel>(
-          value: currentSelectedSite, isExpanded: true, underline: const SizedBox(),
-          items: dropdownList.map((site) => DropdownMenuItem<SiteModel>(value: site, child: Text(site.siteName, maxLines: 1, overflow: TextOverflow.ellipsis, style: const TextStyle(fontSize: 16)))).toList(),
-          onChanged: (SiteModel? newSite) {
-            if (newSite == null || newSite.id == "none") {
-              _onSiteChanged(null);
-              ref.read(siteDropdownValueProvider.notifier).state = null;
-              ref.read(selectedSiteIdProvider.notifier).state = null;
+        padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 4),
+        decoration: BoxDecoration(
+            color: Colors.white,
+            borderRadius: BorderRadius.circular(16),
+            border: Border.all(color: const Color(0xFFE0E0E0)),
+            boxShadow: [
+              BoxShadow(
+                color: Colors.black.withOpacity(0.02),
+                blurRadius: 8,
+                offset: const Offset(0, 2),
+              ),
+            ]),
+        child: DropdownButtonHideUnderline(
+          child: DropdownButton<SiteModel>(
+            value: currentSelectedSite,
+            isExpanded: true,
+            icon: const Icon(Icons.keyboard_arrow_down_rounded,
+                color: Color(0xFF1A73E8)),
+            items: dropdownList
+                .map((site) => DropdownMenuItem<SiteModel>(
+                    value: site,
+                    child: Text(site.siteName,
+                        maxLines: 1,
+                        overflow: TextOverflow.ellipsis,
+                        style: const TextStyle(
+                          fontSize: 15,
+                          fontWeight: FontWeight.w500,
+                          color: Color(0xFF1F1F1F),
+                        ))))
+                .toList(),
+            onChanged: (SiteModel? newSite) {
+              if (newSite == null || newSite.id == "none") {
+                _onSiteChanged(null);
+                ref.read(siteDropdownValueProvider.notifier).state = null;
+                ref.read(selectedSiteIdProvider.notifier).state = null;
 
-              // 🔥 Clear team dropdown when "None" is selected
-              ref.read(teamDropdownValueProvider.notifier).state = null;
-              ref.read(selectedTeamIdProvider.notifier).state = "";
-              ref.read(selectedTeamProvider.notifier).clear();
+                // 🔥 Clear team dropdown when "None" is selected
+                ref.read(teamDropdownValueProvider.notifier).state = null;
+                ref.read(selectedTeamIdProvider.notifier).state = "";
+                ref.read(selectedTeamProvider.notifier).clear();
 
-              // 🔥 Set teams to empty list
-              ref.read(teamProvider.notifier).state = ref.read(teamProvider.notifier).state.copyWith(
-                teams: [],
-                hasData: false,
-              );
-            }
-            else {
-              _onSiteChanged(newSite);
-              ref.read(siteDropdownValueProvider.notifier).state = newSite;
-              ref.read(selectedSiteIdProvider.notifier).state = newSite.id;
-
-              // 🔥 Fetch teams for the selected site
-              final type = ref.read(typeProvider); // Get selected type
-
-                ref.read(teamProvider.notifier).fetchTeams(
-                  type: type!,
-                  siteId: newSite.id,
+                // 🔥 Set teams to empty list
+                ref.read(teamProvider.notifier).state =
+                    ref.read(teamProvider.notifier).state.copyWith(
+                  teams: [],
+                  hasData: false,
                 );
+              } else {
+                _onSiteChanged(newSite);
+                ref.read(siteDropdownValueProvider.notifier).state = newSite;
+                ref.read(selectedSiteIdProvider.notifier).state = newSite.id;
 
-            }
-          },
+                // 🔥 Fetch teams for the selected site
+                final type = ref.read(typeProvider); // Get selected type
+                final notifier = ref.read(teamProvider.notifier);
+
+                if (type == "mechanical_work") {
+                  notifier.fetchMechanicalCombined(siteId: newSite.id);
+                } else if (type == "insulation_work") {
+                  notifier.fetchInsulationCombined(siteId: newSite.id);
+                } else {
+                  notifier.fetchTeams(
+                    type: type ?? "",
+                    siteId: newSite.id,
+                  );
+                }
+              }
+            },
+          ),
         ),
       ),
     );
   }
 
-
   Widget _buildTeamDropdown(TeamState teamState) {
     return Padding(
       padding: const EdgeInsets.symmetric(horizontal: 16),
       child: Container(
-        padding: const EdgeInsets.symmetric(horizontal: 16),
-        decoration: BoxDecoration(color: Colors.white, borderRadius: BorderRadius.circular(12), border: Border.all(color: Colors.grey.shade300)),
+        padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 4),
+        decoration: BoxDecoration(
+            color: Colors.white,
+            borderRadius: BorderRadius.circular(16),
+            border: Border.all(color: const Color(0xFFE0E0E0)),
+            boxShadow: [
+              BoxShadow(
+                color: Colors.black.withOpacity(0.02),
+                blurRadius: 8,
+                offset: const Offset(0, 2),
+              ),
+            ]),
         child: Builder(builder: (context) {
-          if (teamState.isLoading && !teamState.hasData) return const Padding(padding: EdgeInsets.symmetric(vertical: 12), child: Center(child: Text("Loading teams...")));
-          if (!teamState.hasData && teamState.error != null) return const Padding(padding: EdgeInsets.symmetric(vertical: 12), child: Text("Error loading teams"));
-          final uniqueTeams = teamState.teams.fold<Map<String, TeamModel>>({}, (map, team) { map[team.id] = team; return map; }).values.toList();
-          final noneTeam = TeamModel(id: "none", teamName: "None", teamMemberIds: const [], company: '', isDeleted: false, type: '');
+          if (teamState.isLoading && !teamState.hasData)
+            return const Padding(
+                padding: EdgeInsets.symmetric(vertical: 12),
+                child: Center(
+                    child: Text("Loading teams...",
+                        style: TextStyle(fontSize: 14, color: Colors.grey))));
+          if (!teamState.hasData && teamState.error != null)
+            return const Padding(
+                padding: EdgeInsets.symmetric(vertical: 12),
+                child: Text("None",
+                    style: TextStyle(fontSize: 14, color: Colors.grey)));
+          final uniqueTeams = teamState.teams
+              .fold<Map<String, TeamModel>>({}, (map, team) {
+                map[team.id] = team;
+                return map;
+              })
+              .values
+              .toList();
+          final noneTeam = TeamModel(
+              id: "none",
+              teamName: "None",
+              teamMemberIds: const [],
+              company: '',
+              isDeleted: false,
+              type: '');
           final dropdownList = [noneTeam, ...uniqueTeams];
-          final currentSelectedTeam = _selectedTeam != null ? dropdownList.firstWhere((t) => t.id == _selectedTeam!.id, orElse: () => noneTeam) : noneTeam;
-          return DropdownButton<TeamModel>(
-            value: currentSelectedTeam, isExpanded: true, underline: const SizedBox(),
-            items: dropdownList.map((team) => DropdownMenuItem<TeamModel>(value: team, child: Text(team.teamName, maxLines: 1, overflow: TextOverflow.ellipsis, style: const TextStyle(fontSize: 16)))).toList(),
-            onChanged: (TeamModel? newTeam) {
-              if (newTeam == null || newTeam.id == "none") { _onTeamChanged(null); ref.read(teamDropdownValueProvider.notifier).state = null; ref.read(selectedTeamIdProvider.notifier).state = ""; }
-              else { _onTeamChanged(newTeam); ref.read(teamDropdownValueProvider.notifier).state = newTeam; ref.read(selectedTeamIdProvider.notifier).state = newTeam.id; }
-            },
+          final currentSelectedTeam = _selectedTeam != null
+              ? dropdownList.firstWhere((t) => t.id == _selectedTeam!.id,
+                  orElse: () => noneTeam)
+              : noneTeam;
+          return DropdownButtonHideUnderline(
+            child: DropdownButton<TeamModel>(
+              value: currentSelectedTeam,
+              isExpanded: true,
+              icon: const Icon(Icons.keyboard_arrow_down_rounded,
+                  color: Color(0xFF1A73E8)),
+              items: dropdownList
+                  .map((team) => DropdownMenuItem<TeamModel>(
+                      value: team,
+                      child: Text(team.teamName,
+                          maxLines: 1,
+                          overflow: TextOverflow.ellipsis,
+                          style: const TextStyle(
+                            fontSize: 15,
+                            fontWeight: FontWeight.w500,
+                            color: Color(0xFF1F1F1F),
+                          ))))
+                  .toList(),
+              onChanged: (TeamModel? newTeam) {
+                if (newTeam == null || newTeam.id == "none") {
+                  _onTeamChanged(null);
+                  ref.read(teamDropdownValueProvider.notifier).state = null;
+                  ref.read(selectedTeamIdProvider.notifier).state = "";
+                } else {
+                  _onTeamChanged(newTeam);
+                  ref.read(teamDropdownValueProvider.notifier).state = newTeam;
+                  ref.read(selectedTeamIdProvider.notifier).state = newTeam.id;
+                }
+              },
+            ),
           );
         }),
       ),

@@ -31,20 +31,15 @@ class _DprTeamScreenState extends ConsumerState<DprTeamScreen> {
   Future<void> _refreshTeams() async {
     final type = ref.read(typeProvider);
     final notifier = ref.read(teamProvider.notifier);
-    final siteId=widget.site.id;
-
+    final siteId = widget.site.id;
 
     if (type == "mechanical_work") {
-      await notifier.fetchMechanicalCombined(siteId: siteId!);
-    }
-    else if (type == "insulation_work") {
+      await notifier.fetchMechanicalCombined(siteId: siteId);
+    } else if (type == "insulation_work") {
+      await notifier.fetchInsulationCombined(siteId: siteId);
+    } else {
       await notifier.fetchTeams(type: type!, siteId: siteId);
     }
-    else {
-      // fallback if some other type appears
-      await notifier.fetchTeams(type: type!, siteId: siteId!);
-    }
-
   }
   @override
   void initState() {
@@ -52,109 +47,8 @@ class _DprTeamScreenState extends ConsumerState<DprTeamScreen> {
 
     WidgetsBinding.instance.addPostFrameCallback((_) async {
       await _refreshTeams();
-
-      final teamState = ref.read(teamProvider);
-      final teams = teamState.teams;
-
-
-// 🚫 If no teams at all → auto navigate
-      if (teams.isEmpty) {
-        ref.read(selectedTeamIdProvider.notifier).state = "";
-        _goNext("", "");
-        return;
-      }
-
-      // bool isDefault(String name) =>
-      //     name.trim().toLowerCase().contains("default backend team");
-      //
-      // // 🚫 no teams at all
-      // if (teams.isEmpty) {
-      //   ref.read(selectedTeamIdProvider.notifier).state = "";
-      //   _goNext("", "");
-      //   return;
-      // }
-      //
-      // // Filter real teams
-      // final realTeams = teams.where((t) => !isDefault(t.teamName)).toList();
-      //
-      // // 🚫 only default exists
-      // if (realTeams.isEmpty) {
-      //   ref.read(selectedTeamIdProvider.notifier).state = "";
-      //   _goNext("", "");
-      //   return;
-      // }
-
-      // ✅ At least one real team exists → DO NOT auto navigate
-      // User must manually pick
-      return;
     });
   }
-  void _goNext(String teamId, String? teamName) {
-    final type = ref.read(typeProvider);
-
-    if (type == "mechanical_work") {
-      Navigator.pushReplacement(
-        context,
-        MaterialPageRoute(
-          builder: (_) => MOCSelectionPage(
-            siteId: widget.site.id,
-            teamId: teamId,
-            teamName: teamName,
-            onMOCSelected: (_) {},
-          ),
-        ),
-      );
-    } else if (type == "insulation_work") {
-      Navigator.pushReplacement(
-        context,
-        MaterialPageRoute(
-          builder: (_) => StepInsulationScreen(
-            siteId: widget.site.id,
-            teamId: teamId,
-            name: widget.site.siteName ?? "",
-            teamName: teamName,
-          ),
-        ),
-      );
-    }
-  }
-
-  void _navigateWithoutTeam() {
-    final type = ref.read(typeProvider);
-
-    // clear team state
-    ref.read(selectedTeamIdProvider.notifier).state = "default";
-    ref.read(selectedTeamProvider.notifier).clear();
-
-    if (type == "mechanical_work") {
-      Navigator.pushReplacement(
-        context,
-        MaterialPageRoute(
-          builder: (_) => MOCSelectionPage(
-            siteId: widget.site.id,
-            teamId:"default",
-            teamName: null,
-            onMOCSelected: (selectedMOC) {},
-          ),
-        ),
-      );
-    } else if (type == "insulation_work") {
-      Navigator.pushReplacement(
-        context,
-        MaterialPageRoute(
-          builder: (_) => StepInsulationScreen(
-            siteId: widget.site.id,
-            teamId: "",
-            name: widget.site.siteName ?? "",
-            teamName: null,
-          ),
-        ),
-      );
-    } else {
-      debugPrint("❌ Unknown work type: $type");
-    }
-  }
-
   Future<void> _handleTeamAutoNavigation() async {
     final teamState = ref.read(teamProvider);
     final type = ref.read(typeProvider);

@@ -182,10 +182,19 @@ class ManpowerAPI {
   // ─────────────────────────────────────────────
   // EXCEL / BULK
   // ─────────────────────────────────────────────
+// ─────────────────────────────────────────────
+// ADD THIS METHOD inside ManpowerAPI class
+// lib/features/modules/all_Modules/Manpower Details/service/manpowerService.dart
+// ─────────────────────────────────────────────
 
-  static Future<Map<String, dynamic>> flexibleUploadExcel({
+// ✅ STEP 1: Upload and get jobId  (replaces old uploadExcel call in _onUploadPressed)
+// This already exists as flexibleUploadExcel — just pass siteId in queryParameters.
+// Update the existing flexibleUploadExcel like this:
+
+  static Future<Map<String, dynamic>> flexibleUploadExcelWithSite({
     required File file,
     required String type,
+    String? siteId,
     bool analyze = false,
   }) async {
     try {
@@ -196,11 +205,18 @@ class ManpowerAPI {
           filename: file.path.split('/').last,
         ),
       });
+      final queryParams = {
+        "type": mappedType,
+        if (analyze) "analyze": true,
+        if (siteId != null && siteId.isNotEmpty) "siteId": siteId,
+      };
       final res = await dio.post(
         "/manpower/flexible-upload",
-        queryParameters: {"type": mappedType, if (analyze) "analyze": true},
+        queryParameters: queryParams,
         data: formData,
-        options: Options(headers: {"Accept": "application/json", "Content-Type": "multipart/form-data"}),
+        options: Options(
+          headers: {"Accept": "application/json", "Content-Type": "multipart/form-data"},
+        ),
       );
       return {"success": true, "data": res.data, "statusCode": res.statusCode};
     } on DioException catch (e) {
@@ -210,9 +226,67 @@ class ManpowerAPI {
     }
   }
 
-  static Future<Map<String, dynamic>> uploadExcel({required File file, required String type}) =>
-      flexibleUploadExcel(file: file, type: type, analyze: false);
+// ✅ STEP 2: Poll job status
+// GET /api/v1/manpower/job-status/{jobId}
+  static Future<Map<String, dynamic>> fetchJobStatus(String jobId) async {
+    try {
+      final res = await dio.get("/manpower/job-status/$jobId");
+      return {"success": true, "data": res.data};
+    } on DioException catch (e) {
+      return _dioError("Job Status Error", e);
+    } catch (e) {
+      return _unexpectedError(e);
+    }
+  }
+  static Future<Map<String, dynamic>> flexibleUploadExcel({
+    required File file,
+    required String type,
+    bool analyze = false,
+    String? siteId, // Added optional siteId parameter
+  }) async {
+    try {
+      final mappedType = mapManpowerType(type);
+      final formData = FormData.fromMap({
+        "file": await MultipartFile.fromFile(
+          file.path,
+          filename: file.path.split('/').last,
+        ),
+      });
 
+      // Build query parameters with siteId
+      final queryParams = {
+        "type": mappedType,
+        if (analyze) "analyze": true,
+        if (siteId != null) "siteId": siteId, // Add siteId if provided
+      };
+
+      final res = await dio.post(
+        "/manpower/flexible-upload",
+        queryParameters: queryParams,
+        data: formData,
+        options: Options(headers: {
+          "Accept": "application/json",
+          "Content-Type": "multipart/form-data"
+        }),
+      );
+      return {"success": true, "data": res.data, "statusCode": res.statusCode};
+    } on DioException catch (e) {
+      return _dioError("Flexible Upload Error", e);
+    } catch (e) {
+      return _unexpectedError(e);
+    }
+  }
+
+  static Future<Map<String, dynamic>> uploadExcel({
+    required File file,
+    required String type,
+    String? siteId, // Added optional siteId parameter
+  }) => flexibleUploadExcel(
+    file: file,
+    type: type,
+    analyze: false,
+    siteId: siteId, // Pass siteId through
+  );
   static Future<Map<String, dynamic>> analyzeExcel({required File file, required String type}) =>
       flexibleUploadExcel(file: file, type: type, analyze: true);
 

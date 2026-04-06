@@ -17,6 +17,7 @@ import '../../../../../core/utlis/common_functions.dart';
 import '../../../../../core/utlis/widgets/Button_wrapper.dart';
 import '../../../../../core/utlis/widgets/card.dart';
 import '../../../../../core/utlis/widgets/custom.dart';
+import '../../../../../core/utlis/widgets/shimmer.dart';
 import '../../../../tour/domain/tour_aware_mixin.dart';
 import '../../../../tour/domain/tour_controller.dart';
 import '../../../../tour/domain/tour_presistent.dart';
@@ -26,12 +27,15 @@ import '../providers/siteProvider.dart';
 import '../providers/site_current_provider.dart';
 import '../providers/site_service.dart';
 import '../repository/siteModel.dart';
+import '../../team/provider/teamProvider.dart';
+import '../../../../../typeProvider/type_provider.dart';
 
 class SiteListScreen extends ConsumerStatefulWidget {
   final Widget Function(SiteModel site) pageBuilder;
   final bool show;
+  final String? module;
 
-  const SiteListScreen({super.key, required this.pageBuilder, this.show = false});
+  const SiteListScreen({super.key, required this.pageBuilder, this.show = false, this.module});
 
   @override
   ConsumerState<SiteListScreen> createState() => _SiteListScreenState();
@@ -55,23 +59,8 @@ class _SiteListScreenState extends ConsumerState<SiteListScreen>
     super.initState();
 
     WidgetsBinding.instance.addPostFrameCallback((_) {
-      final tour = ref.read(tourControllerProvider);
-      final siteDropdownValue = ref.read(siteDropdownValueProvider);
+      // Only fetch sites — no more auto-navigation here
       ref.read(siteProvider.notifier).fetchSites();
-
-      final tourRunning = tour.status == TourStatus.running;
-
-      if (!tourRunning && siteDropdownValue != null) {
-        // Sync the ID provider with the dropdown value
-        ref.read(selectedSiteIdProvider.notifier).state = siteDropdownValue.id;
-
-        Navigator.pushReplacement(
-          context,
-          MaterialPageRoute(
-            builder: (_) => widget.pageBuilder(siteDropdownValue),
-          ),
-        );
-      }
     });
   }
 
@@ -331,7 +320,11 @@ class _SiteListScreenState extends ConsumerState<SiteListScreen>
     // Show loading only when truly loading and no data
     if (siteState.isLoading && siteState.sites.isEmpty) {
       print("⏳ Showing loading indicator");
-      return const Center(child: CircularProgressIndicator());
+      return const ShimmerList(
+        type: ShimmerListType.grid,
+        crossAxisCount: 2,
+        itemCount: 6,
+      );
     }
 
     // Show error only when there's an error and no data
@@ -421,6 +414,18 @@ class _SiteListScreenState extends ConsumerState<SiteListScreen>
                       : () {
                     print("👆 Tapped on site: ${site.siteName}");
                     ref.read(selectedSiteIdProvider.notifier).state = site.id;
+
+                    if (widget.module == 'dpr') {
+                      final type = ref.read(typeProvider);
+                      final notifier = ref.read(teamProvider.notifier);
+                      if (type == "mechanical_work") {
+                        notifier.fetchMechanicalCombined(siteId: site.id);
+                      } else if (type == "insulation_work") {
+                        notifier.fetchInsulationCombined(siteId: site.id);
+                      } else {
+                        notifier.fetchTeams(type: type ?? "", siteId: site.id);
+                      }
+                    }
                     final ew = ref.read(currentSiteProvider);
                     print(ew?.siteName);
 

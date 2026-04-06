@@ -14,6 +14,8 @@ import 'package:untitled2/core/utlis/widgets/custom_appBar.dart';
 import 'package:untitled2/features/modules/all_Modules/attendance/offline/repo/att_sync.dart';
 import 'package:untitled2/features/modules/all_Modules/site_Details/providers/site_current_provider.dart';
 
+import 'package:untitled2/core/utlis/widgets/shimmer.dart';
+
 import '../../../../../core/utlis/widgets/Button_wrapper.dart';
 import '../../../../../core/utlis/widgets/custom.dart';
 import '../../../../../core/utlis/widgets/image_clipped.dart';
@@ -38,6 +40,7 @@ class _ManpowerListScreenState extends ConsumerState<ManpowerListScreen> {
   bool _isSelectionMode = false;
   Set<String> _selectedManpowerIds = {};
   String _searchQuery = '';
+  String _lastSortedOrderSignature = '';
   final ScrollController _scrollController = ScrollController();
 
   @override
@@ -95,7 +98,7 @@ class _ManpowerListScreenState extends ConsumerState<ManpowerListScreen> {
   /// Delete selected manpower
   Future<void> _deleteSelectedManpower() async {
     if (_selectedManpowerIds.isEmpty) {
-  AppToast.show('No manpower selected');
+      AppToast.show('No manpower selected');
       return;
     }
 
@@ -105,7 +108,7 @@ class _ManpowerListScreenState extends ConsumerState<ManpowerListScreen> {
         title: const Text('Delete Selected Manpower'),
         content: Text(
           'Are you sure you want to delete ${_selectedManpowerIds.length} selected manpower records?\n\n'
-              'This action cannot be undone.',
+          'This action cannot be undone.',
         ),
         actions: [
           TextButton(
@@ -125,24 +128,20 @@ class _ManpowerListScreenState extends ConsumerState<ManpowerListScreen> {
 
     try {
       final repo = ref.read(attendanceRepositoryProvider);
+      final selectedIds = _selectedManpowerIds.toList();
 
-      for (final id in _selectedManpowerIds) {
-        await repo.deleteManpowerLocal(id);
-      }
+      await repo.deleteManpowerLocalBulk(selectedIds);
       final result = await ManpowerAPI.bulkDeleteManpower(
-        _selectedManpowerIds.toList(),
+        selectedIds,
       );
 
       if (result['success'] == true) {
         // Refresh manpower list
         final type = ref.read(typeProvider);
 
-
-
-
-
         if (mounted) {
-         AppToast.success('Successfully deleted ${_selectedManpowerIds.length} manpower records');
+          AppToast.success(
+              'Successfully deleted ${_selectedManpowerIds.length} manpower records');
         }
 
         setState(() {
@@ -151,22 +150,22 @@ class _ManpowerListScreenState extends ConsumerState<ManpowerListScreen> {
         });
       } else {
         if (mounted) {
-         AppToast.error(result['message'] ?? 'Failed to delete manpower');
+          AppToast.error(result['message'] ?? 'Failed to delete manpower');
         }
       }
     } catch (e) {
       debugPrint('❌ Failed to bulk delete: $e');
 
       if (mounted) {
-       AppToast.error('Bulk delete failed: ${e.toString()}');
+        AppToast.error('Bulk delete failed: ${e.toString()}');
       }
     }
   }
 
   Future<void> _confirmLeftManpower(
-      BuildContext context,
-      ManpowerModel manpower,
-      ) async {
+    BuildContext context,
+    ManpowerModel manpower,
+  ) async {
     final reasonController = TextEditingController();
 
     final confirm = await showDialog<bool>(
@@ -231,8 +230,9 @@ class _ManpowerListScreenState extends ConsumerState<ManpowerListScreen> {
 
     await ref.read(manpowerProvider.notifier).leftManpower(id, data, type);
 
-   AppToast.info("✅ Manpower marked as left");
+    AppToast.info("✅ Manpower marked as left");
   }
+
 // ✅ STEP 1: Format selection bottom sheet
   void _showFormatSelectionDialog(BuildContext context) {
     showModalBottomSheet(
@@ -248,7 +248,8 @@ class _ManpowerListScreenState extends ConsumerState<ManpowerListScreen> {
             children: [
               // Drag handle
               Container(
-                width: 40, height: 4,
+                width: 40,
+                height: 4,
                 margin: const EdgeInsets.only(bottom: 16),
                 decoration: BoxDecoration(
                   color: Colors.grey.shade400,
@@ -268,14 +269,17 @@ class _ManpowerListScreenState extends ConsumerState<ManpowerListScreen> {
 
               // Excel
               ListTile(
-                contentPadding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                contentPadding:
+                    const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
                 leading: Container(
-                  width: 48, height: 48,
+                  width: 48,
+                  height: 48,
                   decoration: BoxDecoration(
                     color: Colors.green.withOpacity(0.1),
                     borderRadius: BorderRadius.circular(12),
                   ),
-                  child: const Icon(Icons.table_chart, color: Colors.green, size: 24),
+                  child: const Icon(Icons.table_chart,
+                      color: Colors.green, size: 24),
                 ),
                 title: const Text(
                   "Excel (.xlsx)",
@@ -285,7 +289,8 @@ class _ManpowerListScreenState extends ConsumerState<ManpowerListScreen> {
                   "Spreadsheet format",
                   style: TextStyle(fontSize: 13, color: Colors.grey),
                 ),
-                trailing: const Icon(Icons.chevron_right_rounded, color: Colors.grey),
+                trailing:
+                    const Icon(Icons.chevron_right_rounded, color: Colors.grey),
                 onTap: () {
                   Navigator.pop(context);
                   _showShareOrDownloadDialog(format: 'excel');
@@ -296,14 +301,17 @@ class _ManpowerListScreenState extends ConsumerState<ManpowerListScreen> {
 
               // PDF
               ListTile(
-                contentPadding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                contentPadding:
+                    const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
                 leading: Container(
-                  width: 48, height: 48,
+                  width: 48,
+                  height: 48,
                   decoration: BoxDecoration(
                     color: Colors.red.withOpacity(0.1),
                     borderRadius: BorderRadius.circular(12),
                   ),
-                  child: const Icon(Icons.picture_as_pdf, color: Colors.red, size: 24),
+                  child: const Icon(Icons.picture_as_pdf,
+                      color: Colors.red, size: 24),
                 ),
                 title: const Text(
                   "PDF (.pdf)",
@@ -313,7 +321,8 @@ class _ManpowerListScreenState extends ConsumerState<ManpowerListScreen> {
                   "Document format",
                   style: TextStyle(fontSize: 13, color: Colors.grey),
                 ),
-                trailing: const Icon(Icons.chevron_right_rounded, color: Colors.grey),
+                trailing:
+                    const Icon(Icons.chevron_right_rounded, color: Colors.grey),
                 onTap: () {
                   Navigator.pop(context);
                   _showShareOrDownloadDialog(format: 'pdf');
@@ -348,7 +357,8 @@ class _ManpowerListScreenState extends ConsumerState<ManpowerListScreen> {
             mainAxisSize: MainAxisSize.min,
             children: [
               Container(
-                width: 40, height: 4,
+                width: 40,
+                height: 4,
                 margin: const EdgeInsets.only(bottom: 16),
                 decoration: BoxDecoration(
                   color: Colors.grey.shade400,
@@ -373,18 +383,25 @@ class _ManpowerListScreenState extends ConsumerState<ManpowerListScreen> {
 
               // Share
               ListTile(
-                contentPadding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                contentPadding:
+                    const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
                 leading: Container(
-                  width: 48, height: 48,
+                  width: 48,
+                  height: 48,
                   decoration: BoxDecoration(
                     color: Colors.blue.withOpacity(0.1),
                     borderRadius: BorderRadius.circular(12),
                   ),
-                  child: const Icon(Icons.share_rounded, color: Colors.blue, size: 24),
+                  child: const Icon(Icons.share_rounded,
+                      color: Colors.blue, size: 24),
                 ),
-                title: const Text("Share", style: TextStyle(fontSize: 16, fontWeight: FontWeight.w500)),
-                subtitle: const Text("Send file via apps", style: TextStyle(fontSize: 13, color: Colors.grey)),
-                trailing: const Icon(Icons.chevron_right_rounded, color: Colors.grey),
+                title: const Text("Share",
+                    style:
+                        TextStyle(fontSize: 16, fontWeight: FontWeight.w500)),
+                subtitle: const Text("Send file via apps",
+                    style: TextStyle(fontSize: 13, color: Colors.grey)),
+                trailing:
+                    const Icon(Icons.chevron_right_rounded, color: Colors.grey),
                 onTap: () {
                   Navigator.pop(context);
                   _downloadAndShareManpower(format: format);
@@ -395,18 +412,25 @@ class _ManpowerListScreenState extends ConsumerState<ManpowerListScreen> {
 
               // Download
               ListTile(
-                contentPadding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                contentPadding:
+                    const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
                 leading: Container(
-                  width: 48, height: 48,
+                  width: 48,
+                  height: 48,
                   decoration: BoxDecoration(
                     color: Colors.green.withOpacity(0.1),
                     borderRadius: BorderRadius.circular(12),
                   ),
-                  child: const Icon(Icons.download_rounded, color: Colors.green, size: 24),
+                  child: const Icon(Icons.download_rounded,
+                      color: Colors.green, size: 24),
                 ),
-                title: const Text("Download", style: TextStyle(fontSize: 16, fontWeight: FontWeight.w500)),
-                subtitle: const Text("Save to your device", style: TextStyle(fontSize: 13, color: Colors.grey)),
-                trailing: const Icon(Icons.chevron_right_rounded, color: Colors.grey),
+                title: const Text("Download",
+                    style:
+                        TextStyle(fontSize: 16, fontWeight: FontWeight.w500)),
+                subtitle: const Text("Save to your device",
+                    style: TextStyle(fontSize: 13, color: Colors.grey)),
+                trailing:
+                    const Icon(Icons.chevron_right_rounded, color: Colors.grey),
                 onTap: () {
                   Navigator.pop(context);
                   _downloadManpowerFile(format: format);
@@ -442,7 +466,8 @@ class _ManpowerListScreenState extends ConsumerState<ManpowerListScreen> {
       final mimeType = format == 'pdf'
           ? 'application/pdf'
           : 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet';
-      final fileName = 'manpower_${DateTime.now().millisecondsSinceEpoch}$fileExt';
+      final fileName =
+          'manpower_${DateTime.now().millisecondsSinceEpoch}$fileExt';
       final tempPath = '${tempDir.path}/$fileName';
 
       await File(tempPath).writeAsBytes(bytes, flush: true);
@@ -475,7 +500,8 @@ class _ManpowerListScreenState extends ConsumerState<ManpowerListScreen> {
       }
 
       final fileExt = format == 'pdf' ? '.pdf' : '.xlsx';
-      final fileName = 'manpower_${DateTime.now().millisecondsSinceEpoch}$fileExt';
+      final fileName =
+          'manpower_${DateTime.now().millisecondsSinceEpoch}$fileExt';
 
       if (Platform.isAndroid || Platform.isIOS) {
         final String? outputPath = await FilePicker.platform.saveFile(
@@ -506,17 +532,15 @@ class _ManpowerListScreenState extends ConsumerState<ManpowerListScreen> {
       AppToast.error('Download failed: $e');
     }
   }
+
   @override
   Widget build(BuildContext context) {
     final type = ref.read(typeProvider)!;
 
-
     final manpowerAsync = ref.watch(
-      manpowerOfflineProvider(( type: type)),
+      manpowerOfflineProvider((type: type)),
     );
-    final syncState =
-    ref.watch(manpowerSyncControllerProvider((type: type)));
-
+    final syncState = ref.watch(manpowerSyncControllerProvider((type: type)));
 
     return Scaffold(
       drawer: const CustomDrawer(),
@@ -542,24 +566,51 @@ class _ManpowerListScreenState extends ConsumerState<ManpowerListScreen> {
             ),
           ],
           child: manpowerAsync.when(
-            loading: () => const Center(child: CircularProgressIndicator()),
-
+            loading: () {
+              return const ShimmerList(
+                type: ShimmerListType.tile,
+                itemCount: 8,
+              );
+            },
             error: (e, s) => Center(child: Text("Error: $e")),
-
             data: (manpowerList) {
-
               final filteredList = _searchQuery.isEmpty
                   ? manpowerList
                   : manpowerList.where((m) {
-                final name = (m.fullName ?? '').toLowerCase();
-                final code = (m.employeeCode ?? '').toLowerCase();
-                final query = _searchQuery.toLowerCase();
-                return name.contains(query) || code.contains(query);
-              }).toList();
+                      final name = (m.fullName ?? '').toLowerCase();
+                      final code = (m.employeeCode ?? '').toLowerCase();
+                      final query = _searchQuery.toLowerCase();
+                      return name.contains(query) || code.contains(query);
+                    }).toList();
+
+              filteredList.sort((a, b) {
+                final aName = (a.fullName ?? '').trim().toLowerCase();
+                final bName = (b.fullName ?? '').trim().toLowerCase();
+                return aName.compareTo(bName);
+              });
+
+              final sortedSignature = filteredList
+                  .map((m) =>
+                      '${m.id ?? ''}:${(m.fullName ?? '').trim().toLowerCase()}')
+                  .join('|');
+
+              if (_lastSortedOrderSignature != sortedSignature) {
+                _lastSortedOrderSignature = sortedSignature;
+                debugPrint('📋 Sorted manpower order (asc by name):');
+                for (int i = 0; i < filteredList.length; i++) {
+                  final m = filteredList[i];
+                  debugPrint(
+                    '  [$i] name="${m.fullName ?? ''}" code="${m.employeeCode ?? ''}" id="${m.id ?? ''}"',
+                  );
+                }
+              }
 
               if (manpowerList.isEmpty) {
                 if (syncState.isLoading) {
-                  return const Center(child: CircularProgressIndicator());
+                  return const ShimmerList(
+                    type: ShimmerListType.tile,
+                    itemCount: 8,
+                  );
                 }
 
                 return const Center(
@@ -570,10 +621,8 @@ class _ManpowerListScreenState extends ConsumerState<ManpowerListScreen> {
                 );
               }
 
-
               return Column(
                 children: [
-
                   Padding(
                     padding: const EdgeInsets.fromLTRB(16, 8, 16, 4),
                     child: TextField(
@@ -583,15 +632,16 @@ class _ManpowerListScreenState extends ConsumerState<ManpowerListScreen> {
                         prefixIcon: const Icon(Icons.search, size: 20),
                         suffixIcon: _searchQuery.isNotEmpty
                             ? IconButton(
-                          icon: const Icon(Icons.close, size: 18),
-                          onPressed: () => setState(() => _searchQuery = ''),
-                        )
+                                icon: const Icon(Icons.close, size: 18),
+                                onPressed: () =>
+                                    setState(() => _searchQuery = ''),
+                              )
                             : null,
                         isDense: true,
                         filled: true,
                         fillColor: Colors.white,
-                        contentPadding:
-                        const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
+                        contentPadding: const EdgeInsets.symmetric(
+                            horizontal: 12, vertical: 10),
                         border: OutlineInputBorder(
                           borderRadius: BorderRadius.circular(10),
                           borderSide: BorderSide.none,
@@ -599,6 +649,7 @@ class _ManpowerListScreenState extends ConsumerState<ManpowerListScreen> {
                       ),
                     ),
                   ),
+
                   /// TOP BAR
                   Row(
                     mainAxisAlignment: MainAxisAlignment.end,
@@ -626,7 +677,8 @@ class _ManpowerListScreenState extends ConsumerState<ManpowerListScreen> {
                         ),
                       ] else ...[
                         IconButton(
-                          icon: const Icon(Icons.delete_sweep, color: Colors.red),
+                          icon:
+                              const Icon(Icons.delete_sweep, color: Colors.red),
                           onPressed: manpowerList.isEmpty
                               ? null
                               : _toggleSelectionMode,
@@ -640,20 +692,21 @@ class _ManpowerListScreenState extends ConsumerState<ManpowerListScreen> {
                     child: filteredList.isEmpty
                         ? const Center(child: Text("No results found"))
                         : CustomScrollbar(
-                      controller: _scrollController,
-                      child: ListView.builder(
-                        controller: _scrollController,
-                        physics: const AlwaysScrollableScrollPhysics(),
-                        padding: const EdgeInsets.symmetric(horizontal: 16),
-                        itemCount: filteredList.length,
-                        itemBuilder: (context, index) {
-                          final manpower = filteredList[index];
-                          final isSelected =
-                          _selectedManpowerIds.contains(manpower.id);
-                          return _buildManpowerTile(manpower, isSelected);
-                        },
-                      ),
-                    ),
+                            controller: _scrollController,
+                            child: ListView.builder(
+                              controller: _scrollController,
+                              physics: const AlwaysScrollableScrollPhysics(),
+                              padding:
+                                  const EdgeInsets.symmetric(horizontal: 16),
+                              itemCount: filteredList.length,
+                              itemBuilder: (context, index) {
+                                final manpower = filteredList[index];
+                                final isSelected =
+                                    _selectedManpowerIds.contains(manpower.id);
+                                return _buildManpowerTile(manpower, isSelected);
+                              },
+                            ),
+                          ),
                   ),
                 ],
               );
@@ -663,7 +716,6 @@ class _ManpowerListScreenState extends ConsumerState<ManpowerListScreen> {
       ),
     );
   }
-
 
   Widget _buildManpowerTile(ManpowerModel manpower, bool isSelected) {
     return Stack(
@@ -699,38 +751,40 @@ class _ManpowerListScreenState extends ConsumerState<ManpowerListScreen> {
               trailing: _isSelectionMode
                   ? null
                   : Row(
-                mainAxisSize: MainAxisSize.min,
-                mainAxisAlignment: MainAxisAlignment.end,
-                children: [
-                  // ✏️ Edit
-                  IconButton(
-                    icon: const Icon(Icons.edit, color: Colors.blue),
-                    onPressed: () {
-                      print(const JsonEncoder.withIndent('  ').convert(manpower.toJson()));
-                      context.push('/edit-manpower', extra: manpower);
-                    },
-                  ),
+                      mainAxisSize: MainAxisSize.min,
+                      mainAxisAlignment: MainAxisAlignment.end,
+                      children: [
+                        // ✏️ Edit
+                        IconButton(
+                          icon: const Icon(Icons.edit, color: Colors.blue),
+                          onPressed: () {
+                            print(const JsonEncoder.withIndent('  ')
+                                .convert(manpower.toJson()));
+                            context.push('/edit-manpower', extra: manpower);
+                          },
+                        ),
 
-                  // 🚪 Mark Left
-                  IconButton(
-                    icon: const Icon(
-                      Icons.person_off,
-                      color: Colors.orange,
+                        // 🚪 Mark Left
+                        IconButton(
+                          icon: const Icon(
+                            Icons.person_off,
+                            color: Colors.orange,
+                          ),
+                          onPressed: () {
+                            _confirmLeftManpower(context, manpower);
+                          },
+                        ),
+
+                        // 🗑 Delete
+                        IconButton(
+                          icon: const Icon(Icons.delete_outline,
+                              color: Colors.red),
+                          onPressed: () {
+                            _confirmDelete(context, manpower.id!);
+                          },
+                        ),
+                      ],
                     ),
-                    onPressed: () {
-                      _confirmLeftManpower(context, manpower);
-                    },
-                  ),
-
-                  // 🗑 Delete
-                  IconButton(
-                    icon: const Icon(Icons.delete_outline, color: Colors.red),
-                    onPressed: () {
-                      _confirmDelete(context, manpower.id!);
-                    },
-                  ),
-                ],
-              ),
             ),
           ),
         ),
@@ -762,10 +816,10 @@ class _ManpowerListScreenState extends ConsumerState<ManpowerListScreen> {
                 ),
                 child: isSelected
                     ? const Icon(
-                  Icons.check,
-                  color: Colors.white,
-                  size: 20,
-                )
+                        Icons.check,
+                        color: Colors.white,
+                        size: 20,
+                      )
                     : null,
               ),
             ),
@@ -800,27 +854,23 @@ class _ManpowerListScreenState extends ConsumerState<ManpowerListScreen> {
       _deleteManpower(context, manpowerId);
     }
   }
-  Future<void> _deleteManpower(BuildContext context, String manpowerId) async {
 
+  Future<void> _deleteManpower(BuildContext context, String manpowerId) async {
     final repo = ref.read(attendanceRepositoryProvider);
 
     /// 1️⃣ DELETE LOCALLY FIRST (instant UI update)
     await repo.deleteManpowerLocal(manpowerId);
 
     try {
-
       /// 2️⃣ DELETE ON SERVER
       final res = await ManpowerAPI.deleteManpower(manpowerId);
 
       if (res['success'] != true) {
         throw Exception("Server delete failed");
       }
-
     } catch (e) {
-
       /// 3️⃣ OPTIONAL: rollback if server fails
       debugPrint("Server delete failed: $e");
-
     }
 
     ScaffoldMessenger.of(context).showSnackBar(

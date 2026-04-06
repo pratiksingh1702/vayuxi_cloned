@@ -5,13 +5,16 @@ import 'dart:io';
 import 'package:flutter/material.dart';
 
 import '../../../../../../core/utlis/widgets/file_upload.dart';
+import '../../../../../../core/utlis/widgets/shimmer.dart';
 import '../../offline/data/local/local_material_dao.dart';
+import '../../utils/image_track/material_image_upload_service.dart';
 import '../model/eqip_insu.dart';
 import '../model/material_setup.dart';
 import '../model/field_config.dart';
 import '../model/card_form_State.dart';
 import '../service/material_service.dart';
 import 'config/equipment_config.dart';
+import 'edit_overlay.dart';
 
 class EquipmentMaterialCard extends StatefulWidget {
   final EquipmentMaterial material;
@@ -43,6 +46,7 @@ class _EquipmentMaterialCardState extends State<EquipmentMaterialCard> {
   late EquipmentMaterial _draftMaterial;
 
   CardFormState? _cardStateField;
+  final _imageService = MaterialImageUploadService();
 
   CardFormState get _cardState {
     if (_cardStateField == null) {
@@ -64,6 +68,8 @@ class _EquipmentMaterialCardState extends State<EquipmentMaterialCard> {
 
   late TextEditingController _qtyController;
   late FocusNode _qtyFocusNode;
+  final ValueNotifier<int> _rebuildNotifier = ValueNotifier<int>(0);
+
 
   // Legacy
   late Map<EquipmentFieldType, TextEditingController> _legacyValueControllers;
@@ -83,8 +89,7 @@ class _EquipmentMaterialCardState extends State<EquipmentMaterialCard> {
   void initState() {
     super.initState();
     _draftMaterial = widget.material;
-    _qtyController =
-        TextEditingController();
+    _qtyController = TextEditingController(text:'1');
     _qtyFocusNode = FocusNode();
 
     _qtyFocusNode.addListener(() {
@@ -97,6 +102,13 @@ class _EquipmentMaterialCardState extends State<EquipmentMaterialCard> {
     } else {
       _initLegacyControllers(widget.material);
     }
+  }
+
+  @override
+  void setState(VoidCallback fn) {
+    if (!mounted) return; // ← guard against disposed state
+    super.setState(fn);
+    _rebuildNotifier.value++; // ← mirror to overlay if open
   }
 
   void _initCardState() {
@@ -142,22 +154,22 @@ class _EquipmentMaterialCardState extends State<EquipmentMaterialCard> {
       EquipmentFieldType.qty: TextEditingController(text: m.qty.toString()),
       EquipmentFieldType.length: TextEditingController(text: tv(m.length)),
       EquipmentFieldType.circumference:
-      TextEditingController(text: tv(m.circumference)),
+          TextEditingController(text: tv(m.circumference)),
       EquipmentFieldType.circumference1:
-      TextEditingController(text: tv(m.circumference1)),
+          TextEditingController(text: tv(m.circumference1)),
       EquipmentFieldType.circumference2:
-      TextEditingController(text: tv(m.circumference2)),
+          TextEditingController(text: tv(m.circumference2)),
       EquipmentFieldType.circumference3:
-      TextEditingController(text: tv(m.circumference3)),
+          TextEditingController(text: tv(m.circumference3)),
       EquipmentFieldType.zHeight: TextEditingController(text: tv(m.zHeight)),
       EquipmentFieldType.SlantHeight:
-      TextEditingController(text: tv(m.SlantHeight)),
+          TextEditingController(text: tv(m.SlantHeight)),
     };
     _legacyLabelControllers = {
       EquipmentFieldType.qty:
-      TextEditingController(text: m.customLabels?['qty'] ?? 'Qty'),
+          TextEditingController(text: m.customLabels?['qty'] ?? 'Qty'),
       EquipmentFieldType.length:
-      TextEditingController(text: m.customLabels?['length'] ?? 'Length'),
+          TextEditingController(text: m.customLabels?['length'] ?? 'Length'),
       EquipmentFieldType.circumference: TextEditingController(
           text: m.customLabels?['circumference'] ?? 'Circumference'),
       EquipmentFieldType.circumference1: TextEditingController(
@@ -167,15 +179,15 @@ class _EquipmentMaterialCardState extends State<EquipmentMaterialCard> {
       EquipmentFieldType.circumference3: TextEditingController(
           text: m.customLabels?['circumference3'] ?? 'Circumference 3'),
       EquipmentFieldType.zHeight:
-      TextEditingController(text: m.customLabels?['zHeight'] ?? 'Height'),
+          TextEditingController(text: m.customLabels?['zHeight'] ?? 'Height'),
       EquipmentFieldType.SlantHeight: TextEditingController(
           text: m.customLabels?['SlantHeight'] ?? 'Slant Height'),
     };
     _legacyUomControllers = {
       EquipmentFieldType.qty:
-      TextEditingController(text: m.customLabels?['qty_uom'] ?? 'NOS'),
+          TextEditingController(text: m.customLabels?['qty_uom'] ?? 'NOS'),
       EquipmentFieldType.length:
-      TextEditingController(text: m.customLabels?['length_uom'] ?? 'mm'),
+          TextEditingController(text: m.customLabels?['length_uom'] ?? 'mm'),
       EquipmentFieldType.circumference: TextEditingController(
           text: m.customLabels?['circumference_uom'] ?? 'mm'),
       EquipmentFieldType.circumference1: TextEditingController(
@@ -185,7 +197,7 @@ class _EquipmentMaterialCardState extends State<EquipmentMaterialCard> {
       EquipmentFieldType.circumference3: TextEditingController(
           text: m.customLabels?['circumference3_uom'] ?? 'mm'),
       EquipmentFieldType.zHeight:
-      TextEditingController(text: m.customLabels?['zHeight_uom'] ?? 'mm'),
+          TextEditingController(text: m.customLabels?['zHeight_uom'] ?? 'mm'),
       EquipmentFieldType.SlantHeight: TextEditingController(
           text: m.customLabels?['SlantHeight_uom'] ?? 'mm'),
     };
@@ -248,45 +260,44 @@ class _EquipmentMaterialCardState extends State<EquipmentMaterialCard> {
       // 4. legacy numeric fields
       _draftMaterial = _draftMaterial.copyWith(
         length: double.tryParse(
-            _legacyValueControllers[EquipmentFieldType.length]?.text ??
-                '') ??
+                _legacyValueControllers[EquipmentFieldType.length]?.text ??
+                    '') ??
             _draftMaterial.length,
         circumference: double.tryParse(
-            _legacyValueControllers[EquipmentFieldType.circumference]
-                ?.text ??
-                '') ??
+                _legacyValueControllers[EquipmentFieldType.circumference]
+                        ?.text ??
+                    '') ??
             _draftMaterial.circumference,
         circumference1: double.tryParse(
-            _legacyValueControllers[EquipmentFieldType.circumference1]
-                ?.text ??
-                '') ??
+                _legacyValueControllers[EquipmentFieldType.circumference1]
+                        ?.text ??
+                    '') ??
             _draftMaterial.circumference1,
         circumference2: double.tryParse(
-            _legacyValueControllers[EquipmentFieldType.circumference2]
-                ?.text ??
-                '') ??
+                _legacyValueControllers[EquipmentFieldType.circumference2]
+                        ?.text ??
+                    '') ??
             _draftMaterial.circumference2,
         circumference3: double.tryParse(
-            _legacyValueControllers[EquipmentFieldType.circumference3]
-                ?.text ??
-                '') ??
+                _legacyValueControllers[EquipmentFieldType.circumference3]
+                        ?.text ??
+                    '') ??
             _draftMaterial.circumference3,
         zHeight: double.tryParse(
-            _legacyValueControllers[EquipmentFieldType.zHeight]?.text ??
-                '') ??
+                _legacyValueControllers[EquipmentFieldType.zHeight]?.text ??
+                    '') ??
             _draftMaterial.zHeight,
         SlantHeight: double.tryParse(
-            _legacyValueControllers[EquipmentFieldType.SlantHeight]
-                ?.text ??
-                '') ??
+                _legacyValueControllers[EquipmentFieldType.SlantHeight]?.text ??
+                    '') ??
             _draftMaterial.SlantHeight,
         qty: num.tryParse(
-            _legacyValueControllers[EquipmentFieldType.qty]?.text ?? '') ??
+                _legacyValueControllers[EquipmentFieldType.qty]?.text ?? '') ??
             _draftMaterial.qty,
       );
       // 5. legacy UOM + label text
       final newLabels =
-      Map<String, String>.from(_draftMaterial.customLabels ?? {});
+          Map<String, String>.from(_draftMaterial.customLabels ?? {});
       for (final entry in _legacyUomControllers.entries) {
         final val = entry.value.text;
         if (val.isNotEmpty) newLabels['${entry.key.name}_uom'] = val;
@@ -361,6 +372,7 @@ class _EquipmentMaterialCardState extends State<EquipmentMaterialCard> {
   void dispose() {
     _qtyController.dispose();
     _qtyFocusNode.dispose();
+    _rebuildNotifier.dispose();
     _disposeControllers();
     super.dispose();
   }
@@ -399,6 +411,153 @@ class _EquipmentMaterialCardState extends State<EquipmentMaterialCard> {
     widget.onChanged(_draftMaterial);
   }
 
+  void _openEditOverlay(BuildContext context) {
+  if (_isEditMode) return;
+
+  setState(() {
+    _isEditMode = true;
+    _isLoading = false;
+  });
+  
+  // CLEAR FOCUS before pushing
+  FocusManager.instance.primaryFocus?.unfocus();
+
+  Navigator.of(context)
+      .push(
+    PageRouteBuilder(
+      opaque: false,
+      barrierDismissible: false,
+      barrierColor: Colors.transparent,
+      pageBuilder: (ctx, _, __) => EditOverlayPage(
+        listenable: _rebuildNotifier,
+        onSave: () async {
+          FocusScope.of(ctx).unfocus();
+          await _onSave();
+          if (ctx.mounted) {
+            // Ensure overlay state is cleared before popping
+            await Future.delayed(const Duration(milliseconds: 50));
+            if (ctx.mounted) {
+              Navigator.of(ctx).pop();
+            }
+          }
+        },
+        onCancel: () {
+          FocusScope.of(ctx).unfocus();
+          _onCancel();
+          if (ctx.mounted) {
+            Navigator.of(ctx).pop();
+          }
+        },
+        cardBuilder: (ctx) {
+          return _isDynamic ? _buildDynamicCard() : _buildLegacyCard();
+        },
+      ),
+      transitionDuration: const Duration(milliseconds: 200),
+      reverseTransitionDuration: const Duration(milliseconds: 200),
+    ),
+  )
+      .then((_) {
+    if (mounted) {
+      // CRITICAL: Set state to mark overlay as closed
+      setState(() {
+        _isEditMode = false;
+        _isLoading = false;
+      });
+      
+      // Force a rebuild to ensure all overlay-related state is cleared
+      _rebuildNotifier.value++;
+      
+      // Wait multiple frames for the overlay to be completely removed
+      WidgetsBinding.instance.addPostFrameCallback((_) {
+        WidgetsBinding.instance.addPostFrameCallback((_) {
+          WidgetsBinding.instance.addPostFrameCallback((_) {
+            if (mounted) {
+              // Recreate focus nodes
+              _recreateFocusNodes();
+              
+              // Add delay to ensure keyboard can be shown
+              Future.delayed(const Duration(milliseconds: 150), () {
+                if (mounted && _qtyFocusNode.canRequestFocus) {
+                  _qtyFocusNode.requestFocus();
+                  FocusScope.of(context).requestFocus(_qtyFocusNode);
+                }
+              });
+            }
+          });
+        });
+      });
+    }
+  });
+}
+
+// Add this helper method to recreate focus nodes
+void _recreateFocusNodes() {
+  // Dispose old focus nodes
+  for (final node in _focusNodes.values) {
+    node.dispose();
+  }
+  _focusNodes.clear();
+  
+  // Recreate dynamic focus nodes
+  if (_isDynamic && _config != null) {
+    for (final field in _config!.fields) {
+      if (field.role == 'QUANTITY' || field.role == 'QTY') continue;
+      final fn = FocusNode();
+      fn.addListener(() {
+        if (!fn.hasFocus) {
+          widget.onChanged(_draftMaterial.copyWith(cardFormState: _cardState));
+        }
+      });
+      _focusNodes[field.key] = fn;
+    }
+  }
+  
+  // Recreate qty focus node
+  _qtyFocusNode.dispose();
+  _qtyFocusNode = FocusNode();
+  
+  // Recreate legacy focus nodes if needed
+  if (!_isDynamic) {
+    for (final node in _legacyFocusNodes.values) {
+      node.dispose();
+    }
+    _legacyFocusNodes.clear();
+    for (final type in EquipmentFieldType.values) {
+      final fn = FocusNode();
+      fn.addListener(() {
+        if (!fn.hasFocus) _flushLegacyFieldToParent(type);
+      });
+      _legacyFocusNodes[type] = fn;
+    }
+  }
+}
+
+// Add this helper to ensure focus nodes are valid
+void _ensureFocusNodesValid() {
+  if (_isDynamic) {
+    // Recreate any disposed or invalid focus nodes
+    for (final field in _config!.fields) {
+      if (field.role == 'QUANTITY' || field.role == 'QTY') continue;
+      final node = _focusNodes[field.key];
+      if (node == null || !node.canRequestFocus) {
+        if (node != null) node.dispose();
+        final fn = FocusNode();
+        fn.addListener(() {
+          if (!fn.hasFocus) {
+            widget.onChanged(_draftMaterial.copyWith(cardFormState: _cardState));
+          }
+        });
+        _focusNodes[field.key] = fn;
+      }
+    }
+  }
+  
+  // Ensure qty focus node is valid
+  if (!_qtyFocusNode.canRequestFocus) {
+    _qtyFocusNode.dispose();
+    _qtyFocusNode = FocusNode();
+  }
+}
   // ─────────────────────────────────────────────
   // VISIBILITY
   // ─────────────────────────────────────────────
@@ -411,6 +570,7 @@ class _EquipmentMaterialCardState extends State<EquipmentMaterialCard> {
     }
     return true;
   }
+
   // Add this method to _EquipmentMaterialCardState class
   EquipmentMaterial getLatestMaterial() {
     _flushAllControllersToDraft();
@@ -434,8 +594,11 @@ class _EquipmentMaterialCardState extends State<EquipmentMaterialCard> {
         ),
         if (_isLoading)
           const Positioned.fill(
-            child: Center(
-              child: CircularProgressIndicator(),
+            child: ShimmerList(
+              type: ShimmerListType.card,
+              itemCount: 1,
+              scrollable: false,
+              padding: EdgeInsets.zero,
             ),
           ),
       ],
@@ -522,16 +685,18 @@ class _EquipmentMaterialCardState extends State<EquipmentMaterialCard> {
     for (int i = 0; i < widget.material.image.length; i++) {
       debugPrint("   Image[$i]: ${widget.material.image[i]}");
     }
-    debugPrint("📋 Total fields: ${allFields.length}, Visible fields: ${visibleFields.length}");
+    debugPrint(
+        "📋 Total fields: ${allFields.length}, Visible fields: ${visibleFields.length}");
     for (int i = 0; i < allFields.length; i++) {
       final field = allFields[i];
       final visibleIndex = originalToVisibleIndex[i];
-      debugPrint("   Field[$i]: ${field.label} (${field.role}) - Visible: ${visibleIndex != null ? "Yes (visible index $visibleIndex)" : "No"}");
+      debugPrint(
+          "   Field[$i]: ${field.label} (${field.role}) - Visible: ${visibleIndex != null ? "Yes (visible index $visibleIndex)" : "No"}");
     }
     debugPrint("━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━");
 
     return GestureDetector(
-      behavior: HitTestBehavior.translucent,
+      behavior: HitTestBehavior.opaque, // Changed from translucent
       onTap: () {
         _qtyFocusNode.requestFocus();
       },
@@ -554,7 +719,8 @@ class _EquipmentMaterialCardState extends State<EquipmentMaterialCard> {
           children: [
             _buildHeader(),
             const SizedBox(height: 8),
-            ...visibleFields.map((field) => _buildDynamicFieldCard(field, allFields)),
+            ...visibleFields
+                .map((field) => _buildDynamicFieldCard(field, allFields)),
             const SizedBox(height: 8),
             Row(
               mainAxisAlignment: MainAxisAlignment.spaceBetween,
@@ -564,10 +730,6 @@ class _EquipmentMaterialCardState extends State<EquipmentMaterialCard> {
                 if (!isPatch) _buildQtyField(),
               ],
             ),
-            if (_isEditMode) ...[
-              const SizedBox(height: 8),
-              _buildEditActions(),
-            ],
           ],
         ),
       ),
@@ -575,10 +737,12 @@ class _EquipmentMaterialCardState extends State<EquipmentMaterialCard> {
   }
 
 // Update _buildDynamicFieldCard to accept allFields parameter
-  Widget _buildDynamicFieldCard(FieldDefinition field, List<FieldDefinition> allFields) {
+  Widget _buildDynamicFieldCard(
+      FieldDefinition field, List<FieldDefinition> allFields) {
     // Get the original index in the full fields list
     final originalIndex = allFields.indexWhere((f) => f.key == field.key);
-    final isPatch = widget.material.name.trim().toLowerCase() == 'patch'; // or however you identify it
+    final isPatch = widget.material.name.trim().toLowerCase() ==
+        'patch'; // or however you identify it
 
     final visibleFields = _config!.fields.where((f) {
       if (!_isFieldVisible(f)) return false;
@@ -592,15 +756,16 @@ class _EquipmentMaterialCardState extends State<EquipmentMaterialCard> {
     }).toList();
 
     // Get the visible index (position in visible fields list)
-    final visibleIndex =
-    visibleFields.indexWhere((f) => f.key == field.key);
+    final visibleIndex = visibleFields.indexWhere((f) => f.key == field.key);
 
     // Use visible index for image URL
-    final imageUrl = visibleIndex >= 0 && visibleIndex < widget.material.image.length
-        ? widget.material.image[visibleIndex]
-        : null;
+    final imageUrl =
+        visibleIndex >= 0 && visibleIndex < widget.material.image.length
+            ? widget.material.image[visibleIndex]
+            : null;
 
-    debugPrint("🔍 [${widget.material.name}] Field: ${field.label} (${field.role}) - Original Index: $originalIndex, Visible Index: $visibleIndex - Image URL: ${imageUrl ?? 'null'}");
+    debugPrint(
+        "🔍 [${widget.material.name}] Field: ${field.label} (${field.role}) - Original Index: $originalIndex, Visible Index: $visibleIndex - Image URL: ${imageUrl ?? 'null'}");
 
     return GestureDetector(
       behavior: HitTestBehavior.opaque,
@@ -623,18 +788,20 @@ class _EquipmentMaterialCardState extends State<EquipmentMaterialCard> {
                 children: [
                   if (_isEditMode)
                     TextButton.icon(
-                      onPressed: () => _pickImageForField(visibleIndex), // Use visible index
+                      onPressed: () =>
+                          _pickImageForField(visibleIndex), // Use visible index
                       icon: const Icon(Icons.photo, size: 13),
-                      label: const Text('Change',
-                          style: TextStyle(fontSize: 11)),
+                      label:
+                          const Text('Change', style: TextStyle(fontSize: 11)),
                     ),
                   _buildSmartImage(
-                    imageFile:
-                    _isEditMode ? _draftImageFiles[visibleIndex] : null, // Use visible index
+                    imageFile: _isEditMode
+                        ? _draftImageFiles[visibleIndex]
+                        : null, // Use visible index
                     imageUrl: _isEditMode
                         ? (_draftImageFiles[visibleIndex] == null
-                        ? imageUrl
-                        : null)
+                            ? imageUrl
+                            : null)
                         : imageUrl,
                     height: 80,
                   ),
@@ -687,7 +854,7 @@ class _EquipmentMaterialCardState extends State<EquipmentMaterialCard> {
               filled: true,
               fillColor: const Color(0xFFD0EAFD),
               contentPadding:
-              const EdgeInsets.symmetric(vertical: 10, horizontal: 8),
+                  const EdgeInsets.symmetric(vertical: 10, horizontal: 8),
               border: OutlineInputBorder(
                 borderRadius: BorderRadius.circular(6),
                 borderSide: BorderSide.none,
@@ -735,8 +902,8 @@ class _EquipmentMaterialCardState extends State<EquipmentMaterialCard> {
                   decoration: InputDecoration(
                     filled: true,
                     fillColor: const Color(0xFFD0EAFD),
-                    contentPadding: const EdgeInsets.symmetric(
-                        vertical: 10, horizontal: 8),
+                    contentPadding:
+                        const EdgeInsets.symmetric(vertical: 10, horizontal: 8),
                     border: OutlineInputBorder(
                       borderRadius: BorderRadius.circular(6),
                       borderSide: BorderSide.none,
@@ -749,8 +916,7 @@ class _EquipmentMaterialCardState extends State<EquipmentMaterialCard> {
                 ),
               ),
             ),
-            if (field.dropdown != null &&
-                field.dropdown != 'geometryMode') ...[
+            if (field.dropdown != null && field.dropdown != 'geometryMode') ...[
               const SizedBox(width: 4),
               _buildInlineUnitDropdown(field, currentUnit),
             ],
@@ -794,10 +960,10 @@ class _EquipmentMaterialCardState extends State<EquipmentMaterialCard> {
   }
 
   Widget _buildInlineUnitDropdown(
-      FieldDefinition field,
-      String? currentUnit, {
-        bool forceGeometry = false,
-      }) {
+    FieldDefinition field,
+    String? currentUnit, {
+    bool forceGeometry = false,
+  }) {
     final unitDropdowns = _config!.unitDropdowns.toJson();
     final dropdownKey = forceGeometry ? 'geometryMode' : field.dropdown;
     if (dropdownKey == null) return const SizedBox.shrink();
@@ -811,11 +977,13 @@ class _EquipmentMaterialCardState extends State<EquipmentMaterialCard> {
     final safeValue = (currentUnit != null && options.contains(currentUnit))
         ? currentUnit
         : options.first;
-    debugPrint('🔧 Dropdown for ${field.key}: dropdownKey=${field.dropdown}, optionsRaw=$optionsRaw');
+    debugPrint(
+        '🔧 Dropdown for ${field.key}: dropdownKey=${field.dropdown}, optionsRaw=$optionsRaw');
 
     return Container(
       height: 36,
-      width: 110, // Added fixed width to prevent overflow and ensure space for arrow
+      width:
+          110, // Added fixed width to prevent overflow and ensure space for arrow
       padding: const EdgeInsets.symmetric(horizontal: 6),
       decoration: BoxDecoration(
         color: Colors.white,
@@ -873,12 +1041,11 @@ class _EquipmentMaterialCardState extends State<EquipmentMaterialCard> {
                 FocusScope.of(context).unfocus();
               },
               style: const TextStyle(fontSize: 16, height: 1.5),
-              strutStyle:
-              const StrutStyle(forceStrutHeight: true, height: 1),
+              strutStyle: const StrutStyle(forceStrutHeight: true, height: 1),
               decoration: InputDecoration(
                 isCollapsed: true,
                 contentPadding:
-                const EdgeInsets.symmetric(horizontal: 8, vertical: 8),
+                    const EdgeInsets.symmetric(horizontal: 8, vertical: 8),
                 filled: true,
                 fillColor: Colors.white,
                 enabledBorder: OutlineInputBorder(
@@ -887,8 +1054,7 @@ class _EquipmentMaterialCardState extends State<EquipmentMaterialCard> {
                 ),
                 focusedBorder: OutlineInputBorder(
                   borderRadius: BorderRadius.circular(6),
-                  borderSide:
-                  const BorderSide(color: Colors.blue, width: 2),
+                  borderSide: const BorderSide(color: Colors.blue, width: 2),
                 ),
               ),
             ),
@@ -908,42 +1074,67 @@ class _EquipmentMaterialCardState extends State<EquipmentMaterialCard> {
         Expanded(
           child: _isEditMode
               ? TextFormField(
-            initialValue: _draftMaterial.name,
-            decoration: _compactDecoration(
-              fillColor: const Color(0xFFD0EAFD),
-              hint: 'Enter Name',
-            ),
-            style: const TextStyle(
-                fontSize: 15, fontWeight: FontWeight.w600),
-            onChanged: (v) => setState(
-                    () => _draftMaterial = _draftMaterial.copyWith(name: v)),
-          )
+                  initialValue: _draftMaterial.name,
+                  decoration: _compactDecoration(
+                    fillColor: const Color(0xFFD0EAFD),
+                    hint: 'Enter Name',
+                  ),
+                  style: const TextStyle(
+                      fontSize: 15, fontWeight: FontWeight.w600),
+                  onChanged: (v) => setState(
+                      () => _draftMaterial = _draftMaterial.copyWith(name: v)),
+                )
               : Tooltip(
-            message: widget.material.name,
-            waitDuration: const Duration(milliseconds: 300),
-            child: Text(
-              widget.material.name,
-              maxLines: 1,
-              overflow: TextOverflow.ellipsis,
-              style: const TextStyle(
-                  fontSize: 15, fontWeight: FontWeight.w600),
-            ),
-          ),
+                  message: widget.material.name,
+                  waitDuration: const Duration(milliseconds: 300),
+                  child: Text(
+                    widget.material.name,
+                    maxLines: 1,
+                    overflow: TextOverflow.ellipsis,
+                    style: const TextStyle(
+                        fontSize: 15, fontWeight: FontWeight.w600),
+                  ),
+                ),
         ),
         const SizedBox(width: 8),
-        InkWell(
-          onTap: widget.onRemark,
-          borderRadius: BorderRadius.circular(4),
-          child: Container(
-            padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 4),
-            decoration: BoxDecoration(
-              color: const Color(0xFFD0EAFD),
-              border: Border.all(color: Colors.black),
-              borderRadius: BorderRadius.circular(4),
+        Column(
+          crossAxisAlignment: CrossAxisAlignment.end,
+          children: [
+            InkWell(
+              onTap: widget.onRemark,
+              child: Container(
+                constraints: const BoxConstraints(maxWidth: 80),
+                padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 4),
+                decoration: BoxDecoration(
+                  color: const Color(0xFFD0EAFD),
+                  border: Border.all(
+                    color: Colors.black,
+                  ),
+                  borderRadius: BorderRadius.circular(4),
+                ),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    const SizedBox(height: 2),
+                    Text(
+                      (widget.material.remarks != null &&
+                              widget.material.remarks!.isNotEmpty)
+                          ? widget.material.remarks
+                          : "remarks",
+                      style: const TextStyle(
+                        fontSize: 8,
+                        color: Color(0xFF7A5C00),
+                        fontWeight: FontWeight.w400,
+                      ),
+                      overflow: TextOverflow.ellipsis,
+                      maxLines: 2,
+                    ),
+                  ],
+                ),
+              ),
             ),
-            child: const Text('Remark',
-                style: TextStyle(fontSize: 9, fontWeight: FontWeight.w600)),
-          ),
+          ],
         ),
       ],
     );
@@ -957,8 +1148,7 @@ class _EquipmentMaterialCardState extends State<EquipmentMaterialCard> {
     return Row(
       mainAxisAlignment: MainAxisAlignment.start,
       children: [
-        _actionBtn(Icons.edit, Colors.blue,
-                () => setState(() => _isEditMode = !_isEditMode)),
+        _actionBtn(Icons.edit, Colors.blue, () => _openEditOverlay(context)),
         const SizedBox(width: 6),
         _actionBtn(Icons.copy, Colors.green, widget.onAdd),
         const SizedBox(width: 6),
@@ -976,35 +1166,11 @@ class _EquipmentMaterialCardState extends State<EquipmentMaterialCard> {
         padding: const EdgeInsets.all(6),
         minimumSize: const Size(32, 32),
         side: BorderSide(color: color, width: 1.5),
-        shape:
-        RoundedRectangleBorder(borderRadius: BorderRadius.circular(6)),
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(6)),
       ),
     );
   }
 
-  // ─────────────────────────────────────────────
-  // EDIT ACTIONS
-  // ─────────────────────────────────────────────
-
-  Widget _buildEditActions() {
-    return Row(
-      children: [
-        Expanded(
-          child: ElevatedButton(
-            onPressed: _onSave,
-            child: const Text('Save'),
-          ),
-        ),
-        const SizedBox(width: 6),
-        Expanded(
-          child: OutlinedButton(
-            onPressed: _onCancel,
-            child: const Text('Cancel'),
-          ),
-        ),
-      ],
-    );
-  }
   Future<void> _onSave() async {
     setState(() => _isLoading = true);
     try {
@@ -1013,27 +1179,68 @@ class _EquipmentMaterialCardState extends State<EquipmentMaterialCard> {
       final hasImageChange = _draftImageFiles.values.any((f) => f != null);
       final hasNameChange = _draftMaterial.name != widget.material.name;
 
-      List<String>? newImages;
-
-      if (hasImageChange || hasNameChange) {
-        newImages = await InsulationMaterialSetupService().updateMaterial(
-          materialId: widget.material.id,
-          name: _draftMaterial.name,
-          images: hasImageChange
-              ? _draftImageFiles.values.whereType<File>().toList()
-              : null,
-        );
-
-        if (newImages.isNotEmpty) {
-          await LocalMaterialDao().updateMaterialImage(
-            serverId: widget.material.id,
-            images: newImages,
+      // Stage all draft images for batch upload at DPR submit time
+      if (hasImageChange) {
+        for (final file in _draftImageFiles.values.whereType<File>()) {
+          _imageService.stageImage(
+            materialId: widget.material.id,
+            imageFile: file,
           );
         }
       }
 
+      List<String>? newImages;
+
+      try {
+        if (hasImageChange || hasNameChange) {
+          newImages = await InsulationMaterialSetupService().updateMaterial(
+            materialId: widget.material.id,
+            name: _draftMaterial.name,
+            images: hasImageChange
+                ? _draftImageFiles.values.whereType<File>().toList()
+                : null,
+          );
+
+          if (newImages.isNotEmpty) {
+            await LocalMaterialDao().updateMaterialImage(
+              serverId: widget.material.id,
+              images: newImages,
+            );
+          }
+        }
+      } catch (e, stackTrace) {
+        debugPrint('❌ Error updating equipment material: $e');
+        debugPrint('📌 StackTrace: $stackTrace');
+      }
+
+      // Build local image previews for fields that have draft files
+      final previewImages = List<String>.from(
+        _draftMaterial.image.isNotEmpty
+            ? _draftMaterial.image
+            : List.filled(widget.material.image.length, ''),
+      );
+      if (hasImageChange) {
+        _draftImageFiles.forEach((index, file) {
+          if (file != null) {
+            if (index < previewImages.length) {
+              previewImages[index] = file.path;
+            } else {
+              // Pad if needed
+              while (previewImages.length <= index) {
+                previewImages.add('');
+              }
+              previewImages[index] = file.path;
+            }
+          }
+        });
+      }
+
       final updatedMaterial = _draftMaterial.copyWith(
-        image: newImages ?? _draftMaterial.image,
+        image: (newImages != null && newImages.isNotEmpty)
+            ? newImages // ✅ server URLs if upload succeeded
+            : hasImageChange
+                ? previewImages // ⚡ local file paths as preview
+                : _draftMaterial.image, // 📦 unchanged
       );
 
       widget.onChanged(updatedMaterial);
@@ -1062,39 +1269,39 @@ class _EquipmentMaterialCardState extends State<EquipmentMaterialCard> {
           if (field.role == 'QUANTITY' || field.role == 'QTY') continue;
           final raw = _cardState.getValue(field.key);
           _valueControllers[field.key]?.text =
-          raw != null ? raw.toString() : '';
+              raw != null ? raw.toString() : '';
           _labelControllers[field.key]?.text =
               _cardState.getLabel(field.key, field.label);
         }
       } else {
         _legacyValueControllers[EquipmentFieldType.length]?.text =
-        widget.material.length == 0
-            ? ''
-            : widget.material.length.toString();
+            widget.material.length == 0
+                ? ''
+                : widget.material.length.toString();
         _legacyValueControllers[EquipmentFieldType.circumference]?.text =
-        widget.material.circumference == 0
-            ? ''
-            : widget.material.circumference.toString();
+            widget.material.circumference == 0
+                ? ''
+                : widget.material.circumference.toString();
         _legacyValueControllers[EquipmentFieldType.circumference1]?.text =
-        widget.material.circumference1 == 0
-            ? ''
-            : widget.material.circumference1.toString();
+            widget.material.circumference1 == 0
+                ? ''
+                : widget.material.circumference1.toString();
         _legacyValueControllers[EquipmentFieldType.circumference2]?.text =
-        widget.material.circumference2 == 0
-            ? ''
-            : widget.material.circumference2.toString();
+            widget.material.circumference2 == 0
+                ? ''
+                : widget.material.circumference2.toString();
         _legacyValueControllers[EquipmentFieldType.circumference3]?.text =
-        widget.material.circumference3 == 0
-            ? ''
-            : widget.material.circumference3.toString();
+            widget.material.circumference3 == 0
+                ? ''
+                : widget.material.circumference3.toString();
         _legacyValueControllers[EquipmentFieldType.zHeight]?.text =
-        widget.material.zHeight == 0
-            ? ''
-            : widget.material.zHeight.toString();
+            widget.material.zHeight == 0
+                ? ''
+                : widget.material.zHeight.toString();
         _legacyValueControllers[EquipmentFieldType.SlantHeight]?.text =
-        widget.material.SlantHeight == 0
-            ? ''
-            : widget.material.SlantHeight.toString();
+            widget.material.SlantHeight == 0
+                ? ''
+                : widget.material.SlantHeight.toString();
         _legacyValueControllers[EquipmentFieldType.qty]?.text =
             widget.material.qty.toString();
       }
@@ -1139,6 +1346,10 @@ class _EquipmentMaterialCardState extends State<EquipmentMaterialCard> {
     );
     if (file != null) {
       setState(() => _draftImageFiles[fieldIndex] = file);
+      _imageService.stageImage(
+        materialId: widget.material.id,
+        imageFile: file,
+      );
     }
   }
 
@@ -1186,11 +1397,11 @@ class _EquipmentMaterialCardState extends State<EquipmentMaterialCard> {
         fit: fit,
         loadingBuilder: (_, child, prog) => prog == null
             ? child
-            : SizedBox(
-            height: height,
-            width: width,
-            child: const Center(
-                child: CircularProgressIndicator(strokeWidth: 2))),
+            : ShimmerImage(
+                height: height,
+                width: width,
+                borderRadius: 8,
+              ),
         errorBuilder: (_, __, ___) {
           debugPrint("❌ Failed to load network image: $imageUrl");
           return _imagePlaceholder(height, width);
@@ -1222,6 +1433,7 @@ class _EquipmentMaterialCardState extends State<EquipmentMaterialCard> {
       errorBuilder: (_, __, ___) => _imagePlaceholder(height, width),
     );
   }
+
   Widget _imagePlaceholder(double height, double width) {
     return Container(
       height: height,
@@ -1244,7 +1456,7 @@ class _EquipmentMaterialCardState extends State<EquipmentMaterialCard> {
     final fields = equipmentFieldConfig[configKey]!;
 
     return GestureDetector(
-      behavior: HitTestBehavior.translucent,
+      behavior: HitTestBehavior.opaque, // Changed from translucent
       onTap: () {
         _legacyFocusNodes[EquipmentFieldType.qty]?.requestFocus();
       },
@@ -1261,9 +1473,9 @@ class _EquipmentMaterialCardState extends State<EquipmentMaterialCard> {
             _buildHeader(),
             const SizedBox(height: 8),
             ...fields.map((f) => _legacyFieldCard(
-              field: f,
-              fields: fields, // Pass the fields list
-            )),
+                  field: f,
+                  fields: fields, // Pass the fields list
+                )),
             const SizedBox(height: 6),
             Row(
               mainAxisAlignment: MainAxisAlignment.spaceBetween,
@@ -1273,10 +1485,6 @@ class _EquipmentMaterialCardState extends State<EquipmentMaterialCard> {
                 _buildQtyField(),
               ],
             ),
-            if (_isEditMode) ...[
-              const SizedBox(height: 8),
-              _buildEditActions(),
-            ],
           ],
         ),
       ),
@@ -1289,9 +1497,10 @@ class _EquipmentMaterialCardState extends State<EquipmentMaterialCard> {
   }) {
     // Get the actual index of this field in the fields list
     final fieldIndex = fields.indexOf(field);
-    final imageUrl = fieldIndex >= 0 && fieldIndex < widget.material.image.length
-        ? widget.material.image[fieldIndex]
-        : null;
+    final imageUrl =
+        fieldIndex >= 0 && fieldIndex < widget.material.image.length
+            ? widget.material.image[fieldIndex]
+            : null;
 
     final labelKey = field.type.name;
     final material = _isEditMode ? _draftMaterial : widget.material;
@@ -1341,6 +1550,7 @@ class _EquipmentMaterialCardState extends State<EquipmentMaterialCard> {
       ),
     );
   }
+
   Widget _buildLegacyFieldView(EquipmentFieldConfig field, String uom) {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
@@ -1364,16 +1574,16 @@ class _EquipmentMaterialCardState extends State<EquipmentMaterialCard> {
               filled: true,
               fillColor: const Color(0xFFD0EAFD),
               contentPadding:
-              const EdgeInsets.symmetric(vertical: 10, horizontal: 8),
+                  const EdgeInsets.symmetric(vertical: 10, horizontal: 8),
               border: OutlineInputBorder(
                 borderRadius: BorderRadius.circular(6),
                 borderSide: BorderSide.none,
               ),
             ),
             onChanged: (v) {
-               final val = double.tryParse(v) ?? 0;
-               _draftMaterial = _legacyBuildMaterial(field.type, val);
-             },
+              final val = double.tryParse(v) ?? 0;
+              _draftMaterial = _legacyBuildMaterial(field.type, val);
+            },
           ),
         ),
       ],
@@ -1425,10 +1635,9 @@ class _EquipmentMaterialCardState extends State<EquipmentMaterialCard> {
             style: const TextStyle(fontSize: 11),
             onChanged: (val) {
               final newLabels =
-              Map<String, String>.from(_draftMaterial.customLabels ?? {});
+                  Map<String, String>.from(_draftMaterial.customLabels ?? {});
               newLabels['${labelKey}_uom'] = val;
-              _draftMaterial =
-                  _draftMaterial.copyWith(customLabels: newLabels);
+              _draftMaterial = _draftMaterial.copyWith(customLabels: newLabels);
             },
           ),
         ),
@@ -1443,7 +1652,7 @@ class _EquipmentMaterialCardState extends State<EquipmentMaterialCard> {
             filled: true,
             fillColor: const Color(0xFFD0EAFD),
             contentPadding:
-            const EdgeInsets.symmetric(vertical: 8, horizontal: 6),
+                const EdgeInsets.symmetric(vertical: 8, horizontal: 6),
             border: OutlineInputBorder(
               borderRadius: BorderRadius.circular(6),
               borderSide: BorderSide.none,
@@ -1459,7 +1668,7 @@ class _EquipmentMaterialCardState extends State<EquipmentMaterialCard> {
   }
 
   EquipmentMaterial _legacyUpdateMaterial(
-      EquipmentFieldConfig config, double value) =>
+          EquipmentFieldConfig config, double value) =>
       _legacyBuildMaterial(config.type, value);
 
   void _focusLegacyMainField(List<EquipmentFieldConfig> fields) {

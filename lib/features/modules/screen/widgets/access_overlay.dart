@@ -858,22 +858,37 @@ class _PlainButton extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return GestureDetector(
-      onTap: onTap,
-      child: Container(
-        width: double.infinity,
-        height: 50,
-        decoration: BoxDecoration(
+    return Material(
+      color: Colors.transparent,
+      child: InkWell(
+        onTap: onTap,
+        borderRadius: BorderRadius.circular(16),
+        child: Container(
+          width: double.infinity,
+          height: 54,
+          decoration: BoxDecoration(
             color: onTap == null ? color.withOpacity(0.5) : color,
-            borderRadius: BorderRadius.circular(13)),
-        alignment: Alignment.center,
-        child: isLoading
-            ? const SizedBox(width: 18, height: 18,
-            child: CircularProgressIndicator(strokeWidth: 2.5, color: Colors.white))
-            : Text(label,
-            style: const TextStyle(
-                fontSize: 15, fontWeight: FontWeight.w700,
-                color: Colors.white, decoration: TextDecoration.none)),
+            borderRadius: BorderRadius.circular(16),
+            boxShadow: onTap == null ? [] : [
+              BoxShadow(
+                color: color.withOpacity(0.25),
+                blurRadius: 16,
+                offset: const Offset(0, 6),
+              )
+            ],
+          ),
+          alignment: Alignment.center,
+          child: isLoading
+              ? const SizedBox(width: 22, height: 22,
+              child: CircularProgressIndicator(strokeWidth: 3, color: Colors.white))
+              : Text(label,
+              style: const TextStyle(
+                  fontSize: 16, 
+                  fontWeight: FontWeight.w700,
+                  color: Colors.white, 
+                  letterSpacing: -0.1,
+                  decoration: TextDecoration.none)),
+        ),
       ),
     );
   }
@@ -891,15 +906,26 @@ class _WhiteCard extends StatelessWidget {
   Widget build(BuildContext context) {
     return Material(
       color: Colors.white,
-      borderRadius: BorderRadius.circular(26),
+      borderRadius: BorderRadius.circular(32),
       elevation: 0,
       child: Container(
         width: double.infinity,
         constraints: const BoxConstraints(maxWidth: 440),
         decoration: BoxDecoration(
           color: Colors.white,
-          borderRadius: BorderRadius.circular(26),
-          boxShadow: [BoxShadow(color: Colors.black.withOpacity(0.22), blurRadius: 36, offset: const Offset(0, 14))],
+          borderRadius: BorderRadius.circular(32),
+          boxShadow: [
+            BoxShadow(
+              color: Colors.black.withOpacity(0.12),
+              blurRadius: 40,
+              offset: const Offset(0, 16),
+            ),
+            BoxShadow(
+              color: Colors.black.withOpacity(0.04),
+              blurRadius: 4,
+              offset: const Offset(0, 2),
+            ),
+          ],
         ),
         child: child,
       ),
@@ -921,29 +947,39 @@ class _OverlayHeader extends StatelessWidget {
       children: [
         if (title.isNotEmpty)
           Container(
-            width: 64, height: 64,
+            width: 72, height: 72,
             decoration: BoxDecoration(
               gradient: iconGradient,
-              borderRadius: BorderRadius.circular(18),
-              boxShadow: [BoxShadow(
-                  color: (iconGradient as LinearGradient).colors.first.withOpacity(0.30),
-                  blurRadius: 18, offset: const Offset(0, 7))],
+              borderRadius: BorderRadius.circular(24),
+              boxShadow: [
+                BoxShadow(
+                  color: (iconGradient as LinearGradient).colors.first.withOpacity(0.25),
+                  blurRadius: 20,
+                  offset: const Offset(0, 8),
+                )
+              ],
             ),
-            child: Icon(icon, color: Colors.white, size: 30),
+            child: Icon(icon, color: Colors.white, size: 34),
           ),
-        if (title.isNotEmpty) const SizedBox(height: 16),
+        if (title.isNotEmpty) const SizedBox(height: 20),
         if (title.isNotEmpty)
           Text(title,
               textAlign: TextAlign.center,
               style: const TextStyle(
-                  fontSize: 20, fontWeight: FontWeight.w800,
-                  color: Color(0xFF0D1117), letterSpacing: -0.4,
+                  fontSize: 22, 
+                  fontWeight: FontWeight.w800,
+                  color: Color(0xFF1A1A1A), 
+                  letterSpacing: -0.5,
                   decoration: TextDecoration.none)),
-        const SizedBox(height: 6),
+        const SizedBox(height: 8),
         Text(subtitle,
             textAlign: TextAlign.center,
             style: const TextStyle(
-                fontSize: 13, color: Colors.white, height: 1.5, decoration: TextDecoration.none)),
+                fontSize: 14, 
+                color: Color(0xFF666666), 
+                height: 1.5, 
+                fontWeight: FontWeight.w400,
+                decoration: TextDecoration.none)),
       ],
     );
   }

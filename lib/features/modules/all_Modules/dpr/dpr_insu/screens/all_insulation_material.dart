@@ -24,6 +24,8 @@ import '../model/piping_insu.dart';
 import '../model/material_setup.dart';
 import '../widgets/equipment_card.dart';
 
+import 'package:untitled2/core/utlis/widgets/shimmer.dart';
+
 class AllInsulationMaterialsScreen extends ConsumerStatefulWidget {
   const AllInsulationMaterialsScreen({super.key});
 
@@ -442,8 +444,10 @@ class _AllInsulationMaterialsScreenState
             : 'Insulation Materials',
       ),
       body: pipingAsync.when(
-        loading: () =>
-        const Center(child: CircularProgressIndicator()),
+        loading: () => const ShimmerList(
+          type: ShimmerListType.card,
+          itemCount: 4,
+        ),
         error: (e, _) => Center(child: Text('Error: $e')),
         data: (pipingMaterials) {
           final equipmentMaterials = equipmentAsync.value ?? [];

@@ -8,6 +8,8 @@ import 'package:untitled2/features/modules/all_Modules/rate/data/rateApi.dart';
 import 'package:untitled2/features/modules/all_Modules/site_Details/repository/siteModel.dart';
 import 'package:untitled2/typeProvider/type_provider.dart';
 
+import '../../../../../core/upload/manager/upload_manager.dart';
+import '../../../../../core/upload/models/upload_job.dart';
 import '../../../../../core/utlis/app_toasts.dart';
 import '../../../../../core/utlis/colors/colors.dart';
 import '../../../../../core/utlis/sample_file/providers.dart';
@@ -18,6 +20,7 @@ import '../../../../../core/utlis/widgets/file_upload.dart';
 import '../../../../../core/utlis/widgets/sample_preview.dart';
 import '../../../../../core/utlis/widgets/sidebar.dart';
 import '../../../../tour/domain/tour_controller.dart';
+import '../../site_Details/providers/site_current_provider.dart';
 import 'manpowerList.dart';
 
 
@@ -144,7 +147,7 @@ class _ManImportCsvScreenState extends ConsumerState<ManImportCsvScreen> {
       }
     } catch (e) {
       setState(() => _isLoading = false);
-      _showError("Upload error: $e");
+      _showError("Upload error");
     }
   }
   Future<void> _onUploadPressed() async {
@@ -285,43 +288,49 @@ class _ManImportCsvScreenState extends ConsumerState<ManImportCsvScreen> {
       });
 
       _dbg("✅ No issues found. Proceeding to Upload...");
+      final siteId=ref.read(selectedSiteIdProvider)!;
 
-      final uploadRes = await ManpowerAPI.uploadExcel(
-        file: file,
-        type: type,
+      final jobId = ref.read(uploadManagerProvider.notifier).enqueue(
+        UploadJob.create(
+          moduleId:    'manpower',
+          filePath:    _selectedFile!.path!,
+          metadata:    {'type': type,'siteId': siteId},
+          targetRoute: '/manpower',   // "View" button navigates here on success
+          maxRetries:  2,
+        ),
       );
 
-      _dbg("✅ uploadRes runtimeType = ${uploadRes.runtimeType}");
-      _dbg("✅ uploadRes = ${_short(uploadRes, max: 2000)}");
-
-      setState(() => _isLoading = false);
-
-      if (uploadRes["success"] == true) {
-        _uploadStatus = "Upload successful ✅";
-
-        if (!mounted) return;
-
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(
-            content: Text('XLSX imported successfully'),
-            backgroundColor: Colors.green,
-          ),
-        );
-        await ref.read(tourPersistenceProvider).markManpowerDone();
-
-
-
-        Future.delayed(const Duration(milliseconds: 800), () {
-          if (mounted) {
-            Navigator.pushReplacement(
-              context,
-              MaterialPageRoute(builder: (_) => ManpowerListScreen()),
-            );
-          }
-        });
-      } else {
-        _showError(uploadRes["message"] ?? "Upload failed");
-      }
+      // _dbg("✅ uploadRes runtimeType = ${uploadRes.runtimeType}");
+      // _dbg("✅ uploadRes = ${_short(uploadRes, max: 2000)}");
+      //
+      // setState(() => _isLoading = false);
+      //
+      // if (uploadRes["success"] == true) {
+      //   _uploadStatus = "Upload successful ✅";
+      //
+      //   if (!mounted) return;
+      //
+      //   ScaffoldMessenger.of(context).showSnackBar(
+      //     const SnackBar(
+      //       content: Text('XLSX imported successfully'),
+      //       backgroundColor: Colors.green,
+      //     ),
+      //   );
+      //   await ref.read(tourPersistenceProvider).markManpowerDone();
+      //
+      //
+      //
+      //   Future.delayed(const Duration(milliseconds: 800), () {
+      //     if (mounted) {
+      //       Navigator.pushReplacement(
+      //         context,
+      //         MaterialPageRoute(builder: (_) => ManpowerListScreen()),
+      //       );
+      //     }
+      //   });
+      // } else {
+      //   _showError(uploadRes["message"] ?? "Upload failed");
+      // }
     } catch (e, st) {
       setState(() => _isLoading = false);
       _dbg("❌ Exception: $e");

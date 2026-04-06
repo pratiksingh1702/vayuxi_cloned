@@ -8,6 +8,7 @@ import 'package:untitled2/core/utlis/widgets/sidebar.dart';
 import 'package:untitled2/core/utlis/widgets/custom_scrollbar.dart';
 import 'package:untitled2/features/modules/all_Modules/summary/screens/profit_loss_fusion.dart';
 
+import '../../../../../core/utlis/widgets/shimmer.dart';
 import '../data/model_enums.dart';
 import '../data/provider.dart';
 
@@ -71,7 +72,10 @@ class _SummaryScreenState extends ConsumerState<SummaryScreen> {
           // ── Content ─────────────────────────────────────────────
           Expanded(
             child: summaryAsync.when(
-              loading: () => _ShimmerList(),
+              loading: () => const ShimmerList(
+                type: ShimmerListType.card,
+                itemCount: 6,
+              ),
               error: (e, _) => _ErrorView(onRetry: () => ref.refresh(summaryDataProvider)),
               data: (sites) {
                 if (sites.isEmpty) return const _EmptyView();

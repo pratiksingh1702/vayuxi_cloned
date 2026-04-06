@@ -25,9 +25,8 @@ class AttendanceRepository {
 
     print("\n🚀 SYNC (UPSERT BY EMPLOYEE CODE) START — type: $type");
 
-    final rawList = (res.data as List)
-        .map((e) => ManpowerModel.fromJson(e))
-        .toList();
+    final rawList =
+        (res.data as List).map((e) => ManpowerModel.fromJson(e)).toList();
 
     print("📦 RAW COUNT: ${rawList.length}");
 
@@ -47,8 +46,7 @@ class AttendanceRepository {
         final oldTime = DateTime.tryParse(existing.updatedAt ?? "");
         final newTime = DateTime.tryParse(m.updatedAt ?? "");
 
-        if (newTime != null &&
-            (oldTime == null || newTime.isAfter(oldTime))) {
+        if (newTime != null && (oldTime == null || newTime.isAfter(oldTime))) {
           cleanMap[m.id!] = m;
         }
       }
@@ -58,7 +56,8 @@ class AttendanceRepository {
     print("🧹 CLEAN COUNT: ${cleanList.length}");
 
     await isar.writeTxn(() async {
-      final local = await isar.manpowerIsars.filter().typeEqualTo(type).findAll();
+      final local =
+          await isar.manpowerIsars.filter().typeEqualTo(type).findAll();
 
       /// Map by manpowerId and employeeCode for faster lookups
       final Map<String, ManpowerIsar> localById = {
@@ -105,7 +104,8 @@ class AttendanceRepository {
           if (newTime != null && !newTime.isAfter(localTime)) {
             // Server timestamp is older or equal, but fields have changed
             // This could happen if server doesn't update timestamps properly
-            print("⚠️ Field changes detected but server timestamp is older: emp=${m.employeeCode}");
+            print(
+                "⚠️ Field changes detected but server timestamp is older: emp=${m.employeeCode}");
           }
 
           updated++;
@@ -143,6 +143,7 @@ class AttendanceRepository {
 
     print("✅ SYNC END\n");
   }
+
   /// Helper method to check if any field has changed between local and server data
   bool _hasChanges(ManpowerIsar existing, ManpowerModel newData) {
     // Basic identification fields
@@ -222,6 +223,7 @@ class AttendanceRepository {
     }
     return true;
   }
+
   Future<void> syncManpowerBySite({
     required String siteId,
     required String type,
@@ -233,9 +235,8 @@ class AttendanceRepository {
 
     print("\n🚀 SYNC START — site: $siteId, type: $type");
 
-    final rawList = (res.data as List)
-        .map((e) => ManpowerModel.fromJson(e))
-        .toList();
+    final rawList =
+        (res.data as List).map((e) => ManpowerModel.fromJson(e)).toList();
 
     print("📦 RAW COUNT: ${rawList.length}");
 
@@ -274,7 +275,8 @@ class AttendanceRepository {
     print("♻️ DUPLICATES HANDLED: $duplicateReplaced");
 
     await isar.writeTxn(() async {
-      final local = await isar.manpowerIsars.filter().typeEqualTo(type).findAll();
+      final local =
+          await isar.manpowerIsars.filter().typeEqualTo(type).findAll();
 
       final Map<String, ManpowerIsar> localMap = {
         for (var item in local) item.manpowerId: item
@@ -309,7 +311,8 @@ class AttendanceRepository {
         if (m.employeeCode != null) {
           final conflict = localByEmpCode[m.employeeCode!];
           if (conflict != null && conflict.manpowerId != m.id) {
-            print("💥 CONFLICT employeeCode=${m.employeeCode} between ${conflict.manpowerId} and ${m.id}");
+            print(
+                "💥 CONFLICT employeeCode=${m.employeeCode} between ${conflict.manpowerId} and ${m.id}");
           }
         }
 
@@ -341,11 +344,11 @@ class AttendanceRepository {
         await isar.manpowerIsars.putAll(toSave);
       }
 
-      print("📊 SUMMARY:");
-      print("   ➕ Inserted: $inserted");
-      print("   🔄 Updated: $updated");
-      print("   ⏭️ Skipped (no changes): $noChanges");
-      print("   💾 Saved: ${toSave.length}");
+      // print("📊 SUMMARY:");
+      // print("   ➕ Inserted: $inserted");
+      // print("   🔄 Updated: $updated");
+      // print("   ⏭️ Skipped (no changes): $noChanges");
+      // print("   💾 Saved: ${toSave.length}");
     });
 
     print("✅ SYNC END\n");
@@ -477,6 +480,28 @@ class AttendanceRepository {
     });
   }
 
+  Future<void> deleteManpowerLocalBulk(List<String> manpowerIds) async {
+    final ids = manpowerIds.where((id) => id.isNotEmpty).toSet().toList();
+    if (ids.isEmpty) return;
+
+    final localIsarIds = <int>[];
+    for (final manpowerId in ids) {
+      final row = await isar.manpowerIsars
+          .filter()
+          .manpowerIdEqualTo(manpowerId)
+          .findFirst();
+      if (row != null) {
+        localIsarIds.add(row.isarId);
+      }
+    }
+
+    if (localIsarIds.isEmpty) return;
+
+    await isar.writeTxn(() async {
+      await isar.manpowerIsars.deleteAll(localIsarIds);
+    });
+  }
+
   // ─────────────────────────────────────────────────────────────
   // ATTENDANCE — ENSURE ROWS
   // ─────────────────────────────────────────────────────────────
@@ -582,7 +607,7 @@ class AttendanceRepository {
     final models = raw.map((e) => AttendanceModel.fromJson(e)).toList();
     final isarRows = models
         .map((m) => AttendanceIsarMapper.fromModel(m, dateKey,
-        siteId: siteId, type: type))
+            siteId: siteId, type: type))
         .toList();
 
     await isar.writeTxn(() async {
@@ -657,10 +682,8 @@ class AttendanceRepository {
     return Rx.combineLatest2(
       attendanceStream,
       manpowerStream,
-          (List<AttendanceIsar> attendanceRows, List<ManpowerIsar> manpowerRows) {
-        final attendanceMap = {
-          for (final a in attendanceRows) a.manpowerId: a
-        };
+      (List<AttendanceIsar> attendanceRows, List<ManpowerIsar> manpowerRows) {
+        final attendanceMap = {for (final a in attendanceRows) a.manpowerId: a};
 
         return manpowerRows.map((m) {
           final att = attendanceMap[m.manpowerId];
@@ -709,7 +732,7 @@ class AttendanceRepository {
     final isarList = list.map((x) {
       return AttendanceIsar()
         ..attendanceId =
-        x.id.isEmpty ? "${x.siteId}_${x.manpower.id}_$dateKey" : x.id
+            x.id.isEmpty ? "${x.siteId}_${x.manpower.id}_$dateKey" : x.id
         ..siteId = siteId
         ..type = type
         ..dateKey = dateKey
@@ -784,12 +807,12 @@ class AttendanceRepository {
 
     final payload = dirty
         .map((x) => {
-      "manpowerId": x.manpowerId,
-      "status": x.status,
-      "totalHours": x.totalHours,
-      "ot": x.ot,
-      "date": dateKey,
-    })
+              "manpowerId": x.manpowerId,
+              "status": x.status,
+              "totalHours": x.totalHours,
+              "ot": x.ot,
+              "date": dateKey,
+            })
         .toList();
 
     await DioClient.dio.post(

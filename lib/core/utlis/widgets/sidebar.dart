@@ -118,15 +118,8 @@ class CustomDrawer extends ConsumerWidget {
                     _buildNavItem(
                       context,
                       imagePath: "assets/images/icons/dashboard.webp",
-                      title: 'Dashboard',
+                      title: 'Home',
                       route: '/workCategory',
-                      requiresVerification: false,
-                    ),
-                    _buildNavItem(
-                      context,
-                      imagePath: "assets/images/icons/modules.webp",
-                      title: 'Modules',
-                      route: '/select-module',
                       requiresVerification: false,
                     ),
                     const SizedBox(height: 8),
@@ -684,7 +677,7 @@ class CustomDrawer extends ConsumerWidget {
                         ),
                         const SizedBox(width: 8),
                         Text(
-                          'Sign Out',
+                          'Log Out',
                           style: TextStyle(
                             fontSize: 13,
                             fontWeight: FontWeight.w600,

@@ -10,6 +10,8 @@ import 'package:untitled2/features/modules/all_Modules/rate/screens/rate.dart';
 import 'package:untitled2/features/modules/all_Modules/site_Details/repository/siteModel.dart';
 import 'package:untitled2/typeProvider/type_provider.dart';
 
+import '../../../../../core/upload/manager/upload_manager.dart';
+import '../../../../../core/upload/models/upload_job.dart';
 import '../../../../../core/utlis/app_toasts.dart';
 import '../../../../../core/utlis/sample_file/providers.dart';
 import '../../../../../core/utlis/sample_file/sample_file_model.dart';
@@ -88,10 +90,14 @@ class _ImportCsvScreenState extends ConsumerState<ImportCsvScreen> {
       //   type!,
       //   siteId!,
       // );
-      final jobId = ref.read(rateUploadQueueProvider.notifier).enqueueUpload(
-        siteId: siteId!,
-        type: type!,
-        filePath:  _selectedFile!.path!,
+      final jobId = ref.read(uploadManagerProvider.notifier).enqueue(
+        UploadJob.create(
+          moduleId: 'rate',
+          filePath: _selectedFile!.path!,
+          metadata: {'siteId': siteId, 'type': type},
+          targetRoute: '/rate',     // optional: shown as "View" button
+          maxRetries: 2,
+        ),
       );
       print(jobId);
       await ref.read(tourPersistenceProvider).markRateDone();

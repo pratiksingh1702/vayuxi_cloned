@@ -48,6 +48,7 @@ import '../../features/pricing/providers/razorpay_provider.dart';
 import '../../features/modules/all_Modules/site_Details/providers/siteProvider.dart';
 import '../../features/modules/all_Modules/site_Details/providers/site_current_provider.dart';
 
+import '../../features/profile_page/provider/userProvider.dart';
 import '../api/dio.dart';
 import 'access_control_provider.dart';
 
@@ -230,7 +231,8 @@ class AppAccessNotifier extends StateNotifier<AppAccessState> {
     await Future.wait([
       _syncOnboardingAndSubscription(cached),
       // _prewarmSites(auth),
-      _prewarmLanguage(auth),
+      // _prewarmLanguage(auth),
+      _prewarmUser(),
     ]);
 
     print('🚀 [AppAccess] ══════════ INITIALIZE COMPLETE ══════════\n');
@@ -317,6 +319,16 @@ class AppAccessNotifier extends StateNotifier<AppAccessState> {
 
     print('🔄 [AppAccess] Calling accessControlProvider.evaluate()...');
     await ref.read(accessControlProvider.notifier).evaluate();
+  }
+
+  Future<void> _prewarmUser() async {
+    print('👤 [AppAccess] Pre-warming userNotifierProvider...');
+    try {
+      await ref.read(userNotifierProvider.notifier).getCurrentUser();
+      print('👤 [AppAccess] userNotifierProvider pre-warmed ✅');
+    } catch (e) {
+      print('👤 [AppAccess] userNotifierProvider pre-warm failed ❌ — $e');
+    }
   }
 
   // ── Pre-warm: sites ───────────────────────────────────────────────────────

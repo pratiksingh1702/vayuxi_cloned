@@ -12,6 +12,7 @@ import '../../../../../core/utlis/app_toasts.dart';
 import '../../../../../core/utlis/widgets/Button_wrapper.dart';
 import '../../../../../core/utlis/widgets/buttons.dart';
 import '../../../../../core/utlis/widgets/image_clipped.dart';
+import '../../../../../core/utlis/widgets/shimmer.dart';
 import '../../../../../core/utlis/widgets/sidebar.dart';
 import '../../../../../core/utlis/widgets/custom_scrollbar.dart';
 import '../../../../../typeProvider/type_provider.dart';
@@ -221,7 +222,11 @@ class _AttendanceScreenState extends ConsumerState<AttendanceScreen> {
     final list = notifier.state;
 
     notifier.state = [
-      for (final emp in list) emp.copyWith(status: "present", totalHours: 8)
+      for (final emp in list)
+        emp.copyWith(
+          status: "present",
+          totalHours: double.tryParse(emp.manpower.totalHour ?? "") ?? 8.0,
+        )
     ];
   }
 
@@ -919,8 +924,10 @@ class _AttendanceScreenState extends ConsumerState<AttendanceScreen> {
             print(e);
             return Text("$e");
           },
-          loading: () =>
-          const Center(child: CircularProgressIndicator()),
+          loading: () => const ShimmerList(
+            type: ShimmerListType.tile,
+            itemCount: 8,
+          ),
         ),
       ),
     );
@@ -968,14 +975,12 @@ class _AttendanceCardState extends State<AttendanceCard> {
     super.initState();
     _present = widget.status != "absent";
 
-    // ✅ Only trust totalHours if attendance was already recorded (status is set)
-    // If status is default/unset and hours == 8, prefer maxAllowedHours
     final hasRecordedAttendance = widget.status == "present" || widget.status == "absent";
 
-    if (hasRecordedAttendance && widget.totalHours > 0) {
-      _hours = widget.totalHours; // use saved value
+    if (hasRecordedAttendance && widget.totalHours > 0 && widget.totalHours != widget.maxAllowedHours) {
+      _hours = widget.totalHours;
     } else {
-      _hours = widget.maxAllowedHours > 0 ? widget.maxAllowedHours : 8.0; // use contract hours
+      _hours = widget.maxAllowedHours > 0 ? widget.maxAllowedHours : 8.0;
     }
 
     _otHours = widget.otValue;
@@ -992,7 +997,7 @@ class _AttendanceCardState extends State<AttendanceCard> {
 
         final hasRecordedAttendance = widget.status == "present" || widget.status == "absent";
 
-        if (hasRecordedAttendance && widget.totalHours > 0) {
+        if (hasRecordedAttendance && widget.totalHours > 0 && widget.totalHours != widget.maxAllowedHours) {
           _hours = widget.totalHours;
         } else {
           _hours = widget.maxAllowedHours > 0 ? widget.maxAllowedHours : 8.0;
@@ -1002,7 +1007,6 @@ class _AttendanceCardState extends State<AttendanceCard> {
       });
     }
   }
-
   double get _totalHours => _present ? _hours + _otHours : 0;
 
   void toggleAttendance() {
@@ -1285,10 +1289,7 @@ class _AttendanceCardState extends State<AttendanceCard> {
     })
         : [{"value": 0.0, "label": "0h"}];
 
-// ✅ Use _hours as value, fallback to maxAllowedHours if not in list
-    final defaultValue = _present
-        ? (maxAllowedHours)
-        : 0.0;
+    final defaultValue = _present ? _hours : 0.0;
     print("📋 hoursOptions:");
     for (var e in hoursOptions) {
       print("   ${e["value"]}");
