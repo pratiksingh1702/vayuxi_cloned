@@ -70,7 +70,6 @@ class _EquipmentMaterialCardState extends State<EquipmentMaterialCard> {
   late FocusNode _qtyFocusNode;
   final ValueNotifier<int> _rebuildNotifier = ValueNotifier<int>(0);
 
-
   // Legacy
   late Map<EquipmentFieldType, TextEditingController> _legacyValueControllers;
   late Map<EquipmentFieldType, TextEditingController> _legacyLabelControllers;
@@ -89,7 +88,10 @@ class _EquipmentMaterialCardState extends State<EquipmentMaterialCard> {
   void initState() {
     super.initState();
     _draftMaterial = widget.material;
-    _qtyController = TextEditingController(text:'1');
+    final initialQty = (widget.material.qty == null || widget.material.qty == 0)
+        ? 1
+        : widget.material.qty;
+    _qtyController = TextEditingController(text: initialQty.toString());
     _qtyFocusNode = FocusNode();
 
     _qtyFocusNode.addListener(() {
@@ -341,7 +343,11 @@ class _EquipmentMaterialCardState extends State<EquipmentMaterialCard> {
     if (oldWidget.material.id != widget.material.id || justBecameDynamic) {
       _disposeControllers();
       _draftMaterial = widget.material;
-      _qtyController.text = widget.material.qty.toString();
+      final updatedQty =
+          (widget.material.qty == null || widget.material.qty == 0)
+              ? 1
+              : widget.material.qty;
+      _qtyController.text = updatedQty.toString();
       if (_isDynamic) {
         _initCardState();
         _initDynamicControllers();
@@ -412,152 +418,154 @@ class _EquipmentMaterialCardState extends State<EquipmentMaterialCard> {
   }
 
   void _openEditOverlay(BuildContext context) {
-  if (_isEditMode) return;
+    if (_isEditMode) return;
 
-  setState(() {
-    _isEditMode = true;
-    _isLoading = false;
-  });
-  
-  // CLEAR FOCUS before pushing
-  FocusManager.instance.primaryFocus?.unfocus();
+    setState(() {
+      _isEditMode = true;
+      _isLoading = false;
+    });
 
-  Navigator.of(context)
-      .push(
-    PageRouteBuilder(
-      opaque: false,
-      barrierDismissible: false,
-      barrierColor: Colors.transparent,
-      pageBuilder: (ctx, _, __) => EditOverlayPage(
-        listenable: _rebuildNotifier,
-        onSave: () async {
-          FocusScope.of(ctx).unfocus();
-          await _onSave();
-          if (ctx.mounted) {
-            // Ensure overlay state is cleared before popping
-            await Future.delayed(const Duration(milliseconds: 50));
+    // CLEAR FOCUS before pushing
+    FocusManager.instance.primaryFocus?.unfocus();
+
+    Navigator.of(context)
+        .push(
+      PageRouteBuilder(
+        opaque: false,
+        barrierDismissible: false,
+        barrierColor: Colors.transparent,
+        pageBuilder: (ctx, _, __) => EditOverlayPage(
+          listenable: _rebuildNotifier,
+          onSave: () async {
+            FocusScope.of(ctx).unfocus();
+            await _onSave();
+            if (ctx.mounted) {
+              // Ensure overlay state is cleared before popping
+              await Future.delayed(const Duration(milliseconds: 50));
+              if (ctx.mounted) {
+                Navigator.of(ctx).pop();
+              }
+            }
+          },
+          onCancel: () {
+            FocusScope.of(ctx).unfocus();
+            _onCancel();
             if (ctx.mounted) {
               Navigator.of(ctx).pop();
             }
-          }
-        },
-        onCancel: () {
-          FocusScope.of(ctx).unfocus();
-          _onCancel();
-          if (ctx.mounted) {
-            Navigator.of(ctx).pop();
-          }
-        },
-        cardBuilder: (ctx) {
-          return _isDynamic ? _buildDynamicCard() : _buildLegacyCard();
-        },
+          },
+          cardBuilder: (ctx) {
+            return _isDynamic ? _buildDynamicCard() : _buildLegacyCard();
+          },
+        ),
+        transitionDuration: const Duration(milliseconds: 200),
+        reverseTransitionDuration: const Duration(milliseconds: 200),
       ),
-      transitionDuration: const Duration(milliseconds: 200),
-      reverseTransitionDuration: const Duration(milliseconds: 200),
-    ),
-  )
-      .then((_) {
-    if (mounted) {
-      // CRITICAL: Set state to mark overlay as closed
-      setState(() {
-        _isEditMode = false;
-        _isLoading = false;
-      });
-      
-      // Force a rebuild to ensure all overlay-related state is cleared
-      _rebuildNotifier.value++;
-      
-      // Wait multiple frames for the overlay to be completely removed
-      WidgetsBinding.instance.addPostFrameCallback((_) {
+    )
+        .then((_) {
+      if (mounted) {
+        // CRITICAL: Set state to mark overlay as closed
+        setState(() {
+          _isEditMode = false;
+          _isLoading = false;
+        });
+
+        // Force a rebuild to ensure all overlay-related state is cleared
+        _rebuildNotifier.value++;
+
+        // Wait multiple frames for the overlay to be completely removed
         WidgetsBinding.instance.addPostFrameCallback((_) {
           WidgetsBinding.instance.addPostFrameCallback((_) {
-            if (mounted) {
-              // Recreate focus nodes
-              _recreateFocusNodes();
-              
-              // Add delay to ensure keyboard can be shown
-              Future.delayed(const Duration(milliseconds: 150), () {
-                if (mounted && _qtyFocusNode.canRequestFocus) {
-                  _qtyFocusNode.requestFocus();
-                  FocusScope.of(context).requestFocus(_qtyFocusNode);
-                }
-              });
-            }
+            WidgetsBinding.instance.addPostFrameCallback((_) {
+              if (mounted) {
+                // Recreate focus nodes
+                _recreateFocusNodes();
+
+                // Add delay to ensure keyboard can be shown
+                Future.delayed(const Duration(milliseconds: 150), () {
+                  if (mounted && _qtyFocusNode.canRequestFocus) {
+                    _qtyFocusNode.requestFocus();
+                    FocusScope.of(context).requestFocus(_qtyFocusNode);
+                  }
+                });
+              }
+            });
           });
         });
-      });
-    }
-  });
-}
+      }
+    });
+  }
 
 // Add this helper method to recreate focus nodes
-void _recreateFocusNodes() {
-  // Dispose old focus nodes
-  for (final node in _focusNodes.values) {
-    node.dispose();
-  }
-  _focusNodes.clear();
-  
-  // Recreate dynamic focus nodes
-  if (_isDynamic && _config != null) {
-    for (final field in _config!.fields) {
-      if (field.role == 'QUANTITY' || field.role == 'QTY') continue;
-      final fn = FocusNode();
-      fn.addListener(() {
-        if (!fn.hasFocus) {
-          widget.onChanged(_draftMaterial.copyWith(cardFormState: _cardState));
-        }
-      });
-      _focusNodes[field.key] = fn;
-    }
-  }
-  
-  // Recreate qty focus node
-  _qtyFocusNode.dispose();
-  _qtyFocusNode = FocusNode();
-  
-  // Recreate legacy focus nodes if needed
-  if (!_isDynamic) {
-    for (final node in _legacyFocusNodes.values) {
+  void _recreateFocusNodes() {
+    // Dispose old focus nodes
+    for (final node in _focusNodes.values) {
       node.dispose();
     }
-    _legacyFocusNodes.clear();
-    for (final type in EquipmentFieldType.values) {
-      final fn = FocusNode();
-      fn.addListener(() {
-        if (!fn.hasFocus) _flushLegacyFieldToParent(type);
-      });
-      _legacyFocusNodes[type] = fn;
-    }
-  }
-}
+    _focusNodes.clear();
 
-// Add this helper to ensure focus nodes are valid
-void _ensureFocusNodesValid() {
-  if (_isDynamic) {
-    // Recreate any disposed or invalid focus nodes
-    for (final field in _config!.fields) {
-      if (field.role == 'QUANTITY' || field.role == 'QTY') continue;
-      final node = _focusNodes[field.key];
-      if (node == null || !node.canRequestFocus) {
-        if (node != null) node.dispose();
+    // Recreate dynamic focus nodes
+    if (_isDynamic && _config != null) {
+      for (final field in _config!.fields) {
+        if (field.role == 'QUANTITY' || field.role == 'QTY') continue;
         final fn = FocusNode();
         fn.addListener(() {
           if (!fn.hasFocus) {
-            widget.onChanged(_draftMaterial.copyWith(cardFormState: _cardState));
+            widget
+                .onChanged(_draftMaterial.copyWith(cardFormState: _cardState));
           }
         });
         _focusNodes[field.key] = fn;
       }
     }
-  }
-  
-  // Ensure qty focus node is valid
-  if (!_qtyFocusNode.canRequestFocus) {
+
+    // Recreate qty focus node
     _qtyFocusNode.dispose();
     _qtyFocusNode = FocusNode();
+
+    // Recreate legacy focus nodes if needed
+    if (!_isDynamic) {
+      for (final node in _legacyFocusNodes.values) {
+        node.dispose();
+      }
+      _legacyFocusNodes.clear();
+      for (final type in EquipmentFieldType.values) {
+        final fn = FocusNode();
+        fn.addListener(() {
+          if (!fn.hasFocus) _flushLegacyFieldToParent(type);
+        });
+        _legacyFocusNodes[type] = fn;
+      }
+    }
   }
-}
+
+// Add this helper to ensure focus nodes are valid
+  void _ensureFocusNodesValid() {
+    if (_isDynamic) {
+      // Recreate any disposed or invalid focus nodes
+      for (final field in _config!.fields) {
+        if (field.role == 'QUANTITY' || field.role == 'QTY') continue;
+        final node = _focusNodes[field.key];
+        if (node == null || !node.canRequestFocus) {
+          if (node != null) node.dispose();
+          final fn = FocusNode();
+          fn.addListener(() {
+            if (!fn.hasFocus) {
+              widget.onChanged(
+                  _draftMaterial.copyWith(cardFormState: _cardState));
+            }
+          });
+          _focusNodes[field.key] = fn;
+        }
+      }
+    }
+
+    // Ensure qty focus node is valid
+    if (!_qtyFocusNode.canRequestFocus) {
+      _qtyFocusNode.dispose();
+      _qtyFocusNode = FocusNode();
+    }
+  }
   // ─────────────────────────────────────────────
   // VISIBILITY
   // ─────────────────────────────────────────────
@@ -1261,7 +1269,11 @@ void _ensureFocusNodesValid() {
       _draftMaterial = widget.material;
       _draftImageFiles.clear();
       _isEditMode = false;
-      _qtyController.text = widget.material.qty.toString();
+      final cancelQty =
+          (widget.material.qty == null || widget.material.qty == 0)
+              ? 1
+              : widget.material.qty;
+      _qtyController.text = cancelQty.toString();
       if (_isDynamic) {
         _cardState = widget.material.cardFormState ??
             CardFormState.buildInitial(fieldConfig: _config!);

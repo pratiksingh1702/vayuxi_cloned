@@ -1,105 +1,118 @@
+// lib/features/tour/domain/tour_presistent.dart
+//
+// ─────────────────────────────────────────────────────────────────────────────
+// TOUR PERSISTENCE — module-aware, per-step-index storage
+// ─────────────────────────────────────────────────────────────────────────────
+
 import 'package:shared_preferences/shared_preferences.dart';
 
 class TourPersistence {
-  static const _kTourCompleted = "tour_completed";
+  // ── Key helpers ────────────────────────────────────────────────────────────
+  static const _kGlobalCompleted = 'tour_global_completed';
 
-  static const _kSiteDone = "tour_site_done";
-  static const _kRateDone = "tour_rate_done";
-  static const _kManpowerDone = "tour_manpower_done";
-  static const _kTeamDone = "tour_team_done";
-  static const _kDprDone = "tour_dpr_done";
+  static String _moduleKey(String moduleId)        => 'tour_module_${moduleId}_done';
+  static String _moduleIndexKey(String moduleId)   => 'tour_module_${moduleId}_step';
+  static String _mutedKey()                        => 'tour_voice_muted';
 
+  Future<SharedPreferences> get _sp async => SharedPreferences.getInstance();
 
-  Future<SharedPreferences> get _sp async =>
-      await SharedPreferences.getInstance();
+  // ── Global ─────────────────────────────────────────────────────────────────
 
-  Future<bool> isCompleted() async {
+  Future<bool> isGlobalCompleted() async {
     final sp = await _sp;
-    return sp.getBool(_kTourCompleted) ?? false;
+    return sp.getBool(_kGlobalCompleted) ?? false;
   }
-  static const _kSetupClicked = "tour_setup_clicked";
+
+  Future<void> markGlobalCompleted() async {
+    final sp = await _sp;
+    await sp.setBool(_kGlobalCompleted, true);
+  }
+
+  // ── Per-module ─────────────────────────────────────────────────────────────
+
+  /// Whether a specific module's tour is fully completed.
+  Future<bool> isModuleDone(String moduleId) async {
+    final sp = await _sp;
+    return sp.getBool(_moduleKey(moduleId)) ?? false;
+  }
+
+  /// Mark a module as fully completed.
+  Future<void> markModuleDone(String moduleId) async {
+    final sp = await _sp;
+    await sp.setBool(_moduleKey(moduleId), true);
+    // Clear step index — no longer needed.
+    await sp.remove(_moduleIndexKey(moduleId));
+  }
+
+  /// Save partial progress: last completed step index.
+  Future<void> saveModuleStepIndex(String moduleId, int stepIndex) async {
+    final sp = await _sp;
+    await sp.setInt(_moduleIndexKey(moduleId), stepIndex);
+  }
+
+  /// Resume from last saved step index (returns 0 if not set).
+  Future<int> getModuleStepIndex(String moduleId) async {
+    final sp = await _sp;
+    return sp.getInt(_moduleIndexKey(moduleId)) ?? 0;
+  }
+
+  // ── Voice mute ─────────────────────────────────────────────────────────────
+
+  Future<bool> isMuted() async {
+    final sp = await _sp;
+    return sp.getBool(_mutedKey()) ?? false;
+  }
+
+  Future<void> setMuted(bool muted) async {
+    final sp = await _sp;
+    await sp.setBool(_mutedKey(), muted);
+  }
+
+  // ── Legacy checkpoint helpers (kept for backward compat) ──────────────────
+  //
+  // The old system used individual booleans per checkpoint.
+  // We delegate to the new module-based system so nothing breaks.
+
+  Future<bool> isCompleted() => isGlobalCompleted();
+  Future<void> markCompleted() => markGlobalCompleted();
+
+  Future<bool> isSiteDone()      => isModuleDone('site');
+  Future<void> markSiteDone()    => markModuleDone('site');
+
+  Future<bool> isRateDone()      => isModuleDone('rate');
+  Future<void> markRateDone()    => markModuleDone('rate');
+
+  Future<bool> isManpowerDone()  => isModuleDone('manpower');
+  Future<void> markManpowerDone()=> markModuleDone('manpower');
+
+  Future<bool> isTeamDone()      => isModuleDone('team');
+  Future<void> markTeamDone()    => markModuleDone('team');
+
+  Future<bool> isDprDone()       => isModuleDone('dpr');
+  Future<void> markDprDone()     => markModuleDone('dpr');
 
   Future<bool> isSetupClicked() async {
-    final sp = await SharedPreferences.getInstance();
-    return sp.getBool(_kSetupClicked) ?? false;
-  }
-  Future<bool> isDprDone() async {
     final sp = await _sp;
-    return sp.getBool(_kDprDone) ?? false;
+    return sp.getBool('tour_setup_clicked') ?? false;
   }
-  Future<void> markDprDone() async {
-    final sp = await _sp;
-    await sp.setBool(_kDprDone, true);
-  }
-
   Future<void> markSetupClicked() async {
-    final sp = await SharedPreferences.getInstance();
-    await sp.setBool(_kSetupClicked, true);
-  }
-
-
-  Future<void> markCompleted() async {
     final sp = await _sp;
-    await sp.setBool(_kTourCompleted, true);
+    await sp.setBool('tour_setup_clicked', true);
   }
+
+  // ── Reset ──────────────────────────────────────────────────────────────────
 
   Future<void> reset() async {
     final sp = await _sp;
-    await sp.remove(_kTourCompleted);
-    await sp.remove(_kSiteDone);
-    await sp.remove(_kRateDone);
-    await sp.remove(_kManpowerDone);
-    await sp.remove(_kTeamDone);
-    await sp.remove(_kDprDone);
-
+    final keys = sp.getKeys().where((k) => k.startsWith('tour_')).toList();
+    for (final k in keys) {
+      await sp.remove(k);
+    }
   }
 
-  // ---- checkpoints ----
-
-  Future<bool> isSiteDone() async {
+  Future<void> resetModule(String moduleId) async {
     final sp = await _sp;
-    return sp.getBool(_kSiteDone) ?? false;
-  }
-
-  Future<void> markSiteDone() async {
-    final sp = await _sp;
-    await sp.setBool(_kSiteDone, true);
-  }
-
-  Future<bool> isRateDone() async {
-    final sp = await _sp;
-    return sp.getBool(_kRateDone) ?? false;
-  }
-
-  Future<void> markRateDone() async {
-    final sp = await _sp;
-    await sp.setBool(_kRateDone, true);
-  }
-
-  Future<bool> isManpowerDone() async {
-    final sp = await _sp;
-    return sp.getBool(_kManpowerDone) ?? false;
-  }
-
-  Future<void> markManpowerDone() async {
-    final sp = await _sp;
-    await sp.setBool(_kManpowerDone, true);
-  }
-
-  Future<bool> isTeamDone() async {
-    final sp = await _sp;
-    return sp.getBool(_kTeamDone) ?? false;
-  }
-
-  Future<void> markTeamDone() async {
-    final sp = await _sp;
-    await sp.setBool(_kTeamDone, true);
-  }
-
-  Future<bool> allDone() async {
-    return await isSiteDone() &&
-        await isRateDone() &&
-        await isManpowerDone() &&
-        await isTeamDone();
+    await sp.remove(_moduleKey(moduleId));
+    await sp.remove(_moduleIndexKey(moduleId));
   }
 }

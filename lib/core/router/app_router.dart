@@ -82,6 +82,7 @@ import '../../features/modules/all_Modules/site_Details/providers/site_current_p
 import '../../features/modules/all_Modules/site_Details/screens/siteDetailScreen.dart';
 import '../../features/modules/all_Modules/site_Details/screens/view_add_site.dart';
 import '../../features/modules/all_Modules/site_Details/screens/site_entry_select_page.dart';
+import '../../features/modules/all_Modules/site_Details/screens/site_import.dart';
 import '../../features/modules/all_Modules/team/screens/addTeam.dart';
 import '../../features/modules/all_Modules/team/screens/editTeam.dart';
 import '../../features/modules/all_Modules/team/screens/teamsList.dart';
@@ -90,6 +91,7 @@ import '../../features/modules/screen/device_id.dart';
 import '../../features/pricing/Screens/subsciption_screen.dart';
 import '../../features/pricing/providers/razorpay_provider.dart';
 import '../../features/profile_page/screens/profilePage.dart';
+import '../../features/noti_system/updates/presentation/navigation/updates_routes.dart';
 import '../../features/modules/screen/module_screen.dart';
 import '../../features/modules/screen/module_detail.dart';
 import '../../work_cat.dart';
@@ -155,19 +157,21 @@ final appRouterProvider = Provider<GoRouter>((ref) {
       // Use microtask to avoid "Tried to modify a provider while the widget tree was building" error
       Future.microtask(() {
         ref.read(currentRouteProvider.notifier).state = loc;
+        ref.read(routeTrailProvider.notifier).syncFromLocation(loc);
       });
 
       debugPrint(
         '🔀 [ROUTER REDIRECT] '
-            'booting=${access.isBooting} '
-            'loggedIn=${access.loggedIn} '
-            'matchedLocation=$loc '
-            'fullPath=${state.uri}',
+        'booting=${access.isBooting} '
+        'loggedIn=${access.loggedIn} '
+        'matchedLocation=$loc '
+        'fullPath=${state.uri}',
       );
 
       // ── 0. Still booting ────────────────────────────────────────────────
       if (access.isBooting) {
-        debugPrint('🔀 [ROUTER REDIRECT] → ${Routes.splash}  (reason: booting)');
+        debugPrint(
+            '🔀 [ROUTER REDIRECT] → ${Routes.splash}  (reason: booting)');
         return Routes.splash;
       }
 
@@ -185,10 +189,12 @@ final appRouterProvider = Provider<GoRouter>((ref) {
 
       if (!access.loggedIn) {
         if (!isPublic) {
-          debugPrint('🔀 [ROUTER REDIRECT] → ${Routes.login}  (reason: not logged in, tried: $loc)');
+          debugPrint(
+              '🔀 [ROUTER REDIRECT] → ${Routes.login}  (reason: not logged in, tried: $loc)');
           return Routes.login;
         }
-        debugPrint('🔀 [ROUTER REDIRECT] → null  (reason: public route, not logged in)');
+        debugPrint(
+            '🔀 [ROUTER REDIRECT] → null  (reason: public route, not logged in)');
         return null;
       }
 
@@ -201,12 +207,14 @@ final appRouterProvider = Provider<GoRouter>((ref) {
       };
 
       if (gatePages.contains(loc)) {
-        debugPrint('🔀 [ROUTER REDIRECT] → ${Routes.workCategory}  (reason: logged in, was at gate page: $loc)');
+        debugPrint(
+            '🔀 [ROUTER REDIRECT] → ${Routes.workCategory}  (reason: logged in, was at gate page: $loc)');
         return Routes.workCategory;
       }
 
       // ── 3. Logged in + inside app → free navigation ─────────────────────
-      debugPrint('🔀 [ROUTER REDIRECT] → null  (reason: logged in, free navigation to $loc)');
+      debugPrint(
+          '🔀 [ROUTER REDIRECT] → null  (reason: logged in, free navigation to $loc)');
       return null;
     },
     observers: [
@@ -261,7 +269,9 @@ final appRouterProvider = Provider<GoRouter>((ref) {
         builder: (context, state) {
           final indexStr = state.uri.queryParameters['index'];
           final initialIndex = int.tryParse(indexStr ?? '0') ?? 0;
-          _logRoute('ModuleScreen', path: state.uri.toString(), extra: {'initialIndex': initialIndex});
+          _logRoute('ModuleScreen',
+              path: state.uri.toString(),
+              extra: {'initialIndex': initialIndex});
           return ModuleScreen(initialIndex: initialIndex);
         },
       ),
@@ -272,28 +282,57 @@ final appRouterProvider = Provider<GoRouter>((ref) {
         builder: (context, state) {
           final module = state.pathParameters['module'] ?? 'site';
           final bool show = module == 'site';
-          _logRoute('SiteListScreen → module=$module', path: state.uri.toString());
+          _logRoute('SiteListScreen → module=$module',
+              path: state.uri.toString());
 
           // ── Build the pageBuilder switch once ──────────────────────────────
           Widget buildDestination(SiteModel site) {
-            debugPrint('📍 [ROUTER] pageBuilder called | module=$module | siteId=${site.id}');
+            debugPrint(
+                '📍 [ROUTER] pageBuilder called | module=$module | siteId=${site.id}');
 
             Widget screen;
             switch (module) {
-              case 'rate':        screen = RateSelectCardGrid(); break;
-              case 'team':        screen = TeamSelectCardGrid(); break;
-              case 'dpr':         screen = DprFlowGate(site: site); break;
-              case 'boq':         screen = BoqDashboardScreen(siteId: site.id, siteName: site.siteName); break;
-              case 'attendance':  screen = AttendanceScreen(); break;
-              case 'siteSalary':  screen = SiteSalaryScreen(siteModel: site); break;
-              case 'expense':     screen = ExpenseEntrySelectCardGrid(); break;
-              case 'addMoc':      screen = DprSelectCardGrid(); break;
-              case 'add-exp':     screen = AddExpenseScreen(); break;
-              case 'inv-entry':   screen = InventoryCategorySelectionScreen(); break;
-              case 'inv-setup':   screen = ViewAddInventorySetup(); break;
-              case 'att-sheet':   screen = GenerateAttendanceSheetScreen(); break;
+              case 'rate':
+                screen = RateSelectCardGrid();
+                break;
+              case 'team':
+                screen = TeamSelectCardGrid();
+                break;
+              case 'dpr':
+                screen = DprFlowGate(site: site);
+                break;
+              case 'boq':
+                screen = BoqDashboardScreen(
+                    siteId: site.id, siteName: site.siteName);
+                break;
+              case 'attendance':
+                screen = AttendanceScreen();
+                break;
+              case 'siteSalary':
+                screen = SiteSalaryScreen(siteModel: site);
+                break;
+              case 'expense':
+                screen = ExpenseEntrySelectCardGrid();
+                break;
+              case 'addMoc':
+                screen = DprSelectCardGrid();
+                break;
+              case 'add-exp':
+                screen = AddExpenseScreen();
+                break;
+              case 'inv-entry':
+                screen = InventoryCategorySelectionScreen();
+                break;
+              case 'inv-setup':
+                screen = ViewAddInventorySetup();
+                break;
+              case 'att-sheet':
+                screen = GenerateAttendanceSheetScreen();
+                break;
 
-              case 'man-import':  screen = ManFieldMappingScreen(); break;
+              case 'man-import':
+                screen = ManFieldMappingScreen();
+                break;
               case 'dprReport':
                 screen = DateRangeSelectionScreen(
                   onDatesSelected: (start, end) => context.push(
@@ -325,7 +364,8 @@ final appRouterProvider = Provider<GoRouter>((ref) {
           // ── If site already chosen AND this is not the site-management screen,
           //    skip SiteListScreen entirely and go straight to destination ──────
           if (preSelectedSite != null && !show) {
-            debugPrint('⚡ [ROUTER] Skipping SiteListScreen — using pre-selected site: ${preSelectedSite.siteName}');
+            debugPrint(
+                '⚡ [ROUTER] Skipping SiteListScreen — using pre-selected site: ${preSelectedSite.siteName}');
             // ✅ No provider writes here — SiteAwareWrapper handles it after build
             return buildDestination(preSelectedSite);
           }
@@ -405,7 +445,8 @@ final appRouterProvider = Provider<GoRouter>((ref) {
         path: Routes.editManpower,
         builder: (context, state) {
           final manpower = state.extra as ManpowerModel;
-          _logRoute('EditManpowerScreen', path: state.uri.toString(), extra: {'manpowerId': manpower.id});
+          _logRoute('EditManpowerScreen',
+              path: state.uri.toString(), extra: {'manpowerId': manpower.id});
           return EditManpowerScreen(manpower: manpower);
         },
       ),
@@ -481,7 +522,8 @@ final appRouterProvider = Provider<GoRouter>((ref) {
           GoRoute(
             path: 'individual',
             builder: (context, state) {
-              _logRoute('SalarySlipScreen (salary/individual)', path: state.uri.toString());
+              _logRoute('SalarySlipScreen (salary/individual)',
+                  path: state.uri.toString());
               return const SalarySlipScreen();
             },
           ),
@@ -498,7 +540,8 @@ final appRouterProvider = Provider<GoRouter>((ref) {
         path: '${Routes.moduleDetail}/:name',
         builder: (context, state) {
           final moduleName = state.pathParameters['name']!;
-          _logRoute('ModuleDetailScreen', path: state.uri.toString(), extra: {'moduleName': moduleName});
+          _logRoute('ModuleDetailScreen',
+              path: state.uri.toString(), extra: {'moduleName': moduleName});
           return ModuleDetailScreen(moduleName: moduleName);
         },
       ),
@@ -506,7 +549,8 @@ final appRouterProvider = Provider<GoRouter>((ref) {
         path: Routes.dprInsuReview,
         name: 'dpr-screen-insu',
         builder: (context, state) {
-          _logRoute('AddInsulationDescriptionScreen (dprInsuReview)', path: state.uri.toString());
+          _logRoute('AddInsulationDescriptionScreen (dprInsuReview)',
+              path: state.uri.toString());
           return AddInsulationDescriptionScreen();
         },
       ),
@@ -523,13 +567,15 @@ final appRouterProvider = Provider<GoRouter>((ref) {
         name: 'lagging-material',
         builder: (context, state) {
           final data = state.extra as Map<String, dynamic>;
-          _logRoute('LaggingMaterialScreen', path: state.uri.toString(), extra: {
-            'siteId': data['siteId'],
-            'teamId': data['teamId'],
-            'siteName': data['siteName'],
-            'teamName': data['teamName'],
-            'layerIndex': data['layerIndex'],
-          });
+          _logRoute('LaggingMaterialScreen',
+              path: state.uri.toString(),
+              extra: {
+                'siteId': data['siteId'],
+                'teamId': data['teamId'],
+                'siteName': data['siteName'],
+                'teamName': data['teamName'],
+                'layerIndex': data['layerIndex'],
+              });
           return LaggingMaterialScreen(
             siteId: data['siteId'],
             teamId: data['teamId'],
@@ -573,13 +619,22 @@ final appRouterProvider = Provider<GoRouter>((ref) {
         },
       ),
       GoRoute(
+        path: Routes.siteImport,
+        builder: (context, state) {
+          _logRoute('SiteImportCsvScreen', path: state.uri.toString());
+          return const SiteImportCsvScreen();
+        },
+      ),
+      GoRoute(
         path: Routes.dprReportDownload,
         builder: (context, state) {
           final extra = state.extra as Map<String, dynamic>;
-          _logRoute('SheetDownloadPage (dprReportDownload)', path: state.uri.toString(), extra: {
-            'startDate': extra['startDate'],
-            'endDate': extra['endDate'],
-          });
+          _logRoute('SheetDownloadPage (dprReportDownload)',
+              path: state.uri.toString(),
+              extra: {
+                'startDate': extra['startDate'],
+                'endDate': extra['endDate'],
+              });
           return SheetDownloadPage(
             selectedStartDate: extra['startDate'],
             selectedEndDate: extra['endDate'],
@@ -590,10 +645,12 @@ final appRouterProvider = Provider<GoRouter>((ref) {
         path: Routes.inventoryReportDownload,
         builder: (context, state) {
           final extra = state.extra as Map<String, dynamic>;
-          _logRoute('DailyUsagePage (inventoryReportDownload)', path: state.uri.toString(), extra: {
-            'startDate': extra['startDate'],
-            'endDate': extra['endDate'],
-          });
+          _logRoute('DailyUsagePage (inventoryReportDownload)',
+              path: state.uri.toString(),
+              extra: {
+                'startDate': extra['startDate'],
+                'endDate': extra['endDate'],
+              });
           return DailyUsagePage(
             selectedStartDate: extra['startDate'],
             selectedEndDate: extra['endDate'],
@@ -604,7 +661,8 @@ final appRouterProvider = Provider<GoRouter>((ref) {
         path: Routes.dprDescription,
         builder: (context, state) {
           final work = state.extra as DprModel?;
-          _logRoute('AddDescriptionScreen (dprDescription)', path: state.uri.toString(), extra: {'workId': work?.id});
+          _logRoute('AddDescriptionScreen (dprDescription)',
+              path: state.uri.toString(), extra: {'workId': work?.id});
           return AddDescriptionScreen(work: work);
         },
       ),
@@ -612,14 +670,16 @@ final appRouterProvider = Provider<GoRouter>((ref) {
         path: Routes.dprInsuDescription,
         builder: (context, state) {
           final work = state.extra as InsulationDprModel?;
-          _logRoute('AddInsulationDescriptionScreen (dprInsuDescription)', path: state.uri.toString(), extra: {'workId': work?.id});
+          _logRoute('AddInsulationDescriptionScreen (dprInsuDescription)',
+              path: state.uri.toString(), extra: {'workId': work?.id});
           return AddInsulationDescriptionScreen(work: work);
         },
       ),
       GoRoute(
         path: Routes.dprViewSelect,
         builder: (context, state) {
-          _logRoute('ViewSelectCardGrid (dprViewSelect)', path: state.uri.toString());
+          _logRoute('ViewSelectCardGrid (dprViewSelect)',
+              path: state.uri.toString());
           return const ViewSelectCardGrid();
         },
       ),
@@ -640,7 +700,8 @@ final appRouterProvider = Provider<GoRouter>((ref) {
       GoRoute(
         path: Routes.salarySelectRange,
         builder: (context, state) {
-          _logRoute('SelectRangeScreen (salarySelectRange)', path: state.uri.toString());
+          _logRoute('SelectRangeScreen (salarySelectRange)',
+              path: state.uri.toString());
           return const SelectRangeScreen();
         },
       ),
@@ -655,7 +716,9 @@ final appRouterProvider = Provider<GoRouter>((ref) {
         path: Routes.editRate,
         builder: (context, state) {
           final extra = state.extra as Map<String, dynamic>;
-          _logRoute('EditRateScreen', path: state.uri.toString(), extra: {'site': extra['site'], 'rate': extra['rate']});
+          _logRoute('EditRateScreen',
+              path: state.uri.toString(),
+              extra: {'site': extra['site'], 'rate': extra['rate']});
           return EditRateScreen(
             site: extra['site'],
             rate: extra['rate'],
@@ -666,7 +729,8 @@ final appRouterProvider = Provider<GoRouter>((ref) {
         path: Routes.addRate,
         builder: (context, state) {
           final siteId = state.extra as String;
-          _logRoute('AddRateScreen', path: state.uri.toString(), extra: {'siteId': siteId});
+          _logRoute('AddRateScreen',
+              path: state.uri.toString(), extra: {'siteId': siteId});
           return AddRateScreen();
         },
       ),
@@ -674,7 +738,8 @@ final appRouterProvider = Provider<GoRouter>((ref) {
         path: Routes.datePicker,
         builder: (context, state) {
           final extra = state.extra as Map<String, dynamic>;
-          _logRoute('DateRangeSelectionScreen (datePicker)', path: state.uri.toString());
+          _logRoute('DateRangeSelectionScreen (datePicker)',
+              path: state.uri.toString());
           return DateRangeSelectionScreen(
             onDatesSelected: extra['onDatesSelected'],
           );
@@ -701,7 +766,8 @@ final appRouterProvider = Provider<GoRouter>((ref) {
         path: Routes.editInventory,
         builder: (context, state) {
           final inventory = state.extra as Inventory;
-          _logRoute('EditInventoryScreen', path: state.uri.toString(), extra: {'inventoryId': inventory.id});
+          _logRoute('EditInventoryScreen',
+              path: state.uri.toString(), extra: {'inventoryId': inventory.id});
           return EditInventoryScreen(inventory: inventory);
         },
       ),
@@ -709,7 +775,9 @@ final appRouterProvider = Provider<GoRouter>((ref) {
         path: Routes.editTeam,
         builder: (context, state) {
           final extra = state.extra as Map<String, dynamic>;
-          _logRoute('EditTeamScreen', path: state.uri.toString(), extra: {'site': extra['site'], 'team': extra['team']});
+          _logRoute('EditTeamScreen',
+              path: state.uri.toString(),
+              extra: {'site': extra['site'], 'team': extra['team']});
           return EditTeamScreen(
             site: extra['site'],
             team: extra['team'],
@@ -723,6 +791,7 @@ final appRouterProvider = Provider<GoRouter>((ref) {
           return const DeviceOtpScreen();
         },
       ),
+      ...UpdatesRoutes.routes,
     ],
   );
 });

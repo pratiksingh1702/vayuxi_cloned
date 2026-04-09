@@ -41,7 +41,7 @@ class CornerClippedScreenSimple extends StatelessWidget {
                 topRight: Radius.circular(24),
               ),
               child: Container(
-                  padding: EdgeInsets.symmetric(vertical: 8),
+                  padding: EdgeInsets.symmetric(vertical: 2),
                   decoration: BoxDecoration(
                     // color: Theme.of(context).scaffoldBackgroundColor,
                     color: color,

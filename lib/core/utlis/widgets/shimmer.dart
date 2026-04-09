@@ -391,6 +391,8 @@ class _ShimmerCardItem extends StatelessWidget {
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
+                     _skeletonBox(width: 80, height: 12),
+                    const SizedBox(height: 6),
                     Container(
                       height: 110,
                       width: double.infinity,
@@ -419,17 +421,20 @@ class _ShimmerCardItem extends StatelessWidget {
                 flex: 1,
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
+                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
                   children: [
-                    _skeletonBox(width: 80, height: 12),
-                    const SizedBox(height: 6),
-                    _skeletonBox(width: double.infinity, height: 24, borderRadius: 4),
-                    const SizedBox(height: 12),
-                    _skeletonBox(width: 80, height: 12),
-                    const SizedBox(height: 6),
-                    _skeletonBox(width: double.infinity, height: 24, borderRadius: 4),
-                    const SizedBox(height: 12),
-                    _skeletonBox(width: 100, height: 12),
-                    const SizedBox(height: 6),
+                      
+                     
+                  Row(
+                    mainAxisAlignment: MainAxisAlignment.end,
+                      children: [
+                      
+                        _skeletonBox(width: 60, height: 13),
+                      ],
+                    ),
+                    _skeletonBox(width: 70, height: 23),
+                    const SizedBox(height: 23),
+                    
                     _skeletonBox(width: double.infinity, height: 48, borderRadius: 8),
                   ],
                 ),

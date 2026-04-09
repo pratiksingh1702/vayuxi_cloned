@@ -3,6 +3,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../../core/router/app_access.dart';
 import '../domain/tour_controller.dart';
+import '../registry/site_registry.dart';
 
 class TourScope extends ConsumerStatefulWidget {
   final Widget child;
@@ -25,17 +26,15 @@ class _TourScopeState extends ConsumerState<TourScope> {
     // 2. User is logged in
     // 3. User has either a subscription OR has completed trial activation
     //    (i.e. they are fully inside the app, past all gates)
-    final isInsideApp = !access.isBooting &&
-        access.loggedIn ;
+    final isInsideApp = !access.isBooting && access.loggedIn;
 
     if (isInsideApp && !_tourInitialized) {
       _tourInitialized = true;
-      // Use microtask to avoid calling setState/notifier during build
-      Future.microtask(() {
-        if (mounted) {
-          ref.read(tourControllerProvider.notifier).autoStartIfFirstTime();
-        }
-      });
+      debugPrint(
+          '🎬 TourScope initialized - Site tour will start on /site page');
+      // ✅ REMOVED auto-start logic
+      // Site tour only starts when user navigates to /site page
+      // This prevents premature tour start on work_cat
     }
 
     // If user logs out, reset so tour can re-evaluate on next login

@@ -3,7 +3,7 @@ import 'package:flutter/material.dart';
 class TemplatePreviewScreen extends StatelessWidget {
   final String title;
   final String imageAsset;
-  final VoidCallback onDownload;
+  final Future<void> Function() onDownload;
 
   const TemplatePreviewScreen({
     super.key,
@@ -13,6 +13,7 @@ class TemplatePreviewScreen extends StatelessWidget {
   });
 
   @override
+  
   Widget build(BuildContext context) {
     return Scaffold(
       backgroundColor: const Color(0xFFF5F5F7),
@@ -239,7 +240,9 @@ class TemplatePreviewScreen extends StatelessWidget {
                 SizedBox(
                   width: double.infinity,
                   child: ElevatedButton(
-                    onPressed: onDownload,
+                    onPressed: () async {
+                      await onDownload();
+                    },
                     style: ElevatedButton.styleFrom(
                       backgroundColor: const Color(0xFF1C1C1E),
                       foregroundColor: Colors.white,

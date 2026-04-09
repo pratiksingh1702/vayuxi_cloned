@@ -3549,15 +3549,24 @@ class _AddInsulationDescriptionScreenState
             // With this:
             final qtyEntry =
                 state.fieldEntries['quantity'] ?? state.fieldEntries['qty'];
-            final hasOtherFields = state.fieldEntries.keys
-                .any((k) => k != 'quantity' && k != 'qty');
+            final hasOtherFields = state.fieldEntries.entries.any((entry) {
+              final key = entry.key.toLowerCase();
+              if (key == 'quantity' || key == 'qty') return false;
+              return _hasMeaningfulValue(entry.value.value);
+            });
+            final qtyEntryNum = num.tryParse('${qtyEntry?.value ?? ''}');
+            final baseQtyNum = num.tryParse('${e.qty ?? 0}') ?? 0;
+            final hasExplicitQty = qtyEntryNum != null && qtyEntryNum > 0;
+            final hasMaterialInputs = hasOtherFields;
             final resolvedQty = (qtyEntry != null &&
                     qtyEntry.value != null &&
                     qtyEntry.value != 0)
                 ? qtyEntry.value
-                : (e.qty != null && e.qty != 0
-                    ? e.qty
-                    : (hasOtherFields ? 1 : 0));
+              : hasExplicitQty
+                ? qtyEntryNum
+                : (baseQtyNum > 0 && (hasMaterialInputs || baseQtyNum != 1)
+                  ? baseQtyNum
+                  : (hasMaterialInputs ? 1 : 0));
             fieldValues["quantity"] = resolvedQty;
             fieldValues["qtyUom"] =
                 qtyEntry?.unit != null && qtyEntry!.unit!.isNotEmpty
@@ -3571,7 +3580,9 @@ class _AddInsulationDescriptionScreenState
             debugPrint(
                 "📦 Equipment [${e.name}] - Final fieldValues: $fieldValues");
           } else {
-            fieldValues["quantity"] = e.qty ?? 0;
+            final baseQty = num.tryParse('${e.qty ?? 0}') ?? 0;
+            // No field state means no meaningful inputs; avoid synthetic default qty=1.
+            fieldValues["quantity"] = baseQty == 1 ? 0 : baseQty;
             fieldValues["qtyUom"] = "NOS";
             debugPrint(
                 "📦 Equipment [${e.name}] - No state, using default: $fieldValues");
@@ -3600,8 +3611,17 @@ class _AddInsulationDescriptionScreenState
               ? sizeEntry.unit
               : p.sizeUom;
 
-            final hasFieldValues =
-              p.fieldValues != null && p.fieldValues!.values.isNotEmpty;
+          final hasFieldValues = _hasMeaningfulMapValues(
+            p.fieldValues?.values,
+            ignoreKeys: const {
+              'quantity',
+              'qty',
+              'qtyUom',
+              'size',
+              'sizeUom',
+              'geometryMode',
+            },
+          );
           final qty =
               (p.qty != null && p.qty != 0) ? p.qty : (hasFieldValues ? 1 : 0);
           final updatedPiping = p.copyWith(qty: qty);
@@ -3818,7 +3838,11 @@ class _AddInsulationDescriptionScreenState
       WidgetsBinding.instance.addPostFrameCallback((_) {
         if (mounted && !_isDisposed) {
           int count = 0;
-          Navigator.of(context).popUntil((_) => count++ >= 5);
+            if (widget.work == null) {
+            Navigator.of(context).popUntil((_) => count++ >= 5);
+          } else {
+            Navigator.of(context).pop();
+          }
           _showSnackBar("Successfully Saved");
         }
       });
@@ -3856,6 +3880,24 @@ class _AddInsulationDescriptionScreenState
       return m.copyWith(image: urls);
     }).toList();
     notifier.setMaterials(patched);
+  }
+
+  bool _hasMeaningfulValue(dynamic value) {
+    if (value == null) return false;
+    final text = value.toString().trim();
+    return text.isNotEmpty && text.toLowerCase() != 'null';
+  }
+
+  bool _hasMeaningfulMapValues(
+    Map<String, dynamic>? values, {
+    Set<String> ignoreKeys = const {},
+  }) {
+    if (values == null || values.isEmpty) return false;
+    for (final entry in values.entries) {
+      if (ignoreKeys.contains(entry.key)) continue;
+      if (_hasMeaningfulValue(entry.value)) return true;
+    }
+    return false;
   }
 
   /// NEW: Synchronizes all equipment cards by calling getLatestMaterial() on each.

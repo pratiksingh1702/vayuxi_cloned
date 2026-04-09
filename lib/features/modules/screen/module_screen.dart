@@ -41,8 +41,10 @@ import '../../language/service/lang_providers.dart';
 import '../../language/service/providers.dart';
 import '../../language/service/translator.dart';
 import '../../tour/domain/tour_controller.dart';
+import '../../tour/domain/tour_events.dart';
 import '../../tour/domain/tour_presistent.dart';
 import '../../tour/domain/tour_registery.dart';
+import '../../tour/registry/site_registry.dart';
 import '../all_Modules/site_Details/providers/siteProvider.dart';
 import '../all_Modules/site_Details/providers/site_current_provider.dart';
 import '../all_Modules/team/provider/teamProvider.dart';
@@ -238,14 +240,34 @@ class _ModuleScreenState extends ConsumerState<ModuleScreen> {
   // ─────────────────────────────────────────────────────────────────────────
 
   Future<void> _maybeStartShowcase(BuildContext showcaseContext) async {
-    if (_tourChecked || _tourStartPending) return;
-    if (!mounted) return;
+    // ✅ Gate 1: Already checked or pending
+    if (_tourChecked || _tourStartPending) {
+      debugPrint('⏳ ModuleScreen showcase blocked: already checked/pending');
+      return;
+    }
 
-    // Don't start tour while page is visually blocked by lock overlays/spinner.
-    if (_overlayLoading || _overlayType != null) return;
+    // ✅ Gate 2: Widget not mounted
+    if (!mounted) {
+      debugPrint('⏳ ModuleScreen showcase blocked: not mounted');
+      return;
+    }
 
+    // ✅ Gate 3: Access locks still blocking (overlays or gates active)
+    if (_overlayLoading) {
+      debugPrint('⏳ ModuleScreen showcase blocked: overlay loading');
+      return;
+    }
+    if (_overlayType != null) {
+      debugPrint('⏳ ModuleScreen showcase blocked: access gate=$_overlayType');
+      return;
+    }
+
+    // ✅ Gate 4: Route not current
     final route = ModalRoute.of(context);
-    if (route != null && !route.isCurrent) return;
+    if (route != null && !route.isCurrent) {
+      debugPrint('⏳ ModuleScreen showcase blocked: route not current');
+      return;
+    }
 
     _tourStartPending = true;
     _tourChecked = true;
@@ -271,8 +293,10 @@ class _ModuleScreenState extends ConsumerState<ModuleScreen> {
       return;
     }
     if (!await persistence.isSiteDone()) {
-      setState(() => _checkpoint = TourCheckpoint.site);
-      sc.startShowCase([TourRegistry.siteModuleKey]);
+      // ✅ Don't start site tour on module screen
+      // Site tour will start automatically on /site route
+      // via SiteRegistry activation when user navigates there
+      debugPrint('ℹ️ Site tour not done, but will auto-start on /site page');
       _tourStartPending = false;
       return;
     }
@@ -486,6 +510,12 @@ class _ModuleScreenState extends ConsumerState<ModuleScreen> {
   }
 
   Future<void> _navigateToModule(ModuleItem item) async {
+    if (item.routeName == '/site') {
+      await ref
+          .read(tourControllerProvider.notifier)
+          .onEvent(TourEvents.siteModuleTapped);
+    }
+
     await context.push(item.routeName, extra: {
       'selectedSite': _selectedSite,
       'selectedTeam': _selectedTeam,
@@ -531,43 +561,10 @@ class _ModuleScreenState extends ConsumerState<ModuleScreen> {
         child: SafeArea(
           child: Column(
             children: [
-              const SizedBox(height: 10),
-              if (_currentIndex == 0)
-                Column(
-                  children: [
-                    const SizedBox(height: 10),
-                    // Banner shimmer or placeholder
-                    Container(
-                      height: 130,
-                      margin: const EdgeInsets.symmetric(horizontal: 16),
-                      decoration: BoxDecoration(
-                        color: Colors.white,
-                        borderRadius: BorderRadius.circular(20),
-                      ),
-                      child: const ShimmerList(
-                        type: ShimmerListType.card,
-                        itemCount: 1,
-                        scrollable: false,
-                        padding: EdgeInsets.zero,
-                      ),
-                    ),
-                    const SizedBox(height: 16),
-                    // Dropdowns shimmer
-                    Padding(
-                      padding: const EdgeInsets.symmetric(horizontal: 16),
-                      child: Row(children: [
-                        Expanded(child: _skeletonDropdown()),
-                        const SizedBox(width: 8),
-                        Expanded(child: _skeletonDropdown()),
-                      ]),
-                    ),
-                    const SizedBox(height: 1),
-                  ],
-                ),
               Expanded(
                 child: ShimmerList(
-                  type: ShimmerListType.moduleGrid,
-                  itemCount: 8,
+                  type: ShimmerListType.grid,
+                  itemCount: _currentModules.length,
                   crossAxisCount: 2,
                   padding:
                       const EdgeInsets.symmetric(horizontal: 20, vertical: 16),
@@ -577,27 +574,6 @@ class _ModuleScreenState extends ConsumerState<ModuleScreen> {
               ),
             ],
           ),
-        ),
-      ),
-    );
-  }
-
-  Widget _skeletonDropdown() {
-    return Container(
-      height: 48,
-      decoration: BoxDecoration(
-        color: Colors.white,
-        borderRadius: BorderRadius.circular(12),
-        border: Border.all(color: Colors.grey.withOpacity(0.2)),
-      ),
-      child: const Padding(
-        padding: EdgeInsets.symmetric(horizontal: 12),
-        child: Row(
-          mainAxisAlignment: MainAxisAlignment.spaceBetween,
-          children: [
-            ShimmerBox(width: 80, height: 14),
-            Icon(Icons.arrow_drop_down, color: Colors.grey),
-          ],
         ),
       ),
     );
@@ -616,45 +592,7 @@ class _ModuleScreenState extends ConsumerState<ModuleScreen> {
 
     return homeModuleAsync.when(
       loading: () => _buildLoadingState(),
-      error: (e, _) => Scaffold(
-        body: Center(
-          child: Padding(
-            padding: const EdgeInsets.all(32.0),
-            child: Column(
-              mainAxisAlignment: MainAxisAlignment.center,
-              children: [
-                const Icon(Icons.cloud_off_rounded,
-                    size: 64, color: Colors.redAccent),
-                const SizedBox(height: 24),
-                const Text(
-                  "Something went wrong",
-                  style: TextStyle(fontSize: 20, fontWeight: FontWeight.bold),
-                ),
-                const SizedBox(height: 12),
-                Text(
-                  e.toString(),
-                  textAlign: TextAlign.center,
-                  style: TextStyle(color: Colors.grey.shade600),
-                ),
-                const SizedBox(height: 32),
-                ElevatedButton(
-                  onPressed: () =>
-                      ref.invalidate(languageModuleProvider('home')),
-                  style: ElevatedButton.styleFrom(
-                    backgroundColor: const Color(0xFF1A73E8),
-                    foregroundColor: Colors.white,
-                    padding: const EdgeInsets.symmetric(
-                        horizontal: 32, vertical: 16),
-                    shape: RoundedRectangleBorder(
-                        borderRadius: BorderRadius.circular(16)),
-                  ),
-                  child: const Text("Try Again"),
-                ),
-              ],
-            ),
-          ),
-        ),
-      ),
+      error: (e, _) => _buildLoadingState(),
       data: (homeData) {
         final t = Translator(homeData);
 
@@ -853,26 +791,18 @@ class _ModuleScreenState extends ConsumerState<ModuleScreen> {
                                               final bool isSetupTab =
                                                   _currentIndex == 1;
 
-                                              if (_checkpoint ==
-                                                      TourCheckpoint.site &&
-                                                  isSetupTab &&
-                                                  item.routeName == "/site") {
+                                              if (isSetupTab &&
+                                                  item.routeName == '/site') {
                                                 card = Showcase(
-                                                    key: TourRegistry
-                                                        .siteModuleKey,
-                                                    description:
-                                                        "Add your Site here ✅",
-                                                    disposeOnTap: true,
-                                                    onTargetClick: () async {
-                                                      await ref
-                                                          .read(
-                                                              tourPersistenceProvider)
-                                                          .markSiteDone();
-                                                      setState(() =>
-                                                          _tourChecked = false);
-                                                    },
-                                                    child: card);
-                                              } else if (_checkpoint ==
+                                                  key: SiteRegistry
+                                                      .siteModuleCardKey,
+                                                  description:
+                                                      'Tap Site Details to begin setup.',
+                                                  child: card,
+                                                );
+                                              }
+
+                                              if (_checkpoint ==
                                                       TourCheckpoint.rate &&
                                                   isSetupTab &&
                                                   item.routeName ==
@@ -1021,6 +951,7 @@ class _ModuleScreenState extends ConsumerState<ModuleScreen> {
                         _handleBottomNavTap(index);
                       }
                     },
+                    backgroundColor: Colors.white,
                     selectedItemColor: Colors.black,
                     unselectedItemColor: Colors.grey,
                     selectedLabelStyle: const TextStyle(color: Colors.black),

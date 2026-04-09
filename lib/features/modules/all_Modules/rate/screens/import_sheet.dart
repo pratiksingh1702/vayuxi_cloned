@@ -3,6 +3,7 @@ import 'package:dio/dio.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:file_picker/file_picker.dart';
+import 'package:go_router/go_router.dart';
 import 'package:untitled2/core/utlis/colors/colors.dart';
 import 'package:untitled2/core/utlis/widgets/image_clipped.dart';
 import 'package:untitled2/features/modules/all_Modules/rate/data/rateApi.dart';
@@ -90,16 +91,15 @@ class _ImportCsvScreenState extends ConsumerState<ImportCsvScreen> {
       //   type!,
       //   siteId!,
       // );
-      final jobId = ref.read(uploadManagerProvider.notifier).enqueue(
+      ref.read(uploadManagerProvider.notifier).enqueue(
         UploadJob.create(
           moduleId: 'rate',
           filePath: _selectedFile!.path!,
           metadata: {'siteId': siteId, 'type': type},
-          targetRoute: '/rate',     // optional: shown as "View" button
+          targetRoute: '/site-list/rate',
           maxRetries: 2,
         ),
       );
-      print(jobId);
       await ref.read(tourPersistenceProvider).markRateDone();
 
 
@@ -109,6 +109,8 @@ class _ImportCsvScreenState extends ConsumerState<ImportCsvScreen> {
       });
 
       AppToast.success("✅ File added to upload queue");
+      if (!mounted) return;
+      context.go('/site-list/rate');
 
 
       // if (result['success'] == true) {

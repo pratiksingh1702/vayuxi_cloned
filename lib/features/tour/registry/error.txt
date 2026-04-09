@@ -1,0 +1,29 @@
+er (17668): 🧭 [ROUTER] SiteSelectCardGrid | path: /site
+I/flutter (17668): Color(alpha: 1.0000, red: 0.8118, green: 0.9098, blue: 0.9804, colorSpace: ColorSpace.sRGB)
+I/flutter (17668): color at clipped 😑😑😑
+I/flutter (17668): 🧭 [ROUTER] WorkCategoryScreen | path: /workCategory
+I/flutter (17668): 🧭 [ROUTER] ModuleScreen | path: /select-module | extra: {initialIndex: 0}
+I/flutter (17668): Color(alpha: 1.0000, red: 0.8118, green: 0.9098, blue: 0.9804, colorSpace: ColorSpace.sRGB)
+I/flutter (17668): color at clipped 😑😑😑
+I/flutter (17668): ⏳ ModuleScreen showcase blocked: route not current
+I/flutter (17668): 🎬 Site page reached → Starting Site tour
+I/flutter (17668): ▶️ TourController: started module=site step=1
+W/WindowOnBackDispatcher(17668): OnBackInvokedCallback is not enabled for the application.
+W/WindowOnBackDispatcher(17668): Set 'android:enableOnBackInvokedCallback="true"' in the application manifest.
+D/TTS     (17668): Utterance ID has started: 531afbcf-1c66-41b8-9a15-a1e2a0b2ff92
+I/flutter (17668): 📡 TourController: received event=add_site_tapped, required=import_sheet_tapped
+I/flutter (17668): Color(alpha: 1.0000, red: 0.8118, green: 0.9098, blue: 0.9804, colorSpace: ColorSpace.sRGB)
+I/flutter (17668): color at clipped 😑😑😑
+D/TTS     (17668): Utterance ID has completed: 531afbcf-1c66-41b8-9a15-a1e2a0b2ff92
+I/flutter (17668): 💡 TourController: hint shown for step site_tap_import
+D/TTS     (17668): Utterance ID has started: ca7ed08d-84e4-4337-829b-43fb36ea3573
+I/flutter (17668): 📡 TourController: received event=import_sheet_tapped, required=import_sheet_tapped
+I/flutter (17668): ✅ TourController: event matched — advancing
+I/flutter (17668): Color(alpha: 1.0000, red: 0.8118, green: 0.9098, blue: 0.9804, colorSpace: ColorSpace.sRGB)
+I/flutter (17668): color at clipped 😑😑😑
+I/flutter (17668): ⏭ TourController: moved to step 2
+D/TTS     (17668): Utterance ID has been stopped: ca7ed08d-84e4-4337-829b-43fb36ea3573. Interrupted: true
+I/flutter (17668): Color(alpha: 1.0000, red: 0.8118, green: 0.9098, blue: 0.9804, colorSpace: ColorSpace.sRGB)
+I/flutter (17668): color at clipped 😑😑😑
+I/flutter (17668): 😴 No pending requests → skip
+D/TTS     (17668): Utterance ID has started: d39d232f-832e-4842-8c32-f85baf8c52c9

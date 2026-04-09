@@ -207,7 +207,19 @@ class AppAccessNotifier extends StateNotifier<AppAccessState> {
       return;
     }
 
-    // ── 3. Emit cached state immediately → app opens with no spinner ─────────
+    // ── 3. Logged in → preload user FIRST (blocking) ───────────────────────
+    // This prevents downstream providers (e.g. languageModuleProvider on
+    // ModuleScreen) from throwing "User not loaded" during first render.
+    print('👤 [AppAccess] Logged in — preloading user BEFORE app access emit...');
+    try {
+      await _prewarmUser();
+      print('👤 [AppAccess] User preload completed before boot release ✅');
+    } catch (e) {
+      // Do not hard-fail boot; retain offline-first behavior.
+      print('👤 [AppAccess] User preload failed before boot release ❌ — $e');
+    }
+
+    // ── 4. Emit cached state immediately → app opens with no spinner ─────────
     print('📦 [AppAccess] Reading cached access flags...');
     final cached = await _AppAccessCache.read();
     print('   ├─ onboardingCompleted : ${cached.onboardingCompleted}');
@@ -225,14 +237,13 @@ class AppAccessNotifier extends StateNotifier<AppAccessState> {
     );
     print('✅ [AppAccess] Cached state emitted — app is visible immediately');
 
-    // ── 4. Background syncs in parallel ──────────────────────────────────────
+    // ── 5. Background syncs in parallel ──────────────────────────────────────
     // _syncOnboardingAndSubscription will call evaluate() when done.
     print('🔄 [AppAccess] Starting parallel background syncs...');
     await Future.wait([
       _syncOnboardingAndSubscription(cached),
       // _prewarmSites(auth),
       // _prewarmLanguage(auth),
-      _prewarmUser(),
     ]);
 
     print('🚀 [AppAccess] ══════════ INITIALIZE COMPLETE ══════════\n');

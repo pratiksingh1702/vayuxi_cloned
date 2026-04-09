@@ -1,6 +1,10 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
+import 'package:untitled2/core/router/app_router.dart';
+import 'package:untitled2/core/router/routes.dart';
+import 'package:untitled2/features/tour/domain/tour_controller.dart';
+import 'package:untitled2/features/tour/registry/site_registry.dart';
 import '../../../features/auth/provider/auth_provider.dart';
 import '../../../features/modules/screen/device_id.dart';
 import '../../../features/modules/screen/device_id_helper.dart';
@@ -36,10 +40,10 @@ class CustomDrawer extends ConsumerWidget {
   }
 
   Future<void> _handleNavigation(
-      BuildContext context,
-      String route,
-      bool requiresVerification,
-      ) async {
+    BuildContext context,
+    String route,
+    bool requiresVerification,
+  ) async {
     Navigator.pop(context);
 
     if (!requiresVerification) {
@@ -53,7 +57,8 @@ class CustomDrawer extends ConsumerWidget {
       if (context.mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
           const SnackBar(
-            content: Text("Device not verified. Please verify first to access this feature."),
+            content: Text(
+                "Device not verified. Please verify first to access this feature."),
             backgroundColor: _danger,
             behavior: SnackBarBehavior.floating,
           ),
@@ -97,6 +102,91 @@ class CustomDrawer extends ConsumerWidget {
     }
   }
 
+  Future<void> _showTourRestartOptions(
+      BuildContext context, WidgetRef ref) async {
+    final ctrl = ref.read(tourControllerProvider.notifier);
+    final router = ref.read(appRouterProvider);
+
+    Navigator.pop(context);
+
+    if (!context.mounted) return;
+
+    await showModalBottomSheet<void>(
+      context: context,
+      showDragHandle: true,
+      backgroundColor: Colors.white,
+      shape: const RoundedRectangleBorder(
+        borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
+      ),
+      builder: (sheetContext) {
+        return SafeArea(
+          child: Padding(
+            padding: const EdgeInsets.fromLTRB(16, 8, 16, 20),
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                const Text(
+                  'Restart Demo',
+                  style: TextStyle(fontSize: 18, fontWeight: FontWeight.w700),
+                ),
+                const SizedBox(height: 6),
+                Text(
+                  'Choose full replay or a specific module.',
+                  style: TextStyle(
+                    color: _textSecondary,
+                    fontSize: 13,
+                    fontWeight: FontWeight.w500,
+                  ),
+                ),
+                const SizedBox(height: 14),
+                ListTile(
+                  contentPadding: EdgeInsets.zero,
+                  leading: const Icon(Icons.refresh_rounded, color: _primary),
+                  title: const Text('Complete Demo'),
+                  subtitle: const Text(
+                      'Reset all tour progress and replay from start'),
+                  onTap: () async {
+                    Navigator.pop(sheetContext);
+                    await ctrl.resetAllAndStartModule(SiteRegistry.module);
+                    // Use router directly because drawer/sheet contexts can unmount after pop.
+                    router.go(SiteRegistry.module.steps.first.route);
+                    if (context.mounted) {
+                      ScaffoldMessenger.of(context).showSnackBar(
+                        const SnackBar(
+                            content: Text('Complete demo restarted')),
+                      );
+                    }
+                  },
+                ),
+                const Divider(height: 12),
+                ListTile(
+                  contentPadding: EdgeInsets.zero,
+                  leading: const Text('🏗️', style: TextStyle(fontSize: 20)),
+                  title: const Text('Site Module Demo'),
+                  subtitle: const Text('Replay only the Site onboarding flow'),
+                  onTap: () async {
+                    Navigator.pop(sheetContext);
+                    await ctrl
+                        .resetModuleAndStartFromBeginning(SiteRegistry.module);
+                    // Use router directly because drawer/sheet contexts can unmount after pop.
+                    router.go(Routes.site);
+                    if (context.mounted) {
+                      ScaffoldMessenger.of(context).showSnackBar(
+                        const SnackBar(
+                            content: Text('Site module demo restarted')),
+                      );
+                    }
+                  },
+                ),
+              ],
+            ),
+          ),
+        );
+      },
+    );
+  }
+
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final scrollController = ScrollController();
@@ -115,201 +205,208 @@ class CustomDrawer extends ConsumerWidget {
                     physics: const BouncingScrollPhysics(),
                     children: [
                       const SizedBox(height: 4),
-                    _buildNavItem(
-                      context,
-                      imagePath: "assets/images/icons/dashboard.webp",
-                      title: 'Home',
-                      route: '/workCategory',
-                      requiresVerification: false,
-                    ),
-                    const SizedBox(height: 8),
-                    _buildManualSyncCard(context, ref),
-                    const SizedBox(height: 8),
-                    AccordionSection(
-                      title: 'DAILY OPERATIONS',
-                      children: [
-                        _buildNavItem(
-                          context,
-                          imagePath: "assets/images/icons/attendance.webp",
-                          title: 'Attendance',
-                          route: '/site-list/attendance',
-                          requiresVerification: false,
-                        ),
-                        _buildNavItem(
-                          context,
-                          imagePath: "assets/images/icons/dpr.webp",
-                          title: 'Daily Progress',
-                          route: '/site-list/dpr',
-                          requiresVerification: false,
-                        ),
-                        _buildNavItem(
-                          context,
-                          imagePath: "assets/images/icons/expense_daily.webp",
-                          title: 'Expense Entry',
-                          route: '/site-list/add-exp',
-                          requiresVerification: false,
-                        ),
-                        _buildNavItem(
-                          context,
-                          imagePath: "assets/images/icons/inventory_entry.webp",
-                          title: 'Inventory Entry',
-                          route: '/site-list/inv-entry',
-                          requiresVerification: false,
-                        ),
-                      ],
-                    ),
-                    AccordionSection(
-                      title: 'SETUP & CONFIGURATION',
-                      children: [
-                        _buildNavItem(
-                          context,
-                          imagePath: "assets/images/icons/site_details.webp",
-                          title: 'Site Details',
-                          route: '/site',
-                          requiresVerification: true,
-                        ),
-                        _buildNavItem(
-                          context,
-                          imagePath: "assets/images/icons/rate.webp",
-                          title: 'Rate Management',
-                          route: '/site-list/rate',
-                          requiresVerification: true,
-                        ),
-                        _buildNavItem(
-                          context,
-                          imagePath: "assets/images/icons/manpower_setup.webp",
-                          title: 'Manpower Details',
-                          route: '/manpower',
-                          requiresVerification: true,
-                        ),
-                        _buildNavItem(
-                          context,
-                          imagePath: "assets/images/icons/add_team.webp",
-                          title: 'Team Management',
-                          route: '/site-list/team',
-                          requiresVerification: true,
-                        ),
-                        _buildNavItem(
-                          context,
-                          imagePath: "assets/images/icons/dpr_setup.webp",
-                          title: 'DPR Setup',
-                          route: '/site-list/addMoc',
-                          requiresVerification: true,
-                        ),
-                        _buildNavItem(
-                          context,
-                          imagePath: "assets/images/icons/inventory_setup.webp",
-                          title: 'Inventory Setup',
-                          route: '/site-list/inv-setup',
-                          requiresVerification: true,
-                        ),
-                      ],
-                    ),
-                    AccordionSection(
-                      title: 'REPORTS & ANALYSIS',
-                      children: [
-                        _buildNavItem(
-                          context,
-                          imagePath: "assets/images/icons/summary_analysis.webp",
-                          title: 'Summary & Analysis',
-                          route: '/summary',
-                          requiresVerification: true,
-                        ),
-                        _buildNavItem(
-                          context,
-                          imagePath: "assets/images/icons/ai_analysis.webp",
-                          title: 'AI Analysis',
-                          route: '/analysis',
-                          requiresVerification: true,
-                        ),
-                        _buildNavItem(
-                          context,
-                          imagePath: "assets/images/icons/salary_slip.webp",
-                          title: 'Salary Reports',
-                          route: '/salary',
-                          requiresVerification: true,
-                        ),
-                        _buildNavItem(
-                          context,
-                          imagePath: "assets/images/icons/dpr_report.webp",
-                          title: 'DPR Sheets',
-                          route: '/site-list/dprReport',
-                          requiresVerification: true,
-                        ),
-                        _buildNavItem(
-                          context,
-                          imagePath: "assets/images/icons/expense_sheet.webp",
-                          title: 'Expense Report',
-                          route: '/site-list/expense',
-                          requiresVerification: true,
-                        ),
-                        _buildNavItem(
-                          context,
-                          imagePath: "assets/images/icons/attendance_sheet.webp",
-                          title: 'Attendance Sheet',
-                          route: '/site-list/att-sheet',
-                          requiresVerification: true,
-                        ),
-                        _buildNavItem(
-                          context,
-                          imagePath: "assets/images/icons/inventory_summary.webp",
-                          title: 'Inventory Report',
-                          route: '/site-list/inv-Report',
-                          requiresVerification: true,
-                        ),
-                      ],
-                    ),
-                    AccordionSection(
-                      title: 'SETTINGS',
-                      children: [
-                        _buildNavItem(
-                          context,
-                          imagePath: "assets/images/icons/profile.webp",
-                          title: 'Profile',
-                          route: '/profile',
-                          requiresVerification: true,
-                        ),
-                        _buildNavItem(
-                          context,
-                          imagePath: "assets/images/icons/subscription.webp",
-                          title: 'Subscription',
-                          route: '/subscription',
-                          requiresVerification: true,
-                        ),
-                        _buildNavItem(
-                          context,
-                          imagePath: "assets/images/icons/theme.webp",
-                          title: 'Theme',
-                          route: '/theme',
-                          requiresVerification: true,
-                        ),
-                        _buildNavItem(
-                          context,
-                          imagePath: "assets/images/icons/language.webp",
-                          title: 'Language',
-                          route: '/language',
-                          requiresVerification: true,
-                        ),
-                        _buildNavItem(
-                          context,
-                          imagePath: "assets/images/icons/updates.webp",
-                          title: 'What\'s New',
-                          route: '/upcoming-update',
-                          requiresVerification: true,
-                        ),
-                        _buildNavItem(
-                          context,
-                          imagePath: "assets/images/icons/help.webp",
-                          title: 'Help & Support',
-                          route: '/help',
-                          requiresVerification: true,
-                        ),
-                      ],
-                    ),
-                    const SizedBox(height: 24),
-                  ],
+                      _buildNavItem(
+                        context,
+                        imagePath: "assets/images/icons/dashboard.webp",
+                        title: 'Home',
+                        route: '/workCategory',
+                        requiresVerification: false,
+                      ),
+                      const SizedBox(height: 8),
+                      _buildManualSyncCard(context, ref),
+                      const SizedBox(height: 8),
+                      AccordionSection(
+                        title: 'DAILY OPERATIONS',
+                        children: [
+                          _buildNavItem(
+                            context,
+                            imagePath: "assets/images/icons/attendance.webp",
+                            title: 'Attendance',
+                            route: '/site-list/attendance',
+                            requiresVerification: false,
+                          ),
+                          _buildNavItem(
+                            context,
+                            imagePath: "assets/images/icons/dpr.webp",
+                            title: 'Daily Progress',
+                            route: '/site-list/dpr',
+                            requiresVerification: false,
+                          ),
+                          _buildNavItem(
+                            context,
+                            imagePath: "assets/images/icons/expense_daily.webp",
+                            title: 'Expense Entry',
+                            route: '/site-list/add-exp',
+                            requiresVerification: false,
+                          ),
+                          _buildNavItem(
+                            context,
+                            imagePath:
+                                "assets/images/icons/inventory_entry.webp",
+                            title: 'Inventory Entry',
+                            route: '/site-list/inv-entry',
+                            requiresVerification: false,
+                          ),
+                        ],
+                      ),
+                      AccordionSection(
+                        title: 'SETUP & CONFIGURATION',
+                        children: [
+                          _buildNavItem(
+                            context,
+                            imagePath: "assets/images/icons/site_details.webp",
+                            title: 'Site Details',
+                            route: '/site',
+                            requiresVerification: true,
+                          ),
+                          _buildNavItem(
+                            context,
+                            imagePath: "assets/images/icons/rate.webp",
+                            title: 'Rate Management',
+                            route: '/site-list/rate',
+                            requiresVerification: true,
+                          ),
+                          _buildNavItem(
+                            context,
+                            imagePath:
+                                "assets/images/icons/manpower_setup.webp",
+                            title: 'Manpower Details',
+                            route: '/manpower',
+                            requiresVerification: true,
+                          ),
+                          _buildNavItem(
+                            context,
+                            imagePath: "assets/images/icons/add_team.webp",
+                            title: 'Team Management',
+                            route: '/site-list/team',
+                            requiresVerification: true,
+                          ),
+                          _buildNavItem(
+                            context,
+                            imagePath: "assets/images/icons/dpr_setup.webp",
+                            title: 'DPR Setup',
+                            route: '/site-list/addMoc',
+                            requiresVerification: true,
+                          ),
+                          _buildNavItem(
+                            context,
+                            imagePath:
+                                "assets/images/icons/inventory_setup.webp",
+                            title: 'Inventory Setup',
+                            route: '/site-list/inv-setup',
+                            requiresVerification: true,
+                          ),
+                        ],
+                      ),
+                      AccordionSection(
+                        title: 'REPORTS & ANALYSIS',
+                        children: [
+                          _buildNavItem(
+                            context,
+                            imagePath:
+                                "assets/images/icons/summary_analysis.webp",
+                            title: 'Summary & Analysis',
+                            route: '/summary',
+                            requiresVerification: true,
+                          ),
+                          _buildNavItem(
+                            context,
+                            imagePath: "assets/images/icons/ai_analysis.webp",
+                            title: 'AI Analysis',
+                            route: '/analysis',
+                            requiresVerification: true,
+                          ),
+                          _buildNavItem(
+                            context,
+                            imagePath: "assets/images/icons/salary_slip.webp",
+                            title: 'Salary Reports',
+                            route: '/salary',
+                            requiresVerification: true,
+                          ),
+                          _buildNavItem(
+                            context,
+                            imagePath: "assets/images/icons/dpr_report.webp",
+                            title: 'DPR Sheets',
+                            route: '/site-list/dprReport',
+                            requiresVerification: true,
+                          ),
+                          _buildNavItem(
+                            context,
+                            imagePath: "assets/images/icons/expense_sheet.webp",
+                            title: 'Expense Report',
+                            route: '/site-list/expense',
+                            requiresVerification: true,
+                          ),
+                          _buildNavItem(
+                            context,
+                            imagePath:
+                                "assets/images/icons/attendance_sheet.webp",
+                            title: 'Attendance Sheet',
+                            route: '/site-list/att-sheet',
+                            requiresVerification: true,
+                          ),
+                          _buildNavItem(
+                            context,
+                            imagePath:
+                                "assets/images/icons/inventory_summary.webp",
+                            title: 'Inventory Report',
+                            route: '/site-list/inv-Report',
+                            requiresVerification: true,
+                          ),
+                        ],
+                      ),
+                      AccordionSection(
+                        title: 'SETTINGS',
+                        children: [
+                          _buildNavItem(
+                            context,
+                            imagePath: "assets/images/icons/profile.webp",
+                            title: 'Profile',
+                            route: '/profile',
+                            requiresVerification: true,
+                          ),
+                          _buildNavItem(
+                            context,
+                            imagePath: "assets/images/icons/subscription.webp",
+                            title: 'Subscription',
+                            route: '/subscription',
+                            requiresVerification: true,
+                          ),
+                          _buildNavItem(
+                            context,
+                            imagePath: "assets/images/icons/theme.webp",
+                            title: 'Theme',
+                            route: '/theme',
+                            requiresVerification: true,
+                          ),
+                          _buildNavItem(
+                            context,
+                            imagePath: "assets/images/icons/language.webp",
+                            title: 'Language',
+                            route: '/language',
+                            requiresVerification: true,
+                          ),
+                          _buildNavItem(
+                            context,
+                            imagePath: "assets/images/icons/updates.webp",
+                            title: 'What\'s New',
+                            route: '/upcoming-update',
+                            requiresVerification: true,
+                          ),
+                          _buildNavItem(
+                            context,
+                            imagePath: "assets/images/icons/help.webp",
+                            title: 'Help & Support',
+                            route: '/help',
+                            requiresVerification: true,
+                          ),
+                        ],
+                      ),
+                      const SizedBox(height: 24),
+                    ],
+                  ),
                 ),
-              ),),
+              ),
               _buildDrawerFooter(context, ref),
             ],
           ),
@@ -319,12 +416,12 @@ class CustomDrawer extends ConsumerWidget {
   }
 
   Widget _buildNavItem(
-      BuildContext context, {
-        required String imagePath,
-        required String title,
-        required String route,
-        required bool requiresVerification,
-      }) {
+    BuildContext context, {
+    required String imagePath,
+    required String title,
+    required String route,
+    required bool requiresVerification,
+  }) {
     String currentRoute = '';
     bool isActive = false;
 
@@ -351,12 +448,12 @@ class CustomDrawer extends ConsumerWidget {
               borderRadius: BorderRadius.circular(12),
               boxShadow: isActive
                   ? [
-                BoxShadow(
-                  color: _primary.withOpacity(0.08),
-                  blurRadius: 8,
-                  offset: const Offset(0, 2),
-                ),
-              ]
+                      BoxShadow(
+                        color: _primary.withOpacity(0.08),
+                        blurRadius: 8,
+                        offset: const Offset(0, 2),
+                      ),
+                    ]
                   : null,
             ),
             child: Row(
@@ -369,7 +466,6 @@ class CustomDrawer extends ConsumerWidget {
                     imagePath,
                     width: 20,
                     height: 20,
-
                     fit: BoxFit.contain,
                     errorBuilder: (context, error, stackTrace) {
                       return Icon(
@@ -523,23 +619,24 @@ class CustomDrawer extends ConsumerWidget {
                         color: _surfaceElevated,
                       ),
                       child: ClipOval(
-                        child: user?.profilePhoto != null && user!.profilePhoto!.isNotEmpty
+                        child: user?.profilePhoto != null &&
+                                user!.profilePhoto!.isNotEmpty
                             ? Image.network(
-                          user.profilePhoto!,
-                          fit: BoxFit.cover,
-                          errorBuilder: (context, error, stackTrace) {
-                            return Icon(
-                              Icons.person_outline,
-                              size: 24,
-                              color: _textSecondary,
-                            );
-                          },
-                        )
+                                user.profilePhoto!,
+                                fit: BoxFit.cover,
+                                errorBuilder: (context, error, stackTrace) {
+                                  return Icon(
+                                    Icons.person_outline,
+                                    size: 24,
+                                    color: _textSecondary,
+                                  );
+                                },
+                              )
                             : Icon(
-                          Icons.person_outline,
-                          size: 24,
-                          color: _textSecondary,
-                        ),
+                                Icons.person_outline,
+                                size: 24,
+                                color: _textSecondary,
+                              ),
                       ),
                     ),
                     const SizedBox(width: 12),
@@ -576,6 +673,42 @@ class CustomDrawer extends ConsumerWidget {
                 ),
               ),
               const SizedBox(height: 12),
+              Material(
+                color: Colors.transparent,
+                child: InkWell(
+                  onTap: () => _showTourRestartOptions(context, ref),
+                  borderRadius: BorderRadius.circular(12),
+                  child: Container(
+                    padding: const EdgeInsets.symmetric(vertical: 10),
+                    decoration: BoxDecoration(
+                      color: _primaryLight,
+                      borderRadius: BorderRadius.circular(12),
+                      border: Border.all(color: _primary.withOpacity(0.2)),
+                    ),
+                    child: Row(
+                      mainAxisAlignment: MainAxisAlignment.center,
+                      children: [
+                        Icon(
+                          Icons.assistant_navigation,
+                          size: 16,
+                          color: _primary,
+                        ),
+                        const SizedBox(width: 8),
+                        Text(
+                          'Restart Demo',
+                          style: TextStyle(
+                            fontSize: 13,
+                            fontWeight: FontWeight.w700,
+                            color: _primary,
+                            letterSpacing: -0.2,
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+                ),
+              ),
+              const SizedBox(height: 10),
               // Logout Button
               Material(
                 color: Colors.transparent,
@@ -755,7 +888,8 @@ class AccordionSection extends ConsumerWidget {
                   },
                   borderRadius: BorderRadius.circular(4),
                   child: Padding(
-                    padding: const EdgeInsets.symmetric(vertical: 4, horizontal: 2),
+                    padding:
+                        const EdgeInsets.symmetric(vertical: 4, horizontal: 2),
                     child: Text(
                       title,
                       style: const TextStyle(

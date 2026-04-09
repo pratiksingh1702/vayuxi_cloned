@@ -56,10 +56,10 @@ class _AllInsulationMaterialsScreenState
 
       // Background sync for offline materials
       ref.read(materialRepositoryProvider).syncInBackground(
-        siteId: siteId,
-        domain: 'insulation',
-        designation: '',
-      );
+            siteId: siteId,
+            domain: 'insulation',
+            designation: '',
+          );
 
       // Load MaterialSetup configs for dynamic card rendering
       _loadMaterialSetups(siteId);
@@ -151,8 +151,8 @@ class _AllInsulationMaterialsScreenState
     return PipingMaterial(
       // ✅ ALWAYS use local DB fields — never the stale JSON
       id: m.serverId ?? m.id.toString(),
-      name: m.name,                    // ← from local.name, NOT json
-      image: m.images,                 // ← from local.images, NOT json
+      name: m.name, // ← from local.name, NOT json
+      image: m.images, // ← from local.images, NOT json
       uom: m.uom ?? '',
       materialCode: m.materialCode,
       cardFormState: m.savedCardFormState,
@@ -176,12 +176,15 @@ class _AllInsulationMaterialsScreenState
       diameterB2: (cachedJson?['diameter_b2'] as num?)?.toDouble() ?? 0,
       diameterA1: (cachedJson?['diameter_a1'] as num?)?.toDouble() ?? 0,
       diameterB1: (cachedJson?['diameter_b1'] as num?)?.toDouble() ?? 0,
-      circumferenceFinal: (cachedJson?['circumference_final'] as num?)?.toDouble() ?? 0,
+      circumferenceFinal:
+          (cachedJson?['circumference_final'] as num?)?.toDouble() ?? 0,
       layer1Area: (cachedJson?['layer_1_area'] as num?)?.toDouble() ?? 0,
       layer2Area: (cachedJson?['layer_2_area'] as num?)?.toDouble() ?? 0,
       layer3Area: (cachedJson?['layer_3_area'] as num?)?.toDouble() ?? 0,
-      circumference2Calc: (cachedJson?['circumference_2_calc'] as num?)?.toDouble() ?? 0,
-      circumference1Calc: (cachedJson?['circumference_1_calc'] as num?)?.toDouble() ?? 0,
+      circumference2Calc:
+          (cachedJson?['circumference_2_calc'] as num?)?.toDouble() ?? 0,
+      circumference1Calc:
+          (cachedJson?['circumference_1_calc'] as num?)?.toDouble() ?? 0,
       o3: (cachedJson?['o3'] as num?)?.toDouble() ?? 0,
       o2: (cachedJson?['o2'] as num?)?.toDouble() ?? 0,
       o1: (cachedJson?['o1'] as num?)?.toDouble() ?? 0,
@@ -237,9 +240,9 @@ class _AllInsulationMaterialsScreenState
   // ─────────────────────────────────────────────
 
   Future<void> _updatePipingMaterial(
-      LocalMaterial local,
-      PipingMaterial updated,
-      ) async {
+    LocalMaterial local,
+    PipingMaterial updated,
+  ) async {
     final repo = ref.read(materialRepositoryProvider);
     final dao = LocalMaterialDao();
 
@@ -263,9 +266,9 @@ class _AllInsulationMaterialsScreenState
   }
 
   Future<void> _updateEquipmentMaterial(
-      LocalMaterial local,
-      EquipmentMaterial updated,
-      ) async {
+    LocalMaterial local,
+    EquipmentMaterial updated,
+  ) async {
     final repo = ref.read(materialRepositoryProvider);
     final dao = LocalMaterialDao();
 
@@ -292,22 +295,19 @@ class _AllInsulationMaterialsScreenState
   // DELETE
   // ─────────────────────────────────────────────
 
-  Future<void> _deleteSelectedMaterials(
-      List<LocalMaterial> materials) async {
+  Future<void> _deleteSelectedMaterials(List<LocalMaterial> materials) async {
     if (selectedIds.isEmpty) return;
 
     final confirmed = await _confirmDialog(
       title: 'Delete Selected Materials',
-      message:
-      'Delete ${selectedIds.length} material(s)?',
+      message: 'Delete ${selectedIds.length} material(s)?',
     );
     if (confirmed != true) return;
 
     try {
       final repo = ref.read(materialRepositoryProvider);
-      final selected = materials
-          .where((m) => selectedIds.contains(m.id))
-          .toList();
+      final selected =
+          materials.where((m) => selectedIds.contains(m.id)).toList();
       final serverIds = selected
           .where((m) => m.serverId != null)
           .map((m) => m.serverId!)
@@ -321,8 +321,7 @@ class _AllInsulationMaterialsScreenState
       }
 
       if (!mounted) return;
-      _showSnack('Deleted ${selected.length} material(s)',
-          isError: false);
+      _showSnack('Deleted ${selected.length} material(s)', isError: false);
       setState(() {
         selectedIds.clear();
         isDeleteMode = false;
@@ -370,8 +369,7 @@ class _AllInsulationMaterialsScreenState
         ..designation = original.designation
         ..name = response['data']['name'] as String
         ..uom = response['data']['uom'] as String?
-        ..images =
-        List<String>.from(response['data']['image'] ?? [])
+        ..images = List<String>.from(response['data']['image'] ?? [])
         ..isDirty = false;
       // Note: cardFormStateJson is intentionally NOT copied —
       // the copied card starts fresh (no shared state).
@@ -418,22 +416,33 @@ class _AllInsulationMaterialsScreenState
     final siteId = ref.watch(selectedSiteIdProvider);
 
     if (siteId == null) {
-      return const Scaffold(
-          body: Center(child: Text('No site selected')));
+      return const Scaffold(body: Center(child: Text('No site selected')));
     }
 
     final pipingAsync = ref.watch(materialsStreamProvider((
-
-    siteId: siteId,
-    domain: MaterialDomain.insulation.key,
-    designation: MaterialDesignation.piping.key,
+      siteId: siteId,
+      domain: MaterialDomain.insulation.key,
+      designation: MaterialDesignation.piping.key,
     )));
 
     final equipmentAsync = ref.watch(materialsStreamProvider((
-    siteId: siteId,
-    domain: MaterialDomain.insulation.key,
-    designation: MaterialDesignation.equipment.key,
+      siteId: siteId,
+      domain: MaterialDomain.insulation.key,
+      designation: MaterialDesignation.equipment.key,
     )));
+
+    if (pipingAsync.isLoading || equipmentAsync.isLoading) {
+      return Scaffold(
+        drawer: CustomDrawer(),
+        backgroundColor: AppColors.lightBlue,
+        appBar: CustomAppBar(
+          title: isDeleteMode
+              ? '${selectedIds.length} Selected'
+              : 'Insulation Materials',
+        ),
+        body: _buildLoadingState(),
+      );
+    }
 
     return Scaffold(
       drawer: CustomDrawer(),
@@ -451,8 +460,7 @@ class _AllInsulationMaterialsScreenState
         error: (e, _) => Center(child: Text('Error: $e')),
         data: (pipingMaterials) {
           final equipmentMaterials = equipmentAsync.value ?? [];
-          final isEmpty =
-              pipingMaterials.isEmpty && equipmentMaterials.isEmpty;
+          final isEmpty = pipingMaterials.isEmpty && equipmentMaterials.isEmpty;
 
           if (isEmpty) return _buildSetupState(siteId);
 
@@ -506,8 +514,7 @@ class _AllInsulationMaterialsScreenState
                   materials: pipingMaterials,
                   icon: Icons.precision_manufacturing,
                   color: Colors.blue,
-                  emptyMessage:
-                  'No piping insulation materials found',
+                  emptyMessage: 'No piping insulation materials found',
                   category: 'piping',
                 ),
                 _buildMaterialsTab(
@@ -515,8 +522,7 @@ class _AllInsulationMaterialsScreenState
                   materials: equipmentMaterials,
                   icon: Icons.build,
                   color: Colors.green,
-                  emptyMessage:
-                  'No equipment insulation materials found',
+                  emptyMessage: 'No equipment insulation materials found',
                   category: 'equipment',
                 ),
               ],
@@ -538,8 +544,7 @@ class _AllInsulationMaterialsScreenState
             const Icon(Icons.sync, size: 48, color: Colors.blue),
             const SizedBox(height: 20),
             const Text('Loading your materials…',
-                style: TextStyle(
-                    fontSize: 16, fontWeight: FontWeight.w500)),
+                style: TextStyle(fontSize: 16, fontWeight: FontWeight.w500)),
             const SizedBox(height: 24),
             progressAsync.when(
               data: (progress) => Column(
@@ -550,8 +555,8 @@ class _AllInsulationMaterialsScreenState
                       value: progress,
                       minHeight: 10,
                       backgroundColor: Colors.grey.shade200,
-                      valueColor: AlwaysStoppedAnimation<Color>(
-                          AppColors.primary),
+                      valueColor:
+                          AlwaysStoppedAnimation<Color>(AppColors.primary),
                     ),
                   ),
                   const SizedBox(height: 10),
@@ -569,6 +574,50 @@ class _AllInsulationMaterialsScreenState
             ),
           ],
         ),
+      ),
+    );
+  }
+
+  Widget _buildLoadingState() {
+    return SafeArea(
+      child: Column(
+        children: [
+          Container(
+            color: Colors.white,
+            child: const TabBar(
+              labelColor: AppColors.primary,
+              unselectedLabelColor: Colors.grey,
+              indicatorColor: AppColors.primary,
+              tabs: [
+                Tab(
+                  text: 'Piping Insulation',
+                  icon: Icon(Icons.precision_manufacturing),
+                ),
+                Tab(
+                  text: 'Equipment Insulation',
+                  icon: Icon(Icons.build),
+                ),
+              ],
+            ),
+          ),
+          Expanded(
+            child: TabBarView(
+              controller: _tabController,
+              children: [
+                _buildTabLoadingState(
+                  category: 'piping',
+                  color: Colors.blue,
+                  titleWidth: 170,
+                ),
+                _buildTabLoadingState(
+                  category: 'equipment',
+                  color: Colors.green,
+                  titleWidth: 185,
+                ),
+              ],
+            ),
+          ),
+        ],
       ),
     );
   }
@@ -597,8 +646,7 @@ class _AllInsulationMaterialsScreenState
                 isDeleteMode
                     ? '${selectedIds.length} / ${materials.length} selected'
                     : 'Total: ${materials.length}',
-                style: TextStyle(
-                    fontWeight: FontWeight.bold, color: color),
+                style: TextStyle(fontWeight: FontWeight.bold, color: color),
               ),
               Row(
                 children: [
@@ -609,19 +657,19 @@ class _AllInsulationMaterialsScreenState
                     ),
                     TextButton(
                       onPressed: () => setState(() {
-                        handleSelectAllToggle(materials.map((m) => m.id).toList());
+                        handleSelectAllToggle(
+                            materials.map((m) => m.id).toList());
                       }),
-                      child: Text(selectAllLabel(materials.map((m) => m.id).toList())),
+                      child: Text(
+                          selectAllLabel(materials.map((m) => m.id).toList())),
                     ),
                     const SizedBox(width: 8),
                     ElevatedButton.icon(
-                      icon:
-                      const Icon(Icons.delete_sweep, size: 18),
+                      icon: const Icon(Icons.delete_sweep, size: 18),
                       label: const Text('Delete'),
                       onPressed: selectedIds.isEmpty
                           ? null
-                          : () =>
-                          _deleteSelectedMaterials(materials),
+                          : () => _deleteSelectedMaterials(materials),
                       style: ElevatedButton.styleFrom(
                         backgroundColor: Colors.red,
                         foregroundColor: Colors.white,
@@ -629,8 +677,7 @@ class _AllInsulationMaterialsScreenState
                     ),
                   ] else ...[
                     IconButton(
-                      icon: const Icon(Icons.delete_sweep,
-                          color: Colors.red),
+                      icon: const Icon(Icons.delete_sweep, color: Colors.red),
                       onPressed: materials.isEmpty
                           ? null
                           : () => setState(() => toggleDeleteMode()),
@@ -638,8 +685,7 @@ class _AllInsulationMaterialsScreenState
                     ),
                     IconButton(
                       icon: Icon(Icons.add_circle, color: color),
-                      onPressed: () =>
-                          _addNewMaterial(siteId, category),
+                      onPressed: () => _addNewMaterial(siteId, category),
                       tooltip: 'Add Material',
                     ),
                   ],
@@ -659,7 +705,8 @@ class _AllInsulationMaterialsScreenState
                 final local = materials[index];
 
                 return Padding(
-                  padding: const EdgeInsets.only(bottom: 12), // adjust spacing here
+                  padding:
+                      const EdgeInsets.only(bottom: 12), // adjust spacing here
                   child: category == 'piping'
                       ? _buildPipingCard(local, color)
                       : _buildEquipmentCard(local, color),
@@ -667,6 +714,49 @@ class _AllInsulationMaterialsScreenState
               },
             ),
           ),
+      ],
+    );
+  }
+
+  Widget _buildTabLoadingState({
+    required String category,
+    required Color color,
+    required double titleWidth,
+  }) {
+    return Column(
+      children: [
+        Padding(
+          padding: const EdgeInsets.all(8.0),
+          child: Row(
+            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+            children: [
+              ShimmerBox(width: titleWidth, height: 14),
+              Row(
+                children: [
+                  ShimmerBox(width: 40, height: 40, borderRadius: 12),
+                  const SizedBox(width: 8),
+                  ShimmerBox(width: 40, height: 40, borderRadius: 12),
+                ],
+              ),
+            ],
+          ),
+        ),
+        Expanded(
+          child: ListView.separated(
+            physics: const NeverScrollableScrollPhysics(),
+            padding: const EdgeInsets.all(8),
+            itemCount: 5,
+            separatorBuilder: (_, __) => const SizedBox(height: 12),
+            itemBuilder: (context, index) {
+              return const ShimmerList(
+                type: ShimmerListType.card,
+                itemCount: 1,
+                scrollable: false,
+                padding: EdgeInsets.zero,
+              );
+            },
+          ),
+        ),
       ],
     );
   }
@@ -685,17 +775,16 @@ class _AllInsulationMaterialsScreenState
     return Stack(
       children: [
         Opacity(
-          opacity:
-          isDeleteMode && !isSelected ? 0.5 : 1.0,
+          opacity: isDeleteMode && !isSelected ? 0.5 : 1.0,
           child: IgnorePointer(
             ignoring: isDeleteMode,
             child: PipingMaterialCard(
               // Key by materialDataJson so card rebuilds when data changes
-              key: ValueKey('piping_${local.id}_${local.materialDataJson?.hashCode}'),
+              key: ValueKey(
+                  'piping_${local.id}_${local.materialDataJson?.hashCode}'),
               material: material,
               materialSetup: materialSetup, // ✅ drives dynamic mode
-              onChanged: (updated) =>
-                  _updatePipingMaterial(local, updated),
+              onChanged: (updated) => _updatePipingMaterial(local, updated),
               onAdd: () => _copyMaterial(local),
               onEdit: () {},
               onDelete: () => _deleteMaterial(local),
@@ -718,16 +807,15 @@ class _AllInsulationMaterialsScreenState
     return Stack(
       children: [
         Opacity(
-          opacity:
-          isDeleteMode && !isSelected ? 0.5 : 1.0,
+          opacity: isDeleteMode && !isSelected ? 0.5 : 1.0,
           child: IgnorePointer(
             ignoring: isDeleteMode,
             child: EquipmentMaterialCard(
-              key: ValueKey('equipment_${local.id}_${local.materialDataJson?.hashCode}'),
+              key: ValueKey(
+                  'equipment_${local.id}_${local.materialDataJson?.hashCode}'),
               material: material,
               materialSetup: materialSetup, // ✅ drives dynamic mode
-              onChanged: (updated) =>
-                  _updateEquipmentMaterial(local, updated),
+              onChanged: (updated) => _updateEquipmentMaterial(local, updated),
               onAdd: () => _copyMaterial(local),
               onEdit: () {},
               onDelete: () => _deleteMaterial(local),
@@ -807,8 +895,7 @@ class _AllInsulationMaterialsScreenState
           ),
           TextButton(
             onPressed: () => Navigator.pop(ctx, true),
-            style:
-            TextButton.styleFrom(foregroundColor: Colors.red),
+            style: TextButton.styleFrom(foregroundColor: Colors.red),
             child: const Text('Delete'),
           ),
         ],
@@ -820,15 +907,13 @@ class _AllInsulationMaterialsScreenState
     showModalBottomSheet(
       context: context,
       shape: const RoundedRectangleBorder(
-          borderRadius:
-          BorderRadius.vertical(top: Radius.circular(16))),
+          borderRadius: BorderRadius.vertical(top: Radius.circular(16))),
       builder: (_) => SafeArea(
         child: Column(
           mainAxisSize: MainAxisSize.min,
           children: [
             ListTile(
-              leading:
-              const Icon(Icons.precision_manufacturing),
+              leading: const Icon(Icons.precision_manufacturing),
               title: const Text('Add Piping Insulation'),
               onTap: () {
                 Navigator.pop(context);

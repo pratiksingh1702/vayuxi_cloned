@@ -14,6 +14,7 @@ class Routes {
   static const String planSelect = '/plan-select';
   static const String manpowerLogin = '/manpower-login';
   static const String site = '/site';
+  static const String siteImport = '/site-import';
   static const String analysis = '/analysis';
   static const String mocSelection = '/moc-selection';
   static const String manpower = '/manpower';

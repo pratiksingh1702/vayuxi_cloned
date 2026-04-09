@@ -1,0 +1,82 @@
+I/TRuntime.CctTransportBackend(24199): Making request to: https://firebaselogging-pa.googleapis.com/v1/firelog/legacy/batchlog
+I/TRuntime.CctTransportBackend(24199): Status Code: 200
+I/flutter (24199): 😴 No pending requests → skip
+I/flutter (24199): 🔀 [ROUTER REDIRECT] booting=false loggedIn=true matchedLocation=/updates fullPath=/updates
+I/flutter (24199): 🔀 [ROUTER REDIRECT] → null  (reason: logged in, free navigation to /updates)
+I/flutter (24199): 🧭 [ROUTER] WorkCategoryScreen | path: /workCategory
+
+══╡ EXCEPTION CAUGHT BY WIDGETS LIBRARY ╞═══════════════════════════════════════════════════════════
+The following assertion was thrown building Hero(tag: notification_title_notif_001, dirty, state:
+_HeroState#39993):
+A Hero widget cannot be the descendant of another Hero widget.
+'package:flutter/src/widgets/heroes.dart':
+Failed assertion: line 401 pos 7: 'context.findAncestorWidgetOfExactType<Hero>() == null'
+
+Either the assertion indicates an error in the framework itself, or we should provide substantially
+more information in this error message to help you determine and fix the underlying cause.
+In either case, please report this assertion by filing a bug on GitHub:
+  https://github.com/flutter/flutter/issues/new?template=02_bug.yml
+
+The relevant error-causing widget was:
+  Hero
+  Hero:file:///C:/Users/Dell/Downloads/untitled2/untitled2/lib/features/noti_system/updates/presentation/widgets/notific
+  ation_tile.dart:64:44
+
+When the exception was thrown, this was the stack:
+#2      _HeroState.build (package:flutter/src/widgets/heroes.dart:401:7)
+#3      StatefulElement.build (package:flutter/src/widgets/framework.dart:5931:27)
+#4      ComponentElement.performRebuild (package:flutter/src/widgets/framework.dart:5817:15)
+#5      StatefulElement.performRebuild (package:flutter/src/widgets/framework.dart:5982:11)
+#6      Element.rebuild (package:flutter/src/widgets/framework.dart:5529:7)
+#7      ComponentElement._firstBuild (package:flutter/src/widgets/framework.dart:5799:5)
+#8      StatefulElement._firstBuild (package:flutter/src/widgets/framework.dart:5973:11)
+#9      ComponentElement.mount (package:flutter/src/widgets/framework.dart:5793:5)
+...     Normal element mounting (7 frames)
+#16     Element.inflateWidget (package:flutter/src/widgets/framework.dart:4587:20)
+#17     MultiChildRenderObjectElement.inflateWidget (package:flutter/src/widgets/framework.dart:7264:36)
+#18     MultiChildRenderObjectElement.mount (package:flutter/src/widgets/framework.dart:7279:32)
+#19     Element.inflateWidget (package:flutter/src/widgets/framework.dart:4587:20)
+#20     MultiChildRenderObjectElement.inflateWidget (package:flutter/src/widgets/framework.dart:7264:36)
+#21     MultiChildRenderObjectElement.mount (package:flutter/src/widgets/framework.dart:7279:32)
+...     Normal element mounting (7 frames)
+#28     Element.inflateWidget (package:flutter/src/widgets/framework.dart:4587:20)
+#29     MultiChildRenderObjectElement.inflateWidget (package:flutter/src/widgets/framework.dart:7264:36)
+#30     MultiChildRenderObjectElement.mount (package:flutter/src/widgets/framework.dart:7279:32)
+#31     Element.inflateWidget (package:flutter/src/widgets/framework.dart:4587:20)
+#32     MultiChildRenderObjectElement.inflateWidget (package:flutter/src/widgets/framework.dart:7264:36)
+#33     MultiChildRenderObjectElement.mount (package:flutter/src/widgets/framework.dart:7279:32)
+...     Normal element mounting (259 frames)
+#292    Element.inflateWidget (package:flutter/src/widgets/framework.dart:4587:20)
+#293    Element.updateChild (package:flutter/src/widgets/framework.dart:4059:18)
+#294    SliverMultiBoxAdaptorElement.updateChild (package:flutter/src/widgets/sliver.dart:1086:37)
+#295    SliverMultiBoxAdaptorElement.createChild.<anonymous closure> (package:flutter/src/widgets/sliver.dart:1071:20)
+#296    BuildOwner.buildScope (package:flutter/src/widgets/framework.dart:3101:19)
+#297    SliverMultiBoxAdaptorElement.createChild (package:flutter/src/widgets/sliver.dart:1061:12)
+#298    RenderSliverMultiBoxAdaptor._createOrObtainChild.<anonymous closure>
+(package:flutter/src/rendering/sliver_multi_box_adaptor.dart:368:23)
+#299    RenderObject.invokeLayoutCallback.<anonymous closure> (package:flutter/src/rendering/object.dart:2887:17)
+#300    PipelineOwner._enableMutationsToDirtySubtrees (package:flutter/src/rendering/object.dart:1223:15)
+#301    RenderObject.invokeLayoutCallback (package:flutter/src/rendering/object.dart:2886:14)
+#302    RenderSliverMultiBoxAdaptor._createOrObtainChild
+(package:flutter/src/rendering/sliver_multi_box_adaptor.dart:357:5)
+#303    RenderSliverMultiBoxAdaptor.addInitialChild (package:flutter/src/rendering/sliver_multi_box_adaptor.dart:455:5)
+#304    RenderSliverList.performLayout (package:flutter/src/rendering/sliver_list.dart:79:12)
+#305    RenderObject.layout (package:flutter/src/rendering/object.dart:2768:7)
+#306    RenderViewportBase.layoutChildSequence (package:flutter/src/rendering/viewport.dart:673:13)
+#307    RenderViewport._attemptLayout (package:flutter/src/rendering/viewport.dart:1684:12)
+#308    RenderViewport.performLayout (package:flutter/src/rendering/viewport.dart:1575:20)
+#309    RenderObject._layoutWithoutResize (package:flutter/src/rendering/object.dart:2616:7)
+#310    PipelineOwner.flushLayout (package:flutter/src/rendering/object.dart:1174:18)
+#311    PipelineOwner.flushLayout (package:flutter/src/rendering/object.dart:1187:15)
+#312    RendererBinding.drawFrame (package:flutter/src/rendering/binding.dart:629:23)
+#313    WidgetsBinding.drawFrame (package:flutter/src/widgets/binding.dart:1304:13)
+#314    RendererBinding._handlePersistentFrameCallback (package:flutter/src/rendering/binding.dart:495:5)
+#315    SchedulerBinding._invokeFrameCallback (package:flutter/src/scheduler/binding.dart:1430:15)
+#316    SchedulerBinding.handleDrawFrame (package:flutter/src/scheduler/binding.dart:1345:9)
+#317    SchedulerBinding._handleDrawFrame (package:flutter/src/scheduler/binding.dart:1198:5)
+#321    _invoke (dart:ui/hooks.dart:358:10)
+#322    PlatformDispatcher._drawFrame (dart:ui/platform_dispatcher.dart:444:5)
+#323    _drawFrame (dart:ui/hooks.dart:328:31)
+(elided 5 frames from class _AssertionError and dart:async)
+
+════════════════════════════════════════════════════════════════

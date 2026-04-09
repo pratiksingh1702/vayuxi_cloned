@@ -176,21 +176,40 @@ class _WorkCategoryScreenState extends ConsumerState<WorkCategoryScreen> {
         _showcaseContext = showcaseContext;
 
         WidgetsBinding.instance.addPostFrameCallback((_) {
-          if (!_languageFlowDone) return;
-          if (_showcaseStarted) return; // ✅ HARD BLOCK
+          // ✅ Gate 1: Language flow must complete first
+          if (!_languageFlowDone) {
+            debugPrint('⏳ Showcase blocked: language flow not done');
+            return;
+          }
+
+          // ✅ Gate 2: Don't re-trigger if already started
+          if (_showcaseStarted) {
+            debugPrint('⏳ Showcase blocked: already started');
+            return;
+          }
 
           final ctrl = ref.read(tourControllerProvider.notifier);
           ctrl.syncToRoute(AppRoutes.workCategory);
 
           final step = ctrl.currentStep;
-          if (step == null) return;
+          if (step == null) {
+            debugPrint('⏳ Showcase blocked: no current step');
+            return;
+          }
 
-          if (!step.autoShowcase) return;
+          if (!step.autoShowcase) {
+            debugPrint('⏳ Showcase blocked: autoShowcase false');
+            return;
+          }
 
           final sc = ShowCaseWidget.of(showcaseContext);
-          if (sc == null) return;
+          if (sc == null) {
+            debugPrint('⏳ Showcase blocked: no showcase context');
+            return;
+          }
 
           _showcaseStarted = true;
+          debugPrint('✅ Showcase started on work category');
           sc.startShowCase([step.showcaseKey]);
         });
 

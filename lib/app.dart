@@ -1,4 +1,3 @@
-
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
@@ -36,17 +35,10 @@ class _MyAppState extends ConsumerState<MyApp> {
       title: 'VAYUXI',
       routerConfig: router,
       debugShowCheckedModeBanner: false,
-
       useInheritedMediaQuery: true,
-
-
-
-
       builder: (context, child) {
         // ✅ 1) bot toast init
         child = BotToastInit()(context, child);
-
-
 
         // ✅ 3) your overlays
         return TourScope(
@@ -55,7 +47,6 @@ class _MyAppState extends ConsumerState<MyApp> {
           ),
         );
       },
-
       theme: ThemeData(
         primarySwatch: Colors.blue,
         scaffoldBackgroundColor: const Color(0xFFCFE8FA),

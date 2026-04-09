@@ -3,6 +3,7 @@ import 'package:dio/dio.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:file_picker/file_picker.dart';
+import 'package:go_router/go_router.dart';
 import 'package:untitled2/features/modules/all_Modules/Manpower%20Details/service/manpowerService.dart';
 import 'package:untitled2/features/modules/all_Modules/rate/data/rateApi.dart';
 import 'package:untitled2/features/modules/all_Modules/site_Details/repository/siteModel.dart';
@@ -290,7 +291,7 @@ class _ManImportCsvScreenState extends ConsumerState<ManImportCsvScreen> {
       _dbg("✅ No issues found. Proceeding to Upload...");
       final siteId=ref.read(selectedSiteIdProvider)!;
 
-      final jobId = ref.read(uploadManagerProvider.notifier).enqueue(
+      ref.read(uploadManagerProvider.notifier).enqueue(
         UploadJob.create(
           moduleId:    'manpower',
           filePath:    _selectedFile!.path!,
@@ -299,6 +300,16 @@ class _ManImportCsvScreenState extends ConsumerState<ManImportCsvScreen> {
           maxRetries:  2,
         ),
       );
+
+      await ref.read(tourPersistenceProvider).markManpowerDone();
+      setState(() {
+        _isLoading = false;
+        _uploadStatus = 'File added to upload queue';
+      });
+
+      AppToast.success("✅ File added to upload queue");
+      if (!mounted) return;
+      context.go('/manpower');
 
       // _dbg("✅ uploadRes runtimeType = ${uploadRes.runtimeType}");
       // _dbg("✅ uploadRes = ${_short(uploadRes, max: 2000)}");

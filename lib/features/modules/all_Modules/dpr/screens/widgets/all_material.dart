@@ -802,14 +802,7 @@ class _AllMaterialsScreenState extends ConsumerState<AllMaterialsScreen>
           ),
         ),
       ),
-      if (_isLoading)
-        Container(
-          color: Colors.white.withOpacity(0.8),
-          child: const ShimmerList(
-            type: ShimmerListType.card,
-            itemCount: 5,
-          ),
-        ),
+     
     ]);
   }
 
@@ -1265,8 +1258,12 @@ class _AllMaterialsScreenState extends ConsumerState<AllMaterialsScreen>
     required String emptyMessage,
     required String category,
   }) {
-    if (materials.isEmpty) {
-      return Center(child: CircularProgressIndicator());
+    if (_isLoading) {
+      return _buildLoadingState(category: category, color: color);
+    }
+
+    if (materials.isEmpty ||_isLoading) {
+      return _buildEmptyCategoryState(emptyMessage);
     }
 
     return Column(
@@ -1352,6 +1349,75 @@ class _AllMaterialsScreenState extends ConsumerState<AllMaterialsScreen>
           ),
         ),)
       ],
+    );
+  }
+
+  Widget _buildLoadingState({
+    required String category,
+    required Color color,
+  }) {
+    return Column(
+      children: [
+        Padding(
+          padding: const EdgeInsets.all(8.0),
+          child: Row(
+            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+            children: [
+              ShimmerBox(
+                width: category == 'piping' ? 180 : 190,
+                height: 14,
+                borderRadius: 6,
+              ),
+              Row(
+                children: [
+                  ShimmerBox(width: 32, height: 32, borderRadius: 10),
+                  const SizedBox(width: 8),
+                  ShimmerBox(width: 32, height: 32, borderRadius: 10),
+                ],
+              ),
+            ],
+          ),
+        ),
+        Expanded(
+          child: CustomScrollbar(
+            controller:
+                category == 'piping' ? _approvedPipingController : _approvedEquipmentController,
+            child: ListView.separated(
+              controller:
+                  category == 'piping' ? _approvedPipingController : _approvedEquipmentController,
+              physics: const AlwaysScrollableScrollPhysics(),
+              padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 10),
+              itemCount: 5,
+              separatorBuilder: (_, __) => const SizedBox(height: 12),
+              itemBuilder: (context, index) {
+                return const ShimmerList(
+                  type: ShimmerListType.card,
+                  itemCount: 1,
+                  scrollable: false,
+                  padding: EdgeInsets.zero,
+                );
+              },
+            ),
+          ),
+        ),
+      ],
+    );
+  }
+
+  Widget _buildEmptyCategoryState(String message) {
+    return Center(
+      child: Padding(
+        padding: const EdgeInsets.all(24),
+        child: Text(
+          message,
+          textAlign: TextAlign.center,
+          style: const TextStyle(
+            fontSize: 15,
+            fontWeight: FontWeight.w500,
+            color: Colors.black54,
+          ),
+        ),
+      ),
     );
   }
 

@@ -5,6 +5,7 @@ import 'package:go_router/go_router.dart';
 import 'package:untitled2/core/utlis/widgets/Button_wrapper.dart';
 import 'package:untitled2/core/utlis/widgets/afd.dart';
 import 'package:intl/intl.dart';
+import 'package:untitled2/core/utlis/widgets/sidebar.dart';
 import 'package:untitled2/features/modules/all_Modules/dpr/screens/work_type.dart';
 import 'package:untitled2/features/modules/all_Modules/team/provider/teamProvider.dart';
 
@@ -461,6 +462,7 @@ class _DprWorkScreenState extends ConsumerState<DprWorkScreen> {
     }
 
     return Scaffold(
+      drawer: const CustomDrawer(),
       appBar: CustomAppBar(
         title: "Work Descriptions",
       ),

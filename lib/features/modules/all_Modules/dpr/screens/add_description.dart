@@ -58,7 +58,7 @@ class AddDescriptionScreen extends ConsumerStatefulWidget {
 }
 
 class _AddDescriptionScreenState extends ConsumerState<AddDescriptionScreen>
-    with  WidgetsBindingObserver {
+    with WidgetsBindingObserver {
   late final TextEditingController _dprNameController;
   late final TextEditingController _mocController;
   late final TextEditingController _sizeController;
@@ -75,7 +75,6 @@ class _AddDescriptionScreenState extends ConsumerState<AddDescriptionScreen>
 
   String? _mechanicalId;
   String? _selectedDprId;
-
 
   bool _pipeFittingOn = true;
   bool _equipmentOn = true;
@@ -101,9 +100,6 @@ class _AddDescriptionScreenState extends ConsumerState<AddDescriptionScreen>
   Set<String> _updatingMaterialIds = {};
   bool _headerInitialized = false;
   bool _isDateOverrideMode = false;
-
-
-
 
   // @override
   // void initState() {
@@ -150,10 +146,11 @@ class _AddDescriptionScreenState extends ConsumerState<AddDescriptionScreen>
     _mocController.addListener(_applyHeaderValuesToMaterials);
     _sizeController.addListener(_applyHeaderValuesToMaterials);
   }
+
   void _setControllerSilently(
-      TextEditingController controller,
-      String value,
-      ) {
+    TextEditingController controller,
+    String value,
+  ) {
     controller.removeListener(_applyHeaderValuesToMaterials);
     controller.text = value;
     controller.addListener(_applyHeaderValuesToMaterials);
@@ -182,6 +179,7 @@ class _AddDescriptionScreenState extends ConsumerState<AddDescriptionScreen>
       _headerInitialized = true; // new DPR
     }
   }
+
   List<PipingItem> _toApprovedPipingItems(
     List<RateFileMaterial> materials,
   ) {
@@ -240,12 +238,10 @@ class _AddDescriptionScreenState extends ConsumerState<AddDescriptionScreen>
     try {
       final dpr = fallbackDpr ??
           await ref.read(dprProvider.notifier).fetchDprById(
-            siteId: siteId,
-            teamId: teamId,
-            workId: _mechanicalId!,
-          );
-
-
+                siteId: siteId,
+                teamId: teamId,
+                workId: _mechanicalId!,
+              );
 
       debugPrint('DPR fetch completed');
 
@@ -269,7 +265,8 @@ class _AddDescriptionScreenState extends ConsumerState<AddDescriptionScreen>
       debugPrint('server equipment count: ${dpr.equipment.length}');
 
       debugPrint('local piping count: ${PipingMaterialsData.materials.length}');
-      debugPrint('local equipment count: ${EquipmentMaterialsData.materials.length}');
+      debugPrint(
+          'local equipment count: ${EquipmentMaterialsData.materials.length}');
 
       final mergedPiping = MaterialSyncService.syncPiping(
         local: PipingMaterialsData.materials,
@@ -286,8 +283,9 @@ class _AddDescriptionScreenState extends ConsumerState<AddDescriptionScreen>
 
       ref.read(pipingMaterialsProvider.notifier).setMaterials(mergedPiping);
 
-
-      ref.read(equipmentMaterialsProvider.notifier).setMaterials(mergedEquipment);
+      ref
+          .read(equipmentMaterialsProvider.notifier)
+          .setMaterials(mergedEquipment);
       final state = ref.read(pipingMaterialsProvider);
 
       for (final m in state) {
@@ -305,7 +303,7 @@ class _AddDescriptionScreenState extends ConsumerState<AddDescriptionScreen>
 
       _headerInitialized = true;
       setState(() {
-        _isLoading=false;
+        _isLoading = false;
       });
 
       debugPrint('✅ Controllers updated');
@@ -355,6 +353,7 @@ class _AddDescriptionScreenState extends ConsumerState<AddDescriptionScreen>
           materials.whereType<EquipmentItem>().toList(),
         );
   }
+
   void _applyHeaderValuesToMaterials() {
     print("😂😂😂😂😂😂😂😂😂😂😂😂😂😂😂😂😂😂😂😂");
     if (!_headerInitialized) return;
@@ -370,10 +369,10 @@ class _AddDescriptionScreenState extends ConsumerState<AddDescriptionScreen>
         final key = f.key.toLowerCase();
 
         if (key == 'floor') {
-          return f.copyWith( value: floor);
+          return f.copyWith(value: floor);
         }
         if (key == 'moc') {
-          return f.copyWith( value: moc);
+          return f.copyWith(value: moc);
         }
         if (key == 'size') {
           return f.copyWith(value: size);
@@ -403,13 +402,13 @@ class _AddDescriptionScreenState extends ConsumerState<AddDescriptionScreen>
         final key = f.key.toLowerCase();
 
         if (key == 'floor') {
-          return f.copyWith( value: floor);
+          return f.copyWith(value: floor);
         }
         if (key == 'moc') {
           return f.copyWith(displayText: moc, value: moc);
         }
         if (key == 'size') {
-          return f.copyWith( value: size);
+          return f.copyWith(value: size);
         }
         if (key == 'qty') {
           return f.copyWith(displayText: '1', value: '1');
@@ -468,7 +467,6 @@ class _AddDescriptionScreenState extends ConsumerState<AddDescriptionScreen>
             ? ref.read(selectedUnitProvider)!
             : widget.work?.size) ??
         "";
-
   }
 
   // Future<void> _loadInitialData() async {
@@ -545,7 +543,6 @@ class _AddDescriptionScreenState extends ConsumerState<AddDescriptionScreen>
       setState(() {
         _materialsRebuildKey = UniqueKey();
       });
-
     } catch (e, st) {
       debugPrint("❌ Material reset failed: $e");
       debugPrintStack(stackTrace: st);
@@ -557,13 +554,14 @@ class _AddDescriptionScreenState extends ConsumerState<AddDescriptionScreen>
       }
     }
   }
+
   Future<void> _fetchDprListForDate(DateTime date) async {
     if (_isDisposed) return;
 
-  setState(() {
-    _isLoadingDprList=true;
-    _isLoading=true;
-  });
+    setState(() {
+      _isLoadingDprList = true;
+      _isLoading = true;
+    });
 
     try {
       final List<DprModel> allDprs = await DprApi.fetchDprWork(
@@ -623,8 +621,6 @@ class _AddDescriptionScreenState extends ConsumerState<AddDescriptionScreen>
       //   _showSnackBar("New DPR initialized");
       // }
 
-
-
       print(
           'Found ${_dprListForSelectedDate.length} DPR(s) for ${_formatDate(date)}');
     } catch (e) {
@@ -636,10 +632,9 @@ class _AddDescriptionScreenState extends ConsumerState<AddDescriptionScreen>
     } finally {
       if (mounted && !_isDisposed) {
         setState(() {
-          _isLoadingDprList=false;
-          _isLoading=false;
+          _isLoadingDprList = false;
+          _isLoading = false;
         });
-
       }
     }
   }
@@ -888,7 +883,6 @@ class _AddDescriptionScreenState extends ConsumerState<AddDescriptionScreen>
 
     if (picked == null || picked == _selectedDate) return;
 
-
     ref.read(dprSessionProvider.notifier).setDate(picked);
 
     setState(() => _selectedDate = picked);
@@ -1041,6 +1035,7 @@ class _AddDescriptionScreenState extends ConsumerState<AddDescriptionScreen>
       });
     }
   }
+
   Future<bool?> _askMaterialScope() async {
     return showDialog<bool>(
       context: context,
@@ -1126,6 +1121,7 @@ class _AddDescriptionScreenState extends ConsumerState<AddDescriptionScreen>
       },
     );
   }
+
   Future<void> copyDprMaterialLocal({
     required dynamic material,
     required bool isPiping,
@@ -1154,8 +1150,7 @@ class _AddDescriptionScreenState extends ConsumerState<AddDescriptionScreen>
           matId: material.id,
           isMaterialStore: scope,
         );
-        final jsonString =
-        const JsonEncoder.withIndent('  ').convert(material);
+        final jsonString = const JsonEncoder.withIndent('  ').convert(material);
         printLongString("INSERTING PIPING MATERIAL: $jsonString");
 
         if (response != null && response['data'] != null) {
@@ -1178,9 +1173,8 @@ class _AddDescriptionScreenState extends ConsumerState<AddDescriptionScreen>
 
     // 🔥 Always insert locally (optimistic)
     if (isPiping && material is PipingItem) {
-      final jsonString =
-      const JsonEncoder.withIndent('  ').convert(material);
-     printLongString("INSERTING PIPING MATERIAL: $jsonString");
+      final jsonString = const JsonEncoder.withIndent('  ').convert(material);
+      printLongString("INSERTING PIPING MATERIAL: $jsonString");
 
       final notifier = ref.read(pipingMaterialsProvider.notifier);
       final materials = ref.read(pipingMaterialsProvider);
@@ -1266,7 +1260,7 @@ class _AddDescriptionScreenState extends ConsumerState<AddDescriptionScreen>
         // Actually, I should probably make it return the result even on success
         // so we can update the local DPR state without another fetch.
         // BUT the user said "integrate with existing rate APIs", which I did.
-        
+
         // Let's just trigger a local refresh if needed.
         // Actually, if it was permanent, the user likely wants the DPR to reflect it too.
         // I'll re-fetch the DPR work to be safe if _mechanicalId exists.
@@ -1399,8 +1393,6 @@ class _AddDescriptionScreenState extends ConsumerState<AddDescriptionScreen>
 
   @override
   Widget build(BuildContext context) {
-
-
     final pipingMaterials = ref.watch(pipingMaterialsProvider);
     final equipmentMaterials = ref.watch(equipmentMaterialsProvider);
 
@@ -1421,13 +1413,11 @@ class _AddDescriptionScreenState extends ConsumerState<AddDescriptionScreen>
     final team = ref.read(currentTeamProvider);
     final site = ref.read(currentSiteProvider);
 
-
     return Scaffold(
       backgroundColor: Colors.grey[50],
       drawer: const CustomDrawer(),
       body: NestedScrollView(
         headerSliverBuilder: (context, innerBoxIsScrolled) {
-
           return [CustomSliverAppBar(title: "Dpr Entry")];
         },
         body: BottomButtonWrapper(
@@ -1435,7 +1425,9 @@ class _AddDescriptionScreenState extends ConsumerState<AddDescriptionScreen>
             CustomButton(
               button: RoundedButton(
                 text: _isSubmitting ? 'Saving..' : 'Save',
-                color: _isEditable||_isDateOverrideMode ? const Color(0xFF1B6DCE) : Colors.grey,
+                color: _isEditable || _isDateOverrideMode
+                    ? const Color(0xFF1B6DCE)
+                    : Colors.grey,
                 textColor: Colors.white,
                 onPressed: _isSubmitting ? () {} : _handleSubmitFields,
                 isOutlined: false,
@@ -1443,15 +1435,15 @@ class _AddDescriptionScreenState extends ConsumerState<AddDescriptionScreen>
             ),
           ],
           child: Column(
-              children: [
-                if (_isLoading)
-                  const ShimmerList(
-                    type: ShimmerListType.card,
-                    itemCount: 3,
-                    scrollable: false,
-                  ),
-                Expanded(
-                  child: SingleChildScrollView(
+            children: [
+              if (_isLoading)
+                const ShimmerList(
+                  type: ShimmerListType.card,
+                  itemCount: 3,
+                  scrollable: false,
+                ),
+              Expanded(
+                child: SingleChildScrollView(
                   padding: const EdgeInsets.all(6),
                   physics: const BouncingScrollPhysics(),
                   child: Column(
@@ -1462,7 +1454,6 @@ class _AddDescriptionScreenState extends ConsumerState<AddDescriptionScreen>
                         children: [
                           Row(
                             children: [
-
                               Column(
                                 crossAxisAlignment: CrossAxisAlignment.start,
                                 children: [
@@ -1656,13 +1647,11 @@ class _AddDescriptionScreenState extends ConsumerState<AddDescriptionScreen>
     return InkWell(
       borderRadius: BorderRadius.circular(20),
       onTap: () async {
-
-
         final result = await Navigator.of(context).push(
           MaterialPageRoute(
             builder: (_) => PersistDPRScreen(
               isDpr: true, // 🔴 critical
-              dprId: _mechanicalId??'', // 🔴 DPR ID
+              dprId: _mechanicalId ?? '', // 🔴 DPR ID
               siteId: siteId,
               teamId: teamId,
             ),
@@ -1670,7 +1659,6 @@ class _AddDescriptionScreenState extends ConsumerState<AddDescriptionScreen>
         );
 
         // Re-fetch DPR after add
-
       },
       child: Container(
         padding: const EdgeInsets.all(6),
@@ -1800,7 +1788,8 @@ class _AddDescriptionScreenState extends ConsumerState<AddDescriptionScreen>
               Row(
                 children: [
                   GestureDetector(
-                    onTap: canChangeDateNormal ? () => _selectDate(context) : null,
+                    onTap:
+                        canChangeDateNormal ? () => _selectDate(context) : null,
                     child: Container(
                       padding: const EdgeInsets.symmetric(
                           horizontal: 12, vertical: 6),
@@ -1843,7 +1832,8 @@ class _AddDescriptionScreenState extends ConsumerState<AddDescriptionScreen>
                   if (showPencil) ...[
                     const SizedBox(width: 8),
                     IconButton(
-                      icon: const Icon(Icons.edit, color: Colors.blue, size: 20),
+                      icon:
+                          const Icon(Icons.edit, color: Colors.blue, size: 20),
                       onPressed: () => _handleDateOverride(context),
                       padding: EdgeInsets.zero,
                       constraints: const BoxConstraints(),
@@ -2024,13 +2014,12 @@ class _AddDescriptionScreenState extends ConsumerState<AddDescriptionScreen>
 
                       _mechanicalId = newValue;
                       setState(() {
-                        _isLoading=true;
+                        _isLoading = true;
                       });
                       _applyHeaderValuesToMaterials();
                       await getd(dpr);
 
                       await loadScreenState(Dpr: dpr);
-
                     },
 
                     items: _dprListForSelectedDate
@@ -2065,39 +2054,39 @@ class _AddDescriptionScreenState extends ConsumerState<AddDescriptionScreen>
             ),
             if (_isEditable)
               TextButton.icon(
-    onPressed: () async {
-    if (!_isEditable) return;
+                onPressed: () async {
+                  if (!_isEditable) return;
 
-    // 1️⃣ Reset DPR identity
-    setState(() {
-    _mechanicalId = null;
-    _selectedDprId = null;
-    });
+                  // 1️⃣ Reset DPR identity
+                  setState(() {
+                    _mechanicalId = null;
+                    _selectedDprId = null;
+                  });
 
-    // 2️⃣ Reset header fields
-    _dprNameController.text = 'New DPR Entry';
-    _mocController.clear();
-    _sizeController.clear();
-    _floorController.clear();
-    _plantController.clear();
+                  // 2️⃣ Reset header fields
+                  _dprNameController.text = 'New DPR Entry';
+                  _mocController.clear();
+                  _sizeController.clear();
+                  _floorController.clear();
+                  _plantController.clear();
 
-    // 3️⃣ Clear providers (remove old DPR materials completely)
-    ref.read(pipingMaterialsProvider.notifier).clear();
-    ref.read(equipmentMaterialsProvider.notifier).clear();
+                  // 3️⃣ Clear providers (remove old DPR materials completely)
+                  ref.read(pipingMaterialsProvider.notifier).clear();
+                  ref.read(equipmentMaterialsProvider.notifier).clear();
 
-    // 4️⃣ Load fresh default materials
-    await _loadDefaultMaterials();
+                  // 4️⃣ Load fresh default materials
+                  await _loadDefaultMaterials();
 
-    // 5️⃣ Re-apply header values (now empty)
-    _applyHeaderValuesToMaterials();
+                  // 5️⃣ Re-apply header values (now empty)
+                  _applyHeaderValuesToMaterials();
 
-    // 6️⃣ Force rebuild
-    if (mounted) {
-    setState(() {});
-    }
+                  // 6️⃣ Force rebuild
+                  if (mounted) {
+                    setState(() {});
+                  }
 
-    _showSnackBar("New DPR initialized");
-    },
+                  _showSnackBar("New DPR initialized");
+                },
                 icon: const Icon(Icons.add, size: 16),
                 label: const Text('New DPR'),
                 style: TextButton.styleFrom(
@@ -2187,7 +2176,7 @@ class _AddDescriptionScreenState extends ConsumerState<AddDescriptionScreen>
 
   Widget _buildInputFields() {
     final lang = ref.watch(dailyEntryTranslationHelperProvider);
-    final sizeUom=_sizeUomController.text;
+    final sizeUom = _sizeUomController.text;
     return Column(
       children: [
         Row(
@@ -2324,8 +2313,7 @@ class _AddDescriptionScreenState extends ConsumerState<AddDescriptionScreen>
         ),
         child: Column(
           children: [
-            if (isLoading)
-              const ShimmerCircle(size: 28),
+            if (isLoading) const ShimmerCircle(size: 28),
             Text(
               title,
               textAlign: TextAlign.center,
@@ -2357,15 +2345,12 @@ class _AddDescriptionScreenState extends ConsumerState<AddDescriptionScreen>
         key: ValueKey('piping_${material.id}_$index'),
         padding: const EdgeInsets.only(bottom: 12),
         child: MaterialCardWrapper(
-
           isUpdating: _updatingMaterialIds.contains(material.id),
           child: ExpandableMaterialCard(
             categoryId: editingMaterialId == material.id
                 ? draftCategoryId
                 : material.calculationCategory,
-
             isEditMode: editingMaterialId == material.id,
-
             onCategoryChanged: (newId) {
               setState(() {
                 draftCategoryId = newId;
@@ -2384,18 +2369,22 @@ class _AddDescriptionScreenState extends ConsumerState<AddDescriptionScreen>
               quantity: '',
               remark: material.remarks,
               size: material.dynamicFields
-                  .firstWhere(
-                    (f) => f.key.toLowerCase() == 'size',
-                orElse: () => DynamicField(key: 'size', label: 'Size', value: _sizeController.text, unit: '', displayText: ''),
-              )
-                  .value ?? _sizeController.text,
+                      .firstWhere(
+                        (f) => f.key.toLowerCase() == 'size',
+                        orElse: () => DynamicField(
+                            key: 'size',
+                            label: 'Size',
+                            value: _sizeController.text,
+                            unit: '',
+                            displayText: ''),
+                      )
+                      .value ??
+                  _sizeController.text,
               length: (material.length == null || material.length == 0)
                   ? ''
                   : material.length.toString(),
-
               floor: _floorController.text,
               moc: _mocController.text,
-
               onSave: (result) async {
                 setState(() {
                   _updatingMaterialIds.add(material.id);
@@ -2431,7 +2420,7 @@ class _AddDescriptionScreenState extends ConsumerState<AddDescriptionScreen>
                       .toList();
 
                   final updatedItem = backendItems.firstWhere(
-                        (e) => e.lineItemId == material.lineItemId,
+                    (e) => e.lineItemId == material.lineItemId,
                     orElse: () => throw Exception(
                       "Updated piping item not found for lineItemId: ${material.lineItemId}",
                     ),
@@ -2446,8 +2435,8 @@ class _AddDescriptionScreenState extends ConsumerState<AddDescriptionScreen>
                     return m;
                   }).toList();
 
-                  ref.read(pipingMaterialsProvider.notifier).state = updatedList;
-
+                  ref.read(pipingMaterialsProvider.notifier).state =
+                      updatedList;
                 } catch (e, st) {
                   apiFailed = true;
 
@@ -2467,7 +2456,6 @@ class _AddDescriptionScreenState extends ConsumerState<AddDescriptionScreen>
 
                     return m.copyWith(
                       materialName: result.name,
-
                       uom: result.uom,
                       calculationCategory: draftCategoryId,
                       dynamicFields: result.fields,
@@ -2475,7 +2463,8 @@ class _AddDescriptionScreenState extends ConsumerState<AddDescriptionScreen>
                     );
                   }).toList();
 
-                  ref.read(pipingMaterialsProvider.notifier).state = updatedList;
+                  ref.read(pipingMaterialsProvider.notifier).state =
+                      updatedList;
                 }
 
                 _applyHeaderValuesToMaterials();
@@ -2490,26 +2479,24 @@ class _AddDescriptionScreenState extends ConsumerState<AddDescriptionScreen>
               sizePlaceholder: '',
               onQtyChanged: (val) =>
                   _onPipingFieldChanged(material.id, 'quantity', val),
-
               onSizeChanged: (val) =>
                   _onPipingFieldChanged(material.id, 'size', val),
-
               onLengthChanged: (val) =>
                   _onPipingFieldChanged(material.id, 'length', val),
-
               onFloorChanged: (val) =>
                   _onPipingFieldChanged(material.id, 'floor', val),
-
               onMocChanged: (val) =>
                   _onPipingFieldChanged(material.id, 'moc', val),
-
-
-              onCopy: () =>
-                  copyDprMaterialLocal(material: material, isPiping: true,rateUploadId: rateUploadId!),
-              onAdd: () =>
-                  copyDprMaterialLocal(material: material, isPiping: true,rateUploadId: rateUploadId!),
-              onDelete: () =>
-                  deleteDprMaterialLocal(materialId: material.id, isPiping: true),
+              onCopy: () => copyDprMaterialLocal(
+                  material: material,
+                  isPiping: true,
+                  rateUploadId: rateUploadId!),
+              onAdd: () => copyDprMaterialLocal(
+                  material: material,
+                  isPiping: true,
+                  rateUploadId: rateUploadId!),
+              onDelete: () => deleteDprMaterialLocal(
+                  materialId: material.id, isPiping: true),
               onEdit: () => _openEditOverlay(material, true),
               onRemark: () => _showRemarkDialog(
                   material.id, material.remarks ?? '',
@@ -2552,11 +2539,12 @@ class _AddDescriptionScreenState extends ConsumerState<AddDescriptionScreen>
 
     ref.read(pipingMaterialsProvider.notifier).state = updated;
   }
+
   void _onEquipmentDynamicChanged(
-      String materialId,
-      String key,
-      String value,
-      ) {
+    String materialId,
+    String key,
+    String value,
+  ) {
     final materials = ref.read(equipmentMaterialsProvider);
 
     final updated = materials.map((m) {
@@ -2579,7 +2567,6 @@ class _AddDescriptionScreenState extends ConsumerState<AddDescriptionScreen>
     return List.generate(materials.length, (index) {
       final material = materials[index];
       final rateFileMeta = ref.read(rateFileMetaProvider(siteId));
-
 
       final rateUploadId = rateFileMeta['rateFileId'] as String?;
 
@@ -2610,10 +2597,14 @@ class _AddDescriptionScreenState extends ConsumerState<AddDescriptionScreen>
                 _onEquipmentFieldChanged(material.id, 'floor', val),
             onTonChanged: (val) =>
                 _onEquipmentFieldChanged(material.id, 'ton', val),
-            onCopy: () =>
-                copyDprMaterialLocal(material: material, isPiping: false,rateUploadId: rateUploadId!),
-            onAdd: () =>
-                copyDprMaterialLocal(material: material, isPiping: false,rateUploadId: rateUploadId!),
+            onCopy: () => copyDprMaterialLocal(
+                material: material,
+                isPiping: false,
+                rateUploadId: rateUploadId!),
+            onAdd: () => copyDprMaterialLocal(
+                material: material,
+                isPiping: false,
+                rateUploadId: rateUploadId!),
             onDelete: () => deleteDprMaterialLocal(
                 materialId: material.id, isPiping: false),
             onEdit: () => _openEditOverlay(material, false),
@@ -2623,7 +2614,8 @@ class _AddDescriptionScreenState extends ConsumerState<AddDescriptionScreen>
               material.remarks ?? '',
               isPiping: false,
             ),
-            onMeterChanged: (val) => _onEquipmentFieldChanged(material.id, 'uom', val),
+            onMeterChanged: (val) =>
+                _onEquipmentFieldChanged(material.id, 'uom', val),
           ),
         ),
       );
@@ -2665,7 +2657,8 @@ class _AddDescriptionScreenState extends ConsumerState<AddDescriptionScreen>
               shape: RoundedRectangleBorder(
                   borderRadius: BorderRadius.circular(10)),
             ),
-            child: const Text('Save' ,style: TextStyle(color: Colors.white)),)
+            child: const Text('Save', style: TextStyle(color: Colors.white)),
+          )
         ],
       ),
     );
@@ -2724,7 +2717,8 @@ class _AddDescriptionScreenState extends ConsumerState<AddDescriptionScreen>
               qty: int.tryParse(value)?.toDouble() ?? 0,
             );
           case 'uom':
-            return material.copyWith(length:int.tryParse(value)?.toDouble() ?? 0);
+            return material.copyWith(
+                length: int.tryParse(value)?.toDouble() ?? 0);
           case 'ton':
             return material.copyWith(
                 weight: double.tryParse(value) ?? material.weight);
@@ -2774,9 +2768,9 @@ class _AddDescriptionScreenState extends ConsumerState<AddDescriptionScreen>
     final newMode = !_globalEditMode;
 
     ref.read(dprSessionProvider.notifier).setEditMode(
-      newMode,
-      date: newMode ? _selectedDate : null,
-    );
+          newMode,
+          date: newMode ? _selectedDate : null,
+        );
 
     setState(() {
       _globalEditMode = newMode;
@@ -2818,20 +2812,46 @@ class _AddDescriptionScreenState extends ConsumerState<AddDescriptionScreen>
       }
     }
   }
+
   double _getDynamicQty(PipingItem m) {
     final field = m.dynamicFields.firstWhere(
-          (f) => f.key.toLowerCase() == 'qty',
+      (f) => f.key.toLowerCase() == 'qty',
       orElse: () => DynamicField(
         key: 'qty',
         label: 'Qty',
         value: '0',
-        unit: '', displayText: '',
+        unit: '',
+        displayText: '',
       ),
     );
 
     return double.tryParse(field.value?.toString() ?? '') ?? 0;
-
   }
+
+  bool _hasMeaningfulDynamicFieldValues(List<DynamicField> fields) {
+    for (final field in fields) {
+      if (field.key.toLowerCase() == 'qty') continue;
+      final raw = field.value;
+      if (raw == null) continue;
+      final text = raw.toString().trim();
+      if (text.isEmpty || text.toLowerCase() == 'null') continue;
+      return true;
+    }
+    return false;
+  }
+
+  double _resolvePayloadQty({
+    required num? qty,
+    required List<DynamicField> fields,
+  }) {
+    final normalizedQty = qty?.toDouble() ?? 0;
+    final hasFieldValues = _hasMeaningfulDynamicFieldValues(fields);
+
+    // Avoid sending synthetic qty=1 when no meaningful field values exist.
+    if (!hasFieldValues && normalizedQty == 1) return 0;
+    return normalizedQty;
+  }
+
   String _getDynamicValue(List<DynamicField> fields, String key) {
     for (final f in fields) {
       if (f.key.toLowerCase() == key.toLowerCase()) {
@@ -2854,10 +2874,11 @@ class _AddDescriptionScreenState extends ConsumerState<AddDescriptionScreen>
     final headerSize = _sizeController.text.trim();
     return headerSize.isNotEmpty ? headerSize : null;
   }
+
   Future<void> _handleSubmitFields() async {
     if (_isDisposed) return;
 
-    if (!_isEditable&&! _isDateOverrideMode ) {
+    if (!_isEditable && !_isDateOverrideMode) {
       _showEditRequiredMessage();
       return;
     }
@@ -2978,10 +2999,13 @@ class _AddDescriptionScreenState extends ConsumerState<AddDescriptionScreen>
             'normalizedMaterialName': material.normalizedMaterialName,
             'materialName': material.materialName,
             'image': material.image,
-            'rateId':material.rateId,
+            'rateId': material.rateId,
 
             // 🔥 CORE VALUES
-            'qty': _getDynamicQty(material),
+            'qty': _resolvePayloadQty(
+              qty: _getDynamicQty(material),
+              fields: material.dynamicFields,
+            ),
             'length': material.length,
             'rmt': material.rmt,
             'diameter': material.diameter,
@@ -2990,7 +3014,7 @@ class _AddDescriptionScreenState extends ConsumerState<AddDescriptionScreen>
             'uom': material.uom,
 
             'actualRate': 0,
-            'rate':0,
+            'rate': 0,
 
             // 🔥 HEADER SYNC
             'moc': _mocController.text.trim(),
@@ -3042,7 +3066,6 @@ class _AddDescriptionScreenState extends ConsumerState<AddDescriptionScreen>
             'rateVariantId': material.rateVariantId,
           };
         }),
-
         ...equipmentMaterials.map((material) {
           return {
             'lineItemId': material.id,
@@ -3054,7 +3077,10 @@ class _AddDescriptionScreenState extends ConsumerState<AddDescriptionScreen>
             'image': material.image,
 
             // 🔥 CORE VALUES
-            'qty': material.qty,
+            'qty': _resolvePayloadQty(
+              qty: material.qty,
+              fields: material.dynamicFields,
+            ),
             'length': material.length,
             'rmt': material.rmt,
             'diameter': material.diameter,
@@ -3063,7 +3089,7 @@ class _AddDescriptionScreenState extends ConsumerState<AddDescriptionScreen>
             'uom': material.uom,
 
             'actualRate': 0,
-            'rate':0,
+            'rate': 0,
 
             // 🔥 HEADER SYNC
             'moc': _mocController.text.trim(),
@@ -3127,7 +3153,14 @@ class _AddDescriptionScreenState extends ConsumerState<AddDescriptionScreen>
 
       if (_isDateOverrideMode) {
         updateData = {
-          'date': _selectedDate.toIso8601String(),
+          'date': dateString,
+          'dprName': _dprNameController.text.trim(),
+          'moc': _mocController.text.trim(),
+          'size': _sizeController.text.trim(),
+          'sizeUom': _sizeUomController.text.trim(),
+          'location': _floorController.text.trim(),
+          'plant': _plantController.text.trim(),
+          if (items.isNotEmpty) 'items': items,
         };
       } else {
         updateData = {
@@ -3174,9 +3207,7 @@ class _AddDescriptionScreenState extends ConsumerState<AddDescriptionScreen>
         });
       }
 
-
-      final jsonString =
-      const JsonEncoder.withIndent('  ').convert(updateData);
+      final jsonString = const JsonEncoder.withIndent('  ').convert(updateData);
 
       print("🚀 FULL DPR UPDATE JSON:");
       printLongString(jsonString);
@@ -3192,15 +3223,15 @@ class _AddDescriptionScreenState extends ConsumerState<AddDescriptionScreen>
 
         print('---------------------------------------');
         if (_mechanicalId == null) {
-         final res= await RateUploadApi.createDprMechanicalV2(
+          final res = await RateUploadApi.createDprMechanicalV2(
             siteId: ref.read(selectedSiteIdProvider)!,
             teamId: teamId, // ✅ always non-null
             data: updateData,
           );
 
-         final jsonString =
-         const JsonEncoder.withIndent('  ').convert(res.data);
-         printLongString("Dpr : $jsonString");
+          final jsonString =
+              const JsonEncoder.withIndent('  ').convert(res.data);
+          printLongString("Dpr : $jsonString");
         }
       } else {
         await ref.read(dprProvider.notifier).updateDprWork(
@@ -3209,14 +3240,15 @@ class _AddDescriptionScreenState extends ConsumerState<AddDescriptionScreen>
             );
       }
 
-
-
       WidgetsBinding.instance.addPostFrameCallback((_) {
         if (mounted && !_isDisposed) {
           int count = 0;
 
-
+          if (widget.work == null) {
             Navigator.of(context).popUntil((_) => count++ >= 4);
+          } else {
+            Navigator.of(context).pop();
+          }
 
           _showSnackBar("Successfully Saved");
 
@@ -3231,22 +3263,21 @@ class _AddDescriptionScreenState extends ConsumerState<AddDescriptionScreen>
         final message = extractBackendError(e);
         AppToast.error(message);
       }
-    }
-    finally {
+    } finally {
       if (mounted && !_isDisposed) {
         setState(() => _isSubmitting = false);
       }
     }
   }
+
   void printLongString(String text) {
     const int chunkSize = 800; // safe size
     for (int i = 0; i < text.length; i += chunkSize) {
-      final end = (i + chunkSize < text.length)
-          ? i + chunkSize
-          : text.length;
+      final end = (i + chunkSize < text.length) ? i + chunkSize : text.length;
       print(text.substring(i, end));
     }
   }
+
   @override
   void dispose() {
     _isDisposed = true;
@@ -3266,7 +3297,6 @@ class _AddDescriptionScreenState extends ConsumerState<AddDescriptionScreen>
       final end = (i + 800 < jsonString.length) ? i + 800 : jsonString.length;
       debugPrint(jsonString.substring(i, end));
     }
-
   }
 }
 

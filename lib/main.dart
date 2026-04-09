@@ -11,6 +11,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:hive_flutter/hive_flutter.dart';
 // import 'package:mobile_rag_engine/mobile_rag_engine.dart';
 import 'package:path_provider/path_provider.dart' as path_provider;
+import 'package:untitled2/features/noti_system/updates/domain/services/action_handler_registry.dart';
 
 import 'app.dart';
 import 'core/api/dio.dart';
@@ -88,6 +89,14 @@ Future<void> main() async {
     UploadHandlerRegistry.instance
       ..register(RateUploadHandler())
        ..register(ManpowerUploadHandler());
+
+    // In your main.dart or app_startup.dart
+ActionHandlerRegistry.instance
+  ..register('snooze_update', (payload) async {
+    final hours = payload['hours'] as int? ?? 24;
+    // Schedule a local notification reminder
+    debugPrint('Snoozed for $hours hours');
+  });
     runApp(
       UncontrolledProviderScope(
         container: container,

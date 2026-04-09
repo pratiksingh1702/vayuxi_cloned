@@ -21,45 +21,59 @@ class RoundedButton extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return SizedBox(
-      width: width ?? 120, // Default width or custom width
+      width: width,
       height: 48,
       child: isOutlined
           ? OutlinedButton(
-        style: OutlinedButton.styleFrom(
-          shape: RoundedRectangleBorder(
-            borderRadius: BorderRadius.circular(30),
-          ),
-          side: BorderSide(color: color, width: 1.6),
-          backgroundColor: Colors.white,
-        ),
-        onPressed: onPressed,
-        child: Text(
-          text,
-          style: TextStyle(
-            color: textColor,
-            fontWeight: FontWeight.w600,
-            fontSize: 15,
-          ),
-        ),
-      )
+              style: OutlinedButton.styleFrom(
+                shape: RoundedRectangleBorder(
+                  borderRadius: BorderRadius.circular(30),
+                ),
+                side: BorderSide(color: color, width: 1.6),
+                backgroundColor: Colors.white,
+                padding: const EdgeInsets.symmetric(horizontal: 18),
+                minimumSize: const Size(90, 48),
+              ),
+              onPressed: onPressed,
+              child: FittedBox(
+                fit: BoxFit.scaleDown,
+                child: Text(
+                  text,
+                  maxLines: 1,
+                  softWrap: false,
+                  style: TextStyle(
+                    color: textColor,
+                    fontWeight: FontWeight.w600,
+                    fontSize: 15,
+                  ),
+                ),
+              ),
+            )
           : ElevatedButton(
-        style: ElevatedButton.styleFrom(
-          backgroundColor: color,
-          shape: RoundedRectangleBorder(
-            borderRadius: BorderRadius.circular(30),
-          ),
-          elevation: 0,
-        ),
-        onPressed: onPressed,
-        child: Text(
-          text,
-          style: TextStyle(
-            color: textColor,
-            fontWeight: FontWeight.w600,
-            fontSize: 15,
-          ),
-        ),
-      ),
+              style: ElevatedButton.styleFrom(
+                backgroundColor: color,
+                shape: RoundedRectangleBorder(
+                  borderRadius: BorderRadius.circular(30),
+                ),
+                elevation: 0,
+                padding: const EdgeInsets.symmetric(horizontal: 18),
+                minimumSize: const Size(90, 48),
+              ),
+              onPressed: onPressed,
+              child: FittedBox(
+                fit: BoxFit.scaleDown,
+                child: Text(
+                  text,
+                  maxLines: 1,
+                  softWrap: false,
+                  style: TextStyle(
+                    color: textColor,
+                    fontWeight: FontWeight.w600,
+                    fontSize: 15,
+                  ),
+                ),
+              ),
+            ),
     );
   }
 }

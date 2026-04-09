@@ -3,8 +3,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 
 import '../domain/tour_controller.dart';
-import '../domain/tour_registery.dart';
-
+import '../registry/site_registry.dart';
 
 class AppTourEntryTile extends ConsumerWidget {
   const AppTourEntryTile({super.key});
@@ -16,9 +15,11 @@ class AppTourEntryTile extends ConsumerWidget {
       title: const Text("App Tour"),
       subtitle: const Text("Replay Buddy guided tour"),
       onTap: () async {
-        await ref.read(tourControllerProvider.notifier).replay();
+        await ref
+            .read(tourControllerProvider.notifier)
+            .replayModule(SiteRegistry.module);
         if (context.mounted) {
-          context.go(AppRoutes.workCategory);
+          context.go('/select-module?index=1');
         }
       },
     );
