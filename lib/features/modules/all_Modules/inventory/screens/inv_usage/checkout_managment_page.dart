@@ -797,7 +797,7 @@ class _CheckoutManagementPageState
     return Scaffold(
       drawer: const CustomDrawer(),
       resizeToAvoidBottomInset: true,
-      backgroundColor: AppColors.lightBlue,
+      backgroundColor: Theme.of(context).colorScheme.surfaceContainerLowest,
       appBar: CustomAppBar(title: "Checkout Management"),
       body: inventoryAsync.when(
         loading: () => const Center(child: CircularProgressIndicator()),

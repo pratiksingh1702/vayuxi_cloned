@@ -45,13 +45,14 @@ class _PhoneInputFieldState extends State<PhoneInputField> {
 
   @override
   Widget build(BuildContext context) {
+    final cs = Theme.of(context).colorScheme;
     final hasError = _errorText != null;
 
     // Border color logic — matches register_screen style
     Color borderColor() {
-      if (hasError) return Colors.red;
-      if (_isFocused) return Colors.black;
-      return Colors.black;
+      if (hasError) return cs.error;
+      if (_isFocused) return cs.primary;
+      return cs.outline;
     }
 
     double borderWidth() => _isFocused ? 1.8 : 1.0;
@@ -69,10 +70,10 @@ class _PhoneInputFieldState extends State<PhoneInputField> {
               onFocusChange: (focused) => setState(() => _isFocused = focused),
               child: Container(
                 decoration: BoxDecoration(
-                  color: Colors.white,
+                  color: cs.surface,
                   borderRadius: BorderRadius.circular(10),
                   border: Border.all(
-                    color: error != null ? Colors.red : borderColor(),
+                    color: error != null ? cs.error : borderColor(),
                     width: error != null ? 1.0 : borderWidth(),
                   ),
                 ),
@@ -83,10 +84,10 @@ class _PhoneInputFieldState extends State<PhoneInputField> {
                       padding: const EdgeInsets.symmetric(
                           horizontal: 12, vertical: 13),
                       decoration: BoxDecoration(
-                        color: Colors.white,
+                        color: cs.surface,
                         border: Border(
                           right: BorderSide(
-                            color: error != null ? Colors.red : Colors.black,
+                            color: error != null ? cs.error : borderColor(),
                             width: 1.0,
                           ),
                         ),
@@ -106,10 +107,10 @@ class _PhoneInputFieldState extends State<PhoneInputField> {
                           const SizedBox(width: 6),
                           Text(
                             widget.countryCode,
-                            style: const TextStyle(
+                            style: TextStyle(
                               fontSize: 14.5,
                               fontWeight: FontWeight.w500,
-                              color: Colors.black87,
+                              color: cs.onSurface,
                             ),
                           ),
                         ],
@@ -129,18 +130,18 @@ class _PhoneInputFieldState extends State<PhoneInputField> {
                           _onChanged(v);
                           formState.didChange(v);
                         },
-                        style: const TextStyle(
+                        style: TextStyle(
                           fontSize: 14.5,
-                          color: Colors.black87,
+                          color: cs.onSurface,
                         ),
                         decoration: InputDecoration(
                           hintText: 'Enter Mobile No.',
                           hintStyle: TextStyle(
-                            color: Colors.grey.shade400,
+                            color: cs.onSurfaceVariant,
                             fontSize: 14,
                           ),
                           filled: true,
-                          fillColor: Colors.white,
+                          fillColor: cs.surface,
                           contentPadding: const EdgeInsets.symmetric(
                             horizontal: 14,
                             vertical: 13,
@@ -186,9 +187,9 @@ class _PhoneInputFieldState extends State<PhoneInputField> {
                 padding: const EdgeInsets.only(left: 2),
                 child: Text(
                   error,
-                  style: const TextStyle(
+                  style: TextStyle(
                     fontSize: 11,
-                    color: Colors.red,
+                    color: cs.error,
                   ),
                 ),
               ),

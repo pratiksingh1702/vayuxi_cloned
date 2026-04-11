@@ -1,0 +1,39 @@
+══╡ EXCEPTION CAUGHT BY GESTURE ╞═══════════════════════════════════════════════════════════════════
+The following assertion was thrown while handling a gesture:
+You have popped the last page off of the stack, there are no pages left to show
+'package:go_router/src/delegate.dart':
+Failed assertion: line 162 pos 7: 'currentConfiguration.isNotEmpty'
+
+When the exception was thrown, this was the stack:
+#2      GoRouterDelegate._debugAssertMatchListNotEmpty (package:go_router/src/delegate.dart:162:7)
+#3      GoRouterDelegate._completeRouteMatch (package:go_router/src/delegate.dart:183:5)
+#4      GoRouterDelegate._handlePopPageWithRouteMatch (package:go_router/src/delegate.dart:141:7)
+#5      _CustomNavigatorState._handlePopPage (package:go_router/src/builder.dart:425:42)
+#6      NavigatorState.pop (package:flutter/src/widgets/navigator.dart:5598:28)
+#7      BottomButtonWrapper._buildButtons.<anonymous closure>
+(package:untitled2/core/utlis/widgets/Button_wrapper.dart:59:67)
+#8      _InkResponseState.handleTap (package:flutter/src/material/ink_well.dart:1224:21)
+#9      GestureRecognizer.invokeCallback (package:flutter/src/gestures/recognizer.dart:345:24)
+#10     TapGestureRecognizer.handleTapUp (package:flutter/src/gestures/tap.dart:758:11)
+#11     BaseTapGestureRecognizer._checkUp (package:flutter/src/gestures/tap.dart:383:5)
+#12     BaseTapGestureRecognizer.acceptGesture (package:flutter/src/gestures/tap.dart:353:7)
+#13     GestureArenaManager.sweep (package:flutter/src/gestures/arena.dart:173:27)
+#14     GestureBinding.handleEvent (package:flutter/src/gestures/binding.dart:532:20)
+#15     GestureBinding.dispatchEvent (package:flutter/src/gestures/binding.dart:498:22)
+#16     RendererBinding.dispatchEvent (package:flutter/src/rendering/binding.dart:473:11)
+#17     GestureBinding._handlePointerEventImmediately (package:flutter/src/gestures/binding.dart:437:7)
+#18     GestureBinding.handlePointerEvent (package:flutter/src/gestures/binding.dart:394:5)
+#19     GestureBinding._flushPointerEventQueue (package:flutter/src/gestures/binding.dart:341:7)
+#20     GestureBinding._handlePointerDataPacket (package:flutter/src/gestures/binding.dart:308:9)
+#24     _invoke1 (dart:ui/hooks.dart:374:10)
+#25     PlatformDispatcher._dispatchPointerDataPacket (dart:ui/platform_dispatcher.dart:467:7)
+#26     _dispatchPointerDataPacket (dart:ui/hooks.dart:307:31)
+(elided 5 frames from class _AssertionError and dart:async)
+
+Handler: "onTap"
+Recognizer:
+  TapGestureRecognizer#ebf11
+════════════════════════════════════════════════════════════════════════════════════════════════════
+
+Another exception was thrown: 'package:flutter/src/widgets/navigator.dart': Failed assertion: line 4081 pos 12:
+'!_debugLocked': is not true.

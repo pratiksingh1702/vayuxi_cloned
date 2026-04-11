@@ -169,7 +169,7 @@ class _AddRateScreenState extends ConsumerState<AddRateScreen> {
     return Scaffold(
 
       drawer: const CustomDrawer(),
-      backgroundColor: AppColors.lightBlue,
+      backgroundColor: Theme.of(context).colorScheme.surfaceContainerLowest,
       appBar: CustomAppBar(title: "Add Rate"),
       body: BottomButtonWrapper(
         customButtons: [

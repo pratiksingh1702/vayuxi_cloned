@@ -43,7 +43,7 @@ final languageModuleProvider =
   ref.watch(activeLanguageProvider); // re-trigger on language change
   await Future.delayed(const Duration(
       milliseconds:
-          750)); // Keep loading state visible a bit longer for shimmer UX
+          1050)); // Keep loading state visible a bit longer for shimmer UX
   final user = ref.watch(userNotifierProvider).user;
   if (user == null) throw Exception("User not loaded");
 

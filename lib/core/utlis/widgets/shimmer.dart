@@ -31,6 +31,30 @@ import 'package:shimmer/shimmer.dart';
 
 enum ShimmerListType { card, tile, grid, avatar, teamGrid, moduleGrid }
 
+Color _resolvedBase(BuildContext context, Color? baseColor) {
+  final cs = Theme.of(context).colorScheme;
+  final isDark = Theme.of(context).brightness == Brightness.dark;
+  return baseColor ??
+      (isDark ? cs.surfaceContainerHighest : cs.surfaceContainer);
+}
+
+Color _resolvedHighlight(BuildContext context, Color? highlightColor) {
+  final cs = Theme.of(context).colorScheme;
+  final isDark = Theme.of(context).brightness == Brightness.dark;
+  return highlightColor ??
+      (isDark ? cs.surfaceContainerHigh : cs.surfaceContainerLowest);
+}
+
+Color _skeletonSurface(BuildContext context) {
+  final cs = Theme.of(context).colorScheme;
+  final isDark = Theme.of(context).brightness == Brightness.dark;
+  return isDark ? cs.surfaceContainer : cs.surface;
+}
+
+Color _shadow(BuildContext context, [double opacity = 0.05]) {
+  return Theme.of(context).colorScheme.shadow.withOpacity(opacity);
+}
+
 class ShimmerList extends StatelessWidget {
   final int itemCount;
   final ShimmerListType type;
@@ -65,7 +89,7 @@ class ShimmerList extends StatelessWidget {
     Color? baseColor,
     Color? highlightColor,
     EdgeInsetsGeometry padding =
-    const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+        const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
     double itemSpacing = 12,
     bool scrollable = true,
   }) {
@@ -83,13 +107,8 @@ class ShimmerList extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final theme = Theme.of(context);
-    final isDark = theme.brightness == Brightness.dark;
-
-    final resolvedBase =
-        baseColor ?? (isDark ? const Color(0xFF2A2A2A) : const Color(0xFFE0E0E0));
-    final resolvedHighlight =
-        highlightColor ?? (isDark ? const Color(0xFF3A3A3A) : const Color(0xFFF5F5F5));
+    final resolvedBase = _resolvedBase(context, baseColor);
+    final resolvedHighlight = _resolvedHighlight(context, highlightColor);
 
     if (type == ShimmerListType.grid) {
       return _buildGrid(resolvedBase, resolvedHighlight);
@@ -101,7 +120,7 @@ class ShimmerList extends StatelessWidget {
   Widget _buildList(Color base, Color highlight) {
     final items = List.generate(
       itemCount,
-          (index) => Padding(
+      (index) => Padding(
         padding: EdgeInsets.only(bottom: itemSpacing),
         child: _buildItem(index, base, highlight),
       ),
@@ -182,20 +201,17 @@ class ShimmerImage extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final theme = Theme.of(context);
-    final isDark = theme.brightness == Brightness.dark;
-
-    final resolvedBase =
-        baseColor ?? (isDark ? const Color(0xFF2A2A2A) : const Color(0xFFE0E0E0));
-    final resolvedHighlight =
-        highlightColor ?? (isDark ? const Color(0xFF3A3A3A) : const Color(0xFFF5F5F5));
+    final resolvedBase = _resolvedBase(context, baseColor);
+    final resolvedHighlight = _resolvedHighlight(context, highlightColor);
 
     Widget content = Container(
       width: width,
       height: height,
       decoration: BoxDecoration(
-        color: Colors.white,
-        borderRadius: shape == BoxShape.circle ? null : BorderRadius.circular(borderRadius),
+        color: _skeletonSurface(context),
+        borderRadius: shape == BoxShape.circle
+            ? null
+            : BorderRadius.circular(borderRadius),
         shape: shape,
         border: border,
       ),
@@ -235,13 +251,8 @@ class ShimmerBox extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final theme = Theme.of(context);
-    final isDark = theme.brightness == Brightness.dark;
-
-    final resolvedBase =
-        baseColor ?? (isDark ? const Color(0xFF2A2A2A) : const Color(0xFFE0E0E0));
-    final resolvedHighlight =
-        highlightColor ?? (isDark ? const Color(0xFF3A3A3A) : const Color(0xFFF5F5F5));
+    final resolvedBase = _resolvedBase(context, baseColor);
+    final resolvedHighlight = _resolvedHighlight(context, highlightColor);
 
     return Shimmer.fromColors(
       baseColor: resolvedBase,
@@ -250,7 +261,7 @@ class ShimmerBox extends StatelessWidget {
         width: width,
         height: height,
         decoration: BoxDecoration(
-          color: Colors.white,
+          color: _skeletonSurface(context),
           borderRadius: BorderRadius.circular(borderRadius),
         ),
       ),
@@ -273,13 +284,8 @@ class ShimmerCircle extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final theme = Theme.of(context);
-    final isDark = theme.brightness == Brightness.dark;
-
-    final resolvedBase =
-        baseColor ?? (isDark ? const Color(0xFF2A2A2A) : const Color(0xFFE0E0E0));
-    final resolvedHighlight =
-        highlightColor ?? (isDark ? const Color(0xFF3A3A3A) : const Color(0xFFF5F5F5));
+    final resolvedBase = _resolvedBase(context, baseColor);
+    final resolvedHighlight = _resolvedHighlight(context, highlightColor);
 
     return Shimmer.fromColors(
       baseColor: resolvedBase,
@@ -287,8 +293,8 @@ class ShimmerCircle extends StatelessWidget {
       child: Container(
         width: size,
         height: size,
-        decoration: const BoxDecoration(
-          color: Colors.white,
+        decoration: BoxDecoration(
+          color: _skeletonSurface(context),
           shape: BoxShape.circle,
         ),
       ),
@@ -320,17 +326,12 @@ class _CustomShimmerList extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final theme = Theme.of(context);
-    final isDark = theme.brightness == Brightness.dark;
-
-    final base =
-        baseColor ?? (isDark ? const Color(0xFF2A2A2A) : const Color(0xFFE0E0E0));
-    final highlight =
-        highlightColor ?? (isDark ? const Color(0xFF3A3A3A) : const Color(0xFFF5F5F5));
+    final base = _resolvedBase(context, baseColor);
+    final highlight = _resolvedHighlight(context, highlightColor);
 
     final children = List.generate(
       itemCount,
-          (i) => Padding(
+      (i) => Padding(
         padding: EdgeInsets.only(bottom: itemSpacing),
         child: itemBuilder(context, i),
       ),
@@ -368,11 +369,11 @@ class _ShimmerCardItem extends StatelessWidget {
     return Container(
       padding: const EdgeInsets.all(12),
       decoration: BoxDecoration(
-        color: Colors.white,
+        color: _skeletonSurface(context),
         borderRadius: BorderRadius.circular(14),
         boxShadow: [
           BoxShadow(
-            color: Colors.black.withOpacity(0.05),
+            color: _shadow(context),
             blurRadius: 10,
             offset: const Offset(0, 4),
           ),
@@ -391,13 +392,13 @@ class _ShimmerCardItem extends StatelessWidget {
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                     _skeletonBox(width: 80, height: 12),
+                    _skeletonBox(width: 80, height: 12),
                     const SizedBox(height: 6),
                     Container(
                       height: 110,
                       width: double.infinity,
                       decoration: BoxDecoration(
-                        color: Colors.white,
+                        color: _skeletonSurface(context),
                         borderRadius: BorderRadius.circular(8),
                       ),
                     ),
@@ -423,19 +424,16 @@ class _ShimmerCardItem extends StatelessWidget {
                   crossAxisAlignment: CrossAxisAlignment.start,
                   mainAxisAlignment: MainAxisAlignment.spaceBetween,
                   children: [
-                      
-                     
-                  Row(
-                    mainAxisAlignment: MainAxisAlignment.end,
+                    Row(
+                      mainAxisAlignment: MainAxisAlignment.end,
                       children: [
-                      
                         _skeletonBox(width: 60, height: 13),
                       ],
                     ),
                     _skeletonBox(width: 70, height: 23),
                     const SizedBox(height: 23),
-                    
-                    _skeletonBox(width: double.infinity, height: 48, borderRadius: 8),
+                    _skeletonBox(
+                        width: double.infinity, height: 48, borderRadius: 8),
                   ],
                 ),
               ),
@@ -459,11 +457,11 @@ class _ShimmerTileItem extends StatelessWidget {
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 14),
       decoration: BoxDecoration(
-        color: Colors.white,
+        color: _skeletonSurface(context),
         borderRadius: BorderRadius.circular(10),
         boxShadow: [
           BoxShadow(
-            color: Colors.black.withOpacity(0.03),
+            color: _shadow(context, 0.03),
             blurRadius: 4,
             offset: const Offset(0, 2),
           ),
@@ -477,8 +475,8 @@ class _ShimmerTileItem extends StatelessWidget {
             Container(
               width: 48,
               height: 48,
-              decoration: const BoxDecoration(
-                color: Colors.white,
+              decoration: BoxDecoration(
+                color: _skeletonSurface(context),
                 shape: BoxShape.circle,
               ),
             ),
@@ -514,7 +512,7 @@ class _ShimmerAvatarItem extends StatelessWidget {
     return Container(
       padding: const EdgeInsets.symmetric(vertical: 16, horizontal: 12),
       decoration: BoxDecoration(
-        color: Colors.white,
+        color: _skeletonSurface(context),
         borderRadius: BorderRadius.circular(12),
       ),
       child: Shimmer.fromColors(
@@ -525,8 +523,8 @@ class _ShimmerAvatarItem extends StatelessWidget {
             Container(
               width: 56,
               height: 56,
-              decoration: const BoxDecoration(
-                color: Colors.white,
+              decoration: BoxDecoration(
+                color: _skeletonSurface(context),
                 shape: BoxShape.circle,
               ),
             ),
@@ -561,11 +559,11 @@ class _ShimmerGridItem extends StatelessWidget {
   Widget build(BuildContext context) {
     return Container(
       decoration: BoxDecoration(
-        color: Colors.white,
+        color: _skeletonSurface(context),
         borderRadius: BorderRadius.circular(10),
         boxShadow: [
           BoxShadow(
-            color: Colors.black.withOpacity(0.05),
+            color: _shadow(context),
             blurRadius: 8,
           ),
         ],
@@ -579,8 +577,8 @@ class _ShimmerGridItem extends StatelessWidget {
             Expanded(
               child: Container(
                 width: double.infinity,
-                decoration: const BoxDecoration(
-                  color: Colors.white,
+                decoration: BoxDecoration(
+                  color: _skeletonSurface(context),
                   borderRadius: BorderRadius.vertical(top: Radius.circular(10)),
                 ),
               ),
@@ -613,7 +611,7 @@ class _ShimmerTeamGridItem extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Card(
-      color: Colors.white,
+      color: _skeletonSurface(context),
       shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
       child: Shimmer.fromColors(
         baseColor: base,
@@ -625,8 +623,8 @@ class _ShimmerTeamGridItem extends StatelessWidget {
               Container(
                 height: 80,
                 width: 80,
-                decoration: const BoxDecoration(
-                  color: Colors.white,
+                decoration: BoxDecoration(
+                  color: _skeletonSurface(context),
                   shape: BoxShape.circle,
                 ),
               ),
@@ -651,11 +649,11 @@ class _ShimmerModuleGridItem extends StatelessWidget {
   Widget build(BuildContext context) {
     return Container(
       decoration: BoxDecoration(
-        color: Colors.white,
+        color: _skeletonSurface(context),
         borderRadius: BorderRadius.circular(20),
         boxShadow: [
           BoxShadow(
-            color: Colors.black.withOpacity(0.05),
+            color: _shadow(context),
             blurRadius: 8,
             spreadRadius: 1,
           ),
@@ -674,7 +672,7 @@ class _ShimmerModuleGridItem extends StatelessWidget {
               padding: const EdgeInsets.all(12),
               child: Container(
                 decoration: BoxDecoration(
-                  color: Colors.white,
+                  color: _skeletonSurface(context),
                   borderRadius: BorderRadius.circular(12),
                 ),
               ),
@@ -683,12 +681,14 @@ class _ShimmerModuleGridItem extends StatelessWidget {
             // Text skeleton
             Padding(
               padding: const EdgeInsets.symmetric(horizontal: 16),
-              child: _skeletonBox(width: double.infinity, height: 14, borderRadius: 4),
+              child: _skeletonBox(
+                  width: double.infinity, height: 14, borderRadius: 4),
             ),
             const SizedBox(height: 4),
             Padding(
               padding: const EdgeInsets.symmetric(horizontal: 32),
-              child: _skeletonBox(width: double.infinity, height: 14, borderRadius: 4),
+              child: _skeletonBox(
+                  width: double.infinity, height: 14, borderRadius: 4),
             ),
           ],
         ),
@@ -697,15 +697,37 @@ class _ShimmerModuleGridItem extends StatelessWidget {
   }
 }
 
-Widget _skeletonBox({double? width, required double height, double borderRadius = 6}) {
-  return Container(
+Widget _skeletonBox(
+    {double? width, required double height, double borderRadius = 6}) {
+  return _ThemedSkeletonBox(
     width: width,
     height: height,
-    decoration: BoxDecoration(
-      color: Colors.white,
-      borderRadius: BorderRadius.circular(borderRadius),
-    ),
+    borderRadius: borderRadius,
   );
+}
+
+class _ThemedSkeletonBox extends StatelessWidget {
+  const _ThemedSkeletonBox({
+    this.width,
+    required this.height,
+    required this.borderRadius,
+  });
+
+  final double? width;
+  final double height;
+  final double borderRadius;
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      width: width,
+      height: height,
+      decoration: BoxDecoration(
+        color: _skeletonSurface(context),
+        borderRadius: BorderRadius.circular(borderRadius),
+      ),
+    );
+  }
 }
 
 // ─── Primitive Shimmer Shapes ────────────────────────────────────────────────
@@ -727,7 +749,7 @@ class _ShimmerBox extends StatelessWidget {
       width: width,
       height: height,
       decoration: BoxDecoration(
-        color: Colors.white,
+        color: _skeletonSurface(context),
         borderRadius: BorderRadius.circular(borderRadius),
       ),
     );
@@ -744,8 +766,8 @@ class _ShimmerCircle extends StatelessWidget {
     return Container(
       width: size,
       height: size,
-      decoration: const BoxDecoration(
-        color: Colors.white,
+      decoration: BoxDecoration(
+        color: _skeletonSurface(context),
         shape: BoxShape.circle,
       ),
     );

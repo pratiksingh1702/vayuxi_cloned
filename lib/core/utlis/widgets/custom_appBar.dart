@@ -6,6 +6,7 @@ import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import 'package:untitled2/features/noti_system/updates/presentation/navigation/updates_routes.dart';
+import 'package:untitled2/features/noti_system/updates/application/providers/notification_providers.dart';
 import 'package:untitled2/typeProvider/type_provider.dart';
 
 import '../../router/route_tracker.dart';
@@ -48,6 +49,8 @@ class CustomAppBar extends ConsumerWidget implements PreferredSizeWidget {
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
+    final cs = Theme.of(context).colorScheme;
+    final isDark = Theme.of(context).brightness == Brightness.dark;
     final trail = ref.watch(routeTrailProvider);
     final selectedType = ref.watch(typeProvider);
     final visibleTrail = trail
@@ -56,6 +59,7 @@ class CustomAppBar extends ConsumerWidget implements PreferredSizeWidget {
     final fallbackType =
         visibleTrail.isNotEmpty ? visibleTrail.last.label : null;
     final workTypeLabel = _formatWorkTypeLabel(selectedType ?? fallbackType);
+    final unreadCount = ref.watch(unreadCountProvider);
 
     return DecoratedBox(
       decoration: const BoxDecoration(
@@ -72,9 +76,11 @@ class CustomAppBar extends ConsumerWidget implements PreferredSizeWidget {
             begin: Alignment.topCenter,
             end: Alignment.bottomCenter,
             colors: [
-              Theme.of(context).colorScheme.surface.withOpacity(0.92),
-              Theme.of(context).colorScheme.surface.withOpacity(0.78),
-              Theme.of(context).colorScheme.surface.withOpacity(0.90),
+              (isDark ? cs.surfaceContainerHigh : cs.surface)
+                  .withOpacity(isDark ? 0.92 : 0.94),
+              cs.surface.withOpacity(isDark ? 0.80 : 0.82),
+              (isDark ? cs.surfaceContainer : cs.surfaceContainerLowest)
+                  .withOpacity(isDark ? 0.88 : 0.90),
             ],
           ),
         ),
@@ -102,6 +108,7 @@ class CustomAppBar extends ConsumerWidget implements PreferredSizeWidget {
                       Align(
                         alignment: Alignment.centerRight,
                         child: _NotificationButton(
+                          unreadCount: unreadCount,
                           onPressed: () => context.push(UpdatesRoutes.list),
                         ),
                       ),
@@ -512,11 +519,11 @@ class _BreadcrumbItemState extends ConsumerState<BreadcrumbItem>
             : cs.onSurface.withOpacity(0.07))
         : (_hovered
             ? cs.onSurfaceVariant.withOpacity(0.08)
-            : Colors.transparent);
+            : cs.surface.withOpacity(0));
 
     final borderColor = isCurrent
         ? cs.primary.withOpacity(isDark ? 0.22 : 0.16)
-        : Colors.transparent;
+        : cs.surface.withOpacity(0);
 
     return MouseRegion(
       onEnter: (_) => setState(() => _hovered = true),
@@ -660,9 +667,10 @@ class _OverflowDotState extends ConsumerState<_OverflowDot>
 
   void _showOverflowSheet(BuildContext context) {
     HapticFeedback.selectionClick();
+    final cs = Theme.of(context).colorScheme;
     showModalBottomSheet<void>(
       context: context,
-      backgroundColor: Colors.transparent,
+      backgroundColor: cs.surface.withOpacity(0),
       builder: (_) => _OverflowSheet(
         entries: widget.hiddenEntries,
         onTap: (entry) {
@@ -696,7 +704,7 @@ class _OverflowDotState extends ConsumerState<_OverflowDot>
             decoration: BoxDecoration(
               color: _hovered
                   ? cs.onSurfaceVariant.withOpacity(0.08)
-                  : Colors.transparent,
+                  : cs.surface.withOpacity(0),
               borderRadius: BorderRadius.circular(999),
             ),
             child: Row(
@@ -890,8 +898,10 @@ class _MenuButton extends StatelessWidget {
 
 class _NotificationButton extends StatelessWidget {
   final VoidCallback onPressed;
+  final int unreadCount;
 
-  const _NotificationButton({required this.onPressed});
+  const _NotificationButton(
+      {required this.onPressed, required this.unreadCount});
 
   @override
   Widget build(BuildContext context) {
@@ -904,16 +914,47 @@ class _NotificationButton extends StatelessWidget {
       child: InkWell(
         borderRadius: BorderRadius.circular(14),
         onTap: onPressed,
-        child: Container(
-          width: 42,
-          height: 42,
-          alignment: Alignment.center,
-          decoration: BoxDecoration(
-            borderRadius: BorderRadius.circular(14),
-            border: Border.all(color: cs.outline.withOpacity(0.14), width: 0.8),
-          ),
-          child: Icon(Icons.notifications_none_rounded,
-              color: cs.onSurface, size: 22),
+        child: Stack(
+          clipBehavior: Clip.none,
+          children: [
+            Container(
+              width: 42,
+              height: 42,
+              alignment: Alignment.center,
+              decoration: BoxDecoration(
+                borderRadius: BorderRadius.circular(14),
+                border:
+                    Border.all(color: cs.outline.withOpacity(0.14), width: 0.8),
+              ),
+              child: Icon(Icons.notifications_none_rounded,
+                  color: cs.onSurface, size: 22),
+            ),
+            if (unreadCount > 0)
+              Positioned(
+                right: -4,
+                top: -4,
+                child: Container(
+                  constraints:
+                      const BoxConstraints(minWidth: 16, minHeight: 16),
+                  padding: const EdgeInsets.symmetric(horizontal: 4),
+                  decoration: BoxDecoration(
+                    color: cs.error,
+                    borderRadius: BorderRadius.circular(999),
+                    border: Border.all(color: cs.surface, width: 1),
+                  ),
+                  child: Center(
+                    child: Text(
+                      unreadCount > 99 ? '99+' : '$unreadCount',
+                      style: TextStyle(
+                        fontSize: 9,
+                        fontWeight: FontWeight.w700,
+                        color: cs.onError,
+                      ),
+                    ),
+                  ),
+                ),
+              ),
+          ],
         ),
       ),
     );

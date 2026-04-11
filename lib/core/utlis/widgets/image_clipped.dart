@@ -2,27 +2,27 @@ import 'dart:ui';
 
 import 'package:flutter/material.dart';
 
-import '../colors/colors.dart';
-
 class CornerClippedScreenSimple extends StatelessWidget {
   final Widget child;
 
   final double cornerRadius;
 
-  final Color color;
+  final Color? color;
 
   const CornerClippedScreenSimple({
     Key? key,
     required this.child,
-    this.color = AppColors.lightBlue,
-
+    this.color,
     this.cornerRadius = 40.0,
   }) : super(key: key);
 
   @override
   Widget build(BuildContext context) {
-    print(Theme.of(context).scaffoldBackgroundColor);
-    print("color at clipped 😑😑😑");
+    final cs = Theme.of(context).colorScheme;
+    final isDark = Theme.of(context).brightness == Brightness.dark;
+    final resolvedColor =
+        color ?? (isDark ? cs.surface : cs.surfaceContainerLowest);
+
     return Stack(
       children: [
         // Background Image
@@ -33,22 +33,37 @@ class CornerClippedScreenSimple extends StatelessWidget {
           ),
         ),
 
+        // Theme-aware overlay tint, aligned with custom app bar treatment.
+        Positioned.fill(
+          child: DecoratedBox(
+            decoration: BoxDecoration(
+              gradient: LinearGradient(
+                begin: Alignment.topCenter,
+                end: Alignment.bottomCenter,
+                colors: [
+                  (isDark ? cs.surfaceContainerHigh : cs.surface)
+                      .withOpacity(isDark ? 0.92 : 0.94),
+                  cs.surface.withOpacity(isDark ? 0.80 : 0.82),
+                  (isDark ? cs.surfaceContainer : cs.surfaceContainerLowest)
+                      .withOpacity(isDark ? 0.88 : 0.90),
+                ],
+              ),
+            ),
+          ),
+        ),
+
         // Clipped Content using Container with BorderRadius
         Positioned.fill(
           child: ClipRRect(
-              borderRadius: const BorderRadius.only(
-                topLeft: Radius.circular(24),
-                topRight: Radius.circular(24),
+              borderRadius: BorderRadius.only(
+                topLeft: Radius.circular(cornerRadius),
+                topRight: Radius.circular(cornerRadius),
               ),
               child: Container(
                   padding: EdgeInsets.symmetric(vertical: 2),
                   decoration: BoxDecoration(
-                    // color: Theme.of(context).scaffoldBackgroundColor,
-                    color: color,
-
-
+                    color: resolvedColor,
                   ),
-
                   child: child)),
         ),
       ],

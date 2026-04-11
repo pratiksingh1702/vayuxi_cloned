@@ -16,31 +16,38 @@ class CommonButton extends StatelessWidget {
     this.disabled = false,
   });
 
-  Color _getColor() {
+  Color _getColor(ColorScheme cs) {
     switch (variant) {
       case ButtonVariant.secondary:
-        return Colors.grey;
+        return cs.secondary;
       case ButtonVariant.danger:
-        return Colors.red;
+        return cs.error;
       case ButtonVariant.primary:
       default:
-        return Colors.blue;
+        return cs.primary;
     }
   }
 
   @override
   Widget build(BuildContext context) {
+    final cs = Theme.of(context).colorScheme;
+
     return SizedBox(
       width: double.infinity,
       height: 48,
       child: ElevatedButton(
         onPressed: disabled ? null : onPressed,
         style: ElevatedButton.styleFrom(
-          backgroundColor: _getColor(),
-          disabledBackgroundColor: Colors.grey.shade400,
+          backgroundColor: _getColor(cs),
+          foregroundColor: variant == ButtonVariant.danger
+              ? cs.onError
+              : variant == ButtonVariant.secondary
+                  ? cs.onSecondary
+                  : cs.onPrimary,
+          disabledBackgroundColor: cs.surfaceContainerHighest,
           shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
         ),
-        child: Text(label, style: const TextStyle(color: Colors.white)),
+        child: Text(label),
       ),
     );
   }

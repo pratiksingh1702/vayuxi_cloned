@@ -5,7 +5,8 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:isar/isar.dart';
 import 'package:untitled2/core/utlis/colors/colors.dart';
-import 'package:untitled2/core/utlis/widgets/custom_appBar.dart';
+import 'package:untitled2/core/utlis/widgets/premium_app_bar.dart';
+import 'package:untitled2/core/utlis/widgets/sidebar.dart';
 import 'package:untitled2/features/modules/all_Modules/dpr/offline/mech/isar/rate_file_isar.dart';
 import 'package:untitled2/features/modules/all_Modules/dpr/providers/rate_image_resolver.dart';
 import 'package:untitled2/features/modules/all_Modules/dpr/screens/widgets/test_dynamic.dart';
@@ -30,23 +31,8 @@ import 'dynamic_item_card.dart';
 import 'dynamic_item_card2.dart';
 import 'edit_material.dart';
 
-import 'package:flutter/material.dart';
-import 'package:flutter_riverpod/flutter_riverpod.dart';
-import 'package:untitled2/core/utlis/colors/colors.dart';
-import 'package:untitled2/core/utlis/widgets/custom_appBar.dart';
-import 'package:untitled2/features/modules/all_Modules/site_Details/providers/site_current_provider.dart';
-
-import '../../dpr-setup/screens/add/add_material.dart';
-import '../../models/data/eqipment_provider.dart';
-import '../../models/data/piping_provider.dart';
-import '../../models/equipmentModel.dart';
-import '../../models/pipingModel.dart';
-import '../../providers/material_service.dart';
-import 'dynamic_item_card.dart';
-import 'dynamic_item_card2.dart';
-import 'edit_material.dart';
-
 import 'material_overlay_edit.dart';
+
 class AllMaterialsScreen extends ConsumerStatefulWidget {
   const AllMaterialsScreen({
     super.key,
@@ -75,6 +61,7 @@ class _AllMaterialsScreenState extends ConsumerState<AllMaterialsScreen>
   // Selection mode test
   bool _isSelectionMode = false;
   Set<String> _selectedMaterialIds = {};
+  int _suggestedViewIndex = 0;
 
   @override
   void initState() {
@@ -93,9 +80,9 @@ class _AllMaterialsScreenState extends ConsumerState<AllMaterialsScreen>
   }
 
   Future<void> _openPipingEditOverlay(
-      PipingItem material,
-      String? rateUploadId,
-      ) async {
+    PipingItem material,
+    String? rateUploadId,
+  ) async {
     // Disable selection mode while editing
     if (_isSelectionMode) {
       setState(() {
@@ -122,9 +109,9 @@ class _AllMaterialsScreenState extends ConsumerState<AllMaterialsScreen>
   }
 
   Future<void> _openEquipmentEditOverlay(
-      EquipmentItem material,
-      String? rateUploadId,
-      ) async {
+    EquipmentItem material,
+    String? rateUploadId,
+  ) async {
     if (_isSelectionMode) {
       setState(() {
         _isSelectionMode = false;
@@ -148,7 +135,6 @@ class _AllMaterialsScreenState extends ConsumerState<AllMaterialsScreen>
       if (mounted) setState(() => _isLoading = false);
     }
   }
-
 
   /// Initialize materials from the Default Material API
   Future<void> _initializeMaterials() async {
@@ -609,8 +595,6 @@ class _AllMaterialsScreenState extends ConsumerState<AllMaterialsScreen>
           ),
         );
       }
-
-
     } catch (e) {
       debugPrint("❌ Delete line item failed: $e");
       if (mounted) {
@@ -710,6 +694,8 @@ class _AllMaterialsScreenState extends ConsumerState<AllMaterialsScreen>
   Widget build(BuildContext context) {
     final siteId = ref.watch(selectedSiteIdProvider)!;
     ref.watch(rateSyncControllerProvider(siteId));
+    final rateFileMeta = ref.watch(rateFileMetaProvider(siteId));
+    final rateFileName = (rateFileMeta['fileName'] as String?)?.trim();
 
     final detected = ref.watch(detectedFieldsProvider(siteId));
 
@@ -731,32 +717,99 @@ class _AllMaterialsScreenState extends ConsumerState<AllMaterialsScreen>
     return Stack(children: [
       Scaffold(
         backgroundColor: AppColors.lightBlue,
-        appBar: CustomAppBar(
+        drawer: const CustomDrawer(),
+        appBar: PremiumAppBar(
           title: _isSelectionMode
               ? '${_selectedMaterialIds.length} Selected'
               : 'All Materials',
+          subtitle: Text(
+            rateFileName == null || rateFileName.isEmpty
+                ? 'Rate file not loaded'
+                : rateFileName,
+            maxLines: 1,
+            overflow: TextOverflow.ellipsis,
+          ),
+          actions: [
+            PremiumActionIcon(
+              icon: Icons.refresh_rounded,
+              tooltip: 'Refresh materials',
+              onPressed: () {
+                if (_isLoading) return;
+                _refreshMaterials();
+              },
+            ),
+          ],
         ),
         body: SafeArea(
           child: Column(
             children: [
-              Container(
-                color: Colors.white,
-                child: TabBar(
-                  controller: _tabController,
-                  labelColor: AppColors.primary,
-                  unselectedLabelColor: Colors.grey,
-                  indicatorColor: AppColors.primary,
-                  tabs: const [
-                    Tab(
-                      text: 'Piping Materials',
-                      icon: Icon(Icons.precision_manufacturing),
+              Padding(
+                padding: const EdgeInsets.fromLTRB(12, 6, 12, 8),
+                child: Container(
+                  padding:
+                      const EdgeInsets.symmetric(horizontal: 4, vertical: 4),
+                  decoration: BoxDecoration(
+                    color: Colors.white,
+                    borderRadius: BorderRadius.circular(14),
+                    border: Border.all(color: const Color(0xFFD8E5FF)),
+                    boxShadow: [
+                      BoxShadow(
+                        color: Colors.black.withOpacity(0.04),
+                        blurRadius: 8,
+                        offset: const Offset(0, 2),
+                      ),
+                    ],
+                  ),
+                  child: TabBar(
+                    controller: _tabController,
+                    labelColor: Colors.white,
+                    unselectedLabelColor: const Color(0xFF56739E),
+                    labelStyle: const TextStyle(
+                      fontSize: 12,
+                      fontWeight: FontWeight.w700,
                     ),
-                    Tab(
-                      text: 'Equipment Materials',
-                      icon: Icon(Icons.build),
+                    unselectedLabelStyle: const TextStyle(
+                      fontSize: 12,
+                      fontWeight: FontWeight.w600,
                     ),
-                    Tab(text: 'Suggested', icon: Icon(Icons.search)),
-                  ],
+                    labelPadding:
+                        const EdgeInsets.symmetric(horizontal: 6, vertical: 0),
+                    indicatorSize: TabBarIndicatorSize.tab,
+                    dividerColor: Colors.transparent,
+                    indicator: BoxDecoration(
+                      borderRadius: BorderRadius.circular(10),
+                      gradient: const LinearGradient(
+                        colors: [Color(0xFF2A66CC), Color(0xFF4F86E8)],
+                      ),
+                      boxShadow: [
+                        BoxShadow(
+                          color: const Color(0xFF2A66CC).withOpacity(0.28),
+                          blurRadius: 7,
+                          offset: const Offset(0, 2),
+                        ),
+                      ],
+                    ),
+                    tabs: const [
+                      Tab(
+                        height: 40,
+                        text: 'Piping',
+                        iconMargin: EdgeInsets.only(bottom: 1),
+                        icon: Icon(Icons.precision_manufacturing, size: 15),
+                      ),
+                      Tab(
+                        height: 40,
+                        text: 'Equipment',
+                        iconMargin: EdgeInsets.only(bottom: 1),
+                        icon: Icon(Icons.build, size: 15),
+                      ),
+                      Tab(
+                        height: 40,
+                        text: 'Suggested',
+                        iconMargin: EdgeInsets.only(bottom: 1),
+                        icon: Icon(Icons.search, size: 15),
+                      ),
+                    ],
+                  ),
                 ),
               ),
               if (_isLoading && _isInitialized)
@@ -802,7 +855,6 @@ class _AllMaterialsScreenState extends ConsumerState<AllMaterialsScreen>
           ),
         ),
       ),
-     
     ]);
   }
 
@@ -828,125 +880,197 @@ class _AllMaterialsScreenState extends ConsumerState<AllMaterialsScreen>
     final rateFileMeta = ref.read(rateFileMetaProvider(siteid!));
     final rateUploadId = rateFileMeta['rateFileId'] as String?;
 
-    return DefaultTabController(
-      length: 2,
-      child: Column(
-        children: [
-          // 🔹 TOP ACTION BAR (Approve flow)
-          Padding(
-            padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 6),
-            child: Row(
-              mainAxisAlignment: MainAxisAlignment.spaceBetween,
+    return Column(
+      children: [
+        Padding(
+          padding: const EdgeInsets.fromLTRB(12, 0, 12, 8),
+          child: Container(
+            width: double.infinity,
+            padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
+            decoration: BoxDecoration(
+              color: Colors.white,
+              borderRadius: BorderRadius.circular(14),
+              border: Border.all(color: const Color(0xFFD8E5FF)),
+              boxShadow: [
+                BoxShadow(
+                  color: Colors.black.withOpacity(0.03),
+                  blurRadius: 8,
+                  offset: const Offset(0, 2),
+                ),
+              ],
+            ),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                Row(
-                  children: [
-                    if (_isSelectionMode) ...[
-                      IconButton(
-                        icon: const Icon(Icons.close),
-                        onPressed: () {
-                          setState(() {
-                            _isSelectionMode = false;
-                            _selectedMaterialIds.clear();
-                          });
-                        },
-                      ),
-                      TextButton(
-                        onPressed: () {
-                          final allSuggested = [
-                            ...pipingItems,
-                            ...equipmentItems,
-                          ];
-                          _selectAllMaterials(allSuggested);
-                        },
-                        child: const Text('Select All'),
-                      ),
-
-                      // ✅ APPROVE button
-                      ElevatedButton.icon(
-                        icon: const Icon(Icons.check_circle),
-                        label: const Text('Approve'),
-                        onPressed: rateUploadId == null
-                            ? null
-                            : () {
-                                final siteid =
-                                    ref.read(selectedSiteIdProvider)!;
-                                _approveSelectedMaterials(
-                                  siteId: siteid,
-                                  rateUploadId: rateUploadId,
-                                );
-                              },
-                        style: ElevatedButton.styleFrom(
-                          backgroundColor: Colors.green,
-                          foregroundColor: Colors.white,
+                if (_isSelectionMode)
+                  SingleChildScrollView(
+                    scrollDirection: Axis.horizontal,
+                    child: Row(
+                      children: [
+                        _buildHeaderActionButton(
+                          label: 'Close',
+                          icon: Icons.close,
+                          textColor: const Color(0xFF5A6E89),
+                          bgColor: const Color(0xFFF1F5FB),
+                          onTap: () {
+                            setState(() {
+                              _isSelectionMode = false;
+                              _selectedMaterialIds.clear();
+                            });
+                          },
+                        ),
+                        const SizedBox(width: 8),
+                        _buildHeaderActionButton(
+                          label: 'Select All',
+                          icon: Icons.done_all,
+                          textColor: const Color(0xFF2B5FAE),
+                          bgColor: const Color(0xFFEAF2FF),
+                          onTap: () {
+                            final allSuggested = [
+                              ...pipingItems,
+                              ...equipmentItems,
+                            ];
+                            _selectAllMaterials(allSuggested);
+                          },
+                        ),
+                        const SizedBox(width: 8),
+                        _buildHeaderActionButton(
+                          label: 'Approve',
+                          icon: Icons.check_circle,
+                          textColor: Colors.white,
+                          bgColor: const Color(0xFF16824C),
+                          onTap: rateUploadId == null
+                              ? null
+                              : () {
+                                  final siteid =
+                                      ref.read(selectedSiteIdProvider)!;
+                                  _approveSelectedMaterials(
+                                    siteId: siteid,
+                                    rateUploadId: rateUploadId,
+                                  );
+                                },
+                        ),
+                        const SizedBox(width: 8),
+                        _buildHeaderActionButton(
+                          label: 'Reject',
+                          icon: Icons.cancel,
+                          textColor: Colors.white,
+                          bgColor: const Color(0xFFD34747),
+                          onTap: rateUploadId == null
+                              ? null
+                              : () {
+                                  final siteid =
+                                      ref.read(selectedSiteIdProvider)!;
+                                  _rejectSelectedMaterials(
+                                    siteId: siteid,
+                                    rateUploadId: rateUploadId,
+                                  );
+                                },
+                        ),
+                      ],
+                    ),
+                  )
+                else
+                  Row(
+                    children: [
+                      Expanded(
+                        child: Row(
+                          children: [
+                            Container(
+                              width: 8,
+                              height: 8,
+                              decoration: const BoxDecoration(
+                                color: Color(0xFFE48A1F),
+                                shape: BoxShape.circle,
+                              ),
+                            ),
+                            const SizedBox(width: 8),
+                            Expanded(
+                              child: Text(
+                                'Suggested pool: ${pipingItems.length} piping, ${equipmentItems.length} equipment',
+                                style: const TextStyle(
+                                  fontWeight: FontWeight.w700,
+                                  fontSize: 13,
+                                  color: Color(0xFF2E4E79),
+                                ),
+                              ),
+                            ),
+                          ],
                         ),
                       ),
-
                       const SizedBox(width: 8),
-
-                      // ✅ REJECT button
-                      ElevatedButton.icon(
-                        icon: const Icon(Icons.cancel),
-                        label: const Text('Reject'),
-                        onPressed: rateUploadId == null
-                            ? null
-                            : () {
-                                final siteid =
-                                    ref.read(selectedSiteIdProvider)!;
-                                _rejectSelectedMaterials(
-                                  siteId: siteid,
-                                  rateUploadId: rateUploadId,
-                                );
-                              },
-                        style: ElevatedButton.styleFrom(
-                          backgroundColor: Colors.red,
-                          foregroundColor: Colors.white,
-                        ),
+                      _buildHeaderIconButton(
+                        icon: Icons.delete_sweep,
+                        tooltip: 'Select Items',
+                        iconColor: const Color(0xFFD34747),
+                        onTap: () => setState(() => _isSelectionMode = true),
                       ),
-                    ] else ...[
-                      ElevatedButton.icon(
-                        icon: const Icon(Icons.playlist_add_check),
-                        label: const Text('Select'),
-                        onPressed: () {
-                          setState(() => _isSelectionMode = true);
-                        },
+                      const SizedBox(width: 8),
+                      _buildHeaderIconButton(
+                        icon: Icons.add_circle,
+                        tooltip: 'Add Material',
+                        iconColor: const Color(0xFFE48A1F),
+                        onTap: _showAddMaterialSheet,
                       ),
                     ],
-                  ],
-                ),
+                  ),
               ],
             ),
           ),
-
-          // 🔹 INNER TAB BAR
-          Container(
-            color: Colors.white,
-            child: const TabBar(
-              labelColor: Colors.orange,
-              unselectedLabelColor: Colors.grey,
-              indicatorColor: Colors.orange,
-              tabs: [
-                Tab(
-                  text: 'Piping',
-                  icon: Icon(Icons.precision_manufacturing),
-                ),
-                Tab(
-                  text: 'Equipment',
-                  icon: Icon(Icons.build),
-                ),
-              ],
+        ),
+        Padding(
+          padding: const EdgeInsets.fromLTRB(12, 0, 12, 8),
+          child: Container(
+            width: double.infinity,
+            padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
+            decoration: BoxDecoration(
+              color: Colors.white,
+              borderRadius: BorderRadius.circular(14),
+              border: Border.all(color: const Color(0xFFD8E5FF)),
             ),
-          ),
-
-          // 🔹 INNER TAB VIEW
-          Expanded(
-            child: TabBarView(
+            child: Row(
               children: [
-                // Suggested Piping
-                pipingItems.isEmpty
+                Expanded(
+                  child: Text(
+                    _suggestedViewIndex == 0
+                        ? 'Showing Suggested Piping'
+                        : 'Showing Suggested Equipment',
+                    style: const TextStyle(
+                      fontSize: 12,
+                      fontWeight: FontWeight.w600,
+                      color: Color(0xFF5A6E89),
+                    ),
+                  ),
+                ),
+                const SizedBox(width: 8),
+                _buildSuggestedSwitchChip(
+                  label: 'Piping',
+                  icon: Icons.precision_manufacturing,
+                  selected: _suggestedViewIndex == 0,
+                  onTap: () => setState(() => _suggestedViewIndex = 0),
+                ),
+                const SizedBox(width: 8),
+                _buildSuggestedSwitchChip(
+                  label: 'Equipment',
+                  icon: Icons.build,
+                  selected: _suggestedViewIndex == 1,
+                  onTap: () => setState(() => _suggestedViewIndex = 1),
+                ),
+              ],
+            ),
+          ),
+        ),
+        Expanded(
+          child: AnimatedSwitcher(
+            duration: const Duration(milliseconds: 180),
+            child: _suggestedViewIndex == 0
+                ? (pipingItems.isEmpty
                     ? const Center(
+                        key: ValueKey('empty_piping'),
                         child: Text('No suggested piping materials'),
                       )
                     : CustomScrollbar(
+                        key: const ValueKey('piping_list'),
                         controller: _suggestedPipingController,
                         child: ListView.builder(
                           controller: _suggestedPipingController,
@@ -954,21 +1078,20 @@ class _AllMaterialsScreenState extends ConsumerState<AllMaterialsScreen>
                           padding: const EdgeInsets.all(8),
                           itemCount: pipingItems.length,
                           itemBuilder: (context, index) {
-                            print(pipingItems[index].image);
                             return _buildPipingCard(
                               pipingItems[index],
                               Colors.orange,
                             );
                           },
                         ),
-                      ),
-
-                // Suggested Equipment
-                equipmentItems.isEmpty
+                      ))
+                : (equipmentItems.isEmpty
                     ? const Center(
+                        key: ValueKey('empty_equipment'),
                         child: Text('No suggested equipment materials'),
                       )
                     : CustomScrollbar(
+                        key: const ValueKey('equipment_list'),
                         controller: _suggestedEquipmentController,
                         child: ListView.builder(
                           controller: _suggestedEquipmentController,
@@ -982,11 +1105,55 @@ class _AllMaterialsScreenState extends ConsumerState<AllMaterialsScreen>
                             );
                           },
                         ),
-                      ),
-              ],
+                      )),
+          ),
+        ),
+      ],
+    );
+  }
+
+  Widget _buildSuggestedSwitchChip({
+    required String label,
+    required IconData icon,
+    required bool selected,
+    required VoidCallback onTap,
+  }) {
+    return Material(
+      color: Colors.transparent,
+      child: InkWell(
+        onTap: onTap,
+        borderRadius: BorderRadius.circular(999),
+        child: AnimatedContainer(
+          duration: const Duration(milliseconds: 180),
+          padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 6),
+          decoration: BoxDecoration(
+            color: selected ? const Color(0xFFF4A746) : const Color(0xFFF6F8FC),
+            borderRadius: BorderRadius.circular(999),
+            border: Border.all(
+              color:
+                  selected ? const Color(0xFFE48A1F) : const Color(0xFFDCE6F7),
             ),
           ),
-        ],
+          child: Row(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              Icon(
+                icon,
+                size: 12,
+                color: selected ? Colors.white : const Color(0xFF6A7F9E),
+              ),
+              const SizedBox(width: 4),
+              Text(
+                label,
+                style: TextStyle(
+                  fontSize: 10,
+                  fontWeight: FontWeight.w700,
+                  color: selected ? Colors.white : const Color(0xFF6A7F9E),
+                ),
+              ),
+            ],
+          ),
+        ),
       ),
     );
   }
@@ -1262,93 +1429,210 @@ class _AllMaterialsScreenState extends ConsumerState<AllMaterialsScreen>
       return _buildLoadingState(category: category, color: color);
     }
 
-    if (materials.isEmpty ||_isLoading) {
+    if (materials.isEmpty) {
       return _buildEmptyCategoryState(emptyMessage);
     }
 
     return Column(
       children: [
         Padding(
-          padding: const EdgeInsets.all(8.0),
-          child: Row(
-            mainAxisAlignment: MainAxisAlignment.spaceBetween,
-            children: [
-              Text(
-                _isSelectionMode
-                    ? '${_selectedMaterialIds.length} / ${materials.length} selected'
-                    : 'Total ${category == 'piping' ? 'Piping' : 'Equipment'}: ${materials.length}',
-                style: TextStyle(
-                  fontWeight: FontWeight.bold,
-                  color: color,
+          padding: const EdgeInsets.fromLTRB(12, 0, 12, 8),
+          child: Container(
+            width: double.infinity,
+            padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
+            decoration: BoxDecoration(
+              color: Colors.white,
+              borderRadius: BorderRadius.circular(14),
+              border: Border.all(color: const Color(0xFFD8E5FF)),
+              boxShadow: [
+                BoxShadow(
+                  color: Colors.black.withOpacity(0.03),
+                  blurRadius: 8,
+                  offset: const Offset(0, 2),
                 ),
-              ),
-              Row(
-                children: [
-                  if (_isSelectionMode) ...[
-                    IconButton(
-                      icon: const Icon(Icons.close),
-                      onPressed: () => _toggleSelectionMode(''),
+              ],
+            ),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                if (_isSelectionMode)
+                  SingleChildScrollView(
+                    scrollDirection: Axis.horizontal,
+                    child: Row(
+                      children: [
+                        _buildHeaderActionButton(
+                          label: 'Close',
+                          icon: Icons.close,
+                          textColor: const Color(0xFF5A6E89),
+                          bgColor: const Color(0xFFF1F5FB),
+                          onTap: () => _toggleSelectionMode(''),
+                        ),
+                        const SizedBox(width: 8),
+                        _buildHeaderActionButton(
+                          label: 'Select All',
+                          icon: Icons.done_all,
+                          textColor: const Color(0xFF2B5FAE),
+                          bgColor: const Color(0xFFEAF2FF),
+                          onTap: () => _selectAllMaterials(materials),
+                        ),
+                        const SizedBox(width: 8),
+                        _buildHeaderActionButton(
+                          label: 'Delete',
+                          icon: Icons.delete_sweep,
+                          textColor: Colors.white,
+                          bgColor: const Color(0xFFD34747),
+                          onTap: _selectedMaterialIds.isEmpty
+                              ? null
+                              : () => _deleteSelectedMaterials(category),
+                        ),
+                      ],
                     ),
-                    TextButton(
-                      onPressed: () => _selectAllMaterials(materials),
-                      child: const Text('Select All'),
-                    ),
-                    const SizedBox(width: 8),
-                    ElevatedButton.icon(
-                      icon: const Icon(Icons.delete_sweep, size: 18),
-                      label: const Text('Delete'),
-                      onPressed: _selectedMaterialIds.isEmpty
-                          ? null
-                          : () => _deleteSelectedMaterials(category),
-                      style: ElevatedButton.styleFrom(
-                        backgroundColor: Colors.red,
-                        foregroundColor: Colors.white,
+                  )
+                else
+                  Row(
+                    children: [
+                      Expanded(
+                        child: Row(
+                          children: [
+                            Container(
+                              width: 8,
+                              height: 8,
+                              decoration: BoxDecoration(
+                                color: color,
+                                shape: BoxShape.circle,
+                              ),
+                            ),
+                            const SizedBox(width: 8),
+                            Expanded(
+                              child: Text(
+                                'Total ${category == 'piping' ? 'Piping' : 'Equipment'}: ${materials.length}',
+                                style: const TextStyle(
+                                  fontWeight: FontWeight.w700,
+                                  fontSize: 13,
+                                  color: Color(0xFF2E4E79),
+                                ),
+                              ),
+                            ),
+                          ],
+                        ),
                       ),
-                    ),
-                  ] else ...[
-
-                    IconButton(
-                      icon: const Icon(Icons.delete_sweep, color: Colors.red),
-                      onPressed: materials.isEmpty
-                          ? null
-                          : () => _toggleSelectionMode(category),
-                      tooltip: 'Select Items',
-                    ),
-                    IconButton(
-                      icon: Icon(Icons.add_circle, color: color),
-                      onPressed: () => _addNewMaterial(category),
-                      tooltip: 'Add Material',
-                    ),
-                  ],
-                ],
-              ),
-            ],
+                      const SizedBox(width: 8),
+                      _buildHeaderIconButton(
+                        icon: Icons.delete_sweep,
+                        tooltip: 'Select Items',
+                        iconColor: const Color(0xFFD34747),
+                        onTap: materials.isEmpty
+                            ? null
+                            : () => _toggleSelectionMode(category),
+                      ),
+                      const SizedBox(width: 8),
+                      _buildHeaderIconButton(
+                        icon: Icons.add_circle,
+                        tooltip: 'Add Material',
+                        iconColor: color,
+                        onTap: () => _addNewMaterial(category),
+                      ),
+                    ],
+                  ),
+              ],
+            ),
           ),
         ),
         Expanded(
           child: RefreshIndicator(
             onRefresh: _refreshMaterials,
             child: CustomScrollbar(
-              controller: category == 'piping' ? _approvedPipingController : _approvedEquipmentController,
+              controller: category == 'piping'
+                  ? _approvedPipingController
+                  : _approvedEquipmentController,
               child: ListView.builder(
-                controller: category == 'piping' ? _approvedPipingController : _approvedEquipmentController,
+                controller: category == 'piping'
+                    ? _approvedPipingController
+                    : _approvedEquipmentController,
                 physics: const AlwaysScrollableScrollPhysics(),
-                padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 10),
+                padding: const EdgeInsets.fromLTRB(8, 4, 8, 10),
                 itemCount: materials.length,
                 itemBuilder: (context, index) {
-                final item = materials[index];
+                  final item = materials[index];
 
-                return Padding(
-                  padding: const EdgeInsets.only(bottom: 12), // 🔥 spacing between cards
-                  child: category == 'piping'
-                      ? _buildPipingCard(item as PipingItem, color)
-                      : _buildEquipmentCard(item as EquipmentItem, color),
-                );
-              },
+                  return Padding(
+                    padding: const EdgeInsets.only(bottom: 12),
+                    child: category == 'piping'
+                        ? _buildPipingCard(item as PipingItem, color)
+                        : _buildEquipmentCard(item as EquipmentItem, color),
+                  );
+                },
+              ),
             ),
           ),
-        ),)
+        )
       ],
+    );
+  }
+
+  Widget _buildHeaderActionButton({
+    required String label,
+    required IconData icon,
+    required Color textColor,
+    required Color bgColor,
+    VoidCallback? onTap,
+  }) {
+    return Material(
+      color: Colors.transparent,
+      child: InkWell(
+        onTap: onTap,
+        borderRadius: BorderRadius.circular(999),
+        child: Container(
+          padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+          decoration: BoxDecoration(
+            color: onTap == null ? bgColor.withOpacity(0.45) : bgColor,
+            borderRadius: BorderRadius.circular(999),
+          ),
+          child: Row(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              Icon(icon, size: 16, color: textColor),
+              const SizedBox(width: 6),
+              Text(
+                label,
+                style: TextStyle(
+                  color: textColor,
+                  fontWeight: FontWeight.w700,
+                  fontSize: 12,
+                ),
+              ),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+
+  Widget _buildHeaderIconButton({
+    required IconData icon,
+    required String tooltip,
+    required Color iconColor,
+    VoidCallback? onTap,
+  }) {
+    return Tooltip(
+      message: tooltip,
+      child: Material(
+        color: Colors.transparent,
+        child: InkWell(
+          onTap: onTap,
+          borderRadius: BorderRadius.circular(12),
+          child: Container(
+            width: 38,
+            height: 38,
+            decoration: BoxDecoration(
+              color: Colors.white,
+              borderRadius: BorderRadius.circular(12),
+              border: Border.all(color: iconColor.withOpacity(0.25)),
+            ),
+            child: Icon(icon, size: 19, color: iconColor),
+          ),
+        ),
+      ),
     );
   }
 
@@ -1380,11 +1664,13 @@ class _AllMaterialsScreenState extends ConsumerState<AllMaterialsScreen>
         ),
         Expanded(
           child: CustomScrollbar(
-            controller:
-                category == 'piping' ? _approvedPipingController : _approvedEquipmentController,
+            controller: category == 'piping'
+                ? _approvedPipingController
+                : _approvedEquipmentController,
             child: ListView.separated(
-              controller:
-                  category == 'piping' ? _approvedPipingController : _approvedEquipmentController,
+              controller: category == 'piping'
+                  ? _approvedPipingController
+                  : _approvedEquipmentController,
               physics: const AlwaysScrollableScrollPhysics(),
               padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 10),
               itemCount: 5,

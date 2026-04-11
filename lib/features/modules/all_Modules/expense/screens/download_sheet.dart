@@ -98,9 +98,9 @@
           firstDate: DateTime(2020),
           lastDate: DateTime.now(),
           title: isStartDate ? "Select Start Date" : "Select End Date",
-          primaryColor: AppColors.primaryColor,
-          accentColor: AppColors.accentColor,
-          backgroundColor: AppColors.lightBlue,
+          primaryColor: Theme.of(context).colorScheme.primary,
+          accentColor: Theme.of(context).colorScheme.tertiary,
+          backgroundColor: Theme.of(context).colorScheme.surfaceContainerLowest,
         ),
       );
   
@@ -576,7 +576,7 @@
     Widget build(BuildContext context) {
       return Scaffold(
         drawer: const CustomDrawer(),
-        backgroundColor: AppColors.lightBlue,
+        backgroundColor: Theme.of(context).colorScheme.surfaceContainerLowest,
         appBar: CustomAppBar(title: "Generate Expense Report"),
         body: BottomButtonWrapper(
           customButtons: [
@@ -621,7 +621,7 @@
                                   borderRadius: BorderRadius.circular(12),
                                   border: Border.all(
                                     color: _selectedStartDate != null
-                                        ? AppColors.primaryColor
+                                        ? Theme.of(context).colorScheme.primary
                                         : Colors.grey.shade300,
                                     width: 1.5,
                                   ),
@@ -638,7 +638,7 @@
                                         Icons.calendar_today,
                                         size: 18,
                                         color: _selectedStartDate != null
-                                            ? AppColors.primaryColor
+                                            ? Theme.of(context).colorScheme.primary
                                             : Colors.grey,
                                       ),
                                       const SizedBox(width: 8),
@@ -686,7 +686,7 @@
                                   borderRadius: BorderRadius.circular(12),
                                   border: Border.all(
                                     color: _selectedEndDate != null
-                                        ? AppColors.primaryColor
+                                        ? Theme.of(context).colorScheme.primary
                                         : Colors.grey.shade300,
                                     width: 1.5,
                                   ),
@@ -703,7 +703,7 @@
                                         Icons.calendar_today,
                                         size: 18,
                                         color: _selectedEndDate != null
-                                            ? AppColors.primaryColor
+                                            ? Theme.of(context).colorScheme.primary
                                             : Colors.grey,
                                       ),
                                       const SizedBox(width: 8),

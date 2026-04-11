@@ -1,54 +1,101 @@
-import 'dart:async';
+import 'package:isar/isar.dart';
 
-import '../datasources/mock_notification_data.dart';
+import '../../../../../core/local/isar_db.dart';
+import '../models/notification_isar.dart';
 import '../models/notification_model.dart';
 import 'notification_repository.dart';
 
 class LocalNotificationRepository implements NotificationRepository {
-  final List<NotificationModel> _store = List.from(mockNotifications);
-  final _controller = StreamController<List<NotificationModel>>.broadcast();
+  bool _seeded = false;
+
+  Future<void> _seedIfEmpty() async {
+    if (_seeded) return;
+    _seeded = true;
+
+    final existingCount = await AppIsarDB.isar.updateNotificationIsars.count();
+    if (existingCount > 0) return;
+
+    // Keep first-run UX populated while still persisting everything to Isar.
+    // This can be removed once server-driven notifications are always available.
+    final seeds = <NotificationModel>[];
+    if (seeds.isEmpty) return;
+
+    await AppIsarDB.isar.writeTxn(() async {
+      await AppIsarDB.isar.updateNotificationIsars
+          .putAllById(seeds.map(UpdateNotificationIsar.fromModel).toList());
+    });
+  }
 
   @override
   Future<List<NotificationModel>> fetchNotifications({
     int page = 0,
     int limit = 20,
   }) async {
-    await Future.delayed(const Duration(milliseconds: 400)); // simulate network
+    await _seedIfEmpty();
     final start = page * limit;
-    if (start >= _store.length) return [];
-    return _store.sublist(start, (start + limit).clamp(0, _store.length));
+    final list = await AppIsarDB.isar.updateNotificationIsars
+        .where()
+        .sortByTimestampDesc()
+        .offset(start)
+        .limit(limit)
+        .findAll();
+
+    return list.map((item) => item.toModel()).toList(growable: false);
   }
 
   @override
   Future<void> markAsRead(String id) async {
-    final idx = _store.indexWhere((n) => n.id == id);
-    if (idx == -1) return;
-    _store[idx] = _store[idx].copyWith(isRead: true);
-    _controller.add(List.from(_store));
+    await AppIsarDB.isar.writeTxn(() async {
+      final record = await AppIsarDB.isar.updateNotificationIsars.getById(id);
+      if (record == null) return;
+      record.isRead = true;
+      await AppIsarDB.isar.updateNotificationIsars.putById(record);
+    });
   }
 
   @override
   Future<void> markAllAsRead() async {
-    for (var i = 0; i < _store.length; i++) {
-      _store[i] = _store[i].copyWith(isRead: true);
-    }
-    _controller.add(List.from(_store));
+    final records =
+        await AppIsarDB.isar.updateNotificationIsars.where().findAll();
+    if (records.isEmpty) return;
+
+    await AppIsarDB.isar.writeTxn(() async {
+      for (final record in records) {
+        record.isRead = true;
+      }
+      await AppIsarDB.isar.updateNotificationIsars.putAll(records);
+    });
+  }
+
+  @override
+  Future<void> deleteNotification(String id) async {
+    await AppIsarDB.isar.writeTxn(() async {
+      await AppIsarDB.isar.updateNotificationIsars.deleteById(id);
+    });
   }
 
   @override
   Future<void> addNotification(NotificationModel notification) async {
-    _store.insert(0, notification);
-    _controller.add(List.from(_store));
+    await AppIsarDB.isar.writeTxn(() async {
+      await AppIsarDB.isar.updateNotificationIsars
+          .putById(UpdateNotificationIsar.fromModel(notification));
+    });
   }
 
   @override
   Future<void> clearNotifications() async {
-    _store.clear();
-    _controller.add([]);
+    await AppIsarDB.isar.writeTxn(() async {
+      await AppIsarDB.isar.updateNotificationIsars.clear();
+    });
   }
 
   @override
-  Stream<List<NotificationModel>> watchNotifications() => _controller.stream;
-
-  void dispose() => _controller.close();
+  Stream<List<NotificationModel>> watchNotifications() {
+    final query =
+        AppIsarDB.isar.updateNotificationIsars.where().sortByTimestampDesc();
+    return query.watch(fireImmediately: true).map(
+          (items) =>
+              items.map((item) => item.toModel()).toList(growable: false),
+        );
+  }
 }

@@ -791,7 +791,7 @@ class _SiteSalaryScreenState extends ConsumerState<SiteSalaryScreen> {
   Widget build(BuildContext context) {
     return Scaffold(
       drawer: const CustomDrawer(),
-      backgroundColor: AppColors.lightBlue,
+      backgroundColor: Theme.of(context).colorScheme.surfaceContainerLowest,
       appBar: CustomAppBar(title: widget.siteModel.siteName),
       body: BottomButtonWrapper(
         customButtons: [

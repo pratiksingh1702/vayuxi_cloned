@@ -13,7 +13,7 @@ class InventoryCategorySelectionScreen extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: AppColors.lightBlue,
+      backgroundColor: Theme.of(context).colorScheme.surfaceContainerLowest,
       drawer: const CustomDrawer(),
       appBar: CustomAppBar(title: "Select Category"),
       body: Column(

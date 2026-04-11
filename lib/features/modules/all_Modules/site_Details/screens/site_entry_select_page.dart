@@ -3,7 +3,6 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:showcaseview/showcaseview.dart';
 import 'package:untitled2/core/router/routes.dart';
-import 'package:untitled2/core/utlis/colors/colors.dart';
 import 'package:untitled2/core/utlis/widgets/Button_wrapper.dart';
 import 'package:untitled2/core/utlis/widgets/custom_appBar.dart';
 import 'package:untitled2/features/modules/all_Modules/site_Details/screens/siteDetailScreen.dart';
@@ -20,6 +19,9 @@ class SiteEntrySelectCardGrid extends ConsumerWidget {
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
+    final cs = Theme.of(context).colorScheme;
+    final isDark = Theme.of(context).brightness == Brightness.dark;
+
     return ShowCaseWidget(
       builder: (showcaseContext) {
         WidgetsBinding.instance.addPostFrameCallback((_) {
@@ -36,7 +38,7 @@ class SiteEntrySelectCardGrid extends ConsumerWidget {
 
         return Scaffold(
           drawer: const CustomDrawer(),
-          backgroundColor: AppColors.lightBlue,
+          backgroundColor: isDark ? cs.surface : cs.surfaceContainerLowest,
           appBar: CustomAppBar(title: "Select Card"),
           body: BottomButtonWrapper(
             onBackPressed: () {
@@ -111,11 +113,16 @@ class SiteEntrySelectCardGrid extends ConsumerWidget {
                     width: double.infinity,
                     padding: const EdgeInsets.all(16),
                     decoration: BoxDecoration(
-                      color: Colors.white,
+                      color: isDark ? cs.surfaceContainer : cs.surface,
                       borderRadius: BorderRadius.circular(18),
+                      border: Border.all(
+                        color: isDark
+                            ? cs.outline.withOpacity(0.35)
+                            : cs.outlineVariant.withOpacity(0.9),
+                      ),
                       boxShadow: [
                         BoxShadow(
-                          color: Colors.black.withOpacity(0.08),
+                          color: cs.shadow.withOpacity(isDark ? 0.24 : 0.08),
                           blurRadius: 12,
                           offset: const Offset(0, 6),
                         ),
@@ -123,22 +130,23 @@ class SiteEntrySelectCardGrid extends ConsumerWidget {
                     ),
                     child: Column(
                       crossAxisAlignment: CrossAxisAlignment.start,
-                      children: const [
+                      children: [
                         Text(
                           "Choose the entry method",
                           style: TextStyle(
                             fontSize: 16,
                             fontWeight: FontWeight.w700,
+                            color: cs.onSurface,
                           ),
                         ),
-                        SizedBox(height: 8),
+                        const SizedBox(height: 8),
                         Text(
                           "• Manual Entry: Enter site details step-by-step manually.\n"
                           "• Import Sheet: Upload an Excel/CSV sheet — our AI will analyze your file and map fields automatically.",
                           style: TextStyle(
                             fontSize: 13,
                             height: 1.5,
-                            color: Colors.black87,
+                            color: cs.onSurfaceVariant,
                           ),
                         ),
                       ],

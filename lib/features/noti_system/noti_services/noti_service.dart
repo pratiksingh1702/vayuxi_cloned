@@ -4,10 +4,9 @@ import 'package:timezone/data/latest.dart' as tz;
 import 'package:vibration/vibration.dart';
 import 'dart:typed_data';
 
-
 class NotificationService {
   static final FlutterLocalNotificationsPlugin _notificationsPlugin =
-  FlutterLocalNotificationsPlugin();
+      FlutterLocalNotificationsPlugin();
 
   // Initialize timezone data
   static Future<void> initializeTimezone() async {
@@ -18,10 +17,10 @@ class NotificationService {
   // Initialize notification service
   Future<bool> initialize() async {
     const AndroidInitializationSettings androidSettings =
-    AndroidInitializationSettings('@mipmap/ic_launcher');
+        AndroidInitializationSettings('@mipmap/ic_launcher');
 
     const DarwinInitializationSettings iosSettings =
-    DarwinInitializationSettings(
+        DarwinInitializationSettings(
       requestAlertPermission: true,
       requestBadgePermission: true,
       requestSoundPermission: true,
@@ -56,11 +55,12 @@ class NotificationService {
 
     await _notificationsPlugin
         .resolvePlatformSpecificImplementation<
-        AndroidFlutterLocalNotificationsPlugin>()
+            AndroidFlutterLocalNotificationsPlugin>()
         ?.createNotificationChannel(channel);
 
     // Create channel for instant notifications
-    const AndroidNotificationChannel instantChannel = AndroidNotificationChannel(
+    const AndroidNotificationChannel instantChannel =
+        AndroidNotificationChannel(
       'immediate_notifications',
       'Instant Notifications',
       description: 'Instant notifications',
@@ -70,7 +70,7 @@ class NotificationService {
 
     await _notificationsPlugin
         .resolvePlatformSpecificImplementation<
-        AndroidFlutterLocalNotificationsPlugin>()
+            AndroidFlutterLocalNotificationsPlugin>()
         ?.createNotificationChannel(instantChannel);
   }
 
@@ -83,7 +83,8 @@ class NotificationService {
     int? id,
   }) async {
     try {
-      final notificationId = DateTime.now().millisecondsSinceEpoch % 2147483647;
+      final notificationId =
+          id ?? (DateTime.now().millisecondsSinceEpoch % 2147483647);
       final scheduledTime = _nextInstanceOfTime(hour, minute);
 
       // Add detailed logging
@@ -131,6 +132,58 @@ class NotificationService {
     }
   }
 
+  Future<List<PendingNotificationRequest>> getPendingNotifications() async {
+    return _notificationsPlugin.pendingNotificationRequests();
+  }
+
+  Future<bool> hasPendingNotification(int id) async {
+    final pending = await getPendingNotifications();
+    return pending.any((notification) => notification.id == id);
+  }
+
+  Future<bool> scheduleOneTimeNotification({
+    required int id,
+    required String title,
+    required String body,
+    required DateTime scheduledAt,
+    String? payload,
+  }) async {
+    try {
+      final zoned = tz.TZDateTime.from(scheduledAt, tz.local);
+
+      await _notificationsPlugin.zonedSchedule(
+        id,
+        title,
+        body,
+        zoned,
+        const NotificationDetails(
+          android: AndroidNotificationDetails(
+            'scheduled_notifications',
+            'Scheduled Notifications',
+            channelDescription:
+                'Notifications for daily reminders and schedules',
+            importance: Importance.high,
+            priority: Priority.high,
+            playSound: true,
+          ),
+          iOS: DarwinNotificationDetails(
+            sound: 'default',
+            presentAlert: true,
+            presentBadge: true,
+            presentSound: true,
+          ),
+        ),
+        payload: payload,
+        androidScheduleMode: AndroidScheduleMode.inexactAllowWhileIdle,
+      );
+
+      return true;
+    } catch (error) {
+      print('❌ ERROR SCHEDULING ONE-TIME NOTIFICATION: $error');
+      return false;
+    }
+  }
+
   // Calculate next occurrence of specified time
   tz.TZDateTime _nextInstanceOfTime(int hour, int minute) {
     final tz.TZDateTime now = tz.TZDateTime.now(tz.local);
@@ -154,6 +207,7 @@ class NotificationService {
   Future<void> cancelNotification(int id) async {
     await _notificationsPlugin.cancel(id);
   }
+
   // Handle FCM notifications (called from FCM service)
   void handleFCMNotification(Map<String, dynamic> message) {
     final notification = message['notification'];
@@ -245,7 +299,6 @@ class NotificationService {
       print("❌ Vibration error: $e");
     }
   }
-
 
   // Send progress notification
   Future<void> sendProgressNotification({

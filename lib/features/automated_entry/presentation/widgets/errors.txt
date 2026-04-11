@@ -1,0 +1,25 @@
+🔍 [UploadManager] Starting tracking for job: 87ac48a6-e2d1-4d30-b026-fa014bad5be2 (timeout: 300s)
+I/flutter ( 3032): [AutomatedEntry][site] 'package:riverpod/src/framework/element.dart': Failed assertion: line 631 pos 11: 'listenable._origin != origin': A provider cannot depend on itself
+I/flutter ( 3032): [AutomatedEntry][rate] Blocked because site upload failed or no site id was returned.
+I/flutter ( 3032): [AutomatedEntry][manpower] Blocked because site upload failed or no site id was returned.
+I/flutter ( 3032): eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJfaWQiOiI2OTI5NGM4N2ZhY2QwMWQxMGI5MGJhYTUiLCJmaXJzdE5hbWUiOiJwcmF0aWtzIiwibGFzdE5hbWUiOiJTaW5naCIsImZ1bGxOYW1lIjoicHJhdGlrcyBTaW5naCIsInBob25lTnVtYmVyIjoiOTc4MzM3NjU4NSIsImlzUGhvbmVWZXJpZmllZCI6dHJ1ZSwiZW1haWwiOiJwcmlwcmEwMjE3QGdtYWlsLmNvbSIsImlzRW1haWxWZXJpZmllZCI6dHJ1ZSwicm9sZSI6ImFkbWluIiwiYWFkaGFhckNhcmQiOiI1NDIyNjc2ODc1NjciLCJnc3ROdW1iZXIiOiIyN0FBQkNVOTYwM1IxWjIiLCJzZWxlY3RlZFNlcnZpY2VzIjpbXSwidG9rZW5WZXJzaW9uIjowLCJpc0RlbGV0ZWQiOmZhbHNlLCJjb21wYW55IjoiNjkyOTRjODdmYWNkMDFkMTBiOTBiYWEzIiwiY3JlYXRlZEF0IjoiMjAyNS0xMS0yOFQwNzoxNzoyNy4zMjFaIiwidXBkYXRlZEF0IjoiMjAyNi0wMy0yMlQxMTo1MjozOC42OTBaIiwicmVmZXJyYWxDb2RlIjoiQTUyQUNFRTEiLCJ0b3RhbFJlZmVycmFscyI6NSwidmF5dXhpQ29pbnMiOjE1MDAsIndoYXRzYXBwU3Vic2NyaXB0aW9uIjp7ImVuYWJsZWQiOmZhbHNlLCJtZXNzYWdlQ291bnQiOjB9LCJhZGRyZXNzIjoiR2FuZXNoIG1hbmRpcixESURXQU5BLDM0MTMwMywgUkFKQVNUQU4iLCJyZWZlcnJlZEJ5IjoiNjkyOTRjODdmYWNkMDFkMTBiOTBiYWE1IiwicHVyY2hhc2VEZXZpY2VJZCI6IjU3NTQ0MDZhZjczNjQxMGZmNzgyMjhmZjc1MTM4NzkyZmEwOGE4OGNiM2E4ZDhhOGJjYjYxMm
+I/flutter ( 3032): 🔍 DEBUG - All Cookies:
+I/flutter ( 3032):    🍪 deviceId=b2c2a1d113519ffcb318c9cd4224543837bc140a87b9085b796ee5946e7280f4
+I/flutter ( 3032): 🍪 Cookies being sent:
+I/flutter ( 3032): ➡️ Sending request: POST https://be-vayuxi-chi.vercel.app/api/v1/site/ocr?type=mechanical_work
+I/flutter ( 3032):    Body: FormData
+I/flutter ( 3032):    Fields:
+I/flutter ( 3032):    Files: 1
+I/flutter ( 3032):      file: DBN INFRA WORK ORDER.pdf (412056 bytes)
+I/flutter ( 3032): ✅ Response received: 201 https://be-vayuxi-chi.vercel.app/api/v1/site/ocr?type=mechanical_work
+I/flutter ( 3032):    Data: {message: Document processed and site created successfully, site: {siteName: DBN INFRA, address: Jogewala Road, VPO Dabwali, Distt.Sirsa, Haryana-125104, contactPerson: Vineet Arora, gstNo: 06AVOPC8039N1Z2, phoneNumber: +919998822273, emailId: dbninfra@gmail.com, documentDate: 2025-11-20T00:00:00.000Z, documentNumber: DBN/MPL/03, isDeleted: false, company: 69294c87facd01d10b90baa3, type: mechanical_work, createdByType: user, createdByUser: 69294c87facd01d10b90baa5, createdByManpower: null, _id: 69d7e64b6e533d33f884e13c, createdAt: 2026-04-09T17:47:55.082Z, updatedAt: 2026-04-09T17:47:55.082Z}, ocrDetails: {documentType: purchase_order, pagesCount: 4, confidenceScore: 0.95, processingTime: 13.322601079940796, filename: DBN INFRA WORK ORDER.pdf}, aiUploadsRemaining: -1}
+I/flutter ( 3032): [AutomatedEntry][site] 'package:riverpod/src/framework/element.dart': Failed assertion: line 631 pos 11: 'listenable._origin != origin': A provider cannot depend on itself
+I/flutter ( 3032): [AutomatedEntry][rate] Blocked because site upload failed or no site id was returned.
+I/flutter ( 3032): [AutomatedEntry][manpower] Blocked because site upload failed or no site id was returned.
+
+
+I/flutter ( 3032): 😴 No pending requests → skip
+I/flutter ( 3032): [AutomatedEntry][site] 'package:riverpod/src/framework/element.dart': Failed assertion: line 631 pos 11: 'listenable._origin != origin': A provider cannot depend on itself
+I/flutter ( 3032): [AutomatedEntry][rate] Blocked because site upload failed or no site id was returned.
+I/flutter ( 3032): [AutomatedEntry][manpower] Blocked because site upload failed or no site id was returned.
+I/flutter ( 3032): 😴 No pending requests → skip

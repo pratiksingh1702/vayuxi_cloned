@@ -304,7 +304,7 @@ class _SelectRangeScreenState extends ConsumerState<SelectRangeScreen> {
 
     return Scaffold(
       drawer: const CustomDrawer(),
-      backgroundColor: AppColors.lightBlue,
+      backgroundColor: Theme.of(context).colorScheme.surfaceContainerLowest,
       appBar: CustomAppBar(title: "Download All"),
       body: Stack(
         children: [

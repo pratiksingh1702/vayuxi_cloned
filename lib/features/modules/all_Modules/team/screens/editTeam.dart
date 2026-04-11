@@ -313,7 +313,7 @@ class _EditTeamScreenState extends ConsumerState<EditTeamScreen> {
 
     return Scaffold(
       drawer: const CustomDrawer(),
-      backgroundColor: AppColors.lightBlue,
+      backgroundColor: Theme.of(context).colorScheme.surfaceContainerLowest,
       appBar: CustomAppBar(title: 'Edit Team'),
       body: Padding(
         padding: const EdgeInsets.all(5),

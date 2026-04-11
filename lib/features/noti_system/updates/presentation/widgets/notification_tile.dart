@@ -10,6 +10,8 @@ import 'notification_media_widget.dart';
 import 'priority_indicator.dart';
 import 'unread_badge.dart';
 
+enum _NotificationMenuAction { remindLater, delete }
+
 class NotificationTile extends ConsumerWidget {
   const NotificationTile({super.key, required this.notification});
   final NotificationModel notification;
@@ -83,6 +85,23 @@ class NotificationTile extends ConsumerWidget {
                                   ),
                                   const SizedBox(width: 6),
                                   UnreadBadge(isRead: notification.isRead),
+                                  PopupMenuButton<_NotificationMenuAction>(
+                                    icon: const Icon(Icons.more_horiz_rounded,
+                                        size: 18),
+                                    itemBuilder: (context) => const [
+                                      PopupMenuItem(
+                                        value:
+                                            _NotificationMenuAction.remindLater,
+                                        child: Text('Remind in 1 hour'),
+                                      ),
+                                      PopupMenuItem(
+                                        value: _NotificationMenuAction.delete,
+                                        child: Text('Delete'),
+                                      ),
+                                    ],
+                                    onSelected: (value) =>
+                                        _onMenuSelected(context, ref, value),
+                                  ),
                                 ],
                               ),
                               const SizedBox(height: 4),
@@ -170,5 +189,34 @@ class NotificationTile extends ConsumerWidget {
     if (diff.inHours < 24) return '${diff.inHours}h ago';
     if (diff.inDays < 7) return '${diff.inDays}d ago';
     return DateFormat('MMM d').format(dt);
+  }
+
+  Future<void> _onMenuSelected(
+    BuildContext context,
+    WidgetRef ref,
+    _NotificationMenuAction action,
+  ) async {
+    switch (action) {
+      case _NotificationMenuAction.delete:
+        await ref
+            .read(notificationListProvider.notifier)
+            .deleteNotification(notification.id);
+        if (context.mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            const SnackBar(content: Text('Notification deleted')),
+          );
+        }
+        return;
+      case _NotificationMenuAction.remindLater:
+        await ref
+            .read(notificationListProvider.notifier)
+            .remindLater(notification, delay: const Duration(hours: 1));
+        if (context.mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            const SnackBar(content: Text('Reminder set for 1 hour later')),
+          );
+        }
+        return;
+    }
   }
 }

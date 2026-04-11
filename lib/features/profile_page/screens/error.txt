@@ -1,0 +1,113 @@
+
+lib/features/profile_page/screens/profilePage.dart:890:28: Error: Non-optional parameters can't have a default value.
+Try removing the default value or making the parameter optional.
+                      style: ElevatedButton.styleFrom(
+                           ^
+lib/features/profile_page/screens/profilePage.dart:897:32: Error: Non-optional parameters can't have a default value.
+Try removing the default value or making the parameter optional.
+                      onPressed: _handleLogout,
+                               ^
+lib/features/profile_page/screens/profilePage.dart:898:28: Error: Non-optional parameters can't have a default value.
+Try removing the default value or making the parameter optional.
+                      child: const Text(
+                           ^
+lib/features/profile_page/screens/profilePage.dart:902:22: Error: Expected '{' before this.
+                    ),
+                     ^
+lib/features/profile_page/screens/profilePage.dart:902:22: Error: Expected a declaration, but got ','.
+                    ),
+                     ^
+lib/features/profile_page/screens/profilePage.dart:903:19: Error: Expected a declaration, but got ']'.
+                  ],
+                  ^
+lib/features/profile_page/screens/profilePage.dart:903:20: Error: Expected a declaration, but got ','.
+                  ],
+                   ^
+lib/features/profile_page/screens/profilePage.dart:904:17: Error: Expected a declaration, but got ')'.
+                ),
+                ^
+lib/features/profile_page/screens/profilePage.dart:904:18: Error: Expected a declaration, but got ','.
+                ),
+                 ^
+lib/features/profile_page/screens/profilePage.dart:905:15: Error: Expected a declaration, but got ')'.
+              ),
+              ^
+lib/features/profile_page/screens/profilePage.dart:905:16: Error: Expected a declaration, but got ','.
+              ),
+               ^
+lib/features/profile_page/screens/profilePage.dart:906:13: Error: Expected a declaration, but got ')'.
+            ),
+            ^
+lib/features/profile_page/screens/profilePage.dart:906:14: Error: Expected a declaration, but got ','.
+            ),
+             ^
+lib/features/profile_page/screens/profilePage.dart:907:11: Error: Expected a declaration, but got ')'.
+          ),
+          ^
+lib/features/profile_page/screens/profilePage.dart:907:12: Error: Expected a declaration, but got ','.
+          ),
+           ^
+lib/features/profile_page/screens/profilePage.dart:908:9: Error: Expected a declaration, but got ')'.
+        ),
+        ^
+lib/features/profile_page/screens/profilePage.dart:908:10: Error: Expected a declaration, but got ','.
+        ),
+         ^
+lib/features/profile_page/screens/profilePage.dart:909:7: Error: Expected a declaration, but got ')'.
+      ),
+      ^
+lib/features/profile_page/screens/profilePage.dart:909:8: Error: Expected a declaration, but got ','.
+      ),
+       ^
+lib/features/profile_page/screens/profilePage.dart:910:5: Error: Expected a declaration, but got ')'.
+    );
+    ^
+lib/features/profile_page/screens/profilePage.dart:910:6: Error: Unexpected token ';'.
+    );
+     ^
+lib/features/profile_page/screens/profilePage.dart:911:3: Error: Expected a declaration, but got '}'.
+  }
+  ^
+lib/features/profile_page/screens/profilePage.dart:925:1: Error: Expected a declaration, but got '}'.
+}
+^
+lib/features/profile_page/screens/profilePage.dart:668:49: Error: The method 'styleFrom' isn't defined for the type
+'dynamic Function(dynamic, dynamic, dynamic)'.
+Try correcting the name to the name of an existing method, or defining a method named 'styleFrom'.
+                          style: ElevatedButton.styleFrom(
+                                                ^^^^^^^^^
+lib/features/profile_page/screens/profilePage.dart:667:47: Error: The method 'icon' isn't defined for the type 'dynamic
+Function(dynamic, dynamic, dynamic)'.
+Try correcting the name to the name of an existing method, or defining a method named 'icon'.
+                        child: ElevatedButton.icon(
+                                              ^^^^
+lib/features/profile_page/screens/profilePage.dart:713:43: Error: The method 'styleFrom' isn't defined for the type
+'dynamic Function(dynamic, dynamic, dynamic)'.
+Try correcting the name to the name of an existing method, or defining a method named 'styleFrom'.
+                    style: ElevatedButton.styleFrom(
+                                          ^^^^^^^^^
+lib/features/profile_page/screens/profilePage.dart:712:34: Error: The method 'icon' isn't defined for the type 'dynamic
+Function(dynamic, dynamic, dynamic)'.
+Try correcting the name to the name of an existing method, or defining a method named 'icon'.
+                  ElevatedButton.icon(
+                                 ^^^^
+lib/features/profile_page/screens/profilePage.dart:894:54: Error: Constant expression expected.
+Try inserting 'const'.
+                          borderRadius: BorderRadius.circular(10),
+                                                     ^^^^^^^^
+lib/features/profile_page/screens/profilePage.dart:894:54: Error: Cannot invoke a non-'const' constructor where a const
+expression is expected.
+Try using a constructor or factory that is 'const'.
+                          borderRadius: BorderRadius.circular(10),
+                                                     ^^^^^^^^
+lib/features/profile_page/screens/profilePage.dart:893:32: Error: Constant expression expected.
+Try inserting 'const'.
+                        shape: RoundedRectangleBorder(
+                               ^^^^^^^^^^^^^^^^^^^^^^
+lib/features/profile_page/screens/profilePage.dart:890:45: Error: Method invocation is not a constant expression.
+                      style: ElevatedButton.styleFrom(
+                                            ^^^^^^^^^
+lib/features/profile_page/screens/profilePage.dart:897:34: Error: Undefined name '_handleLogout'.
+                      onPressed: _handleLogout,
+                                 ^^^^^^^^^^^^^
+Performing hot reload...

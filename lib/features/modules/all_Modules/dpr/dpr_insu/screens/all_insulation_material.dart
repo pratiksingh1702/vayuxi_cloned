@@ -5,7 +5,7 @@ import 'dart:convert';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:untitled2/core/utlis/colors/colors.dart';
-import 'package:untitled2/core/utlis/widgets/custom_appBar.dart';
+import 'package:untitled2/core/utlis/widgets/premium_app_bar.dart';
 import 'package:untitled2/features/modules/all_Modules/dpr/dpr_insu/service/insulation_dpr_service.dart';
 import 'package:untitled2/features/modules/all_Modules/dpr/dpr_insu/widgets/piping_card.dart';
 import 'package:untitled2/features/modules/all_Modules/site_Details/providers/site_current_provider.dart';
@@ -435,22 +435,37 @@ class _AllInsulationMaterialsScreenState
       return Scaffold(
         drawer: CustomDrawer(),
         backgroundColor: AppColors.lightBlue,
-        appBar: CustomAppBar(
+        appBar: PremiumAppBar(
           title: isDeleteMode
               ? '${selectedIds.length} Selected'
               : 'Insulation Materials',
+          subtitle: const Text(
+            'Piping and Equipment',
+            maxLines: 1,
+            overflow: TextOverflow.ellipsis,
+          ),
         ),
-        body: _buildLoadingState(),
+        body: _buildBody(
+          siteId: siteId,
+          pipingMaterials: const [],
+          equipmentMaterials: const [],
+          isLoading: true,
+        ),
       );
     }
 
     return Scaffold(
       drawer: CustomDrawer(),
       backgroundColor: AppColors.lightBlue,
-      appBar: CustomAppBar(
+      appBar: PremiumAppBar(
         title: isDeleteMode
             ? '${selectedIds.length} Selected'
             : 'Insulation Materials',
+        subtitle: const Text(
+          'Piping and Equipment',
+          maxLines: 1,
+          overflow: TextOverflow.ellipsis,
+        ),
       ),
       body: pipingAsync.when(
         loading: () => const ShimmerList(
@@ -462,7 +477,14 @@ class _AllInsulationMaterialsScreenState
           final equipmentMaterials = equipmentAsync.value ?? [];
           final isEmpty = pipingMaterials.isEmpty && equipmentMaterials.isEmpty;
 
-          if (isEmpty) return _buildSetupState(siteId);
+          if (isEmpty) {
+            return _buildBody(
+              siteId: siteId,
+              pipingMaterials: const [],
+              equipmentMaterials: const [],
+              isLoading: true,
+            );
+          }
 
           return _buildBody(
             siteId: siteId,
@@ -482,27 +504,71 @@ class _AllInsulationMaterialsScreenState
     required String siteId,
     required List<LocalMaterial> pipingMaterials,
     required List<LocalMaterial> equipmentMaterials,
+    bool isLoading = false,
   }) {
     return SafeArea(
       child: Column(
         children: [
-          Container(
-            color: Colors.white,
-            child: TabBar(
-              controller: _tabController,
-              labelColor: AppColors.primary,
-              unselectedLabelColor: Colors.grey,
-              indicatorColor: AppColors.primary,
-              tabs: const [
-                Tab(
-                  text: 'Piping Insulation',
-                  icon: Icon(Icons.precision_manufacturing),
+          Padding(
+            padding: const EdgeInsets.fromLTRB(12, 6, 12, 8),
+            child: Container(
+              padding: const EdgeInsets.symmetric(horizontal: 4, vertical: 4),
+              decoration: BoxDecoration(
+                color: Colors.white,
+                borderRadius: BorderRadius.circular(14),
+                border: Border.all(color: const Color(0xFFD8E5FF)),
+                boxShadow: [
+                  BoxShadow(
+                    color: Colors.black.withOpacity(0.04),
+                    blurRadius: 8,
+                    offset: const Offset(0, 2),
+                  ),
+                ],
+              ),
+              child: TabBar(
+                controller: _tabController,
+                labelColor: Colors.white,
+                unselectedLabelColor: const Color(0xFF56739E),
+                labelStyle: const TextStyle(
+                  fontSize: 12,
+                  fontWeight: FontWeight.w700,
                 ),
-                Tab(
-                  text: 'Equipment Insulation',
-                  icon: Icon(Icons.build),
+                unselectedLabelStyle: const TextStyle(
+                  fontSize: 12,
+                  fontWeight: FontWeight.w600,
                 ),
-              ],
+                labelPadding:
+                    const EdgeInsets.symmetric(horizontal: 8, vertical: 0),
+                indicatorSize: TabBarIndicatorSize.tab,
+                dividerColor: Colors.transparent,
+                indicator: BoxDecoration(
+                  borderRadius: BorderRadius.circular(10),
+                  gradient: const LinearGradient(
+                    colors: [Color(0xFF2A66CC), Color(0xFF4F86E8)],
+                  ),
+                  boxShadow: [
+                    BoxShadow(
+                      color: const Color(0xFF2A66CC).withOpacity(0.28),
+                      blurRadius: 7,
+                      offset: const Offset(0, 2),
+                    ),
+                  ],
+                ),
+                tabs: const [
+                  Tab(
+                    height: 40,
+                    text: 'Piping',
+                    iconMargin: EdgeInsets.only(bottom: 1),
+                    icon: Icon(Icons.precision_manufacturing, size: 15),
+                  ),
+                  Tab(
+                    height: 40,
+                    text: 'Equipment',
+                    iconMargin: EdgeInsets.only(bottom: 1),
+                    icon: Icon(Icons.build, size: 15),
+                  ),
+                ],
+              ),
             ),
           ),
           Expanded(
@@ -516,6 +582,7 @@ class _AllInsulationMaterialsScreenState
                   color: Colors.blue,
                   emptyMessage: 'No piping insulation materials found',
                   category: 'piping',
+                  isLoading: isLoading,
                 ),
                 _buildMaterialsTab(
                   siteId: siteId,
@@ -524,95 +591,7 @@ class _AllInsulationMaterialsScreenState
                   color: Colors.green,
                   emptyMessage: 'No equipment insulation materials found',
                   category: 'equipment',
-                ),
-              ],
-            ),
-          ),
-        ],
-      ),
-    );
-  }
-
-  Widget _buildSetupState(String siteId) {
-    final progressAsync = ref.watch(syncProgressProvider);
-    return Center(
-      child: Padding(
-        padding: const EdgeInsets.symmetric(horizontal: 40),
-        child: Column(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            const Icon(Icons.sync, size: 48, color: Colors.blue),
-            const SizedBox(height: 20),
-            const Text('Loading your materials…',
-                style: TextStyle(fontSize: 16, fontWeight: FontWeight.w500)),
-            const SizedBox(height: 24),
-            progressAsync.when(
-              data: (progress) => Column(
-                children: [
-                  ClipRRect(
-                    borderRadius: BorderRadius.circular(8),
-                    child: LinearProgressIndicator(
-                      value: progress,
-                      minHeight: 10,
-                      backgroundColor: Colors.grey.shade200,
-                      valueColor:
-                          AlwaysStoppedAnimation<Color>(AppColors.primary),
-                    ),
-                  ),
-                  const SizedBox(height: 10),
-                  Text(
-                    '${(progress * 100).toInt()}%',
-                    style: TextStyle(
-                        fontSize: 14,
-                        color: Colors.grey.shade600,
-                        fontWeight: FontWeight.w600),
-                  ),
-                ],
-              ),
-              loading: () => const LinearProgressIndicator(),
-              error: (_, __) => const Text('Sync error'),
-            ),
-          ],
-        ),
-      ),
-    );
-  }
-
-  Widget _buildLoadingState() {
-    return SafeArea(
-      child: Column(
-        children: [
-          Container(
-            color: Colors.white,
-            child: const TabBar(
-              labelColor: AppColors.primary,
-              unselectedLabelColor: Colors.grey,
-              indicatorColor: AppColors.primary,
-              tabs: [
-                Tab(
-                  text: 'Piping Insulation',
-                  icon: Icon(Icons.precision_manufacturing),
-                ),
-                Tab(
-                  text: 'Equipment Insulation',
-                  icon: Icon(Icons.build),
-                ),
-              ],
-            ),
-          ),
-          Expanded(
-            child: TabBarView(
-              controller: _tabController,
-              children: [
-                _buildTabLoadingState(
-                  category: 'piping',
-                  color: Colors.blue,
-                  titleWidth: 170,
-                ),
-                _buildTabLoadingState(
-                  category: 'equipment',
-                  color: Colors.green,
-                  titleWidth: 185,
+                  isLoading: isLoading,
                 ),
               ],
             ),
@@ -633,69 +612,123 @@ class _AllInsulationMaterialsScreenState
     required Color color,
     required String emptyMessage,
     required String category,
+    bool isLoading = false,
   }) {
+    if (isLoading) {
+      return _buildLoadingState(category: category, color: color);
+    }
+
     return Column(
       children: [
-        // Toolbar
         Padding(
-          padding: const EdgeInsets.all(8.0),
-          child: Row(
-            mainAxisAlignment: MainAxisAlignment.spaceBetween,
-            children: [
-              Text(
-                isDeleteMode
-                    ? '${selectedIds.length} / ${materials.length} selected'
-                    : 'Total: ${materials.length}',
-                style: TextStyle(fontWeight: FontWeight.bold, color: color),
-              ),
-              Row(
-                children: [
-                  if (isDeleteMode) ...[
-                    IconButton(
-                      icon: const Icon(Icons.close),
-                      onPressed: () => setState(() => toggleDeleteMode()),
+          padding: const EdgeInsets.fromLTRB(12, 0, 12, 8),
+          child: Container(
+            width: double.infinity,
+            padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
+            decoration: BoxDecoration(
+              color: Colors.white,
+              borderRadius: BorderRadius.circular(14),
+              border: Border.all(color: const Color(0xFFD8E5FF)),
+              boxShadow: [
+                BoxShadow(
+                  color: Colors.black.withOpacity(0.03),
+                  blurRadius: 8,
+                  offset: const Offset(0, 2),
+                ),
+              ],
+            ),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                if (isDeleteMode)
+                  SingleChildScrollView(
+                    scrollDirection: Axis.horizontal,
+                    child: Row(
+                      children: [
+                        _buildHeaderActionButton(
+                          label: 'Close',
+                          icon: Icons.close,
+                          textColor: const Color(0xFF5A6E89),
+                          bgColor: const Color(0xFFF1F5FB),
+                          onTap: () => setState(() => toggleDeleteMode()),
+                        ),
+                        const SizedBox(width: 8),
+                        _buildHeaderActionButton(
+                          label: selectAllLabel(
+                            materials.map((m) => m.id).toList(),
+                          ),
+                          icon: Icons.done_all,
+                          textColor: const Color(0xFF2B5FAE),
+                          bgColor: const Color(0xFFEAF2FF),
+                          onTap: () => setState(() {
+                            handleSelectAllToggle(
+                              materials.map((m) => m.id).toList(),
+                            );
+                          }),
+                        ),
+                        const SizedBox(width: 8),
+                        _buildHeaderActionButton(
+                          label: 'Delete',
+                          icon: Icons.delete_sweep,
+                          textColor: Colors.white,
+                          bgColor: const Color(0xFFD34747),
+                          onTap: selectedIds.isEmpty
+                              ? null
+                              : () => _deleteSelectedMaterials(materials),
+                        ),
+                      ],
                     ),
-                    TextButton(
-                      onPressed: () => setState(() {
-                        handleSelectAllToggle(
-                            materials.map((m) => m.id).toList());
-                      }),
-                      child: Text(
-                          selectAllLabel(materials.map((m) => m.id).toList())),
-                    ),
-                    const SizedBox(width: 8),
-                    ElevatedButton.icon(
-                      icon: const Icon(Icons.delete_sweep, size: 18),
-                      label: const Text('Delete'),
-                      onPressed: selectedIds.isEmpty
-                          ? null
-                          : () => _deleteSelectedMaterials(materials),
-                      style: ElevatedButton.styleFrom(
-                        backgroundColor: Colors.red,
-                        foregroundColor: Colors.white,
+                  )
+                else
+                  Row(
+                    children: [
+                      Expanded(
+                        child: Row(
+                          children: [
+                            Container(
+                              width: 8,
+                              height: 8,
+                              decoration: BoxDecoration(
+                                color: color,
+                                shape: BoxShape.circle,
+                              ),
+                            ),
+                            const SizedBox(width: 8),
+                            Expanded(
+                              child: Text(
+                                'Total ${category == 'piping' ? 'Piping' : 'Equipment'}: ${materials.length}',
+                                style: const TextStyle(
+                                  fontWeight: FontWeight.w700,
+                                  fontSize: 13,
+                                  color: Color(0xFF2E4E79),
+                                ),
+                              ),
+                            ),
+                          ],
+                        ),
                       ),
-                    ),
-                  ] else ...[
-                    IconButton(
-                      icon: const Icon(Icons.delete_sweep, color: Colors.red),
-                      onPressed: materials.isEmpty
-                          ? null
-                          : () => setState(() => toggleDeleteMode()),
-                      tooltip: 'Select Items',
-                    ),
-                    IconButton(
-                      icon: Icon(Icons.add_circle, color: color),
-                      onPressed: () => _addNewMaterial(siteId, category),
-                      tooltip: 'Add Material',
-                    ),
-                  ],
-                ],
-              ),
-            ],
+                      const SizedBox(width: 8),
+                      _buildHeaderIconButton(
+                        icon: Icons.delete_sweep,
+                        tooltip: 'Select Items',
+                        iconColor: const Color(0xFFD34747),
+                        onTap: materials.isEmpty
+                            ? null
+                            : () => setState(() => toggleDeleteMode()),
+                      ),
+                      const SizedBox(width: 8),
+                      _buildHeaderIconButton(
+                        icon: Icons.add_circle,
+                        tooltip: 'Add Material',
+                        iconColor: color,
+                        onTap: () => _addNewMaterial(siteId, category),
+                      ),
+                    ],
+                  ),
+              ],
+            ),
           ),
         ),
-
-        // List
         if (materials.isNotEmpty)
           Expanded(
             child: ListView.builder(
@@ -718,10 +751,82 @@ class _AllInsulationMaterialsScreenState
     );
   }
 
+  Widget _buildHeaderActionButton({
+    required String label,
+    required IconData icon,
+    required Color textColor,
+    required Color bgColor,
+    VoidCallback? onTap,
+  }) {
+    return Material(
+      color: Colors.transparent,
+      child: InkWell(
+        onTap: onTap,
+        borderRadius: BorderRadius.circular(999),
+        child: Container(
+          padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+          decoration: BoxDecoration(
+            color: onTap == null ? bgColor.withOpacity(0.45) : bgColor,
+            borderRadius: BorderRadius.circular(999),
+          ),
+          child: Row(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              Icon(icon, size: 16, color: textColor),
+              const SizedBox(width: 6),
+              Text(
+                label,
+                style: TextStyle(
+                  color: textColor,
+                  fontWeight: FontWeight.w700,
+                  fontSize: 12,
+                ),
+              ),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+
+  Widget _buildHeaderIconButton({
+    required IconData icon,
+    required String tooltip,
+    required Color iconColor,
+    VoidCallback? onTap,
+  }) {
+    return Tooltip(
+      message: tooltip,
+      child: Material(
+        color: Colors.transparent,
+        child: InkWell(
+          onTap: onTap,
+          borderRadius: BorderRadius.circular(12),
+          child: Container(
+            width: 38,
+            height: 38,
+            decoration: BoxDecoration(
+              color: Colors.white,
+              borderRadius: BorderRadius.circular(12),
+              border: Border.all(color: iconColor.withOpacity(0.25)),
+            ),
+            child: Icon(icon, size: 19, color: iconColor),
+          ),
+        ),
+      ),
+    );
+  }
+
   Widget _buildTabLoadingState({
     required String category,
     required Color color,
-    required double titleWidth,
+  }) {
+    return _buildLoadingState(category: category, color: color);
+  }
+
+  Widget _buildLoadingState({
+    required String category,
+    required Color color,
   }) {
     return Column(
       children: [
@@ -730,12 +835,16 @@ class _AllInsulationMaterialsScreenState
           child: Row(
             mainAxisAlignment: MainAxisAlignment.spaceBetween,
             children: [
-              ShimmerBox(width: titleWidth, height: 14),
+              ShimmerBox(
+                width: category == 'piping' ? 180 : 190,
+                height: 14,
+                borderRadius: 6,
+              ),
               Row(
                 children: [
-                  ShimmerBox(width: 40, height: 40, borderRadius: 12),
+                  ShimmerBox(width: 32, height: 32, borderRadius: 10),
                   const SizedBox(width: 8),
-                  ShimmerBox(width: 40, height: 40, borderRadius: 12),
+                  ShimmerBox(width: 32, height: 32, borderRadius: 10),
                 ],
               ),
             ],
@@ -743,8 +852,8 @@ class _AllInsulationMaterialsScreenState
         ),
         Expanded(
           child: ListView.separated(
-            physics: const NeverScrollableScrollPhysics(),
-            padding: const EdgeInsets.all(8),
+            physics: const AlwaysScrollableScrollPhysics(),
+            padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 10),
             itemCount: 5,
             separatorBuilder: (_, __) => const SizedBox(height: 12),
             itemBuilder: (context, index) {

@@ -1,6 +1,5 @@
 import 'dart:async';
 
-
 import 'package:firebase_core/firebase_core.dart';
 import 'package:firebase_crashlytics/firebase_crashlytics.dart';
 import 'package:firebase_messaging/firebase_messaging.dart';
@@ -19,6 +18,7 @@ import 'core/api/requestQueue.dart';
 import 'core/local/isar_db.dart';
 import 'core/upload/handlers/manpower_upload_handler.dart';
 import 'core/upload/handlers/rate_upload_handler.dart';
+import 'core/upload/handlers/site_upload_handler.dart';
 import 'core/upload/upload_exports.dart';
 import 'features/language/model/download_language.dart';
 import 'features/language/model/language_model.dart';
@@ -37,7 +37,6 @@ Future<void> main() async {
   debugPaintPointersEnabled = false;
   debugRepaintRainbowEnabled = false;
 
-
   runZonedGuarded(() async {
     WidgetsFlutterBinding.ensureInitialized();
 
@@ -45,15 +44,13 @@ Future<void> main() async {
 
     FirebaseMessaging.onBackgroundMessage(firebaseMessagingBackgroundHandler);
 
-    await FirebaseCrashlytics.instance
-        .setCrashlyticsCollectionEnabled(true);
+    await FirebaseCrashlytics.instance.setCrashlyticsCollectionEnabled(true);
 
     FlutterError.onError = (FlutterErrorDetails details) {
       FirebaseCrashlytics.instance.recordFlutterFatalError(details);
     };
 
-    final appDocDir =
-    await path_provider.getApplicationDocumentsDirectory();
+    final appDocDir = await path_provider.getApplicationDocumentsDirectory();
 
     await AppIsarDB.init();
     await Hive.initFlutter(appDocDir.path);
@@ -87,24 +84,23 @@ Future<void> main() async {
     final container = ProviderContainer();
     DioClient.syncRef = container;
     UploadHandlerRegistry.instance
+      ..register(SiteUploadHandler())
       ..register(RateUploadHandler())
-       ..register(ManpowerUploadHandler());
+      ..register(ManpowerUploadHandler());
 
     // In your main.dart or app_startup.dart
-ActionHandlerRegistry.instance
-  ..register('snooze_update', (payload) async {
-    final hours = payload['hours'] as int? ?? 24;
-    // Schedule a local notification reminder
-    debugPrint('Snoozed for $hours hours');
-  });
+    ActionHandlerRegistry.instance
+      ..register('snooze_update', (payload) async {
+        final hours = payload['hours'] as int? ?? 24;
+        // Schedule a local notification reminder
+        debugPrint('Snoozed for $hours hours');
+      });
     runApp(
       UncontrolledProviderScope(
         container: container,
-        child:  const MyApp(),
-
+        child: const MyApp(),
       ),
     );
-
   }, (error, stack) {
     FirebaseCrashlytics.instance.recordError(error, stack, fatal: true);
   });

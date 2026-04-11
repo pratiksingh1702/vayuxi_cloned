@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+
 class CustomSliverAppBar extends StatelessWidget {
   final String title;
 
@@ -6,12 +7,15 @@ class CustomSliverAppBar extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final cs = Theme.of(context).colorScheme;
+    final isDark = Theme.of(context).brightness == Brightness.dark;
+
     return SliverAppBar(
-      pinned: true,        // keeps title visible always
-      floating: false,     // don't snap instantly
+      pinned: true, // keeps title visible always
+      floating: false, // don't snap instantly
       snap: false,
       expandedHeight: 100, // your full appbar height
-      backgroundColor: Colors.white,
+      backgroundColor: isDark ? cs.surfaceContainerHigh : cs.surface,
 
       flexibleSpace: LayoutBuilder(
         builder: (context, constraints) {
@@ -22,15 +26,14 @@ class CustomSliverAppBar extends StatelessWidget {
                 title,
                 maxLines: 1,
                 overflow: TextOverflow.ellipsis,
-                style: const TextStyle(
-                  color: Colors.black,
+                style: TextStyle(
+                  color: cs.onSurface,
                   fontWeight: FontWeight.bold,
                   fontSize: 15,
                 ),
               ),
             ),
             centerTitle: true,
-
             background: Stack(
               children: [
                 // Background image
@@ -47,7 +50,21 @@ class CustomSliverAppBar extends StatelessWidget {
 
                 // White overlay
                 Container(
-                  color: Colors.white.withOpacity(0.7),
+                  decoration: BoxDecoration(
+                    gradient: LinearGradient(
+                      begin: Alignment.topCenter,
+                      end: Alignment.bottomCenter,
+                      colors: [
+                        (isDark ? cs.surfaceContainerHigh : cs.surface)
+                            .withOpacity(isDark ? 0.92 : 0.94),
+                        cs.surface.withOpacity(isDark ? 0.8 : 0.82),
+                        (isDark
+                                ? cs.surfaceContainer
+                                : cs.surfaceContainerLowest)
+                            .withOpacity(isDark ? 0.88 : 0.9),
+                      ],
+                    ),
+                  ),
                 ),
               ],
             ),

@@ -10,6 +10,7 @@ class GlobalUploadBanner extends ConsumerWidget {
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final jobs = ref.watch(rateUploadQueueProvider);
+    final colorScheme = Theme.of(context).colorScheme;
 
     final visibleJobs = jobs.where((j) =>
     j.status == UploadStatus.uploading ||
@@ -35,10 +36,10 @@ class GlobalUploadBanner extends ConsumerWidget {
     Widget leftIcon() {
       switch (current.status) {
         case UploadStatus.success:
-          return const Icon(Icons.check_circle, color: Colors.green, size: 28);
+          return Icon(Icons.check_circle, color: colorScheme.primary, size: 28);
 
         case UploadStatus.failed:
-          return const Icon(Icons.error, color: Colors.red, size: 28);
+          return Icon(Icons.error, color: colorScheme.error, size: 28);
 
         case UploadStatus.processing:
           return const SizedBox(
@@ -58,20 +59,20 @@ class GlobalUploadBanner extends ConsumerWidget {
           );
 
         case UploadStatus.queued:
-          return const Icon(Icons.schedule, color: Colors.orange, size: 28);
+          return Icon(Icons.schedule, color: colorScheme.tertiary, size: 28);
       }
     }
 
     return Material(
       elevation: 12,
-      color: Colors.transparent,
+      color: colorScheme.surface.withOpacity(0),
       child: SafeArea(
         bottom: false,
         child: Container(
           margin: const EdgeInsets.all(12),
           padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
           decoration: BoxDecoration(
-            color: Colors.black87,
+            color: colorScheme.inverseSurface,
             borderRadius: BorderRadius.circular(14),
           ),
           child: Row(
@@ -81,7 +82,7 @@ class GlobalUploadBanner extends ConsumerWidget {
               Expanded(
                 child: Text(
                   current.message,
-                  style: const TextStyle(color: Colors.white, fontSize: 13),
+                  style: TextStyle(color: colorScheme.onInverseSurface, fontSize: 13),
                   maxLines: 2,
                   overflow: TextOverflow.ellipsis,
                 ),
@@ -89,8 +90,8 @@ class GlobalUploadBanner extends ConsumerWidget {
               const SizedBox(width: 8),
               Text(
                 "${visibleJobs.length}",
-                style: const TextStyle(
-                  color: Colors.white70,
+                style: TextStyle(
+                  color: colorScheme.onInverseSurface.withOpacity(0.75),
                   fontWeight: FontWeight.bold,
                 ),
               ),
@@ -99,7 +100,7 @@ class GlobalUploadBanner extends ConsumerWidget {
                 onPressed: () {
                   // open upload manager screen (optional)
                 },
-                icon: const Icon(Icons.open_in_new, color: Colors.white),
+                icon: Icon(Icons.open_in_new, color: colorScheme.onInverseSurface),
               ),
             ],
           ),

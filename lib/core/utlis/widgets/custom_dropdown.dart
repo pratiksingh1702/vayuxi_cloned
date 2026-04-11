@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+
 class CustomDropdownField<T> extends StatelessWidget {
   final String label;
   final bool isRequired;
@@ -9,7 +10,6 @@ class CustomDropdownField<T> extends StatelessWidget {
 
   /// Add this new parameter
   final List<Widget> Function(BuildContext)? selectedItemBuilder;
-
 
   const CustomDropdownField({
     super.key,
@@ -24,6 +24,8 @@ class CustomDropdownField<T> extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final cs = Theme.of(context).colorScheme;
+
     return Padding(
       padding: const EdgeInsets.symmetric(vertical: 8.0),
       child: Column(
@@ -32,16 +34,16 @@ class CustomDropdownField<T> extends StatelessWidget {
           RichText(
             text: TextSpan(
               text: label,
-              style: const TextStyle(
+              style: TextStyle(
                 fontSize: 14,
                 fontWeight: FontWeight.w500,
-                color: Colors.black87,
+                color: cs.onSurface,
               ),
               children: [
                 if (isRequired)
-                  const TextSpan(
+                  TextSpan(
                     text: ' *',
-                    style: TextStyle(color: Colors.red),
+                    style: TextStyle(color: cs.error),
                   ),
               ],
             ),
@@ -50,9 +52,9 @@ class CustomDropdownField<T> extends StatelessWidget {
           Container(
             padding: const EdgeInsets.symmetric(horizontal: 12),
             decoration: BoxDecoration(
-              color: Colors.white,
+              color: cs.surface,
               borderRadius: BorderRadius.circular(8),
-              border: Border.all(color: const Color(0xFFDFE2E6)),
+              border: Border.all(color: cs.outlineVariant),
             ),
             child: DropdownButtonFormField<T>(
               value: value,
@@ -64,7 +66,8 @@ class CustomDropdownField<T> extends StatelessWidget {
                 hintText: hint ?? 'Select',
                 border: InputBorder.none,
               ),
-              validator: (v) => isRequired && v == null ? 'Please select $label' : null,
+              validator: (v) =>
+                  isRequired && v == null ? 'Please select $label' : null,
             ),
           ),
         ],

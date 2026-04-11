@@ -31,11 +31,7 @@ import '../../../../../../typeProvider/type_provider.dart';
 // ============================================================
 
 import 'dart:convert';
-import 'dart:io';
 
-import 'package:file_picker/file_picker.dart';
-import 'package:flutter/material.dart';
-import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../../../../core/upload/manager/upload_manager.dart';
 import '../../../../../core/upload/models/upload_job.dart';
@@ -507,7 +503,7 @@ class _ManFieldMappingViewState extends ConsumerState<_ManFieldMappingView>
     return Scaffold(
       drawer: const CustomDrawer(),
       backgroundColor:
-          isDark ? const Color(0xFF121212) : AppColors.lightBlue,
+          isDark ? const Color(0xFF121212) : Theme.of(context).colorScheme.surfaceContainerLowest,
       appBar: CustomAppBar(title: 'Import Manpower'),
       body: Column(
         children: [

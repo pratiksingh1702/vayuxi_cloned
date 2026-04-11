@@ -1,4 +1,7 @@
+import 'dart:async';
+
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import '../../../noti_providers/noti_provider.dart';
 import '../../data/models/notification_model.dart';
 import 'notification_providers.dart';
 
@@ -29,18 +32,33 @@ class NotificationListState {
       );
 }
 
-class NotificationListNotifier
-    extends AsyncNotifier<NotificationListState> {
+class NotificationListNotifier extends AsyncNotifier<NotificationListState> {
+  StreamSubscription<List<NotificationModel>>? _watchSubscription;
+
   @override
   Future<NotificationListState> build() async {
     final repo = ref.read(notificationRepositoryProvider);
+
+    _watchSubscription ??= repo.watchNotifications().listen((items) {
+      final current = state.valueOrNull;
+      final next = NotificationListState(
+        notifications: items,
+        isLoadingMore: false,
+        hasReachedEnd: current?.hasReachedEnd ?? false,
+        currentPage: current?.currentPage ?? 0,
+      );
+      state = AsyncData(next);
+    });
+    ref.onDispose(() => _watchSubscription?.cancel());
+
     final items = await repo.fetchNotifications();
     return NotificationListState(notifications: items);
   }
 
   Future<void> loadMore() async {
     final current = state.valueOrNull;
-    if (current == null || current.isLoadingMore || current.hasReachedEnd) return;
+    if (current == null || current.isLoadingMore || current.hasReachedEnd)
+      return;
 
     state = AsyncData(current.copyWith(isLoadingMore: true));
     final repo = ref.read(notificationRepositoryProvider);
@@ -71,10 +89,22 @@ class NotificationListNotifier
     final current = state.valueOrNull;
     if (current == null) return;
     state = AsyncData(current.copyWith(
-      notifications: current.notifications
-          .map((n) => n.copyWith(isRead: true))
-          .toList(),
+      notifications:
+          current.notifications.map((n) => n.copyWith(isRead: true)).toList(),
     ));
+  }
+
+  Future<void> deleteNotification(String id) async {
+    await ref.read(notificationRepositoryProvider).deleteNotification(id);
+  }
+
+  Future<void> remindLater(
+    NotificationModel notification, {
+    Duration delay = const Duration(hours: 1),
+  }) async {
+    await ref
+        .read(notificationsStateProvider.notifier)
+        .scheduleReminderForUpdate(notification, delay: delay);
   }
 
   Future<void> refresh() async {

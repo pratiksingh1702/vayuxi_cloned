@@ -483,7 +483,7 @@ class _InventorySelectionPageState
 
     return Scaffold(
       resizeToAvoidBottomInset: false,
-      backgroundColor: AppColors.lightBlue,
+      backgroundColor: Theme.of(context).colorScheme.surfaceContainerLowest,
       drawer: const CustomDrawer(),
       appBar: CustomAppBar(title: "Inventory usage"),
       body: BottomButtonWrapper(

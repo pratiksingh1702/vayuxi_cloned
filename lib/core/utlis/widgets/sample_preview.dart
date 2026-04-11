@@ -13,17 +13,19 @@ class TemplatePreviewScreen extends StatelessWidget {
   });
 
   @override
-  
   Widget build(BuildContext context) {
+    final cs = Theme.of(context).colorScheme;
+    final isDark = Theme.of(context).brightness == Brightness.dark;
+
     return Scaffold(
-      backgroundColor: const Color(0xFFF5F5F7),
+      backgroundColor: isDark ? cs.surface : cs.surfaceContainerLowest,
 
       /// 🔹 TOP BAR
       appBar: AppBar(
-        backgroundColor: Colors.white,
+        backgroundColor: isDark ? cs.surfaceContainerHigh : cs.surface,
         elevation: 0,
         scrolledUnderElevation: 0,
-        surfaceTintColor: Colors.transparent,
+        surfaceTintColor: cs.surface.withOpacity(0),
         leading: Padding(
           padding: const EdgeInsets.all(8.0),
           child: InkWell(
@@ -31,12 +33,13 @@ class TemplatePreviewScreen extends StatelessWidget {
             borderRadius: BorderRadius.circular(12),
             child: Container(
               decoration: BoxDecoration(
-                color: const Color(0xFFF0F0F3),
+                color:
+                    isDark ? cs.surfaceContainerHighest : cs.surfaceContainer,
                 borderRadius: BorderRadius.circular(12),
               ),
-              child: const Icon(
+              child: Icon(
                 Icons.close_rounded,
-                color: Color(0xFF1C1C1E),
+                color: cs.onSurface,
                 size: 20,
               ),
             ),
@@ -48,17 +51,17 @@ class TemplatePreviewScreen extends StatelessWidget {
           children: [
             Text(
               title,
-              style: const TextStyle(
-                color: Color(0xFF1C1C1E),
+              style: TextStyle(
+                color: cs.onSurface,
                 fontSize: 16,
                 fontWeight: FontWeight.w600,
                 letterSpacing: -0.3,
               ),
             ),
-            const Text(
+            Text(
               'Template Preview',
               style: TextStyle(
-                color: Color(0xFF8E8E93),
+                color: cs.onSurfaceVariant,
                 fontSize: 12,
                 fontWeight: FontWeight.w400,
               ),
@@ -72,7 +75,6 @@ class TemplatePreviewScreen extends StatelessWidget {
         //       onPressed: () {}, // optional share action
         //       icon: const Icon(
         //         Icons.ios_share_rounded,
-        //         color: Color(0xFF1C1C1E),
         //         size: 22,
         //       ),
         //     ),
@@ -81,7 +83,7 @@ class TemplatePreviewScreen extends StatelessWidget {
         bottom: PreferredSize(
           preferredSize: const Size.fromHeight(1),
           child: Container(
-            color: const Color(0xFFE5E5EA),
+            color: cs.outlineVariant,
             height: 1,
           ),
         ),
@@ -93,12 +95,12 @@ class TemplatePreviewScreen extends StatelessWidget {
           /// Image Preview Area
           Expanded(
             child: Container(
-              color: const Color(0xFFF5F5F7),
+              color: isDark ? cs.surface : cs.surfaceContainerLowest,
               child: Stack(
                 children: [
                   /// Subtle grid background
                   CustomPaint(
-                    painter: _GridPainter(),
+                    painter: _GridPainter(cs.outlineVariant.withOpacity(0.65)),
                     child: const SizedBox.expand(),
                   ),
 
@@ -114,13 +116,13 @@ class TemplatePreviewScreen extends StatelessWidget {
                             borderRadius: BorderRadius.circular(16),
                             boxShadow: [
                               BoxShadow(
-                                color: Colors.black.withOpacity(0.12),
+                                color: cs.shadow.withOpacity(0.2),
                                 blurRadius: 32,
                                 offset: const Offset(0, 8),
                                 spreadRadius: 0,
                               ),
                               BoxShadow(
-                                color: Colors.black.withOpacity(0.06),
+                                color: cs.shadow.withOpacity(0.12),
                                 blurRadius: 8,
                                 offset: const Offset(0, 2),
                                 spreadRadius: 0,
@@ -147,19 +149,19 @@ class TemplatePreviewScreen extends StatelessWidget {
                       padding: const EdgeInsets.symmetric(
                           horizontal: 12, vertical: 6),
                       decoration: BoxDecoration(
-                        color: Colors.black.withOpacity(0.55),
+                        color: cs.scrim.withOpacity(0.55),
                         borderRadius: BorderRadius.circular(20),
                       ),
-                      child: const Row(
+                      child: Row(
                         mainAxisSize: MainAxisSize.min,
                         children: [
                           Icon(Icons.open_with_rounded,
-                              color: Colors.white, size: 14),
-                          SizedBox(width: 4),
+                              color: cs.onPrimary, size: 14),
+                          const SizedBox(width: 4),
                           Text(
                             'Scroll to explore',
                             style: TextStyle(
-                              color: Colors.white,
+                              color: cs.onPrimary,
                               fontSize: 12,
                               fontWeight: FontWeight.w500,
                             ),
@@ -177,13 +179,13 @@ class TemplatePreviewScreen extends StatelessWidget {
           Container(
             padding: const EdgeInsets.fromLTRB(20, 16, 20, 28),
             decoration: BoxDecoration(
-              color: Colors.white,
+              color: isDark ? cs.surfaceContainerHigh : cs.surface,
               border: Border(
-                top: BorderSide(color: const Color(0xFFE5E5EA), width: 1),
+                top: BorderSide(color: cs.outlineVariant, width: 1),
               ),
               boxShadow: [
                 BoxShadow(
-                  color: Colors.black.withOpacity(0.05),
+                  color: cs.shadow.withOpacity(0.05),
                   blurRadius: 16,
                   offset: const Offset(0, -4),
                 ),
@@ -199,18 +201,18 @@ class TemplatePreviewScreen extends StatelessWidget {
                       padding: const EdgeInsets.symmetric(
                           horizontal: 10, vertical: 5),
                       decoration: BoxDecoration(
-                        color: const Color(0xFFEDF7F0),
+                        color: cs.tertiaryContainer,
                         borderRadius: BorderRadius.circular(8),
                       ),
-                      child: const Row(
+                      child: Row(
                         children: [
                           Icon(Icons.check_circle_rounded,
-                              color: Color(0xFF34C759), size: 14),
-                          SizedBox(width: 4),
+                              color: cs.onTertiaryContainer, size: 14),
+                          const SizedBox(width: 4),
                           Text(
                             'Free Template',
                             style: TextStyle(
-                              color: Color(0xFF34C759),
+                              color: cs.onTertiaryContainer,
                               fontSize: 12,
                               fontWeight: FontWeight.w600,
                             ),
@@ -221,13 +223,13 @@ class TemplatePreviewScreen extends StatelessWidget {
                     const SizedBox(width: 8),
                     const Text(
                       '•',
-                      style: TextStyle(color: Color(0xFFAEAEB2)),
+                      style: TextStyle(),
                     ),
                     const SizedBox(width: 8),
-                    const Text(
+                    Text(
                       'Editable format',
                       style: TextStyle(
-                        color: Color(0xFF8E8E93),
+                        color: cs.onSurfaceVariant,
                         fontSize: 12,
                         fontWeight: FontWeight.w400,
                       ),
@@ -244,8 +246,8 @@ class TemplatePreviewScreen extends StatelessWidget {
                       await onDownload();
                     },
                     style: ElevatedButton.styleFrom(
-                      backgroundColor: const Color(0xFF1C1C1E),
-                      foregroundColor: Colors.white,
+                      backgroundColor: cs.primary,
+                      foregroundColor: cs.onPrimary,
                       padding: const EdgeInsets.symmetric(vertical: 16),
                       shape: RoundedRectangleBorder(
                         borderRadius: BorderRadius.circular(14),
@@ -280,11 +282,15 @@ class TemplatePreviewScreen extends StatelessWidget {
 
 /// Subtle dot-grid background painter
 class _GridPainter extends CustomPainter {
+  _GridPainter(this.dotColor);
+
+  final Color dotColor;
+
   @override
   void paint(Canvas canvas, Size size) {
     const spacing = 24.0;
     final paint = Paint()
-      ..color = const Color(0xFFD1D1D6)
+      ..color = dotColor
       ..strokeWidth = 1.5
       ..style = PaintingStyle.fill;
 

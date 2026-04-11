@@ -99,7 +99,7 @@ class _EditInventoryScreenState extends ConsumerState<EditInventoryScreen> {
     return Scaffold(
       appBar: CustomAppBar(title: "Edit Inventory"),
       drawer: const CustomDrawer(),
-      backgroundColor: AppColors.lightBlue,
+      backgroundColor: Theme.of(context).colorScheme.surfaceContainerLowest,
       body: BottomButtonWrapper(
         customButtons: [
           CustomButton(

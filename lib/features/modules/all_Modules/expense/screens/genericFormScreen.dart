@@ -840,7 +840,7 @@ class _ExpenseFormScreenState extends ConsumerState<ExpenseFormScreen> {
       resizeToAvoidBottomInset: true,
       drawer: const CustomDrawer(),
       appBar: CustomAppBar(title: _getScreenTitle()),
-      backgroundColor: AppColors.lightBlue,
+      backgroundColor: Theme.of(context).colorScheme.surfaceContainerLowest,
       body: BottomButtonWrapper(
         customButtons: [
           CustomButton(

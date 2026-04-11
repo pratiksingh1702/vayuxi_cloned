@@ -5,6 +5,7 @@ import 'package:go_router/go_router.dart';
 import 'package:untitled2/core/utlis/widgets/Button_wrapper.dart';
 import 'package:untitled2/core/utlis/widgets/afd.dart';
 import 'package:intl/intl.dart';
+import 'package:untitled2/core/utlis/widgets/shimmer.dart';
 import 'package:untitled2/core/utlis/widgets/sidebar.dart';
 import 'package:untitled2/features/modules/all_Modules/dpr/screens/work_type.dart';
 import 'package:untitled2/features/modules/all_Modules/team/provider/teamProvider.dart';
@@ -22,7 +23,6 @@ import 'add_description.dart';
 
 // Insulation imports
 import 'package:untitled2/features/modules/all_Modules/dpr/dpr_insu/model/dpr_model_insu.dart';
-
 
 class DprWorkScreen extends ConsumerStatefulWidget {
   final String siteId;
@@ -53,6 +53,7 @@ class _DprWorkScreenState extends ConsumerState<DprWorkScreen> {
   // Insulation-specific state
   List<InsulationDprModel> insulationList = [];
   bool isLoadingInsulation = false;
+  bool _isBootstrapping = true;
   String? insulationError;
 
   // Timer for debouncing (optional)
@@ -62,20 +63,32 @@ class _DprWorkScreenState extends ConsumerState<DprWorkScreen> {
   void initState() {
     super.initState();
 
-    Future.microtask(() {
-      _selectedStartDate = widget.selectedStartDate;
-      _selectedEndDate = widget.selectedEndDate;
-      _fetchTeams();
-      _fetchDataBasedOnType();
+    Future.microtask(() async {
+      try {
+        _selectedStartDate = widget.selectedStartDate;
+        _selectedEndDate = widget.selectedEndDate;
+        await _fetchTeams();
+        await _fetchDataBasedOnType();
+      } finally {
+        if (mounted) {
+          setState(() {
+            _isBootstrapping = false;
+          });
+        }
+      }
     });
   }
 
   Future<void> _fetchTeams() async {
     final workType = ref.read(typeProvider);
     if (workType == WorkType.mechanical) {
-      await ref.read(teamProvider.notifier).fetchMechanicalCombined(siteId: widget.siteId);
+      await ref
+          .read(teamProvider.notifier)
+          .fetchMechanicalCombined(siteId: widget.siteId);
     } else if (workType == WorkType.insulation) {
-      await ref.read(teamProvider.notifier).fetchInsulationCombined(siteId: widget.siteId);
+      await ref
+          .read(teamProvider.notifier)
+          .fetchInsulationCombined(siteId: widget.siteId);
     }
   }
 
@@ -84,10 +97,11 @@ class _DprWorkScreenState extends ConsumerState<DprWorkScreen> {
     _debounceTimer?.cancel();
     super.dispose();
   }
+
   Future<void> _showBeautifulDatePicker(
-      BuildContext context, {
-        required bool isStartDate,
-      }) async {
+    BuildContext context, {
+    required bool isStartDate,
+  }) async {
     final selected = await showDialog<DateTime>(
       context: context,
       builder: (context) => BeautifulDatePicker(
@@ -95,9 +109,9 @@ class _DprWorkScreenState extends ConsumerState<DprWorkScreen> {
         firstDate: DateTime(2000),
         lastDate: DateTime.now(),
         title: isStartDate ? "Select Start Date" : "Select End Date",
-        primaryColor: Colors.blue,      // use your AppColors if available
+        primaryColor: Colors.blue, // use your AppColors if available
         accentColor: Colors.blueAccent, // use your AppColors if available
-        backgroundColor: Colors.white,  // use your AppColors if available
+        backgroundColor: Colors.white, // use your AppColors if available
       ),
     );
 
@@ -122,15 +136,15 @@ class _DprWorkScreenState extends ConsumerState<DprWorkScreen> {
     });
   }
 
-  void _fetchDataBasedOnType() {
+  Future<void> _fetchDataBasedOnType() async {
     final workType = ref.read(typeProvider);
 
     if (workType == WorkType.mechanical) {
-      ref.read(dprProvider.notifier).fetchSiteDprWork(
-        siteId: widget.siteId,
-      );
+      await ref.read(dprProvider.notifier).fetchSiteDprWork(
+            siteId: widget.siteId,
+          );
     } else if (workType == WorkType.insulation) {
-      _fetchInsulationData();
+      await _fetchInsulationData();
     }
   }
 
@@ -193,7 +207,6 @@ class _DprWorkScreenState extends ConsumerState<DprWorkScreen> {
       _selectedEndDate = null;
     });
   }
-
 
   void pickDateRange() async {
     final pickedRange = await showDateRangePicker(
@@ -278,7 +291,8 @@ class _DprWorkScreenState extends ConsumerState<DprWorkScreen> {
           padding: EdgeInsets.symmetric(horizontal: 12, vertical: 8),
           child: Text(
             "Filter by Teams",
-            style: TextStyle(fontSize: 13, fontWeight: FontWeight.w600, color: Colors.grey),
+            style: TextStyle(
+                fontSize: 13, fontWeight: FontWeight.w600, color: Colors.grey),
           ),
         ),
         SizedBox(
@@ -299,7 +313,8 @@ class _DprWorkScreenState extends ConsumerState<DprWorkScreen> {
                     style: TextStyle(
                       fontSize: 12,
                       color: isSelected ? Colors.white : Colors.black87,
-                      fontWeight: isSelected ? FontWeight.bold : FontWeight.normal,
+                      fontWeight:
+                          isSelected ? FontWeight.bold : FontWeight.normal,
                     ),
                   ),
                   selected: isSelected,
@@ -330,6 +345,7 @@ class _DprWorkScreenState extends ConsumerState<DprWorkScreen> {
       ],
     );
   }
+
   Future<void> _deleteDpr(dynamic dpr) async {
     final workType = ref.read(typeProvider);
 
@@ -362,7 +378,6 @@ class _DprWorkScreenState extends ConsumerState<DprWorkScreen> {
 
         // 🔥 REMOVE LOCALLY IN PROVIDER
         ref.read(dprProvider.notifier).removeLocalDpr(dpr.id);
-
       } else {
         // await InsulationDprApi.deleteInsulationDpr(dpr.id);
 
@@ -392,10 +407,77 @@ class _DprWorkScreenState extends ConsumerState<DprWorkScreen> {
     }
   }
 
+  Widget _buildListSectionShimmer(String workType) {
+    return ListView.builder(
+      padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 8),
+      itemCount: 6,
+      itemBuilder: (context, index) {
+        return Card(
+          margin: const EdgeInsets.only(bottom: 10),
+          shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(12),
+          ),
+          elevation: 0,
+          color: Colors.white,
+          child: Padding(
+            padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 12),
+            child: Row(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Container(
+                  width: 42,
+                  height: 42,
+                  decoration: BoxDecoration(
+                    color: (workType == WorkType.mechanical
+                            ? Colors.blue
+                            : Colors.green)
+                        .withOpacity(0.08),
+                    borderRadius: BorderRadius.circular(10),
+                  ),
+                  child: const Center(
+                    child: ShimmerBox(
+                      width: 18,
+                      height: 18,
+                      borderRadius: 6,
+                    ),
+                  ),
+                ),
+                const SizedBox(width: 12),
+                Expanded(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: const [
+                      ShimmerBox(width: 170, height: 14, borderRadius: 6),
+                      SizedBox(height: 8),
+                      ShimmerBox(width: 210, height: 11, borderRadius: 5),
+                      SizedBox(height: 5),
+                      ShimmerBox(width: 150, height: 11, borderRadius: 5),
+                    ],
+                  ),
+                ),
+                const SizedBox(width: 10),
+                Column(
+                  crossAxisAlignment: CrossAxisAlignment.end,
+                  children: const [
+                    ShimmerBox(width: 52, height: 10, borderRadius: 5),
+                    SizedBox(height: 8),
+                    ShimmerBox(width: 12, height: 12, borderRadius: 6),
+                    SizedBox(height: 8),
+                    ShimmerCircle(size: 20),
+                  ],
+                ),
+              ],
+            ),
+          ),
+        );
+      },
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
     final workType = ref.watch(typeProvider);
-    final team=ref.read(currentTeamProvider);
+    final team = ref.read(currentTeamProvider);
 
     // Fail fast if no work type is selected
     if (workType == null || !WorkType.isValid(workType)) {
@@ -456,7 +538,9 @@ class _DprWorkScreenState extends ConsumerState<DprWorkScreen> {
       filteredList = insulationList.where((dpr) {
         final matchesDate = _matchesDate(dpr.date);
         final cleanTeamId = (dpr.teamId ?? "").trim();
-        final matchesTeam = _selectedTeamIds.isEmpty || (dpr.teamId != null && _selectedTeamIds.any((id) => id.trim() == cleanTeamId));
+        final matchesTeam = _selectedTeamIds.isEmpty ||
+            (dpr.teamId != null &&
+                _selectedTeamIds.any((id) => id.trim() == cleanTeamId));
         return matchesDate && matchesTeam;
       }).toList();
     }
@@ -494,7 +578,8 @@ class _DprWorkScreenState extends ConsumerState<DprWorkScreen> {
                             GestureDetector(
                               onTap: pickDateRange,
                               child: Container(
-                                padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 12),
+                                padding: const EdgeInsets.symmetric(
+                                    horizontal: 12, vertical: 12),
                                 decoration: BoxDecoration(
                                   color: Colors.grey.shade50,
                                   borderRadius: BorderRadius.circular(12),
@@ -510,13 +595,16 @@ class _DprWorkScreenState extends ConsumerState<DprWorkScreen> {
                                     Icon(
                                       Icons.calendar_today_rounded,
                                       size: 18,
-                                      color: _selectedStartDate != null ? Colors.blue : Colors.grey,
+                                      color: _selectedStartDate != null
+                                          ? Colors.blue
+                                          : Colors.grey,
                                     ),
                                     const SizedBox(width: 8),
                                     Expanded(
                                       child: Text(
                                         _selectedStartDate != null
-                                            ? DateFormat('dd/MM/yyyy').format(_selectedStartDate!)
+                                            ? DateFormat('dd/MM/yyyy')
+                                                .format(_selectedStartDate!)
                                             : "Select start date",
                                         style: TextStyle(
                                           fontSize: 14,
@@ -556,7 +644,8 @@ class _DprWorkScreenState extends ConsumerState<DprWorkScreen> {
                             GestureDetector(
                               onTap: pickDateRange,
                               child: Container(
-                                padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 12),
+                                padding: const EdgeInsets.symmetric(
+                                    horizontal: 12, vertical: 12),
                                 decoration: BoxDecoration(
                                   color: Colors.grey.shade50,
                                   borderRadius: BorderRadius.circular(12),
@@ -572,13 +661,16 @@ class _DprWorkScreenState extends ConsumerState<DprWorkScreen> {
                                     Icon(
                                       Icons.calendar_today_rounded,
                                       size: 18,
-                                      color: _selectedEndDate != null ? Colors.blue : Colors.grey,
+                                      color: _selectedEndDate != null
+                                          ? Colors.blue
+                                          : Colors.grey,
                                     ),
                                     const SizedBox(width: 8),
                                     Expanded(
                                       child: Text(
                                         _selectedEndDate != null
-                                            ? DateFormat('dd/MM/yyyy').format(_selectedEndDate!)
+                                            ? DateFormat('dd/MM/yyyy')
+                                                .format(_selectedEndDate!)
                                             : "Select end date",
                                         style: TextStyle(
                                           fontSize: 14,
@@ -600,7 +692,9 @@ class _DprWorkScreenState extends ConsumerState<DprWorkScreen> {
                       ),
 
                       // ✅ clear filter icon (cross) — keep this like you want
-                      if (selectedDate != null || (_selectedStartDate != null && _selectedEndDate != null))
+                      if (selectedDate != null ||
+                          (_selectedStartDate != null &&
+                              _selectedEndDate != null))
                         Padding(
                           padding: const EdgeInsets.only(left: 8),
                           child: InkWell(
@@ -636,7 +730,8 @@ class _DprWorkScreenState extends ConsumerState<DprWorkScreen> {
                           label: const Text("Single Date"),
                           style: OutlinedButton.styleFrom(
                             padding: const EdgeInsets.symmetric(vertical: 12),
-                            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                            shape: RoundedRectangleBorder(
+                                borderRadius: BorderRadius.circular(12)),
                           ),
                         ),
                       ),
@@ -648,7 +743,8 @@ class _DprWorkScreenState extends ConsumerState<DprWorkScreen> {
                           label: const Text("Date Range"),
                           style: ElevatedButton.styleFrom(
                             padding: const EdgeInsets.symmetric(vertical: 12),
-                            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                            shape: RoundedRectangleBorder(
+                                borderRadius: BorderRadius.circular(12)),
                           ),
                         ),
                       ),
@@ -666,7 +762,9 @@ class _DprWorkScreenState extends ConsumerState<DprWorkScreen> {
               child: Row(
                 children: [
                   Text(
-                    workType == WorkType.mechanical ? 'Mechanical Works' : 'Insulation Works',
+                    workType == WorkType.mechanical
+                        ? 'Mechanical Works'
+                        : 'Insulation Works',
                     style: TextStyle(
                       fontSize: 12,
                       color: Colors.grey.shade600,
@@ -677,12 +775,11 @@ class _DprWorkScreenState extends ConsumerState<DprWorkScreen> {
               ),
             ),
 
-
             // Loading / Error / List
             Expanded(
               child: Builder(builder: (_) {
-                if (isLoading) {
-                  return const Center(child: CircularProgressIndicator());
+                if (_isBootstrapping || isLoading) {
+                  return _buildListSectionShimmer(workType);
                 }
 
                 // if (error != null) {
@@ -712,14 +809,18 @@ class _DprWorkScreenState extends ConsumerState<DprWorkScreen> {
                     child: Column(
                       mainAxisAlignment: MainAxisAlignment.center,
                       children: [
-                        const Icon(Icons.list_alt_outlined, size: 64, color: Colors.grey),
+                        const Icon(Icons.list_alt_outlined,
+                            size: 64, color: Colors.grey),
                         const SizedBox(height: 16),
                         Text(
                           'No ${workType == WorkType.mechanical ? 'mechanical' : 'insulation'} works found',
-                          style: const TextStyle(fontSize: 16, color: Colors.grey),
+                          style:
+                              const TextStyle(fontSize: 16, color: Colors.grey),
                         ),
                         const SizedBox(height: 8),
-                        if (selectedDate != null || (_selectedStartDate != null && _selectedEndDate != null))
+                        if (selectedDate != null ||
+                            (_selectedStartDate != null &&
+                                _selectedEndDate != null))
                           OutlinedButton(
                             onPressed: clearDateFilter,
                             child: const Text('Clear Date Filter'),
@@ -730,7 +831,8 @@ class _DprWorkScreenState extends ConsumerState<DprWorkScreen> {
                 }
 
                 return ListView.builder(
-                  padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 8),
+                  padding:
+                      const EdgeInsets.symmetric(horizontal: 10, vertical: 8),
                   itemCount: filteredList.length,
                   itemBuilder: (context, index) {
                     final dpr = filteredList[index];
@@ -791,7 +893,7 @@ class _DprWorkScreenState extends ConsumerState<DprWorkScreen> {
 
                         trailing: Row(
                           mainAxisSize: MainAxisSize.min,
-                          children: [ 
+                          children: [
                             Column(
                               mainAxisAlignment: MainAxisAlignment.center,
                               crossAxisAlignment: CrossAxisAlignment.end,
@@ -800,16 +902,19 @@ class _DprWorkScreenState extends ConsumerState<DprWorkScreen> {
                                   DateFormat('MMM dd').format(
                                     DateTime(
                                       (workType == WorkType.mechanical
-                                          ? (dpr as DprModel).date
-                                          : (dpr as InsulationDprModel).date)
+                                              ? (dpr as DprModel).date
+                                              : (dpr as InsulationDprModel)
+                                                  .date)
                                           .year,
                                       (workType == WorkType.mechanical
-                                          ? (dpr as DprModel).date
-                                          : (dpr as InsulationDprModel).date)
+                                              ? (dpr as DprModel).date
+                                              : (dpr as InsulationDprModel)
+                                                  .date)
                                           .month,
                                       (workType == WorkType.mechanical
-                                          ? (dpr as DprModel).date
-                                          : (dpr as InsulationDprModel).date)
+                                              ? (dpr as DprModel).date
+                                              : (dpr as InsulationDprModel)
+                                                  .date)
                                           .day,
                                     ),
                                   ),
@@ -828,17 +933,29 @@ class _DprWorkScreenState extends ConsumerState<DprWorkScreen> {
                             ),
                             const SizedBox(width: 8),
                             IconButton(
-                              icon: const Icon(Icons.delete_outline, color: Colors.red),
+                              icon: const Icon(Icons.delete_outline,
+                                  color: Colors.red),
                               onPressed: () => _deleteDpr(dpr),
                             ),
                           ],
                         ),
 
-                        onTap: () {
-                          if (workType == WorkType.mechanical) {
-                            context.push(Routes.dprDescription, extra: dpr as DprModel);
-                          } else {
-                            context.push(Routes.dprInsuDescription, extra: dpr as InsulationDprModel);
+                        onTap: () async {
+                          final result = workType == WorkType.mechanical
+                              ? await context.push(
+                                  Routes.dprDescription,
+                                  extra: dpr as DprModel,
+                                )
+                              : await context.push(
+                                  Routes.dprInsuDescription,
+                                  extra: dpr as InsulationDprModel,
+                                );
+
+                          if (result == true) {
+                            if (mounted) setState(() {});
+                            await _fetchTeams();
+                            await _fetchDataBasedOnType();
+                            if (mounted) setState(() {});
                           }
                         },
                       ),

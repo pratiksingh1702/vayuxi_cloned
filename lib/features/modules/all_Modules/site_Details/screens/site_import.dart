@@ -7,7 +7,6 @@ import 'package:go_router/go_router.dart';
 import 'package:showcaseview/showcaseview.dart';
 import 'package:untitled2/core/router/routes.dart';
 import 'package:untitled2/core/utlis/app_toasts.dart';
-import 'package:untitled2/core/utlis/colors/colors.dart';
 import 'package:untitled2/core/utlis/common_functions.dart';
 import 'package:untitled2/core/utlis/sample_file/sample_file_model.dart';
 import 'package:untitled2/core/utlis/widgets/buttons.dart';
@@ -160,8 +159,8 @@ class _SiteImportCsvScreenState extends ConsumerState<SiteImportCsvScreen>
 
   @override
   Widget build(BuildContext context) {
-    final type = ref.read(typeProvider);
-    final site = ref.read(currentSiteProvider);
+    final cs = Theme.of(context).colorScheme;
+    final isDark = Theme.of(context).brightness == Brightness.dark;
     final downloadState = ref.watch(templateDownloadControllerProvider);
 
     return ShowCaseWidget(
@@ -172,7 +171,7 @@ class _SiteImportCsvScreenState extends ConsumerState<SiteImportCsvScreen>
 
         return Scaffold(
           drawer: const CustomDrawer(),
-          backgroundColor: AppColors.lightBlue,
+          backgroundColor: isDark ? cs.surface : cs.surfaceContainerLowest,
           appBar: CustomAppBar(
             title: 'Import Site File',
           ),
@@ -190,8 +189,8 @@ class _SiteImportCsvScreenState extends ConsumerState<SiteImportCsvScreen>
                       text: downloadState.isLoading
                           ? "Downloading..."
                           : "Download Sample Template",
-                      color: Colors.white,
-                      textColor: Colors.black45,
+                      color: isDark ? cs.surfaceContainerHigh : cs.surface,
+                      textColor: cs.onSurface,
                       isOutlined: true,
                       onPressed: downloadState.isLoading
                           ? () {}
@@ -225,7 +224,8 @@ class _SiteImportCsvScreenState extends ConsumerState<SiteImportCsvScreen>
                               if (!context.mounted) return;
                               // On returning from preview, continue guidance on site import.
                               WidgetsBinding.instance.addPostFrameCallback((_) {
-                                runTourForRoute(Routes.siteImport, showcaseContext);
+                                runTourForRoute(
+                                    Routes.siteImport, showcaseContext);
                               });
                             },
                     ),
@@ -235,7 +235,7 @@ class _SiteImportCsvScreenState extends ConsumerState<SiteImportCsvScreen>
                     "* Use this format to ensure accurate and smooth import.",
                     style: TextStyle(
                       fontSize: 12,
-                      color: Colors.grey.shade700,
+                      color: cs.onSurfaceVariant,
                       fontStyle: FontStyle.italic,
                       fontWeight: FontWeight.w500,
                     ),
@@ -246,7 +246,7 @@ class _SiteImportCsvScreenState extends ConsumerState<SiteImportCsvScreen>
                   if (downloadState.hasError)
                     Text(
                       "Error: ${downloadState.error}",
-                      style: const TextStyle(color: Colors.red),
+                      style: TextStyle(color: cs.error),
                     ),
 
                   const SizedBox(height: 24),
@@ -272,17 +272,19 @@ class _SiteImportCsvScreenState extends ConsumerState<SiteImportCsvScreen>
                     width: double.infinity,
                     child: Showcase(
                       key: SiteRegistry.uploadFileButtonKey,
-                      description: 'Now upload the selected file to finish setup.',
+                      description:
+                          'Now upload the selected file to finish setup.',
                       child: ElevatedButton(
                         onPressed: _isLoading ? null : _uploadCsv,
                         style: ElevatedButton.styleFrom(
-                            backgroundColor: Colors.blue,
-                            foregroundColor: Colors.white,
+                            backgroundColor: cs.primary,
+                            foregroundColor: cs.onPrimary,
                             padding: const EdgeInsets.symmetric(vertical: 16),
-                            disabledBackgroundColor: Colors.blue.withOpacity(0.5),
+                            disabledBackgroundColor:
+                                cs.primary.withOpacity(0.5),
                             elevation: 0),
                         child: _isLoading
-                            ? const Row(
+                            ? Row(
                                 mainAxisAlignment: MainAxisAlignment.center,
                                 children: [
                                   SizedBox(
@@ -291,11 +293,11 @@ class _SiteImportCsvScreenState extends ConsumerState<SiteImportCsvScreen>
                                     child: CircularProgressIndicator(
                                       strokeWidth: 2,
                                       valueColor: AlwaysStoppedAnimation<Color>(
-                                          Colors.white),
+                                          cs.onPrimary),
                                     ),
                                   ),
-                                  SizedBox(width: 8),
-                                  Text('Uploading...'),
+                                  const SizedBox(width: 8),
+                                  const Text('Uploading...'),
                                 ],
                               )
                             : const Row(

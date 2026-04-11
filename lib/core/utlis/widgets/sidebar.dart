@@ -19,20 +19,22 @@ final drawerExpandedSectionProvider = StateProvider<String?>((ref) => 'MAIN');
 class CustomDrawer extends ConsumerWidget {
   const CustomDrawer({super.key});
 
-  // Color System
-  static const Color _background = Color(0xFFFFFFFF);
-  static const Color _surface = Color(0xFFF8F9FA);
-  static const Color _surfaceElevated = Color(0xFFF1F3F5);
-  static const Color _primary = Color(0xFF3B82F6);
-  static const Color _primaryLight = Color(0xFFEFF6FF);
-  static const Color _textPrimary = Color(0xFF1E293B);
-  static const Color _textSecondary = Color(0xFF64748B);
-  static const Color _textMuted = Color(0xFF94A3B8);
-  static const Color _divider = Color(0xFFE2E8F0);
-  static const Color _danger = Color(0xFFEF4444);
-  static const Color _dangerLight = Color(0xFFFEF2F2);
-  static const Color _success = Color(0xFF10B981);
-  static const Color _successLight = Color(0xFFF0FDF4);
+  ColorScheme _cs(BuildContext context) => Theme.of(context).colorScheme;
+
+  Color _background(BuildContext context) => _cs(context).surface;
+  Color _surface(BuildContext context) => _cs(context).surfaceContainerLowest;
+  Color _surfaceElevated(BuildContext context) => _cs(context).surfaceContainer;
+  Color _primary(BuildContext context) => _cs(context).primary;
+  Color _primaryLight(BuildContext context) => _cs(context).primaryContainer;
+  Color _textPrimary(BuildContext context) => _cs(context).onSurface;
+  Color _textSecondary(BuildContext context) => _cs(context).onSurfaceVariant;
+  Color _textMuted(BuildContext context) =>
+      _cs(context).onSurfaceVariant.withOpacity(0.8);
+  Color _divider(BuildContext context) => _cs(context).outlineVariant;
+  Color _danger(BuildContext context) => _cs(context).error;
+  Color _dangerLight(BuildContext context) => _cs(context).errorContainer;
+  Color _success(BuildContext context) => _cs(context).tertiary;
+  Color _successLight(BuildContext context) => _cs(context).tertiaryContainer;
 
   Future<bool> _checkDeviceVerification() async {
     final id = await DevicePrefs.getDeviceId();
@@ -56,10 +58,10 @@ class CustomDrawer extends ConsumerWidget {
     if (!isDeviceVerified) {
       if (context.mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(
+          SnackBar(
             content: Text(
                 "Device not verified. Please verify first to access this feature."),
-            backgroundColor: _danger,
+            backgroundColor: _danger(context),
             behavior: SnackBarBehavior.floating,
           ),
         );
@@ -114,7 +116,7 @@ class CustomDrawer extends ConsumerWidget {
     await showModalBottomSheet<void>(
       context: context,
       showDragHandle: true,
-      backgroundColor: Colors.white,
+      backgroundColor: _surface(context),
       shape: const RoundedRectangleBorder(
         borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
       ),
@@ -134,7 +136,7 @@ class CustomDrawer extends ConsumerWidget {
                 Text(
                   'Choose full replay or a specific module.',
                   style: TextStyle(
-                    color: _textSecondary,
+                    color: _textSecondary(context),
                     fontSize: 13,
                     fontWeight: FontWeight.w500,
                   ),
@@ -142,7 +144,8 @@ class CustomDrawer extends ConsumerWidget {
                 const SizedBox(height: 14),
                 ListTile(
                   contentPadding: EdgeInsets.zero,
-                  leading: const Icon(Icons.refresh_rounded, color: _primary),
+                  leading:
+                      Icon(Icons.refresh_rounded, color: _primary(context)),
                   title: const Text('Complete Demo'),
                   subtitle: const Text(
                       'Reset all tour progress and replay from start'),
@@ -192,7 +195,7 @@ class CustomDrawer extends ConsumerWidget {
     final scrollController = ScrollController();
     return Drawer(
       child: Container(
-        color: _background,
+        color: _background(context),
         child: SafeArea(
           child: Column(
             children: [
@@ -212,6 +215,8 @@ class CustomDrawer extends ConsumerWidget {
                         route: '/workCategory',
                         requiresVerification: false,
                       ),
+                      const SizedBox(height: 8),
+                      _buildFastEntryPremiumCard(context),
                       const SizedBox(height: 8),
                       _buildManualSyncCard(context, ref),
                       const SizedBox(height: 8),
@@ -435,21 +440,23 @@ class CustomDrawer extends ConsumerWidget {
     return Padding(
       padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 2),
       child: Material(
-        color: Colors.transparent,
+        color: _cs(context).surface.withOpacity(0),
         child: InkWell(
           onTap: () => _handleNavigation(context, route, requiresVerification),
           borderRadius: BorderRadius.circular(12),
-          splashColor: _primary.withOpacity(0.08),
-          highlightColor: Colors.transparent,
+          splashColor: _primary(context).withOpacity(0.08),
+          highlightColor: _cs(context).surface.withOpacity(0),
           child: Container(
             padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
             decoration: BoxDecoration(
-              color: isActive ? _primaryLight : Colors.transparent,
+              color: isActive
+                  ? _primaryLight(context)
+                  : _cs(context).surface.withOpacity(0),
               borderRadius: BorderRadius.circular(12),
               boxShadow: isActive
                   ? [
                       BoxShadow(
-                        color: _primary.withOpacity(0.08),
+                        color: _primary(context).withOpacity(0.08),
                         blurRadius: 8,
                         offset: const Offset(0, 2),
                       ),
@@ -470,7 +477,9 @@ class CustomDrawer extends ConsumerWidget {
                     errorBuilder: (context, error, stackTrace) {
                       return Icon(
                         Icons.circle_outlined,
-                        color: isActive ? _primary : _textSecondary,
+                        color: isActive
+                            ? _primary(context)
+                            : _textSecondary(context),
                         size: 20,
                       );
                     },
@@ -483,7 +492,8 @@ class CustomDrawer extends ConsumerWidget {
                     style: TextStyle(
                       fontSize: 14,
                       fontWeight: isActive ? FontWeight.w600 : FontWeight.w500,
-                      color: isActive ? _primary : _textPrimary,
+                      color:
+                          isActive ? _primary(context) : _textPrimary(context),
                       letterSpacing: -0.2,
                     ),
                   ),
@@ -493,7 +503,7 @@ class CustomDrawer extends ConsumerWidget {
                     width: 3,
                     height: 28,
                     decoration: BoxDecoration(
-                      color: _primary,
+                      color: _primary(context),
                       borderRadius: BorderRadius.circular(2),
                     ),
                   ),
@@ -509,19 +519,19 @@ class CustomDrawer extends ConsumerWidget {
     return Container(
       margin: const EdgeInsets.symmetric(horizontal: 12, vertical: 4),
       child: Material(
-        color: Colors.transparent,
+        color: _cs(context).surface.withOpacity(0),
         child: InkWell(
           onTap: () => _handleManualSync(context, ref),
           borderRadius: BorderRadius.circular(12),
-          splashColor: _success.withOpacity(0.08),
-          highlightColor: Colors.transparent,
+          splashColor: _success(context).withOpacity(0.08),
+          highlightColor: _cs(context).surface.withOpacity(0),
           child: Container(
             padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
             decoration: BoxDecoration(
-              color: _successLight,
+              color: _successLight(context),
               borderRadius: BorderRadius.circular(12),
               border: Border.all(
-                color: _success.withOpacity(0.2),
+                color: _success(context).withOpacity(0.2),
                 width: 1,
               ),
             ),
@@ -531,13 +541,13 @@ class CustomDrawer extends ConsumerWidget {
                   width: 32,
                   height: 32,
                   decoration: BoxDecoration(
-                    color: _success.withOpacity(0.15),
+                    color: _success(context).withOpacity(0.15),
                     borderRadius: BorderRadius.circular(8),
                   ),
                   alignment: Alignment.center,
-                  child: const Icon(
+                  child: Icon(
                     Icons.sync,
-                    color: _success,
+                    color: _success(context),
                     size: 18,
                   ),
                 ),
@@ -551,7 +561,7 @@ class CustomDrawer extends ConsumerWidget {
                         style: TextStyle(
                           fontSize: 14,
                           fontWeight: FontWeight.w600,
-                          color: _textPrimary,
+                          color: _textPrimary(context),
                         ),
                       ),
                       Text(
@@ -559,7 +569,7 @@ class CustomDrawer extends ConsumerWidget {
                         style: TextStyle(
                           fontSize: 11,
                           fontWeight: FontWeight.w400,
-                          color: _textSecondary,
+                          color: _textSecondary(context),
                         ),
                       ),
                     ],
@@ -568,14 +578,105 @@ class CustomDrawer extends ConsumerWidget {
                 Container(
                   padding: const EdgeInsets.all(6),
                   decoration: BoxDecoration(
-                    color: _success.withOpacity(0.1),
+                    color: _success(context).withOpacity(0.1),
                     borderRadius: BorderRadius.circular(6),
                   ),
                   child: Icon(
                     Icons.cloud_upload,
-                    color: _success,
+                    color: _success(context),
                     size: 16,
                   ),
+                ),
+              ],
+            ),
+          ),
+        ),
+      ),
+    );
+  }
+
+  Widget _buildFastEntryPremiumCard(BuildContext context) {
+    return Container(
+      margin: const EdgeInsets.symmetric(horizontal: 12, vertical: 4),
+      child: Material(
+        color: _cs(context).surface.withOpacity(0),
+        child: InkWell(
+          onTap: () => _handleNavigation(context, Routes.automatedEntry, true),
+          borderRadius: BorderRadius.circular(14),
+          splashColor: _primary(context).withOpacity(0.08),
+          highlightColor: _cs(context).surface.withOpacity(0),
+          child: Container(
+            padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
+            decoration: BoxDecoration(
+              gradient: LinearGradient(
+                colors: [
+                  _primaryLight(context).withOpacity(0.72),
+                  _primaryLight(context).withOpacity(0.94),
+                ],
+                begin: Alignment.topLeft,
+                end: Alignment.bottomRight,
+              ),
+              borderRadius: BorderRadius.circular(14),
+              border: Border.all(color: _primary(context).withOpacity(0.24)),
+              boxShadow: [
+                BoxShadow(
+                  color: _primary(context).withOpacity(0.08),
+                  blurRadius: 10,
+                  offset: const Offset(0, 4),
+                ),
+              ],
+            ),
+            child: Row(
+              children: [
+                Container(
+                  width: 32,
+                  height: 32,
+                  decoration: BoxDecoration(
+                    gradient: LinearGradient(
+                      colors: [
+                        _primary(context).withOpacity(0.9),
+                        _primary(context),
+                      ],
+                      begin: Alignment.topLeft,
+                      end: Alignment.bottomRight,
+                    ),
+                    borderRadius: BorderRadius.circular(10),
+                  ),
+                  alignment: Alignment.center,
+                  child: Icon(
+                    Icons.auto_awesome_rounded,
+                    color: _cs(context).onPrimary,
+                    size: 18,
+                  ),
+                ),
+                const SizedBox(width: 12),
+                Expanded(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text(
+                        'Fast Entry',
+                        style: TextStyle(
+                          fontSize: 14,
+                          fontWeight: FontWeight.w700,
+                          color: _textPrimary(context),
+                        ),
+                      ),
+                      Text(
+                        'Premium guided upload wizard',
+                        style: TextStyle(
+                          fontSize: 11,
+                          fontWeight: FontWeight.w500,
+                          color: _textSecondary(context),
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+                Icon(
+                  Icons.chevron_right_rounded,
+                  color: _primary(context),
+                  size: 20,
                 ),
               ],
             ),
@@ -590,9 +691,9 @@ class CustomDrawer extends ConsumerWidget {
 
     return Container(
       decoration: BoxDecoration(
-        color: _background,
+        color: _background(context),
         border: Border(
-          top: BorderSide(color: _divider, width: 1),
+          top: BorderSide(color: _divider(context), width: 1),
         ),
       ),
       child: SafeArea(
@@ -605,7 +706,7 @@ class CustomDrawer extends ConsumerWidget {
               Container(
                 padding: const EdgeInsets.all(12),
                 decoration: BoxDecoration(
-                  color: _surface,
+                  color: _surface(context),
                   borderRadius: BorderRadius.circular(16),
                 ),
                 child: Row(
@@ -616,7 +717,7 @@ class CustomDrawer extends ConsumerWidget {
                       height: 48,
                       decoration: BoxDecoration(
                         shape: BoxShape.circle,
-                        color: _surfaceElevated,
+                        color: _surfaceElevated(context),
                       ),
                       child: ClipOval(
                         child: user?.profilePhoto != null &&
@@ -628,14 +729,14 @@ class CustomDrawer extends ConsumerWidget {
                                   return Icon(
                                     Icons.person_outline,
                                     size: 24,
-                                    color: _textSecondary,
+                                    color: _textSecondary(context),
                                   );
                                 },
                               )
                             : Icon(
                                 Icons.person_outline,
                                 size: 24,
-                                color: _textSecondary,
+                                color: _textSecondary(context),
                               ),
                       ),
                     ),
@@ -649,7 +750,7 @@ class CustomDrawer extends ConsumerWidget {
                             style: TextStyle(
                               fontSize: 15,
                               fontWeight: FontWeight.w600,
-                              color: _textPrimary,
+                              color: _textPrimary(context),
                               letterSpacing: -0.2,
                             ),
                             maxLines: 1,
@@ -661,7 +762,7 @@ class CustomDrawer extends ConsumerWidget {
                             style: TextStyle(
                               fontSize: 12,
                               fontWeight: FontWeight.w400,
-                              color: _textSecondary,
+                              color: _textSecondary(context),
                             ),
                             maxLines: 1,
                             overflow: TextOverflow.ellipsis,
@@ -674,16 +775,17 @@ class CustomDrawer extends ConsumerWidget {
               ),
               const SizedBox(height: 12),
               Material(
-                color: Colors.transparent,
+                color: _cs(context).surface.withOpacity(0),
                 child: InkWell(
                   onTap: () => _showTourRestartOptions(context, ref),
                   borderRadius: BorderRadius.circular(12),
                   child: Container(
                     padding: const EdgeInsets.symmetric(vertical: 10),
                     decoration: BoxDecoration(
-                      color: _primaryLight,
+                      color: _primaryLight(context),
                       borderRadius: BorderRadius.circular(12),
-                      border: Border.all(color: _primary.withOpacity(0.2)),
+                      border:
+                          Border.all(color: _primary(context).withOpacity(0.2)),
                     ),
                     child: Row(
                       mainAxisAlignment: MainAxisAlignment.center,
@@ -691,7 +793,7 @@ class CustomDrawer extends ConsumerWidget {
                         Icon(
                           Icons.assistant_navigation,
                           size: 16,
-                          color: _primary,
+                          color: _primary(context),
                         ),
                         const SizedBox(width: 8),
                         Text(
@@ -699,7 +801,7 @@ class CustomDrawer extends ConsumerWidget {
                           style: TextStyle(
                             fontSize: 13,
                             fontWeight: FontWeight.w700,
-                            color: _primary,
+                            color: _primary(context),
                             letterSpacing: -0.2,
                           ),
                         ),
@@ -711,7 +813,7 @@ class CustomDrawer extends ConsumerWidget {
               const SizedBox(height: 10),
               // Logout Button
               Material(
-                color: Colors.transparent,
+                color: _cs(context).surface.withOpacity(0),
                 child: InkWell(
                   onTap: () async {
                     final shouldLogout = await showDialog<bool>(
@@ -725,12 +827,12 @@ class CustomDrawer extends ConsumerWidget {
                             Container(
                               padding: const EdgeInsets.all(8),
                               decoration: BoxDecoration(
-                                color: _dangerLight,
+                                color: _dangerLight(context),
                                 borderRadius: BorderRadius.circular(10),
                               ),
                               child: Icon(
                                 Icons.logout,
-                                color: _danger,
+                                color: _danger(context),
                                 size: 20,
                               ),
                             ),
@@ -754,7 +856,7 @@ class CustomDrawer extends ConsumerWidget {
                             child: Text(
                               'Cancel',
                               style: TextStyle(
-                                color: _textSecondary,
+                                color: _textSecondary(context),
                                 fontWeight: FontWeight.w600,
                                 fontSize: 14,
                               ),
@@ -762,14 +864,15 @@ class CustomDrawer extends ConsumerWidget {
                           ),
                           Container(
                             decoration: BoxDecoration(
-                              color: _danger,
+                              color: _danger(context),
                               borderRadius: BorderRadius.circular(12),
                             ),
                             child: TextButton(
                               onPressed: () => Navigator.pop(context, true),
                               style: TextButton.styleFrom(
-                                backgroundColor: Colors.transparent,
-                                foregroundColor: Colors.white,
+                                backgroundColor:
+                                    _cs(context).surface.withOpacity(0),
+                                foregroundColor: _cs(context).onError,
                                 padding: const EdgeInsets.symmetric(
                                   horizontal: 20,
                                   vertical: 12,
@@ -797,7 +900,7 @@ class CustomDrawer extends ConsumerWidget {
                   child: Container(
                     padding: const EdgeInsets.symmetric(vertical: 10),
                     decoration: BoxDecoration(
-                      color: _surface,
+                      color: _surface(context),
                       borderRadius: BorderRadius.circular(12),
                     ),
                     child: Row(
@@ -806,7 +909,7 @@ class CustomDrawer extends ConsumerWidget {
                         Icon(
                           Icons.logout,
                           size: 16,
-                          color: _danger,
+                          color: _danger(context),
                         ),
                         const SizedBox(width: 8),
                         Text(
@@ -814,7 +917,7 @@ class CustomDrawer extends ConsumerWidget {
                           style: TextStyle(
                             fontSize: 13,
                             fontWeight: FontWeight.w600,
-                            color: _danger,
+                            color: _danger(context),
                             letterSpacing: -0.2,
                           ),
                         ),
@@ -830,7 +933,7 @@ class CustomDrawer extends ConsumerWidget {
                 style: TextStyle(
                   fontSize: 10,
                   fontWeight: FontWeight.w500,
-                  color: _textMuted,
+                  color: _textMuted(context),
                   letterSpacing: 0.3,
                 ),
               ),
@@ -860,9 +963,7 @@ class AccordionSection extends ConsumerWidget {
     'SETTINGS': 3,
   };
 
-  static const Color _textMuted = Color(0xFF94A3B8);
-  static const Color _divider = Color(0xFFE2E8F0);
-  static const Color _primary = Color(0xFF3B82F6);
+  ColorScheme _cs(BuildContext context) => Theme.of(context).colorScheme;
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
@@ -878,7 +979,7 @@ class AccordionSection extends ConsumerWidget {
             children: [
               // 1. Section Title (Navigation Trigger)
               Material(
-                color: Colors.transparent,
+                color: _cs(context).surface.withOpacity(0),
                 child: InkWell(
                   onTap: () {
                     if (tabIndex != null) {
@@ -892,10 +993,10 @@ class AccordionSection extends ConsumerWidget {
                         const EdgeInsets.symmetric(vertical: 4, horizontal: 2),
                     child: Text(
                       title,
-                      style: const TextStyle(
+                      style: TextStyle(
                         fontSize: 11,
                         fontWeight: FontWeight.w600,
-                        color: _textMuted,
+                        color: _cs(context).onSurfaceVariant.withOpacity(0.8),
                         letterSpacing: 0.8,
                       ),
                     ),
@@ -907,13 +1008,13 @@ class AccordionSection extends ConsumerWidget {
               Expanded(
                 child: Container(
                   height: 1,
-                  color: _divider,
+                  color: _cs(context).outlineVariant,
                 ),
               ),
               const SizedBox(width: 8),
               // 3. Arrow Icon (Expand/Collapse Trigger)
               Material(
-                color: Colors.transparent,
+                color: _cs(context).surface.withOpacity(0),
                 child: InkWell(
                   onTap: () {
                     ref.read(drawerExpandedSectionProvider.notifier).state =
@@ -925,10 +1026,10 @@ class AccordionSection extends ConsumerWidget {
                     child: AnimatedRotation(
                       turns: isExpanded ? 0.5 : 0,
                       duration: const Duration(milliseconds: 300),
-                      child: const Icon(
+                      child: Icon(
                         Icons.keyboard_arrow_down,
                         size: 18,
-                        color: _textMuted,
+                        color: _cs(context).onSurfaceVariant,
                       ),
                     ),
                   ),

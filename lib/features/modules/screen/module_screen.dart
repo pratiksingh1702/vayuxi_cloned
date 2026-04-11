@@ -22,7 +22,6 @@ import 'dart:ui';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
-import 'package:untitled2/core/utlis/colors/colors.dart';
 import 'package:untitled2/core/utlis/widgets/custom_appBar.dart';
 import 'package:untitled2/core/utlis/widgets/image_clipped.dart';
 import 'package:untitled2/features/modules/all_Modules/site_Details/providers/site_service.dart';
@@ -336,23 +335,19 @@ class _ModuleScreenState extends ConsumerState<ModuleScreen> {
     ModuleItem(
         labelKey: 'attendance_card',
         imagePath: "assets/images/icons/attendance.webp",
-        routeName: "/site-list/attendance",
-        color: Colors.red),
+        routeName: "/site-list/attendance"),
     ModuleItem(
         labelKey: 'daily_progress_card',
         imagePath: "assets/images/icons/dpr.webp",
-        routeName: "/site-list/dpr",
-        color: Colors.purple),
+        routeName: "/site-list/dpr"),
     ModuleItem(
         labelKey: 'expense_card',
         imagePath: "assets/images/icons/expense_daily.webp",
-        routeName: "/site-list/add-exp",
-        color: Colors.indigo),
+        routeName: "/site-list/add-exp"),
     ModuleItem(
         labelKey: 'inventory_entry_card',
         imagePath: "assets/images/icons/inventory_entry.webp",
-        routeName: "/site-list/inv-entry",
-        color: Colors.indigo),
+        routeName: "/site-list/inv-entry"),
     ModuleItem(labelKey: '', imagePath: '', routeName: '', isEmpty: true),
     ModuleItem(labelKey: '', imagePath: '', routeName: '', isEmpty: true),
   ];
@@ -361,100 +356,82 @@ class _ModuleScreenState extends ConsumerState<ModuleScreen> {
     ModuleItem(
         labelKey: 'site_details_card',
         imagePath: "assets/images/icons/site_details.webp",
-        routeName: "/site",
-        color: Colors.blue),
+        routeName: "/site"),
     ModuleItem(
         labelKey: 'rate_card',
         imagePath: "assets/images/icons/rate.webp",
-        routeName: "/site-list/rate",
-        color: Colors.green),
+        routeName: "/site-list/rate"),
     ModuleItem(
         labelKey: 'manpower_details_card',
         imagePath: "assets/images/icons/manpower_setup.webp",
-        routeName: "/manpower",
-        color: Colors.orange),
+        routeName: "/manpower"),
     ModuleItem(
         labelKey: 'create_team_card',
         imagePath: "assets/images/icons/add_team.webp",
-        routeName: "/site-list/team",
-        color: Colors.teal),
+        routeName: "/site-list/team"),
     ModuleItem(
         labelKey: 'dpr_setup_card',
         imagePath: "assets/images/icons/dpr_setup.webp",
-        routeName: "/site-list/addMoc",
-        color: Colors.green),
+        routeName: "/site-list/addMoc"),
     ModuleItem(
         labelKey: 'inventory_setup_card',
         imagePath: "assets/images/icons/inventory_setup.webp",
-        routeName: "/site-list/inv-setup",
-        color: Colors.indigo),
-    // ModuleItem(labelKey: 'boq_card', imagePath: "assets/images/icons/boq.webp", routeName: "/site-list/boq", color: Colors.indigo),
+        routeName: "/site-list/inv-setup"),
+    // ModuleItem(labelKey: 'boq_card', imagePath: "assets/images/icons/boq.webp", routeName: "/site-list/boq"),
   ];
 
   final List<ModuleItem> _reportModules = [
     ModuleItem(
         labelKey: 'summary_analysis_card',
         imagePath: "assets/images/icons/summary_analysis.webp",
-        routeName: "/summary",
-        color: Colors.deepPurple),
+        routeName: "/summary"),
     ModuleItem(
         labelKey: 'salary_slip_card',
         imagePath: "assets/images/icons/salary_slip.webp",
-        routeName: "/salary",
-        color: Colors.brown),
+        routeName: "/salary"),
     ModuleItem(
         labelKey: 'dpr_sheets_card',
         imagePath: "assets/images/icons/dpr_report.webp",
-        routeName: "/site-list/dprReport",
-        color: Colors.indigo),
+        routeName: "/site-list/dprReport"),
     ModuleItem(
         labelKey: 'expense_sheet_card',
         imagePath: "assets/images/icons/expense_sheet.webp",
-        routeName: "/site-list/expense",
-        color: Colors.indigo),
+        routeName: "/site-list/expense"),
     ModuleItem(
         labelKey: 'attendance_sheet_card',
         imagePath: "assets/images/icons/attendance_sheet.webp",
-        routeName: "/site-list/att-sheet",
-        color: Colors.deepPurple),
+        routeName: "/site-list/att-sheet"),
     ModuleItem(
         labelKey: 'inventory_summary_card',
         imagePath: "assets/images/icons/inventory_summary.webp",
-        routeName: "/site-list/inv-Report",
-        color: Colors.deepPurple),
+        routeName: "/site-list/inv-Report"),
   ];
 
   final List<ModuleItem> _moreModules = [
     ModuleItem(
         labelKey: 'profile_card',
         imagePath: "assets/images/icons/profile.webp",
-        routeName: "/profile",
-        color: Colors.cyan),
+        routeName: "/profile"),
     ModuleItem(
         labelKey: 'subscription_card',
         imagePath: "assets/images/icons/subscription.webp",
-        routeName: "/subscription",
-        color: Colors.amber),
+        routeName: "/subscription"),
     ModuleItem(
         labelKey: 'upcoming_update_card',
         imagePath: "assets/images/icons/updates.webp",
-        routeName: "/upcoming-update",
-        color: Colors.green),
+        routeName: "/upcoming-update"),
     ModuleItem(
         labelKey: 'theme_card',
         imagePath: "assets/images/icons/theme.webp",
-        routeName: "/theme",
-        color: Colors.purple),
+        routeName: "/theme"),
     ModuleItem(
         labelKey: 'language_card',
         imagePath: "assets/images/icons/language.webp",
-        routeName: "/language",
-        color: Colors.blue),
+        routeName: "/language"),
     ModuleItem(
         labelKey: 'help_card',
         imagePath: "assets/images/icons/help.webp",
-        routeName: "/help",
-        color: Colors.orange),
+        routeName: "/help"),
   ];
 
   List<ModuleItem> get _currentModules {
@@ -486,6 +463,35 @@ class _ModuleScreenState extends ConsumerState<ModuleScreen> {
 
   void _onTeamChanged(TeamModel? newTeam) =>
       setState(() => _selectedTeam = newTeam);
+
+  Color _pageBackgroundColor(ColorScheme cs, bool isDark) {
+    return isDark ? cs.surface : cs.surfaceContainerLowest;
+  }
+
+  Color _panelColor(ColorScheme cs, bool isDark) {
+    return isDark ? cs.surfaceContainerHigh : cs.surface;
+  }
+
+  Color _moduleCardColor(ColorScheme cs, bool isDark) {
+    return isDark ? cs.surfaceContainer : cs.surfaceContainerLow;
+  }
+
+  Color _moduleCardBorderColor(ColorScheme cs, bool isDark) {
+    return isDark
+        ? cs.outline.withOpacity(0.42)
+        : cs.outlineVariant.withOpacity(0.92);
+  }
+
+  List<BoxShadow> _moduleCardShadow(ColorScheme cs, bool isDark) {
+    return [
+      BoxShadow(
+        color: cs.shadow.withOpacity(isDark ? 0.28 : 0.08),
+        blurRadius: isDark ? 10 : 8,
+        spreadRadius: isDark ? 0.6 : 0.8,
+        offset: const Offset(0, 3),
+      ),
+    ];
+  }
 
   // ─────────────────────────────────────────────────────────────────────────
   // NAVIGATION HANDLERS (unchanged)
@@ -546,7 +552,10 @@ class _ModuleScreenState extends ConsumerState<ModuleScreen> {
   // ─────────────────────────────────────────────────────────────────────────
 
   Widget _buildLoadingState() {
+    final colorScheme = Theme.of(context).colorScheme;
+    final isDark = Theme.of(context).brightness == Brightness.dark;
     return Scaffold(
+      backgroundColor: _pageBackgroundColor(colorScheme, isDark),
       drawer: const CustomDrawer(),
       appBar: CustomAppBar(
         title: _currentIndex == 0
@@ -561,10 +570,29 @@ class _ModuleScreenState extends ConsumerState<ModuleScreen> {
         child: SafeArea(
           child: Column(
             children: [
+              const SizedBox(height: 10),
+              AdBannerCarousel(
+                height: 130,
+                imageUrls: const [
+                  'assets/images/b1.webp',
+                  'assets/images/b4.webp',
+                  'assets/images/b2.webp',
+                  'assets/images/b3.webp',
+                ],
+              ),
+              const SizedBox(height: 16),
+              Row(
+                children: [
+                  Expanded(child: _buildDropdownLoadingBox()),
+                  const SizedBox(width: 8),
+                  Expanded(child: _buildDropdownLoadingBox()),
+                ],
+              ),
+              const SizedBox(height: 8),
               Expanded(
                 child: ShimmerList(
                   type: ShimmerListType.grid,
-                  itemCount: _currentModules.length,
+                  itemCount: 4,
                   crossAxisCount: 2,
                   padding:
                       const EdgeInsets.symmetric(horizontal: 20, vertical: 16),
@@ -579,12 +607,44 @@ class _ModuleScreenState extends ConsumerState<ModuleScreen> {
     );
   }
 
+  Widget _buildDropdownLoadingBox() {
+    final colorScheme = Theme.of(context).colorScheme;
+    final isDark = Theme.of(context).brightness == Brightness.dark;
+    return Padding(
+      padding: const EdgeInsets.symmetric(horizontal: 16),
+      child: Container(
+        height: 52,
+        decoration: BoxDecoration(
+          color: _panelColor(colorScheme, isDark),
+          borderRadius: BorderRadius.circular(16),
+          border: Border.all(
+            color: _moduleCardBorderColor(colorScheme, isDark),
+          ),
+          boxShadow: [
+            BoxShadow(
+              color: colorScheme.shadow.withOpacity(isDark ? 0.22 : 0.06),
+              blurRadius: 8,
+              offset: const Offset(0, 2),
+            ),
+          ],
+        ),
+        child: const ShimmerImage(
+          height: 52,
+          width: double.infinity,
+          borderRadius: 16,
+        ),
+      ),
+    );
+  }
+
   // ─────────────────────────────────────────────────────────────────────────
   // BUILD
   // ─────────────────────────────────────────────────────────────────────────
 
   @override
   Widget build(BuildContext context) {
+    final colorScheme = Theme.of(context).colorScheme;
+    final isDark = Theme.of(context).brightness == Brightness.dark;
     final siteState = ref.watch(siteProvider);
     final teamState = ref.watch(teamProvider);
     final homeModuleAsync = ref.watch(languageModuleProvider('home'));
@@ -626,6 +686,7 @@ class _ModuleScreenState extends ConsumerState<ModuleScreen> {
             return Stack(
               children: [
                 Scaffold(
+                  backgroundColor: _pageBackgroundColor(colorScheme, isDark),
                   drawer: const CustomDrawer(),
                   appBar: CustomAppBar(title: currentTitle()),
                   body: Stack(
@@ -671,15 +732,17 @@ class _ModuleScreenState extends ConsumerState<ModuleScreen> {
                                             children: [
                                               Icon(Icons.inventory_2_outlined,
                                                   size: 64,
-                                                  color: Colors.grey
-                                                      .withOpacity(0.3)),
+                                                  color: colorScheme
+                                                      .onSurfaceVariant
+                                                      .withOpacity(0.35)),
                                               const SizedBox(height: 16),
                                               Text(
                                                 t.t("no_modules_available"),
                                                 style: TextStyle(
                                                   fontSize: 16,
                                                   fontWeight: FontWeight.w500,
-                                                  color: Colors.grey.shade600,
+                                                  color: colorScheme
+                                                      .onSurfaceVariant,
                                                 ),
                                               ),
                                               const SizedBox(height: 8),
@@ -687,7 +750,9 @@ class _ModuleScreenState extends ConsumerState<ModuleScreen> {
                                                 t.t("try_changing_tab"),
                                                 style: TextStyle(
                                                   fontSize: 14,
-                                                  color: Colors.grey.shade400,
+                                                  color: colorScheme
+                                                      .onSurfaceVariant
+                                                      .withOpacity(0.8),
                                                 ),
                                               ),
                                             ],
@@ -715,8 +780,9 @@ class _ModuleScreenState extends ConsumerState<ModuleScreen> {
                                               if (item.isEmpty) {
                                                 return Container(
                                                     decoration: BoxDecoration(
-                                                        color:
-                                                            Colors.transparent,
+                                                        color: colorScheme
+                                                            .surface
+                                                            .withOpacity(0),
                                                         borderRadius:
                                                             BorderRadius
                                                                 .circular(20)));
@@ -729,18 +795,21 @@ class _ModuleScreenState extends ConsumerState<ModuleScreen> {
                                                         _handleModuleTap(item),
                                                 child: Container(
                                                   decoration: BoxDecoration(
-                                                    color: Colors.white,
+                                                    color: _moduleCardColor(
+                                                        colorScheme, isDark),
                                                     borderRadius:
                                                         BorderRadius.circular(
                                                             20),
-                                                    boxShadow: [
-                                                      BoxShadow(
-                                                        color: Colors.black
-                                                            .withOpacity(0.05),
-                                                        blurRadius: 8,
-                                                        spreadRadius: 1,
-                                                      )
-                                                    ],
+                                                    border: Border.all(
+                                                      color:
+                                                          _moduleCardBorderColor(
+                                                              colorScheme,
+                                                              isDark),
+                                                    ),
+                                                    boxShadow:
+                                                        _moduleCardShadow(
+                                                            colorScheme,
+                                                            isDark),
                                                   ),
                                                   child: Column(
                                                     mainAxisAlignment:
@@ -773,13 +842,12 @@ class _ModuleScreenState extends ConsumerState<ModuleScreen> {
                                                           maxLines: 2,
                                                           overflow: TextOverflow
                                                               .ellipsis,
-                                                          style:
-                                                              const TextStyle(
+                                                          style: TextStyle(
                                                             fontSize: 14,
                                                             fontWeight:
                                                                 FontWeight.w600,
-                                                            color: Color(
-                                                                0xFF1B1B1B),
+                                                            color: colorScheme
+                                                                .onSurface,
                                                           ),
                                                         ),
                                                       ),
@@ -908,23 +976,26 @@ class _ModuleScreenState extends ConsumerState<ModuleScreen> {
                                 padding: const EdgeInsets.symmetric(
                                     horizontal: 10, vertical: 5),
                                 decoration: BoxDecoration(
-                                  color: Colors.white,
+                                  color: _panelColor(colorScheme, isDark),
                                   borderRadius: BorderRadius.circular(30),
                                   border: Border.all(
-                                      color: const Color(0xFFBBD9FF)),
+                                      color: _moduleCardBorderColor(
+                                          colorScheme, isDark)),
                                   boxShadow: [
                                     BoxShadow(
-                                      color: Colors.grey.withOpacity(0.5),
-                                      spreadRadius: 2,
+                                      color: colorScheme.shadow
+                                          .withOpacity(isDark ? 0.24 : 0.12),
+                                      spreadRadius: 0,
                                       blurRadius: 5,
                                       offset: const Offset(0, 3),
                                     )
                                   ],
                                 ),
-                                child: const Text(
+                                child: Text(
                                   "Ready to listen you !",
                                   style: TextStyle(
-                                      fontSize: 10, color: Colors.black87),
+                                      fontSize: 10,
+                                      color: colorScheme.onSurface),
                                 ),
                               ),
                               const SizedBox(width: 2),
@@ -951,11 +1022,12 @@ class _ModuleScreenState extends ConsumerState<ModuleScreen> {
                         _handleBottomNavTap(index);
                       }
                     },
-                    backgroundColor: Colors.white,
-                    selectedItemColor: Colors.black,
-                    unselectedItemColor: Colors.grey,
-                    selectedLabelStyle: const TextStyle(color: Colors.black),
-                    unselectedLabelStyle: const TextStyle(color: Colors.black),
+                    backgroundColor: _panelColor(colorScheme, isDark),
+                    selectedItemColor: colorScheme.onSurface,
+                    unselectedItemColor: colorScheme.onSurfaceVariant,
+                    selectedLabelStyle: TextStyle(color: colorScheme.onSurface),
+                    unselectedLabelStyle:
+                        TextStyle(color: colorScheme.onSurfaceVariant),
                     type: BottomNavigationBarType.fixed,
                     items: [
                       BottomNavigationBarItem(
@@ -994,7 +1066,7 @@ class _ModuleScreenState extends ConsumerState<ModuleScreen> {
                     child: BackdropFilter(
                       filter: ImageFilter.blur(sigmaX: 14, sigmaY: 14),
                       child: Container(
-                        color: Colors.black.withOpacity(0.48),
+                        color: colorScheme.scrim.withOpacity(0.42),
                         child: const Center(
                           child: ShimmerCircle(size: 60),
                         ),
@@ -1027,6 +1099,8 @@ class _ModuleScreenState extends ConsumerState<ModuleScreen> {
   // ─────────────────────────────────────────────────────────────────────────
 
   Widget _buildSiteDropdown(SiteState siteState) {
+    final colorScheme = Theme.of(context).colorScheme;
+    final isDark = Theme.of(context).brightness == Brightness.dark;
     final uniqueSites = siteState.sites
         .fold<Map<String, SiteModel>>({}, (map, site) {
           map[site.id] = site;
@@ -1061,12 +1135,13 @@ class _ModuleScreenState extends ConsumerState<ModuleScreen> {
       child: Container(
         padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 4),
         decoration: BoxDecoration(
-            color: Colors.white,
+            color: _panelColor(colorScheme, isDark),
             borderRadius: BorderRadius.circular(16),
-            border: Border.all(color: const Color(0xFFE0E0E0)),
+            border:
+                Border.all(color: _moduleCardBorderColor(colorScheme, isDark)),
             boxShadow: [
               BoxShadow(
-                color: Colors.black.withOpacity(0.02),
+                color: colorScheme.shadow.withOpacity(isDark ? 0.22 : 0.06),
                 blurRadius: 8,
                 offset: const Offset(0, 2),
               ),
@@ -1075,18 +1150,18 @@ class _ModuleScreenState extends ConsumerState<ModuleScreen> {
           child: DropdownButton<SiteModel>(
             value: currentSelectedSite,
             isExpanded: true,
-            icon: const Icon(Icons.keyboard_arrow_down_rounded,
-                color: Color(0xFF1A73E8)),
+            icon: Icon(Icons.keyboard_arrow_down_rounded,
+                color: colorScheme.primary),
             items: dropdownList
                 .map((site) => DropdownMenuItem<SiteModel>(
                     value: site,
                     child: Text(site.siteName,
                         maxLines: 1,
                         overflow: TextOverflow.ellipsis,
-                        style: const TextStyle(
+                        style: TextStyle(
                           fontSize: 15,
                           fontWeight: FontWeight.w500,
-                          color: Color(0xFF1F1F1F),
+                          color: colorScheme.onSurface,
                         ))))
                 .toList(),
             onChanged: (SiteModel? newSite) {
@@ -1134,33 +1209,39 @@ class _ModuleScreenState extends ConsumerState<ModuleScreen> {
   }
 
   Widget _buildTeamDropdown(TeamState teamState) {
+    final colorScheme = Theme.of(context).colorScheme;
+    final isDark = Theme.of(context).brightness == Brightness.dark;
     return Padding(
       padding: const EdgeInsets.symmetric(horizontal: 16),
       child: Container(
         padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 4),
         decoration: BoxDecoration(
-            color: Colors.white,
+            color: _panelColor(colorScheme, isDark),
             borderRadius: BorderRadius.circular(16),
-            border: Border.all(color: const Color(0xFFE0E0E0)),
+            border:
+                Border.all(color: _moduleCardBorderColor(colorScheme, isDark)),
             boxShadow: [
               BoxShadow(
-                color: Colors.black.withOpacity(0.02),
+                color: colorScheme.shadow.withOpacity(isDark ? 0.22 : 0.06),
                 blurRadius: 8,
                 offset: const Offset(0, 2),
               ),
             ]),
         child: Builder(builder: (context) {
           if (teamState.isLoading && !teamState.hasData)
-            return const Padding(
+            return Padding(
                 padding: EdgeInsets.symmetric(vertical: 12),
                 child: Center(
                     child: Text("Loading teams...",
-                        style: TextStyle(fontSize: 14, color: Colors.grey))));
+                        style: TextStyle(
+                            fontSize: 14,
+                            color: colorScheme.onSurfaceVariant))));
           if (!teamState.hasData && teamState.error != null)
-            return const Padding(
+            return Padding(
                 padding: EdgeInsets.symmetric(vertical: 12),
                 child: Text("None",
-                    style: TextStyle(fontSize: 14, color: Colors.grey)));
+                    style: TextStyle(
+                        fontSize: 14, color: colorScheme.onSurfaceVariant)));
           final uniqueTeams = teamState.teams
               .fold<Map<String, TeamModel>>({}, (map, team) {
                 map[team.id] = team;
@@ -1184,18 +1265,18 @@ class _ModuleScreenState extends ConsumerState<ModuleScreen> {
             child: DropdownButton<TeamModel>(
               value: currentSelectedTeam,
               isExpanded: true,
-              icon: const Icon(Icons.keyboard_arrow_down_rounded,
-                  color: Color(0xFF1A73E8)),
+              icon: Icon(Icons.keyboard_arrow_down_rounded,
+                  color: colorScheme.primary),
               items: dropdownList
                   .map((team) => DropdownMenuItem<TeamModel>(
                       value: team,
                       child: Text(team.teamName,
                           maxLines: 1,
                           overflow: TextOverflow.ellipsis,
-                          style: const TextStyle(
+                          style: TextStyle(
                             fontSize: 15,
                             fontWeight: FontWeight.w500,
-                            color: Color(0xFF1F1F1F),
+                            color: colorScheme.onSurface,
                           ))))
                   .toList(),
               onChanged: (TeamModel? newTeam) {
@@ -1225,14 +1306,12 @@ class ModuleItem {
   final String labelKey;
   final String imagePath;
   final String routeName;
-  final Color color;
   final bool isEmpty;
 
   ModuleItem({
     required this.labelKey,
     required this.imagePath,
     required this.routeName,
-    this.color = Colors.blue,
     this.isEmpty = false,
   });
 }

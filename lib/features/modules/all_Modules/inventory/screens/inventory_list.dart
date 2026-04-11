@@ -55,7 +55,7 @@ class _InventoryListScreenState extends ConsumerState<InventoryListScreen> {
 
     return Scaffold(
       appBar: CustomAppBar(title: "Inventory List"),
-      backgroundColor: AppColors.lightBlue,
+      backgroundColor: Theme.of(context).colorScheme.surfaceContainerLowest,
       drawer: const CustomDrawer(),
       body: BottomButtonWrapper(
         customButtons: [

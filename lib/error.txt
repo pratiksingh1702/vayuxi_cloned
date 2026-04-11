@@ -1,0 +1,36 @@
+
+══╡ EXCEPTION CAUGHT BY RENDERING LIBRARY ╞═════════════════════════════════════════════════════════
+The following assertion was thrown during layout:
+A RenderFlex overflowed by 26 pixels on the bottom.
+
+The relevant error-causing widget was:
+  Column Column:file:///C:/Users/Dell/Downloads/untitled2/untitled2/lib/work_cat.dart:600:14
+
+To inspect this widget in Flutter DevTools, visit:
+http://127.0.0.1:63226/hw338--yOjw=/devtools//#/inspector?uri=http%3A%2F%2F127.0.0.1%3A63226%2Fhw338--yOjw%3D%2F&inspect
+orRef=inspector-86
+
+The overflowing RenderFlex has an orientation of Axis.vertical.
+The edge of the RenderFlex that is overflowing has been marked in the rendering with a yellow and
+black striped pattern. This is usually caused by the contents being too big for the RenderFlex.
+Consider applying a flex factor (e.g. using an Expanded widget) to force the children of the
+RenderFlex to fit within the available space instead of being sized to their natural size.
+This is considered an error condition because it indicates that there is content that cannot be
+seen. If the content is legitimately bigger than the available space, consider clipping it with a
+ClipRect widget before putting it in the flex, or using a scrollable container rather than a Flex,
+like a ListView.
+The specific RenderFlex in question is: RenderFlex#17f3b OVERFLOWING:
+  creator: Column ← Padding ← _CompactCardBody ← Builder ← Padding-[GlobalKey#a90f7] ← Ink ← Listener
+    ← RawGestureDetector ← GestureDetector ← Semantics ← DefaultSelectionStyle ← Builder ← ⋯
+  parentData: offset=Offset(10.0, 10.0) (can use size)
+  constraints: BoxConstraints(w=138.2, h=200.5)
+  size: Size(138.2, 200.5)
+  direction: vertical
+  mainAxisAlignment: start
+  mainAxisSize: max
+  crossAxisAlignment: start
+  textDirection: ltr
+  verticalDirection: down
+  spacing: 0.0
+◢◤◢◤◢◤◢◤◢◤◢◤◢◤◢◤◢◤◢◤◢◤◢◤◢◤◢◤◢◤◢◤◢◤◢◤◢◤◢◤◢◤◢◤◢◤◢◤◢◤◢◤◢◤◢◤◢◤◢◤◢◤◢◤◢◤◢◤◢◤◢◤◢◤◢◤◢◤◢◤◢◤◢◤◢◤◢◤◢◤◢◤◢◤◢◤◢◤◢◤
+════════════════════════════════

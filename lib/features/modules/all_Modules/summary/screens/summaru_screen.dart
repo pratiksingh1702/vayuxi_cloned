@@ -63,7 +63,7 @@ class _SummaryScreenState extends ConsumerState<SummaryScreen> {
 
     return Scaffold(
       drawer: const CustomDrawer(),
-      backgroundColor: AppColors.lightBlue,
+      backgroundColor: Theme.of(context).colorScheme.surfaceContainerLowest,
       appBar: CustomAppBar(title: "Profit and Loss Summary"),
       body: Column(
         children: [

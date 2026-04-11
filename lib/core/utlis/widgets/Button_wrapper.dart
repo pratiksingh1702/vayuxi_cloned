@@ -37,7 +37,7 @@ class BottomButtonWrapper extends ConsumerWidget {
             child: SafeArea(
               top: false,
               child: Row(
-                children: _buildButtons(context,ref),
+                children: _buildButtons(context, ref),
               ),
             ),
           ),
@@ -46,16 +46,17 @@ class BottomButtonWrapper extends ConsumerWidget {
     );
   }
 
-  List<Widget> _buildButtons(BuildContext context,WidgetRef ref) {
+  List<Widget> _buildButtons(BuildContext context, WidgetRef ref) {
     final List<Widget> buttons = [];
-    final t=ref.read(dailyEntryTranslationHelperProvider);
+    final t = ref.read(dailyEntryTranslationHelperProvider);
+    final cs = Theme.of(context).colorScheme;
 
     if (showBackButton) {
       buttons.add(
         RoundedButton(
           text: t.backButton,
-          color: Colors.grey.shade300,
-          textColor: Colors.black,
+          color: cs.surfaceContainerHighest,
+          textColor: cs.onSurface,
           onPressed: onBackPressed ?? () => Navigator.of(context).pop(),
           isOutlined: true,
         ),
@@ -65,7 +66,6 @@ class BottomButtonWrapper extends ConsumerWidget {
     for (final button in customButtons) {
       buttons.add(button.button);
     }
-
 
     if (buttons.length == 1) {
       return [
@@ -81,12 +81,12 @@ class BottomButtonWrapper extends ConsumerWidget {
     return buttons
         .map(
           (button) => Expanded(
-        child: Padding(
-          padding: const EdgeInsets.symmetric(horizontal: 4),
-          child: button,
-        ),
-      ),
-    )
+            child: Padding(
+              padding: const EdgeInsets.symmetric(horizontal: 4),
+              child: button,
+            ),
+          ),
+        )
         .toList();
   }
 }

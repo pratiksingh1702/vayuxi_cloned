@@ -3,27 +3,62 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import 'package:showcaseview/showcaseview.dart';
-import 'package:untitled2/core/utlis/colors/colors.dart';
-import 'package:untitled2/core/utlis/widgets/card.dart';
-import 'package:untitled2/core/utlis/widgets/custom_appBar.dart';
-import 'package:untitled2/core/utlis/widgets/image_clipped.dart';
+import 'package:untitled2/core/utlis/common_functions.dart';
+import 'package:untitled2/core/utlis/widgets/premium_app_bar.dart';
 import 'package:untitled2/features/modules/all_Modules/site_Details/providers/siteProvider.dart';
 import 'package:untitled2/typeProvider/type_provider.dart';
+import 'features/noti_system/updates/presentation/navigation/updates_routes.dart';
 import 'core/router/routes.dart';
-import 'core/utlis/common_functions.dart';
 import 'core/utlis/widgets/language_first_time_popup.dart';
 import 'features/auth/provider/auth_provider.dart';
 import 'features/language/model/language_storage.dart';
 import 'features/language/service/lang_providers.dart';
 import 'features/modules/all_Modules/dpr/dpr_insu/model/dpr_model_insu.dart';
-import 'features/modules/all_Modules/dpr/dpr_insu/providers/draft_insu.dart';
 import 'features/modules/all_Modules/dpr/dpr_insu/screens/testing.dart';
 import 'features/modules/all_Modules/more/language.dart';
-import 'features/modules/screen/device_id.dart';
 import 'features/noti_system/noti_providers/noti_provider.dart';
+import 'features/profile_page/screens/profilePage.dart';
 import 'features/profile_page/provider/userProvider.dart';
 import 'features/tour/domain/tour_controller.dart';
 import 'features/tour/domain/tour_registery.dart';
+import 'core/screens/settings_screen.dart';
+
+const String kUserProfileHeroTag = 'user-profile-hero-card';
+
+Widget _luxuryHeroShuttleBuilder(
+  BuildContext flightContext,
+  Animation<double> animation,
+  HeroFlightDirection flightDirection,
+  BuildContext fromHeroContext,
+  BuildContext toHeroContext,
+) {
+  final fromHero = fromHeroContext.widget as Hero;
+  final toHero = toHeroContext.widget as Hero;
+  final target = flightDirection == HeroFlightDirection.push
+      ? toHero.child
+      : fromHero.child;
+
+  final curved = CurvedAnimation(
+    parent: animation,
+    curve: Curves.easeInOutCubicEmphasized,
+    reverseCurve: Curves.easeInOutCubic,
+  );
+
+  return AnimatedBuilder(
+    animation: curved,
+    child: target,
+    builder: (context, child) {
+      final t = curved.value;
+      return Opacity(
+        opacity: 0.9 + (0.1 * t),
+        child: Transform.scale(
+          scale: 0.985 + (0.015 * t),
+          child: child,
+        ),
+      );
+    },
+  );
+}
 
 class WorkCategoryScreen extends ConsumerStatefulWidget {
   const WorkCategoryScreen({super.key});
@@ -161,11 +196,72 @@ class _WorkCategoryScreenState extends ConsumerState<WorkCategoryScreen> {
     }
   }
 
+  Future<void> _openProfileWithHeroTransition() async {
+    await Navigator.of(context).push(
+      PageRouteBuilder(
+        transitionDuration: const Duration(milliseconds: 1050),
+        reverseTransitionDuration: const Duration(milliseconds: 800),
+        pageBuilder: (_, __, ___) => const ProfileScreen(),
+        transitionsBuilder: (context, animation, secondaryAnimation, child) {
+          final curved = CurvedAnimation(
+            parent: animation,
+            curve: Curves.easeInOutCubicEmphasized,
+            reverseCurve: Curves.easeInOutCubic,
+          );
+
+          return FadeTransition(
+            opacity: Tween<double>(begin: 0.75, end: 1).animate(curved),
+            child: ScaleTransition(
+              scale: Tween<double>(begin: 0.995, end: 1).animate(curved),
+              child: child,
+            ),
+          );
+        },
+      ),
+    );
+  }
+
+  String _timeGreeting() {
+    final hour = DateTime.now().hour;
+    if (hour < 12) return 'Good morning';
+    if (hour < 17) return 'Good afternoon';
+    return 'Good evening';
+  }
+
+  String _focusSubtitle() {
+    return 'Choose your work stream and continue today\'s execution in one tap.';
+  }
+
+  Color _adaptiveElevationColor(ColorScheme colorScheme, Brightness brightness,
+      {double lightOpacity = 0.08, double darkOpacity = 0.16}) {
+    return brightness == Brightness.dark ? Colors.white : colorScheme.shadow;
+  }
+
   @override
   Widget build(BuildContext context) {
-    final drafts = ref.watch(insulationDraftProvider);
-
     final authState = ref.watch(authProvider);
+    final user = ref.watch(currentUserProvider);
+    final colorScheme = Theme.of(context).colorScheme;
+
+    final profileName = (user?.fullName.trim().isNotEmpty ?? false)
+        ? user!.fullName.trim()
+        : 'Team Member';
+    final profileEmail = (user?.email.trim().isNotEmpty ?? false)
+        ? user!.email.trim()
+        : 'No email linked';
+    final profilePhoto = user?.profilePhoto?.trim();
+    final companyName = (user?.company?.name?.trim().isNotEmpty ?? false)
+        ? user!.company!.name!.trim()
+        : 'No company linked yet';
+    final userAddress = (user?.address?.trim().isNotEmpty ?? false)
+        ? user!.address!.trim()
+        : 'Address not added';
+    final servicesCount = user?.selectedServices.length ?? 0;
+    final greetingTitle = _timeGreeting();
+    final greetingSubtitle = _focusSubtitle();
+
+    final appBarTitle = greetingTitle;
+    final appBarSubtitle = profileName;
 
     if (!authState.isLoggedIn) {
       Future.microtask(() => context.go(Routes.login));
@@ -216,63 +312,100 @@ class _WorkCategoryScreenState extends ConsumerState<WorkCategoryScreen> {
         return Stack(
           children: [
             Scaffold(
-              backgroundColor: AppColors.lightBlue,
-              appBar: CustomAppBar(
-                title: "Select Category",
-                showDrawer: false,
-              ),
-              body: CornerClippedScreenSimple(
+              backgroundColor: colorScheme.surface,
+              body: Container(
+                color: colorScheme.surface,
                 child: SafeArea(
+                  top: true,
                   child: Padding(
-                    padding: const EdgeInsets.symmetric(
-                        horizontal: 20, vertical: 24),
+                    padding: const EdgeInsets.fromLTRB(18, 14, 18, 14),
                     child: Column(
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
-                        Expanded(
-                          child: GridView.count(
-                            crossAxisCount: 2,
-                            crossAxisSpacing: 18,
-                            mainAxisSpacing: 18,
-                            childAspectRatio: 0.8,
-                            children: [
-                              Showcase(
-                                key: TourRegistry.workCategoryKey,
-                                description:
-                                    "Select any Work Type to continue 🚀",
-                                child: CompanyCard(
-                                  imagePath: "assets/images/mech.webp",
-                                  companyName: "Mechanical Work",
-                                  isSelected: selectedImage == "mechanical",
-                                  onTap: () => handlePress(
-                                    id: "mechanical",
-                                    title: "Mechanical Work",
-                                    imagePath:
-                                        "https://images.unsplash.com/photo-1503387762-592deb58ef4e?w=600",
-                                  ),
-                                ),
+                        _LandingHeaderRow(
+                          photoUrl: profilePhoto,
+                          userName: profileName,
+                          title: appBarTitle,
+                          subtitle: appBarSubtitle,
+                          onAvatarTap: _openProfileWithHeroTransition,
+                          onSettingsTap: () {
+                            Navigator.of(context).push(
+                              MaterialPageRoute(
+                                builder: (_) => const SettingsScreen(),
                               ),
-                              CompanyCard(
-                                imagePath: "assets/images/insu.webp",
-                                companyName: "Insulation Work",
-                                isSelected: selectedImage == "insulation",
-                                onTap: () => handlePress(
-                                  id: "insulation",
-                                  title: "Insulation Work",
-                                  imagePath:
-                                      "https://images.unsplash.com/photo-1581092795360-fd1ca04f0952?w=600",
-                                ),
-                              ),
-                            ],
+                            );
+                          },
+                          onNotificationsTap: () =>
+                              context.push(UpdatesRoutes.list),
+                        ),
+                        const SizedBox(height: 24),
+                        _CategorySpotlightCard(
+                          selectedImage: selectedImage,
+                          elevationColor: _adaptiveElevationColor(
+                            colorScheme,
+                            Theme.of(context).brightness,
+                            lightOpacity: 0.06,
+                            darkOpacity: 0.14,
+                          ),
+                          onSelectMechanical: () => handlePress(
+                            id: 'mechanical',
+                            title: 'Mechanical Work',
+                            imagePath:
+                                'https://images.unsplash.com/photo-1503387762-592deb58ef4e?w=600',
+                          ),
+                          onSelectInsulation: () => handlePress(
+                            id: 'insulation',
+                            title: 'Insulation Work',
+                            imagePath:
+                                'https://images.unsplash.com/photo-1581092795360-fd1ca04f0952?w=600',
                           ),
                         ),
-                        //
-                        // if (drafts.isNotEmpty)
-                        //   ...drafts.map((draft) => DraftCard(draft,context))
+                        const SizedBox(height: 24),
+                        const _TipQuoteCard(
+                          tip:
+                              'Tip: choose one category first, then update progress continuously in short steps.',
+                          elevationColor: null,
+                        ),
+                        const SizedBox(height: 30),
+                        Hero(
+                          tag: kUserProfileHeroTag,
+                          transitionOnUserGestures: true,
+                          createRectTween: (begin, end) =>
+                              MaterialRectArcTween(begin: begin, end: end),
+                          flightShuttleBuilder: _luxuryHeroShuttleBuilder,
+                          child: _PremiumWelcomeHeader(
+                            userName: profileName,
+                            userEmail: profileEmail,
+                            greetingTitle: 'Profile overview',
+                            greetingSubtitle: greetingSubtitle,
+                            companyName: companyName,
+                            userAddress: userAddress,
+                            profilePhoto: profilePhoto,
+                            totalServices: servicesCount,
+                            elevationColor: _adaptiveElevationColor(
+                              colorScheme,
+                              Theme.of(context).brightness,
+                              lightOpacity: 0.05,
+                              darkOpacity: 0.12,
+                            ),
+                            onTap: _openProfileWithHeroTransition,
+                          ),
+                        ),
+                        const Spacer(),
                       ],
                     ),
                   ),
                 ),
+              ),
+              bottomNavigationBar: _LandingBottomNavBar(
+                onHomeTap: () {},
+                onSettingsTap: () {
+                  Navigator.of(context).push(
+                    MaterialPageRoute(
+                      builder: (_) => const SettingsScreen(),
+                    ),
+                  );
+                },
               ),
             ),
 
@@ -339,71 +472,969 @@ Widget DraftCard(InsulationDprModel draft, BuildContext context) {
 class CompanyCard extends StatelessWidget {
   final String imagePath;
   final String companyName;
+  final String subtitle;
+  final Color accentColor;
   final bool isSelected;
+  final Color elevationColor;
   final VoidCallback? onTap;
 
   const CompanyCard({
     super.key,
     required this.imagePath,
     required this.companyName,
+    required this.subtitle,
+    required this.accentColor,
+    required this.elevationColor,
     this.isSelected = false,
     this.onTap,
   });
 
   @override
   Widget build(BuildContext context) {
-    final size = MediaQuery.of(context).size;
+    return LayoutBuilder(
+      builder: (context, constraints) {
+        final compact =
+            constraints.maxWidth < 250 || constraints.maxHeight < 230;
+        final colorScheme = Theme.of(context).colorScheme;
 
-    // Responsive heights based on screen size
-    final cardImageHeight = size.height * 0.15; // ~15% of screen
-    final textAreaHeight = size.height * 0.05; // consistent across cards
-
-    return GestureDetector(
-      onTap: onTap,
-      child: Card(
-        elevation: 0,
-        color: Colors.white,
-        shape: RoundedRectangleBorder(
-          borderRadius: BorderRadius.circular(15),
-          side: BorderSide(
-            color: Colors.transparent,
-            width: 2,
-          ),
-        ),
-        child: Column(
-          children: [
-            // Responsive image container
-            Container(
-              padding: EdgeInsets.all(size.height * 0.01),
-              child: ClipRRect(
-                borderRadius: BorderRadius.circular(5),
-                child: Image.asset(
-                  imagePath,
-                  height: cardImageHeight,
-                  width: double.infinity,
-                  fit: BoxFit.fill,
-                ),
+        return AnimatedContainer(
+          duration: const Duration(milliseconds: 220),
+          curve: Curves.easeOutCubic,
+          decoration: BoxDecoration(
+            borderRadius: BorderRadius.circular(22),
+            boxShadow: [
+              BoxShadow(
+                color: elevationColor.withOpacity(isSelected ? 0.16 : 0.1),
+                blurRadius: isSelected ? 7 : 5,
+                spreadRadius: -2,
+                offset: const Offset(0, 3),
               ),
-            ),
-
-            // Responsive text area
-            SizedBox(
-              height: textAreaHeight,
-              child: Center(
-                child: Text(
-                  companyName,
-                  textAlign: TextAlign.center,
-                  maxLines: 2,
-                  overflow: TextOverflow.ellipsis,
-                  style: TextStyle(
-                    fontSize: size.height * 0.02,
-                    fontWeight: FontWeight.w600,
+            ],
+          ),
+          child: Material(
+            color: Colors.transparent,
+            child: InkWell(
+              borderRadius: BorderRadius.circular(22),
+              onTap: onTap,
+              child: Ink(
+                decoration: BoxDecoration(
+                  borderRadius: BorderRadius.circular(22),
+                  gradient: LinearGradient(
+                    begin: Alignment.topLeft,
+                    end: Alignment.bottomRight,
+                    colors: [
+                      colorScheme.surface,
+                      colorScheme.surfaceContainerLow,
+                    ],
+                  ),
+                  border: Border.all(
+                    color: isSelected
+                        ? colorScheme.primary
+                        : colorScheme.outlineVariant,
+                    width: isSelected ? 1.8 : 1.1,
                   ),
                 ),
+                child: compact
+                    ? _CompactCardBody(
+                        imagePath: imagePath,
+                        companyName: companyName,
+                        subtitle: subtitle,
+                        accentColor: accentColor,
+                        isSelected: isSelected,
+                      )
+                    : _WideCardBody(
+                        imagePath: imagePath,
+                        companyName: companyName,
+                        subtitle: subtitle,
+                        accentColor: accentColor,
+                        isSelected: isSelected,
+                      ),
+              ),
+            ),
+          ),
+        );
+      },
+    );
+  }
+}
+
+class _CompactCardBody extends StatelessWidget {
+  const _CompactCardBody({
+    required this.imagePath,
+    required this.companyName,
+    required this.subtitle,
+    required this.accentColor,
+    required this.isSelected,
+  });
+
+  final String imagePath;
+  final String companyName;
+  final String subtitle;
+  final Color accentColor;
+  final bool isSelected;
+
+  @override
+  Widget build(BuildContext context) {
+    final colorScheme = Theme.of(context).colorScheme;
+    return LayoutBuilder(
+      builder: (context, constraints) {
+        final tight = constraints.maxHeight <= 186;
+
+        return Padding(
+          padding: const EdgeInsets.all(8),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Expanded(
+                child: ClipRRect(
+                  borderRadius: BorderRadius.circular(14),
+                  child: Stack(
+                    fit: StackFit.expand,
+                    children: [
+                      Image.asset(
+                        imagePath,
+                        fit: BoxFit.cover,
+                      ),
+                      DecoratedBox(
+                        decoration: BoxDecoration(
+                          gradient: LinearGradient(
+                            begin: Alignment.topCenter,
+                            end: Alignment.bottomCenter,
+                            colors: [
+                              Colors.transparent,
+                              accentColor.withOpacity(0.25),
+                            ],
+                          ),
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+              ),
+              const SizedBox(height: 5),
+              Text(
+                companyName,
+                maxLines: 1,
+                overflow: TextOverflow.ellipsis,
+                style: TextStyle(
+                  fontSize: tight ? 13 : 14,
+                  fontWeight: FontWeight.w800,
+                  color: colorScheme.onSurface,
+                  height: 1.15,
+                ),
+              ),
+              if (!tight) ...[
+                const SizedBox(height: 2),
+                Text(
+                  subtitle,
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
+                  style: TextStyle(
+                    fontSize: 11,
+                    fontWeight: FontWeight.w500,
+                    color: colorScheme.onSurfaceVariant,
+                    height: 1.15,
+                  ),
+                ),
+              ],
+              const SizedBox(height: 4),
+              Row(
+                children: [
+                  Expanded(
+                    child: Text(
+                      isSelected ? 'Selected' : 'Tap to Continue',
+                      maxLines: 1,
+                      overflow: TextOverflow.ellipsis,
+                      style: TextStyle(
+                        color: accentColor,
+                        fontSize: tight ? 10 : 10.5,
+                        fontWeight: FontWeight.w700,
+                      ),
+                    ),
+                  ),
+                  Icon(
+                    Icons.arrow_forward_rounded,
+                    color: accentColor,
+                    size: tight ? 14 : 15,
+                  ),
+                ],
+              ),
+            ],
+          ),
+        );
+      },
+    );
+  }
+}
+
+class _WideCardBody extends StatelessWidget {
+  const _WideCardBody({
+    required this.imagePath,
+    required this.companyName,
+    required this.subtitle,
+    required this.accentColor,
+    required this.isSelected,
+  });
+
+  final String imagePath;
+  final String companyName;
+  final String subtitle;
+  final Color accentColor;
+  final bool isSelected;
+
+  @override
+  Widget build(BuildContext context) {
+    final colorScheme = Theme.of(context).colorScheme;
+    return Padding(
+      padding: const EdgeInsets.all(12),
+      child: Row(
+        children: [
+          ClipRRect(
+            borderRadius: BorderRadius.circular(16),
+            child: Stack(
+              children: [
+                Image.asset(
+                  imagePath,
+                  width: 110,
+                  height: double.infinity,
+                  fit: BoxFit.cover,
+                ),
+                Positioned.fill(
+                  child: DecoratedBox(
+                    decoration: BoxDecoration(
+                      gradient: LinearGradient(
+                        begin: Alignment.topCenter,
+                        end: Alignment.bottomCenter,
+                        colors: [
+                          Colors.transparent,
+                          accentColor.withOpacity(0.22),
+                        ],
+                      ),
+                    ),
+                  ),
+                ),
+              ],
+            ),
+          ),
+          const SizedBox(width: 14),
+          Expanded(
+            child: Column(
+              mainAxisAlignment: MainAxisAlignment.center,
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  companyName,
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
+                  style: TextStyle(
+                    fontSize: 18,
+                    fontWeight: FontWeight.w800,
+                    color: colorScheme.onSurface,
+                  ),
+                ),
+                const SizedBox(height: 6),
+                Text(
+                  subtitle,
+                  maxLines: 3,
+                  overflow: TextOverflow.ellipsis,
+                  style: TextStyle(
+                    fontSize: 13,
+                    fontWeight: FontWeight.w500,
+                    color: colorScheme.onSurfaceVariant,
+                    height: 1.3,
+                  ),
+                ),
+                const SizedBox(height: 12),
+                Row(
+                  children: [
+                    Container(
+                      padding: const EdgeInsets.symmetric(
+                        horizontal: 10,
+                        vertical: 6,
+                      ),
+                      decoration: BoxDecoration(
+                        color: colorScheme.primary.withOpacity(0.12),
+                        borderRadius: BorderRadius.circular(999),
+                      ),
+                      child: Text(
+                        isSelected ? 'Selected' : 'Tap to Continue',
+                        style: TextStyle(
+                          color: accentColor,
+                          fontSize: 11.5,
+                          fontWeight: FontWeight.w700,
+                        ),
+                      ),
+                    ),
+                    const SizedBox(width: 8),
+                    Icon(
+                      Icons.arrow_forward_rounded,
+                      color: accentColor,
+                      size: 18,
+                    ),
+                  ],
+                ),
+              ],
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+class _PremiumWelcomeHeader extends StatelessWidget {
+  const _PremiumWelcomeHeader({
+    required this.userName,
+    required this.userEmail,
+    required this.greetingTitle,
+    required this.greetingSubtitle,
+    required this.companyName,
+    required this.userAddress,
+    required this.profilePhoto,
+    required this.totalServices,
+    required this.elevationColor,
+    this.onTap,
+  });
+
+  final String userName;
+  final String userEmail;
+  final String greetingTitle;
+  final String greetingSubtitle;
+  final String companyName;
+  final String userAddress;
+  final String? profilePhoto;
+  final int totalServices;
+  final Color elevationColor;
+  final VoidCallback? onTap;
+
+  @override
+  Widget build(BuildContext context) {
+    final hasImage = profilePhoto != null && profilePhoto!.isNotEmpty;
+    final theme = Theme.of(context);
+    final colorScheme = theme.colorScheme;
+
+    return Material(
+      color: Colors.transparent,
+      child: InkWell(
+        borderRadius: BorderRadius.circular(24),
+        onTap: onTap,
+        child: Ink(
+          width: double.infinity,
+          padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
+          decoration: BoxDecoration(
+            borderRadius: BorderRadius.circular(18),
+            gradient: LinearGradient(
+              begin: Alignment.topLeft,
+              end: Alignment.bottomRight,
+              colors: [
+                colorScheme.surfaceContainerHigh,
+                colorScheme.surfaceContainer,
+              ],
+            ),
+            border: Border.all(color: colorScheme.outlineVariant),
+            boxShadow: [
+              BoxShadow(
+                color: elevationColor.withOpacity(0.08),
+                blurRadius: 6,
+                spreadRadius: -2,
+                offset: const Offset(0, 2),
+              ),
+            ],
+          ),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Row(
+                children: [
+                  CircleAvatar(
+                    radius: 24,
+                    backgroundColor: colorScheme.primaryContainer,
+                    child: CircleAvatar(
+                      radius: 21,
+                      backgroundColor: colorScheme.primary.withOpacity(0.1),
+                      backgroundImage:
+                          hasImage ? NetworkImage(profilePhoto!) : null,
+                      child: hasImage
+                          ? null
+                          : Text(
+                              _initials(userName),
+                              style: TextStyle(
+                                color: colorScheme.primary,
+                                fontWeight: FontWeight.w800,
+                                fontSize: 14,
+                              ),
+                            ),
+                    ),
+                  ),
+                  const SizedBox(width: 10),
+                  Expanded(
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Text(
+                          greetingTitle,
+                          maxLines: 1,
+                          overflow: TextOverflow.ellipsis,
+                          style: theme.textTheme.bodySmall?.copyWith(
+                            color: colorScheme.primary,
+                            fontWeight: FontWeight.w800,
+                            fontSize: 14,
+                            letterSpacing: 0.2,
+                          ),
+                        ),
+                        const SizedBox(height: 2),
+                        Text(
+                          userName,
+                          maxLines: 1,
+                          overflow: TextOverflow.ellipsis,
+                          style: theme.textTheme.titleMedium?.copyWith(
+                            fontWeight: FontWeight.w900,
+                            color: colorScheme.onSurface,
+                            fontSize: 18,
+                          ),
+                        ),
+                        const SizedBox(height: 2),
+                        Text(
+                          greetingSubtitle,
+                          maxLines: 2,
+                          overflow: TextOverflow.ellipsis,
+                          style: theme.textTheme.bodySmall?.copyWith(
+                            color: colorScheme.onSurfaceVariant,
+                            fontWeight: FontWeight.w700,
+                            fontSize: 12.5,
+                            height: 1.2,
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+                  Container(
+                    padding:
+                        const EdgeInsets.symmetric(horizontal: 8, vertical: 5),
+                    decoration: BoxDecoration(
+                      color: colorScheme.primary.withOpacity(0.1),
+                      borderRadius: BorderRadius.circular(999),
+                    ),
+                    child: Row(
+                      mainAxisSize: MainAxisSize.min,
+                      children: [
+                        Icon(
+                          Icons.touch_app_rounded,
+                          size: 14,
+                          color: colorScheme.primary,
+                        ),
+                        const SizedBox(width: 4),
+                        Text(
+                          'Profile',
+                          style: TextStyle(
+                            fontSize: 11,
+                            fontWeight: FontWeight.w800,
+                            color: colorScheme.primary,
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+                ],
+              ),
+              const SizedBox(height: 10),
+              Wrap(
+                spacing: 8,
+                runSpacing: 8,
+                children: [
+                  _ProfileMetaChip(
+                    icon: Icons.apartment_rounded,
+                    text: companyName,
+                  ),
+                  _ProfileMetaChip(
+                    icon: Icons.handyman_rounded,
+                    text: '$totalServices services',
+                  ),
+                  _ProfileMetaChip(
+                    icon: Icons.location_on_outlined,
+                    text: userAddress,
+                  ),
+                  _ProfileMetaChip(
+                    icon: Icons.mail_outline_rounded,
+                    text: userEmail,
+                  ),
+                ],
+              ),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+
+  String _initials(String name) {
+    final cleaned = name.trim();
+    if (cleaned.isEmpty) return 'U';
+    final parts = cleaned.split(RegExp(r'\s+'));
+    if (parts.length == 1) {
+      return parts.first.substring(0, 1).toUpperCase();
+    }
+    return '${parts[0][0]}${parts[1][0]}'.toUpperCase();
+  }
+}
+
+class _AppBarProfileAction extends StatelessWidget {
+  const _AppBarProfileAction({
+    required this.photoUrl,
+    required this.userName,
+    required this.onTap,
+    this.padding = const EdgeInsets.only(left: 2, right: 6),
+    this.outerRadius = 16,
+    this.innerRadius = 14,
+  });
+
+  final String? photoUrl;
+  final String userName;
+  final VoidCallback onTap;
+  final EdgeInsetsGeometry padding;
+  final double outerRadius;
+  final double innerRadius;
+
+  @override
+  Widget build(BuildContext context) {
+    final hasImage = photoUrl != null && photoUrl!.isNotEmpty;
+    final colorScheme = Theme.of(context).colorScheme;
+
+    return Padding(
+      padding: padding,
+      child: InkWell(
+        borderRadius: BorderRadius.circular(999),
+        onTap: onTap,
+        child: CircleAvatar(
+          radius: outerRadius,
+          backgroundColor: colorScheme.primaryContainer,
+          child: CircleAvatar(
+            radius: innerRadius,
+            backgroundColor: colorScheme.primary.withOpacity(0.1),
+            backgroundImage: hasImage ? NetworkImage(photoUrl!) : null,
+            child: hasImage
+                ? null
+                : Text(
+                    _initials(userName),
+                    style: TextStyle(
+                      color: colorScheme.primary,
+                      fontSize: 10,
+                      fontWeight: FontWeight.w900,
+                    ),
+                  ),
+          ),
+        ),
+      ),
+    );
+  }
+
+  String _initials(String name) {
+    final cleaned = name.trim();
+    if (cleaned.isEmpty) return 'U';
+    final parts = cleaned.split(RegExp(r'\s+'));
+    if (parts.length == 1) {
+      return parts.first.substring(0, 1).toUpperCase();
+    }
+    return '${parts[0][0]}${parts[1][0]}'.toUpperCase();
+  }
+}
+
+class _ProfileMetaChip extends StatelessWidget {
+  const _ProfileMetaChip({required this.icon, required this.text});
+
+  final IconData icon;
+  final String text;
+
+  @override
+  Widget build(BuildContext context) {
+    final colorScheme = Theme.of(context).colorScheme;
+    return Container(
+      constraints: const BoxConstraints(maxWidth: 260),
+      padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 7),
+      decoration: BoxDecoration(
+        color: colorScheme.surface,
+        borderRadius: BorderRadius.circular(999),
+        border: Border.all(color: colorScheme.outlineVariant),
+      ),
+      child: Row(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          Icon(icon, size: 14, color: colorScheme.primary),
+          const SizedBox(width: 6),
+          Flexible(
+            child: Text(
+              text,
+              maxLines: 1,
+              overflow: TextOverflow.ellipsis,
+              style: TextStyle(
+                fontSize: 11.5,
+                fontWeight: FontWeight.w700,
+                color: colorScheme.onSurface,
+              ),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+class _CategorySpotlightCard extends StatelessWidget {
+  const _CategorySpotlightCard({
+    required this.selectedImage,
+    required this.elevationColor,
+    required this.onSelectMechanical,
+    required this.onSelectInsulation,
+  });
+
+  final String? selectedImage;
+  final Color elevationColor;
+  final VoidCallback onSelectMechanical;
+  final VoidCallback onSelectInsulation;
+
+  @override
+  Widget build(BuildContext context) {
+    return LayoutBuilder(
+      builder: (context, constraints) {
+        final tileWidth = (constraints.maxWidth - 12) / 2;
+        final targetHeight = (tileWidth / 0.88).clamp(190.0, 248.0);
+        final aspectRatio = (tileWidth / targetHeight).clamp(0.72, 0.96);
+
+        return SizedBox(
+          height: targetHeight,
+          child: GridView.count(
+            physics: const NeverScrollableScrollPhysics(),
+            crossAxisCount: 2,
+            crossAxisSpacing: 12,
+            childAspectRatio: aspectRatio,
+            children: [
+              Showcase(
+                key: TourRegistry.workCategoryKey,
+                description: 'Select any Work Type to continue 🚀',
+                child: CompanyCard(
+                  imagePath: 'assets/images/mech.webp',
+                  companyName: 'Mechanical Work',
+                  subtitle:
+                      'Piping, fabrication, maintenance and execution tracking.',
+                  accentColor: const Color(0xFF0B4AA5),
+                  elevationColor: elevationColor,
+                  isSelected: selectedImage == 'mechanical',
+                  onTap: onSelectMechanical,
+                ),
+              ),
+              CompanyCard(
+                imagePath: 'assets/images/insu.webp',
+                companyName: 'Insulation Work',
+                subtitle:
+                    'Thermal systems, protection layers and insulation progress.',
+                accentColor: const Color(0xFF0F6A5E),
+                elevationColor: elevationColor,
+                isSelected: selectedImage == 'insulation',
+                onTap: onSelectInsulation,
+              ),
+            ],
+          ),
+        );
+      },
+    );
+  }
+}
+
+class _AppBarWelcomeTitle extends StatelessWidget {
+  const _AppBarWelcomeTitle({
+    required this.photoUrl,
+    required this.userName,
+    required this.title,
+    required this.subtitle,
+    required this.onAvatarTap,
+  });
+
+  final String? photoUrl;
+  final String userName;
+  final String title;
+  final String subtitle;
+  final VoidCallback onAvatarTap;
+
+  @override
+  Widget build(BuildContext context) {
+    final colorScheme = Theme.of(context).colorScheme;
+    return Row(
+      children: [
+        _AppBarProfileAction(
+          photoUrl: photoUrl,
+          userName: userName,
+          onTap: onAvatarTap,
+          padding: const EdgeInsets.only(right: 10),
+        ),
+        Expanded(
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Text(
+                title,
+                maxLines: 1,
+                overflow: TextOverflow.ellipsis,
+                style: TextStyle(
+                  fontSize: 17,
+                  fontWeight: FontWeight.w800,
+                  color: colorScheme.onSurface,
+                  height: 1.1,
+                ),
+              ),
+              const SizedBox(height: 2),
+              Text(
+                subtitle,
+                maxLines: 1,
+                overflow: TextOverflow.ellipsis,
+                style: TextStyle(
+                  fontSize: 11.5,
+                  fontWeight: FontWeight.w600,
+                  color: colorScheme.onSurfaceVariant,
+                ),
+              ),
+            ],
+          ),
+        ),
+      ],
+    );
+  }
+}
+
+class _TipQuoteCard extends StatelessWidget {
+  const _TipQuoteCard({required this.tip, this.elevationColor});
+
+  final String tip;
+  final Color? elevationColor;
+
+  @override
+  Widget build(BuildContext context) {
+    final colorScheme = Theme.of(context).colorScheme;
+    return Container(
+      width: double.infinity,
+      padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
+      decoration: BoxDecoration(
+        color: colorScheme.surfaceContainerLow,
+        borderRadius: BorderRadius.circular(16),
+        boxShadow: [
+          if (elevationColor != null)
+            BoxShadow(
+              color: elevationColor!,
+              blurRadius: 10,
+              offset: const Offset(0, 4),
+            ),
+        ],
+      ),
+      child: Row(
+        children: [
+          Icon(Icons.lightbulb_rounded, color: colorScheme.primary, size: 18),
+          const SizedBox(width: 10),
+          Expanded(
+            child: Text(
+              tip,
+              maxLines: 2,
+              overflow: TextOverflow.ellipsis,
+              style: TextStyle(
+                color: colorScheme.onSurface,
+                fontSize: 12.5,
+                fontWeight: FontWeight.w700,
+                height: 1.25,
+              ),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+class _LandingBottomNavBar extends StatelessWidget {
+  const _LandingBottomNavBar({
+    required this.onHomeTap,
+    required this.onSettingsTap,
+  });
+
+  final VoidCallback onHomeTap;
+  final VoidCallback onSettingsTap;
+
+  @override
+  Widget build(BuildContext context) {
+    final colorScheme = Theme.of(context).colorScheme;
+
+    return Container(
+      decoration: BoxDecoration(
+        color: colorScheme.surface,
+        boxShadow: [
+          BoxShadow(
+            color: colorScheme.shadow.withOpacity(0.08),
+            blurRadius: 14,
+            offset: const Offset(0, -2),
+          ),
+        ],
+      ),
+      padding: const EdgeInsets.fromLTRB(10, 8, 10, 10),
+      child: SafeArea(
+        top: false,
+        child: Row(
+          children: [
+            Expanded(
+              child: _BottomNavPill(
+                icon: Icons.home_rounded,
+                label: 'Home',
+                selected: true,
+                onTap: onHomeTap,
+              ),
+            ),
+            const SizedBox(width: 10),
+            Expanded(
+              child: _BottomNavPill(
+                icon: Icons.settings_rounded,
+                label: 'Settings',
+                selected: false,
+                onTap: onSettingsTap,
               ),
             ),
           ],
         ),
+      ),
+    );
+  }
+}
+
+class _BottomNavPill extends StatelessWidget {
+  const _BottomNavPill({
+    required this.icon,
+    required this.label,
+    required this.selected,
+    required this.onTap,
+  });
+
+  final IconData icon;
+  final String label;
+  final bool selected;
+  final VoidCallback onTap;
+
+  @override
+  Widget build(BuildContext context) {
+    final colorScheme = Theme.of(context).colorScheme;
+    return InkWell(
+      borderRadius: BorderRadius.circular(12),
+      onTap: onTap,
+      child: AnimatedContainer(
+        duration: const Duration(milliseconds: 200),
+        padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
+        decoration: BoxDecoration(
+          color: selected
+              ? colorScheme.primary.withOpacity(0.1)
+              : colorScheme.surfaceContainerLow,
+          borderRadius: BorderRadius.circular(12),
+        ),
+        child: Row(
+          mainAxisAlignment: MainAxisAlignment.center,
+          children: [
+            Icon(
+              icon,
+              size: 18,
+              color: selected ? colorScheme.primary : colorScheme.onSurface,
+            ),
+            const SizedBox(width: 8),
+            Text(
+              label,
+              style: TextStyle(
+                color: selected ? colorScheme.primary : colorScheme.onSurface,
+                fontWeight: FontWeight.w800,
+                fontSize: 12.5,
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+}
+
+class _LandingHeaderRow extends StatelessWidget {
+  const _LandingHeaderRow({
+    required this.photoUrl,
+    required this.userName,
+    required this.title,
+    required this.subtitle,
+    required this.onAvatarTap,
+    required this.onSettingsTap,
+    required this.onNotificationsTap,
+  });
+
+  final String? photoUrl;
+  final String userName;
+  final String title;
+  final String subtitle;
+  final VoidCallback onAvatarTap;
+  final VoidCallback onSettingsTap;
+  final VoidCallback onNotificationsTap;
+
+  @override
+  Widget build(BuildContext context) {
+    final colorScheme = Theme.of(context).colorScheme;
+    return Container(
+      padding: const EdgeInsets.symmetric(vertical: 6),
+      child: Row(
+        children: [
+          _AppBarProfileAction(
+            photoUrl: photoUrl,
+            userName: userName,
+            onTap: onAvatarTap,
+            padding: const EdgeInsets.only(right: 12),
+            outerRadius: 22,
+            innerRadius: 19,
+          ),
+          Expanded(
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  title,
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
+                  style: TextStyle(
+                    fontSize: 21,
+                    fontWeight: FontWeight.w800,
+                    color: colorScheme.onSurface,
+                  ),
+                ),
+                const SizedBox(height: 3),
+                Text(
+                  subtitle,
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
+                  style: TextStyle(
+                    fontSize: 19,
+                    fontWeight: FontWeight.w800,
+                    color: colorScheme.onSurface,
+                  ),
+                ),
+              ],
+            ),
+          ),
+          const SizedBox(width: 8),
+          PremiumActionIcon(
+            icon: Icons.settings_rounded,
+            tooltip: 'Settings',
+            backgroundColor: colorScheme.surfaceContainerHigh,
+            iconColor: colorScheme.onSurface,
+            borderColor: colorScheme.outlineVariant,
+            onPressed: onSettingsTap,
+          ),
+          const SizedBox(width: 8),
+          PremiumActionIcon(
+            icon: Icons.notifications_rounded,
+            tooltip: 'Notifications',
+            backgroundColor: colorScheme.surfaceContainerHigh,
+            iconColor: colorScheme.onSurface,
+            borderColor: colorScheme.outlineVariant,
+            onPressed: onNotificationsTap,
+          ),
+        ],
       ),
     );
   }

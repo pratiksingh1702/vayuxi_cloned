@@ -1,7 +1,6 @@
 // screens/add_floor_page.dart
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
-import 'package:untitled2/core/utlis/colors/colors.dart';
 import 'package:untitled2/core/utlis/widgets/Button_wrapper.dart';
 import 'package:untitled2/core/utlis/widgets/custom_appBar.dart';
 import 'package:untitled2/features/modules/all_Modules/dpr/dpr-setup/screens/view/view_select_page.dart';
@@ -22,9 +21,11 @@ class TeamSelectCardGrid extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final colorScheme = Theme.of(context).colorScheme;
+    final isDark = Theme.of(context).brightness == Brightness.dark;
     return Scaffold(
       drawer: const CustomDrawer(),
-      backgroundColor: AppColors.lightBlue,
+      backgroundColor: colorScheme.surfaceContainerLowest,
       appBar: CustomAppBar(title:"Select Team"),
       body: BottomButtonWrapper(
         onBackPressed: (){Navigator.pop(context);},
@@ -89,11 +90,14 @@ class TeamSelectCardGrid extends StatelessWidget {
               width: double.infinity,
               padding: const EdgeInsets.all(16),
               decoration: BoxDecoration(
-                color: Colors.white,
+                color: colorScheme.surface,
                 borderRadius: BorderRadius.circular(18),
+                border: Border.all(color: colorScheme.outlineVariant.withOpacity(0.45)),
                 boxShadow: [
                   BoxShadow(
-                    color: Colors.black.withOpacity(0.08),
+                    color: isDark
+                        ? colorScheme.shadow.withOpacity(0.12)
+                        : colorScheme.shadow.withOpacity(0.06),
                     blurRadius: 12,
                     offset: const Offset(0, 6),
                   ),
@@ -101,22 +105,23 @@ class TeamSelectCardGrid extends StatelessWidget {
               ),
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
-                children: const [
+                children: [
                   Text(
                     "Choose an option",
                     style: TextStyle(
                       fontSize: 16,
                       fontWeight: FontWeight.w700,
+                      color: colorScheme.onSurface,
                     ),
                   ),
-                  SizedBox(height: 8),
+                  const SizedBox(height: 8),
                   Text(
                     "• View: You can view your sites and also edit them.\n"
                         "• Add: You can create and register a new site.",
                     style: TextStyle(
                       fontSize: 13,
                       height: 1.5,
-                      color: Colors.black87,
+                      color: colorScheme.onSurfaceVariant,
                     ),
                   ),
                 ],

@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../application/providers/notification_list_notifier.dart';
 import '../../application/providers/notification_providers.dart';
+import '../../data/models/notification_model.dart';
 import '../widgets/notification_tile.dart';
 
 class NotificationListScreen extends ConsumerStatefulWidget {
@@ -63,7 +64,9 @@ class _NotificationListScreenState
                           return s.isLoadingMore
                               ? const Padding(
                                   padding: EdgeInsets.all(16),
-                                  child: Center(child: CircularProgressIndicator.adaptive()),
+                                  child: Center(
+                                      child:
+                                          CircularProgressIndicator.adaptive()),
                                 )
                               : const SizedBox.shrink();
                         }
@@ -135,7 +138,7 @@ class AnimatedNotificationTile extends StatefulWidget {
     required this.notification,
     required this.index,
   });
-  final notification;
+  final NotificationModel notification;
   final int index;
 
   @override

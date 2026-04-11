@@ -23,10 +23,12 @@ class UploadBox extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final cs = Theme.of(context).colorScheme;
+    final isDark = Theme.of(context).brightness == Brightness.dark;
     final hasFile = selectedFile != null || previewWidget != null;
 
     return Card(
-      color: Colors.white,
+      color: isDark ? cs.surfaceContainer : cs.surface,
       shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
       child: Container(
         height: 200,
@@ -37,56 +39,56 @@ class UploadBox extends StatelessWidget {
         child: hasFile && previewWidget != null
             ? previewWidget!
             : Column(
-          mainAxisAlignment: MainAxisAlignment.center,
-          children: [
-            const Icon(Icons.cloud_upload_outlined,
-                color: Colors.blue, size: 48),
-            const SizedBox(height: 10),
-            Text(
-              title,
-              style: const TextStyle(
-                fontSize: 17,
-                fontWeight: FontWeight.bold,
-                color: Colors.black87,
-              ),
-            ),
-            const SizedBox(height: 6),
-            Text(
-              subtitle,
-              maxLines: 1,
-              overflow: TextOverflow.ellipsis,
-              textAlign: TextAlign.center,
-              style: TextStyle(
-                fontSize: 13,
-                color: Colors.grey.shade600,
-              ),
-            ),
-            const SizedBox(height: 10),
-            ElevatedButton(
-              onPressed: onPressed,
-              style: ElevatedButton.styleFrom(
-                elevation: 0,
-                backgroundColor: Colors.white, // White background
-                foregroundColor: Colors.blue, // Blue text
-                shape: RoundedRectangleBorder(
-                  borderRadius: BorderRadius.circular(12),
-                  side: BorderSide(
-                    color: Colors.blue, // Blue border
-                    width: 1.5, // Border thickness
+                mainAxisAlignment: MainAxisAlignment.center,
+                children: [
+                  Icon(Icons.cloud_upload_outlined,
+                      color: cs.primary, size: 48),
+                  const SizedBox(height: 10),
+                  Text(
+                    title,
+                    style: TextStyle(
+                      fontSize: 17,
+                      fontWeight: FontWeight.bold,
+                      color: cs.onSurface,
+                    ),
                   ),
-                ),
-                minimumSize: const Size(140, 40),
+                  const SizedBox(height: 6),
+                  Text(
+                    subtitle,
+                    maxLines: 1,
+                    overflow: TextOverflow.ellipsis,
+                    textAlign: TextAlign.center,
+                    style: TextStyle(
+                      fontSize: 13,
+                      color: cs.onSurfaceVariant,
+                    ),
+                  ),
+                  const SizedBox(height: 10),
+                  ElevatedButton(
+                    onPressed: onPressed,
+                    style: ElevatedButton.styleFrom(
+                      elevation: 0,
+                      backgroundColor: cs.surface,
+                      foregroundColor: cs.primary,
+                      shape: RoundedRectangleBorder(
+                        borderRadius: BorderRadius.circular(12),
+                        side: BorderSide(
+                          color: cs.primary,
+                          width: 1.5,
+                        ),
+                      ),
+                      minimumSize: const Size(140, 40),
+                    ),
+                    child: Text(
+                      buttonText,
+                      style: TextStyle(
+                        color: cs.primary,
+                        fontWeight: FontWeight.w500,
+                      ),
+                    ),
+                  )
+                ],
               ),
-              child: Text(
-                buttonText,
-                style: const TextStyle(
-                  color: Colors.blue, // Blue text
-                  fontWeight: FontWeight.w500,
-                ),
-              ),
-            )
-          ],
-        ),
       ),
     );
   }
@@ -150,14 +152,16 @@ class ImageUploadHelper {
             mainAxisSize: MainAxisSize.min,
             children: [
               ListTile(
-                leading: const Icon(Icons.photo_library, color: Colors.blue),
+                leading: Icon(Icons.photo_library,
+                    color: Theme.of(context).colorScheme.primary),
                 title: const Text('Gallery'),
                 onTap: () {
                   Navigator.pop(context, ImageSource.gallery);
                 },
               ),
               ListTile(
-                leading: const Icon(Icons.camera_alt, color: Colors.blue),
+                leading: Icon(Icons.camera_alt,
+                    color: Theme.of(context).colorScheme.primary),
                 title: const Text('Camera'),
                 onTap: () {
                   Navigator.pop(context, ImageSource.camera);
@@ -171,10 +175,10 @@ class ImageUploadHelper {
   }
 
   Future<File?> _pickImageFromSource(
-      ImageSource source, {
-        required bool enableCropping,
-        required String cropTitle,
-      }) async {
+    ImageSource source, {
+    required bool enableCropping,
+    required String cropTitle,
+  }) async {
     try {
       final pickedFile = await _picker.pickImage(
         source: source,
@@ -212,19 +216,20 @@ class ImageUploadHelper {
         uiSettings: [
           AndroidUiSettings(
             toolbarTitle: title,
-            toolbarColor: Colors.blueAccent,
-            toolbarWidgetColor: Colors.white,
+            toolbarColor: Theme.of(context).colorScheme.primary,
+            toolbarWidgetColor: Theme.of(context).colorScheme.onPrimary,
             initAspectRatio: CropAspectRatioPreset.original,
             lockAspectRatio: false,
             hideBottomControls: false,
             showCropGrid: true,
             cropGridRowCount: 3,
             cropGridColumnCount: 3,
-            cropGridColor: Colors.white.withOpacity(0.5),
-            cropFrameColor: Colors.blueAccent,
+            cropGridColor:
+                Theme.of(context).colorScheme.onPrimary.withOpacity(0.5),
+            cropFrameColor: Theme.of(context).colorScheme.primary,
             cropGridStrokeWidth: 1,
             cropFrameStrokeWidth: 2,
-            activeControlsWidgetColor: Colors.blueAccent,
+            activeControlsWidgetColor: Theme.of(context).colorScheme.primary,
             aspectRatioPresets: [
               CropAspectRatioPreset.original,
               CropAspectRatioPreset.square,
@@ -271,7 +276,7 @@ class ImageUploadHelper {
     ScaffoldMessenger.of(context).showSnackBar(
       SnackBar(
         content: Text(message),
-        backgroundColor: Colors.red,
+        backgroundColor: Theme.of(context).colorScheme.error,
       ),
     );
   }
@@ -295,16 +300,17 @@ class UploadBoxPreview extends StatelessWidget {
     required this.onEdit,
     this.isImage = true,
   }) : assert(file != null || source != null,
-  'Either file or source must be provided');
+            'Either file or source must be provided');
 
   @override
   Widget build(BuildContext context) {
+    final cs = Theme.of(context).colorScheme;
     return Stack(
       children: [
         // ================= PREVIEW =================
         ClipRRect(
           borderRadius: BorderRadius.circular(20),
-          child: _buildPreview(),
+          child: _buildPreview(context),
         ),
 
         // ================= OVERLAY =================
@@ -316,9 +322,9 @@ class UploadBoxPreview extends StatelessWidget {
                 begin: Alignment.topCenter,
                 end: Alignment.bottomCenter,
                 colors: [
-                  Colors.black.withOpacity(0.25),
-                  Colors.transparent,
-                  Colors.black.withOpacity(0.4),
+                  cs.scrim.withOpacity(0.25),
+                  cs.surface.withOpacity(0),
+                  cs.scrim.withOpacity(0.4),
                 ],
               ),
             ),
@@ -332,11 +338,11 @@ class UploadBoxPreview extends StatelessWidget {
             onTap: onRemove,
             child: Container(
               padding: const EdgeInsets.all(6),
-              decoration: const BoxDecoration(
-                color: Colors.red,
+              decoration: BoxDecoration(
+                color: cs.error,
                 shape: BoxShape.circle,
               ),
-              child: const Icon(Icons.close, size: 20, color: Colors.white),
+              child: Icon(Icons.close, size: 20, color: cs.onError),
             ),
           ),
         ),
@@ -352,8 +358,8 @@ class UploadBoxPreview extends StatelessWidget {
               icon: const Icon(Icons.edit, size: 18),
               label: Text(isImage ? 'Change Image' : 'Change File'),
               style: ElevatedButton.styleFrom(
-                backgroundColor: Colors.blue,
-                foregroundColor: Colors.white,
+                backgroundColor: cs.primary,
+                foregroundColor: cs.onPrimary,
                 shape: RoundedRectangleBorder(
                   borderRadius: BorderRadius.circular(12),
                 ),
@@ -367,9 +373,9 @@ class UploadBoxPreview extends StatelessWidget {
   }
 
   // ================= IMAGE RESOLVER =================
-  Widget _buildPreview() {
+  Widget _buildPreview(BuildContext context) {
     if (!isImage) {
-      return _filePreview();
+      return _filePreview(context);
     }
 
     if (file != null) {
@@ -387,7 +393,7 @@ class UploadBoxPreview extends StatelessWidget {
         fit: BoxFit.cover,
         width: double.infinity,
         height: double.infinity,
-        errorBuilder: (_, __, ___) => _fallback(),
+        errorBuilder: (_, __, ___) => _fallback(context),
       );
     }
 
@@ -397,42 +403,43 @@ class UploadBoxPreview extends StatelessWidget {
         fit: BoxFit.cover,
         width: double.infinity,
         height: double.infinity,
-        errorBuilder: (_, __, ___) => _fallback(),
+        errorBuilder: (_, __, ___) => _fallback(context),
       );
     }
 
-    return _fallback();
+    return _fallback(context);
   }
 
-  Widget _filePreview() {
-    final name = file != null
-        ? file!.path.split('/').last
-        : source!.split('/').last;
+  Widget _filePreview(BuildContext context) {
+    final cs = Theme.of(context).colorScheme;
+    final name =
+        file != null ? file!.path.split('/').last : source!.split('/').last;
 
     return Container(
-      color: Colors.grey[100],
+      color: cs.surfaceContainerLowest,
       child: Column(
         mainAxisAlignment: MainAxisAlignment.center,
         children: [
-          Icon(Icons.insert_drive_file, size: 48, color: Colors.grey[600]),
+          Icon(Icons.insert_drive_file, size: 48, color: cs.onSurfaceVariant),
           const SizedBox(height: 8),
           Text(
             name,
             maxLines: 2,
             overflow: TextOverflow.ellipsis,
             textAlign: TextAlign.center,
-            style: TextStyle(color: Colors.grey[800]),
+            style: TextStyle(color: cs.onSurface),
           ),
         ],
       ),
     );
   }
 
-  Widget _fallback() {
+  Widget _fallback(BuildContext context) {
+    final cs = Theme.of(context).colorScheme;
     return Container(
-      color: Colors.grey[200],
-      child: const Center(
-        child: Icon(Icons.broken_image, size: 40, color: Colors.grey),
+      color: cs.surfaceContainer,
+      child: Center(
+        child: Icon(Icons.broken_image, size: 40, color: cs.onSurfaceVariant),
       ),
     );
   }

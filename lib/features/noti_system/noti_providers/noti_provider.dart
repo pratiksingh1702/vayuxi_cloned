@@ -2,6 +2,10 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_local_notifications/flutter_local_notifications.dart';
 import 'package:permission_handler/permission_handler.dart';
 import 'package:shared_preferences/shared_preferences.dart';
+import '../updates/data/models/notification_model.dart';
+import '../updates/data/models/notification_priority.dart';
+import '../updates/data/models/notification_type.dart';
+import '../updates/data/repositories/local_notification_repository.dart';
 import '../noti_services/noti_service.dart';
 import '../noti_services/permi_service.dart';
 
@@ -15,16 +19,20 @@ final permissionServiceProvider = Provider<PermissionService>((ref) {
 });
 
 // State Providers
-final notificationPermissionStateProvider = StateProvider<PermissionStatus>((ref) {
+final notificationPermissionStateProvider =
+    StateProvider<PermissionStatus>((ref) {
   return PermissionStatus.denied;
 });
 
-final scheduledNotificationsProvider = StateProvider<List<ScheduledNotification>>((ref) {
+final scheduledNotificationsProvider =
+    StateProvider<List<ScheduledNotification>>((ref) {
   return [];
 });
 
 // Notification State Provider
-final notificationsStateProvider = StateNotifierProvider<NotificationsStateNotifier, NotificationsState>((ref) {
+final notificationsStateProvider =
+    StateNotifierProvider<NotificationsStateNotifier, NotificationsState>(
+        (ref) {
   final notificationService = ref.watch(notificationServiceProvider);
   return NotificationsStateNotifier(notificationService);
 });
@@ -93,7 +101,8 @@ class NotificationsState {
   }) {
     return NotificationsState(
       isLoading: isLoading ?? this.isLoading,
-      scheduledNotifications: scheduledNotifications ?? this.scheduledNotifications,
+      scheduledNotifications:
+          scheduledNotifications ?? this.scheduledNotifications,
       permissionStatus: permissionStatus ?? this.permissionStatus,
       error: error ?? this.error,
     );
@@ -102,8 +111,11 @@ class NotificationsState {
 
 class NotificationsStateNotifier extends StateNotifier<NotificationsState> {
   final NotificationService _notificationService;
+  final LocalNotificationRepository _updatesRepository;
 
-  NotificationsStateNotifier(this._notificationService) : super(const NotificationsState());
+  NotificationsStateNotifier(this._notificationService)
+      : _updatesRepository = LocalNotificationRepository(),
+        super(const NotificationsState());
 
   // Load all scheduled notifications
   Future<void> loadScheduledNotifications() async {
@@ -173,6 +185,7 @@ class NotificationsStateNotifier extends StateNotifier<NotificationsState> {
       return false;
     }
   }
+
   // Cancel a scheduled notification
   Future<void> cancelNotification(int id) async {
     try {
@@ -200,8 +213,43 @@ class NotificationsStateNotifier extends StateNotifier<NotificationsState> {
         body: body,
         payload: payload,
       );
+
+      await _updatesRepository.addNotification(
+        NotificationModel(
+          id: 'local_${DateTime.now().microsecondsSinceEpoch}',
+          type: NotificationType.update,
+          title: title,
+          description: body,
+          timestamp: DateTime.now(),
+          priority: NotificationPriority.medium,
+          metadata: {
+            if (payload != null) 'payload': payload,
+            'source': 'local',
+          },
+        ),
+      );
     } catch (error) {
       state = state.copyWith(error: 'Failed to send notification: $error');
+    }
+  }
+
+  Future<void> scheduleReminderForUpdate(
+    NotificationModel notification, {
+    Duration delay = const Duration(hours: 1),
+  }) async {
+    try {
+      final scheduledAt = DateTime.now().add(delay);
+      final reminderId = notification.id.hashCode & 0x7fffffff;
+
+      await _notificationService.scheduleOneTimeNotification(
+        id: reminderId,
+        title: 'Reminder: ${notification.title}',
+        body: notification.description,
+        scheduledAt: scheduledAt,
+        payload: notification.id,
+      );
+    } catch (error) {
+      state = state.copyWith(error: 'Failed to schedule reminder: $error');
     }
   }
 

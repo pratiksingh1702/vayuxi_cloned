@@ -309,7 +309,7 @@ class _ManImportCsvScreenState extends ConsumerState<ManImportCsvScreen> {
 
       AppToast.success("✅ File added to upload queue");
       if (!mounted) return;
-      context.go('/manpower');
+      context.push('/manpower');
 
       // _dbg("✅ uploadRes runtimeType = ${uploadRes.runtimeType}");
       // _dbg("✅ uploadRes = ${_short(uploadRes, max: 2000)}");
@@ -692,7 +692,7 @@ class _ManImportCsvScreenState extends ConsumerState<ManImportCsvScreen> {
 
     return Scaffold(
       drawer: const CustomDrawer(),
-      backgroundColor: AppColors.lightBlue,
+      backgroundColor: Theme.of(context).colorScheme.surfaceContainerLowest,
       appBar: CustomAppBar(
         title: 'Import Manpower',
 

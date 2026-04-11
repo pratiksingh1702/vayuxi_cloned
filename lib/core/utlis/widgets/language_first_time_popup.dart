@@ -13,6 +13,8 @@ class LanguageFirstTimePopup extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final cs = Theme.of(context).colorScheme;
+    final isDark = Theme.of(context).brightness == Brightness.dark;
     final size = MediaQuery.of(context).size;
     final isSmall = size.width < 360;
 
@@ -27,8 +29,8 @@ class LanguageFirstTimePopup extends StatelessWidget {
                 begin: Alignment.topLeft,
                 end: Alignment.bottomRight,
                 colors: [
-                  Colors.black.withOpacity(0.36),
-                  Colors.black.withOpacity(0.52),
+                  cs.scrim.withOpacity(0.36),
+                  cs.scrim.withOpacity(0.52),
                 ],
               ),
             ),
@@ -47,19 +49,19 @@ class LanguageFirstTimePopup extends StatelessWidget {
                 vertical: isSmall ? 20 : 24,
               ),
               decoration: BoxDecoration(
-                color: Colors.white,
+                color: isDark ? cs.surfaceContainerHigh : cs.surface,
                 borderRadius: BorderRadius.circular(24),
-                border: Border.all(color: const Color(0xFFE8ECF2), width: 1.2),
-                boxShadow: const [
+                border: Border.all(color: cs.outlineVariant, width: 1.2),
+                boxShadow: [
                   BoxShadow(
-                    color: Color(0x33111A2E),
+                    color: cs.shadow.withOpacity(0.2),
                     blurRadius: 30,
-                    offset: Offset(0, 14),
+                    offset: const Offset(0, 14),
                   ),
                   BoxShadow(
-                    color: Color(0x14111A2E),
+                    color: cs.shadow.withOpacity(0.08),
                     blurRadius: 8,
-                    offset: Offset(0, 3),
+                    offset: const Offset(0, 3),
                   ),
                 ],
               ),
@@ -74,22 +76,22 @@ class LanguageFirstTimePopup extends StatelessWidget {
                         width: 54,
                         decoration: BoxDecoration(
                           borderRadius: BorderRadius.circular(16),
-                          color: const Color(0xFFEFF4FF),
+                          color: cs.primaryContainer,
                         ),
-                        child: const Icon(
+                        child: Icon(
                           Icons.language_rounded,
                           size: 28,
-                          color: Color(0xFF1F4DA8),
+                          color: cs.onPrimaryContainer,
                         ),
                       ),
                       const SizedBox(width: 12),
-                      const Expanded(
+                      Expanded(
                         child: Text(
                           "Language Setup",
                           style: TextStyle(
                             fontSize: 15,
                             fontWeight: FontWeight.w600,
-                            color: Color(0xFF4A5568),
+                            color: cs.onSurfaceVariant,
                             decoration: TextDecoration.none,
                           ),
                         ),
@@ -103,17 +105,17 @@ class LanguageFirstTimePopup extends StatelessWidget {
                       fontSize: isSmall ? 21 : 24,
                       height: 1.2,
                       fontWeight: FontWeight.w800,
-                      color: const Color(0xFF121826),
+                      color: cs.onSurface,
                       decoration: TextDecoration.none,
                     ),
                   ),
                   const SizedBox(height: 10),
-                  const Text(
+                  Text(
                     "Get a personalized experience by selecting and downloading your preferred language pack. English is always available as the default.",
                     style: TextStyle(
                       fontSize: 14,
                       height: 1.5,
-                      color: Color(0xFF5D6B82),
+                      color: cs.onSurfaceVariant,
                       fontWeight: FontWeight.w400,
                       decoration: TextDecoration.none,
                     ),
@@ -126,21 +128,21 @@ class LanguageFirstTimePopup extends StatelessWidget {
                       vertical: 10,
                     ),
                     decoration: BoxDecoration(
-                      color: const Color(0xFFF7FAFF),
+                      color: cs.tertiaryContainer,
                       borderRadius: BorderRadius.circular(12),
-                      border: Border.all(color: const Color(0xFFDCE8FF)),
+                      border: Border.all(color: cs.outlineVariant),
                     ),
-                    child: const Row(
+                    child: Row(
                       children: [
                         Icon(Icons.check_circle,
-                            size: 18, color: Color(0xFF1F7A45)),
-                        SizedBox(width: 8),
+                            size: 18, color: cs.onTertiaryContainer),
+                        const SizedBox(width: 8),
                         Expanded(
                           child: Text(
                             "Default: English (en-IN)",
                             style: TextStyle(
                               fontSize: 13,
-                              color: Color(0xFF2D3A4D),
+                              color: cs.onTertiaryContainer,
                               fontWeight: FontWeight.w600,
                               decoration: TextDecoration.none,
                             ),
@@ -159,8 +161,8 @@ class LanguageFirstTimePopup extends StatelessWidget {
                       label: const Text("Select Language"),
                       style: ElevatedButton.styleFrom(
                         elevation: 0,
-                        backgroundColor: const Color(0xFF1F4DA8),
-                        foregroundColor: Colors.white,
+                        backgroundColor: cs.primary,
+                        foregroundColor: cs.onPrimary,
                         textStyle: const TextStyle(
                           fontSize: 15,
                           fontWeight: FontWeight.w700,
@@ -179,11 +181,11 @@ class LanguageFirstTimePopup extends StatelessWidget {
                     child: OutlinedButton(
                       onPressed: onSkip,
                       style: OutlinedButton.styleFrom(
-                        side: const BorderSide(color: Color(0xFFD7DDEA)),
+                        side: BorderSide(color: cs.outlineVariant),
                         shape: RoundedRectangleBorder(
                           borderRadius: BorderRadius.circular(14),
                         ),
-                        foregroundColor: const Color(0xFF1E2A3A),
+                        foregroundColor: cs.onSurface,
                         textStyle: const TextStyle(
                           fontSize: 14,
                           fontWeight: FontWeight.w600,
@@ -193,13 +195,13 @@ class LanguageFirstTimePopup extends StatelessWidget {
                     ),
                   ),
                   const SizedBox(height: 10),
-                  const Center(
+                  Center(
                     child: Text(
                       "You can change language anytime from Settings.",
                       textAlign: TextAlign.center,
                       style: TextStyle(
                         fontSize: 12,
-                        color: Color(0xFF7A869A),
+                        color: cs.onSurfaceVariant,
                         fontWeight: FontWeight.w400,
                         decoration: TextDecoration.none,
                       ),

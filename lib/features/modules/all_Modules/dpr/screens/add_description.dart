@@ -300,6 +300,7 @@ class _AddDescriptionScreenState extends ConsumerState<AddDescriptionScreen>
       _sizeController.text = dpr.size;
       _floorController.text = dpr.location;
       _plantController.text = dpr.plant;
+      _selectedDate = dpr.date;
 
       _headerInitialized = true;
       setState(() {
@@ -871,7 +872,8 @@ class _AddDescriptionScreenState extends ConsumerState<AddDescriptionScreen>
         date.day == now.day;
   }
 
-  bool get _isEditable => _isToday(_selectedDate) || _globalEditMode;
+  bool get _isEditable =>
+      _isToday(_selectedDate) || _globalEditMode || widget.work != null;
 
   Future<void> _selectDate(BuildContext context) async {
     final picked = await showDatePicker(
@@ -3247,7 +3249,7 @@ class _AddDescriptionScreenState extends ConsumerState<AddDescriptionScreen>
           if (widget.work == null) {
             Navigator.of(context).popUntil((_) => count++ >= 4);
           } else {
-            Navigator.of(context).pop();
+            context.pop(true);
           }
 
           _showSnackBar("Successfully Saved");

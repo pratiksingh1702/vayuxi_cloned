@@ -127,7 +127,7 @@ class _CreateInventoryScreenState extends ConsumerState<CreateInventoryScreen> {
     return Scaffold(
       drawer: const CustomDrawer(),
       appBar: CustomAppBar(title: "Create Inventory"),
-      backgroundColor: AppColors.lightBlue,
+      backgroundColor: Theme.of(context).colorScheme.surfaceContainerLowest,
       body: BottomButtonWrapper(
         customButtons: [
           CustomButton(

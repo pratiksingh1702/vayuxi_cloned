@@ -2,7 +2,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
-import 'package:untitled2/core/utlis/colors/colors.dart';
 import 'package:untitled2/core/utlis/widgets/Button_wrapper.dart';
 import 'package:untitled2/core/utlis/widgets/custom_appBar.dart';
 import 'package:untitled2/features/modules/all_Modules/dpr/dpr-setup/screens/view/view_select_page.dart';
@@ -27,8 +26,9 @@ class ExpenseEntrySelectCardGrid extends ConsumerWidget{
   @override
   Widget build(BuildContext context,WidgetRef ref) {
     final site=ref.read(selectedSiteIdProvider);
+    final colorScheme = Theme.of(context).colorScheme;
     return Scaffold(
-      backgroundColor: AppColors.lightBlue,
+      backgroundColor: colorScheme.surfaceContainerLowest,
       drawer: const CustomDrawer(),
       appBar: CustomAppBar(title:"Select Card"),
       body: BottomButtonWrapper(

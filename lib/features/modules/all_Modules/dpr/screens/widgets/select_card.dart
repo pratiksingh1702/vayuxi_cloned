@@ -9,7 +9,7 @@ class SelectCard extends StatelessWidget {
   const SelectCard({
     super.key,
     required this.icon,
-    this.color=Colors.black,
+    this.color = Colors.black,
     required this.label,
     required this.onTap,
   });
@@ -22,15 +22,19 @@ class SelectCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final width = MediaQuery.of(context).size.width;
-
+    final cs = Theme.of(context).colorScheme;
+    final isDark = Theme.of(context).brightness == Brightness.dark;
 
     return Card(
       elevation: 0,
-      color: Colors.white,
+      color: isDark ? cs.surfaceContainer : cs.surface,
       shape: RoundedRectangleBorder(
         borderRadius: BorderRadius.circular(16),
+        side: BorderSide(
+          color: isDark ? cs.outline.withOpacity(0.35) : cs.outlineVariant,
+        ),
       ),
+      shadowColor: cs.shadow,
       child: InkWell(
         onTap: onTap,
         borderRadius: BorderRadius.circular(16),
@@ -44,19 +48,15 @@ class SelectCard extends StatelessWidget {
                 width: 70,
                 child: Center(
                   child: icon,
-
                 ),
               ),
-
               const SizedBox(height: 12),
-
               Text(
                 _capitalize(label), // Capitalize first letter here
                 textAlign: TextAlign.center,
                 style: TextStyle(
-
                   fontWeight: FontWeight.w600,
-                  color: Colors.black87,
+                  color: cs.onSurface,
                 ),
                 maxLines: 1,
                 overflow: TextOverflow.ellipsis,

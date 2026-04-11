@@ -37,7 +37,7 @@ class _BulkUploadScreenState extends ConsumerState<BulkUploadScreen> {
     return Scaffold(
       drawer: const CustomDrawer(),
       appBar: CustomAppBar(title: "Bulk Upload"),
-      backgroundColor: AppColors.lightBlue,
+      backgroundColor: Theme.of(context).colorScheme.surfaceContainerLowest,
       body: SingleChildScrollView(
         child: Padding(
           padding: const EdgeInsets.all(16.0),

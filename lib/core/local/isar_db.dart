@@ -12,13 +12,15 @@ import '../../features/modules/all_Modules/dpr/offline/mech/isar/rate_file_isar.
 import '../../features/modules/all_Modules/dpr/offline/mech/isar/sync_meta_isar.dart';
 import '../../features/modules/all_Modules/inventory/offline/isar/inventory_isar.dart';
 import '../../features/modules/all_Modules/team/offline/isar/team_isar.dart';
+import '../../features/noti_system/updates/data/models/notification_isar.dart';
 
 class AppIsarDB {
   static Isar? _isar;
 
   static Isar get isar {
     if (_isar == null) {
-      throw Exception("AppIsarDB not initialized. Call AppIsarDB.init() first.");
+      throw Exception(
+          "AppIsarDB not initialized. Call AppIsarDB.init() first.");
     }
     return _isar!;
   }
@@ -43,14 +45,12 @@ class AppIsarDB {
       OutboxIsarSchema,
       SyncMetaIsarSchema,
       InventoryCategoryIsarSchema,
-
       InventoryIsarSchema,
       InventoryUsageIsarSchema,
       InventoryCheckoutIsarSchema,
-
-
       AttendanceIsarSchema,
-      ManpowerIsarSchema
+      ManpowerIsarSchema,
+      UpdateNotificationIsarSchema,
     ];
 
     for (final s in schemas) {
@@ -64,5 +64,4 @@ class AppIsarDB {
       inspector: true,
     );
   }
-
 }

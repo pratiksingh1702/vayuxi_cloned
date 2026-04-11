@@ -4,7 +4,6 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import 'package:image_picker/image_picker.dart';
-import 'package:untitled2/core/utlis/colors/colors.dart';
 import 'package:untitled2/core/utlis/widgets/Button_wrapper.dart';
 import 'package:untitled2/core/utlis/widgets/custom_appBar.dart';
 import 'package:untitled2/typeProvider/type_provider.dart';
@@ -44,13 +43,11 @@ class _SiteDetailScreenState extends ConsumerState<SiteDetailScreen> {
   late TextEditingController dateController;
   late TextEditingController shippingAddressController;
 
-
   File? selectedImage;
   bool isImageDeleted = false; // Track if image should be deleted
   String? existingImageUrl;
   bool isLoading = false;
   DateTime selectedDate = DateTime.now();
-
 
   @override
   void initState() {
@@ -68,16 +65,15 @@ class _SiteDetailScreenState extends ConsumerState<SiteDetailScreen> {
     documentNumberController = TextEditingController(
       text: site?.documentNumber ?? "",
     );
-print(_formatDocumentDate(site?.documentDate));
-
+    print(_formatDocumentDate(site?.documentDate));
 
     dateController = TextEditingController(
       text: _formatDocumentDate(site?.documentDate),
     );
     shippingAddressController =
         TextEditingController(text: site?.shippingAddress ?? "");
-
   }
+
   String _formatDocumentDate(String? documentDate) {
     try {
       if (documentDate == null || documentDate.isEmpty) {
@@ -93,7 +89,6 @@ print(_formatDocumentDate(site?.documentDate));
       return "${now.day}/${now.month}/${now.year}";
     }
   }
-
 
   Future<void> pickImage() async {
     final helper = ImageUploadHelper(context);
@@ -118,8 +113,6 @@ print(_formatDocumentDate(site?.documentDate));
       isImageDeleted = true; // Mark that image should be deleted
     });
   }
-
-
 
   Future<void> _selectDate() async {
     final DateTime? picked = await showDatePicker(
@@ -156,7 +149,6 @@ print(_formatDocumentDate(site?.documentDate));
         "selectedDate": dateController.text,
         "company": widget.site?.company ?? "",
         "type": widget.site?.type ?? "mechanical_work",
-
       });
 
       // Handle image based on three scenarios:
@@ -179,9 +171,9 @@ print(_formatDocumentDate(site?.documentDate));
         // Scenario 2: Image was deleted - send empty file to indicate removal
         // Create an empty MultipartFile to signal backend to remove the image
         formData.fields.add(
-          const MapEntry("siteImage", ""), // Send empty string to clear the image
+          const MapEntry(
+              "siteImage", ""), // Send empty string to clear the image
         );
-
       }
       // Scenario 3: No change - don't add any file to formData
 
@@ -209,9 +201,11 @@ print(_formatDocumentDate(site?.documentDate));
     } on DioException catch (e) {
       final userMessage = extractBackendError(e);
       _showSnackBar(userMessage, isError: true);
-      debugPrint("API Error: ${e.message}\nStatus: ${e.response?.statusCode}\nData: ${e.response?.data}");
+      debugPrint(
+          "API Error: ${e.message}\nStatus: ${e.response?.statusCode}\nData: ${e.response?.data}");
     } catch (e, stack) {
-      _showSnackBar("An unexpected error occurred. Please try again.", isError: true);
+      _showSnackBar("An unexpected error occurred. Please try again.",
+          isError: true);
       debugPrint("UNEXPECTED ERROR: $e\nSTACK TRACE: $stack");
     } finally {
       if (mounted) {
@@ -239,18 +233,12 @@ print(_formatDocumentDate(site?.documentDate));
       throw ValidationException('Site name is required');
     }
 
-
-
-
     // Validate email if provided
-    if ( !EmailValidator.validate(emailController.text)&&emailController.text.isNotEmpty) {
+    if (!EmailValidator.validate(emailController.text) &&
+        emailController.text.isNotEmpty) {
       throw ValidationException('Please enter a valid email address');
     }
-
-
   }
-
-
 
 // Helper method to extract validation errors from server response
   List<String> _extractValidationErrors(dynamic responseData) {
@@ -260,7 +248,8 @@ print(_formatDocumentDate(site?.documentDate));
       if (responseData is Map<String, dynamic>) {
         if (responseData['errors'] != null) {
           if (responseData['errors'] is Map<String, dynamic>) {
-            for (final entry in (responseData['errors'] as Map<String, dynamic>).entries) {
+            for (final entry
+                in (responseData['errors'] as Map<String, dynamic>).entries) {
               if (entry.value is List) {
                 for (final error in (entry.value as List)) {
                   errors.add("${entry.key}: ${error.toString()}");
@@ -288,30 +277,33 @@ print(_formatDocumentDate(site?.documentDate));
 // Helper method to show success snackbar
   void showSuccessSnackBar(String message) {
     if (!mounted) return;
- AppToast.success(message);
+    AppToast.success(message);
   }
 
 // Helper method to show error snackbar
   void showErrorSnackBar(String message) {
     if (!mounted) return;
-    final error=extractBackendError(message);
-  AppToast.error(error);
+    final error = extractBackendError(message);
+    AppToast.error(error);
   }
 
 // GST validation helper
   bool _isValidGST(String gst) {
     // Basic GST validation - adjust based on your country's GST format
-    final gstRegex = RegExp(r'^[0-9]{2}[A-Z]{5}[0-9]{4}[A-Z]{1}[1-9A-Z]{1}Z[0-9A-Z]{1}$');
+    final gstRegex =
+        RegExp(r'^[0-9]{2}[A-Z]{5}[0-9]{4}[A-Z]{1}[1-9A-Z]{1}Z[0-9A-Z]{1}$');
     return gstRegex.hasMatch(gst.toUpperCase());
   }
+
   Future<void> _confirmDeleteSite() async {
+    final cs = Theme.of(context).colorScheme;
     final confirm = await showDialog<bool>(
       context: context,
       builder: (context) => AlertDialog(
         title: const Text("Delete Site"),
         content: const Text(
           "Are you sure you want to delete this site?\n\n"
-              "This action cannot be undone and all related data may be lost.",
+          "This action cannot be undone and all related data may be lost.",
         ),
         actions: [
           TextButton(
@@ -320,7 +312,8 @@ print(_formatDocumentDate(site?.documentDate));
           ),
           ElevatedButton(
             style: ElevatedButton.styleFrom(
-              backgroundColor: Colors.red,
+              backgroundColor: cs.error,
+              foregroundColor: cs.onError,
             ),
             onPressed: () => context.pop(true),
             child: const Text("Delete"),
@@ -333,6 +326,7 @@ print(_formatDocumentDate(site?.documentDate));
       _deleteSite();
     }
   }
+
   Future<void> _deleteSite() async {
     try {
       setState(() => isLoading = true);
@@ -347,8 +341,6 @@ print(_formatDocumentDate(site?.documentDate));
       _showSnackBar("Site deleted successfully!", isError: false);
 
       context.pop(); // leave detail screen
-
-
     } on DioException catch (e) {
       final msg = extractBackendError(e);
       _showSnackBar(msg, isError: true);
@@ -359,14 +351,15 @@ print(_formatDocumentDate(site?.documentDate));
     }
   }
 
-
-
   @override
   Widget build(BuildContext context) {
     final site = widget.site;
+    final cs = Theme.of(context).colorScheme;
+    final isDark = Theme.of(context).brightness == Brightness.dark;
 
     return Scaffold(
       drawer: const CustomDrawer(),
+      backgroundColor: isDark ? cs.surface : cs.surfaceContainerLowest,
       body: NestedScrollView(
         headerSliverBuilder: (context, innerBoxIsScrolled) {
           return [CustomSliverAppBar(title: site?.siteName ?? "New Site")];
@@ -375,9 +368,9 @@ print(_formatDocumentDate(site?.documentDate));
           customButtons: [
             CustomButton(
               button: RoundedButton(
-                text: isLoading?"Saving...":"Save",
-                color: Colors.blue,
-                textColor: Colors.white,
+                text: isLoading ? "Saving..." : "Save",
+                color: cs.primary,
+                textColor: cs.onPrimary,
                 onPressed: saveSite,
               ),
             ),
@@ -394,13 +387,13 @@ print(_formatDocumentDate(site?.documentDate));
                       width: double.infinity,
                       margin: const EdgeInsets.only(bottom: 16),
                       child: OutlinedButton.icon(
-                        icon: const Icon(Icons.delete_outline, color: Colors.red),
-                        label: const Text(
+                        icon: Icon(Icons.delete_outline, color: cs.error),
+                        label: Text(
                           "Delete Site",
-                          style: TextStyle(color: Colors.red, fontSize: 16),
+                          style: TextStyle(color: cs.error, fontSize: 16),
                         ),
                         style: OutlinedButton.styleFrom(
-                          side: const BorderSide(color: Colors.red),
+                          side: BorderSide(color: cs.error),
                           padding: const EdgeInsets.symmetric(vertical: 14),
                           shape: RoundedRectangleBorder(
                             borderRadius: BorderRadius.circular(12),
@@ -420,7 +413,7 @@ print(_formatDocumentDate(site?.documentDate));
                       style: TextStyle(
                         fontSize: 22,
                         fontWeight: FontWeight.w500,
-                        color: Colors.black87,
+                        color: cs.onSurface,
                       ),
                     ),
                   ),
@@ -430,7 +423,8 @@ print(_formatDocumentDate(site?.documentDate));
                     buttonText: "Choose File",
                     onPressed: pickImage,
                     selectedFile: selectedImage,
-                    previewWidget: _buildPreviewWidget(), // Use custom preview builder
+                    previewWidget:
+                        _buildPreviewWidget(), // Use custom preview builder
                   ),
 
                   const SizedBox(height: 24),
@@ -443,13 +437,13 @@ print(_formatDocumentDate(site?.documentDate));
                         style: TextStyle(
                           fontSize: 18,
                           fontWeight: FontWeight.w500,
-                          color: Colors.black87,
+                          color: cs.onSurface,
                         ),
                       ),
                       Text(
                         " *",
                         style: TextStyle(
-                          color: Colors.red,
+                          color: cs.error,
                           fontSize: 18,
                           fontWeight: FontWeight.bold,
                         ),
@@ -489,7 +483,6 @@ print(_formatDocumentDate(site?.documentDate));
                     maxLines: 3,
                   ),
 
-
                   const SizedBox(height: 24),
 
                   CustomTextField(
@@ -501,12 +494,12 @@ print(_formatDocumentDate(site?.documentDate));
                   Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
-                      const Text(
+                      Text(
                         "Phone Number",
                         style: TextStyle(
                           fontSize: 18,
                           fontWeight: FontWeight.w500,
-                          color: Colors.black87,
+                          color: cs.onSurface,
                         ),
                       ),
                       const SizedBox(height: 8),
@@ -531,7 +524,8 @@ print(_formatDocumentDate(site?.documentDate));
                         label: "Select Date / AMC/WO/PO/ARC",
                         controller: dateController,
                         TextSize: 18,
-                        prefixIcon: Icon(Icons.calendar_today, color: Colors.grey[600]),
+                        prefixIcon: Icon(Icons.calendar_today,
+                            color: cs.onSurfaceVariant),
                         hint: "DD/MM/YYYY",
                       ),
                     ),
@@ -578,6 +572,7 @@ print(_formatDocumentDate(site?.documentDate));
     return null;
   }
 }
+
 class ValidationException implements Exception {
   final String message;
   ValidationException(this.message);
@@ -589,8 +584,6 @@ class ValidationException implements Exception {
 // Email validator class
 class EmailValidator {
   static bool validate(String email) {
-    return RegExp(
-        r'^[a-zA-Z0-9.]+@[a-zA-Z0-9]+\.[a-zA-Z]+'
-    ).hasMatch(email);
+    return RegExp(r'^[a-zA-Z0-9.]+@[a-zA-Z0-9]+\.[a-zA-Z]+').hasMatch(email);
   }
 }

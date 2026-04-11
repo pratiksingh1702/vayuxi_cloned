@@ -232,7 +232,7 @@ class _SalarySlipScreenState extends ConsumerState<SalarySlipScreen> {
 
     return Scaffold(
       drawer: const CustomDrawer(),
-      backgroundColor: AppColors.lightBlue,
+      backgroundColor: Theme.of(context).colorScheme.surfaceContainerLowest,
       appBar: CustomAppBar(title: "Salary Slip"),
       body: manpowerState.isLoading
           ? const Center(child: CircularProgressIndicator())

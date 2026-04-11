@@ -3,7 +3,6 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import 'package:showcaseview/showcaseview.dart';
 import 'package:untitled2/core/router/routes.dart';
-import 'package:untitled2/core/utlis/colors/colors.dart';
 import 'package:untitled2/core/utlis/widgets/Button_wrapper.dart';
 import 'package:untitled2/core/utlis/widgets/custom_appBar.dart';
 import 'package:untitled2/features/modules/all_Modules/site_Details/providers/site_current_provider.dart';
@@ -20,6 +19,9 @@ class SiteSelectCardGrid extends ConsumerWidget {
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
+    final cs = Theme.of(context).colorScheme;
+    final isDark = Theme.of(context).brightness == Brightness.dark;
+
     return ShowCaseWidget(
       builder: (showcaseContext) {
         WidgetsBinding.instance.addPostFrameCallback((_) async {
@@ -32,12 +34,14 @@ class SiteSelectCardGrid extends ConsumerWidget {
           final alreadyRunningSite =
               ctrl.isRunning && ctrl.activeModule?.id == SiteRegistry.module.id;
 
-          debugPrint('🎬 [SiteSelectCardGrid] PostFrame: siteDone=$siteDone, savedIndex=$savedIndex, alreadyRunningSite=$alreadyRunningSite');
+          debugPrint(
+              '🎬 [SiteSelectCardGrid] PostFrame: siteDone=$siteDone, savedIndex=$savedIndex, alreadyRunningSite=$alreadyRunningSite');
 
           if (!siteDone) {
             if (alreadyRunningSite) {
               final runningStep = ctrl.currentStep;
-              debugPrint('🎬 [SiteSelectCardGrid] Module already running at step=${runningStep?.id} route=${runningStep?.route}');
+              debugPrint(
+                  '🎬 [SiteSelectCardGrid] Module already running at step=${runningStep?.id} route=${runningStep?.route}');
               // Self-heal: if module is running but not on /site, reset to step 0
               // so Buddy/showcase are visible on this screen.
               if (runningStep == null || runningStep.route != Routes.site) {
@@ -46,7 +50,8 @@ class SiteSelectCardGrid extends ConsumerWidget {
                 await ctrl
                     .resetModuleAndStartFromBeginning(SiteRegistry.module);
               } else {
-                debugPrint('🎬 [SiteSelectCardGrid] Already running on correct route, skipping reset');
+                debugPrint(
+                    '🎬 [SiteSelectCardGrid] Already running on correct route, skipping reset');
               }
             } else {
               // If user lands on /site with stale persisted progress (e.g. step=1),
@@ -57,47 +62,56 @@ class SiteSelectCardGrid extends ConsumerWidget {
                 await ctrl
                     .resetModuleAndStartFromBeginning(SiteRegistry.module);
               } else {
-                debugPrint('🎬 [SiteSelectCardGrid] FRESH START: savedIndex=$savedIndex → calling startModule');
+                debugPrint(
+                    '🎬 [SiteSelectCardGrid] FRESH START: savedIndex=$savedIndex → calling startModule');
                 await ctrl.startModule(SiteRegistry.module);
               }
             }
           } else {
-            debugPrint('🎬 [SiteSelectCardGrid] Site tour already completed, skipping startup');
+            debugPrint(
+                '🎬 [SiteSelectCardGrid] Site tour already completed, skipping startup');
           }
 
           // ⚡ IMMEDIATE syncToRoute (no 60ms delay) - fixes GoRouter lag
           // When startModule() changes state, GlobalTourOverlay rebuilds before GoRouter updates.
           // By calling syncToRoute immediately, we ensure the buddy sees the correct route.
-          debugPrint('🎬 [SiteSelectCardGrid] IMMEDIATE syncToRoute (no delay) to beat GoRouter lag');
+          debugPrint(
+              '🎬 [SiteSelectCardGrid] IMMEDIATE syncToRoute (no delay) to beat GoRouter lag');
           ctrl.syncToRoute(Routes.site);
-          
+
           final step = ctrl.currentStep;
-          debugPrint('🎬 [SiteSelectCardGrid] After immediate syncToRoute: step=${step?.id}, isRunning=${ctrl.isRunning}');
-          
+          debugPrint(
+              '🎬 [SiteSelectCardGrid] After immediate syncToRoute: step=${step?.id}, isRunning=${ctrl.isRunning}');
+
           if (step == null || !ctrl.isRunning) {
-            debugPrint('🎬 [SiteSelectCardGrid] No step or not running, skipping showcase');
+            debugPrint(
+                '🎬 [SiteSelectCardGrid] No step or not running, skipping showcase');
             return;
           }
-          
-          debugPrint('🎬 [SiteSelectCardGrid] Step route=${step.route} vs Routes.site=${Routes.site}, autoShowcase=${step.autoShowcase}');
+
+          debugPrint(
+              '🎬 [SiteSelectCardGrid] Step route=${step.route} vs Routes.site=${Routes.site}, autoShowcase=${step.autoShowcase}');
           if (step.route != Routes.site || !step.autoShowcase) {
-            debugPrint('🎬 [SiteSelectCardGrid] Route mismatch or autoShowcase=false, skipping showcase');
+            debugPrint(
+                '🎬 [SiteSelectCardGrid] Route mismatch or autoShowcase=false, skipping showcase');
             return;
           }
 
           final sc = ShowCaseWidget.of(showcaseContext);
           if (sc == null) {
-            debugPrint('🎬 [SiteSelectCardGrid] ShowCaseWidget context is null!');
+            debugPrint(
+                '🎬 [SiteSelectCardGrid] ShowCaseWidget context is null!');
             return;
           }
-          
-          debugPrint('🎬 [SiteSelectCardGrid] STARTING SHOWCASE with key=${step.showcaseKey}');
+
+          debugPrint(
+              '🎬 [SiteSelectCardGrid] STARTING SHOWCASE with key=${step.showcaseKey}');
           sc.startShowCase([step.showcaseKey]);
         });
 
         return Scaffold(
           drawer: const CustomDrawer(),
-          backgroundColor: AppColors.lightBlue,
+          backgroundColor: isDark ? cs.surface : cs.surfaceContainerLowest,
           appBar: CustomAppBar(title: "Select Site Entry"),
           body: BottomButtonWrapper(
             onBackPressed: () => Navigator.pop(context),
@@ -167,11 +181,16 @@ class SiteSelectCardGrid extends ConsumerWidget {
                     width: double.infinity,
                     padding: const EdgeInsets.all(16),
                     decoration: BoxDecoration(
-                      color: Colors.white,
+                      color: isDark ? cs.surfaceContainer : cs.surface,
                       borderRadius: BorderRadius.circular(18),
+                      border: Border.all(
+                        color: isDark
+                            ? cs.outline.withOpacity(0.35)
+                            : cs.outlineVariant.withOpacity(0.9),
+                      ),
                       boxShadow: [
                         BoxShadow(
-                          color: Colors.black.withOpacity(0.08),
+                          color: cs.shadow.withOpacity(isDark ? 0.24 : 0.08),
                           blurRadius: 12,
                           offset: const Offset(0, 6),
                         ),
@@ -179,22 +198,23 @@ class SiteSelectCardGrid extends ConsumerWidget {
                     ),
                     child: Column(
                       crossAxisAlignment: CrossAxisAlignment.start,
-                      children: const [
+                      children: [
                         Text(
                           "Choose an option",
                           style: TextStyle(
                             fontSize: 16,
                             fontWeight: FontWeight.w700,
+                            color: cs.onSurface,
                           ),
                         ),
-                        SizedBox(height: 8),
+                        const SizedBox(height: 8),
                         Text(
                           "• View: You can view your sites and also edit them.\n"
                           "• Add: You can create and register a new site.",
                           style: TextStyle(
                             fontSize: 13,
                             height: 1.5,
-                            color: Colors.black87,
+                            color: cs.onSurfaceVariant,
                           ),
                         ),
                       ],

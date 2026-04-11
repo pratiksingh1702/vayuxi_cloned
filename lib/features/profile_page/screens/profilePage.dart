@@ -1,24 +1,56 @@
-import 'package:untitled2/core/utlis/widgets/shimmer.dart';
 import 'dart:io';
+
 import 'package:dio/dio.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import 'package:image_picker/image_picker.dart';
 import 'package:untitled2/core/utlis/app_toasts.dart';
 import 'package:untitled2/core/utlis/colors/colors.dart';
-import 'package:untitled2/core/utlis/widgets/custom_appBar.dart';
-import 'package:untitled2/core/utlis/widgets/image_clipped.dart';
-import '../../../core/utlis/widgets/fields/custom_textField.dart';
-import '../../../core/utlis/widgets/file_upload.dart';
-import '../../../core/widgets/user/toggle_input.dart';
-import '../../auth/provider/auth_provider.dart';
+import 'package:untitled2/core/utlis/widgets/fields/custom_textField.dart';
+import 'package:untitled2/core/utlis/widgets/file_upload.dart';
+import 'package:untitled2/core/utlis/widgets/premium_app_bar.dart';
+import 'package:untitled2/core/utlis/widgets/shimmer.dart';
 import 'package:untitled2/features/profile_page/screens/widgets/loader.dart';
-import 'package:untitled2/features/profile_page/screens/widgets/dropdown.dart';
-import 'package:untitled2/features/profile_page/screens/widgets/button.dart';
-import 'package:untitled2/features/profile_page/screens/widgets/uploadPhoto.dart';
 
+import '../../auth/provider/auth_provider.dart';
 import '../provider/userProvider.dart';
 import '../userModel/userModel.dart';
+
+const String kUserProfileHeroTag = 'user-profile-hero-card';
+
+Widget _luxuryHeroShuttleBuilder(
+  BuildContext flightContext,
+  Animation<double> animation,
+  HeroFlightDirection flightDirection,
+  BuildContext fromHeroContext,
+  BuildContext toHeroContext,
+) {
+  final fromHero = fromHeroContext.widget as Hero;
+  final toHero = toHeroContext.widget as Hero;
+  final target = flightDirection == HeroFlightDirection.push
+      ? toHero.child
+      : fromHero.child;
+
+  final curved = CurvedAnimation(
+    parent: animation,
+    curve: Curves.easeInOutCubicEmphasized,
+    reverseCurve: Curves.easeInOutCubic,
+  );
+
+  return AnimatedBuilder(
+    animation: curved,
+    child: target,
+    builder: (context, child) {
+      final t = curved.value;
+      return Opacity(
+        opacity: 0.9 + (0.1 * t),
+        child: Transform.scale(
+          scale: 0.985 + (0.015 * t),
+          child: child,
+        ),
+      );
+    },
+  );
+}
 
 class ProfileScreen extends ConsumerStatefulWidget {
   const ProfileScreen({super.key});
@@ -38,43 +70,24 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
   final TextEditingController _addressController = TextEditingController();
   final TextEditingController _otherController = TextEditingController();
   final TextEditingController _bankNameController = TextEditingController();
-  final TextEditingController _accountNumberController = TextEditingController();
+  final TextEditingController _accountNumberController =
+      TextEditingController();
   final TextEditingController _ifscCodeController = TextEditingController();
   final TextEditingController _branchController = TextEditingController();
   final TextEditingController _panController = TextEditingController();
   final TextEditingController _accountNameController = TextEditingController();
-  File? _digitalSignatureFile;
 
-
-
-  final List<String> _serviceKeys = [
-    'mechanical_work',
-    'painting',
-    'construction_work',
-    'insulation_work',
-    'plumbing',
-    'rooting_work',
-    'others',
-  ];
-
-  final Map<String, String> _langMap = {
-    'English': 'en',
-    'Hindi': 'hi',
-    'Gujarati': 'gu',
-    'HindiEnglish': 'hingu',
-  };
-
-  late Map<String, dynamic> _formValues;
-  String? _selectedLangLabel;
   File? _profileImageFile;
   File? _companyLogoFile;
+  File? _digitalSignatureFile;
+
+  late Map<String, dynamic> _formValues;
 
   @override
   void initState() {
     super.initState();
     _initializeForm();
     _loadUserData();
-    _loadCurrentLanguage();
   }
 
   void _initializeForm() {
@@ -91,25 +104,21 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
       'companyLogo': '',
       'selectService': <String>[],
       'bankName': '',
+      'accountName': '',
       'accountNumber': '',
       'ifscCode': '',
       'branch': '',
       'panNumber': '',
       'digitalSignature': '',
-
     };
   }
 
   void _loadUserData() {
-    // Load user data when the screen initializes
     WidgetsBinding.instance.addPostFrameCallback((_) {
       ref.read(userNotifierProvider.notifier).getCurrentUser();
     });
   }
 
-  void _loadCurrentLanguage() {
-    _selectedLangLabel = 'English';
-  }
   Future<void> _pickDigitalSignature() async {
     final helper = ImageUploadHelper(context);
     final file = await helper.pickAndCropImage(
@@ -117,67 +126,11 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
       cropTitle: 'Upload Digital Signature',
     );
 
-    if (file != null) {
-      setState(() {
-        _digitalSignatureFile = file;
-        _formValues['digitalSignature'] = file.path;
-      });
-    }
-  }
-
-
-  void _populateFormFields(User user) {
-    // Set text controllers
-    _fullNameController.text = user.fullName;
-    _phoneNumberController.text = user.phoneNumber;
-    _emailController.text = user.email;
-    _aadhaarController.text = user.aadhaarCard ?? '';
-    _gstController.text = user.gstNumber ?? '';
-    _companyNameController.text = user.company?.name ?? '';
-    _addressController.text = user.address ?? '';
-    _otherController.text = user.other ?? '';
-    _bankNameController.text = user.company?.bankName ?? '';
-    _accountNumberController.text = user.company?.accountNumber ?? '';
-    _ifscCodeController.text = user.company?.ifscCode ?? '';
-    _branchController.text = user.company?.branch ?? '';
-    _panController.text = user.company?.panNumber ?? '';
-    _accountNameController.text = user.company?.accountName ?? '';
-
-    _formValues['digitalSignature'] = user.company?.digitalSignature ?? '';
-    print(user.id);
-
+    if (file == null) return;
 
     setState(() {
-      _formValues = {
-        'profilePhoto': user.profilePhoto ?? '',
-        'fullName': user.fullName,
-        'phoneNumber': user.phoneNumber,
-        'email': user.email,
-        'aadhaarCard': user.aadhaarCard ?? '',
-        'gstNumber': user.gstNumber ?? '',
-
-        'company': {
-          'name': user.company?.name ?? '',
-          'logo': user.company?.logo ?? '',
-        },
-
-        'companyLogo': user.company?.logo ?? '',
-        'address': user.address ?? '',
-        'other': user.other ?? '',
-
-        'bankName': user.company?.bankName ?? '',
-        'accountName': user.company?.accountName ?? '',
-        'accountNumber': user.company?.accountNumber ?? '',
-        'ifscCode': user.company?.ifscCode ?? '',
-        'branch': user.company?.branch ?? '',
-        'panNumber': user.company?.panNumber ?? '',
-
-        'digitalSignature': user.company?.digitalSignature ?? '',
-
-        'selectService': user.selectedServices != null
-            ? List<String>.from(user.selectedServices!)
-            : <String>[],
-      };
+      _digitalSignatureFile = file;
+      _formValues['digitalSignature'] = file.path;
     });
   }
 
@@ -188,47 +141,69 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
       cropTitle: isProfile ? 'Crop Profile Photo' : 'Crop Company Logo',
     );
 
-    if (file != null) {
-      setState(() {
-        if (isProfile) {
-          _profileImageFile = file;
-          _formValues['profilePhoto'] = file.path;
-        } else {
-          _companyLogoFile = file;
-          _formValues['companyLogo'] = file.path;
-        }
-      });
-    }
+    if (file == null) return;
+
+    setState(() {
+      if (isProfile) {
+        _profileImageFile = file;
+        _formValues['profilePhoto'] = file.path;
+      } else {
+        _companyLogoFile = file;
+        _formValues['companyLogo'] = file.path;
+      }
+    });
   }
 
-  void _onServiceToggle(String service) {
+  void _populateFormFields(User user) {
+    _fullNameController.text = user.fullName;
+    _phoneNumberController.text = user.phoneNumber;
+    _emailController.text = user.email;
+    _aadhaarController.text = user.aadhaarCard ?? '';
+    _gstController.text = user.gstNumber ?? '';
+    _companyNameController.text = user.company?.name ?? '';
+    _addressController.text = user.address ?? '';
+    _otherController.text = user.other ?? '';
+    _bankNameController.text = user.company?.bankName ?? '';
+    _accountNameController.text = user.company?.accountName ?? '';
+    _accountNumberController.text = user.company?.accountNumber ?? '';
+    _ifscCodeController.text = user.company?.ifscCode ?? '';
+    _branchController.text = user.company?.branch ?? '';
+    _panController.text = user.company?.panNumber ?? '';
+
     setState(() {
-      final currentServices = List<String>.from(_formValues['selectService']);
-      if (currentServices.contains(service)) {
-        currentServices.remove(service);
-      } else {
-        currentServices.add(service);
-      }
-      _formValues['selectService'] = currentServices;
+      _formValues = {
+        'profilePhoto': user.profilePhoto ?? '',
+        'fullName': user.fullName,
+        'phoneNumber': user.phoneNumber,
+        'email': user.email,
+        'aadhaarCard': user.aadhaarCard ?? '',
+        'gstNumber': user.gstNumber ?? '',
+        'company': {
+          'name': user.company?.name ?? '',
+          'logo': user.company?.logo ?? '',
+        },
+        'companyLogo': user.company?.logo ?? '',
+        'address': user.address ?? '',
+        'other': user.other ?? '',
+        'bankName': user.company?.bankName ?? '',
+        'accountName': user.company?.accountName ?? '',
+        'accountNumber': user.company?.accountNumber ?? '',
+        'ifscCode': user.company?.ifscCode ?? '',
+        'branch': user.company?.branch ?? '',
+        'panNumber': user.company?.panNumber ?? '',
+        'digitalSignature': user.company?.digitalSignature ?? '',
+        'selectService': List<String>.from(user.selectedServices),
+      };
     });
   }
 
   Future<void> _submitForm() async {
     if (!_formKey.currentState!.validate()) return;
 
-    // if ((_formValues['selectService'] as List).isEmpty) {
-    //   ScaffoldMessenger.of(context).showSnackBar(
-    //     const SnackBar(content: Text('Select at least one service')),
-    //   );
-    //   return;
-    // }
-
     try {
       final userNotifier = ref.read(userNotifierProvider.notifier);
-
       final formData = FormData();
 
-      // Files
       if (_profileImageFile != null) {
         formData.files.add(
           MapEntry(
@@ -252,6 +227,7 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
           ),
         );
       }
+
       if (_digitalSignatureFile != null) {
         formData.files.add(
           MapEntry(
@@ -264,16 +240,11 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
         );
       }
 
-
-
-
-      // Name split
       final nameParts = _fullNameController.text.trim().split(' ');
       final firstName = nameParts.first;
       final lastName =
-      nameParts.length > 1 ? nameParts.sublist(1).join(' ') : '';
+          nameParts.length > 1 ? nameParts.sublist(1).join(' ') : '';
 
-      // Fields (MATCH RN EXACTLY)
       formData.fields.addAll([
         MapEntry('firstName', firstName),
         MapEntry('lastName', lastName),
@@ -283,7 +254,7 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
         MapEntry('gstNumber', _gstController.text.trim()),
         MapEntry('company', _companyNameController.text.trim()),
         MapEntry('address', _addressController.text.trim()),
-        MapEntry('accountName', _accountNameController.text.trim()), // ✅ NEW
+        MapEntry('accountName', _accountNameController.text.trim()),
         MapEntry('other', _otherController.text.trim()),
         MapEntry('bankName', _bankNameController.text.trim()),
         MapEntry('accountNumber', _accountNumberController.text.trim()),
@@ -292,28 +263,24 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
         MapEntry('panNumber', _panController.text.trim()),
       ]);
 
-
-
       await userNotifier.updateUser(formData);
-
-     AppToast.success('Profile updated successfully');
-    } catch (e,stackTrace) {
-      print(stackTrace);
-      print(e);
+      AppToast.success('Profile updated successfully');
+    } catch (e, stackTrace) {
+      debugPrint(stackTrace.toString());
+      debugPrint(e.toString());
+      if (!mounted) return;
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(content: Text(e.toString())),
       );
     }
   }
 
-  void _handleLogout() async {
-    final authNotifier = ref.read(authProvider.notifier);
-    await authNotifier.logout();
+  Future<void> _handleLogout() async {
+    await ref.read(authProvider.notifier).logout();
   }
 
-  void _handleLogoutAll() async {
-    final authNotifier = ref.read(authProvider.notifier);
-    await authNotifier.logoutAll();
+  Future<void> _handleLogoutAll() async {
+    await ref.read(authProvider.notifier).logoutAll();
   }
 
   @override
@@ -338,372 +305,400 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
   @override
   Widget build(BuildContext context) {
     final userState = ref.watch(userNotifierProvider);
-    final authState = ref.watch(authProvider);
 
-    // Populate form when user data is loaded
     if (userState.user != null && _fullNameController.text.isEmpty) {
       _populateFormFields(userState.user!);
     }
 
     if (userState.isLoading) return const Loader();
 
+    final avatarUrl = (_formValues['profilePhoto'] ?? '').toString();
+    final hasNetworkAvatar = avatarUrl.trim().isNotEmpty;
+
     return Scaffold(
-      body: CornerClippedScreenSimple(
-        color: Colors.transparent,
+      backgroundColor: AppColors.lightBlue,
+      appBar: PremiumAppBar(
+        title: 'My Profile',
+        showDrawerButton: false,
+        subtitle: const Text('Update your professional details'),
+        backgroundGradient: const LinearGradient(
+          begin: Alignment.topLeft,
+          end: Alignment.bottomRight,
+          colors: [Color(0xFFEAF3FF), Color(0xFFF8FBFF)],
+        ),
+        actions: [
+          PremiumActionIcon(
+            icon: Icons.check_rounded,
+            tooltip: 'Save Profile',
+            onPressed: userState.isLoading ? () {} : _submitForm,
+          ),
+        ],
+      ),
+      body: Container(
+        decoration: const BoxDecoration(
+          gradient: LinearGradient(
+            begin: Alignment.topCenter,
+            end: Alignment.bottomCenter,
+            colors: [Color(0xFFF3F8FF), Color(0xFFE8F1FF)],
+          ),
+        ),
         child: SafeArea(
+          top: false,
           child: SingleChildScrollView(
-            child: Container(
-              margin: const EdgeInsets.symmetric(horizontal: 20, vertical: 20),
-              child: Form(
-                key: _formKey,
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.center,
-                  children: [
-                    // Profile photo
-                    GestureDetector(
-                      onTap: () => _handleImagePick(true),
-                      child: Stack(
-                        children: [
-                          CircleAvatar(
-                            radius: 60,
-                            backgroundImage: _profileImageFile != null
-                                ? FileImage(_profileImageFile!)
-                                : (_formValues['profilePhoto'] != null &&
-                                _formValues['profilePhoto'].isNotEmpty)
-                                ? NetworkImage(_formValues['profilePhoto'])
-                                : null,
-                            child: _profileImageFile == null &&
-                                (_formValues['profilePhoto'] == null ||
-                                    _formValues['profilePhoto'].isEmpty)
-                                ? const Icon(Icons.person, size: 60)
-                                : null,
+            padding: const EdgeInsets.fromLTRB(16, 14, 16, 24),
+            child: Form(
+              key: _formKey,
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.stretch,
+                children: [
+                  Hero(
+                    tag: kUserProfileHeroTag,
+                    transitionOnUserGestures: true,
+                    createRectTween: (begin, end) =>
+                        MaterialRectArcTween(begin: begin, end: end),
+                    flightShuttleBuilder: _luxuryHeroShuttleBuilder,
+                    child: Material(
+                      color: Colors.transparent,
+                      child: Container(
+                        padding: const EdgeInsets.all(16),
+                        decoration: BoxDecoration(
+                          borderRadius: BorderRadius.circular(22),
+                          gradient: const LinearGradient(
+                            begin: Alignment.topLeft,
+                            end: Alignment.bottomRight,
+                            colors: [Color(0xFF0F2C59), Color(0xFF1B4A92)],
                           ),
-                          Positioned(
-                            bottom: 0,
-                            right: 0,
-                            child: Container(
-                              padding: const EdgeInsets.all(4),
-                              decoration: const BoxDecoration(
-                                color: Colors.blue,
-                                shape: BoxShape.circle,
-                              ),
-                              child: const Icon(
-                                Icons.camera_alt,
-                                size: 20,
-                                color: Colors.white,
+                          boxShadow: const [
+                            BoxShadow(
+                              color: Color(0x33223E70),
+                              blurRadius: 22,
+                              offset: Offset(0, 8),
+                            ),
+                          ],
+                        ),
+                        child: Row(
+                          children: [
+                            GestureDetector(
+                              onTap: () => _handleImagePick(true),
+                              child: Stack(
+                                children: [
+                                  CircleAvatar(
+                                    radius: 38,
+                                    backgroundColor: Colors.white,
+                                    child: CircleAvatar(
+                                      radius: 35,
+                                      backgroundColor: const Color(0xFFDDE9FF),
+                                      backgroundImage: _profileImageFile != null
+                                          ? FileImage(_profileImageFile!)
+                                          : (hasNetworkAvatar
+                                              ? NetworkImage(avatarUrl)
+                                              : null) as ImageProvider?,
+                                      child: _profileImageFile == null &&
+                                              !hasNetworkAvatar
+                                          ? const Icon(Icons.person,
+                                              size: 34,
+                                              color: Color(0xFF1E3F72))
+                                          : null,
+                                    ),
+                                  ),
+                                  Positioned(
+                                    bottom: 0,
+                                    right: 0,
+                                    child: Container(
+                                      padding: const EdgeInsets.all(6),
+                                      decoration: const BoxDecoration(
+                                        color: Color(0xFF2B68C9),
+                                        shape: BoxShape.circle,
+                                      ),
+                                      child: const Icon(
+                                        Icons.camera_alt_rounded,
+                                        size: 14,
+                                        color: Colors.white,
+                                      ),
+                                    ),
+                                  ),
+                                ],
                               ),
                             ),
+                            const SizedBox(width: 12),
+                            Expanded(
+                              child: Column(
+                                crossAxisAlignment: CrossAxisAlignment.start,
+                                children: [
+                                  Text(
+                                    _fullNameController.text.trim().isEmpty
+                                        ? 'User Profile'
+                                        : _fullNameController.text.trim(),
+                                    maxLines: 1,
+                                    overflow: TextOverflow.ellipsis,
+                                    style: const TextStyle(
+                                      color: Colors.white,
+                                      fontSize: 20,
+                                      fontWeight: FontWeight.w800,
+                                    ),
+                                  ),
+                                  const SizedBox(height: 3),
+                                  Text(
+                                    _emailController.text.trim().isEmpty
+                                        ? 'Update your details below'
+                                        : _emailController.text.trim(),
+                                    maxLines: 1,
+                                    overflow: TextOverflow.ellipsis,
+                                    style: TextStyle(
+                                      color: Colors.white.withOpacity(0.86),
+                                      fontSize: 12.5,
+                                      fontWeight: FontWeight.w500,
+                                    ),
+                                  ),
+                                ],
+                              ),
+                            ),
+                          ],
+                        ),
+                      ),
+                    ),
+                  ),
+                  const SizedBox(height: 14),
+                  _ProfileSectionCard(
+                    title: 'Personal Details',
+                    icon: Icons.badge_rounded,
+                    children: [
+                      CustomTextField(
+                        controller: _fullNameController,
+                        label: 'Full Name',
+                        hint: 'Enter your full name',
+                        isRequired: true,
+                      ),
+                      CustomTextField(
+                        controller: _emailController,
+                        label: 'Email',
+                        hint: 'Enter your email',
+                        isRequired: true,
+                      ),
+                      CustomTextField(
+                        controller: _phoneNumberController,
+                        label: 'Phone Number',
+                        hint: 'Enter your phone number',
+                        isRequired: true,
+                      ),
+                      CustomTextField(
+                        controller: _aadhaarController,
+                        label: 'Aadhaar Card',
+                        hint: 'Enter Aadhaar number',
+                      ),
+                    ],
+                  ),
+                  const SizedBox(height: 12),
+                  _ProfileSectionCard(
+                    title: 'Company Details',
+                    icon: Icons.apartment_rounded,
+                    children: [
+                      CustomTextField(
+                        controller: _companyNameController,
+                        label: 'Company Name',
+                        hint: 'Enter company name',
+                      ),
+                      CustomTextField(
+                        controller: _gstController,
+                        label: 'GST Number',
+                        hint: 'Enter GST number',
+                      ),
+                      CustomTextField(
+                        controller: _addressController,
+                        label: 'Address',
+                        hint: 'Enter your address',
+                        maxLines: 2,
+                      ),
+                      const SizedBox(height: 6),
+                      _UploadTile(
+                        title: 'Company Logo',
+                        subtitle: 'Upload your brand identity',
+                        icon: Icons.business_rounded,
+                        preview: _companyLogoFile != null
+                            ? Image.file(_companyLogoFile!, fit: BoxFit.cover)
+                            : ((_formValues['companyLogo'] ?? '')
+                                    .toString()
+                                    .trim()
+                                    .isNotEmpty
+                                ? Image.network(
+                                    _formValues['companyLogo'],
+                                    fit: BoxFit.cover,
+                                  )
+                                : null),
+                        onTap: () => _handleImagePick(false),
+                      ),
+                    ],
+                  ),
+                  const SizedBox(height: 12),
+                  _ProfileSectionCard(
+                    title: 'Bank & Signature',
+                    icon: Icons.account_balance_rounded,
+                    children: [
+                      CustomTextField(
+                        controller: _bankNameController,
+                        label: 'Bank Name',
+                        hint: 'Enter bank name',
+                      ),
+                      CustomTextField(
+                        controller: _accountNameController,
+                        label: 'Account Name',
+                        hint: 'Enter account holder name',
+                      ),
+                      CustomTextField(
+                        controller: _accountNumberController,
+                        label: 'Account Number',
+                        hint: 'Enter account number',
+                        keyboardType: TextInputType.number,
+                      ),
+                      CustomTextField(
+                        controller: _ifscCodeController,
+                        label: 'IFSC Code',
+                        hint: 'Enter IFSC code',
+                      ),
+                      CustomTextField(
+                        controller: _branchController,
+                        label: 'Branch',
+                        hint: 'Enter branch name',
+                      ),
+                      CustomTextField(
+                        controller: _panController,
+                        label: 'PAN Number',
+                        hint: 'Enter PAN number',
+                      ),
+                      const SizedBox(height: 6),
+                      _UploadTile(
+                        title: 'Digital Signature',
+                        subtitle: 'Upload stamp or signature image',
+                        icon: Icons.draw_rounded,
+                        preview: _digitalSignatureFile != null
+                            ? Image.file(_digitalSignatureFile!,
+                                fit: BoxFit.cover)
+                            : ((_formValues['digitalSignature'] ?? '')
+                                    .toString()
+                                    .trim()
+                                    .isNotEmpty
+                                ? Image.network(
+                                    _formValues['digitalSignature'],
+                                    fit: BoxFit.cover,
+                                  )
+                                : null),
+                        onTap: _pickDigitalSignature,
+                      ),
+                    ],
+                  ),
+                  const SizedBox(height: 14),
+                  if (userState.error != null)
+                    Container(
+                      padding: const EdgeInsets.all(12),
+                      margin: const EdgeInsets.only(bottom: 14),
+                      decoration: BoxDecoration(
+                        color: Colors.red.shade50,
+                        borderRadius: BorderRadius.circular(10),
+                        border: Border.all(color: Colors.red.shade200),
+                      ),
+                      child: Row(
+                        children: [
+                          const Icon(Icons.error_outline, color: Colors.red),
+                          const SizedBox(width: 8),
+                          Expanded(
+                            child: Text(
+                              userState.error!,
+                              style: const TextStyle(color: Colors.red),
+                            ),
+                          ),
+                          IconButton(
+                            icon: const Icon(Icons.close, size: 16),
+                            onPressed: () => ref
+                                .read(userNotifierProvider.notifier)
+                                .clearError(),
                           ),
                         ],
                       ),
                     ),
-                    const SizedBox(height: 20),
-
-                    // Fields with controllers
-                    CustomTextField(
-                      controller: _fullNameController,
-                      label: 'Full Name',
-                      hint: 'Enter your full name',
-                      isRequired: true,
-                    ),
-                    CustomTextField(
-                      controller: _emailController,
-                      label: 'Email',
-                      hint: 'Enter your email',
-                      isRequired: true,
-                      // Email might not be editable
-                    ),
-                    CustomTextField(
-                      controller: _phoneNumberController,
-                      label: 'Phone Number',
-                      hint: 'Enter your phone number',
-                      isRequired: true,
-                    ),
-                    CustomTextField(
-                      controller: _gstController,
-                      label: 'GSTIN',
-                      hint: 'Enter GST number',
-                    ),
-                    CustomTextField(
-                      controller: _companyNameController,
-                      label: 'Company Name',
-                      hint: 'Enter company name',
-                    ),
-                    CustomTextField(
-                      controller: _addressController,
-                      label: 'Address',
-                      hint: 'Enter your address',
-                      maxLines: 2,
-                    ),
-                    CustomTextField(
-                      controller: _aadhaarController,
-                      label: 'Aadhaar Card',
-                      hint: 'Enter Aadhaar number',
-                    ),
-                    const SizedBox(height: 10),
-
-                    // Company Logo Upload
-                    const Align(
-                      alignment: Alignment.centerLeft,
-                      child: Text(
-                        'Company Logo',
-                        style: TextStyle(
-                          fontWeight: FontWeight.w600,
-                          fontSize: 14,
-                        ),
-                      ),
-                    ),
-                    const SizedBox(height: 8),
-                    const Align(
-                      alignment: Alignment.centerLeft,
-                      child: Text(
-                        'Company Logo',
-                        style: TextStyle(
-                          fontWeight: FontWeight.w600,
-                          fontSize: 14,
-                        ),
-                      ),
-                    ),
-                    const SizedBox(height: 8),
-                    GestureDetector(
-                      onTap: () => _handleImagePick(false),
-                      child: Container(
-                        height: 100,
-                        width: 100,
-                        decoration: BoxDecoration(
-                          color: Colors.grey[200],
-                          borderRadius: BorderRadius.circular(12),
-                          border: Border.all(color: Colors.grey.shade400),
-                        ),
-                        child: _companyLogoFile != null
-                            ? ClipRRect(
-                          borderRadius: BorderRadius.circular(12),
-                          child: Image.file(_companyLogoFile!, fit: BoxFit.cover),
-                        )
-                            : Column(
-                          mainAxisAlignment: MainAxisAlignment.center,
-                          children: const [
-                            Icon(Icons.business, size: 40, color: Colors.grey),
-                            SizedBox(height: 6),
-                            Text(
-                              "Upload Logo",
-                              style: TextStyle(color: Colors.grey),
+                  Row(
+                    children: [
+                      Expanded(
+                        child: ElevatedButton.icon(
+                          style: ElevatedButton.styleFrom(
+                            minimumSize: const Size(double.infinity, 50),
+                            backgroundColor: const Color(0xFF0F6A5E),
+                            shape: RoundedRectangleBorder(
+                              borderRadius: BorderRadius.circular(12),
                             ),
-                          ],
-                        ),
-                      ),
-                    ),
-                    const SizedBox(height: 15),
-                    const SizedBox(height: 15),
-                    const Align(
-                      alignment: Alignment.centerLeft,
-                      child: Text(
-                        'Bank Details',
-                        style: TextStyle(fontSize: 15, fontWeight: FontWeight.bold),
-                      ),
-                    ),
-
-                    CustomTextField(
-                      controller: _bankNameController,
-                      label: 'Bank Name',
-                      hint: 'Enter bank name',
-                    ),
-                    CustomTextField(
-                      controller: _accountNameController,
-                      label: 'Account Name',
-                      hint: 'Enter account holder name',
-                    ),
-                    CustomTextField(
-                      controller: _accountNumberController,
-                      label: 'Account Number',
-                      hint: 'Enter account number',
-                      keyboardType: TextInputType.number,
-                    ),
-
-                    CustomTextField(
-                      controller: _ifscCodeController,
-                      label: 'IFSC Code',
-                      hint: 'Enter IFSC code',
-                    ),
-
-                    CustomTextField(
-                      controller: _branchController,
-                      label: 'Branch',
-                      hint: 'Enter branch name',
-                    ),
-                    CustomTextField(
-                      controller: _gstController,
-                      label: 'GST Number',
-                      hint: 'Enter GST number',
-                    ),
-                    CustomTextField(
-                      controller: _panController,
-                      label: 'PAN Number',
-                      hint: 'Enter PAN number',
-                    ),
-                    const SizedBox(height: 15),
-                    const Align(
-                      alignment: Alignment.centerLeft,
-                      child: Text(
-                        'Digital Signature',
-                        style: TextStyle(fontWeight: FontWeight.w600),
-                      ),
-                    ),
-                    const SizedBox(height: 8),
-
-                    GestureDetector(
-                      onTap: _pickDigitalSignature,
-                      child: Container(
-                        height: 100,
-                        width: 180,
-                        decoration: BoxDecoration(
-                          border: Border.all(color: Colors.grey.shade400),
-                          borderRadius: BorderRadius.circular(10),
-                          color: Colors.grey.shade100,
-                        ),
-                        child: _digitalSignatureFile != null
-                            ? ClipRRect(
-                          borderRadius: BorderRadius.circular(10),
-                          child: Image.file(
-                            _digitalSignatureFile!,
-                            fit: BoxFit.cover,
                           ),
-                        )
-                            : _formValues['digitalSignature'] != null &&
-                            _formValues['digitalSignature'].isNotEmpty
-                            ? ClipRRect(
-                          borderRadius: BorderRadius.circular(10),
-                          child: Image.network(
-                            _formValues['digitalSignature'],
-                            fit: BoxFit.cover,
+                          onPressed: userState.isLoading ? null : _submitForm,
+                          icon: userState.isLoading
+                              ? const ShimmerCircle(size: 18)
+                              : const Icon(Icons.save_rounded,
+                                  color: Colors.white, size: 18),
+                          label: const Text(
+                            'Save Changes',
+                            style: TextStyle(
+                              color: Colors.white,
+                              fontWeight: FontWeight.w700,
+                            ),
                           ),
-                        )
-                            : Column(
-                          mainAxisAlignment: MainAxisAlignment.center,
-                          children: const [
-                            Icon(Icons.draw, size: 30, color: Colors.grey),
-                            SizedBox(height: 6),
-                            Text('Upload Signature'),
-                          ],
                         ),
                       ),
-                    ),
-
-
-                    const SizedBox(height: 6),
-                    //
-                    // // Services
-                    // const Align(
-                    //   alignment: Alignment.centerLeft,
-                    //   child: Text(
-                    //     'Select Service',
-                    //     style: TextStyle(
-                    //       fontWeight: FontWeight.w600,
-                    //       fontSize: 14,
-                    //     ),
-                    //   ),
-                    // ),
-                    // const SizedBox(height: 6),
-                    // Container(
-                    //   padding: const EdgeInsets.all(8),
-                    //   decoration: BoxDecoration(
-                    //     border: Border.all(color: Colors.grey.shade300),
-                    //     borderRadius: BorderRadius.circular(10),
-                    //     color: const Color(0xFFF8FAFD),
-                    //   ),
-                    //   child: Column(
-                    //     children: _serviceKeys.map((service) {
-                    //       return CheckboxListTile(
-                    //         dense: true,
-                    //         contentPadding: EdgeInsets.zero,
-                    //         value: _formValues['selectService'].contains(service),
-                    //         title: Text(_getServiceLabel(service)),
-                    //         onChanged: (_) => _onServiceToggle(service),
-                    //       );
-                    //     }).toList(),
-                    //   ),
-                    // ),
-                    // const SizedBox(height: 15),
-
-
-
-                    // Error message if any
-                    if (userState.error != null)
-                      Container(
-                        padding: const EdgeInsets.all(12),
-                        margin: const EdgeInsets.only(bottom: 16),
-                        decoration: BoxDecoration(
-                          color: Colors.red.shade50,
-                          borderRadius: BorderRadius.circular(8),
-                          border: Border.all(color: Colors.red.shade200),
-                        ),
-                        child: Row(
-                          children: [
-                            const Icon(Icons.error_outline, color: Colors.red),
-                            const SizedBox(width: 8),
-                            Expanded(
-                              child: Text(
-                                userState.error!,
-                                style: const TextStyle(color: Colors.red),
-                              ),
+                      const SizedBox(width: 10),
+                      Expanded(
+                        child: OutlinedButton.icon(
+                          style: OutlinedButton.styleFrom(
+                            minimumSize: const Size(double.infinity, 50),
+                            side: const BorderSide(color: Color(0xFFBFD1EE)),
+                            shape: RoundedRectangleBorder(
+                              borderRadius: BorderRadius.circular(12),
                             ),
-                            IconButton(
-                              icon: const Icon(Icons.close, size: 16),
-                              onPressed: () => ref.read(userNotifierProvider.notifier).clearError(),
+                          ),
+                          onPressed: () => Navigator.pop(context),
+                          icon: const Icon(
+                            Icons.arrow_back_rounded,
+                            color: Color(0xFF1C3F78),
+                            size: 18,
+                          ),
+                          label: const Text(
+                            'Back',
+                            style: TextStyle(
+                              color: Color(0xFF1C3F78),
+                              fontWeight: FontWeight.w700,
                             ),
-                          ],
+                          ),
                         ),
                       ),
-
-                    // Buttons
-                    ElevatedButton(
-                      style: ElevatedButton.styleFrom(
-                        minimumSize: const Size(double.infinity, 48),
-                        backgroundColor: Colors.green,
-                        shape: RoundedRectangleBorder(
-                          borderRadius: BorderRadius.circular(10),
-                        ),
-                      ),
-                      onPressed: userState.isLoading ? null : _submitForm,
-                      child: userState.isLoading
-                          ? const ShimmerCircle(size: 24)
-                          : const Text(
-                        'Save & Submit',
-                        style: TextStyle(color: Colors.white),
+                    ],
+                  ),
+                  const SizedBox(height: 10),
+                  ElevatedButton.icon(
+                    style: ElevatedButton.styleFrom(
+                      minimumSize: const Size(double.infinity, 48),
+                      backgroundColor: const Color(0xFFBE2E2E),
+                      shape: RoundedRectangleBorder(
+                        borderRadius: BorderRadius.circular(12),
                       ),
                     ),
-                    const SizedBox(height: 10),
-                    ElevatedButton(
-                      style: ElevatedButton.styleFrom(
-                        minimumSize: const Size(double.infinity, 48),
-                        backgroundColor: Colors.blueAccent,
-                        shape: RoundedRectangleBorder(
-                          borderRadius: BorderRadius.circular(10),
-                        ),
-                      ),
-                      onPressed: () => Navigator.pop(context),
-                      child: const Text(
-                        'Back',
-                        style: TextStyle(color: Colors.white),
+                    onPressed: _handleLogout,
+                    icon: const Icon(
+                      Icons.logout_rounded,
+                      color: Colors.white,
+                      size: 18,
+                    ),
+                    label: const Text(
+                      'Log Out',
+                      style: TextStyle(color: Colors.white),
+                    ),
+                  ),
+                  const SizedBox(height: 8),
+                  TextButton(
+                    onPressed: _handleLogoutAll,
+                    child: const Text(
+                      'Log out from all devices',
+                      style: TextStyle(
+                        color: Color(0xFF4C5F81),
+                        fontWeight: FontWeight.w600,
                       ),
                     ),
-                    const SizedBox(height: 10),
-                    ElevatedButton(
-                      style: ElevatedButton.styleFrom(
-                        minimumSize: const Size(double.infinity, 48),
-                        backgroundColor: Colors.redAccent,
-                        shape: RoundedRectangleBorder(
-                          borderRadius: BorderRadius.circular(10),
-                        ),
-                      ),
-                      onPressed: _handleLogout,
-                      child: const Text(
-                        'Log out',
-                        style: TextStyle(color: Colors.white),
-                      ),
-                    ),
-                  ],
-                ),
+                  ),
+                ],
               ),
             ),
           ),
@@ -711,17 +706,132 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
       ),
     );
   }
+}
 
-  String _getServiceLabel(String key) {
-    final labels = {
-      'mechanical_work': 'Mechanical',
-      'painting': 'Painting',
-      'construction_work': 'Construction',
-      'insulation_work': 'Insulation Work',
-      'plumbing': 'Plumbing',
-      'rooting_work': 'Roofing Work',
-      'others': 'Others',
-    };
-    return labels[key] ?? key;
+class _ProfileSectionCard extends StatelessWidget {
+  const _ProfileSectionCard({
+    required this.title,
+    required this.icon,
+    required this.children,
+  });
+
+  final String title;
+  final IconData icon;
+  final List<Widget> children;
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      padding: const EdgeInsets.all(14),
+      decoration: BoxDecoration(
+        color: Colors.white,
+        borderRadius: BorderRadius.circular(16),
+        border: Border.all(color: const Color(0xFFDCE7F8)),
+        boxShadow: [
+          BoxShadow(
+            color: Colors.black.withOpacity(0.04),
+            blurRadius: 10,
+            offset: const Offset(0, 4),
+          ),
+        ],
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
+            children: [
+              Icon(icon, size: 18, color: const Color(0xFF1A4E96)),
+              const SizedBox(width: 8),
+              Text(
+                title,
+                style: const TextStyle(
+                  fontSize: 15,
+                  fontWeight: FontWeight.w800,
+                  color: Color(0xFF223A5F),
+                ),
+              ),
+            ],
+          ),
+          const SizedBox(height: 10),
+          ...children,
+        ],
+      ),
+    );
+  }
+}
+
+class _UploadTile extends StatelessWidget {
+  const _UploadTile({
+    required this.title,
+    required this.subtitle,
+    required this.icon,
+    required this.preview,
+    required this.onTap,
+  });
+
+  final String title;
+  final String subtitle;
+  final IconData icon;
+  final Widget? preview;
+  final VoidCallback onTap;
+
+  @override
+  Widget build(BuildContext context) {
+    return InkWell(
+      onTap: onTap,
+      borderRadius: BorderRadius.circular(12),
+      child: Ink(
+        padding: const EdgeInsets.all(10),
+        decoration: BoxDecoration(
+          color: const Color(0xFFF8FBFF),
+          borderRadius: BorderRadius.circular(12),
+          border: Border.all(color: const Color(0xFFD3E1F7)),
+        ),
+        child: Row(
+          children: [
+            Container(
+              width: 52,
+              height: 52,
+              decoration: BoxDecoration(
+                color: Colors.white,
+                borderRadius: BorderRadius.circular(10),
+                border: Border.all(color: const Color(0xFFCFDCF2)),
+              ),
+              child: preview == null
+                  ? Icon(icon, color: const Color(0xFF5678A8), size: 24)
+                  : ClipRRect(
+                      borderRadius: BorderRadius.circular(8),
+                      child: preview,
+                    ),
+            ),
+            const SizedBox(width: 10),
+            Expanded(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(
+                    title,
+                    style: const TextStyle(
+                      fontSize: 13.5,
+                      fontWeight: FontWeight.w700,
+                      color: Color(0xFF1F3558),
+                    ),
+                  ),
+                  const SizedBox(height: 2),
+                  Text(
+                    subtitle,
+                    style: const TextStyle(
+                      fontSize: 12,
+                      color: Color(0xFF61769B),
+                    ),
+                  ),
+                ],
+              ),
+            ),
+            const Icon(Icons.upload_rounded, color: Color(0xFF3F6DAE)),
+          ],
+        ),
+      ),
+    );
   }
 }

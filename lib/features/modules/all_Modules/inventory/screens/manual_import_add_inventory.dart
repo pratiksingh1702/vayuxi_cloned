@@ -1,6 +1,5 @@
 // screens/add_floor_page.dart
 import 'package:flutter/material.dart';
-import 'package:untitled2/core/utlis/colors/colors.dart';
 import 'package:untitled2/core/utlis/widgets/custom_appBar.dart';
 import 'package:untitled2/features/modules/all_Modules/dpr/dpr-setup/screens/view/view_select_page.dart';
 
@@ -14,8 +13,10 @@ class AddInventorySelection extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final colorScheme = Theme.of(context).colorScheme;
+    final isDark = Theme.of(context).brightness == Brightness.dark;
     return Scaffold(
-      backgroundColor: AppColors.lightBlue,
+      backgroundColor: colorScheme.surfaceContainerLowest,
       appBar: CustomAppBar(title:"Select Card"),
       body: Column(
         children: [
@@ -73,11 +74,14 @@ class AddInventorySelection extends StatelessWidget {
             width: double.infinity,
             padding: const EdgeInsets.all(16),
             decoration: BoxDecoration(
-              color: Colors.white,
+              color: colorScheme.surface,
               borderRadius: BorderRadius.circular(18),
+              border: Border.all(color: colorScheme.outlineVariant.withOpacity(0.45)),
               boxShadow: [
                 BoxShadow(
-                  color: Colors.black.withOpacity(0.08),
+                  color: isDark
+                      ? colorScheme.shadow.withOpacity(0.12)
+                      : colorScheme.shadow.withOpacity(0.06),
                   blurRadius: 12,
                   offset: const Offset(0, 6),
                 ),
@@ -85,22 +89,23 @@ class AddInventorySelection extends StatelessWidget {
             ),
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
-              children: const [
+              children: [
                 Text(
                   "Choose the entry method",
                   style: TextStyle(
                     fontSize: 16,
                     fontWeight: FontWeight.w700,
+                    color: colorScheme.onSurface,
                   ),
                 ),
-                SizedBox(height: 8),
+                const SizedBox(height: 8),
                 Text(
                   "• Manual Entry: Enter site details step-by-step manually.\n"
                       "• Import Sheet: Upload an Excel/CSV sheet — our AI will analyze your file and map fields automatically.",
                   style: TextStyle(
                     fontSize: 13,
                     height: 1.5,
-                    color: Colors.black87,
+                    color: colorScheme.onSurfaceVariant,
                   ),
                 ),
               ],

@@ -6,6 +6,7 @@ class Routes {
   static const String selectModule = '/select-module';
   static const String selectLanguage = '/select-language';
   static const String workCategory = '/workCategory';
+  static const String automatedEntry = '/automated-entry';
   static const String profile = '/profile';
   static const String siteList = '/site-list';
   static const String register = '/register';

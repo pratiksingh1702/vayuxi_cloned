@@ -87,9 +87,9 @@ class _TeamListPageState extends ConsumerState<TeamListPage> {
   Future<void> _deleteSelectedTeams() async {
     if (_selectedTeamIds.isEmpty) {
       ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(
+        SnackBar(
           content: Text('No teams selected'),
-          backgroundColor: Colors.orange,
+          backgroundColor: Theme.of(context).colorScheme.tertiary,
         ),
       );
       return;
@@ -110,7 +110,9 @@ class _TeamListPageState extends ConsumerState<TeamListPage> {
           ),
           TextButton(
             onPressed: () => Navigator.pop(context, true),
-            style: TextButton.styleFrom(foregroundColor: Colors.red),
+            style: TextButton.styleFrom(
+              foregroundColor: Theme.of(context).colorScheme.error,
+            ),
             child: const Text('Delete'),
           ),
         ],
@@ -131,7 +133,7 @@ class _TeamListPageState extends ConsumerState<TeamListPage> {
             content: Text(
               'Successfully deleted ${_selectedTeamIds.length} teams',
             ),
-            backgroundColor: Colors.green,
+            backgroundColor: Theme.of(context).colorScheme.primary,
           ),
         );
       }
@@ -149,7 +151,7 @@ class _TeamListPageState extends ConsumerState<TeamListPage> {
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
             content: Text('Bulk delete failed: $message'),
-            backgroundColor: Colors.red,
+            backgroundColor: Theme.of(context).colorScheme.error,
           ),
         );
       }
@@ -160,10 +162,11 @@ class _TeamListPageState extends ConsumerState<TeamListPage> {
   Widget build(BuildContext context) {
     final teamState = ref.watch(teamProvider);
     final site = ref.read(currentSiteProvider);
+    final colorScheme = Theme.of(context).colorScheme;
 
     return Scaffold(
       drawer: const CustomDrawer(),
-      backgroundColor: const Color(0xFFEAF3FB),
+      backgroundColor: colorScheme.surfaceContainerLowest,
       appBar: CustomAppBar(
         title: _isSelectionMode
             ? '${_selectedTeamIds.length} Selected'
@@ -174,8 +177,8 @@ class _TeamListPageState extends ConsumerState<TeamListPage> {
           CustomButton(
             button: RoundedButton(
               text: "Add",
-              color: Colors.blue,
-              textColor: Colors.white,
+              color: colorScheme.primary,
+              textColor: colorScheme.onPrimary,
               onPressed: () {
                   context.push(Routes.addTeam);
                 },
@@ -209,13 +212,13 @@ class _TeamListPageState extends ConsumerState<TeamListPage> {
                     padding: const EdgeInsets.all(10),
                     margin: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
                     decoration: BoxDecoration(
-                      color: Colors.orange.withOpacity(0.15),
+                      color: colorScheme.tertiaryContainer,
                       borderRadius: BorderRadius.circular(10),
-                      border: Border.all(color: Colors.orange),
+                      border: Border.all(color: colorScheme.tertiary),
                     ),
                     child: Text(
                       teamState.error!,
-                      style: const TextStyle(color: Colors.orange),
+                      style: TextStyle(color: colorScheme.onTertiaryContainer),
                     ),
                   ),
 
@@ -243,15 +246,15 @@ class _TeamListPageState extends ConsumerState<TeamListPage> {
                               onPressed:
                               _selectedTeamIds.isEmpty ? null : _deleteSelectedTeams,
                               style: ElevatedButton.styleFrom(
-                                backgroundColor: Colors.red,
-                                foregroundColor: Colors.white,
+                                backgroundColor: colorScheme.error,
+                                foregroundColor: colorScheme.onError,
                               ),
                             ),
                           ] else ...[
                             IconButton(
-                              icon: const Icon(
+                              icon: Icon(
                                 Icons.delete_sweep,
-                                color: Colors.red,
+                                color: colorScheme.error,
                               ),
                               onPressed: teams.isEmpty ? null : _toggleSelectionMode,
                               tooltip: 'Select Teams to Delete',
@@ -313,7 +316,13 @@ class _TeamListPageState extends ConsumerState<TeamListPage> {
               });
             },
             child: Card(
-              color: Colors.white,
+              color: Theme.of(context).colorScheme.surface,
+              shape: RoundedRectangleBorder(
+                borderRadius: BorderRadius.circular(12),
+                side: BorderSide(
+                  color: Theme.of(context).colorScheme.outlineVariant.withOpacity(0.45),
+                ),
+              ),
               child: Stack(
                 children: [
                   Center(
@@ -377,12 +386,12 @@ class _TeamListPageState extends ConsumerState<TeamListPage> {
                         child: Container(
                           padding: const EdgeInsets.all(6),
                           decoration: BoxDecoration(
-                            color: Colors.red.withOpacity(0.9),
+                            color: Theme.of(context).colorScheme.error,
                             shape: BoxShape.circle,
                           ),
-                          child: const Icon(
+                          child: Icon(
                             Icons.delete_outline,
-                            color: Colors.white,
+                            color: Theme.of(context).colorScheme.onError,
                             size: 18,
                           ),
                         ),
@@ -406,23 +415,25 @@ class _TeamListPageState extends ConsumerState<TeamListPage> {
                 height: 32,
                 decoration: BoxDecoration(
                   shape: BoxShape.circle,
-                  color: isSelected ? Colors.red : Colors.white,
+                  color: isSelected
+                      ? Theme.of(context).colorScheme.error
+                      : Theme.of(context).colorScheme.surface,
                   border: Border.all(
-                    color: Colors.red,
+                    color: Theme.of(context).colorScheme.error,
                     width: 2,
                   ),
                   boxShadow: [
                     BoxShadow(
-                      color: Colors.black.withOpacity(0.2),
+                      color: Theme.of(context).colorScheme.shadow.withOpacity(0.16),
                       blurRadius: 4,
                       offset: const Offset(0, 2),
                     ),
                   ],
                 ),
                 child: isSelected
-                    ? const Icon(
+                    ? Icon(
                   Icons.check,
-                  color: Colors.white,
+                  color: Theme.of(context).colorScheme.onError,
                   size: 20,
                 )
                     : null,
@@ -447,7 +458,10 @@ class _TeamListPageState extends ConsumerState<TeamListPage> {
             child: const Text("Cancel"),
           ),
           ElevatedButton(
-            style: ElevatedButton.styleFrom(backgroundColor: Colors.red),
+              style: ElevatedButton.styleFrom(
+                backgroundColor: Theme.of(context).colorScheme.error,
+                foregroundColor: Theme.of(context).colorScheme.onError,
+              ),
             onPressed: () => Navigator.pop(context, true),
             child: const Text("Delete"),
           ),
@@ -480,7 +494,7 @@ class _TeamListPageState extends ConsumerState<TeamListPage> {
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
           content: Text("❌ Failed to delete team"),
-          backgroundColor: Colors.red,
+          backgroundColor: Theme.of(context).colorScheme.error,
         ),
       );
     }

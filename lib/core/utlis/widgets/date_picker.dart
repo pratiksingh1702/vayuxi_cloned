@@ -39,9 +39,13 @@ class _BeautifulDatePickerState extends State<BeautifulDatePicker> {
 
   @override
   Widget build(BuildContext context) {
-    final primaryColor = widget.primaryColor ?? Theme.of(context).primaryColor;
-    final accentColor = widget.accentColor ?? Theme.of(context).colorScheme.secondary;
-    final backgroundColor = widget.backgroundColor ?? Theme.of(context).scaffoldBackgroundColor;
+    final cs = Theme.of(context).colorScheme;
+    final primaryColor = widget.primaryColor ?? cs.primary;
+    final accentColor = widget.accentColor ?? cs.secondary;
+    final backgroundColor = widget.backgroundColor ??
+        (Theme.of(context).brightness == Brightness.dark
+            ? cs.surface
+            : cs.surfaceContainerLowest);
 
     return Dialog(
       backgroundColor: backgroundColor,
@@ -71,7 +75,7 @@ class _BeautifulDatePickerState extends State<BeautifulDatePicker> {
                     ),
                   ),
                   IconButton(
-                    icon: Icon(Icons.close, color: Colors.grey.shade600),
+                    icon: Icon(Icons.close, color: cs.onSurfaceVariant),
                     onPressed: () => Navigator.pop(context),
                   ),
                 ],
@@ -81,7 +85,8 @@ class _BeautifulDatePickerState extends State<BeautifulDatePicker> {
 
               // Selected date display
               Container(
-                padding: const EdgeInsets.symmetric(vertical: 12, horizontal: 16),
+                padding:
+                    const EdgeInsets.symmetric(vertical: 12, horizontal: 16),
                 decoration: BoxDecoration(
                   color: primaryColor.withOpacity(0.1),
                   borderRadius: BorderRadius.circular(12),
@@ -109,11 +114,13 @@ class _BeautifulDatePickerState extends State<BeautifulDatePicker> {
               // Calendar
               Container(
                 decoration: BoxDecoration(
-                  color: Colors.white,
+                  color: Theme.of(context).brightness == Brightness.dark
+                      ? cs.surfaceContainer
+                      : cs.surface,
                   borderRadius: BorderRadius.circular(16),
                   boxShadow: [
                     BoxShadow(
-                      color: Colors.black.withOpacity(0.05),
+                      color: cs.shadow.withOpacity(0.05),
                       blurRadius: 10,
                       offset: const Offset(0, 4),
                     ),
@@ -142,11 +149,13 @@ class _BeautifulDatePickerState extends State<BeautifulDatePicker> {
 
                   // Calendar styling
                   calendarStyle: CalendarStyle(
-                    defaultTextStyle: const TextStyle(fontWeight: FontWeight.w500),
-                    weekendTextStyle: const TextStyle(fontWeight: FontWeight.w500),
+                    defaultTextStyle:
+                        const TextStyle(fontWeight: FontWeight.w500),
+                    weekendTextStyle:
+                        const TextStyle(fontWeight: FontWeight.w500),
                     selectedTextStyle: TextStyle(
                       fontWeight: FontWeight.bold,
-                      color: Colors.white,
+                      color: cs.onSecondary,
                     ),
                     todayTextStyle: TextStyle(
                       fontWeight: FontWeight.bold,
@@ -163,7 +172,7 @@ class _BeautifulDatePickerState extends State<BeautifulDatePicker> {
                     ),
                     weekendDecoration: BoxDecoration(
                       shape: BoxShape.circle,
-                      color: Colors.grey.shade50,
+                      color: cs.surfaceContainerLowest,
                     ),
                     outsideDaysVisible: false,
                   ),
@@ -176,9 +185,12 @@ class _BeautifulDatePickerState extends State<BeautifulDatePicker> {
                       color: primaryColor,
                       borderRadius: BorderRadius.circular(8),
                     ),
-                    formatButtonTextStyle: const TextStyle(color: Colors.white),
-                    leftChevronIcon: Icon(Icons.chevron_left, color: primaryColor),
-                    rightChevronIcon: Icon(Icons.chevron_right, color: primaryColor),
+                    formatButtonTextStyle: TextStyle(
+                        color: Theme.of(context).colorScheme.onPrimary),
+                    leftChevronIcon:
+                        Icon(Icons.chevron_left, color: primaryColor),
+                    rightChevronIcon:
+                        Icon(Icons.chevron_right, color: primaryColor),
                     titleTextStyle: TextStyle(
                       color: primaryColor,
                       fontSize: 16,
@@ -188,11 +200,11 @@ class _BeautifulDatePickerState extends State<BeautifulDatePicker> {
 
                   daysOfWeekStyle: DaysOfWeekStyle(
                     weekdayStyle: TextStyle(
-                      color: Colors.grey.shade700,
+                      color: cs.onSurfaceVariant,
                       fontWeight: FontWeight.w500,
                     ),
                     weekendStyle: TextStyle(
-                      color: Colors.grey.shade700,
+                      color: cs.onSurfaceVariant,
                       fontWeight: FontWeight.w500,
                     ),
                   ),
@@ -212,13 +224,13 @@ class _BeautifulDatePickerState extends State<BeautifulDatePicker> {
                         shape: RoundedRectangleBorder(
                           borderRadius: BorderRadius.circular(12),
                         ),
-                        side: BorderSide(color: Colors.grey.shade300),
+                        side: BorderSide(color: cs.outlineVariant),
                       ),
                       child: Text(
                         'Cancel',
                         style: TextStyle(
                           fontSize: 16,
-                          color: Colors.grey.shade600,
+                          color: cs.onSurfaceVariant,
                         ),
                       ),
                     ),
@@ -240,7 +252,6 @@ class _BeautifulDatePickerState extends State<BeautifulDatePicker> {
                         style: TextStyle(
                           fontSize: 16,
                           fontWeight: FontWeight.w500,
-                          color: Colors.white,
                         ),
                       ),
                     ),
@@ -263,6 +274,19 @@ class _BeautifulDatePickerState extends State<BeautifulDatePicker> {
   }
 
   String _getMonthName(DateTime date) {
-    return ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'][date.month - 1];
+    return [
+      'Jan',
+      'Feb',
+      'Mar',
+      'Apr',
+      'May',
+      'Jun',
+      'Jul',
+      'Aug',
+      'Sep',
+      'Oct',
+      'Nov',
+      'Dec'
+    ][date.month - 1];
   }
 }

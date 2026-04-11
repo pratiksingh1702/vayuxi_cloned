@@ -12,7 +12,6 @@ import 'package:untitled2/features/language/service/providers.dart';
 import 'package:untitled2/features/modules/all_Modules/site_Details/screens/site_entry_select_page.dart';
 
 import '../../../../../core/router/routes.dart';
-import '../../../../../core/utlis/colors/colors.dart';
 import '../../../../../core/utlis/common_functions.dart';
 import '../../../../../core/utlis/widgets/Button_wrapper.dart';
 import '../../../../../core/utlis/widgets/card.dart';
@@ -35,7 +34,8 @@ class SiteListScreen extends ConsumerStatefulWidget {
   final bool show;
   final String? module;
 
-  const SiteListScreen({super.key, required this.pageBuilder, this.show = false, this.module});
+  const SiteListScreen(
+      {super.key, required this.pageBuilder, this.show = false, this.module});
 
   @override
   ConsumerState<SiteListScreen> createState() => _SiteListScreenState();
@@ -64,17 +64,15 @@ class _SiteListScreenState extends ConsumerState<SiteListScreen>
     });
   }
 
-
-
-
   Future<void> _confirmAndDeleteSite(SiteModel site) async {
+    final cs = Theme.of(context).colorScheme;
     final confirm = await showDialog<bool>(
       context: context,
       builder: (context) => AlertDialog(
         title: const Text("Delete Site"),
         content: Text(
           "Are you sure you want to delete '${site.siteName}'?\n\n"
-              "This action cannot be undone.",
+          "This action cannot be undone.",
         ),
         actions: [
           TextButton(
@@ -82,7 +80,10 @@ class _SiteListScreenState extends ConsumerState<SiteListScreen>
             child: const Text("Cancel"),
           ),
           ElevatedButton(
-            style: ElevatedButton.styleFrom(backgroundColor: Colors.red,foregroundColor: Colors.white),
+            style: ElevatedButton.styleFrom(
+              backgroundColor: cs.error,
+              foregroundColor: cs.onError,
+            ),
             onPressed: () => Navigator.pop(context, true),
             child: const Text("Delete"),
           ),
@@ -112,7 +113,6 @@ class _SiteListScreenState extends ConsumerState<SiteListScreen>
       AppToast.error("❌ $error");
     }
   }
-
 
   /// Toggle selection mode
   void _toggleSelectionMode() {
@@ -150,13 +150,15 @@ class _SiteListScreenState extends ConsumerState<SiteListScreen>
       return;
     }
 
+    final cs = Theme.of(context).colorScheme;
+
     final confirmed = await showDialog<bool>(
       context: context,
       builder: (context) => AlertDialog(
         title: const Text('Delete Selected Sites'),
         content: Text(
           'Are you sure you want to delete ${_selectedSiteIds.length} selected sites?\n\n'
-              'This action cannot be undone.',
+          'This action cannot be undone.',
         ),
         actions: [
           TextButton(
@@ -165,7 +167,7 @@ class _SiteListScreenState extends ConsumerState<SiteListScreen>
           ),
           TextButton(
             onPressed: () => Navigator.pop(context, true),
-            style: TextButton.styleFrom(foregroundColor: Colors.red),
+            style: TextButton.styleFrom(foregroundColor: cs.error),
             child: const Text('Delete'),
           ),
         ],
@@ -181,7 +183,8 @@ class _SiteListScreenState extends ConsumerState<SiteListScreen>
 
       if (!mounted) return;
 
-      AppToast.success("✅ Successfully deleted ${_selectedSiteIds.length} sites");
+      AppToast.success(
+          "✅ Successfully deleted ${_selectedSiteIds.length} sites");
 
       setState(() {
         _selectedSiteIds.clear();
@@ -196,14 +199,10 @@ class _SiteListScreenState extends ConsumerState<SiteListScreen>
     }
   }
 
-
   @override
   Widget build(BuildContext context) {
     print("🏗️ Building SiteListScreen");
-    final lang=ref.watch(dailyEntryTranslationHelperProvider);
-
-    final selectedSiteId = ref.watch(selectedSiteIdProvider);
-    final currentSite = ref.watch(currentSiteProvider);
+    final lang = ref.watch(dailyEntryTranslationHelperProvider);
 
     return ShowCaseWidget(
       builder: (showcaseContext) {
@@ -226,11 +225,11 @@ class _SiteListScreenState extends ConsumerState<SiteListScreen>
           ),
         );
       },
-
     );
   }
 
   Widget _buildMainBody() {
+    final cs = Theme.of(context).colorScheme;
     final siteState = ref.watch(siteProvider);
     final sites = siteState.sites;
 
@@ -243,8 +242,8 @@ class _SiteListScreenState extends ConsumerState<SiteListScreen>
               description: "Tap here to create your first Site",
               child: RoundedButton(
                 text: "Add",
-                color: Colors.blue,
-                textColor: Colors.white,
+                color: cs.primary,
+                textColor: cs.onPrimary,
                 onPressed: () async {
                   context.push(Routes.siteEntrySelect);
                   await TourPersistence().markCompleted();
@@ -254,7 +253,6 @@ class _SiteListScreenState extends ConsumerState<SiteListScreen>
             ),
           ),
       ],
-
       child: Column(
         children: [
           // Top action bar with selection controls
@@ -262,7 +260,6 @@ class _SiteListScreenState extends ConsumerState<SiteListScreen>
             Row(
               mainAxisAlignment: MainAxisAlignment.end,
               children: [
-
                 Row(
                   children: [
                     if (_isSelectionMode) ...[
@@ -283,15 +280,16 @@ class _SiteListScreenState extends ConsumerState<SiteListScreen>
                             ? null
                             : _deleteSelectedSites,
                         style: ElevatedButton.styleFrom(
-                          backgroundColor: Colors.red,
-                          foregroundColor: Colors.white,
+                          backgroundColor: cs.error,
+                          foregroundColor: cs.onError,
                         ),
                       ),
                     ] else ...[
                       if (widget.show)
                         IconButton(
-                          icon: const Icon(Icons.delete_sweep, color: Colors.red),
-                          onPressed: sites.isEmpty ? null : _toggleSelectionMode,
+                          icon: Icon(Icons.delete_sweep, color: cs.error),
+                          onPressed:
+                              sites.isEmpty ? null : _toggleSelectionMode,
                           tooltip: 'Select Sites to Delete',
                         ),
                     ],
@@ -317,6 +315,9 @@ class _SiteListScreenState extends ConsumerState<SiteListScreen>
   }
 
   Widget _buildBody(SiteState siteState) {
+    final cs = Theme.of(context).colorScheme;
+    final isDark = Theme.of(context).brightness == Brightness.dark;
+
     // Show loading only when truly loading and no data
     if (siteState.isLoading && siteState.sites.isEmpty) {
       print("⏳ Showing loading indicator");
@@ -334,17 +335,17 @@ class _SiteListScreenState extends ConsumerState<SiteListScreen>
         child: Column(
           mainAxisAlignment: MainAxisAlignment.center,
           children: [
-            const Icon(Icons.error_outline, size: 64, color: Colors.red),
+            Icon(Icons.error_outline, size: 64, color: cs.error),
             const SizedBox(height: 16),
             Text(
               'Error loading sites',
-              style: TextStyle(fontSize: 18, color: Colors.grey[700]),
+              style: TextStyle(fontSize: 18, color: cs.onSurface),
             ),
             const SizedBox(height: 8),
             Text(
               siteState.error!,
               textAlign: TextAlign.center,
-              style: TextStyle(color: Colors.grey[600]),
+              style: TextStyle(color: cs.onSurfaceVariant),
             ),
             const SizedBox(height: 16),
             ElevatedButton(
@@ -366,11 +367,11 @@ class _SiteListScreenState extends ConsumerState<SiteListScreen>
         child: Column(
           mainAxisAlignment: MainAxisAlignment.center,
           children: [
-            Icon(Icons.search_off, size: 64, color: Colors.grey),
+            Icon(Icons.search_off, size: 64),
             SizedBox(height: 16),
             Text(
               "No sites available",
-              style: TextStyle(fontSize: 18, color: Colors.grey),
+              style: TextStyle(fontSize: 18),
             ),
           ],
         ),
@@ -380,110 +381,119 @@ class _SiteListScreenState extends ConsumerState<SiteListScreen>
     // Show data with grid view
     print("🎯 Showing ${siteState.sites.length} sites in grid");
     return Container(
-      color: AppColors.lightBlue,
-      child: CustomScrollbar(
-        controller: _gridScrollController,
-        child: GridView.builder(
+        color: isDark ? cs.surface : cs.surfaceContainerLowest,
+        child: CustomScrollbar(
           controller: _gridScrollController,
-          physics: const AlwaysScrollableScrollPhysics(),
-          padding: const EdgeInsets.all(8),
-          gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
-            crossAxisCount: 2,
-            mainAxisSpacing: 16,
-            crossAxisSpacing: 1,
-            childAspectRatio: 1.1,
-          ),
-          itemCount: siteState.sites.length,
-          itemBuilder: (context, index) {
-          final site = siteState.sites[index];
-          final isSelected = _selectedSiteIds.contains(site.id);
+          child: GridView.builder(
+            controller: _gridScrollController,
+            physics: const AlwaysScrollableScrollPhysics(),
+            padding: const EdgeInsets.all(8),
+            gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
+              crossAxisCount: 2,
+              mainAxisSpacing: 16,
+              crossAxisSpacing: 1,
+              childAspectRatio: 1.1,
+            ),
+            itemCount: siteState.sites.length,
+            itemBuilder: (context, index) {
+              final site = siteState.sites[index];
+              final isSelected = _selectedSiteIds.contains(site.id);
 
-          print(site.siteImage);
-          print("🏢 Building card for site: ${site.siteName} (index: $index)");
+              print(site.siteImage);
+              print(
+                  "🏢 Building card for site: ${site.siteName} (index: $index)");
 
-          return Stack(
-            children: [
-              Opacity(
-                opacity: _isSelectionMode && !isSelected ? 0.5 : 1.0,
-                child: CompanyCard(
-                  imagePath: site.siteImage ?? 'assets/images/site_def.webp',
-                  defaultImage: 'assets/images/site_def.webp',
-                  companyName: site.siteName ?? 'Unknown Site',
-                  onTap: _isSelectionMode
-                      ? () => _toggleSiteSelection(site.id)
-                      : () {
-                    print("👆 Tapped on site: ${site.siteName}");
-                    ref.read(selectedSiteIdProvider.notifier).state = site.id;
+              return Stack(
+                children: [
+                  Opacity(
+                    opacity: _isSelectionMode && !isSelected ? 0.5 : 1.0,
+                    child: CompanyCard(
+                      imagePath:
+                          site.siteImage ?? 'assets/images/site_def.webp',
+                      defaultImage: 'assets/images/site_def.webp',
+                      companyName: site.siteName ?? 'Unknown Site',
+                      onTap: _isSelectionMode
+                          ? () => _toggleSiteSelection(site.id)
+                          : () {
+                              print("👆 Tapped on site: ${site.siteName}");
+                              ref.read(selectedSiteIdProvider.notifier).state =
+                                  site.id;
 
-                    if (widget.module == 'dpr') {
-                      final type = ref.read(typeProvider);
-                      final notifier = ref.read(teamProvider.notifier);
-                      if (type == "mechanical_work") {
-                        notifier.fetchMechanicalCombined(siteId: site.id);
-                      } else if (type == "insulation_work") {
-                        notifier.fetchInsulationCombined(siteId: site.id);
-                      } else {
-                        notifier.fetchTeams(type: type ?? "", siteId: site.id);
-                      }
-                    }
-                    final ew = ref.read(currentSiteProvider);
-                    print(ew?.siteName);
+                              if (widget.module == 'dpr') {
+                                final type = ref.read(typeProvider);
+                                final notifier =
+                                    ref.read(teamProvider.notifier);
+                                if (type == "mechanical_work") {
+                                  notifier.fetchMechanicalCombined(
+                                      siteId: site.id);
+                                } else if (type == "insulation_work") {
+                                  notifier.fetchInsulationCombined(
+                                      siteId: site.id);
+                                } else {
+                                  notifier.fetchTeams(
+                                      type: type ?? "", siteId: site.id);
+                                }
+                              }
+                              final ew = ref.read(currentSiteProvider);
+                              print(ew?.siteName);
 
-                    // context.push(Routes.siteDetail, extra: site);
-                    // For now, let's stick to pushing the page since pageBuilder is a closure
-                    Navigator.push(
-                      context,
-                      MaterialPageRoute(
-                        builder: (context) => widget.pageBuilder(site),
-                      ),
-                    );
-                  },
-                  onDelete: _isSelectionMode
-                      ? null
-                      : () => _confirmAndDeleteSite(site),
-                  show: widget.show && !_isSelectionMode,
-                ),
-              ),
-
-              // Selection checkbox overlay
-              if (_isSelectionMode)
-                Positioned(
-                  top: 8,
-                  right: 8,
-                  child: GestureDetector(
-                    onTap: () => _toggleSiteSelection(site.id),
-                    child: Container(
-                      width: 32,
-                      height: 32,
-                      decoration: BoxDecoration(
-                        shape: BoxShape.circle,
-                        color: isSelected ? Colors.red : Colors.white,
-                        border: Border.all(
-                          color: Colors.red,
-                          width: 2,
-                        ),
-                        boxShadow: [
-                          BoxShadow(
-                            color: Colors.black.withOpacity(0.2),
-                            blurRadius: 4,
-                            offset: const Offset(0, 2),
-                          ),
-                        ],
-                      ),
-                      child: isSelected
-                          ? const Icon(
-                        Icons.check,
-                        color: Colors.white,
-                        size: 20,
-                      )
-                          : null,
+                              // context.push(Routes.siteDetail, extra: site);
+                              // For now, let's stick to pushing the page since pageBuilder is a closure
+                              Navigator.push(
+                                context,
+                                MaterialPageRoute(
+                                  builder: (context) =>
+                                      widget.pageBuilder(site),
+                                ),
+                              );
+                            },
+                      onDelete: _isSelectionMode
+                          ? null
+                          : () => _confirmAndDeleteSite(site),
+                      show: widget.show && !_isSelectionMode,
                     ),
                   ),
-                ),
-            ],
-          );
-        },
-      ),
-    ));
+
+                  // Selection checkbox overlay
+                  if (_isSelectionMode)
+                    Positioned(
+                      top: 8,
+                      right: 8,
+                      child: GestureDetector(
+                        onTap: () => _toggleSiteSelection(site.id),
+                        child: Container(
+                          width: 32,
+                          height: 32,
+                          decoration: BoxDecoration(
+                            shape: BoxShape.circle,
+                            color: isSelected ? cs.error : cs.surface,
+                            border: Border.all(
+                              color: cs.error,
+                              width: 2,
+                            ),
+                            boxShadow: [
+                              BoxShadow(
+                                color:
+                                    cs.shadow.withOpacity(isDark ? 0.28 : 0.2),
+                                blurRadius: 4,
+                                offset: const Offset(0, 2),
+                              ),
+                            ],
+                          ),
+                          child: isSelected
+                              ? Icon(
+                                  Icons.check,
+                                  color: cs.onError,
+                                  size: 20,
+                                )
+                              : null,
+                        ),
+                      ),
+                    ),
+                ],
+              );
+            },
+          ),
+        ));
   }
 }

@@ -29,6 +29,8 @@ class CustomTextField extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final cs = Theme.of(context).colorScheme;
+
     return Padding(
       padding: const EdgeInsets.symmetric(vertical: 8.0),
       child: Column(
@@ -40,13 +42,13 @@ class CustomTextField extends StatelessWidget {
               style: TextStyle(
                 fontSize: TextSize,
                 fontWeight: FontWeight.w500,
-                color: Colors.black87,
+                color: cs.onSurface,
               ),
               children: [
                 if (isRequired)
-                  const TextSpan(
+                  TextSpan(
                     text: ' *',
-                    style: TextStyle(color: Colors.red),
+                    style: TextStyle(color: cs.error),
                   ),
               ],
             ),
@@ -59,26 +61,25 @@ class CustomTextField extends StatelessWidget {
             focusNode: focusNode,
             decoration: InputDecoration(
               hintText: hint ?? 'Enter $label',
-              hintStyle: const TextStyle(
-                color: Colors.grey,
+              hintStyle: TextStyle(
+                color: cs.onSurfaceVariant,
               ),
-
               filled: true,
-              fillColor: Colors.white,
+              fillColor: cs.surface,
               prefixIcon: prefixIcon,
               contentPadding:
-              const EdgeInsets.symmetric(horizontal: 12, vertical: 14),
+                  const EdgeInsets.symmetric(horizontal: 12, vertical: 14),
               border: OutlineInputBorder(
                 borderRadius: BorderRadius.circular(8),
-                borderSide: const BorderSide(color: Colors.grey),
+                borderSide: BorderSide(color: cs.outline),
               ),
               enabledBorder: OutlineInputBorder(
                 borderRadius: BorderRadius.circular(8),
-                borderSide: const BorderSide(color: Color(0xFFDFE2E6)),
+                borderSide: BorderSide(color: cs.outlineVariant),
               ),
               focusedBorder: OutlineInputBorder(
                 borderRadius: BorderRadius.circular(8),
-                borderSide: const BorderSide(color: Colors.blueAccent),
+                borderSide: BorderSide(color: cs.primary),
               ),
             ),
             validator: (value) {

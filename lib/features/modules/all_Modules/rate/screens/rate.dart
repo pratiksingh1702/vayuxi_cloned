@@ -158,6 +158,7 @@ class _RateScreenState extends ConsumerState<RateScreen> {
     final state = ref.watch(rateNotifierProvider);
     final site = ref.read(currentSiteProvider);
     final rates = state.data ?? [];
+    final colorScheme = Theme.of(context).colorScheme;
 
     return Scaffold(
       drawer: const CustomDrawer(),
@@ -176,8 +177,8 @@ class _RateScreenState extends ConsumerState<RateScreen> {
             CustomButton(
               button: RoundedButton(
                 text: "View Sheet",
-                color: Colors.blue,
-                textColor: Colors.white,
+                color: colorScheme.primary,
+                textColor: colorScheme.onPrimary,
                 onPressed: () {
                   final type = ref.read(typeProvider);
                   if (type != null) {
@@ -215,13 +216,13 @@ class _RateScreenState extends ConsumerState<RateScreen> {
                                 ? null
                                 : _deleteSelectedRates,
                             style: ElevatedButton.styleFrom(
-                              backgroundColor: Colors.red,
-                              foregroundColor: Colors.white,
+                              backgroundColor: colorScheme.error,
+                              foregroundColor: colorScheme.onError,
                             ),
                           ),
                         ] else ...[
                           IconButton(
-                            icon: const Icon(Icons.delete_sweep, color: Colors.red),
+                            icon: Icon(Icons.delete_sweep, color: colorScheme.error),
                             onPressed: rates.isEmpty ? null : _toggleSelectionMode,
                             tooltip: 'Select Rates to Delete',
                           ),
@@ -285,9 +286,14 @@ class _RateScreenState extends ConsumerState<RateScreen> {
           opacity: _isSelectionMode && !isSelected ? 0.5 : 1.0,
           child: Card(
             elevation: 0,
-            color: Colors.white,
+            color: Theme.of(context).colorScheme.surface,
             margin: const EdgeInsets.symmetric(horizontal: 16, vertical: 6),
-            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+            shape: RoundedRectangleBorder(
+              borderRadius: BorderRadius.circular(12),
+              side: BorderSide(
+                color: Theme.of(context).colorScheme.outlineVariant.withOpacity(0.4),
+              ),
+            ),
             child: InkWell(
               onTap: _isSelectionMode
                   ? () => _toggleRateSelection(rate.id)
@@ -330,7 +336,10 @@ class _RateScreenState extends ConsumerState<RateScreen> {
                             children: [
                               // ✏️ Edit
                               IconButton(
-                                icon: const Icon(Icons.edit, color: Colors.blue),
+                                icon: Icon(
+                                  Icons.edit,
+                                  color: Theme.of(context).colorScheme.primary,
+                                ),
                                 onPressed: () async {
                                   final result = await Navigator.push(
                                     context,
@@ -350,9 +359,9 @@ class _RateScreenState extends ConsumerState<RateScreen> {
 
                               // 🗑 Delete
                               IconButton(
-                                icon: const Icon(
+                                icon: Icon(
                                   Icons.delete_outline,
-                                  color: Colors.red,
+                                  color: Theme.of(context).colorScheme.error,
                                 ),
                                 onPressed: () {
                                   _confirmDeleteRate(
@@ -376,7 +385,7 @@ class _RateScreenState extends ConsumerState<RateScreen> {
                               vertical: 6,
                             ),
                             decoration: BoxDecoration(
-                              color: const Color(0xFFEFEFEF),
+                              color: Theme.of(context).colorScheme.surfaceContainerHigh,
                               borderRadius: BorderRadius.circular(20),
                             ),
                             child: Text(
@@ -405,23 +414,25 @@ class _RateScreenState extends ConsumerState<RateScreen> {
                 height: 32,
                 decoration: BoxDecoration(
                   shape: BoxShape.circle,
-                  color: isSelected ? Colors.red : Colors.white,
+                  color: isSelected
+                      ? Theme.of(context).colorScheme.error
+                      : Theme.of(context).colorScheme.surface,
                   border: Border.all(
-                    color: Colors.red,
+                    color: Theme.of(context).colorScheme.error,
                     width: 2,
                   ),
                   boxShadow: [
                     BoxShadow(
-                      color: Colors.black.withOpacity(0.2),
+                      color: Theme.of(context).colorScheme.shadow.withOpacity(0.16),
                       blurRadius: 4,
                       offset: const Offset(0, 2),
                     ),
                   ],
                 ),
                 child: isSelected
-                    ? const Icon(
+                    ? Icon(
                   Icons.check,
-                  color: Colors.white,
+                  color: Theme.of(context).colorScheme.onError,
                   size: 20,
                 )
                     : null,
@@ -506,7 +517,10 @@ Future<void> _confirmDeleteRate(
           child: const Text("Cancel"),
         ),
         ElevatedButton(
-          style: ElevatedButton.styleFrom(backgroundColor: Colors.red),
+          style: ElevatedButton.styleFrom(
+            backgroundColor: Theme.of(context).colorScheme.error,
+            foregroundColor: Theme.of(context).colorScheme.onError,
+          ),
           onPressed: () => Navigator.pop(context, true),
           child: const Text("Delete"),
         ),

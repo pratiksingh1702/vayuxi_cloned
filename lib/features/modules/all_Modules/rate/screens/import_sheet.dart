@@ -4,7 +4,6 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:file_picker/file_picker.dart';
 import 'package:go_router/go_router.dart';
-import 'package:untitled2/core/utlis/colors/colors.dart';
 import 'package:untitled2/core/utlis/widgets/image_clipped.dart';
 import 'package:untitled2/features/modules/all_Modules/rate/data/rateApi.dart';
 import 'package:untitled2/features/modules/all_Modules/rate/screens/rate.dart';
@@ -110,7 +109,7 @@ class _ImportCsvScreenState extends ConsumerState<ImportCsvScreen> {
 
       AppToast.success("✅ File added to upload queue");
       if (!mounted) return;
-      context.go('/site-list/rate');
+    
 
 
       // if (result['success'] == true) {
@@ -161,9 +160,10 @@ class _ImportCsvScreenState extends ConsumerState<ImportCsvScreen> {
   @override
   Widget build(BuildContext context) {
     final downloadState = ref.watch(templateDownloadControllerProvider);
+    final colorScheme = Theme.of(context).colorScheme;
     return Scaffold(
       drawer: const CustomDrawer(),
-      backgroundColor: AppColors.lightBlue,
+      backgroundColor: colorScheme.surfaceContainerLowest,
       appBar: CustomAppBar(
         title: 'Import Rate File',
 
@@ -177,8 +177,8 @@ class _ImportCsvScreenState extends ConsumerState<ImportCsvScreen> {
               RoundedButton(
                 width: double.infinity,
                 text: downloadState.isLoading ? "Downloading..." : "Download Sample Template",
-                color: Colors.white,
-                textColor: Colors.black45,
+                color: colorScheme.surface,
+                textColor: colorScheme.onSurface,
                 onPressed: downloadState.isLoading
                     ? () {}
                     : () async {Navigator.push(
@@ -211,7 +211,7 @@ class _ImportCsvScreenState extends ConsumerState<ImportCsvScreen> {
                 "* Use this format to ensure accurate and smooth import.",
                 style: TextStyle(
                   fontSize: 12,
-                  color: Colors.grey.shade700,
+                  color: colorScheme.onSurfaceVariant,
                   fontStyle: FontStyle.italic,
                   fontWeight: FontWeight.w500,
                 ),
@@ -236,14 +236,14 @@ class _ImportCsvScreenState extends ConsumerState<ImportCsvScreen> {
                 child: ElevatedButton(
                   onPressed: _isLoading ? null : _uploadCsv,
                   style: ElevatedButton.styleFrom(
-                    backgroundColor: Colors.blue,
-                    foregroundColor: Colors.white,
+                    backgroundColor: colorScheme.primary,
+                    foregroundColor: colorScheme.onPrimary,
                     padding: const EdgeInsets.symmetric(vertical: 16),
-                    disabledBackgroundColor: Colors.blue.withOpacity(0.5),
+                    disabledBackgroundColor: colorScheme.primary.withOpacity(0.5),
                     elevation: 0
                   ),
                   child: _isLoading
-                      ? const Row(
+                      ? Row(
                     mainAxisAlignment: MainAxisAlignment.center,
                     children: [
                       SizedBox(
@@ -251,11 +251,11 @@ class _ImportCsvScreenState extends ConsumerState<ImportCsvScreen> {
                         height: 16,
                         child: CircularProgressIndicator(
                           strokeWidth: 2,
-                          valueColor: AlwaysStoppedAnimation<Color>(Colors.white),
+                          valueColor: AlwaysStoppedAnimation<Color>(colorScheme.onPrimary),
                         ),
                       ),
-                      SizedBox(width: 8),
-                      Text('Uploading...'),
+                      const SizedBox(width: 8),
+                      const Text('Uploading...'),
                     ],
                   )
                       : const Row(

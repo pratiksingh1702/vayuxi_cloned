@@ -460,7 +460,7 @@ class _NewManpowerScreenState extends ConsumerState<NewManpowerScreen> {
 
     return Scaffold(
       drawer: const CustomDrawer(),
-      backgroundColor: AppColors.lightBlue,
+      backgroundColor: Theme.of(context).colorScheme.surfaceContainerLowest,
       appBar: CustomAppBar(title: "New Employee Details"),
       body: SingleChildScrollView(
         padding: const EdgeInsets.all(12),

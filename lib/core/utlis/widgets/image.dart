@@ -3,13 +3,14 @@ import 'package:flutter/material.dart';
 import 'package:untitled2/core/utlis/widgets/shimmer.dart';
 
 Widget buildSmartImage({
+  required BuildContext context,
   required String image,
   double height = 100,
   double width = double.infinity,
   BoxFit fit = BoxFit.contain,
 }) {
   if (image.isEmpty) {
-    return _imagePlaceholder(height, width);
+    return _imagePlaceholder(context, height, width);
   }
 
   final isAsset = image.startsWith('assets/');
@@ -26,7 +27,7 @@ Widget buildSmartImage({
           image,
           fit: fit,
           errorBuilder: (_, __, ___) =>
-              _imagePlaceholder(height, width),
+              _imagePlaceholder(context, height, width),
           loadingBuilder: (context, child, loadingProgress) {
             if (loadingProgress == null) return child;
             return ShimmerImage(
@@ -43,7 +44,7 @@ Widget buildSmartImage({
           image,
           fit: fit,
           errorBuilder: (_, __, ___) =>
-              _imagePlaceholder(height, width),
+              _imagePlaceholder(context, height, width),
         );
       }
 
@@ -54,27 +55,29 @@ Widget buildSmartImage({
           File(path),
           fit: fit,
           errorBuilder: (_, __, ___) =>
-              _imagePlaceholder(height, width),
+              _imagePlaceholder(context, height, width),
         );
       }
 
       // Fallback (unknown format)
-      return _imagePlaceholder(height, width);
+      return _imagePlaceholder(context, height, width);
     }(),
   );
 }
 
-Widget _imagePlaceholder(double height, double width) {
+Widget _imagePlaceholder(BuildContext context, double height, double width) {
+  final cs = Theme.of(context).colorScheme;
+
   return Container(
     height: height,
     width: width,
     decoration: BoxDecoration(
-      color: Colors.grey[200],
+      color: cs.surfaceContainer,
       borderRadius: BorderRadius.circular(8),
     ),
-    child: const Icon(
+    child: Icon(
       Icons.image_not_supported,
-      color: Colors.grey,
+      color: cs.onSurfaceVariant,
       size: 32,
     ),
   );

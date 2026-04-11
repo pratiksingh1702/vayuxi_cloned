@@ -230,7 +230,7 @@ class _AddTeamScreenState extends ConsumerState<AddTeamScreen> {
 
     return Scaffold(
       drawer: const CustomDrawer(),
-      backgroundColor: AppColors.lightBlue,
+      backgroundColor: Theme.of(context).colorScheme.surfaceContainerLowest,
       appBar: CustomAppBar(title: 'Add Team'),
       body: Padding(
         padding: const EdgeInsets.all(5),

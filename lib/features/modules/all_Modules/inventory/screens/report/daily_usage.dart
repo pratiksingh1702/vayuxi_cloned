@@ -70,9 +70,9 @@ class _BeautifulDatePickerState extends State<BeautifulDatePicker> {
 
   @override
   Widget build(BuildContext context) {
-    final primaryColor = AppColors.primaryColor;
-    final accentColor = AppColors.accentColor;
-    final backgroundColor = AppColors.lightBlue;
+    final primaryColor = Theme.of(context).colorScheme.primary;
+    final accentColor = Theme.of(context).colorScheme.tertiary;
+    final backgroundColor = Theme.of(context).colorScheme.surfaceContainerLowest;
     final firstDay = DateTime(2020, 1, 1);
     final lastDay = normalize(DateTime.now());
 

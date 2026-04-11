@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import 'package:untitled2/core/router/site_aware.dart';
+import 'package:untitled2/exit_wrapper.dart';
 import 'package:untitled2/features/modules/all_Modules/Manpower%20Details/screens/ManFieldMappingScreen.dart';
 import 'package:untitled2/features/modules/all_Modules/ai_analyze/model/ai_analyze_model.dart';
 import 'package:untitled2/features/modules/all_Modules/site_Details/repository/siteModel.dart';
@@ -12,6 +13,7 @@ import '../../features/auth/onboarding/screens/onboarding_screen.dart';
 import '../../features/auth/onboarding/screens/pla_Select_Screen.dart';
 import '../../features/auth/provider/auth_provider.dart';
 import '../../features/auth/screens/TrialScreen.dart';
+import '../../features/automated_entry/presentation/screens/automated_entry_screen.dart';
 import '../../features/auth/screens/login.dart';
 import '../../features/auth/screens/manpower_login_Screen.dart';
 import '../../features/auth/screens/sign_up.dart';
@@ -257,13 +259,15 @@ final appRouterProvider = Provider<GoRouter>((ref) {
           return const ManpowerLoginScreen();
         },
       ),
-      GoRoute(
-        path: Routes.workCategory,
-        builder: (context, state) {
-          _logRoute('WorkCategoryScreen', path: state.uri.toString());
-          return const WorkCategoryScreen();
-        },
-      ),
+   GoRoute(
+  path: Routes.workCategory,
+  builder: (context, state) {
+    _logRoute('WorkCategoryScreen', path: state.uri.toString());
+    return const ExitWrapper(           // ✅ add this
+      child: WorkCategoryScreen(),
+    );
+  },
+),
       GoRoute(
         path: Routes.selectModule,
         builder: (context, state) {
@@ -273,6 +277,13 @@ final appRouterProvider = Provider<GoRouter>((ref) {
               path: state.uri.toString(),
               extra: {'initialIndex': initialIndex});
           return ModuleScreen(initialIndex: initialIndex);
+        },
+      ),
+      GoRoute(
+        path: Routes.automatedEntry,
+        builder: (context, state) {
+          _logRoute('AutomatedEntryScreen', path: state.uri.toString());
+          return const AutomatedEntryScreen();
         },
       ),
 

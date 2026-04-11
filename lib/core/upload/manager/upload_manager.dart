@@ -25,9 +25,11 @@ class UploadManager extends Notifier<List<UploadJob>> {
   /// Throws a [TimeoutException] if the job does not complete within [timeout].
   Future<UploadJob> waitForCompletion(String jobId, {Duration timeout = const Duration(minutes: 5)}) async {
     print("🔍 [UploadManager] Starting tracking for job: $jobId (timeout: ${timeout.inSeconds}s)");
-    
+
     final completer = Completer<UploadJob>();
     Timer? timeoutTimer;
+    Timer? pollTimer;
+    UploadStatus? lastStatus;
 
     // Check if already completed
     final initial = _getJob(jobId);
@@ -44,10 +46,10 @@ class UploadManager extends Notifier<List<UploadJob>> {
       }
     });
 
-    // Listen for state changes
-    final subscription = ref.listen<List<UploadJob>>(uploadManagerProvider, (previous, next) {
-      final job = next.where((j) => j.jobId == jobId).firstOrNull;
-      
+    // Poll internal state to avoid provider self-dependency inside notifier.
+    pollTimer = Timer.periodic(const Duration(milliseconds: 150), (_) {
+      final job = _getJob(jobId);
+
       if (job == null) {
         print("❓ [UploadManager] Job $jobId removed from queue during tracking");
         if (!completer.isCompleted) {
@@ -56,13 +58,17 @@ class UploadManager extends Notifier<List<UploadJob>> {
         return;
       }
 
-      if (job.status.isTerminal) {
-        print("🏁 [UploadManager] Job $jobId reached terminal state: ${job.status}");
-        if (!completer.isCompleted) {
-          completer.complete(job);
+      if (lastStatus != job.status) {
+        lastStatus = job.status;
+        if (job.status.isTerminal) {
+          print("🏁 [UploadManager] Job $jobId reached terminal state: ${job.status}");
+        } else {
+          print("⏳ [UploadManager] Job $jobId status update: ${job.status} (${(job.progress * 100).toStringAsFixed(0)}%)");
         }
-      } else {
-        print("⏳ [UploadManager] Job $jobId status update: ${job.status} (${(job.progress * 100).toStringAsFixed(0)}%)");
+      }
+
+      if (job.status.isTerminal && !completer.isCompleted) {
+        completer.complete(job);
       }
     });
 
@@ -70,7 +76,7 @@ class UploadManager extends Notifier<List<UploadJob>> {
       return await completer.future;
     } finally {
       timeoutTimer.cancel();
-      subscription.close();
+      pollTimer?.cancel();
       print("🧹 [UploadManager] Tracking cleaned up for job: $jobId");
     }
   }

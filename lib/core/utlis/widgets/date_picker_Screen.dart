@@ -1,7 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
 import 'package:table_calendar/table_calendar.dart';
-import 'package:untitled2/core/utlis/colors/colors.dart';
 
 class DateRangeSelectionScreen extends StatefulWidget {
   final DateTime? initialStartDate;
@@ -16,7 +15,8 @@ class DateRangeSelectionScreen extends StatefulWidget {
   });
 
   @override
-  State<DateRangeSelectionScreen> createState() => _DateRangeSelectionScreenState();
+  State<DateRangeSelectionScreen> createState() =>
+      _DateRangeSelectionScreenState();
 }
 
 class _DateRangeSelectionScreenState extends State<DateRangeSelectionScreen> {
@@ -82,13 +82,15 @@ class _DateRangeSelectionScreenState extends State<DateRangeSelectionScreen> {
 
   @override
   Widget build(BuildContext context) {
+    final cs = Theme.of(context).colorScheme;
+    final isDark = Theme.of(context).brightness == Brightness.dark;
     return Scaffold(
       appBar: AppBar(
         title: const Text('Select Date Range'),
         centerTitle: true,
         elevation: 0,
-        backgroundColor: Colors.transparent,
-        foregroundColor: Colors.black,
+        backgroundColor: cs.surface.withOpacity(0),
+        foregroundColor: cs.onSurface,
         leading: IconButton(
           icon: const Icon(Icons.arrow_back),
           onPressed: () => Navigator.pop(context),
@@ -102,7 +104,7 @@ class _DateRangeSelectionScreenState extends State<DateRangeSelectionScreen> {
             ),
         ],
       ),
-      backgroundColor: AppColors.lightBlue,
+      backgroundColor: isDark ? cs.surface : cs.surfaceContainerLowest,
       body: Padding(
         padding: const EdgeInsets.all(16.0),
         child: Column(
@@ -149,9 +151,9 @@ class _DateRangeSelectionScreenState extends State<DateRangeSelectionScreen> {
             Container(
               padding: const EdgeInsets.all(16),
               decoration: BoxDecoration(
-                color: Colors.grey[50],
+                color: cs.surfaceContainerLowest,
                 borderRadius: BorderRadius.circular(12),
-                border: Border.all(color: Colors.grey),
+                border: Border.all(color: cs.outlineVariant),
               ),
               child: Row(
                 mainAxisAlignment: MainAxisAlignment.spaceBetween,
@@ -161,7 +163,7 @@ class _DateRangeSelectionScreenState extends State<DateRangeSelectionScreen> {
                     date: _startDate,
                     isSelected: _startDate != null,
                   ),
-                  const Icon(Icons.arrow_forward, color: Colors.grey),
+                  Icon(Icons.arrow_forward, color: cs.onSurfaceVariant),
                   _DateDisplay(
                     label: 'To',
                     date: _endDate,
@@ -177,11 +179,11 @@ class _DateRangeSelectionScreenState extends State<DateRangeSelectionScreen> {
               child: Container(
                 padding: const EdgeInsets.all(16),
                 decoration: BoxDecoration(
-                  color: Colors.white,
+                  color: isDark ? cs.surfaceContainer : cs.surface,
                   borderRadius: BorderRadius.circular(16),
                   boxShadow: [
                     BoxShadow(
-                      color: Colors.grey.withOpacity(0.1),
+                      color: cs.shadow.withOpacity(0.1),
                       blurRadius: 10,
                       spreadRadius: 2,
                     ),
@@ -197,7 +199,8 @@ class _DateRangeSelectionScreenState extends State<DateRangeSelectionScreen> {
                   selectedDayPredicate: (day) => false,
                   onDaySelected: (selectedDay, focusedDay) {
                     setState(() {
-                      if (_startDate == null || (_startDate != null && _endDate != null)) {
+                      if (_startDate == null ||
+                          (_startDate != null && _endDate != null)) {
                         _startDate = selectedDay;
                         _endDate = null;
                       } else if (selectedDay.isAfter(_startDate!)) {
@@ -214,31 +217,31 @@ class _DateRangeSelectionScreenState extends State<DateRangeSelectionScreen> {
                   },
                   calendarStyle: CalendarStyle(
                     todayDecoration: BoxDecoration(
-                      color: Colors.blue.withOpacity(0.2),
+                      color: cs.primary.withOpacity(0.2),
                       shape: BoxShape.circle,
                     ),
-                    todayTextStyle: const TextStyle(
-                      color: Colors.blue,
+                    todayTextStyle: TextStyle(
+                      color: cs.primary,
                       fontWeight: FontWeight.bold,
                     ),
-                    selectedDecoration: const BoxDecoration(
-                      color: Colors.blue,
+                    selectedDecoration: BoxDecoration(
+                      color: cs.primary,
                       shape: BoxShape.circle,
                     ),
-                    selectedTextStyle: const TextStyle(
-                      color: Colors.white,
+                    selectedTextStyle: TextStyle(
+                      color: cs.onPrimary,
                       fontWeight: FontWeight.bold,
                     ),
-                    rangeStartDecoration: const BoxDecoration(
-                      color: Colors.blue,
+                    rangeStartDecoration: BoxDecoration(
+                      color: cs.primary,
                       shape: BoxShape.circle,
                     ),
-                    rangeEndDecoration: const BoxDecoration(
-                      color: Colors.blue,
+                    rangeEndDecoration: BoxDecoration(
+                      color: cs.primary,
                       shape: BoxShape.circle,
                     ),
                     withinRangeDecoration: BoxDecoration(
-                      color: Colors.blue.withOpacity(0.1),
+                      color: cs.primary.withOpacity(0.1),
                       shape: BoxShape.circle,
                     ),
                     defaultDecoration: const BoxDecoration(
@@ -256,38 +259,39 @@ class _DateRangeSelectionScreenState extends State<DateRangeSelectionScreen> {
                   ),
                   headerStyle: HeaderStyle(
                     titleCentered: true,
-                    titleTextStyle: const TextStyle(
+                    titleTextStyle: TextStyle(
                       fontSize: 16,
                       fontWeight: FontWeight.w600,
-                      color: Colors.black87,
+                      color: cs.onSurface,
                     ),
                     formatButtonVisible: false,
-                    leftChevronIcon: const Icon(
+                    leftChevronIcon: Icon(
                       Icons.chevron_left,
-                      color: Colors.blue,
+                      color: cs.primary,
                       size: 24,
                     ),
-                    rightChevronIcon: const Icon(
+                    rightChevronIcon: Icon(
                       Icons.chevron_right,
-                      color: Colors.blue,
+                      color: cs.primary,
                       size: 24,
                     ),
-                    decoration: const BoxDecoration(
+                    decoration: BoxDecoration(
                       border: Border(
-                        bottom: BorderSide(color: Colors.grey, width: 0.5),
+                        bottom:
+                            BorderSide(color: cs.outlineVariant, width: 0.5),
                       ),
                     ),
                   ),
-                  daysOfWeekStyle: const DaysOfWeekStyle(
+                  daysOfWeekStyle: DaysOfWeekStyle(
                     weekdayStyle: TextStyle(
                       fontSize: 14,
                       fontWeight: FontWeight.w600,
-                      color: Colors.black87,
+                      color: cs.onSurface,
                     ),
                     weekendStyle: TextStyle(
                       fontSize: 14,
                       fontWeight: FontWeight.w600,
-                      color: Colors.black87,
+                      color: cs.onSurface,
                     ),
                   ),
                 ),
@@ -308,13 +312,13 @@ class _DateRangeSelectionScreenState extends State<DateRangeSelectionScreen> {
                         shape: RoundedRectangleBorder(
                           borderRadius: BorderRadius.circular(12),
                         ),
-                        side: BorderSide(color: Colors.grey[300]!),
+                        side: BorderSide(color: cs.outlineVariant),
                       ),
-                      child: const Text(
+                      child: Text(
                         'Cancel',
                         style: TextStyle(
                           fontSize: 16,
-                          color: Colors.black87,
+                          color: cs.onSurface,
                         ),
                       ),
                     ),
@@ -324,18 +328,17 @@ class _DateRangeSelectionScreenState extends State<DateRangeSelectionScreen> {
                     child: ElevatedButton(
                       onPressed: _startDate != null && _endDate != null
                           ? () {
-                        widget.onDatesSelected(_startDate!, _endDate!);
-
-                      }
+                              widget.onDatesSelected(_startDate!, _endDate!);
+                            }
                           : null,
                       style: ElevatedButton.styleFrom(
-                        backgroundColor: Colors.blue,
-                        foregroundColor: Colors.white,
+                        backgroundColor: cs.primary,
+                        foregroundColor: cs.onPrimary,
                         padding: const EdgeInsets.symmetric(vertical: 16),
                         shape: RoundedRectangleBorder(
                           borderRadius: BorderRadius.circular(12),
                         ),
-                        disabledBackgroundColor: Colors.grey[300],
+                        disabledBackgroundColor: cs.surfaceContainerHighest,
                       ),
                       child: const Text(
                         'Apply',
@@ -371,15 +374,17 @@ class _QuickButton extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final cs = Theme.of(context).colorScheme;
     return ElevatedButton(
       onPressed: onTap,
       style: ElevatedButton.styleFrom(
-        backgroundColor: isActive ? Colors.blue[100] : Colors.grey[100],
-        foregroundColor: isActive ? Colors.blue : Colors.grey[700],
+        backgroundColor:
+            isActive ? cs.primaryContainer : cs.surfaceContainerLowest,
+        foregroundColor: isActive ? cs.primary : cs.onSurfaceVariant,
         shape: RoundedRectangleBorder(
           borderRadius: BorderRadius.circular(8),
           side: BorderSide(
-            color: isActive ? Colors.blue : Colors.grey[300]!,
+            color: isActive ? cs.primary : cs.outlineVariant,
             width: isActive ? 1.5 : 1,
           ),
         ),
@@ -414,6 +419,7 @@ class _DateDisplay extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final cs = Theme.of(context).colorScheme;
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
@@ -421,7 +427,7 @@ class _DateDisplay extends StatelessWidget {
           label,
           style: TextStyle(
             fontSize: 12,
-            color: Colors.grey[600],
+            color: cs.onSurfaceVariant,
             fontWeight: FontWeight.w500,
           ),
         ),
@@ -429,10 +435,10 @@ class _DateDisplay extends StatelessWidget {
         Container(
           padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
           decoration: BoxDecoration(
-            color: isSelected ? Colors.blue[50] : Colors.white,
+            color: isSelected ? cs.primaryContainer : cs.surface,
             borderRadius: BorderRadius.circular(8),
             border: Border.all(
-              color: isSelected ? Colors.blue : Colors.grey[300]!,
+              color: isSelected ? cs.primary : cs.outlineVariant,
             ),
           ),
           child: Row(
@@ -441,7 +447,7 @@ class _DateDisplay extends StatelessWidget {
               Icon(
                 Icons.calendar_today,
                 size: 16,
-                color: isSelected ? Colors.blue : Colors.grey[600],
+                color: isSelected ? cs.primary : cs.onSurfaceVariant,
               ),
               const SizedBox(width: 6),
               Text(
@@ -450,7 +456,7 @@ class _DateDisplay extends StatelessWidget {
                     : 'Select date',
                 style: TextStyle(
                   fontSize: 14,
-                  color: isSelected ? Colors.blue : Colors.grey[700],
+                  color: isSelected ? cs.primary : cs.onSurfaceVariant,
                   fontWeight: isSelected ? FontWeight.w600 : FontWeight.normal,
                 ),
               ),

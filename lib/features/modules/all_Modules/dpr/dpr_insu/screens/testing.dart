@@ -3841,7 +3841,7 @@ class _AddInsulationDescriptionScreenState
             if (widget.work == null) {
             Navigator.of(context).popUntil((_) => count++ >= 5);
           } else {
-            Navigator.of(context).pop();
+            context.pop(true);
           }
           _showSnackBar("Successfully Saved");
         }

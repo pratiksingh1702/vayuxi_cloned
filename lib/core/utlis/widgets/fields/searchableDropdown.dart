@@ -11,18 +11,17 @@ class SearchableDropdown extends StatefulWidget {
   final double? maxHeight;
   final bool allowAddNew; // 🔥 NEW
 
-  const SearchableDropdown({
-    super.key,
-    required this.data,
-    required this.onSelect,
-    this.placeholder = "Search...",
-    this.value,
-    this.containerDecoration,
-    this.inputDecoration,
-    this.textStyle,
-    this.maxHeight = 180,
-    this.allowAddNew =true
-  });
+  const SearchableDropdown(
+      {super.key,
+      required this.data,
+      required this.onSelect,
+      this.placeholder = "Search...",
+      this.value,
+      this.containerDecoration,
+      this.inputDecoration,
+      this.textStyle,
+      this.maxHeight = 180,
+      this.allowAddNew = true});
 
   @override
   State<SearchableDropdown> createState() => _SearchableDropdownState();
@@ -95,14 +94,17 @@ class _SearchableDropdownState extends State<SearchableDropdown> {
                     elevation: 4,
                     borderRadius: BorderRadius.circular(8),
                     child: Container(
+                      // Overlay inherits active theme for dark/light parity.
                       width: size.width,
                       constraints: BoxConstraints(
                         maxHeight: widget.maxHeight ?? 180,
                       ),
                       decoration: BoxDecoration(
-                        color: Colors.white,
+                        color: Theme.of(context).colorScheme.surface,
                         borderRadius: BorderRadius.circular(8),
-                        border: Border.all(color: Colors.grey.shade300),
+                        border: Border.all(
+                            color:
+                                Theme.of(context).colorScheme.outlineVariant),
                       ),
                       child: _buildDropdown(),
                     ),
@@ -117,6 +119,7 @@ class _SearchableDropdownState extends State<SearchableDropdown> {
 
     Overlay.of(context).insert(_overlayEntry!);
   }
+
   void _hideDropdown() {
     _overlayEntry?.remove();
     _overlayEntry = null;
@@ -130,7 +133,7 @@ class _SearchableDropdownState extends State<SearchableDropdown> {
         _filteredData = _localData
             .where(
               (item) => item.toLowerCase().contains(query.toLowerCase()),
-        )
+            )
             .toList();
       }
     });
@@ -157,11 +160,13 @@ class _SearchableDropdownState extends State<SearchableDropdown> {
 
     _select(text);
   }
+
   Widget _buildDropdown() {
+    final cs = Theme.of(context).colorScheme;
     final text = _controller.text.trim();
 
     final hasExactMatch =
-    _localData.any((item) => item.toLowerCase() == text.toLowerCase());
+        _localData.any((item) => item.toLowerCase() == text.toLowerCase());
 
     final showAddOption =
         widget.allowAddNew && text.isNotEmpty && !hasExactMatch;
@@ -180,7 +185,7 @@ class _SearchableDropdownState extends State<SearchableDropdown> {
               'Add "$text"',
               style: TextStyle(
                 fontStyle: FontStyle.italic,
-                color: Theme.of(context).primaryColor,
+                color: cs.primary,
               ),
             ),
             onTap: _addNew,
@@ -195,9 +200,9 @@ class _SearchableDropdownState extends State<SearchableDropdown> {
           title: Text(
             value,
             style: widget.textStyle ??
-                const TextStyle(
+                TextStyle(
                   fontSize: 15,
-                  color: Color(0xFF124559),
+                  color: cs.onSurface,
                 ),
           ),
           onTap: () => _select(value),
@@ -216,15 +221,16 @@ class _SearchableDropdownState extends State<SearchableDropdown> {
 
   @override
   Widget build(BuildContext context) {
+    final cs = Theme.of(context).colorScheme;
     return CompositedTransformTarget(
       link: _layerLink,
       child: Container(
         decoration: widget.containerDecoration ??
             BoxDecoration(
-              color: Colors.white,
+              color: cs.surface,
               borderRadius: BorderRadius.circular(10),
               border: Border.all(
-                color: const Color(0xFF197278),
+                color: cs.primary,
               ),
             ),
         child: TextFormField(
@@ -235,7 +241,7 @@ class _SearchableDropdownState extends State<SearchableDropdown> {
           decoration: widget.inputDecoration ??
               InputDecoration(
                 hintText: widget.placeholder,
-                hintStyle: const TextStyle(color: Colors.grey),
+                hintStyle: TextStyle(color: cs.onSurfaceVariant),
                 isDense: true,
                 contentPadding: const EdgeInsets.symmetric(
                   horizontal: 12,
