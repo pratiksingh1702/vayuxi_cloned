@@ -3,7 +3,6 @@ import 'dart:io';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:table_calendar/table_calendar.dart';
-import 'package:untitled2/core/utlis/colors/colors.dart';
 import 'package:untitled2/core/utlis/widgets/custom_appBar.dart';
 import 'package:untitled2/core/utlis/widgets/image_clipped.dart';
 
@@ -170,7 +169,8 @@ class _SelectRangeScreenState extends ConsumerState<SelectRangeScreen> {
           );
 
           if (salaryDataList.isEmpty) {
-            setState(() => _currentStatus = 'No data found for $monthName ${date.year}');
+            setState(() =>
+                _currentStatus = 'No data found for $monthName ${date.year}');
             await Future.delayed(const Duration(milliseconds: 500));
             continue;
           }
@@ -190,7 +190,8 @@ class _SelectRangeScreenState extends ConsumerState<SelectRangeScreen> {
 
             try {
               final companyName =
-                  salaryData['companyDetails']?['name']?.toString() ?? 'Company';
+                  salaryData['companyDetails']?['name']?.toString() ??
+                      'Company';
               final user = ref.read(currentUserProvider);
 
               final pdfFile = await PDFGenerator.generateSalarySlipPDF(
@@ -259,8 +260,7 @@ class _SelectRangeScreenState extends ConsumerState<SelectRangeScreen> {
     final months = <DateTime>[];
     DateTime current = DateTime(start.year, start.month, 1);
     final endMonth = DateTime(end.year, end.month, 1);
-    while (
-        current.isBefore(endMonth) || current.isAtSameMomentAs(endMonth)) {
+    while (current.isBefore(endMonth) || current.isAtSameMomentAs(endMonth)) {
       months.add(current);
       current = DateTime(current.year, current.month + 1, 1);
     }
@@ -269,8 +269,18 @@ class _SelectRangeScreenState extends ConsumerState<SelectRangeScreen> {
 
   String _getMonthName(int month) {
     const months = [
-      'January', 'February', 'March', 'April', 'May', 'June',
-      'July', 'August', 'September', 'October', 'November', 'December'
+      'January',
+      'February',
+      'March',
+      'April',
+      'May',
+      'June',
+      'July',
+      'August',
+      'September',
+      'October',
+      'November',
+      'December'
     ];
     return months[month - 1];
   }
@@ -301,6 +311,7 @@ class _SelectRangeScreenState extends ConsumerState<SelectRangeScreen> {
   @override
   Widget build(BuildContext context) {
     final hasRange = _rangeStart != null && _rangeEnd != null;
+    final colorScheme = Theme.of(context).colorScheme;
 
     return Scaffold(
       drawer: const CustomDrawer(),
@@ -319,13 +330,16 @@ class _SelectRangeScreenState extends ConsumerState<SelectRangeScreen> {
                       children: [
                         LinearProgressIndicator(
                           value: _progress,
-                          backgroundColor: Colors.grey[300],
-                          valueColor:
-                              const AlwaysStoppedAnimation<Color>(Colors.blue),
+                          backgroundColor: colorScheme.surfaceContainerHighest,
+                          valueColor: AlwaysStoppedAnimation<Color>(
+                              colorScheme.primary),
                         ),
                         const SizedBox(height: 8),
                         Text(_currentStatus,
-                            style: const TextStyle(fontSize: 12)),
+                            style: TextStyle(
+                              fontSize: 12,
+                              color: colorScheme.onSurfaceVariant,
+                            )),
                       ],
                     ),
                   ),
@@ -337,11 +351,19 @@ class _SelectRangeScreenState extends ConsumerState<SelectRangeScreen> {
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
-                      const Text("From", style: TextStyle(fontSize: 14)),
+                      Text("From",
+                          style: TextStyle(
+                            fontSize: 14,
+                            color: colorScheme.onSurface,
+                          )),
                       const SizedBox(height: 5),
                       _textField(_formatDate(_rangeStart)),
                       const SizedBox(height: 15),
-                      const Text("To", style: TextStyle(fontSize: 14)),
+                      Text("To",
+                          style: TextStyle(
+                            fontSize: 14,
+                            color: colorScheme.onSurface,
+                          )),
                       const SizedBox(height: 5),
                       _textField(_formatDate(_rangeEnd)),
                     ],
@@ -376,11 +398,14 @@ class _SelectRangeScreenState extends ConsumerState<SelectRangeScreen> {
                           });
                         },
                         calendarStyle: CalendarStyle(
-                          rangeHighlightColor: Colors.blue.shade100,
-                          rangeStartDecoration: const BoxDecoration(
-                              color: Colors.blue, shape: BoxShape.circle),
-                          rangeEndDecoration: const BoxDecoration(
-                              color: Colors.blue, shape: BoxShape.circle),
+                          rangeHighlightColor:
+                              colorScheme.primary.withOpacity(0.18),
+                          rangeStartDecoration: BoxDecoration(
+                              color: colorScheme.primary,
+                              shape: BoxShape.circle),
+                          rangeEndDecoration: BoxDecoration(
+                              color: colorScheme.primary,
+                              shape: BoxShape.circle),
                         ),
                       ),
                     ),
@@ -389,8 +414,8 @@ class _SelectRangeScreenState extends ConsumerState<SelectRangeScreen> {
 
                 // Bottom buttons
                 Container(
-                  padding: const EdgeInsets.symmetric(
-                      horizontal: 20, vertical: 16),
+                  padding:
+                      const EdgeInsets.symmetric(horizontal: 20, vertical: 16),
                   child: Column(
                     children: [
                       // View Details + Download All row
@@ -399,8 +424,9 @@ class _SelectRangeScreenState extends ConsumerState<SelectRangeScreen> {
                           // View Details
                           Expanded(
                             child: ElevatedButton.icon(
-                              onPressed:
-                                  _isGenerating || !hasRange ? null : _viewDetails,
+                              onPressed: _isGenerating || !hasRange
+                                  ? null
+                                  : _viewDetails,
                               icon: const Icon(Icons.visibility_rounded,
                                   size: 16, color: Colors.white),
                               label: const Text('View Details',
@@ -409,8 +435,9 @@ class _SelectRangeScreenState extends ConsumerState<SelectRangeScreen> {
                               style: ElevatedButton.styleFrom(
                                 padding:
                                     const EdgeInsets.symmetric(vertical: 14),
-                                backgroundColor: const Color(0xFF6366F1),
-                                disabledBackgroundColor: Colors.grey.shade300,
+                                backgroundColor: colorScheme.primary,
+                                disabledBackgroundColor:
+                                    colorScheme.surfaceContainerHighest,
                                 shape: RoundedRectangleBorder(
                                     borderRadius: BorderRadius.circular(12)),
                                 elevation: 0,
@@ -444,8 +471,9 @@ class _SelectRangeScreenState extends ConsumerState<SelectRangeScreen> {
                               style: ElevatedButton.styleFrom(
                                 padding:
                                     const EdgeInsets.symmetric(vertical: 14),
-                                backgroundColor: Colors.blue,
-                                disabledBackgroundColor: Colors.grey.shade300,
+                                backgroundColor: colorScheme.secondary,
+                                disabledBackgroundColor:
+                                    colorScheme.surfaceContainerHighest,
                                 shape: RoundedRectangleBorder(
                                     borderRadius: BorderRadius.circular(12)),
                                 elevation: 0,
@@ -459,19 +487,18 @@ class _SelectRangeScreenState extends ConsumerState<SelectRangeScreen> {
                       SizedBox(
                         width: double.infinity,
                         child: OutlinedButton(
-                          onPressed:
-                              _isGenerating ? null : () => Navigator.pop(context),
+                          onPressed: _isGenerating
+                              ? null
+                              : () => Navigator.pop(context),
                           style: OutlinedButton.styleFrom(
-                            padding:
-                                const EdgeInsets.symmetric(vertical: 14),
-                            side:
-                                BorderSide(color: Colors.blue.shade300),
+                            padding: const EdgeInsets.symmetric(vertical: 14),
+                            side: BorderSide(color: colorScheme.outline),
                             shape: RoundedRectangleBorder(
                                 borderRadius: BorderRadius.circular(12)),
                           ),
-                          child: const Text('Back',
+                          child: Text('Back',
                               style: TextStyle(
-                                  fontSize: 16, color: Colors.black)),
+                                  fontSize: 16, color: colorScheme.onSurface)),
                         ),
                       ),
                     ],
@@ -490,7 +517,9 @@ class _SelectRangeScreenState extends ConsumerState<SelectRangeScreen> {
       height: 45,
       decoration: BoxDecoration(
         borderRadius: BorderRadius.circular(10),
-        border: Border.all(color: Colors.grey.shade300),
+        border: Border.all(
+            color:
+                Theme.of(context).colorScheme.outlineVariant.withOpacity(0.5)),
       ),
       child: Row(
         children: [
@@ -499,12 +528,15 @@ class _SelectRangeScreenState extends ConsumerState<SelectRangeScreen> {
             child: Text(
               text,
               style: TextStyle(
-                color: text == "Input Text" ? Colors.black54 : Colors.black,
+                color: text == "Input Text"
+                    ? Theme.of(context).colorScheme.onSurfaceVariant
+                    : Theme.of(context).colorScheme.onSurface,
                 fontSize: 14,
               ),
             ),
           ),
-          const Icon(Icons.calendar_today, size: 18, color: Colors.black54),
+          Icon(Icons.calendar_today,
+              size: 18, color: Theme.of(context).colorScheme.onSurfaceVariant),
           const SizedBox(width: 10),
         ],
       ),

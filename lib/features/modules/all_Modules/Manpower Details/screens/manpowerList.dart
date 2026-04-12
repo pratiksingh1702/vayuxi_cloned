@@ -8,7 +8,6 @@ import 'package:open_file/open_file.dart';
 import 'package:path_provider/path_provider.dart';
 import 'package:share_plus/share_plus.dart';
 import 'package:untitled2/core/utlis/app_toasts.dart';
-import 'package:untitled2/core/utlis/colors/colors.dart';
 import 'package:untitled2/core/utlis/widgets/buttons.dart';
 import 'package:untitled2/core/utlis/widgets/custom_appBar.dart';
 import 'package:untitled2/features/modules/all_Modules/attendance/offline/repo/att_sync.dart';
@@ -104,24 +103,28 @@ class _ManpowerListScreenState extends ConsumerState<ManpowerListScreen> {
 
     final confirmed = await showDialog<bool>(
       context: context,
-      builder: (context) => AlertDialog(
-        title: const Text('Delete Selected Manpower'),
-        content: Text(
-          'Are you sure you want to delete ${_selectedManpowerIds.length} selected manpower records?\n\n'
-          'This action cannot be undone.',
-        ),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.pop(context, false),
-            child: const Text('Cancel'),
+      builder: (context) {
+        final colorScheme = Theme.of(context).colorScheme;
+        return AlertDialog(
+          title: const Text('Delete Selected Manpower'),
+          content: Text(
+            'Are you sure you want to delete ${_selectedManpowerIds.length} selected manpower records?\n\n'
+            'This action cannot be undone.',
           ),
-          TextButton(
-            onPressed: () => Navigator.pop(context, true),
-            style: TextButton.styleFrom(foregroundColor: Colors.red),
-            child: const Text('Delete'),
-          ),
-        ],
-      ),
+          actions: [
+            TextButton(
+              onPressed: () => Navigator.pop(context, false),
+              style: TextButton.styleFrom(foregroundColor: colorScheme.primary),
+              child: const Text('Cancel'),
+            ),
+            TextButton(
+              onPressed: () => Navigator.pop(context, true),
+              style: TextButton.styleFrom(foregroundColor: colorScheme.error),
+              child: const Text('Delete'),
+            ),
+          ],
+        );
+      },
     );
 
     if (confirmed != true) return;
@@ -237,10 +240,12 @@ class _ManpowerListScreenState extends ConsumerState<ManpowerListScreen> {
   void _showFormatSelectionDialog(BuildContext context) {
     showModalBottomSheet(
       context: context,
+      backgroundColor: Theme.of(context).colorScheme.surface,
       shape: const RoundedRectangleBorder(
         borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
       ),
       builder: (context) {
+        final colorScheme = Theme.of(context).colorScheme;
         return Padding(
           padding: const EdgeInsets.fromLTRB(20, 16, 20, 24),
           child: Column(
@@ -252,18 +257,22 @@ class _ManpowerListScreenState extends ConsumerState<ManpowerListScreen> {
                 height: 4,
                 margin: const EdgeInsets.only(bottom: 16),
                 decoration: BoxDecoration(
-                  color: Colors.grey.shade400,
+                  color: colorScheme.outlineVariant,
                   borderRadius: BorderRadius.circular(4),
                 ),
               ),
-              const Text(
+              Text(
                 "Select Format",
-                style: TextStyle(fontSize: 18, fontWeight: FontWeight.w600),
+                style: TextStyle(
+                  fontSize: 18,
+                  fontWeight: FontWeight.w600,
+                  color: colorScheme.onSurface,
+                ),
               ),
               const SizedBox(height: 6),
-              const Text(
+              Text(
                 "Choose file format to export",
-                style: TextStyle(color: Colors.grey),
+                style: TextStyle(color: colorScheme.onSurfaceVariant),
               ),
               const SizedBox(height: 20),
 
@@ -275,22 +284,23 @@ class _ManpowerListScreenState extends ConsumerState<ManpowerListScreen> {
                   width: 48,
                   height: 48,
                   decoration: BoxDecoration(
-                    color: Colors.green.withOpacity(0.1),
+                    color: colorScheme.tertiary.withOpacity(0.12),
                     borderRadius: BorderRadius.circular(12),
                   ),
-                  child: const Icon(Icons.table_chart,
-                      color: Colors.green, size: 24),
+                  child: Icon(Icons.table_chart,
+                      color: colorScheme.tertiary, size: 24),
                 ),
                 title: const Text(
                   "Excel (.xlsx)",
                   style: TextStyle(fontSize: 16, fontWeight: FontWeight.w500),
                 ),
-                subtitle: const Text(
+                subtitle: Text(
                   "Spreadsheet format",
-                  style: TextStyle(fontSize: 13, color: Colors.grey),
+                  style: TextStyle(
+                      fontSize: 13, color: colorScheme.onSurfaceVariant),
                 ),
-                trailing:
-                    const Icon(Icons.chevron_right_rounded, color: Colors.grey),
+                trailing: Icon(Icons.chevron_right_rounded,
+                    color: colorScheme.onSurfaceVariant),
                 onTap: () {
                   Navigator.pop(context);
                   _showShareOrDownloadDialog(format: 'excel');
@@ -307,22 +317,23 @@ class _ManpowerListScreenState extends ConsumerState<ManpowerListScreen> {
                   width: 48,
                   height: 48,
                   decoration: BoxDecoration(
-                    color: Colors.red.withOpacity(0.1),
+                    color: colorScheme.error.withOpacity(0.12),
                     borderRadius: BorderRadius.circular(12),
                   ),
-                  child: const Icon(Icons.picture_as_pdf,
-                      color: Colors.red, size: 24),
+                  child: Icon(Icons.picture_as_pdf,
+                      color: colorScheme.error, size: 24),
                 ),
                 title: const Text(
                   "PDF (.pdf)",
                   style: TextStyle(fontSize: 16, fontWeight: FontWeight.w500),
                 ),
-                subtitle: const Text(
+                subtitle: Text(
                   "Document format",
-                  style: TextStyle(fontSize: 13, color: Colors.grey),
+                  style: TextStyle(
+                      fontSize: 13, color: colorScheme.onSurfaceVariant),
                 ),
-                trailing:
-                    const Icon(Icons.chevron_right_rounded, color: Colors.grey),
+                trailing: Icon(Icons.chevron_right_rounded,
+                    color: colorScheme.onSurfaceVariant),
                 onTap: () {
                   Navigator.pop(context);
                   _showShareOrDownloadDialog(format: 'pdf');
@@ -332,6 +343,8 @@ class _ManpowerListScreenState extends ConsumerState<ManpowerListScreen> {
               const SizedBox(height: 16),
               TextButton(
                 onPressed: () => Navigator.pop(context),
+                style:
+                    TextButton.styleFrom(foregroundColor: colorScheme.primary),
                 child: const Text("Cancel", style: TextStyle(fontSize: 16)),
               ),
             ],
@@ -347,10 +360,12 @@ class _ManpowerListScreenState extends ConsumerState<ManpowerListScreen> {
 
     showModalBottomSheet(
       context: context,
+      backgroundColor: Theme.of(context).colorScheme.surface,
       shape: const RoundedRectangleBorder(
         borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
       ),
       builder: (context) {
+        final colorScheme = Theme.of(context).colorScheme;
         return Padding(
           padding: const EdgeInsets.fromLTRB(20, 16, 20, 24),
           child: Column(
@@ -361,23 +376,27 @@ class _ManpowerListScreenState extends ConsumerState<ManpowerListScreen> {
                 height: 4,
                 margin: const EdgeInsets.only(bottom: 16),
                 decoration: BoxDecoration(
-                  color: Colors.grey.shade400,
+                  color: colorScheme.outlineVariant,
                   borderRadius: BorderRadius.circular(4),
                 ),
               ),
-              const Text(
+              Text(
                 "Manpower Sheet",
-                style: TextStyle(fontSize: 18, fontWeight: FontWeight.w600),
+                style: TextStyle(
+                    fontSize: 18,
+                    fontWeight: FontWeight.w600,
+                    color: colorScheme.onSurface),
               ),
               const SizedBox(height: 6),
               Text(
                 "Format: $fileExt",
-                style: const TextStyle(color: Colors.grey, fontSize: 12),
+                style: TextStyle(
+                    color: colorScheme.onSurfaceVariant, fontSize: 12),
               ),
               const SizedBox(height: 6),
-              const Text(
+              Text(
                 "What would you like to do?",
-                style: TextStyle(color: Colors.grey),
+                style: TextStyle(color: colorScheme.onSurfaceVariant),
               ),
               const SizedBox(height: 20),
 
@@ -389,19 +408,20 @@ class _ManpowerListScreenState extends ConsumerState<ManpowerListScreen> {
                   width: 48,
                   height: 48,
                   decoration: BoxDecoration(
-                    color: Colors.blue.withOpacity(0.1),
+                    color: colorScheme.primary.withOpacity(0.12),
                     borderRadius: BorderRadius.circular(12),
                   ),
-                  child: const Icon(Icons.share_rounded,
-                      color: Colors.blue, size: 24),
+                  child: Icon(Icons.share_rounded,
+                      color: colorScheme.primary, size: 24),
                 ),
                 title: const Text("Share",
                     style:
                         TextStyle(fontSize: 16, fontWeight: FontWeight.w500)),
-                subtitle: const Text("Send file via apps",
-                    style: TextStyle(fontSize: 13, color: Colors.grey)),
-                trailing:
-                    const Icon(Icons.chevron_right_rounded, color: Colors.grey),
+                subtitle: Text("Send file via apps",
+                    style: TextStyle(
+                        fontSize: 13, color: colorScheme.onSurfaceVariant)),
+                trailing: Icon(Icons.chevron_right_rounded,
+                    color: colorScheme.onSurfaceVariant),
                 onTap: () {
                   Navigator.pop(context);
                   _downloadAndShareManpower(format: format);
@@ -418,19 +438,20 @@ class _ManpowerListScreenState extends ConsumerState<ManpowerListScreen> {
                   width: 48,
                   height: 48,
                   decoration: BoxDecoration(
-                    color: Colors.green.withOpacity(0.1),
+                    color: colorScheme.tertiary.withOpacity(0.12),
                     borderRadius: BorderRadius.circular(12),
                   ),
-                  child: const Icon(Icons.download_rounded,
-                      color: Colors.green, size: 24),
+                  child: Icon(Icons.download_rounded,
+                      color: colorScheme.tertiary, size: 24),
                 ),
                 title: const Text("Download",
                     style:
                         TextStyle(fontSize: 16, fontWeight: FontWeight.w500)),
-                subtitle: const Text("Save to your device",
-                    style: TextStyle(fontSize: 13, color: Colors.grey)),
-                trailing:
-                    const Icon(Icons.chevron_right_rounded, color: Colors.grey),
+                subtitle: Text("Save to your device",
+                    style: TextStyle(
+                        fontSize: 13, color: colorScheme.onSurfaceVariant)),
+                trailing: Icon(Icons.chevron_right_rounded,
+                    color: colorScheme.onSurfaceVariant),
                 onTap: () {
                   Navigator.pop(context);
                   _downloadManpowerFile(format: format);
@@ -440,6 +461,8 @@ class _ManpowerListScreenState extends ConsumerState<ManpowerListScreen> {
               const SizedBox(height: 16),
               TextButton(
                 onPressed: () => Navigator.pop(context),
+                style:
+                    TextButton.styleFrom(foregroundColor: colorScheme.primary),
                 child: const Text("Cancel", style: TextStyle(fontSize: 16)),
               ),
             ],
@@ -536,6 +559,7 @@ class _ManpowerListScreenState extends ConsumerState<ManpowerListScreen> {
   @override
   Widget build(BuildContext context) {
     final type = ref.read(typeProvider)!;
+    final colorScheme = Theme.of(context).colorScheme;
 
     final manpowerAsync = ref.watch(
       manpowerOfflineProvider((type: type)),
@@ -544,6 +568,7 @@ class _ManpowerListScreenState extends ConsumerState<ManpowerListScreen> {
 
     return Scaffold(
       drawer: const CustomDrawer(),
+      backgroundColor: colorScheme.surfaceContainerLowest,
       body: NestedScrollView(
         headerSliverBuilder: (context, innerBoxIsScrolled) {
           return [
@@ -559,8 +584,8 @@ class _ManpowerListScreenState extends ConsumerState<ManpowerListScreen> {
             CustomButton(
               button: RoundedButton(
                 text: "View Sheet",
-                color: Colors.blue,
-                textColor: Colors.white,
+                color: colorScheme.primary,
+                textColor: colorScheme.onPrimary,
                 onPressed: () => _showFormatSelectionDialog(context), // ✅
               ),
             ),
@@ -572,7 +597,12 @@ class _ManpowerListScreenState extends ConsumerState<ManpowerListScreen> {
                 itemCount: 8,
               );
             },
-            error: (e, s) => Center(child: Text("Error: $e")),
+            error: (e, s) => Center(
+              child: Text(
+                "Error: $e",
+                style: TextStyle(color: colorScheme.error),
+              ),
+            ),
             data: (manpowerList) {
               final filteredList = _searchQuery.isEmpty
                   ? manpowerList
@@ -639,7 +669,7 @@ class _ManpowerListScreenState extends ConsumerState<ManpowerListScreen> {
                             : null,
                         isDense: true,
                         filled: true,
-                        fillColor: Colors.white,
+                        fillColor: colorScheme.surface,
                         contentPadding: const EdgeInsets.symmetric(
                             horizontal: 12, vertical: 10),
                         border: OutlineInputBorder(
@@ -671,14 +701,14 @@ class _ManpowerListScreenState extends ConsumerState<ManpowerListScreen> {
                               ? null
                               : _deleteSelectedManpower,
                           style: ElevatedButton.styleFrom(
-                            backgroundColor: Colors.red,
-                            foregroundColor: Colors.white,
+                            backgroundColor: colorScheme.error,
+                            foregroundColor: colorScheme.onError,
                           ),
                         ),
                       ] else ...[
                         IconButton(
-                          icon:
-                              const Icon(Icons.delete_sweep, color: Colors.red),
+                          icon: Icon(Icons.delete_sweep,
+                              color: colorScheme.error),
                           onPressed: manpowerList.isEmpty
                               ? null
                               : _toggleSelectionMode,
@@ -718,6 +748,7 @@ class _ManpowerListScreenState extends ConsumerState<ManpowerListScreen> {
   }
 
   Widget _buildManpowerTile(ManpowerModel manpower, bool isSelected) {
+    final colorScheme = Theme.of(context).colorScheme;
     return Stack(
       children: [
         Opacity(
@@ -725,28 +756,29 @@ class _ManpowerListScreenState extends ConsumerState<ManpowerListScreen> {
           child: Container(
             margin: const EdgeInsets.symmetric(vertical: 2),
             decoration: BoxDecoration(
-              color: Colors.white,
-              border: Border.all(color: Colors.blue),
+              color: colorScheme.surface,
+              border: Border.all(color: colorScheme.outlineVariant),
               borderRadius: BorderRadius.circular(8),
             ),
             child: ListTile(
               onTap: _isSelectionMode
                   ? () => _toggleManpowerSelection(manpower.id!)
                   : null,
-              leading: const Icon(
+              leading: Icon(
                 Icons.person_2_outlined,
-                color: Colors.blue,
+                color: colorScheme.primary,
               ),
               title: Text(
                 manpower.fullName!,
-                style: const TextStyle(
+                style: TextStyle(
                   fontWeight: FontWeight.bold,
                   fontSize: 16,
+                  color: colorScheme.onSurface,
                 ),
               ),
               subtitle: Text(
                 manpower.employeeCode ?? "",
-                style: TextStyle(color: Colors.grey.shade700),
+                style: TextStyle(color: colorScheme.onSurfaceVariant),
               ),
               trailing: _isSelectionMode
                   ? null
@@ -756,7 +788,7 @@ class _ManpowerListScreenState extends ConsumerState<ManpowerListScreen> {
                       children: [
                         // ✏️ Edit
                         IconButton(
-                          icon: const Icon(Icons.edit, color: Colors.blue),
+                          icon: Icon(Icons.edit, color: colorScheme.primary),
                           onPressed: () {
                             print(const JsonEncoder.withIndent('  ')
                                 .convert(manpower.toJson()));
@@ -766,9 +798,9 @@ class _ManpowerListScreenState extends ConsumerState<ManpowerListScreen> {
 
                         // 🚪 Mark Left
                         IconButton(
-                          icon: const Icon(
+                          icon: Icon(
                             Icons.person_off,
-                            color: Colors.orange,
+                            color: colorScheme.tertiary,
                           ),
                           onPressed: () {
                             _confirmLeftManpower(context, manpower);
@@ -777,8 +809,8 @@ class _ManpowerListScreenState extends ConsumerState<ManpowerListScreen> {
 
                         // 🗑 Delete
                         IconButton(
-                          icon: const Icon(Icons.delete_outline,
-                              color: Colors.red),
+                          icon: Icon(Icons.delete_outline,
+                              color: colorScheme.error),
                           onPressed: () {
                             _confirmDelete(context, manpower.id!);
                           },
@@ -801,23 +833,23 @@ class _ManpowerListScreenState extends ConsumerState<ManpowerListScreen> {
                 height: 32,
                 decoration: BoxDecoration(
                   shape: BoxShape.circle,
-                  color: isSelected ? Colors.red : Colors.white,
+                  color: isSelected ? colorScheme.error : colorScheme.surface,
                   border: Border.all(
-                    color: Colors.red,
+                    color: colorScheme.error,
                     width: 2,
                   ),
                   boxShadow: [
                     BoxShadow(
-                      color: Colors.black.withOpacity(0.2),
+                      color: colorScheme.shadow.withOpacity(0.2),
                       blurRadius: 4,
                       offset: const Offset(0, 2),
                     ),
                   ],
                 ),
                 child: isSelected
-                    ? const Icon(
+                    ? Icon(
                         Icons.check,
-                        color: Colors.white,
+                        color: colorScheme.onError,
                         size: 20,
                       )
                     : null,
@@ -831,23 +863,30 @@ class _ManpowerListScreenState extends ConsumerState<ManpowerListScreen> {
   Future<void> _confirmDelete(BuildContext context, String manpowerId) async {
     final confirm = await showDialog<bool>(
       context: context,
-      builder: (context) => AlertDialog(
-        title: const Text("Delete Manpower"),
-        content: const Text(
-          "Are you sure you want to delete this manpower?\nThis action cannot be undone.",
-        ),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.pop(context, false),
-            child: const Text("Cancel"),
+      builder: (context) {
+        final colorScheme = Theme.of(context).colorScheme;
+        return AlertDialog(
+          title: const Text("Delete Manpower"),
+          content: const Text(
+            "Are you sure you want to delete this manpower?\nThis action cannot be undone.",
           ),
-          ElevatedButton(
-            style: ElevatedButton.styleFrom(backgroundColor: Colors.red),
-            onPressed: () => Navigator.pop(context, true),
-            child: const Text("Delete"),
-          ),
-        ],
-      ),
+          actions: [
+            TextButton(
+              onPressed: () => Navigator.pop(context, false),
+              style: TextButton.styleFrom(foregroundColor: colorScheme.primary),
+              child: const Text("Cancel"),
+            ),
+            ElevatedButton(
+              style: ElevatedButton.styleFrom(
+                backgroundColor: colorScheme.error,
+                foregroundColor: colorScheme.onError,
+              ),
+              onPressed: () => Navigator.pop(context, true),
+              child: const Text("Delete"),
+            ),
+          ],
+        );
+      },
     );
 
     if (confirm == true) {

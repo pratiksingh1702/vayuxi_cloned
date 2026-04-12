@@ -3,7 +3,6 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import 'package:untitled2/core/utlis/app_toasts.dart';
-import 'package:untitled2/core/utlis/colors/colors.dart';
 import 'package:untitled2/core/utlis/widgets/Button_wrapper.dart';
 import 'package:untitled2/core/utlis/widgets/custom_appBar.dart';
 import 'package:untitled2/features/language/service/providers.dart';
@@ -131,7 +130,6 @@ class _ExpenseFormScreenState extends ConsumerState<ExpenseFormScreen> {
     });
   }
 
-
   Future<void> _fetchUOM() async {
     setState(() => _isLoadingUOM = true);
     try {
@@ -174,9 +172,7 @@ class _ExpenseFormScreenState extends ConsumerState<ExpenseFormScreen> {
         _rateController.text = expense.rate!.toString();
       }
       _balanceController.text =
-          expense.balance?.toString() ??
-              expense.invoiceValue?.toString() ??
-              '';
+          expense.balance?.toString() ?? expense.invoiceValue?.toString() ?? '';
       if (expense.uom != null) {
         _selectedUOM = expense.uom;
       }
@@ -243,9 +239,15 @@ class _ExpenseFormScreenState extends ConsumerState<ExpenseFormScreen> {
           ...baseData,
           'invoiceNumber': _invoiceNumberController.text.trim(),
           'hardwareShopName': _hardwareShopController.text.trim(),
-          'quantity': _quantityController.text.isNotEmpty ? int.parse(_quantityController.text) : 1,
-          'rateInRs': _rateController.text.isNotEmpty ? double.parse(_rateController.text) : 0.0,
-          'invoiceValue': _balanceController.text.isNotEmpty ? double.parse(_balanceController.text) : 0.0,
+          'quantity': _quantityController.text.isNotEmpty
+              ? int.parse(_quantityController.text)
+              : 1,
+          'rateInRs': _rateController.text.isNotEmpty
+              ? double.parse(_rateController.text)
+              : 0.0,
+          'invoiceValue': _balanceController.text.isNotEmpty
+              ? double.parse(_balanceController.text)
+              : 0.0,
           'uom': _selectedUOM ?? '',
           'year': DateTime.now().year,
         };
@@ -254,7 +256,9 @@ class _ExpenseFormScreenState extends ConsumerState<ExpenseFormScreen> {
         return {
           ...baseData,
           'place': _placeController.text.trim(),
-          'amount': _amountController.text.isNotEmpty ? double.parse(_amountController.text) : 0.0,
+          'amount': _amountController.text.isNotEmpty
+              ? double.parse(_amountController.text)
+              : 0.0,
         };
 
       case 'food':
@@ -263,7 +267,9 @@ class _ExpenseFormScreenState extends ConsumerState<ExpenseFormScreen> {
       case 'miscellaneous':
         final data = {
           ...baseData,
-          'amount': _amountController.text.isNotEmpty ? double.parse(_amountController.text) : 0.0,
+          'amount': _amountController.text.isNotEmpty
+              ? double.parse(_amountController.text)
+              : 0.0,
         };
 
         if (widget.expenseType == 'advance' && _selectedManpower != null) {
@@ -286,14 +292,16 @@ class _ExpenseFormScreenState extends ConsumerState<ExpenseFormScreen> {
       return;
     }
 
-    if (widget.expenseType != 'material_tools' && _amountController.text.isEmpty) {
+    if (widget.expenseType != 'material_tools' &&
+        _amountController.text.isEmpty) {
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(content: Text("Please enter amount")),
       );
       return;
     }
 
-    if (widget.expenseType == 'material_tools' && (_selectedUOM == null || _selectedUOM!.isEmpty)) {
+    if (widget.expenseType == 'material_tools' &&
+        (_selectedUOM == null || _selectedUOM!.isEmpty)) {
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(content: Text("Please select UOM")),
       );
@@ -318,7 +326,7 @@ class _ExpenseFormScreenState extends ConsumerState<ExpenseFormScreen> {
           type: type!,
           siteId: widget.siteId,
         );
-       AppToast.success("Expense created successfully");
+        AppToast.success("Expense created successfully");
       }
 
       context.pop();
@@ -342,7 +350,10 @@ class _ExpenseFormScreenState extends ConsumerState<ExpenseFormScreen> {
           ),
           TextButton(
             onPressed: () => context.pop(true),
-            child: const Text("Delete", style: TextStyle(color: Colors.red)),
+            child: Text(
+              "Delete",
+              style: TextStyle(color: Theme.of(context).colorScheme.error),
+            ),
           ),
         ],
       ),
@@ -390,6 +401,7 @@ class _ExpenseFormScreenState extends ConsumerState<ExpenseFormScreen> {
 
   Widget _buildMaterialToolsFields() {
     final lang = ref.watch(dailyEntryTranslationHelperProvider);
+    final colorScheme = Theme.of(context).colorScheme;
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
@@ -432,19 +444,21 @@ class _ExpenseFormScreenState extends ConsumerState<ExpenseFormScreen> {
                   Container(
                     padding: const EdgeInsets.symmetric(horizontal: 12),
                     decoration: BoxDecoration(
-                      color: Colors.white,
+                      color: colorScheme.surface,
                       borderRadius: BorderRadius.circular(8),
-                      border: Border.all(color: Colors.grey.shade300),
+                      border: Border.all(color: colorScheme.outlineVariant),
                     ),
                     child: Row(
                       children: [
                         IconButton(
                           icon: const Icon(Icons.remove, size: 20),
                           onPressed: () {
-                            int current = int.tryParse(_quantityController.text) ?? 1;
+                            int current =
+                                int.tryParse(_quantityController.text) ?? 1;
                             if (current > 1) {
                               setState(() {
-                                _quantityController.text = (current - 1).toString();
+                                _quantityController.text =
+                                    (current - 1).toString();
                               });
                             }
                           },
@@ -472,9 +486,11 @@ class _ExpenseFormScreenState extends ConsumerState<ExpenseFormScreen> {
                         IconButton(
                           icon: const Icon(Icons.add, size: 20),
                           onPressed: () {
-                            int current = int.tryParse(_quantityController.text) ?? 1;
+                            int current =
+                                int.tryParse(_quantityController.text) ?? 1;
                             setState(() {
-                              _quantityController.text = (current + 1).toString();
+                              _quantityController.text =
+                                  (current + 1).toString();
                             });
                           },
                         ),
@@ -499,29 +515,31 @@ class _ExpenseFormScreenState extends ConsumerState<ExpenseFormScreen> {
                   const SizedBox(height: 4),
                   _isLoadingUOM
                       ? Container(
-                    height: 50,
-                    decoration: BoxDecoration(
-                      color: Colors.white,
-                      borderRadius: BorderRadius.circular(8),
-                      border: Border.all(color: Colors.grey.shade300),
-                    ),
-                    child: const Center(child: Text("Loading...")),
-                  )
+                          height: 50,
+                          decoration: BoxDecoration(
+                            color: colorScheme.surface,
+                            borderRadius: BorderRadius.circular(8),
+                            border:
+                                Border.all(color: colorScheme.outlineVariant),
+                          ),
+                          child: const Center(child: Text("Loading...")),
+                        )
                       : SearchableDropdown(
-                    data: _uomList,
-                    value: _selectedUOM,
-                    placeholder: "Select UOM",
-                    onSelect: (value) {
-                      setState(() {
-                        _selectedUOM = value;
-                      });
-                    },
-                    containerDecoration: BoxDecoration(
-                      color: Colors.white,
-                      borderRadius: BorderRadius.circular(8),
-                      border: Border.all(color: Colors.grey.shade300),
-                    ),
-                  ),
+                          data: _uomList,
+                          value: _selectedUOM,
+                          placeholder: "Select UOM",
+                          onSelect: (value) {
+                            setState(() {
+                              _selectedUOM = value;
+                            });
+                          },
+                          containerDecoration: BoxDecoration(
+                            color: colorScheme.surface,
+                            borderRadius: BorderRadius.circular(8),
+                            border:
+                                Border.all(color: colorScheme.outlineVariant),
+                          ),
+                        ),
                 ],
               ),
             ),
@@ -653,6 +671,7 @@ class _ExpenseFormScreenState extends ConsumerState<ExpenseFormScreen> {
   }
 
   Widget _buildAdvanceFields() {
+    final colorScheme = Theme.of(context).colorScheme;
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
@@ -670,51 +689,49 @@ class _ExpenseFormScreenState extends ConsumerState<ExpenseFormScreen> {
             Container(
               padding: const EdgeInsets.symmetric(horizontal: 12),
               decoration: BoxDecoration(
-                color: Colors.white,
+                color: colorScheme.surface,
                 borderRadius: BorderRadius.circular(8),
-                border: Border.all(color: Colors.grey.shade300),
+                border: Border.all(color: colorScheme.outlineVariant),
               ),
               child: Consumer(
                 builder: (context, ref, child) {
                   final manpowerState = ref.watch(manpowerProvider);
 
                   if (manpowerState.isLoading) {
-                    return const Padding(
+                    return Padding(
                       padding: EdgeInsets.symmetric(vertical: 12),
-                      child: Center(child: CircularProgressIndicator(color: Colors.white,)),
+                      child: Center(
+                        child: CircularProgressIndicator(
+                          color: colorScheme.primary,
+                        ),
+                      ),
                     );
                   }
 
                   return DropdownSearch<ManpowerModel>(
                     selectedItem: _selectedManpower,
                     items: (f, cs) => manpowerState.manpowerList,
-
                     itemAsString: (ManpowerModel m) =>
-                    "${m.fullName ?? 'Unknown'} - ${m.employeeCode ?? 'No Code'}",
-
+                        "${m.fullName ?? 'Unknown'} - ${m.employeeCode ?? 'No Code'}",
                     onChanged: (ManpowerModel? newValue) {
                       setState(() {
                         _selectedManpower = newValue;
                       });
                     },
-
                     compareFn: (item, selectedItem) =>
-                    item.id == selectedItem.id,
-
+                        item.id == selectedItem.id,
                     decoratorProps: const DropDownDecoratorProps(
                       decoration: InputDecoration(
                         hintText: "Select Employee",
-
-                        contentPadding: EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+                        contentPadding:
+                            EdgeInsets.symmetric(horizontal: 12, vertical: 8),
                       ),
                     ),
-
                     popupProps: const PopupProps.menu(
                       showSearchBox: true,
                       searchFieldProps: TextFieldProps(
                         decoration: InputDecoration(
                           hintText: "Search employee...",
-
                         ),
                       ),
                     ),
@@ -835,6 +852,7 @@ class _ExpenseFormScreenState extends ConsumerState<ExpenseFormScreen> {
   @override
   Widget build(BuildContext context) {
     final lang = ref.read(dailyEntryTranslationHelperProvider);
+    final colorScheme = Theme.of(context).colorScheme;
     return Scaffold(
       // ── FIX 1: resizeToAvoidBottomInset keeps layout intact when keyboard opens ──
       resizeToAvoidBottomInset: true,
@@ -846,8 +864,8 @@ class _ExpenseFormScreenState extends ConsumerState<ExpenseFormScreen> {
           CustomButton(
             button: RoundedButton(
               text: "Save",
-              color: Colors.blue,
-              textColor: Colors.white,
+              color: colorScheme.primary,
+              textColor: colorScheme.onPrimary,
               onPressed: _isLoading ? () {} : _submitForm,
               isOutlined: false,
               width: null,
@@ -863,7 +881,8 @@ class _ExpenseFormScreenState extends ConsumerState<ExpenseFormScreen> {
               key: _formKey,
               child: SingleChildScrollView(
                 controller: _scrollController,
-                keyboardDismissBehavior: ScrollViewKeyboardDismissBehavior.onDrag,
+                keyboardDismissBehavior:
+                    ScrollViewKeyboardDismissBehavior.onDrag,
                 padding: EdgeInsets.only(
                   bottom: MediaQuery.of(context).viewInsets.bottom + 20,
                 ),
@@ -884,15 +903,15 @@ class _ExpenseFormScreenState extends ConsumerState<ExpenseFormScreen> {
                         width: double.infinity,
                         padding: const EdgeInsets.all(16),
                         decoration: BoxDecoration(
-                          color: Colors.white,
+                          color: colorScheme.surface,
                           borderRadius: BorderRadius.circular(8),
-                          border: Border.all(color: Colors.grey.shade300),
+                          border: Border.all(color: colorScheme.outlineVariant),
                         ),
                         child: Row(
                           children: [
                             Icon(
                               Icons.calendar_today,
-                              color: Colors.grey.shade600,
+                              color: colorScheme.onSurfaceVariant,
                             ),
                             const SizedBox(width: 12),
                             Text(
@@ -901,8 +920,8 @@ class _ExpenseFormScreenState extends ConsumerState<ExpenseFormScreen> {
                                   : "Select Date",
                               style: TextStyle(
                                 color: _selectedDate != null
-                                    ? Colors.black
-                                    : Colors.grey.shade500,
+                                    ? colorScheme.onSurface
+                                    : colorScheme.onSurfaceVariant,
                                 fontSize: 16,
                               ),
                             ),

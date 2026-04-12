@@ -42,7 +42,10 @@ class _GenerateAttendanceSheetScreenState
   void _showFormatSelectionDialog() {
     if (startDate == null || endDate == null) {
       ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text("Please select a date range first")),
+        SnackBar(
+          content: const Text("Please select a date range first"),
+          backgroundColor: Theme.of(context).colorScheme.tertiary,
+        ),
       );
       return;
     }
@@ -55,6 +58,7 @@ class _GenerateAttendanceSheetScreenState
         borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
       ),
       builder: (context) {
+        final colorScheme = Theme.of(context).colorScheme;
         return StatefulBuilder(
           builder: (context, setSheetState) {
             return Padding(
@@ -64,10 +68,11 @@ class _GenerateAttendanceSheetScreenState
                 children: [
                   // Drag handle
                   Container(
-                    width: 40, height: 4,
+                    width: 40,
+                    height: 4,
                     margin: const EdgeInsets.only(bottom: 16),
                     decoration: BoxDecoration(
-                      color: Colors.grey.shade400,
+                      color: colorScheme.outlineVariant,
                       borderRadius: BorderRadius.circular(4),
                     ),
                   ),
@@ -76,32 +81,41 @@ class _GenerateAttendanceSheetScreenState
                     style: TextStyle(fontSize: 18, fontWeight: FontWeight.w600),
                   ),
                   const SizedBox(height: 6),
-                  const Text(
+                  Text(
                     "Choose file format to export",
-                    style: TextStyle(color: Colors.grey),
+                    style: TextStyle(color: colorScheme.onSurfaceVariant),
                   ),
                   const SizedBox(height: 20),
 
                   // Excel option
                   ListTile(
-                    contentPadding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                    contentPadding:
+                        const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
                     leading: Container(
-                      width: 48, height: 48,
+                      width: 48,
+                      height: 48,
                       decoration: BoxDecoration(
                         color: Colors.green.withOpacity(0.1),
                         borderRadius: BorderRadius.circular(12),
                       ),
-                      child: const Icon(Icons.table_chart, color: Colors.green, size: 24),
+                      child: const Icon(Icons.table_chart,
+                          color: Colors.green, size: 24),
                     ),
                     title: Text(
                       "Excel (.xlsx)",
                       style: TextStyle(
                         fontSize: 16,
                         fontWeight: FontWeight.w500,
-                        color: selectedFormat == 'excel' ? Colors.green : Colors.black,
+                        color: selectedFormat == 'excel'
+                            ? Colors.green
+                            : colorScheme.onSurface,
                       ),
                     ),
-                    subtitle: const Text("Spreadsheet format", style: TextStyle(fontSize: 13, color: Colors.grey)),
+                    subtitle: Text(
+                      "Spreadsheet format",
+                      style: TextStyle(
+                          fontSize: 13, color: colorScheme.onSurfaceVariant),
+                    ),
                     trailing: selectedFormat == 'excel'
                         ? const Icon(Icons.check_circle, color: Colors.green)
                         : const SizedBox.shrink(),
@@ -116,24 +130,33 @@ class _GenerateAttendanceSheetScreenState
 
                   // PDF option
                   ListTile(
-                    contentPadding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                    contentPadding:
+                        const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
                     leading: Container(
-                      width: 48, height: 48,
+                      width: 48,
+                      height: 48,
                       decoration: BoxDecoration(
                         color: Colors.red.withOpacity(0.1),
                         borderRadius: BorderRadius.circular(12),
                       ),
-                      child: const Icon(Icons.picture_as_pdf, color: Colors.red, size: 24),
+                      child: const Icon(Icons.picture_as_pdf,
+                          color: Colors.red, size: 24),
                     ),
                     title: Text(
                       "PDF (.pdf)",
                       style: TextStyle(
                         fontSize: 16,
                         fontWeight: FontWeight.w500,
-                        color: selectedFormat == 'pdf' ? Colors.red : Colors.black,
+                        color: selectedFormat == 'pdf'
+                            ? Colors.red
+                            : colorScheme.onSurface,
                       ),
                     ),
-                    subtitle: const Text("Document format", style: TextStyle(fontSize: 13, color: Colors.grey)),
+                    subtitle: Text(
+                      "Document format",
+                      style: TextStyle(
+                          fontSize: 13, color: colorScheme.onSurfaceVariant),
+                    ),
                     trailing: selectedFormat == 'pdf'
                         ? const Icon(Icons.check_circle, color: Colors.red)
                         : const SizedBox.shrink(),
@@ -170,34 +193,39 @@ class _GenerateAttendanceSheetScreenState
         borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
       ),
       builder: (context) {
+        final colorScheme = Theme.of(context).colorScheme;
         return Padding(
           padding: const EdgeInsets.fromLTRB(20, 16, 20, 24),
           child: Column(
             mainAxisSize: MainAxisSize.min,
             children: [
               Container(
-                width: 40, height: 4,
+                width: 40,
+                height: 4,
                 margin: const EdgeInsets.only(bottom: 16),
                 decoration: BoxDecoration(
-                  color: Colors.grey.shade400,
+                  color: colorScheme.outlineVariant,
                   borderRadius: BorderRadius.circular(4),
                 ),
               ),
               Text(sheetName,
-                  style: const TextStyle(fontSize: 18, fontWeight: FontWeight.w600)),
+                  style: const TextStyle(
+                      fontSize: 18, fontWeight: FontWeight.w600)),
               const SizedBox(height: 6),
               Text(
                 "Format: $fileExt",
-                style: const TextStyle(color: Colors.grey, fontSize: 12),
+                style: TextStyle(
+                    color: colorScheme.onSurfaceVariant, fontSize: 12),
               ),
               const SizedBox(height: 6),
-              const Text("What would you like to do?",
-                  style: TextStyle(color: Colors.grey)),
+              Text(
+                "What would you like to do?",
+                style: TextStyle(color: colorScheme.onSurfaceVariant),
+              ),
               const SizedBox(height: 20),
-
               _ActionTile(
                 icon: Icons.share_rounded,
-                color: Colors.blue,
+                color: colorScheme.primary,
                 title: "Share",
                 subtitle: "Send file via apps",
                 onTap: () {
@@ -208,7 +236,7 @@ class _GenerateAttendanceSheetScreenState
               const SizedBox(height: 12),
               _ActionTile(
                 icon: Icons.download_rounded,
-                color: Colors.green,
+                color: colorScheme.tertiary,
                 title: "Download",
                 subtitle: "Save to your device",
                 onTap: () {
@@ -236,6 +264,7 @@ class _GenerateAttendanceSheetScreenState
     required String subtitle,
     required VoidCallback onTap,
   }) {
+    final colorScheme = Theme.of(context).colorScheme;
     return ListTile(
       contentPadding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
       leading: Container(
@@ -256,23 +285,26 @@ class _GenerateAttendanceSheetScreenState
       ),
       subtitle: Text(
         subtitle,
-        style: const TextStyle(
+        style: TextStyle(
           fontSize: 13,
-          color: Colors.grey,
+          color: colorScheme.onSurfaceVariant,
         ),
       ),
-      trailing: const Icon(Icons.chevron_right_rounded, color: Colors.grey),
+      trailing: Icon(Icons.chevron_right_rounded,
+          color: colorScheme.onSurfaceVariant),
       onTap: onTap,
     );
   }
 
   // Generate CSV and share directly
 
-
   // Download attendance file to device
   Future<void> _downloadAndShareAttendance({String format = 'excel'}) async {
     try {
-      setState(() { isLoading = true; isDownloading = true; });
+      setState(() {
+        isLoading = true;
+        isDownloading = true;
+      });
 
       final type = ref.read(typeProvider);
       final siteId = ref.read(selectedSiteIdProvider);
@@ -287,7 +319,10 @@ class _GenerateAttendanceSheetScreenState
 
       if (bytes.isEmpty) {
         ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text("No attendance data available"), backgroundColor: Colors.orange),
+          SnackBar(
+            content: const Text("No attendance data available"),
+            backgroundColor: Theme.of(context).colorScheme.tertiary,
+          ),
         );
         return;
       }
@@ -305,7 +340,8 @@ class _GenerateAttendanceSheetScreenState
 
       await Share.shareXFiles(
         [XFile(tempPath, mimeType: mimeType)],
-        text: 'Attendance Sheet: ${DateFormat('dd/MM/yyyy').format(startDate!)} to ${DateFormat('dd/MM/yyyy').format(endDate!)}',
+        text:
+            'Attendance Sheet: ${DateFormat('dd/MM/yyyy').format(startDate!)} to ${DateFormat('dd/MM/yyyy').format(endDate!)}',
         subject: 'Attendance Report',
       );
 
@@ -315,16 +351,25 @@ class _GenerateAttendanceSheetScreenState
       });
     } catch (e) {
       ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text("Failed to share: $e"), backgroundColor: Colors.red),
+        SnackBar(
+          content: Text("Failed to share: $e"),
+          backgroundColor: Theme.of(context).colorScheme.error,
+        ),
       );
     } finally {
-      setState(() { isLoading = false; isDownloading = false; });
+      setState(() {
+        isLoading = false;
+        isDownloading = false;
+      });
     }
   }
 
   Future<void> _downloadAttendanceFile({String format = 'excel'}) async {
     try {
-      setState(() { isLoading = true; isDownloading = true; });
+      setState(() {
+        isLoading = true;
+        isDownloading = true;
+      });
 
       final type = ref.read(typeProvider);
       final siteId = ref.read(selectedSiteIdProvider);
@@ -350,14 +395,18 @@ class _GenerateAttendanceSheetScreenState
       }
     } catch (e) {
       ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text("Download failed: $e"), backgroundColor: Colors.red),
+        SnackBar(
+          content: Text("Download failed: $e"),
+          backgroundColor: Theme.of(context).colorScheme.error,
+        ),
       );
     } finally {
-      setState(() { isLoading = false; isDownloading = false; });
+      setState(() {
+        isLoading = false;
+        isDownloading = false;
+      });
     }
   }
-
-
 
   // Save CSV on mobile devices
   Future<void> _saveMobileAttendance(Uint8List bytes, String fileName) async {
@@ -414,15 +463,15 @@ class _GenerateAttendanceSheetScreenState
                 ),
               ],
             ),
-            backgroundColor: Colors.green,
+            backgroundColor: Theme.of(context).colorScheme.primary,
             duration: const Duration(seconds: 8),
           ),
         );
       } else {
         ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(
+          SnackBar(
             content: Text('Save operation canceled.'),
-            backgroundColor: Colors.orange,
+            backgroundColor: Theme.of(context).colorScheme.tertiary,
           ),
         );
       }
@@ -433,7 +482,7 @@ class _GenerateAttendanceSheetScreenState
   }
 
   // Save CSV on desktop
-  Future<void> _saveDesktopAttendance(Uint8List bytes,String filename) async {
+  Future<void> _saveDesktopAttendance(Uint8List bytes, String filename) async {
     final fileName =
         'attendance_${DateFormat('yyyyMMdd').format(startDate!)}_to_${DateFormat('yyyyMMdd').format(endDate!)}.csv';
 
@@ -461,7 +510,7 @@ class _GenerateAttendanceSheetScreenState
             ),
           ],
         ),
-        backgroundColor: Colors.green,
+        backgroundColor: Theme.of(context).colorScheme.primary,
         duration: const Duration(seconds: 8),
       ),
     );
@@ -531,6 +580,7 @@ class _GenerateAttendanceSheetScreenState
 
   @override
   Widget build(BuildContext context) {
+    final colorScheme = Theme.of(context).colorScheme;
     return Scaffold(
       drawer: CustomDrawer(),
       appBar: CustomAppBar(title: "Generate Attendance Sheet"),
@@ -562,18 +612,19 @@ class _GenerateAttendanceSheetScreenState
           // Loading overlay
           if (isLoading && isDownloading)
             Container(
-              color: Colors.black54,
+              color: colorScheme.shadow.withOpacity(0.54),
               child: Center(
                 child: Column(
                   mainAxisSize: MainAxisSize.min,
                   children: [
-                    const CircularProgressIndicator(color: Colors.white),
+                    CircularProgressIndicator(color: colorScheme.onPrimary),
                     const SizedBox(height: 16),
                     Text(
                       isDownloading
                           ? 'Downloading attendance sheet...'
                           : 'Loading...',
-                      style: const TextStyle(color: Colors.white, fontSize: 16),
+                      style:
+                          TextStyle(color: colorScheme.onPrimary, fontSize: 16),
                     ),
                   ],
                 ),
@@ -656,6 +707,7 @@ class _DateRangePickerDialogState extends State<DateRangePickerDialog> {
 
   @override
   Widget build(BuildContext context) {
+    final colorScheme = Theme.of(context).colorScheme;
     return Column(
       mainAxisSize: MainAxisSize.min,
       children: [
@@ -689,7 +741,7 @@ class _DateRangePickerDialogState extends State<DateRangePickerDialog> {
         Container(
           padding: const EdgeInsets.all(12),
           decoration: BoxDecoration(
-            color: const Color(0xffF7F9FC),
+            color: colorScheme.surfaceContainerLowest,
             borderRadius: BorderRadius.circular(16),
           ),
           child: TableCalendar(
@@ -720,23 +772,23 @@ class _DateRangePickerDialogState extends State<DateRangePickerDialog> {
             // STYLES MATCHING IMAGE
             calendarStyle: CalendarStyle(
               todayDecoration: BoxDecoration(
-                color: Colors.blue.withOpacity(0.15),
+                color: colorScheme.primary.withOpacity(0.15),
                 shape: BoxShape.circle,
               ),
-              selectedDecoration: const BoxDecoration(
-                color: Colors.blue,
+              selectedDecoration: BoxDecoration(
+                color: colorScheme.primary,
                 shape: BoxShape.circle,
               ),
-              rangeStartDecoration: const BoxDecoration(
-                color: Colors.blue,
+              rangeStartDecoration: BoxDecoration(
+                color: colorScheme.primary,
                 shape: BoxShape.circle,
               ),
-              rangeEndDecoration: const BoxDecoration(
-                color: Colors.blue,
+              rangeEndDecoration: BoxDecoration(
+                color: colorScheme.primary,
                 shape: BoxShape.circle,
               ),
               withinRangeDecoration: BoxDecoration(
-                color: Colors.blue.withOpacity(0.15),
+                color: colorScheme.primary.withOpacity(0.15),
                 shape: BoxShape.circle,
               ),
               defaultDecoration: const BoxDecoration(
@@ -777,8 +829,8 @@ class _DateRangePickerDialogState extends State<DateRangePickerDialog> {
               child: ElevatedButton(
                 style: ElevatedButton.styleFrom(
                   elevation: 0,
-                  backgroundColor: Colors.white,
-                  foregroundColor: Colors.black,
+                  backgroundColor: colorScheme.surface,
+                  foregroundColor: colorScheme.onSurface,
                   padding: const EdgeInsets.symmetric(vertical: 14),
                   shape: RoundedRectangleBorder(
                     borderRadius: BorderRadius.circular(12),
@@ -792,8 +844,8 @@ class _DateRangePickerDialogState extends State<DateRangePickerDialog> {
             Expanded(
               child: ElevatedButton(
                 style: ElevatedButton.styleFrom(
-                  backgroundColor: Colors.blue,
-                  foregroundColor: Colors.white,
+                  backgroundColor: colorScheme.primary,
+                  foregroundColor: colorScheme.onPrimary,
                   padding: const EdgeInsets.symmetric(vertical: 14),
                   shape: RoundedRectangleBorder(
                     borderRadius: BorderRadius.circular(12),
@@ -813,6 +865,7 @@ class _DateRangePickerDialogState extends State<DateRangePickerDialog> {
 
   // SMALL BOX LIKE SCREENSHOT
   Widget _dateBox(String label, String value, VoidCallback onTap) {
+    final colorScheme = Theme.of(context).colorScheme;
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
@@ -824,7 +877,7 @@ class _DateRangePickerDialogState extends State<DateRangePickerDialog> {
           child: Container(
             padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 12),
             decoration: BoxDecoration(
-              border: Border.all(color: Colors.grey.shade300),
+              border: Border.all(color: colorScheme.outlineVariant),
               borderRadius: BorderRadius.circular(10),
             ),
             child: Row(
@@ -833,9 +886,11 @@ class _DateRangePickerDialogState extends State<DateRangePickerDialog> {
                 Text(value,
                     style: TextStyle(
                       fontSize: 14,
-                      color: value == "Input Text" ? Colors.grey : Colors.black,
+                      color: value == "Input Text"
+                          ? colorScheme.onSurfaceVariant
+                          : colorScheme.onSurface,
                     )),
-                const Icon(Icons.calendar_today, size: 18, color: Colors.blue)
+                Icon(Icons.calendar_today, size: 18, color: colorScheme.primary)
               ],
             ),
           ),

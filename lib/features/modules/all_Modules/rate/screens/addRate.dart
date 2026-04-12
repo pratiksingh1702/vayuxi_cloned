@@ -2,7 +2,6 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import 'package:untitled2/core/utlis/app_toasts.dart';
-import 'package:untitled2/core/utlis/colors/colors.dart';
 import 'package:untitled2/core/utlis/widgets/Button_wrapper.dart';
 import 'package:untitled2/features/modules/all_Modules/site_Details/providers/site_current_provider.dart';
 import '../../../../../core/utlis/common_functions.dart';
@@ -34,7 +33,7 @@ class _AddRateScreenState extends ConsumerState<AddRateScreen> {
 
   final FocusNode uomFocusNode = FocusNode();
   bool isCustomUOM = false;
-  bool isloading=false;
+  bool isloading = false;
   List<String> uomList = [];
 
   @override
@@ -48,9 +47,8 @@ class _AddRateScreenState extends ConsumerState<AddRateScreen> {
       final response = await RateApiClient().getRateUOM();
 
       setState(() {
-        uomList = response
-            .map<String>((item) => item['name'].toString())
-            .toList();
+        uomList =
+            response.map<String>((item) => item['name'].toString()).toList();
       });
     } catch (e) {
       print("❌ Failed to load UOM: $e");
@@ -63,10 +61,12 @@ class _AddRateScreenState extends ConsumerState<AddRateScreen> {
 
     showModalBottomSheet(
       context: context,
+      backgroundColor: Theme.of(context).colorScheme.surface,
       shape: const RoundedRectangleBorder(
         borderRadius: BorderRadius.vertical(top: Radius.circular(16)),
       ),
       builder: (context) {
+        final colorScheme = Theme.of(context).colorScheme;
         return Column(
           mainAxisSize: MainAxisSize.min,
           children: [
@@ -77,7 +77,7 @@ class _AddRateScreenState extends ConsumerState<AddRateScreen> {
                 style: TextStyle(
                   fontSize: 18,
                   fontWeight: FontWeight.bold,
-                  color: Colors.grey[700],
+                  color: colorScheme.onSurfaceVariant,
                 ),
               ),
             ),
@@ -89,7 +89,7 @@ class _AddRateScreenState extends ConsumerState<AddRateScreen> {
                 return ListTile(
                   title: Text(uom),
                   trailing: uomController.text == uom
-                      ? const Icon(Icons.check, color: Colors.blue)
+                      ? Icon(Icons.check, color: colorScheme.primary)
                       : null,
                   onTap: () {
                     setState(() {
@@ -118,12 +118,14 @@ class _AddRateScreenState extends ConsumerState<AddRateScreen> {
 
   Future<void> _saveRate() async {
     setState(() {
-      isloading=true;
+      isloading = true;
     });
     if (siteNameController.text.isEmpty ||
-
         rateController.text.isEmpty ||
         uomController.text.isEmpty) {
+      setState(() {
+        isloading = false;
+      });
       AppToast.error('Please fill all required fields');
       return;
     }
@@ -141,11 +143,12 @@ class _AddRateScreenState extends ConsumerState<AddRateScreen> {
       final siteId = ref.read(selectedSiteIdProvider);
 
       if (type != null) {
-        await ref.read(rateNotifierProvider.notifier).postRate(rateData, type, siteId!);
+        await ref
+            .read(rateNotifierProvider.notifier)
+            .postRate(rateData, type, siteId!);
 
-     AppToast.success('Rate saved successfully');
+        AppToast.success('Rate saved successfully');
         await ref.read(tourPersistenceProvider).markRateDone();
-
 
         // Navigate back after successful save
         if (mounted) {
@@ -155,28 +158,29 @@ class _AddRateScreenState extends ConsumerState<AddRateScreen> {
       }
     } catch (e) {
       print("Error saving rate: $e");
-    final error = extractBackendError(e);
-    AppToast.error("❌ Failed to save rate:$error");
-    }finally{
+      final error = extractBackendError(e);
+      AppToast.error("❌ Failed to save rate:$error");
+    } finally {
       setState(() {
-        isloading=false;
+        isloading = false;
       });
     }
   }
 
   @override
   Widget build(BuildContext context) {
+    final colorScheme = Theme.of(context).colorScheme;
     return Scaffold(
-
       drawer: const CustomDrawer(),
       backgroundColor: Theme.of(context).colorScheme.surfaceContainerLowest,
       appBar: CustomAppBar(title: "Add Rate"),
       body: BottomButtonWrapper(
         customButtons: [
-          CustomButton(button:    RoundedButton(
-            text: isloading?"Saving...":"Save",
-            color: Colors.blue,
-            textColor: Colors.white,
+          CustomButton(
+              button: RoundedButton(
+            text: isloading ? "Saving..." : "Save",
+            color: colorScheme.primary,
+            textColor: colorScheme.onPrimary,
             onPressed: _saveRate,
           ))
         ],
@@ -200,7 +204,7 @@ class _AddRateScreenState extends ConsumerState<AddRateScreen> {
                 keyboardType: TextInputType.number,
                 isRequired: true,
               ),
-        
+
               // UOM Section with Label
               // UOM Section
               const SizedBox(height: 8),
@@ -211,16 +215,15 @@ class _AddRateScreenState extends ConsumerState<AddRateScreen> {
                     text: TextSpan(
                       text: "Uom",
                       style: TextStyle(
-                        fontSize:14,
+                        fontSize: 14,
                         fontWeight: FontWeight.w500,
-                        color: Colors.black87,
+                        color: colorScheme.onSurface,
                       ),
                       children: [
-
-                          const TextSpan(
-                            text: ' *',
-                            style: TextStyle(color: Colors.red),
-                          ),
+                        TextSpan(
+                          text: ' *',
+                          style: TextStyle(color: colorScheme.error),
+                        ),
                       ],
                     ),
                   ),
@@ -230,7 +233,6 @@ class _AddRateScreenState extends ConsumerState<AddRateScreen> {
 
               SearchableDropdown(
                 data: uomList,
-
                 value: uomController.text,
                 placeholder: "Search or type Unit of Measurement",
                 onSelect: (value) {
@@ -239,16 +241,17 @@ class _AddRateScreenState extends ConsumerState<AddRateScreen> {
                   });
                 },
                 containerDecoration: BoxDecoration(
-                  color: Colors.white,
+                  color: colorScheme.surface,
                   borderRadius: BorderRadius.circular(12),
                   border: Border.all(
-                    color: const Color(0xFF197278),
+                    color: colorScheme.outlineVariant,
                     width: 1,
                   ),
                 ),
-                inputDecoration: const InputDecoration(
+                inputDecoration: InputDecoration(
                   hintText: "Search or type Unit of Measurement",
-                  contentPadding: EdgeInsets.symmetric(
+                  hintStyle: TextStyle(color: colorScheme.onSurfaceVariant),
+                  contentPadding: const EdgeInsets.symmetric(
                     horizontal: 16,
                     vertical: 14,
                   ),
@@ -257,7 +260,7 @@ class _AddRateScreenState extends ConsumerState<AddRateScreen> {
                   enabledBorder: InputBorder.none,
                 ),
               ),
-        
+
               // // Combined UOM Field - Can type or select from dropdown
               // TextFormField(
               //   controller: uomController,
@@ -295,27 +298,26 @@ class _AddRateScreenState extends ConsumerState<AddRateScreen> {
                   padding: const EdgeInsets.only(top: 4.0),
                   child: Row(
                     children: [
-                      Icon(Icons.edit, size: 14, color: Colors.orange[700]),
+                      Icon(Icons.edit, size: 14, color: colorScheme.tertiary),
                       const SizedBox(width: 4),
                       Text(
                         "Using custom UOM",
                         style: TextStyle(
                           fontSize: 12,
-                          color: Colors.orange[700],
+                          color: colorScheme.tertiary,
                           fontStyle: FontStyle.italic,
                         ),
                       ),
                     ],
                   ),
                 ),
-        
+
               CustomTextField(
                 label: "Remark (if any)",
                 controller: remarkController,
                 maxLines: 3,
               ),
               const SizedBox(height: 20),
-
             ],
           ),
         ),

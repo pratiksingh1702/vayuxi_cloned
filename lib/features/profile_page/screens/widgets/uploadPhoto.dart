@@ -18,6 +18,7 @@ class UploadPhotoButton extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final colorScheme = Theme.of(context).colorScheme;
     return Column(
       children: [
         Stack(
@@ -28,10 +29,11 @@ class UploadPhotoButton extends StatelessWidget {
               decoration: BoxDecoration(
                 shape: BoxShape.rectangle,
                 border: Border.all(
-                  color: Colors.grey.shade400,
+                  color: colorScheme.outlineVariant,
                   width: 2,
                 ),
-                color: Colors.grey.shade100,
+                borderRadius: BorderRadius.circular(12),
+                color: colorScheme.surfaceContainerLow,
               ),
               child: _buildImage(),
             ),
@@ -40,12 +42,12 @@ class UploadPhotoButton extends StatelessWidget {
               right: 0,
               child: Container(
                 decoration: BoxDecoration(
-                  color: Colors.blue,
+                  color: colorScheme.primary,
                   shape: BoxShape.circle,
-                  border: Border.all(color: Colors.white, width: 2),
+                  border: Border.all(color: colorScheme.surface, width: 2),
                 ),
                 child: IconButton(
-                  icon: const Icon(Icons.camera_alt, color: Colors.white),
+                  icon: Icon(Icons.camera_alt, color: colorScheme.onPrimary),
                   onPressed: onPressed,
                   iconSize: 20,
                   padding: EdgeInsets.zero,
@@ -58,9 +60,10 @@ class UploadPhotoButton extends StatelessWidget {
         const SizedBox(height: 8),
         Text(
           isCompanyLogo ? 'Company Logo' : 'Profile Photo',
-          style: const TextStyle(
+          style: TextStyle(
             fontSize: 14,
             fontWeight: FontWeight.w500,
+            color: colorScheme.onSurface,
           ),
         ),
       ],
@@ -69,10 +72,11 @@ class UploadPhotoButton extends StatelessWidget {
 
   Widget _buildImage() {
     if (imagePath == null || imagePath!.isEmpty) {
+      // Uses neutral placeholder aligned with themed surface.
       return Icon(
         isCompanyLogo ? Icons.business : Icons.person,
         size: 40,
-        color: Colors.grey.shade400,
+        color: Colors.grey.shade500,
       );
     }
 
@@ -93,7 +97,8 @@ class UploadPhotoButton extends StatelessWidget {
         ),
       );
     } else {
-      return ClipOval(
+      return ClipRRect(
+        borderRadius: BorderRadius.circular(10),
         child: Image.file(
           File(imagePath!),
           fit: BoxFit.cover,

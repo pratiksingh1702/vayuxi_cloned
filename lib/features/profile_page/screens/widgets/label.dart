@@ -13,22 +13,24 @@ class Label extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final colorScheme = Theme.of(context).colorScheme;
     return Padding(
       padding: const EdgeInsets.only(bottom: 8),
       child: Row(
         children: [
           Text(
             text,
-            style: const TextStyle(
+            style: TextStyle(
               fontSize: 16,
               fontWeight: FontWeight.w600,
+              color: colorScheme.onSurface,
             ),
           ),
           if (required)
-            const Text(
+            Text(
               ' *',
               style: TextStyle(
-                color: Colors.red,
+                color: colorScheme.error,
                 fontSize: 16,
                 fontWeight: FontWeight.w600,
               ),

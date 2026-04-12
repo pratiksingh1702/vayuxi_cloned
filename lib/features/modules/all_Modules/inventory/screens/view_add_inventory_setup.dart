@@ -7,8 +7,6 @@ import '../../dpr/screens/widgets/select_card.dart';
 import 'inventory_list.dart';
 import 'manual_import_add_inventory.dart';
 
-
-
 class ViewAddInventorySetup extends StatelessWidget {
   const ViewAddInventorySetup({super.key});
 
@@ -18,11 +16,12 @@ class ViewAddInventorySetup extends StatelessWidget {
     final isDark = Theme.of(context).brightness == Brightness.dark;
     return Scaffold(
       backgroundColor: colorScheme.surfaceContainerLowest,
-      appBar: CustomAppBar(title:"Select Card"),
+      appBar: CustomAppBar(title: "Select Card"),
       body: Column(
         children: [
           Container(
-            padding: const EdgeInsets.symmetric(horizontal: 16), // Add side padding
+            padding:
+                const EdgeInsets.symmetric(horizontal: 16), // Add side padding
             child: GridView.count(
               physics: const NeverScrollableScrollPhysics(),
               shrinkWrap: true,
@@ -34,17 +33,16 @@ class ViewAddInventorySetup extends StatelessWidget {
                 SelectCard(
                   icon: Image.asset(
                     "assets/images/icons/view.webp",
-
                     height: 120,
                     width: double.infinity,
                     fit: BoxFit.cover,
-
                   ),
                   label: "View",
                   onTap: () {
                     Navigator.push(
                       context,
-                      MaterialPageRoute(builder: (context) => InventoryListScreen()),
+                      MaterialPageRoute(
+                          builder: (context) => InventoryListScreen()),
                     );
                     print("implementing");
                   },
@@ -52,21 +50,19 @@ class ViewAddInventorySetup extends StatelessWidget {
                 SelectCard(
                   icon: Image.asset(
                     "assets/images/icons/add.webp",
-
                     height: 120,
                     width: double.infinity,
                     fit: BoxFit.cover,
-
                   ),
                   label: "Add",
                   onTap: () {
                     Navigator.push(
                       context,
-                      MaterialPageRoute(builder: (context) =>AddInventorySelection() ),
+                      MaterialPageRoute(
+                          builder: (context) => AddInventorySelection()),
                     );
                   },
                 ),
-
               ],
             ),
           ),
@@ -79,7 +75,8 @@ class ViewAddInventorySetup extends StatelessWidget {
             decoration: BoxDecoration(
               color: colorScheme.surface,
               borderRadius: BorderRadius.circular(18),
-              border: Border.all(color: colorScheme.outlineVariant.withOpacity(0.45)),
+              border: Border.all(
+                  color: colorScheme.outlineVariant.withOpacity(0.45)),
               boxShadow: [
                 BoxShadow(
                   color: isDark
@@ -104,7 +101,7 @@ class ViewAddInventorySetup extends StatelessWidget {
                 const SizedBox(height: 8),
                 Text(
                   "• View: You can view your sites and also edit them.\n"
-                      "• Add: You can create and register a new site.",
+                  "• Add: You can create and register a new site.",
                   style: TextStyle(
                     fontSize: 13,
                     height: 1.5,

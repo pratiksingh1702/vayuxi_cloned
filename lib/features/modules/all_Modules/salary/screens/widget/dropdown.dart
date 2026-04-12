@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+
 class Dropdown extends StatelessWidget {
   final List<String> options;
   final String? value;
@@ -15,18 +16,22 @@ class Dropdown extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final colorScheme = Theme.of(context).colorScheme;
     return Container(
       decoration: BoxDecoration(
-        color: Colors.white,
+        color: colorScheme.surface,
         borderRadius: BorderRadius.circular(8),
-        border: Border.all(color: Colors.grey.shade300),
+        border: Border.all(color: colorScheme.outlineVariant.withOpacity(0.5)),
       ),
       child: DropdownButtonHideUnderline(
         child: DropdownButton<String>(
           value: value,
           isExpanded: true,
           padding: const EdgeInsets.symmetric(horizontal: 16),
-          hint: Text(placeholder),
+          hint: Text(
+            placeholder,
+            style: TextStyle(color: colorScheme.onSurfaceVariant),
+          ),
           items: options.map((String option) {
             return DropdownMenuItem<String>(
               value: option,

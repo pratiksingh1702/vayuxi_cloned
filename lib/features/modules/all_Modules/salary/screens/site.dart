@@ -13,7 +13,6 @@ import 'package:http/http.dart' as http;
 import 'package:media_scanner/media_scanner.dart';
 import 'package:pdf/pdf.dart';
 import 'package:pdf/widgets.dart' as pw;
-import 'package:untitled2/core/utlis/colors/colors.dart';
 import 'package:untitled2/core/utlis/widgets/Button_wrapper.dart';
 import 'package:untitled2/core/utlis/widgets/custom_appBar.dart';
 import 'package:untitled2/core/utlis/widgets/custom_scrollbar.dart';
@@ -789,6 +788,7 @@ class _SiteSalaryScreenState extends ConsumerState<SiteSalaryScreen> {
   // ── Build ──────────────────────────────────────────────────────────────────
   @override
   Widget build(BuildContext context) {
+    final colorScheme = Theme.of(context).colorScheme;
     return Scaffold(
       drawer: const CustomDrawer(),
       backgroundColor: Theme.of(context).colorScheme.surfaceContainerLowest,
@@ -800,9 +800,10 @@ class _SiteSalaryScreenState extends ConsumerState<SiteSalaryScreen> {
             CustomButton(
               button: RoundedButton(
                 text: 'View All Details',
-                color:
-                    workData.isNotEmpty ? const Color(0xFF6366F1) : Colors.grey,
-                textColor: Colors.white,
+                color: workData.isNotEmpty
+                    ? colorScheme.primary
+                    : colorScheme.outline,
+                textColor: colorScheme.onPrimary,
                 onPressed: workData.isNotEmpty ? _handleViewAllDetails : () {},
                 isOutlined: false,
               ),
@@ -812,9 +813,9 @@ class _SiteSalaryScreenState extends ConsumerState<SiteSalaryScreen> {
               button: RoundedButton(
                 text: isDownloading ? 'Saving...' : 'Save All',
                 color: workData.isNotEmpty && !isDownloading
-                    ? const Color(0xFF1B6DCE)
-                    : Colors.grey,
-                textColor: Colors.white,
+                    ? colorScheme.secondary
+                    : colorScheme.outline,
+                textColor: colorScheme.onSecondary,
                 onPressed: workData.isNotEmpty && !isDownloading
                     ? _handleDownloadAllPDFs
                     : () {},
@@ -852,19 +853,20 @@ class _SiteSalaryScreenState extends ConsumerState<SiteSalaryScreen> {
                         padding: const EdgeInsets.symmetric(
                             horizontal: 10, vertical: 6),
                         decoration: BoxDecoration(
-                          color: Colors.red.shade50,
+                          color: colorScheme.errorContainer.withOpacity(0.5),
                           borderRadius: BorderRadius.circular(8),
-                          border: Border.all(color: Colors.red.shade200),
+                          border: Border.all(
+                              color: colorScheme.error.withOpacity(0.4)),
                         ),
                         child: Row(
                           children: [
                             Icon(Icons.close_rounded,
-                                size: 16, color: Colors.red.shade600),
+                                size: 16, color: colorScheme.error),
                             const SizedBox(width: 4),
                             Text(
                               'Clear (${_selectedEmployeeIds.length})',
                               style: TextStyle(
-                                color: Colors.red.shade700,
+                                color: colorScheme.error,
                                 fontSize: 12,
                                 fontWeight: FontWeight.w600,
                               ),
@@ -905,7 +907,9 @@ class _SiteSalaryScreenState extends ConsumerState<SiteSalaryScreen> {
     if (filteredList.isEmpty) {
       return Center(
         child: Text("No salary data available",
-            style: TextStyle(fontSize: 16, color: Colors.grey[600])),
+            style: TextStyle(
+                fontSize: 16,
+                color: Theme.of(context).colorScheme.onSurfaceVariant)),
       );
     }
 
@@ -931,12 +935,18 @@ class _SiteSalaryScreenState extends ConsumerState<SiteSalaryScreen> {
                 ? null
                 : () => _toggleEmployeeSelection(empId),
             child: Card(
-              color: isSelected ? const Color(0xFFEFF6FF) : Colors.white,
+              color: isSelected
+                  ? Theme.of(context)
+                      .colorScheme
+                      .primaryContainer
+                      .withOpacity(0.25)
+                  : Theme.of(context).colorScheme.surface,
               shape: RoundedRectangleBorder(
                 borderRadius: BorderRadius.circular(12),
                 side: BorderSide(
-                  color:
-                      isSelected ? const Color(0xFF60A5FA) : Colors.transparent,
+                  color: isSelected
+                      ? Theme.of(context).colorScheme.primary
+                      : Colors.transparent,
                   width: 1.2,
                 ),
               ),
@@ -951,10 +961,15 @@ class _SiteSalaryScreenState extends ConsumerState<SiteSalaryScreen> {
                     Container(
                       width: 44,
                       height: 44,
-                      decoration: const BoxDecoration(
-                          color: Color(0xFFEFF6FF), shape: BoxShape.circle),
-                      child: const Icon(Icons.person_rounded,
-                          color: Color(0xFF2563EB), size: 22),
+                      decoration: BoxDecoration(
+                          color: Theme.of(context)
+                              .colorScheme
+                              .primaryContainer
+                              .withOpacity(0.3),
+                          shape: BoxShape.circle),
+                      child: Icon(Icons.person_rounded,
+                          color: Theme.of(context).colorScheme.primary,
+                          size: 22),
                     ),
                     const SizedBox(width: 12),
 
@@ -965,14 +980,19 @@ class _SiteSalaryScreenState extends ConsumerState<SiteSalaryScreen> {
                         children: [
                           Text(
                             emp["fullName"] ?? "Unknown",
-                            style: const TextStyle(
-                                fontSize: 15, fontWeight: FontWeight.w600),
+                            style: TextStyle(
+                                fontSize: 15,
+                                fontWeight: FontWeight.w600,
+                                color: Theme.of(context).colorScheme.onSurface),
                           ),
                           const SizedBox(height: 2),
                           Text(
                             emp["designation"] ?? "No Designation",
                             style: TextStyle(
-                                fontSize: 13, color: Colors.grey[600]),
+                                fontSize: 13,
+                                color: Theme.of(context)
+                                    .colorScheme
+                                    .onSurfaceVariant),
                           ),
                         ],
                       ),
@@ -984,8 +1004,8 @@ class _SiteSalaryScreenState extends ConsumerState<SiteSalaryScreen> {
                             ? Icons.check_circle_rounded
                             : Icons.radio_button_unchecked_rounded,
                         color: isSelected
-                            ? const Color(0xFF2563EB)
-                            : Colors.grey.shade400,
+                            ? Theme.of(context).colorScheme.primary
+                            : Theme.of(context).colorScheme.outline,
                         size: 22,
                       )
                     else if (isBusy)
@@ -1004,7 +1024,7 @@ class _SiteSalaryScreenState extends ConsumerState<SiteSalaryScreen> {
                           // View details
                           _ActionButton(
                             icon: Icons.visibility_rounded,
-                            color: const Color(0xFF6366F1),
+                            color: Theme.of(context).colorScheme.primary,
                             tooltip: 'View Details',
                             onTap: isDownloading
                                 ? null
@@ -1014,7 +1034,7 @@ class _SiteSalaryScreenState extends ConsumerState<SiteSalaryScreen> {
                           // Download PDF
                           _ActionButton(
                             icon: Icons.picture_as_pdf_rounded,
-                            color: Colors.red.shade400,
+                            color: Theme.of(context).colorScheme.error,
                             tooltip: 'Download PDF',
                             onTap: isDownloading
                                 ? null
@@ -1060,12 +1080,16 @@ class _ActionButton extends StatelessWidget {
         child: Container(
           padding: const EdgeInsets.all(8),
           decoration: BoxDecoration(
-            color:
-                onTap != null ? color.withOpacity(0.1) : Colors.grey.shade100,
+            color: onTap != null
+                ? color.withOpacity(0.1)
+                : Theme.of(context).colorScheme.surfaceContainerHighest,
             borderRadius: BorderRadius.circular(8),
           ),
           child: Icon(icon,
-              size: 18, color: onTap != null ? color : Colors.grey.shade400),
+              size: 18,
+              color: onTap != null
+                  ? color
+                  : Theme.of(context).colorScheme.outline),
         ),
       ),
     );
@@ -1141,6 +1165,7 @@ class _Dropdown extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final colorScheme = Theme.of(context).colorScheme;
     return SizedBox(
       width: width,
       child: Column(
@@ -1150,7 +1175,7 @@ class _Dropdown extends StatelessWidget {
               style: TextStyle(
                   fontSize: 16,
                   fontWeight: FontWeight.w500,
-                  color: Colors.grey[700])),
+                  color: colorScheme.onSurfaceVariant)),
           const SizedBox(height: 8),
           DropdownButtonFormField<String>(
             value: value,
@@ -1161,11 +1186,14 @@ class _Dropdown extends StatelessWidget {
             decoration: InputDecoration(
               hintText: "Select $title",
               filled: true,
-              fillColor: Colors.white,
+              fillColor: colorScheme.surface,
               contentPadding:
                   const EdgeInsets.symmetric(horizontal: 12, vertical: 16),
-              border:
-                  OutlineInputBorder(borderRadius: BorderRadius.circular(8)),
+              border: OutlineInputBorder(
+                  borderRadius: BorderRadius.circular(8),
+                  borderSide: BorderSide(
+                    color: colorScheme.outlineVariant.withOpacity(0.4),
+                  )),
               floatingLabelBehavior: FloatingLabelBehavior.never,
             ),
           ),
@@ -1210,6 +1238,7 @@ class _BulkDownloadDialogState extends State<_BulkDownloadDialog> {
 
   @override
   Widget build(BuildContext context) {
+    final colorScheme = Theme.of(context).colorScheme;
     return StreamBuilder<void>(
       stream: _ticker,
       builder: (_, __) {
@@ -1234,7 +1263,7 @@ class _BulkDownloadDialogState extends State<_BulkDownloadDialog> {
                       ? Colors.green
                       : isComplete
                           ? Colors.red
-                          : Colors.blue,
+                          : colorScheme.primary,
                   borderRadius: BorderRadius.circular(8),
                 ),
                 child: Icon(
@@ -1264,7 +1293,7 @@ class _BulkDownloadDialogState extends State<_BulkDownloadDialog> {
                     Text('$done of ${widget.total}',
                         style: TextStyle(
                             fontSize: 13,
-                            color: Colors.grey[600],
+                            color: colorScheme.onSurfaceVariant,
                             fontWeight: FontWeight.normal)),
                   ],
                 ),
@@ -1286,9 +1315,10 @@ class _BulkDownloadDialogState extends State<_BulkDownloadDialog> {
                               ? Colors.green
                               : isComplete
                                   ? Colors.red
-                                  : Colors.blue)),
+                                  : colorScheme.primary)),
                   Text('$success success, $failed failed',
-                      style: TextStyle(fontSize: 13, color: Colors.grey[700])),
+                      style: TextStyle(
+                          fontSize: 13, color: colorScheme.onSurfaceVariant)),
                 ],
               ),
               const SizedBox(height: 12),
@@ -1296,12 +1326,12 @@ class _BulkDownloadDialogState extends State<_BulkDownloadDialog> {
                 borderRadius: BorderRadius.circular(8),
                 child: LinearProgressIndicator(
                   value: progress,
-                  backgroundColor: Colors.grey[200],
+                  backgroundColor: colorScheme.surfaceContainerHighest,
                   valueColor: AlwaysStoppedAnimation<Color>(isSuccess
                       ? Colors.green
                       : isComplete
                           ? Colors.red
-                          : Colors.blue),
+                          : colorScheme.primary),
                   minHeight: 12,
                 ),
               ),
@@ -1326,13 +1356,13 @@ class _BulkDownloadDialogState extends State<_BulkDownloadDialog> {
                       Row(
                         children: [
                           Icon(Icons.folder_open,
-                              size: 16, color: Colors.grey[600]),
+                              size: 16, color: colorScheme.onSurfaceVariant),
                           const SizedBox(width: 6),
                           Expanded(
                             child: Text(widget.directory,
                                 style: TextStyle(
                                     fontSize: 11,
-                                    color: Colors.grey[700],
+                                    color: colorScheme.onSurfaceVariant,
                                     fontStyle: FontStyle.italic),
                                 maxLines: 2,
                                 overflow: TextOverflow.ellipsis),

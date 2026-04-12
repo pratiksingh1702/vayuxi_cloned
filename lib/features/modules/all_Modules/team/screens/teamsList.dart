@@ -41,8 +41,11 @@ class _TeamListPageState extends ConsumerState<TeamListPage> {
   Future<void> _refreshTeams() async {
     final type = ref.read(typeProvider);
     final siteId = ref.read(selectedSiteIdProvider);
-    await ref.read(teamProvider.notifier).fetchTeams(type: type!, siteId: siteId!);
+    await ref
+        .read(teamProvider.notifier)
+        .fetchTeams(type: type!, siteId: siteId!);
   }
+
   @override
   void initState() {
     super.initState();
@@ -50,7 +53,6 @@ class _TeamListPageState extends ConsumerState<TeamListPage> {
       _refreshTeams();
     });
   }
-
 
   /// Toggle selection mode
   void _toggleSelectionMode() {
@@ -74,8 +76,7 @@ class _TeamListPageState extends ConsumerState<TeamListPage> {
   }
 
   /// Select all teams
-  void _selectAllTeams(List<TeamModel> teams)
-  {
+  void _selectAllTeams(List<TeamModel> teams) {
     setState(() {
       for (var team in teams) {
         _selectedTeamIds.add(team.id);
@@ -101,7 +102,7 @@ class _TeamListPageState extends ConsumerState<TeamListPage> {
         title: const Text('Delete Selected Teams'),
         content: Text(
           'Are you sure you want to delete ${_selectedTeamIds.length} selected teams?\n\n'
-              'This action cannot be undone.',
+          'This action cannot be undone.',
         ),
         actions: [
           TextButton(
@@ -146,7 +147,6 @@ class _TeamListPageState extends ConsumerState<TeamListPage> {
       debugPrint('❌ Failed to bulk delete: $e');
       final message = extractBackendError(e);
 
-
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
@@ -180,8 +180,8 @@ class _TeamListPageState extends ConsumerState<TeamListPage> {
               color: colorScheme.primary,
               textColor: colorScheme.onPrimary,
               onPressed: () {
-                  context.push(Routes.addTeam);
-                },
+                context.push(Routes.addTeam);
+              },
             ),
           ),
         ],
@@ -210,7 +210,8 @@ class _TeamListPageState extends ConsumerState<TeamListPage> {
                   Container(
                     width: double.infinity,
                     padding: const EdgeInsets.all(10),
-                    margin: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+                    margin:
+                        const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
                     decoration: BoxDecoration(
                       color: colorScheme.tertiaryContainer,
                       borderRadius: BorderRadius.circular(10),
@@ -243,8 +244,9 @@ class _TeamListPageState extends ConsumerState<TeamListPage> {
                             ElevatedButton.icon(
                               icon: const Icon(Icons.delete_sweep, size: 18),
                               label: const Text('Delete'),
-                              onPressed:
-                              _selectedTeamIds.isEmpty ? null : _deleteSelectedTeams,
+                              onPressed: _selectedTeamIds.isEmpty
+                                  ? null
+                                  : _deleteSelectedTeams,
                               style: ElevatedButton.styleFrom(
                                 backgroundColor: colorScheme.error,
                                 foregroundColor: colorScheme.onError,
@@ -256,7 +258,8 @@ class _TeamListPageState extends ConsumerState<TeamListPage> {
                                 Icons.delete_sweep,
                                 color: colorScheme.error,
                               ),
-                              onPressed: teams.isEmpty ? null : _toggleSelectionMode,
+                              onPressed:
+                                  teams.isEmpty ? null : _toggleSelectionMode,
                               tooltip: 'Select Teams to Delete',
                             ),
                           ],
@@ -276,7 +279,8 @@ class _TeamListPageState extends ConsumerState<TeamListPage> {
                           controller: _scrollController,
                           physics: const AlwaysScrollableScrollPhysics(),
                           itemCount: teams.length,
-                          gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
+                          gridDelegate:
+                              const SliverGridDelegateWithFixedCrossAxisCount(
                             crossAxisCount: 2,
                             mainAxisSpacing: 16,
                             crossAxisSpacing: 16,
@@ -284,7 +288,8 @@ class _TeamListPageState extends ConsumerState<TeamListPage> {
                           ),
                           itemBuilder: (context, index) {
                             final team = teams[index];
-                            final isSelected = _selectedTeamIds.contains(team.id);
+                            final isSelected =
+                                _selectedTeamIds.contains(team.id);
                             return _buildTeamCard(team, isSelected, site);
                           },
                         ),
@@ -296,7 +301,6 @@ class _TeamListPageState extends ConsumerState<TeamListPage> {
             );
           },
         ),
-
       ),
     );
   }
@@ -310,17 +314,20 @@ class _TeamListPageState extends ConsumerState<TeamListPage> {
             onTap: _isSelectionMode
                 ? () => _toggleTeamSelection(team.id)
                 : () {
-              context.push(Routes.editTeam, extra: {
-                'site': site!,
-                'team': team,
-              });
-            },
+                    context.push(Routes.editTeam, extra: {
+                      'site': site!,
+                      'team': team,
+                    });
+                  },
             child: Card(
               color: Theme.of(context).colorScheme.surface,
               shape: RoundedRectangleBorder(
                 borderRadius: BorderRadius.circular(12),
                 side: BorderSide(
-                  color: Theme.of(context).colorScheme.outlineVariant.withOpacity(0.45),
+                  color: Theme.of(context)
+                      .colorScheme
+                      .outlineVariant
+                      .withOpacity(0.45),
                 ),
               ),
               child: Stack(
@@ -331,40 +338,42 @@ class _TeamListPageState extends ConsumerState<TeamListPage> {
                       children: [
                         ClipOval(
                           child: team.teamLeadImage != null &&
-                                    team.teamLeadImage!.isNotEmpty
-                                ? Image.network(
-                                    team.teamLeadImage!,
-                                    height: 80,
-                                    width: 80,
-                                    fit: BoxFit.cover,
-                                    loadingBuilder:
-                                        (context, child, loadingProgress) {
-                                      if (loadingProgress == null) return child;
-                                      return const ShimmerImage(
-                                        height: 80,
-                                        width: 80,
-                                        shape: BoxShape.circle,
-                                      );
-                                    },
-                                    errorBuilder: (_, __, ___) {
-                              return Image.asset(
-                                "assets/images/team_def.webp",
-                                height: 80,
-                                width: 80,
-                                fit: BoxFit.cover,
-                              );
-                            },
-                          )
+                                  team.teamLeadImage!.isNotEmpty
+                              ? Image.network(
+                                  team.teamLeadImage!,
+                                  height: 80,
+                                  width: 80,
+                                  fit: BoxFit.cover,
+                                  loadingBuilder:
+                                      (context, child, loadingProgress) {
+                                    if (loadingProgress == null) return child;
+                                    return const ShimmerImage(
+                                      height: 80,
+                                      width: 80,
+                                      shape: BoxShape.circle,
+                                    );
+                                  },
+                                  errorBuilder: (_, __, ___) {
+                                    return Image.asset(
+                                      "assets/images/team_def.webp",
+                                      height: 80,
+                                      width: 80,
+                                      fit: BoxFit.cover,
+                                    );
+                                  },
+                                )
                               : Image.asset(
-                            "assets/images/team_def.webp",
-                            height: 80,
-                            width: 80,
-                            fit: BoxFit.cover,
-                          ),
+                                  "assets/images/team_def.webp",
+                                  height: 80,
+                                  width: 80,
+                                  fit: BoxFit.cover,
+                                ),
                         ),
                         const SizedBox(height: 10),
                         Text(
-                          team.isDefaultTeam?'Default team':team.teamName ?? '',
+                          team.isDefaultTeam
+                              ? 'Default team'
+                              : team.teamName ?? '',
                           style: const TextStyle(
                             fontWeight: FontWeight.w600,
                             fontSize: 15,
@@ -424,7 +433,10 @@ class _TeamListPageState extends ConsumerState<TeamListPage> {
                   ),
                   boxShadow: [
                     BoxShadow(
-                      color: Theme.of(context).colorScheme.shadow.withOpacity(0.16),
+                      color: Theme.of(context)
+                          .colorScheme
+                          .shadow
+                          .withOpacity(0.16),
                       blurRadius: 4,
                       offset: const Offset(0, 2),
                     ),
@@ -432,10 +444,10 @@ class _TeamListPageState extends ConsumerState<TeamListPage> {
                 ),
                 child: isSelected
                     ? Icon(
-                  Icons.check,
-                  color: Theme.of(context).colorScheme.onError,
-                  size: 20,
-                )
+                        Icons.check,
+                        color: Theme.of(context).colorScheme.onError,
+                        size: 20,
+                      )
                     : null,
               ),
             ),
@@ -458,10 +470,10 @@ class _TeamListPageState extends ConsumerState<TeamListPage> {
             child: const Text("Cancel"),
           ),
           ElevatedButton(
-              style: ElevatedButton.styleFrom(
-                backgroundColor: Theme.of(context).colorScheme.error,
-                foregroundColor: Theme.of(context).colorScheme.onError,
-              ),
+            style: ElevatedButton.styleFrom(
+              backgroundColor: Theme.of(context).colorScheme.error,
+              foregroundColor: Theme.of(context).colorScheme.onError,
+            ),
             onPressed: () => Navigator.pop(context, true),
             child: const Text("Delete"),
           ),
@@ -482,10 +494,10 @@ class _TeamListPageState extends ConsumerState<TeamListPage> {
 
     try {
       await ref.read(teamProvider.notifier).deleteTeam(
-        siteId: siteId,
-        teamId: teamId,
-        type: type,
-      );
+            siteId: siteId,
+            teamId: teamId,
+            type: type,
+          );
 
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(content: Text("✅ Team deleted successfully")),

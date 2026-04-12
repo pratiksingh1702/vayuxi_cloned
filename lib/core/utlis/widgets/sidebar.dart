@@ -26,6 +26,8 @@ class CustomDrawer extends ConsumerWidget {
   Color _surfaceElevated(BuildContext context) => _cs(context).surfaceContainer;
   Color _primary(BuildContext context) => _cs(context).primary;
   Color _primaryLight(BuildContext context) => _cs(context).primaryContainer;
+  Color _onPrimaryLight(BuildContext context) =>
+      _cs(context).onPrimaryContainer;
   Color _textPrimary(BuildContext context) => _cs(context).onSurface;
   Color _textSecondary(BuildContext context) => _cs(context).onSurfaceVariant;
   Color _textMuted(BuildContext context) =>
@@ -35,6 +37,8 @@ class CustomDrawer extends ConsumerWidget {
   Color _dangerLight(BuildContext context) => _cs(context).errorContainer;
   Color _success(BuildContext context) => _cs(context).tertiary;
   Color _successLight(BuildContext context) => _cs(context).tertiaryContainer;
+  Color _onSuccessLight(BuildContext context) =>
+      _cs(context).onTertiaryContainer;
 
   Future<bool> _checkDeviceVerification() async {
     final id = await DevicePrefs.getDeviceId();
@@ -429,6 +433,7 @@ class CustomDrawer extends ConsumerWidget {
   }) {
     String currentRoute = '';
     bool isActive = false;
+    final isHome = title.toLowerCase() == 'home';
 
     final router = GoRouter.maybeOf(context);
 
@@ -468,22 +473,36 @@ class CustomDrawer extends ConsumerWidget {
                 Container(
                   width: 32,
                   height: 32,
-                  alignment: Alignment.center,
-                  child: Image.asset(
-                    imagePath,
-                    width: 20,
-                    height: 20,
-                    fit: BoxFit.contain,
-                    errorBuilder: (context, error, stackTrace) {
-                      return Icon(
-                        Icons.circle_outlined,
-                        color: isActive
-                            ? _primary(context)
-                            : _textSecondary(context),
-                        size: 20,
-                      );
-                    },
+                  decoration: BoxDecoration(
+                    color: isActive
+                        ? _primary(context).withOpacity(0.14)
+                        : _cs(context).surfaceContainerHigh,
+                    borderRadius: BorderRadius.circular(8),
                   ),
+                  alignment: Alignment.center,
+                  child: isHome
+                      ? Icon(
+                          Icons.home_rounded,
+                          color: isActive
+                              ? _primary(context)
+                              : _cs(context).secondary,
+                          size: 20,
+                        )
+                      : Image.asset(
+                          imagePath,
+                          width: 20,
+                          height: 20,
+                          fit: BoxFit.contain,
+                          errorBuilder: (context, error, stackTrace) {
+                            return Icon(
+                              Icons.circle_outlined,
+                              color: isActive
+                                  ? _primary(context)
+                                  : _textSecondary(context),
+                              size: 20,
+                            );
+                          },
+                        ),
                 ),
                 const SizedBox(width: 12),
                 Expanded(
@@ -492,8 +511,9 @@ class CustomDrawer extends ConsumerWidget {
                     style: TextStyle(
                       fontSize: 14,
                       fontWeight: isActive ? FontWeight.w600 : FontWeight.w500,
-                      color:
-                          isActive ? _primary(context) : _textPrimary(context),
+                      color: isActive
+                          ? _onPrimaryLight(context)
+                          : _textPrimary(context),
                       letterSpacing: -0.2,
                     ),
                   ),
@@ -561,7 +581,7 @@ class CustomDrawer extends ConsumerWidget {
                         style: TextStyle(
                           fontSize: 14,
                           fontWeight: FontWeight.w600,
-                          color: _textPrimary(context),
+                          color: _onSuccessLight(context),
                         ),
                       ),
                       Text(
@@ -569,7 +589,7 @@ class CustomDrawer extends ConsumerWidget {
                         style: TextStyle(
                           fontSize: 11,
                           fontWeight: FontWeight.w400,
-                          color: _textSecondary(context),
+                          color: _onSuccessLight(context).withOpacity(0.8),
                         ),
                       ),
                     ],
@@ -634,7 +654,7 @@ class CustomDrawer extends ConsumerWidget {
                   decoration: BoxDecoration(
                     gradient: LinearGradient(
                       colors: [
-                        _primary(context).withOpacity(0.9),
+                        _cs(context).secondary,
                         _primary(context),
                       ],
                       begin: Alignment.topLeft,
@@ -659,7 +679,7 @@ class CustomDrawer extends ConsumerWidget {
                         style: TextStyle(
                           fontSize: 14,
                           fontWeight: FontWeight.w700,
-                          color: _textPrimary(context),
+                          color: _onPrimaryLight(context),
                         ),
                       ),
                       Text(
@@ -667,16 +687,24 @@ class CustomDrawer extends ConsumerWidget {
                         style: TextStyle(
                           fontSize: 11,
                           fontWeight: FontWeight.w500,
-                          color: _textSecondary(context),
+                          color: _onPrimaryLight(context).withOpacity(0.85),
                         ),
                       ),
                     ],
                   ),
                 ),
-                Icon(
-                  Icons.chevron_right_rounded,
-                  color: _primary(context),
-                  size: 20,
+                Container(
+                  width: 24,
+                  height: 24,
+                  decoration: BoxDecoration(
+                    color: _primary(context).withOpacity(0.14),
+                    borderRadius: BorderRadius.circular(8),
+                  ),
+                  child: Icon(
+                    Icons.chevron_right_rounded,
+                    color: _primary(context),
+                    size: 18,
+                  ),
                 ),
               ],
             ),
@@ -793,7 +821,7 @@ class CustomDrawer extends ConsumerWidget {
                         Icon(
                           Icons.assistant_navigation,
                           size: 16,
-                          color: _primary(context),
+                          color: _onPrimaryLight(context),
                         ),
                         const SizedBox(width: 8),
                         Text(
@@ -801,7 +829,7 @@ class CustomDrawer extends ConsumerWidget {
                           style: TextStyle(
                             fontSize: 13,
                             fontWeight: FontWeight.w700,
-                            color: _primary(context),
+                            color: _onPrimaryLight(context),
                             letterSpacing: -0.2,
                           ),
                         ),

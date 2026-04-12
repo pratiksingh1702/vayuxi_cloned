@@ -4,7 +4,6 @@ import 'package:file_picker/file_picker.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import 'package:untitled2/core/utlis/colors/colors.dart';
 import 'package:untitled2/features/modules/all_Modules/salary/screens/salary_Detail.dart';
 
 import 'package:untitled2/features/modules/all_Modules/salary/screens/widget/pdf_generator.dart';
@@ -38,9 +37,18 @@ class _SalarySlipScreenState extends ConsumerState<SalarySlipScreen> {
   List<String> yearOptions = [];
 
   static const Map<String, int> monthMap = {
-    "January": 1, "February": 2, "March": 3, "April": 4,
-    "May": 5, "June": 6, "July": 7, "August": 8,
-    "September": 9, "October": 10, "November": 11, "December": 12,
+    "January": 1,
+    "February": 2,
+    "March": 3,
+    "April": 4,
+    "May": 5,
+    "June": 6,
+    "July": 7,
+    "August": 8,
+    "September": 9,
+    "October": 10,
+    "November": 11,
+    "December": 12,
   };
 
   // ── INIT ───────────────────────────────────────────────────────────────────
@@ -152,10 +160,11 @@ class _SalarySlipScreenState extends ConsumerState<SalarySlipScreen> {
     } catch (e) {
       debugPrint("Error viewing details: $e");
       if (mounted) {
+        final colorScheme = Theme.of(context).colorScheme;
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
             content: Text("Error loading details: $e"),
-            backgroundColor: Colors.red,
+            backgroundColor: colorScheme.error,
           ),
         );
       }
@@ -205,17 +214,17 @@ class _SalarySlipScreenState extends ConsumerState<SalarySlipScreen> {
           content: Text(savePath != null
               ? "Salary slip saved successfully!"
               : "Save cancelled."),
-          backgroundColor:
-              savePath != null ? Colors.green : null,
+          backgroundColor: savePath != null ? Colors.green : null,
         ),
       );
     } catch (e) {
       debugPrint("Error generating salary slip: $e");
       if (mounted) {
+        final colorScheme = Theme.of(context).colorScheme;
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
             content: Text("Error generating salary slip: $e"),
-            backgroundColor: Colors.red,
+            backgroundColor: colorScheme.error,
           ),
         );
       }
@@ -229,6 +238,7 @@ class _SalarySlipScreenState extends ConsumerState<SalarySlipScreen> {
   Widget build(BuildContext context) {
     final manpowerState = ref.watch(manpowerProvider);
     final isBusy = isDownloading || isViewingDetails;
+    final colorScheme = Theme.of(context).colorScheme;
 
     return Scaffold(
       drawer: const CustomDrawer(),
@@ -257,14 +267,18 @@ class _SalarySlipScreenState extends ConsumerState<SalarySlipScreen> {
                       placeholder: "Select Employee",
                       allowAddNew: false,
                       containerDecoration: BoxDecoration(
-                        color: Colors.white,
+                        color: colorScheme.surface,
                         borderRadius: BorderRadius.circular(8),
+                        border: Border.all(
+                          color: colorScheme.outlineVariant.withOpacity(0.35),
+                        ),
                       ),
-                      inputDecoration: const InputDecoration(
+                      inputDecoration: InputDecoration(
                         hintText: "Select Employee",
-                        hintStyle: TextStyle(color: Colors.grey),
+                        hintStyle:
+                            TextStyle(color: colorScheme.onSurfaceVariant),
                         isDense: true,
-                        contentPadding: EdgeInsets.symmetric(
+                        contentPadding: const EdgeInsets.symmetric(
                             horizontal: 12, vertical: 14),
                         border: InputBorder.none,
                       ),
@@ -287,14 +301,18 @@ class _SalarySlipScreenState extends ConsumerState<SalarySlipScreen> {
                       placeholder: "Select Code",
                       allowAddNew: false,
                       containerDecoration: BoxDecoration(
-                        color: Colors.white,
+                        color: colorScheme.surface,
                         borderRadius: BorderRadius.circular(8),
+                        border: Border.all(
+                          color: colorScheme.outlineVariant.withOpacity(0.35),
+                        ),
                       ),
-                      inputDecoration: const InputDecoration(
+                      inputDecoration: InputDecoration(
                         hintText: "Select Code",
-                        hintStyle: TextStyle(color: Colors.grey),
+                        hintStyle:
+                            TextStyle(color: colorScheme.onSurfaceVariant),
                         isDense: true,
-                        contentPadding: EdgeInsets.symmetric(
+                        contentPadding: const EdgeInsets.symmetric(
                             horizontal: 12, vertical: 14),
                         border: InputBorder.none,
                       ),
@@ -328,13 +346,22 @@ class _SalarySlipScreenState extends ConsumerState<SalarySlipScreen> {
                                 decoration: InputDecoration(
                                   hintText: "Select Month",
                                   filled: true,
-                                  fillColor: Colors.white,
-                                  contentPadding:
-                                      const EdgeInsets.symmetric(
-                                          horizontal: 12, vertical: 14),
+                                  fillColor: colorScheme.surface,
+                                  contentPadding: const EdgeInsets.symmetric(
+                                      horizontal: 12, vertical: 14),
                                   border: OutlineInputBorder(
                                     borderRadius: BorderRadius.circular(8),
-                                    borderSide: BorderSide.none,
+                                    borderSide: BorderSide(
+                                      color: colorScheme.outlineVariant
+                                          .withOpacity(0.35),
+                                    ),
+                                  ),
+                                  enabledBorder: OutlineInputBorder(
+                                    borderRadius: BorderRadius.circular(8),
+                                    borderSide: BorderSide(
+                                      color: colorScheme.outlineVariant
+                                          .withOpacity(0.35),
+                                    ),
                                   ),
                                 ),
                               ),
@@ -357,18 +384,26 @@ class _SalarySlipScreenState extends ConsumerState<SalarySlipScreen> {
                                     .map((y) => DropdownMenuItem(
                                         value: y, child: Text(y)))
                                     .toList(),
-                                onChanged: (val) =>
-                                    handleYearSelect(val!),
+                                onChanged: (val) => handleYearSelect(val!),
                                 decoration: InputDecoration(
                                   hintText: "Select Year",
                                   filled: true,
-                                  fillColor: Colors.white,
-                                  contentPadding:
-                                      const EdgeInsets.symmetric(
-                                          horizontal: 12, vertical: 14),
+                                  fillColor: colorScheme.surface,
+                                  contentPadding: const EdgeInsets.symmetric(
+                                      horizontal: 12, vertical: 14),
                                   border: OutlineInputBorder(
                                     borderRadius: BorderRadius.circular(8),
-                                    borderSide: BorderSide.none,
+                                    borderSide: BorderSide(
+                                      color: colorScheme.outlineVariant
+                                          .withOpacity(0.35),
+                                    ),
+                                  ),
+                                  enabledBorder: OutlineInputBorder(
+                                    borderRadius: BorderRadius.circular(8),
+                                    borderSide: BorderSide(
+                                      color: colorScheme.outlineVariant
+                                          .withOpacity(0.35),
+                                    ),
                                   ),
                                 ),
                               ),
@@ -381,9 +416,10 @@ class _SalarySlipScreenState extends ConsumerState<SalarySlipScreen> {
                     const SizedBox(height: 30),
 
                     if (showLoader)
-                      const Center(
-                          child:
-                              CircularProgressIndicator(color: Colors.blue))
+                      Center(
+                        child: CircularProgressIndicator(
+                            color: colorScheme.primary),
+                      )
                     else if (readyToShowButton)
                       Column(
                         crossAxisAlignment: CrossAxisAlignment.stretch,
@@ -392,28 +428,31 @@ class _SalarySlipScreenState extends ConsumerState<SalarySlipScreen> {
                           ElevatedButton.icon(
                             onPressed: isBusy ? null : _viewDetails,
                             icon: isViewingDetails
-                                ? const SizedBox(
+                                ? SizedBox(
                                     height: 18,
                                     width: 18,
                                     child: CircularProgressIndicator(
-                                        color: Colors.white, strokeWidth: 2),
+                                        color: colorScheme.onPrimary,
+                                        strokeWidth: 2),
                                   )
-                                : const Icon(Icons.visibility_rounded,
-                                    size: 18, color: Colors.white),
+                                : Icon(Icons.visibility_rounded,
+                                    size: 18, color: colorScheme.onPrimary),
                             label: Text(
                               isViewingDetails
                                   ? 'Loading...'
                                   : 'View Salary Details',
-                              style: const TextStyle(color: Colors.white),
+                              style: TextStyle(color: colorScheme.onPrimary),
                             ),
                             style: ElevatedButton.styleFrom(
-                              backgroundColor: const Color(0xFF6366F1),
+                              backgroundColor: colorScheme.primary,
                               disabledBackgroundColor:
-                                  Colors.grey.shade300,
+                                  colorScheme.surfaceContainerHighest,
+                              foregroundColor: colorScheme.onPrimary,
+                              disabledForegroundColor:
+                                  colorScheme.onSurfaceVariant,
                               shape: RoundedRectangleBorder(
                                   borderRadius: BorderRadius.circular(8)),
-                              padding: const EdgeInsets.symmetric(
-                                  vertical: 14),
+                              padding: const EdgeInsets.symmetric(vertical: 14),
                               elevation: 0,
                             ),
                           ),
@@ -422,31 +461,33 @@ class _SalarySlipScreenState extends ConsumerState<SalarySlipScreen> {
 
                           // ── Download PDF ───────────────────────────────
                           ElevatedButton.icon(
-                            onPressed:
-                                isBusy ? null : _downloadAndSavePDF,
+                            onPressed: isBusy ? null : _downloadAndSavePDF,
                             icon: isDownloading
-                                ? const SizedBox(
+                                ? SizedBox(
                                     height: 18,
                                     width: 18,
                                     child: CircularProgressIndicator(
-                                        color: Colors.white, strokeWidth: 2),
+                                        color: colorScheme.onSecondary,
+                                        strokeWidth: 2),
                                   )
-                                : const Icon(Icons.download_rounded,
-                                    size: 18, color: Colors.white),
+                                : Icon(Icons.download_rounded,
+                                    size: 18, color: colorScheme.onSecondary),
                             label: Text(
                               isDownloading
                                   ? 'Saving...'
                                   : 'Download Salary Slip',
-                              style: const TextStyle(color: Colors.white),
+                              style: TextStyle(color: colorScheme.onSecondary),
                             ),
                             style: ElevatedButton.styleFrom(
-                              backgroundColor: Colors.blue,
+                              backgroundColor: colorScheme.secondary,
                               disabledBackgroundColor:
-                                  Colors.grey.shade300,
+                                  colorScheme.surfaceContainerHighest,
+                              foregroundColor: colorScheme.onSecondary,
+                              disabledForegroundColor:
+                                  colorScheme.onSurfaceVariant,
                               shape: RoundedRectangleBorder(
                                   borderRadius: BorderRadius.circular(8)),
-                              padding: const EdgeInsets.symmetric(
-                                  vertical: 14),
+                              padding: const EdgeInsets.symmetric(vertical: 14),
                               elevation: 0,
                             ),
                           ),
@@ -457,14 +498,16 @@ class _SalarySlipScreenState extends ConsumerState<SalarySlipScreen> {
                           OutlinedButton(
                             onPressed: () => Navigator.pop(context),
                             style: OutlinedButton.styleFrom(
-                              side: const BorderSide(
-                                  color: Colors.black54, width: 1),
+                              side: BorderSide(
+                                  color: colorScheme.outline, width: 1),
                               shape: RoundedRectangleBorder(
                                   borderRadius: BorderRadius.circular(8)),
-                              padding: const EdgeInsets.symmetric(
-                                  vertical: 14),
+                              padding: const EdgeInsets.symmetric(vertical: 14),
                             ),
-                            child: const Text("Back"),
+                            child: Text(
+                              "Back",
+                              style: TextStyle(color: colorScheme.onSurface),
+                            ),
                           ),
                         ],
                       ),

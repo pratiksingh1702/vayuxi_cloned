@@ -9,7 +9,6 @@ import 'package:media_scanner/media_scanner.dart';
 import 'package:share_plus/share_plus.dart';
 
 class FileHandler {
-
   /// Load logo from assets
   static Future<Uint8List> loadLogo() async {
     try {
@@ -26,7 +25,7 @@ class FileHandler {
       {String dialogTitle = "Select Save Location"}) async {
     try {
       final String? directory =
-      await FilePicker.platform.getDirectoryPath(dialogTitle: dialogTitle);
+          await FilePicker.platform.getDirectoryPath(dialogTitle: dialogTitle);
 
       return directory;
     } catch (e) {
@@ -144,11 +143,12 @@ class FileHandler {
       );
     } catch (e) {
       debugPrint("Share error: $e");
+      final colorScheme = Theme.of(context).colorScheme;
 
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
           content: Text("Error sharing file: $e"),
-          backgroundColor: Colors.red,
+          backgroundColor: colorScheme.error,
         ),
       );
     }
@@ -171,11 +171,12 @@ class FileHandler {
       );
     } catch (e) {
       debugPrint("Share multiple error: $e");
+      final colorScheme = Theme.of(context).colorScheme;
 
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
           content: Text("Error sharing files: $e"),
-          backgroundColor: Colors.red,
+          backgroundColor: colorScheme.error,
         ),
       );
     }

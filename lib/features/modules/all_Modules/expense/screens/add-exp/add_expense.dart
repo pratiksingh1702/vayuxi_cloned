@@ -1,21 +1,14 @@
 // screens/expense/add_expense_screen.dart
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import 'package:untitled2/core/utlis/colors/colors.dart';
 import 'package:untitled2/core/utlis/widgets/Button_wrapper.dart';
-import 'package:untitled2/core/utlis/widgets/buttons.dart';
-import 'package:untitled2/core/utlis/widgets/custom_appBar.dart';
-import 'package:untitled2/core/utlis/widgets/image_clipped.dart';
 import 'package:untitled2/features/language/service/providers.dart';
 import 'package:untitled2/features/modules/all_Modules/site_Details/providers/site_current_provider.dart';
 
 import '../../../../../../core/utlis/widgets/custom.dart';
 import '../genericFormScreen.dart';
 
-
 class AddExpenseScreen extends ConsumerStatefulWidget {
-
-
   const AddExpenseScreen({super.key});
 
   @override
@@ -36,12 +29,12 @@ class _AddExpenseScreenState extends ConsumerState<AddExpenseScreen> {
   }
 
   void _navigateToExpenseForm(String category) {
-    final siteId=ref.read(selectedSiteIdProvider);
+    final siteId = ref.read(selectedSiteIdProvider);
     Navigator.push(
       context,
       MaterialPageRoute(
         builder: (context) => ExpenseFormScreen(
-          siteId:siteId!,
+          siteId: siteId!,
           expenseType: category,
         ),
       ),
@@ -50,8 +43,10 @@ class _AddExpenseScreenState extends ConsumerState<AddExpenseScreen> {
 
   @override
   Widget build(BuildContext context) {
-    final lang=ref.watch(dailyEntryTranslationHelperProvider);
+    final lang = ref.watch(dailyEntryTranslationHelperProvider);
+    final colorScheme = Theme.of(context).colorScheme;
     return Scaffold(
+      backgroundColor: colorScheme.surfaceContainerLowest,
       body: NestedScrollView(
         headerSliverBuilder: (context, innerBoxIsScrolled) {
           return [
@@ -62,14 +57,12 @@ class _AddExpenseScreenState extends ConsumerState<AddExpenseScreen> {
           child: SafeArea(
             child: Column(
               children: [
-               // Category Selection Grid
+                // Category Selection Grid
                 Expanded(
                   child: _CategoryGrid(
                     onCategorySelected: _navigateToExpenseForm,
                   ),
                 ),
-          
-                   
               ],
             ),
           ),
@@ -80,50 +73,50 @@ class _AddExpenseScreenState extends ConsumerState<AddExpenseScreen> {
 }
 
 class _CategoryGrid extends ConsumerWidget {
-
   final Function(String) onCategorySelected;
 
   const _CategoryGrid({required this.onCategorySelected});
 
   @override
-  Widget build(BuildContext context, WidgetRef ref)  {
-    final lang=ref.watch(dailyEntryTranslationHelperProvider);
+  Widget build(BuildContext context, WidgetRef ref) {
+    final lang = ref.watch(dailyEntryTranslationHelperProvider);
+    final colorScheme = Theme.of(context).colorScheme;
     final categories = [
       {
         'type': 'material_tools',
         'name': lang.materialToolsCategory,
         'icon': Icons.build,
-        'color': Colors.orange,
+        'color': colorScheme.tertiary,
       },
       {
         'type': 'travelling',
         'name': lang.travelCategory,
         'icon': Icons.directions_car,
-        'color': Colors.green,
+        'color': colorScheme.primary,
       },
       {
         'type': 'food',
         'name': lang.foodCategory,
         'icon': Icons.restaurant,
-        'color': Colors.red,
+        'color': colorScheme.error,
       },
       {
         'type': 'accommodation',
         'name': lang.accommodationCategory,
         'icon': Icons.hotel,
-        'color': Colors.purple,
+        'color': colorScheme.secondary,
       },
       {
         'type': 'advance',
         'name': lang.advanceCategory,
         'icon': Icons.attach_money,
-        'color': Colors.blue,
+        'color': colorScheme.primary,
       },
       {
         'type': 'miscellaneous',
         'name': lang.miscellaneousCategory,
         'icon': Icons.miscellaneous_services,
-        'color': Colors.blue,
+        'color': colorScheme.onSurfaceVariant,
       },
     ];
 
@@ -139,7 +132,7 @@ class _CategoryGrid extends ConsumerWidget {
       itemBuilder: (context, index) {
         final category = categories[index];
         return _CategoryCard(
-          name:category['name'] as String,
+          name: category['name'] as String,
           categoryType: category['type'] as String,
           icon: category['icon'] as IconData,
           color: category['color'] as Color,
@@ -161,20 +154,27 @@ class _CategoryCard extends StatelessWidget {
     required this.categoryType,
     required this.icon,
     required this.color,
-    required this.onTap, required this.name,
+    required this.onTap,
+    required this.name,
   });
 
   @override
   Widget build(BuildContext context) {
+    final colorScheme = Theme.of(context).colorScheme;
     return Card(
-      elevation: 0,
-      color: Colors.white,
+      elevation: 1,
+      color: colorScheme.surfaceContainerLow,
       shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+      shadowColor: colorScheme.shadow.withOpacity(0.08),
       child: InkWell(
         onTap: () => onTap(categoryType),
         borderRadius: BorderRadius.circular(12),
         child: Container(
           padding: const EdgeInsets.all(16),
+          decoration: BoxDecoration(
+            borderRadius: BorderRadius.circular(12),
+            border: Border.all(color: colorScheme.outlineVariant),
+          ),
           child: Column(
             mainAxisAlignment: MainAxisAlignment.center,
             children: [
@@ -233,10 +233,10 @@ class _CategoryModal extends StatelessWidget {
           ),
           const SizedBox(height: 16),
           ...categories.map(
-                (category) => ListTile(
+            (category) => ListTile(
               leading: Icon(
                 _getCategoryIcon(category),
-                color: _getCategoryColor(category),
+                color: _getCategoryColor(context, category),
               ),
               title: Text(_formatCategoryName(category)),
               onTap: () => onCategorySelected(category),
@@ -269,20 +269,21 @@ class _CategoryModal extends StatelessWidget {
     }
   }
 
-  Color _getCategoryColor(String category) {
+  Color _getCategoryColor(BuildContext context, String category) {
+    final colorScheme = Theme.of(context).colorScheme;
     switch (category) {
       case 'material_tools':
-        return Colors.orange;
+        return colorScheme.tertiary;
       case 'travelling':
-        return Colors.green;
+        return colorScheme.primary;
       case 'food':
-        return Colors.red;
+        return colorScheme.error;
       case 'accommodation':
-        return Colors.purple;
+        return colorScheme.secondary;
       case 'advance':
-        return Colors.blue;
+        return colorScheme.primary;
       default:
-        return Colors.grey;
+        return colorScheme.onSurfaceVariant;
     }
   }
 }

@@ -3,7 +3,6 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import 'package:untitled2/core/utlis/app_toasts.dart';
-import 'package:untitled2/core/utlis/colors/colors.dart';
 import 'package:untitled2/core/utlis/widgets/custom_appBar.dart';
 import 'package:untitled2/features/modules/all_Modules/Manpower%20Details/screens/widgets/popup.dart';
 import '../../../../../core/utlis/common_functions.dart';
@@ -63,14 +62,31 @@ class _NewManpowerScreenState extends ConsumerState<NewManpowerScreen> {
   List<SiteModel> _selectedSites = [];
 
   final List<String> _designationOptions = [
-    "Manager", "Team Leader", "Team Member", "Director", "Supervisor",
-    "Engineer", "Executive Engineer", "Welder", "Fitter", "Rigger",
-    "Helper", "Legger", "Fabricator", "Foreman", "Site Supervisor",
-    "CTO", "CEO", "Senior Manager", "Assistant General Manager",
-    "General Manager", "Grinderman", "Cutter",
+    "Manager",
+    "Team Leader",
+    "Team Member",
+    "Director",
+    "Supervisor",
+    "Engineer",
+    "Executive Engineer",
+    "Welder",
+    "Fitter",
+    "Rigger",
+    "Helper",
+    "Legger",
+    "Fabricator",
+    "Foreman",
+    "Site Supervisor",
+    "CTO",
+    "CEO",
+    "Senior Manager",
+    "Assistant General Manager",
+    "General Manager",
+    "Grinderman",
+    "Cutter",
   ];
   final List<String> _totalHourOptions =
-  List.generate(16, (index) => (index + 1).toString());
+      List.generate(16, (index) => (index + 1).toString());
 
   DateTime? _dob;
   DateTime? _doj;
@@ -137,8 +153,10 @@ class _NewManpowerScreenState extends ConsumerState<NewManpowerScreen> {
     );
     if (picked != null) {
       setState(() {
-        if (isDOB) _dob = picked;
-        else _doj = picked;
+        if (isDOB)
+          _dob = picked;
+        else
+          _doj = picked;
       });
     }
   }
@@ -231,9 +249,11 @@ class _NewManpowerScreenState extends ConsumerState<NewManpowerScreen> {
       "hra": double.tryParse(_hra.text) ?? 0,
       "totalHour": _selectedTotalHour,
       "dearnessAllowance": double.tryParse(_daController.text) ?? 0,
-      "specialAllowance": double.tryParse(_specialAllowanceController.text) ?? 0,
+      "specialAllowance":
+          double.tryParse(_specialAllowanceController.text) ?? 0,
       "travelAllowance": double.tryParse(_travelAllowanceController.text) ?? 0,
-      "medicalAllowance": double.tryParse(_medicalAllowanceController.text) ?? 0,
+      "medicalAllowance":
+          double.tryParse(_medicalAllowanceController.text) ?? 0,
       "pfApplicable": _isPfApplicable,
       "remarks": _remarksController.text,
       if (siteIds.isNotEmpty) "sites": siteIds,
@@ -280,7 +300,7 @@ class _NewManpowerScreenState extends ConsumerState<NewManpowerScreen> {
 
       Navigator.pop(context);
       context.push("/manpower");
-    } catch (e,s) {
+    } catch (e, s) {
       print(s);
       print("Error 😑😑😑😑😑😑😑: $e");
       final message = extractBackendError(e);
@@ -291,8 +311,9 @@ class _NewManpowerScreenState extends ConsumerState<NewManpowerScreen> {
   }
 
   void _showSnack(String message) {
+    final colorScheme = Theme.of(context).colorScheme;
     ScaffoldMessenger.of(context).showSnackBar(
-      SnackBar(content: Text(message), backgroundColor: Colors.red),
+      SnackBar(content: Text(message), backgroundColor: colorScheme.error),
     );
   }
 
@@ -304,15 +325,16 @@ class _NewManpowerScreenState extends ConsumerState<NewManpowerScreen> {
   // ─────────────────────────────────────────────────────────────
 
   Widget _buildSiteSelector(List<SiteModel> allSites) {
+    final colorScheme = Theme.of(context).colorScheme;
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        const Text(
+        Text(
           "Assign to Sites",
           style: TextStyle(
             fontSize: 14,
             fontWeight: FontWeight.w600,
-            color: Colors.black87,
+            color: colorScheme.onSurface,
           ),
         ),
         const SizedBox(height: 6),
@@ -320,8 +342,8 @@ class _NewManpowerScreenState extends ConsumerState<NewManpowerScreen> {
           // ── data ──
           items: (String filter, LoadProps? props) => allSites
               .where((s) => (s.siteName ?? '')
-              .toLowerCase()
-              .contains(filter.toLowerCase()))
+                  .toLowerCase()
+                  .contains(filter.toLowerCase()))
               .toList(),
           selectedItems: _selectedSites,
           itemAsString: (s) => s.siteName ?? s.id,
@@ -336,20 +358,24 @@ class _NewManpowerScreenState extends ConsumerState<NewManpowerScreen> {
               decoration: InputDecoration(
                 hintText: 'Search sites...',
                 contentPadding:
-                const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
+                    const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
                 border: OutlineInputBorder(
                   borderRadius: BorderRadius.circular(8),
                   borderSide: BorderSide.none,
                 ),
                 filled: true,
-                fillColor: Colors.grey[100],
+                fillColor: colorScheme.surfaceContainerHighest,
               ),
             ),
-            title: const Padding(
+            title: Padding(
               padding: EdgeInsets.fromLTRB(16, 16, 16, 4),
               child: Text(
                 "Select Sites",
-                style: TextStyle(fontWeight: FontWeight.bold, fontSize: 16),
+                style: TextStyle(
+                  fontWeight: FontWeight.bold,
+                  fontSize: 16,
+                  color: colorScheme.onSurface,
+                ),
               ),
             ),
             // ✅ v6 API: 4-arg itemBuilder (context, item, isDisabled, isSelected)
@@ -357,20 +383,21 @@ class _NewManpowerScreenState extends ConsumerState<NewManpowerScreen> {
               return ListTile(
                 dense: true,
                 leading: Icon(
-                  isSelected
-                      ? Icons.check_box
-                      : Icons.check_box_outline_blank,
-                  color: isSelected ? Colors.blue : Colors.grey,
+                  isSelected ? Icons.check_box : Icons.check_box_outline_blank,
+                  color: isSelected
+                      ? colorScheme.primary
+                      : colorScheme.onSurfaceVariant,
                   size: 22,
                 ),
                 title: Text(
                   item.siteName ?? item.id,
                   style: TextStyle(
                     fontSize: 14,
-                    color: isDisabled ? Colors.grey : Colors.black87,
-                    fontWeight: isSelected
-                        ? FontWeight.w600
-                        : FontWeight.normal,
+                    color: isDisabled
+                        ? colorScheme.onSurfaceVariant
+                        : colorScheme.onSurface,
+                    fontWeight:
+                        isSelected ? FontWeight.w600 : FontWeight.normal,
                   ),
                 ),
               );
@@ -380,27 +407,25 @@ class _NewManpowerScreenState extends ConsumerState<NewManpowerScreen> {
           // ── field decoration ──
           decoratorProps: DropDownDecoratorProps(
             decoration: InputDecoration(
-              hintText: _selectedSites.isEmpty
-                  ? "Select sites (optional)"
-                  : null,
+              hintText:
+                  _selectedSites.isEmpty ? "Select sites (optional)" : null,
               filled: true,
-              fillColor: Colors.white,
+              fillColor: colorScheme.surface,
               contentPadding:
-              const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
+                  const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
               border: OutlineInputBorder(
                 borderRadius: BorderRadius.circular(12),
                 borderSide:
-                BorderSide(color: Colors.blue.shade200, width: 1.5),
+                    BorderSide(color: colorScheme.outlineVariant, width: 1.5),
               ),
               enabledBorder: OutlineInputBorder(
                 borderRadius: BorderRadius.circular(12),
                 borderSide:
-                BorderSide(color: Colors.blue.shade200, width: 1.5),
+                    BorderSide(color: colorScheme.outlineVariant, width: 1.5),
               ),
               focusedBorder: OutlineInputBorder(
                 borderRadius: BorderRadius.circular(12),
-                borderSide:
-                const BorderSide(color: Colors.blue, width: 1.5),
+                borderSide: BorderSide(color: colorScheme.primary, width: 1.5),
               ),
             ),
           ),
@@ -418,13 +443,13 @@ class _NewManpowerScreenState extends ConsumerState<NewManpowerScreen> {
                 return Chip(
                   label: Text(
                     site.siteName ?? site.id,
-                    style: const TextStyle(
+                    style: TextStyle(
                       fontSize: 12,
-                      color: Colors.white,
+                      color: colorScheme.onPrimary,
                     ),
                   ),
-                  backgroundColor: Colors.blue,
-                  deleteIconColor: Colors.white,
+                  backgroundColor: colorScheme.primary,
+                  deleteIconColor: colorScheme.onPrimary,
                   onDeleted: () {
                     setState(() {
                       _selectedSites =
@@ -432,8 +457,8 @@ class _NewManpowerScreenState extends ConsumerState<NewManpowerScreen> {
                     });
                   },
                   materialTapTargetSize: MaterialTapTargetSize.shrinkWrap,
-                  padding: const EdgeInsets.symmetric(
-                      horizontal: 4, vertical: 0),
+                  padding:
+                      const EdgeInsets.symmetric(horizontal: 4, vertical: 0),
                   visualDensity: VisualDensity.compact,
                 );
               }).toList(),
@@ -447,7 +472,8 @@ class _NewManpowerScreenState extends ConsumerState<NewManpowerScreen> {
             padding: const EdgeInsets.only(top: 6),
             child: Text(
               "${_selectedSites.length} site${_selectedSites.length == 1 ? '' : 's'} selected",
-              style: TextStyle(fontSize: 12, color: Colors.grey[600]),
+              style:
+                  TextStyle(fontSize: 12, color: colorScheme.onSurfaceVariant),
             ),
           ),
       ],
@@ -457,6 +483,7 @@ class _NewManpowerScreenState extends ConsumerState<NewManpowerScreen> {
   @override
   Widget build(BuildContext context) {
     final siteState = ref.watch(siteProvider);
+    final colorScheme = Theme.of(context).colorScheme;
 
     return Scaffold(
       drawer: const CustomDrawer(),
@@ -481,12 +508,12 @@ class _NewManpowerScreenState extends ConsumerState<NewManpowerScreen> {
               Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  const Text(
+                  Text(
                     "Designation",
                     style: TextStyle(
                         fontSize: 14,
                         fontWeight: FontWeight.w600,
-                        color: Colors.black87),
+                        color: colorScheme.onSurface),
                   ),
                   const SizedBox(height: 6),
                   SearchableDropdown(
@@ -496,14 +523,15 @@ class _NewManpowerScreenState extends ConsumerState<NewManpowerScreen> {
                     placeholder: "Search Designation",
                     value: _selectedDesignation,
                     containerDecoration: BoxDecoration(
-                      color: Colors.white,
+                      color: colorScheme.surface,
                       borderRadius: BorderRadius.circular(12),
                       border: Border.all(
-                          color: const Color(0xFF197278), width: 1),
+                          color: colorScheme.outlineVariant, width: 1),
                     ),
-                    inputDecoration: const InputDecoration(
+                    inputDecoration: InputDecoration(
                       hintText: "Search Designation",
-                      contentPadding: EdgeInsets.symmetric(
+                      hintStyle: TextStyle(color: colorScheme.onSurfaceVariant),
+                      contentPadding: const EdgeInsets.symmetric(
                           horizontal: 16, vertical: 14),
                       border: InputBorder.none,
                       focusedBorder: InputBorder.none,
@@ -526,10 +554,10 @@ class _NewManpowerScreenState extends ConsumerState<NewManpowerScreen> {
               Container(
                 padding: const EdgeInsets.all(12),
                 decoration: BoxDecoration(
-                  color: Colors.white,
+                  color: colorScheme.surface,
                   borderRadius: BorderRadius.circular(12),
                   border:
-                  Border.all(color: Colors.blue.shade200, width: 1.5),
+                      Border.all(color: colorScheme.outlineVariant, width: 1.5),
                 ),
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
@@ -537,12 +565,12 @@ class _NewManpowerScreenState extends ConsumerState<NewManpowerScreen> {
                     Row(
                       mainAxisAlignment: MainAxisAlignment.spaceBetween,
                       children: [
-                        const Text(
+                        Text(
                           "Enable Login Credentials",
                           style: TextStyle(
                               fontSize: 14,
                               fontWeight: FontWeight.w600,
-                              color: Colors.black87),
+                              color: colorScheme.onSurface),
                         ),
                         Switch(
                           value: _enableLoginCredentials,
@@ -558,7 +586,7 @@ class _NewManpowerScreenState extends ConsumerState<NewManpowerScreen> {
                               }
                             });
                           },
-                          activeColor: Colors.blue,
+                          activeColor: colorScheme.primary,
                         ),
                       ],
                     ),
@@ -584,20 +612,20 @@ class _NewManpowerScreenState extends ConsumerState<NewManpowerScreen> {
                           ElevatedButton(
                             onPressed: _generateOtp,
                             style: ElevatedButton.styleFrom(
-                              backgroundColor: Colors.blue,
+                              backgroundColor: colorScheme.primary,
+                              foregroundColor: colorScheme.onPrimary,
                               shape: RoundedRectangleBorder(
                                   borderRadius: BorderRadius.circular(8)),
                             ),
-                            child: const Text("Regenerate",
-                                style: TextStyle(color: Colors.white)),
+                            child: const Text("Regenerate"),
                           ),
                         ],
                       ),
                       const SizedBox(height: 8),
                       Text(
                         "OTP will be used as initial password",
-                        style:
-                        TextStyle(fontSize: 12, color: Colors.grey[600]),
+                        style: TextStyle(
+                            fontSize: 12, color: colorScheme.onSurfaceVariant),
                       ),
                     ],
                   ],
@@ -673,8 +701,7 @@ class _NewManpowerScreenState extends ConsumerState<NewManpowerScreen> {
                       child: _buildDatePicker("Date of Birth", _dob, true)),
                   const SizedBox(width: 8),
                   Expanded(
-                      child:
-                      _buildDatePicker("Date of Joining", _doj, false)),
+                      child: _buildDatePicker("Date of Joining", _doj, false)),
                 ],
               ),
 
@@ -683,22 +710,23 @@ class _NewManpowerScreenState extends ConsumerState<NewManpowerScreen> {
               Container(
                 padding: const EdgeInsets.all(12),
                 decoration: BoxDecoration(
-                  color: Colors.white,
+                  color: colorScheme.surface,
                   borderRadius: BorderRadius.circular(12),
                   border:
-                  Border.all(color: Colors.blue.shade200, width: 1.5),
+                      Border.all(color: colorScheme.outlineVariant, width: 1.5),
                 ),
                 child: Row(
                   mainAxisAlignment: MainAxisAlignment.spaceBetween,
                   children: [
-                    const Text("PF Applicable",
+                    Text("PF Applicable",
                         style: TextStyle(
-                            fontSize: 14, fontWeight: FontWeight.w600)),
+                            fontSize: 14,
+                            fontWeight: FontWeight.w600,
+                            color: colorScheme.onSurface)),
                     Switch(
                       value: _isPfApplicable,
-                      activeColor: Colors.blue,
-                      onChanged: (val) =>
-                          setState(() => _isPfApplicable = val),
+                      activeColor: colorScheme.primary,
+                      onChanged: (val) => setState(() => _isPfApplicable = val),
                     ),
                   ],
                 ),
@@ -709,21 +737,21 @@ class _NewManpowerScreenState extends ConsumerState<NewManpowerScreen> {
               Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  const Text("Pay Basics",
+                  Text("Pay Basics",
                       style: TextStyle(
                           fontSize: 14,
                           fontWeight: FontWeight.w600,
-                          color: Colors.black87)),
+                          color: colorScheme.onSurface)),
                   const SizedBox(height: 6),
                   Container(
                     decoration: BoxDecoration(
-                      color: Colors.white,
+                      color: colorScheme.surface,
                       borderRadius: BorderRadius.circular(12),
                       border: Border.all(
-                          color: Colors.blue.shade200, width: 1.5),
+                          color: colorScheme.outlineVariant, width: 1.5),
                       boxShadow: [
                         BoxShadow(
-                            color: Colors.blue.withOpacity(0.1),
+                            color: colorScheme.shadow.withOpacity(0.08),
                             blurRadius: 4,
                             offset: const Offset(0, 2))
                       ],
@@ -737,9 +765,8 @@ class _NewManpowerScreenState extends ConsumerState<NewManpowerScreen> {
                               horizontal: 16, vertical: 14),
                           border: InputBorder.none,
                         ),
-                        icon: const Icon(
-                            Icons.keyboard_arrow_down_rounded,
-                            color: Colors.black54),
+                        icon: Icon(Icons.keyboard_arrow_down_rounded,
+                            color: colorScheme.onSurfaceVariant),
                         items: const [
                           DropdownMenuItem(
                               value: "daily", child: Text("Daily")),
@@ -750,12 +777,11 @@ class _NewManpowerScreenState extends ConsumerState<NewManpowerScreen> {
                           DropdownMenuItem(
                               value: "fixed", child: Text("Fixed")),
                         ],
-                        onChanged: (val) =>
-                            setState(() => _payBasic = val!),
-                        dropdownColor: Colors.white,
-                        style: const TextStyle(
+                        onChanged: (val) => setState(() => _payBasic = val!),
+                        dropdownColor: colorScheme.surface,
+                        style: TextStyle(
                             fontSize: 15,
-                            color: Colors.black87,
+                            color: colorScheme.onSurface,
                             fontWeight: FontWeight.w500),
                       ),
                     ),
@@ -780,7 +806,7 @@ class _NewManpowerScreenState extends ConsumerState<NewManpowerScreen> {
                 hint: "Select Total Working Hours",
                 items: _totalHourOptions
                     .map((hour) => DropdownMenuItem<String>(
-                    value: hour, child: Text(hour)))
+                        value: hour, child: Text(hour)))
                     .toList(),
                 onChanged: (value) =>
                     setState(() => _selectedTotalHour = value),
@@ -851,14 +877,14 @@ class _NewManpowerScreenState extends ConsumerState<NewManpowerScreen> {
                     child: ElevatedButton(
                       onPressed: loading ? null : _saveManpower,
                       style: ElevatedButton.styleFrom(
-                        backgroundColor: Colors.blue,
-                        foregroundColor: Colors.white,
+                        backgroundColor: colorScheme.primary,
+                        foregroundColor: colorScheme.onPrimary,
                         shape: RoundedRectangleBorder(
                             borderRadius: BorderRadius.circular(30)),
                       ),
                       child: loading
-                          ? const CircularProgressIndicator(
-                          color: Colors.white)
+                          ? CircularProgressIndicator(
+                              color: colorScheme.onPrimary)
                           : const Text("Save"),
                     ),
                   ),
@@ -871,8 +897,8 @@ class _NewManpowerScreenState extends ConsumerState<NewManpowerScreen> {
                     child: ElevatedButton(
                       onPressed: _resetForm,
                       style: ElevatedButton.styleFrom(
-                        backgroundColor: Colors.blue,
-                        foregroundColor: Colors.white,
+                        backgroundColor: colorScheme.primary,
+                        foregroundColor: colorScheme.onPrimary,
                         shape: RoundedRectangleBorder(
                             borderRadius: BorderRadius.circular(30)),
                       ),
@@ -884,8 +910,9 @@ class _NewManpowerScreenState extends ConsumerState<NewManpowerScreen> {
                     child: ElevatedButton(
                       onPressed: () => Navigator.pop(context),
                       style: ElevatedButton.styleFrom(
-                        backgroundColor: Colors.white,
-                        foregroundColor: Colors.black,
+                        backgroundColor: colorScheme.surface,
+                        foregroundColor: colorScheme.onSurface,
+                        side: BorderSide(color: colorScheme.outlineVariant),
                         shape: RoundedRectangleBorder(
                             borderRadius: BorderRadius.circular(30)),
                       ),
@@ -902,27 +929,27 @@ class _NewManpowerScreenState extends ConsumerState<NewManpowerScreen> {
   }
 
   Widget _buildDatePicker(String label, DateTime? date, bool isDOB) {
+    final colorScheme = Theme.of(context).colorScheme;
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
         Text(label,
-            style: const TextStyle(
+            style: TextStyle(
                 fontSize: 14,
                 fontWeight: FontWeight.w600,
-                color: Colors.black87)),
+                color: colorScheme.onSurface)),
         const SizedBox(height: 6),
         GestureDetector(
           onTap: () => _pickDate(context, isDOB),
           child: Container(
-            padding:
-            const EdgeInsets.symmetric(horizontal: 14, vertical: 14),
+            padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 14),
             decoration: BoxDecoration(
-              color: Colors.white,
+              color: colorScheme.surface,
               borderRadius: BorderRadius.circular(12),
-              border: Border.all(color: Colors.blue.shade200, width: 1.5),
+              border: Border.all(color: colorScheme.outlineVariant, width: 1.5),
               boxShadow: [
                 BoxShadow(
-                    color: Colors.blue.withOpacity(0.08),
+                    color: colorScheme.shadow.withOpacity(0.08),
                     blurRadius: 4,
                     offset: const Offset(0, 2))
               ],
@@ -937,12 +964,12 @@ class _NewManpowerScreenState extends ConsumerState<NewManpowerScreen> {
                   style: TextStyle(
                       fontSize: 15,
                       color: date != null
-                          ? Colors.black87
-                          : Colors.grey.shade500,
+                          ? colorScheme.onSurface
+                          : colorScheme.onSurfaceVariant,
                       fontWeight: FontWeight.w500),
                 ),
-                const Icon(Icons.calendar_today_rounded,
-                    color: Color(0xFF007BFF), size: 20),
+                Icon(Icons.calendar_today_rounded,
+                    color: colorScheme.primary, size: 20),
               ],
             ),
           ),

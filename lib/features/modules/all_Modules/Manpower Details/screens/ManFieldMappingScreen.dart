@@ -13,7 +13,6 @@ import 'package:untitled2/features/modules/all_Modules/Manpower%20Details/model/
 import 'package:untitled2/features/modules/all_Modules/Manpower%20Details/screens/manpowerList.dart';
 import 'package:untitled2/features/modules/all_Modules/Manpower%20Details/service/field_mapping_provider.dart';
 
-import '../../../../../core/utlis/colors/colors.dart';
 import '../../../../../core/utlis/widgets/custom_appBar.dart';
 import '../../../../../core/utlis/widgets/sidebar.dart';
 import '../../site_Details/providers/site_current_provider.dart';
@@ -32,13 +31,10 @@ import '../../../../../../typeProvider/type_provider.dart';
 
 import 'dart:convert';
 
-
 import '../../../../../core/upload/manager/upload_manager.dart';
 import '../../../../../core/upload/models/upload_job.dart';
 
 import '../service/manpowerService.dart';
-
-
 
 // ─────────────────────────────────────────────────────────────
 // ENTRY POINT
@@ -98,7 +94,8 @@ class _ManFieldMappingViewState extends ConsumerState<_ManFieldMappingView>
       if (result == null || result.files.isEmpty) return;
       final pf = result.files.first;
       if (pf.path == null || pf.path!.isEmpty) {
-        _showSnack('Invalid file path. Pick from local storage.', isError: true);
+        _showSnack('Invalid file path. Pick from local storage.',
+            isError: true);
         return;
       }
       final file = File(pf.path!);
@@ -124,9 +121,10 @@ class _ManFieldMappingViewState extends ConsumerState<_ManFieldMappingView>
 
   void _showSnack(String msg, {bool isError = false}) {
     if (!mounted) return;
+    final colorScheme = Theme.of(context).colorScheme;
     ScaffoldMessenger.of(context).showSnackBar(SnackBar(
       content: Text(msg),
-      backgroundColor: isError ? Colors.red : Colors.green,
+      backgroundColor: isError ? colorScheme.error : colorScheme.primary,
     ));
   }
 
@@ -181,12 +179,21 @@ class _ManFieldMappingViewState extends ConsumerState<_ManFieldMappingView>
   ///   3. If clean   → optionally save config, then enqueue job via uploadManagerProvider
   Future<void> _doImport() async {
     final fmState = ref.read(fieldMappingProvider);
-    final type    = ref.read(typeProvider);
-    final siteId  = ref.read(selectedSiteIdProvider);
+    final type = ref.read(typeProvider);
+    final siteId = ref.read(selectedSiteIdProvider);
 
-    if (type == null) { _showSnack('Manpower type not set.', isError: true); return; }
-    if (fmState.selectedFile == null) { _showSnack('No file selected.', isError: true); return; }
-    if (!fmState.isFullNameMapped) { _showSnack('Full Name must be mapped.', isError: true); return; }
+    if (type == null) {
+      _showSnack('Manpower type not set.', isError: true);
+      return;
+    }
+    if (fmState.selectedFile == null) {
+      _showSnack('No file selected.', isError: true);
+      return;
+    }
+    if (!fmState.isFullNameMapped) {
+      _showSnack('Full Name must be mapped.', isError: true);
+      return;
+    }
 
     final notifier = ref.read(fieldMappingProvider.notifier);
     notifier.setImporting(true);
@@ -205,14 +212,21 @@ class _ManFieldMappingViewState extends ConsumerState<_ManFieldMappingView>
       }
 
       final dynamic rawPayload = analyzeRes['data'] ?? analyzeRes;
-      final resData = rawPayload is Map<String, dynamic> ? rawPayload : <String, dynamic>{};
+      final resData =
+          rawPayload is Map<String, dynamic> ? rawPayload : <String, dynamic>{};
 
-      final int errorCount  = resData['errorCount']  is int ? resData['errorCount']  as int  : int.tryParse('${resData['errorCount']}')  ?? 0;
-      final int successCount= resData['successCount'] is int ? resData['successCount'] as int : int.tryParse('${resData['successCount']}') ?? 0;
-      final int totalRows   = resData['totalRows']   is int ? resData['totalRows']   as int  : int.tryParse('${resData['totalRows']}')   ?? 0;
+      final int errorCount = resData['errorCount'] is int
+          ? resData['errorCount'] as int
+          : int.tryParse('${resData['errorCount']}') ?? 0;
+      final int successCount = resData['successCount'] is int
+          ? resData['successCount'] as int
+          : int.tryParse('${resData['successCount']}') ?? 0;
+      final int totalRows = resData['totalRows'] is int
+          ? resData['totalRows'] as int
+          : int.tryParse('${resData['totalRows']}') ?? 0;
 
       final List<ExcelUploadIssue> errors = _extractIssues(resData);
-      final List<String>        suggestions = _extractSuggestions(resData);
+      final List<String> suggestions = _extractSuggestions(resData);
 
       // ── STEP 2: Hard-stop on errors (same guard as original) ──
       if (errorCount > 0 || errors.isNotEmpty) {
@@ -255,19 +269,19 @@ class _ManFieldMappingViewState extends ConsumerState<_ManFieldMappingView>
       );
 
       ref.read(uploadManagerProvider.notifier).enqueue(
-        UploadJob.create(
-          moduleId:    'manpower',
-          filePath:    fmState.selectedFile!.path,
-          metadata: {
-            'type': type,
-            if (siteId != null && siteId.isNotEmpty) 'siteId': siteId,
-            // JSON-encoded List<{csvColumn, modelField}> — read by ManpowerUploadHandler
-            'mappings': mappingsJson,
-          },
-          targetRoute: '/manpower',
-          maxRetries:  2,
-        ),
-      );
+            UploadJob.create(
+              moduleId: 'manpower',
+              filePath: fmState.selectedFile!.path,
+              metadata: {
+                'type': type,
+                if (siteId != null && siteId.isNotEmpty) 'siteId': siteId,
+                // JSON-encoded List<{csvColumn, modelField}> — read by ManpowerUploadHandler
+                'mappings': mappingsJson,
+              },
+              targetRoute: '/manpower',
+              maxRetries: 2,
+            ),
+          );
 
       notifier.setImporting(false);
 
@@ -314,7 +328,8 @@ class _ManFieldMappingViewState extends ConsumerState<_ManFieldMappingView>
       final s = analysis['suggestions'];
       if (s is List) out.addAll(s.map((e) => e.toString()));
       final u = analysis['unmappedColumns'];
-      if (u is List && u.isNotEmpty) out.add('Unmapped Columns: ${u.join(', ')}');
+      if (u is List && u.isNotEmpty)
+        out.add('Unmapped Columns: ${u.join(', ')}');
     }
     final root = resData['suggestions'];
     if (root is List) out.addAll(root.map((e) => e.toString()));
@@ -331,69 +346,94 @@ class _ManFieldMappingViewState extends ConsumerState<_ManFieldMappingView>
     final hasErrors = errors.isNotEmpty || (errorCount ?? 0) > 0;
     showDialog(
       context: context,
-      builder: (_) => AlertDialog(
-        backgroundColor: Colors.white,
-        shape: const RoundedRectangleBorder(borderRadius: BorderRadius.zero),
-        title: Row(children: [
-          Icon(hasErrors ? Icons.error_outline : Icons.check_circle_outline,
-              color: hasErrors ? Colors.red : Colors.green),
-          const SizedBox(width: 10),
-          const Expanded(child: Text('File Review',
-              style: TextStyle(fontWeight: FontWeight.bold))),
-        ]),
-        content: SizedBox(
-          width: double.maxFinite,
-          child: SingleChildScrollView(
-            child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-              Text(hasErrors
-                  ? 'Issues found — fix the file and re-upload.'
-                  : 'File looks good. A few improvements are suggested.'),
-              if (totalRows != null) ...[
-                const SizedBox(height: 12),
-                _infoRow('Total rows', '$totalRows'),
-                _infoRow('Ready to import', '${successCount ?? '-'}'),
-                _infoRow('Need attention', '${errorCount ?? 0}'),
-              ],
-              if (suggestions.isNotEmpty) ...[
-                const SizedBox(height: 12),
-                const Text('Suggestions', style: TextStyle(fontWeight: FontWeight.bold)),
-                const SizedBox(height: 6),
-                ...suggestions.map((s) => Padding(
-                      padding: const EdgeInsets.only(bottom: 4),
-                      child: Row(crossAxisAlignment: CrossAxisAlignment.start,
-                          children: [const Text('• '), Expanded(child: Text(s))]),
-                    )),
-              ],
-              if (errors.isNotEmpty) ...[
-                const SizedBox(height: 12),
-                const Text('Errors to Fix',
-                    style: TextStyle(fontWeight: FontWeight.bold, color: Colors.red)),
-                const SizedBox(height: 6),
-                ...errors.take(20).map((e) => Padding(
-                      padding: const EdgeInsets.only(bottom: 4),
-                      child: Row(crossAxisAlignment: CrossAxisAlignment.start,
-                          children: [const Text('• '), Expanded(child: Text(e.toString()))]),
-                    )),
-                if (errors.length > 20)
-                  Text('...and ${errors.length - 20} more',
-                      style: const TextStyle(color: Colors.grey)),
-              ],
-            ]),
+      builder: (_) {
+        final colorScheme = Theme.of(context).colorScheme;
+        return AlertDialog(
+          backgroundColor: colorScheme.surface,
+          shape:
+              RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+          title: Row(children: [
+            Icon(hasErrors ? Icons.error_outline : Icons.check_circle_outline,
+                color: hasErrors ? colorScheme.error : colorScheme.primary),
+            const SizedBox(width: 10),
+            Expanded(
+                child: Text('File Review',
+                    style: TextStyle(
+                        fontWeight: FontWeight.bold,
+                        color: colorScheme.onSurface))),
+          ]),
+          content: SizedBox(
+            width: double.maxFinite,
+            child: SingleChildScrollView(
+              child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(hasErrors
+                        ? 'Issues found — fix the file and re-upload.'
+                        : 'File looks good. A few improvements are suggested.'),
+                    if (totalRows != null) ...[
+                      const SizedBox(height: 12),
+                      _infoRow('Total rows', '$totalRows'),
+                      _infoRow('Ready to import', '${successCount ?? '-'}'),
+                      _infoRow('Need attention', '${errorCount ?? 0}'),
+                    ],
+                    if (suggestions.isNotEmpty) ...[
+                      const SizedBox(height: 12),
+                      Text('Suggestions',
+                          style: TextStyle(
+                              fontWeight: FontWeight.bold,
+                              color: colorScheme.onSurface)),
+                      const SizedBox(height: 6),
+                      ...suggestions.map((s) => Padding(
+                            padding: const EdgeInsets.only(bottom: 4),
+                            child: Row(
+                                crossAxisAlignment: CrossAxisAlignment.start,
+                                children: [
+                                  const Text('• '),
+                                  Expanded(child: Text(s))
+                                ]),
+                          )),
+                    ],
+                    if (errors.isNotEmpty) ...[
+                      const SizedBox(height: 12),
+                      Text('Errors to Fix',
+                          style: TextStyle(
+                              fontWeight: FontWeight.bold,
+                              color: colorScheme.error)),
+                      const SizedBox(height: 6),
+                      ...errors.take(20).map((e) => Padding(
+                            padding: const EdgeInsets.only(bottom: 4),
+                            child: Row(
+                                crossAxisAlignment: CrossAxisAlignment.start,
+                                children: [
+                                  const Text('• '),
+                                  Expanded(child: Text(e.toString()))
+                                ]),
+                          )),
+                      if (errors.length > 20)
+                        Text('...and ${errors.length - 20} more',
+                            style:
+                                TextStyle(color: colorScheme.onSurfaceVariant)),
+                    ],
+                  ]),
+            ),
           ),
-        ),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.pop(context),
-            child: Text(hasErrors ? 'Fix & Re-upload' : 'Continue'),
-          ),
-        ],
-      ),
+          actions: [
+            TextButton(
+              onPressed: () => Navigator.pop(context),
+              style: TextButton.styleFrom(foregroundColor: colorScheme.primary),
+              child: Text(hasErrors ? 'Fix & Re-upload' : 'Continue'),
+            ),
+          ],
+        );
+      },
     );
   }
 
   Widget _infoRow(String label, String value) => Padding(
         padding: const EdgeInsets.only(bottom: 4),
-        child: Row(mainAxisAlignment: MainAxisAlignment.spaceBetween, children: [
+        child:
+            Row(mainAxisAlignment: MainAxisAlignment.spaceBetween, children: [
           Text(label),
           Text(value, style: const TextStyle(fontWeight: FontWeight.bold)),
         ]),
@@ -404,21 +444,29 @@ class _ManFieldMappingViewState extends ConsumerState<_ManFieldMappingView>
   void _showImportErrorDialog(String error) {
     showDialog(
       context: context,
-      builder: (_) => AlertDialog(
-        backgroundColor: Colors.white,
-        shape: const RoundedRectangleBorder(borderRadius: BorderRadius.zero),
-        title: const Row(children: [
-          Icon(Icons.error_outline, color: Colors.red),
-          SizedBox(width: 8),
-          Text('Import Failed', style: TextStyle(fontWeight: FontWeight.bold)),
-        ]),
-        content: Text(error),
-        actions: [
-          TextButton(
-              onPressed: () => Navigator.pop(context),
-              child: const Text('Try Again')),
-        ],
-      ),
+      builder: (_) {
+        final colorScheme = Theme.of(context).colorScheme;
+        return AlertDialog(
+          backgroundColor: colorScheme.surface,
+          shape:
+              RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+          title: Row(children: [
+            Icon(Icons.error_outline, color: colorScheme.error),
+            const SizedBox(width: 8),
+            Text('Import Failed',
+                style: TextStyle(
+                    fontWeight: FontWeight.bold, color: colorScheme.onSurface)),
+          ]),
+          content: Text(error),
+          actions: [
+            TextButton(
+                onPressed: () => Navigator.pop(context),
+                style:
+                    TextButton.styleFrom(foregroundColor: colorScheme.primary),
+                child: const Text('Try Again')),
+          ],
+        );
+      },
     );
   }
 
@@ -433,59 +481,64 @@ class _ManFieldMappingViewState extends ConsumerState<_ManFieldMappingView>
     await showDialog<void>(
       context: context,
       builder: (ctx) => StatefulBuilder(
-        builder: (ctx, setDialogState) => AlertDialog(
-          backgroundColor: Colors.white,
-          shape: const RoundedRectangleBorder(borderRadius: BorderRadius.zero),
-          title: const Text('Save Mapping Configuration',
-              style: TextStyle(fontWeight: FontWeight.bold)),
-          content: Column(
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              TextField(
-                controller: nameCtrl,
-                decoration: const InputDecoration(
-                  labelText: 'Configuration Name',
-                  hintText: 'e.g. Standard Employee Import',
-                  border: OutlineInputBorder(),
+        builder: (ctx, setDialogState) {
+          final colorScheme = Theme.of(ctx).colorScheme;
+          return AlertDialog(
+            backgroundColor: colorScheme.surface,
+            shape:
+                RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+            title: Text('Save Mapping Configuration',
+                style: TextStyle(
+                    fontWeight: FontWeight.bold, color: colorScheme.onSurface)),
+            content: Column(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                TextField(
+                  controller: nameCtrl,
+                  decoration: const InputDecoration(
+                    labelText: 'Configuration Name',
+                    hintText: 'e.g. Standard Employee Import',
+                    border: OutlineInputBorder(),
+                  ),
                 ),
-              ),
-              const SizedBox(height: 12),
-              SwitchListTile(
-                contentPadding: EdgeInsets.zero,
-                title: const Text('Set as default'),
-                subtitle: const Text('Auto-apply for future imports'),
-                value: isDefault,
-                onChanged: (v) => setDialogState(() => isDefault = v),
+                const SizedBox(height: 12),
+                SwitchListTile(
+                  contentPadding: EdgeInsets.zero,
+                  title: const Text('Set as default'),
+                  subtitle: const Text('Auto-apply for future imports'),
+                  value: isDefault,
+                  onChanged: (v) => setDialogState(() => isDefault = v),
+                ),
+              ],
+            ),
+            actions: [
+              TextButton(
+                  onPressed: () => Navigator.pop(ctx),
+                  child: const Text('Cancel')),
+              ElevatedButton(
+                style: ElevatedButton.styleFrom(
+                    backgroundColor: colorScheme.primary,
+                    foregroundColor: colorScheme.onPrimary,
+                    elevation: 0),
+                onPressed: () async {
+                  final err = await notifier.saveCurrentConfiguration(
+                    name: nameCtrl.text,
+                    type: type,
+                    isDefault: isDefault,
+                  );
+                  if (!mounted) return;
+                  Navigator.pop(ctx);
+                  if (err != null) {
+                    _showSnack(err, isError: true);
+                  } else {
+                    _showSnack('Configuration saved ✅');
+                  }
+                },
+                child: const Text('Save'),
               ),
             ],
-          ),
-          actions: [
-            TextButton(
-                onPressed: () => Navigator.pop(ctx),
-                child: const Text('Cancel')),
-            ElevatedButton(
-              style: ElevatedButton.styleFrom(
-                  backgroundColor: Colors.blue,
-                  foregroundColor: Colors.white,
-                  elevation: 0),
-              onPressed: () async {
-                final err = await notifier.saveCurrentConfiguration(
-                  name: nameCtrl.text,
-                  type: type,
-                  isDefault: isDefault,
-                );
-                if (!mounted) return;
-                Navigator.pop(ctx);
-                if (err != null) {
-                  _showSnack(err, isError: true);
-                } else {
-                  _showSnack('Configuration saved ✅');
-                }
-              },
-              child: const Text('Save'),
-            ),
-          ],
-        ),
+          );
+        },
       ),
     );
   }
@@ -497,13 +550,12 @@ class _ManFieldMappingViewState extends ConsumerState<_ManFieldMappingView>
   @override
   Widget build(BuildContext context) {
     final state = ref.watch(fieldMappingProvider);
-    final theme = Theme.of(context);
-    final isDark = theme.brightness == Brightness.dark;
+    final colorScheme = Theme.of(context).colorScheme;
+    final isDark = Theme.of(context).brightness == Brightness.dark;
 
     return Scaffold(
       drawer: const CustomDrawer(),
-      backgroundColor:
-          isDark ? const Color(0xFF121212) : Theme.of(context).colorScheme.surfaceContainerLowest,
+      backgroundColor: colorScheme.surfaceContainerLowest,
       appBar: CustomAppBar(title: 'Import Manpower'),
       body: Column(
         children: [
@@ -528,9 +580,8 @@ class _ManFieldMappingViewState extends ConsumerState<_ManFieldMappingView>
           // ── Bottom navigation bar ────────────────────────
           _BottomBar(
             state: state,
-            onBack: state.currentStep == FieldMappingStep.upload
-                ? null
-                : _prevStep,
+            onBack:
+                state.currentStep == FieldMappingStep.upload ? null : _prevStep,
             onNext: _buildNextAction(state),
           ),
         ],
@@ -604,6 +655,7 @@ class _StepProgressBar extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final colorScheme = Theme.of(context).colorScheme;
     final steps = [
       (label: 'Upload', step: FieldMappingStep.upload, icon: Icons.upload_file),
       (
@@ -617,7 +669,7 @@ class _StepProgressBar extends StatelessWidget {
     final idx = steps.indexWhere((s) => s.step == currentStep);
 
     return Container(
-      color: Colors.white,
+      color: colorScheme.surface,
       padding: const EdgeInsets.symmetric(vertical: 16, horizontal: 24),
       child: Row(
         children: List.generate(steps.length * 2 - 1, (i) {
@@ -628,7 +680,8 @@ class _StepProgressBar extends StatelessWidget {
             return Expanded(
               child: Container(
                 height: 2,
-                color: filled ? Colors.blue : Colors.grey.shade300,
+                color:
+                    filled ? colorScheme.primary : colorScheme.outlineVariant,
               ),
             );
           }
@@ -663,8 +716,9 @@ class _StepDot extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final colorScheme = Theme.of(context).colorScheme;
     final color =
-        isActive || isDone ? Colors.blue : Colors.grey.shade400;
+        isActive || isDone ? colorScheme.primary : colorScheme.onSurfaceVariant;
 
     return Column(
       mainAxisSize: MainAxisSize.min,
@@ -674,26 +728,27 @@ class _StepDot extends StatelessWidget {
           width: 36,
           height: 36,
           decoration: BoxDecoration(
-            color: isActive || isDone ? Colors.blue : Colors.grey.shade200,
+            color: isActive || isDone
+                ? colorScheme.primary
+                : colorScheme.surfaceContainerHighest,
             shape: BoxShape.circle,
             boxShadow: isActive
                 ? [
                     BoxShadow(
-                        color: Colors.blue.withOpacity(0.35),
+                        color: colorScheme.shadow.withOpacity(0.24),
                         blurRadius: 8,
                         offset: const Offset(0, 3))
                   ]
                 : [],
           ),
-          child: Icon(icon, color: Colors.white, size: 18),
+          child: Icon(icon, color: colorScheme.onPrimary, size: 18),
         ),
         const SizedBox(height: 4),
         Text(
           label,
           style: TextStyle(
               fontSize: 11,
-              fontWeight:
-                  isActive ? FontWeight.bold : FontWeight.normal,
+              fontWeight: isActive ? FontWeight.bold : FontWeight.normal,
               color: color),
         ),
       ],
@@ -718,6 +773,7 @@ class _Step1Upload extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final colorScheme = Theme.of(context).colorScheme;
     return SingleChildScrollView(
       padding: const EdgeInsets.all(16),
       child: Column(
@@ -736,8 +792,8 @@ class _Step1Upload extends StatelessWidget {
                   borderRadius: BorderRadius.circular(12),
                   border: Border.all(
                     color: state.selectedFile != null
-                        ? Colors.blue
-                        : Colors.grey.shade300,
+                        ? colorScheme.primary
+                        : colorScheme.outlineVariant,
                     width: 2,
                     style: BorderStyle.solid,
                   ),
@@ -751,8 +807,8 @@ class _Step1Upload extends StatelessWidget {
                           : Icons.cloud_upload_outlined,
                       size: 48,
                       color: state.selectedFile != null
-                          ? Colors.blue
-                          : Colors.grey.shade400,
+                          ? colorScheme.primary
+                          : colorScheme.onSurfaceVariant,
                     ),
                     const SizedBox(height: 12),
                     Text(
@@ -762,15 +818,15 @@ class _Step1Upload extends StatelessWidget {
                       style: TextStyle(
                           fontWeight: FontWeight.w600,
                           color: state.selectedFile != null
-                              ? Colors.blue
-                              : Colors.grey.shade600),
+                              ? colorScheme.primary
+                              : colorScheme.onSurfaceVariant),
                       textAlign: TextAlign.center,
                     ),
                     const SizedBox(height: 4),
                     Text(
                       'Supported: .xlsx, .xls, .csv',
                       style: TextStyle(
-                          fontSize: 12, color: Colors.grey.shade500),
+                          fontSize: 12, color: colorScheme.onSurfaceVariant),
                     ),
                     const SizedBox(height: 16),
                     OutlinedButton.icon(
@@ -809,6 +865,7 @@ class _PreviewCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final colorScheme = Theme.of(context).colorScheme;
     return _Card(
       isDark: isDark,
       child: Column(
@@ -816,22 +873,24 @@ class _PreviewCard extends StatelessWidget {
         children: [
           // Header row with stats
           Row(children: [
-            const Icon(Icons.table_chart, color: Colors.blue, size: 20),
+            Icon(Icons.table_chart, color: colorScheme.primary, size: 20),
             const SizedBox(width: 8),
-            const Text('File Preview',
-                style: TextStyle(fontWeight: FontWeight.bold, fontSize: 16)),
+            Text('File Preview',
+                style: TextStyle(
+                    fontWeight: FontWeight.bold,
+                    fontSize: 16,
+                    color: colorScheme.onSurface)),
             const Spacer(),
             if (preview.isStandardTemplate)
               Container(
-                padding:
-                    const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
+                padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
                 decoration: BoxDecoration(
-                    color: Colors.green.shade50,
+                    color: colorScheme.primaryContainer,
                     borderRadius: BorderRadius.circular(12),
-                    border: Border.all(color: Colors.green)),
-                child: const Text('Standard Template ✅',
+                    border: Border.all(color: colorScheme.primary)),
+                child: Text('Standard Template ✅',
                     style: TextStyle(
-                        color: Colors.green,
+                        color: colorScheme.onPrimaryContainer,
                         fontSize: 11,
                         fontWeight: FontWeight.w600)),
               ),
@@ -844,22 +903,24 @@ class _PreviewCard extends StatelessWidget {
                 label:
                     '${preview.totalRows ?? preview.preview.length + 1}+ rows',
                 icon: Icons.table_rows,
-                color: Colors.blue),
+                color: colorScheme.primary),
             _Chip(
                 label: '${preview.csvColumns.length} columns',
                 icon: Icons.view_column,
-                color: Colors.purple),
+                color: colorScheme.tertiary),
             _Chip(
                 label:
                     '${preview.suggestedMappings.where((s) => s.confidence > 0.7).length} auto-mapped',
                 icon: Icons.auto_fix_high,
-                color: Colors.green),
+                color: colorScheme.primary),
           ]),
 
           const SizedBox(height: 16),
-          const Text('Detected Columns',
-              style:
-                  TextStyle(fontWeight: FontWeight.w600, fontSize: 13)),
+          Text('Detected Columns',
+              style: TextStyle(
+                  fontWeight: FontWeight.w600,
+                  fontSize: 13,
+                  color: colorScheme.onSurface)),
           const SizedBox(height: 8),
 
           // Column badges
@@ -871,20 +932,24 @@ class _PreviewCard extends StatelessWidget {
                       padding: const EdgeInsets.symmetric(
                           horizontal: 10, vertical: 4),
                       decoration: BoxDecoration(
-                          color: Colors.blue.shade50,
+                          color: colorScheme.primaryContainer,
                           borderRadius: BorderRadius.circular(16),
-                          border: Border.all(color: Colors.blue.shade200)),
+                          border: Border.all(
+                              color: colorScheme.primary.withOpacity(0.35))),
                       child: Text(col,
                           style: TextStyle(
-                              fontSize: 12, color: Colors.blue.shade700)),
+                              fontSize: 12,
+                              color: colorScheme.onPrimaryContainer)),
                     ))
                 .toList(),
           ),
 
           const SizedBox(height: 16),
-          const Text('Data Preview (first rows)',
-              style:
-                  TextStyle(fontWeight: FontWeight.w600, fontSize: 13)),
+          Text('Data Preview (first rows)',
+              style: TextStyle(
+                  fontWeight: FontWeight.w600,
+                  fontSize: 13,
+                  color: colorScheme.onSurface)),
           const SizedBox(height: 8),
 
           // Scrollable preview table
@@ -900,9 +965,9 @@ class _PreviewCard extends StatelessWidget {
                     dataRowMinHeight: 32,
                     dataRowMaxHeight: 40,
                     headingRowColor: WidgetStateProperty.all(
-                        Colors.blue.shade50),
+                        colorScheme.surfaceContainerHighest),
                     border: TableBorder.all(
-                        color: Colors.grey.shade200, width: 0.5),
+                        color: colorScheme.outlineVariant, width: 0.5),
                     columns: preview.csvColumns
                         .map((col) => DataColumn(
                               label: Text(col,
@@ -949,6 +1014,7 @@ class _Step2Mapping extends ConsumerWidget {
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
+    final colorScheme = Theme.of(context).colorScheme;
     final notifier = ref.read(fieldMappingProvider.notifier);
     final preview = state.preview;
     if (preview == null) return const SizedBox.shrink();
@@ -969,8 +1035,8 @@ class _Step2Mapping extends ConsumerWidget {
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
                   const Text('Load Saved Configuration',
-                      style: TextStyle(
-                          fontWeight: FontWeight.bold, fontSize: 14)),
+                      style:
+                          TextStyle(fontWeight: FontWeight.bold, fontSize: 14)),
                   const SizedBox(height: 8),
                   DropdownButtonFormField<MappingConfiguration>(
                     value: state.selectedConfiguration,
@@ -992,12 +1058,12 @@ class _Step2Mapping extends ConsumerWidget {
                               padding: const EdgeInsets.symmetric(
                                   horizontal: 6, vertical: 1),
                               decoration: BoxDecoration(
-                                  color: Colors.amber.shade100,
+                                  color: colorScheme.tertiaryContainer,
                                   borderRadius: BorderRadius.circular(4)),
-                              child: const Text('Default',
+                              child: Text('Default',
                                   style: TextStyle(
                                       fontSize: 10,
-                                      color: Colors.orange)),
+                                      color: colorScheme.onTertiaryContainer)),
                             ),
                           Expanded(
                               child: Text(c.configurationName,
@@ -1022,21 +1088,22 @@ class _Step2Mapping extends ConsumerWidget {
               margin: const EdgeInsets.only(bottom: 12),
               padding: const EdgeInsets.all(12),
               decoration: BoxDecoration(
-                color: Colors.orange.shade50,
+                color: colorScheme.tertiaryContainer,
                 borderRadius: BorderRadius.circular(8),
-                border: Border.all(color: Colors.orange.shade300),
+                border:
+                    Border.all(color: colorScheme.tertiary.withOpacity(0.45)),
               ),
               child: Row(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  const Icon(Icons.warning_amber_rounded,
-                      color: Colors.orange, size: 20),
+                  Icon(Icons.warning_amber_rounded,
+                      color: colorScheme.tertiary, size: 20),
                   const SizedBox(width: 8),
                   Expanded(
                     child: Text(
                       '${unmapped.length} column(s) not mapped and will be ignored:\n${unmapped.join(', ')}',
                       style: TextStyle(
-                          fontSize: 12, color: Colors.orange.shade800),
+                          fontSize: 12, color: colorScheme.onTertiaryContainer),
                     ),
                   ),
                 ],
@@ -1050,26 +1117,29 @@ class _Step2Mapping extends ConsumerWidget {
               margin: const EdgeInsets.only(bottom: 12),
               padding: const EdgeInsets.all(12),
               decoration: BoxDecoration(
-                color: Colors.red.shade50,
+                color: colorScheme.errorContainer,
                 borderRadius: BorderRadius.circular(8),
-                border: Border.all(color: Colors.red.shade300),
+                border: Border.all(color: colorScheme.error.withOpacity(0.45)),
               ),
-              child: const Row(children: [
-                Icon(Icons.error_outline, color: Colors.red, size: 20),
-                SizedBox(width: 8),
+              child: Row(children: [
+                Icon(Icons.error_outline, color: colorScheme.error, size: 20),
+                const SizedBox(width: 8),
                 Text('Full Name (required) must be mapped to continue.',
-                    style: TextStyle(color: Colors.red, fontSize: 13)),
+                    style: TextStyle(
+                        color: colorScheme.onErrorContainer, fontSize: 13)),
               ]),
             ),
 
           // ── Mapping cards ────────────────────────────────
-          const Text('Map Your Columns',
-              style:
-                  TextStyle(fontWeight: FontWeight.bold, fontSize: 16)),
+          Text('Map Your Columns',
+              style: TextStyle(
+                  fontWeight: FontWeight.bold,
+                  fontSize: 16,
+                  color: colorScheme.onSurface)),
           const SizedBox(height: 4),
           Text(
             'Match each column in your file to the corresponding field.',
-            style: TextStyle(fontSize: 12, color: Colors.grey.shade600),
+            style: TextStyle(fontSize: 12, color: colorScheme.onSurfaceVariant),
           ),
           const SizedBox(height: 12),
 
@@ -1131,11 +1201,11 @@ class _MappingCard extends StatelessWidget {
     required this.isDark,
   });
 
-  Color get _confidenceColor {
-    if (confidence == null) return Colors.grey.shade400;
-    if (confidence! >= 0.8) return Colors.green;
-    if (confidence! >= 0.5) return Colors.orange;
-    return Colors.grey.shade400;
+  Color _confidenceColor(ColorScheme colorScheme) {
+    if (confidence == null) return colorScheme.outlineVariant;
+    if (confidence! >= 0.8) return colorScheme.primary;
+    if (confidence! >= 0.5) return colorScheme.tertiary;
+    return colorScheme.outline;
   }
 
   String get _confidenceLabel {
@@ -1147,6 +1217,7 @@ class _MappingCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final colorScheme = Theme.of(context).colorScheme;
     final isMapped = selectedField != null && selectedField!.isNotEmpty;
     final isRequired = modelFields
         .where((f) => f.field == selectedField)
@@ -1155,15 +1226,15 @@ class _MappingCard extends StatelessWidget {
     return Card(
       margin: const EdgeInsets.only(bottom: 10),
       elevation: 1,
-      color: isDark ? const Color(0xFF1E1E1E) : Colors.white,
+      color: colorScheme.surface,
       shape: RoundedRectangleBorder(
         borderRadius: BorderRadius.circular(10),
         side: BorderSide(
           color: isMapped && isRequired
-              ? Colors.green.shade200
+              ? colorScheme.primary.withOpacity(0.35)
               : isMapped
-                  ? Colors.blue.shade100
-                  : Colors.grey.shade200,
+                  ? colorScheme.primary.withOpacity(0.2)
+                  : colorScheme.outlineVariant,
         ),
       ),
       child: Padding(
@@ -1174,47 +1245,46 @@ class _MappingCard extends StatelessWidget {
             // CSV column header
             Row(children: [
               Container(
-                padding:
-                    const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
+                padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
                 decoration: BoxDecoration(
-                    color: Colors.blue.shade50,
+                    color: colorScheme.primaryContainer,
                     borderRadius: BorderRadius.circular(6)),
                 child: Row(
                   mainAxisSize: MainAxisSize.min,
                   children: [
-                    const Icon(Icons.table_chart_outlined,
-                        size: 12, color: Colors.blue),
+                    Icon(Icons.table_chart_outlined,
+                        size: 12, color: colorScheme.primary),
                     const SizedBox(width: 4),
                     Text(csvColumn,
-                        style: const TextStyle(
+                        style: TextStyle(
                             fontWeight: FontWeight.w600,
                             fontSize: 13,
-                            color: Colors.blue)),
+                            color: colorScheme.onPrimaryContainer)),
                   ],
                 ),
               ),
               const SizedBox(width: 8),
               if (confidence != null)
                 Container(
-                  padding: const EdgeInsets.symmetric(
-                      horizontal: 6, vertical: 2),
+                  padding:
+                      const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
                   decoration: BoxDecoration(
-                      color: _confidenceColor.withOpacity(0.1),
+                      color: _confidenceColor(colorScheme).withOpacity(0.1),
                       borderRadius: BorderRadius.circular(10),
-                      border: Border.all(color: _confidenceColor)),
+                      border: Border.all(color: _confidenceColor(colorScheme))),
                   child: Row(mainAxisSize: MainAxisSize.min, children: [
                     Icon(Icons.auto_fix_high,
-                        size: 10, color: _confidenceColor),
+                        size: 10, color: _confidenceColor(colorScheme)),
                     const SizedBox(width: 3),
                     Text(_confidenceLabel,
                         style: TextStyle(
-                            fontSize: 10, color: _confidenceColor)),
+                            fontSize: 10,
+                            color: _confidenceColor(colorScheme))),
                   ]),
                 ),
               const Spacer(),
               if (isMapped)
-                const Icon(Icons.check_circle,
-                    color: Colors.green, size: 18),
+                Icon(Icons.check_circle, color: colorScheme.primary, size: 18),
             ]),
 
             if (sampleValue != null && sampleValue!.isNotEmpty) ...[
@@ -1222,7 +1292,7 @@ class _MappingCard extends StatelessWidget {
               Text(
                 'e.g. "$sampleValue"',
                 style: TextStyle(
-                    fontSize: 11, color: Colors.grey.shade500),
+                    fontSize: 11, color: colorScheme.onSurfaceVariant),
               ),
             ],
 
@@ -1235,16 +1305,16 @@ class _MappingCard extends StatelessWidget {
               decoration: InputDecoration(
                 contentPadding:
                     const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
-                border: OutlineInputBorder(
-                    borderRadius: BorderRadius.circular(8)),
+                border:
+                    OutlineInputBorder(borderRadius: BorderRadius.circular(8)),
                 hintText: 'Select model field',
-                hintStyle: TextStyle(color: Colors.grey.shade400),
+                hintStyle: TextStyle(color: colorScheme.onSurfaceVariant),
               ),
               items: [
                 const DropdownMenuItem<String>(
                   value: null,
                   child: Text('— Ignore this column —',
-                      style: TextStyle(color: Colors.grey, fontSize: 13)),
+                      style: TextStyle(fontSize: 13)),
                 ),
                 ...modelFields.map((f) => DropdownMenuItem<String>(
                       value: f.field,
@@ -1254,7 +1324,7 @@ class _MappingCard extends StatelessWidget {
                             padding: const EdgeInsets.only(right: 4),
                             child: Text('*',
                                 style: TextStyle(
-                                    color: Colors.red.shade600,
+                                    color: colorScheme.error,
                                     fontWeight: FontWeight.bold)),
                           ),
                         Expanded(
@@ -1263,7 +1333,7 @@ class _MappingCard extends StatelessWidget {
                         Text(' (${f.type})',
                             style: TextStyle(
                                 fontSize: 10,
-                                color: Colors.grey.shade500)),
+                                color: colorScheme.onSurfaceVariant)),
                       ]),
                     )),
               ],
@@ -1288,6 +1358,7 @@ class _Step3Review extends ConsumerWidget {
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
+    final colorScheme = Theme.of(context).colorScheme;
     final notifier = ref.read(fieldMappingProvider.notifier);
     final preview = state.preview;
 
@@ -1302,12 +1373,14 @@ class _Step3Review extends ConsumerWidget {
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                const Row(children: [
-                  Icon(Icons.summarize_outlined, color: Colors.blue),
-                  SizedBox(width: 8),
+                Row(children: [
+                  Icon(Icons.summarize_outlined, color: colorScheme.primary),
+                  const SizedBox(width: 8),
                   Text('Import Summary',
                       style: TextStyle(
-                          fontWeight: FontWeight.bold, fontSize: 16)),
+                          fontWeight: FontWeight.bold,
+                          fontSize: 16,
+                          color: colorScheme.onSurface)),
                 ]),
                 const SizedBox(height: 12),
                 _ResultTile(
@@ -1317,21 +1390,20 @@ class _Step3Review extends ConsumerWidget {
                 _ResultTile(
                   'Mapped fields',
                   '${state.confirmedMappings.length}',
-                  valueColor: Colors.blue,
+                  valueColor: colorScheme.primary,
                 ),
                 _ResultTile(
                   'Ignored columns',
                   '${state.unmappedCsvColumns.length}',
                   valueColor: state.unmappedCsvColumns.isEmpty
-                      ? Colors.green
-                      : Colors.orange,
+                      ? colorScheme.primary
+                      : colorScheme.tertiary,
                 ),
                 if (state.unmappedCsvColumns.isNotEmpty) ...[
                   const SizedBox(height: 4),
                   Text(
                     'Ignored: ${state.unmappedCsvColumns.join(", ")}',
-                    style: TextStyle(
-                        fontSize: 11, color: Colors.orange.shade700),
+                    style: TextStyle(fontSize: 11, color: colorScheme.tertiary),
                   ),
                 ],
               ],
@@ -1346,9 +1418,11 @@ class _Step3Review extends ConsumerWidget {
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                const Text('Field Mappings',
+                Text('Field Mappings',
                     style: TextStyle(
-                        fontWeight: FontWeight.bold, fontSize: 14)),
+                        fontWeight: FontWeight.bold,
+                        fontSize: 14,
+                        color: colorScheme.onSurface)),
                 const SizedBox(height: 10),
                 ...state.confirmedMappings.map((m) {
                   final modelField = state.preview?.modelFields
@@ -1359,25 +1433,26 @@ class _Step3Review extends ConsumerWidget {
                     child: Row(children: [
                       Expanded(
                           child: Text(m.csvColumn,
-                              style: const TextStyle(fontSize: 13))),
-                      const Icon(Icons.arrow_forward,
-                          size: 14, color: Colors.grey),
+                              style: TextStyle(
+                                  fontSize: 13, color: colorScheme.onSurface))),
+                      Icon(Icons.arrow_forward,
+                          size: 14, color: colorScheme.onSurfaceVariant),
                       const SizedBox(width: 8),
                       Container(
                         padding: const EdgeInsets.symmetric(
                             horizontal: 8, vertical: 3),
                         decoration: BoxDecoration(
                             color: modelField?.required == true
-                                ? Colors.green.shade50
-                                : Colors.blue.shade50,
+                                ? colorScheme.primaryContainer
+                                : colorScheme.secondaryContainer,
                             borderRadius: BorderRadius.circular(6)),
                         child: Text(
                           modelField?.label ?? m.modelField,
                           style: TextStyle(
                               fontSize: 12,
                               color: modelField?.required == true
-                                  ? Colors.green.shade700
-                                  : Colors.blue.shade700,
+                                  ? colorScheme.onPrimaryContainer
+                                  : colorScheme.onSecondaryContainer,
                               fontWeight: FontWeight.w500),
                         ),
                       ),
@@ -1399,8 +1474,8 @@ class _Step3Review extends ConsumerWidget {
                 SwitchListTile(
                   contentPadding: EdgeInsets.zero,
                   title: const Text('Save this mapping for future imports',
-                      style: TextStyle(
-                          fontSize: 14, fontWeight: FontWeight.w500)),
+                      style:
+                          TextStyle(fontSize: 14, fontWeight: FontWeight.w500)),
                   value: state.saveConfigOnImport,
                   onChanged: (v) => notifier.setSaveConfigOnImport(v),
                 ),
@@ -1437,15 +1512,15 @@ class _Step3Review extends ConsumerWidget {
 
           // ── Loading indicator ─────────────────────────────
           if (state.loadingPhase == LoadingPhase.importing)
-            const Padding(
+            Padding(
               padding: EdgeInsets.symmetric(vertical: 12),
               child: Column(children: [
-                LinearProgressIndicator(),
-                SizedBox(height: 8),
+                const LinearProgressIndicator(),
+                const SizedBox(height: 8),
                 Text(
                   'Analyzing file… queuing upload job.',
                   textAlign: TextAlign.center,
-                  style: TextStyle(color: Colors.grey),
+                  style: TextStyle(color: colorScheme.onSurfaceVariant),
                 ),
               ]),
             ),
@@ -1485,13 +1560,14 @@ class _BottomBar extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final colorScheme = Theme.of(context).colorScheme;
     return Container(
       padding: const EdgeInsets.fromLTRB(16, 12, 16, 16),
       decoration: BoxDecoration(
-        color: Colors.white,
+        color: colorScheme.surface,
         boxShadow: [
           BoxShadow(
-              color: Colors.black.withOpacity(0.07),
+              color: colorScheme.shadow.withOpacity(0.07),
               blurRadius: 8,
               offset: const Offset(0, -2)),
         ],
@@ -1513,24 +1589,24 @@ class _BottomBar extends StatelessWidget {
           flex: 3,
           child: ElevatedButton.icon(
             icon: state.loadingPhase == LoadingPhase.importing
-                ? const SizedBox(
+                ? SizedBox(
                     width: 14,
                     height: 14,
                     child: CircularProgressIndicator(
                         strokeWidth: 2,
-                        valueColor:
-                            AlwaysStoppedAnimation<Color>(Colors.white)))
+                        valueColor: AlwaysStoppedAnimation<Color>(
+                            colorScheme.onPrimary)))
                 : Icon(state.currentStep == FieldMappingStep.review
                     ? Icons.cloud_upload
                     : Icons.arrow_forward_ios),
             label: Text(_nextLabel),
             onPressed: onNext,
             style: ElevatedButton.styleFrom(
-              backgroundColor: Colors.blue,
-              foregroundColor: Colors.white,
+              backgroundColor: colorScheme.primary,
+              foregroundColor: colorScheme.onPrimary,
               padding: const EdgeInsets.symmetric(vertical: 14),
               elevation: 0,
-              disabledBackgroundColor: Colors.blue.withOpacity(0.4),
+              disabledBackgroundColor: colorScheme.primary.withOpacity(0.4),
             ),
           ),
         ),
@@ -1551,16 +1627,17 @@ class _Card extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final colorScheme = Theme.of(context).colorScheme;
     return Container(
       width: double.infinity,
       margin: const EdgeInsets.only(bottom: 4),
       padding: const EdgeInsets.all(16),
       decoration: BoxDecoration(
-        color: isDark ? const Color(0xFF1E1E1E) : Colors.white,
+        color: colorScheme.surface,
         borderRadius: BorderRadius.circular(12),
         boxShadow: [
           BoxShadow(
-              color: Colors.black.withOpacity(0.05),
+              color: colorScheme.shadow.withOpacity(0.05),
               blurRadius: 6,
               offset: const Offset(0, 2)),
         ],
@@ -1605,18 +1682,20 @@ class _ResultTile extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final colorScheme = Theme.of(context).colorScheme;
     return Padding(
       padding: const EdgeInsets.symmetric(vertical: 3),
       child: Row(
         mainAxisAlignment: MainAxisAlignment.spaceBetween,
         children: [
           Text(label,
-              style: const TextStyle(fontSize: 13, color: Colors.black54)),
+              style:
+                  TextStyle(fontSize: 13, color: colorScheme.onSurfaceVariant)),
           Text(value,
               style: TextStyle(
                   fontSize: 13,
                   fontWeight: FontWeight.bold,
-                  color: valueColor ?? Colors.black87)),
+                  color: valueColor ?? colorScheme.onSurface)),
         ],
       ),
     );
@@ -1629,26 +1708,30 @@ class _SkeletonCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final base = isDark ? Colors.grey.shade800 : Colors.grey.shade200;
+    final colorScheme = Theme.of(context).colorScheme;
+    final base = isDark
+        ? colorScheme.surfaceContainerHighest
+        : colorScheme.surfaceContainerHigh;
     return Container(
       width: double.infinity,
       padding: const EdgeInsets.all(16),
       decoration: BoxDecoration(
-          color: isDark ? const Color(0xFF1E1E1E) : Colors.white,
-          borderRadius: BorderRadius.circular(12)),
+          color: colorScheme.surface, borderRadius: BorderRadius.circular(12)),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           Container(height: 14, width: 120, color: base),
           const SizedBox(height: 12),
-          Wrap(spacing: 8, children: List.generate(
-              5,
-              (_) => Container(
-                  height: 28,
-                  width: 80,
-                  decoration: BoxDecoration(
-                      color: base,
-                      borderRadius: BorderRadius.circular(14))))),
+          Wrap(
+              spacing: 8,
+              children: List.generate(
+                  5,
+                  (_) => Container(
+                      height: 28,
+                      width: 80,
+                      decoration: BoxDecoration(
+                          color: base,
+                          borderRadius: BorderRadius.circular(14))))),
           const SizedBox(height: 12),
           Container(height: 100, color: base),
         ],
@@ -1665,33 +1748,34 @@ class _ErrorBanner extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final colorScheme = Theme.of(context).colorScheme;
     return Container(
       width: double.infinity,
       padding: const EdgeInsets.all(16),
       decoration: BoxDecoration(
-          color: Colors.red.shade50,
+          color: colorScheme.errorContainer,
           borderRadius: BorderRadius.circular(12),
-          border: Border.all(color: Colors.red.shade200)),
+          border: Border.all(color: colorScheme.error.withOpacity(0.35))),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           Row(children: [
-            const Icon(Icons.error_outline, color: Colors.red),
+            Icon(Icons.error_outline, color: colorScheme.error),
             const SizedBox(width: 8),
-            const Text('Analysis Failed',
+            Text('Analysis Failed',
                 style: TextStyle(
-                    fontWeight: FontWeight.bold, color: Colors.red)),
+                    fontWeight: FontWeight.bold, color: colorScheme.error)),
           ]),
           const SizedBox(height: 8),
           Text(message,
               style:
-                  TextStyle(fontSize: 13, color: Colors.red.shade700)),
+                  TextStyle(fontSize: 13, color: colorScheme.onErrorContainer)),
           const SizedBox(height: 12),
           OutlinedButton.icon(
             icon: const Icon(Icons.refresh, size: 16),
             label: const Text('Try Another File'),
             onPressed: onRetry,
-            style: OutlinedButton.styleFrom(foregroundColor: Colors.red),
+            style: OutlinedButton.styleFrom(foregroundColor: colorScheme.error),
           ),
         ],
       ),

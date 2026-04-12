@@ -105,9 +105,9 @@ class _ExpenseListScreenState extends ConsumerState<ExpenseListScreen> {
   Future<void> _deleteSelectedExpenses() async {
     if (_selectedExpenseIds.isEmpty) {
       ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(
+        SnackBar(
           content: Text('No expenses selected'),
-          backgroundColor: Colors.orange,
+          backgroundColor: Theme.of(context).colorScheme.tertiary,
         ),
       );
       return;
@@ -119,7 +119,7 @@ class _ExpenseListScreenState extends ConsumerState<ExpenseListScreen> {
         title: const Text('Delete Selected Expenses'),
         content: Text(
           'Are you sure you want to delete ${_selectedExpenseIds.length} selected expenses?\n\n'
-              'This action cannot be undone.',
+          'This action cannot be undone.',
         ),
         actions: [
           TextButton(
@@ -128,7 +128,8 @@ class _ExpenseListScreenState extends ConsumerState<ExpenseListScreen> {
           ),
           TextButton(
             onPressed: () => Navigator.pop(context, true),
-            style: TextButton.styleFrom(foregroundColor: Colors.red),
+            style: TextButton.styleFrom(
+                foregroundColor: Theme.of(context).colorScheme.error),
             child: const Text('Delete'),
           ),
         ],
@@ -151,7 +152,7 @@ class _ExpenseListScreenState extends ConsumerState<ExpenseListScreen> {
             content: Text(
               'Successfully deleted ${_selectedExpenseIds.length} expenses',
             ),
-            backgroundColor: Colors.green,
+            backgroundColor: Theme.of(context).colorScheme.primary,
           ),
         );
       }
@@ -167,12 +168,13 @@ class _ExpenseListScreenState extends ConsumerState<ExpenseListScreen> {
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
             content: Text('Bulk delete failed: ${e.toString()}'),
-            backgroundColor: Colors.red,
+            backgroundColor: Theme.of(context).colorScheme.error,
           ),
         );
       }
     }
   }
+
   Future<void> _deleteSingleExpense(String expenseId) async {
     final confirmed = await showDialog<bool>(
       context: context,
@@ -188,7 +190,8 @@ class _ExpenseListScreenState extends ConsumerState<ExpenseListScreen> {
           ),
           TextButton(
             onPressed: () => Navigator.pop(context, true),
-            style: TextButton.styleFrom(foregroundColor: Colors.red),
+            style: TextButton.styleFrom(
+                foregroundColor: Theme.of(context).colorScheme.error),
             child: const Text("Delete"),
           ),
         ],
@@ -207,9 +210,9 @@ class _ExpenseListScreenState extends ConsumerState<ExpenseListScreen> {
 
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(
+          SnackBar(
             content: Text("Expense deleted successfully"),
-            backgroundColor: Colors.green,
+            backgroundColor: Theme.of(context).colorScheme.primary,
           ),
         );
       }
@@ -218,14 +221,15 @@ class _ExpenseListScreenState extends ConsumerState<ExpenseListScreen> {
 
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(
+          SnackBar(
             content: Text("Failed to delete expense"),
-            backgroundColor: Colors.red,
+            backgroundColor: Theme.of(context).colorScheme.error,
           ),
         );
       }
     }
   }
+
   void _showCategoryModal() {
     showModalBottomSheet(
       context: context,
@@ -269,6 +273,7 @@ class _ExpenseListScreenState extends ConsumerState<ExpenseListScreen> {
 
   @override
   Widget build(BuildContext context) {
+    final colorScheme = Theme.of(context).colorScheme;
     return Scaffold(
       drawer: const CustomDrawer(),
       body: NestedScrollView(
@@ -290,7 +295,6 @@ class _ExpenseListScreenState extends ConsumerState<ExpenseListScreen> {
                   Row(
                     mainAxisAlignment: MainAxisAlignment.end,
                     children: [
-
                       Row(
                         children: [
                           if (_isSelectionMode) ...[
@@ -314,15 +318,15 @@ class _ExpenseListScreenState extends ConsumerState<ExpenseListScreen> {
                                   ? null
                                   : _deleteSelectedExpenses,
                               style: ElevatedButton.styleFrom(
-                                backgroundColor: Colors.red,
-                                foregroundColor: Colors.white,
+                                backgroundColor: colorScheme.error,
+                                foregroundColor: colorScheme.onError,
                               ),
                             ),
                           ] else ...[
                             IconButton(
-                              icon: const Icon(
+                              icon: Icon(
                                 Icons.delete_sweep,
-                                color: Colors.red,
+                                color: colorScheme.error,
                               ),
                               onPressed: expenseList.isEmpty
                                   ? null
@@ -343,53 +347,54 @@ class _ExpenseListScreenState extends ConsumerState<ExpenseListScreen> {
                           itemCount: 6,
                         )
                       : expenseList.isEmpty
-                      ? Center(
-                    child: Column(
-                      mainAxisAlignment: MainAxisAlignment.center,
-                      children: [
-                        Icon(
-                          Icons.receipt_long,
-                          size: 100,
-                          color: Colors.grey[400],
-                        ),
-                        const SizedBox(height: 16),
-                        const Text(
-                          "No expenses found",
-                          style: TextStyle(
-                            fontSize: 16,
-                            color: Colors.grey,
-                          ),
-                        ),
-                        const SizedBox(height: 8),
-                        TextButton(
-                          onPressed: _showCategoryModal,
-                          child: const Text("Add your first expense"),
-                        ),
-                      ],
-                    ),
-                  )
-                      : CustomScrollbar(
-                    controller: _scrollController,
-                    child: ListView.builder(
-                      controller: _scrollController,
-                      physics: const AlwaysScrollableScrollPhysics(),
-                      padding: const EdgeInsets.symmetric(
-                        horizontal: 10,
-                      ),
-                      itemCount: expenseList.length,
-                      itemBuilder: (context, index) {
-                        final expense = expenseList[index];
-                        final isSelected = _selectedExpenseIds.contains(
-                          expense.id,
-                        );
+                          ? Center(
+                              child: Column(
+                                mainAxisAlignment: MainAxisAlignment.center,
+                                children: [
+                                  Icon(
+                                    Icons.receipt_long,
+                                    size: 100,
+                                    color: colorScheme.outlineVariant,
+                                  ),
+                                  const SizedBox(height: 16),
+                                  Text(
+                                    "No expenses found",
+                                    style: TextStyle(
+                                      fontSize: 16,
+                                      color: colorScheme.onSurfaceVariant,
+                                    ),
+                                  ),
+                                  const SizedBox(height: 8),
+                                  TextButton(
+                                    onPressed: _showCategoryModal,
+                                    child: const Text("Add your first expense"),
+                                  ),
+                                ],
+                              ),
+                            )
+                          : CustomScrollbar(
+                              controller: _scrollController,
+                              child: ListView.builder(
+                                controller: _scrollController,
+                                physics: const AlwaysScrollableScrollPhysics(),
+                                padding: const EdgeInsets.symmetric(
+                                  horizontal: 10,
+                                ),
+                                itemCount: expenseList.length,
+                                itemBuilder: (context, index) {
+                                  final expense = expenseList[index];
+                                  final isSelected =
+                                      _selectedExpenseIds.contains(
+                                    expense.id,
+                                  );
 
-                        return _buildExpenseCard(
-                          expense,
-                          isSelected,
-                        );
-                      },
-                    ),
-                  ),
+                                  return _buildExpenseCard(
+                                    expense,
+                                    isSelected,
+                                  );
+                                },
+                              ),
+                            ),
                 ),
               ],
             ),
@@ -400,16 +405,17 @@ class _ExpenseListScreenState extends ConsumerState<ExpenseListScreen> {
   }
 
   Widget _buildExpenseCard(ExpenseModel expense, bool isSelected) {
+    final colorScheme = Theme.of(context).colorScheme;
     debugPrint(expense.toString());
     final description =
-    (expense.description == null || expense.description!.isEmpty)
-        ? "No description"
-        : expense.description!;
+        (expense.description == null || expense.description!.isEmpty)
+            ? "No description"
+            : expense.description!;
 
     final category =
-    (expense.expenseType == null || expense.expenseType!.isEmpty)
-        ? "Unknown"
-        : expense.expenseType!;
+        (expense.expenseType == null || expense.expenseType!.isEmpty)
+            ? "Unknown"
+            : expense.expenseType!;
 
     final amountText = () {
       if (expense.expenseType == "material_tools") {
@@ -438,7 +444,7 @@ class _ExpenseListScreenState extends ConsumerState<ExpenseListScreen> {
               borderRadius: BorderRadius.circular(12),
             ),
             elevation: 0,
-            color: Colors.white,
+            color: colorScheme.surface,
             child: InkWell(
               onTap: _isSelectionMode
                   ? () => _toggleExpenseSelection(expense.id!)
@@ -464,12 +470,12 @@ class _ExpenseListScreenState extends ConsumerState<ExpenseListScreen> {
                           const SizedBox(height: 4),
                           Row(
                             children: [
-                              const Text(
+                              Text(
                                 "Category:",
                                 style: TextStyle(
                                   fontWeight: FontWeight.bold,
                                   fontSize: 16,
-                                  color: Colors.blue,
+                                  color: colorScheme.primary,
                                 ),
                               ),
                               const SizedBox(width: 10),
@@ -482,38 +488,34 @@ class _ExpenseListScreenState extends ConsumerState<ExpenseListScreen> {
                               ),
                             ],
                           ),
+
                           /// Show manpower if present
-                          if ((expense.manpower?.fullName?.isNotEmpty ?? false) ||
+                          if ((expense.manpower?.fullName?.isNotEmpty ??
+                                  false) ||
                               (expense.manpowerId?.isNotEmpty ?? false))
                             Padding(
                               padding: const EdgeInsets.only(top: 4),
                               child: Row(
                                 children: [
-                                  const Text(
+                                  Text(
                                     "Employee:",
                                     style: TextStyle(
-
                                       fontSize: 13,
-                                      color: Colors.black87,
+                                      color: colorScheme.onSurface,
                                     ),
                                   ),
                                   const SizedBox(width: 8),
                                   Text(
-                                    expense.manpower?.fullName ??
-                                        "Unknown",
-                                    style: const TextStyle(
+                                    expense.manpower?.fullName ?? "Unknown",
+                                    style: TextStyle(
                                       fontWeight: FontWeight.w600,
-
                                       fontSize: 13,
-
-                                      color: Colors.grey,
+                                      color: colorScheme.onSurfaceVariant,
                                     ),
                                   ),
-
                                 ],
                               ),
                             ),
-
                         ],
                       ),
                     ),
@@ -530,21 +532,25 @@ class _ExpenseListScreenState extends ConsumerState<ExpenseListScreen> {
                               fontWeight: FontWeight.bold,
                               fontSize: 16,
                               color: amountText.isEmpty
-                                  ? Colors.grey
-                                  : Colors.green,
+                                  ? colorScheme.onSurfaceVariant
+                                  : colorScheme.primary,
                             ),
                           ),
                           Row(
                             mainAxisSize: MainAxisSize.min,
                             children: [
                               IconButton(
-                                icon: const Icon(Icons.edit, color: Colors.blue),
-                                onPressed: () => _navigateToEditExpense(expense),
+                                icon: Icon(Icons.edit,
+                                    color: colorScheme.primary),
+                                onPressed: () =>
+                                    _navigateToEditExpense(expense),
                                 tooltip: "Edit",
                               ),
                               IconButton(
-                                icon: const Icon(Icons.delete_outline, color: Colors.red),
-                                onPressed: () => _deleteSingleExpense(expense.id!),
+                                icon: Icon(Icons.delete_outline,
+                                    color: colorScheme.error),
+                                onPressed: () =>
+                                    _deleteSingleExpense(expense.id!),
                                 tooltip: "Delete",
                               ),
                             ],
@@ -570,25 +576,25 @@ class _ExpenseListScreenState extends ConsumerState<ExpenseListScreen> {
                 height: 32,
                 decoration: BoxDecoration(
                   shape: BoxShape.circle,
-                  color: isSelected ? Colors.red : Colors.white,
+                  color: isSelected ? colorScheme.error : colorScheme.surface,
                   border: Border.all(
-                    color: Colors.red,
+                    color: colorScheme.error,
                     width: 2,
                   ),
                   boxShadow: [
                     BoxShadow(
-                      color: Colors.black.withOpacity(0.2),
+                      color: colorScheme.shadow.withOpacity(0.2),
                       blurRadius: 4,
                       offset: const Offset(0, 2),
                     ),
                   ],
                 ),
                 child: isSelected
-                    ? const Icon(
-                  Icons.check,
-                  color: Colors.white,
-                  size: 20,
-                )
+                    ? Icon(
+                        Icons.check,
+                        color: colorScheme.onError,
+                        size: 20,
+                      )
                     : null,
               ),
             ),
@@ -624,7 +630,7 @@ class _CategoryModal extends StatelessWidget {
           ),
           const SizedBox(height: 16),
           ...categories.map(
-                (category) => ListTile(
+            (category) => ListTile(
               title: Text(_formatCategoryName(category)),
               onTap: () => onCategorySelected(category),
             ),

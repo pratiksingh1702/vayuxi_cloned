@@ -25,11 +25,8 @@ import '../../site_Details/providers/site_current_provider.dart';
 import '../data/rate_upload_provider.dart';
 
 class ImportCsvScreen extends ConsumerStatefulWidget {
-
-
   const ImportCsvScreen({
     super.key,
-
   });
 
   @override
@@ -46,7 +43,7 @@ class _ImportCsvScreenState extends ConsumerState<ImportCsvScreen> {
     try {
       FilePickerResult? result = await FilePicker.platform.pickFiles(
         type: FileType.custom,
-        allowedExtensions: ['csv','xlsx','pdf'],
+        allowedExtensions: ['csv', 'xlsx', 'pdf'],
         allowMultiple: false,
       );
 
@@ -67,9 +64,8 @@ class _ImportCsvScreenState extends ConsumerState<ImportCsvScreen> {
       _showError('Please select a CSV file first');
       return;
     }
-    final type=ref.read(typeProvider);
-    final siteId=ref.read(selectedSiteIdProvider);
-
+    final type = ref.read(typeProvider);
+    final siteId = ref.read(selectedSiteIdProvider);
 
     setState(() {
       _isLoading = true;
@@ -91,17 +87,15 @@ class _ImportCsvScreenState extends ConsumerState<ImportCsvScreen> {
       //   siteId!,
       // );
       ref.read(uploadManagerProvider.notifier).enqueue(
-        UploadJob.create(
-          moduleId: 'rate',
-          filePath: _selectedFile!.path!,
-          metadata: {'siteId': siteId, 'type': type},
-          targetRoute: '/site-list/rate',
-          maxRetries: 2,
-        ),
-      );
+            UploadJob.create(
+              moduleId: 'rate',
+              filePath: _selectedFile!.path!,
+              metadata: {'siteId': siteId, 'type': type},
+              targetRoute: '/site-list/rate',
+              maxRetries: 2,
+            ),
+          );
       await ref.read(tourPersistenceProvider).markRateDone();
-
-
 
       setState(() {
         _isLoading = false;
@@ -109,8 +103,6 @@ class _ImportCsvScreenState extends ConsumerState<ImportCsvScreen> {
 
       AppToast.success("✅ File added to upload queue");
       if (!mounted) return;
-    
-
 
       // if (result['success'] == true) {
       //   setState(() {
@@ -148,7 +140,6 @@ class _ImportCsvScreenState extends ConsumerState<ImportCsvScreen> {
     AppToast.error(message);
   }
 
-
   void _clearSelection() {
     setState(() {
       _selectedFile = null;
@@ -166,7 +157,6 @@ class _ImportCsvScreenState extends ConsumerState<ImportCsvScreen> {
       backgroundColor: colorScheme.surfaceContainerLowest,
       appBar: CustomAppBar(
         title: 'Import Rate File',
-
       ),
       body: CornerClippedScreenSimple(
         child: Padding(
@@ -176,35 +166,35 @@ class _ImportCsvScreenState extends ConsumerState<ImportCsvScreen> {
             children: [
               RoundedButton(
                 width: double.infinity,
-                text: downloadState.isLoading ? "Downloading..." : "Download Sample Template",
+                text: downloadState.isLoading
+                    ? "Downloading..."
+                    : "Download Sample Template",
                 color: colorScheme.surface,
                 textColor: colorScheme.onSurface,
                 onPressed: downloadState.isLoading
                     ? () {}
-                    : () async {Navigator.push(
-                  context,
-                  MaterialPageRoute(
-                    builder: (_) => TemplatePreviewScreen(
-                      title: "Sample Template Preview",
-                      imageAsset: "assets/images/rate-temp.webp",
-                      onDownload: () async {
-                        final file = await ref
-                            .read(templateDownloadControllerProvider.notifier)
-                            .downloadAndSaveTemplate(TemplateModel.rate);
+                    : () async {
+                        Navigator.push(
+                          context,
+                          MaterialPageRoute(
+                            builder: (_) => TemplatePreviewScreen(
+                              title: "Sample Template Preview",
+                              imageAsset: "assets/images/rate-temp.webp",
+                              onDownload: () async {
+                                final file = await ref
+                                    .read(templateDownloadControllerProvider
+                                        .notifier)
+                                    .downloadAndSaveTemplate(
+                                        TemplateModel.rate);
 
-                        if (!context.mounted) return;
-                        AppToast.success("✅ Saved: ${file}");
+                                if (!context.mounted) return;
+                                AppToast.success("✅ Saved: ${file}");
+                              },
+                            ),
+                          ),
+                        );
                       },
-                    ),
-                  ),
-                );
-
-                },
-
-
               ),
-        
-        
 
               const SizedBox(height: 8),
               Text(
@@ -219,57 +209,57 @@ class _ImportCsvScreenState extends ConsumerState<ImportCsvScreen> {
 
               const SizedBox(height: 24),
 
-
               // File Selection Section
               UploadBox(
                 title: 'Upload your Rate file',
                 subtitle: _selectedFileName ?? 'No file selected',
-                buttonText: _selectedFileName == null ? 'Choose Rate File' : 'Change File',
+                buttonText: _selectedFileName == null
+                    ? 'Choose Rate File'
+                    : 'Change File',
                 onPressed: _pickCsvFile,
               ),
-        
+
               const SizedBox(height: 24),
-        
+
               // Upload Button
               SizedBox(
                 width: double.infinity,
                 child: ElevatedButton(
                   onPressed: _isLoading ? null : _uploadCsv,
                   style: ElevatedButton.styleFrom(
-                    backgroundColor: colorScheme.primary,
-                    foregroundColor: colorScheme.onPrimary,
-                    padding: const EdgeInsets.symmetric(vertical: 16),
-                    disabledBackgroundColor: colorScheme.primary.withOpacity(0.5),
-                    elevation: 0
-                  ),
+                      backgroundColor: colorScheme.primary,
+                      foregroundColor: colorScheme.onPrimary,
+                      padding: const EdgeInsets.symmetric(vertical: 16),
+                      disabledBackgroundColor:
+                          colorScheme.primary.withOpacity(0.5),
+                      elevation: 0),
                   child: _isLoading
                       ? Row(
-                    mainAxisAlignment: MainAxisAlignment.center,
-                    children: [
-                      SizedBox(
-                        width: 16,
-                        height: 16,
-                        child: CircularProgressIndicator(
-                          strokeWidth: 2,
-                          valueColor: AlwaysStoppedAnimation<Color>(colorScheme.onPrimary),
-                        ),
-                      ),
-                      const SizedBox(width: 8),
-                      const Text('Uploading...'),
-                    ],
-                  )
+                          mainAxisAlignment: MainAxisAlignment.center,
+                          children: [
+                            SizedBox(
+                              width: 16,
+                              height: 16,
+                              child: CircularProgressIndicator(
+                                strokeWidth: 2,
+                                valueColor: AlwaysStoppedAnimation<Color>(
+                                    colorScheme.onPrimary),
+                              ),
+                            ),
+                            const SizedBox(width: 8),
+                            const Text('Uploading...'),
+                          ],
+                        )
                       : const Row(
-                    mainAxisAlignment: MainAxisAlignment.center,
-                    children: [
-                      Icon(Icons.cloud_upload),
-                      SizedBox(width: 8),
-                      Text('Upload Rate'),
-                    ],
-                  ),
+                          mainAxisAlignment: MainAxisAlignment.center,
+                          children: [
+                            Icon(Icons.cloud_upload),
+                            SizedBox(width: 8),
+                            Text('Upload Rate'),
+                          ],
+                        ),
                 ),
               ),
-        
-        
             ],
           ),
         ),

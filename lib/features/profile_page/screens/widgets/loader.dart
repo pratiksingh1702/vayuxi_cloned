@@ -7,26 +7,53 @@ class Loader extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return const Scaffold(
+    final colorScheme = Theme.of(context).colorScheme;
+    return Scaffold(
+      backgroundColor: colorScheme.surfaceContainerLowest,
       body: SingleChildScrollView(
-        padding: EdgeInsets.all(20),
+        padding: const EdgeInsets.all(20),
         child: Column(
           children: [
-            SizedBox(height: 20),
-            ShimmerCircle(size: 120),
-            SizedBox(height: 30),
-            ShimmerBox(width: double.infinity, height: 50),
-            SizedBox(height: 16),
-            ShimmerBox(width: double.infinity, height: 50),
-            SizedBox(height: 16),
-            ShimmerBox(width: double.infinity, height: 50),
-            SizedBox(height: 16),
-            ShimmerBox(width: double.infinity, height: 100),
-            SizedBox(height: 16),
-            ShimmerBox(width: double.infinity, height: 50),
+            const SizedBox(height: 20),
+            const ShimmerCircle(size: 120),
+            const SizedBox(height: 30),
+            _LoaderCard(
+                child: const ShimmerBox(width: double.infinity, height: 50)),
+            const SizedBox(height: 16),
+            _LoaderCard(
+                child: const ShimmerBox(width: double.infinity, height: 50)),
+            const SizedBox(height: 16),
+            _LoaderCard(
+                child: const ShimmerBox(width: double.infinity, height: 50)),
+            const SizedBox(height: 16),
+            _LoaderCard(
+                child: const ShimmerBox(width: double.infinity, height: 100)),
+            const SizedBox(height: 16),
+            _LoaderCard(
+                child: const ShimmerBox(width: double.infinity, height: 50)),
           ],
         ),
       ),
+    );
+  }
+}
+
+class _LoaderCard extends StatelessWidget {
+  const _LoaderCard({required this.child});
+
+  final Widget child;
+
+  @override
+  Widget build(BuildContext context) {
+    final colorScheme = Theme.of(context).colorScheme;
+    return Container(
+      padding: const EdgeInsets.all(10),
+      decoration: BoxDecoration(
+        color: colorScheme.surface,
+        borderRadius: BorderRadius.circular(12),
+        border: Border.all(color: colorScheme.outlineVariant.withOpacity(0.4)),
+      ),
+      child: child,
     );
   }
 }

@@ -59,6 +59,9 @@ class CustomTextField extends StatelessWidget {
             keyboardType: keyboardType,
             maxLines: maxLines,
             focusNode: focusNode,
+            style: TextStyle(
+              color: cs.onSurface,
+            ),
             decoration: InputDecoration(
               hintText: hint ?? 'Enter $label',
               hintStyle: TextStyle(

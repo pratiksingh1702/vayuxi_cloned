@@ -15,8 +15,6 @@ import '../../rate/screens/import_sheet.dart';
 import 'addManpower.dart';
 import 'man_import.dart';
 
-
-
 class ManEntrySelectCardGrid extends StatelessWidget {
   const ManEntrySelectCardGrid({super.key});
 
@@ -24,16 +22,19 @@ class ManEntrySelectCardGrid extends StatelessWidget {
   Widget build(BuildContext context) {
     final colorScheme = Theme.of(context).colorScheme;
     final isDark = Theme.of(context).brightness == Brightness.dark;
-    return Scaffold( drawer: const CustomDrawer(),
-
+    return Scaffold(
+      drawer: const CustomDrawer(),
       backgroundColor: colorScheme.surfaceContainerLowest,
-      appBar: CustomAppBar(title:"Select Manpower Entry"),
+      appBar: CustomAppBar(title: "Select Manpower Entry"),
       body: BottomButtonWrapper(
-        onBackPressed: (){Navigator.pop(context);},
+        onBackPressed: () {
+          Navigator.pop(context);
+        },
         child: Column(
           children: [
             Container(
-              padding: const EdgeInsets.symmetric(horizontal: 16), // Add side padding
+              padding: const EdgeInsets.symmetric(
+                  horizontal: 16), // Add side padding
               child: GridView.count(
                 physics: const NeverScrollableScrollPhysics(),
                 shrinkWrap: true,
@@ -45,42 +46,35 @@ class ManEntrySelectCardGrid extends StatelessWidget {
                   SelectCard(
                     icon: Image.asset(
                       "assets/images/icons/manual_entry.webp",
-
                       height: 120,
                       width: double.infinity,
                       fit: BoxFit.cover,
-
                     ),
                     label: "Manual Entry",
                     onTap: () {
                       Navigator.push(
                         context,
-                        MaterialPageRoute(builder: (context) =>NewManpowerScreen() ),
+                        MaterialPageRoute(
+                            builder: (context) => NewManpowerScreen()),
                       );
-
                     },
                   ),
                   SelectCard(
                     icon: Image.asset(
                       "assets/images/icons/import_sheet.webp",
-
                       height: 120,
                       width: double.infinity,
                       fit: BoxFit.cover,
-
                     ),
                     label: "Import Sheet",
                     onTap: () {
-
                       // Navigator.push(
                       //   context,
                       //   MaterialPageRoute(builder: (context) =>ManImportCsvScreen() ),
                       // );
                       context.push("/site-list/man-import");
-
                     },
                   ),
-
                 ],
               ),
             ),
@@ -94,7 +88,8 @@ class ManEntrySelectCardGrid extends StatelessWidget {
               decoration: BoxDecoration(
                 color: colorScheme.surface,
                 borderRadius: BorderRadius.circular(18),
-                border: Border.all(color: colorScheme.outlineVariant.withOpacity(0.45)),
+                border: Border.all(
+                    color: colorScheme.outlineVariant.withOpacity(0.45)),
                 boxShadow: [
                   BoxShadow(
                     color: isDark
@@ -119,7 +114,7 @@ class ManEntrySelectCardGrid extends StatelessWidget {
                   const SizedBox(height: 8),
                   Text(
                     "• Manual Entry: Enter site details step-by-step manually.\n"
-                        "• Import Sheet: Upload an Excel/CSV sheet — our AI will analyze your file and map fields automatically.",
+                    "• Import Sheet: Upload an Excel/CSV sheet — our AI will analyze your file and map fields automatically.",
                     style: TextStyle(
                       fontSize: 13,
                       height: 1.5,

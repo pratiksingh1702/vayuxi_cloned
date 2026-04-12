@@ -13,23 +13,25 @@ class DynamicHeader extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final colorScheme = Theme.of(context).colorScheme;
     return Row(
       mainAxisAlignment: MainAxisAlignment.spaceBetween,
       children: [
         IconButton(
-          icon: const Icon(Icons.arrow_back),
+          icon: Icon(Icons.arrow_back, color: colorScheme.onSurface),
           onPressed: () => Navigator.pop(context),
         ),
         Text(
           name,
-          style: const TextStyle(
+          style: TextStyle(
             fontSize: 20,
             fontWeight: FontWeight.bold,
+            color: colorScheme.onSurface,
           ),
         ),
         if (showMenu)
           IconButton(
-            icon: const Icon(Icons.menu),
+            icon: Icon(Icons.menu, color: colorScheme.onSurface),
             onPressed: () {
               // Handle menu press
             },

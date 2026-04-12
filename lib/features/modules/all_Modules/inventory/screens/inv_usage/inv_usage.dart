@@ -1,7 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:table_calendar/table_calendar.dart';
-import 'package:untitled2/core/utlis/colors/colors.dart';
 import 'package:untitled2/core/utlis/widgets/Button_wrapper.dart';
 import 'package:untitled2/core/utlis/widgets/buttons.dart';
 import 'package:untitled2/core/utlis/widgets/custom_appBar.dart';
@@ -54,9 +53,12 @@ class _BeautifulDatePickerState extends State<BeautifulDatePicker> {
 
   @override
   Widget build(BuildContext context) {
+    final colorScheme = Theme.of(context).colorScheme;
     final primaryColor = widget.primaryColor ?? Theme.of(context).primaryColor;
-    final accentColor = widget.accentColor ?? Theme.of(context).colorScheme.secondary;
-    final backgroundColor = widget.backgroundColor ?? Theme.of(context).scaffoldBackgroundColor;
+    final accentColor =
+        widget.accentColor ?? Theme.of(context).colorScheme.secondary;
+    final backgroundColor =
+        widget.backgroundColor ?? Theme.of(context).scaffoldBackgroundColor;
 
     return Dialog(
       backgroundColor: backgroundColor,
@@ -86,7 +88,8 @@ class _BeautifulDatePickerState extends State<BeautifulDatePicker> {
                     ),
                   ),
                   IconButton(
-                    icon: Icon(Icons.close, color: Colors.grey.shade600),
+                    icon:
+                        Icon(Icons.close, color: colorScheme.onSurfaceVariant),
                     onPressed: () => Navigator.pop(context),
                   ),
                 ],
@@ -96,7 +99,8 @@ class _BeautifulDatePickerState extends State<BeautifulDatePicker> {
 
               // Selected date display
               Container(
-                padding: const EdgeInsets.symmetric(vertical: 12, horizontal: 16),
+                padding:
+                    const EdgeInsets.symmetric(vertical: 12, horizontal: 16),
                 decoration: BoxDecoration(
                   color: primaryColor.withOpacity(0.1),
                   borderRadius: BorderRadius.circular(12),
@@ -124,11 +128,11 @@ class _BeautifulDatePickerState extends State<BeautifulDatePicker> {
               // Calendar
               Container(
                 decoration: BoxDecoration(
-                  color: Colors.white,
+                  color: colorScheme.surface,
                   borderRadius: BorderRadius.circular(16),
                   boxShadow: [
                     BoxShadow(
-                      color: Colors.black.withOpacity(0.05),
+                      color: colorScheme.shadow.withOpacity(0.05),
                       blurRadius: 10,
                       offset: const Offset(0, 4),
                     ),
@@ -157,11 +161,13 @@ class _BeautifulDatePickerState extends State<BeautifulDatePicker> {
 
                   // Calendar styling
                   calendarStyle: CalendarStyle(
-                    defaultTextStyle: const TextStyle(fontWeight: FontWeight.w500),
-                    weekendTextStyle: const TextStyle(fontWeight: FontWeight.w500),
+                    defaultTextStyle:
+                        const TextStyle(fontWeight: FontWeight.w500),
+                    weekendTextStyle:
+                        const TextStyle(fontWeight: FontWeight.w500),
                     selectedTextStyle: TextStyle(
                       fontWeight: FontWeight.bold,
-                      color: Colors.white,
+                      color: colorScheme.onPrimary,
                     ),
                     todayTextStyle: TextStyle(
                       fontWeight: FontWeight.bold,
@@ -178,7 +184,7 @@ class _BeautifulDatePickerState extends State<BeautifulDatePicker> {
                     ),
                     weekendDecoration: BoxDecoration(
                       shape: BoxShape.circle,
-                      color: Colors.grey.shade50,
+                      color: colorScheme.surfaceContainerLowest,
                     ),
                     outsideDaysVisible: false,
                   ),
@@ -191,9 +197,12 @@ class _BeautifulDatePickerState extends State<BeautifulDatePicker> {
                       color: primaryColor,
                       borderRadius: BorderRadius.circular(8),
                     ),
-                    formatButtonTextStyle: const TextStyle(color: Colors.white),
-                    leftChevronIcon: Icon(Icons.chevron_left, color: primaryColor),
-                    rightChevronIcon: Icon(Icons.chevron_right, color: primaryColor),
+                    formatButtonTextStyle:
+                        TextStyle(color: colorScheme.onPrimary),
+                    leftChevronIcon:
+                        Icon(Icons.chevron_left, color: primaryColor),
+                    rightChevronIcon:
+                        Icon(Icons.chevron_right, color: primaryColor),
                     titleTextStyle: TextStyle(
                       color: primaryColor,
                       fontSize: 16,
@@ -203,11 +212,11 @@ class _BeautifulDatePickerState extends State<BeautifulDatePicker> {
 
                   daysOfWeekStyle: DaysOfWeekStyle(
                     weekdayStyle: TextStyle(
-                      color: Colors.grey.shade700,
+                      color: colorScheme.onSurfaceVariant,
                       fontWeight: FontWeight.w500,
                     ),
                     weekendStyle: TextStyle(
-                      color: Colors.grey.shade700,
+                      color: colorScheme.onSurfaceVariant,
                       fontWeight: FontWeight.w500,
                     ),
                   ),
@@ -227,13 +236,13 @@ class _BeautifulDatePickerState extends State<BeautifulDatePicker> {
                         shape: RoundedRectangleBorder(
                           borderRadius: BorderRadius.circular(12),
                         ),
-                        side: BorderSide(color: Colors.grey.shade300),
+                        side: BorderSide(color: colorScheme.outlineVariant),
                       ),
                       child: Text(
                         'Cancel',
                         style: TextStyle(
                           fontSize: 16,
-                          color: Colors.grey.shade600,
+                          color: colorScheme.onSurfaceVariant,
                         ),
                       ),
                     ),
@@ -250,12 +259,12 @@ class _BeautifulDatePickerState extends State<BeautifulDatePicker> {
                         ),
                         elevation: 0,
                       ),
-                      child: const Text(
+                      child: Text(
                         'Select',
                         style: TextStyle(
                           fontSize: 16,
                           fontWeight: FontWeight.w500,
-                          color: Colors.white,
+                          color: colorScheme.onPrimary,
                         ),
                       ),
                     ),
@@ -278,7 +287,20 @@ class _BeautifulDatePickerState extends State<BeautifulDatePicker> {
   }
 
   String _getMonthName(DateTime date) {
-    return ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'][date.month - 1];
+    return [
+      'Jan',
+      'Feb',
+      'Mar',
+      'Apr',
+      'May',
+      'Jun',
+      'Jul',
+      'Aug',
+      'Sep',
+      'Oct',
+      'Nov',
+      'Dec'
+    ][date.month - 1];
   }
 }
 
@@ -308,7 +330,7 @@ class _InventorySelectionPageState
       // SINGLE sync trigger in screen init ONLY
       ref.read(inventorySyncControllerProvider(siteId));
     }
-  }/**/
+  } /**/
 
   @override
   void dispose() {
@@ -322,9 +344,9 @@ class _InventorySelectionPageState
   double _getAvailableQuantity(List<Inventory> inventoryList) {
     if (_selectedInventoryId == null) return 0;
     try {
-      final selected = inventoryList.firstWhere((e) => e.id == _selectedInventoryId);
+      final selected =
+          inventoryList.firstWhere((e) => e.id == _selectedInventoryId);
       return selected.currentBalance ?? 0;
-
     } catch (e) {
       return 0;
     }
@@ -362,7 +384,8 @@ class _InventorySelectionPageState
   }
 
   // Separate method for recording usage
-  Future<void> _recordUsage(List<Inventory> inventoryList, String siteId) async {
+  Future<void> _recordUsage(
+      List<Inventory> inventoryList, String siteId) async {
     if (!_formKey.currentState!.validate()) {
       return;
     }
@@ -393,14 +416,13 @@ class _InventorySelectionPageState
     }
 
     // Check if sufficient inventory is available
-    if (quantityUsed > (selected.currentBalance ?? 0))
- {
+    if (quantityUsed > (selected.currentBalance ?? 0)) {
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
           content: Text(
             "Insufficient inventory. Available: ${selected.currentBalance}, Requested: $quantityUsed",
           ),
-          backgroundColor: Colors.red,
+          backgroundColor: Theme.of(context).colorScheme.error,
           duration: const Duration(seconds: 3),
         ),
       );
@@ -410,10 +432,11 @@ class _InventorySelectionPageState
     try {
       // Show loading indicator
       ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(
+        SnackBar(
           content: Row(
             children: [
-              CircularProgressIndicator(color: Colors.white),
+              CircularProgressIndicator(
+                  color: Theme.of(context).colorScheme.onPrimary),
               SizedBox(width: 10),
               Text("Recording usage..."),
             ],
@@ -441,19 +464,14 @@ class _InventorySelectionPageState
         _uomController.clear();
       });
 
-
-
       // Show success message
       ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(
+        SnackBar(
           content: Text("Usage recorded successfully!"),
-          backgroundColor: Colors.green,
-          duration: Duration(seconds: 2),
+          backgroundColor: Theme.of(context).colorScheme.primary,
+          duration: const Duration(seconds: 2),
         ),
       );
-
-
-
     } catch (e) {
       // Hide loading snackbar
       ScaffoldMessenger.of(context).hideCurrentSnackBar();
@@ -461,7 +479,7 @@ class _InventorySelectionPageState
       // ScaffoldMessenger.of(context).showSnackBar(
       //   SnackBar(
       //     content: Text("Error recording usage: ${e.toString()}"),
-      //     backgroundColor: Colors.red,
+      //     backgroundColor: Theme.of(context).colorScheme.error,
       //     duration: const Duration(seconds: 3),
       //   ),
       // );
@@ -470,6 +488,7 @@ class _InventorySelectionPageState
 
   @override
   Widget build(BuildContext context) {
+    final colorScheme = Theme.of(context).colorScheme;
     final siteId = ref.watch(selectedSiteIdProvider);
 
     if (siteId == null) {
@@ -479,381 +498,406 @@ class _InventorySelectionPageState
     }
 
     final inventoryAsync = ref.watch(inventoryProvider(siteId));
-    final lang=ref.watch(dailyEntryTranslationHelperProvider);
+    final lang = ref.watch(dailyEntryTranslationHelperProvider);
 
     return Scaffold(
-      resizeToAvoidBottomInset: false,
-      backgroundColor: Theme.of(context).colorScheme.surfaceContainerLowest,
-      drawer: const CustomDrawer(),
-      appBar: CustomAppBar(title: "Inventory usage"),
-      body: BottomButtonWrapper(
-
-        child: CustomScrollbar(
-          controller: _scrollController,
-          child: SingleChildScrollView(
+        resizeToAvoidBottomInset: false,
+        backgroundColor: Theme.of(context).colorScheme.surfaceContainerLowest,
+        drawer: const CustomDrawer(),
+        appBar: CustomAppBar(title: "Inventory usage"),
+        body: BottomButtonWrapper(
+          child: CustomScrollbar(
             controller: _scrollController,
-            physics: const AlwaysScrollableScrollPhysics(),
-            child: Padding(
-              padding: const EdgeInsets.all(16),
-            child: Form(
-              key: _formKey,
-              child: inventoryAsync.when(
-                loading: () => const Center(child: CircularProgressIndicator()),
-                error: (err, _) {
-                  print(err.toString());
-                  return Center(
-                  child: Column(
-                    mainAxisAlignment: MainAxisAlignment.center,
-                    children: [
-                      const Icon(Icons.error_outline, size: 50, color: Colors.red),
-                      const SizedBox(height: 16),
-                      Text(
-                        "Error loading inventory",
-                        style: Theme.of(context).textTheme.titleMedium,
-                      ),
-                      const SizedBox(height: 8),
-                      Text(
-                        err.toString(),
-                        textAlign: TextAlign.center,
-                        style: Theme.of(context).textTheme.bodySmall?.copyWith(color: Colors.grey),
-                      ),
-                      const SizedBox(height: 16),
-                      ElevatedButton(
-                        onPressed: () => ref.invalidate(inventoryProvider(siteId)),
-                        child: const Text("Retry"),
-                      ),
-                    ],
-                  ),
-                );},
-                data: (inventoryList) {
-                  // Filter out items with no stock if needed
-                  /// show only consumables
-                  final consumableItems =
-                  inventoryList.where((e) => e.type == "consumable").toList();
-
-                  if (consumableItems.isEmpty) {
-                    return Center(
-                      child: Column(
-                        mainAxisAlignment: MainAxisAlignment.center,
-                        children: [
-                          const Icon(Icons.inventory_2_outlined, size: 60, color: Colors.grey),
-                          const SizedBox(height: 12),
-                          const Text(
-                            "No inventory available",
-                            style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold, color: Colors.grey),
-                          ),
-                          const SizedBox(height: 6),
-                          const Text(
-                            "Complete inventory setup first",
-                            style: TextStyle(color: Colors.grey),
-                          ),
-                          const SizedBox(height: 24),
-                          ElevatedButton(
-                            onPressed: () => ref.invalidate(inventoryProvider(siteId)),
-                            child: const Text("Refresh"),
-                          ),
-                        ],
-                      ),
-                    );
-                  }
-
-                  return Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      // Date Picker Container with BeautifulDatePicker
-                      GestureDetector(
-                        onTap: _pickDate,
-                        child: Container(
-                          padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 16),
-                          decoration: BoxDecoration(
-                            color: Colors.white,
-                            borderRadius: BorderRadius.circular(8),
-                            border: Border.all(color: const Color(0xFFDFE2E6)),
-                          ),
-                          child: Row(
-                            mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                            children: [
-                              Row(
-                                children: [
-                                  Icon(
-                                    Icons.calendar_today,
-                                    size: 20,
-                                    color: Theme.of(context).primaryColor,
-                                  ),
-                                  const SizedBox(width: 12),
-                                  Text(
-                                    "${_selectedDate.day.toString().padLeft(2,'0')}/"
-                                        "${_selectedDate.month.toString().padLeft(2,'0')}/"
-                                        "${_selectedDate.year}",
-                                    style: const TextStyle(
-                                      fontSize: 16,
-                                      fontWeight: FontWeight.w500,
-                                    ),
-                                  ),
-                                ],
-                              ),
-                              const Icon(Icons.arrow_drop_down, size: 24),
-                            ],
-                          ),
-                        ),
-                      ),
-                      const SizedBox(height: 20),
-
-                      // ---------------- ITEM DROPDOWN ----------------
-                      CustomDropdownField<String>(
-                        label: lang.selectInventoryItemLabel,
-                        isRequired: true,
-                        value: _selectedInventoryId,
-                        items: consumableItems
-.map((inv) {
-                          final isLowStock = (inv.currentBalance ?? 0) <= (inv.minimumStockLevel ?? 0);
-                          final isOutOfStock = inv.currentBalance == 0;
-
-                          return DropdownMenuItem(
-                            value: inv.id,
-                            child: Column(
-                              crossAxisAlignment: CrossAxisAlignment.start,
-                              mainAxisSize: MainAxisSize.min,
-                              children: [
-                                Text(
-                                  inv.name ?? 'Unknown Item',
-                                  style: TextStyle(
-                                    fontWeight: FontWeight.w500,
-                                    color: isOutOfStock ? Colors.grey : null,
-                                  ),
-                                ),
-                                const SizedBox(height: 4),
-                                Text(
-                                  "Available: ${inv.currentBalance} ${inv.uom}",
-                                  style: TextStyle(
-                                    fontSize: 12,
-                                    color: isOutOfStock
-                                        ? Colors.red
-                                        : isLowStock
-                                        ? Colors.orange
-                                        : Colors.green,
-                                    fontWeight: isLowStock ? FontWeight.bold : FontWeight.normal,
-                                  ),
-                                ),
-                                if (isLowStock && !isOutOfStock) ...[
-                                  const SizedBox(height: 2),
-                                  Text(
-                                    "Low stock warning!",
-                                    style: TextStyle(
-                                      fontSize: 10,
-                                      color: Colors.orange,
-                                      fontStyle: FontStyle.italic,
-                                    ),
-                                  ),
-                                ],
-                              ],
-                            ),
-                          );
-                        }).toList(),
-                        selectedItemBuilder: (context) {
-                          return consumableItems
-.map((inv) {
-                            return Text(inv.name ?? 'Unknown Item');
-                          }).toList();
-                        },
-                        onChanged: (value) {
-                          setState(() {
-                            _selectedInventoryId = value;
-
-                            final selected = consumableItems
-.firstWhere(
-                                  (e) => e.id == value,
-                            );
-
-                            _uomController.text = selected.uom??"";
-                            _quantityController.text = ""; // Clear previous quantity
-
-                            // Show available quantity to user
-                            if (selected.currentBalance == 0) {
-                              ScaffoldMessenger.of(context).showSnackBar(
-                                SnackBar(
-                                  content: Text("${selected.name ?? 'Item'} is out of stock."),
-                                  backgroundColor: Colors.red,
-                                  duration: const Duration(seconds: 2),
-                                ),
-                              );
-                            } else if ((selected.currentBalance ?? 0) <= (selected.minimumStockLevel ?? 0)
-                            ) {
-                              ScaffoldMessenger.of(context).showSnackBar(
-                                SnackBar(
-                                  content: Text("${selected.name ?? 'Item'} is low on stock."),
-                                  backgroundColor: Colors.orange,
-                                  duration: const Duration(seconds: 2),
-                                ),
-                              );
-                            }
-                          });
-                        },
-                        hint: "Choose an item from inventory",
-                      ),
-
-                      const SizedBox(height: 20),
-
-                      // ---------------- UOM FIELD ----------------
-                      CustomTextField(
-                        label: lang.unitOfMeasureLabel,
-                        controller: _uomController,
-                        isRequired: true,
-                        hint: "Unit will auto-fill when item is selected",
-                        keyboardType: TextInputType.text,
-                        validator: null,
-
-                      ),
-
-                      const SizedBox(height: 20),
-
-                      // ---------------- QUANTITY FIELD ----------------
-                      CustomTextField(
-                        label: "${lang.quantityToUseLabel}${_selectedInventoryId != null ? " (Max: ${_getAvailableQuantity(consumableItems
-)} ${_uomController.text})" : ""}",
-                        controller: _quantityController,
-                        isRequired: true,
-                        hint: lang.quantityToUseLabel,
-                        keyboardType: TextInputType.number,
-                        validator: (value) {
-                          if (value == null || value.isEmpty) {
-                            return 'Please enter quantity';
-                          }
-                          final quantity = double.tryParse(value);
-                          if (quantity == null) {
-                            return 'Please enter a valid number';
-                          }
-                          if (quantity <= 0) {
-                            return 'Quantity must be greater than 0';
-                          }
-
-                          // Check available stock if item is selected
-                          if (_selectedInventoryId != null) {
-                            final available = _getAvailableQuantity(consumableItems
-);
-                            if (quantity > available) {
-                              return 'Insufficient stock. Available: $available';
-                            }
-                          }
-
-                          return null;
-                        },
-
-                      ),
-
-                      // Available quantity display
-                      if (_selectedInventoryId != null) ...[
-                        const SizedBox(height: 8),
-                        Container(
-                          padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
-                          decoration: BoxDecoration(
-                            color: _getAvailableQuantity(consumableItems
-) == 0
-                                ? Colors.red.shade50
-                                : Colors.green.shade50,
-                            borderRadius: BorderRadius.circular(8),
-                            border: Border.all(
-                              color: _getAvailableQuantity(consumableItems
-) == 0
-                                  ? Colors.red.shade200
-                                  : Colors.green.shade200,
-                            ),
-                          ),
-                          child: Row(
-                            children: [
-                              Icon(
-                                _getAvailableQuantity(consumableItems
-) == 0
-                                    ? Icons.warning_amber_rounded
-                                    : Icons.inventory_2_rounded,
-                                color: _getAvailableQuantity(consumableItems
-) == 0
-                                    ? Colors.red
-                                    : Colors.green,
-                                size: 16,
-                              ),
-                              const SizedBox(width: 8),
-                              Expanded(
-                                child: Text(
-                                  _getAvailableQuantity(consumableItems
-) == 0
-                                      ? "Out of stock - Cannot use this item"
-                                      : "Available stock: ${_getAvailableQuantity(consumableItems
-)} ${_uomController.text}",
-                                  style: TextStyle(
-                                    color: _getAvailableQuantity(consumableItems
-) == 0
-                                        ? Colors.red
-                                        : Colors.green,
-                                    fontWeight: FontWeight.w500,
-                                    fontSize: 12,
-                                  ),
-                                ),
-                              ),
-                            ],
-                          ),
-                        ),
-                      ],
-
-                      const SizedBox(height: 30),
-
-                      // ---------------- RECORD USAGE BUTTON ----------------
-                      SizedBox(
-                          width: double.infinity,
-                          child: RoundedButton(text: "Record Usage",
-                              color:Colors.blue,
-                              textColor: Colors.white,
-                              onPressed: () => _recordUsage(consumableItems
-, siteId))
-                      ),
-
-                      // Information card
-                      const SizedBox(height: 20),
-                      Container(
-                        width: double.infinity,
-                        padding: const EdgeInsets.all(12),
-                        decoration: BoxDecoration(
-                          color: Colors.blue.shade50,
-                          borderRadius: BorderRadius.circular(8),
-                          border: Border.all(color: Colors.blue.shade100),
-                        ),
+            child: SingleChildScrollView(
+              controller: _scrollController,
+              physics: const AlwaysScrollableScrollPhysics(),
+              child: Padding(
+                padding: const EdgeInsets.all(16),
+                child: Form(
+                  key: _formKey,
+                  child: inventoryAsync.when(
+                    loading: () =>
+                        const Center(child: CircularProgressIndicator()),
+                    error: (err, _) {
+                      print(err.toString());
+                      return Center(
                         child: Column(
-                          crossAxisAlignment: CrossAxisAlignment.start,
+                          mainAxisAlignment: MainAxisAlignment.center,
                           children: [
-                            Row(
-                              children: [
-                                Icon(Icons.info_outline, color: Colors.blue.shade600, size: 16),
-                                const SizedBox(width: 8),
-                                Text(
-                                  "Usage Information",
-                                  style: TextStyle(
-                                    color: Colors.blue.shade800,
-                                    fontWeight: FontWeight.w600,
-                                    fontSize: 14,
-                                  ),
-                                ),
-                              ],
+                            Icon(Icons.error_outline,
+                                size: 50, color: colorScheme.error),
+                            const SizedBox(height: 16),
+                            Text(
+                              "Error loading inventory",
+                              style: Theme.of(context).textTheme.titleMedium,
                             ),
                             const SizedBox(height: 8),
                             Text(
-                              "Recording usage will deduct the quantity from available stock. "
-                                  "This action cannot be undone automatically.",
-                              style: TextStyle(
-                                color: Colors.blue.shade700,
-                                fontSize: 12,
-                              ),
+                              err.toString(),
+                              textAlign: TextAlign.center,
+                              style: Theme.of(context)
+                                  .textTheme
+                                  .bodySmall
+                                  ?.copyWith(
+                                      color: colorScheme.onSurfaceVariant),
+                            ),
+                            const SizedBox(height: 16),
+                            ElevatedButton(
+                              onPressed: () =>
+                                  ref.invalidate(inventoryProvider(siteId)),
+                              child: const Text("Retry"),
                             ),
                           ],
                         ),
-                      ),
-                    ],
-                  );
-                },
+                      );
+                    },
+                    data: (inventoryList) {
+                      // Filter out items with no stock if needed
+                      /// show only consumables
+                      final consumableItems = inventoryList
+                          .where((e) => e.type == "consumable")
+                          .toList();
+
+                      if (consumableItems.isEmpty) {
+                        return Center(
+                          child: Column(
+                            mainAxisAlignment: MainAxisAlignment.center,
+                            children: [
+                              Icon(Icons.inventory_2_outlined,
+                                  size: 60,
+                                  color: colorScheme.onSurfaceVariant),
+                              const SizedBox(height: 12),
+                              Text(
+                                "No inventory available",
+                                style: TextStyle(
+                                    fontSize: 18,
+                                    fontWeight: FontWeight.bold,
+                                    color: colorScheme.onSurfaceVariant),
+                              ),
+                              const SizedBox(height: 6),
+                              Text(
+                                "Complete inventory setup first",
+                                style: TextStyle(
+                                    color: colorScheme.onSurfaceVariant),
+                              ),
+                              const SizedBox(height: 24),
+                              ElevatedButton(
+                                onPressed: () =>
+                                    ref.invalidate(inventoryProvider(siteId)),
+                                child: const Text("Refresh"),
+                              ),
+                            ],
+                          ),
+                        );
+                      }
+
+                      return Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          // Date Picker Container with BeautifulDatePicker
+                          GestureDetector(
+                            onTap: _pickDate,
+                            child: Container(
+                              padding: const EdgeInsets.symmetric(
+                                  horizontal: 12, vertical: 16),
+                              decoration: BoxDecoration(
+                                color: colorScheme.surface,
+                                borderRadius: BorderRadius.circular(8),
+                                border: Border.all(
+                                    color: colorScheme.outlineVariant),
+                              ),
+                              child: Row(
+                                mainAxisAlignment:
+                                    MainAxisAlignment.spaceBetween,
+                                children: [
+                                  Row(
+                                    children: [
+                                      Icon(
+                                        Icons.calendar_today,
+                                        size: 20,
+                                        color: Theme.of(context).primaryColor,
+                                      ),
+                                      const SizedBox(width: 12),
+                                      Text(
+                                        "${_selectedDate.day.toString().padLeft(2, '0')}/"
+                                        "${_selectedDate.month.toString().padLeft(2, '0')}/"
+                                        "${_selectedDate.year}",
+                                        style: const TextStyle(
+                                          fontSize: 16,
+                                          fontWeight: FontWeight.w500,
+                                        ),
+                                      ),
+                                    ],
+                                  ),
+                                  const Icon(Icons.arrow_drop_down, size: 24),
+                                ],
+                              ),
+                            ),
+                          ),
+                          const SizedBox(height: 20),
+
+                          // ---------------- ITEM DROPDOWN ----------------
+                          CustomDropdownField<String>(
+                            label: lang.selectInventoryItemLabel,
+                            isRequired: true,
+                            value: _selectedInventoryId,
+                            items: consumableItems.map((inv) {
+                              final isLowStock = (inv.currentBalance ?? 0) <=
+                                  (inv.minimumStockLevel ?? 0);
+                              final isOutOfStock = inv.currentBalance == 0;
+
+                              return DropdownMenuItem(
+                                value: inv.id,
+                                child: Column(
+                                  crossAxisAlignment: CrossAxisAlignment.start,
+                                  mainAxisSize: MainAxisSize.min,
+                                  children: [
+                                    Text(
+                                      inv.name ?? 'Unknown Item',
+                                      style: TextStyle(
+                                        fontWeight: FontWeight.w500,
+                                        color: isOutOfStock
+                                            ? colorScheme.onSurfaceVariant
+                                            : null,
+                                      ),
+                                    ),
+                                    const SizedBox(height: 4),
+                                    Text(
+                                      "Available: ${inv.currentBalance} ${inv.uom}",
+                                      style: TextStyle(
+                                        fontSize: 12,
+                                        color: isOutOfStock
+                                            ? colorScheme.error
+                                            : isLowStock
+                                                ? colorScheme.tertiary
+                                                : colorScheme.primary,
+                                        fontWeight: isLowStock
+                                            ? FontWeight.bold
+                                            : FontWeight.normal,
+                                      ),
+                                    ),
+                                    if (isLowStock && !isOutOfStock) ...[
+                                      const SizedBox(height: 2),
+                                      Text(
+                                        "Low stock warning!",
+                                        style: TextStyle(
+                                          fontSize: 10,
+                                          color: colorScheme.tertiary,
+                                          fontStyle: FontStyle.italic,
+                                        ),
+                                      ),
+                                    ],
+                                  ],
+                                ),
+                              );
+                            }).toList(),
+                            selectedItemBuilder: (context) {
+                              return consumableItems.map((inv) {
+                                return Text(inv.name ?? 'Unknown Item');
+                              }).toList();
+                            },
+                            onChanged: (value) {
+                              setState(() {
+                                _selectedInventoryId = value;
+
+                                final selected = consumableItems.firstWhere(
+                                  (e) => e.id == value,
+                                );
+
+                                _uomController.text = selected.uom ?? "";
+                                _quantityController.text =
+                                    ""; // Clear previous quantity
+
+                                // Show available quantity to user
+                                if (selected.currentBalance == 0) {
+                                  ScaffoldMessenger.of(context).showSnackBar(
+                                    SnackBar(
+                                      content: Text(
+                                          "${selected.name ?? 'Item'} is out of stock."),
+                                      backgroundColor: colorScheme.error,
+                                      duration: const Duration(seconds: 2),
+                                    ),
+                                  );
+                                } else if ((selected.currentBalance ?? 0) <=
+                                    (selected.minimumStockLevel ?? 0)) {
+                                  ScaffoldMessenger.of(context).showSnackBar(
+                                    SnackBar(
+                                      content: Text(
+                                          "${selected.name ?? 'Item'} is low on stock."),
+                                      backgroundColor: colorScheme.tertiary,
+                                      duration: const Duration(seconds: 2),
+                                    ),
+                                  );
+                                }
+                              });
+                            },
+                            hint: "Choose an item from inventory",
+                          ),
+
+                          const SizedBox(height: 20),
+
+                          // ---------------- UOM FIELD ----------------
+                          CustomTextField(
+                            label: lang.unitOfMeasureLabel,
+                            controller: _uomController,
+                            isRequired: true,
+                            hint: "Unit will auto-fill when item is selected",
+                            keyboardType: TextInputType.text,
+                            validator: null,
+                          ),
+
+                          const SizedBox(height: 20),
+
+                          // ---------------- QUANTITY FIELD ----------------
+                          CustomTextField(
+                            label:
+                                "${lang.quantityToUseLabel}${_selectedInventoryId != null ? " (Max: ${_getAvailableQuantity(consumableItems)} ${_uomController.text})" : ""}",
+                            controller: _quantityController,
+                            isRequired: true,
+                            hint: lang.quantityToUseLabel,
+                            keyboardType: TextInputType.number,
+                            validator: (value) {
+                              if (value == null || value.isEmpty) {
+                                return 'Please enter quantity';
+                              }
+                              final quantity = double.tryParse(value);
+                              if (quantity == null) {
+                                return 'Please enter a valid number';
+                              }
+                              if (quantity <= 0) {
+                                return 'Quantity must be greater than 0';
+                              }
+
+                              // Check available stock if item is selected
+                              if (_selectedInventoryId != null) {
+                                final available =
+                                    _getAvailableQuantity(consumableItems);
+                                if (quantity > available) {
+                                  return 'Insufficient stock. Available: $available';
+                                }
+                              }
+
+                              return null;
+                            },
+                          ),
+
+                          // Available quantity display
+                          if (_selectedInventoryId != null) ...[
+                            const SizedBox(height: 8),
+                            Container(
+                              padding: const EdgeInsets.symmetric(
+                                  horizontal: 12, vertical: 8),
+                              decoration: BoxDecoration(
+                                color:
+                                    _getAvailableQuantity(consumableItems) == 0
+                                        ? colorScheme.errorContainer
+                                        : colorScheme.primaryContainer,
+                                borderRadius: BorderRadius.circular(8),
+                                border: Border.all(
+                                  color:
+                                      _getAvailableQuantity(consumableItems) ==
+                                              0
+                                          ? colorScheme.error
+                                          : colorScheme.primary,
+                                ),
+                              ),
+                              child: Row(
+                                children: [
+                                  Icon(
+                                    _getAvailableQuantity(consumableItems) == 0
+                                        ? Icons.warning_amber_rounded
+                                        : Icons.inventory_2_rounded,
+                                    color: _getAvailableQuantity(
+                                                consumableItems) ==
+                                            0
+                                        ? colorScheme.error
+                                        : colorScheme.primary,
+                                    size: 16,
+                                  ),
+                                  const SizedBox(width: 8),
+                                  Expanded(
+                                    child: Text(
+                                      _getAvailableQuantity(consumableItems) ==
+                                              0
+                                          ? "Out of stock - Cannot use this item"
+                                          : "Available stock: ${_getAvailableQuantity(consumableItems)} ${_uomController.text}",
+                                      style: TextStyle(
+                                        color: _getAvailableQuantity(
+                                                    consumableItems) ==
+                                                0
+                                            ? colorScheme.onErrorContainer
+                                            : colorScheme.onPrimaryContainer,
+                                        fontWeight: FontWeight.w500,
+                                        fontSize: 12,
+                                      ),
+                                    ),
+                                  ),
+                                ],
+                              ),
+                            ),
+                          ],
+
+                          const SizedBox(height: 30),
+
+                          // ---------------- RECORD USAGE BUTTON ----------------
+                          SizedBox(
+                              width: double.infinity,
+                              child: RoundedButton(
+                                  text: "Record Usage",
+                                  color: colorScheme.primary,
+                                  textColor: colorScheme.onPrimary,
+                                  onPressed: () =>
+                                      _recordUsage(consumableItems, siteId))),
+
+                          // Information card
+                          const SizedBox(height: 20),
+                          Container(
+                            width: double.infinity,
+                            padding: const EdgeInsets.all(12),
+                            decoration: BoxDecoration(
+                              color: colorScheme.primaryContainer,
+                              borderRadius: BorderRadius.circular(8),
+                              border: Border.all(
+                                  color: colorScheme.primary.withOpacity(0.25)),
+                            ),
+                            child: Column(
+                              crossAxisAlignment: CrossAxisAlignment.start,
+                              children: [
+                                Row(
+                                  children: [
+                                    Icon(Icons.info_outline,
+                                        color: colorScheme.primary, size: 16),
+                                    const SizedBox(width: 8),
+                                    Text(
+                                      "Usage Information",
+                                      style: TextStyle(
+                                        color: colorScheme.onPrimaryContainer,
+                                        fontWeight: FontWeight.w600,
+                                        fontSize: 14,
+                                      ),
+                                    ),
+                                  ],
+                                ),
+                                const SizedBox(height: 8),
+                                Text(
+                                  "Recording usage will deduct the quantity from available stock. "
+                                  "This action cannot be undone automatically.",
+                                  style: TextStyle(
+                                    color: colorScheme.onPrimaryContainer,
+                                    fontSize: 12,
+                                  ),
+                                ),
+                              ],
+                            ),
+                          ),
+                        ],
+                      );
+                    },
+                  ),
+                ),
               ),
             ),
           ),
-        ),
-      ),)
-    );
+        ));
   }
 }

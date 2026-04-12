@@ -20,41 +20,44 @@ class Button extends StatelessWidget {
   });
 
   Color _getBackgroundColor(BuildContext context) {
-    if (disabled) return Colors.grey;
+    final colorScheme = Theme.of(context).colorScheme;
+    if (disabled) return colorScheme.surfaceContainerHighest;
 
     switch (variant) {
       case ButtonVariant.primary:
-        return Theme.of(context).primaryColor;
+        return colorScheme.primary;
       case ButtonVariant.secondary:
         return Colors.transparent;
       case ButtonVariant.danger:
-        return Colors.red;
+        return colorScheme.error;
     }
   }
 
   Color _getTextColor(BuildContext context) {
-    if (disabled) return Colors.grey;
+    final colorScheme = Theme.of(context).colorScheme;
+    if (disabled) return colorScheme.onSurfaceVariant;
 
     switch (variant) {
       case ButtonVariant.primary:
-        return Colors.white;
+        return colorScheme.onPrimary;
       case ButtonVariant.secondary:
-        return Theme.of(context).primaryColor;
+        return colorScheme.primary;
       case ButtonVariant.danger:
-        return Colors.white;
+        return colorScheme.onError;
     }
   }
 
   Color _getBorderColor(BuildContext context) {
-    if (disabled) return Colors.grey;
+    final colorScheme = Theme.of(context).colorScheme;
+    if (disabled) return colorScheme.outlineVariant;
 
     switch (variant) {
       case ButtonVariant.primary:
-        return Theme.of(context).primaryColor;
+        return colorScheme.primary;
       case ButtonVariant.secondary:
-        return Theme.of(context).primaryColor;
+        return colorScheme.primary;
       case ButtonVariant.danger:
-        return Colors.red;
+        return colorScheme.error;
     }
   }
 
@@ -67,6 +70,7 @@ class Button extends StatelessWidget {
         style: ElevatedButton.styleFrom(
           backgroundColor: _getBackgroundColor(context),
           foregroundColor: _getTextColor(context),
+          elevation: variant == ButtonVariant.secondary ? 0 : 1,
           side: variant == ButtonVariant.secondary
               ? BorderSide(color: _getBorderColor(context))
               : null,
@@ -76,21 +80,22 @@ class Button extends StatelessWidget {
           ),
         ),
         child: loading
-            ? const SizedBox(
-          height: 20,
-          width: 20,
-          child: CircularProgressIndicator(
-            strokeWidth: 2,
-            valueColor: AlwaysStoppedAnimation<Color>(Colors.white),
-          ),
-        )
+            ? SizedBox(
+                height: 20,
+                width: 20,
+                child: CircularProgressIndicator(
+                  strokeWidth: 2,
+                  valueColor:
+                      AlwaysStoppedAnimation<Color>(_getTextColor(context)),
+                ),
+              )
             : Text(
-          label,
-          style: TextStyle(
-            color: _getTextColor(context),
-            fontWeight: FontWeight.w600,
-          ),
-        ),
+                label,
+                style: TextStyle(
+                  color: _getTextColor(context),
+                  fontWeight: FontWeight.w600,
+                ),
+              ),
       ),
     );
   }

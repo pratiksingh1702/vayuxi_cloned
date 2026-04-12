@@ -1,5 +1,4 @@
 import 'package:flutter/material.dart';
-import 'package:untitled2/core/utlis/colors/colors.dart';
 import 'package:untitled2/core/utlis/widgets/custom_appBar.dart';
 import '../../../../../../core/utlis/widgets/sidebar.dart';
 import '../../../dpr/screens/widgets/select_card.dart';
@@ -12,6 +11,7 @@ class InventoryCategorySelectionScreen extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final colorScheme = Theme.of(context).colorScheme;
     return Scaffold(
       backgroundColor: Theme.of(context).colorScheme.surfaceContainerLowest,
       drawer: const CustomDrawer(),
@@ -76,34 +76,34 @@ class InventoryCategorySelectionScreen extends StatelessWidget {
             width: double.infinity,
             padding: const EdgeInsets.all(16),
             decoration: BoxDecoration(
-              color: Colors.white,
+              color: colorScheme.surface,
               borderRadius: BorderRadius.circular(18),
               boxShadow: [
                 BoxShadow(
-                  color: Colors.black.withOpacity(0.08),
+                  color: colorScheme.shadow.withOpacity(0.08),
                   blurRadius: 12,
                   offset: const Offset(0, 6),
                 ),
               ],
             ),
-            child: const Column(
+            child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                Text(
+                const Text(
                   "Choose inventory type",
                   style: TextStyle(
                     fontSize: 16,
                     fontWeight: FontWeight.w700,
                   ),
                 ),
-                SizedBox(height: 8),
+                const SizedBox(height: 8),
                 Text(
                   "• Consumable: Record material usage like cement, fuel, etc.\n"
-                      "• Fixed: Issue & return assets like tools or machines.",
+                  "• Fixed: Issue & return assets like tools or machines.",
                   style: TextStyle(
                     fontSize: 13,
                     height: 1.5,
-                    color: Colors.black87,
+                    color: colorScheme.onSurfaceVariant,
                   ),
                 ),
               ],

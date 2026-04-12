@@ -1,7 +1,6 @@
 import 'package:dropdown_search/dropdown_search.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import 'package:untitled2/core/utlis/colors/colors.dart';
 import 'package:untitled2/core/utlis/widgets/Button_wrapper.dart';
 import 'package:untitled2/core/utlis/widgets/custom_appBar.dart';
 import 'package:untitled2/features/modules/all_Modules/Manpower%20Details/screens/widgets/popup.dart';
@@ -20,6 +19,7 @@ import '../model/manpower_model.dart';
 import '../service/manPowerProvider.dart';
 import 'dart:math';
 import '../../site_Details/providers/siteProvider.dart';
+
 class EditManpowerScreen extends ConsumerStatefulWidget {
   final ManpowerModel manpower;
   const EditManpowerScreen({super.key, required this.manpower});
@@ -66,14 +66,31 @@ class _EditManpowerScreenState extends ConsumerState<EditManpowerScreen> {
   bool _sitesInitialized = false;
 
   final List<String> _totalHourOptions =
-  List.generate(16, (index) => (index + 1).toString());
+      List.generate(16, (index) => (index + 1).toString());
 
   final List<String> _designationOptions = [
-    "Manager", "Team Leader", "Team Member", "Director", "Supervisor",
-    "Engineer", "Executive Engineer", "Welder", "Fitter", "Rigger",
-    "Helper", "Legger", "Fabricator", "Foreman", "Site Supervisor",
-    "CTO", "CEO", "Senior Manager", "Assistant General Manager",
-    "General Manager", "Grinderman", "Cutter",
+    "Manager",
+    "Team Leader",
+    "Team Member",
+    "Director",
+    "Supervisor",
+    "Engineer",
+    "Executive Engineer",
+    "Welder",
+    "Fitter",
+    "Rigger",
+    "Helper",
+    "Legger",
+    "Fabricator",
+    "Foreman",
+    "Site Supervisor",
+    "CTO",
+    "CEO",
+    "Senior Manager",
+    "Assistant General Manager",
+    "General Manager",
+    "Grinderman",
+    "Cutter",
   ];
 
   @override
@@ -112,8 +129,7 @@ class _EditManpowerScreenState extends ConsumerState<EditManpowerScreen> {
     _emailController = TextEditingController(text: m.loginEmail ?? "");
     _otpController =
         TextEditingController(text: "Regenerate to use new password");
-    _enableLoginCredentials =
-    (m.loginEmail?.isNotEmpty ?? false);
+    _enableLoginCredentials = (m.loginEmail?.isNotEmpty ?? false);
     if (_enableLoginCredentials &&
         (m.loginPassword == null || m.loginPassword!.isEmpty)) {
       _generateOtp();
@@ -133,9 +149,8 @@ class _EditManpowerScreenState extends ConsumerState<EditManpowerScreen> {
     final allSites = ref.read(siteProvider).sites;
     final manpowerSiteIds = widget.manpower.sites; // List<String>
 
-    final matched = allSites
-        .where((s) => manpowerSiteIds.contains(s.id))
-        .toList();
+    final matched =
+        allSites.where((s) => manpowerSiteIds.contains(s.id)).toList();
 
     if (mounted) {
       setState(() {
@@ -179,15 +194,16 @@ class _EditManpowerScreenState extends ConsumerState<EditManpowerScreen> {
   Future<void> _pickDate(BuildContext context, bool isDOB) async {
     final currentDate = isDOB ? _dob : _doj; // ✅ YOU MISSED THIS
     final picked = await showDatePicker(
-      context: context,
-      initialDate:currentDate ?? DateTime.now(),
-      firstDate: DateTime(1950),
-        lastDate: DateTime.now()
-    );
+        context: context,
+        initialDate: currentDate ?? DateTime.now(),
+        firstDate: DateTime(1950),
+        lastDate: DateTime.now());
     if (picked != null) {
       setState(() {
-        if (isDOB) _dob = picked;
-        else _doj = picked;
+        if (isDOB)
+          _dob = picked;
+        else
+          _doj = picked;
       });
     }
   }
@@ -225,11 +241,10 @@ class _EditManpowerScreenState extends ConsumerState<EditManpowerScreen> {
       "hra": double.tryParse(_hraController.text) ?? 0,
       "dearnessAllowance": double.tryParse(_daController.text) ?? 0,
       "specialAllowance":
-      double.tryParse(_specialAllowanceController.text) ?? 0,
-      "travelAllowance":
-      double.tryParse(_travelAllowanceController.text) ?? 0,
+          double.tryParse(_specialAllowanceController.text) ?? 0,
+      "travelAllowance": double.tryParse(_travelAllowanceController.text) ?? 0,
       "medicalAllowance":
-      double.tryParse(_medicalAllowanceController.text) ?? 0,
+          double.tryParse(_medicalAllowanceController.text) ?? 0,
       "pfApplicable": _isPfApplicable,
       "remarks": _remarksController.text,
       // ✅ Always send updated sites
@@ -299,15 +314,16 @@ class _EditManpowerScreenState extends ConsumerState<EditManpowerScreen> {
   // ─────────────────────────────────────────────────────────────
 
   Widget _buildSiteSelector(List<SiteModel> allSites) {
+    final colorScheme = Theme.of(context).colorScheme;
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        const Text(
+        Text(
           "Assign to Sites",
           style: TextStyle(
             fontSize: 14,
             fontWeight: FontWeight.w600,
-            color: Colors.black87,
+            color: colorScheme.onSurface,
           ),
         ),
         const SizedBox(height: 6),
@@ -315,8 +331,8 @@ class _EditManpowerScreenState extends ConsumerState<EditManpowerScreen> {
           // ── data ──
           items: (String filter, LoadProps? props) => allSites
               .where((s) => (s.siteName ?? '')
-              .toLowerCase()
-              .contains(filter.toLowerCase()))
+                  .toLowerCase()
+                  .contains(filter.toLowerCase()))
               .toList(),
           selectedItems: _selectedSites,
           itemAsString: (s) => s.siteName ?? s.id,
@@ -331,21 +347,24 @@ class _EditManpowerScreenState extends ConsumerState<EditManpowerScreen> {
               decoration: InputDecoration(
                 hintText: 'Search sites...',
                 contentPadding:
-                const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
+                    const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
                 border: OutlineInputBorder(
                   borderRadius: BorderRadius.circular(8),
                   borderSide: BorderSide.none,
                 ),
                 filled: true,
-                fillColor: Colors.grey[100],
+                fillColor: colorScheme.surfaceContainerHighest,
               ),
             ),
-            title: const Padding(
+            title: Padding(
               padding: EdgeInsets.fromLTRB(16, 16, 16, 4),
               child: Text(
                 "Select Sites",
-                style:
-                TextStyle(fontWeight: FontWeight.bold, fontSize: 16),
+                style: TextStyle(
+                  fontWeight: FontWeight.bold,
+                  fontSize: 16,
+                  color: colorScheme.onSurface,
+                ),
               ),
             ),
             // ✅ v6: 4-arg itemBuilder
@@ -353,19 +372,21 @@ class _EditManpowerScreenState extends ConsumerState<EditManpowerScreen> {
               return ListTile(
                 dense: true,
                 leading: Icon(
-                  isSelected
-                      ? Icons.check_box
-                      : Icons.check_box_outline_blank,
-                  color: isSelected ? Colors.blue : Colors.grey,
+                  isSelected ? Icons.check_box : Icons.check_box_outline_blank,
+                  color: isSelected
+                      ? colorScheme.primary
+                      : colorScheme.onSurfaceVariant,
                   size: 22,
                 ),
                 title: Text(
                   item.siteName ?? item.id,
                   style: TextStyle(
                     fontSize: 14,
-                    color: isDisabled ? Colors.grey : Colors.black87,
+                    color: isDisabled
+                        ? colorScheme.onSurfaceVariant
+                        : colorScheme.onSurface,
                     fontWeight:
-                    isSelected ? FontWeight.w600 : FontWeight.normal,
+                        isSelected ? FontWeight.w600 : FontWeight.normal,
                   ),
                 ),
               );
@@ -375,27 +396,25 @@ class _EditManpowerScreenState extends ConsumerState<EditManpowerScreen> {
           // ── field border ──
           decoratorProps: DropDownDecoratorProps(
             decoration: InputDecoration(
-              hintText: _selectedSites.isEmpty
-                  ? "Select sites (optional)"
-                  : null,
+              hintText:
+                  _selectedSites.isEmpty ? "Select sites (optional)" : null,
               filled: true,
-              fillColor: Colors.white,
+              fillColor: colorScheme.surface,
               contentPadding:
-              const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
+                  const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
               border: OutlineInputBorder(
                 borderRadius: BorderRadius.circular(12),
                 borderSide:
-                BorderSide(color: Colors.blue.shade200, width: 1.5),
+                    BorderSide(color: colorScheme.outlineVariant, width: 1.5),
               ),
               enabledBorder: OutlineInputBorder(
                 borderRadius: BorderRadius.circular(12),
                 borderSide:
-                BorderSide(color: Colors.blue.shade200, width: 1.5),
+                    BorderSide(color: colorScheme.outlineVariant, width: 1.5),
               ),
               focusedBorder: OutlineInputBorder(
                 borderRadius: BorderRadius.circular(12),
-                borderSide:
-                const BorderSide(color: Colors.blue, width: 1.5),
+                borderSide: BorderSide(color: colorScheme.primary, width: 1.5),
               ),
             ),
           ),
@@ -412,23 +431,22 @@ class _EditManpowerScreenState extends ConsumerState<EditManpowerScreen> {
                 return Chip(
                   label: Text(
                     site.siteName ?? site.id,
-                    style: const TextStyle(
+                    style: TextStyle(
                       fontSize: 12,
-                      color: Colors.white,
+                      color: colorScheme.onPrimary,
                     ),
                   ),
-                  backgroundColor: Colors.blue,
-                  deleteIconColor: Colors.white,
+                  backgroundColor: colorScheme.primary,
+                  deleteIconColor: colorScheme.onPrimary,
                   onDeleted: () {
                     setState(() {
-                      _selectedSites = _selectedSites
-                          .where((s) => s.id != site.id)
-                          .toList();
+                      _selectedSites =
+                          _selectedSites.where((s) => s.id != site.id).toList();
                     });
                   },
                   materialTapTargetSize: MaterialTapTargetSize.shrinkWrap,
-                  padding: const EdgeInsets.symmetric(
-                      horizontal: 4, vertical: 0),
+                  padding:
+                      const EdgeInsets.symmetric(horizontal: 4, vertical: 0),
                   visualDensity: VisualDensity.compact,
                 );
               }).toList(),
@@ -440,7 +458,8 @@ class _EditManpowerScreenState extends ConsumerState<EditManpowerScreen> {
             padding: const EdgeInsets.only(top: 6),
             child: Text(
               "${_selectedSites.length} site${_selectedSites.length == 1 ? '' : 's'} selected",
-              style: TextStyle(fontSize: 12, color: Colors.grey[600]),
+              style:
+                  TextStyle(fontSize: 12, color: colorScheme.onSurfaceVariant),
             ),
           ),
       ],
@@ -451,6 +470,7 @@ class _EditManpowerScreenState extends ConsumerState<EditManpowerScreen> {
   Widget build(BuildContext context) {
     // ✅ Watch siteProvider so chips update if sites load after initState
     final siteState = ref.watch(siteProvider);
+    final colorScheme = Theme.of(context).colorScheme;
 
     // Lazy-init: once sites are available and we haven't matched yet, do it now
     if (!_sitesInitialized && siteState.sites.isNotEmpty) {
@@ -459,6 +479,7 @@ class _EditManpowerScreenState extends ConsumerState<EditManpowerScreen> {
 
     return Scaffold(
       drawer: const CustomDrawer(),
+      backgroundColor: colorScheme.surfaceContainerLowest,
       body: NestedScrollView(
         headerSliverBuilder: (context, innerBoxIsScrolled) {
           return [
@@ -470,8 +491,8 @@ class _EditManpowerScreenState extends ConsumerState<EditManpowerScreen> {
             CustomButton(
               button: RoundedButton(
                 text: "Save & Submit",
-                color: Colors.green,
-                textColor: Colors.white,
+                color: colorScheme.primary,
+                textColor: colorScheme.onPrimary,
                 onPressed: _updateManpower,
               ),
             )
@@ -512,10 +533,10 @@ class _EditManpowerScreenState extends ConsumerState<EditManpowerScreen> {
                   Container(
                     padding: const EdgeInsets.all(12),
                     decoration: BoxDecoration(
-                      color: Colors.white,
+                      color: colorScheme.surface,
                       borderRadius: BorderRadius.circular(12),
                       border: Border.all(
-                          color: Colors.blue.shade200, width: 1.5),
+                          color: colorScheme.outlineVariant, width: 1.5),
                     ),
                     child: Column(
                       crossAxisAlignment: CrossAxisAlignment.start,
@@ -523,12 +544,12 @@ class _EditManpowerScreenState extends ConsumerState<EditManpowerScreen> {
                         Row(
                           mainAxisAlignment: MainAxisAlignment.spaceBetween,
                           children: [
-                            const Text(
+                            Text(
                               "Enable Login Credentials",
                               style: TextStyle(
                                 fontSize: 14,
                                 fontWeight: FontWeight.w600,
-                                color: Colors.black87,
+                                color: colorScheme.onSurface,
                               ),
                             ),
                             Switch(
@@ -542,7 +563,7 @@ class _EditManpowerScreenState extends ConsumerState<EditManpowerScreen> {
                                           .toLowerCase()
                                           .replaceAll(' ', '');
                                       _emailController.text =
-                                      "$name${DateTime.now().millisecondsSinceEpoch.toString().substring(7)}@gmail.com";
+                                          "$name${DateTime.now().millisecondsSinceEpoch.toString().substring(7)}@gmail.com";
                                     }
                                     if (_otpController.text.isEmpty) {
                                       _generateOtp();
@@ -554,7 +575,7 @@ class _EditManpowerScreenState extends ConsumerState<EditManpowerScreen> {
                                   }
                                 });
                               },
-                              activeColor: Colors.blue,
+                              activeColor: colorScheme.primary,
                             ),
                           ],
                         ),
@@ -580,15 +601,13 @@ class _EditManpowerScreenState extends ConsumerState<EditManpowerScreen> {
                               ElevatedButton(
                                 onPressed: _generateOtp,
                                 style: ElevatedButton.styleFrom(
-                                  backgroundColor: Colors.blue,
+                                  backgroundColor: colorScheme.primary,
+                                  foregroundColor: colorScheme.onPrimary,
                                   shape: RoundedRectangleBorder(
                                     borderRadius: BorderRadius.circular(8),
                                   ),
                                 ),
-                                child: const Text(
-                                  "Regenerate",
-                                  style: TextStyle(color: Colors.white),
-                                ),
+                                child: const Text("Regenerate"),
                               ),
                             ],
                           ),
@@ -597,7 +616,7 @@ class _EditManpowerScreenState extends ConsumerState<EditManpowerScreen> {
                             "OTP will be used as password. Leave empty to keep current password.",
                             style: TextStyle(
                               fontSize: 12,
-                              color: Colors.grey[600],
+                              color: colorScheme.onSurfaceVariant,
                             ),
                           ),
                         ],
@@ -662,12 +681,11 @@ class _EditManpowerScreenState extends ConsumerState<EditManpowerScreen> {
                   Row(
                     children: [
                       Expanded(
-                          child:
-                          _buildDatePicker("Date of Birth", _dob, true)),
+                          child: _buildDatePicker("Date of Birth", _dob, true)),
                       const SizedBox(width: 8),
                       Expanded(
-                          child: _buildDatePicker(
-                              "Date of Joining", _doj, false)),
+                          child:
+                              _buildDatePicker("Date of Joining", _doj, false)),
                     ],
                   ),
 
@@ -680,23 +698,24 @@ class _EditManpowerScreenState extends ConsumerState<EditManpowerScreen> {
                       Container(
                         padding: const EdgeInsets.all(12),
                         decoration: BoxDecoration(
-                          color: Colors.white,
+                          color: colorScheme.surface,
                           borderRadius: BorderRadius.circular(12),
                           border: Border.all(
-                              color: Colors.blue.shade200, width: 1.5),
+                              color: colorScheme.outlineVariant, width: 1.5),
                         ),
                         child: Row(
                           mainAxisAlignment: MainAxisAlignment.spaceBetween,
                           children: [
-                            const Text(
+                            Text(
                               "PF Applicable",
                               style: TextStyle(
                                   fontSize: 14,
-                                  fontWeight: FontWeight.w600),
+                                  fontWeight: FontWeight.w600,
+                                  color: colorScheme.onSurface),
                             ),
                             Switch(
                               value: _isPfApplicable,
-                              activeColor: Colors.blue,
+                              activeColor: colorScheme.primary,
                               onChanged: (val) =>
                                   setState(() => _isPfApplicable = val),
                             ),
@@ -704,24 +723,24 @@ class _EditManpowerScreenState extends ConsumerState<EditManpowerScreen> {
                         ),
                       ),
                       const SizedBox(height: 16),
-                      const Text(
+                      Text(
                         "Pay Basics",
                         style: TextStyle(
                           fontSize: 14,
                           fontWeight: FontWeight.w600,
-                          color: Colors.black87,
+                          color: colorScheme.onSurface,
                         ),
                       ),
                       const SizedBox(height: 6),
                       Container(
                         decoration: BoxDecoration(
-                          color: Colors.white,
+                          color: colorScheme.surface,
                           borderRadius: BorderRadius.circular(12),
                           border: Border.all(
-                              color: Colors.blue.shade200, width: 1.5),
+                              color: colorScheme.outlineVariant, width: 1.5),
                           boxShadow: [
                             BoxShadow(
-                              color: Colors.blue.withOpacity(0.1),
+                              color: colorScheme.shadow.withOpacity(0.08),
                               blurRadius: 4,
                               offset: const Offset(0, 2),
                             ),
@@ -736,9 +755,8 @@ class _EditManpowerScreenState extends ConsumerState<EditManpowerScreen> {
                                   horizontal: 16, vertical: 14),
                               border: InputBorder.none,
                             ),
-                            icon: const Icon(
-                                Icons.keyboard_arrow_down_rounded,
-                                color: Colors.black54),
+                            icon: Icon(Icons.keyboard_arrow_down_rounded,
+                                color: colorScheme.onSurfaceVariant),
                             items: const [
                               DropdownMenuItem(
                                   value: "monthly", child: Text("Monthly")),
@@ -751,10 +769,10 @@ class _EditManpowerScreenState extends ConsumerState<EditManpowerScreen> {
                             ],
                             onChanged: (val) =>
                                 setState(() => _payBasic = val!),
-                            dropdownColor: Colors.white,
-                            style: const TextStyle(
+                            dropdownColor: colorScheme.surface,
+                            style: TextStyle(
                               fontSize: 15,
-                              color: Colors.black87,
+                              color: colorScheme.onSurface,
                               fontWeight: FontWeight.w500,
                             ),
                           ),
@@ -780,7 +798,7 @@ class _EditManpowerScreenState extends ConsumerState<EditManpowerScreen> {
                     hint: "Select Total Working Hours",
                     items: _totalHourOptions
                         .map((hour) => DropdownMenuItem<String>(
-                        value: hour, child: Text(hour)))
+                            value: hour, child: Text(hour)))
                         .toList(),
                     onChanged: (value) =>
                         setState(() => _selectedTotalHour = value),
@@ -846,30 +864,30 @@ class _EditManpowerScreenState extends ConsumerState<EditManpowerScreen> {
   }
 
   Widget _buildDatePicker(String label, DateTime? date, bool isDOB) {
+    final colorScheme = Theme.of(context).colorScheme;
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
         Text(
           label,
-          style: const TextStyle(
+          style: TextStyle(
             fontSize: 14,
             fontWeight: FontWeight.w600,
-            color: Colors.black87,
+            color: colorScheme.onSurface,
           ),
         ),
         const SizedBox(height: 6),
         GestureDetector(
           onTap: () => _pickDate(context, isDOB),
           child: Container(
-            padding:
-            const EdgeInsets.symmetric(horizontal: 14, vertical: 14),
+            padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 14),
             decoration: BoxDecoration(
-              color: Colors.white,
+              color: colorScheme.surface,
               borderRadius: BorderRadius.circular(12),
-              border: Border.all(color: Colors.blue.shade200, width: 1.5),
+              border: Border.all(color: colorScheme.outlineVariant, width: 1.5),
               boxShadow: [
                 BoxShadow(
-                  color: Colors.blue.withOpacity(0.08),
+                  color: colorScheme.shadow.withOpacity(0.08),
                   blurRadius: 4,
                   offset: const Offset(0, 2),
                 ),
@@ -881,18 +899,18 @@ class _EditManpowerScreenState extends ConsumerState<EditManpowerScreen> {
                 Text(
                   date != null
                       ? "${date.day}-${date.month}-${date.year}"
-                      :  "Select Date",
+                      : "Select Date",
                   style: TextStyle(
                     fontSize: 15,
                     color: date != null
-                        ? Colors.black87
-                        : Colors.grey.shade500,
+                        ? colorScheme.onSurface
+                        : colorScheme.onSurfaceVariant,
                     fontWeight: FontWeight.w500,
                   ),
                 ),
-                const Icon(
+                Icon(
                   Icons.calendar_today_rounded,
-                  color: Color(0xFF007BFF),
+                  color: colorScheme.primary,
                   size: 20,
                 ),
               ],

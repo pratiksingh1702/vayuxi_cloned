@@ -13,8 +13,6 @@ import '../../dpr/screens/widgets/select_card.dart';
 import 'addRate.dart';
 import 'import_sheet.dart';
 
-
-
 class RateEntrySelectCardGrid extends StatelessWidget {
   const RateEntrySelectCardGrid({super.key});
 
@@ -25,13 +23,16 @@ class RateEntrySelectCardGrid extends StatelessWidget {
     return Scaffold(
       drawer: const CustomDrawer(),
       backgroundColor: colorScheme.surfaceContainerLowest,
-      appBar: CustomAppBar(title:"Select Rate Entry"),
+      appBar: CustomAppBar(title: "Select Rate Entry"),
       body: BottomButtonWrapper(
-        onBackPressed: (){Navigator.pop(context);},
+        onBackPressed: () {
+          Navigator.pop(context);
+        },
         child: Column(
           children: [
             Container(
-              padding: const EdgeInsets.symmetric(horizontal: 16), // Add side padding
+              padding: const EdgeInsets.symmetric(
+                  horizontal: 16), // Add side padding
               child: GridView.count(
                 physics: const NeverScrollableScrollPhysics(),
                 shrinkWrap: true,
@@ -43,41 +44,35 @@ class RateEntrySelectCardGrid extends StatelessWidget {
                   SelectCard(
                     icon: Image.asset(
                       "assets/images/icons/manual_entry.webp",
-
                       height: 120,
                       width: double.infinity,
                       fit: BoxFit.cover,
-
                     ),
                     label: "Manual Entry",
                     onTap: () {
                       Navigator.push(
                         context,
-                        MaterialPageRoute(builder: (context) =>AddRateScreen() ),
+                        MaterialPageRoute(
+                            builder: (context) => AddRateScreen()),
                       );
-
                     },
                   ),
                   SelectCard(
                     icon: Image.asset(
                       "assets/images/icons/import_sheet.webp",
-
                       height: 120,
                       width: double.infinity,
                       fit: BoxFit.cover,
-
                     ),
                     label: "Import Sheet",
                     onTap: () {
-
                       Navigator.push(
                         context,
-                        MaterialPageRoute(builder: (context) =>ImportCsvScreen() ),
+                        MaterialPageRoute(
+                            builder: (context) => ImportCsvScreen()),
                       );
-
                     },
                   ),
-
                 ],
               ),
             ),
@@ -91,7 +86,8 @@ class RateEntrySelectCardGrid extends StatelessWidget {
               decoration: BoxDecoration(
                 color: colorScheme.surface,
                 borderRadius: BorderRadius.circular(18),
-                border: Border.all(color: colorScheme.outlineVariant.withOpacity(0.45)),
+                border: Border.all(
+                    color: colorScheme.outlineVariant.withOpacity(0.45)),
                 boxShadow: [
                   BoxShadow(
                     color: isDark
@@ -116,7 +112,7 @@ class RateEntrySelectCardGrid extends StatelessWidget {
                   const SizedBox(height: 8),
                   Text(
                     "• Manual Entry: Enter site details step-by-step manually.\n"
-                        "• Import Sheet: Upload an Excel/CSV sheet — our AI will analyze your file and map fields automatically.",
+                    "• Import Sheet: Upload an Excel/CSV sheet — our AI will analyze your file and map fields automatically.",
                     style: TextStyle(
                       fontSize: 13,
                       height: 1.5,

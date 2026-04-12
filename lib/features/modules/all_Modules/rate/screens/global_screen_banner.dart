@@ -12,22 +12,24 @@ class GlobalUploadBanner extends ConsumerWidget {
     final jobs = ref.watch(rateUploadQueueProvider);
     final colorScheme = Theme.of(context).colorScheme;
 
-    final visibleJobs = jobs.where((j) =>
-    j.status == UploadStatus.uploading ||
-        j.status == UploadStatus.processing ||
-        j.status == UploadStatus.success ||
-        j.status == UploadStatus.failed).toList();
+    final visibleJobs = jobs
+        .where((j) =>
+            j.status == UploadStatus.uploading ||
+            j.status == UploadStatus.processing ||
+            j.status == UploadStatus.success ||
+            j.status == UploadStatus.failed)
+        .toList();
 
     if (visibleJobs.isEmpty) return const SizedBox.shrink();
 
     // ✅ priority: uploading > processing > success > failed
     RateUploadJob current;
     current = visibleJobs.firstWhere(
-          (j) => j.status == UploadStatus.uploading,
+      (j) => j.status == UploadStatus.uploading,
       orElse: () => visibleJobs.firstWhere(
-            (j) => j.status == UploadStatus.processing,
+        (j) => j.status == UploadStatus.processing,
         orElse: () => visibleJobs.firstWhere(
-              (j) => j.status == UploadStatus.success,
+          (j) => j.status == UploadStatus.success,
           orElse: () => visibleJobs.first,
         ),
       ),
@@ -82,7 +84,8 @@ class GlobalUploadBanner extends ConsumerWidget {
               Expanded(
                 child: Text(
                   current.message,
-                  style: TextStyle(color: colorScheme.onInverseSurface, fontSize: 13),
+                  style: TextStyle(
+                      color: colorScheme.onInverseSurface, fontSize: 13),
                   maxLines: 2,
                   overflow: TextOverflow.ellipsis,
                 ),
@@ -100,7 +103,8 @@ class GlobalUploadBanner extends ConsumerWidget {
                 onPressed: () {
                   // open upload manager screen (optional)
                 },
-                icon: Icon(Icons.open_in_new, color: colorScheme.onInverseSurface),
+                icon: Icon(Icons.open_in_new,
+                    color: colorScheme.onInverseSurface),
               ),
             ],
           ),

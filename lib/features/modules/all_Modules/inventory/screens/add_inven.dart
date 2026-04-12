@@ -1,13 +1,11 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import 'package:untitled2/core/utlis/colors/colors.dart';
 import 'package:untitled2/core/utlis/widgets/Button_wrapper.dart';
 import 'package:untitled2/core/utlis/widgets/buttons.dart';
 import 'package:untitled2/core/utlis/widgets/custom_appBar.dart';
 import 'package:untitled2/features/modules/all_Modules/inventory/offline/repo/inventory_sync.dart';
 import '../../../../../core/utlis/widgets/custom_dropdown.dart';
 import '../../../../../core/utlis/widgets/fields/custom_textField.dart';
-import '../../../../../core/utlis/widgets/fields/searchableDropdown.dart';
 import '../../../../../core/utlis/widgets/sidebar.dart';
 import '../../site_Details/providers/site_current_provider.dart';
 import '../models/inventory_model.dart';
@@ -63,7 +61,6 @@ class _CreateInventoryScreenState extends ConsumerState<CreateInventoryScreen> {
     if (siteId == null) return;
 
     if (_selectedCategoryId == null) {
-      _showError("Select category");
       _showError("Select category");
       return;
     }
@@ -123,26 +120,34 @@ class _CreateInventoryScreenState extends ConsumerState<CreateInventoryScreen> {
   Widget build(BuildContext context) {
     final siteId = ref.watch(selectedSiteIdProvider);
     final categoriesAsync = ref.watch(categoriesProvider(siteId!));
+    final colorScheme = Theme.of(context).colorScheme;
 
     return Scaffold(
       drawer: const CustomDrawer(),
       appBar: CustomAppBar(title: "Create Inventory"),
-      backgroundColor: Theme.of(context).colorScheme.surfaceContainerLowest,
+      backgroundColor: colorScheme.surfaceContainerLowest,
       body: BottomButtonWrapper(
         customButtons: [
           CustomButton(
               button: RoundedButton(
                   text: "Save",
-                  color: Colors.blue,
-                  textColor: Colors.white,
-                  onPressed:_submit))
+                  color: colorScheme.primary,
+                  textColor: colorScheme.onPrimary,
+                  onPressed: _submit))
         ],
         key: _formKey,
         child: Padding(
           padding: const EdgeInsets.all(8.0),
           child: categoriesAsync.when(
-            loading: () => const Center(child: CircularProgressIndicator()),
-            error: (e, _) => Center(child: Text(e.toString())),
+            loading: () => Center(
+              child: CircularProgressIndicator(color: colorScheme.primary),
+            ),
+            error: (e, _) => Center(
+              child: Text(
+                e.toString(),
+                style: TextStyle(color: colorScheme.error),
+              ),
+            ),
             data: (categories) {
               Category? selectedCategory;
               for (final c in categories) {
@@ -186,7 +191,8 @@ class _CreateInventoryScreenState extends ConsumerState<CreateInventoryScreen> {
                     isRequired: true,
                     controller: _nameController,
                     validator: (v) {
-                      if (v == null || v.trim().isEmpty) return "Name is required";
+                      if (v == null || v.trim().isEmpty)
+                        return "Name is required";
                       return null;
                     },
                   ),
@@ -201,7 +207,8 @@ class _CreateInventoryScreenState extends ConsumerState<CreateInventoryScreen> {
                             label: 'Quantity',
                             isRequired: true,
                             controller: _quantityController,
-                            keyboardType: const TextInputType.numberWithOptions(decimal: true),
+                            keyboardType: const TextInputType.numberWithOptions(
+                                decimal: true),
                             validator: (v) {
                               if (v == null || v.isEmpty) return "Required";
                               final n = double.tryParse(v);
@@ -217,7 +224,8 @@ class _CreateInventoryScreenState extends ConsumerState<CreateInventoryScreen> {
                             label: 'UOM',
                             isRequired: true,
                             controller: _uomController,
-                            validator: (v) => (v == null || v.isEmpty) ? "Required" : null,
+                            validator: (v) =>
+                                (v == null || v.isEmpty) ? "Required" : null,
                           ),
                         ),
                       ],
@@ -227,7 +235,8 @@ class _CreateInventoryScreenState extends ConsumerState<CreateInventoryScreen> {
                       label: 'Minimum Stock Level',
                       isRequired: true,
                       controller: _minStockController,
-                      keyboardType: const TextInputType.numberWithOptions(decimal: true),
+                      keyboardType:
+                          const TextInputType.numberWithOptions(decimal: true),
                       validator: (v) {
                         if (v == null || v.isEmpty) return "Required";
                         final n = double.tryParse(v);
@@ -262,7 +271,8 @@ class _CreateInventoryScreenState extends ConsumerState<CreateInventoryScreen> {
                             label: 'UOM',
                             isRequired: true,
                             controller: _uomController,
-                            validator: (v) => (v == null || v.isEmpty) ? "Required" : null,
+                            validator: (v) =>
+                                (v == null || v.isEmpty) ? "Required" : null,
                           ),
                         ),
                       ],
@@ -277,8 +287,6 @@ class _CreateInventoryScreenState extends ConsumerState<CreateInventoryScreen> {
                   ),
 
                   const SizedBox(height: 24),
-
-
                 ],
               );
             },
@@ -293,13 +301,22 @@ class _CreateInventoryScreenState extends ConsumerState<CreateInventoryScreen> {
   // ---------------------------------------------------------------------------
 
   void _loading(String m) => ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text(m)),
+        SnackBar(
+          content: Text(m),
+          backgroundColor: Theme.of(context).colorScheme.primary,
+        ),
       );
   void _success(String m) => ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text(m), backgroundColor: Colors.green),
+        SnackBar(
+          content: Text(m),
+          backgroundColor: Theme.of(context).colorScheme.primary,
+        ),
       );
   void _error(String m) => ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text(m), backgroundColor: Colors.red),
+        SnackBar(
+          content: Text(m),
+          backgroundColor: Theme.of(context).colorScheme.error,
+        ),
       );
   void _showError(String m) => _error(m);
 }

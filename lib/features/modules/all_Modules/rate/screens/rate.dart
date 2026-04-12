@@ -97,30 +97,35 @@ class _RateScreenState extends ConsumerState<RateScreen> {
 
     final confirmed = await showDialog<bool>(
       context: context,
-      builder: (context) => AlertDialog(
-        title: const Text('Delete Selected Rates'),
-        content: Text(
-          'Are you sure you want to delete ${_selectedRateIds.length} selected rates?\n\n'
-              'This action cannot be undone.',
-        ),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.pop(context, false),
-            child: const Text('Cancel'),
+      builder: (context) {
+        final colorScheme = Theme.of(context).colorScheme;
+        return AlertDialog(
+          title: const Text('Delete Selected Rates'),
+          content: Text(
+            'Are you sure you want to delete ${_selectedRateIds.length} selected rates?\n\n'
+            'This action cannot be undone.',
           ),
-          TextButton(
-            onPressed: () => Navigator.pop(context, true),
-            style: TextButton.styleFrom(foregroundColor: Colors.red),
-            child: const Text('Delete'),
-          ),
-        ],
-      ),
+          actions: [
+            TextButton(
+              onPressed: () => Navigator.pop(context, false),
+              style: TextButton.styleFrom(foregroundColor: colorScheme.primary),
+              child: const Text('Cancel'),
+            ),
+            TextButton(
+              onPressed: () => Navigator.pop(context, true),
+              style: TextButton.styleFrom(foregroundColor: colorScheme.error),
+              child: const Text('Delete'),
+            ),
+          ],
+        );
+      },
     );
 
     if (confirmed != true) return;
 
     try {
-      final result = await RateApiClient().bulkDeleteRates(_selectedRateIds.toList());
+      final result =
+          await RateApiClient().bulkDeleteRates(_selectedRateIds.toList());
 
       if (result['success'] == true) {
         // Refresh rates list
@@ -132,7 +137,8 @@ class _RateScreenState extends ConsumerState<RateScreen> {
 
         if (!mounted) return;
 
-        AppToast.success("✅ Successfully deleted ${_selectedRateIds.length} rates");
+        AppToast.success(
+            "✅ Successfully deleted ${_selectedRateIds.length} rates");
 
         setState(() {
           _selectedRateIds.clear();
@@ -152,7 +158,6 @@ class _RateScreenState extends ConsumerState<RateScreen> {
     }
   }
 
-
   @override
   Widget build(BuildContext context) {
     final state = ref.watch(rateNotifierProvider);
@@ -162,6 +167,7 @@ class _RateScreenState extends ConsumerState<RateScreen> {
 
     return Scaffold(
       drawer: const CustomDrawer(),
+      backgroundColor: colorScheme.surfaceContainerLowest,
       body: NestedScrollView(
         headerSliverBuilder: (context, innerBoxIsScrolled) {
           return [
@@ -195,7 +201,6 @@ class _RateScreenState extends ConsumerState<RateScreen> {
                 Row(
                   mainAxisAlignment: MainAxisAlignment.end,
                   children: [
-
                     Row(
                       children: [
                         if (_isSelectionMode) ...[
@@ -222,8 +227,10 @@ class _RateScreenState extends ConsumerState<RateScreen> {
                           ),
                         ] else ...[
                           IconButton(
-                            icon: Icon(Icons.delete_sweep, color: colorScheme.error),
-                            onPressed: rates.isEmpty ? null : _toggleSelectionMode,
+                            icon: Icon(Icons.delete_sweep,
+                                color: colorScheme.error),
+                            onPressed:
+                                rates.isEmpty ? null : _toggleSelectionMode,
                             tooltip: 'Select Rates to Delete',
                           ),
                         ],
@@ -240,29 +247,43 @@ class _RateScreenState extends ConsumerState<RateScreen> {
                         itemCount: 8,
                       )
                     : state.error != null
-                    ? Center(child: Text('Error: ${state.error}'))
-                    : state.data == null || state.data!.isEmpty
-                    ? const Center(child: Text('No rates available'))
-                    : CustomScrollbar(
-                  controller: _scrollController,
-                  child: ListView.builder(
-                    controller: _scrollController,
-                    physics: const AlwaysScrollableScrollPhysics(),
-                    itemCount: state.data!.length,
-                    itemBuilder: (context, index) {
-                      final rate = state.data![index];
-                    final isSelected = _selectedRateIds.contains(rate.id);
+                        ? Center(
+                            child: Text(
+                              'Error: ${state.error}',
+                              style: TextStyle(color: colorScheme.error),
+                            ),
+                          )
+                        : state.data == null || state.data!.isEmpty
+                            ? Center(
+                                child: Text(
+                                  'No rates available',
+                                  style: TextStyle(
+                                      color: colorScheme.onSurfaceVariant),
+                                ),
+                              )
+                            : CustomScrollbar(
+                                controller: _scrollController,
+                                child: ListView.builder(
+                                  controller: _scrollController,
+                                  physics:
+                                      const AlwaysScrollableScrollPhysics(),
+                                  itemCount: state.data!.length,
+                                  itemBuilder: (context, index) {
+                                    final rate = state.data![index];
+                                    final isSelected =
+                                        _selectedRateIds.contains(rate.id);
 
-                    return _buildRateTile(
-                      context,
-                      rate,
-                      site!,
-                      ref,
-                      isSelected,
-                    );
-                  },
-                ),
-              ),)
+                                    return _buildRateTile(
+                                      context,
+                                      rate,
+                                      site!,
+                                      ref,
+                                      isSelected,
+                                    );
+                                  },
+                                ),
+                              ),
+              )
             ],
           ),
         ),
@@ -271,14 +292,15 @@ class _RateScreenState extends ConsumerState<RateScreen> {
   }
 
   Widget _buildRateTile(
-      BuildContext context,
-      Rate rate,
-      SiteModel site,
-      WidgetRef ref,
-      bool isSelected,
-      ) {
+    BuildContext context,
+    Rate rate,
+    SiteModel site,
+    WidgetRef ref,
+    bool isSelected,
+  ) {
     final type = ref.read(typeProvider);
     final notifier = ref.read(rateNotifierProvider.notifier);
+    final colorScheme = Theme.of(context).colorScheme;
 
     return Stack(
       children: [
@@ -286,21 +308,21 @@ class _RateScreenState extends ConsumerState<RateScreen> {
           opacity: _isSelectionMode && !isSelected ? 0.5 : 1.0,
           child: Card(
             elevation: 0,
-            color: Theme.of(context).colorScheme.surface,
+            color: colorScheme.surface,
             margin: const EdgeInsets.symmetric(horizontal: 16, vertical: 6),
             shape: RoundedRectangleBorder(
               borderRadius: BorderRadius.circular(12),
               side: BorderSide(
-                color: Theme.of(context).colorScheme.outlineVariant.withOpacity(0.4),
+                color: colorScheme.outlineVariant.withOpacity(0.4),
               ),
             ),
             child: InkWell(
-              onTap: _isSelectionMode
-                  ? () => _toggleRateSelection(rate.id)
-                  : null,
+              onTap:
+                  _isSelectionMode ? () => _toggleRateSelection(rate.id) : null,
               borderRadius: BorderRadius.circular(12),
               child: Padding(
-                padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 12),
+                padding:
+                    const EdgeInsets.symmetric(horizontal: 12, vertical: 12),
                 child: Row(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
@@ -316,12 +338,12 @@ class _RateScreenState extends ConsumerState<RateScreen> {
                               rate.serviceName,
                               maxLines: 2,
                               overflow: TextOverflow.ellipsis,
-                              style: const TextStyle(
+                              style: TextStyle(
                                 fontSize: 16,
                                 fontWeight: FontWeight.w500,
+                                color: colorScheme.onSurface,
                               ),
                             ),
-
                           ],
                         ),
                       ),
@@ -338,7 +360,7 @@ class _RateScreenState extends ConsumerState<RateScreen> {
                               IconButton(
                                 icon: Icon(
                                   Icons.edit,
-                                  color: Theme.of(context).colorScheme.primary,
+                                  color: colorScheme.primary,
                                 ),
                                 onPressed: () async {
                                   final result = await Navigator.push(
@@ -361,7 +383,7 @@ class _RateScreenState extends ConsumerState<RateScreen> {
                               IconButton(
                                 icon: Icon(
                                   Icons.delete_outline,
-                                  color: Theme.of(context).colorScheme.error,
+                                  color: colorScheme.error,
                                 ),
                                 onPressed: () {
                                   _confirmDeleteRate(
@@ -385,12 +407,15 @@ class _RateScreenState extends ConsumerState<RateScreen> {
                               vertical: 6,
                             ),
                             decoration: BoxDecoration(
-                              color: Theme.of(context).colorScheme.surfaceContainerHigh,
+                              color: colorScheme.surfaceContainerHigh,
                               borderRadius: BorderRadius.circular(20),
                             ),
                             child: Text(
                               '₹${rate.rate.toStringAsFixed(0)} / ${rate.uom}',
-                              style: const TextStyle(fontWeight: FontWeight.bold),
+                              style: TextStyle(
+                                fontWeight: FontWeight.bold,
+                                color: colorScheme.onSurface,
+                              ),
                             ),
                           ),
                         ],
@@ -414,16 +439,14 @@ class _RateScreenState extends ConsumerState<RateScreen> {
                 height: 32,
                 decoration: BoxDecoration(
                   shape: BoxShape.circle,
-                  color: isSelected
-                      ? Theme.of(context).colorScheme.error
-                      : Theme.of(context).colorScheme.surface,
+                  color: isSelected ? colorScheme.error : colorScheme.surface,
                   border: Border.all(
-                    color: Theme.of(context).colorScheme.error,
+                    color: colorScheme.error,
                     width: 2,
                   ),
                   boxShadow: [
                     BoxShadow(
-                      color: Theme.of(context).colorScheme.shadow.withOpacity(0.16),
+                      color: colorScheme.shadow.withOpacity(0.16),
                       blurRadius: 4,
                       offset: const Offset(0, 2),
                     ),
@@ -431,10 +454,10 @@ class _RateScreenState extends ConsumerState<RateScreen> {
                 ),
                 child: isSelected
                     ? Icon(
-                  Icons.check,
-                  color: Theme.of(context).colorScheme.onError,
-                  size: 20,
-                )
+                        Icons.check,
+                        color: colorScheme.onError,
+                        size: 20,
+                      )
                     : null,
               ),
             ),
@@ -443,7 +466,8 @@ class _RateScreenState extends ConsumerState<RateScreen> {
     );
   }
 
-  Future<void> saveCsvWithDialog(BuildContext context, String type, String siteId) async {
+  Future<void> saveCsvWithDialog(
+      BuildContext context, String type, String siteId) async {
     final result = await RateApiClient().getCsv(type, siteId);
 
     if (result['success'] != true) {
@@ -497,35 +521,39 @@ class _RateScreenState extends ConsumerState<RateScreen> {
 }
 
 Future<void> _confirmDeleteRate(
-    BuildContext context,
-    String rateId,
-    RateNotifier notifier,
-    String type,
-    String siteId,
-    ) async {
+  BuildContext context,
+  String rateId,
+  RateNotifier notifier,
+  String type,
+  String siteId,
+) async {
   final confirm = await showDialog<bool>(
     context: context,
-    builder: (_) => AlertDialog(
-      title: const Text("Delete Rate"),
-      content: const Text(
-        "Are you sure you want to delete this rate?\n\n"
-            "This action cannot be undone.",
-      ),
-      actions: [
-        TextButton(
-          onPressed: () => Navigator.pop(context, false),
-          child: const Text("Cancel"),
+    builder: (_) {
+      final colorScheme = Theme.of(context).colorScheme;
+      return AlertDialog(
+        title: const Text("Delete Rate"),
+        content: const Text(
+          "Are you sure you want to delete this rate?\n\n"
+          "This action cannot be undone.",
         ),
-        ElevatedButton(
-          style: ElevatedButton.styleFrom(
-            backgroundColor: Theme.of(context).colorScheme.error,
-            foregroundColor: Theme.of(context).colorScheme.onError,
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(context, false),
+            style: TextButton.styleFrom(foregroundColor: colorScheme.primary),
+            child: const Text("Cancel"),
           ),
-          onPressed: () => Navigator.pop(context, true),
-          child: const Text("Delete"),
-        ),
-      ],
-    ),
+          ElevatedButton(
+            style: ElevatedButton.styleFrom(
+              backgroundColor: colorScheme.error,
+              foregroundColor: colorScheme.onError,
+            ),
+            onPressed: () => Navigator.pop(context, true),
+            child: const Text("Delete"),
+          ),
+        ],
+      );
+    },
   );
 
   if (confirm == true) {
@@ -534,12 +562,12 @@ Future<void> _confirmDeleteRate(
 }
 
 Future<void> _deleteRate(
-    BuildContext context, // keep if your caller needs it, but NOT used anymore
-    String rateId,
-    RateNotifier notifier,
-    String type,
-    String siteId,
-    ) async {
+  BuildContext context, // keep if your caller needs it, but NOT used anymore
+  String rateId,
+  RateNotifier notifier,
+  String type,
+  String siteId,
+) async {
   try {
     final res = await RateApiClient().deleteRate(siteId, rateId);
 

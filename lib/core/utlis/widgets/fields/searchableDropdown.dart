@@ -222,6 +222,7 @@ class _SearchableDropdownState extends State<SearchableDropdown> {
   @override
   Widget build(BuildContext context) {
     final cs = Theme.of(context).colorScheme;
+    final borderColor = _focusNode.hasFocus ? cs.primary : cs.outlineVariant;
     return CompositedTransformTarget(
       link: _layerLink,
       child: Container(
@@ -230,14 +231,18 @@ class _SearchableDropdownState extends State<SearchableDropdown> {
               color: cs.surface,
               borderRadius: BorderRadius.circular(10),
               border: Border.all(
-                color: cs.primary,
+                color: borderColor,
               ),
             ),
         child: TextFormField(
           controller: _controller,
           focusNode: _focusNode,
           onChanged: _filter,
-          style: widget.textStyle ?? const TextStyle(fontSize: 15),
+          style: widget.textStyle ??
+              TextStyle(
+                fontSize: 15,
+                color: cs.onSurface,
+              ),
           decoration: widget.inputDecoration ??
               InputDecoration(
                 hintText: widget.placeholder,

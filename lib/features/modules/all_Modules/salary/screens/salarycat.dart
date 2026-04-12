@@ -1,6 +1,5 @@
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
-import 'package:untitled2/core/utlis/colors/colors.dart';
 import 'package:untitled2/core/utlis/widgets/buttons.dart';
 import 'package:untitled2/core/utlis/widgets/custom_appBar.dart';
 import 'package:untitled2/core/utlis/widgets/image_clipped.dart';
@@ -30,6 +29,7 @@ class _CategoryScreenState extends State<CategoryScreen> {
 
   @override
   Widget build(BuildContext context) {
+    final colorScheme = Theme.of(context).colorScheme;
     return Scaffold(
       drawer: const CustomDrawer(),
       backgroundColor: Theme.of(context).colorScheme.surfaceContainerLowest,
@@ -45,13 +45,14 @@ class _CategoryScreenState extends State<CategoryScreen> {
                   crossAxisCount: 2, // 2 cards per row
                   crossAxisSpacing: 16,
                   mainAxisSpacing: 16,
-                  childAspectRatio: 0.9, // Adjust aspect ratio for better appearance
+                  childAspectRatio:
+                      0.9, // Adjust aspect ratio for better appearance
                   children: [
                     SelectCard(
                       icon: Icon(
                         Icons.person,
                         size: 48,
-                        color: Colors.blue,
+                        color: colorScheme.primary,
                       ),
                       label: t('download_individual'),
                       onTap: () => context.push('/salary/individual'),
@@ -60,7 +61,7 @@ class _CategoryScreenState extends State<CategoryScreen> {
                       icon: Icon(
                         Icons.factory_rounded,
                         size: 48,
-                        color: Colors.green,
+                        color: colorScheme.primary,
                       ),
                       label: t('download_site_wise'),
                       onTap: () => context.push('/site-list/siteSalary'),
@@ -69,16 +70,14 @@ class _CategoryScreenState extends State<CategoryScreen> {
                       icon: Icon(
                         Icons.check_box,
                         size: 48,
-                        color: Colors.orange,
+                        color: colorScheme.primary,
                       ),
                       label: t('download_all'),
-
                       onTap: () {
-
-
                         Navigator.push(
                           context,
-                          MaterialPageRoute(builder: (context) => const SelectRangeScreen()),
+                          MaterialPageRoute(
+                              builder: (context) => const SelectRangeScreen()),
                         );
                       },
                     ),
@@ -106,8 +105,8 @@ class _CategoryScreenState extends State<CategoryScreen> {
                 children: [
                   RoundedButton(
                     text: "Back",
-                    color: Colors.white,
-                    textColor: Colors.black,
+                    color: colorScheme.surface,
+                    textColor: colorScheme.onSurface,
                     onPressed: () => context.pop(),
                   ),
                 ],
@@ -135,11 +134,13 @@ class SelectCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final colorScheme = Theme.of(context).colorScheme;
     return Card(
       elevation: 0,
-      color: Colors.white,
+      color: colorScheme.surface,
       shape: RoundedRectangleBorder(
         borderRadius: BorderRadius.circular(16),
+        side: BorderSide(color: colorScheme.outlineVariant.withOpacity(0.35)),
       ),
       child: InkWell(
         onTap: onTap,
@@ -157,10 +158,10 @@ class SelectCard extends StatelessWidget {
               const SizedBox(height: 8),
               Text(
                 label,
-                style: const TextStyle(
+                style: TextStyle(
                   fontSize: 16,
                   fontWeight: FontWeight.w600,
-                  color: Colors.black87,
+                  color: colorScheme.onSurface,
                 ),
                 textAlign: TextAlign.center,
                 maxLines: 2,
@@ -243,14 +244,15 @@ class DynamicMenu extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final colorScheme = Theme.of(context).colorScheme;
     return Container(
       padding: const EdgeInsets.all(16),
       decoration: BoxDecoration(
-        color: Colors.white,
+        color: colorScheme.surface,
         borderRadius: BorderRadius.circular(8),
         boxShadow: [
           BoxShadow(
-            color: Colors.black.withOpacity(0.1),
+            color: colorScheme.shadow.withOpacity(0.1),
             blurRadius: 4,
             offset: const Offset(0, 2),
           ),
@@ -261,13 +263,13 @@ class DynamicMenu extends StatelessWidget {
         children: [
           Text(
             name,
-            style: const TextStyle(
+            style: TextStyle(
               fontSize: 16,
               fontWeight: FontWeight.w500,
+              color: colorScheme.onSurface,
             ),
           ),
-          if (hasMenu)
-            const Icon(Icons.menu, size: 20),
+          if (hasMenu) const Icon(Icons.menu, size: 20),
         ],
       ),
     );
@@ -289,29 +291,34 @@ class SelectModule extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final colorScheme = Theme.of(context).colorScheme;
     return GestureDetector(
       onTap: onTap,
       child: Container(
         margin: const EdgeInsets.symmetric(horizontal: 12),
         padding: const EdgeInsets.all(16),
         decoration: BoxDecoration(
-          color: Colors.white,
+          color: colorScheme.surface,
           borderRadius: BorderRadius.circular(8),
+          border:
+              Border.all(color: colorScheme.outlineVariant.withOpacity(0.35)),
         ),
         child: Row(
           children: [
-            Icon(icon, size: 20, color: Colors.blue),
+            Icon(icon, size: 20, color: colorScheme.primary),
             const SizedBox(width: 12),
             Expanded(
               child: Text(
                 label,
-                style: const TextStyle(
+                style: TextStyle(
                   fontSize: 16,
                   fontWeight: FontWeight.w500,
+                  color: colorScheme.onSurface,
                 ),
               ),
             ),
-            const Icon(Icons.chevron_right, size: 20),
+            Icon(Icons.chevron_right,
+                size: 20, color: colorScheme.onSurfaceVariant),
           ],
         ),
       ),
@@ -336,6 +343,7 @@ class Button extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final colorScheme = Theme.of(context).colorScheme;
     final isSecondary = variant == ButtonVariant.secondary;
 
     return SizedBox(
@@ -344,9 +352,10 @@ class Button extends StatelessWidget {
         onPressed: onPressed,
         style: ElevatedButton.styleFrom(
           backgroundColor: isSecondary
-              ? Colors.grey[300]
+              ? colorScheme.surfaceContainerHighest
               : Theme.of(context).primaryColor,
-          foregroundColor: isSecondary ? Colors.black87 : Colors.white,
+          foregroundColor:
+              isSecondary ? colorScheme.onSurface : colorScheme.onPrimary,
           padding: const EdgeInsets.symmetric(vertical: 16),
           shape: RoundedRectangleBorder(
             borderRadius: BorderRadius.circular(8),

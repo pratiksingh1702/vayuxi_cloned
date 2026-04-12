@@ -3,7 +3,6 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:table_calendar/table_calendar.dart';
 import 'package:untitled2/core/utlis/app_toasts.dart';
-import 'package:untitled2/core/utlis/colors/colors.dart';
 import 'package:untitled2/core/utlis/widgets/Button_wrapper.dart';
 import 'package:untitled2/core/utlis/widgets/buttons.dart';
 import 'package:untitled2/core/utlis/widgets/custom_appBar.dart';
@@ -57,9 +56,12 @@ class _BeautifulDatePickerState extends State<BeautifulDatePicker> {
 
   @override
   Widget build(BuildContext context) {
+    final colorScheme = Theme.of(context).colorScheme;
     final primaryColor = widget.primaryColor ?? Theme.of(context).primaryColor;
-    final accentColor = widget.accentColor ?? Theme.of(context).colorScheme.secondary;
-    final backgroundColor = widget.backgroundColor ?? Theme.of(context).scaffoldBackgroundColor;
+    final accentColor =
+        widget.accentColor ?? Theme.of(context).colorScheme.secondary;
+    final backgroundColor =
+        widget.backgroundColor ?? Theme.of(context).scaffoldBackgroundColor;
 
     return Dialog(
       backgroundColor: backgroundColor,
@@ -89,7 +91,8 @@ class _BeautifulDatePickerState extends State<BeautifulDatePicker> {
                     ),
                   ),
                   IconButton(
-                    icon: Icon(Icons.close, color: Colors.grey.shade600),
+                    icon:
+                        Icon(Icons.close, color: colorScheme.onSurfaceVariant),
                     onPressed: () => Navigator.pop(context),
                   ),
                 ],
@@ -99,7 +102,8 @@ class _BeautifulDatePickerState extends State<BeautifulDatePicker> {
 
               // Selected date display
               Container(
-                padding: const EdgeInsets.symmetric(vertical: 12, horizontal: 16),
+                padding:
+                    const EdgeInsets.symmetric(vertical: 12, horizontal: 16),
                 decoration: BoxDecoration(
                   color: primaryColor.withOpacity(0.1),
                   borderRadius: BorderRadius.circular(12),
@@ -127,11 +131,11 @@ class _BeautifulDatePickerState extends State<BeautifulDatePicker> {
               // Calendar
               Container(
                 decoration: BoxDecoration(
-                  color: Colors.white,
+                  color: colorScheme.surface,
                   borderRadius: BorderRadius.circular(16),
                   boxShadow: [
                     BoxShadow(
-                      color: Colors.black.withOpacity(0.05),
+                      color: colorScheme.shadow.withOpacity(0.05),
                       blurRadius: 10,
                       offset: const Offset(0, 4),
                     ),
@@ -160,11 +164,13 @@ class _BeautifulDatePickerState extends State<BeautifulDatePicker> {
 
                   // Calendar styling
                   calendarStyle: CalendarStyle(
-                    defaultTextStyle: const TextStyle(fontWeight: FontWeight.w500),
-                    weekendTextStyle: const TextStyle(fontWeight: FontWeight.w500),
-                    selectedTextStyle: const TextStyle(
+                    defaultTextStyle:
+                        const TextStyle(fontWeight: FontWeight.w500),
+                    weekendTextStyle:
+                        const TextStyle(fontWeight: FontWeight.w500),
+                    selectedTextStyle: TextStyle(
                       fontWeight: FontWeight.bold,
-                      color: Colors.white,
+                      color: colorScheme.onPrimary,
                     ),
                     todayTextStyle: TextStyle(
                       fontWeight: FontWeight.bold,
@@ -181,7 +187,7 @@ class _BeautifulDatePickerState extends State<BeautifulDatePicker> {
                     ),
                     weekendDecoration: BoxDecoration(
                       shape: BoxShape.circle,
-                      color: Colors.grey.shade50,
+                      color: colorScheme.surfaceContainerLowest,
                     ),
                     outsideDaysVisible: false,
                   ),
@@ -194,9 +200,12 @@ class _BeautifulDatePickerState extends State<BeautifulDatePicker> {
                       color: primaryColor,
                       borderRadius: BorderRadius.circular(8),
                     ),
-                    formatButtonTextStyle: const TextStyle(color: Colors.white),
-                    leftChevronIcon: Icon(Icons.chevron_left, color: primaryColor),
-                    rightChevronIcon: Icon(Icons.chevron_right, color: primaryColor),
+                    formatButtonTextStyle:
+                        TextStyle(color: colorScheme.onPrimary),
+                    leftChevronIcon:
+                        Icon(Icons.chevron_left, color: primaryColor),
+                    rightChevronIcon:
+                        Icon(Icons.chevron_right, color: primaryColor),
                     titleTextStyle: TextStyle(
                       color: primaryColor,
                       fontSize: 16,
@@ -206,11 +215,11 @@ class _BeautifulDatePickerState extends State<BeautifulDatePicker> {
 
                   daysOfWeekStyle: DaysOfWeekStyle(
                     weekdayStyle: TextStyle(
-                      color: Colors.grey.shade700,
+                      color: colorScheme.onSurfaceVariant,
                       fontWeight: FontWeight.w500,
                     ),
                     weekendStyle: TextStyle(
-                      color: Colors.grey.shade700,
+                      color: colorScheme.onSurfaceVariant,
                       fontWeight: FontWeight.w500,
                     ),
                   ),
@@ -230,13 +239,13 @@ class _BeautifulDatePickerState extends State<BeautifulDatePicker> {
                         shape: RoundedRectangleBorder(
                           borderRadius: BorderRadius.circular(12),
                         ),
-                        side: BorderSide(color: Colors.grey.shade300),
+                        side: BorderSide(color: colorScheme.outlineVariant),
                       ),
                       child: Text(
                         'Cancel',
                         style: TextStyle(
                           fontSize: 16,
-                          color: Colors.grey.shade600,
+                          color: colorScheme.onSurfaceVariant,
                         ),
                       ),
                     ),
@@ -253,12 +262,12 @@ class _BeautifulDatePickerState extends State<BeautifulDatePicker> {
                         ),
                         elevation: 0,
                       ),
-                      child: const Text(
+                      child: Text(
                         'Select',
                         style: TextStyle(
                           fontSize: 16,
                           fontWeight: FontWeight.w500,
-                          color: Colors.white,
+                          color: colorScheme.onPrimary,
                         ),
                       ),
                     ),
@@ -281,7 +290,20 @@ class _BeautifulDatePickerState extends State<BeautifulDatePicker> {
   }
 
   String _getMonthName(DateTime date) {
-    return ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'][date.month - 1];
+    return [
+      'Jan',
+      'Feb',
+      'Mar',
+      'Apr',
+      'May',
+      'Jun',
+      'Jul',
+      'Aug',
+      'Sep',
+      'Oct',
+      'Nov',
+      'Dec'
+    ][date.month - 1];
   }
 }
 
@@ -311,7 +333,7 @@ class _CheckoutManagementPageState
       // SINGLE sync trigger in screen init ONLY
       ref.read(inventorySyncControllerProvider(siteId));
     }
-    final type=ref.read(typeProvider);
+    final type = ref.read(typeProvider);
     Future.microtask(() {
       ref.read(manpowerProvider.notifier).fetchManpower(type!);
     });
@@ -329,7 +351,8 @@ class _CheckoutManagementPageState
   int _getAvailableUnits(List<Inventory> inventoryList) {
     if (selectedInventoryId == null) return 0;
     try {
-      final selected = inventoryList.firstWhere((e) => e.id == selectedInventoryId);
+      final selected =
+          inventoryList.firstWhere((e) => e.id == selectedInventoryId);
       return selected.availableUnits ?? 0;
     } catch (e) {
       return 0;
@@ -351,7 +374,8 @@ class _CheckoutManagementPageState
     final DateTime? picked = await showDialog<DateTime>(
       context: context,
       builder: (context) => BeautifulDatePicker(
-        initialDate: _expectedReturnDate ?? DateTime.now().add(const Duration(days: 7)),
+        initialDate:
+            _expectedReturnDate ?? DateTime.now().add(const Duration(days: 7)),
         firstDate: DateTime.now(),
         lastDate: DateTime(2100),
         title: "Select Expected Return Date",
@@ -375,9 +399,9 @@ class _CheckoutManagementPageState
 
     if (selectedInventoryId == null) {
       ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(
+        SnackBar(
           content: Text("Please select an item."),
-          backgroundColor: Colors.orange,
+          backgroundColor: Theme.of(context).colorScheme.tertiary,
         ),
       );
       return;
@@ -408,7 +432,7 @@ class _CheckoutManagementPageState
           content: Text(
             "Insufficient inventory. Available: ${selected.availableUnits}, Requested: $quantity",
           ),
-          backgroundColor: Colors.red,
+          backgroundColor: Theme.of(context).colorScheme.error,
           duration: const Duration(seconds: 3),
         ),
       );
@@ -418,10 +442,11 @@ class _CheckoutManagementPageState
     try {
       // Show loading indicator
       ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(
+        SnackBar(
           content: Row(
             children: [
-              CircularProgressIndicator(color: Colors.white),
+              CircularProgressIndicator(
+                  color: Theme.of(context).colorScheme.onPrimary),
               SizedBox(width: 10),
               Text("Issuing item..."),
             ],
@@ -431,12 +456,12 @@ class _CheckoutManagementPageState
       );
 
       await ref.read(createCheckoutProvider(CreateCheckoutParams(
-      siteId: siteId,
-      inventoryId: selectedInventoryId!,
-      issuedToName: issuedToController.text,
-      quantity: quantity,
-      expectedReturnDate: _expectedReturnDate,
-      remarks: remarksController.text.isEmpty ? null : remarksController.text,
+        siteId: siteId,
+        inventoryId: selectedInventoryId!,
+        issuedToName: issuedToController.text,
+        quantity: quantity,
+        expectedReturnDate: _expectedReturnDate,
+        remarks: remarksController.text.isEmpty ? null : remarksController.text,
       )).future);
 
       // Clear form
@@ -456,9 +481,9 @@ class _CheckoutManagementPageState
 
       // Show success message
       ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(
+        SnackBar(
           content: Text("Item issued successfully!"),
-          backgroundColor: Colors.green,
+          backgroundColor: Theme.of(context).colorScheme.primary,
         ),
       );
     } catch (e) {
@@ -468,12 +493,13 @@ class _CheckoutManagementPageState
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
           content: Text("Error issuing item: ${e.toString()}"),
-          backgroundColor: Colors.red,
+          backgroundColor: Theme.of(context).colorScheme.error,
           duration: const Duration(seconds: 3),
         ),
       );
     }
   }
+
   void _showReturnBottomSheet({
     required BuildContext context,
     required dynamic checkout,
@@ -487,13 +513,14 @@ class _CheckoutManagementPageState
     showModalBottomSheet(
       context: context,
       isScrollControlled: true,
-      backgroundColor: Colors.transparent,
+      backgroundColor: Theme.of(context).colorScheme.surface.withOpacity(0),
       builder: (sheetContext) {
         return StatefulBuilder(
           builder: (context, setSheetState) {
+            final colorScheme = Theme.of(context).colorScheme;
             return Container(
-              decoration: const BoxDecoration(
-                color: Colors.white,
+              decoration: BoxDecoration(
+                color: colorScheme.surface,
                 borderRadius: BorderRadius.vertical(top: Radius.circular(24)),
               ),
               padding: EdgeInsets.only(
@@ -514,7 +541,7 @@ class _CheckoutManagementPageState
                         height: 4,
                         margin: const EdgeInsets.only(bottom: 20),
                         decoration: BoxDecoration(
-                          color: Colors.grey.shade300,
+                          color: colorScheme.outlineVariant,
                           borderRadius: BorderRadius.circular(2),
                         ),
                       ),
@@ -526,15 +553,17 @@ class _CheckoutManagementPageState
                         Container(
                           padding: const EdgeInsets.all(8),
                           decoration: BoxDecoration(
-                            color: Colors.blue.shade50,
+                            color: colorScheme.primaryContainer,
                             borderRadius: BorderRadius.circular(8),
                           ),
-                          child: Icon(Icons.assignment_return, color: Colors.blue.shade700, size: 22),
+                          child: Icon(Icons.assignment_return,
+                              color: colorScheme.primary, size: 22),
                         ),
                         const SizedBox(width: 12),
                         const Text(
                           "Return Item",
-                          style: TextStyle(fontSize: 20, fontWeight: FontWeight.bold),
+                          style: TextStyle(
+                              fontSize: 20, fontWeight: FontWeight.bold),
                         ),
                       ],
                     ),
@@ -548,9 +577,9 @@ class _CheckoutManagementPageState
                       width: double.infinity,
                       padding: const EdgeInsets.all(16),
                       decoration: BoxDecoration(
-                        color: Colors.grey.shade50,
+                        color: colorScheme.surfaceContainerLowest,
                         borderRadius: BorderRadius.circular(12),
-                        border: Border.all(color: Colors.grey.shade200),
+                        border: Border.all(color: colorScheme.outlineVariant),
                       ),
                       child: Column(
                         crossAxisAlignment: CrossAxisAlignment.start,
@@ -560,22 +589,25 @@ class _CheckoutManagementPageState
                             style: TextStyle(
                               fontSize: 13,
                               fontWeight: FontWeight.w600,
-                              color: Colors.grey.shade600,
+                              color: colorScheme.onSurfaceVariant,
                               letterSpacing: 0.5,
                             ),
                           ),
                           const SizedBox(height: 12),
-                          _detailRow(Icons.person_outline, "Issued To", checkout.issuedToName),
+                          _detailRow(Icons.person_outline, "Issued To",
+                              checkout.issuedToName),
                           const SizedBox(height: 10),
-                          _detailRow(Icons.inventory_2_outlined, "Item", checkout.inventory.name),
+                          _detailRow(Icons.inventory_2_outlined, "Item",
+                              checkout.inventory.name),
                           const SizedBox(height: 10),
-                          _detailRow(Icons.numbers, "Quantity", "${checkout.quantity}"),
+                          _detailRow(Icons.numbers, "Quantity",
+                              "${checkout.quantity}"),
                           const SizedBox(height: 10),
                           _detailRow(
                             Icons.flag_outlined,
                             "Status",
                             checkout.status.toUpperCase(),
-                            valueColor: Colors.orange.shade700,
+                            valueColor: colorScheme.tertiary,
                           ),
                           if (checkout.expectedReturnDate != null) ...[
                             const SizedBox(height: 10),
@@ -587,9 +619,11 @@ class _CheckoutManagementPageState
                                   "${checkout.expectedReturnDate!.year}",
                             ),
                           ],
-                          if (checkout.remarks != null && checkout.remarks!.isNotEmpty) ...[
+                          if (checkout.remarks != null &&
+                              checkout.remarks!.isNotEmpty) ...[
                             const SizedBox(height: 10),
-                            _detailRow(Icons.notes_outlined, "Remarks", checkout.remarks!),
+                            _detailRow(Icons.notes_outlined, "Remarks",
+                                checkout.remarks!),
                           ],
                         ],
                       ),
@@ -600,7 +634,8 @@ class _CheckoutManagementPageState
                     // -------- Condition Selector --------
                     const Text(
                       "Item Condition *",
-                      style: TextStyle(fontWeight: FontWeight.w600, fontSize: 14),
+                      style:
+                          TextStyle(fontWeight: FontWeight.w600, fontSize: 14),
                     ),
                     const SizedBox(height: 10),
                     Wrap(
@@ -610,43 +645,57 @@ class _CheckoutManagementPageState
                         final isSelected = selectedCondition == condition;
                         Color chipColor;
                         switch (condition) {
-                          case 'Good':
-                            chipColor = Colors.green;
+                          case 'good':
+                            chipColor = colorScheme.primary;
                             break;
-                          case 'Damaged':
-                            chipColor = Colors.red;
+                          case 'damaged':
+                            chipColor = colorScheme.error;
                             break;
-                          case 'Needs Repair':
-                            chipColor = Colors.orange;
+                          case 'under_repair':
+                            chipColor = colorScheme.tertiary;
                             break;
-                          case 'Lost':
-                            chipColor = Colors.deepPurple;
+                          case 'scrapped':
+                            chipColor = colorScheme.secondary;
                             break;
                           default:
-                            chipColor = Colors.blue;
+                            chipColor = colorScheme.primary;
                         }
 
                         return GestureDetector(
-                          onTap: () => setSheetState(() => selectedCondition = condition),
+                          onTap: () => setSheetState(
+                              () => selectedCondition = condition),
                           child: AnimatedContainer(
                             duration: const Duration(milliseconds: 200),
-                            padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
+                            padding: const EdgeInsets.symmetric(
+                                horizontal: 16, vertical: 10),
                             decoration: BoxDecoration(
-                              color: isSelected ? chipColor : Colors.white,
+                              color:
+                                  isSelected ? chipColor : colorScheme.surface,
                               borderRadius: BorderRadius.circular(10),
                               border: Border.all(
-                                color: isSelected ? chipColor : Colors.grey.shade300,
+                                color: isSelected
+                                    ? chipColor
+                                    : colorScheme.outlineVariant,
                                 width: isSelected ? 2 : 1,
                               ),
                               boxShadow: isSelected
-                                  ? [BoxShadow(color: chipColor.withOpacity(0.3), blurRadius: 8, offset: const Offset(0, 2))]
+                                  ? [
+                                      BoxShadow(
+                                          color: chipColor.withOpacity(0.3),
+                                          blurRadius: 8,
+                                          offset: const Offset(0, 2))
+                                    ]
                                   : [],
                             ),
                             child: Text(
                               condition,
                               style: TextStyle(
-                                color: isSelected ? Colors.white : Colors.grey.shade700,
-                                fontWeight: isSelected ? FontWeight.w600 : FontWeight.w400,
+                                color: isSelected
+                                    ? colorScheme.onPrimary
+                                    : colorScheme.onSurfaceVariant,
+                                fontWeight: isSelected
+                                    ? FontWeight.w600
+                                    : FontWeight.w400,
                                 fontSize: 14,
                               ),
                             ),
@@ -660,7 +709,8 @@ class _CheckoutManagementPageState
                     // -------- Return Remarks --------
                     const Text(
                       "Return Remarks (Optional)",
-                      style: TextStyle(fontWeight: FontWeight.w600, fontSize: 14),
+                      style:
+                          TextStyle(fontWeight: FontWeight.w600, fontSize: 14),
                     ),
                     const SizedBox(height: 8),
                     TextFormField(
@@ -669,19 +719,23 @@ class _CheckoutManagementPageState
                       decoration: InputDecoration(
                         hintText: "Add notes about the return condition...",
                         filled: true,
-                        fillColor: Colors.white,
-                        contentPadding: const EdgeInsets.symmetric(horizontal: 12, vertical: 14),
+                        fillColor: colorScheme.surface,
+                        contentPadding: const EdgeInsets.symmetric(
+                            horizontal: 12, vertical: 14),
                         border: OutlineInputBorder(
                           borderRadius: BorderRadius.circular(10),
-                          borderSide: BorderSide(color: Colors.grey.shade300),
+                          borderSide:
+                              BorderSide(color: colorScheme.outlineVariant),
                         ),
                         enabledBorder: OutlineInputBorder(
                           borderRadius: BorderRadius.circular(10),
-                          borderSide: BorderSide(color: Colors.grey.shade300),
+                          borderSide:
+                              BorderSide(color: colorScheme.outlineVariant),
                         ),
                         focusedBorder: OutlineInputBorder(
                           borderRadius: BorderRadius.circular(10),
-                          borderSide: BorderSide(color: Theme.of(context).primaryColor),
+                          borderSide:
+                              BorderSide(color: Theme.of(context).primaryColor),
                         ),
                       ),
                     ),
@@ -695,9 +749,9 @@ class _CheckoutManagementPageState
                         onPressed: () async {
                           if (selectedCondition == null) {
                             ScaffoldMessenger.of(context).showSnackBar(
-                              const SnackBar(
+                              SnackBar(
                                 content: Text("Please select item condition."),
-                                backgroundColor: Colors.orange,
+                                backgroundColor: colorScheme.tertiary,
                               ),
                             );
                             return;
@@ -706,34 +760,35 @@ class _CheckoutManagementPageState
                           Navigator.pop(sheetContext);
 
                           try {
-                            await ref.read(updateCheckoutProvider(UpdateCheckoutParams(
-                            siteId: siteId,
-                            checkoutId: checkout.id,
-                            status: "returned",
-                            actualReturnDate: DateTime.now(),
-                            returnRemarks: returnRemarksController.text.isEmpty
-                                ? null
-                                : returnRemarksController.text,
-                            condition: selectedCondition,
+                            await ref.read(
+                                updateCheckoutProvider(UpdateCheckoutParams(
+                              siteId: siteId,
+                              checkoutId: checkout.id,
+                              status: "returned",
+                              actualReturnDate: DateTime.now(),
+                              returnRemarks:
+                                  returnRemarksController.text.isEmpty
+                                      ? null
+                                      : returnRemarksController.text,
+                              condition: selectedCondition,
                             )).future);
 
                             ref.invalidate(checkoutProvider(siteId));
-                            ref.invalidate(inventorySyncControllerProvider(siteId));
+                            ref.invalidate(
+                                inventorySyncControllerProvider(siteId));
                             AppToast.success("Item retuned successfully");
-                            
-
                           } catch (e) {
                             ScaffoldMessenger.of(context).showSnackBar(
                               SnackBar(
                                 content: Text("Error: ${e.toString()}"),
-                                backgroundColor: Colors.red,
+                                backgroundColor: colorScheme.error,
                               ),
                             );
                           }
                         },
                         style: ElevatedButton.styleFrom(
-                          backgroundColor: Colors.blue,
-                          foregroundColor: Colors.white,
+                          backgroundColor: colorScheme.primary,
+                          foregroundColor: colorScheme.onPrimary,
                           padding: const EdgeInsets.symmetric(vertical: 16),
                           shape: RoundedRectangleBorder(
                             borderRadius: BorderRadius.circular(12),
@@ -742,7 +797,8 @@ class _CheckoutManagementPageState
                         ),
                         child: const Text(
                           "Confirm Return",
-                          style: TextStyle(fontSize: 16, fontWeight: FontWeight.w600),
+                          style: TextStyle(
+                              fontSize: 16, fontWeight: FontWeight.w600),
                         ),
                       ),
                     ),
@@ -757,15 +813,17 @@ class _CheckoutManagementPageState
   }
 
 // Helper widget for detail rows
-  Widget _detailRow(IconData icon, String label, String value, {Color? valueColor}) {
+  Widget _detailRow(IconData icon, String label, String value,
+      {Color? valueColor}) {
+    final colorScheme = Theme.of(context).colorScheme;
     return Row(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        Icon(icon, size: 16, color: Colors.grey.shade500),
+        Icon(icon, size: 16, color: colorScheme.onSurfaceVariant),
         const SizedBox(width: 8),
         Text(
           "$label: ",
-          style: TextStyle(fontSize: 13, color: Colors.grey.shade600),
+          style: TextStyle(fontSize: 13, color: colorScheme.onSurfaceVariant),
         ),
         Expanded(
           child: Text(
@@ -773,7 +831,7 @@ class _CheckoutManagementPageState
             style: TextStyle(
               fontSize: 13,
               fontWeight: FontWeight.w600,
-              color: valueColor ?? Colors.black87,
+              color: valueColor ?? colorScheme.onSurface,
             ),
           ),
         ),
@@ -783,9 +841,9 @@ class _CheckoutManagementPageState
 
   @override
   Widget build(BuildContext context) {
+    final colorScheme = Theme.of(context).colorScheme;
     final siteId = ref.watch(selectedSiteIdProvider);
     final manpowerState = ref.watch(manpowerProvider);
-
 
     if (siteId == null) {
       return const Scaffold(body: Center(child: Text("No site selected")));
@@ -805,7 +863,7 @@ class _CheckoutManagementPageState
           child: Column(
             mainAxisAlignment: MainAxisAlignment.center,
             children: [
-              const Icon(Icons.error_outline, size: 50, color: Colors.red),
+              Icon(Icons.error_outline, size: 50, color: colorScheme.error),
               const SizedBox(height: 16),
               Text(
                 "Error loading inventory",
@@ -815,7 +873,10 @@ class _CheckoutManagementPageState
               Text(
                 e.toString(),
                 textAlign: TextAlign.center,
-                style: Theme.of(context).textTheme.bodySmall?.copyWith(color: Colors.grey),
+                style: Theme.of(context)
+                    .textTheme
+                    .bodySmall
+                    ?.copyWith(color: colorScheme.onSurfaceVariant),
               ),
               const SizedBox(height: 16),
               ElevatedButton(
@@ -834,16 +895,20 @@ class _CheckoutManagementPageState
               child: Column(
                 mainAxisAlignment: MainAxisAlignment.center,
                 children: [
-                  const Icon(Icons.inventory_2_outlined, size: 60, color: Colors.grey),
+                  Icon(Icons.inventory_2_outlined,
+                      size: 60, color: colorScheme.onSurfaceVariant),
                   const SizedBox(height: 12),
-                  const Text(
+                  Text(
                     "No inventory available",
-                    style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold, color: Colors.grey),
+                    style: TextStyle(
+                        fontSize: 18,
+                        fontWeight: FontWeight.bold,
+                        color: colorScheme.onSurfaceVariant),
                   ),
                   const SizedBox(height: 6),
-                  const Text(
+                  Text(
                     "Complete inventory setup first",
-                    style: TextStyle(color: Colors.grey),
+                    style: TextStyle(color: colorScheme.onSurfaceVariant),
                   ),
                   const SizedBox(height: 24),
                   ElevatedButton(
@@ -858,7 +923,6 @@ class _CheckoutManagementPageState
           final inventoryMap = {
             for (final i in inventory) i.id: i.name,
           };
-
 
           return Column(
             children: [
@@ -876,18 +940,20 @@ class _CheckoutManagementPageState
                           Container(
                             padding: const EdgeInsets.all(12),
                             decoration: BoxDecoration(
-                              color: Colors.blue.shade50,
+                              color: colorScheme.primaryContainer,
                               borderRadius: BorderRadius.circular(8),
-                              border: Border.all(color: Colors.blue.shade100),
+                              border: Border.all(
+                                  color: colorScheme.primary.withOpacity(0.25)),
                             ),
                             child: Row(
                               children: [
-                                Icon(Icons.assignment_turned_in, color: Colors.blue.shade600, size: 20),
+                                Icon(Icons.assignment_turned_in,
+                                    color: colorScheme.primary, size: 20),
                                 const SizedBox(width: 8),
                                 Text(
                                   "Issue Item to User",
                                   style: TextStyle(
-                                    color: Colors.blue.shade800,
+                                    color: colorScheme.onPrimaryContainer,
                                     fontWeight: FontWeight.w600,
                                     fontSize: 16,
                                   ),
@@ -917,7 +983,9 @@ class _CheckoutManagementPageState
                                       inv.name ?? 'Unknown Item',
                                       style: TextStyle(
                                         fontWeight: FontWeight.w500,
-                                        color: isOutOfStock ? Colors.grey : null,
+                                        color: isOutOfStock
+                                            ? colorScheme.onSurfaceVariant
+                                            : null,
                                       ),
                                     ),
                                     const SizedBox(height: 4),
@@ -925,7 +993,9 @@ class _CheckoutManagementPageState
                                       "Available: $available units",
                                       style: TextStyle(
                                         fontSize: 12,
-                                        color: isOutOfStock ? Colors.red : Colors.green,
+                                        color: isOutOfStock
+                                            ? colorScheme.error
+                                            : colorScheme.primary,
                                         fontWeight: FontWeight.normal,
                                       ),
                                     ),
@@ -944,12 +1014,14 @@ class _CheckoutManagementPageState
                                 quantityController.clear();
 
                                 if (value != null) {
-                                  final selected = fixedItems.firstWhere((e) => e.id == value);
+                                  final selected = fixedItems
+                                      .firstWhere((e) => e.id == value);
                                   if (selected.availableUnits == 0) {
                                     ScaffoldMessenger.of(context).showSnackBar(
                                       SnackBar(
-                                        content: Text("${selected.name ?? 'Item'} is out of stock."),
-                                        backgroundColor: Colors.red,
+                                        content: Text(
+                                            "${selected.name ?? 'Item'} is out of stock."),
+                                        backgroundColor: colorScheme.error,
                                         duration: const Duration(seconds: 2),
                                       ),
                                     );
@@ -974,49 +1046,45 @@ class _CheckoutManagementPageState
                                 ),
                               ),
                               const SizedBox(height: 8),
-
                               DropdownSearch<ManpowerModel>(
                                 itemAsString: (m) => m.fullName ?? '',
                                 compareFn: (a, b) => a.id == b.id,
-
                                 items: (filter, _) {
                                   return manpowerState.manpowerList
                                       .where((m) => (m.fullName ?? "")
-                                      .toLowerCase()
-                                      .contains(filter.toLowerCase()))
+                                          .toLowerCase()
+                                          .contains(filter.toLowerCase()))
                                       .toList();
                                 },
-
                                 onChanged: (selected) {
                                   /// put value in controller → API remains unchanged
-                                  issuedToController.text = selected?.fullName ?? '';
+                                  issuedToController.text =
+                                      selected?.fullName ?? '';
                                 },
-
                                 popupProps: const PopupProps.modalBottomSheet(
                                   showSearchBox: true,
                                   searchFieldProps: TextFieldProps(
                                     decoration: InputDecoration(
                                       hintText: 'Search manpower',
-                                      contentPadding:
-                                      EdgeInsets.symmetric(horizontal: 12, vertical: 10),
+                                      contentPadding: EdgeInsets.symmetric(
+                                          horizontal: 12, vertical: 10),
                                     ),
                                   ),
                                 ),
-
-                                decoratorProps: const DropDownDecoratorProps(
+                                decoratorProps: DropDownDecoratorProps(
                                   decoration: InputDecoration(
                                     hintText: "Select person",
                                     filled: true,
-                                    fillColor: Colors.white,
-                                    contentPadding:
-                                    EdgeInsets.symmetric(horizontal: 12, vertical: 14),
+                                    fillColor: colorScheme.surface,
+                                    contentPadding: EdgeInsets.symmetric(
+                                        horizontal: 12, vertical: 14),
                                     border: OutlineInputBorder(
-                                      borderRadius: BorderRadius.all(Radius.circular(8)),
+                                      borderRadius:
+                                          BorderRadius.all(Radius.circular(8)),
                                       borderSide: BorderSide.none,
                                     ),
                                   ),
                                 ),
-
                                 validator: (value) {
                                   if (value == null) {
                                     return "Select a person";
@@ -1027,12 +1095,12 @@ class _CheckoutManagementPageState
                             ],
                           ),
 
-
                           const SizedBox(height: 20),
 
                           // ---------------- QUANTITY FIELD ----------------
                           CustomTextField(
-                            label: "Quantity${selectedInventoryId != null ? " (Max: ${_getAvailableUnits(fixedItems)} units)" : ""}",
+                            label:
+                                "Quantity${selectedInventoryId != null ? " (Max: ${_getAvailableUnits(fixedItems)} units)" : ""}",
                             controller: quantityController,
                             isRequired: true,
                             hint: "Enter quantity to issue",
@@ -1051,7 +1119,8 @@ class _CheckoutManagementPageState
 
                               // Check available stock if item is selected
                               if (selectedInventoryId != null) {
-                                final available = _getAvailableUnits(fixedItems);
+                                final available =
+                                    _getAvailableUnits(fixedItems);
                                 if (quantity > available) {
                                   return 'Insufficient stock. Available: $available';
                                 }
@@ -1065,16 +1134,17 @@ class _CheckoutManagementPageState
                           if (selectedInventoryId != null) ...[
                             const SizedBox(height: 8),
                             Container(
-                              padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+                              padding: const EdgeInsets.symmetric(
+                                  horizontal: 12, vertical: 8),
                               decoration: BoxDecoration(
                                 color: _getAvailableUnits(fixedItems) == 0
-                                    ? Colors.red.shade50
-                                    : Colors.green.shade50,
+                                    ? colorScheme.errorContainer
+                                    : colorScheme.primaryContainer,
                                 borderRadius: BorderRadius.circular(8),
                                 border: Border.all(
                                   color: _getAvailableUnits(fixedItems) == 0
-                                      ? Colors.red.shade200
-                                      : Colors.green.shade200,
+                                      ? colorScheme.error
+                                      : colorScheme.primary,
                                 ),
                               ),
                               child: Row(
@@ -1084,8 +1154,8 @@ class _CheckoutManagementPageState
                                         ? Icons.warning_amber_rounded
                                         : Icons.inventory_2_rounded,
                                     color: _getAvailableUnits(fixedItems) == 0
-                                        ? Colors.red
-                                        : Colors.green,
+                                        ? colorScheme.error
+                                        : colorScheme.primary,
                                     size: 16,
                                   ),
                                   const SizedBox(width: 8),
@@ -1095,9 +1165,10 @@ class _CheckoutManagementPageState
                                           ? "Out of stock - Cannot issue this item"
                                           : "Available units: ${_getAvailableUnits(fixedItems)}",
                                       style: TextStyle(
-                                        color: _getAvailableUnits(fixedItems) == 0
-                                            ? Colors.red
-                                            : Colors.green,
+                                        color: _getAvailableUnits(fixedItems) ==
+                                                0
+                                            ? colorScheme.onErrorContainer
+                                            : colorScheme.onPrimaryContainer,
                                         fontWeight: FontWeight.w500,
                                         fontSize: 12,
                                       ),
@@ -1115,14 +1186,17 @@ class _CheckoutManagementPageState
                             onTap: _pickReturnDate,
                             child: AbsorbPointer(
                               child: Container(
-                                padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 16),
+                                padding: const EdgeInsets.symmetric(
+                                    horizontal: 12, vertical: 16),
                                 decoration: BoxDecoration(
-                                  color: Colors.white,
+                                  color: colorScheme.surface,
                                   borderRadius: BorderRadius.circular(8),
-                                  border: Border.all(color: const Color(0xFFDFE2E6)),
+                                  border: Border.all(
+                                      color: colorScheme.outlineVariant),
                                 ),
                                 child: Row(
-                                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                                  mainAxisAlignment:
+                                      MainAxisAlignment.spaceBetween,
                                   children: [
                                     Row(
                                       children: [
@@ -1136,16 +1210,17 @@ class _CheckoutManagementPageState
                                           _expectedReturnDate == null
                                               ? "Expected Return Date (Optional)"
                                               : "${_expectedReturnDate!.day.toString().padLeft(2, '0')}/"
-                                              "${_expectedReturnDate!.month.toString().padLeft(2, '0')}/"
-                                              "${_expectedReturnDate!.year}",
+                                                  "${_expectedReturnDate!.month.toString().padLeft(2, '0')}/"
+                                                  "${_expectedReturnDate!.year}",
                                           style: TextStyle(
                                             fontSize: 16,
-                                            fontWeight: _expectedReturnDate == null
-                                                ? FontWeight.w400
-                                                : FontWeight.w500,
+                                            fontWeight:
+                                                _expectedReturnDate == null
+                                                    ? FontWeight.w400
+                                                    : FontWeight.w500,
                                             color: _expectedReturnDate == null
-                                                ? Colors.grey.shade600
-                                                : Colors.black87,
+                                                ? colorScheme.onSurfaceVariant
+                                                : colorScheme.onSurface,
                                           ),
                                         ),
                                       ],
@@ -1176,8 +1251,8 @@ class _CheckoutManagementPageState
                             width: double.infinity,
                             child: RoundedButton(
                               text: "Issue Item",
-                              color: Colors.blue,
-                              textColor: Colors.white,
+                              color: colorScheme.primary,
+                              textColor: colorScheme.onPrimary,
                               onPressed: () => _issueItem(fixedItems, siteId),
                             ),
                           ),
@@ -1189,21 +1264,24 @@ class _CheckoutManagementPageState
                             width: double.infinity,
                             padding: const EdgeInsets.all(12),
                             decoration: BoxDecoration(
-                              color: Colors.orange.shade50,
+                              color: colorScheme.tertiaryContainer,
                               borderRadius: BorderRadius.circular(8),
-                              border: Border.all(color: Colors.orange.shade100),
+                              border: Border.all(
+                                  color:
+                                      colorScheme.tertiary.withOpacity(0.25)),
                             ),
                             child: Column(
                               crossAxisAlignment: CrossAxisAlignment.start,
                               children: [
                                 Row(
                                   children: [
-                                    Icon(Icons.info_outline, color: Colors.orange.shade600, size: 16),
+                                    Icon(Icons.info_outline,
+                                        color: colorScheme.tertiary, size: 16),
                                     const SizedBox(width: 8),
                                     Text(
                                       "Checkout Information",
                                       style: TextStyle(
-                                        color: Colors.orange.shade800,
+                                        color: colorScheme.onTertiaryContainer,
                                         fontWeight: FontWeight.w600,
                                         fontSize: 14,
                                       ),
@@ -1214,21 +1292,19 @@ class _CheckoutManagementPageState
                                 Text(
                                   "Issuing items will reduce available units. Items must be returned to restore inventory.",
                                   style: TextStyle(
-                                    color: Colors.orange.shade700,
+                                    color: colorScheme.onTertiaryContainer,
                                     fontSize: 12,
                                   ),
                                 ),
                               ],
                             ),
                           ),
-                          SizedBox(height: 20,),
+                          SizedBox(
+                            height: 20,
+                          ),
                           Container(
-
                             decoration: BoxDecoration(
-                              color: Colors.white,
-
-
-
+                              color: colorScheme.surface,
                             ),
                             child: Column(
                               mainAxisSize: MainAxisSize.min,
@@ -1238,14 +1314,15 @@ class _CheckoutManagementPageState
                                   padding: const EdgeInsets.all(16),
                                   child: Row(
                                     children: [
-                                      Icon(Icons.list_alt, color: Colors.blue.shade700, size: 20),
+                                      Icon(Icons.list_alt,
+                                          color: colorScheme.primary, size: 20),
                                       const SizedBox(width: 8),
                                       Text(
                                         "Active Checkouts",
                                         style: TextStyle(
                                           fontSize: 16,
                                           fontWeight: FontWeight.w600,
-                                          color: Colors.blue.shade700,
+                                          color: colorScheme.primary,
                                         ),
                                       ),
                                     ],
@@ -1258,42 +1335,52 @@ class _CheckoutManagementPageState
                                 SizedBox(
                                   height: 250,
                                   child: checkoutAsync.when(
-                                    loading: () => const Center(child: CircularProgressIndicator()),
+                                    loading: () => const Center(
+                                        child: CircularProgressIndicator()),
                                     error: (e, _) => Center(
                                       child: Padding(
                                         padding: const EdgeInsets.all(16),
                                         child: Column(
-                                          mainAxisAlignment: MainAxisAlignment.center,
+                                          mainAxisAlignment:
+                                              MainAxisAlignment.center,
                                           children: [
-                                            Icon(Icons.error_outline, size: 40, color: Colors.red.shade300),
+                                            Icon(Icons.error_outline,
+                                                size: 40,
+                                                color: colorScheme.error),
                                             const SizedBox(height: 8),
                                             Text(
                                               "Error loading checkouts",
-                                              style: TextStyle(color: Colors.grey.shade600),
+                                              style: TextStyle(
+                                                  color: colorScheme
+                                                      .onSurfaceVariant),
                                             ),
                                           ],
                                         ),
                                       ),
                                     ),
                                     data: (checkouts) {
-                                      final activeCheckouts =
-                                      checkouts.where((c) => c.status != "returned").toList();
+                                      final activeCheckouts = checkouts
+                                          .where((c) => c.status != "returned")
+                                          .toList();
                                       if (activeCheckouts.isEmpty) {
                                         return Center(
                                           child: Column(
-                                            mainAxisAlignment: MainAxisAlignment.center,
+                                            mainAxisAlignment:
+                                                MainAxisAlignment.center,
                                             children: [
                                               Icon(
                                                 Icons.inbox_outlined,
                                                 size: 60,
-                                                color: Colors.grey.shade300,
+                                                color:
+                                                    colorScheme.outlineVariant,
                                               ),
                                               const SizedBox(height: 12),
                                               Text(
                                                 "No active checkouts",
                                                 style: TextStyle(
                                                   fontSize: 16,
-                                                  color: Colors.grey.shade600,
+                                                  color: colorScheme
+                                                      .onSurfaceVariant,
                                                   fontWeight: FontWeight.w500,
                                                 ),
                                               ),
@@ -1302,7 +1389,8 @@ class _CheckoutManagementPageState
                                                 "Issue items to see them here",
                                                 style: TextStyle(
                                                   fontSize: 12,
-                                                  color: Colors.grey.shade400,
+                                                  color: colorScheme
+                                                      .onSurfaceVariant,
                                                 ),
                                               ),
                                             ],
@@ -1311,23 +1399,31 @@ class _CheckoutManagementPageState
                                       }
 
                                       return ListView.separated(
-                                        padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+                                        padding: const EdgeInsets.symmetric(
+                                            horizontal: 12, vertical: 8),
                                         itemCount: activeCheckouts.length,
-                                        separatorBuilder: (_, __) => const SizedBox(height: 8),
+                                        separatorBuilder: (_, __) =>
+                                            const SizedBox(height: 8),
                                         itemBuilder: (_, i) {
                                           final c = activeCheckouts[i];
                                           final itemName = c.inventory.name;
 
-                                          final isReturned = c.status == "returned";
+                                          final isReturned =
+                                              c.status == "returned";
 
                                           return Container(
                                             decoration: BoxDecoration(
-                                              color: isReturned ? Colors.green.shade50 : Colors.white,
-                                              borderRadius: BorderRadius.circular(12),
+                                              color: isReturned
+                                                  ? colorScheme.primaryContainer
+                                                  : colorScheme.surface,
+                                              borderRadius:
+                                                  BorderRadius.circular(12),
                                               border: Border.all(
                                                 color: isReturned
-                                                    ? Colors.green.shade200
-                                                    : Colors.grey.shade200,
+                                                    ? colorScheme.primary
+                                                        .withOpacity(0.25)
+                                                    : colorScheme
+                                                        .outlineVariant,
                                               ),
                                             ),
                                             child: Padding(
@@ -1336,11 +1432,15 @@ class _CheckoutManagementPageState
                                                 children: [
                                                   // Icon
                                                   Container(
-                                                    padding: const EdgeInsets.all(10),
+                                                    padding:
+                                                        const EdgeInsets.all(
+                                                            10),
                                                     decoration: BoxDecoration(
                                                       color: isReturned
-                                                          ? Colors.green.shade100
-                                                          : Colors.orange.shade100,
+                                                          ? colorScheme
+                                                              .primaryContainer
+                                                          : colorScheme
+                                                              .tertiaryContainer,
                                                       shape: BoxShape.circle,
                                                     ),
                                                     child: Icon(
@@ -1348,8 +1448,9 @@ class _CheckoutManagementPageState
                                                           ? Icons.check_circle
                                                           : Icons.schedule,
                                                       color: isReturned
-                                                          ? Colors.green.shade700
-                                                          : Colors.orange.shade700,
+                                                          ? colorScheme.primary
+                                                          : colorScheme
+                                                              .tertiary,
                                                       size: 20,
                                                     ),
                                                   ),
@@ -1359,66 +1460,92 @@ class _CheckoutManagementPageState
                                                   // Details
                                                   Expanded(
                                                     child: Column(
-                                                      crossAxisAlignment: CrossAxisAlignment.start,
+                                                      crossAxisAlignment:
+                                                          CrossAxisAlignment
+                                                              .start,
                                                       children: [
                                                         /// Person
                                                         Text(
                                                           c.issuedToName,
-                                                          style: const TextStyle(
-                                                            fontWeight: FontWeight.w600,
+                                                          style:
+                                                              const TextStyle(
+                                                            fontWeight:
+                                                                FontWeight.w600,
                                                             fontSize: 15,
                                                           ),
                                                         ),
 
-                                                        const SizedBox(height: 2),
+                                                        const SizedBox(
+                                                            height: 2),
 
                                                         /// Item name
                                                         Text(
                                                           itemName,
                                                           style: TextStyle(
                                                             fontSize: 13,
-                                                            fontWeight: FontWeight.w500,
-                                                            color: Colors.blueGrey.shade700,
+                                                            fontWeight:
+                                                                FontWeight.w500,
+                                                            color: colorScheme
+                                                                .onSurfaceVariant,
                                                           ),
                                                         ),
 
-                                                        const SizedBox(height: 6),
+                                                        const SizedBox(
+                                                            height: 6),
 
                                                         Row(
                                                           children: [
                                                             Icon(
                                                               Icons.inventory_2,
                                                               size: 14,
-                                                              color: Colors.grey.shade600,
+                                                              color: colorScheme
+                                                                  .onSurfaceVariant,
                                                             ),
-                                                            const SizedBox(width: 4),
+                                                            const SizedBox(
+                                                                width: 4),
                                                             Text(
                                                               "Qty: ${c.quantity}",
                                                               style: TextStyle(
                                                                 fontSize: 13,
-                                                                color: Colors.grey.shade700,
+                                                                color: colorScheme
+                                                                    .onSurfaceVariant,
                                                               ),
                                                             ),
-                                                            const SizedBox(width: 12),
+                                                            const SizedBox(
+                                                                width: 12),
                                                             Container(
-                                                              padding: const EdgeInsets.symmetric(
+                                                              padding:
+                                                                  const EdgeInsets
+                                                                      .symmetric(
                                                                 horizontal: 8,
                                                                 vertical: 2,
                                                               ),
-                                                              decoration: BoxDecoration(
+                                                              decoration:
+                                                                  BoxDecoration(
                                                                 color: isReturned
-                                                                    ? Colors.green.shade100
-                                                                    : Colors.orange.shade100,
-                                                                borderRadius: BorderRadius.circular(12),
+                                                                    ? colorScheme
+                                                                        .primaryContainer
+                                                                    : colorScheme
+                                                                        .tertiaryContainer,
+                                                                borderRadius:
+                                                                    BorderRadius
+                                                                        .circular(
+                                                                            12),
                                                               ),
                                                               child: Text(
-                                                                c.status.toUpperCase(),
-                                                                style: TextStyle(
+                                                                c.status
+                                                                    .toUpperCase(),
+                                                                style:
+                                                                    TextStyle(
                                                                   fontSize: 10,
-                                                                  fontWeight: FontWeight.w600,
+                                                                  fontWeight:
+                                                                      FontWeight
+                                                                          .w600,
                                                                   color: isReturned
-                                                                      ? Colors.green.shade800
-                                                                      : Colors.orange.shade800,
+                                                                      ? colorScheme
+                                                                          .primary
+                                                                      : colorScheme
+                                                                          .tertiary,
                                                                 ),
                                                               ),
                                                             ),
@@ -1448,34 +1575,50 @@ class _CheckoutManagementPageState
                                                         //   ScaffoldMessenger.of(context).showSnackBar(
                                                         //     const SnackBar(
                                                         //       content: Text("Item returned successfully"),
-                                                        //       backgroundColor: Colors.green,
+                                                        //       backgroundColor: Theme.of(context).colorScheme.primary,
                                                         //     ),
                                                         //   );
                                                         // },
-                                                        onPressed: () => _showReturnBottomSheet(
+                                                        onPressed: () =>
+                                                            _showReturnBottomSheet(
                                                           context: context,
                                                           checkout: c,
                                                           siteId: siteId,
                                                         ),
-                                                        style: ElevatedButton.styleFrom(
-                                                          backgroundColor: Colors.blue,
-                                                          foregroundColor: Colors.white,
+                                                        style: ElevatedButton
+                                                            .styleFrom(
+                                                          backgroundColor:
+                                                              colorScheme
+                                                                  .primary,
+                                                          foregroundColor:
+                                                              colorScheme
+                                                                  .onPrimary,
                                                           elevation: 0,
-                                                          padding: const EdgeInsets.symmetric(horizontal: 12),
-                                                          shape: RoundedRectangleBorder(
-                                                            borderRadius: BorderRadius.circular(8),
+                                                          padding:
+                                                              const EdgeInsets
+                                                                  .symmetric(
+                                                                  horizontal:
+                                                                      12),
+                                                          shape:
+                                                              RoundedRectangleBorder(
+                                                            borderRadius:
+                                                                BorderRadius
+                                                                    .circular(
+                                                                        8),
                                                           ),
                                                         ),
                                                         child: const Text(
                                                           "Return",
-                                                          style: TextStyle(fontSize: 12),
+                                                          style: TextStyle(
+                                                              fontSize: 12),
                                                         ),
                                                       ),
                                                     )
                                                   else
                                                     Icon(
                                                       Icons.check_circle,
-                                                      color: Colors.green.shade600,
+                                                      color:
+                                                          colorScheme.primary,
                                                       size: 28,
                                                     ),
                                                 ],
@@ -1493,13 +1636,11 @@ class _CheckoutManagementPageState
                         ],
                       ),
                     ),
-
                   ),
                 ),
               ),
 
               // ================= ACTIVE CHECKOUTS SECTION =================
-
             ],
           );
         },

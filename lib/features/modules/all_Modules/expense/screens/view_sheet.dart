@@ -4,37 +4,32 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import 'package:untitled2/core/utlis/widgets/Button_wrapper.dart';
 import 'package:untitled2/core/utlis/widgets/custom_appBar.dart';
-import 'package:untitled2/features/modules/all_Modules/dpr/dpr-setup/screens/view/view_select_page.dart';
-import 'package:untitled2/features/modules/all_Modules/rate/screens/rate.dart';
 import 'package:untitled2/features/modules/all_Modules/site_Details/providers/site_current_provider.dart';
-import 'package:untitled2/features/modules/all_Modules/site_Details/screens/siteDetailScreen.dart';
-import 'package:untitled2/features/modules/all_Modules/site_Details/screens/siteList.dart';
 
 import '../../../../../core/utlis/widgets/date_picker_Screen.dart';
 import '../../../../../core/utlis/widgets/sidebar.dart';
 import '../../dpr/screens/widgets/select_card.dart';
 import 'download_sheet.dart';
 import 'expense_screen.dart';
-import 'package:flutter_riverpod/flutter_riverpod.dart';
 
-
-
-
-class ExpenseEntrySelectCardGrid extends ConsumerWidget{
+class ExpenseEntrySelectCardGrid extends ConsumerWidget {
   const ExpenseEntrySelectCardGrid({super.key});
 
   @override
-  Widget build(BuildContext context,WidgetRef ref) {
-    final site=ref.read(selectedSiteIdProvider);
+  Widget build(BuildContext context, WidgetRef ref) {
+    final site = ref.read(selectedSiteIdProvider);
     final colorScheme = Theme.of(context).colorScheme;
     return Scaffold(
       backgroundColor: colorScheme.surfaceContainerLowest,
       drawer: const CustomDrawer(),
-      appBar: CustomAppBar(title:"Select Card"),
+      appBar: CustomAppBar(title: "Select Card"),
       body: BottomButtonWrapper(
-        onBackPressed: (){Navigator.pop(context);},
+        onBackPressed: () {
+          Navigator.pop(context);
+        },
         child: Container(
-          padding: const EdgeInsets.symmetric(horizontal: 16), // Add side padding
+          padding:
+              const EdgeInsets.symmetric(horizontal: 16), // Add side padding
           child: GridView.count(
             physics: const NeverScrollableScrollPhysics(),
             shrinkWrap: true,
@@ -45,50 +40,50 @@ class ExpenseEntrySelectCardGrid extends ConsumerWidget{
             children: [
               SelectCard(
                 icon: Image.asset(
-
                   "assets/images/icons/import_sheet.webp",
-
                   height: 120,
                   width: double.infinity,
                   fit: BoxFit.cover,
-
                 ),
                 label: "Download Sheet",
                 onTap: () {
                   Navigator.push(
                     context,
-                    MaterialPageRoute(builder: (context) =>
-                    DateRangeSelectionScreen(onDatesSelected: (DateTime startDate, DateTime endDate) {
-                      Navigator.push(
-                        context,
-                        MaterialPageRoute(builder: (context) =>ExpenseReportScreen(siteId: site!,selectedStartDate: startDate,selectedEndDate: endDate) ),
-                      );
-                    },)),
-
+                    MaterialPageRoute(
+                        builder: (context) => DateRangeSelectionScreen(
+                              onDatesSelected:
+                                  (DateTime startDate, DateTime endDate) {
+                                Navigator.push(
+                                  context,
+                                  MaterialPageRoute(
+                                      builder: (context) => ExpenseReportScreen(
+                                          siteId: site!,
+                                          selectedStartDate: startDate,
+                                          selectedEndDate: endDate)),
+                                );
+                              },
+                            )),
                   );
-
                 },
               ),
               SelectCard(
                 icon: Image.asset(
                   "assets/images/icons/manual_entry.webp",
-
                   height: 120,
                   width: double.infinity,
                   fit: BoxFit.cover,
-
                 ),
                 label: "View",
                 onTap: () {
-
                   Navigator.push(
                     context,
-                    MaterialPageRoute(builder: (context) =>ExpenseListScreen(siteId: site!,) ),
+                    MaterialPageRoute(
+                        builder: (context) => ExpenseListScreen(
+                              siteId: site!,
+                            )),
                   );
-
                 },
               ),
-
             ],
           ),
         ),

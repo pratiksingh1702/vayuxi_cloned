@@ -4,7 +4,6 @@ import 'package:dio/dio.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:untitled2/core/utlis/app_toasts.dart';
-import 'package:untitled2/core/utlis/colors/colors.dart';
 import 'package:untitled2/core/utlis/widgets/fields/custom_textField.dart';
 import 'package:untitled2/core/utlis/widgets/file_upload.dart';
 import 'package:untitled2/core/utlis/widgets/premium_app_bar.dart';
@@ -304,6 +303,7 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
 
   @override
   Widget build(BuildContext context) {
+    final colorScheme = Theme.of(context).colorScheme;
     final userState = ref.watch(userNotifierProvider);
 
     if (userState.user != null && _fullNameController.text.isEmpty) {
@@ -316,7 +316,7 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
     final hasNetworkAvatar = avatarUrl.trim().isNotEmpty;
 
     return Scaffold(
-      backgroundColor: AppColors.lightBlue,
+      backgroundColor: colorScheme.surfaceContainerLowest,
       appBar: PremiumAppBar(
         title: 'My Profile',
         showDrawerButton: false,
@@ -335,11 +335,14 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
         ],
       ),
       body: Container(
-        decoration: const BoxDecoration(
+        decoration: BoxDecoration(
           gradient: LinearGradient(
             begin: Alignment.topCenter,
             end: Alignment.bottomCenter,
-            colors: [Color(0xFFF3F8FF), Color(0xFFE8F1FF)],
+            colors: [
+              colorScheme.surfaceContainerLowest,
+              colorScheme.primaryContainer.withOpacity(0.25),
+            ],
           ),
         ),
         child: SafeArea(
@@ -629,12 +632,12 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
                           onPressed: userState.isLoading ? null : _submitForm,
                           icon: userState.isLoading
                               ? const ShimmerCircle(size: 18)
-                              : const Icon(Icons.save_rounded,
-                                  color: Colors.white, size: 18),
-                          label: const Text(
+                              : Icon(Icons.save_rounded,
+                                  color: colorScheme.onPrimary, size: 18),
+                          label: Text(
                             'Save Changes',
                             style: TextStyle(
-                              color: Colors.white,
+                              color: colorScheme.onPrimary,
                               fontWeight: FontWeight.w700,
                             ),
                           ),
@@ -645,21 +648,21 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
                         child: OutlinedButton.icon(
                           style: OutlinedButton.styleFrom(
                             minimumSize: const Size(double.infinity, 50),
-                            side: const BorderSide(color: Color(0xFFBFD1EE)),
+                            side: BorderSide(color: colorScheme.outlineVariant),
                             shape: RoundedRectangleBorder(
                               borderRadius: BorderRadius.circular(12),
                             ),
                           ),
                           onPressed: () => Navigator.pop(context),
-                          icon: const Icon(
+                          icon: Icon(
                             Icons.arrow_back_rounded,
-                            color: Color(0xFF1C3F78),
+                            color: colorScheme.onSurface,
                             size: 18,
                           ),
-                          label: const Text(
+                          label: Text(
                             'Back',
                             style: TextStyle(
-                              color: Color(0xFF1C3F78),
+                              color: colorScheme.onSurface,
                               fontWeight: FontWeight.w700,
                             ),
                           ),
@@ -671,29 +674,29 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
                   ElevatedButton.icon(
                     style: ElevatedButton.styleFrom(
                       minimumSize: const Size(double.infinity, 48),
-                      backgroundColor: const Color(0xFFBE2E2E),
+                      backgroundColor: colorScheme.error,
                       shape: RoundedRectangleBorder(
                         borderRadius: BorderRadius.circular(12),
                       ),
                     ),
                     onPressed: _handleLogout,
-                    icon: const Icon(
+                    icon: Icon(
                       Icons.logout_rounded,
-                      color: Colors.white,
+                      color: colorScheme.onError,
                       size: 18,
                     ),
-                    label: const Text(
+                    label: Text(
                       'Log Out',
-                      style: TextStyle(color: Colors.white),
+                      style: TextStyle(color: colorScheme.onError),
                     ),
                   ),
                   const SizedBox(height: 8),
                   TextButton(
                     onPressed: _handleLogoutAll,
-                    child: const Text(
+                    child: Text(
                       'Log out from all devices',
                       style: TextStyle(
-                        color: Color(0xFF4C5F81),
+                        color: colorScheme.onSurfaceVariant,
                         fontWeight: FontWeight.w600,
                       ),
                     ),
@@ -721,15 +724,16 @@ class _ProfileSectionCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final colorScheme = Theme.of(context).colorScheme;
     return Container(
       padding: const EdgeInsets.all(14),
       decoration: BoxDecoration(
-        color: Colors.white,
+        color: colorScheme.surface,
         borderRadius: BorderRadius.circular(16),
-        border: Border.all(color: const Color(0xFFDCE7F8)),
+        border: Border.all(color: colorScheme.outlineVariant.withOpacity(0.5)),
         boxShadow: [
           BoxShadow(
-            color: Colors.black.withOpacity(0.04),
+            color: colorScheme.shadow.withOpacity(0.04),
             blurRadius: 10,
             offset: const Offset(0, 4),
           ),
@@ -740,14 +744,14 @@ class _ProfileSectionCard extends StatelessWidget {
         children: [
           Row(
             children: [
-              Icon(icon, size: 18, color: const Color(0xFF1A4E96)),
+              Icon(icon, size: 18, color: colorScheme.primary),
               const SizedBox(width: 8),
               Text(
                 title,
-                style: const TextStyle(
+                style: TextStyle(
                   fontSize: 15,
                   fontWeight: FontWeight.w800,
-                  color: Color(0xFF223A5F),
+                  color: colorScheme.onSurface,
                 ),
               ),
             ],
@@ -777,15 +781,17 @@ class _UploadTile extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final colorScheme = Theme.of(context).colorScheme;
     return InkWell(
       onTap: onTap,
       borderRadius: BorderRadius.circular(12),
       child: Ink(
         padding: const EdgeInsets.all(10),
         decoration: BoxDecoration(
-          color: const Color(0xFFF8FBFF),
+          color: colorScheme.surfaceContainerLow,
           borderRadius: BorderRadius.circular(12),
-          border: Border.all(color: const Color(0xFFD3E1F7)),
+          border:
+              Border.all(color: colorScheme.outlineVariant.withOpacity(0.6)),
         ),
         child: Row(
           children: [
@@ -793,12 +799,13 @@ class _UploadTile extends StatelessWidget {
               width: 52,
               height: 52,
               decoration: BoxDecoration(
-                color: Colors.white,
+                color: colorScheme.surface,
                 borderRadius: BorderRadius.circular(10),
-                border: Border.all(color: const Color(0xFFCFDCF2)),
+                border: Border.all(
+                    color: colorScheme.outlineVariant.withOpacity(0.5)),
               ),
               child: preview == null
-                  ? Icon(icon, color: const Color(0xFF5678A8), size: 24)
+                  ? Icon(icon, color: colorScheme.onSurfaceVariant, size: 24)
                   : ClipRRect(
                       borderRadius: BorderRadius.circular(8),
                       child: preview,
@@ -811,24 +818,24 @@ class _UploadTile extends StatelessWidget {
                 children: [
                   Text(
                     title,
-                    style: const TextStyle(
+                    style: TextStyle(
                       fontSize: 13.5,
                       fontWeight: FontWeight.w700,
-                      color: Color(0xFF1F3558),
+                      color: colorScheme.onSurface,
                     ),
                   ),
                   const SizedBox(height: 2),
                   Text(
                     subtitle,
-                    style: const TextStyle(
+                    style: TextStyle(
                       fontSize: 12,
-                      color: Color(0xFF61769B),
+                      color: colorScheme.onSurfaceVariant,
                     ),
                   ),
                 ],
               ),
             ),
-            const Icon(Icons.upload_rounded, color: Color(0xFF3F6DAE)),
+            Icon(Icons.upload_rounded, color: colorScheme.primary),
           ],
         ),
       ),

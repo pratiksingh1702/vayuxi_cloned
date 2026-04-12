@@ -1,6 +1,5 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import '../../../../../core/utlis/colors/colors.dart';
 import '../../../../../core/utlis/widgets/Button_wrapper.dart';
 import '../../../../../core/utlis/widgets/buttons.dart';
 import '../../../../../core/utlis/widgets/custom_appBar.dart';
@@ -69,20 +68,20 @@ class _EditInventoryScreenState extends ConsumerState<EditInventoryScreen> {
           .showSnackBar(const SnackBar(content: Text("Updating...")));
 
       await ref.read(updateInventoryProvider(UpdateInventoryParams(
-      siteId: siteId,
-      inventoryId: widget.inventory.id,
-      name: _nameController.text.trim(),
-      uom: _uomController.text.trim(),
-      minimumStockLevel: widget.inventory.type == "consumable"
-          ? double.tryParse(_minStockController.text)
-          : null,
-      totalUnits: widget.inventory.type == "fixed"
-          ? int.tryParse(_quantityController.text)
-          : null,
-      remarks: _remarksController.text.trim().isEmpty
-          ? null
-          : _remarksController.text.trim(),
-      condition: null,
+        siteId: siteId,
+        inventoryId: widget.inventory.id,
+        name: _nameController.text.trim(),
+        uom: _uomController.text.trim(),
+        minimumStockLevel: widget.inventory.type == "consumable"
+            ? double.tryParse(_minStockController.text)
+            : null,
+        totalUnits: widget.inventory.type == "fixed"
+            ? int.tryParse(_quantityController.text)
+            : null,
+        remarks: _remarksController.text.trim().isEmpty
+            ? null
+            : _remarksController.text.trim(),
+        condition: null,
       )).future);
 
       _success("Updated successfully");
@@ -95,18 +94,19 @@ class _EditInventoryScreenState extends ConsumerState<EditInventoryScreen> {
   @override
   Widget build(BuildContext context) {
     final isConsumable = widget.inventory.type == "consumable";
+    final colorScheme = Theme.of(context).colorScheme;
 
     return Scaffold(
       appBar: CustomAppBar(title: "Edit Inventory"),
       drawer: const CustomDrawer(),
-      backgroundColor: Theme.of(context).colorScheme.surfaceContainerLowest,
+      backgroundColor: colorScheme.surfaceContainerLowest,
       body: BottomButtonWrapper(
         customButtons: [
           CustomButton(
             button: RoundedButton(
               text: "Update",
-              color: Colors.blue,
-              textColor: Colors.white,
+              color: colorScheme.primary,
+              textColor: colorScheme.onPrimary,
               onPressed: _submit,
             ),
           ),
@@ -120,7 +120,7 @@ class _EditInventoryScreenState extends ConsumerState<EditInventoryScreen> {
                 // ---------- CATEGORY (read-only display) ----------
                 _ReadOnlyField(
                   label: "Category",
-                  value:  widget.inventory.type,
+                  value: widget.inventory.type,
                   icon: Icons.category,
                 ),
 
@@ -131,7 +131,8 @@ class _EditInventoryScreenState extends ConsumerState<EditInventoryScreen> {
                   label: 'Inventory Name',
                   isRequired: true,
                   controller: _nameController,
-                  validator: (v) => (v == null || v.trim().isEmpty) ? "Name required" : null,
+                  validator: (v) =>
+                      (v == null || v.trim().isEmpty) ? "Name required" : null,
                 ),
 
                 const SizedBox(height: 16),
@@ -145,7 +146,8 @@ class _EditInventoryScreenState extends ConsumerState<EditInventoryScreen> {
                           label: 'Quantity',
                           isRequired: true,
                           controller: _quantityController,
-                          keyboardType: const TextInputType.numberWithOptions(decimal: true),
+                          keyboardType: const TextInputType.numberWithOptions(
+                              decimal: true),
                           validator: (v) {
                             if (v == null || v.isEmpty) return "Required";
                             final n = double.tryParse(v);
@@ -161,7 +163,8 @@ class _EditInventoryScreenState extends ConsumerState<EditInventoryScreen> {
                           label: 'UOM',
                           isRequired: true,
                           controller: _uomController,
-                          validator: (v) => (v == null || v.isEmpty) ? "Required" : null,
+                          validator: (v) =>
+                              (v == null || v.isEmpty) ? "Required" : null,
                         ),
                       ),
                     ],
@@ -171,7 +174,8 @@ class _EditInventoryScreenState extends ConsumerState<EditInventoryScreen> {
                     label: 'Minimum Stock Level',
                     isRequired: true,
                     controller: _minStockController,
-                    keyboardType: const TextInputType.numberWithOptions(decimal: true),
+                    keyboardType:
+                        const TextInputType.numberWithOptions(decimal: true),
                     validator: (v) {
                       if (v == null || v.isEmpty) return "Required";
                       final n = double.tryParse(v);
@@ -207,7 +211,8 @@ class _EditInventoryScreenState extends ConsumerState<EditInventoryScreen> {
                           label: 'UOM',
                           isRequired: true,
                           controller: _uomController,
-                          validator: (v) => (v == null || v.isEmpty) ? "Required" : null,
+                          validator: (v) =>
+                              (v == null || v.isEmpty) ? "Required" : null,
                         ),
                       ),
                     ],
@@ -233,11 +238,17 @@ class _EditInventoryScreenState extends ConsumerState<EditInventoryScreen> {
   }
 
   void _success(String m) => ScaffoldMessenger.of(context).showSnackBar(
-    SnackBar(content: Text(m), backgroundColor: Colors.green),
-  );
+        SnackBar(
+          content: Text(m),
+          backgroundColor: Theme.of(context).colorScheme.primary,
+        ),
+      );
   void _error(String m) => ScaffoldMessenger.of(context).showSnackBar(
-    SnackBar(content: Text(m), backgroundColor: Colors.red),
-  );
+        SnackBar(
+          content: Text(m),
+          backgroundColor: Theme.of(context).colorScheme.error,
+        ),
+      );
 }
 
 // ---------------------------------------------------------------------------
@@ -257,32 +268,38 @@ class _ReadOnlyField extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final colorScheme = Theme.of(context).colorScheme;
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
         Text(
           label,
-          style: const TextStyle(fontSize: 13, fontWeight: FontWeight.w500),
+          style: TextStyle(
+            fontSize: 13,
+            fontWeight: FontWeight.w500,
+            color: colorScheme.onSurface,
+          ),
         ),
         const SizedBox(height: 6),
         Container(
           width: double.infinity,
           padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 14),
           decoration: BoxDecoration(
-            color: Colors.grey.shade200,
+            color: colorScheme.surfaceContainerHighest,
             borderRadius: BorderRadius.circular(8),
-            border: Border.all(color: Colors.grey.shade400),
+            border: Border.all(color: colorScheme.outlineVariant),
           ),
           child: Row(
             children: [
-              Icon(icon, size: 18, color: Colors.grey.shade600),
+              Icon(icon, size: 18, color: colorScheme.onSurfaceVariant),
               const SizedBox(width: 10),
               Text(
                 value,
-                style: TextStyle(fontSize: 15, color: Colors.grey.shade700),
+                style: TextStyle(fontSize: 15, color: colorScheme.onSurface),
               ),
               const Spacer(),
-              Icon(Icons.lock_outline, size: 16, color: Colors.grey.shade400),
+              Icon(Icons.lock_outline,
+                  size: 16, color: colorScheme.onSurfaceVariant),
             ],
           ),
         ),

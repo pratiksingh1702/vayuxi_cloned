@@ -12,8 +12,6 @@ import 'package:untitled2/features/modules/all_Modules/site_Details/screens/site
 import '../../../../../core/utlis/widgets/sidebar.dart';
 import '../../dpr/screens/widgets/select_card.dart';
 
-
-
 class RateSelectCardGrid extends StatelessWidget {
   const RateSelectCardGrid({super.key});
 
@@ -24,13 +22,16 @@ class RateSelectCardGrid extends StatelessWidget {
     return Scaffold(
       drawer: const CustomDrawer(),
       backgroundColor: colorScheme.surfaceContainerLowest,
-      appBar: CustomAppBar(title:"Select Rate "),
+      appBar: CustomAppBar(title: "Select Rate "),
       body: BottomButtonWrapper(
-        onBackPressed: (){Navigator.pop(context);},
+        onBackPressed: () {
+          Navigator.pop(context);
+        },
         child: Column(
           children: [
             Container(
-              padding: const EdgeInsets.symmetric(horizontal: 16), // Add side padding
+              padding: const EdgeInsets.symmetric(
+                  horizontal: 16), // Add side padding
               child: GridView.count(
                 physics: const NeverScrollableScrollPhysics(),
                 shrinkWrap: true,
@@ -42,40 +43,34 @@ class RateSelectCardGrid extends StatelessWidget {
                   SelectCard(
                     icon: Image.asset(
                       "assets/images/icons/view.webp",
-
                       height: 120,
                       width: double.infinity,
                       fit: BoxFit.cover,
-
                     ),
                     label: "View",
                     onTap: () {
                       Navigator.push(
                         context,
-                        MaterialPageRoute(builder: (context) =>RateScreen() ),
+                        MaterialPageRoute(builder: (context) => RateScreen()),
                       );
-
                     },
                   ),
                   SelectCard(
                     icon: Image.asset(
                       "assets/images/icons/add.webp",
-
                       height: 120,
                       width: double.infinity,
                       fit: BoxFit.cover,
-
                     ),
                     label: "add",
                     onTap: () {
                       Navigator.push(
                         context,
-                        MaterialPageRoute(builder: (context) =>RateEntrySelectCardGrid() ),
+                        MaterialPageRoute(
+                            builder: (context) => RateEntrySelectCardGrid()),
                       );
-
                     },
                   ),
-
                 ],
               ),
             ),
@@ -88,7 +83,8 @@ class RateSelectCardGrid extends StatelessWidget {
               decoration: BoxDecoration(
                 color: colorScheme.surface,
                 borderRadius: BorderRadius.circular(18),
-                border: Border.all(color: colorScheme.outlineVariant.withOpacity(0.45)),
+                border: Border.all(
+                    color: colorScheme.outlineVariant.withOpacity(0.45)),
                 boxShadow: [
                   BoxShadow(
                     color: isDark
@@ -113,7 +109,7 @@ class RateSelectCardGrid extends StatelessWidget {
                   const SizedBox(height: 8),
                   Text(
                     "• View: You can view your sites and also edit them.\n"
-                        "• Add: You can create and register a new site.",
+                    "• Add: You can create and register a new site.",
                     style: TextStyle(
                       fontSize: 13,
                       height: 1.5,

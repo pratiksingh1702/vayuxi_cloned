@@ -15,26 +15,31 @@ class ToggleInputBox extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final colorScheme = Theme.of(context).colorScheme;
     return Card(
       margin: const EdgeInsets.symmetric(vertical: 4),
-      elevation: 1,
+      elevation: 0,
+      color: colorScheme.surface,
+      shape: RoundedRectangleBorder(
+        borderRadius: BorderRadius.circular(10),
+        side: BorderSide(color: colorScheme.outlineVariant.withOpacity(0.5)),
+      ),
       child: ListTile(
         title: Text(
           label,
           style: TextStyle(
             fontSize: 16,
-            color: isActive ? Colors.blue : Colors.black87,
+            color: isActive ? colorScheme.primary : colorScheme.onSurface,
           ),
         ),
         trailing: Switch(
           value: isActive,
           onChanged: (value) => onToggle(),
-          activeColor: Colors.blue,
+          activeColor: colorScheme.primary,
+          inactiveThumbColor: colorScheme.onSurfaceVariant,
         ),
         onTap: onToggle,
-        shape: RoundedRectangleBorder(
-          borderRadius: BorderRadius.circular(8),
-        ),
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
       ),
     );
   }

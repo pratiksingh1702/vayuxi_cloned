@@ -1,8 +1,6 @@
-import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:shimmer/shimmer.dart';
-import 'package:untitled2/core/utlis/colors/colors.dart';
 import 'package:untitled2/core/utlis/widgets/custom_appBar.dart';
 import 'package:untitled2/core/utlis/widgets/sidebar.dart';
 import 'package:untitled2/core/utlis/widgets/custom_scrollbar.dart';
@@ -126,6 +124,7 @@ class _FilterBar extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final colorScheme = Theme.of(context).colorScheme;
     final monthNames = monthMap.keys.toList();
 
     return Padding(
@@ -144,16 +143,18 @@ class _FilterBar extends StatelessWidget {
                     label: Text(
                       type.name[0].toUpperCase() + type.name.substring(1),
                       style: TextStyle(
-                        color: isSelected ? Colors.white : Colors.black87,
+                        color: isSelected
+                            ? colorScheme.onPrimary
+                            : colorScheme.onSurface,
                         fontWeight:
                             isSelected ? FontWeight.bold : FontWeight.normal,
                       ),
                     ),
                     selected: isSelected,
                     onSelected: (_) => notifier.setFilterType(type),
-                    selectedColor: Colors.blue,
-                    backgroundColor: Colors.white,
-                    checkmarkColor: Colors.white,
+                    selectedColor: colorScheme.primary,
+                    backgroundColor: colorScheme.surfaceContainerLow,
+                    checkmarkColor: colorScheme.onPrimary,
                     elevation: isSelected ? 2 : 0,
                   ),
                 );
@@ -167,6 +168,7 @@ class _FilterBar extends StatelessWidget {
             Row(children: [
               Expanded(
                   child: _dropdown(
+                context: context,
                 value: selectedMonthName,
                 items: monthNames,
                 onChanged: (v) => notifier.setMonth(monthMap[v]!),
@@ -174,6 +176,7 @@ class _FilterBar extends StatelessWidget {
               const SizedBox(width: 12),
               Expanded(
                   child: _dropdown(
+                context: context,
                 value: filter.year,
                 items: yearOptions,
                 onChanged: (v) => notifier.setYear(v!),
@@ -181,6 +184,7 @@ class _FilterBar extends StatelessWidget {
             ])
           else if (filter.filterType == SummaryFilterType.yearly)
             _dropdown(
+              context: context,
               value: filter.year,
               items: yearOptions,
               onChanged: (v) => notifier.setYear(v!),
@@ -203,17 +207,24 @@ class _FilterBar extends StatelessWidget {
                     padding: const EdgeInsets.symmetric(
                         horizontal: 12, vertical: 12),
                     decoration: BoxDecoration(
-                      color: Colors.white,
+                      color: colorScheme.surfaceContainerLow,
                       borderRadius: BorderRadius.circular(16),
+                      border: Border.all(color: colorScheme.outlineVariant),
                     ),
                     child: Row(
                       children: [
-                        const Icon(Icons.calendar_today,
-                            size: 16, color: Colors.grey),
+                        Icon(
+                          Icons.calendar_today,
+                          size: 16,
+                          color: colorScheme.onSurfaceVariant,
+                        ),
                         const SizedBox(width: 8),
                         Text(
                           '${filter.date.day}/${filter.date.month}/${filter.date.year}',
-                          style: const TextStyle(fontSize: 14),
+                          style: TextStyle(
+                            fontSize: 14,
+                            color: colorScheme.onSurface,
+                          ),
                         ),
                       ],
                     ),
@@ -223,6 +234,7 @@ class _FilterBar extends StatelessWidget {
               const SizedBox(width: 12),
               Expanded(
                   child: _dropdown(
+                context: context,
                 value: filter.year,
                 items: yearOptions,
                 onChanged: (v) => notifier.setYear(v!),
@@ -235,24 +247,37 @@ class _FilterBar extends StatelessWidget {
   }
 
   Widget _dropdown({
+    required BuildContext context,
     required String value,
     required List<String> items,
     required ValueChanged<String?> onChanged,
   }) {
+    final colorScheme = Theme.of(context).colorScheme;
     return Container(
       decoration: BoxDecoration(
-        color: Colors.white,
+        color: colorScheme.surfaceContainerLow,
         borderRadius: BorderRadius.circular(16),
+        border: Border.all(color: colorScheme.outlineVariant),
       ),
       padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 4),
       child: DropdownButtonHideUnderline(
         child: DropdownButton<String>(
           value: value,
           isExpanded: true,
-          icon:
-              const Icon(Icons.keyboard_arrow_down_rounded, color: Colors.grey),
+          icon: Icon(
+            Icons.keyboard_arrow_down_rounded,
+            color: colorScheme.onSurfaceVariant,
+          ),
           items: items
-              .map((e) => DropdownMenuItem(value: e, child: Text(e)))
+              .map(
+                (e) => DropdownMenuItem(
+                  value: e,
+                  child: Text(
+                    e,
+                    style: TextStyle(color: colorScheme.onSurface),
+                  ),
+                ),
+              )
               .toList(),
           onChanged: onChanged,
         ),
@@ -276,18 +301,24 @@ class _SiteTile extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final colorScheme = Theme.of(context).colorScheme;
     final pct = site.profitPercentage;
     final isProfit = pct >= 0;
     final hasData = site.hasData;
+    final trendColor = isProfit ? colorScheme.tertiary : colorScheme.error;
 
     return Card(
       margin: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
-      color: Colors.white,
+      color: colorScheme.surface,
       elevation: 2,
       child: ListTile(
         title: Text(
           site.siteName,
-          style: const TextStyle(fontWeight: FontWeight.w500, fontSize: 16),
+          style: TextStyle(
+            fontWeight: FontWeight.w500,
+            fontSize: 16,
+            color: colorScheme.onSurface,
+          ),
         ),
         subtitle: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
@@ -299,25 +330,31 @@ class _SiteTile extends StatelessWidget {
                   : "No transactions",
               style: TextStyle(
                 color: !hasData
-                    ? Colors.grey
+                    ? colorScheme.onSurfaceVariant
                     : isProfit
-                        ? Colors.green
-                        : Colors.red,
+                        ? colorScheme.tertiary
+                        : colorScheme.error,
                 fontWeight: FontWeight.w500,
               ),
             ),
             if (!hasData)
-              const Text(
+              Text(
                 "No transactions for selected period",
-                style: TextStyle(fontSize: 12, color: Colors.grey),
+                style: TextStyle(
+                  fontSize: 12,
+                  color: colorScheme.onSurfaceVariant,
+                ),
               ),
           ],
         ),
         trailing: !hasData
-            ? const Icon(Icons.remove_circle_outline, color: Colors.grey)
+            ? Icon(
+                Icons.remove_circle_outline,
+                color: colorScheme.onSurfaceVariant,
+              )
             : Icon(
                 isProfit ? Icons.trending_up : Icons.trending_down,
-                color: isProfit ? Colors.green : Colors.red,
+                color: trendColor,
                 size: 28,
               ),
         onTap: () => Navigator.push(
@@ -342,16 +379,17 @@ class _ShimmerList extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final colorScheme = Theme.of(context).colorScheme;
     return ListView.builder(
       padding: const EdgeInsets.only(bottom: 20),
       itemCount: 6,
       itemBuilder: (_, __) => Card(
         margin: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
-        color: Colors.white,
+        color: colorScheme.surface,
         elevation: 2,
         child: Shimmer.fromColors(
-          baseColor: Colors.grey[300]!,
-          highlightColor: Colors.grey[100]!,
+          baseColor: colorScheme.surfaceContainerHighest,
+          highlightColor: colorScheme.surfaceContainerLow,
           child: ListTile(
             contentPadding:
                 const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
@@ -361,7 +399,7 @@ class _ShimmerList extends StatelessWidget {
                 height: 16,
                 width: 160,
                 decoration: BoxDecoration(
-                  color: Colors.white,
+                  color: colorScheme.surface,
                   borderRadius: BorderRadius.circular(4),
                 ),
               ),
@@ -376,7 +414,7 @@ class _ShimmerList extends StatelessWidget {
                     height: 12,
                     width: 140,
                     decoration: BoxDecoration(
-                      color: Colors.white,
+                      color: colorScheme.surface,
                       borderRadius: BorderRadius.circular(4),
                     ),
                   ),
@@ -385,7 +423,7 @@ class _ShimmerList extends StatelessWidget {
                     height: 10,
                     width: 180,
                     decoration: BoxDecoration(
-                      color: Colors.white,
+                      color: colorScheme.surface,
                       borderRadius: BorderRadius.circular(4),
                     ),
                   ),
@@ -395,8 +433,10 @@ class _ShimmerList extends StatelessWidget {
             trailing: Container(
               height: 28,
               width: 28,
-              decoration: const BoxDecoration(
-                  color: Colors.white, shape: BoxShape.circle),
+              decoration: BoxDecoration(
+                color: colorScheme.surface,
+                shape: BoxShape.circle,
+              ),
             ),
           ),
         ),
@@ -409,23 +449,30 @@ class _EmptyView extends StatelessWidget {
   const _EmptyView();
 
   @override
-  Widget build(BuildContext context) => const Center(
-        child: Column(
-          mainAxisAlignment: MainAxisAlignment.center,
-          children: [
-            Icon(Icons.business_outlined, size: 64, color: Colors.grey),
-            SizedBox(height: 16),
-            Text("No Sites Available",
-                style: TextStyle(
-                    fontSize: 18,
-                    color: Colors.grey,
-                    fontWeight: FontWeight.w500)),
-            SizedBox(height: 8),
-            Text("Add sites to see P&L summary",
-                style: TextStyle(color: Colors.grey)),
-          ],
-        ),
-      );
+  Widget build(BuildContext context) {
+    final colorScheme = Theme.of(context).colorScheme;
+    return Center(
+      child: Column(
+        mainAxisAlignment: MainAxisAlignment.center,
+        children: [
+          Icon(
+            Icons.business_outlined,
+            size: 64,
+            color: colorScheme.onSurfaceVariant,
+          ),
+          const SizedBox(height: 16),
+          Text("No Sites Available",
+              style: TextStyle(
+                  fontSize: 18,
+                  color: colorScheme.onSurfaceVariant,
+                  fontWeight: FontWeight.w500)),
+          const SizedBox(height: 8),
+          Text("Add sites to see P&L summary",
+              style: TextStyle(color: colorScheme.onSurfaceVariant)),
+        ],
+      ),
+    );
+  }
 }
 
 class _ErrorView extends StatelessWidget {
@@ -433,20 +480,26 @@ class _ErrorView extends StatelessWidget {
   const _ErrorView({required this.onRetry});
 
   @override
-  Widget build(BuildContext context) => Center(
-        child: Column(
-          mainAxisAlignment: MainAxisAlignment.center,
-          children: [
-            const Icon(Icons.error_outline, size: 64, color: Colors.red),
-            const SizedBox(height: 16),
-            const Text("Failed to load data", style: TextStyle(fontSize: 16)),
-            const SizedBox(height: 12),
-            ElevatedButton.icon(
-              onPressed: onRetry,
-              icon: const Icon(Icons.refresh),
-              label: const Text("Retry"),
-            ),
-          ],
-        ),
-      );
+  Widget build(BuildContext context) {
+    final colorScheme = Theme.of(context).colorScheme;
+    return Center(
+      child: Column(
+        mainAxisAlignment: MainAxisAlignment.center,
+        children: [
+          Icon(Icons.error_outline, size: 64, color: colorScheme.error),
+          const SizedBox(height: 16),
+          Text(
+            "Failed to load data",
+            style: TextStyle(fontSize: 16, color: colorScheme.onSurface),
+          ),
+          const SizedBox(height: 12),
+          ElevatedButton.icon(
+            onPressed: onRetry,
+            icon: const Icon(Icons.refresh),
+            label: const Text("Retry"),
+          ),
+        ],
+      ),
+    );
+  }
 }

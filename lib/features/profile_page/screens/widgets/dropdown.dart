@@ -17,15 +17,29 @@ class Dropdown extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final colorScheme = Theme.of(context).colorScheme;
     return DropdownButtonFormField<String>(
       value: value,
       decoration: InputDecoration(
+        filled: true,
+        fillColor: colorScheme.surface,
+        enabledBorder: OutlineInputBorder(
+          borderRadius: BorderRadius.circular(10),
+          borderSide: BorderSide(color: colorScheme.outlineVariant),
+        ),
+        focusedBorder: OutlineInputBorder(
+          borderRadius: BorderRadius.circular(10),
+          borderSide: BorderSide(color: colorScheme.primary),
+        ),
         border: OutlineInputBorder(
-          borderRadius: BorderRadius.circular(8),
+          borderRadius: BorderRadius.circular(10),
         ),
         contentPadding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
       ),
-      hint: hintText != null ? Text(hintText!) : null,
+      hint: hintText != null
+          ? Text(hintText!,
+              style: TextStyle(color: colorScheme.onSurfaceVariant))
+          : null,
       items: options.map((String option) {
         return DropdownMenuItem<String>(
           value: option,

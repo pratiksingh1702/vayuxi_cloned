@@ -433,27 +433,28 @@ class _DetailBody extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final colorScheme = Theme.of(context).colorScheme;
     final mp = model.manpowerDetails;
     final co = model.companyDetails;
     final e = model.earnings;
     final d = model.deductions;
 
     return Container(
-      color: const Color(0xFFF1F5F9),
+      color: colorScheme.surfaceContainerLowest,
       child: ListView(
         padding: const EdgeInsets.fromLTRB(16, 16, 16, 32),
         children: [
           _SectionCard(
             title: 'ATTENDANCE',
             icon: Icons.calendar_month_rounded,
-            iconColor: const Color(0xFF8B5CF6),
+            iconColor: colorScheme.primary,
             child: _AttendanceSection(model: model),
           ),
           const SizedBox(height: 12),
           _SectionCard(
             title: 'EMPLOYEE INFO',
             icon: Icons.person_rounded,
-            iconColor: const Color(0xFF0EA5E9),
+            iconColor: colorScheme.secondary,
             child: Column(
               children: [
                 _InfoRow('Full Name', mp.fullName),
@@ -472,7 +473,7 @@ class _DetailBody extends StatelessWidget {
           _SectionCard(
             title: 'STATUTORY DETAILS',
             icon: Icons.shield_rounded,
-            iconColor: const Color(0xFF10B981),
+            iconColor: colorScheme.tertiary,
             child: Column(
               children: [
                 _InfoRow('UAN Number', mp.uanNumber ?? '', mono: true),
@@ -488,7 +489,7 @@ class _DetailBody extends StatelessWidget {
           _SectionCard(
             title: 'BANK DETAILS',
             icon: Icons.account_balance_rounded,
-            iconColor: const Color(0xFFF59E0B),
+            iconColor: colorScheme.secondary,
             child: Column(
               children: [
                 _InfoRow('Account Number', mp.bankAccountNumber ?? '',
@@ -501,7 +502,7 @@ class _DetailBody extends StatelessWidget {
           _SectionCard(
             title: 'COMPANY',
             icon: Icons.business_rounded,
-            iconColor: const Color(0xFF6366F1),
+            iconColor: colorScheme.primary,
             child: Column(
               children: [
                 _InfoRow('Company Name', co.name),
@@ -520,7 +521,7 @@ class _DetailBody extends StatelessWidget {
                 child: _SectionCard(
                   title: 'EARNINGS',
                   icon: Icons.trending_up_rounded,
-                  iconColor: const Color(0xFF10B981),
+                  iconColor: colorScheme.tertiary,
                   child: Column(
                     children: [
                       _AmountRow('Basic', e.basic),
@@ -532,7 +533,7 @@ class _DetailBody extends StatelessWidget {
                       _AmountRow('OT', e.ot),
                       const Divider(height: 16, thickness: 1),
                       _AmountRow('Total', e.total,
-                          isBold: true, color: const Color(0xFF10B981)),
+                          isBold: true, color: colorScheme.tertiary),
                     ],
                   ),
                 ),
@@ -542,7 +543,7 @@ class _DetailBody extends StatelessWidget {
                 child: _SectionCard(
                   title: 'DEDUCTIONS',
                   icon: Icons.trending_down_rounded,
-                  iconColor: const Color(0xFFEF4444),
+                  iconColor: colorScheme.error,
                   child: Column(
                     children: [
                       _AmountRow('PF', d.pf),
@@ -552,7 +553,7 @@ class _DetailBody extends StatelessWidget {
                       _AmountRow('Advance', d.advance),
                       const Divider(height: 16, thickness: 1),
                       _AmountRow('Total', d.total,
-                          isBold: true, color: const Color(0xFFEF4444)),
+                          isBold: true, color: colorScheme.error),
                     ],
                   ),
                 ),
@@ -577,6 +578,7 @@ class _AttendanceSection extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final colorScheme = Theme.of(context).colorScheme;
     final pct = model.attendancePercentage;
     return Column(
       children: [
@@ -585,22 +587,22 @@ class _AttendanceSection extends StatelessWidget {
             _AttStat(
                 value: '${model.presentDays}',
                 label: 'Present',
-                color: const Color(0xFF10B981)),
+                color: colorScheme.tertiary),
             const SizedBox(width: 8),
             _AttStat(
                 value: '${model.absentDays}',
                 label: 'Absent',
-                color: const Color(0xFFEF4444)),
+                color: colorScheme.error),
             const SizedBox(width: 8),
             _AttStat(
                 value: '${model.totalDays}',
                 label: 'Total',
-                color: const Color(0xFF6366F1)),
+                color: colorScheme.primary),
             const SizedBox(width: 8),
             _AttStat(
                 value: '${model.totalHours}h',
                 label: 'Hours',
-                color: const Color(0xFFF59E0B)),
+                color: colorScheme.secondary),
           ],
         ),
         const SizedBox(height: 12),
@@ -609,13 +611,13 @@ class _AttendanceSection extends StatelessWidget {
           child: LinearProgressIndicator(
             value: pct,
             minHeight: 8,
-            backgroundColor: Colors.grey.shade200,
+            backgroundColor: colorScheme.surfaceContainerHighest,
             valueColor: AlwaysStoppedAnimation<Color>(
               pct >= 0.75
-                  ? const Color(0xFF10B981)
+                  ? colorScheme.tertiary
                   : pct >= 0.5
-                      ? const Color(0xFFF59E0B)
-                      : const Color(0xFFEF4444),
+                      ? colorScheme.secondary
+                      : colorScheme.error,
             ),
           ),
         ),
@@ -626,7 +628,7 @@ class _AttendanceSection extends StatelessWidget {
             '${(pct * 100).toStringAsFixed(0)}% attendance',
             style: TextStyle(
                 fontSize: 10,
-                color: Colors.grey.shade500,
+                color: colorScheme.onSurfaceVariant,
                 fontWeight: FontWeight.w500),
           ),
         ),
@@ -743,13 +745,14 @@ class _SectionCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final colorScheme = Theme.of(context).colorScheme;
     return Container(
       decoration: BoxDecoration(
-        color: Colors.white,
+        color: colorScheme.surface,
         borderRadius: BorderRadius.circular(16),
         boxShadow: [
           BoxShadow(
-              color: Colors.black.withOpacity(0.05),
+              color: colorScheme.shadow.withOpacity(0.05),
               blurRadius: 10,
               offset: const Offset(0, 2)),
         ],
@@ -775,7 +778,7 @@ class _SectionCard extends StatelessWidget {
                         fontSize: 11,
                         fontWeight: FontWeight.w700,
                         letterSpacing: 1.0,
-                        color: Colors.grey.shade600)),
+                        color: colorScheme.onSurfaceVariant)),
               ],
             ),
           ),
@@ -799,6 +802,7 @@ class _InfoRow extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final colorScheme = Theme.of(context).colorScheme;
     final isEmpty = value.trim().isEmpty || value == 'null' || value == '—';
     return Padding(
       padding: const EdgeInsets.symmetric(vertical: 5),
@@ -810,7 +814,7 @@ class _InfoRow extends StatelessWidget {
             child: Text(label,
                 style: TextStyle(
                     fontSize: 12,
-                    color: Colors.grey.shade500,
+                    color: colorScheme.onSurfaceVariant,
                     fontWeight: FontWeight.w500)),
           ),
           const SizedBox(width: 8),
@@ -819,7 +823,7 @@ class _InfoRow extends StatelessWidget {
               isEmpty ? '—' : value,
               style: TextStyle(
                   fontSize: 12,
-                  color: isEmpty ? Colors.grey.shade400 : Colors.grey.shade800,
+                  color: isEmpty ? colorScheme.outline : colorScheme.onSurface,
                   fontWeight: FontWeight.w600,
                   fontFamily: mono ? 'monospace' : null,
                   letterSpacing: mono ? 0.5 : 0),
@@ -841,6 +845,7 @@ class _AmountRow extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final colorScheme = Theme.of(context).colorScheme;
     final isZero = amount == 0;
     return Padding(
       padding: const EdgeInsets.symmetric(vertical: 3),
@@ -852,8 +857,8 @@ class _AmountRow extends StatelessWidget {
                 style: TextStyle(
                     fontSize: 12,
                     color: isZero && !isBold
-                        ? Colors.grey.shade400
-                        : Colors.grey.shade700,
+                        ? colorScheme.outline
+                        : colorScheme.onSurfaceVariant,
                     fontWeight: isBold ? FontWeight.w700 : FontWeight.w500)),
           ),
           Text('₹${amount.toStringAsFixed(2)}',
@@ -861,8 +866,8 @@ class _AmountRow extends StatelessWidget {
                   fontSize: 12,
                   color: color ??
                       (isZero && !isBold
-                          ? Colors.grey.shade400
-                          : Colors.grey.shade800),
+                          ? colorScheme.outline
+                          : colorScheme.onSurface),
                   fontWeight: isBold ? FontWeight.w700 : FontWeight.w500)),
         ],
       ),
@@ -880,6 +885,7 @@ class _AttStat extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final colorScheme = Theme.of(context).colorScheme;
     return Expanded(
       child: Container(
         padding: const EdgeInsets.symmetric(vertical: 10),
@@ -897,7 +903,7 @@ class _AttStat extends StatelessWidget {
                 style: TextStyle(
                     fontSize: 9,
                     fontWeight: FontWeight.w500,
-                    color: Colors.grey.shade500,
+                    color: colorScheme.onSurfaceVariant,
                     letterSpacing: 0.5)),
           ],
         ),

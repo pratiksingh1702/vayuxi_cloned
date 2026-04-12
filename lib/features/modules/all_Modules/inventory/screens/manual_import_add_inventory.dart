@@ -7,7 +7,6 @@ import '../../dpr/screens/widgets/select_card.dart';
 import 'add_bulk_inven.dart';
 import 'add_inven.dart';
 
-
 class AddInventorySelection extends StatelessWidget {
   const AddInventorySelection({super.key});
 
@@ -17,7 +16,7 @@ class AddInventorySelection extends StatelessWidget {
     final isDark = Theme.of(context).brightness == Brightness.dark;
     return Scaffold(
       backgroundColor: colorScheme.surfaceContainerLowest,
-      appBar: CustomAppBar(title:"Select Card"),
+      appBar: CustomAppBar(title: "Select Card"),
       body: Column(
         children: [
           GridView.count(
@@ -31,17 +30,16 @@ class AddInventorySelection extends StatelessWidget {
               SelectCard(
                 icon: Image.asset(
                   "assets/images/icons/manual_entry.webp",
-
                   height: 120,
                   width: double.infinity,
                   fit: BoxFit.cover,
-
                 ),
                 label: "Manual",
                 onTap: () {
                   Navigator.push(
                     context,
-                    MaterialPageRoute(builder: (context) =>CreateInventoryScreen()),
+                    MaterialPageRoute(
+                        builder: (context) => CreateInventoryScreen()),
                   );
                   print("implementing");
                 },
@@ -49,21 +47,18 @@ class AddInventorySelection extends StatelessWidget {
               SelectCard(
                 icon: Image.asset(
                   "assets/images/icons/import_sheet.webp",
-
                   height: 120,
                   width: double.infinity,
                   fit: BoxFit.cover,
-
                 ),
                 label: "Import sheet",
                 onTap: () {
                   Navigator.push(
                     context,
-                    MaterialPageRoute(builder: (context) =>BulkUploadScreen() ),
+                    MaterialPageRoute(builder: (context) => BulkUploadScreen()),
                   );
                 },
               ),
-
             ],
           ),
 
@@ -76,7 +71,8 @@ class AddInventorySelection extends StatelessWidget {
             decoration: BoxDecoration(
               color: colorScheme.surface,
               borderRadius: BorderRadius.circular(18),
-              border: Border.all(color: colorScheme.outlineVariant.withOpacity(0.45)),
+              border: Border.all(
+                  color: colorScheme.outlineVariant.withOpacity(0.45)),
               boxShadow: [
                 BoxShadow(
                   color: isDark
@@ -101,7 +97,7 @@ class AddInventorySelection extends StatelessWidget {
                 const SizedBox(height: 8),
                 Text(
                   "• Manual Entry: Enter site details step-by-step manually.\n"
-                      "• Import Sheet: Upload an Excel/CSV sheet — our AI will analyze your file and map fields automatically.",
+                  "• Import Sheet: Upload an Excel/CSV sheet — our AI will analyze your file and map fields automatically.",
                   style: TextStyle(
                     fontSize: 13,
                     height: 1.5,

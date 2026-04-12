@@ -26,8 +26,7 @@ class FinancialReportScreen extends ConsumerStatefulWidget {
       _FinancialReportScreenState();
 }
 
-class _FinancialReportScreenState
-    extends ConsumerState<FinancialReportScreen> {
+class _FinancialReportScreenState extends ConsumerState<FinancialReportScreen> {
   bool _showWithGst = true;
   late SummaryFilter _localFilter;
 
@@ -36,14 +35,33 @@ class _FinancialReportScreenState
   bool _expenseExpanded = false;
 
   final List<String> _monthNames = const [
-    'January', 'February', 'March', 'April', 'May', 'June',
-    'July', 'August', 'September', 'October', 'November', 'December',
+    'January',
+    'February',
+    'March',
+    'April',
+    'May',
+    'June',
+    'July',
+    'August',
+    'September',
+    'October',
+    'November',
+    'December',
   ];
 
   final Map<String, int> _monthMap = const {
-    'January': 1, 'February': 2, 'March': 3, 'April': 4,
-    'May': 5, 'June': 6, 'July': 7, 'August': 8,
-    'September': 9, 'October': 10, 'November': 11, 'December': 12,
+    'January': 1,
+    'February': 2,
+    'March': 3,
+    'April': 4,
+    'May': 5,
+    'June': 6,
+    'July': 7,
+    'August': 8,
+    'September': 9,
+    'October': 10,
+    'November': 11,
+    'December': 12,
   };
 
   late List<String> _yearOptions;
@@ -77,6 +95,12 @@ class _FinancialReportScreenState
       site.expenses?.total ?? site.weekly?.totalExpenses ?? 0;
   double get profitValue => site.profit;
   bool get isProfit => profitValue >= 0;
+  ColorScheme get _colorScheme => Theme.of(context).colorScheme;
+  Color get _positiveColor => _colorScheme.tertiary;
+  Color get _negativeColor => _colorScheme.error;
+  Color get _incomeColor => _colorScheme.tertiary;
+  Color get _expenseColor => _colorScheme.error;
+  Color get _accentColor => _colorScheme.primary;
 
   String get periodLabel {
     switch (_localFilter.filterType) {
@@ -112,7 +136,7 @@ class _FinancialReportScreenState
       );
 
       final match = allSites.firstWhere(
-            (s) => s.siteId == widget.site.siteId,
+        (s) => s.siteId == widget.site.siteId,
         orElse: () =>
             SiteSummaryModel.empty(widget.site.siteId, widget.site.siteName),
       );
@@ -136,8 +160,8 @@ class _FinancialReportScreenState
   }
 
   void _onMonthChanged(String monthName) {
-    setState(() => _localFilter =
-        _localFilter.copyWith(month: _monthMap[monthName]!));
+    setState(() =>
+        _localFilter = _localFilter.copyWith(month: _monthMap[monthName]!));
     _refetchForSite();
   }
 
@@ -155,14 +179,15 @@ class _FinancialReportScreenState
 
   @override
   Widget build(BuildContext context) {
-    final themeColor = isProfit ? Colors.green : Colors.red;
+    final colorScheme = Theme.of(context).colorScheme;
+    final themeColor = isProfit ? _positiveColor : _negativeColor;
     final isWeeklyOrDaily =
         _localFilter.filterType == SummaryFilterType.weekly ||
             _localFilter.filterType == SummaryFilterType.daily;
 
     return Scaffold(
       drawer: const CustomDrawer(),
-      backgroundColor: const Color(0xFFF5F9FC),
+      backgroundColor: colorScheme.surfaceContainerLowest,
       appBar: AppBar(
         toolbarHeight: 80,
         backgroundColor: themeColor,
@@ -177,10 +202,11 @@ class _FinancialReportScreenState
             children: [
               Text(
                 site.siteName,
-                style: const TextStyle(
+                style: TextStyle(
                   fontSize: 16,
                   fontWeight: FontWeight.bold,
-                  color: Colors.white,
+                  color:
+                      isProfit ? colorScheme.onTertiary : colorScheme.onError,
                 ),
               ),
               const SizedBox(height: 2),
@@ -189,25 +215,31 @@ class _FinancialReportScreenState
                   Expanded(
                     child: Text(
                       periodLabel,
-                      style: const TextStyle(
+                      style: TextStyle(
                         fontSize: 11,
-                        color: Colors.white70,
+                        color: (isProfit
+                                ? colorScheme.onTertiary
+                                : colorScheme.onError)
+                            .withOpacity(0.8),
                       ),
                       overflow: TextOverflow.ellipsis,
                     ),
                   ),
                   Text(
                     '₹${NumberFormat.compact().format(profitValue)}',
-                    style: const TextStyle(
+                    style: TextStyle(
                       fontSize: 16,
                       fontWeight: FontWeight.bold,
-                      color: Colors.white,
+                      color: isProfit
+                          ? colorScheme.onTertiary
+                          : colorScheme.onError,
                     ),
                   ),
                   const SizedBox(width: 6),
                   Icon(
                     isProfit ? Icons.trending_up : Icons.trending_down,
-                    color: Colors.white,
+                    color:
+                        isProfit ? colorScheme.onTertiary : colorScheme.onError,
                     size: 16,
                   ),
                 ],
@@ -227,7 +259,6 @@ class _FinancialReportScreenState
             if (_isLoading)
               Container(
                 height: 200,
-                
                 decoration: _cardDecoration(),
                 child: const Center(child: CircularProgressIndicator()),
               )
@@ -237,64 +268,69 @@ class _FinancialReportScreenState
                 decoration: _cardDecoration(),
                 child: Column(
                   children: [
-                    const Icon(Icons.error_outline,
-                        color: Colors.red, size: 48),
+                    Icon(Icons.error_outline, color: _negativeColor, size: 48),
                     const SizedBox(height: 12),
                     Text('Failed to load data',
-                        style: TextStyle(color: Colors.red[700])),
+                        style: TextStyle(color: _negativeColor)),
                     const SizedBox(height: 12),
                     ElevatedButton.icon(
                       onPressed: _refetchForSite,
                       icon: const Icon(Icons.refresh),
                       label: const Text('Retry'),
+                      style: ElevatedButton.styleFrom(
+                        backgroundColor: _negativeColor,
+                        foregroundColor: colorScheme.onError,
+                      ),
                     ),
                   ],
                 ),
               )
             else ...[
-                // ── LAYER 1: High-Level Summary ──────────────────────────────
-                // _buildHeader(themeColor),
-                // const SizedBox(height: 16),
-                // _buildSummaryCard(themeColor),
-                // const SizedBox(height: 20),
+              // ── LAYER 1: High-Level Summary ──────────────────────────────
+              // _buildHeader(themeColor),
+              // const SizedBox(height: 16),
+              // _buildSummaryCard(themeColor),
+              // const SizedBox(height: 20),
 
-                // ── LAYER 2: Expandable Income + Expense Side-by-Side ────────
-                // The two cards sit next to each other. Tapping either expands
-                // a detail panel below it. Only one can be open at a time so
-                // the user's focus is never split.
-                _buildDualExpandableSection(themeColor),
-                const SizedBox(height: 20),
+              // ── LAYER 2: Expandable Income + Expense Side-by-Side ────────
+              // The two cards sit next to each other. Tapping either expands
+              // a detail panel below it. Only one can be open at a time so
+              // the user's focus is never split.
+              _buildDualExpandableSection(themeColor),
+              const SizedBox(height: 20),
 
-                // ── LAYER 3: Analytical Expansion — Charts ───────────────────
-                // These only render after the user has seen the summary AND can
-                // optionally have drilled into detail. They support deeper
-                // analysis rather than leading with it.
-                isWeeklyOrDaily
-                    ? _buildHorizontalBarChart()
-                    : _buildVerticalBarChart(),
-                const SizedBox(height: 20),
+              // ── LAYER 3: Analytical Expansion — Charts ───────────────────
+              // These only render after the user has seen the summary AND can
+              // optionally have drilled into detail. They support deeper
+              // analysis rather than leading with it.
+              isWeeklyOrDaily
+                  ? _buildHorizontalBarChart()
+                  : _buildVerticalBarChart(),
+              const SizedBox(height: 20),
 
-                // Detailed metrics grid — secondary reference layer
-                _buildMetricsGrid(),
-                const SizedBox(height: 32),
-              ],
-            
-            SizedBox(height: 2,),
+              // Detailed metrics grid — secondary reference layer
+              _buildMetricsGrid(),
+              const SizedBox(height: 32),
+            ],
+
+            SizedBox(
+              height: 2,
+            ),
 
             ElevatedButton.icon(
               onPressed: () => Navigator.pop(context),
               style: ElevatedButton.styleFrom(
                 backgroundColor: themeColor,
-                foregroundColor: Colors.white,
-                padding: const EdgeInsets.symmetric(
-                    horizontal: 32, vertical: 14),
+                foregroundColor:
+                    isProfit ? colorScheme.onTertiary : colorScheme.onError,
+                padding:
+                    const EdgeInsets.symmetric(horizontal: 32, vertical: 14),
                 shape: RoundedRectangleBorder(
                     borderRadius: BorderRadius.circular(12)),
               ),
               icon: const Icon(Icons.arrow_back),
               label: const Text('Back to Summary',
-                  style: TextStyle(
-                      fontSize: 16, fontWeight: FontWeight.w600)),
+                  style: TextStyle(fontSize: 16, fontWeight: FontWeight.w600)),
             ),
             const SizedBox(height: 20),
           ],
@@ -306,17 +342,18 @@ class _FinancialReportScreenState
   // ── LAYER 0: Filter Section ────────────────────────────────────────────────
 
   Widget _buildFilterSection() {
+    final colorScheme = _colorScheme;
     return Container(
       padding: const EdgeInsets.all(16),
       decoration: _cardDecoration(),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          const Text('Filter Period',
+          Text('Filter Period',
               style: TextStyle(
                   fontWeight: FontWeight.w700,
                   fontSize: 15,
-                  color: Colors.black87)),
+                  color: colorScheme.onSurface)),
           const SizedBox(height: 12),
           SingleChildScrollView(
             scrollDirection: Axis.horizontal,
@@ -332,33 +369,32 @@ class _FinancialReportScreenState
                       padding: const EdgeInsets.symmetric(
                           horizontal: 16, vertical: 8),
                       decoration: BoxDecoration(
-                        color:
-                        isSelected ? Colors.blue : Colors.grey[100],
+                        color: isSelected
+                            ? _accentColor
+                            : colorScheme.surfaceContainerLow,
                         borderRadius: BorderRadius.circular(20),
                         border: Border.all(
                           color: isSelected
-                              ? Colors.blue
-                              : Colors.grey[300]!,
+                              ? _accentColor
+                              : colorScheme.outlineVariant,
                         ),
                         boxShadow: isSelected
                             ? [
-                          BoxShadow(
-                              color:
-                              Colors.blue.withOpacity(0.3),
-                              blurRadius: 6,
-                              offset: const Offset(0, 2))
-                        ]
+                                BoxShadow(
+                                    color: _accentColor.withOpacity(0.28),
+                                    blurRadius: 6,
+                                    offset: const Offset(0, 2))
+                              ]
                             : [],
                       ),
                       child: Text(
                         _filterLabel(type),
                         style: TextStyle(
                           color: isSelected
-                              ? Colors.white
-                              : Colors.black87,
-                          fontWeight: isSelected
-                              ? FontWeight.bold
-                              : FontWeight.normal,
+                              ? colorScheme.onPrimary
+                              : colorScheme.onSurface,
+                          fontWeight:
+                              isSelected ? FontWeight.bold : FontWeight.normal,
                           fontSize: 13,
                         ),
                       ),
@@ -376,24 +412,25 @@ class _FinancialReportScreenState
   }
 
   Widget _buildDateSelectors() {
+    final colorScheme = _colorScheme;
     switch (_localFilter.filterType) {
       case SummaryFilterType.monthly:
         return Row(children: [
           Expanded(
               child: _styledDropdown(
-                value: _monthNames[_localFilter.month - 1],
-                items: _monthNames,
-                icon: Icons.calendar_month,
-                onChanged: (v) => _onMonthChanged(v!),
-              )),
+            value: _monthNames[_localFilter.month - 1],
+            items: _monthNames,
+            icon: Icons.calendar_month,
+            onChanged: (v) => _onMonthChanged(v!),
+          )),
           const SizedBox(width: 12),
           Expanded(
               child: _styledDropdown(
-                value: _localFilter.year,
-                items: _yearOptions,
-                icon: Icons.today,
-                onChanged: (v) => _onYearChanged(v!),
-              )),
+            value: _localFilter.year,
+            items: _yearOptions,
+            icon: Icons.today,
+            onChanged: (v) => _onYearChanged(v!),
+          )),
         ]);
 
       case SummaryFilterType.yearly:
@@ -419,25 +456,26 @@ class _FinancialReportScreenState
                 if (picked != null) _onDateChanged(picked);
               },
               child: Container(
-                padding: const EdgeInsets.symmetric(
-                    horizontal: 14, vertical: 12),
+                padding:
+                    const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
                 decoration: BoxDecoration(
-                  color: Colors.grey[50],
+                  color: colorScheme.surfaceContainerLow,
                   borderRadius: BorderRadius.circular(12),
-                  border: Border.all(color: Colors.grey[300]!),
+                  border: Border.all(color: colorScheme.outlineVariant),
                 ),
                 child: Row(children: [
-                  Icon(Icons.calendar_today,
-                      size: 16, color: Colors.blue[700]),
+                  Icon(Icons.calendar_today, size: 16, color: _accentColor),
                   const SizedBox(width: 8),
                   Text(
                     DateFormat('dd MMM yyyy').format(_localFilter.date),
-                    style: const TextStyle(
-                        fontSize: 14, fontWeight: FontWeight.w500),
+                    style: TextStyle(
+                        fontSize: 14,
+                        fontWeight: FontWeight.w500,
+                        color: colorScheme.onSurface),
                   ),
                   const Spacer(),
                   Icon(Icons.keyboard_arrow_down,
-                      size: 18, color: Colors.grey[600]),
+                      size: 18, color: colorScheme.onSurfaceVariant),
                 ]),
               ),
             ),
@@ -445,11 +483,11 @@ class _FinancialReportScreenState
           const SizedBox(width: 12),
           Expanded(
               child: _styledDropdown(
-                value: _localFilter.year,
-                items: _yearOptions,
-                icon: Icons.today,
-                onChanged: (v) => _onYearChanged(v!),
-              )),
+            value: _localFilter.year,
+            items: _yearOptions,
+            icon: Icons.today,
+            onChanged: (v) => _onYearChanged(v!),
+          )),
         ]);
     }
   }
@@ -460,23 +498,28 @@ class _FinancialReportScreenState
     required IconData icon,
     required ValueChanged<String?> onChanged,
   }) {
+    final colorScheme = _colorScheme;
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 4),
       decoration: BoxDecoration(
-        color: Colors.grey[50],
+        color: colorScheme.surfaceContainerLow,
         borderRadius: BorderRadius.circular(12),
-        border: Border.all(color: Colors.grey[300]!),
+        border: Border.all(color: colorScheme.outlineVariant),
       ),
       child: DropdownButtonHideUnderline(
         child: DropdownButton<String>(
           value: value,
           isExpanded: true,
-          icon: Icon(Icons.keyboard_arrow_down, color: Colors.grey[600]),
+          icon: Icon(Icons.keyboard_arrow_down,
+              color: colorScheme.onSurfaceVariant),
           items: items
               .map((e) => DropdownMenuItem(
-              value: e,
-              child: Text(e,
-                  style: const TextStyle(fontSize: 14))))
+                  value: e,
+                  child: Text(e,
+                      style: TextStyle(
+                        fontSize: 14,
+                        color: colorScheme.onSurface,
+                      ))))
               .toList(),
           onChanged: onChanged,
         ),
@@ -500,103 +543,91 @@ class _FinancialReportScreenState
   // ── LAYER 1a: Header Banner ────────────────────────────────────────────────
 
   Widget _buildHeader(Color color) => Container(
-    padding: const EdgeInsets.all(20),
-    decoration: BoxDecoration(
-      gradient: LinearGradient(
-        colors: [color, color.withOpacity(0.7)],
-        begin: Alignment.topLeft,
-        end: Alignment.bottomRight,
-      ),
-      borderRadius: BorderRadius.circular(16),
-      boxShadow: [
-        BoxShadow(
-            color: color.withOpacity(0.3),
-            blurRadius: 8,
-            offset: const Offset(0, 4))
-      ],
-    ),
-    child: Row(
-      children: [
-        Container(
-          padding: const EdgeInsets.all(14),
-          decoration: BoxDecoration(
-              color: Colors.white.withOpacity(0.2),
-              shape: BoxShape.circle),
-          child: Icon(
-              isProfit
-                  ? Icons.trending_up
-                  : Icons.trending_down,
-              color: Colors.white,
-              size: 32),
-        ),
-        const SizedBox(width: 16),
-        Expanded(
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              Text(site.siteName,
-                  style: const TextStyle(
-                      fontSize: 20,
-                      fontWeight: FontWeight.bold,
-                      color: Colors.white)),
-              const SizedBox(height: 4),
-              Text(periodLabel,
-                  style: const TextStyle(
-                      fontSize: 14,
-                      color: Colors.white,
-                      fontWeight: FontWeight.w500)),
-              const SizedBox(height: 4),
-              Text(
-                  isProfit
-                      ? '💰 Profitable Period'
-                      : '⚠️ Loss Period',
-                  style: const TextStyle(
-                      fontSize: 13, color: Colors.white)),
-            ],
+        padding: const EdgeInsets.all(20),
+        decoration: BoxDecoration(
+          gradient: LinearGradient(
+            colors: [color, color.withOpacity(0.7)],
+            begin: Alignment.topLeft,
+            end: Alignment.bottomRight,
           ),
+          borderRadius: BorderRadius.circular(16),
+          boxShadow: [
+            BoxShadow(
+                color: color.withOpacity(0.3),
+                blurRadius: 8,
+                offset: const Offset(0, 4))
+          ],
         ),
-      ],
-    ),
-  );
+        child: Row(
+          children: [
+            Container(
+              padding: const EdgeInsets.all(14),
+              decoration: BoxDecoration(
+                  color: _colorScheme.onPrimary.withOpacity(0.2),
+                  shape: BoxShape.circle),
+              child: Icon(isProfit ? Icons.trending_up : Icons.trending_down,
+                  color: _colorScheme.onPrimary, size: 32),
+            ),
+            const SizedBox(width: 16),
+            Expanded(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(site.siteName,
+                      style: TextStyle(
+                          fontSize: 20,
+                          fontWeight: FontWeight.bold,
+                          color: _colorScheme.onPrimary)),
+                  const SizedBox(height: 4),
+                  Text(periodLabel,
+                      style: TextStyle(
+                          fontSize: 14,
+                          color: _colorScheme.onPrimary,
+                          fontWeight: FontWeight.w500)),
+                  const SizedBox(height: 4),
+                  Text(isProfit ? '💰 Profitable Period' : '⚠️ Loss Period',
+                      style: TextStyle(
+                          fontSize: 13, color: _colorScheme.onPrimary)),
+                ],
+              ),
+            ),
+          ],
+        ),
+      );
 
   // ── LAYER 1b: Net Profit/Loss Summary Card ────────────────────────────────
 
   Widget _buildSummaryCard(Color color) => Container(
-    padding: const EdgeInsets.all(24),
-    decoration: _cardDecoration(),
-    child: Column(
-      children: [
-        Text(isProfit ? 'Net Profit' : 'Net Loss',
-            style: TextStyle(
-                fontSize: 16,
-                color: Colors.grey[600],
-                fontWeight: FontWeight.w500)),
-        const SizedBox(height: 8),
-        Text(
-          '₹${NumberFormat('#,##,###.##').format(profitValue.abs())}',
-          style: TextStyle(
-              fontSize: 36,
-              fontWeight: FontWeight.bold,
-              color: color),
+        padding: const EdgeInsets.all(24),
+        decoration: _cardDecoration(),
+        child: Column(
+          children: [
+            Text(isProfit ? 'Net Profit' : 'Net Loss',
+                style: TextStyle(
+                    fontSize: 16,
+                    color: _colorScheme.onSurfaceVariant,
+                    fontWeight: FontWeight.w500)),
+            const SizedBox(height: 8),
+            Text(
+              '₹${NumberFormat('#,##,###.##').format(profitValue.abs())}',
+              style: TextStyle(
+                  fontSize: 36, fontWeight: FontWeight.bold, color: color),
+            ),
+            const SizedBox(height: 8),
+            Container(
+              padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 6),
+              decoration: BoxDecoration(
+                  color: color.withOpacity(0.1),
+                  borderRadius: BorderRadius.circular(20)),
+              child: Text(
+                '${site.profitPercentage >= 0 ? '+' : ''}${site.profitPercentage.toStringAsFixed(2)}%',
+                style: TextStyle(
+                    fontSize: 18, fontWeight: FontWeight.bold, color: color),
+              ),
+            ),
+          ],
         ),
-        const SizedBox(height: 8),
-        Container(
-          padding: const EdgeInsets.symmetric(
-              horizontal: 16, vertical: 6),
-          decoration: BoxDecoration(
-              color: color.withOpacity(0.1),
-              borderRadius: BorderRadius.circular(20)),
-          child: Text(
-            '${site.profitPercentage >= 0 ? '+' : ''}${site.profitPercentage.toStringAsFixed(2)}%',
-            style: TextStyle(
-                fontSize: 18,
-                fontWeight: FontWeight.bold,
-                color: color),
-          ),
-        ),
-      ],
-    ),
-  );
+      );
 
   // ── LAYER 2: Dual Expandable Section (Income + Expense) ───────────────────
   //
@@ -621,10 +652,9 @@ class _FinancialReportScreenState
             Expanded(
               child: _buildExpandableTile(
                 label: 'Total Income',
-                value:
-                '₹${NumberFormat.compact().format(incomeValue)}',
+                value: '₹${NumberFormat.compact().format(incomeValue)}',
                 icon: Icons.arrow_upward_rounded,
-                color: Colors.green,
+                color: _incomeColor,
                 isExpanded: _incomeExpanded,
                 onTap: () => setState(() {
                   _incomeExpanded = !_incomeExpanded;
@@ -636,10 +666,9 @@ class _FinancialReportScreenState
             Expanded(
               child: _buildExpandableTile(
                 label: 'Total Expenses',
-                value:
-                '₹${NumberFormat.compact().format(expensesValue)}',
+                value: '₹${NumberFormat.compact().format(expensesValue)}',
                 icon: Icons.arrow_downward_rounded,
-                color: Colors.red,
+                color: _expenseColor,
                 isExpanded: _expenseExpanded,
                 onTap: () => setState(() {
                   _expenseExpanded = !_expenseExpanded;
@@ -688,22 +717,24 @@ class _FinancialReportScreenState
     required bool isExpanded,
     required VoidCallback onTap,
   }) {
+    final colorScheme = _colorScheme;
     return GestureDetector(
       onTap: onTap,
       child: AnimatedContainer(
         duration: const Duration(milliseconds: 200),
         padding: const EdgeInsets.all(16),
         decoration: BoxDecoration(
-          color: isExpanded ? color.withOpacity(0.08) : Colors.white,
+          color: isExpanded
+              ? color.withOpacity(0.08)
+              : colorScheme.surfaceContainerLow,
           borderRadius: BorderRadius.circular(16),
           border: Border.all(
-            color:
-            isExpanded ? color : Colors.grey.withOpacity(0.2),
+            color: isExpanded ? color : colorScheme.outlineVariant,
             width: isExpanded ? 1.5 : 1,
           ),
           boxShadow: [
             BoxShadow(
-                color: Colors.grey.withOpacity(0.08),
+                color: colorScheme.shadow.withOpacity(0.08),
                 blurRadius: 10,
                 offset: const Offset(0, 4))
           ],
@@ -726,7 +757,7 @@ class _FinancialReportScreenState
                   turns: isExpanded ? 0.5 : 0,
                   duration: const Duration(milliseconds: 200),
                   child: Icon(Icons.keyboard_arrow_down,
-                      size: 18, color: Colors.grey[500]),
+                      size: 18, color: colorScheme.onSurfaceVariant),
                 ),
               ],
             ),
@@ -734,14 +765,12 @@ class _FinancialReportScreenState
             Text(label,
                 style: TextStyle(
                     fontSize: 12,
-                    color: Colors.grey[600],
+                    color: colorScheme.onSurfaceVariant,
                     fontWeight: FontWeight.w500)),
             const SizedBox(height: 4),
             Text(value,
                 style: TextStyle(
-                    fontSize: 20,
-                    fontWeight: FontWeight.bold,
-                    color: color)),
+                    fontSize: 20, fontWeight: FontWeight.bold, color: color)),
             const SizedBox(height: 6),
             Text(
               isExpanded ? 'Tap to collapse' : 'Tap for details',
@@ -768,8 +797,7 @@ class _FinancialReportScreenState
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          _sectionTitle(
-              Icons.attach_money, Colors.green, 'Income Breakdown'),
+          _sectionTitle(Icons.attach_money, _incomeColor, 'Income Breakdown'),
           const SizedBox(height: 16),
 
           // GST Toggle — contextually placed inside income detail
@@ -780,34 +808,33 @@ class _FinancialReportScreenState
           _buildDetailRow(
               'With GST',
               '₹${NumberFormat('#,##,###.##').format(site.income?.total ?? incomeValue)}',
-              Colors.green),
+              _incomeColor),
           const Divider(height: 20),
           _buildDetailRow(
               'Excl. GST',
               '₹${NumberFormat('#,##,###.##').format(site.income?.base ?? 0)}',
-              Colors.green.shade700),
+              _incomeColor.withOpacity(0.8)),
           const Divider(height: 20),
           _buildDetailRow(
               'GST Amount',
               '₹${NumberFormat('#,##,###.##').format(site.income?.gst ?? 0)}',
-              Colors.blue),
+              _accentColor),
         ],
       ),
     );
   }
 
   Widget _buildDetailRow(String label, String value, Color color) {
+    final colorScheme = _colorScheme;
     return Row(
       mainAxisAlignment: MainAxisAlignment.spaceBetween,
       children: [
         Text(label,
-            style: TextStyle(
-                fontSize: 14, color: Colors.grey[700])),
+            style:
+                TextStyle(fontSize: 14, color: colorScheme.onSurfaceVariant)),
         Text(value,
             style: TextStyle(
-                fontSize: 15,
-                fontWeight: FontWeight.bold,
-                color: color)),
+                fontSize: 15, fontWeight: FontWeight.bold, color: color)),
       ],
     );
   }
@@ -825,64 +852,63 @@ class _FinancialReportScreenState
   // ── GST Toggle (used inside Income Detail Panel) ───────────────────────────
 
   Widget _buildGstToggle() => Container(
-    padding: const EdgeInsets.symmetric(
-        horizontal: 16, vertical: 12),
-    decoration: BoxDecoration(
-      color: Colors.grey[50],
-      borderRadius: BorderRadius.circular(12),
-      border: Border.all(color: Colors.grey[200]!),
-    ),
-    child: Row(
-      mainAxisAlignment: MainAxisAlignment.spaceBetween,
-      children: [
-        Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
+        padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+        decoration: BoxDecoration(
+          color: _colorScheme.surfaceContainerLow,
+          borderRadius: BorderRadius.circular(12),
+          border: Border.all(color: _colorScheme.outlineVariant),
+        ),
+        child: Row(
+          mainAxisAlignment: MainAxisAlignment.spaceBetween,
           children: [
-            const Text('Income Display',
-                style: TextStyle(
-                    fontWeight: FontWeight.w600, fontSize: 15)),
-            const SizedBox(height: 2),
-            Text(
-              _showWithGst
-                  ? 'Incl. GST  ₹${NumberFormat.compact().format(site.income?.total ?? 0)}'
-                  : 'Excl. GST  ₹${NumberFormat.compact().format(site.income?.base ?? 0)}',
-              style:
-              TextStyle(color: Colors.grey[600], fontSize: 12),
+            Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                const Text('Income Display',
+                    style:
+                        TextStyle(fontWeight: FontWeight.w600, fontSize: 15)),
+                const SizedBox(height: 2),
+                Text(
+                  _showWithGst
+                      ? 'Incl. GST  ₹${NumberFormat.compact().format(site.income?.total ?? 0)}'
+                      : 'Excl. GST  ₹${NumberFormat.compact().format(site.income?.base ?? 0)}',
+                  style: TextStyle(
+                      color: _colorScheme.onSurfaceVariant, fontSize: 12),
+                ),
+              ],
+            ),
+            Row(
+              children: [
+                Text('Excl.',
+                    style: TextStyle(
+                        fontSize: 12,
+                        color: !_showWithGst
+                            ? _accentColor
+                            : _colorScheme.onSurfaceVariant)),
+                Switch(
+                  value: _showWithGst,
+                  onChanged: (v) => setState(() => _showWithGst = v),
+                  activeColor: _incomeColor,
+                ),
+                Text('Incl.',
+                    style: TextStyle(
+                        fontSize: 12,
+                        color: _showWithGst
+                            ? _incomeColor
+                            : _colorScheme.onSurfaceVariant)),
+              ],
             ),
           ],
         ),
-        Row(
-          children: [
-            Text('Excl.',
-                style: TextStyle(
-                    fontSize: 12,
-                    color: !_showWithGst
-                        ? Colors.blue
-                        : Colors.grey)),
-            Switch(
-              value: _showWithGst,
-              onChanged: (v) =>
-                  setState(() => _showWithGst = v),
-              activeColor: Colors.green,
-            ),
-            Text('Incl.',
-                style: TextStyle(
-                    fontSize: 12,
-                    color: _showWithGst
-                        ? Colors.green
-                        : Colors.grey)),
-          ],
-        ),
-      ],
-    ),
-  );
+      );
 
   // ── LAYER 3a: Vertical Bar Chart ───────────────────────────────────────────
 
   Widget _buildVerticalBarChart() {
+    final colorScheme = _colorScheme;
     final data = [
-      _ChartData('Income', incomeValue, Colors.green),
-      _ChartData('Expenses', expensesValue, Colors.red),
+      _ChartData('Income', incomeValue, _incomeColor),
+      _ChartData('Expenses', expensesValue, _expenseColor),
     ];
 
     return Container(
@@ -891,31 +917,32 @@ class _FinancialReportScreenState
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          _sectionTitle(Icons.bar_chart_rounded, Colors.blue,
-              'Income vs Expenses'),
+          _sectionTitle(
+              Icons.bar_chart_rounded, _accentColor, 'Income vs Expenses'),
           const SizedBox(height: 20),
           SizedBox(
             height: 280,
             child: SfCartesianChart(
               plotAreaBorderWidth: 0,
-              primaryXAxis: CategoryAxis(
-                  majorGridLines: const MajorGridLines(width: 0)),
+              primaryXAxis:
+                  CategoryAxis(majorGridLines: const MajorGridLines(width: 0)),
               primaryYAxis: NumericAxis(
                 numberFormat: NumberFormat.compact(),
                 majorGridLines: MajorGridLines(
-                    width: 1, color: Colors.grey[200]),
+                    width: 1,
+                    color: colorScheme.outlineVariant.withOpacity(0.6)),
                 axisLine: const AxisLine(width: 0),
               ),
-              tooltipBehavior: TooltipBehavior(
-                  enable: true, format: 'point.x : ₹point.y'),
+              tooltipBehavior:
+                  TooltipBehavior(enable: true, format: 'point.x : ₹point.y'),
               series: <CartesianSeries<_ChartData, String>>[
                 ColumnSeries<_ChartData, String>(
                   dataSource: data,
                   xValueMapper: (d, _) => d.label,
                   yValueMapper: (d, _) => d.value,
                   pointColorMapper: (d, _) => d.color,
-                  borderRadius: const BorderRadius.vertical(
-                      top: Radius.circular(8)),
+                  borderRadius:
+                      const BorderRadius.vertical(top: Radius.circular(8)),
                   width: 0.45,
                   dataLabelSettings: DataLabelSettings(
                     isVisible: true,
@@ -949,8 +976,7 @@ class _FinancialReportScreenState
   // ── LAYER 3b: Horizontal Bar Chart (weekly / daily) ────────────────────────
 
   Widget _buildHorizontalBarChart() {
-    final isWeekly =
-        _localFilter.filterType == SummaryFilterType.weekly;
+    final isWeekly = _localFilter.filterType == SummaryFilterType.weekly;
 
     List<_BarEntry> chartEntries = [];
 
@@ -958,10 +984,10 @@ class _FinancialReportScreenState
       final entries = site.weekly!.orderedEntries;
       chartEntries = entries
           .map((e) => _BarEntry(
-        label: _formatDay(e.key),
-        income: e.value.income,
-        expense: e.value.totalExpenses,
-      ))
+                label: _formatDay(e.key),
+                income: e.value.income,
+                expense: e.value.totalExpenses,
+              ))
           .toList();
     } else {
       chartEntries = [
@@ -984,16 +1010,16 @@ class _FinancialReportScreenState
         children: [
           _sectionTitle(
             Icons.bar_chart_rounded,
-            Colors.blue,
+            _accentColor,
             isWeekly
                 ? 'Weekly: Income vs Expenses'
                 : 'Daily: Income vs Expenses',
           ),
           const SizedBox(height: 8),
           Row(children: [
-            _legendDot(Colors.blue, 'Income'),
+            _legendDot(_accentColor, 'Income'),
             const SizedBox(width: 16),
-            _legendDot(Colors.orange, 'Expenses'),
+            _legendDot(_expenseColor, 'Expenses'),
           ]),
           const SizedBox(height: 20),
           SizedBox(
@@ -1002,30 +1028,25 @@ class _FinancialReportScreenState
               builder: (context, constraints) {
                 final maxVal = chartEntries.fold<double>(
                   0,
-                      (prev, e) => [prev, e.income, e.expense]
+                  (prev, e) => [prev, e.income, e.expense]
                       .reduce((a, b) => a > b ? a : b),
                 );
                 final availableWidth = constraints.maxWidth;
                 const labelWidth = 60.0;
-                final barAreaWidth =
-                    availableWidth - labelWidth - 8;
+                final barAreaWidth = availableWidth - labelWidth - 8;
 
                 return Column(
                   children: [
                     Padding(
-                      padding: const EdgeInsets.only(
-                          left: labelWidth + 8),
-                      child: _buildMoneyAxisLabels(
-                          barAreaWidth, maxVal),
+                      padding: const EdgeInsets.only(left: labelWidth + 8),
+                      child: _buildMoneyAxisLabels(barAreaWidth, maxVal),
                     ),
                     const SizedBox(height: 6),
                     Expanded(
                       child: ListView.separated(
-                        physics:
-                        const NeverScrollableScrollPhysics(),
+                        physics: const NeverScrollableScrollPhysics(),
                         itemCount: chartEntries.length,
-                        separatorBuilder: (_, __) =>
-                        const SizedBox(height: 10),
+                        separatorBuilder: (_, __) => const SizedBox(height: 10),
                         itemBuilder: (ctx, i) {
                           final entry = chartEntries[i];
                           return _buildBarRow(
@@ -1040,10 +1061,10 @@ class _FinancialReportScreenState
                     ),
                     const SizedBox(height: 8),
                     Padding(
-                      padding: const EdgeInsets.only(
-                          left: labelWidth + 8),
+                      padding: const EdgeInsets.only(left: labelWidth + 8),
                       child: Container(
-                          height: 1, color: Colors.grey[300]),
+                          height: 1,
+                          color: _colorScheme.outlineVariant.withOpacity(0.8)),
                     ),
                   ],
                 );
@@ -1069,7 +1090,7 @@ class _FinancialReportScreenState
             child: Text(
               '₹$label',
               style:
-              const TextStyle(fontSize: 9, color: Colors.black54),
+                  TextStyle(fontSize: 9, color: _colorScheme.onSurfaceVariant),
             ),
           );
         }),
@@ -1084,12 +1105,10 @@ class _FinancialReportScreenState
     required double barAreaWidth,
     required double barThickness,
   }) {
-    final incomeFraction = maxVal > 0
-        ? (entry.income / maxVal).clamp(0.0, 1.0)
-        : 0.0;
-    final expenseFraction = maxVal > 0
-        ? (entry.expense / maxVal).clamp(0.0, 1.0)
-        : 0.0;
+    final incomeFraction =
+        maxVal > 0 ? (entry.income / maxVal).clamp(0.0, 1.0) : 0.0;
+    final expenseFraction =
+        maxVal > 0 ? (entry.expense / maxVal).clamp(0.0, 1.0) : 0.0;
 
     return Row(
       crossAxisAlignment: CrossAxisAlignment.center,
@@ -1098,10 +1117,10 @@ class _FinancialReportScreenState
           width: labelWidth,
           child: Text(
             entry.label,
-            style: const TextStyle(
+            style: TextStyle(
               fontSize: 11,
               fontWeight: FontWeight.w700,
-              color: Colors.black87,
+              color: _colorScheme.onSurface,
             ),
             textAlign: TextAlign.right,
             maxLines: 2,
@@ -1118,18 +1137,18 @@ class _FinancialReportScreenState
                 fraction: incomeFraction,
                 barAreaWidth: barAreaWidth,
                 thickness: barThickness,
-                color: Colors.blue,
+                color: _accentColor,
                 value: entry.income,
-                labelColor: Colors.blue[700]!,
+                labelColor: _accentColor,
               ),
               const SizedBox(height: 4),
               _animatedBar(
                 fraction: expenseFraction,
                 barAreaWidth: barAreaWidth,
                 thickness: barThickness,
-                color: Colors.orange,
+                color: _expenseColor,
                 value: entry.expense,
-                labelColor: Colors.orange[700]!,
+                labelColor: _expenseColor,
               ),
             ],
           ),
@@ -1172,16 +1191,16 @@ class _FinancialReportScreenState
           alignment: Alignment.centerRight,
           child: showLabel
               ? Padding(
-            padding: const EdgeInsets.only(right: 6),
-            child: Text(
-              '₹${NumberFormat.compact().format(value)}',
-              style: const TextStyle(
-                fontSize: 9,
-                color: Colors.white,
-                fontWeight: FontWeight.bold,
-              ),
-            ),
-          )
+                  padding: const EdgeInsets.only(right: 6),
+                  child: Text(
+                    '₹${NumberFormat.compact().format(value)}',
+                    style: TextStyle(
+                      fontSize: 9,
+                      color: _colorScheme.onPrimary,
+                      fontWeight: FontWeight.bold,
+                    ),
+                  ),
+                )
               : null,
         ),
         if (!showLabel && value > 0)
@@ -1235,14 +1254,14 @@ class _FinancialReportScreenState
     final List<_ChartData> pieData = [];
 
     final palette = [
-      Colors.blue,
-      Colors.orange,
-      Colors.purple,
-      Colors.teal,
-      Colors.pink,
-      Colors.amber,
-      Colors.indigo,
-      Colors.cyan,
+      _colorScheme.primary,
+      _colorScheme.secondary,
+      _colorScheme.tertiary,
+      _colorScheme.error,
+      _colorScheme.inversePrimary,
+      _colorScheme.primaryContainer,
+      _colorScheme.secondaryContainer,
+      _colorScheme.tertiaryContainer,
     ];
 
     if (site.expenses != null && site.expenses!.total > 0) {
@@ -1260,8 +1279,8 @@ class _FinancialReportScreenState
       }
 
       if (site.expenses!.manpowerSalary > 0) {
-        pieData.add(_ChartData('Manpower Salary',
-            site.expenses!.manpowerSalary, palette[ci % palette.length]));
+        pieData.add(_ChartData('Manpower Salary', site.expenses!.manpowerSalary,
+            palette[ci % palette.length]));
       }
     } else if (site.weekly != null) {
       final entries = site.weekly!.orderedEntries;
@@ -1274,8 +1293,8 @@ class _FinancialReportScreenState
             ci++;
           }
           if (e.value.salary > 0) {
-            pieData.add(_ChartData('${_dayLabel(e.key)} Salary',
-                e.value.salary, palette[ci % palette.length]));
+            pieData.add(_ChartData('${_dayLabel(e.key)} Salary', e.value.salary,
+                palette[ci % palette.length]));
             ci++;
           }
         }
@@ -1288,22 +1307,21 @@ class _FinancialReportScreenState
         decoration: _cardDecoration(),
         child: Column(
           children: [
-            _sectionTitle(Icons.pie_chart_rounded, Colors.purple,
+            _sectionTitle(Icons.pie_chart_rounded, _colorScheme.tertiary,
                 'Expense Distribution'),
             const SizedBox(height: 20),
             Icon(Icons.pie_chart_outline,
-                size: 48, color: Colors.grey[400]),
+                size: 48, color: _colorScheme.onSurfaceVariant),
             const SizedBox(height: 12),
             Text('No expense data for this period',
-                style:
-                TextStyle(color: Colors.grey[500], fontSize: 14)),
+                style: TextStyle(
+                    color: _colorScheme.onSurfaceVariant, fontSize: 14)),
           ],
         ),
       );
     }
 
-    final total =
-    pieData.fold<double>(0, (s, d) => s + d.value);
+    final total = pieData.fold<double>(0, (s, d) => s + d.value);
 
     return Container(
       padding: const EdgeInsets.all(20),
@@ -1311,7 +1329,7 @@ class _FinancialReportScreenState
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          _sectionTitle(Icons.pie_chart_rounded, Colors.purple,
+          _sectionTitle(Icons.pie_chart_rounded, _colorScheme.tertiary,
               'Expense Distribution'),
           const SizedBox(height: 20),
           SizedBox(
@@ -1332,12 +1350,12 @@ class _FinancialReportScreenState
                   yValueMapper: (d, _) => d.value,
                   pointColorMapper: (d, _) => d.color,
                   dataLabelMapper: (d, _) =>
-                  '${(d.value / total * 100).toStringAsFixed(1)}%',
+                      '${(d.value / total * 100).toStringAsFixed(1)}%',
                   dataLabelSettings: const DataLabelSettings(
                     isVisible: true,
                     labelPosition: ChartDataLabelPosition.outside,
-                    textStyle: TextStyle(
-                        fontSize: 10, fontWeight: FontWeight.bold),
+                    textStyle:
+                        TextStyle(fontSize: 10, fontWeight: FontWeight.bold),
                     connectorLineSettings: ConnectorLineSettings(
                       type: ConnectorType.curve,
                       length: '8%',
@@ -1358,12 +1376,11 @@ class _FinancialReportScreenState
                       Text('Total',
                           style: TextStyle(
                               fontSize: 11,
-                              color: Colors.grey[600])),
+                              color: _colorScheme.onSurfaceVariant)),
                       Text(
                         '₹${NumberFormat.compact().format(total)}',
                         style: const TextStyle(
-                            fontSize: 15,
-                            fontWeight: FontWeight.bold),
+                            fontSize: 15, fontWeight: FontWeight.bold),
                       ),
                     ],
                   ),
@@ -1376,48 +1393,47 @@ class _FinancialReportScreenState
           const SizedBox(height: 8),
           // Breakdown list — also zero-filtered because pieData is already clean
           ...pieData.map((d) => Padding(
-            padding: const EdgeInsets.symmetric(vertical: 5),
-            child: Row(
-              children: [
-                Container(
-                  width: 12,
-                  height: 12,
-                  decoration: BoxDecoration(
-                      color: d.color, shape: BoxShape.circle),
-                ),
-                const SizedBox(width: 10),
-                Expanded(
-                  child: Text(d.label,
-                      style: const TextStyle(
+                padding: const EdgeInsets.symmetric(vertical: 5),
+                child: Row(
+                  children: [
+                    Container(
+                      width: 12,
+                      height: 12,
+                      decoration:
+                          BoxDecoration(color: d.color, shape: BoxShape.circle),
+                    ),
+                    const SizedBox(width: 10),
+                    Expanded(
+                      child: Text(d.label,
+                          style: const TextStyle(
+                              fontSize: 13, fontWeight: FontWeight.w500)),
+                    ),
+                    Text(
+                      '₹${NumberFormat('#,##,###.##').format(d.value)}',
+                      style: TextStyle(
                           fontSize: 13,
-                          fontWeight: FontWeight.w500)),
+                          fontWeight: FontWeight.bold,
+                          color: d.color),
+                    ),
+                    const SizedBox(width: 8),
+                    Container(
+                      padding: const EdgeInsets.symmetric(
+                          horizontal: 8, vertical: 2),
+                      decoration: BoxDecoration(
+                        color: d.color.withOpacity(0.1),
+                        borderRadius: BorderRadius.circular(10),
+                      ),
+                      child: Text(
+                        '${(d.value / total * 100).toStringAsFixed(1)}%',
+                        style: TextStyle(
+                            fontSize: 11,
+                            color: d.color,
+                            fontWeight: FontWeight.w600),
+                      ),
+                    ),
+                  ],
                 ),
-                Text(
-                  '₹${NumberFormat('#,##,###.##').format(d.value)}',
-                  style: TextStyle(
-                      fontSize: 13,
-                      fontWeight: FontWeight.bold,
-                      color: d.color),
-                ),
-                const SizedBox(width: 8),
-                Container(
-                  padding: const EdgeInsets.symmetric(
-                      horizontal: 8, vertical: 2),
-                  decoration: BoxDecoration(
-                    color: d.color.withOpacity(0.1),
-                    borderRadius: BorderRadius.circular(10),
-                  ),
-                  child: Text(
-                    '${(d.value / total * 100).toStringAsFixed(1)}%',
-                    style: TextStyle(
-                        fontSize: 11,
-                        color: d.color,
-                        fontWeight: FontWeight.w600),
-                  ),
-                ),
-              ],
-            ),
-          )),
+              )),
         ],
       ),
     );
@@ -1426,68 +1442,68 @@ class _FinancialReportScreenState
   // ── LAYER 3c: Detailed Metrics Grid ───────────────────────────────────────
 
   Widget _buildMetricsGrid() {
-    final color = isProfit ? Colors.green : Colors.red;
+    final color = isProfit ? _positiveColor : _negativeColor;
     return Container(
       padding: const EdgeInsets.all(20),
       decoration: _cardDecoration(),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          _sectionTitle(Icons.analytics_outlined, Colors.orange,
+          _sectionTitle(Icons.analytics_outlined, _colorScheme.secondary,
               'Detailed Metrics'),
           const SizedBox(height: 20),
           Row(children: [
             Expanded(
                 child: _metricCard(
-                  'Income (w/ GST)',
-                  '₹${NumberFormat('#,##,###').format(site.income?.total ?? incomeValue)}',
-                  Icons.arrow_upward_rounded,
-                  Colors.green,
-                )),
+              'Income (w/ GST)',
+              '₹${NumberFormat('#,##,###').format(site.income?.total ?? incomeValue)}',
+              Icons.arrow_upward_rounded,
+              _incomeColor,
+            )),
             const SizedBox(width: 12),
             Expanded(
                 child: _metricCard(
-                  'Income (excl. GST)',
-                  '₹${NumberFormat('#,##,###').format(site.income?.base ?? 0)}',
-                  Icons.money,
-                  Colors.green.shade700,
-                )),
+              'Income (excl. GST)',
+              '₹${NumberFormat('#,##,###').format(site.income?.base ?? 0)}',
+              Icons.money,
+              _incomeColor.withOpacity(0.8),
+            )),
           ]),
           const SizedBox(height: 12),
           Row(children: [
             Expanded(
                 child: _metricCard(
-                  'GST Amount',
-                  '₹${NumberFormat('#,##,###').format(site.income?.gst ?? 0)}',
-                  Icons.receipt_long,
-                  Colors.blue,
-                )),
+              'GST Amount',
+              '₹${NumberFormat('#,##,###').format(site.income?.gst ?? 0)}',
+              Icons.receipt_long,
+              _accentColor,
+            )),
             const SizedBox(width: 12),
             Expanded(
                 child: _metricCard(
-                  'Total Expenses',
-                  '₹${NumberFormat('#,##,###').format(expensesValue)}',
-                  Icons.arrow_downward_rounded,
-                  Colors.red,
-                )),
+              'Total Expenses',
+              '₹${NumberFormat('#,##,###').format(expensesValue)}',
+              Icons.arrow_downward_rounded,
+              _expenseColor,
+            )),
           ]),
           const SizedBox(height: 12),
           Row(children: [
             Expanded(
                 child: _metricCard(
-                  isProfit ? 'Net Profit' : 'Net Loss',
-                  '₹${NumberFormat('#,##,###').format(profitValue.abs())}',
-                  isProfit ? Icons.trending_up : Icons.trending_down,
-                  color,
-                )),
+              isProfit ? 'Net Profit' : 'Net Loss',
+              '₹${NumberFormat('#,##,###').format(profitValue.abs())}',
+              isProfit ? Icons.trending_up : Icons.trending_down,
+              color,
+            )),
             const SizedBox(width: 12),
             Expanded(
                 child: _metricCard(
-                  'Margin %',
-                  '${site.profitPercentage.abs().toStringAsFixed(2)}%',
-                  Icons.percent_rounded,
-                  color,
-                )),
+              'Margin %',
+              '${site.profitPercentage.abs().toStringAsFixed(2)}%',
+              Icons.percent_rounded,
+              color,
+            )),
           ]),
         ],
       ),
@@ -1497,23 +1513,20 @@ class _FinancialReportScreenState
   // ── Shared Helpers ─────────────────────────────────────────────────────────
 
   Widget _legendDot(Color color, String label) => Row(
-    mainAxisSize: MainAxisSize.min,
-    children: [
-      Container(
-          width: 10,
-          height: 10,
-          decoration:
-          BoxDecoration(color: color, shape: BoxShape.circle)),
-      const SizedBox(width: 5),
-      Text(label,
-          style:
-          TextStyle(fontSize: 12, color: Colors.grey[700])),
-    ],
-  );
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          Container(
+              width: 10,
+              height: 10,
+              decoration: BoxDecoration(color: color, shape: BoxShape.circle)),
+          const SizedBox(width: 5),
+          Text(label,
+              style: TextStyle(
+                  fontSize: 12, color: _colorScheme.onSurfaceVariant)),
+        ],
+      );
 
-  Widget _sectionTitle(
-      IconData icon, Color color, String title) =>
-      Row(
+  Widget _sectionTitle(IconData icon, Color color, String title) => Row(
         children: [
           Container(
             padding: const EdgeInsets.all(8),
@@ -1525,16 +1538,15 @@ class _FinancialReportScreenState
           const SizedBox(width: 12),
           Expanded(
             child: Text(title,
-                style: const TextStyle(
+                style: TextStyle(
                     fontSize: 16,
                     fontWeight: FontWeight.w600,
-                    color: Colors.black87)),
+                    color: _colorScheme.onSurface)),
           ),
         ],
       );
 
-  Widget _metricCard(
-      String label, String value, IconData icon, Color color) =>
+  Widget _metricCard(String label, String value, IconData icon, Color color) =>
       Container(
         padding: const EdgeInsets.all(14),
         decoration: BoxDecoration(
@@ -1551,28 +1563,28 @@ class _FinancialReportScreenState
               Expanded(
                   child: Text(label,
                       style: TextStyle(
-                          fontSize: 11, color: Colors.grey[700]))),
+                          fontSize: 11, color: _colorScheme.onSurfaceVariant))),
             ]),
             const SizedBox(height: 8),
             Text(value,
                 style: TextStyle(
-                    fontSize: 15,
-                    fontWeight: FontWeight.bold,
-                    color: color)),
+                    fontSize: 15, fontWeight: FontWeight.bold, color: color)),
           ],
         ),
       );
 
   BoxDecoration _cardDecoration() => BoxDecoration(
-    color: Colors.white,
-    borderRadius: BorderRadius.circular(16),
-    boxShadow: [
-      BoxShadow(
-          color: Colors.grey.withOpacity(0.1),
-          blurRadius: 10,
-          offset: const Offset(0, 4))
-    ],
-  );
+        color: _colorScheme.surface,
+        borderRadius: BorderRadius.circular(16),
+        border:
+            Border.all(color: _colorScheme.outlineVariant.withOpacity(0.35)),
+        boxShadow: [
+          BoxShadow(
+              color: _colorScheme.shadow.withOpacity(0.08),
+              blurRadius: 10,
+              offset: const Offset(0, 4))
+        ],
+      );
 
   String _dayLabel(String day) =>
       day.substring(0, 3)[0].toUpperCase() + day.substring(1, 3);
@@ -1592,7 +1604,5 @@ class _BarEntry {
   final double income;
   final double expense;
   const _BarEntry(
-      {required this.label,
-        required this.income,
-        required this.expense});
+      {required this.label, required this.income, required this.expense});
 }

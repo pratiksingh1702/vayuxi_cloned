@@ -64,7 +64,6 @@ class _AttendanceScreenState extends ConsumerState<AttendanceScreen> {
     return {"label": val.toString(), "value": val};
   });
 
-
   @override
   void initState() {
     super.initState();
@@ -72,16 +71,20 @@ class _AttendanceScreenState extends ConsumerState<AttendanceScreen> {
       final type = ref.read(typeProvider)!;
       final siteId = ref.read(selectedSiteIdProvider)!;
       // Fetch teams first, then load manpower
-      await ref.read(teamProvider.notifier).fetchTeams(type: type, siteId: siteId);
+      await ref
+          .read(teamProvider.notifier)
+          .fetchTeams(type: type, siteId: siteId);
       _loadManpower();
     });
   }
+
   @override
   void dispose() {
     _isEditMode = false;
     _scrollController.dispose();
     super.dispose();
   }
+
   Future<void> _reloadAll() async {
     print("🔄 FULL RELOAD START");
 
@@ -91,9 +94,9 @@ class _AttendanceScreenState extends ConsumerState<AttendanceScreen> {
     try {
       // 1️⃣ Reload teams
       await ref.read(teamProvider.notifier).fetchTeams(
-        type: type,
-        siteId: siteId,
-      );
+            type: type,
+            siteId: siteId,
+          );
 
       // 2️⃣ Reload manpower
       final repo = ref.read(attendanceRepositoryProvider);
@@ -123,8 +126,6 @@ class _AttendanceScreenState extends ConsumerState<AttendanceScreen> {
       await repo.syncManpowerFromApi(type!);
       print("✅ Manpower synced from API");
     } catch (e) {
-
-
       final error = extractBackendError(e);
       AppToast.error(error);
       if (isDeviceAuthError(e)) {
@@ -150,7 +151,6 @@ class _AttendanceScreenState extends ConsumerState<AttendanceScreen> {
         return;
       }
 
-
       print("⚠️ Failed to sync manpower, using offline data: $e");
     }
 
@@ -163,7 +163,6 @@ class _AttendanceScreenState extends ConsumerState<AttendanceScreen> {
       _firstOTValue = null;
     });
   }
-
 
   bool _isToday(DateTime date) {
     final now = DateTime.now();
@@ -180,7 +179,7 @@ class _AttendanceScreenState extends ConsumerState<AttendanceScreen> {
         SnackBar(
           content: Text(
               "Click 'Edit' to modify attendance for ${_formatDate(_selectedDate)}"),
-          backgroundColor: Colors.orange,
+          backgroundColor: Theme.of(context).colorScheme.tertiary,
           duration: const Duration(seconds: 2),
           behavior: SnackBarBehavior.floating,
         ),
@@ -245,7 +244,8 @@ class _AttendanceScreenState extends ConsumerState<AttendanceScreen> {
     final list = notifier.state;
 
     notifier.state = [
-      for (final emp in list) emp.copyWith(status: "absent", totalHours: 0, ot: 0)
+      for (final emp in list)
+        emp.copyWith(status: "absent", totalHours: 0, ot: 0)
     ];
   }
 
@@ -261,9 +261,9 @@ class _AttendanceScreenState extends ConsumerState<AttendanceScreen> {
       );
     } else {
       ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(
+        SnackBar(
           content: Text("Please enable edit mode to make changes"),
-          backgroundColor: Colors.orange,
+          backgroundColor: Theme.of(context).colorScheme.tertiary,
           duration: Duration(seconds: 2),
           behavior: SnackBarBehavior.floating,
         ),
@@ -289,9 +289,9 @@ class _AttendanceScreenState extends ConsumerState<AttendanceScreen> {
       );
     } else {
       ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(
+        SnackBar(
           content: Text("Edit mode disabled"),
-          backgroundColor: Colors.grey,
+          backgroundColor: Theme.of(context).colorScheme.onSurfaceVariant,
           duration: const Duration(seconds: 1),
           behavior: SnackBarBehavior.floating,
         ),
@@ -346,13 +346,13 @@ class _AttendanceScreenState extends ConsumerState<AttendanceScreen> {
                 Container(
                   padding: const EdgeInsets.all(12),
                   decoration: BoxDecoration(
-                    color: Colors.blue.withOpacity(0.1),
+                    color: Theme.of(context).colorScheme.primaryContainer,
                     shape: BoxShape.circle,
                   ),
                   child: Icon(
                     Icons.access_time_filled,
                     size: 36,
-                    color: Colors.blue.shade700,
+                    color: Theme.of(context).colorScheme.primary,
                   ),
                 ),
                 const SizedBox(height: 16),
@@ -364,7 +364,10 @@ class _AttendanceScreenState extends ConsumerState<AttendanceScreen> {
                 Text(
                   "Apply $otValue hours OT to all eligible employees?",
                   textAlign: TextAlign.center,
-                  style: TextStyle(fontSize: 14, color: Colors.grey.shade700),
+                  style: TextStyle(
+                    fontSize: 14,
+                    color: Theme.of(context).colorScheme.onSurfaceVariant,
+                  ),
                 ),
                 const SizedBox(height: 20),
                 Row(
@@ -373,8 +376,11 @@ class _AttendanceScreenState extends ConsumerState<AttendanceScreen> {
                       child: OutlinedButton(
                         onPressed: () => Navigator.pop(context),
                         style: OutlinedButton.styleFrom(
-                          foregroundColor: Colors.grey.shade700,
-                          side: BorderSide(color: Colors.grey.shade400),
+                          foregroundColor:
+                              Theme.of(context).colorScheme.onSurfaceVariant,
+                          side: BorderSide(
+                              color:
+                                  Theme.of(context).colorScheme.outlineVariant),
                           shape: RoundedRectangleBorder(
                             borderRadius: BorderRadius.circular(10),
                           ),
@@ -390,14 +396,17 @@ class _AttendanceScreenState extends ConsumerState<AttendanceScreen> {
                           _applyOTToAll(otValue, index);
                         },
                         style: ElevatedButton.styleFrom(
-                          backgroundColor: Colors.blue.shade700,
+                          backgroundColor:
+                              Theme.of(context).colorScheme.primary,
                           shape: RoundedRectangleBorder(
                             borderRadius: BorderRadius.circular(10),
                           ),
                         ),
-                        child: const Text(
+                        child: Text(
                           "Apply",
-                          style: TextStyle(color: Colors.white),
+                          style: TextStyle(
+                            color: Theme.of(context).colorScheme.onPrimary,
+                          ),
                         ),
                       ),
                     ),
@@ -422,10 +431,9 @@ class _AttendanceScreenState extends ConsumerState<AttendanceScreen> {
         if (i == changedIndex)
           list[i].copyWith(ot: otValue)
         else if (list[i].status == "present")
-              () {
+          () {
             final totalHourRaw = list[i].manpower.totalHour;
-            final totalHour =
-                double.tryParse(totalHourRaw ?? "") ?? 0;
+            final totalHour = double.tryParse(totalHourRaw ?? "") ?? 0;
 
             // fallback to 8 if not defined
             final maxOT = totalHour > 0 ? totalHour : 8.0;
@@ -445,13 +453,14 @@ class _AttendanceScreenState extends ConsumerState<AttendanceScreen> {
       ),
     );
   }
+
   Future<void> _submitAttendance() async {
     if (!_isEditable) {
       if (!_isToday(_selectedDate)) {
         ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(
+          SnackBar(
             content: Text("Please enable edit mode to save attendance"),
-            backgroundColor: Colors.orange,
+            backgroundColor: Theme.of(context).colorScheme.tertiary,
             behavior: SnackBarBehavior.floating,
           ),
         );
@@ -504,11 +513,11 @@ class _AttendanceScreenState extends ConsumerState<AttendanceScreen> {
         await ref
             .read(attendanceNotifierProvider.notifier)
             .updateMultipleAttendance(
-          payload: payload,
-          type: type!,
-          siteId: siteId!,
-          date: currentDate,
-        );
+              payload: payload,
+              type: type!,
+              siteId: siteId!,
+              date: currentDate,
+            );
         print('✅ Successfully updated attendance records');
       } catch (updateError) {
         final msg = updateError.toString().toLowerCase();
@@ -525,10 +534,10 @@ class _AttendanceScreenState extends ConsumerState<AttendanceScreen> {
         await ref
             .read(attendanceNotifierProvider.notifier)
             .postMultipleAttendance(
-          payload: payload,
-          type: type!,
-          siteId: siteId!,
-        );
+              payload: payload,
+              type: type!,
+              siteId: siteId!,
+            );
         print('✅ Successfully created attendance records');
       }
 
@@ -549,7 +558,7 @@ class _AttendanceScreenState extends ConsumerState<AttendanceScreen> {
       // ✅ Sync confirmed data from API back into Isar
       final repo = ref.read(attendanceRepositoryProvider);
       final dateKey = repo.formatDateKey(_selectedDate);
-      final team=ref.read(currentTeamProvider);
+      final team = ref.read(currentTeamProvider);
 
       try {
         await repo.syncAttendanceForDate(
@@ -561,11 +570,11 @@ class _AttendanceScreenState extends ConsumerState<AttendanceScreen> {
         // ✅ Read fresh confirmed data from Isar and rebuild draft — no flash
         final fresh = await repo
             .watchAttendance(
-          siteId: siteId,
-          type: type,
-          dateKey: dateKey,
-          teamMemberIds: team!.teamMemberIds,
-        )
+              siteId: siteId,
+              type: type,
+              dateKey: dateKey,
+              teamMemberIds: team!.teamMemberIds,
+            )
             .first;
 
         if (mounted) {
@@ -573,8 +582,7 @@ class _AttendanceScreenState extends ConsumerState<AttendanceScreen> {
           // ✅ Prevent build() from overwriting with stale stream data
           _draftLoadedForDate = _selectedDate;
         }
-
-      } catch (syncError,s) {
+      } catch (syncError, s) {
         print(s);
         // Sync failed — draft stays as-is (what user saved), not a critical error
         print("⚠️ Post-save sync failed: $syncError");
@@ -585,7 +593,7 @@ class _AttendanceScreenState extends ConsumerState<AttendanceScreen> {
       String errorMessage = "Error saving attendance";
       if (e.toString().contains("Attendance already exists")) {
         errorMessage =
-        "Attendance for this date already exists. Please update instead.";
+            "Attendance for this date already exists. Please update instead.";
       }
 
       ScaffoldMessenger.of(context).showSnackBar(
@@ -596,7 +604,6 @@ class _AttendanceScreenState extends ConsumerState<AttendanceScreen> {
         ),
       );
     } finally {
-
       if (mounted) {
         setState(() => isLoading = false);
       }
@@ -630,17 +637,18 @@ class _AttendanceScreenState extends ConsumerState<AttendanceScreen> {
 
     final attendanceState = ref.watch(
       attendanceOfflineProvider((
-      siteId: siteId,
-      type: type,
-      date: _selectedDate,
+        siteId: siteId,
+        type: type,
+        date: _selectedDate,
       )),
     );
 
     final site = ref.read(currentSiteProvider);
     final lang = ref.watch(dailyEntryTranslationHelperProvider);
+    final colorScheme = Theme.of(context).colorScheme;
 
     return Scaffold(
-      backgroundColor: const Color(0xFFE8F4FF),
+      backgroundColor: colorScheme.surfaceContainerLowest,
       drawer: CustomDrawer(),
       appBar: CustomAppBar(title: lang.recordAttendanceTitle),
       body: BottomButtonWrapper(
@@ -648,8 +656,10 @@ class _AttendanceScreenState extends ConsumerState<AttendanceScreen> {
           CustomButton(
             button: RoundedButton(
               text: "Save",
-              color: _isEditable ? Colors.blue : Colors.grey,
-              textColor: Colors.white,
+              color: _isEditable
+                  ? colorScheme.primary
+                  : colorScheme.onSurfaceVariant,
+              textColor: colorScheme.onPrimary,
               width: 200,
               onPressed: _submitAttendance,
             ),
@@ -658,277 +668,279 @@ class _AttendanceScreenState extends ConsumerState<AttendanceScreen> {
         child: isLoading
             ? const Center(child: CircularProgressIndicator())
             : attendanceState.when(
-          data: (attendanceList) {
-            // ✅ Only initialize draft when date changes, not on every stream emit
-            if (_draftLoadedForDate != _selectedDate && attendanceList.isNotEmpty){
-              _draftLoadedForDate = _selectedDate;
-              WidgetsBinding.instance.addPostFrameCallback((_) {
-                if (!mounted) return;
-                ref.read(attendanceDraftProvider.notifier).state =
-                    attendanceList.map((e) => e.copyWith()).toList();
-              });
-            }
+                data: (attendanceList) {
+                  // ✅ Only initialize draft when date changes, not on every stream emit
+                  if (_draftLoadedForDate != _selectedDate &&
+                      attendanceList.isNotEmpty) {
+                    _draftLoadedForDate = _selectedDate;
+                    WidgetsBinding.instance.addPostFrameCallback((_) {
+                      if (!mounted) return;
+                      ref.read(attendanceDraftProvider.notifier).state =
+                          attendanceList.map((e) => e.copyWith()).toList();
+                    });
+                  }
 
-            final draft = ref.watch(attendanceDraftProvider);
+                  final draft = ref.watch(attendanceDraftProvider);
 
-            return Padding(
-              padding: const EdgeInsets.all(5),
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  // Site Name and Date Row
-                  Row(
-                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                    children: [
-                      Container(
-                        width: MediaQuery.of(context).size.width * 0.3,
-                        child: Text(
-                          site!.siteName,
-                          maxLines: 1,
-                          overflow: TextOverflow.values.first,
-                          style: const TextStyle(
-                            fontSize: 18,
-                            fontWeight: FontWeight.bold,
-                          ),
-                        ),
-                      ),
-                      // Date selector — only tappable in edit mode
-                      GestureDetector(
-                        onTap: _isEditMode
-                            ? () => _selectDate(context)
-                            : null,
-                        child: _isEditMode
-                            ? Container(
-                          padding: const EdgeInsets.symmetric(
-                            horizontal: 12,
-                            vertical: 6,
-                          ),
-                          decoration: BoxDecoration(
-                            color: Colors.blue.shade50,
-                            borderRadius: BorderRadius.circular(8),
-                            border: Border.all(
-                              color: Colors.blue.shade200,
-                            ),
-                          ),
-                          child: Row(
-                            children: [
-                              const SizedBox(width: 6),
-                              Text(
-                                _formatDate(_selectedDate),
+                  return Padding(
+                    padding: const EdgeInsets.all(5),
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        // Site Name and Date Row
+                        Row(
+                          mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                          children: [
+                            Container(
+                              width: MediaQuery.of(context).size.width * 0.3,
+                              child: Text(
+                                site!.siteName,
+                                maxLines: 1,
+                                overflow: TextOverflow.values.first,
                                 style: const TextStyle(
-                                  fontSize: 16,
-                                  fontWeight: FontWeight.w600,
-                                  color: Colors.blue,
+                                  fontSize: 18,
+                                  fontWeight: FontWeight.bold,
                                 ),
                               ),
-                              const SizedBox(width: 6),
-                              const Icon(
-                                Icons.calendar_today,
-                                size: 16,
-                                color: Colors.blue,
+                            ),
+                            // Date selector — only tappable in edit mode
+                            GestureDetector(
+                              onTap: _isEditMode
+                                  ? () => _selectDate(context)
+                                  : null,
+                              child: _isEditMode
+                                  ? Container(
+                                      padding: const EdgeInsets.symmetric(
+                                        horizontal: 12,
+                                        vertical: 6,
+                                      ),
+                                      decoration: BoxDecoration(
+                                        color: colorScheme.primaryContainer,
+                                        borderRadius: BorderRadius.circular(8),
+                                        border: Border.all(
+                                          color: colorScheme.primary
+                                              .withOpacity(0.25),
+                                        ),
+                                      ),
+                                      child: Row(
+                                        children: [
+                                          const SizedBox(width: 6),
+                                          Text(
+                                            _formatDate(_selectedDate),
+                                            style: TextStyle(
+                                              fontSize: 16,
+                                              fontWeight: FontWeight.w600,
+                                              color: colorScheme.primary,
+                                            ),
+                                          ),
+                                          const SizedBox(width: 6),
+                                          Icon(
+                                            Icons.calendar_today,
+                                            size: 16,
+                                            color: colorScheme.primary,
+                                          ),
+                                        ],
+                                      ),
+                                    )
+                                  : Text(
+                                      _formatDate(_selectedDate),
+                                      style: TextStyle(
+                                        fontSize: 16,
+                                        fontWeight: FontWeight.w600,
+                                        color: colorScheme.onSurfaceVariant,
+                                      ),
+                                    ),
+                            ),
+                          ],
+                        ),
+
+                        const SizedBox(height: 8),
+
+                        // Edit Mode Button and Action Buttons
+                        Row(
+                          mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                          children: [
+                            // Edit Button
+                            GestureDetector(
+                              onTap: _toggleEditMode,
+                              child: Container(
+                                padding: const EdgeInsets.symmetric(
+                                  horizontal: 16,
+                                  vertical: 8,
+                                ),
+                                decoration: BoxDecoration(
+                                  color: _isEditMode
+                                      ? colorScheme.primaryContainer
+                                      : colorScheme.surface,
+                                  borderRadius: BorderRadius.circular(20),
+                                  border: Border.all(
+                                    color: _isEditMode
+                                        ? colorScheme.primary
+                                        : colorScheme.outlineVariant,
+                                    width: 2,
+                                  ),
+                                ),
+                                child: Row(
+                                  children: [
+                                    Icon(
+                                      _isEditMode ? Icons.edit_off : Icons.edit,
+                                      size: 16,
+                                      color: _isEditMode
+                                          ? colorScheme.primary
+                                          : colorScheme.onSurfaceVariant,
+                                    ),
+                                    const SizedBox(width: 6),
+                                    Text(
+                                      _isEditMode ? "Editing" : "Edit",
+                                      style: TextStyle(
+                                        color: _isEditMode
+                                            ? colorScheme.primary
+                                            : colorScheme.onSurfaceVariant,
+                                        fontWeight: FontWeight.bold,
+                                        fontSize: 13,
+                                      ),
+                                    ),
+                                  ],
+                                ),
                               ),
-                            ],
+                            ),
+
+                            // All Present / All Absent
+                            Row(
+                              children: [
+                                GestureDetector(
+                                  onTap: _toggleAllAbsent,
+                                  child: Container(
+                                    padding: const EdgeInsets.symmetric(
+                                      horizontal: 16,
+                                      vertical: 8,
+                                    ),
+                                    decoration: BoxDecoration(
+                                      color: allAbsent
+                                          ? Colors.red
+                                          : Colors.red.withOpacity(0.3),
+                                      borderRadius: BorderRadius.circular(20),
+                                      border: Border.all(color: Colors.red),
+                                    ),
+                                    child: Text(
+                                      "All Absent",
+                                      style: TextStyle(
+                                        color: allAbsent
+                                            ? Colors.white
+                                            : Colors.red,
+                                        fontWeight: FontWeight.bold,
+                                      ),
+                                    ),
+                                  ),
+                                ),
+                                const SizedBox(width: 8),
+                                GestureDetector(
+                                  onTap: _toggleAllPresent,
+                                  child: Container(
+                                    padding: const EdgeInsets.symmetric(
+                                      horizontal: 16,
+                                      vertical: 8,
+                                    ),
+                                    decoration: BoxDecoration(
+                                      color: allPresent
+                                          ? Colors.green
+                                          : Colors.green.withOpacity(0.3),
+                                      borderRadius: BorderRadius.circular(20),
+                                      border: Border.all(color: Colors.green),
+                                    ),
+                                    child: Text(
+                                      "All Present",
+                                      style: TextStyle(
+                                        color: allPresent
+                                            ? Colors.white
+                                            : Colors.green,
+                                        fontWeight: FontWeight.bold,
+                                      ),
+                                    ),
+                                  ),
+                                ),
+                              ],
+                            ),
+                          ],
+                        ),
+
+                        const SizedBox(height: 20),
+
+                        // Attendance List
+                        Expanded(
+                          child: CustomScrollbar(
+                            controller: _scrollController,
+                            child: ListView.builder(
+                              controller: _scrollController,
+                              physics: const AlwaysScrollableScrollPhysics(),
+                              itemCount: draft.length,
+                              itemBuilder: (context, i) {
+                                final emp = draft[i];
+                                final totalHours = double.tryParse(
+                                        emp.manpower.totalHour ?? "") ??
+                                    0;
+
+                                final otOptions = buildOTOptions(
+                                  maxAllowedHours: totalHours,
+                                );
+                                return AttendanceCard(
+                                  name: emp.manpower.fullName ?? "Unnamed",
+                                  maxAllowedHours: totalHours,
+                                  status: emp.status,
+                                  totalHours: emp.totalHours,
+                                  otValue: emp.ot,
+                                  absentOptions: absentOptions,
+                                  otOptions: otOptions,
+                                  isEditMode: _isEditable,
+                                  onAbsentChange: (v) {
+                                    if (!_isEditable) {
+                                      _showEditRequiredMessage();
+                                      return;
+                                    }
+
+                                    double hours = 0;
+                                    String st = "absent";
+
+                                    if (v == "P") {
+                                      hours = 8;
+                                      st = "present";
+                                    } else if (v is double && v > 0) {
+                                      hours = v;
+                                      st = "present";
+                                    }
+
+                                    final notifier = ref
+                                        .read(attendanceDraftProvider.notifier);
+                                    final list = notifier.state;
+
+                                    notifier.state = [
+                                      for (int j = 0; j < list.length; j++)
+                                        if (j == i)
+                                          list[j].copyWith(
+                                              status: st, totalHours: hours)
+                                        else
+                                          list[j]
+                                    ];
+                                  },
+                                  onOtChange: (v) => _handleOTChange(i, v),
+                                );
+                              },
+                            ),
                           ),
                         )
-                            : Text(
-                          _formatDate(_selectedDate),
-                          style: TextStyle(
-                            fontSize: 16,
-                            fontWeight: FontWeight.w600,
-                            color: Colors.grey.shade700,
-                          ),
-                        ),
-                      ),
-                    ],
-                  ),
-
-                  const SizedBox(height: 8),
-
-                  // Edit Mode Button and Action Buttons
-                  Row(
-                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                    children: [
-                      // Edit Button
-                      GestureDetector(
-                        onTap: _toggleEditMode,
-                        child: Container(
-                          padding: const EdgeInsets.symmetric(
-                            horizontal: 16,
-                            vertical: 8,
-                          ),
-                          decoration: BoxDecoration(
-                            color: _isEditMode
-                                ? Colors.blue.shade100
-                                : Colors.white,
-                            borderRadius: BorderRadius.circular(20),
-                            border: Border.all(
-                              color: _isEditMode
-                                  ? Colors.blue.shade700
-                                  : Colors.grey.shade400,
-                              width: 2,
-                            ),
-                          ),
-                          child: Row(
-                            children: [
-                              Icon(
-                                _isEditMode
-                                    ? Icons.edit_off
-                                    : Icons.edit,
-                                size: 16,
-                                color: _isEditMode
-                                    ? Colors.blue.shade700
-                                    : Colors.grey.shade700,
-                              ),
-                              const SizedBox(width: 6),
-                              Text(
-                                _isEditMode ? "Editing" : "Edit",
-                                style: TextStyle(
-                                  color: _isEditMode
-                                      ? Colors.blue.shade700
-                                      : Colors.grey.shade700,
-                                  fontWeight: FontWeight.bold,
-                                  fontSize: 13,
-                                ),
-                              ),
-                            ],
-                          ),
-                        ),
-                      ),
-
-                      // All Present / All Absent
-                      Row(
-                        children: [
-                          GestureDetector(
-                            onTap: _toggleAllAbsent,
-                            child: Container(
-                              padding: const EdgeInsets.symmetric(
-                                horizontal: 16,
-                                vertical: 8,
-                              ),
-                              decoration: BoxDecoration(
-                                color: allAbsent
-                                    ? Colors.red
-                                    : Colors.red.withOpacity(0.3),
-                                borderRadius: BorderRadius.circular(20),
-                                border: Border.all(color: Colors.red),
-                              ),
-                              child: Text(
-                                "All Absent",
-                                style: TextStyle(
-                                  color: allAbsent
-                                      ? Colors.white
-                                      : Colors.red,
-                                  fontWeight: FontWeight.bold,
-                                ),
-                              ),
-                            ),
-                          ),
-                          const SizedBox(width: 8),
-                          GestureDetector(
-                            onTap: _toggleAllPresent,
-                            child: Container(
-                              padding: const EdgeInsets.symmetric(
-                                horizontal: 16,
-                                vertical: 8,
-                              ),
-                              decoration: BoxDecoration(
-                                color: allPresent
-                                    ? Colors.green
-                                    : Colors.green.withOpacity(0.3),
-                                borderRadius: BorderRadius.circular(20),
-                                border: Border.all(color: Colors.green),
-                              ),
-                              child: Text(
-                                "All Present",
-                                style: TextStyle(
-                                  color: allPresent
-                                      ? Colors.white
-                                      : Colors.green,
-                                  fontWeight: FontWeight.bold,
-                                ),
-                              ),
-                            ),
-                          ),
-                        ],
-                      ),
-                    ],
-                  ),
-
-                  const SizedBox(height: 20),
-
-                  // Attendance List
-                  Expanded(
-                    child: CustomScrollbar(
-                      controller: _scrollController,
-                      child: ListView.builder(
-                        controller: _scrollController,
-                        physics: const AlwaysScrollableScrollPhysics(),
-                        itemCount: draft.length,
-                        itemBuilder: (context, i) {
-                          final emp = draft[i];
-                        final totalHours =
-                            double.tryParse(emp.manpower.totalHour ?? "") ?? 0;
-
-                        final otOptions = buildOTOptions(
-                          maxAllowedHours: totalHours,
-                        );
-                        return AttendanceCard(
-                          name: emp.manpower.fullName ?? "Unnamed",
-                          maxAllowedHours: totalHours,
-                          status: emp.status,
-                          totalHours: emp.totalHours,
-                          otValue: emp.ot,
-                          absentOptions: absentOptions,
-                          otOptions: otOptions,
-                          isEditMode: _isEditable,
-                          onAbsentChange: (v) {
-                            if (!_isEditable) {
-                              _showEditRequiredMessage();
-                              return;
-                            }
-
-                            double hours = 0;
-                            String st = "absent";
-
-                            if (v == "P") {
-                              hours = 8;
-                              st = "present";
-                            } else if (v is double && v > 0) {
-                              hours = v;
-                              st = "present";
-                            }
-
-                            final notifier = ref
-                                .read(attendanceDraftProvider.notifier);
-                            final list = notifier.state;
-
-                            notifier.state = [
-                              for (int j = 0; j < list.length; j++)
-                                if (j == i)
-                                  list[j].copyWith(
-                                      status: st, totalHours: hours)
-                                else
-                                  list[j]
-                            ];
-                          },
-                          onOtChange: (v) => _handleOTChange(i, v),
-                        );
-                      },
+                      ],
                     ),
-                  ),)
-                ],
+                  );
+                },
+                error: (e, s) {
+                  print(e);
+                  return Text("$e");
+                },
+                loading: () => const ShimmerList(
+                  type: ShimmerListType.tile,
+                  itemCount: 8,
+                ),
               ),
-            );
-          },
-          error: (e, s) {
-            print(e);
-            return Text("$e");
-          },
-          loading: () => const ShimmerList(
-            type: ShimmerListType.tile,
-            itemCount: 8,
-          ),
-        ),
       ),
     );
   }
@@ -958,7 +970,6 @@ class AttendanceCard extends StatefulWidget {
     required this.onOtChange,
     required this.isEditMode,
     required this.maxAllowedHours,
-
   });
 
   @override
@@ -975,9 +986,12 @@ class _AttendanceCardState extends State<AttendanceCard> {
     super.initState();
     _present = widget.status != "absent";
 
-    final hasRecordedAttendance = widget.status == "present" || widget.status == "absent";
+    final hasRecordedAttendance =
+        widget.status == "present" || widget.status == "absent";
 
-    if (hasRecordedAttendance && widget.totalHours > 0 && widget.totalHours != widget.maxAllowedHours) {
+    if (hasRecordedAttendance &&
+        widget.totalHours > 0 &&
+        widget.totalHours != widget.maxAllowedHours) {
       _hours = widget.totalHours;
     } else {
       _hours = widget.maxAllowedHours > 0 ? widget.maxAllowedHours : 8.0;
@@ -995,9 +1009,12 @@ class _AttendanceCardState extends State<AttendanceCard> {
       setState(() {
         _present = widget.status != "absent";
 
-        final hasRecordedAttendance = widget.status == "present" || widget.status == "absent";
+        final hasRecordedAttendance =
+            widget.status == "present" || widget.status == "absent";
 
-        if (hasRecordedAttendance && widget.totalHours > 0 && widget.totalHours != widget.maxAllowedHours) {
+        if (hasRecordedAttendance &&
+            widget.totalHours > 0 &&
+            widget.totalHours != widget.maxAllowedHours) {
           _hours = widget.totalHours;
         } else {
           _hours = widget.maxAllowedHours > 0 ? widget.maxAllowedHours : 8.0;
@@ -1007,6 +1024,7 @@ class _AttendanceCardState extends State<AttendanceCard> {
       });
     }
   }
+
   double get _totalHours => _present ? _hours + _otHours : 0;
 
   void toggleAttendance() {
@@ -1043,21 +1061,27 @@ class _AttendanceCardState extends State<AttendanceCard> {
 
   @override
   Widget build(BuildContext context) {
+    final colorScheme = Theme.of(context).colorScheme;
     final effectiveOTValue = _present ? _otHours : 0.0;
-    Color cardColor = _present ? Colors.green.shade50 : Colors.red.shade50;
+    final overlayBase = _present ? Colors.green : Colors.red;
+    final cardColor = Color.alphaBlend(
+      overlayBase
+          .withOpacity(colorScheme.brightness == Brightness.dark ? 0.18 : 0.10),
+      colorScheme.surface,
+    );
 
     return InkWell(
       onTap: widget.isEditMode ? toggleAttendance : null,
       borderRadius: BorderRadius.circular(10),
       splashColor: widget.isEditMode
           ? (_present
-          ? Colors.green.withOpacity(0.2)
-          : Colors.red.withOpacity(0.2))
+              ? Colors.green.withOpacity(0.2)
+              : Colors.red.withOpacity(0.2))
           : null,
       highlightColor: widget.isEditMode
           ? (_present
-          ? Colors.green.withOpacity(0.1)
-          : Colors.red.withOpacity(0.1))
+              ? Colors.green.withOpacity(0.1)
+              : Colors.red.withOpacity(0.1))
           : null,
       child: Container(
         margin: const EdgeInsets.only(bottom: 12),
@@ -1071,7 +1095,7 @@ class _AttendanceCardState extends State<AttendanceCard> {
           ),
           boxShadow: [
             BoxShadow(
-              color: Colors.grey.shade100,
+              color: colorScheme.shadow.withOpacity(0.08),
               blurRadius: 4,
               offset: const Offset(0, 2),
             ),
@@ -1093,9 +1117,10 @@ class _AttendanceCardState extends State<AttendanceCard> {
                           widget.name,
                           maxLines: 1,
                           overflow: TextOverflow.ellipsis,
-                          style: const TextStyle(
+                          style: TextStyle(
                             fontSize: 16,
                             fontWeight: FontWeight.bold,
+                            color: colorScheme.onSurface,
                           ),
                         ),
                       ),
@@ -1145,7 +1170,7 @@ class _AttendanceCardState extends State<AttendanceCard> {
                       Icon(
                         Icons.access_time,
                         size: 12,
-                        color: Colors.grey.shade600,
+                        color: colorScheme.onSurfaceVariant,
                       ),
                       const SizedBox(width: 4),
                       Text(
@@ -1154,7 +1179,7 @@ class _AttendanceCardState extends State<AttendanceCard> {
                             : "0 hours",
                         style: TextStyle(
                           fontSize: 11,
-                          color: Colors.grey.shade600,
+                          color: colorScheme.onSurfaceVariant,
                         ),
                       ),
                     ],
@@ -1162,9 +1187,7 @@ class _AttendanceCardState extends State<AttendanceCard> {
                 ],
               ),
             ),
-
             const SizedBox(width: 12),
-
             Column(
               mainAxisAlignment: MainAxisAlignment.spaceBetween,
               crossAxisAlignment: CrossAxisAlignment.end,
@@ -1174,7 +1197,7 @@ class _AttendanceCardState extends State<AttendanceCard> {
                     Container(
                       padding: const EdgeInsets.all(2),
                       decoration: BoxDecoration(
-                        color: Colors.grey.shade100,
+                        color: colorScheme.surfaceContainerHighest,
                         borderRadius: BorderRadius.circular(8.0),
                       ),
                       child: _buildPAButton(),
@@ -1193,23 +1216,25 @@ class _AttendanceCardState extends State<AttendanceCard> {
                       ),
                       decoration: BoxDecoration(
                         color: _present
-                            ? Colors.orange.withOpacity(0.9)
-                            : Colors.orange.withOpacity(0.3),
+                            ? colorScheme.tertiary
+                            : colorScheme.tertiaryContainer,
                         borderRadius: BorderRadius.circular(6),
                         boxShadow: _present
                             ? [
-                          BoxShadow(
-                            color: Colors.orange.withOpacity(0.2),
-                            blurRadius: 2,
-                            offset: const Offset(0, 1),
-                          ),
-                        ]
+                                BoxShadow(
+                                  color: colorScheme.tertiary.withOpacity(0.2),
+                                  blurRadius: 2,
+                                  offset: const Offset(0, 1),
+                                ),
+                              ]
                             : null,
                       ),
                       child: Text(
                         "OT",
                         style: TextStyle(
-                          color: _present ? Colors.white : Colors.grey,
+                          color: _present
+                              ? colorScheme.onTertiary
+                              : colorScheme.onSurfaceVariant,
                           fontSize: 12,
                           fontWeight: FontWeight.bold,
                         ),
@@ -1228,9 +1253,10 @@ class _AttendanceCardState extends State<AttendanceCard> {
   }
 
   Widget _buildPAButton() {
+    final colorScheme = Theme.of(context).colorScheme;
     return Container(
       decoration: BoxDecoration(
-        color: Colors.white,
+        color: colorScheme.surface,
         borderRadius: BorderRadius.circular(6),
       ),
       child: Row(
@@ -1251,9 +1277,8 @@ class _AttendanceCardState extends State<AttendanceCard> {
       child: Container(
         padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
         decoration: BoxDecoration(
-          color: active
-              ? (value ? Colors.green : Colors.red)
-              : Colors.transparent,
+          color:
+              active ? (value ? Colors.green : Colors.red) : Colors.transparent,
           borderRadius: BorderRadius.circular(5),
         ),
         child: Text(
@@ -1262,8 +1287,8 @@ class _AttendanceCardState extends State<AttendanceCard> {
             color: active
                 ? Colors.white
                 : value
-                ? Colors.green.withOpacity(0.6)
-                : Colors.red.withOpacity(0.6),
+                    ? Colors.green.withOpacity(0.6)
+                    : Colors.red.withOpacity(0.6),
             fontWeight: active ? FontWeight.bold : FontWeight.normal,
             fontSize: active ? 13 : 10,
           ),
@@ -1273,21 +1298,22 @@ class _AttendanceCardState extends State<AttendanceCard> {
   }
 
   Widget _buildHoursDropdown() {
+    final colorScheme = Theme.of(context).colorScheme;
     final maxAllowedHours =
-    widget.maxAllowedHours > 0 ? widget.maxAllowedHours : 8.0;
+        widget.maxAllowedHours > 0 ? widget.maxAllowedHours : 8.0;
     print("⏱ HOURS DROPDOWN --------------------");
     print("👤 ${widget.name}");
     print("📊 maxAllowedHours: $maxAllowedHours");
     print("📊 current _hours: $_hours");
 
-
-
     final hoursOptions = _present
         ? List.generate((maxAllowedHours * 2).floor() + 1, (i) {
-      final val = i * 0.5;
-      return {"label": "${val.toString()}h", "value": val};
-    })
-        : [{"value": 0.0, "label": "0h"}];
+            final val = i * 0.5;
+            return {"label": "${val.toString()}h", "value": val};
+          })
+        : [
+            {"value": 0.0, "label": "0h"}
+          ];
 
     final defaultValue = _present ? _hours : 0.0;
     print("📋 hoursOptions:");
@@ -1295,7 +1321,6 @@ class _AttendanceCardState extends State<AttendanceCard> {
       print("   ${e["value"]}");
     }
     print("🔑 defaultValue: $defaultValue");
-
 
     return MouseRegion(
       cursor: widget.isEditMode
@@ -1305,10 +1330,14 @@ class _AttendanceCardState extends State<AttendanceCard> {
         height: 30,
         padding: const EdgeInsets.symmetric(horizontal: 3),
         decoration: BoxDecoration(
-          color: _present ? Colors.blue.shade50 : Colors.grey.shade200,
+          color: _present
+              ? colorScheme.tertiaryContainer
+              : colorScheme.surfaceContainerHighest,
           borderRadius: BorderRadius.circular(6),
           border: Border.all(
-            color: _present ? Colors.blue.shade100 : Colors.grey.shade300,
+            color: _present
+                ? colorScheme.tertiary.withOpacity(0.25)
+                : colorScheme.outlineVariant,
             width: 1,
           ),
         ),
@@ -1320,31 +1349,33 @@ class _AttendanceCardState extends State<AttendanceCard> {
             items: hoursOptions
                 .map(
                   (e) => DropdownMenuItem<double>(
-                value: e["value"] as double,
-                child: Text(
-                  e["label"].toString(),
-                  style: TextStyle(
-                    fontSize: 12,
-                    color: _present ? Colors.black : Colors.grey,
+                    value: e["value"] as double,
+                    child: Text(
+                      e["label"].toString(),
+                      style: TextStyle(
+                        fontSize: 12,
+                        color: _present
+                            ? colorScheme.onSurface
+                            : colorScheme.onSurfaceVariant,
+                      ),
+                    ),
                   ),
-                ),
-              ),
-            )
+                )
                 .toList(),
             onChanged: widget.isEditMode && _present
                 ? (v) {
-              if (v != null) {
-                setState(() => _hours = v);
+                    if (v != null) {
+                      setState(() => _hours = v);
 
-                // 🔥 IMPORTANT: reset OT if exceeds limit
-                if (_otHours > maxAllowedHours - v) {
-                  _otHours = 0;
-                  widget.onOtChange(0);
-                }
+                      // 🔥 IMPORTANT: reset OT if exceeds limit
+                      if (_otHours > maxAllowedHours - v) {
+                        _otHours = 0;
+                        widget.onOtChange(0);
+                      }
 
-                widget.onAbsentChange(v);
-              }
-            }
+                      widget.onAbsentChange(v);
+                    }
+                  }
                 : null,
           ),
         ),
@@ -1370,11 +1401,12 @@ class _AttendanceCardState extends State<AttendanceCard> {
   }
 
   Widget _buildOTDropdown(double effectiveOTValue) {
+    final colorScheme = Theme.of(context).colorScheme;
     final otOptions = _present
         ? widget.otOptions
         : [
-      {"value": 0.0, "label": "0h"}
-    ];
+            {"value": 0.0, "label": "0h"}
+          ];
 
     return MouseRegion(
       cursor: widget.isEditMode
@@ -1384,10 +1416,14 @@ class _AttendanceCardState extends State<AttendanceCard> {
         height: 30,
         padding: const EdgeInsets.symmetric(horizontal: 3),
         decoration: BoxDecoration(
-          color: _present ? Colors.orange.shade50 : Colors.grey.shade200,
+          color: _present
+              ? colorScheme.tertiaryContainer
+              : colorScheme.surfaceContainerHighest,
           borderRadius: BorderRadius.circular(6),
           border: Border.all(
-            color: _present ? Colors.orange.shade100 : Colors.grey.shade300,
+            color: _present
+                ? colorScheme.tertiary.withOpacity(0.25)
+                : colorScheme.outlineVariant,
             width: 1,
           ),
         ),
@@ -1401,24 +1437,26 @@ class _AttendanceCardState extends State<AttendanceCard> {
             items: otOptions
                 .map(
                   (e) => DropdownMenuItem<double>(
-                value: e["value"],
-                child: Text(
-                  e["label"].toString(),
-                  style: TextStyle(
-                    fontSize: 12,
-                    color: _present ? Colors.black : Colors.grey,
+                    value: e["value"],
+                    child: Text(
+                      e["label"].toString(),
+                      style: TextStyle(
+                        fontSize: 12,
+                        color: _present
+                            ? colorScheme.onSurface
+                            : colorScheme.onSurfaceVariant,
+                      ),
+                    ),
                   ),
-                ),
-              ),
-            )
+                )
                 .toList(),
             onChanged: widget.isEditMode && _present
                 ? (v) {
-              if (v != null) {
-                setState(() => _otHours = v);
-                widget.onOtChange(v);
-              }
-            }
+                    if (v != null) {
+                      setState(() => _otHours = v);
+                      widget.onOtChange(v);
+                    }
+                  }
                 : null,
           ),
         ),

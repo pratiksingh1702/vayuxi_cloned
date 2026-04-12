@@ -6,7 +6,6 @@ import 'package:go_router/go_router.dart';
 import 'package:image_picker/image_picker.dart';
 import 'package:image_cropper/image_cropper.dart';
 import 'package:dropdown_search/dropdown_search.dart';
-import 'package:untitled2/core/utlis/colors/colors.dart';
 import 'package:untitled2/core/utlis/widgets/buttons.dart';
 
 import '../../../../../core/utlis/widgets/custom_appBar.dart';
@@ -76,13 +75,15 @@ class _EditTeamScreenState extends ConsumerState<EditTeamScreen> {
     if (widget.team.teamLeadId != null && widget.team.teamLeadId!.isNotEmpty) {
       try {
         _selectedLead = manpowerList.firstWhere(
-              (m) => m.id == widget.team.teamLeadId,
+          (m) => m.id == widget.team.teamLeadId,
         );
-        debugPrint('✅ Team lead found: ${_selectedLead?.fullName} (${_selectedLead?.id})');
+        debugPrint(
+            '✅ Team lead found: ${_selectedLead?.fullName} (${_selectedLead?.id})');
       } catch (e) {
         _selectedLead = null;
         debugPrint('❌ Team lead not found with ID: ${widget.team.teamLeadId}');
-        debugPrint('   Available IDs: ${manpowerList.map((m) => m.id).join(", ")}');
+        debugPrint(
+            '   Available IDs: ${manpowerList.map((m) => m.id).join(", ")}');
       }
     }
 
@@ -100,9 +101,11 @@ class _EditTeamScreenState extends ConsumerState<EditTeamScreen> {
 
       // Check for missing members
       final foundIds = _selectedMembers.map((m) => m.id).toSet();
-      final missingIds = widget.team.teamMemberIds.where((id) => !foundIds.contains(id));
+      final missingIds =
+          widget.team.teamMemberIds.where((id) => !foundIds.contains(id));
       if (missingIds.isNotEmpty) {
-        debugPrint('⚠️ Some team members not found in manpower list: $missingIds');
+        debugPrint(
+            '⚠️ Some team members not found in manpower list: $missingIds');
       }
     }
 
@@ -111,6 +114,7 @@ class _EditTeamScreenState extends ConsumerState<EditTeamScreen> {
   }
 
   Future<void> _cropImage(File imageFile) async {
+    final colorScheme = Theme.of(context).colorScheme;
     try {
       final croppedFile = await ImageCropper().cropImage(
         sourcePath: imageFile.path,
@@ -119,19 +123,19 @@ class _EditTeamScreenState extends ConsumerState<EditTeamScreen> {
         uiSettings: [
           AndroidUiSettings(
             toolbarTitle: 'Crop Team Profile',
-            toolbarColor: Colors.black,
-            toolbarWidgetColor: Colors.white,
+            toolbarColor: colorScheme.surface,
+            toolbarWidgetColor: colorScheme.onSurface,
             initAspectRatio: CropAspectRatioPreset.original,
             lockAspectRatio: false,
             hideBottomControls: false,
             showCropGrid: true,
             cropGridRowCount: 3,
             cropGridColumnCount: 3,
-            cropGridColor: Colors.white.withOpacity(0.5),
-            cropFrameColor: Colors.blueAccent,
+            cropGridColor: colorScheme.onSurface.withOpacity(0.35),
+            cropFrameColor: colorScheme.primary,
             cropGridStrokeWidth: 1,
             cropFrameStrokeWidth: 2,
-            activeControlsWidgetColor: Colors.blueAccent,
+            activeControlsWidgetColor: colorScheme.primary,
             aspectRatioPresets: [
               CropAspectRatioPreset.original,
               CropAspectRatioPreset.square,
@@ -178,7 +182,7 @@ class _EditTeamScreenState extends ConsumerState<EditTeamScreen> {
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
             content: Text('Error cropping image: ${e.toString()}'),
-            backgroundColor: Colors.red,
+            backgroundColor: colorScheme.error,
           ),
         );
       }
@@ -189,13 +193,15 @@ class _EditTeamScreenState extends ConsumerState<EditTeamScreen> {
     return showDialog(
       context: context,
       builder: (BuildContext context) {
+        final colorScheme = Theme.of(context).colorScheme;
         return AlertDialog(
-          title: const Text('Choose Image Source'),
+          title: Text('Choose Image Source',
+              style: TextStyle(color: colorScheme.onSurface)),
           content: Column(
             mainAxisSize: MainAxisSize.min,
             children: [
               ListTile(
-                leading: const Icon(Icons.photo_library, color: Colors.blue),
+                leading: Icon(Icons.photo_library, color: colorScheme.primary),
                 title: const Text('Gallery'),
                 onTap: () {
                   context.pop();
@@ -203,7 +209,7 @@ class _EditTeamScreenState extends ConsumerState<EditTeamScreen> {
                 },
               ),
               ListTile(
-                leading: const Icon(Icons.camera_alt, color: Colors.blue),
+                leading: Icon(Icons.camera_alt, color: colorScheme.primary),
                 title: const Text('Camera'),
                 onTap: () {
                   context.pop();
@@ -218,6 +224,7 @@ class _EditTeamScreenState extends ConsumerState<EditTeamScreen> {
   }
 
   Future<void> _pickImageFromSource(ImageSource source) async {
+    final colorScheme = Theme.of(context).colorScheme;
     try {
       final pickedFile = await _picker.pickImage(
         source: source,
@@ -232,7 +239,7 @@ class _EditTeamScreenState extends ConsumerState<EditTeamScreen> {
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
             content: Text('Error picking image: ${e.toString()}'),
-            backgroundColor: Colors.red,
+            backgroundColor: colorScheme.error,
           ),
         );
       }
@@ -250,9 +257,8 @@ class _EditTeamScreenState extends ConsumerState<EditTeamScreen> {
             _selectedImage!.path,
             filename: "team_profile.jpg",
           )
-        else if (_selectedImage==null && _currentImageUrl==null)
+        else if (_selectedImage == null && _currentImageUrl == null)
           "teamLeadImage": "",
-
       });
       print("===== FORM DATA =====");
 
@@ -268,11 +274,11 @@ class _EditTeamScreenState extends ConsumerState<EditTeamScreen> {
       final type = ref.read(typeProvider);
 
       await ref.read(teamProvider.notifier).updateTeam(
-        siteId: widget.site.id,
-        teamId: widget.team.id,
-        data: formData,
-        type: type!,
-      );
+            siteId: widget.site.id,
+            teamId: widget.team.id,
+            data: formData,
+            type: type!,
+          );
       ref.invalidate(manpowerSyncControllerProvider((type: type!)));
 
       if (mounted) {
@@ -291,6 +297,7 @@ class _EditTeamScreenState extends ConsumerState<EditTeamScreen> {
   Widget build(BuildContext context) {
     final type = ref.watch(typeProvider);
     final manpowerState = ref.watch(manpowerProvider);
+    final colorScheme = Theme.of(context).colorScheme;
 
     // Pre-fill data when manpower is loaded
     if (manpowerState.manpowerList.isNotEmpty && !_isDataInitialized) {
@@ -337,12 +344,12 @@ class _EditTeamScreenState extends ConsumerState<EditTeamScreen> {
                     Column(
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
-                        const Text(
+                        Text(
                           "Team Profile",
                           style: TextStyle(
                             fontSize: 14,
                             fontWeight: FontWeight.w600,
-                            color: Colors.black87,
+                            color: colorScheme.onSurface,
                           ),
                         ),
                         const SizedBox(height: 10),
@@ -352,102 +359,103 @@ class _EditTeamScreenState extends ConsumerState<EditTeamScreen> {
                             height: 130,
                             width: 120,
                             decoration: BoxDecoration(
-                              color: Colors.grey[200],
+                              color: colorScheme.surfaceContainerHighest,
                               borderRadius: BorderRadius.circular(12),
-                              border: Border.all(color: Colors.grey.shade400),
+                              border:
+                                  Border.all(color: colorScheme.outlineVariant),
                             ),
                             child: _selectedImage != null
                                 ? Stack(
-                              children: [
-                                ClipRRect(
-                                  borderRadius: BorderRadius.circular(12),
-                                  child: Image.file(
-                                    _selectedImage!,
-                                    fit: BoxFit.cover,
-                                    width: double.infinity,
-                                    height: double.infinity,
-                                  ),
-                                ),
-                                Positioned(
-                                  top: 5,
-                                  right: 5,
-                                  child: GestureDetector(
-                                    onTap: () {
-                                      setState(() {
-                                        _selectedImage = null;
-                                      });
-                                    },
-                                    child: Container(
-                                      padding: const EdgeInsets.all(4),
-                                      decoration: const BoxDecoration(
-                                        color: Colors.red,
-                                        shape: BoxShape.circle,
+                                    children: [
+                                      ClipRRect(
+                                        borderRadius: BorderRadius.circular(12),
+                                        child: Image.file(
+                                          _selectedImage!,
+                                          fit: BoxFit.cover,
+                                          width: double.infinity,
+                                          height: double.infinity,
+                                        ),
                                       ),
-                                      child: const Icon(
-                                        Icons.close,
-                                        size: 16,
-                                        color: Colors.white,
+                                      Positioned(
+                                        top: 5,
+                                        right: 5,
+                                        child: GestureDetector(
+                                          onTap: () {
+                                            setState(() {
+                                              _selectedImage = null;
+                                            });
+                                          },
+                                          child: Container(
+                                            padding: const EdgeInsets.all(4),
+                                            decoration: BoxDecoration(
+                                              color: colorScheme.error,
+                                              shape: BoxShape.circle,
+                                            ),
+                                            child: Icon(
+                                              Icons.close,
+                                              size: 16,
+                                              color: colorScheme.onError,
+                                            ),
+                                          ),
+                                        ),
                                       ),
-                                    ),
-                                  ),
-                                ),
-                              ],
-                            )
+                                    ],
+                                  )
                                 : _currentImageUrl != null &&
-                                _currentImageUrl!.isNotEmpty
-                                ? Stack(
-                              children: [
-                                ClipRRect(
-                                  borderRadius:
-                                  BorderRadius.circular(12),
-                                  child: Image.network(
-                                    _currentImageUrl!,
-                                    fit: BoxFit.cover,
-                                    width: double.infinity,
-                                    height: double.infinity,
-                                    errorBuilder: (context, error,
-                                        stackTrace) {
-                                      return _buildPlaceholderImage();
-                                    },
-                                    loadingBuilder: (context, child,
-                                        loadingProgress) {
-                                      if (loadingProgress == null) {
-                                        return child;
-                                      }
-                                      return const Center(
-                                        child:
-                                        CircularProgressIndicator(),
-                                      );
-                                    },
-                                  ),
-                                ),
-                                Positioned(
-                                  top: 5,
-                                  right: 5,
-                                  child: GestureDetector(
-                                    onTap: () {
-                                      setState(() {
-                                        _currentImageUrl = null;
-                                      });
-                                    },
-                                    child: Container(
-                                      padding:
-                                      const EdgeInsets.all(4),
-                                      decoration: const BoxDecoration(
-                                        color: Colors.red,
-                                        shape: BoxShape.circle,
-                                      ),
-                                      child: const Icon(
-                                        Icons.close,
-                                        size: 16,
-                                        color: Colors.white,
-                                      ),
-                                    ),
-                                  ),
-                                ),
-                              ],
-                            )
-                                : _buildPlaceholderImage(),
+                                        _currentImageUrl!.isNotEmpty
+                                    ? Stack(
+                                        children: [
+                                          ClipRRect(
+                                            borderRadius:
+                                                BorderRadius.circular(12),
+                                            child: Image.network(
+                                              _currentImageUrl!,
+                                              fit: BoxFit.cover,
+                                              width: double.infinity,
+                                              height: double.infinity,
+                                              errorBuilder:
+                                                  (context, error, stackTrace) {
+                                                return _buildPlaceholderImage();
+                                              },
+                                              loadingBuilder: (context, child,
+                                                  loadingProgress) {
+                                                if (loadingProgress == null) {
+                                                  return child;
+                                                }
+                                                return const Center(
+                                                  child:
+                                                      CircularProgressIndicator(),
+                                                );
+                                              },
+                                            ),
+                                          ),
+                                          Positioned(
+                                            top: 5,
+                                            right: 5,
+                                            child: GestureDetector(
+                                              onTap: () {
+                                                setState(() {
+                                                  _currentImageUrl = null;
+                                                });
+                                              },
+                                              child: Container(
+                                                padding:
+                                                    const EdgeInsets.all(4),
+                                                decoration: BoxDecoration(
+                                                  color: colorScheme.error,
+                                                  shape: BoxShape.circle,
+                                                ),
+                                                child: Icon(
+                                                  Icons.close,
+                                                  size: 16,
+                                                  color: colorScheme.onError,
+                                                ),
+                                              ),
+                                            ),
+                                          ),
+                                        ],
+                                      )
+                                    : _buildPlaceholderImage(),
                           ),
                         ),
                       ],
@@ -473,10 +481,10 @@ class _EditTeamScreenState extends ConsumerState<EditTeamScreen> {
                           items: (String filter, LoadProps? props) {
                             return manpowerState.manpowerList
                                 .where((m) =>
-                            m.fullName != null &&
-                                m.fullName!
-                                    .toLowerCase()
-                                    .contains(filter.toLowerCase()))
+                                    m.fullName != null &&
+                                    m.fullName!
+                                        .toLowerCase()
+                                        .contains(filter.toLowerCase()))
                                 .toList();
                           },
                           compareFn: (a, b) => a.id == b.id,
@@ -485,29 +493,86 @@ class _EditTeamScreenState extends ConsumerState<EditTeamScreen> {
                               _selectedLead = selected;
                             });
                           },
-                          popupProps: const PopupProps.modalBottomSheet(
+                          popupProps: PopupProps.modalBottomSheet(
                             showSearchBox: true,
+                            modalBottomSheetProps: ModalBottomSheetProps(
+                              backgroundColor: colorScheme.surface,
+                            ),
                             searchFieldProps: TextFieldProps(
                               decoration: InputDecoration(
                                 hintText: 'Search Team Lead',
-                                contentPadding: EdgeInsets.symmetric(
+                                hintStyle: TextStyle(
+                                    color: colorScheme.onSurfaceVariant),
+                                filled: true,
+                                fillColor: colorScheme.surfaceContainerHighest,
+                                contentPadding: const EdgeInsets.symmetric(
                                     horizontal: 12, vertical: 10),
+                                border: OutlineInputBorder(
+                                  borderRadius: BorderRadius.circular(10),
+                                  borderSide: BorderSide.none,
+                                ),
                               ),
                             ),
+                            itemBuilder:
+                                (context, item, isDisabled, isSelected) {
+                              return ListTile(
+                                dense: true,
+                                leading: Icon(
+                                  isSelected
+                                      ? Icons.radio_button_checked
+                                      : Icons.radio_button_unchecked,
+                                  color: isSelected
+                                      ? colorScheme.primary
+                                      : colorScheme.onSurfaceVariant,
+                                ),
+                                title: Text(
+                                  item.fullName ?? '',
+                                  style: TextStyle(
+                                    color: colorScheme.onSurface,
+                                    fontWeight: isSelected
+                                        ? FontWeight.w600
+                                        : FontWeight.w400,
+                                  ),
+                                ),
+                              );
+                            },
                           ),
-                          decoratorProps: const DropDownDecoratorProps(
+                          dropdownBuilder: (context, selectedItem) {
+                            return Text(
+                              selectedItem?.fullName ?? '',
+                              style: TextStyle(
+                                color: colorScheme.onSurface,
+                                fontWeight: FontWeight.w500,
+                              ),
+                            );
+                          },
+                          decoratorProps: DropDownDecoratorProps(
                             decoration: InputDecoration(
                               hintText: "Select Team Lead",
                               filled: true,
-                              fillColor: Colors.white,
+                              fillColor: colorScheme.surface,
                               contentPadding: EdgeInsets.symmetric(
                                 horizontal: 12,
                                 vertical: 14,
                               ),
                               border: OutlineInputBorder(
                                 borderRadius:
-                                BorderRadius.all(Radius.circular(8)),
-                                borderSide: BorderSide.none,
+                                    const BorderRadius.all(Radius.circular(8)),
+                                borderSide: BorderSide(
+                                    color: colorScheme.outlineVariant
+                                        .withOpacity(0)),
+                              ),
+                              enabledBorder: OutlineInputBorder(
+                                borderRadius:
+                                    const BorderRadius.all(Radius.circular(8)),
+                                borderSide: BorderSide(
+                                    color: colorScheme.outlineVariant),
+                              ),
+                              focusedBorder: OutlineInputBorder(
+                                borderRadius:
+                                    const BorderRadius.all(Radius.circular(8)),
+                                borderSide:
+                                    BorderSide(color: colorScheme.primary),
                               ),
                             ),
                           ),
@@ -533,21 +598,25 @@ class _EditTeamScreenState extends ConsumerState<EditTeamScreen> {
                           items: (String filter, LoadProps? props) {
                             return manpowerState.manpowerList
                                 .where((m) =>
-                            m.fullName
-                                ?.toLowerCase()
-                                .contains(filter.toLowerCase()) ??
-                                false)
+                                    m.fullName
+                                        ?.toLowerCase()
+                                        .contains(filter.toLowerCase()) ??
+                                    false)
                                 .toList();
                           },
                           selectedItems: _selectedMembers,
                           itemAsString: (m) => m.fullName ?? 'Unknown',
                           compareFn: (a, b) => a.id == b.id,
-                          popupProps:
-                          PopupPropsMultiSelection.modalBottomSheet(
+                          popupProps: PopupPropsMultiSelection.modalBottomSheet(
                             showSearchBox: true,
+                            modalBottomSheetProps: ModalBottomSheetProps(
+                              backgroundColor: colorScheme.surface,
+                            ),
                             searchFieldProps: TextFieldProps(
                               decoration: InputDecoration(
                                 hintText: 'Search Members',
+                                hintStyle: TextStyle(
+                                    color: colorScheme.onSurfaceVariant),
                                 contentPadding: const EdgeInsets.symmetric(
                                     horizontal: 12, vertical: 10),
                                 border: OutlineInputBorder(
@@ -555,14 +624,40 @@ class _EditTeamScreenState extends ConsumerState<EditTeamScreen> {
                                   borderSide: BorderSide.none,
                                 ),
                                 filled: true,
-                                fillColor: Colors.grey[100],
+                                fillColor: colorScheme.surfaceContainerHighest,
                               ),
                             ),
-                            title: const Padding(
+                            itemBuilder:
+                                (context, item, isDisabled, isSelected) {
+                              return ListTile(
+                                dense: true,
+                                leading: Icon(
+                                  isSelected
+                                      ? Icons.check_box
+                                      : Icons.check_box_outline_blank,
+                                  color: isSelected
+                                      ? colorScheme.primary
+                                      : colorScheme.onSurfaceVariant,
+                                ),
+                                title: Text(
+                                  item.fullName ?? '',
+                                  style: TextStyle(
+                                    color: colorScheme.onSurface,
+                                    fontWeight: isSelected
+                                        ? FontWeight.w600
+                                        : FontWeight.w400,
+                                  ),
+                                ),
+                              );
+                            },
+                            title: Padding(
                               padding: EdgeInsets.all(8.0),
                               child: Text(
                                 "Select Team Members",
-                                style: TextStyle(fontWeight: FontWeight.bold),
+                                style: TextStyle(
+                                  fontWeight: FontWeight.bold,
+                                  color: colorScheme.onSurface,
+                                ),
                               ),
                             ),
                           ),
@@ -571,17 +666,60 @@ class _EditTeamScreenState extends ConsumerState<EditTeamScreen> {
                               _selectedMembers = values;
                             });
                           },
-                          decoratorProps: const DropDownDecoratorProps(
+                          dropdownBuilder: (context, selectedItems) {
+                            return Wrap(
+                              spacing: 6,
+                              runSpacing: 4,
+                              children: selectedItems.map((member) {
+                                return Chip(
+                                  label: Text(
+                                    member.fullName ?? '',
+                                    style: TextStyle(
+                                      fontSize: 12,
+                                      color: colorScheme.onPrimary,
+                                    ),
+                                  ),
+                                  backgroundColor: colorScheme.primary,
+                                  deleteIconColor: colorScheme.onPrimary,
+                                  onDeleted: () {
+                                    setState(() {
+                                      _selectedMembers = _selectedMembers
+                                          .where((m) => m.id != member.id)
+                                          .toList();
+                                    });
+                                  },
+                                  materialTapTargetSize:
+                                      MaterialTapTargetSize.shrinkWrap,
+                                  visualDensity: VisualDensity.compact,
+                                );
+                              }).toList(),
+                            );
+                          },
+                          decoratorProps: DropDownDecoratorProps(
                             decoration: InputDecoration(
                               hintText: "Select Team Members",
                               filled: true,
-                              fillColor: Colors.white,
+                              fillColor: colorScheme.surface,
                               contentPadding: EdgeInsets.symmetric(
                                   horizontal: 12, vertical: 14),
                               border: OutlineInputBorder(
                                 borderRadius:
-                                BorderRadius.all(Radius.circular(8)),
-                                borderSide: BorderSide.none,
+                                    const BorderRadius.all(Radius.circular(8)),
+                                borderSide: BorderSide(
+                                    color: colorScheme.outlineVariant
+                                        .withOpacity(0)),
+                              ),
+                              enabledBorder: OutlineInputBorder(
+                                borderRadius:
+                                    const BorderRadius.all(Radius.circular(8)),
+                                borderSide: BorderSide(
+                                    color: colorScheme.outlineVariant),
+                              ),
+                              focusedBorder: OutlineInputBorder(
+                                borderRadius:
+                                    const BorderRadius.all(Radius.circular(8)),
+                                borderSide:
+                                    BorderSide(color: colorScheme.primary),
                               ),
                             ),
                           ),
@@ -609,8 +747,8 @@ class _EditTeamScreenState extends ConsumerState<EditTeamScreen> {
                     Expanded(
                       child: RoundedButton(
                         text: "Back",
-                        color: Colors.white,
-                        textColor: Colors.black,
+                        color: colorScheme.surface,
+                        textColor: colorScheme.onSurface,
                         onPressed: () => context.pop(),
                       ),
                     ),
@@ -618,8 +756,8 @@ class _EditTeamScreenState extends ConsumerState<EditTeamScreen> {
                     Expanded(
                       child: RoundedButton(
                         text: "Update Team",
-                        color: Colors.blueAccent,
-                        textColor: Colors.white,
+                        color: colorScheme.primary,
+                        textColor: colorScheme.onPrimary,
                         onPressed: _submitForm,
                       ),
                     ),
@@ -634,14 +772,16 @@ class _EditTeamScreenState extends ConsumerState<EditTeamScreen> {
   }
 
   Widget _buildPlaceholderImage() {
+    final colorScheme = Theme.of(context).colorScheme;
     return Column(
       mainAxisAlignment: MainAxisAlignment.center,
-      children: const [
-        Icon(Icons.person_add_alt_1, size: 40, color: Colors.grey),
-        SizedBox(height: 6),
+      children: [
+        Icon(Icons.person_add_alt_1,
+            size: 40, color: colorScheme.onSurfaceVariant),
+        const SizedBox(height: 6),
         Text(
           "Upload Photo",
-          style: TextStyle(color: Colors.grey),
+          style: TextStyle(color: colorScheme.onSurfaceVariant),
         ),
       ],
     );
