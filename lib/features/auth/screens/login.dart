@@ -100,6 +100,7 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
   }
 
   void _showAccountNotFoundDialog() {
+    final colorScheme = Theme.of(context).colorScheme;
     showDialog(
       context: context,
       builder: (context) => AlertDialog(
@@ -117,7 +118,7 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
             onPressed: () => Navigator.pop(context),
             child: Text(
               "Cancel",
-              style: TextStyle(color: Colors.grey.shade600),
+              style: TextStyle(color: colorScheme.onSurfaceVariant),
             ),
           ),
           ElevatedButton(
@@ -126,14 +127,14 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
               context.push('/register');
             },
             style: ElevatedButton.styleFrom(
-              backgroundColor: const Color(0xFF218AE6),
+              backgroundColor: colorScheme.primary,
               shape: RoundedRectangleBorder(
                 borderRadius: BorderRadius.circular(8),
               ),
             ),
-            child: const Text(
+            child: Text(
               "Register",
-              style: TextStyle(color: Colors.white),
+              style: TextStyle(color: colorScheme.onPrimary),
             ),
           ),
         ],
@@ -164,15 +165,14 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
       print("error");
       if (!mounted) return;
 
-
       _showErrorSnackBar(
         e.toString().contains('Invalid OTP')
             ? "Invalid OTP. Please check and try again"
             : "OTP verification failed. Please try again",
       );
-    }finally{
+    } finally {
       setState(() {
-        otpButtonLoading=false;
+        otpButtonLoading = false;
       });
     }
 
@@ -182,28 +182,29 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
   // ─── Helpers ──────────────────────────────────────────────────────────────
 
   void _showErrorSnackBar(String message) {
+    final colorScheme = Theme.of(context).colorScheme;
     ScaffoldMessenger.of(context).showSnackBar(
       SnackBar(
         content: Text(message),
-        backgroundColor: Colors.red,
+        backgroundColor: colorScheme.error,
         behavior: SnackBarBehavior.floating,
       ),
     );
   }
 
   void _showSuccessSnackBar(String message) {
+    final colorScheme = Theme.of(context).colorScheme;
     ScaffoldMessenger.of(context).showSnackBar(
       SnackBar(
         content: Text(message),
-        backgroundColor: Colors.green,
+        backgroundColor: colorScheme.tertiary,
         behavior: SnackBarBehavior.floating,
       ),
     );
   }
 
-  bool get _isEmailValid =>
-      RegExp(r'^[^\s@]+@[^\s@]+\.[^\s@]+$')
-          .hasMatch(emailController.text.trim());
+  bool get _isEmailValid => RegExp(r'^[^\s@]+@[^\s@]+\.[^\s@]+$')
+      .hasMatch(emailController.text.trim());
 
   bool get _hasEmailInput => emailController.text.trim().isNotEmpty;
 
@@ -220,9 +221,10 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
   @override
   Widget build(BuildContext context) {
     final screenWidth = MediaQuery.of(context).size.width;
+    final colorScheme = Theme.of(context).colorScheme;
 
     return Scaffold(
-      backgroundColor: Colors.white,
+      backgroundColor: colorScheme.surface,
       body: Stack(
         children: [
           // Subtle background
@@ -291,11 +293,11 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
                         borderRadius: BorderRadius.circular(8),
                         fieldHeight: 50,
                         fieldWidth: 45,
-                        activeFillColor: Colors.white,
-                        inactiveFillColor: Colors.white,
-                        inactiveColor: Colors.grey.shade300,
-                        selectedColor: const Color(0xFF218AE6),
-                        activeColor: const Color(0xFF218AE6),
+                        activeFillColor: colorScheme.surface,
+                        inactiveFillColor: colorScheme.surface,
+                        inactiveColor: colorScheme.outlineVariant,
+                        selectedColor: colorScheme.primary,
+                        activeColor: colorScheme.primary,
                       ),
                       onChanged: (_) => setState(() {}),
                     ),
@@ -313,7 +315,7 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
                   _LoginButton(
                     isLoading: otpButtonLoading,
                     isEnabled:
-                    !otpButtonLoading && otpController.text.length == 4,
+                        !otpButtonLoading && otpController.text.length == 4,
                     onPressed: verifyOtp,
                   ),
                   const SizedBox(height: 28),
@@ -347,6 +349,7 @@ class _WelcomeHeader extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final colorScheme = Theme.of(context).colorScheme;
     final fontSize = screenWidth * 0.07;
     return Row(
       mainAxisAlignment: MainAxisAlignment.center,
@@ -354,14 +357,18 @@ class _WelcomeHeader extends StatelessWidget {
       children: [
         Text(
           "Welcome to ",
-          style: TextStyle(fontSize: fontSize, fontWeight: FontWeight.w500),
+          style: TextStyle(
+            fontSize: fontSize,
+            fontWeight: FontWeight.w500,
+            color: colorScheme.onSurface,
+          ),
         ),
         Text(
           "VAYUXI",
           style: TextStyle(
             fontSize: fontSize,
             fontWeight: FontWeight.bold,
-            color: Colors.blue,
+            color: colorScheme.primary,
             letterSpacing: screenWidth * 0.002,
           ),
         ),
@@ -373,22 +380,27 @@ class _WelcomeHeader extends StatelessWidget {
 class _TaglineText extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
+    final colorScheme = Theme.of(context).colorScheme;
     return RichText(
       textAlign: TextAlign.center,
-      text: const TextSpan(
-        style: TextStyle(fontSize: 14.5, color: Colors.black87, height: 1.5),
+      text: TextSpan(
+        style: TextStyle(
+          fontSize: 14.5,
+          color: colorScheme.onSurface,
+          height: 1.5,
+        ),
         children: [
-          TextSpan(text: "Congrats! There are "),
+          const TextSpan(text: "Congrats! There are "),
           TextSpan(
             text: "70 Million+",
             style: TextStyle(
-              color: Colors.blue,
+              color: colorScheme.primary,
               fontWeight: FontWeight.bold,
             ),
           ),
-          TextSpan(
+          const TextSpan(
             text:
-            " people working in Construction sector, you are one step ahead of them",
+                " people working in Construction sector, you are one step ahead of them",
           ),
         ],
       ),
@@ -402,9 +414,14 @@ class _FieldLabel extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final colorScheme = Theme.of(context).colorScheme;
     return Text(
       label,
-      style: const TextStyle(fontSize: 13.5, fontWeight: FontWeight.w600),
+      style: TextStyle(
+        fontSize: 13.5,
+        fontWeight: FontWeight.w600,
+        color: colorScheme.onSurface,
+      ),
     );
   }
 }
@@ -431,6 +448,7 @@ class _EmailField extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final colorScheme = Theme.of(context).colorScheme;
     return Column(
       crossAxisAlignment: CrossAxisAlignment.end,
       children: [
@@ -440,27 +458,27 @@ class _EmailField extends StatelessWidget {
           onChanged: onChanged,
           decoration: InputDecoration(
             hintText: "xyz@gmail.com",
-            hintStyle: TextStyle(color: Colors.grey.shade400, fontSize: 14),
+            hintStyle:
+                TextStyle(color: colorScheme.onSurfaceVariant, fontSize: 14),
             filled: true,
-            fillColor: Colors.white.withOpacity(0.9),
+            fillColor: colorScheme.surface,
             contentPadding:
-            const EdgeInsets.symmetric(horizontal: 14, vertical: 14),
+                const EdgeInsets.symmetric(horizontal: 14, vertical: 14),
             border: OutlineInputBorder(
               borderRadius: BorderRadius.circular(10),
-              borderSide: BorderSide(color: Colors.grey.shade300),
+              borderSide: BorderSide(color: colorScheme.outlineVariant),
             ),
             enabledBorder: OutlineInputBorder(
               borderRadius: BorderRadius.circular(10),
-              borderSide: BorderSide(color: Colors.grey.shade300),
+              borderSide: BorderSide(color: colorScheme.outlineVariant),
             ),
             focusedBorder: OutlineInputBorder(
               borderRadius: BorderRadius.circular(10),
-              borderSide:
-              const BorderSide(color: Color(0xFF218AE6), width: 1.5),
+              borderSide: BorderSide(color: colorScheme.primary, width: 1.5),
             ),
             // Show error border only when user has typed something invalid
             errorText:
-            hasInput && !isEmailValid ? "Invalid email format" : null,
+                hasInput && !isEmailValid ? "Invalid email format" : null,
             errorStyle: const TextStyle(fontSize: 11),
           ),
         ),
@@ -473,23 +491,23 @@ class _EmailField extends StatelessWidget {
             padding: const EdgeInsets.symmetric(vertical: 2),
             child: isSendingOtp
                 ? const SizedBox(
-              width: 14,
-              height: 14,
-              child: CircularProgressIndicator(
-                strokeWidth: 1.8,
-                color: Color(0xFF218AE6),
-              ),
-            )
+                    width: 14,
+                    height: 14,
+                    child: CircularProgressIndicator(
+                      strokeWidth: 1.8,
+                      color: Color(0xFF218AE6),
+                    ),
+                  )
                 : Text(
-              "Send OTP",
-              style: TextStyle(
-                fontSize: 13,
-                fontWeight: FontWeight.w600,
-                color: _canSend
-                    ? const Color(0xFF218AE6)
-                    : Colors.grey.shade400,
-              ),
-            ),
+                    "Send OTP",
+                    style: TextStyle(
+                      fontSize: 13,
+                      fontWeight: FontWeight.w600,
+                      color: _canSend
+                          ? colorScheme.primary
+                          : colorScheme.onSurfaceVariant,
+                    ),
+                  ),
           ),
         ),
       ],
@@ -506,6 +524,7 @@ class _ResendRow extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final colorScheme = Theme.of(context).colorScheme;
     final canResend = cooldown == 0 && onResend != null;
 
     return Row(
@@ -513,7 +532,7 @@ class _ResendRow extends StatelessWidget {
       children: [
         Text(
           "Didn't get the code? ",
-          style: TextStyle(fontSize: 12.5, color: Colors.grey.shade600),
+          style: TextStyle(fontSize: 12.5, color: colorScheme.onSurfaceVariant),
         ),
         GestureDetector(
           onTap: canResend ? onResend : null,
@@ -522,7 +541,9 @@ class _ResendRow extends StatelessWidget {
             style: TextStyle(
               fontSize: 12.5,
               fontWeight: FontWeight.bold,
-              color: canResend ? const Color(0xFF218AE6) : Colors.grey.shade400,
+              color: canResend
+                  ? colorScheme.primary
+                  : colorScheme.onSurfaceVariant,
             ),
           ),
         ),
@@ -544,13 +565,14 @@ class _LoginButton extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final colorScheme = Theme.of(context).colorScheme;
     return SizedBox(
       height: 48,
       child: ElevatedButton(
         onPressed: isEnabled ? onPressed : null,
         style: ElevatedButton.styleFrom(
-          backgroundColor: const Color(0xFF218AE6),
-          disabledBackgroundColor: Colors.grey.shade200,
+          backgroundColor: colorScheme.primary,
+          disabledBackgroundColor: colorScheme.surfaceContainerHighest,
           elevation: 0,
           shape: RoundedRectangleBorder(
             borderRadius: BorderRadius.circular(10),
@@ -558,21 +580,21 @@ class _LoginButton extends StatelessWidget {
         ),
         child: isLoading
             ? const SizedBox(
-          width: 20,
-          height: 20,
-          child: CircularProgressIndicator(
-            strokeWidth: 2,
-            color: Colors.white,
-          ),
-        )
-            : const Text(
-          "Login",
-          style: TextStyle(
-            fontSize: 15,
-            fontWeight: FontWeight.w600,
-            color: Colors.white,
-          ),
-        ),
+                width: 20,
+                height: 20,
+                child: CircularProgressIndicator(
+                  strokeWidth: 2,
+                  color: Colors.white,
+                ),
+              )
+            : Text(
+                "Login",
+                style: TextStyle(
+                  fontSize: 15,
+                  fontWeight: FontWeight.w600,
+                  color: colorScheme.onPrimary,
+                ),
+              ),
       ),
     );
   }
@@ -590,6 +612,7 @@ class _SecondaryActions extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final colorScheme = Theme.of(context).colorScheme;
     return Column(
       children: [
         // Register
@@ -598,16 +621,17 @@ class _SecondaryActions extends StatelessWidget {
           children: [
             Text(
               "Don't have an account? ",
-              style: TextStyle(fontSize: 13, color: Colors.grey.shade600),
+              style:
+                  TextStyle(fontSize: 13, color: colorScheme.onSurfaceVariant),
             ),
             GestureDetector(
               onTap: onRegister,
-              child: const Text(
+              child: Text(
                 "Register",
                 style: TextStyle(
                   fontSize: 13,
                   fontWeight: FontWeight.w600,
-                  color: Color(0xFF218AE6),
+                  color: colorScheme.primary,
                 ),
               ),
             ),
@@ -623,9 +647,9 @@ class _SecondaryActions extends StatelessWidget {
             style: TextStyle(
               fontSize: 13,
               fontWeight: FontWeight.w500,
-              color: Colors.grey.shade600,
+              color: colorScheme.onSurfaceVariant,
               decoration: TextDecoration.underline,
-              decorationColor: Colors.grey.shade400,
+              decorationColor: colorScheme.outline,
             ),
           ),
         ),
@@ -637,18 +661,19 @@ class _SecondaryActions extends StatelessWidget {
 class _Footer extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
+    final colorScheme = Theme.of(context).colorScheme;
     return Column(
       children: [
         Text(
           "By continuing, you're agreeing to our Terms of Service and Privacy Policy.",
           textAlign: TextAlign.center,
-          style: TextStyle(fontSize: 11, color: Colors.grey.shade500),
+          style: TextStyle(fontSize: 11, color: colorScheme.onSurfaceVariant),
         ),
         const SizedBox(height: 4),
         Text(
           "© 2026 VAYUXI. All rights reserved.",
           textAlign: TextAlign.center,
-          style: TextStyle(fontSize: 11, color: Colors.grey.shade400),
+          style: TextStyle(fontSize: 11, color: colorScheme.outline),
         ),
       ],
     );

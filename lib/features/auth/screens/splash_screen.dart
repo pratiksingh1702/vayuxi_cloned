@@ -1,6 +1,5 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import 'package:untitled2/core/utlis/colors/colors.dart';
 import '../provider/auth_provider.dart';
 
 class SplashScreen extends ConsumerStatefulWidget {
@@ -22,12 +21,12 @@ class _SplashScreenState extends ConsumerState<SplashScreen> {
 
   @override
   Widget build(BuildContext context) {
+    final colorScheme = Theme.of(context).colorScheme;
     return Scaffold(
-      backgroundColor: AppColors.lightBlue,
+      backgroundColor: colorScheme.primaryContainer,
       body: SafeArea(
         child: Column(
           children: [
-
             // Center Content
             Expanded(
               child: Column(
@@ -42,13 +41,12 @@ class _SplashScreenState extends ConsumerState<SplashScreen> {
                     ),
                   ),
                   const SizedBox(height: 20),
-
                 ],
               ),
             ),
 
             // Bottom Text
-            const Padding(
+            Padding(
               padding: EdgeInsets.only(bottom: 20),
               child: Text(
                 'Make in India 🇮🇳',
@@ -56,7 +54,7 @@ class _SplashScreenState extends ConsumerState<SplashScreen> {
                   fontSize: 16,
                   fontStyle: FontStyle.italic,
                   fontWeight: FontWeight.w500,
-                  color: Colors.black,
+                  color: colorScheme.onPrimaryContainer,
                 ),
               ),
             ),

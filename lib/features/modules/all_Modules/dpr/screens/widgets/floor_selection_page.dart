@@ -41,8 +41,7 @@ class FloorSelectionPage extends ConsumerStatefulWidget {
   });
 
   @override
-  ConsumerState<FloorSelectionPage> createState() =>
-      _FloorSelectionPageState();
+  ConsumerState<FloorSelectionPage> createState() => _FloorSelectionPageState();
 }
 
 class _FloorSelectionPageState extends ConsumerState<FloorSelectionPage> {
@@ -78,8 +77,7 @@ class _FloorSelectionPageState extends ConsumerState<FloorSelectionPage> {
           ),
           TextButton(
             onPressed: () => Navigator.pop(context, true),
-            child:
-            const Text("Delete", style: TextStyle(color: Colors.red)),
+            child: const Text("Delete", style: TextStyle(color: Colors.red)),
           ),
         ],
       ),
@@ -90,25 +88,22 @@ class _FloorSelectionPageState extends ConsumerState<FloorSelectionPage> {
     final rateFileMeta = ref.read(rateFileMetaProvider(siteId));
     final rateUploadId = rateFileMeta['rateFileId'];
 
-    final existingNames =
-    ref.read(floorListDetectedProvider(siteId));
+    final existingNames = ref.read(floorListDetectedProvider(siteId));
 
-    final existingFloors =
-    ref.read(floorWithImagesProvider(siteId));
+    final existingFloors = ref.read(floorWithImagesProvider(siteId));
 
-    final updatedNames =
-    existingNames.where((e) => e != floor.name).toList();
+    final updatedNames = existingNames.where((e) => e != floor.name).toList();
 
     final updatedFloors =
-    existingFloors.where((e) => e.name != floor.name).toList();
+        existingFloors.where((e) => e.name != floor.name).toList();
 
     await ref.read(floorProvider.notifier).create(
-      name: "",
-      rateUploadId: rateUploadId,
-      existingFloorNames: updatedNames,
-      existingFloorsWithImages: updatedFloors,
-      image: null,
-    );
+          name: "",
+          rateUploadId: rateUploadId,
+          existingFloorNames: updatedNames,
+          existingFloorsWithImages: updatedFloors,
+          image: null,
+        );
 
     ref.invalidate(rateFileAnalysisProvider(siteId));
   }
@@ -151,8 +146,7 @@ class _FloorSelectionPageState extends ConsumerState<FloorSelectionPage> {
       context: context,
       builder: (_) => AlertDialog(
         title: const Text("Delete Selected Floors"),
-        content: Text(
-            "Delete ${_selectedFloorIds.length} floors?"),
+        content: Text("Delete ${_selectedFloorIds.length} floors?"),
         actions: [
           TextButton(
             onPressed: () => Navigator.pop(context, false),
@@ -160,8 +154,7 @@ class _FloorSelectionPageState extends ConsumerState<FloorSelectionPage> {
           ),
           TextButton(
             onPressed: () => Navigator.pop(context, true),
-            child:
-            const Text("Delete", style: TextStyle(color: Colors.red)),
+            child: const Text("Delete", style: TextStyle(color: Colors.red)),
           ),
         ],
       ),
@@ -172,27 +165,23 @@ class _FloorSelectionPageState extends ConsumerState<FloorSelectionPage> {
     final rateFileMeta = ref.read(rateFileMetaProvider(siteId));
     final rateUploadId = rateFileMeta['rateFileId'];
 
-    final existingNames =
-    ref.read(floorListDetectedProvider(siteId));
+    final existingNames = ref.read(floorListDetectedProvider(siteId));
 
-    final existingFloors =
-    ref.read(floorWithImagesProvider(siteId));
+    final existingFloors = ref.read(floorWithImagesProvider(siteId));
 
-    final updatedNames = existingNames
-        .where((e) => !_selectedFloorIds.contains(e))
-        .toList();
+    final updatedNames =
+        existingNames.where((e) => !_selectedFloorIds.contains(e)).toList();
 
-    final updatedFloors = existingFloors
-        .where((e) => !_selectedFloorIds.contains(e.id))
-        .toList();
+    final updatedFloors =
+        existingFloors.where((e) => !_selectedFloorIds.contains(e.id)).toList();
 
     await ref.read(floorProvider.notifier).create(
-      name: "",
-      rateUploadId: rateUploadId,
-      existingFloorNames: updatedNames,
-      existingFloorsWithImages: updatedFloors,
-      image: null,
-    );
+          name: "",
+          rateUploadId: rateUploadId,
+          existingFloorNames: updatedNames,
+          existingFloorsWithImages: updatedFloors,
+          image: null,
+        );
 
     setState(() {
       _isSelectionMode = false;
@@ -211,9 +200,8 @@ class _FloorSelectionPageState extends ConsumerState<FloorSelectionPage> {
 
     if (_searchQuery.isNotEmpty) {
       result = result
-          .where((f) => f.name
-          .toLowerCase()
-          .contains(_searchQuery.toLowerCase()))
+          .where(
+              (f) => f.name.toLowerCase().contains(_searchQuery.toLowerCase()))
           .toList();
     }
 
@@ -226,6 +214,7 @@ class _FloorSelectionPageState extends ConsumerState<FloorSelectionPage> {
 
   @override
   Widget build(BuildContext context) {
+    final cs = Theme.of(context).colorScheme;
     final lang = ref.watch(dailyEntryTranslationHelperProvider);
     final siteId = ref.watch(selectedSiteIdProvider);
 
@@ -249,27 +238,24 @@ class _FloorSelectionPageState extends ConsumerState<FloorSelectionPage> {
               CustomButton(
                 button: RoundedButton(
                   text: lang.saveSubmitButton,
-                  color: Colors.blue,
-                  textColor: Colors.white,
+                  color: cs.primary,
+                  textColor: cs.onPrimary,
                   onPressed: _selectedFloor == null
                       ? () {}
                       : () {
-                    widget.onFloorSelected
-                        ?.call(_selectedFloor!);
-                    Navigator.push(
-                      context,
-                      MaterialPageRoute(
-                        builder: (_) =>
-                        const SizeSelectionPage(),
-                      ),
-                    );
-                  },
+                          widget.onFloorSelected?.call(_selectedFloor!);
+                          Navigator.push(
+                            context,
+                            MaterialPageRoute(
+                              builder: (_) => const SizeSelectionPage(),
+                            ),
+                          );
+                        },
                 ),
               ),
           ],
           child: Column(
             children: [
-
               // /* SEARCH */
               // if (widget.showSearch)
               //   Padding(
@@ -293,211 +279,177 @@ class _FloorSelectionPageState extends ConsumerState<FloorSelectionPage> {
               /* DELETE ICON ROW */
 
               if (!widget.showEditOptions)
-          Padding(
-            padding: const EdgeInsets.all(8.0),
-            child: Align(
-            alignment: Alignment.topRight,
-            child: TextButton(
-              onPressed: () {
-                setState(() => _selectedFloor = '');
-                ref
-                    .read(selectedFloorNameProvider.notifier)
-                    .state = '';
-                Navigator.push(
-                  context,
-                  MaterialPageRoute(
-                    builder: (_) => const SizeSelectionPage(),
-                  ),
-                );
-              },
-              style: TextButton.styleFrom(
-                backgroundColor: Colors.blue,
-                foregroundColor: Colors.white,
-                padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 10), // ✅
-                shape: RoundedRectangleBorder(
-                  borderRadius: BorderRadius.circular(20),
-                ),
+                Padding(
+                  padding: const EdgeInsets.all(8.0),
+                  child: Align(
+                    alignment: Alignment.topRight,
+                    child: TextButton(
+                      onPressed: () {
+                        setState(() => _selectedFloor = '');
+                        ref.read(selectedFloorNameProvider.notifier).state = '';
+                        Navigator.push(
+                          context,
+                          MaterialPageRoute(
+                            builder: (_) => const SizeSelectionPage(),
+                          ),
+                        );
+                      },
+                      style: TextButton.styleFrom(
+                        backgroundColor: cs.primary,
+                        foregroundColor: cs.onPrimary,
+                        padding: const EdgeInsets.symmetric(
+                            horizontal: 20, vertical: 10), // ✅
+                        shape: RoundedRectangleBorder(
+                          borderRadius: BorderRadius.circular(20),
+                        ),
 
-                minimumSize: Size.zero,
-                tapTargetSize: MaterialTapTargetSize.shrinkWrap,
-              ),
-              child: const Text(
-                'Skip',
-                style: TextStyle(
-                  fontSize: 14,
-                  fontWeight: FontWeight.w600,
-                ),
-              ),
-            ),
-                    ),
-          ),
-
-
-              if (widget.showEditOptions) Padding(
-                padding:
-                const EdgeInsets.symmetric(horizontal: 16),
-                child: Align(
-                  alignment: Alignment.centerRight,
-                  child: !_isSelectionMode
-                      ? IconButton(
-                    icon: const Icon(
-                      Icons.delete_sweep,
-                      color: Colors.red,
-                    ),
-                    onPressed: _toggleSelectionMode,
-                  )
-                      : Row(
-                    mainAxisSize: MainAxisSize.min,
-                    children: [
-                      TextButton(
-                        onPressed: () =>
-                            _selectAll(filteredFloors),
-                        child:
-                        const Text("Select All"),
+                        minimumSize: Size.zero,
+                        tapTargetSize: MaterialTapTargetSize.shrinkWrap,
                       ),
-                      TextButton(
-                        onPressed: _deleteSelected,
-                        child: Text(
-                          "Delete (${_selectedFloorIds.length})",
-                          style: const TextStyle(
-                              color: Colors.red),
+                      child: const Text(
+                        'Skip',
+                        style: TextStyle(
+                          fontSize: 14,
+                          fontWeight: FontWeight.w600,
                         ),
                       ),
-                      IconButton(
-                        icon:
-                        const Icon(Icons.close),
-                        onPressed:
-                        _toggleSelectionMode,
-                      )
-                    ],
+                    ),
                   ),
                 ),
-              ),
+
+              if (widget.showEditOptions)
+                Padding(
+                  padding: const EdgeInsets.symmetric(horizontal: 16),
+                  child: Align(
+                    alignment: Alignment.centerRight,
+                    child: !_isSelectionMode
+                        ? IconButton(
+                            icon: Icon(
+                              Icons.delete_sweep,
+                              color: cs.error,
+                            ),
+                            onPressed: _toggleSelectionMode,
+                          )
+                        : Row(
+                            mainAxisSize: MainAxisSize.min,
+                            children: [
+                              TextButton(
+                                onPressed: () => _selectAll(filteredFloors),
+                                style: TextButton.styleFrom(
+                                  foregroundColor: cs.primary,
+                                ),
+                                child: const Text("Select All"),
+                              ),
+                              TextButton(
+                                onPressed: _deleteSelected,
+                                child: Text(
+                                  "Delete (${_selectedFloorIds.length})",
+                                  style: TextStyle(color: cs.error),
+                                ),
+                              ),
+                              IconButton(
+                                icon: Icon(Icons.close,
+                                    color: cs.onSurfaceVariant),
+                                onPressed: _toggleSelectionMode,
+                              )
+                            ],
+                          ),
+                  ),
+                ),
 
               /* GRID */
               Expanded(
                 child: filteredFloors.isEmpty
                     ? const Center(
-                  child: Text("No floors"),
-                )
+                        child: Text("No floors"),
+                      )
                     : Padding(
-                  padding:
-                  const EdgeInsets.all(16),
-                  child: GridView.builder(
-                    gridDelegate:
-                    const SliverGridDelegateWithFixedCrossAxisCount(
-                      crossAxisCount: 2,
-                      crossAxisSpacing: 16,
-                      mainAxisSpacing: 16,
-                    ),
-                    itemCount:
-                    filteredFloors.length,
-                    itemBuilder: (_, index) {
-                      final floor =
-                      filteredFloors[index];
-
-                      final multiSelected =
-                      _selectedFloorIds
-                          .contains(floor.id);
-
-                      return Stack(
-                        children: [
-
-                          FloorCard(
-                            floor: floor,
-                            showEditButton:
-                            widget.showEditOptions &&
-                                !_isSelectionMode,
-                            isSelected:
-                            !_isSelectionMode &&
-                                _selectedFloor ==
-                                    floor.name,
-                            onEdit: () async {
-                              final result =
-                              await Navigator
-                                  .push(
-                                context,
-                                MaterialPageRoute(
-                                  builder: (_) =>
-                                      AddFloorPage(
-                                          floor:
-                                          floor),
-                                ),
-                              );
-
-                              if (result ==
-                                  true) {
-                                ref.invalidate(
-                                    rateFileAnalysisProvider(
-                                        siteId));
-                              }
-                            },
-                            onDelete: () =>
-                                _deleteFloor(
-                                    floor),
-                            onTap: () {
-                              if (_isSelectionMode) {
-                                _toggleFloorSelection(
-                                    floor.id);
-                              } else {
-                                setState(() =>
-                                _selectedFloor =
-                                    floor
-                                        .name);
-                                ref
-                                    .read(
-                                    selectedFloorNameProvider
-                                        .notifier)
-                                    .state =
-                                    floor.name;
-                              }
-                            },
+                        padding: const EdgeInsets.all(16),
+                        child: GridView.builder(
+                          gridDelegate:
+                              const SliverGridDelegateWithFixedCrossAxisCount(
+                            crossAxisCount: 2,
+                            crossAxisSpacing: 16,
+                            mainAxisSpacing: 16,
                           ),
+                          itemCount: filteredFloors.length,
+                          itemBuilder: (_, index) {
+                            final floor = filteredFloors[index];
 
-                          /* CIRCLE OVERLAY */
-                          if (_isSelectionMode)
-                            Positioned(
-                              top: 8,
-                              right: 8,
-                              child: AnimatedContainer(
-                                duration:
-                                const Duration(
-                                    milliseconds:
-                                    200),
-                                width: 26,
-                                height: 26,
-                                decoration:
-                                BoxDecoration(
-                                  shape: BoxShape
-                                      .circle,
-                                  color:
-                                  multiSelected
-                                      ? Colors
-                                      .red
-                                      : Colors
-                                      .white,
-                                  border:
-                                  Border.all(
-                                    color:
-                                    Colors.red,
-                                    width: 2,
-                                  ),
+                            final multiSelected =
+                                _selectedFloorIds.contains(floor.id);
+
+                            return Stack(
+                              children: [
+                                FloorCard(
+                                  floor: floor,
+                                  showEditButton: widget.showEditOptions &&
+                                      !_isSelectionMode,
+                                  isSelected: !_isSelectionMode &&
+                                      _selectedFloor == floor.name,
+                                  onEdit: () async {
+                                    final result = await Navigator.push(
+                                      context,
+                                      MaterialPageRoute(
+                                        builder: (_) =>
+                                            AddFloorPage(floor: floor),
+                                      ),
+                                    );
+
+                                    if (result == true) {
+                                      ref.invalidate(
+                                          rateFileAnalysisProvider(siteId));
+                                    }
+                                  },
+                                  onDelete: () => _deleteFloor(floor),
+                                  onTap: () {
+                                    if (_isSelectionMode) {
+                                      _toggleFloorSelection(floor.id);
+                                    } else {
+                                      setState(
+                                          () => _selectedFloor = floor.name);
+                                      ref
+                                          .read(selectedFloorNameProvider
+                                              .notifier)
+                                          .state = floor.name;
+                                    }
+                                  },
                                 ),
-                                child: multiSelected
-                                    ? const Icon(
-                                  Icons.check,
-                                  size: 16,
-                                  color: Colors
-                                      .white,
-                                )
-                                    : null,
-                              ),
-                            ),
-                        ],
-                      );
-                    },
-                  ),
-                ),
+
+                                /* CIRCLE OVERLAY */
+                                if (_isSelectionMode)
+                                  Positioned(
+                                    top: 8,
+                                    right: 8,
+                                    child: AnimatedContainer(
+                                      duration:
+                                          const Duration(milliseconds: 200),
+                                      width: 26,
+                                      height: 26,
+                                      decoration: BoxDecoration(
+                                        shape: BoxShape.circle,
+                                        color: multiSelected
+                                            ? cs.error
+                                            : cs.surface,
+                                        border: Border.all(
+                                          color: cs.error,
+                                          width: 2,
+                                        ),
+                                      ),
+                                      child: multiSelected
+                                          ? Icon(
+                                              Icons.check,
+                                              size: 16,
+                                              color: cs.onError,
+                                            )
+                                          : null,
+                                    ),
+                                  ),
+                              ],
+                            );
+                          },
+                        ),
+                      ),
               ),
             ],
           ),

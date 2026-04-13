@@ -13,7 +13,7 @@ class CornerClippedScreenSimple extends StatelessWidget {
     Key? key,
     required this.child,
     this.color,
-    this.cornerRadius = 40.0,
+    this.cornerRadius = 15.0,
   }) : super(key: key);
 
   @override

@@ -5,6 +5,8 @@ import 'package:shared_preferences/shared_preferences.dart';
 
 import '../../../../../../custom_slider.dart';
 
+const Object _noCustomSeed = Object();
+
 class ThemeState {
   final ThemeMode themeMode;
   final FlexScheme scheme;
@@ -18,13 +20,13 @@ class ThemeState {
   ThemeData get lightTheme {
     final base = customSeed != null
         ? FlexThemeData.light(
-      colors: FlexSchemeColor.from(primary: customSeed!),
-      useMaterial3: true,
-    )
+            colors: FlexSchemeColor.from(primary: customSeed!),
+            useMaterial3: true,
+          )
         : FlexThemeData.light(
-      scheme: scheme,
-      useMaterial3: true,
-    );
+            scheme: scheme,
+            useMaterial3: true,
+          );
 
     final primary = base.colorScheme.primaryFixedDim;
     print(primary);
@@ -32,7 +34,6 @@ class ThemeState {
 
     return base.copyWith(
       scaffoldBackgroundColor: primary,
-
       cardTheme: CardThemeData(
         color: Colors.white,
         elevation: 2,
@@ -40,7 +41,6 @@ class ThemeState {
           borderRadius: BorderRadius.circular(12),
         ),
       ),
-
       pageTransitionsTheme: const PageTransitionsTheme(
         builders: {
           TargetPlatform.android: SlidePageTransitionsBuilder(),
@@ -53,13 +53,13 @@ class ThemeState {
   ThemeData get darkTheme {
     final baseTheme = customSeed != null
         ? FlexThemeData.dark(
-      colors: FlexSchemeColor.from(primary: customSeed!),
-      useMaterial3: true,
-    )
+            colors: FlexSchemeColor.from(primary: customSeed!),
+            useMaterial3: true,
+          )
         : FlexThemeData.dark(
-      scheme: scheme,
-      useMaterial3: true,
-    );
+            scheme: scheme,
+            useMaterial3: true,
+          );
 
     final primary = baseTheme.colorScheme.primary;
 
@@ -80,15 +80,18 @@ class ThemeState {
       ),
     );
   }
+
   ThemeState copyWith({
     ThemeMode? themeMode,
     FlexScheme? scheme,
-    Color? customSeed,
+    Object? customSeed = _noCustomSeed,
   }) {
     return ThemeState(
       themeMode: themeMode ?? this.themeMode,
       scheme: scheme ?? this.scheme,
-      customSeed: customSeed,
+      customSeed: identical(customSeed, _noCustomSeed)
+          ? this.customSeed
+          : customSeed as Color?,
     );
   }
 }
@@ -96,9 +99,9 @@ class ThemeState {
 class ThemeNotifier extends StateNotifier<ThemeState> {
   ThemeNotifier()
       : super(ThemeState(
-    themeMode: ThemeMode.system,
-    scheme: FlexScheme.blue,
-  )) {
+          themeMode: ThemeMode.system,
+          scheme: FlexScheme.blue,
+        )) {
     _load();
   }
 
@@ -117,12 +120,19 @@ class ThemeNotifier extends StateNotifier<ThemeState> {
     _save();
   }
 
+  void clearCustomSeed() {
+    state = state.copyWith(customSeed: null);
+    _save();
+  }
+
   Future<void> _save() async {
     final prefs = await SharedPreferences.getInstance();
     await prefs.setInt("themeMode", state.themeMode.index);
     await prefs.setInt("scheme", state.scheme.index);
     if (state.customSeed != null) {
       await prefs.setInt("customSeed", state.customSeed!.value);
+    } else {
+      await prefs.remove("customSeed");
     }
   }
 
@@ -132,14 +142,22 @@ class ThemeNotifier extends StateNotifier<ThemeState> {
     final scheme = prefs.getInt("scheme");
     final seed = prefs.getInt("customSeed");
 
+    final safeModeIndex =
+        (mode != null && mode >= 0 && mode < ThemeMode.values.length)
+            ? mode
+            : ThemeMode.system.index;
+    final safeSchemeIndex =
+        (scheme != null && scheme >= 0 && scheme < FlexScheme.values.length)
+            ? scheme
+            : FlexScheme.blue.index;
+
     state = ThemeState(
-      themeMode: ThemeMode.values[mode ?? 0],
-      scheme: FlexScheme.values[scheme ?? 0],
+      themeMode: ThemeMode.values[safeModeIndex],
+      scheme: FlexScheme.values[safeSchemeIndex],
       customSeed: seed != null ? Color(seed) : null,
     );
   }
 }
 
 final themeProvider =
-StateNotifierProvider<ThemeNotifier, ThemeState>(
-        (ref) => ThemeNotifier());
+    StateNotifierProvider<ThemeNotifier, ThemeState>((ref) => ThemeNotifier());

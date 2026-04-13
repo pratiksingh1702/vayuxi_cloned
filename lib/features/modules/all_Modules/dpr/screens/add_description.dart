@@ -1380,11 +1380,12 @@ class _AddDescriptionScreenState extends ConsumerState<AddDescriptionScreen>
 
   void _showSnackBar(String message, {bool isError = false}) {
     if (!mounted || _isDisposed) return;
+    final cs = Theme.of(context).colorScheme;
 
     ScaffoldMessenger.of(context).showSnackBar(
       SnackBar(
         content: Text(message),
-        backgroundColor: isError ? Colors.red[700] : Colors.green[700],
+        backgroundColor: isError ? cs.error : cs.tertiary,
         behavior: SnackBarBehavior.floating,
         duration: Duration(seconds: isError ? 3 : 2),
         shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
@@ -1395,6 +1396,7 @@ class _AddDescriptionScreenState extends ConsumerState<AddDescriptionScreen>
 
   @override
   Widget build(BuildContext context) {
+    final cs = Theme.of(context).colorScheme;
     final pipingMaterials = ref.watch(pipingMaterialsProvider);
     final equipmentMaterials = ref.watch(equipmentMaterialsProvider);
 
@@ -1416,7 +1418,7 @@ class _AddDescriptionScreenState extends ConsumerState<AddDescriptionScreen>
     final site = ref.read(currentSiteProvider);
 
     return Scaffold(
-      backgroundColor: Colors.grey[50],
+      backgroundColor: cs.surfaceContainerLowest,
       drawer: const CustomDrawer(),
       body: NestedScrollView(
         headerSliverBuilder: (context, innerBoxIsScrolled) {
@@ -1428,9 +1430,11 @@ class _AddDescriptionScreenState extends ConsumerState<AddDescriptionScreen>
               button: RoundedButton(
                 text: _isSubmitting ? 'Saving..' : 'Save',
                 color: _isEditable || _isDateOverrideMode
-                    ? const Color(0xFF1B6DCE)
-                    : Colors.grey,
-                textColor: Colors.white,
+                    ? cs.primary
+                    : cs.surfaceContainerHigh,
+                textColor: _isEditable || _isDateOverrideMode
+                    ? cs.onPrimary
+                    : cs.onSurfaceVariant,
                 onPressed: _isSubmitting ? () {} : _handleSubmitFields,
                 isOutlined: false,
               ),
@@ -1473,7 +1477,7 @@ class _AddDescriptionScreenState extends ConsumerState<AddDescriptionScreen>
                                     team?.teamName ?? "Default Team",
                                     style: TextStyle(
                                       fontSize: 10,
-                                      color: Colors.grey[600],
+                                      color: cs.onSurfaceVariant,
                                       fontStyle: FontStyle.italic,
                                     ),
                                     maxLines: 1,
@@ -1541,26 +1545,27 @@ class _AddDescriptionScreenState extends ConsumerState<AddDescriptionScreen>
   }
 
   Widget _buildEmptyMaterialsCard(String message) {
+    final cs = Theme.of(context).colorScheme;
     return Container(
       margin: const EdgeInsets.only(bottom: 12),
       padding: const EdgeInsets.all(20),
       decoration: BoxDecoration(
-        color: Colors.white,
+        color: cs.surface,
         borderRadius: BorderRadius.circular(12),
-        border: Border.all(color: Colors.grey[200]!),
+        border: Border.all(color: cs.outlineVariant),
       ),
       child: Column(
         children: [
           Icon(
             Icons.inventory_2_outlined,
             size: 40,
-            color: Colors.grey[400],
+            color: cs.onSurfaceVariant,
           ),
           const SizedBox(height: 12),
           Text(
             message,
             style: TextStyle(
-              color: Colors.grey[600],
+              color: cs.onSurfaceVariant,
               fontSize: 14,
               fontWeight: FontWeight.w500,
             ),
@@ -1576,18 +1581,19 @@ class _AddDescriptionScreenState extends ConsumerState<AddDescriptionScreen>
     bool isExpanded,
     VoidCallback onToggle,
   ) {
+    final cs = Theme.of(context).colorScheme;
     return GestureDetector(
       onTap: onToggle,
       child: Container(
         margin: const EdgeInsets.only(bottom: 12),
         padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
         decoration: BoxDecoration(
-          color: Colors.white,
+          color: cs.surface,
           borderRadius: BorderRadius.circular(12),
-          border: Border.all(color: Colors.blue.shade100),
+          border: Border.all(color: cs.outlineVariant),
           boxShadow: [
             BoxShadow(
-              color: Colors.black.withOpacity(0.05),
+              color: cs.shadow.withOpacity(0.08),
               blurRadius: 6,
               offset: const Offset(0, 2),
             ),
@@ -1600,16 +1606,16 @@ class _AddDescriptionScreenState extends ConsumerState<AddDescriptionScreen>
               children: [
                 Icon(
                   isExpanded ? Icons.expand_less : Icons.expand_more,
-                  color: Colors.blue,
+                  color: cs.primary,
                   size: 20,
                 ),
                 const SizedBox(width: 8),
                 Text(
                   title,
-                  style: const TextStyle(
+                  style: TextStyle(
                     fontSize: 14,
                     fontWeight: FontWeight.w600,
-                    color: Colors.blue,
+                    color: cs.primary,
                   ),
                 ),
                 const SizedBox(width: 8),
@@ -1617,15 +1623,15 @@ class _AddDescriptionScreenState extends ConsumerState<AddDescriptionScreen>
                   padding:
                       const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
                   decoration: BoxDecoration(
-                    color: Colors.blue.shade50,
+                    color: cs.primaryContainer,
                     borderRadius: BorderRadius.circular(12),
                   ),
                   child: Text(
                     '$count',
-                    style: const TextStyle(
+                    style: TextStyle(
                       fontSize: 12,
                       fontWeight: FontWeight.w600,
-                      color: Colors.blue,
+                      color: cs.onPrimaryContainer,
                     ),
                   ),
                 ),
@@ -1636,7 +1642,7 @@ class _AddDescriptionScreenState extends ConsumerState<AddDescriptionScreen>
               isExpanded ? 'Hide' : 'Show',
               style: TextStyle(
                 fontSize: 12,
-                color: Colors.grey[600],
+                color: cs.onSurfaceVariant,
               ),
             ),
           ],
@@ -1646,6 +1652,7 @@ class _AddDescriptionScreenState extends ConsumerState<AddDescriptionScreen>
   }
 
   Widget _buildAddDprMaterialButton() {
+    final cs = Theme.of(context).colorScheme;
     return InkWell(
       borderRadius: BorderRadius.circular(20),
       onTap: () async {
@@ -1665,28 +1672,29 @@ class _AddDescriptionScreenState extends ConsumerState<AddDescriptionScreen>
       child: Container(
         padding: const EdgeInsets.all(6),
         decoration: BoxDecoration(
-          color: const Color(0xFF1B6DCE),
+          color: cs.primary,
           shape: BoxShape.circle,
         ),
-        child: const Icon(
+        child: Icon(
           Icons.add,
           size: 18,
-          color: Colors.white,
+          color: cs.onPrimary,
         ),
       ),
     );
   }
 
   Widget _buildLoadingCard(String title, String subtitle) {
+    final cs = Theme.of(context).colorScheme;
     return Container(
       margin: const EdgeInsets.symmetric(vertical: 12),
       padding: const EdgeInsets.all(32),
       decoration: BoxDecoration(
-        color: Colors.white,
+        color: cs.surface,
         borderRadius: BorderRadius.circular(16),
         boxShadow: [
           BoxShadow(
-            color: Colors.black.withOpacity(0.05),
+            color: cs.shadow.withOpacity(0.08),
             blurRadius: 10,
             offset: const Offset(0, 4),
           ),
@@ -1703,14 +1711,12 @@ class _AddDescriptionScreenState extends ConsumerState<AddDescriptionScreen>
           Text(
             title,
             style: TextStyle(
-                color: Colors.grey[700],
-                fontSize: 14,
-                fontWeight: FontWeight.w500),
+                color: cs.onSurface, fontSize: 14, fontWeight: FontWeight.w500),
           ),
           const SizedBox(height: 4),
           Text(
             subtitle,
-            style: TextStyle(color: Colors.grey[500], fontSize: 12),
+            style: TextStyle(color: cs.onSurfaceVariant, fontSize: 12),
           ),
         ],
       ),
@@ -1718,31 +1724,32 @@ class _AddDescriptionScreenState extends ConsumerState<AddDescriptionScreen>
   }
 
   Widget _buildEmptyState(String message, IconData icon) {
+    final cs = Theme.of(context).colorScheme;
     return Container(
       margin: const EdgeInsets.symmetric(vertical: 12),
       padding: const EdgeInsets.all(48),
       width: double.infinity,
       decoration: BoxDecoration(
-        color: Colors.white,
+        color: cs.surface,
         borderRadius: BorderRadius.circular(16),
-        border: Border.all(color: Colors.grey[200]!),
+        border: Border.all(color: cs.outlineVariant),
       ),
       child: Column(
         children: [
           Container(
             padding: const EdgeInsets.all(16),
             decoration: BoxDecoration(
-              color: Colors.grey[100],
+              color: cs.surfaceContainerHigh,
               shape: BoxShape.circle,
             ),
-            child: Icon(icon, size: 48, color: Colors.grey[400]),
+            child: Icon(icon, size: 48, color: cs.onSurfaceVariant),
           ),
           const SizedBox(height: 20),
           Text(
             message,
             textAlign: TextAlign.center,
             style: TextStyle(
-                color: Colors.grey[600],
+                color: cs.onSurfaceVariant,
                 fontSize: 14,
                 fontWeight: FontWeight.w500),
           ),
@@ -1752,6 +1759,7 @@ class _AddDescriptionScreenState extends ConsumerState<AddDescriptionScreen>
   }
 
   Widget _buildDateSection() {
+    final cs = Theme.of(context).colorScheme;
     final lang = ref.watch(dailyEntryTranslationHelperProvider);
     final isEditingDpr = widget.work != null;
     final showPencil = isEditingDpr; // Always show if work is not null
@@ -1763,16 +1771,13 @@ class _AddDescriptionScreenState extends ConsumerState<AddDescriptionScreen>
         Container(
           padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
           decoration: BoxDecoration(
-            gradient: LinearGradient(
-              colors: _isDateOverrideMode
-                  ? [Colors.blue[50]!, Colors.blue[100]!]
-                  : [Colors.blue[50]!, Colors.blue[100]!],
-            ),
-            color: _isDateOverrideMode ? Colors.blue.shade50 : null,
+            color: _isDateOverrideMode
+                ? cs.primaryContainer
+                : cs.surfaceContainerHigh,
             borderRadius: BorderRadius.circular(12),
             border: _isDateOverrideMode
-                ? Border.all(color: Colors.blue.shade700, width: 2)
-                : null,
+                ? Border.all(color: cs.primary, width: 1.5)
+                : Border.all(color: cs.outlineVariant),
           ),
           child: Row(
             mainAxisAlignment: MainAxisAlignment.spaceBetween,
@@ -1816,15 +1821,15 @@ class _AddDescriptionScreenState extends ConsumerState<AddDescriptionScreen>
                               fontSize: 14,
                               fontWeight: FontWeight.w600,
                               color:
-                                  _globalEditMode ? Colors.blue : Colors.black,
+                                  _globalEditMode ? cs.primary : cs.onSurface,
                             ),
                           ),
                           if (canChangeDateNormal) ...[
                             const SizedBox(width: 6),
-                            const Icon(
+                            Icon(
                               Icons.calendar_month,
                               size: 14,
-                              color: Colors.blue,
+                              color: cs.primary,
                             ),
                           ],
                         ],
@@ -1834,8 +1839,7 @@ class _AddDescriptionScreenState extends ConsumerState<AddDescriptionScreen>
                   if (showPencil) ...[
                     const SizedBox(width: 8),
                     IconButton(
-                      icon:
-                          const Icon(Icons.edit, color: Colors.blue, size: 20),
+                      icon: Icon(Icons.edit, color: cs.primary, size: 20),
                       onPressed: () => _handleDateOverride(context),
                       padding: EdgeInsets.zero,
                       constraints: const BoxConstraints(),
@@ -1854,17 +1858,17 @@ class _AddDescriptionScreenState extends ConsumerState<AddDescriptionScreen>
                 Container(
                   width: 8,
                   height: 8,
-                  decoration: const BoxDecoration(
-                    color: Colors.blue,
+                  decoration: BoxDecoration(
+                    color: cs.primary,
                     shape: BoxShape.circle,
                   ),
                 ),
                 const SizedBox(width: 6),
-                const Text(
+                Text(
                   "Date modified",
                   style: TextStyle(
                     fontSize: 12,
-                    color: Colors.blue,
+                    color: cs.primary,
                     fontWeight: FontWeight.bold,
                   ),
                 ),
@@ -1892,21 +1896,23 @@ class _AddDescriptionScreenState extends ConsumerState<AddDescriptionScreen>
   }
 
   Widget _buildEditModeButton() {
+    final cs = Theme.of(context).colorScheme;
     return GestureDetector(
       onTap: _toggleGlobalEditMode,
       child: Container(
         padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
         decoration: BoxDecoration(
+          color: _globalEditMode ? cs.primaryContainer : cs.surface,
           borderRadius: BorderRadius.circular(20),
-          border: Border.all(color: Colors.blue.shade700),
+          border: Border.all(color: cs.primary),
         ),
         child: Row(
           mainAxisSize: MainAxisSize.min,
           children: [
             Text(
               _globalEditMode ? "Editing" : "Edit",
-              style: const TextStyle(
-                color: Colors.blue,
+              style: TextStyle(
+                color: cs.primary,
                 fontWeight: FontWeight.bold,
               ),
             ),
@@ -1917,13 +1923,14 @@ class _AddDescriptionScreenState extends ConsumerState<AddDescriptionScreen>
   }
 
   Widget _buildDprInfoCard(bool shouldShowDropdown) {
+    final cs = Theme.of(context).colorScheme;
     return Container(
       decoration: BoxDecoration(
-        color: Colors.white,
+        color: cs.surface,
         borderRadius: BorderRadius.circular(16),
         boxShadow: [
           BoxShadow(
-            color: Colors.black.withOpacity(0.05),
+            color: cs.shadow.withOpacity(0.08),
             blurRadius: 10,
             offset: const Offset(0, 4),
           ),
@@ -1954,23 +1961,24 @@ class _AddDescriptionScreenState extends ConsumerState<AddDescriptionScreen>
   }
 
   Widget _buildDprDropdown() {
+    final cs = Theme.of(context).colorScheme;
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        const Text(
+        Text(
           'Select DPR',
           style: TextStyle(
             fontSize: 12,
             fontWeight: FontWeight.w600,
-            color: Colors.grey,
+            color: cs.onSurfaceVariant,
           ),
         ),
         const SizedBox(height: 4),
         Container(
           decoration: BoxDecoration(
-            color: Colors.white,
+            color: cs.surface,
             borderRadius: BorderRadius.circular(10),
-            border: Border.all(color: Colors.grey[300]!),
+            border: Border.all(color: cs.outlineVariant),
           ),
           child: _isLoadingDprList
               ? Padding(
@@ -1987,12 +1995,12 @@ class _AddDescriptionScreenState extends ConsumerState<AddDescriptionScreen>
                   child: DropdownButton<String>(
                     value: _selectedDprId,
                     isExpanded: true,
-                    icon: const Icon(Icons.arrow_drop_down, color: Colors.blue),
+                    icon: Icon(Icons.arrow_drop_down, color: cs.primary),
                     elevation: 16,
-                    style: const TextStyle(
+                    style: TextStyle(
                       fontSize: 16,
                       fontWeight: FontWeight.w600,
-                      color: Colors.black,
+                      color: cs.onSurface,
                     ),
                     hint: const Text('Select DPR'),
                     // onChanged: (String? newValue) {
@@ -2049,7 +2057,7 @@ class _AddDescriptionScreenState extends ConsumerState<AddDescriptionScreen>
                 '${_dprListForSelectedDate.length} DPR(s) found for ${_formatDate(_selectedDate)}',
                 style: TextStyle(
                   fontSize: 11,
-                  color: Colors.grey[600],
+                  color: cs.onSurfaceVariant,
                   fontStyle: FontStyle.italic,
                 ),
               ),
@@ -2103,6 +2111,7 @@ class _AddDescriptionScreenState extends ConsumerState<AddDescriptionScreen>
   }
 
   Widget _buildRegularDprNameField() {
+    final cs = Theme.of(context).colorScheme;
     return Row(
       children: [
         Expanded(
@@ -2114,30 +2123,30 @@ class _AddDescriptionScreenState extends ConsumerState<AddDescriptionScreen>
                   decoration: InputDecoration(
                     border: OutlineInputBorder(
                       borderRadius: BorderRadius.circular(10),
-                      borderSide: BorderSide(color: Colors.grey[300]!),
+                      borderSide: BorderSide(color: cs.outlineVariant),
                     ),
                     focusedBorder: OutlineInputBorder(
                       borderRadius: BorderRadius.circular(10),
-                      borderSide:
-                          const BorderSide(color: Color(0xFF1B6DCE), width: 2),
+                      borderSide: BorderSide(color: cs.primary, width: 2),
                     ),
                     contentPadding: const EdgeInsets.symmetric(
                         horizontal: 16, vertical: 14),
                     hintText: 'Enter DPR Name',
-                    prefixIcon: const Icon(Icons.edit_document, size: 20),
+                    prefixIcon:
+                        Icon(Icons.edit_document, size: 20, color: cs.primary),
                   ),
                 )
               : Container(
                   padding:
                       const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
                   decoration: BoxDecoration(
-                    color: Colors.grey[100],
+                    color: cs.surfaceContainerHigh,
                     borderRadius: BorderRadius.circular(10),
                   ),
                   child: Row(
                     children: [
                       Icon(Icons.description,
-                          color: Colors.grey[700], size: 20),
+                          color: cs.onSurfaceVariant, size: 20),
                       const SizedBox(width: 12),
                       Expanded(
                         child: Text(
@@ -2154,7 +2163,7 @@ class _AddDescriptionScreenState extends ConsumerState<AddDescriptionScreen>
         if (_editMode)
           Container(
             decoration: BoxDecoration(
-              color: Colors.green[50],
+              color: cs.tertiaryContainer,
               borderRadius: BorderRadius.circular(10),
             ),
             child: IconButton(
@@ -2167,7 +2176,7 @@ class _AddDescriptionScreenState extends ConsumerState<AddDescriptionScreen>
               },
               icon: Icon(
                 _editMode ? Icons.check_circle : Icons.edit_rounded,
-                color: _editMode ? Colors.green[700] : Colors.blue[700],
+                color: _editMode ? cs.tertiary : cs.primary,
                 size: 24,
               ),
             ),
@@ -2206,6 +2215,7 @@ class _AddDescriptionScreenState extends ConsumerState<AddDescriptionScreen>
 
   Widget _buildCompactInputField(
       String label, TextEditingController controller, IconData icon) {
+    final cs = Theme.of(context).colorScheme;
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
@@ -2216,7 +2226,7 @@ class _AddDescriptionScreenState extends ConsumerState<AddDescriptionScreen>
             style: TextStyle(
                 fontSize: 12,
                 fontWeight: FontWeight.w600,
-                color: Colors.grey[700]),
+                color: cs.onSurfaceVariant),
           ),
         ),
         SizedBox(
@@ -2230,15 +2240,14 @@ class _AddDescriptionScreenState extends ConsumerState<AddDescriptionScreen>
               contentPadding:
                   const EdgeInsets.symmetric(vertical: 2, horizontal: 2),
               filled: true,
-              fillColor: const Color(0xFFE3F2FD),
+              fillColor: cs.surfaceContainerHigh,
               border: OutlineInputBorder(
                 borderRadius: BorderRadius.circular(10),
                 borderSide: BorderSide.none,
               ),
               focusedBorder: OutlineInputBorder(
                 borderRadius: BorderRadius.circular(10),
-                borderSide:
-                    const BorderSide(color: Color(0xFF1B6DCE), width: 2),
+                borderSide: BorderSide(color: cs.primary, width: 2),
               ),
             ),
           ),
@@ -2286,27 +2295,23 @@ class _AddDescriptionScreenState extends ConsumerState<AddDescriptionScreen>
     bool isLoading,
     Function(bool) onChanged,
   ) {
+    final cs = Theme.of(context).colorScheme;
     return GestureDetector(
       onTap: isLoading ? null : () => onChanged(!value),
       child: AnimatedContainer(
         duration: const Duration(milliseconds: 200),
         padding: const EdgeInsets.symmetric(vertical: 15, horizontal: 5),
         decoration: BoxDecoration(
-          gradient: value
-              ? const LinearGradient(
-                  colors: [Color(0xFF1B6DCE), Color(0xFF1565C0)],
-                )
-              : null,
-          color: value ? null : Colors.white,
+          color: value ? cs.primaryContainer : cs.surface,
           borderRadius: BorderRadius.circular(14),
           border: Border.all(
-            color: value ? const Color(0xFF1B6DCE) : Colors.grey[300]!,
+            color: value ? cs.primary : cs.outlineVariant,
             width: value ? 2 : 1.5,
           ),
           boxShadow: value
               ? [
                   BoxShadow(
-                    color: const Color(0xFF1B6DCE).withOpacity(0.4),
+                    color: cs.primary.withOpacity(0.3),
                     blurRadius: 12,
                     offset: const Offset(0, 4),
                   ),
@@ -2322,7 +2327,7 @@ class _AddDescriptionScreenState extends ConsumerState<AddDescriptionScreen>
               style: TextStyle(
                 fontSize: 13,
                 fontWeight: FontWeight.w700,
-                color: value ? Colors.white : const Color(0xFF1B6DCE),
+                color: value ? cs.onPrimaryContainer : cs.primary,
               ),
             ),
           ],

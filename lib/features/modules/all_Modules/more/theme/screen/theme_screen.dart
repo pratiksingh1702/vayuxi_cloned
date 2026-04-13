@@ -12,221 +12,377 @@ class ThemeScreen extends ConsumerWidget {
   Widget build(BuildContext context, WidgetRef ref) {
     final themeState = ref.watch(themeProvider);
     final notifier = ref.read(themeProvider.notifier);
-
     final theme = Theme.of(context);
     final colors = theme.colorScheme;
     final textTheme = theme.textTheme;
-
-    final List<_ColorEntry> colorEntries = [
-      // Primary
-      _ColorEntry('primary', colors.primary, colors.onPrimary, 'Main interactive elements: FAB, active buttons, highlights'),
-      _ColorEntry('onPrimary', colors.onPrimary, colors.primary, 'Text/icons on primary color'),
-      _ColorEntry('primaryContainer', colors.primaryContainer, colors.onPrimaryContainer, 'Selected cards, active state backgrounds'),
-      _ColorEntry('onPrimaryContainer', colors.onPrimaryContainer, colors.primaryContainer, 'Text/icons on primaryContainer'),
-      _ColorEntry('primaryFixed', colors.primaryFixed, colors.onPrimaryFixed, 'Fixed primary regardless of dark/light mode'),
-      _ColorEntry('onPrimaryFixed', colors.onPrimaryFixed, colors.primaryFixed, 'Text/icons on primaryFixed'),
-      _ColorEntry('primaryFixedDim', colors.primaryFixedDim, colors.onPrimaryFixedVariant, 'Slightly dimmer fixed primary'),
-      _ColorEntry('onPrimaryFixedVariant', colors.onPrimaryFixedVariant, colors.primaryFixedDim, 'Text/icons on primaryFixedDim'),
-      // Secondary
-      _ColorEntry('secondary', colors.secondary, colors.onSecondary, 'Complementary accents, chips, filters'),
-      _ColorEntry('onSecondary', colors.onSecondary, colors.secondary, 'Text/icons on secondary'),
-      _ColorEntry('secondaryContainer', colors.secondaryContainer, colors.onSecondaryContainer, 'Container for secondary components'),
-      _ColorEntry('onSecondaryContainer', colors.onSecondaryContainer, colors.secondaryContainer, 'Text/icons on secondaryContainer'),
-      _ColorEntry('secondaryFixed', colors.secondaryFixed, colors.onSecondaryFixed, 'Fixed secondary regardless of mode'),
-      _ColorEntry('onSecondaryFixed', colors.onSecondaryFixed, colors.secondaryFixed, 'Text/icons on secondaryFixed'),
-      _ColorEntry('secondaryFixedDim', colors.secondaryFixedDim, colors.onSecondaryFixedVariant, 'Dimmer fixed secondary'),
-      _ColorEntry('onSecondaryFixedVariant', colors.onSecondaryFixedVariant, colors.secondaryFixedDim, 'Text/icons on secondaryFixedDim'),
-      // Tertiary
-      _ColorEntry('tertiary', colors.tertiary, colors.onTertiary, 'Contrasting accents for balancing primary & secondary'),
-      _ColorEntry('onTertiary', colors.onTertiary, colors.tertiary, 'Text/icons on tertiary'),
-      _ColorEntry('tertiaryContainer', colors.tertiaryContainer, colors.onTertiaryContainer, 'Container for tertiary elements'),
-      _ColorEntry('onTertiaryContainer', colors.onTertiaryContainer, colors.tertiaryContainer, 'Text/icons on tertiaryContainer'),
-      _ColorEntry('tertiaryFixed', colors.tertiaryFixed, colors.onTertiaryFixed, 'Fixed tertiary regardless of mode'),
-      _ColorEntry('onTertiaryFixed', colors.onTertiaryFixed, colors.tertiaryFixed, 'Text/icons on tertiaryFixed'),
-      _ColorEntry('tertiaryFixedDim', colors.tertiaryFixedDim, colors.onTertiaryFixedVariant, 'Dimmer fixed tertiary'),
-      _ColorEntry('onTertiaryFixedVariant', colors.onTertiaryFixedVariant, colors.tertiaryFixedDim, 'Text/icons on tertiaryFixedDim'),
-      // Error
-      _ColorEntry('error', colors.error, colors.onError, 'Error states, destructive actions'),
-      _ColorEntry('onError', colors.onError, colors.error, 'Text/icons on error'),
-      _ColorEntry('errorContainer', colors.errorContainer, colors.onErrorContainer, 'Background for error messages/banners'),
-      _ColorEntry('onErrorContainer', colors.onErrorContainer, colors.errorContainer, 'Text/icons on errorContainer'),
-      // Surface
-      _ColorEntry('surface', colors.surface, colors.onSurface, 'Default background for Cards, Sheets, Dialogs'),
-      _ColorEntry('onSurface', colors.onSurface, colors.surface, 'Primary text/icons on surface'),
-      _ColorEntry('surfaceDim', colors.surfaceDim, colors.onSurface, 'Dimmer surface, used for inactive/disabled areas'),
-      _ColorEntry('surfaceBright', colors.surfaceBright, colors.onSurface, 'Brighter surface for prominent containers'),
-      _ColorEntry('surfaceContainerLowest', colors.surfaceContainerLowest, colors.onSurface, 'Lowest emphasis container surface'),
-      _ColorEntry('surfaceContainerLow', colors.surfaceContainerLow, colors.onSurface, 'Low emphasis container surface'),
-      _ColorEntry('surfaceContainer', colors.surfaceContainer, colors.onSurface, 'Default container surface'),
-      _ColorEntry('surfaceContainerHigh', colors.surfaceContainerHigh, colors.onSurface, 'High emphasis container surface'),
-      _ColorEntry('surfaceContainerHighest', colors.surfaceContainerHighest, colors.onSurface, 'Highest emphasis container (e.g. input fills)'),
-      _ColorEntry('onSurfaceVariant', colors.onSurfaceVariant, colors.surfaceContainerHighest, 'Secondary text/icons on surface'),
-      _ColorEntry('surfaceVariant', colors.surfaceVariant, colors.onSurfaceVariant, 'Subtle backgrounds, chip fills'),
-      // Inverse
-      _ColorEntry('inverseSurface', colors.inverseSurface, colors.onInverseSurface, 'Snackbars, tooltips (inverted surface)'),
-      _ColorEntry('onInverseSurface', colors.onInverseSurface, colors.inverseSurface, 'Text/icons on inverseSurface'),
-      _ColorEntry('inversePrimary', colors.inversePrimary, colors.primary, 'Primary color on inverse surface (dark/light action)'),
-      // Outline
-      _ColorEntry('outline', colors.outline, colors.surface, 'Borders, input field outlines, dividers'),
-      _ColorEntry('outlineVariant', colors.outlineVariant, colors.onSurface, 'Subtle dividers, decorative borders'),
-      // Scrim & Shadow
-      _ColorEntry('scrim', colors.scrim, Colors.white, 'Modal barrier / overlay scrim color'),
-      _ColorEntry('shadow', colors.shadow, Colors.white, 'Drop shadow color for elevated components'),
-    ];
+    final previewAccent = themeState.customSeed ?? colors.primary;
 
     return Scaffold(
+      backgroundColor: colors.surface,
       appBar: AppBar(
-        title: const Text("Theme Inspector"),
-        backgroundColor: colors.primary,
-        foregroundColor: colors.onPrimary,
+        title: const Text('Appearance Settings'),
       ),
       body: ListView(
-        padding: const EdgeInsets.all(12),
+        padding: const EdgeInsets.fromLTRB(16, 14, 16, 24),
         children: [
-          /// ── CONTROLS ──
+          Text(
+            'Display',
+            style: textTheme.labelLarge?.copyWith(
+              color: colors.onSurfaceVariant,
+              fontWeight: FontWeight.w700,
+            ),
+          ),
+          const SizedBox(height: 8),
           Card(
-            child: Padding(
-              padding: const EdgeInsets.all(12),
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Text("Theme Mode", style: textTheme.titleMedium),
-                  DropdownButton<ThemeMode>(
-                    value: themeState.themeMode,
-                    isExpanded: true,
-                    items: ThemeMode.values
-                        .map((m) => DropdownMenuItem(value: m, child: Text(m.name)))
-                        .toList(),
-                    onChanged: (m) => notifier.changeMode(m!),
-                  ),
-                  const SizedBox(height: 8),
-                  Text("Flex Scheme", style: textTheme.titleMedium),
-                  DropdownButton<FlexScheme>(
-                    value: themeState.scheme,
-                    isExpanded: true,
-                    items: FlexScheme.values
-                        .map((s) => DropdownMenuItem(value: s, child: Text(s.name)))
-                        .toList(),
-                    onChanged: (s) => notifier.changeScheme(s!),
-                  ),
-                  const SizedBox(height: 8),
-                  SizedBox(
-                    width: double.infinity,
-                    child: ElevatedButton(
-                      onPressed: () async {
-                        Color newColor = themeState.customSeed ?? colors.primary;
-                        await ColorPicker(
-                          color: newColor,
-                          onColorChanged: (c) => newColor = c,
-                        ).showPickerDialog(context);
-                        notifier.setCustomSeed(newColor);
-                      },
-                      child: const Text("Pick Seed Color"),
+            elevation: 0,
+            color: colors.surfaceContainerLow,
+            shape: RoundedRectangleBorder(
+              borderRadius: BorderRadius.circular(14),
+              side: BorderSide(color: colors.outlineVariant.withOpacity(0.45)),
+            ),
+            child: Column(
+              children: [
+                RadioListTile<ThemeMode>(
+                  value: ThemeMode.light,
+                  groupValue: themeState.themeMode,
+                  onChanged: (v) => notifier.changeMode(v!),
+                  title: const Text('Light'),
+                  subtitle: const Text('Always use light appearance'),
+                ),
+                Divider(
+                    height: 1, color: colors.outlineVariant.withOpacity(0.6)),
+                RadioListTile<ThemeMode>(
+                  value: ThemeMode.dark,
+                  groupValue: themeState.themeMode,
+                  onChanged: (v) => notifier.changeMode(v!),
+                  title: const Text('Dark'),
+                  subtitle: const Text('Always use dark appearance'),
+                ),
+                Divider(
+                    height: 1, color: colors.outlineVariant.withOpacity(0.6)),
+                RadioListTile<ThemeMode>(
+                  value: ThemeMode.system,
+                  groupValue: themeState.themeMode,
+                  onChanged: (v) => notifier.changeMode(v!),
+                  title: const Text('System default'),
+                  subtitle: const Text('Match your device setting'),
+                ),
+              ],
+            ),
+          ),
+          const SizedBox(height: 14),
+          Text(
+            'Color Style',
+            style: textTheme.labelLarge?.copyWith(
+              color: colors.onSurfaceVariant,
+              fontWeight: FontWeight.w700,
+            ),
+          ),
+          const SizedBox(height: 8),
+          Card(
+            elevation: 0,
+            color: colors.surfaceContainerLow,
+            shape: RoundedRectangleBorder(
+              borderRadius: BorderRadius.circular(14),
+              side: BorderSide(color: colors.outlineVariant.withOpacity(0.45)),
+            ),
+            child: Column(
+              children: [
+                ListTile(
+                  leading: Icon(Icons.palette_rounded, color: colors.primary),
+                  title: const Text('Color scheme'),
+                  subtitle: Text(_schemeLabel(themeState.scheme)),
+                  trailing: const Icon(Icons.chevron_right_rounded),
+                  onTap: () async {
+                    final selected = await _showSchemeSelector(
+                      context,
+                      current: themeState.scheme,
+                    );
+                    if (selected != null) {
+                      notifier.changeScheme(selected);
+                    }
+                  },
+                ),
+                Divider(
+                    height: 1, color: colors.outlineVariant.withOpacity(0.6)),
+                ListTile(
+                  leading: Container(
+                    width: 18,
+                    height: 18,
+                    decoration: BoxDecoration(
+                      color: previewAccent,
+                      shape: BoxShape.circle,
+                      border: Border.all(color: colors.outlineVariant),
                     ),
                   ),
-                ],
-              ),
+                  title: const Text('Accent color'),
+                  subtitle: Text(
+                    themeState.customSeed == null
+                        ? 'Using scheme default'
+                        : _hex(themeState.customSeed!),
+                  ),
+                  trailing: Row(
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      TextButton(
+                        onPressed: () async {
+                          Color draft = themeState.customSeed ?? colors.primary;
+                          final picked = await ColorPicker(
+                            color: draft,
+                            onColorChanged: (c) => draft = c,
+                            pickersEnabled: const {
+                              ColorPickerType.wheel: true,
+                              ColorPickerType.accent: true,
+                              ColorPickerType.primary: false,
+                            },
+                          ).showPickerDialog(context);
+                          if (picked) {
+                            notifier.setCustomSeed(draft);
+                          }
+                        },
+                        child: const Text('Pick'),
+                      ),
+                      TextButton(
+                        onPressed: themeState.customSeed == null
+                            ? null
+                            : notifier.clearCustomSeed,
+                        child: const Text('Reset'),
+                      ),
+                    ],
+                  ),
+                ),
+              ],
             ),
           ),
-
-          const SizedBox(height: 16),
-          Text("Color Scheme  (${colorEntries.length} colors)",
-              style: textTheme.titleLarge),
-          const SizedBox(height: 8),
-
-          /// ── COLOR GRID ──
-          ...colorEntries.map((e) => _CompactColorTile(entry: e)),
-
-          const SizedBox(height: 24),
-
-          /// ── TYPOGRAPHY ──
-          Text("Typography", style: textTheme.titleLarge),
-          const SizedBox(height: 8),
-          Card(
-            child: Padding(
-              padding: const EdgeInsets.all(12),
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Text("Display Large", style: textTheme.displayLarge),
-                  Text("Headline Medium", style: textTheme.headlineMedium),
-                  Text("Title Large", style: textTheme.titleLarge),
-                  Text("Body Large", style: textTheme.bodyLarge),
-                  Text("Label Medium", style: textTheme.labelMedium),
-                ],
-              ),
+          const SizedBox(height: 14),
+          Text(
+            'Live Preview',
+            style: textTheme.labelLarge?.copyWith(
+              color: colors.onSurfaceVariant,
+              fontWeight: FontWeight.w700,
             ),
           ),
-          const SizedBox(height: 24),
+          const SizedBox(height: 8),
+          _ThemeDemoCard(
+            schemeName: _schemeLabel(themeState.scheme),
+            accentColor: previewAccent,
+          ),
+          const SizedBox(height: 10),
+          Container(
+            padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
+            decoration: BoxDecoration(
+              color: colors.secondaryContainer.withOpacity(0.45),
+              borderRadius: BorderRadius.circular(12),
+              border:
+                  Border.all(color: colors.outlineVariant.withOpacity(0.35)),
+            ),
+            child: Row(
+              children: [
+                Icon(Icons.verified_rounded, size: 18, color: colors.primary),
+                const SizedBox(width: 8),
+                Expanded(
+                  child: Text(
+                    'Your appearance settings are saved offline and applied at app startup.',
+                    style: textTheme.bodySmall?.copyWith(
+                      color: colors.onSurface,
+                      height: 1.25,
+                    ),
+                  ),
+                ),
+              ],
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  String _modeText(ThemeMode mode) {
+    switch (mode) {
+      case ThemeMode.light:
+        return 'Light Mode';
+      case ThemeMode.dark:
+        return 'Dark Mode';
+      case ThemeMode.system:
+        return 'System Mode';
+    }
+  }
+
+  String _schemeLabel(FlexScheme scheme) {
+    final raw = scheme.name;
+    return raw.substring(0, 1).toUpperCase() + raw.substring(1);
+  }
+
+  String _hex(Color color) {
+    return '#${color.value.toRadixString(16).padLeft(8, '0').toUpperCase().substring(2)}';
+  }
+
+  Future<FlexScheme?> _showSchemeSelector(
+    BuildContext context, {
+    required FlexScheme current,
+  }) {
+    return showModalBottomSheet<FlexScheme>(
+      context: context,
+      showDragHandle: true,
+      builder: (context) {
+        final textTheme = Theme.of(context).textTheme;
+        final colors = Theme.of(context).colorScheme;
+        return SafeArea(
+          child: Column(
+            children: [
+              Padding(
+                padding: const EdgeInsets.fromLTRB(16, 8, 16, 10),
+                child: Row(
+                  children: [
+                    Text('Choose Scheme', style: textTheme.titleMedium),
+                  ],
+                ),
+              ),
+              Expanded(
+                child: ListView.builder(
+                  itemCount: FlexScheme.values.length,
+                  itemBuilder: (context, index) {
+                    final item = FlexScheme.values[index];
+                    final selected = item == current;
+                    return ListTile(
+                      leading: Icon(
+                        selected
+                            ? Icons.radio_button_checked_rounded
+                            : Icons.radio_button_unchecked_rounded,
+                        color:
+                            selected ? colors.primary : colors.onSurfaceVariant,
+                      ),
+                      title: Text(_schemeLabel(item)),
+                      onTap: () => Navigator.pop(context, item),
+                    );
+                  },
+                ),
+              ),
+            ],
+          ),
+        );
+      },
+    );
+  }
+}
+
+class _ThemeDemoCard extends StatelessWidget {
+  const _ThemeDemoCard({
+    required this.schemeName,
+    required this.accentColor,
+  });
+
+  final String schemeName;
+  final Color accentColor;
+
+  @override
+  Widget build(BuildContext context) {
+    final colors = Theme.of(context).colorScheme;
+    final textTheme = Theme.of(context).textTheme;
+
+    return Container(
+      padding: const EdgeInsets.all(14),
+      decoration: BoxDecoration(
+        color: colors.surfaceContainer,
+        borderRadius: BorderRadius.circular(18),
+        border: Border.all(color: colors.outlineVariant.withOpacity(0.8)),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
+            children: [
+              Icon(Icons.workspace_premium_rounded,
+                  color: colors.primary, size: 18),
+              const SizedBox(width: 8),
+              Text(
+                'Premium Preview',
+                style: textTheme.titleSmall?.copyWith(
+                  fontWeight: FontWeight.w800,
+                  color: colors.onSurface,
+                ),
+              ),
+              const Spacer(),
+              Container(
+                width: 12,
+                height: 12,
+                decoration: BoxDecoration(
+                  color: accentColor,
+                  shape: BoxShape.circle,
+                ),
+              ),
+            ],
+          ),
+          const SizedBox(height: 10),
+          Row(
+            children: [
+              Expanded(
+                child: _DemoMiniTile(
+                  title: 'Scheme',
+                  value: schemeName,
+                ),
+              ),
+              const SizedBox(width: 10),
+              Expanded(
+                child: _DemoMiniTile(
+                  title: 'Accent',
+                  value:
+                      '#${accentColor.value.toRadixString(16).toUpperCase().padLeft(8, '0').substring(2)}',
+                ),
+              ),
+            ],
+          ),
+          const SizedBox(height: 10),
+          ClipRRect(
+            borderRadius: BorderRadius.circular(12),
+            child: LinearProgressIndicator(
+              value: 0.67,
+              minHeight: 8,
+              backgroundColor: colors.surfaceContainerHighest,
+              color: accentColor,
+            ),
+          ),
         ],
       ),
     );
   }
 }
 
-class _ColorEntry {
-  final String name;
-  final Color color;
-  final Color textColor;
-  final String description;
+class _DemoMiniTile extends StatelessWidget {
+  const _DemoMiniTile({required this.title, required this.value});
 
-  const _ColorEntry(this.name, this.color, this.textColor, this.description);
-}
-
-class _CompactColorTile extends StatelessWidget {
-  final _ColorEntry entry;
-
-  const _CompactColorTile({required this.entry});
+  final String title;
+  final String value;
 
   @override
   Widget build(BuildContext context) {
+    final colors = Theme.of(context).colorScheme;
+    final textTheme = Theme.of(context).textTheme;
     return Container(
-      margin: const EdgeInsets.only(bottom: 4),
-      height: 52,
+      padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 8),
       decoration: BoxDecoration(
-        color: entry.color,
-        borderRadius: BorderRadius.circular(8),
+        color: colors.surface,
+        borderRadius: BorderRadius.circular(10),
+        border: Border.all(color: colors.outlineVariant.withOpacity(0.45)),
       ),
-      padding: const EdgeInsets.symmetric(horizontal: 12),
-      child: Row(
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          Expanded(
-            flex: 2,
-            child: Text(
-              entry.name,
-              style: TextStyle(
-                color: entry.textColor,
-                fontWeight: FontWeight.bold,
-                fontSize: 12,
-              ),
+          Text(
+            title,
+            style: textTheme.labelSmall?.copyWith(
+              color: colors.onSurfaceVariant,
+              fontWeight: FontWeight.w600,
             ),
           ),
-          Expanded(
-            flex: 3,
-            child: Text(
-              entry.description,
-              style: TextStyle(
-                color: entry.textColor.withOpacity(0.85),
-                fontSize: 11,
-              ),
-              maxLines: 2,
-              overflow: TextOverflow.ellipsis,
-            ),
-          ),
-          const SizedBox(width: 8),
-          Container(
-            padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
-            decoration: BoxDecoration(
-              color: entry.textColor.withOpacity(0.15),
-              borderRadius: BorderRadius.circular(4),
-            ),
-            child: Text(
-              '#${entry.color.value.toRadixString(16).toUpperCase().padLeft(8, '0').substring(2)}',
-              style: TextStyle(
-                color: entry.textColor,
-                fontSize: 10,
-                fontFamily: 'monospace',
-              ),
+          const SizedBox(height: 2),
+          Text(
+            value,
+            maxLines: 1,
+            overflow: TextOverflow.ellipsis,
+            style: textTheme.bodySmall?.copyWith(
+              color: colors.onSurface,
+              fontWeight: FontWeight.w700,
             ),
           ),
         ],

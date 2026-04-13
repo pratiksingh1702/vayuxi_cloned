@@ -64,26 +64,29 @@ class _TermsAndConditionsScreenState extends State<TermsAndConditionsScreen>
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
-    const primaryColor = Color(0xFF1A1A2E);
-    const accentColor = Color(0xFF4F8EF7);
-    const surfaceColor = Color(0xFFF7F8FC);
-    const cardColor = Colors.white;
+    final colorScheme = theme.colorScheme;
+    final primaryColor = colorScheme.onSurface;
+    final accentColor = colorScheme.primary;
+    final surfaceColor = colorScheme.surface;
+    final cardColor = colorScheme.surfaceContainerLow;
 
     return Scaffold(
       backgroundColor: surfaceColor,
       body: AnnotatedRegion<SystemUiOverlayStyle>(
-        value: SystemUiOverlayStyle.dark,
+        value: theme.brightness == Brightness.dark
+            ? SystemUiOverlayStyle.light
+            : SystemUiOverlayStyle.dark,
         child: Column(
           children: [
             // Custom AppBar
             Container(
-              decoration: const BoxDecoration(
+              decoration: BoxDecoration(
                 color: cardColor,
                 boxShadow: [
                   BoxShadow(
-                    color: Color(0x0A000000),
+                    color: colorScheme.shadow.withOpacity(0.08),
                     blurRadius: 12,
-                    offset: Offset(0, 2),
+                    offset: const Offset(0, 2),
                   ),
                 ],
               ),
@@ -108,7 +111,7 @@ class _TermsAndConditionsScreenState extends State<TermsAndConditionsScreen>
                                 decoration: BoxDecoration(
                                   borderRadius: BorderRadius.circular(12),
                                 ),
-                                child: const Icon(
+                                child: Icon(
                                   Icons.arrow_back_ios_new_rounded,
                                   size: 18,
                                   color: primaryColor,
@@ -116,7 +119,7 @@ class _TermsAndConditionsScreenState extends State<TermsAndConditionsScreen>
                               ),
                             ),
                           ),
-                          const Expanded(
+                          Expanded(
                             child: Column(
                               crossAxisAlignment: CrossAxisAlignment.center,
                               children: [
@@ -129,12 +132,12 @@ class _TermsAndConditionsScreenState extends State<TermsAndConditionsScreen>
                                     letterSpacing: -0.3,
                                   ),
                                 ),
-                                SizedBox(height: 2),
+                                const SizedBox(height: 2),
                                 Text(
                                   "Please read carefully",
                                   style: TextStyle(
                                     fontSize: 12,
-                                    color: Color(0xFF8A94A6),
+                                    color: colorScheme.onSurfaceVariant,
                                     fontWeight: FontWeight.w400,
                                   ),
                                 ),
@@ -149,7 +152,7 @@ class _TermsAndConditionsScreenState extends State<TermsAndConditionsScreen>
                               color: accentColor.withOpacity(0.1),
                               borderRadius: BorderRadius.circular(12),
                             ),
-                            child: const Icon(
+                            child: Icon(
                               Icons.description_outlined,
                               size: 20,
                               color: accentColor,
@@ -163,9 +166,8 @@ class _TermsAndConditionsScreenState extends State<TermsAndConditionsScreen>
                       height: 3,
                       child: LinearProgressIndicator(
                         value: _scrollProgress,
-                        backgroundColor: const Color(0xFFEEF0F5),
-                        valueColor:
-                        const AlwaysStoppedAnimation<Color>(accentColor),
+                        backgroundColor: colorScheme.surfaceContainerHighest,
+                        valueColor: AlwaysStoppedAnimation<Color>(accentColor),
                         minHeight: 3,
                       ),
                     ),
@@ -179,22 +181,23 @@ class _TermsAndConditionsScreenState extends State<TermsAndConditionsScreen>
               child: _isLoading
                   ? _buildLoadingState(accentColor)
                   : FadeTransition(
-                opacity: _fadeAnimation,
-                child: _buildContent(cardColor, primaryColor, accentColor),
-              ),
+                      opacity: _fadeAnimation,
+                      child:
+                          _buildContent(cardColor, primaryColor, accentColor),
+                    ),
             ),
           ],
         ),
       ),
 
       // Accept button
-      bottomNavigationBar: _isLoading
-          ? null
-          : _buildBottomBar(accentColor, primaryColor),
+      bottomNavigationBar:
+          _isLoading ? null : _buildBottomBar(accentColor, primaryColor),
     );
   }
 
   Widget _buildLoadingState(Color accentColor) {
+    final colorScheme = Theme.of(context).colorScheme;
     return Center(
       child: Column(
         mainAxisSize: MainAxisSize.min,
@@ -208,11 +211,11 @@ class _TermsAndConditionsScreenState extends State<TermsAndConditionsScreen>
             ),
           ),
           const SizedBox(height: 16),
-          const Text(
+          Text(
             "Loading document...",
             style: TextStyle(
               fontSize: 14,
-              color: Color(0xFF8A94A6),
+              color: colorScheme.onSurfaceVariant,
               fontWeight: FontWeight.w400,
             ),
           ),
@@ -222,6 +225,7 @@ class _TermsAndConditionsScreenState extends State<TermsAndConditionsScreen>
   }
 
   Widget _buildContent(Color cardColor, Color primaryColor, Color accentColor) {
+    final colorScheme = Theme.of(context).colorScheme;
     return SingleChildScrollView(
       controller: _scrollController,
       physics: const BouncingScrollPhysics(),
@@ -233,15 +237,18 @@ class _TermsAndConditionsScreenState extends State<TermsAndConditionsScreen>
             margin: const EdgeInsets.fromLTRB(16, 16, 16, 0),
             padding: const EdgeInsets.all(20),
             decoration: BoxDecoration(
-              gradient: const LinearGradient(
-                colors: [Color(0xFF1A1A2E), Color(0xFF16213E)],
+              gradient: LinearGradient(
+                colors: [
+                  colorScheme.primaryContainer,
+                  colorScheme.secondaryContainer
+                ],
                 begin: Alignment.topLeft,
                 end: Alignment.bottomRight,
               ),
               borderRadius: BorderRadius.circular(20),
               boxShadow: [
                 BoxShadow(
-                  color: const Color(0xFF1A1A2E).withOpacity(0.25),
+                  color: colorScheme.shadow.withOpacity(0.16),
                   blurRadius: 20,
                   offset: const Offset(0, 8),
                 ),
@@ -253,34 +260,35 @@ class _TermsAndConditionsScreenState extends State<TermsAndConditionsScreen>
                   width: 52,
                   height: 52,
                   decoration: BoxDecoration(
-                    color: Colors.white.withOpacity(0.12),
+                    color: colorScheme.surface.withOpacity(0.2),
                     borderRadius: BorderRadius.circular(14),
                   ),
-                  child: const Icon(
+                  child: Icon(
                     Icons.gavel_rounded,
-                    color: Colors.white,
+                    color: colorScheme.onPrimaryContainer,
                     size: 26,
                   ),
                 ),
                 const SizedBox(width: 16),
-                const Expanded(
+                Expanded(
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
                       Text(
                         "Legal Agreement",
                         style: TextStyle(
-                          color: Colors.white,
+                          color: colorScheme.onPrimaryContainer,
                           fontSize: 16,
                           fontWeight: FontWeight.w700,
                           letterSpacing: -0.2,
                         ),
                       ),
-                      SizedBox(height: 4),
+                      const SizedBox(height: 4),
                       Text(
                         "Last updated: March 2025",
                         style: TextStyle(
-                          color: Color(0xFF8A99C4),
+                          color:
+                              colorScheme.onPrimaryContainer.withOpacity(0.75),
                           fontSize: 12,
                           fontWeight: FontWeight.w400,
                         ),
@@ -290,15 +298,15 @@ class _TermsAndConditionsScreenState extends State<TermsAndConditionsScreen>
                 ),
                 Container(
                   padding:
-                  const EdgeInsets.symmetric(horizontal: 10, vertical: 5),
+                      const EdgeInsets.symmetric(horizontal: 10, vertical: 5),
                   decoration: BoxDecoration(
-                    color: const Color(0xFF4F8EF7).withOpacity(0.25),
+                    color: accentColor.withOpacity(0.22),
                     borderRadius: BorderRadius.circular(20),
                   ),
-                  child: const Text(
+                  child: Text(
                     "v2.1",
                     style: TextStyle(
-                      color: Color(0xFF90B4FF),
+                      color: accentColor,
                       fontSize: 11,
                       fontWeight: FontWeight.w600,
                     ),
@@ -314,11 +322,11 @@ class _TermsAndConditionsScreenState extends State<TermsAndConditionsScreen>
             decoration: BoxDecoration(
               color: cardColor,
               borderRadius: BorderRadius.circular(20),
-              boxShadow: const [
+              boxShadow: [
                 BoxShadow(
-                  color: Color(0x08000000),
+                  color: colorScheme.shadow.withOpacity(0.08),
                   blurRadius: 16,
-                  offset: Offset(0, 4),
+                  offset: const Offset(0, 4),
                 ),
               ],
             ),
@@ -331,79 +339,77 @@ class _TermsAndConditionsScreenState extends State<TermsAndConditionsScreen>
                 physics: const NeverScrollableScrollPhysics(),
                 padding: const EdgeInsets.all(24),
                 styleSheet: MarkdownStyleSheet(
-                  h1: const TextStyle(
+                  h1: TextStyle(
                     fontSize: 22,
                     fontWeight: FontWeight.w800,
-                    color: Color(0xFF1A1A2E),
+                    color: colorScheme.onSurface,
                     letterSpacing: -0.5,
                     height: 1.3,
                   ),
-                  h2: const TextStyle(
+                  h2: TextStyle(
                     fontSize: 18,
                     fontWeight: FontWeight.w700,
-                    color: Color(0xFF1A1A2E),
+                    color: colorScheme.onSurface,
                     letterSpacing: -0.3,
                     height: 1.4,
                   ),
-                  h3: const TextStyle(
+                  h3: TextStyle(
                     fontSize: 15,
                     fontWeight: FontWeight.w600,
-                    color: Color(0xFF2D3A5C),
+                    color: colorScheme.onSurface,
                     height: 1.4,
                   ),
-                  p: const TextStyle(
+                  p: TextStyle(
                     fontSize: 14.5,
-                    color: Color(0xFF4A5568),
+                    color: colorScheme.onSurfaceVariant,
                     height: 1.7,
                     fontWeight: FontWeight.w400,
                   ),
-                  strong: const TextStyle(
+                  strong: TextStyle(
                     fontWeight: FontWeight.w700,
-                    color: Color(0xFF1A1A2E),
+                    color: colorScheme.onSurface,
                   ),
-                  em: const TextStyle(
+                  em: TextStyle(
                     fontStyle: FontStyle.italic,
-                    color: Color(0xFF4A5568),
+                    color: colorScheme.onSurfaceVariant,
                   ),
-                  listBullet: const TextStyle(
+                  listBullet: TextStyle(
                     fontSize: 14.5,
-                    color: Color(0xFF4F8EF7),
+                    color: accentColor,
                     height: 1.7,
                   ),
-                  blockquote: const TextStyle(
+                  blockquote: TextStyle(
                     fontSize: 14,
-                    color: Color(0xFF6B7A99),
+                    color: colorScheme.onSurfaceVariant,
                     fontStyle: FontStyle.italic,
                     height: 1.6,
                   ),
                   blockquoteDecoration: BoxDecoration(
-                    color: const Color(0xFFF0F4FF),
+                    color: colorScheme.secondaryContainer.withOpacity(0.5),
                     borderRadius: BorderRadius.circular(8),
-                    border: const Border(
+                    border: Border(
                       left: BorderSide(
-                        color: Color(0xFF4F8EF7),
+                        color: accentColor,
                         width: 3,
                       ),
                     ),
                   ),
-                  code: const TextStyle(
+                  code: TextStyle(
                     fontSize: 13,
-                    color: Color(0xFF3B5BDB),
+                    color: accentColor,
                     fontFamily: 'monospace',
-                    backgroundColor: Color(0xFFF0F4FF),
+                    backgroundColor:
+                        colorScheme.secondaryContainer.withOpacity(0.45),
                   ),
                   codeblockDecoration: BoxDecoration(
-                    color: const Color(0xFFF7F8FC),
+                    color: colorScheme.surfaceContainerLowest,
                     borderRadius: BorderRadius.circular(10),
-                    border: Border.all(color: const Color(0xFFE2E8F0)),
+                    border: Border.all(color: colorScheme.outlineVariant),
                   ),
-                  horizontalRuleDecoration: const BoxDecoration(
+                  horizontalRuleDecoration: BoxDecoration(
                     border: Border(
-                      top: BorderSide(
-                        color: Color(0xFFEEF0F5),
-                        width: 1.5,
-                      ),
-                    ),
+                        top: BorderSide(
+                            color: colorScheme.outlineVariant, width: 1.5)),
                   ),
                 ),
               ),
@@ -416,14 +422,15 @@ class _TermsAndConditionsScreenState extends State<TermsAndConditionsScreen>
   }
 
   Widget _buildBottomBar(Color accentColor, Color primaryColor) {
+    final colorScheme = Theme.of(context).colorScheme;
     return Container(
-      decoration: const BoxDecoration(
-        color: Colors.white,
+      decoration: BoxDecoration(
+        color: colorScheme.surface,
         boxShadow: [
           BoxShadow(
-            color: Color(0x0F000000),
+            color: colorScheme.shadow.withOpacity(0.12),
             blurRadius: 20,
-            offset: Offset(0, -4),
+            offset: const Offset(0, -4),
           ),
         ],
       ),
@@ -454,8 +461,8 @@ class _TermsAndConditionsScreenState extends State<TermsAndConditionsScreen>
                     style: TextStyle(
                       fontSize: 12,
                       color: _scrollProgress >= 0.95
-                          ? const Color(0xFF22C55E)
-                          : const Color(0xFF8A94A6),
+                          ? colorScheme.tertiary
+                          : colorScheme.onSurfaceVariant,
                       fontWeight: FontWeight.w500,
                     ),
                   ),
@@ -473,24 +480,26 @@ class _TermsAndConditionsScreenState extends State<TermsAndConditionsScreen>
                   },
                   style: ElevatedButton.styleFrom(
                     backgroundColor: accentColor,
-                    foregroundColor: Colors.white,
+                    foregroundColor: colorScheme.onPrimary,
                     elevation: 0,
                     shadowColor: Colors.transparent,
                     shape: RoundedRectangleBorder(
                       borderRadius: BorderRadius.circular(14),
                     ),
                   ),
-                  child: const Row(
+                  child: Row(
                     mainAxisAlignment: MainAxisAlignment.center,
                     children: [
-                      Icon(Icons.check_rounded, size: 20),
-                      SizedBox(width: 8),
+                      Icon(Icons.check_rounded,
+                          size: 20, color: colorScheme.onPrimary),
+                      const SizedBox(width: 8),
                       Text(
                         "Accept & Continue",
                         style: TextStyle(
                           fontSize: 15,
                           fontWeight: FontWeight.w700,
                           letterSpacing: 0.2,
+                          color: colorScheme.onPrimary,
                         ),
                       ),
                     ],
@@ -505,7 +514,7 @@ class _TermsAndConditionsScreenState extends State<TermsAndConditionsScreen>
                   "Decline",
                   style: TextStyle(
                     fontSize: 13,
-                    color: Color(0xFF8A94A6),
+                    color: Colors.grey,
                     fontWeight: FontWeight.w500,
                   ),
                 ),

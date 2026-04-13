@@ -23,23 +23,25 @@ class FloorCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final cs = Theme.of(context).colorScheme;
+
     return InkWell(
       borderRadius: BorderRadius.circular(16),
       onTap: onTap,
       child: Container(
         decoration: BoxDecoration(
-          color: Colors.white,
+          color: cs.surface,
           borderRadius: BorderRadius.circular(16),
           border: Border.all(
-            color: isSelected ? Colors.blue : Colors.grey.shade300,
+            color: isSelected ? cs.primary : cs.outlineVariant,
             width: isSelected ? 2 : 1,
           ),
           boxShadow: [
             BoxShadow(
-              color: Colors.grey.withOpacity(0.1),
-              blurRadius: 8,
-              spreadRadius: 2,
-              offset: const Offset(0, 2),
+              color: cs.shadow.withOpacity(0.08),
+              blurRadius: 10,
+              spreadRadius: 1,
+              offset: const Offset(0, 3),
             ),
           ],
         ),
@@ -57,10 +59,10 @@ class FloorCard extends StatelessWidget {
                     child: Container(
                       decoration: BoxDecoration(
                         borderRadius: BorderRadius.circular(12),
-                        color: Colors.grey.shade50,
+                        color: cs.surfaceContainerLow,
                       ),
                       clipBehavior: Clip.hardEdge,
-                      child: _buildImage(),
+                      child: _buildImage(context),
                     ),
                   ),
 
@@ -73,11 +75,10 @@ class FloorCard extends StatelessWidget {
                       child: Text(
                         floor.name,
                         textAlign: TextAlign.center,
-                        style: const TextStyle(
+                        style: TextStyle(
                           fontSize: 12,
                           fontWeight: FontWeight.w600,
-
-
+                          color: cs.onSurface,
                         ),
                         maxLines: 2,
                         overflow: TextOverflow.ellipsis,
@@ -102,20 +103,21 @@ class FloorCard extends StatelessWidget {
                       child: Container(
                         padding: const EdgeInsets.all(4),
                         decoration: BoxDecoration(
-                          color: Colors.white,
+                          color: cs.surface,
                           shape: BoxShape.circle,
+                          border: Border.all(color: cs.outlineVariant),
                           boxShadow: [
                             BoxShadow(
-                              color: Colors.black.withOpacity(0.2),
-                              blurRadius: 2,
+                              color: cs.shadow.withOpacity(0.2),
+                              blurRadius: 3,
                               offset: const Offset(0, 1),
                             ),
                           ],
                         ),
-                        child: const Icon(
+                        child: Icon(
                           Icons.edit,
                           size: 16,
-                          color: Colors.blue,
+                          color: cs.primary,
                         ),
                       ),
                     ),
@@ -128,20 +130,21 @@ class FloorCard extends StatelessWidget {
                       child: Container(
                         padding: const EdgeInsets.all(4),
                         decoration: BoxDecoration(
-                          color: Colors.white,
+                          color: cs.surface,
                           shape: BoxShape.circle,
+                          border: Border.all(color: cs.outlineVariant),
                           boxShadow: [
                             BoxShadow(
-                              color: Colors.black.withOpacity(0.2),
-                              blurRadius: 2,
+                              color: cs.shadow.withOpacity(0.2),
+                              blurRadius: 3,
                               offset: const Offset(0, 1),
                             ),
                           ],
                         ),
-                        child: const Icon(
+                        child: Icon(
                           Icons.delete_outline,
                           size: 16,
-                          color: Colors.red,
+                          color: cs.error,
                         ),
                       ),
                     ),
@@ -149,25 +152,24 @@ class FloorCard extends StatelessWidget {
                 ),
               ),
             ],
-
           ],
         ),
       ),
     );
   }
 
-  Widget _buildImage() {
+  Widget _buildImage(BuildContext context) {
     final img = floor.image;
 
-    return _resolveImage(img);
+    return _resolveImage(context, img);
   }
 
-  Widget _resolveImage(String img) {
+  Widget _resolveImage(BuildContext context, String img) {
     if (img.startsWith('http')) {
       return Image.network(
         img,
         fit: BoxFit.fitHeight,
-        errorBuilder: (_, __, ___) => _fallbackIcon(),
+        errorBuilder: (_, __, ___) => _fallbackIcon(context),
       );
     }
 
@@ -176,7 +178,7 @@ class FloorCard extends StatelessWidget {
       return Image.file(
         File(img),
         fit: BoxFit.fitHeight,
-        errorBuilder: (_, __, ___) => _fallbackIcon(),
+        errorBuilder: (_, __, ___) => _fallbackIcon(context),
       );
     }
 
@@ -184,16 +186,17 @@ class FloorCard extends StatelessWidget {
     return Image.asset(
       img,
       fit: BoxFit.fitHeight,
-      errorBuilder: (_, __, ___) => _fallbackIcon(),
+      errorBuilder: (_, __, ___) => _fallbackIcon(context),
     );
   }
 
-  Widget _fallbackIcon() {
+  Widget _fallbackIcon(BuildContext context) {
+    final cs = Theme.of(context).colorScheme;
     return Center(
       child: Icon(
         Icons.house_siding_outlined,
         size: 40,
-        color: Colors.grey.shade400,
+        color: cs.onSurfaceVariant,
       ),
     );
   }

@@ -26,8 +26,9 @@ class SelectCard extends StatelessWidget {
     final isDark = Theme.of(context).brightness == Brightness.dark;
 
     return Card(
-      elevation: 0,
+      elevation: 0.8,
       color: isDark ? cs.surfaceContainer : cs.surface,
+      surfaceTintColor: cs.surfaceTint,
       shape: RoundedRectangleBorder(
         borderRadius: BorderRadius.circular(16),
         side: BorderSide(

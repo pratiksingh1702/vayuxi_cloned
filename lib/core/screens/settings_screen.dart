@@ -115,6 +115,7 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
         section: 'Support',
         route: Routes.upcomingUpdate,
       ),
+   
     ];
 
     final normalizedQuery = _query.trim().toLowerCase();

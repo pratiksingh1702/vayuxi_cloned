@@ -3,7 +3,6 @@ import 'package:flutter/material.dart';
 import '../../../../../../core/utlis/widgets/image.dart';
 import '../../models/rate_file_models.dart';
 
-
 // ─── PATCH 2: Updated DynamicItemCard2 with full edit mode support ─────────────
 // Replace the entire DynamicItemCard2 file with the version below.
 
@@ -117,7 +116,7 @@ class _DynamicItemCard2State extends State<DynamicItemCard2>
     _mocCtrl = TextEditingController(text: widget.moc);
 
     for (final f in widget.fields) {
-      _controllers[f.key] = TextEditingController(text:"");
+      _controllers[f.key] = TextEditingController(text: "");
     }
 
     _qtyCtrl.addListener(() {
@@ -127,7 +126,8 @@ class _DynamicItemCard2State extends State<DynamicItemCard2>
       if (_tonCtrl.text != widget.ton) widget.onTonChanged(_tonCtrl.text);
     });
     _floorCtrl.addListener(() {
-      if (_floorCtrl.text != widget.floor) widget.onFloorChanged(_floorCtrl.text);
+      if (_floorCtrl.text != widget.floor)
+        widget.onFloorChanged(_floorCtrl.text);
     });
     _mocCtrl.addListener(() {
       if (_mocCtrl.text != widget.moc) widget.onMocChanged(_mocCtrl.text);
@@ -210,7 +210,7 @@ class _DynamicItemCard2State extends State<DynamicItemCard2>
   Widget _viewFieldTile(DynamicField field) {
     final controller = _controllers.putIfAbsent(
       field.key,
-          () => TextEditingController(text: field.displayText),
+      () => TextEditingController(text: field.displayText),
     );
     return _updatedblueBox(
       label: field.label,
@@ -221,10 +221,11 @@ class _DynamicItemCard2State extends State<DynamicItemCard2>
   }
 
   Widget _editFieldTile(int index) {
+    final cs = Theme.of(context).colorScheme;
     final field = draftFields[index];
     final valueController = _controllers.putIfAbsent(
       field.key,
-          () => TextEditingController(text: field.displayText),
+      () => TextEditingController(text: field.displayText),
     );
     final labelController = TextEditingController(text: field.label);
 
@@ -241,7 +242,7 @@ class _DynamicItemCard2State extends State<DynamicItemCard2>
               isDense: true,
               contentPadding: const EdgeInsets.symmetric(vertical: 2),
               filled: true,
-              fillColor: const Color(0xFFD0EAFD),
+              fillColor: cs.primaryContainer,
               border: OutlineInputBorder(
                 borderRadius: BorderRadius.circular(4),
                 borderSide: BorderSide.none,
@@ -265,7 +266,7 @@ class _DynamicItemCard2State extends State<DynamicItemCard2>
               isDense: true,
               contentPadding: const EdgeInsets.symmetric(vertical: 4),
               filled: true,
-              fillColor: const Color(0xFFD0EAFD),
+              fillColor: cs.primaryContainer,
               border: OutlineInputBorder(
                 borderRadius: BorderRadius.circular(4),
                 borderSide: BorderSide.none,
@@ -273,7 +274,8 @@ class _DynamicItemCard2State extends State<DynamicItemCard2>
             ),
             style: const TextStyle(fontSize: 8),
             onChanged: (v) {
-              setState(() => draftFields[index] = field.copyWith(displayText: v));
+              setState(
+                  () => draftFields[index] = field.copyWith(displayText: v));
               _notifyResultChanged();
             },
           ),
@@ -286,7 +288,7 @@ class _DynamicItemCard2State extends State<DynamicItemCard2>
               setState(() => draftFields.removeAt(index));
               _notifyResultChanged();
             },
-            child: const Icon(Icons.delete_outline, size: 14, color: Colors.red),
+            child: Icon(Icons.delete_outline, size: 14, color: cs.error),
           ),
         ),
       ],
@@ -304,48 +306,65 @@ class _DynamicItemCard2State extends State<DynamicItemCard2>
       return SizedBox(
         height: height,
         width: double.infinity,
-        child: Image.file(imageFile, fit: BoxFit.contain,
-            errorBuilder: (_, __, ___) => _imgPlaceholder(height)),
+        child: Image.file(imageFile,
+            fit: BoxFit.contain,
+            errorBuilder: (_, __, ___) => _imgPlaceholder(height, context)),
       );
     }
-    if (imageUrl == null || imageUrl.isEmpty) return _imgPlaceholder(height);
+    if (imageUrl == null || imageUrl.isEmpty) {
+      return _imgPlaceholder(height, context);
+    }
     final isNet =
         imageUrl.startsWith('http://') || imageUrl.startsWith('https://');
     return SizedBox(
       height: height,
       width: double.infinity,
       child: isNet
-          ? Image.network(imageUrl, fit: BoxFit.contain,
-          errorBuilder: (_, __, ___) => _imgPlaceholder(height))
-          : Image.asset(imageUrl, fit: BoxFit.contain,
-          errorBuilder: (_, __, ___) => _imgPlaceholder(height)),
+          ? Image.network(imageUrl,
+              fit: BoxFit.contain,
+              errorBuilder: (_, __, ___) => _imgPlaceholder(height, context))
+          : Image.asset(imageUrl,
+              fit: BoxFit.contain,
+              errorBuilder: (_, __, ___) => _imgPlaceholder(height, context)),
     );
   }
 
-  Widget _imgPlaceholder(double height) => Container(
-    height: height,
-    decoration: BoxDecoration(
-      color: Colors.grey[200],
-      borderRadius: BorderRadius.circular(8),
-    ),
-    child:
-    const Icon(Icons.image_not_supported, color: Colors.grey, size: 32),
-  );
+  Widget _imgPlaceholder(double height, BuildContext context) {
+    final cs = Theme.of(context).colorScheme;
+    return Container(
+      height: height,
+      decoration: BoxDecoration(
+        color: cs.surfaceContainerLow,
+        borderRadius: BorderRadius.circular(8),
+      ),
+      child:
+          Icon(Icons.image_not_supported, color: cs.onSurfaceVariant, size: 32),
+    );
+  }
 
   // ── Build ───────────────────────────────────────────────────────────────────
 
   @override
   Widget build(BuildContext context) {
     super.build(context);
+    final cs = Theme.of(context).colorScheme;
 
     return Container(
       padding: const EdgeInsets.all(2),
-      decoration: const BoxDecoration(
-        color: Colors.white,
+      decoration: BoxDecoration(
+        color: cs.surfaceContainerLow,
         borderRadius: BorderRadius.only(
           topLeft: Radius.circular(14),
           topRight: Radius.circular(14),
         ),
+        border: Border.all(color: cs.outlineVariant),
+        boxShadow: [
+          BoxShadow(
+            color: cs.shadow.withOpacity(0.12),
+            blurRadius: 10,
+            offset: const Offset(0, 3),
+          ),
+        ],
       ),
       child: Column(
         children: [
@@ -357,23 +376,26 @@ class _DynamicItemCard2State extends State<DynamicItemCard2>
                 constraints: const BoxConstraints(maxWidth: 260),
                 child: widget.isEditMode
                     ? TextFormField(
-                  initialValue: draftName,
-                  onChanged: (v) {
-                    draftName = v;
-                    _notifyResultChanged();
-                  },
-                  decoration: const InputDecoration(
-                    isDense: true,
-                    border: OutlineInputBorder(),
-                  ),
-                )
+                        initialValue: draftName,
+                        onChanged: (v) {
+                          draftName = v;
+                          _notifyResultChanged();
+                        },
+                        decoration: const InputDecoration(
+                          isDense: true,
+                          border: OutlineInputBorder(),
+                        ),
+                      )
                     : Text(
-                  widget.title,
-                  maxLines: 2,
-                  overflow: TextOverflow.ellipsis,
-                  style: const TextStyle(
-                      fontSize: 16, fontWeight: FontWeight.w600),
-                ),
+                        widget.title,
+                        maxLines: 2,
+                        overflow: TextOverflow.ellipsis,
+                        style: TextStyle(
+                          fontSize: 16,
+                          fontWeight: FontWeight.w600,
+                          color: cs.onSurface,
+                        ),
+                      ),
               ),
               Column(
                 crossAxisAlignment: CrossAxisAlignment.end,
@@ -381,20 +403,26 @@ class _DynamicItemCard2State extends State<DynamicItemCard2>
                   InkWell(
                     onTap: widget.onRemark,
                     child: Container(
-                      constraints: const BoxConstraints(maxWidth: 50),
+                      constraints: const BoxConstraints(
+                        minWidth: 78,
+                        maxWidth: 110,
+                      ),
                       padding: const EdgeInsets.symmetric(
-                          horizontal: 6, vertical: 4),
+                          horizontal: 8, vertical: 5),
                       decoration: BoxDecoration(
-                        color: const Color(0xFFD0EAFD),
-                        border: Border.all(color: Colors.black),
+                        color: cs.secondaryContainer,
+                        border: Border.all(color: cs.outline),
                         borderRadius: BorderRadius.circular(4),
                       ),
                       child: Text(
                         widget.remark?.isNotEmpty == true
                             ? widget.remark!
                             : 'Remark',
-                        style: const TextStyle(
-                            fontSize: 9, fontWeight: FontWeight.w600),
+                        style: TextStyle(
+                          fontSize: 10,
+                          fontWeight: FontWeight.w700,
+                          color: cs.onSecondaryContainer,
+                        ),
                         overflow: TextOverflow.ellipsis,
                         maxLines: 1,
                       ),
@@ -441,7 +469,7 @@ class _DynamicItemCard2State extends State<DynamicItemCard2>
                       _buildSmartImage(
                         imageFile: widget.isEditMode ? draftImageFile : null,
                         imageUrl:
-                        widget.isEditMode ? draftImageUrl : widget.image,
+                            widget.isEditMode ? draftImageUrl : widget.image,
                       ),
 
                       // Action buttons
@@ -458,15 +486,15 @@ class _DynamicItemCard2State extends State<DynamicItemCard2>
                                   child: IconButton(
                                     onPressed: widget.onEdit,
                                     icon: const Icon(Icons.edit, size: 18),
-                                    color: Colors.blue,
+                                    color: cs.primary,
                                     style: IconButton.styleFrom(
                                       padding: const EdgeInsets.all(6),
                                       minimumSize: const Size(0, 32),
-                                      side: const BorderSide(
-                                          color: Colors.blue, width: 1.5),
+                                      side: BorderSide(
+                                          color: cs.primary, width: 1.5),
                                       shape: RoundedRectangleBorder(
                                           borderRadius:
-                                          BorderRadius.circular(6)),
+                                              BorderRadius.circular(6)),
                                     ),
                                   ),
                                 ),
@@ -477,15 +505,17 @@ class _DynamicItemCard2State extends State<DynamicItemCard2>
                                   child: IconButton(
                                     onPressed: widget.onCopy,
                                     icon: const Icon(Icons.copy, size: 18),
-                                    color: Colors.green,
+                                    color: cs.secondary,
                                     style: IconButton.styleFrom(
+                                      backgroundColor: cs.secondaryContainer
+                                          .withOpacity(0.55),
                                       padding: const EdgeInsets.all(6),
                                       minimumSize: const Size(0, 32),
-                                      side: const BorderSide(
-                                          color: Colors.green, width: 1.5),
+                                      side: BorderSide(
+                                          color: cs.secondary, width: 1.5),
                                       shape: RoundedRectangleBorder(
                                           borderRadius:
-                                          BorderRadius.circular(6)),
+                                              BorderRadius.circular(6)),
                                     ),
                                   ),
                                 ),
@@ -494,17 +524,18 @@ class _DynamicItemCard2State extends State<DynamicItemCard2>
                               if (widget.onDelete != null)
                                 Expanded(
                                   child: IconButton(
-                                      onPressed: widget.onDelete,
-                                      icon: const Icon(Icons.delete_outline, size: 18),
-                                      color: Colors.red,
+                                    onPressed: widget.onDelete,
+                                    icon: const Icon(Icons.delete_outline,
+                                        size: 18),
+                                    color: cs.error,
                                     style: IconButton.styleFrom(
                                       padding: const EdgeInsets.all(6),
                                       minimumSize: const Size(0, 32),
-                                      side: const BorderSide(
-                                          color: Colors.red, width: 1.5),
+                                      side: BorderSide(
+                                          color: cs.error, width: 1.5),
                                       shape: RoundedRectangleBorder(
                                           borderRadius:
-                                          BorderRadius.circular(6)),
+                                              BorderRadius.circular(6)),
                                     ),
                                   ),
                                 ),
@@ -547,20 +578,19 @@ class _DynamicItemCard2State extends State<DynamicItemCard2>
                     // UOM
                     widget.isEditMode
                         ? Padding(
-                      padding: const EdgeInsets.symmetric(horizontal: 4),
-                      child: TextFormField(
-                        initialValue: draftUom,
-                        decoration: const InputDecoration(
-                            labelText: "UOM",
-                            border: OutlineInputBorder()),
-                        onChanged: (v) {
-                          draftUom = v;
-                          _notifyResultChanged();
-                        },
-                      ),
-                    )
-                        : _buildUomField()// 👈 use the stored controller
-
+                            padding: const EdgeInsets.symmetric(horizontal: 4),
+                            child: TextFormField(
+                              initialValue: draftUom,
+                              decoration: const InputDecoration(
+                                  labelText: "UOM",
+                                  border: OutlineInputBorder()),
+                              onChanged: (v) {
+                                draftUom = v;
+                                _notifyResultChanged();
+                              },
+                            ),
+                          )
+                        : _buildUomField() // 👈 use the stored controller
                   ],
                 ),
               ),
@@ -604,14 +634,16 @@ class _DynamicItemCard2State extends State<DynamicItemCard2>
 
   // ── Helpers ─────────────────────────────────────────────────────────────────
   Widget _buildUomField() {
+    final cs = Theme.of(context).colorScheme;
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        const Text(
+        Text(
           'UOM',
           style: TextStyle(
             fontSize: 11, // bigger label
             fontWeight: FontWeight.w700,
+            color: cs.onSurface,
           ),
         ),
         const SizedBox(height: 6),
@@ -628,19 +660,19 @@ class _DynamicItemCard2State extends State<DynamicItemCard2>
             ),
             decoration: InputDecoration(
               filled: true,
-              fillColor: Colors.white, // ✅ white background
+              fillColor: cs.surfaceContainerHigh,
               contentPadding: const EdgeInsets.symmetric(vertical: 8),
               border: OutlineInputBorder(
                 borderRadius: BorderRadius.circular(8),
-                borderSide: const BorderSide(color: Colors.black, width: 1.2),
+                borderSide: BorderSide(color: cs.outline, width: 1.2),
               ),
               enabledBorder: OutlineInputBorder(
                 borderRadius: BorderRadius.circular(8),
-                borderSide: const BorderSide(color: Colors.black, width: 1.2),
+                borderSide: BorderSide(color: cs.outline, width: 1.2),
               ),
               focusedBorder: OutlineInputBorder(
                 borderRadius: BorderRadius.circular(8),
-                borderSide: const BorderSide(color: Colors.blue, width: 1.5),
+                borderSide: BorderSide(color: cs.primary, width: 1.5),
               ),
             ),
           ),
@@ -655,6 +687,7 @@ class _DynamicItemCard2State extends State<DynamicItemCard2>
     required String keyName,
     String unit = '',
   }) {
+    final cs = Theme.of(context).colorScheme;
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
@@ -662,8 +695,8 @@ class _DynamicItemCard2State extends State<DynamicItemCard2>
           padding: const EdgeInsets.only(bottom: 4),
           child: Text(
             unit.isEmpty ? label : "$label ($unit)",
-            style: const TextStyle(
-                fontSize: 9, fontWeight: FontWeight.w600, color: Colors.black87),
+            style: TextStyle(
+                fontSize: 9, fontWeight: FontWeight.w600, color: cs.onSurface),
           ),
         ),
         SizedBox(
@@ -679,17 +712,21 @@ class _DynamicItemCard2State extends State<DynamicItemCard2>
             decoration: InputDecoration(
               isDense: true,
               contentPadding:
-              const EdgeInsets.symmetric(vertical: 4, horizontal: 2),
+                  const EdgeInsets.symmetric(vertical: 4, horizontal: 2),
               filled: true,
               fillColor: widget.isEditable
-                  ? const Color(0xFFD0EAFD)
-                  : Colors.grey[300],
+                  ? cs.surfaceContainerHighest
+                  : cs.surfaceContainerHigh,
               border: OutlineInputBorder(
                 borderRadius: BorderRadius.circular(4),
                 borderSide: BorderSide.none,
               ),
+              hintStyle: TextStyle(
+                color: cs.onSurfaceVariant,
+                fontSize: 8,
+              ),
             ),
-            style: const TextStyle(fontSize: 8),
+            style: TextStyle(fontSize: 8, color: cs.onSurface),
           ),
         ),
       ],
@@ -697,15 +734,20 @@ class _DynamicItemCard2State extends State<DynamicItemCard2>
   }
 
   Widget _blueBox(
-      String label,
-      TextEditingController controller, {
-        bool enabled = true,
-      }) {
+    String label,
+    TextEditingController controller, {
+    bool enabled = true,
+  }) {
+    final cs = Theme.of(context).colorScheme;
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
         Text(label,
-            style: const TextStyle(fontSize: 9, fontWeight: FontWeight.w600)),
+            style: TextStyle(
+              fontSize: 9,
+              fontWeight: FontWeight.w600,
+              color: cs.onSurface,
+            )),
         const SizedBox(height: 4),
         SizedBox(
           height: !enabled ? 60 : 23,
@@ -718,11 +760,14 @@ class _DynamicItemCard2State extends State<DynamicItemCard2>
               isDense: true,
               filled: true,
               fillColor: widget.isEditable && enabled
-                  ? const Color(0xFFD0EAFD)
-                  : Colors.grey[300],
+                  ? cs.surfaceContainerHighest
+                  : cs.surfaceContainerHigh,
               border: OutlineInputBorder(
                 borderRadius: BorderRadius.circular(4),
-                borderSide: const BorderSide(color: Colors.black),
+                borderSide: BorderSide(color: cs.outline),
+              ),
+              hintStyle: TextStyle(
+                color: cs.onSurfaceVariant,
               ),
             ),
           ),

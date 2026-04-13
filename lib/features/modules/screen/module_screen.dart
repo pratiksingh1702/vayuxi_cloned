@@ -1023,11 +1023,26 @@ class _ModuleScreenState extends ConsumerState<ModuleScreen> {
                       }
                     },
                     backgroundColor: _panelColor(colorScheme, isDark),
-                    selectedItemColor: colorScheme.onSurface,
-                    unselectedItemColor: colorScheme.onSurfaceVariant,
-                    selectedLabelStyle: TextStyle(color: colorScheme.onSurface),
-                    unselectedLabelStyle:
-                        TextStyle(color: colorScheme.onSurfaceVariant),
+                    selectedItemColor: colorScheme.primary,
+                    unselectedItemColor:
+                        colorScheme.onSurfaceVariant.withOpacity(0.58),
+                    selectedIconTheme: IconThemeData(
+                      color: colorScheme.primary,
+                      size: 26,
+                    ),
+                    unselectedIconTheme: IconThemeData(
+                      color: colorScheme.onSurfaceVariant.withOpacity(0.58),
+                      size: 22,
+                    ),
+                    selectedLabelStyle: TextStyle(
+                      color: colorScheme.primary,
+                      fontWeight: FontWeight.w700,
+                    ),
+                    unselectedLabelStyle: TextStyle(
+                      color: colorScheme.onSurfaceVariant.withOpacity(0.58),
+                      fontWeight: FontWeight.w500,
+                    ),
+                    showUnselectedLabels: true,
                     type: BottomNavigationBarType.fixed,
                     items: [
                       BottomNavigationBarItem(

@@ -4,7 +4,6 @@ import 'package:dio/dio.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:isar/isar.dart';
-import 'package:untitled2/core/utlis/colors/colors.dart';
 import 'package:untitled2/core/utlis/widgets/premium_app_bar.dart';
 import 'package:untitled2/core/utlis/widgets/sidebar.dart';
 import 'package:untitled2/features/modules/all_Modules/dpr/offline/mech/isar/rate_file_isar.dart';
@@ -62,6 +61,11 @@ class _AllMaterialsScreenState extends ConsumerState<AllMaterialsScreen>
   bool _isSelectionMode = false;
   Set<String> _selectedMaterialIds = {};
   int _suggestedViewIndex = 0;
+
+  ColorScheme get _cs => Theme.of(context).colorScheme;
+  Color get _successColor => _cs.tertiary;
+  Color get _errorColor => _cs.error;
+  Color get _warningColor => _cs.secondary;
 
   @override
   void initState() {
@@ -168,7 +172,7 @@ class _AllMaterialsScreenState extends ConsumerState<AllMaterialsScreen>
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
             content: Text('Failed to load materials: ${e.toString()}'),
-            backgroundColor: Colors.red,
+            backgroundColor: _errorColor,
           ),
         );
       }
@@ -198,9 +202,9 @@ class _AllMaterialsScreenState extends ConsumerState<AllMaterialsScreen>
 
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(
-            content: Text('Materials refreshed successfully'),
-            backgroundColor: Colors.green,
+          SnackBar(
+            content: const Text('Materials refreshed successfully'),
+            backgroundColor: _successColor,
           ),
         );
       }
@@ -211,7 +215,7 @@ class _AllMaterialsScreenState extends ConsumerState<AllMaterialsScreen>
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
             content: Text('Failed to refresh: ${e.toString()}'),
-            backgroundColor: Colors.red,
+            backgroundColor: _errorColor,
           ),
         );
       }
@@ -264,9 +268,9 @@ class _AllMaterialsScreenState extends ConsumerState<AllMaterialsScreen>
   Future<void> _deleteSelectedMaterials(String category) async {
     if (_selectedMaterialIds.isEmpty) {
       ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(
-          content: Text('No materials selected'),
-          backgroundColor: Colors.orange,
+        SnackBar(
+          content: const Text('No materials selected'),
+          backgroundColor: _warningColor,
         ),
       );
       return;
@@ -287,7 +291,7 @@ class _AllMaterialsScreenState extends ConsumerState<AllMaterialsScreen>
           ),
           TextButton(
             onPressed: () => Navigator.pop(context, true),
-            style: TextButton.styleFrom(foregroundColor: Colors.red),
+            style: TextButton.styleFrom(foregroundColor: _errorColor),
             child: const Text('Delete'),
           ),
         ],
@@ -349,7 +353,7 @@ class _AllMaterialsScreenState extends ConsumerState<AllMaterialsScreen>
           SnackBar(
             content: Text(
                 'Successfully deleted ${_selectedMaterialIds.length} materials'),
-            backgroundColor: Colors.green,
+            backgroundColor: _successColor,
           ),
         );
       }
@@ -365,7 +369,7 @@ class _AllMaterialsScreenState extends ConsumerState<AllMaterialsScreen>
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
             content: Text('Bulk delete failed: ${e.toString()}'),
-            backgroundColor: Colors.red,
+            backgroundColor: _errorColor,
           ),
         );
       }
@@ -420,9 +424,9 @@ class _AllMaterialsScreenState extends ConsumerState<AllMaterialsScreen>
 
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(
-            content: Text("Line item copied successfully"),
-            backgroundColor: Colors.green,
+          SnackBar(
+            content: const Text("Line item copied successfully"),
+            backgroundColor: _successColor,
           ),
         );
       }
@@ -432,7 +436,7 @@ class _AllMaterialsScreenState extends ConsumerState<AllMaterialsScreen>
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
             content: Text("Copy failed: $e"),
-            backgroundColor: Colors.red,
+            backgroundColor: _errorColor,
           ),
         );
       }
@@ -447,9 +451,9 @@ class _AllMaterialsScreenState extends ConsumerState<AllMaterialsScreen>
   }) async {
     if (_selectedMaterialIds.isEmpty) {
       ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(
-          content: Text('No materials selected'),
-          backgroundColor: Colors.orange,
+        SnackBar(
+          content: const Text('No materials selected'),
+          backgroundColor: _warningColor,
         ),
       );
       return;
@@ -474,7 +478,7 @@ class _AllMaterialsScreenState extends ConsumerState<AllMaterialsScreen>
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
             content: Text('${_selectedMaterialIds.length} materials rejected'),
-            backgroundColor: Colors.red,
+            backgroundColor: _errorColor,
           ),
         );
       }
@@ -490,7 +494,7 @@ class _AllMaterialsScreenState extends ConsumerState<AllMaterialsScreen>
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
             content: Text('Reject failed: $e'),
-            backgroundColor: Colors.red,
+            backgroundColor: _errorColor,
           ),
         );
       }
@@ -521,7 +525,7 @@ class _AllMaterialsScreenState extends ConsumerState<AllMaterialsScreen>
             child: const Text("Cancel"),
           ),
           ElevatedButton(
-            style: ElevatedButton.styleFrom(backgroundColor: Colors.red),
+            style: ElevatedButton.styleFrom(backgroundColor: _errorColor),
             onPressed: () {
               Navigator.pop(context, controller.text);
             },
@@ -550,7 +554,7 @@ class _AllMaterialsScreenState extends ConsumerState<AllMaterialsScreen>
           ),
           TextButton(
             onPressed: () => Navigator.pop(context, true),
-            style: TextButton.styleFrom(foregroundColor: Colors.red),
+            style: TextButton.styleFrom(foregroundColor: _errorColor),
             child: const Text("Delete"),
           ),
         ],
@@ -589,9 +593,9 @@ class _AllMaterialsScreenState extends ConsumerState<AllMaterialsScreen>
 
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(
-            content: Text("Line item deleted"),
-            backgroundColor: Colors.red,
+          SnackBar(
+            content: const Text("Line item deleted"),
+            backgroundColor: _errorColor,
           ),
         );
       }
@@ -601,7 +605,7 @@ class _AllMaterialsScreenState extends ConsumerState<AllMaterialsScreen>
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
             content: Text("Delete failed: $e"),
-            backgroundColor: Colors.red,
+            backgroundColor: _errorColor,
           ),
         );
       }
@@ -616,9 +620,9 @@ class _AllMaterialsScreenState extends ConsumerState<AllMaterialsScreen>
   }) async {
     if (_selectedMaterialIds.isEmpty) {
       ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(
-          content: Text('No materials selected'),
-          backgroundColor: Colors.orange,
+        SnackBar(
+          content: const Text('No materials selected'),
+          backgroundColor: _warningColor,
         ),
       );
       return;
@@ -666,7 +670,7 @@ class _AllMaterialsScreenState extends ConsumerState<AllMaterialsScreen>
             content: Text(
               '${_selectedMaterialIds.length} materials approved successfully',
             ),
-            backgroundColor: Colors.green,
+            backgroundColor: _successColor,
           ),
         );
       }
@@ -681,7 +685,7 @@ class _AllMaterialsScreenState extends ConsumerState<AllMaterialsScreen>
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
             content: Text('Approval failed: $e'),
-            backgroundColor: Colors.red,
+            backgroundColor: _errorColor,
           ),
         );
       }
@@ -716,7 +720,7 @@ class _AllMaterialsScreenState extends ConsumerState<AllMaterialsScreen>
 
     return Stack(children: [
       Scaffold(
-        backgroundColor: AppColors.lightBlue,
+        backgroundColor: _cs.surfaceContainerLowest,
         drawer: const CustomDrawer(),
         appBar: PremiumAppBar(
           title: _isSelectionMode
@@ -749,12 +753,12 @@ class _AllMaterialsScreenState extends ConsumerState<AllMaterialsScreen>
                   padding:
                       const EdgeInsets.symmetric(horizontal: 4, vertical: 4),
                   decoration: BoxDecoration(
-                    color: Colors.white,
+                    color: _cs.surface,
                     borderRadius: BorderRadius.circular(14),
-                    border: Border.all(color: const Color(0xFFD8E5FF)),
+                    border: Border.all(color: _cs.outlineVariant),
                     boxShadow: [
                       BoxShadow(
-                        color: Colors.black.withOpacity(0.04),
+                        color: _cs.shadow.withOpacity(0.08),
                         blurRadius: 8,
                         offset: const Offset(0, 2),
                       ),
@@ -762,8 +766,8 @@ class _AllMaterialsScreenState extends ConsumerState<AllMaterialsScreen>
                   ),
                   child: TabBar(
                     controller: _tabController,
-                    labelColor: Colors.white,
-                    unselectedLabelColor: const Color(0xFF56739E),
+                    labelColor: _cs.onPrimary,
+                    unselectedLabelColor: _cs.onSurfaceVariant,
                     labelStyle: const TextStyle(
                       fontSize: 12,
                       fontWeight: FontWeight.w700,
@@ -778,12 +782,11 @@ class _AllMaterialsScreenState extends ConsumerState<AllMaterialsScreen>
                     dividerColor: Colors.transparent,
                     indicator: BoxDecoration(
                       borderRadius: BorderRadius.circular(10),
-                      gradient: const LinearGradient(
-                        colors: [Color(0xFF2A66CC), Color(0xFF4F86E8)],
-                      ),
+                      color: _cs.primary,
+                      border: Border.all(color: _cs.primary.withOpacity(0.2)),
                       boxShadow: [
                         BoxShadow(
-                          color: const Color(0xFF2A66CC).withOpacity(0.28),
+                          color: _cs.primary.withOpacity(0.28),
                           blurRadius: 7,
                           offset: const Offset(0, 2),
                         ),
@@ -828,7 +831,7 @@ class _AllMaterialsScreenState extends ConsumerState<AllMaterialsScreen>
                       materials:
                           _toApprovedPipingItems(approvedPipingRateMaterials),
                       icon: Icons.precision_manufacturing,
-                      color: Colors.blue,
+                      color: _cs.primary,
                       emptyMessage: 'No approved piping materials',
                       category: 'piping',
                     ),
@@ -838,7 +841,7 @@ class _AllMaterialsScreenState extends ConsumerState<AllMaterialsScreen>
                       materials: _toApprovedEquipmentItems(
                           approvedEquipmentRateMaterials),
                       icon: Icons.build,
-                      color: Colors.green,
+                      color: _cs.tertiary,
                       emptyMessage: 'No approved equipment materials',
                       category: 'equipment',
                     ),
@@ -888,12 +891,12 @@ class _AllMaterialsScreenState extends ConsumerState<AllMaterialsScreen>
             width: double.infinity,
             padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
             decoration: BoxDecoration(
-              color: Colors.white,
+              color: _cs.surface,
               borderRadius: BorderRadius.circular(14),
-              border: Border.all(color: const Color(0xFFD8E5FF)),
+              border: Border.all(color: _cs.outlineVariant),
               boxShadow: [
                 BoxShadow(
-                  color: Colors.black.withOpacity(0.03),
+                  color: _cs.shadow.withOpacity(0.06),
                   blurRadius: 8,
                   offset: const Offset(0, 2),
                 ),
@@ -910,8 +913,8 @@ class _AllMaterialsScreenState extends ConsumerState<AllMaterialsScreen>
                         _buildHeaderActionButton(
                           label: 'Close',
                           icon: Icons.close,
-                          textColor: const Color(0xFF5A6E89),
-                          bgColor: const Color(0xFFF1F5FB),
+                          textColor: _cs.onSurfaceVariant,
+                          bgColor: _cs.surfaceContainerHigh,
                           onTap: () {
                             setState(() {
                               _isSelectionMode = false;
@@ -923,8 +926,8 @@ class _AllMaterialsScreenState extends ConsumerState<AllMaterialsScreen>
                         _buildHeaderActionButton(
                           label: 'Select All',
                           icon: Icons.done_all,
-                          textColor: const Color(0xFF2B5FAE),
-                          bgColor: const Color(0xFFEAF2FF),
+                          textColor: _cs.primary,
+                          bgColor: _cs.primaryContainer,
                           onTap: () {
                             final allSuggested = [
                               ...pipingItems,
@@ -937,8 +940,8 @@ class _AllMaterialsScreenState extends ConsumerState<AllMaterialsScreen>
                         _buildHeaderActionButton(
                           label: 'Approve',
                           icon: Icons.check_circle,
-                          textColor: Colors.white,
-                          bgColor: const Color(0xFF16824C),
+                          textColor: _cs.onTertiary,
+                          bgColor: _cs.tertiary,
                           onTap: rateUploadId == null
                               ? null
                               : () {
@@ -954,8 +957,8 @@ class _AllMaterialsScreenState extends ConsumerState<AllMaterialsScreen>
                         _buildHeaderActionButton(
                           label: 'Reject',
                           icon: Icons.cancel,
-                          textColor: Colors.white,
-                          bgColor: const Color(0xFFD34747),
+                          textColor: _cs.onError,
+                          bgColor: _cs.error,
                           onTap: rateUploadId == null
                               ? null
                               : () {
@@ -979,8 +982,8 @@ class _AllMaterialsScreenState extends ConsumerState<AllMaterialsScreen>
                             Container(
                               width: 8,
                               height: 8,
-                              decoration: const BoxDecoration(
-                                color: Color(0xFFE48A1F),
+                              decoration: BoxDecoration(
+                                color: _cs.secondary,
                                 shape: BoxShape.circle,
                               ),
                             ),
@@ -988,10 +991,10 @@ class _AllMaterialsScreenState extends ConsumerState<AllMaterialsScreen>
                             Expanded(
                               child: Text(
                                 'Suggested pool: ${pipingItems.length} piping, ${equipmentItems.length} equipment',
-                                style: const TextStyle(
+                                style: TextStyle(
                                   fontWeight: FontWeight.w700,
                                   fontSize: 13,
-                                  color: Color(0xFF2E4E79),
+                                  color: _cs.onSurface,
                                 ),
                               ),
                             ),
@@ -1002,14 +1005,14 @@ class _AllMaterialsScreenState extends ConsumerState<AllMaterialsScreen>
                       _buildHeaderIconButton(
                         icon: Icons.delete_sweep,
                         tooltip: 'Select Items',
-                        iconColor: const Color(0xFFD34747),
+                        iconColor: _cs.error,
                         onTap: () => setState(() => _isSelectionMode = true),
                       ),
                       const SizedBox(width: 8),
                       _buildHeaderIconButton(
                         icon: Icons.add_circle,
                         tooltip: 'Add Material',
-                        iconColor: const Color(0xFFE48A1F),
+                        iconColor: _cs.secondary,
                         onTap: _showAddMaterialSheet,
                       ),
                     ],
@@ -1024,9 +1027,9 @@ class _AllMaterialsScreenState extends ConsumerState<AllMaterialsScreen>
             width: double.infinity,
             padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
             decoration: BoxDecoration(
-              color: Colors.white,
+              color: _cs.surface,
               borderRadius: BorderRadius.circular(14),
-              border: Border.all(color: const Color(0xFFD8E5FF)),
+              border: Border.all(color: _cs.outlineVariant),
             ),
             child: Row(
               children: [
@@ -1035,10 +1038,10 @@ class _AllMaterialsScreenState extends ConsumerState<AllMaterialsScreen>
                     _suggestedViewIndex == 0
                         ? 'Showing Suggested Piping'
                         : 'Showing Suggested Equipment',
-                    style: const TextStyle(
+                    style: TextStyle(
                       fontSize: 12,
                       fontWeight: FontWeight.w600,
-                      color: Color(0xFF5A6E89),
+                      color: _cs.onSurfaceVariant,
                     ),
                   ),
                 ),
@@ -1080,7 +1083,7 @@ class _AllMaterialsScreenState extends ConsumerState<AllMaterialsScreen>
                           itemBuilder: (context, index) {
                             return _buildPipingCard(
                               pipingItems[index],
-                              Colors.orange,
+                              _cs.secondary,
                             );
                           },
                         ),
@@ -1101,7 +1104,7 @@ class _AllMaterialsScreenState extends ConsumerState<AllMaterialsScreen>
                           itemBuilder: (context, index) {
                             return _buildEquipmentCard(
                               equipmentItems[index],
-                              Colors.orange,
+                              _cs.secondary,
                             );
                           },
                         ),
@@ -1127,11 +1130,10 @@ class _AllMaterialsScreenState extends ConsumerState<AllMaterialsScreen>
           duration: const Duration(milliseconds: 180),
           padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 6),
           decoration: BoxDecoration(
-            color: selected ? const Color(0xFFF4A746) : const Color(0xFFF6F8FC),
+            color: selected ? _cs.secondary : _cs.surfaceContainerHigh,
             borderRadius: BorderRadius.circular(999),
             border: Border.all(
-              color:
-                  selected ? const Color(0xFFE48A1F) : const Color(0xFFDCE6F7),
+              color: selected ? _cs.secondary : _cs.outlineVariant,
             ),
           ),
           child: Row(
@@ -1140,7 +1142,7 @@ class _AllMaterialsScreenState extends ConsumerState<AllMaterialsScreen>
               Icon(
                 icon,
                 size: 12,
-                color: selected ? Colors.white : const Color(0xFF6A7F9E),
+                color: selected ? _cs.onSecondary : _cs.onSurfaceVariant,
               ),
               const SizedBox(width: 4),
               Text(
@@ -1148,7 +1150,7 @@ class _AllMaterialsScreenState extends ConsumerState<AllMaterialsScreen>
                 style: TextStyle(
                   fontSize: 10,
                   fontWeight: FontWeight.w700,
-                  color: selected ? Colors.white : const Color(0xFF6A7F9E),
+                  color: selected ? _cs.onSecondary : _cs.onSurfaceVariant,
                 ),
               ),
             ],
@@ -1163,17 +1165,22 @@ class _AllMaterialsScreenState extends ConsumerState<AllMaterialsScreen>
       child: Column(
         mainAxisAlignment: MainAxisAlignment.center,
         children: [
-          const Icon(Icons.inventory_2_outlined, size: 72, color: Colors.grey),
+          Icon(Icons.inventory_2_outlined,
+              size: 72, color: _cs.onSurfaceVariant),
           const SizedBox(height: 16),
-          const Text(
+          Text(
             'No materials found',
-            style: TextStyle(fontSize: 20, fontWeight: FontWeight.bold),
+            style: TextStyle(
+              fontSize: 20,
+              fontWeight: FontWeight.bold,
+              color: _cs.onSurface,
+            ),
           ),
           const SizedBox(height: 8),
-          const Text(
+          Text(
             'You have deleted all materials.\nAdd a new one to continue.',
             textAlign: TextAlign.center,
-            style: TextStyle(color: Colors.black54),
+            style: TextStyle(color: _cs.onSurfaceVariant),
           ),
           const SizedBox(height: 24),
           ElevatedButton.icon(
@@ -1211,14 +1218,14 @@ class _AllMaterialsScreenState extends ConsumerState<AllMaterialsScreen>
 
             const SizedBox(height: 12),
 
-            const Text(
+            Text(
               'Either DPR materials are not set up yet\n'
               'or all materials have been deleted.\n\n'
               'You can set up default DPR materials\n'
               'or directly add a new material.',
               textAlign: TextAlign.center,
               style: TextStyle(
-                color: Colors.black54,
+                color: _cs.onSurfaceVariant,
                 fontSize: 16,
               ),
             ),
@@ -1398,7 +1405,7 @@ class _AllMaterialsScreenState extends ConsumerState<AllMaterialsScreen>
               'DPR materials initialized successfully'
               '${isApplied ? ' and applied to all sites' : ''}',
             ),
-            backgroundColor: Colors.green,
+            backgroundColor: _successColor,
           ),
         );
       }
@@ -1407,7 +1414,7 @@ class _AllMaterialsScreenState extends ConsumerState<AllMaterialsScreen>
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
             content: Text('Setup failed: $e'),
-            backgroundColor: Colors.red,
+            backgroundColor: _errorColor,
           ),
         );
       }
@@ -1441,12 +1448,12 @@ class _AllMaterialsScreenState extends ConsumerState<AllMaterialsScreen>
             width: double.infinity,
             padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
             decoration: BoxDecoration(
-              color: Colors.white,
+              color: _cs.surface,
               borderRadius: BorderRadius.circular(14),
-              border: Border.all(color: const Color(0xFFD8E5FF)),
+              border: Border.all(color: _cs.outlineVariant),
               boxShadow: [
                 BoxShadow(
-                  color: Colors.black.withOpacity(0.03),
+                  color: _cs.shadow.withOpacity(0.06),
                   blurRadius: 8,
                   offset: const Offset(0, 2),
                 ),
@@ -1463,24 +1470,24 @@ class _AllMaterialsScreenState extends ConsumerState<AllMaterialsScreen>
                         _buildHeaderActionButton(
                           label: 'Close',
                           icon: Icons.close,
-                          textColor: const Color(0xFF5A6E89),
-                          bgColor: const Color(0xFFF1F5FB),
+                          textColor: _cs.onSurfaceVariant,
+                          bgColor: _cs.surfaceContainerHigh,
                           onTap: () => _toggleSelectionMode(''),
                         ),
                         const SizedBox(width: 8),
                         _buildHeaderActionButton(
                           label: 'Select All',
                           icon: Icons.done_all,
-                          textColor: const Color(0xFF2B5FAE),
-                          bgColor: const Color(0xFFEAF2FF),
+                          textColor: _cs.primary,
+                          bgColor: _cs.primaryContainer,
                           onTap: () => _selectAllMaterials(materials),
                         ),
                         const SizedBox(width: 8),
                         _buildHeaderActionButton(
                           label: 'Delete',
                           icon: Icons.delete_sweep,
-                          textColor: Colors.white,
-                          bgColor: const Color(0xFFD34747),
+                          textColor: _cs.onError,
+                          bgColor: _cs.error,
                           onTap: _selectedMaterialIds.isEmpty
                               ? null
                               : () => _deleteSelectedMaterials(category),
@@ -1506,10 +1513,10 @@ class _AllMaterialsScreenState extends ConsumerState<AllMaterialsScreen>
                             Expanded(
                               child: Text(
                                 'Total ${category == 'piping' ? 'Piping' : 'Equipment'}: ${materials.length}',
-                                style: const TextStyle(
+                                style: TextStyle(
                                   fontWeight: FontWeight.w700,
                                   fontSize: 13,
-                                  color: Color(0xFF2E4E79),
+                                  color: _cs.onSurface,
                                 ),
                               ),
                             ),
@@ -1520,7 +1527,7 @@ class _AllMaterialsScreenState extends ConsumerState<AllMaterialsScreen>
                       _buildHeaderIconButton(
                         icon: Icons.delete_sweep,
                         tooltip: 'Select Items',
-                        iconColor: const Color(0xFFD34747),
+                        iconColor: _cs.error,
                         onTap: materials.isEmpty
                             ? null
                             : () => _toggleSelectionMode(category),
@@ -1625,7 +1632,7 @@ class _AllMaterialsScreenState extends ConsumerState<AllMaterialsScreen>
             width: 38,
             height: 38,
             decoration: BoxDecoration(
-              color: Colors.white,
+              color: _cs.surface,
               borderRadius: BorderRadius.circular(12),
               border: Border.all(color: iconColor.withOpacity(0.25)),
             ),
@@ -1697,10 +1704,10 @@ class _AllMaterialsScreenState extends ConsumerState<AllMaterialsScreen>
         child: Text(
           message,
           textAlign: TextAlign.center,
-          style: const TextStyle(
+          style: TextStyle(
             fontSize: 15,
             fontWeight: FontWeight.w500,
-            color: Colors.black54,
+            color: _cs.onSurfaceVariant,
           ),
         ),
       ),
@@ -1836,23 +1843,23 @@ class _AllMaterialsScreenState extends ConsumerState<AllMaterialsScreen>
                 height: 32,
                 decoration: BoxDecoration(
                   shape: BoxShape.circle,
-                  color: isSelected ? Colors.red : Colors.white,
+                  color: isSelected ? _errorColor : _cs.surface,
                   border: Border.all(
-                    color: Colors.red,
+                    color: _errorColor,
                     width: 2,
                   ),
                   boxShadow: [
                     BoxShadow(
-                      color: Colors.black.withOpacity(0.2),
+                      color: _cs.shadow.withOpacity(0.2),
                       blurRadius: 4,
                       offset: const Offset(0, 2),
                     ),
                   ],
                 ),
                 child: isSelected
-                    ? const Icon(
+                    ? Icon(
                         Icons.check,
-                        color: Colors.white,
+                        color: _cs.onError,
                         size: 20,
                       )
                     : null,
@@ -1941,7 +1948,7 @@ class _AllMaterialsScreenState extends ConsumerState<AllMaterialsScreen>
                     ScaffoldMessenger.of(context).showSnackBar(
                       SnackBar(
                         content: Text('Save failed: $e'),
-                        backgroundColor: Colors.red,
+                        backgroundColor: _errorColor,
                       ),
                     );
                   }
@@ -2004,18 +2011,18 @@ class _AllMaterialsScreenState extends ConsumerState<AllMaterialsScreen>
                 height: 32,
                 decoration: BoxDecoration(
                   shape: BoxShape.circle,
-                  color: isSelected ? Colors.red : Colors.white,
-                  border: Border.all(color: Colors.red, width: 2),
+                  color: isSelected ? _errorColor : _cs.surface,
+                  border: Border.all(color: _errorColor, width: 2),
                   boxShadow: [
                     BoxShadow(
-                      color: Colors.black.withOpacity(0.2),
+                      color: _cs.shadow.withOpacity(0.2),
                       blurRadius: 4,
                       offset: const Offset(0, 2),
                     ),
                   ],
                 ),
                 child: isSelected
-                    ? const Icon(Icons.check, color: Colors.white, size: 20)
+                    ? Icon(Icons.check, color: _cs.onError, size: 20)
                     : null,
               ),
             ),
@@ -2125,9 +2132,9 @@ class _AllMaterialsScreenState extends ConsumerState<AllMaterialsScreen>
 
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(
-            content: Text('Material copied successfully'),
-            backgroundColor: Colors.green,
+          SnackBar(
+            content: const Text('Material copied successfully'),
+            backgroundColor: _successColor,
           ),
         );
       }
@@ -2138,7 +2145,7 @@ class _AllMaterialsScreenState extends ConsumerState<AllMaterialsScreen>
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
             content: Text('Failed to copy: ${e.toString()}'),
-            backgroundColor: Colors.red,
+            backgroundColor: _errorColor,
           ),
         );
       }
@@ -2161,9 +2168,9 @@ class _AllMaterialsScreenState extends ConsumerState<AllMaterialsScreen>
           ),
           TextButton(
             onPressed: () => Navigator.pop(context, true),
-            child: const Text(
+            child: Text(
               'Delete',
-              style: TextStyle(color: Colors.red),
+              style: TextStyle(color: _errorColor),
             ),
           ),
         ],
@@ -2189,9 +2196,9 @@ class _AllMaterialsScreenState extends ConsumerState<AllMaterialsScreen>
 
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(
+          SnackBar(
             content: Text('Material deleted successfully'),
-            backgroundColor: Colors.red,
+            backgroundColor: _errorColor,
           ),
         );
       }
@@ -2202,7 +2209,7 @@ class _AllMaterialsScreenState extends ConsumerState<AllMaterialsScreen>
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
             content: Text('Failed to delete: ${e.toString()}'),
-            backgroundColor: Colors.red,
+            backgroundColor: _errorColor,
           ),
         );
       }

@@ -17,13 +17,10 @@ class SizeSelectionPage extends ConsumerStatefulWidget {
   const SizeSelectionPage({super.key});
 
   @override
-  ConsumerState<SizeSelectionPage> createState() =>
-      _SizeSelectionPageState();
+  ConsumerState<SizeSelectionPage> createState() => _SizeSelectionPageState();
 }
 
-class _SizeSelectionPageState
-    extends ConsumerState<SizeSelectionPage> {
-
+class _SizeSelectionPageState extends ConsumerState<SizeSelectionPage> {
   late TextEditingController sizeController;
 
   @override
@@ -43,6 +40,7 @@ class _SizeSelectionPageState
 
   @override
   Widget build(BuildContext context) {
+    final cs = Theme.of(context).colorScheme;
     final selectedSize = ref.watch(selectedSizeProvider);
     final selectedUnit = ref.watch(selectedUnitProvider);
     final lang = ref.watch(dailyEntryTranslationHelperProvider);
@@ -55,16 +53,16 @@ class _SizeSelectionPageState
           CustomButton(
             button: RoundedButton(
               text: 'Save',
-              color: Colors.blue,
-              textColor: Colors.white,
+              color: cs.primary,
+              textColor: cs.onPrimary,
               onPressed: () {
                 final value = sizeController.text.trim();
 
                 if (value.isEmpty) {
                   ScaffoldMessenger.of(context).showSnackBar(
-                    const SnackBar(
+                    SnackBar(
                       content: Text('Please enter a size'),
-                      backgroundColor: Colors.red,
+                      backgroundColor: cs.error,
                     ),
                   );
                   return;
@@ -77,19 +75,21 @@ class _SizeSelectionPageState
                 if (type == "mechanical_work") {
                   Navigator.push(
                     context,
-                    MaterialPageRoute(builder: (context) => AddDescriptionScreen()),
+                    MaterialPageRoute(
+                        builder: (context) => AddDescriptionScreen()),
                   );
                 } else {
                   Navigator.push(
                     context,
-                    MaterialPageRoute(builder: (context) => AddInsulationDescriptionScreen()),
+                    MaterialPageRoute(
+                        builder: (context) => AddInsulationDescriptionScreen()),
                   );
                 }
 
                 ScaffoldMessenger.of(context).showSnackBar(
                   SnackBar(
                     content: Text('Size "$value" saved!'),
-                    backgroundColor: Colors.green,
+                    backgroundColor: cs.tertiary,
                   ),
                 );
               },
@@ -100,7 +100,6 @@ class _SizeSelectionPageState
           padding: const EdgeInsets.all(16.0),
           child: Column(
             children: [
-
               /// Skip Button — top right of body
               Align(
                 alignment: Alignment.topRight,
@@ -114,19 +113,23 @@ class _SizeSelectionPageState
                     if (type == "mechanical_work") {
                       Navigator.push(
                         context,
-                        MaterialPageRoute(builder: (context) => AddDescriptionScreen()),
+                        MaterialPageRoute(
+                            builder: (context) => AddDescriptionScreen()),
                       );
                     } else {
                       Navigator.push(
                         context,
-                        MaterialPageRoute(builder: (context) => AddInsulationDescriptionScreen()),
+                        MaterialPageRoute(
+                            builder: (context) =>
+                                AddInsulationDescriptionScreen()),
                       );
                     }
                   },
                   style: TextButton.styleFrom(
-                    backgroundColor: Colors.blue,
-                    foregroundColor: Colors.white,
-                    padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 10), // ✅
+                    backgroundColor: cs.primary,
+                    foregroundColor: cs.onPrimary,
+                    padding: const EdgeInsets.symmetric(
+                        horizontal: 20, vertical: 10), // ✅
                     shape: RoundedRectangleBorder(
                       borderRadius: BorderRadius.circular(20),
                     ),
@@ -151,18 +154,18 @@ class _SizeSelectionPageState
                 mainAxisAlignment: MainAxisAlignment.spaceBetween,
                 children: [
                   Row(
-                    children: const [
+                    children: [
                       Text(
                         "Size",
                         style: TextStyle(
                           fontSize: 20,
                           fontWeight: FontWeight.w500,
-                          color: Colors.black87,
+                          color: cs.onSurface,
                         ),
                       ),
                       Text(
                         " *",
-                        style: TextStyle(color: Colors.red),
+                        style: TextStyle(color: cs.error),
                       ),
                     ],
                   ),
@@ -171,21 +174,23 @@ class _SizeSelectionPageState
                   Container(
                     padding: const EdgeInsets.symmetric(horizontal: 12),
                     decoration: BoxDecoration(
-                      border: Border.all(color: const Color(0xFFDFE2E6)),
+                      border: Border.all(color: cs.outlineVariant),
                       borderRadius: BorderRadius.circular(8),
-                      color: Colors.white,
+                      color: cs.surface,
                     ),
                     child: DropdownButtonHideUnderline(
                       child: DropdownButton<String>(
                         value: selectedUnit ?? 'inch', // ✅ default to inch
+                        dropdownColor: cs.surface,
+                        style: TextStyle(color: cs.onSurface),
                         items: const [
                           DropdownMenuItem(value: 'inch', child: Text('inch')),
-
                           DropdownMenuItem(value: 'mm', child: Text('mm')),
                         ],
                         onChanged: (value) {
                           if (value != null) {
-                            ref.read(selectedUnitProvider.notifier).state = value;
+                            ref.read(selectedUnitProvider.notifier).state =
+                                value;
                           }
                         },
                       ),
@@ -202,7 +207,7 @@ class _SizeSelectionPageState
                 hint: 'Enter size (e.g., 10, 42, etc.)',
                 controller: sizeController,
                 keyboardType: TextInputType.number,
-                prefixIcon: const Icon(Icons.straighten, color: Colors.grey),
+                prefixIcon: Icon(Icons.straighten, color: cs.onSurfaceVariant),
               ),
 
               const SizedBox(height: 20),
@@ -212,20 +217,20 @@ class _SizeSelectionPageState
                 Container(
                   padding: const EdgeInsets.all(16),
                   decoration: BoxDecoration(
-                    color: Colors.green[50],
+                    color: cs.tertiaryContainer,
                     borderRadius: BorderRadius.circular(8),
-                    border: Border.all(color: Colors.green),
+                    border: Border.all(color: cs.tertiary),
                   ),
                   child: Row(
                     children: [
-                      const Icon(Icons.check_circle, color: Colors.green),
+                      Icon(Icons.check_circle, color: cs.tertiary),
                       const SizedBox(width: 8),
                       Text(
                         'Selected Size: $selectedSize $selectedUnit',
-                        style: const TextStyle(
+                        style: TextStyle(
                           fontSize: 16,
                           fontWeight: FontWeight.w500,
-                          color: Colors.green,
+                          color: cs.onTertiaryContainer,
                         ),
                       ),
                     ],

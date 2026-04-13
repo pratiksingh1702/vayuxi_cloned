@@ -81,8 +81,7 @@ class testDynamicItemCard extends StatefulWidget {
   State<testDynamicItemCard> createState() => _testDynamicItemCardState();
 }
 
-class _testDynamicItemCardState extends State<testDynamicItemCard>
-{
+class _testDynamicItemCardState extends State<testDynamicItemCard> {
   // Controllers to preserve
   late String draftName;
   File? draftImageFile;
@@ -94,7 +93,7 @@ class _testDynamicItemCardState extends State<testDynamicItemCard>
   late TextEditingController _quantityController;
   late TextEditingController _sizeController;
   late TextEditingController
-  _lengthController; // ✅ Using lengthController for length/UOM
+      _lengthController; // ✅ Using lengthController for length/UOM
   late TextEditingController _floorController;
   late TextEditingController _mocController;
   bool _isEditingLength = false;
@@ -172,7 +171,6 @@ class _testDynamicItemCardState extends State<testDynamicItemCard>
       draftImageUrl = widget.image;
       draftImageFile = null;
 
-
       draftUom = widget.lengthPlaceholder;
       draftFields = widget.fields.map((e) => e.copy()).toList();
     }
@@ -180,10 +178,10 @@ class _testDynamicItemCardState extends State<testDynamicItemCard>
       draftImageUrl = widget.image;
       draftImageFile = null;
     }
+
     /// UOM / LENGTH RESET FIX
     if (!_isEditingLength &&
         widget.lengthPlaceholder != oldWidget.lengthPlaceholder) {
-
       draftUom = widget.lengthPlaceholder;
 
       if (_lengthController.text != widget.lengthPlaceholder) {
@@ -191,13 +189,10 @@ class _testDynamicItemCardState extends State<testDynamicItemCard>
       }
     }
 
-
-
-
     if (widget.size != oldWidget.size) {
       final sizeController = _controllers.putIfAbsent(
         'size',
-            () => TextEditingController(),
+        () => TextEditingController(),
       );
 
       if (sizeController.text != widget.size) {
@@ -207,7 +202,7 @@ class _testDynamicItemCardState extends State<testDynamicItemCard>
     if (widget.size != oldWidget.size) {
       final c = _controllers.putIfAbsent(
         'size',
-            () => TextEditingController(),
+        () => TextEditingController(),
       );
 
       if (c.text != widget.size) {
@@ -219,7 +214,7 @@ class _testDynamicItemCardState extends State<testDynamicItemCard>
     if (widget.floor != oldWidget.floor) {
       final c = _controllers.putIfAbsent(
         'floor',
-            () => TextEditingController(),
+        () => TextEditingController(),
       );
 
       if (c.text != widget.floor) {
@@ -234,7 +229,7 @@ class _testDynamicItemCardState extends State<testDynamicItemCard>
     if (widget.moc != oldWidget.moc) {
       final c = _controllers.putIfAbsent(
         'moc',
-            () => TextEditingController(),
+        () => TextEditingController(),
       );
 
       if (c.text != widget.moc) {
@@ -340,7 +335,7 @@ class _testDynamicItemCardState extends State<testDynamicItemCard>
 
     final controller = _controllers.putIfAbsent(
       field.key,
-          () => TextEditingController(),
+      () => TextEditingController(),
     );
 
     // 🔥 FORCE SYNC CONTROLLER WITH FIELD VALUE
@@ -361,12 +356,14 @@ class _testDynamicItemCardState extends State<testDynamicItemCard>
       keyName: field.key,
     );
   }
+
   Widget _editFieldTile(int index) {
+    final cs = Theme.of(context).colorScheme;
     final field = draftFields[index];
 
     final valueController = _controllers.putIfAbsent(
       field.key,
-          () => TextEditingController(text: field.displayText),
+      () => TextEditingController(text: field.displayText),
     );
 
     final labelController = TextEditingController(text: field.label);
@@ -385,7 +382,7 @@ class _testDynamicItemCardState extends State<testDynamicItemCard>
               isDense: true,
               contentPadding: const EdgeInsets.symmetric(vertical: 2),
               filled: true,
-              fillColor: const Color(0xFFD0EAFD),
+              fillColor: cs.primaryContainer,
               border: OutlineInputBorder(
                 borderRadius: BorderRadius.circular(4),
                 borderSide: BorderSide.none,
@@ -412,7 +409,7 @@ class _testDynamicItemCardState extends State<testDynamicItemCard>
               hintText: "Add Value",
               contentPadding: const EdgeInsets.symmetric(vertical: 4),
               filled: true,
-              fillColor: const Color(0xFFD0EAFD),
+              fillColor: cs.primaryContainer,
               border: OutlineInputBorder(
                 borderRadius: BorderRadius.circular(4),
                 borderSide: BorderSide.none,
@@ -438,12 +435,13 @@ class _testDynamicItemCardState extends State<testDynamicItemCard>
               setState(() => draftFields.removeAt(index));
               _notifyResultChanged();
             },
-            child: const Icon(Icons.delete_outline, size: 14, color: Colors.red),
+            child: Icon(Icons.delete_outline, size: 14, color: cs.error),
           ),
         ),
       ],
     );
   }
+
   Widget buildSmartImage({
     String? imageUrl,
     File? imageFile,
@@ -475,30 +473,30 @@ class _testDynamicItemCardState extends State<testDynamicItemCard>
       width: width,
       child: isNetwork
           ? Image.network(
-        imageUrl,
-        fit: fit,
-        errorBuilder: (_, __, ___) => _imagePlaceholder(height, width),
-      )
+              imageUrl,
+              fit: fit,
+              errorBuilder: (_, __, ___) => _imagePlaceholder(height, width),
+            )
           : Image.asset(
-        imageUrl,
-        fit: fit,
-        errorBuilder: (_, __, ___) => _imagePlaceholder(height, width),
-      ),
+              imageUrl,
+              fit: fit,
+              errorBuilder: (_, __, ___) => _imagePlaceholder(height, width),
+            ),
     );
   }
 
-
   Widget _imagePlaceholder(double height, double width) {
+    final cs = Theme.of(context).colorScheme;
     return Container(
       height: height,
       width: width,
       decoration: BoxDecoration(
-        color: Colors.grey[200],
+        color: cs.surfaceContainerLow,
         borderRadius: BorderRadius.circular(8),
       ),
-      child: const Icon(
+      child: Icon(
         Icons.image_not_supported,
-        color: Colors.grey,
+        color: cs.onSurfaceVariant,
         size: 32,
       ),
     );
@@ -506,7 +504,7 @@ class _testDynamicItemCardState extends State<testDynamicItemCard>
 
   @override
   Widget build(BuildContext context) {
-
+    final cs = Theme.of(context).colorScheme;
 
     return GestureDetector(
       onTap: () {
@@ -517,8 +515,16 @@ class _testDynamicItemCardState extends State<testDynamicItemCard>
       child: Container(
         padding: const EdgeInsets.all(2),
         decoration: BoxDecoration(
-          color: Colors.white,
+          color: cs.surfaceContainerLow,
           borderRadius: BorderRadius.circular(14),
+          border: Border.all(color: cs.outlineVariant),
+          boxShadow: [
+            BoxShadow(
+              color: cs.shadow.withOpacity(0.12),
+              blurRadius: 10,
+              offset: const Offset(0, 3),
+            ),
+          ],
         ),
         child: Column(
           children: [
@@ -528,26 +534,29 @@ class _testDynamicItemCardState extends State<testDynamicItemCard>
                 Container(
                   constraints: BoxConstraints(
                       maxWidth: 300 // Adjust this value as needed
-                  ),
+                      ),
                   child: widget.isEditMode
                       ? TextFormField(
-                    initialValue: draftName,
-                    onChanged: (v) {
-                      draftName = v;
-                      _notifyResultChanged();
-                    },
-                    decoration: const InputDecoration(
-                      isDense: true,
-                      border: OutlineInputBorder(),
-                    ),
-                  )
+                          initialValue: draftName,
+                          onChanged: (v) {
+                            draftName = v;
+                            _notifyResultChanged();
+                          },
+                          decoration: const InputDecoration(
+                            isDense: true,
+                            border: OutlineInputBorder(),
+                          ),
+                        )
                       : Text(
-                    widget.lengthLabel,
-                    maxLines: 2,
-                    overflow: TextOverflow.ellipsis,
-                    style: const TextStyle(
-                        fontSize: 16, fontWeight: FontWeight.w600),
-                  ),
+                          widget.lengthLabel,
+                          maxLines: 2,
+                          overflow: TextOverflow.ellipsis,
+                          style: TextStyle(
+                            fontSize: 16,
+                            fontWeight: FontWeight.w600,
+                            color: cs.onSurface,
+                          ),
+                        ),
                 ),
                 Column(
                   crossAxisAlignment: CrossAxisAlignment.end,
@@ -556,21 +565,25 @@ class _testDynamicItemCardState extends State<testDynamicItemCard>
                       onTap: widget.onRemark,
                       child: Container(
                         constraints: BoxConstraints(
-                          maxWidth: 50, // Adjust this value as needed
+                          minWidth: 78,
+                          maxWidth: 110,
                         ),
                         padding: const EdgeInsets.symmetric(
-                            horizontal: 6, vertical: 4),
+                            horizontal: 8, vertical: 5),
                         decoration: BoxDecoration(
-                          color: const Color(0xFFD0EAFD),
-                          border: Border.all(color: Colors.black),
+                          color: cs.secondaryContainer,
+                          border: Border.all(color: cs.outline),
                           borderRadius: BorderRadius.circular(4),
                         ),
                         child: Text(
                           widget.remark?.isNotEmpty == true
                               ? widget.remark!
                               : 'Remark',
-                          style: const TextStyle(
-                              fontSize: 9, fontWeight: FontWeight.w600),
+                          style: TextStyle(
+                            fontSize: 10,
+                            fontWeight: FontWeight.w700,
+                            color: cs.onSecondaryContainer,
+                          ),
                           overflow: TextOverflow.ellipsis,
                           maxLines: 1,
                         ),
@@ -614,12 +627,9 @@ class _testDynamicItemCardState extends State<testDynamicItemCard>
                           ),
                         buildSmartImage(
                           imageFile: widget.isEditMode ? draftImageFile : null,
-                          imageUrl: widget.isEditMode
-                              ? draftImageUrl
-                              : widget.image,
+                          imageUrl:
+                              widget.isEditMode ? draftImageUrl : widget.image,
                         ),
-
-
                         if (widget.isEditable &&
                             (widget.onAdd != null ||
                                 widget.onEdit != null ||
@@ -634,15 +644,15 @@ class _testDynamicItemCardState extends State<testDynamicItemCard>
                                     child: IconButton(
                                       onPressed: widget.onEdit,
                                       icon: const Icon(Icons.edit, size: 18),
-                                      color: Colors.blue,
+                                      color: cs.primary,
                                       style: IconButton.styleFrom(
                                         padding: const EdgeInsets.all(6),
                                         minimumSize: const Size(0, 32),
-                                        side: const BorderSide(
-                                            color: Colors.blue, width: 1.5),
+                                        side: BorderSide(
+                                            color: cs.primary, width: 1.5),
                                         shape: RoundedRectangleBorder(
                                           borderRadius:
-                                          BorderRadius.circular(6),
+                                              BorderRadius.circular(6),
                                         ),
                                       ),
                                     ),
@@ -654,15 +664,17 @@ class _testDynamicItemCardState extends State<testDynamicItemCard>
                                     child: IconButton(
                                       onPressed: widget.onCopy,
                                       icon: const Icon(Icons.copy, size: 18),
-                                      color: Colors.green,
+                                      color: cs.secondary,
                                       style: IconButton.styleFrom(
+                                        backgroundColor: cs.secondaryContainer
+                                            .withOpacity(0.55),
                                         padding: const EdgeInsets.all(6),
                                         minimumSize: const Size(0, 32),
-                                        side: const BorderSide(
-                                            color: Colors.green, width: 1.5),
+                                        side: BorderSide(
+                                            color: cs.secondary, width: 1.5),
                                         shape: RoundedRectangleBorder(
                                           borderRadius:
-                                          BorderRadius.circular(6),
+                                              BorderRadius.circular(6),
                                         ),
                                       ),
                                     ),
@@ -673,16 +685,17 @@ class _testDynamicItemCardState extends State<testDynamicItemCard>
                                   Expanded(
                                     child: IconButton(
                                       onPressed: widget.onDelete,
-                                      icon: const Icon(Icons.delete_outline, size: 18),
-                                      color: Colors.red,
+                                      icon: const Icon(Icons.delete_outline,
+                                          size: 18),
+                                      color: cs.error,
                                       style: IconButton.styleFrom(
                                         padding: const EdgeInsets.all(6),
                                         minimumSize: const Size(0, 32),
-                                        side: const BorderSide(
-                                            color: Colors.red, width: 1.5),
+                                        side: BorderSide(
+                                            color: cs.error, width: 1.5),
                                         shape: RoundedRectangleBorder(
                                           borderRadius:
-                                          BorderRadius.circular(6),
+                                              BorderRadius.circular(6),
                                         ),
                                       ),
                                     ),
@@ -728,16 +741,16 @@ class _testDynamicItemCardState extends State<testDynamicItemCard>
                         children: [
                           widget.isEditMode
                               ? TextFormField(
-                            initialValue: draftUom,
-                            decoration:
-                            const InputDecoration(labelText: "UOM"),
-                            onChanged: (v) {
-                              draftUom = v;
-                              _notifyResultChanged();
-                            },
-                          )
+                                  initialValue: draftUom,
+                                  decoration:
+                                      const InputDecoration(labelText: "UOM"),
+                                  onChanged: (v) {
+                                    draftUom = v;
+                                    _notifyResultChanged();
+                                  },
+                                )
                               : _blueBox("UOM", _lengthController,
-                              isUOM: true, focusNode: _lengthFocusNode),
+                                  isUOM: true, focusNode: _lengthFocusNode),
                         ],
                       ),
                     ],
@@ -767,8 +780,6 @@ class _testDynamicItemCardState extends State<testDynamicItemCard>
                             fields: draftFields,
                           ),
                         );
-
-
                       },
                       child: const Text("Save"),
                     ),
@@ -783,6 +794,7 @@ class _testDynamicItemCardState extends State<testDynamicItemCard>
 
   Widget _blueBox(String label, TextEditingController controller,
       {bool isUOM = false, FocusNode? focusNode}) {
+    final cs = Theme.of(context).colorScheme;
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
@@ -793,7 +805,7 @@ class _testDynamicItemCardState extends State<testDynamicItemCard>
             style: TextStyle(
               fontSize: isUOM ? 14 : 9,
               fontWeight: FontWeight.w600,
-              color: Colors.black87,
+              color: cs.onSurface,
             ),
           ),
         ),
@@ -808,10 +820,10 @@ class _testDynamicItemCardState extends State<testDynamicItemCard>
               fontSize: isUOM ? 14 : 8,
               fontWeight: isUOM ? FontWeight.w500 : FontWeight.normal,
               color: isUOM
-                  ? Colors.black
+                  ? cs.onSurface
                   : (widget.lengthPlaceholder == 'UOM'
-                  ? Colors.grey[600]
-                  : Colors.black),
+                      ? cs.onSurfaceVariant
+                      : cs.onSurface),
             ),
             enabled: widget.isEditable,
             decoration: InputDecoration(
@@ -822,19 +834,20 @@ class _testDynamicItemCardState extends State<testDynamicItemCard>
               ),
               filled: true,
               fillColor: isUOM
-                  ? Colors.transparent
+                  ? cs.surfaceContainerHigh
                   : (widget.isEditable
-                  ? const Color(0xFFD0EAFD)
-                  : Colors.grey[300]),
+                      ? cs.surfaceContainerHighest
+                      : cs.surfaceContainerHigh),
               border: OutlineInputBorder(
                 borderRadius: BorderRadius.circular(isUOM ? 8 : 4),
                 borderSide: BorderSide(
-                  color: isUOM ? Colors.grey[300]! : Colors.transparent,
+                  color: isUOM ? cs.outlineVariant : Colors.transparent,
                   width: isUOM ? 1 : 0,
                 ),
               ),
               hintStyle: TextStyle(
                 fontSize: isUOM ? 13 : 11,
+                color: cs.onSurfaceVariant,
               ),
             ),
           ),
@@ -849,6 +862,7 @@ class _testDynamicItemCardState extends State<testDynamicItemCard>
     required String keyName,
     String unit = '',
   }) {
+    final cs = Theme.of(context).colorScheme;
     final shouldShowHint = label.toLowerCase() == "qty";
     print("❤️❤️❤️❤️❤️ $shouldShowHint");
 
@@ -859,10 +873,10 @@ class _testDynamicItemCardState extends State<testDynamicItemCard>
           padding: const EdgeInsets.only(bottom: 4),
           child: Text(
             unit.isEmpty ? label : "$label ($unit)",
-            style: const TextStyle(
+            style: TextStyle(
               fontSize: 9,
               fontWeight: FontWeight.w600,
-              color: Colors.black87,
+              color: cs.onSurface,
             ),
           ),
         ),
@@ -885,16 +899,20 @@ class _testDynamicItemCardState extends State<testDynamicItemCard>
               ),
               filled: true,
               fillColor: widget.isEditable
-                  ? const Color(0xFFD0EAFD)
-                  : Colors.grey[300],
+                  ? cs.surfaceContainerHighest
+                  : cs.surfaceContainerHigh,
               border: OutlineInputBorder(
                 borderRadius: BorderRadius.circular(4),
                 borderSide: BorderSide.none,
               ),
+              hintStyle: TextStyle(
+                color: cs.onSurfaceVariant,
+                fontSize: 8,
+              ),
             ),
-            style: const TextStyle(
+            style: TextStyle(
               fontSize: 8,
-              color: Colors.black,
+              color: cs.onSurface,
             ),
           ),
         ),

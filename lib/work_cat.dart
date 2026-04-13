@@ -25,41 +25,6 @@ import 'core/screens/settings_screen.dart';
 
 const String kUserProfileHeroTag = 'user-profile-hero-card';
 
-Widget _luxuryHeroShuttleBuilder(
-  BuildContext flightContext,
-  Animation<double> animation,
-  HeroFlightDirection flightDirection,
-  BuildContext fromHeroContext,
-  BuildContext toHeroContext,
-) {
-  final fromHero = fromHeroContext.widget as Hero;
-  final toHero = toHeroContext.widget as Hero;
-  final target = flightDirection == HeroFlightDirection.push
-      ? toHero.child
-      : fromHero.child;
-
-  final curved = CurvedAnimation(
-    parent: animation,
-    curve: Curves.easeInOutCubicEmphasized,
-    reverseCurve: Curves.easeInOutCubic,
-  );
-
-  return AnimatedBuilder(
-    animation: curved,
-    child: target,
-    builder: (context, child) {
-      final t = curved.value;
-      return Opacity(
-        opacity: 0.9 + (0.1 * t),
-        child: Transform.scale(
-          scale: 0.985 + (0.015 * t),
-          child: child,
-        ),
-      );
-    },
-  );
-}
-
 class WorkCategoryScreen extends ConsumerStatefulWidget {
   const WorkCategoryScreen({super.key});
 
@@ -246,19 +211,8 @@ class _WorkCategoryScreenState extends ConsumerState<WorkCategoryScreen> {
     final profileName = (user?.fullName.trim().isNotEmpty ?? false)
         ? user!.fullName.trim()
         : 'Team Member';
-    final profileEmail = (user?.email.trim().isNotEmpty ?? false)
-        ? user!.email.trim()
-        : 'No email linked';
     final profilePhoto = user?.profilePhoto?.trim();
-    final companyName = (user?.company?.name?.trim().isNotEmpty ?? false)
-        ? user!.company!.name!.trim()
-        : 'No company linked yet';
-    final userAddress = (user?.address?.trim().isNotEmpty ?? false)
-        ? user!.address!.trim()
-        : 'Address not added';
-    final servicesCount = user?.selectedServices.length ?? 0;
     final greetingTitle = _timeGreeting();
-    final greetingSubtitle = _focusSubtitle();
 
     final appBarTitle = greetingTitle;
     final appBarSubtitle = profileName;
@@ -365,31 +319,6 @@ class _WorkCategoryScreenState extends ConsumerState<WorkCategoryScreen> {
                           tip:
                               'Tip: choose one category first, then update progress continuously in short steps.',
                           elevationColor: null,
-                        ),
-                        const SizedBox(height: 30),
-                        Hero(
-                          tag: kUserProfileHeroTag,
-                          transitionOnUserGestures: true,
-                          createRectTween: (begin, end) =>
-                              MaterialRectArcTween(begin: begin, end: end),
-                          flightShuttleBuilder: _luxuryHeroShuttleBuilder,
-                          child: _PremiumWelcomeHeader(
-                            userName: profileName,
-                            userEmail: profileEmail,
-                            greetingTitle: 'Profile overview',
-                            greetingSubtitle: greetingSubtitle,
-                            companyName: companyName,
-                            userAddress: userAddress,
-                            profilePhoto: profilePhoto,
-                            totalServices: servicesCount,
-                            elevationColor: _adaptiveElevationColor(
-                              colorScheme,
-                              Theme.of(context).brightness,
-                              lightOpacity: 0.05,
-                              darkOpacity: 0.12,
-                            ),
-                            onTap: _openProfileWithHeroTransition,
-                          ),
                         ),
                         const Spacer(),
                       ],

@@ -25,17 +25,19 @@ class MOCCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final cs = Theme.of(context).colorScheme;
+
     return Padding(
       padding: const EdgeInsets.all(8.0),
       child: InkWell(
         onTap: onTap,
         child: Card(
-          elevation: 0,
-          color: Colors.white,
+          elevation: 0.5,
+          color: cs.surface,
           shape: RoundedRectangleBorder(
             borderRadius: BorderRadius.circular(12),
             side: BorderSide(
-              color: isSelected ? Colors.blue : Colors.grey.shade300,
+              color: isSelected ? cs.primary : cs.outlineVariant,
               width: isSelected ? 2 : 1,
             ),
           ),
@@ -50,24 +52,18 @@ class MOCCard extends StatelessWidget {
                       mainAxisAlignment: MainAxisAlignment.center,
                       children: [
                         // MOC Image
-                        Expanded(
-                            flex: 9,
-
-                            child: _buildImage()),
-
-
+                        Expanded(flex: 9, child: _buildImage(context)),
 
                         // MOC Name
                         Expanded(
                           flex: 2,
                           child: Text(
-
-
                             moc.name,
                             textAlign: TextAlign.center,
-                            style: const TextStyle(
+                            style: TextStyle(
                               fontSize: 12,
                               fontWeight: FontWeight.w600,
+                              color: cs.onSurface,
                             ),
                             maxLines: 1,
                             overflow: TextOverflow.ellipsis,
@@ -75,8 +71,6 @@ class MOCCard extends StatelessWidget {
                         ),
 
                         const SizedBox(height: 4),
-
-
                       ],
                     ),
                   ),
@@ -95,20 +89,21 @@ class MOCCard extends StatelessWidget {
                             child: Container(
                               padding: const EdgeInsets.all(4),
                               decoration: BoxDecoration(
-                                color: Colors.white,
+                                color: cs.surface,
                                 shape: BoxShape.circle,
+                                border: Border.all(color: cs.outlineVariant),
                                 boxShadow: [
                                   BoxShadow(
-                                    color: Colors.black.withOpacity(0.2),
-                                    blurRadius: 2,
+                                    color: cs.shadow.withOpacity(0.2),
+                                    blurRadius: 3,
                                     offset: const Offset(0, 1),
                                   ),
                                 ],
                               ),
-                              child: const Icon(
+                              child: Icon(
                                 Icons.edit,
                                 size: 16,
-                                color: Colors.blue,
+                                color: cs.primary,
                               ),
                             ),
                           ),
@@ -121,20 +116,21 @@ class MOCCard extends StatelessWidget {
                             child: Container(
                               padding: const EdgeInsets.all(4),
                               decoration: BoxDecoration(
-                                color: Colors.white,
+                                color: cs.surface,
                                 shape: BoxShape.circle,
+                                border: Border.all(color: cs.outlineVariant),
                                 boxShadow: [
                                   BoxShadow(
-                                    color: Colors.black.withOpacity(0.2),
-                                    blurRadius: 2,
+                                    color: cs.shadow.withOpacity(0.2),
+                                    blurRadius: 3,
                                     offset: const Offset(0, 1),
                                   ),
                                 ],
                               ),
-                              child: const Icon(
+                              child: Icon(
                                 Icons.delete_outline,
                                 size: 16,
-                                color: Colors.red,
+                                color: cs.error,
                               ),
                             ),
                           ),
@@ -147,20 +143,17 @@ class MOCCard extends StatelessWidget {
             ),
           ),
         ),
-
       ),
     );
-
   }
-  Widget _buildImage() {
+
+  Widget _buildImage(BuildContext context) {
     final img = moc.imageUrl;
 
-    return _resolveImage(img!);
+    return _resolveImage(context, img!);
   }
 
-
-
-  Widget _resolveImage(String img) {
+  Widget _resolveImage(BuildContext context, String img) {
     // NETWORK (CACHED)
     if (img.startsWith('http')) {
       return CachedNetworkImage(
@@ -169,7 +162,7 @@ class MOCCard extends StatelessWidget {
         placeholder: (_, __) => const Center(
           child: CircularProgressIndicator(strokeWidth: 2),
         ),
-        errorWidget: (_, __, ___) => _fallbackIcon(),
+        errorWidget: (_, __, ___) => _fallbackIcon(context),
       );
     }
 
@@ -178,7 +171,7 @@ class MOCCard extends StatelessWidget {
       return Image.file(
         File(img),
         fit: BoxFit.cover,
-        errorBuilder: (_, __, ___) => _fallbackIcon(),
+        errorBuilder: (_, __, ___) => _fallbackIcon(context),
       );
     }
 
@@ -186,16 +179,16 @@ class MOCCard extends StatelessWidget {
     return Image.asset(
       img,
       fit: BoxFit.cover,
-      errorBuilder: (_, __, ___) => _fallbackIcon(),
+      errorBuilder: (_, __, ___) => _fallbackIcon(context),
     );
   }
 
-  Widget _fallbackIcon() {
+  Widget _fallbackIcon(BuildContext context) {
+    final cs = Theme.of(context).colorScheme;
     return Icon(
       Icons.house_siding_outlined,
       size: 40,
-      color: Colors.grey.shade400,
+      color: cs.onSurfaceVariant,
     );
   }
-
 }

@@ -71,8 +71,10 @@ class _RegisterScreenState extends ConsumerState<RegisterScreen> {
   }
 
   String? _validatePhone(String? value) {
-    if (value == null || value.trim().isEmpty) return 'Phone number is required';
-    if (!RegExp(r'^[0-9]{10}$').hasMatch(value.replaceAll(RegExp(r'\s+'), ''))) {
+    if (value == null || value.trim().isEmpty)
+      return 'Phone number is required';
+    if (!RegExp(r'^[0-9]{10}$')
+        .hasMatch(value.replaceAll(RegExp(r'\s+'), ''))) {
       return 'Please enter a valid 10-digit phone number';
     }
     return null;
@@ -117,7 +119,8 @@ class _RegisterScreenState extends ConsumerState<RegisterScreen> {
           final canResend = _resendCooldown == 0;
 
           return Dialog(
-            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+            shape:
+                RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
             insetPadding: const EdgeInsets.symmetric(horizontal: 28),
             child: Padding(
               padding: const EdgeInsets.fromLTRB(24, 28, 24, 20),
@@ -180,9 +183,9 @@ class _RegisterScreenState extends ConsumerState<RegisterScreen> {
                           GestureDetector(
                             onTap: canResend
                                 ? () async {
-                              await _sendOtp(isResend: true);
-                              setDialogState(() {});
-                            }
+                                    await _sendOtp(isResend: true);
+                                    setDialogState(() {});
+                                  }
                                 : null,
                             child: Text(
                               canResend
@@ -224,38 +227,38 @@ class _RegisterScreenState extends ConsumerState<RegisterScreen> {
                       Expanded(
                         child: ElevatedButton(
                           onPressed: (_isVerifyingOtp ||
-                              otpFieldController.text.length != 4)
+                                  otpFieldController.text.length != 4)
                               ? null
                               : () async {
-                            setDialogState(() => _isVerifyingOtp = true);
-                            try {
-                              await ref
-                                  .read(authProvider.notifier)
-                                  .verifyEmailOtp(
-                                emailController.text.trim(),
-                                otpFieldController.text.trim(),
-                              );
-                              if (mounted) {
-                                setState(() => _isEmailVerified = true);
-                                Navigator.of(context).pop();
-                                _showSuccessSnackBar(
-                                    "Email verified successfully!");
-                              }
-                            } catch (e) {
-                              if (mounted) {
-                                _showErrorSnackBar(
-                                  e.toString().contains('Invalid OTP')
-                                      ? "Invalid OTP. Please try again"
-                                      : "Verification failed. Please try again",
-                                );
-                              }
-                            } finally {
-                              if (mounted) {
-                                setDialogState(
-                                        () => _isVerifyingOtp = false);
-                              }
-                            }
-                          },
+                                  setDialogState(() => _isVerifyingOtp = true);
+                                  try {
+                                    await ref
+                                        .read(authProvider.notifier)
+                                        .verifyEmailOtp(
+                                          emailController.text.trim(),
+                                          otpFieldController.text.trim(),
+                                        );
+                                    if (mounted) {
+                                      setState(() => _isEmailVerified = true);
+                                      Navigator.of(context).pop();
+                                      _showSuccessSnackBar(
+                                          "Email verified successfully!");
+                                    }
+                                  } catch (e) {
+                                    if (mounted) {
+                                      _showErrorSnackBar(
+                                        e.toString().contains('Invalid OTP')
+                                            ? "Invalid OTP. Please try again"
+                                            : "Verification failed. Please try again",
+                                      );
+                                    }
+                                  } finally {
+                                    if (mounted) {
+                                      setDialogState(
+                                          () => _isVerifyingOtp = false);
+                                    }
+                                  }
+                                },
                           style: ElevatedButton.styleFrom(
                             backgroundColor: const Color(0xFF218AE6),
                             elevation: 0,
@@ -266,21 +269,21 @@ class _RegisterScreenState extends ConsumerState<RegisterScreen> {
                           ),
                           child: _isVerifyingOtp
                               ? const SizedBox(
-                            width: 18,
-                            height: 18,
-                            child: CircularProgressIndicator(
-                              strokeWidth: 2,
-                              color: Colors.white,
-                            ),
-                          )
+                                  width: 18,
+                                  height: 18,
+                                  child: CircularProgressIndicator(
+                                    strokeWidth: 2,
+                                    color: Colors.white,
+                                  ),
+                                )
                               : const Text(
-                            "Verify",
-                            style: TextStyle(
-                              fontSize: 14,
-                              fontWeight: FontWeight.w600,
-                              color: Colors.white,
-                            ),
-                          ),
+                                  "Verify",
+                                  style: TextStyle(
+                                    fontSize: 14,
+                                    fontWeight: FontWeight.w600,
+                                    color: Colors.white,
+                                  ),
+                                ),
                         ),
                       ),
                     ],
@@ -309,9 +312,8 @@ class _RegisterScreenState extends ConsumerState<RegisterScreen> {
     try {
       final registrationData = {
         "fullName": fullNameController.text.trim(),
-        "phoneNumber": phoneController.text
-            .trim()
-            .replaceAll(RegExp(r'[^0-9]'), ''),
+        "phoneNumber":
+            phoneController.text.trim().replaceAll(RegExp(r'[^0-9]'), ''),
         "email": emailController.text.trim(),
       };
 
@@ -328,6 +330,7 @@ class _RegisterScreenState extends ConsumerState<RegisterScreen> {
   // ─── Feedback helpers ─────────────────────────────────────────────────────
 
   void _showSuccessDialog() {
+    final colorScheme = Theme.of(context).colorScheme;
     showDialog(
       context: context,
       builder: (context) => AlertDialog(
@@ -340,7 +343,8 @@ class _RegisterScreenState extends ConsumerState<RegisterScreen> {
               Navigator.of(context).pop();
               Navigator.of(context).pop();
             },
-            child: const Text("Continue"),
+            child:
+                Text("Continue", style: TextStyle(color: colorScheme.primary)),
           ),
         ],
       ),
@@ -348,10 +352,11 @@ class _RegisterScreenState extends ConsumerState<RegisterScreen> {
   }
 
   void _showErrorSnackBar(String message) {
+    final colorScheme = Theme.of(context).colorScheme;
     ScaffoldMessenger.of(context).showSnackBar(
       SnackBar(
         content: Text(message),
-        backgroundColor: Colors.red.shade600,
+        backgroundColor: colorScheme.error,
         behavior: SnackBarBehavior.floating,
         shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
       ),
@@ -359,10 +364,11 @@ class _RegisterScreenState extends ConsumerState<RegisterScreen> {
   }
 
   void _showSuccessSnackBar(String message) {
+    final colorScheme = Theme.of(context).colorScheme;
     ScaffoldMessenger.of(context).showSnackBar(
       SnackBar(
         content: Text(message),
-        backgroundColor: Colors.green.shade600,
+        backgroundColor: colorScheme.tertiary,
         behavior: SnackBarBehavior.floating,
         shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
       ),
@@ -373,22 +379,26 @@ class _RegisterScreenState extends ConsumerState<RegisterScreen> {
 
   @override
   Widget build(BuildContext context) {
+    final colorScheme = Theme.of(context).colorScheme;
     return Scaffold(
-      backgroundColor: Colors.white,
+      backgroundColor: colorScheme.surface,
       appBar: AppBar(
-        backgroundColor: Colors.white,
+        backgroundColor: colorScheme.surface,
         elevation: 0,
         leading: IconButton(
-          icon: const Icon(Icons.arrow_back_ios_new_rounded,
-              size: 18, color: Colors.black87),
+          icon: Icon(
+            Icons.arrow_back_ios_new_rounded,
+            size: 18,
+            color: colorScheme.onSurface,
+          ),
           onPressed: () => Navigator.of(context).pop(),
         ),
-        title: const Text(
+        title: Text(
           "Create account",
           style: TextStyle(
             fontSize: 17,
             fontWeight: FontWeight.w700,
-            color: Colors.black87,
+            color: colorScheme.onSurface,
           ),
         ),
         centerTitle: false,
@@ -406,7 +416,7 @@ class _RegisterScreenState extends ConsumerState<RegisterScreen> {
                   "Join 70 Million+ construction professionals",
                   style: TextStyle(
                     fontSize: 13.5,
-                    color: Colors.grey.shade500,
+                    color: colorScheme.onSurfaceVariant,
                     height: 1.4,
                   ),
                 ),
@@ -426,13 +436,12 @@ class _RegisterScreenState extends ConsumerState<RegisterScreen> {
 
                 // ── Phone ─────────────────────────────────────────────────
                 _FormField(
-                  label: "Phone Number",
-                  required: true,
-                  child: PhoneInputField(
-                    controller: phoneController,
-                    autovalidateMode: AutovalidateMode.onUserInteraction,
-                  )
-                ),
+                    label: "Phone Number",
+                    required: true,
+                    child: PhoneInputField(
+                      controller: phoneController,
+                      autovalidateMode: AutovalidateMode.onUserInteraction,
+                    )),
                 const SizedBox(height: 20),
 
                 // ── Email ─────────────────────────────────────────────────
@@ -472,7 +481,7 @@ class _RegisterScreenState extends ConsumerState<RegisterScreen> {
                       height: 22,
                       child: Checkbox(
                         value: _acceptedTerms,
-                        activeColor: const Color(0xFF218AE6),
+                        activeColor: colorScheme.primary,
                         materialTapTargetSize: MaterialTapTargetSize.shrinkWrap,
                         visualDensity: VisualDensity.compact,
                         shape: RoundedRectangleBorder(
@@ -487,15 +496,17 @@ class _RegisterScreenState extends ConsumerState<RegisterScreen> {
                       child: GestureDetector(
                         onTap: () => context.push('/terms'),
                         child: RichText(
-                          text: const TextSpan(
+                          text: TextSpan(
                             style: TextStyle(
-                                fontSize: 13, color: Colors.black54),
+                              fontSize: 13,
+                              color: colorScheme.onSurfaceVariant,
+                            ),
                             children: [
-                              TextSpan(text: "I agree to the "),
+                              const TextSpan(text: "I agree to the "),
                               TextSpan(
                                 text: "Terms & Conditions",
                                 style: TextStyle(
-                                  color: Color(0xFF218AE6),
+                                  color: colorScheme.primary,
                                   fontWeight: FontWeight.w600,
                                 ),
                               ),
@@ -523,7 +534,7 @@ class _RegisterScreenState extends ConsumerState<RegisterScreen> {
                     textAlign: TextAlign.center,
                     style: TextStyle(
                       fontSize: 11.5,
-                      color: Colors.orange.shade600,
+                      color: colorScheme.secondary,
                     ),
                   ),
                 ],
@@ -537,16 +548,18 @@ class _RegisterScreenState extends ConsumerState<RegisterScreen> {
                     Text(
                       "Already have an account? ",
                       style: TextStyle(
-                          fontSize: 13.5, color: Colors.grey.shade500),
+                        fontSize: 13.5,
+                        color: colorScheme.onSurfaceVariant,
+                      ),
                     ),
                     GestureDetector(
                       onTap: () => Navigator.of(context).pop(),
-                      child: const Text(
+                      child: Text(
                         "Login",
                         style: TextStyle(
                           fontSize: 13.5,
                           fontWeight: FontWeight.w700,
-                          color: Color(0xFF218AE6),
+                          color: colorScheme.primary,
                         ),
                       ),
                     ),
@@ -559,7 +572,10 @@ class _RegisterScreenState extends ConsumerState<RegisterScreen> {
                   "By continuing, you're agreeing to our Terms of Service and Privacy Policy.\n© 2026 VAYUXI. All rights reserved.",
                   textAlign: TextAlign.center,
                   style: TextStyle(
-                      fontSize: 11, color: Colors.grey.shade400, height: 1.6),
+                    fontSize: 11,
+                    color: colorScheme.outline,
+                    height: 1.6,
+                  ),
                 ),
                 const SizedBox(height: 16),
               ],
@@ -579,39 +595,40 @@ class _RegisterScreenState extends ConsumerState<RegisterScreen> {
     ValueChanged<String>? onChanged,
     bool readOnly = false,
   }) {
+    final colorScheme = Theme.of(context).colorScheme;
     return TextFormField(
       controller: controller,
       keyboardType: keyboardType,
       validator: validator,
       onChanged: onChanged,
       readOnly: readOnly,
-      style: const TextStyle(fontSize: 14.5, color: Colors.black87),
+      style: TextStyle(fontSize: 14.5, color: colorScheme.onSurface),
       decoration: InputDecoration(
         hintText: hint,
-        hintStyle: TextStyle(color: Colors.grey.shade400, fontSize: 14),
+        hintStyle: TextStyle(color: colorScheme.onSurfaceVariant, fontSize: 14),
         filled: true,
-        fillColor: Colors.white,
+        fillColor: colorScheme.surface,
         contentPadding:
-        const EdgeInsets.symmetric(horizontal: 14, vertical: 13),
+            const EdgeInsets.symmetric(horizontal: 14, vertical: 13),
         border: OutlineInputBorder(
           borderRadius: BorderRadius.circular(10),
-          borderSide: const BorderSide(color: Colors.black),
+          borderSide: BorderSide(color: colorScheme.outline),
         ),
         enabledBorder: OutlineInputBorder(
           borderRadius: BorderRadius.circular(10),
-          borderSide: const BorderSide(color: Colors.black),
+          borderSide: BorderSide(color: colorScheme.outline),
         ),
         focusedBorder: OutlineInputBorder(
           borderRadius: BorderRadius.circular(10),
-          borderSide: const BorderSide(color: Colors.black, width: 1.8),
+          borderSide: BorderSide(color: colorScheme.primary, width: 1.8),
         ),
         errorBorder: OutlineInputBorder(
           borderRadius: BorderRadius.circular(10),
-          borderSide: const BorderSide(color: Colors.red),
+          borderSide: BorderSide(color: colorScheme.error),
         ),
         focusedErrorBorder: OutlineInputBorder(
           borderRadius: BorderRadius.circular(10),
-          borderSide: const BorderSide(color: Colors.red, width: 1.5),
+          borderSide: BorderSide(color: colorScheme.error, width: 1.5),
         ),
         errorStyle: const TextStyle(fontSize: 11),
       ),
@@ -637,15 +654,16 @@ class _FormField extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final colorScheme = Theme.of(context).colorScheme;
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
         RichText(
           text: TextSpan(
-            style: const TextStyle(
+            style: TextStyle(
               fontSize: 13,
               fontWeight: FontWeight.w600,
-              color: Colors.black87,
+              color: colorScheme.onSurface,
             ),
             children: [
               TextSpan(text: label),
@@ -680,18 +698,19 @@ class _EmailVerifyAction extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final colorScheme = Theme.of(context).colorScheme;
     if (isVerified) {
       return Row(
         mainAxisSize: MainAxisSize.min,
         children: [
           Icon(Icons.check_circle_rounded,
-              size: 14, color: Colors.green.shade600),
+              size: 14, color: colorScheme.tertiary),
           const SizedBox(width: 4),
           Text(
             "Email verified",
             style: TextStyle(
               fontSize: 12.5,
-              color: Colors.green.shade600,
+              color: colorScheme.tertiary,
               fontWeight: FontWeight.w500,
             ),
           ),
@@ -703,23 +722,23 @@ class _EmailVerifyAction extends StatelessWidget {
       onTap: canSend && !isSending ? onSend : null,
       child: isSending
           ? const SizedBox(
-        width: 14,
-        height: 14,
-        child: CircularProgressIndicator(
-          strokeWidth: 1.8,
-          color: Color(0xFF218AE6),
-        ),
-      )
+              width: 14,
+              height: 14,
+              child: CircularProgressIndicator(
+                strokeWidth: 1.8,
+                color: Color(0xFF218AE6),
+              ),
+            )
           : Text(
-        "Send verification code",
-        style: TextStyle(
-          fontSize: 12.5,
-          fontWeight: FontWeight.w600,
-          color: canSend
-              ? const Color(0xFF218AE6)
-              : Colors.grey.shade400,
-        ),
-      ),
+              "Send verification code",
+              style: TextStyle(
+                fontSize: 12.5,
+                fontWeight: FontWeight.w600,
+                color: canSend
+                    ? colorScheme.primary
+                    : colorScheme.onSurfaceVariant,
+              ),
+            ),
     );
   }
 }
@@ -738,13 +757,14 @@ class _RegisterButton extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final colorScheme = Theme.of(context).colorScheme;
     return SizedBox(
       height: 50,
       child: ElevatedButton(
         onPressed: isEnabled ? onPressed : null,
         style: ElevatedButton.styleFrom(
-          backgroundColor: const Color(0xFF218AE6),
-          disabledBackgroundColor: Colors.grey.shade100,
+          backgroundColor: colorScheme.primary,
+          disabledBackgroundColor: colorScheme.surfaceContainerHighest,
           elevation: 0,
           shape: RoundedRectangleBorder(
             borderRadius: BorderRadius.circular(12),
@@ -752,21 +772,23 @@ class _RegisterButton extends StatelessWidget {
         ),
         child: isLoading
             ? const SizedBox(
-          width: 20,
-          height: 20,
-          child: CircularProgressIndicator(
-            strokeWidth: 2,
-            color: Colors.white,
-          ),
-        )
+                width: 20,
+                height: 20,
+                child: CircularProgressIndicator(
+                  strokeWidth: 2,
+                  color: Colors.white,
+                ),
+              )
             : Text(
-          "Create Account",
-          style: TextStyle(
-            fontSize: 15,
-            fontWeight: FontWeight.w600,
-            color: isEnabled ? Colors.white : Colors.grey.shade400,
-          ),
-        ),
+                "Create Account",
+                style: TextStyle(
+                  fontSize: 15,
+                  fontWeight: FontWeight.w600,
+                  color: isEnabled
+                      ? colorScheme.onPrimary
+                      : colorScheme.onSurfaceVariant,
+                ),
+              ),
       ),
     );
   }
