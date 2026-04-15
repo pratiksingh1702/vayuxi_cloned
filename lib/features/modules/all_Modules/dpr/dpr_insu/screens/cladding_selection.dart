@@ -45,7 +45,7 @@ class _CladdingScreenState extends ConsumerState<CladdingScreen> {
     final cladding = ref.read(insulationStateProvider).cladding;
 
     _thicknessController.text =
-    cladding.thickness == 0 ? '' : cladding.thickness.toString();
+        cladding.thickness == 0 ? '' : cladding.thickness.toString();
   }
 
   @override
@@ -57,12 +57,12 @@ class _CladdingScreenState extends ConsumerState<CladdingScreen> {
   @override
   Widget build(BuildContext context) {
     final cladding = ref.watch(insulationStateProvider).cladding;
-
-
+    final colorScheme = Theme.of(context).colorScheme;
+    final textTheme = Theme.of(context).textTheme;
 
     return Scaffold(
       drawer: const CustomDrawer(),
-      backgroundColor: const Color(0xFFD7ECFF),
+      backgroundColor: colorScheme.surface,
       appBar: const CustomAppBar(
         title: 'Cladding',
       ),
@@ -71,8 +71,8 @@ class _CladdingScreenState extends ConsumerState<CladdingScreen> {
           CustomButton(
             button: RoundedButton(
               text: "Save & Submit",
-              color: Colors.blue,
-              textColor: Colors.white,
+              color: colorScheme.primary,
+              textColor: colorScheme.onPrimary,
               onPressed: () {
                 _submit(context);
               },
@@ -91,7 +91,7 @@ class _CladdingScreenState extends ConsumerState<CladdingScreen> {
                   TextButton(
                     onPressed: () => _submit(context),
                     style: TextButton.styleFrom(
-                      backgroundColor: const Color(0xFF007BFF),
+                      backgroundColor: colorScheme.primary,
                       padding: const EdgeInsets.symmetric(
                         horizontal: 18,
                         vertical: 6,
@@ -109,6 +109,25 @@ class _CladdingScreenState extends ConsumerState<CladdingScreen> {
                     ),
                   ),
                 ],
+              ),
+
+              Container(
+                width: double.infinity,
+                padding:
+                    const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
+                decoration: BoxDecoration(
+                  color: colorScheme.surfaceContainerLow,
+                  borderRadius: BorderRadius.circular(12),
+                  border: Border.all(
+                      color: colorScheme.outlineVariant.withOpacity(0.55)),
+                ),
+                child: Text(
+                  'Set up cladding material and configuration.',
+                  style: textTheme.bodyMedium?.copyWith(
+                    color: colorScheme.onSurfaceVariant,
+                    fontWeight: FontWeight.w500,
+                  ),
+                ),
               ),
 
               const SizedBox(height: 24),
@@ -130,13 +149,21 @@ class _CladdingScreenState extends ConsumerState<CladdingScreen> {
 
                   return Container(
                     decoration: BoxDecoration(
+                      color: colorScheme.surfaceContainerLow,
                       borderRadius: BorderRadius.circular(16),
                       border: Border.all(
                         color: isSelected
-                            ? const Color(0xFF007BFF)
-                            : Colors.transparent,
-                        width: 2,
+                            ? colorScheme.primary
+                            : colorScheme.outlineVariant.withOpacity(0.5),
+                        width: isSelected ? 2 : 1,
                       ),
+                      boxShadow: [
+                        BoxShadow(
+                          color: colorScheme.shadow.withOpacity(0.06),
+                          blurRadius: 8,
+                          offset: const Offset(0, 4),
+                        ),
+                      ],
                     ),
                     child: SelectCard(
                       icon: Image.asset(
@@ -158,9 +185,9 @@ class _CladdingScreenState extends ConsumerState<CladdingScreen> {
               const SizedBox(height: 32),
 
               /// THICKNESS
-              const Text(
+              Text(
                 'Thickness (SWG)',
-                style: TextStyle(
+                style: textTheme.titleMedium?.copyWith(
                   fontSize: 16,
                   fontWeight: FontWeight.w600,
                 ),
@@ -178,47 +205,48 @@ class _CladdingScreenState extends ConsumerState<CladdingScreen> {
   }
 
   Widget _thicknessInput() {
+    final colorScheme = Theme.of(context).colorScheme;
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 6),
       decoration: BoxDecoration(
-        color: Colors.white,
+        color: colorScheme.surfaceContainerLow,
         borderRadius: BorderRadius.circular(12),
+        border: Border.all(color: colorScheme.outlineVariant.withOpacity(0.6)),
         boxShadow: [
           BoxShadow(
-            color: Colors.black.withOpacity(0.05),
+            color: colorScheme.shadow.withOpacity(0.08),
             blurRadius: 10,
             offset: const Offset(0, 4),
           ),
         ],
       ),
       child: TextFormField(
-        controller: _thicknessController,
-        keyboardType: const TextInputType.numberWithOptions(decimal: true),
-        decoration: const InputDecoration(
-          border: InputBorder.none,
-          hintText: "Enter thickness (SWG)",
-        ),
+          controller: _thicknessController,
+          keyboardType: const TextInputType.numberWithOptions(decimal: true),
+          style: TextStyle(color: colorScheme.onSurface),
+          cursorColor: colorScheme.primary,
+          decoration: InputDecoration(
+            border: InputBorder.none,
+            hintText: "Enter thickness (SWG)",
+            hintStyle: TextStyle(color: colorScheme.onSurfaceVariant),
+          ),
           onChanged: (value) {
             final thickness = double.tryParse(value.trim()) ?? 0;
 
             ref.read(insulationStateProvider.notifier).setCladding(
-              thickness: thickness,
-            );
-          }
-
-      ),
+                  thickness: thickness,
+                );
+          }),
     );
   }
 
   void _submit(BuildContext context) {
-
     final cladding = ref.read(insulationStateProvider).cladding;
-    final thickness =
-        double.tryParse(_thicknessController.text.trim()) ?? 0;
+    final thickness = double.tryParse(_thicknessController.text.trim()) ?? 0;
 
     ref.read(insulationStateProvider.notifier).setCladding(
-      thickness: thickness,
-    );
+          thickness: thickness,
+        );
 
     // if (cladding.name.isEmpty || cladding.thickness == 0) {
     //   ScaffoldMessenger.of(context).showSnackBar(

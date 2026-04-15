@@ -30,13 +30,9 @@ class AddSelectCardGrid extends StatelessWidget {
           childAspectRatio: 1,
           children: [
             SelectCard(
-              icon: Image.asset(
-                "assets/images/icons/moc.webp",
-        
-                height: 120,
-                width: double.infinity,
-                fit: BoxFit.cover,
-        
+              icon: const SelectCardIcon(
+                icon: Icons.account_tree_rounded,
+                color: Colors.deepPurple,
               ),
               label: "Moc",
               onTap: () {
@@ -47,13 +43,9 @@ class AddSelectCardGrid extends StatelessWidget {
               },
             ),
             SelectCard(
-              icon: Image.asset(
-                "assets/images/icons/floor.webp",
-        
-                height: 120,
-                width: double.infinity,
-                fit: BoxFit.cover,
-        
+              icon: const SelectCardIcon(
+                icon: Icons.layers_rounded,
+                color: Colors.teal,
               ),
               label: "Floor",
               onTap: () {
@@ -64,13 +56,9 @@ class AddSelectCardGrid extends StatelessWidget {
               },
             ),
             SelectCard(
-              icon: Image.asset(
-                "assets/images/icons/dpr_setup_icon.webp",
-        
-                height: 120,
-                width: double.infinity,
-                fit: BoxFit.cover,
-        
+              icon: const SelectCardIcon(
+                icon: Icons.dashboard_customize_rounded,
+                color: Colors.indigo,
               ),
               label: "DPR Screen",
               onTap: () {

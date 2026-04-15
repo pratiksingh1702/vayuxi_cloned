@@ -3,6 +3,7 @@ import 'dart:io';
 import 'package:dio/dio.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 import 'package:untitled2/core/utlis/app_toasts.dart';
 import 'package:untitled2/core/utlis/widgets/fields/custom_textField.dart';
 import 'package:untitled2/core/utlis/widgets/file_upload.dart';
@@ -79,6 +80,7 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
   File? _profileImageFile;
   File? _companyLogoFile;
   File? _digitalSignatureFile;
+  bool _isPendingProfileCompletion = false;
 
   late Map<String, dynamic> _formValues;
 
@@ -87,6 +89,7 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
     super.initState();
     _initializeForm();
     _loadUserData();
+    _loadPendingProfileCompletionState();
   }
 
   void _initializeForm() {
@@ -116,6 +119,34 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
     WidgetsBinding.instance.addPostFrameCallback((_) {
       ref.read(userNotifierProvider.notifier).getCurrentUser();
     });
+  }
+
+  Future<void> _loadPendingProfileCompletionState() async {
+    final isPending = await _isProfileCompletionPending();
+    if (!mounted) return;
+    setState(() {
+      _isPendingProfileCompletion = isPending;
+    });
+  }
+
+  Future<bool> _isProfileCompletionPending() async {
+    final prefs = await SharedPreferences.getInstance();
+    final requiresProfileCompletion =
+        prefs.getBool('requires_profile_completion') ?? false;
+    final hasPendingPhone =
+        (prefs.getString('pending_phone_number') ?? '').trim().isNotEmpty;
+    final gracePeriodEndsAt =
+        (prefs.getString('profile_completion_grace_ends_at') ?? '').trim();
+
+    debugPrint(
+      '🧾 PROFILE FLAGS CHECK | requires_profile_completion='
+      '$requiresProfileCompletion '
+      '| hasPendingPhone=$hasPendingPhone '
+      '| gracePeriodEndsAt=$gracePeriodEndsAt',
+    );
+
+    // Use server-driven flags; keep pending_phone_number as a safe fallback.
+    return requiresProfileCompletion || hasPendingPhone;
   }
 
   Future<void> _pickDigitalSignature() async {
@@ -200,6 +231,54 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
     if (!_formKey.currentState!.validate()) return;
 
     try {
+      final isPendingProfileCompletion = await _isProfileCompletionPending();
+      if (_isPendingProfileCompletion != isPendingProfileCompletion &&
+          mounted) {
+        setState(
+            () => _isPendingProfileCompletion = isPendingProfileCompletion);
+      }
+
+      debugPrint(
+        '🧾 PROFILE SUBMIT PATH | isPendingProfileCompletion='
+        '$isPendingProfileCompletion',
+      );
+
+      final normalizedFullName = _fullNameController.text.trim();
+      final normalizedEmail = _emailController.text.trim();
+      final normalizedCompanyName = _companyNameController.text.trim();
+
+      if (isPendingProfileCompletion) {
+        debugPrint('🧾 PROFILE SUBMIT ACTION | calling completeProfile API');
+        if (normalizedFullName.isEmpty || normalizedEmail.isEmpty) {
+          AppToast.error(
+              'Full name and email are required to complete profile');
+          return;
+        }
+
+        await ref.read(authProvider.notifier).completeProfile(
+              fullName: normalizedFullName,
+              email: normalizedEmail,
+              companyName:
+                  normalizedCompanyName.isEmpty ? null : normalizedCompanyName,
+            );
+
+        final prefs = await SharedPreferences.getInstance();
+        await prefs.setBool('requires_profile_completion', false);
+        await prefs.remove('profile_completion_grace_ends_at');
+        await prefs.remove('pending_phone_number');
+        await prefs.remove('show_complete_profile_prompt');
+
+        if (mounted) {
+          setState(() => _isPendingProfileCompletion = false);
+        }
+
+        await ref.read(userNotifierProvider.notifier).getCurrentUser();
+        AppToast.success('Profile completed successfully');
+        return;
+      }
+
+      debugPrint('🧾 PROFILE SUBMIT ACTION | calling updateUser PUT API');
+
       final userNotifier = ref.read(userNotifierProvider.notifier);
       final formData = FormData();
 
@@ -462,6 +541,38 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
                     ),
                   ),
                   const SizedBox(height: 14),
+                  if (_isPendingProfileCompletion)
+                    Container(
+                      margin: const EdgeInsets.only(bottom: 12),
+                      padding: const EdgeInsets.all(12),
+                      decoration: BoxDecoration(
+                        color: const Color(0xFFE8F4FF),
+                        borderRadius: BorderRadius.circular(12),
+                        border: Border.all(color: const Color(0xFF9CC8F5)),
+                      ),
+                      child: Row(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          const Icon(
+                            Icons.info_outline_rounded,
+                            color: Color(0xFF1565C0),
+                            size: 18,
+                          ),
+                          const SizedBox(width: 8),
+                          Expanded(
+                            child: Text(
+                              'Complete your profile using full name and email to finish account setup.',
+                              style: TextStyle(
+                                color: colorScheme.onSurface,
+                                fontSize: 12.5,
+                                fontWeight: FontWeight.w600,
+                                height: 1.35,
+                              ),
+                            ),
+                          ),
+                        ],
+                      ),
+                    ),
                   _ProfileSectionCard(
                     title: 'Personal Details',
                     icon: Icons.badge_rounded,
@@ -635,7 +746,9 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
                               : Icon(Icons.save_rounded,
                                   color: colorScheme.onPrimary, size: 18),
                           label: Text(
-                            'Save Changes',
+                            _isPendingProfileCompletion
+                                ? 'Complete Profile'
+                                : 'Save Changes',
                             style: TextStyle(
                               color: colorScheme.onPrimary,
                               fontWeight: FontWeight.w700,

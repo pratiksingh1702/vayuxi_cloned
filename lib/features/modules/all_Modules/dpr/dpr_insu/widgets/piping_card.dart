@@ -80,6 +80,8 @@ class _PipingMaterialCardState extends State<PipingMaterialCard> {
 
   bool get _isDynamic => widget.materialSetup != null;
   FieldConfig? get _config => widget.materialSetup?.fieldConfig;
+  ColorScheme get _cs => Theme.of(context).colorScheme;
+  Color get _fieldFill => _cs.surfaceContainerHighest;
 
   // ─────────────────────────────────────────────
   // LIFECYCLE
@@ -546,9 +548,10 @@ class _PipingMaterialCardState extends State<PipingMaterialCard> {
         // ✅ MATCHES: testDynamicItemCard padding: const EdgeInsets.all(2)
         padding: const EdgeInsets.all(2),
         decoration: BoxDecoration(
-          color: Colors.white,
+          color: _cs.surfaceContainerLow,
           // ✅ MATCHES: testDynamicItemCard has NO boxShadow
           borderRadius: BorderRadius.circular(14),
+          border: Border.all(color: _cs.outlineVariant.withOpacity(0.5)),
         ),
         child: Column(
           children: [
@@ -644,10 +647,10 @@ class _PipingMaterialCardState extends State<PipingMaterialCard> {
       children: [
         Text(
           labelWithUnit,
-          style: const TextStyle(
+          style: TextStyle(
             fontSize: 9,
             fontWeight: FontWeight.w600,
-            color: Colors.black87,
+            color: _cs.onSurface,
           ),
         ),
         const SizedBox(height: 4),
@@ -662,10 +665,10 @@ class _PipingMaterialCardState extends State<PipingMaterialCard> {
                 ? const TextInputType.numberWithOptions(decimal: true)
                 : TextInputType.text,
             textAlign: TextAlign.center,
-            style: const TextStyle(
+            style: TextStyle(
               fontSize: 8,
               fontWeight: FontWeight.normal,
-              color: Colors.black,
+              color: _cs.onSurface,
             ),
             onChanged: (v) {
               if (field.type == 'NUMBER') {
@@ -682,12 +685,20 @@ class _PipingMaterialCardState extends State<PipingMaterialCard> {
             decoration: InputDecoration(
               isDense: true,
               filled: true,
-              fillColor: const Color(0xFFD0EAFD),
+              fillColor: _fieldFill,
               contentPadding:
                   const EdgeInsets.symmetric(vertical: 4, horizontal: 2),
               border: OutlineInputBorder(
                 borderRadius: BorderRadius.circular(4),
-                borderSide: BorderSide.none,
+                borderSide: BorderSide(color: _cs.outlineVariant),
+              ),
+              enabledBorder: OutlineInputBorder(
+                borderRadius: BorderRadius.circular(4),
+                borderSide: BorderSide(color: _cs.outlineVariant),
+              ),
+              focusedBorder: OutlineInputBorder(
+                borderRadius: BorderRadius.circular(4),
+                borderSide: BorderSide(color: _cs.primary, width: 1.5),
               ),
             ),
           ),
@@ -723,10 +734,10 @@ class _PipingMaterialCardState extends State<PipingMaterialCard> {
                     isDense: true,
                     contentPadding: const EdgeInsets.symmetric(vertical: 2),
                     filled: true,
-                    fillColor: const Color(0xFFD0EAFD),
+                    fillColor: _fieldFill,
                     border: OutlineInputBorder(
                       borderRadius: BorderRadius.circular(4),
-                      borderSide: BorderSide.none,
+                      borderSide: BorderSide(color: _cs.outlineVariant),
                     ),
                   ),
                   style:
@@ -761,20 +772,23 @@ class _PipingMaterialCardState extends State<PipingMaterialCard> {
                   decoration: InputDecoration(
                     isDense: true,
                     filled: true,
-                    fillColor: const Color(0xFFD0EAFD),
+                    fillColor: _fieldFill,
                     hintText: field.required ? '*' : '',
                     hintStyle:
-                        const TextStyle(fontSize: 10, color: Colors.black38),
+                        TextStyle(fontSize: 10, color: _cs.onSurfaceVariant),
                     contentPadding:
                         const EdgeInsets.symmetric(vertical: 4, horizontal: 2),
                     border: OutlineInputBorder(
                       borderRadius: BorderRadius.circular(4),
-                      borderSide: BorderSide.none,
+                      borderSide: BorderSide(color: _cs.outlineVariant),
+                    ),
+                    enabledBorder: OutlineInputBorder(
+                      borderRadius: BorderRadius.circular(4),
+                      borderSide: BorderSide(color: _cs.outlineVariant),
                     ),
                     focusedBorder: OutlineInputBorder(
                       borderRadius: BorderRadius.circular(4),
-                      borderSide:
-                          const BorderSide(color: Color(0xFF5B8FFF), width: 2),
+                      borderSide: BorderSide(color: _cs.primary, width: 2),
                     ),
                   ),
                   onChanged: (v) {
@@ -804,20 +818,23 @@ class _PipingMaterialCardState extends State<PipingMaterialCard> {
                     decoration: InputDecoration(
                       isDense: true,
                       filled: true,
-                      fillColor: const Color(0xFFD0EAFD),
+                      fillColor: _fieldFill,
                       hintText: field.required ? '*' : '',
                       hintStyle:
-                          const TextStyle(fontSize: 10, color: Colors.black38),
+                          TextStyle(fontSize: 10, color: _cs.onSurfaceVariant),
                       contentPadding: const EdgeInsets.symmetric(
                           vertical: 4, horizontal: 2),
                       border: OutlineInputBorder(
                         borderRadius: BorderRadius.circular(4),
-                        borderSide: BorderSide.none,
+                        borderSide: BorderSide(color: _cs.outlineVariant),
+                      ),
+                      enabledBorder: OutlineInputBorder(
+                        borderRadius: BorderRadius.circular(4),
+                        borderSide: BorderSide(color: _cs.outlineVariant),
                       ),
                       focusedBorder: OutlineInputBorder(
                         borderRadius: BorderRadius.circular(4),
-                        borderSide: const BorderSide(
-                            color: Color(0xFF5B8FFF), width: 2),
+                        borderSide: BorderSide(color: _cs.primary, width: 2),
                       ),
                     ),
                     onChanged: (v) {
@@ -857,8 +874,7 @@ class _PipingMaterialCardState extends State<PipingMaterialCard> {
               margin: const EdgeInsets.only(right: 4),
               padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
               decoration: BoxDecoration(
-                color:
-                    isSelected ? const Color(0xFF5B8FFF) : Colors.grey.shade200,
+                color: isSelected ? _cs.primary : _cs.surfaceContainerHighest,
                 borderRadius: BorderRadius.circular(4),
               ),
               child: Text(
@@ -866,7 +882,7 @@ class _PipingMaterialCardState extends State<PipingMaterialCard> {
                 style: TextStyle(
                   fontSize: 9,
                   fontWeight: FontWeight.w700,
-                  color: isSelected ? Colors.white : Colors.black54,
+                  color: isSelected ? _cs.onPrimary : _cs.onSurfaceVariant,
                 ),
               ),
             ),
@@ -891,15 +907,15 @@ class _PipingMaterialCardState extends State<PipingMaterialCard> {
       height: 36,
       padding: const EdgeInsets.symmetric(horizontal: 6),
       decoration: BoxDecoration(
-        color: Colors.white,
-        border: Border.all(color: Colors.grey.shade400),
+        color: _cs.surface,
+        border: Border.all(color: _cs.outlineVariant),
         borderRadius: BorderRadius.circular(6),
       ),
       child: DropdownButtonHideUnderline(
         child: DropdownButton<String>(
           value: safeValue,
           isDense: true,
-          style: const TextStyle(fontSize: 11, color: Colors.black87),
+          style: TextStyle(fontSize: 11, color: _cs.onSurface),
           items: options
               .map((o) => DropdownMenuItem(value: o, child: Text(o)))
               .toList(),
@@ -986,13 +1002,13 @@ class _PipingMaterialCardState extends State<PipingMaterialCard> {
                 borderRadius: BorderRadius.circular(8),
                 borderSide: BorderSide(
                   // ✅ MATCHES: testDynamicItemCard isUOM Colors.grey[300], width: 1
-                  color: Colors.grey[300]!,
+                  color: _cs.outlineVariant,
                   width: 1,
                 ),
               ),
               focusedBorder: OutlineInputBorder(
                 borderRadius: BorderRadius.circular(8),
-                borderSide: const BorderSide(color: Colors.blue, width: 2),
+                borderSide: BorderSide(color: _cs.primary, width: 2),
               ),
             ),
           ),
@@ -1070,15 +1086,15 @@ class _PipingMaterialCardState extends State<PipingMaterialCard> {
             height: 36,
             padding: const EdgeInsets.symmetric(horizontal: 6),
             decoration: BoxDecoration(
-              color: Colors.white,
-              border: Border.all(color: Colors.grey.shade400),
+              color: _cs.surface,
+              border: Border.all(color: _cs.outlineVariant),
               borderRadius: BorderRadius.circular(6),
             ),
             child: DropdownButtonHideUnderline(
               child: DropdownButton<String>(
                 value: safeValue,
                 isDense: true,
-                style: const TextStyle(fontSize: 11, color: Colors.black87),
+                style: TextStyle(fontSize: 11, color: _cs.onSurface),
                 items: options
                     .map((o) => DropdownMenuItem(value: o, child: Text(o)))
                     .toList(),
@@ -1135,9 +1151,9 @@ class _PipingMaterialCardState extends State<PipingMaterialCard> {
                 constraints: const BoxConstraints(maxWidth: 80),
                 padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 4),
                 decoration: BoxDecoration(
-                  color: const Color(0xFFD0EAFD),
+                  color: _fieldFill,
                   border: Border.all(
-                    color: Colors.black,
+                    color: _cs.outlineVariant,
                   ),
                   borderRadius: BorderRadius.circular(4),
                 ),
@@ -1151,9 +1167,9 @@ class _PipingMaterialCardState extends State<PipingMaterialCard> {
                               widget.material.remarks!.isNotEmpty)
                           ? widget.material.remarks
                           : "remarks",
-                      style: const TextStyle(
+                      style: TextStyle(
                         fontSize: 8,
-                        color: Color(0xFF7A5C00),
+                        color: _cs.onSurfaceVariant,
                         fontWeight: FontWeight.w400,
                       ),
                       overflow: TextOverflow.ellipsis,
@@ -1182,12 +1198,12 @@ class _PipingMaterialCardState extends State<PipingMaterialCard> {
           child: IconButton(
             onPressed: () => _openEditOverlay(context),
             icon: const Icon(Icons.edit, size: 18),
-            color: Colors.blue,
+            color: _cs.primary,
             style: IconButton.styleFrom(
               // ✅ MATCHES: testDynamicItemCard padding: all(6), minimumSize: Size(0, 32)
               padding: const EdgeInsets.all(6),
               minimumSize: const Size(0, 32),
-              side: const BorderSide(color: Colors.blue, width: 1.5),
+              side: BorderSide(color: _cs.primary, width: 1.5),
               shape: RoundedRectangleBorder(
                   borderRadius: BorderRadius.circular(6)),
             ),
@@ -1198,11 +1214,11 @@ class _PipingMaterialCardState extends State<PipingMaterialCard> {
           child: IconButton(
             onPressed: widget.onAdd,
             icon: const Icon(Icons.copy, size: 18),
-            color: Colors.green,
+            color: _cs.tertiary,
             style: IconButton.styleFrom(
               padding: const EdgeInsets.all(6),
               minimumSize: const Size(0, 32),
-              side: const BorderSide(color: Colors.green, width: 1.5),
+              side: BorderSide(color: _cs.tertiary, width: 1.5),
               shape: RoundedRectangleBorder(
                   borderRadius: BorderRadius.circular(6)),
             ),
@@ -1213,11 +1229,11 @@ class _PipingMaterialCardState extends State<PipingMaterialCard> {
           child: IconButton(
             onPressed: widget.onDelete,
             icon: const Icon(Icons.delete_outline, size: 18),
-            color: Colors.red,
+            color: _cs.error,
             style: IconButton.styleFrom(
               padding: const EdgeInsets.all(6),
               minimumSize: const Size(0, 32),
-              side: const BorderSide(color: Colors.red, width: 1.5),
+              side: BorderSide(color: _cs.error, width: 1.5),
               shape: RoundedRectangleBorder(
                   borderRadius: BorderRadius.circular(6)),
             ),
@@ -1391,7 +1407,7 @@ class _PipingMaterialCardState extends State<PipingMaterialCard> {
       filled: true,
       fillColor: fillColor,
       hintText: hint,
-      hintStyle: const TextStyle(fontSize: 12, color: Colors.black54),
+      hintStyle: TextStyle(fontSize: 12, color: _cs.onSurfaceVariant),
       contentPadding: const EdgeInsets.symmetric(horizontal: 8, vertical: 8),
       border: OutlineInputBorder(
         borderRadius: BorderRadius.circular(6),
@@ -1504,13 +1520,13 @@ class _PipingMaterialCardState extends State<PipingMaterialCard> {
       width: width,
       decoration: BoxDecoration(
         // ✅ MATCHES: testDynamicItemCard Colors.grey[200]
-        color: Colors.grey[200],
+        color: _cs.surfaceContainerHighest,
         borderRadius: BorderRadius.circular(8),
       ),
-      child: const Icon(
+      child: Icon(
         // ✅ MATCHES: testDynamicItemCard Icons.image_not_supported (no _outlined suffix)
         Icons.image_not_supported,
-        color: Colors.grey,
+        color: _cs.onSurfaceVariant,
         size: 32,
       ),
     );
@@ -1531,9 +1547,10 @@ class _PipingMaterialCardState extends State<PipingMaterialCard> {
         // ✅ MATCHES: testDynamicItemCard padding: all(2)
         padding: const EdgeInsets.all(2),
         decoration: BoxDecoration(
-          color: Colors.white,
+          color: _cs.surfaceContainerLow,
           // ✅ MATCHES: testDynamicItemCard no boxShadow
           borderRadius: BorderRadius.circular(14),
+          border: Border.all(color: _cs.outlineVariant.withOpacity(0.5)),
         ),
         child: Column(
           children: [
@@ -1575,12 +1592,12 @@ class _PipingMaterialCardState extends State<PipingMaterialCard> {
                                   onPressed: () => setState(
                                       () => _isEditMode = !_isEditMode),
                                   icon: const Icon(Icons.edit, size: 18),
-                                  color: Colors.blue,
+                                  color: _cs.primary,
                                   style: IconButton.styleFrom(
                                     padding: const EdgeInsets.all(6),
                                     minimumSize: const Size(0, 32),
-                                    side: const BorderSide(
-                                        color: Colors.blue, width: 1.5),
+                                    side: BorderSide(
+                                        color: _cs.primary, width: 1.5),
                                     shape: RoundedRectangleBorder(
                                         borderRadius: BorderRadius.circular(6)),
                                   ),
@@ -1591,12 +1608,12 @@ class _PipingMaterialCardState extends State<PipingMaterialCard> {
                                 child: IconButton(
                                   onPressed: widget.onAdd,
                                   icon: const Icon(Icons.copy, size: 18),
-                                  color: Colors.green,
+                                  color: _cs.tertiary,
                                   style: IconButton.styleFrom(
                                     padding: const EdgeInsets.all(6),
                                     minimumSize: const Size(0, 32),
-                                    side: const BorderSide(
-                                        color: Colors.green, width: 1.5),
+                                    side: BorderSide(
+                                        color: _cs.tertiary, width: 1.5),
                                     shape: RoundedRectangleBorder(
                                         borderRadius: BorderRadius.circular(6)),
                                   ),
@@ -1608,12 +1625,12 @@ class _PipingMaterialCardState extends State<PipingMaterialCard> {
                                   onPressed: widget.onDelete,
                                   icon: const Icon(Icons.delete_outline,
                                       size: 18),
-                                  color: Colors.red,
+                                  color: _cs.error,
                                   style: IconButton.styleFrom(
                                     padding: const EdgeInsets.all(6),
                                     minimumSize: const Size(0, 32),
-                                    side: const BorderSide(
-                                        color: Colors.red, width: 1.5),
+                                    side: BorderSide(
+                                        color: _cs.error, width: 1.5),
                                     shape: RoundedRectangleBorder(
                                         borderRadius: BorderRadius.circular(6)),
                                   ),

@@ -198,31 +198,15 @@ class _TeamListPageState extends ConsumerState<TeamListPage> {
 
             // ✅ show error only if no data
             if (!teamState.hasData && teamState.error != null) {
-              return Center(child: Text("Error: ${teamState.error}"));
+              return const Center(
+                child: Text("No teams available"),
+              );
             }
 
             final teams = teamState.teams;
 
             return Column(
               children: [
-                // ✅ optional: show sync error as snackbar-like banner
-                if (teamState.error != null && teamState.hasData)
-                  Container(
-                    width: double.infinity,
-                    padding: const EdgeInsets.all(10),
-                    margin:
-                        const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
-                    decoration: BoxDecoration(
-                      color: colorScheme.tertiaryContainer,
-                      borderRadius: BorderRadius.circular(10),
-                      border: Border.all(color: colorScheme.tertiary),
-                    ),
-                    child: Text(
-                      teamState.error!,
-                      style: TextStyle(color: colorScheme.onTertiaryContainer),
-                    ),
-                  ),
-
                 // Top action bar with selection controls
                 if (teams.isNotEmpty)
                   Row(
@@ -306,6 +290,24 @@ class _TeamListPageState extends ConsumerState<TeamListPage> {
   }
 
   Widget _buildTeamCard(team, bool isSelected, site) {
+    final cs = Theme.of(context).colorScheme;
+
+    Widget teamIconAvatar() {
+      return Container(
+        height: 80,
+        width: 80,
+        decoration: BoxDecoration(
+          color: cs.surfaceContainerHighest,
+          shape: BoxShape.circle,
+        ),
+        child: Icon(
+          Icons.groups_rounded,
+          color: cs.onSurfaceVariant,
+          size: 36,
+        ),
+      );
+    }
+
     return Stack(
       children: [
         Opacity(
@@ -354,20 +356,10 @@ class _TeamListPageState extends ConsumerState<TeamListPage> {
                                     );
                                   },
                                   errorBuilder: (_, __, ___) {
-                                    return Image.asset(
-                                      "assets/images/team_def.webp",
-                                      height: 80,
-                                      width: 80,
-                                      fit: BoxFit.cover,
-                                    );
+                                    return teamIconAvatar();
                                   },
                                 )
-                              : Image.asset(
-                                  "assets/images/team_def.webp",
-                                  height: 80,
-                                  width: 80,
-                                  fit: BoxFit.cover,
-                                ),
+                              : teamIconAvatar(),
                         ),
                         const SizedBox(height: 10),
                         Text(

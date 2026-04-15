@@ -5,6 +5,7 @@ class CompanyCard extends StatelessWidget {
   final String imagePath;
   final String defaultImage;
   final String companyName;
+  final IconData fallbackIcon;
   final VoidCallback? onTap;
   final VoidCallback? onDelete;
   final bool show;
@@ -14,10 +15,52 @@ class CompanyCard extends StatelessWidget {
     required this.imagePath,
     required this.companyName,
     this.defaultImage = 'assets/images/default.webp',
+    this.fallbackIcon = Icons.location_city_rounded,
     this.onTap,
     this.onDelete,
     this.show = false,
   });
+
+  Widget _buildIconPlaceholder(BuildContext context) {
+    final cs = Theme.of(context).colorScheme;
+    return Container(
+      height: 100,
+      width: double.infinity,
+      color: cs.surfaceContainerHighest,
+      alignment: Alignment.center,
+      child: Icon(
+        fallbackIcon,
+        size: 42,
+        color: cs.onSurfaceVariant,
+      ),
+    );
+  }
+
+  Widget _buildCardImage(BuildContext context) {
+    final normalized = imagePath.trim();
+    if (normalized.isEmpty) {
+      return _buildIconPlaceholder(context);
+    }
+
+    if (normalized.startsWith('assets/')) {
+      return Image.asset(
+        normalized,
+        height: 100,
+        width: double.infinity,
+        fit: BoxFit.cover,
+        errorBuilder: (_, __, ___) => _buildIconPlaceholder(context),
+      );
+    }
+
+    return CachedNetworkImage(
+      imageUrl: normalized,
+      height: 100,
+      width: double.infinity,
+      fit: BoxFit.cover,
+      memCacheWidth: 400,
+      errorWidget: (context, url, error) => _buildIconPlaceholder(context),
+    );
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -50,22 +93,7 @@ class CompanyCard extends StatelessWidget {
                         topLeft: Radius.circular(15),
                         topRight: Radius.circular(15),
                       ),
-                      child: CachedNetworkImage(
-                        imageUrl: imagePath,
-                        height: 100,
-                        width: double.infinity,
-                        fit: BoxFit.cover,
-
-                        // 🔥 THIS prevents decoding huge images
-                        memCacheWidth: 400,
-
-                        errorWidget: (context, url, error) => Image.asset(
-                          defaultImage,
-                          height: 100,
-                          width: double.infinity,
-                          fit: BoxFit.fitHeight,
-                        ),
-                      ),
+                      child: _buildCardImage(context),
                     ),
                   ),
                   const SizedBox(height: 6),

@@ -13,11 +13,16 @@ class ExitWrapper extends StatefulWidget {
 class _ExitWrapperState extends State<ExitWrapper> {
   bool _exitPromptVisible = false;
   OverlayEntry? _overlayEntry;
+  bool _isDisposing = false;
 
-  void _removeOverlay() {
+  void _removeOverlay({bool notify = true}) {
     _overlayEntry?.remove();
     _overlayEntry = null;
-    if (mounted) setState(() => _exitPromptVisible = false);
+    if (notify && mounted && !_isDisposing) {
+      setState(() => _exitPromptVisible = false);
+      return;
+    }
+    _exitPromptVisible = false;
   }
 
   Future<void> _onBackPressed() async {
@@ -155,13 +160,15 @@ class _ExitWrapperState extends State<ExitWrapper> {
 
     // Auto dismiss after 3 seconds
     Future.delayed(const Duration(seconds: 3), () {
-      if (mounted && _exitPromptVisible) _removeOverlay();
+      if (!mounted || _isDisposing) return;
+      if (_exitPromptVisible) _removeOverlay();
     });
   }
 
   @override
   void dispose() {
-    _removeOverlay();
+    _isDisposing = true;
+    _removeOverlay(notify: false);
     super.dispose();
   }
 

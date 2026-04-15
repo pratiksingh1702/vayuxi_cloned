@@ -61,11 +61,9 @@ class SiteEntrySelectCardGrid extends ConsumerWidget {
                     children: [
                       // ---------------- Manual Entry ----------------
                       SelectCard(
-                        icon: Image.asset(
-                          "assets/images/icons/manual_entry.webp",
-                          height: 120,
-                          width: double.infinity,
-                          fit: BoxFit.cover,
+                        icon: const SelectCardIcon(
+                          icon: Icons.edit_note_rounded,
+                          color: Colors.blue,
                         ),
                         label: "Manual Entry",
                         onTap: () {
@@ -83,11 +81,9 @@ class SiteEntrySelectCardGrid extends ConsumerWidget {
                         key: SiteRegistry.importSheetCardKey,
                         description: 'Tap Import Sheet for guided upload.',
                         child: SelectCard(
-                          icon: Image.asset(
-                            "assets/images/icons/import_sheet.webp",
-                            height: 120,
-                            width: double.infinity,
-                            fit: BoxFit.cover,
+                          icon: const SelectCardIcon(
+                            icon: Icons.upload_file_rounded,
+                            color: Colors.deepOrange,
                           ),
                           label: "Import Sheet",
                           onTap: () {

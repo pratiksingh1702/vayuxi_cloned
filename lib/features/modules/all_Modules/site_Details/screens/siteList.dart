@@ -408,9 +408,8 @@ class _SiteListScreenState extends ConsumerState<SiteListScreen>
                   Opacity(
                     opacity: _isSelectionMode && !isSelected ? 0.5 : 1.0,
                     child: CompanyCard(
-                      imagePath:
-                          site.siteImage ?? 'assets/images/site_def.webp',
-                      defaultImage: 'assets/images/site_def.webp',
+                      imagePath: site.siteImage ?? '',
+                      fallbackIcon: Icons.location_city_rounded,
                       companyName: site.siteName ?? 'Unknown Site',
                       onTap: _isSelectionMode
                           ? () => _toggleSiteSelection(site.id)

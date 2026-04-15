@@ -49,11 +49,9 @@ class ViewSelectCardGrid extends ConsumerWidget {
             /// ✅ MOC
 
               SelectCard(
-                icon: Image.asset(
-                  "assets/images/icons/moc.webp",
-                  height: 120,
-                  width: double.infinity,
-                  fit: BoxFit.cover,
+                icon: const SelectCardIcon(
+                  icon: Icons.account_tree_rounded,
+                  color: Colors.deepPurple,
                 ),
                 label: "MOC",
                 onTap: mocs.isNotEmpty ?(){
@@ -69,11 +67,9 @@ class ViewSelectCardGrid extends ConsumerWidget {
             /// ✅ FLOOR
 
               SelectCard(
-                icon: Image.asset(
-                  "assets/images/icons/floor.webp",
-                  height: 120,
-                  width: double.infinity,
-                  fit: BoxFit.cover,
+                icon: const SelectCardIcon(
+                  icon: Icons.layers_rounded,
+                  color: Colors.teal,
                 ),
                 label: "Floor",
                 onTap: floors.isNotEmpty
@@ -91,11 +87,9 @@ class ViewSelectCardGrid extends ConsumerWidget {
             /// ✅ ELEVATION (if you have a page for it)
             if (elevations.isNotEmpty)
               SelectCard(
-                icon: Image.asset(
-                  "assets/images/icons/elevation.webp",
-                  height: 120,
-                  width: double.infinity,
-                  fit: BoxFit.cover,
+                icon: const SelectCardIcon(
+                  icon: Icons.terrain_rounded,
+                  color: Colors.orange,
                 ),
                 label: "Elevation",
                 onTap: () {
@@ -110,11 +104,9 @@ class ViewSelectCardGrid extends ConsumerWidget {
 
             /// DPR SCREEN (always visible)
             SelectCard(
-              icon: Image.asset(
-                "assets/images/icons/dpr_setup_icon.webp",
-                height: 120,
-                width: double.infinity,
-                fit: BoxFit.cover,
+              icon: const SelectCardIcon(
+                icon: Icons.dashboard_customize_rounded,
+                color: Colors.indigo,
               ),
               label: "DPR Screen",
               onTap: () {

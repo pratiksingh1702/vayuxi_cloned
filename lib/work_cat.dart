@@ -2,6 +2,7 @@ import 'package:firebase_crashlytics/firebase_crashlytics.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 import 'package:showcaseview/showcaseview.dart';
 import 'package:untitled2/core/utlis/common_functions.dart';
 import 'package:untitled2/core/utlis/widgets/premium_app_bar.dart';
@@ -40,6 +41,39 @@ class _WorkCategoryScreenState extends ConsumerState<WorkCategoryScreen> {
   bool _showcaseStarted = false;
   bool _isNavigating = false;
   BuildContext? _showcaseContext;
+  bool _requiresProfileCompletionFlag = false;
+
+  Future<void> _showPendingProfilePromptIfNeeded() async {
+    final prefs = await SharedPreferences.getInstance();
+    final shouldShow = prefs.getBool('show_complete_profile_prompt') ?? false;
+    final requiresProfileCompletion =
+        prefs.getBool('requires_profile_completion') ?? false;
+    if (!shouldShow || !requiresProfileCompletion || !mounted) return;
+
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(
+        content:
+            const Text('Please complete your profile to unlock full access.'),
+        behavior: SnackBarBehavior.floating,
+        action: SnackBarAction(
+          label: 'Open Profile',
+          onPressed: _openProfileWithHeroTransition,
+        ),
+      ),
+    );
+
+    await prefs.remove('show_complete_profile_prompt');
+  }
+
+  Future<void> _loadProfileCompletionFlag() async {
+    final prefs = await SharedPreferences.getInstance();
+    final requiresProfileCompletion =
+        prefs.getBool('requires_profile_completion') ?? false;
+    if (!mounted) return;
+    setState(() {
+      _requiresProfileCompletionFlag = requiresProfileCompletion;
+    });
+  }
 
   Future<void> _ensureEnglishDefault() async {
     const englishCode = 'en-IN';
@@ -81,6 +115,7 @@ class _WorkCategoryScreenState extends ConsumerState<WorkCategoryScreen> {
       }
 
       await _ensureEnglishDefault();
+      await _loadProfileCompletionFlag();
 
       final alreadySeen = await LanguagePopupPrefs.hasSeen();
 
@@ -91,6 +126,8 @@ class _WorkCategoryScreenState extends ConsumerState<WorkCategoryScreen> {
       } else {
         setState(() => _languageFlowDone = true);
       }
+
+      await _showPendingProfilePromptIfNeeded();
     });
   }
 
@@ -202,6 +239,28 @@ class _WorkCategoryScreenState extends ConsumerState<WorkCategoryScreen> {
     return brightness == Brightness.dark ? Colors.white : colorScheme.shadow;
   }
 
+  bool _shouldRecommendProfileCompletion({
+    required bool isLoggedIn,
+    required String? role,
+    required bool requiresProfileCompletion,
+    required String? fullName,
+    required String? email,
+  }) {
+    if (!isLoggedIn || role != 'user') {
+      return false;
+    }
+
+    if (requiresProfileCompletion) {
+      return true;
+    }
+
+    final hasName = (fullName ?? '').trim().isNotEmpty;
+    final hasEmail = (email ?? '').trim().isNotEmpty;
+
+    // complete-profile requires fullName + email. companyName is optional.
+    return !(hasName && hasEmail);
+  }
+
   @override
   Widget build(BuildContext context) {
     final authState = ref.watch(authProvider);
@@ -210,12 +269,19 @@ class _WorkCategoryScreenState extends ConsumerState<WorkCategoryScreen> {
 
     final profileName = (user?.fullName.trim().isNotEmpty ?? false)
         ? user!.fullName.trim()
-        : 'Team Member';
+        : 'complete your profile to get started';
     final profilePhoto = user?.profilePhoto?.trim();
     final greetingTitle = _timeGreeting();
 
     final appBarTitle = greetingTitle;
     final appBarSubtitle = profileName;
+    final showCompleteProfileRecommendation = _shouldRecommendProfileCompletion(
+      isLoggedIn: authState.isLoggedIn,
+      role: authState.role,
+      requiresProfileCompletion: _requiresProfileCompletionFlag,
+      fullName: user?.fullName,
+      email: user?.email,
+    );
 
     if (!authState.isLoggedIn) {
       Future.microtask(() => context.go(Routes.login));
@@ -292,6 +358,12 @@ class _WorkCategoryScreenState extends ConsumerState<WorkCategoryScreen> {
                           onNotificationsTap: () =>
                               context.push(UpdatesRoutes.list),
                         ),
+                        if (showCompleteProfileRecommendation) ...[
+                          const SizedBox(height: 12),
+                          _ProfileCompletionRecommendationCard(
+                            onCompleteProfile: _openProfileWithHeroTransition,
+                          ),
+                        ],
                         const SizedBox(height: 24),
                         _CategorySpotlightCard(
                           selectedImage: selectedImage,
@@ -1225,6 +1297,84 @@ class _LandingBottomNavBar extends StatelessWidget {
             ),
           ],
         ),
+      ),
+    );
+  }
+}
+
+class _ProfileCompletionRecommendationCard extends StatelessWidget {
+  const _ProfileCompletionRecommendationCard({
+    required this.onCompleteProfile,
+  });
+
+  final VoidCallback onCompleteProfile;
+
+  @override
+  Widget build(BuildContext context) {
+    final colorScheme = Theme.of(context).colorScheme;
+
+    return Container(
+      width: double.infinity,
+      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 12),
+      decoration: BoxDecoration(
+        color: colorScheme.tertiaryContainer,
+        borderRadius: BorderRadius.circular(14),
+        border: Border.all(color: colorScheme.tertiary.withOpacity(0.35)),
+      ),
+      child: Row(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Icon(
+            Icons.info_outline_rounded,
+            size: 18,
+            color: colorScheme.onTertiaryContainer,
+          ),
+          const SizedBox(width: 10),
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  'Recommended: complete your profile first',
+                  style: TextStyle(
+                    color: colorScheme.onTertiaryContainer,
+                    fontSize: 12.8,
+                    fontWeight: FontWeight.w800,
+                  ),
+                ),
+                const SizedBox(height: 4),
+                Text(
+                  'Add your basic details before continuing so all modules and reports work correctly.',
+                  style: TextStyle(
+                    color: colorScheme.onTertiaryContainer,
+                    fontSize: 12,
+                    fontWeight: FontWeight.w600,
+                    height: 1.25,
+                  ),
+                ),
+                const SizedBox(height: 8),
+                InkWell(
+                  onTap: onCompleteProfile,
+                  borderRadius: BorderRadius.circular(8),
+                  child: Padding(
+                    padding:
+                        const EdgeInsets.symmetric(horizontal: 2, vertical: 2),
+                    child: Text(
+                      'Complete Profile',
+                      style: TextStyle(
+                        color: colorScheme.primary,
+                        fontSize: 12.5,
+                        fontWeight: FontWeight.w800,
+                        decoration: TextDecoration.underline,
+                        decorationColor: colorScheme.primary,
+                      ),
+                    ),
+                  ),
+                ),
+              ],
+            ),
+          ),
+        ],
       ),
     );
   }

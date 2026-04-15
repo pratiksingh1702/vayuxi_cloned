@@ -79,6 +79,8 @@ class _EquipmentMaterialCardState extends State<EquipmentMaterialCard> {
 
   bool get _isDynamic => widget.materialSetup != null;
   FieldConfig? get _config => widget.materialSetup?.fieldConfig;
+  ColorScheme get _cs => Theme.of(context).colorScheme;
+  Color get _fieldFill => _cs.surfaceContainerHighest;
 
   // ─────────────────────────────────────────────
   // LIFECYCLE
@@ -712,11 +714,12 @@ class _EquipmentMaterialCardState extends State<EquipmentMaterialCard> {
         margin: const EdgeInsets.only(bottom: 8),
         padding: const EdgeInsets.all(10),
         decoration: BoxDecoration(
-          color: Colors.white,
+          color: _cs.surfaceContainerLow,
           borderRadius: BorderRadius.circular(14),
+          border: Border.all(color: _cs.outlineVariant.withOpacity(0.5)),
           boxShadow: [
             BoxShadow(
-              color: Colors.black.withOpacity(0.05),
+              color: _cs.shadow.withOpacity(0.08),
               blurRadius: 4,
               offset: const Offset(0, 2),
             ),
@@ -782,8 +785,8 @@ class _EquipmentMaterialCardState extends State<EquipmentMaterialCard> {
         margin: const EdgeInsets.only(bottom: 10),
         padding: const EdgeInsets.all(8),
         decoration: BoxDecoration(
-          color: Colors.grey.shade50,
-          border: Border.all(color: Colors.grey.shade300),
+          color: _cs.surfaceContainerLowest,
+          border: Border.all(color: _cs.outlineVariant),
           borderRadius: BorderRadius.circular(10),
         ),
         child: Row(
@@ -842,9 +845,9 @@ class _EquipmentMaterialCardState extends State<EquipmentMaterialCard> {
       children: [
         if (unit != null) ...[
           Text(unit,
-              style: const TextStyle(
+              style: TextStyle(
                   fontSize: 10,
-                  color: Colors.black54,
+                  color: _cs.onSurfaceVariant,
                   fontWeight: FontWeight.w500)),
           const SizedBox(height: 4),
         ],
@@ -860,12 +863,20 @@ class _EquipmentMaterialCardState extends State<EquipmentMaterialCard> {
                 : TextInputType.text,
             decoration: InputDecoration(
               filled: true,
-              fillColor: const Color(0xFFD0EAFD),
+              fillColor: _fieldFill,
               contentPadding:
                   const EdgeInsets.symmetric(vertical: 10, horizontal: 8),
               border: OutlineInputBorder(
                 borderRadius: BorderRadius.circular(6),
-                borderSide: BorderSide.none,
+                borderSide: BorderSide(color: _cs.outlineVariant),
+              ),
+              enabledBorder: OutlineInputBorder(
+                borderRadius: BorderRadius.circular(6),
+                borderSide: BorderSide(color: _cs.outlineVariant),
+              ),
+              focusedBorder: OutlineInputBorder(
+                borderRadius: BorderRadius.circular(6),
+                borderSide: BorderSide(color: _cs.primary, width: 1.5),
               ),
             ),
             onChanged: (v) {
@@ -887,9 +898,9 @@ class _EquipmentMaterialCardState extends State<EquipmentMaterialCard> {
       children: [
         if (currentUnit != null) ...[
           Text(currentUnit,
-              style: const TextStyle(
+              style: TextStyle(
                   fontSize: 10,
-                  color: Colors.black54,
+                  color: _cs.onSurfaceVariant,
                   fontWeight: FontWeight.w500)),
           const SizedBox(height: 4),
         ],
@@ -909,12 +920,20 @@ class _EquipmentMaterialCardState extends State<EquipmentMaterialCard> {
                   style: const TextStyle(fontSize: 14),
                   decoration: InputDecoration(
                     filled: true,
-                    fillColor: const Color(0xFFD0EAFD),
+                    fillColor: _fieldFill,
                     contentPadding:
                         const EdgeInsets.symmetric(vertical: 10, horizontal: 8),
                     border: OutlineInputBorder(
                       borderRadius: BorderRadius.circular(6),
-                      borderSide: BorderSide.none,
+                      borderSide: BorderSide(color: _cs.outlineVariant),
+                    ),
+                    enabledBorder: OutlineInputBorder(
+                      borderRadius: BorderRadius.circular(6),
+                      borderSide: BorderSide(color: _cs.outlineVariant),
+                    ),
+                    focusedBorder: OutlineInputBorder(
+                      borderRadius: BorderRadius.circular(6),
+                      borderSide: BorderSide(color: _cs.primary, width: 1.5),
                     ),
                   ),
                   onChanged: (v) {
@@ -946,8 +965,8 @@ class _EquipmentMaterialCardState extends State<EquipmentMaterialCard> {
             child: TextFormField(
               controller: _labelControllers[field.key],
               textAlign: TextAlign.center,
-              decoration: _compactDecoration(
-                  fillColor: const Color(0xFFD0EAFD), hint: 'Label'),
+              decoration:
+                  _compactDecoration(fillColor: _fieldFill, hint: 'Label'),
               onChanged: (v) => _onLabelChanged(field.key, v),
             ),
           )
@@ -994,8 +1013,8 @@ class _EquipmentMaterialCardState extends State<EquipmentMaterialCard> {
           110, // Added fixed width to prevent overflow and ensure space for arrow
       padding: const EdgeInsets.symmetric(horizontal: 6),
       decoration: BoxDecoration(
-        color: Colors.white,
-        border: Border.all(color: Colors.grey.shade400),
+        color: _cs.surface,
+        border: Border.all(color: _cs.outlineVariant),
         borderRadius: BorderRadius.circular(6),
       ),
       child: DropdownButtonHideUnderline(
@@ -1003,7 +1022,7 @@ class _EquipmentMaterialCardState extends State<EquipmentMaterialCard> {
           value: safeValue,
           isDense: true,
           isExpanded: true, // Allow content to use available space
-          style: const TextStyle(fontSize: 11, color: Colors.black87),
+          style: TextStyle(fontSize: 11, color: _cs.onSurface),
           items: options
               .map((o) => DropdownMenuItem(value: o, child: Text(o)))
               .toList(),
@@ -1055,14 +1074,14 @@ class _EquipmentMaterialCardState extends State<EquipmentMaterialCard> {
                 contentPadding:
                     const EdgeInsets.symmetric(horizontal: 8, vertical: 8),
                 filled: true,
-                fillColor: Colors.white,
+                fillColor: _cs.surface,
                 enabledBorder: OutlineInputBorder(
                   borderRadius: BorderRadius.circular(6),
-                  borderSide: const BorderSide(color: Colors.grey),
+                  borderSide: BorderSide(color: _cs.outlineVariant),
                 ),
                 focusedBorder: OutlineInputBorder(
                   borderRadius: BorderRadius.circular(6),
-                  borderSide: const BorderSide(color: Colors.blue, width: 2),
+                  borderSide: BorderSide(color: _cs.primary, width: 2),
                 ),
               ),
             ),
@@ -1084,7 +1103,7 @@ class _EquipmentMaterialCardState extends State<EquipmentMaterialCard> {
               ? TextFormField(
                   initialValue: _draftMaterial.name,
                   decoration: _compactDecoration(
-                    fillColor: const Color(0xFFD0EAFD),
+                    fillColor: _fieldFill,
                     hint: 'Enter Name',
                   ),
                   style: const TextStyle(
@@ -1114,9 +1133,9 @@ class _EquipmentMaterialCardState extends State<EquipmentMaterialCard> {
                 constraints: const BoxConstraints(maxWidth: 80),
                 padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 4),
                 decoration: BoxDecoration(
-                  color: const Color(0xFFD0EAFD),
+                  color: _fieldFill,
                   border: Border.all(
-                    color: Colors.black,
+                    color: _cs.outlineVariant,
                   ),
                   borderRadius: BorderRadius.circular(4),
                 ),
@@ -1130,9 +1149,9 @@ class _EquipmentMaterialCardState extends State<EquipmentMaterialCard> {
                               widget.material.remarks!.isNotEmpty)
                           ? widget.material.remarks
                           : "remarks",
-                      style: const TextStyle(
+                      style: TextStyle(
                         fontSize: 8,
-                        color: Color(0xFF7A5C00),
+                        color: _cs.onSurfaceVariant,
                         fontWeight: FontWeight.w400,
                       ),
                       overflow: TextOverflow.ellipsis,
@@ -1156,11 +1175,11 @@ class _EquipmentMaterialCardState extends State<EquipmentMaterialCard> {
     return Row(
       mainAxisAlignment: MainAxisAlignment.start,
       children: [
-        _actionBtn(Icons.edit, Colors.blue, () => _openEditOverlay(context)),
+        _actionBtn(Icons.edit, _cs.primary, () => _openEditOverlay(context)),
         const SizedBox(width: 6),
-        _actionBtn(Icons.copy, Colors.green, widget.onAdd),
+        _actionBtn(Icons.copy, _cs.tertiary, widget.onAdd),
         const SizedBox(width: 6),
-        _actionBtn(Icons.delete_outline, Colors.red, widget.onDelete),
+        _actionBtn(Icons.delete_outline, _cs.error, widget.onDelete),
       ],
     );
   }
@@ -1372,7 +1391,7 @@ class _EquipmentMaterialCardState extends State<EquipmentMaterialCard> {
       filled: true,
       fillColor: fillColor,
       hintText: hint,
-      hintStyle: const TextStyle(fontSize: 12, color: Colors.black54),
+      hintStyle: TextStyle(fontSize: 12, color: _cs.onSurfaceVariant),
       contentPadding: const EdgeInsets.symmetric(horizontal: 8, vertical: 8),
       border: OutlineInputBorder(
         borderRadius: BorderRadius.circular(6),
@@ -1451,11 +1470,11 @@ class _EquipmentMaterialCardState extends State<EquipmentMaterialCard> {
       height: height,
       width: width,
       decoration: BoxDecoration(
-        color: Colors.grey.shade100,
+        color: _cs.surfaceContainerHighest,
         borderRadius: BorderRadius.circular(8),
       ),
-      child: const Icon(Icons.image_not_supported_outlined,
-          color: Colors.grey, size: 32),
+      child: Icon(Icons.image_not_supported_outlined,
+          color: _cs.onSurfaceVariant, size: 32),
     );
   }
 
@@ -1476,8 +1495,9 @@ class _EquipmentMaterialCardState extends State<EquipmentMaterialCard> {
         margin: const EdgeInsets.only(bottom: 8),
         padding: const EdgeInsets.all(8),
         decoration: BoxDecoration(
-          color: Colors.white,
+          color: _cs.surfaceContainerLow,
           borderRadius: BorderRadius.circular(14),
+          border: Border.all(color: _cs.outlineVariant.withOpacity(0.5)),
         ),
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
@@ -1528,8 +1548,8 @@ class _EquipmentMaterialCardState extends State<EquipmentMaterialCard> {
         margin: const EdgeInsets.only(bottom: 10),
         padding: const EdgeInsets.all(8),
         decoration: BoxDecoration(
-          color: Colors.grey.shade50,
-          border: Border.all(color: Colors.grey.shade400),
+          color: _cs.surfaceContainerLowest,
+          border: Border.all(color: _cs.outlineVariant),
           borderRadius: BorderRadius.circular(10),
         ),
         child: Row(
@@ -1584,12 +1604,20 @@ class _EquipmentMaterialCardState extends State<EquipmentMaterialCard> {
             keyboardType: const TextInputType.numberWithOptions(decimal: true),
             decoration: InputDecoration(
               filled: true,
-              fillColor: const Color(0xFFD0EAFD),
+              fillColor: _fieldFill,
               contentPadding:
                   const EdgeInsets.symmetric(vertical: 10, horizontal: 8),
               border: OutlineInputBorder(
                 borderRadius: BorderRadius.circular(6),
-                borderSide: BorderSide.none,
+                borderSide: BorderSide(color: _cs.outlineVariant),
+              ),
+              enabledBorder: OutlineInputBorder(
+                borderRadius: BorderRadius.circular(6),
+                borderSide: BorderSide(color: _cs.outlineVariant),
+              ),
+              focusedBorder: OutlineInputBorder(
+                borderRadius: BorderRadius.circular(6),
+                borderSide: BorderSide(color: _cs.primary, width: 1.5),
               ),
             ),
             onChanged: (v) {
@@ -1642,8 +1670,7 @@ class _EquipmentMaterialCardState extends State<EquipmentMaterialCard> {
           height: 28,
           child: TextFormField(
             controller: _legacyUomControllers[field.type],
-            decoration: _compactDecoration(
-                fillColor: const Color(0xFFD0EAFD), hint: 'Unit'),
+            decoration: _compactDecoration(fillColor: _fieldFill, hint: 'Unit'),
             style: const TextStyle(fontSize: 11),
             onChanged: (val) {
               final newLabels =
@@ -1662,12 +1689,20 @@ class _EquipmentMaterialCardState extends State<EquipmentMaterialCard> {
           decoration: InputDecoration(
             isDense: true,
             filled: true,
-            fillColor: const Color(0xFFD0EAFD),
+            fillColor: _fieldFill,
             contentPadding:
                 const EdgeInsets.symmetric(vertical: 8, horizontal: 6),
             border: OutlineInputBorder(
               borderRadius: BorderRadius.circular(6),
-              borderSide: BorderSide.none,
+              borderSide: BorderSide(color: _cs.outlineVariant),
+            ),
+            enabledBorder: OutlineInputBorder(
+              borderRadius: BorderRadius.circular(6),
+              borderSide: BorderSide(color: _cs.outlineVariant),
+            ),
+            focusedBorder: OutlineInputBorder(
+              borderRadius: BorderRadius.circular(6),
+              borderSide: BorderSide(color: _cs.primary, width: 1.5),
             ),
           ),
           onChanged: (v) {

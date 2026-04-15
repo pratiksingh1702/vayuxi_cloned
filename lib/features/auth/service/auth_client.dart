@@ -14,7 +14,8 @@ class AuthAPI {
 // -----------------------------------------------------
 
   /// 1️⃣ Manpower Login with Employee Code and OTP
-  static Future<Map<String, dynamic>> manpowerLogin(Map<String, dynamic> data) async {
+  static Future<Map<String, dynamic>> manpowerLogin(
+      Map<String, dynamic> data) async {
     try {
       print("🚀 MANPOWER LOGIN - Sending data: $data");
 
@@ -74,7 +75,8 @@ class AuthAPI {
   // In AuthAPI class — add this new method, don't touch existing ones
 
   static Future<Map<String, dynamic>> checkDeviceTrust() async {
-    final deviceId = await DevicePrefs.getDeviceId()??_getDeviceId();
+    final existingDeviceId = await DevicePrefs.getDeviceId();
+    final deviceId = existingDeviceId ?? await _getDeviceId();
     print('🔍 [checkDeviceTrust] deviceId: $deviceId');
     final res = await dio.post(
       "/auth/check-device-trust",
@@ -82,6 +84,7 @@ class AuthAPI {
     );
     return res.data as Map<String, dynamic>;
   }
+
   /// Helper: Get or Create Device ID
   static Future<String> _getDeviceId() async {
     final prefs = await SharedPreferences.getInstance();
@@ -127,11 +130,11 @@ class AuthAPI {
         return responseData;
       } else {
         // Handle API success: false case
-        final errorMessage = responseData['message'] ?? "Failed to generate OTP";
+        final errorMessage =
+            responseData['message'] ?? "Failed to generate OTP";
         print("❌ GENERATE DEVICE OTP - API returned error: $errorMessage");
         throw Exception(errorMessage);
       }
-
     } on DioException catch (e) {
       print("❌ GENERATE DEVICE OTP - Dio Error: ${e.message}");
       print("❌ GENERATE DEVICE OTP - Error Type: ${e.type}");
@@ -143,7 +146,8 @@ class AuthAPI {
         case DioExceptionType.connectionTimeout:
         case DioExceptionType.sendTimeout:
         case DioExceptionType.receiveTimeout:
-          errorMessage = "Connection timeout. Please check your internet connection.";
+          errorMessage =
+              "Connection timeout. Please check your internet connection.";
           break;
 
         case DioExceptionType.connectionError:
@@ -170,8 +174,9 @@ class AuthAPI {
           } else if (statusCode == 404) {
             errorMessage = "Device OTP service not found.";
           } else if (statusCode == 429) {
-            errorMessage = "Too many requests. Please wait before trying again.";
-          } else if (statusCode ==500) {
+            errorMessage =
+                "Too many requests. Please wait before trying again.";
+          } else if (statusCode == 500) {
             errorMessage = "Server error. Please try again later.";
           }
 
@@ -199,7 +204,6 @@ class AuthAPI {
       }
 
       throw Exception(errorMessage);
-
     } catch (e) {
       // Handle any other exceptions
       print("❌ GENERATE DEVICE OTP - Unexpected Error: $e");
@@ -217,7 +221,8 @@ class AuthAPI {
   }
 
   /// 2️⃣ Verify Device OTP
-  static Future<Map<String, dynamic>> verifyDeviceOtp(Map<String, dynamic> data) async {
+  static Future<Map<String, dynamic>> verifyDeviceOtp(
+      Map<String, dynamic> data) async {
     final res = await dio.post("/auth/verify-device-otp", data: data);
     return res.data;
   }
@@ -225,7 +230,6 @@ class AuthAPI {
   // -----------------------------------------------------
   // EXISTING METHODS (UNTOUCHED)
   // -----------------------------------------------------
-
 
   static Future<Map<String, dynamic>> signup(Map<String, dynamic> data) async {
     try {
@@ -259,9 +263,8 @@ class AuthAPI {
       String errorMessage = "Registration failed";
 
       if (errorData is Map) {
-        errorMessage = errorData['message'] ??
-            errorData['error'] ??
-            "Registration failed";
+        errorMessage =
+            errorData['message'] ?? errorData['error'] ?? "Registration failed";
       } else if (errorData is String) {
         errorMessage = errorData;
       }
@@ -273,65 +276,102 @@ class AuthAPI {
     }
   }
 
-  // Also update your OTP methods to match React Native
-  static Future<Map<String, dynamic>> generateEmailOtp(String email) async {
+  static Future<Map<String, dynamic>> sendPhoneOtp(String phoneNumber) async {
     try {
       final res = await dio.post(
-          "/auth/generate-email-otp",
-          data: {"email": email}
+        "/auth/send-otp",
+        data: {"phoneNumber": phoneNumber},
+        options: Options(
+          headers: {
+            'Content-Type': 'application/json',
+          },
+        ),
       );
-      return res.data;
+      return Map<String, dynamic>.from(res.data as Map);
     } on DioException catch (e) {
       final errorData = e.response?.data;
       String errorMessage = "Failed to send OTP";
 
       if (errorData is Map) {
-        errorMessage = errorData['message'] ?? errorData['error'] ?? errorMessage;
+        errorMessage =
+            errorData['message'] ?? errorData['error'] ?? errorMessage;
+      } else if (errorData is String && errorData.isNotEmpty) {
+        errorMessage = errorData;
       }
       throw Exception(errorMessage);
     }
   }
 
-  static Future<Map<String, dynamic>> verifyEmailOtp(String email, String otp) async {
+  static Future<Map<String, dynamic>> verifyPhoneOtp(
+      String phoneNumber, String otp) async {
     try {
       final res = await dio.post(
-          "/auth/verify-email-otp",
-          data: {"email": email, "otp": otp}
+        "/auth/verify-otp",
+        data: {"phoneNumber": phoneNumber, "otp": otp},
+        options: Options(
+          headers: {
+            'Content-Type': 'application/json',
+          },
+        ),
       );
-      return res.data;
+      return Map<String, dynamic>.from(res.data as Map);
     } on DioException catch (e) {
       final errorData = e.response?.data;
       String errorMessage = "OTP verification failed";
 
       if (errorData is Map) {
-        errorMessage = errorData['message'] ?? errorData['error'] ?? errorMessage;
+        errorMessage =
+            errorData['message'] ?? errorData['error'] ?? errorMessage;
+      } else if (errorData is String && errorData.isNotEmpty) {
+        errorMessage = errorData;
       }
       throw Exception(errorMessage);
     }
   }
 
-  static Future<Map<String, dynamic>> generateLoginOtp(String email) async {
-    final res =
-    await dio.post("/auth/generate-login-otp", data: {"email": email});
-    return res.data;
-  }
+  static Future<Map<String, dynamic>> completeProfile({
+    required String fullName,
+    required String email,
+    String? companyName,
+  }) async {
+    try {
+      final payload = <String, dynamic>{
+        "fullName": fullName,
+        "email": email,
+      };
+      if (companyName != null && companyName.trim().isNotEmpty) {
+        payload["companyName"] = companyName.trim();
+      }
 
-  static Future<Map<String, dynamic>> verifyLoginOtp(
-      String email, String otp) async {
-    final res =
-    await dio.post("/auth/verify-login", data: {"email": email, "otp": otp});
+      final res = await dio.post(
+        "/auth/complete-profile",
+        data: payload,
+        options: Options(
+          headers: {
+            'Content-Type': 'application/json',
+          },
+        ),
+      );
 
-    if (res.statusCode == 200) {
-      return res.data;
-    } else {
-      throw Exception(res.data['message'] ?? "Failed to fetch user");
+      return Map<String, dynamic>.from(res.data as Map);
+    } on DioException catch (e) {
+      final errorData = e.response?.data;
+      String errorMessage = "Failed to complete profile";
+
+      if (errorData is Map) {
+        errorMessage =
+            errorData['message'] ?? errorData['error'] ?? errorMessage;
+      } else if (errorData is String && errorData.isNotEmpty) {
+        errorMessage = errorData;
+      }
+      throw Exception(errorMessage);
     }
   }
 
   static Future<Map<String, dynamic>> updateUser(
-      String id,
-      dynamic data, // 👈 allow FormData
-      ) async {
+    String id,
+    dynamic data, // 👈 allow FormData
+  ) async {
     final res = await dio.put(
       "/user/$id",
       data: data,
@@ -341,7 +381,6 @@ class AuthAPI {
     );
     return res.data;
   }
-
 
   static Future<Map<String, dynamic>> logout() async {
     final res = await dio.post("/auth/logout");

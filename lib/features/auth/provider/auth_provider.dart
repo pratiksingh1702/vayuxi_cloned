@@ -151,6 +151,10 @@ class AuthNotifier extends StateNotifier<AuthState> {
     await prefs.setString('auth_token', token);
     await prefs.setString('auth_role', 'user');
     await prefs.setString('user_data', json.encode(user.toJson()));
+    await prefs.setBool('requires_profile_completion', false);
+    await prefs.remove('profile_completion_grace_ends_at');
+    await prefs.remove('pending_phone_number');
+    await prefs.remove('show_complete_profile_prompt');
     await prefs.remove('manpower_data');
   }
 
@@ -159,8 +163,7 @@ class AuthNotifier extends StateNotifier<AuthState> {
     await prefs.setString('auth_token', token);
   }
 
-  Future<void> saveManpowerLogin(
-      String token, ManpowerModel manpower) async {
+  Future<void> saveManpowerLogin(String token, ManpowerModel manpower) async {
     final prefs = await SharedPreferences.getInstance();
     await prefs.setString('auth_token', token);
     await prefs.setString('auth_role', 'manpower');
@@ -173,6 +176,10 @@ class AuthNotifier extends StateNotifier<AuthState> {
     await DevicePrefs.clearDeviceId();
     await prefs.remove('auth_token');
     await prefs.remove('auth_role');
+    await prefs.remove('requires_profile_completion');
+    await prefs.remove('profile_completion_grace_ends_at');
+    await prefs.remove('pending_phone_number');
+    await prefs.remove('show_complete_profile_prompt');
     await prefs.remove('manpower_data');
   }
 
@@ -203,7 +210,7 @@ class AuthNotifier extends StateNotifier<AuthState> {
         try {
           final manpowerData = await AuthAPI.getCurrentManpower();
           final manpower =
-          ManpowerModel.fromJson(manpowerData['data'] ?? manpowerData);
+              ManpowerModel.fromJson(manpowerData['data'] ?? manpowerData);
 
           await prefs.setString(
               'manpower_data', json.encode(manpower.toJson()));
@@ -218,8 +225,7 @@ class AuthNotifier extends StateNotifier<AuthState> {
         } catch (e) {
           final savedData = prefs.getString('manpower_data');
           if (savedData != null) {
-            final manpower =
-            ManpowerModel.fromJson(json.decode(savedData));
+            final manpower = ManpowerModel.fromJson(json.decode(savedData));
             state = state.copyWith(
               isLoading: false,
               isLoggedIn: true,
@@ -291,33 +297,111 @@ class AuthNotifier extends StateNotifier<AuthState> {
     }
   }
 
-  // ── Login with OTP ────────────────────────────────────────────────────────
+  // ── Login with PHONE OTP ──────────────────────────────────────────────────
 
-  Future<void> loginWithOtp(String email, String otp) async {
-    print("🔐 USER LOGIN WITH OTP - Starting");
+  Future<Map<String, dynamic>> loginWithPhoneOtp(
+      String phoneNumber, String otp) async {
+    print("🔐 USER LOGIN WITH PHONE OTP - Starting");
     state = state.copyWith(isLoading: true, errorMessage: null);
 
     try {
-      final res = await AuthAPI.verifyLoginOtp(email, otp);
+      final res = await AuthAPI.verifyPhoneOtp(phoneNumber, otp);
       final token = res['token']?['token'] ?? "";
+      final data = res['data'] is Map<String, dynamic>
+          ? res['data'] as Map<String, dynamic>
+          : const <String, dynamic>{};
+        final rawUser = res['user'] is Map<String, dynamic>
+          ? res['user'] as Map<String, dynamic>
+          : (data['user'] is Map<String, dynamic>
+            ? data['user'] as Map<String, dynamic>
+            : const <String, dynamic>{});
+      final isNewUser = _asBool(res['isNewUser']) || _asBool(data['isNewUser']);
+        final fullName = (rawUser['fullName'] ?? '').toString().trim();
+        final email = (rawUser['email'] ?? '').toString().trim();
+        final missingRequiredProfileFields = fullName.isEmpty || email.isEmpty;
+      final requiresProfileCompletion =
+          _asBool(res['requiresProfileCompletion']) ||
+              _asBool(data['requiresProfileCompletion']) ||
+            missingRequiredProfileFields ||
+              isNewUser;
+      final gracePeriodEndsAt =
+          (res['gracePeriodEndsAt'] ?? data['gracePeriodEndsAt'] ?? '')
+              .toString();
+
+      debugPrint(
+        '🔐 VERIFY OTP FLAGS | isNewUser=$isNewUser '
+        '| requiresProfileCompletion=$requiresProfileCompletion '
+        '| missingRequiredProfileFields=$missingRequiredProfileFields '
+        '| gracePeriodEndsAt=$gracePeriodEndsAt',
+      );
 
       if (token.isEmpty) throw Exception("No token returned");
 
-      final userData = await AuthAPI.getCurrentUser();
-      final user = User.fromJson(userData);
+      await saveLogin(token);
 
-      await saveUserLogin(token, user);
+      final prefs = await SharedPreferences.getInstance();
+      await prefs.setString('pending_phone_number', phoneNumber);
+      await prefs.setBool('requires_profile_completion', requiresProfileCompletion);
+      if (gracePeriodEndsAt.trim().isNotEmpty) {
+        await prefs.setString(
+          'profile_completion_grace_ends_at',
+          gracePeriodEndsAt,
+        );
+      } else {
+        await prefs.remove('profile_completion_grace_ends_at');
+      }
 
-      state = state.copyWith(
-        isLoading: false,
-        isLoggedIn: true,
-        role: 'user',
-        user: user,
-        errorMessage: null,
+      debugPrint(
+        '🔐 STORED FLAGS | requires_profile_completion='
+        '${prefs.getBool('requires_profile_completion')} '
+        '| pending_phone_number=${prefs.getString('pending_phone_number')} '
+        '| profile_completion_grace_ends_at='
+        '${prefs.getString('profile_completion_grace_ends_at')}',
       );
-      ref.read(appAccessProvider.notifier).initialize();
+
+      if (!isNewUser) {
+        final userData = await AuthAPI.getCurrentUser();
+        final user = User.fromJson(userData);
+
+        await saveUserLogin(token, user);
+
+        state = state.copyWith(
+          isLoading: false,
+          isLoggedIn: true,
+          role: 'user',
+          user: user,
+          errorMessage: null,
+        );
+        await ref.read(appAccessProvider.notifier).initialize();
+      } else {
+        final user = rawUser.isNotEmpty
+          ? User.fromJson(rawUser)
+            : User(
+                id: '',
+                email: '',
+                fullName: '',
+                phoneNumber: phoneNumber,
+                selectedServices: const [],
+              );
+
+        await prefs.setString('auth_role', 'user');
+        await prefs.setString('user_data', json.encode(user.toJson()));
+        await prefs.setBool('show_complete_profile_prompt', true);
+        await prefs.setBool('requires_profile_completion', requiresProfileCompletion);
+
+        state = state.copyWith(
+          isLoading: false,
+          isLoggedIn: true,
+          role: 'user',
+          user: user,
+          errorMessage: null,
+        );
+        await ref.read(appAccessProvider.notifier).initialize();
+      }
+
+      return res;
     } catch (e) {
-      print("🔐 USER LOGIN WITH OTP - Error: $e");
+      print("🔐 USER LOGIN WITH PHONE OTP - Error: $e");
       state = state.copyWith(
         isLoading: false,
         isLoggedIn: false,
@@ -376,12 +460,10 @@ class AuthNotifier extends StateNotifier<AuthState> {
         );
       } else if (role == 'manpower') {
         final res = await AuthAPI.getCurrentManpower();
-        final manpower =
-        ManpowerModel.fromJson(res['data'] ?? res);
+        final manpower = ManpowerModel.fromJson(res['data'] ?? res);
 
         final prefs = await SharedPreferences.getInstance();
-        await prefs.setString(
-            'manpower_data', json.encode(manpower.toJson()));
+        await prefs.setString('manpower_data', json.encode(manpower.toJson()));
 
         state = state.copyWith(
           isLoading: false,
@@ -436,87 +518,49 @@ class AuthNotifier extends StateNotifier<AuthState> {
     }
   }
 
-  // ── REGISTRATION ──────────────────────────────────────────────────────────
-  //
-  // CHANGED: Now saves deviceId from signup response.
-  //
-  // Signup API response now includes:
-  //   { user, token, deviceId, gracePeriodEndsAt, isWithinGracePeriod }
-  //
-  // deviceId = registrationDeviceId on backend = Device A (permanently trusted).
-  // We save it via DevicePrefs so Dio interceptor sends it on every request.
-  // Without this, backend can't identify Device A after grace period expires.
-  // ─────────────────────────────────────────────────────────────────────────
+  // ── Complete profile for new phone-OTP users ─────────────────────────────
 
-  Future<void> register(Map<String, dynamic> userData) async {
-    print("🔐 REGISTRATION - Starting");
+  Future<void> completeProfile({
+    required String fullName,
+    required String email,
+    String? companyName,
+  }) async {
+    print("🔐 COMPLETE PROFILE - Starting");
     state = state.copyWith(isLoading: true, errorMessage: null);
 
     try {
-      final res = await AuthAPI.signup(userData);
-      print("🔐 REGISTRATION - Successful: $res");
+      final res = await AuthAPI.completeProfile(
+        fullName: fullName,
+        email: email,
+        companyName: companyName,
+      );
 
-      final token    = res['token']?['token'];
-      // ── NEW: Save registration deviceId from signup response ────────────
-      // This is the registrationDeviceId stored by backend in user.registrationDeviceId
-      // Sending it on every request lets backend identify this as a primary device
-      // even after the 24-hour grace period expires.
-      final deviceId = res['deviceId']?.toString() ?? '';
+      final token = res['token']?['token'] ?? "";
+      if (token.isEmpty) throw Exception("No token returned");
 
-      if (token != null && token.isNotEmpty) {
-        await saveLogin(token);
+      await saveLogin(token);
 
-        // Save deviceId immediately — before any other API calls
-        if (deviceId.isNotEmpty) {
-          await DevicePrefs.saveDeviceId(deviceId);
-          print("📱 REGISTRATION - Saved registration deviceId: $deviceId");
-        }
+      final userData = await AuthAPI.getCurrentUser();
+      final user = User.fromJson(userData);
 
-        final userData    = await AuthAPI.getCurrentUser();
-        final user        = User.fromJson(userData);
+      await saveUserLogin(token, user);
 
-        await saveUserLogin(token, user);
+      state = state.copyWith(
+        isLoading: false,
+        isLoggedIn: true,
+        role: 'user',
+        user: user,
+        errorMessage: null,
+      );
 
-        print("🔐 REGISTRATION - Auto-login successful");
-        state = state.copyWith(
-          isLoading: false,
-          isLoggedIn: true,
-          user: user,
-          errorMessage: null,
-        );
-        await ref.read(appAccessProvider.notifier).initialize();
-      } else {
-        state = state.copyWith(isLoading: false, errorMessage: null);
-      }
+      await ref.read(appAccessProvider.notifier).initialize();
     } catch (e) {
-      print("🔐 REGISTRATION - Error: $e");
+      print("🔐 COMPLETE PROFILE - Error: $e");
       state = state.copyWith(
         isLoading: false,
         errorMessage: _getErrorMessage(e),
       );
       rethrow;
-    }
-  }
-
-  // ── Email verification ────────────────────────────────────────────────────
-
-  Future<String> generateEmailOtp(String email) async {
-    try {
-      final res = await AuthAPI.generateEmailOtp(email);
-      return res['message'] ?? "OTP sent successfully";
-    } catch (e) {
-      throw e.toString().replaceFirst("Exception: ", "");
-    }
-  }
-
-  Future<String> verifyEmailOtp(String email, String otp) async {
-    print("🔐 EMAIL VERIFICATION - Verifying OTP for: $email");
-    try {
-      final res = await AuthAPI.verifyEmailOtp(email, otp);
-      return res['message'] ?? "OTP verified successfully";
-    } catch (e) {
-      print("🔐 EMAIL VERIFICATION - Error: $e");
-      throw e.toString().replaceFirst("Exception: ", "");
     }
   }
 
@@ -532,6 +576,16 @@ class AuthNotifier extends StateNotifier<AuthState> {
     if (text.contains("500")) return "Server error. Try later.";
     return "Unexpected error occurred.";
   }
+
+  bool _asBool(dynamic value) {
+    if (value is bool) return value;
+    if (value is num) return value != 0;
+    if (value is String) {
+      final normalized = value.trim().toLowerCase();
+      return normalized == 'true' || normalized == '1' || normalized == 'yes';
+    }
+    return false;
+  }
 }
 
 // ─────────────────────────────────────────────────────────────────────────────
@@ -539,5 +593,4 @@ class AuthNotifier extends StateNotifier<AuthState> {
 // ─────────────────────────────────────────────────────────────────────────────
 
 final authProvider =
-StateNotifierProvider<AuthNotifier, AuthState>(
-        (ref) => AuthNotifier(ref));
+    StateNotifierProvider<AuthNotifier, AuthState>((ref) => AuthNotifier(ref));

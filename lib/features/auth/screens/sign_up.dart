@@ -4,9 +4,14 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import 'package:pin_code_fields/pin_code_fields.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 
+import '../../../core/router/routes.dart';
 import '../../../core/utlis/widgets/fields/phone_number_field.dart';
 import '../provider/auth_provider.dart';
+import '../service/auth_client.dart';
+
+enum _Phase { phoneOtp, completeProfile }
 
 class RegisterScreen extends ConsumerStatefulWidget {
   const RegisterScreen({super.key});
@@ -20,42 +25,78 @@ class _RegisterScreenState extends ConsumerState<RegisterScreen> {
   final fullNameController = TextEditingController();
   final phoneController = TextEditingController();
   final emailController = TextEditingController();
+  final companyController = TextEditingController();
+  final otpController = TextEditingController();
 
+  _Phase _phase = _Phase.phoneOtp;
   bool _isLoading = false;
-  bool _isEmailVerified = false;
   bool _isSendingOtp = false;
   bool _acceptedTerms = false;
   bool _isVerifyingOtp = false;
+  bool _otpVisible = false;
 
-  // Resend cooldown
   int _resendCooldown = 0;
   Timer? _resendTimer;
 
+  void _handlePhoneInputChanged() {
+    if (!mounted) return;
+    setState(() {});
+  }
+
+  @override
+  void initState() {
+    super.initState();
+    phoneController.addListener(_handlePhoneInputChanged);
+    _restorePartialAuthFlow();
+  }
+
   @override
   void dispose() {
+    phoneController.removeListener(_handlePhoneInputChanged);
     fullNameController.dispose();
     phoneController.dispose();
     emailController.dispose();
+    companyController.dispose();
+    otpController.dispose();
     _resendTimer?.cancel();
     super.dispose();
   }
 
-  // ─── Cooldown ─────────────────────────────────────────────────────────────
+  Future<void> _restorePartialAuthFlow() async {
+    final prefs = await SharedPreferences.getInstance();
+    final token = prefs.getString('auth_token');
+    final role = prefs.getString('auth_role');
+    final pendingPhone = prefs.getString('pending_phone_number') ?? '';
+
+    if (!mounted) return;
+
+    if (token != null && token.isNotEmpty && role != 'user') {
+      setState(() {
+        phoneController.text = pendingPhone;
+      });
+    }
+  }
 
   void _startResendCooldown() {
     setState(() => _resendCooldown = 30);
     _resendTimer?.cancel();
     _resendTimer = Timer.periodic(const Duration(seconds: 1), (t) {
+      if (!mounted) {
+        t.cancel();
+        return;
+      }
       if (_resendCooldown <= 1) {
         t.cancel();
-        if (mounted) setState(() => _resendCooldown = 0);
+        setState(() => _resendCooldown = 0);
       } else {
-        if (mounted) setState(() => _resendCooldown--);
+        setState(() => _resendCooldown--);
       }
     });
   }
 
-  // ─── Validation ───────────────────────────────────────────────────────────
+  String _normalizedPhone() {
+    return phoneController.text.trim().replaceAll(RegExp(r'[^0-9]'), '');
+  }
 
   String? _validateRequired(String? value, String fieldName) {
     if (value == null || value.trim().isEmpty) return '$fieldName is required';
@@ -70,37 +111,35 @@ class _RegisterScreenState extends ConsumerState<RegisterScreen> {
     return null;
   }
 
-  String? _validatePhone(String? value) {
-    if (value == null || value.trim().isEmpty)
-      return 'Phone number is required';
-    if (!RegExp(r'^[0-9]{10}$')
-        .hasMatch(value.replaceAll(RegExp(r'\s+'), ''))) {
-      return 'Please enter a valid 10-digit phone number';
-    }
-    return null;
-  }
-
-  // ─── OTP ──────────────────────────────────────────────────────────────────
+  bool get _isPhoneValid => RegExp(r'^[0-9]{10}$').hasMatch(_normalizedPhone());
 
   Future<void> _sendOtp({bool isResend = false}) async {
-    final email = emailController.text.trim();
-    if (_validateEmail(email) != null) {
-      _showErrorSnackBar("Please enter a valid email address");
+    if (!_isPhoneValid) {
+      _showErrorSnackBar('Please enter a valid 10-digit phone number');
       return;
     }
 
     if (!isResend) setState(() => _isSendingOtp = true);
 
     try {
-      await ref.read(authProvider.notifier).generateEmailOtp(email);
+      final res = await AuthAPI.sendPhoneOtp(_normalizedPhone());
+      setState(() => _otpVisible = true);
       _startResendCooldown();
-      if (!isResend) _showOtpDialog();
+
+      final isExistingUser = res['isExistingUser'] == true;
+      if (isExistingUser) {
+        _showSuccessSnackBar(
+          'OTP sent. This number already exists. You can login after verification.',
+        );
+      } else {
+        _showSuccessSnackBar('OTP sent successfully!');
+      }
     } catch (e) {
       if (mounted) {
         _showErrorSnackBar(
           e.toString().contains('timeout')
-              ? "Network timeout. Please check your connection"
-              : "Failed to send OTP. Please try again",
+              ? 'Network timeout. Please check your connection'
+              : e.toString().replaceFirst('Exception: ', ''),
         );
       }
     } finally {
@@ -108,226 +147,77 @@ class _RegisterScreenState extends ConsumerState<RegisterScreen> {
     }
   }
 
-  void _showOtpDialog() {
-    final otpFieldController = TextEditingController();
+  Future<void> _verifyPhoneOtp() async {
+    if (otpController.text.trim().length != 4) {
+      _showErrorSnackBar('Please enter a valid 4-digit OTP');
+      return;
+    }
 
-    showDialog(
-      context: context,
-      barrierDismissible: false,
-      builder: (context) => StatefulBuilder(
-        builder: (context, setDialogState) {
-          final canResend = _resendCooldown == 0;
+    setState(() => _isVerifyingOtp = true);
+    var shouldResetVerifyingState = true;
 
-          return Dialog(
-            shape:
-                RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
-            insetPadding: const EdgeInsets.symmetric(horizontal: 28),
-            child: Padding(
-              padding: const EdgeInsets.fromLTRB(24, 28, 24, 20),
-              child: Column(
-                mainAxisSize: MainAxisSize.min,
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  // Title
-                  const Text(
-                    "Verify your email",
-                    style: TextStyle(
-                      fontSize: 17,
-                      fontWeight: FontWeight.w700,
-                      color: Colors.black87,
-                    ),
-                  ),
-                  const SizedBox(height: 6),
-                  Text(
-                    "We sent a 4-digit code to ${emailController.text.trim()}",
-                    style: TextStyle(fontSize: 13, color: Colors.grey.shade600),
-                  ),
-                  const SizedBox(height: 24),
+    try {
+      final res = await ref
+          .read(authProvider.notifier)
+          .loginWithPhoneOtp(_normalizedPhone(), otpController.text.trim());
 
-                  // OTP input — 4 digits
-                  PinCodeTextField(
-                    length: 4,
-                    appContext: context,
-                    controller: otpFieldController,
-                    keyboardType: TextInputType.number,
-                    enableActiveFill: true,
-                    animationType: AnimationType.fade,
-                    pinTheme: PinTheme(
-                      shape: PinCodeFieldShape.box,
-                      borderRadius: BorderRadius.circular(8),
-                      fieldHeight: 52,
-                      fieldWidth: 52,
-                      activeFillColor: Colors.white,
-                      inactiveFillColor: Colors.white,
-                      selectedFillColor: Colors.white,
-                      activeColor: Colors.black,
-                      inactiveColor: Colors.black,
-                      selectedColor: Colors.black,
-                    ),
-                    onChanged: (_) => setDialogState(() {}),
-                  ),
-                  const SizedBox(height: 8),
+      final isNewUser = res['isNewUser'] == true;
+      if (!mounted) return;
 
-                  // Resend row
-                  StatefulBuilder(
-                    builder: (_, setResendState) {
-                      return Row(
-                        children: [
-                          Text(
-                            "Didn't receive the code? ",
-                            style: TextStyle(
-                              fontSize: 12.5,
-                              color: Colors.grey.shade500,
-                            ),
-                          ),
-                          GestureDetector(
-                            onTap: canResend
-                                ? () async {
-                                    await _sendOtp(isResend: true);
-                                    setDialogState(() {});
-                                  }
-                                : null,
-                            child: Text(
-                              canResend
-                                  ? "Resend"
-                                  : "Resend in ${_resendCooldown}s",
-                              style: TextStyle(
-                                fontSize: 12.5,
-                                fontWeight: FontWeight.w700,
-                                color: canResend
-                                    ? const Color(0xFF218AE6)
-                                    : Colors.grey.shade400,
-                              ),
-                            ),
-                          ),
-                        ],
-                      );
-                    },
-                  ),
-
-                  const SizedBox(height: 24),
-
-                  // Actions
-                  Row(
-                    children: [
-                      // Cancel
-                      Expanded(
-                        child: TextButton(
-                          onPressed: _isVerifyingOtp
-                              ? null
-                              : () => Navigator.of(context).pop(),
-                          style: TextButton.styleFrom(
-                            foregroundColor: Colors.grey.shade600,
-                          ),
-                          child: const Text("Cancel"),
-                        ),
-                      ),
-                      const SizedBox(width: 8),
-                      // Verify
-                      Expanded(
-                        child: ElevatedButton(
-                          onPressed: (_isVerifyingOtp ||
-                                  otpFieldController.text.length != 4)
-                              ? null
-                              : () async {
-                                  setDialogState(() => _isVerifyingOtp = true);
-                                  try {
-                                    await ref
-                                        .read(authProvider.notifier)
-                                        .verifyEmailOtp(
-                                          emailController.text.trim(),
-                                          otpFieldController.text.trim(),
-                                        );
-                                    if (mounted) {
-                                      setState(() => _isEmailVerified = true);
-                                      Navigator.of(context).pop();
-                                      _showSuccessSnackBar(
-                                          "Email verified successfully!");
-                                    }
-                                  } catch (e) {
-                                    if (mounted) {
-                                      _showErrorSnackBar(
-                                        e.toString().contains('Invalid OTP')
-                                            ? "Invalid OTP. Please try again"
-                                            : "Verification failed. Please try again",
-                                      );
-                                    }
-                                  } finally {
-                                    if (mounted) {
-                                      setDialogState(
-                                          () => _isVerifyingOtp = false);
-                                    }
-                                  }
-                                },
-                          style: ElevatedButton.styleFrom(
-                            backgroundColor: const Color(0xFF218AE6),
-                            elevation: 0,
-                            padding: const EdgeInsets.symmetric(vertical: 12),
-                            shape: RoundedRectangleBorder(
-                              borderRadius: BorderRadius.circular(8),
-                            ),
-                          ),
-                          child: _isVerifyingOtp
-                              ? const SizedBox(
-                                  width: 18,
-                                  height: 18,
-                                  child: CircularProgressIndicator(
-                                    strokeWidth: 2,
-                                    color: Colors.white,
-                                  ),
-                                )
-                              : const Text(
-                                  "Verify",
-                                  style: TextStyle(
-                                    fontSize: 14,
-                                    fontWeight: FontWeight.w600,
-                                    color: Colors.white,
-                                  ),
-                                ),
-                        ),
-                      ),
-                    ],
-                  ),
-                ],
-              ),
-            ),
-          );
-        },
-      ),
-    );
+      if (isNewUser) {
+        _showSuccessSnackBar('Signup complete. Please complete your profile.');
+        shouldResetVerifyingState = false;
+        context.go(Routes.workCategory);
+        return;
+      } else {
+        _showSuccessSnackBar('Logged in successfully.');
+        shouldResetVerifyingState = false;
+        context.go(Routes.workCategory);
+        return;
+      }
+    } catch (e) {
+      if (mounted) {
+        _showErrorSnackBar(
+          e.toString().contains('Invalid OTP')
+              ? 'Invalid OTP. Please try again'
+              : e.toString().replaceFirst('Exception: ', ''),
+        );
+      }
+    } finally {
+      if (mounted && shouldResetVerifyingState) {
+        setState(() => _isVerifyingOtp = false);
+      }
+    }
   }
-
-  // ─── Registration ─────────────────────────────────────────────────────────
 
   Future<void> _handleRegistration() async {
     if (!_formKey.currentState!.validate()) return;
 
-    if (!_isEmailVerified) {
-      _showErrorSnackBar("Please verify your email before registering");
+    if (!_acceptedTerms) {
+      _showErrorSnackBar('Please accept Terms & Conditions to continue');
       return;
     }
 
     setState(() => _isLoading = true);
 
     try {
-      final registrationData = {
-        "fullName": fullNameController.text.trim(),
-        "phoneNumber":
-            phoneController.text.trim().replaceAll(RegExp(r'[^0-9]'), ''),
-        "email": emailController.text.trim(),
-      };
-
-      await ref.read(authProvider.notifier).register(registrationData);
+      await ref.read(authProvider.notifier).completeProfile(
+            fullName: fullNameController.text.trim(),
+            email: emailController.text.trim(),
+            companyName: companyController.text.trim().isEmpty
+                ? null
+                : companyController.text.trim(),
+          );
 
       if (mounted) _showSuccessDialog();
     } catch (e) {
-      if (mounted) _showErrorSnackBar(e.toString());
+      if (mounted) {
+        _showErrorSnackBar(e.toString().replaceFirst('Exception: ', ''));
+      }
     } finally {
       if (mounted) setState(() => _isLoading = false);
     }
   }
-
-  // ─── Feedback helpers ─────────────────────────────────────────────────────
 
   void _showSuccessDialog() {
     final colorScheme = Theme.of(context).colorScheme;
@@ -335,8 +225,9 @@ class _RegisterScreenState extends ConsumerState<RegisterScreen> {
       context: context,
       builder: (context) => AlertDialog(
         shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(14)),
-        title: const Text("Account created!"),
-        content: const Text("Your account has been created successfully."),
+        title: const Text('Account created!'),
+        content:
+            const Text('Your profile is complete and your account is ready.'),
         actions: [
           TextButton(
             onPressed: () {
@@ -344,7 +235,7 @@ class _RegisterScreenState extends ConsumerState<RegisterScreen> {
               Navigator.of(context).pop();
             },
             child:
-                Text("Continue", style: TextStyle(color: colorScheme.primary)),
+                Text('Continue', style: TextStyle(color: colorScheme.primary)),
           ),
         ],
       ),
@@ -375,8 +266,6 @@ class _RegisterScreenState extends ConsumerState<RegisterScreen> {
     );
   }
 
-  // ─── Build ────────────────────────────────────────────────────────────────
-
   @override
   Widget build(BuildContext context) {
     final colorScheme = Theme.of(context).colorScheme;
@@ -394,7 +283,7 @@ class _RegisterScreenState extends ConsumerState<RegisterScreen> {
           onPressed: () => Navigator.of(context).pop(),
         ),
         title: Text(
-          "Create account",
+          _phase == _Phase.phoneOtp ? 'Create account' : 'Complete profile',
           style: TextStyle(
             fontSize: 17,
             fontWeight: FontWeight.w700,
@@ -411,9 +300,10 @@ class _RegisterScreenState extends ConsumerState<RegisterScreen> {
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.stretch,
               children: [
-                // ── Subheader ─────────────────────────────────────────────
                 Text(
-                  "Join 70 Million+ construction professionals",
+                  _phase == _Phase.phoneOtp
+                      ? 'Join 70 Million+ construction professionals'
+                      : 'Almost done. Add profile details to continue.',
                   style: TextStyle(
                     fontSize: 13.5,
                     color: colorScheme.onSurfaceVariant,
@@ -421,132 +311,189 @@ class _RegisterScreenState extends ConsumerState<RegisterScreen> {
                   ),
                 ),
                 const SizedBox(height: 28),
-
-                // ── Full Name ─────────────────────────────────────────────
-                _FormField(
-                  label: "Full Name",
-                  required: true,
-                  child: _buildInput(
-                    controller: fullNameController,
-                    hint: "John Doe",
-                    validator: (v) => _validateRequired(v, 'Full Name'),
-                  ),
-                ),
-                const SizedBox(height: 20),
-
-                // ── Phone ─────────────────────────────────────────────────
-                _FormField(
-                    label: "Phone Number",
+                if (_phase == _Phase.phoneOtp) ...[
+                  _FormField(
+                    label: 'Phone Number',
                     required: true,
                     child: PhoneInputField(
                       controller: phoneController,
                       autovalidateMode: AutovalidateMode.onUserInteraction,
-                    )),
-                const SizedBox(height: 20),
-
-                // ── Email ─────────────────────────────────────────────────
-                _FormField(
-                  label: "Email Address",
-                  required: true,
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.end,
-                    children: [
-                      _buildInput(
-                        controller: emailController,
-                        hint: "you@example.com",
-                        keyboardType: TextInputType.emailAddress,
-                        validator: _validateEmail,
-                        onChanged: (_) => setState(() {}),
-                        readOnly: _isEmailVerified,
-                      ),
-                      const SizedBox(height: 6),
-                      _EmailVerifyAction(
-                        isVerified: _isEmailVerified,
-                        isSending: _isSendingOtp,
-                        canSend: !_isEmailVerified &&
-                            _validateEmail(emailController.text) == null,
-                        onSend: () => _sendOtp(),
-                      ),
-                    ],
+                    ),
                   ),
-                ),
-                const SizedBox(height: 32),
-
-                // ── Terms ─────────────────────────────────────────────────
-                Row(
-                  crossAxisAlignment: CrossAxisAlignment.center,
-                  children: [
-                    SizedBox(
-                      width: 22,
-                      height: 22,
-                      child: Checkbox(
-                        value: _acceptedTerms,
-                        activeColor: colorScheme.primary,
-                        materialTapTargetSize: MaterialTapTargetSize.shrinkWrap,
-                        visualDensity: VisualDensity.compact,
-                        shape: RoundedRectangleBorder(
-                          borderRadius: BorderRadius.circular(4),
+                  const SizedBox(height: 8),
+                  _SendOtpAction(
+                    isSending: _isSendingOtp,
+                    canSend: _isPhoneValid,
+                    onSend: _sendOtp,
+                  ),
+                  const SizedBox(height: 20),
+                  if (_otpVisible) ...[
+                    _FormField(
+                      label: 'One-Time Password',
+                      required: true,
+                      child: PinCodeTextField(
+                        length: 4,
+                        autoDisposeControllers: false,
+                        appContext: context,
+                        controller: otpController,
+                        keyboardType: TextInputType.number,
+                        enableActiveFill: true,
+                        animationType: AnimationType.fade,
+                        pinTheme: PinTheme(
+                          shape: PinCodeFieldShape.box,
+                          borderRadius: BorderRadius.circular(8),
+                          fieldHeight: 52,
+                          fieldWidth: 52,
+                          activeFillColor: colorScheme.surface,
+                          inactiveFillColor: colorScheme.surface,
+                          selectedFillColor: colorScheme.surface,
+                          activeColor: colorScheme.primary,
+                          inactiveColor: colorScheme.outline,
+                          selectedColor: colorScheme.primary,
                         ),
-                        onChanged: (v) =>
-                            setState(() => _acceptedTerms = v ?? false),
+                        onChanged: (_) => setState(() {}),
                       ),
                     ),
-                    const SizedBox(width: 10),
-                    Expanded(
-                      child: GestureDetector(
-                        onTap: () => context.push('/terms'),
-                        child: RichText(
-                          text: TextSpan(
+                    const SizedBox(height: 6),
+                    Row(
+                      mainAxisAlignment: MainAxisAlignment.end,
+                      children: [
+                        Text(
+                          "Didn't receive the code? ",
+                          style: TextStyle(
+                            fontSize: 12.5,
+                            color: colorScheme.onSurfaceVariant,
+                          ),
+                        ),
+                        GestureDetector(
+                          onTap: _resendCooldown == 0
+                              ? () => _sendOtp(isResend: true)
+                              : null,
+                          child: Text(
+                            _resendCooldown == 0
+                                ? 'Resend'
+                                : 'Resend in ${_resendCooldown}s',
                             style: TextStyle(
-                              fontSize: 13,
-                              color: colorScheme.onSurfaceVariant,
+                              fontSize: 12.5,
+                              fontWeight: FontWeight.w700,
+                              color: _resendCooldown == 0
+                                  ? colorScheme.primary
+                                  : colorScheme.onSurfaceVariant,
                             ),
-                            children: [
-                              const TextSpan(text: "I agree to the "),
-                              TextSpan(
-                                text: "Terms & Conditions",
-                                style: TextStyle(
-                                  color: colorScheme.primary,
-                                  fontWeight: FontWeight.w600,
-                                ),
+                          ),
+                        ),
+                      ],
+                    ),
+                    const SizedBox(height: 24),
+                    _RegisterButton(
+                      isLoading: _isVerifyingOtp,
+                      isEnabled: !_isVerifyingOtp &&
+                          otpController.text.trim().length == 4,
+                      onPressed: _verifyPhoneOtp,
+                      label: 'Verify OTP',
+                    ),
+                  ],
+                ],
+                if (_phase == _Phase.completeProfile) ...[
+                  _FormField(
+                    label: 'Phone Number',
+                    required: true,
+                    child: _buildInput(
+                      controller: phoneController,
+                      hint: '9876543210',
+                      keyboardType: TextInputType.phone,
+                      readOnly: true,
+                    ),
+                  ),
+                  const SizedBox(height: 20),
+                  _FormField(
+                    label: 'Full Name',
+                    required: true,
+                    child: _buildInput(
+                      controller: fullNameController,
+                      hint: 'John Doe',
+                      validator: (v) => _validateRequired(v, 'Full Name'),
+                    ),
+                  ),
+                  const SizedBox(height: 20),
+                  _FormField(
+                    label: 'Email Address',
+                    required: true,
+                    child: _buildInput(
+                      controller: emailController,
+                      hint: 'you@example.com',
+                      keyboardType: TextInputType.emailAddress,
+                      validator: _validateEmail,
+                    ),
+                  ),
+                  const SizedBox(height: 20),
+                  _FormField(
+                    label: 'Company Name',
+                    child: _buildInput(
+                      controller: companyController,
+                      hint: 'Your Company (optional)',
+                    ),
+                  ),
+                  const SizedBox(height: 28),
+                  Row(
+                    crossAxisAlignment: CrossAxisAlignment.center,
+                    children: [
+                      SizedBox(
+                        width: 22,
+                        height: 22,
+                        child: Checkbox(
+                          value: _acceptedTerms,
+                          activeColor: colorScheme.primary,
+                          materialTapTargetSize:
+                              MaterialTapTargetSize.shrinkWrap,
+                          visualDensity: VisualDensity.compact,
+                          shape: RoundedRectangleBorder(
+                            borderRadius: BorderRadius.circular(4),
+                          ),
+                          onChanged: (v) =>
+                              setState(() => _acceptedTerms = v ?? false),
+                        ),
+                      ),
+                      const SizedBox(width: 10),
+                      Expanded(
+                        child: GestureDetector(
+                          onTap: () => context.push('/terms'),
+                          child: RichText(
+                            text: TextSpan(
+                              style: TextStyle(
+                                fontSize: 13,
+                                color: colorScheme.onSurfaceVariant,
                               ),
-                            ],
+                              children: [
+                                const TextSpan(text: 'I agree to the '),
+                                TextSpan(
+                                  text: 'Terms & Conditions',
+                                  style: TextStyle(
+                                    color: colorScheme.primary,
+                                    fontWeight: FontWeight.w600,
+                                  ),
+                                ),
+                              ],
+                            ),
                           ),
                         ),
                       ),
-                    ),
-                  ],
-                ),
-                const SizedBox(height: 24),
-
-                // ── Register CTA ──────────────────────────────────────────
-                _RegisterButton(
-                  isLoading: _isLoading,
-                  isEnabled: _isEmailVerified && _acceptedTerms && !_isLoading,
-                  onPressed: _handleRegistration,
-                ),
-
-                // Email not verified hint
-                if (!_isEmailVerified) ...[
-                  const SizedBox(height: 8),
-                  Text(
-                    "Verify your email address to continue",
-                    textAlign: TextAlign.center,
-                    style: TextStyle(
-                      fontSize: 11.5,
-                      color: colorScheme.secondary,
-                    ),
+                    ],
+                  ),
+                  const SizedBox(height: 24),
+                  _RegisterButton(
+                    isLoading: _isLoading,
+                    isEnabled: _acceptedTerms && !_isLoading,
+                    onPressed: _handleRegistration,
+                    label: 'Create Account',
                   ),
                 ],
-
                 const SizedBox(height: 32),
-
-                // ── Already have account ───────────────────────────────────
                 Row(
                   mainAxisAlignment: MainAxisAlignment.center,
                   children: [
                     Text(
-                      "Already have an account? ",
+                      'Already have an account? ',
                       style: TextStyle(
                         fontSize: 13.5,
                         color: colorScheme.onSurfaceVariant,
@@ -555,7 +502,7 @@ class _RegisterScreenState extends ConsumerState<RegisterScreen> {
                     GestureDetector(
                       onTap: () => Navigator.of(context).pop(),
                       child: Text(
-                        "Login",
+                        'Login',
                         style: TextStyle(
                           fontSize: 13.5,
                           fontWeight: FontWeight.w700,
@@ -566,10 +513,8 @@ class _RegisterScreenState extends ConsumerState<RegisterScreen> {
                   ],
                 ),
                 const SizedBox(height: 24),
-
-                // ── Footer ────────────────────────────────────────────────
                 Text(
-                  "By continuing, you're agreeing to our Terms of Service and Privacy Policy.\n© 2026 VAYUXI. All rights reserved.",
+                  "By continuing, you're agreeing to our Terms of Service and Privacy Policy.\n(c) 2026 VAYUXI. All rights reserved.",
                   textAlign: TextAlign.center,
                   style: TextStyle(
                     fontSize: 11,
@@ -586,10 +531,9 @@ class _RegisterScreenState extends ConsumerState<RegisterScreen> {
     );
   }
 
-  /// Shared input builder — white background, black border.
   Widget _buildInput({
     required TextEditingController controller,
-    String hint = "",
+    String hint = '',
     TextInputType keyboardType = TextInputType.text,
     String? Function(String?)? validator,
     ValueChanged<String>? onChanged,
@@ -636,11 +580,6 @@ class _RegisterScreenState extends ConsumerState<RegisterScreen> {
   }
 }
 
-// ─────────────────────────────────────────────────────────────────────────────
-// Sub-widgets
-// ─────────────────────────────────────────────────────────────────────────────
-
-/// Wraps a field with a label. Red asterisk for required fields.
 class _FormField extends StatelessWidget {
   final String label;
   final bool required;
@@ -669,7 +608,7 @@ class _FormField extends StatelessWidget {
               TextSpan(text: label),
               if (required)
                 const TextSpan(
-                  text: " *",
+                  text: ' *',
                   style: TextStyle(color: Colors.red, fontSize: 13),
                 ),
             ],
@@ -682,15 +621,12 @@ class _FormField extends StatelessWidget {
   }
 }
 
-/// Lightweight email verify action — text link style.
-class _EmailVerifyAction extends StatelessWidget {
-  final bool isVerified;
+class _SendOtpAction extends StatelessWidget {
   final bool isSending;
   final bool canSend;
-  final VoidCallback onSend;
+  final Future<void> Function({bool isResend}) onSend;
 
-  const _EmailVerifyAction({
-    required this.isVerified,
+  const _SendOtpAction({
     required this.isSending,
     required this.canSend,
     required this.onSend,
@@ -699,60 +635,45 @@ class _EmailVerifyAction extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final colorScheme = Theme.of(context).colorScheme;
-    if (isVerified) {
-      return Row(
-        mainAxisSize: MainAxisSize.min,
-        children: [
-          Icon(Icons.check_circle_rounded,
-              size: 14, color: colorScheme.tertiary),
-          const SizedBox(width: 4),
-          Text(
-            "Email verified",
-            style: TextStyle(
-              fontSize: 12.5,
-              color: colorScheme.tertiary,
-              fontWeight: FontWeight.w500,
-            ),
-          ),
-        ],
-      );
-    }
-
-    return GestureDetector(
-      onTap: canSend && !isSending ? onSend : null,
-      child: isSending
-          ? const SizedBox(
-              width: 14,
-              height: 14,
-              child: CircularProgressIndicator(
-                strokeWidth: 1.8,
-                color: Color(0xFF218AE6),
+    return Align(
+      alignment: Alignment.centerRight,
+      child: GestureDetector(
+        onTap: canSend && !isSending ? () => onSend() : null,
+        child: isSending
+            ? const SizedBox(
+                width: 14,
+                height: 14,
+                child: CircularProgressIndicator(
+                  strokeWidth: 1.8,
+                  color: Color(0xFF218AE6),
+                ),
+              )
+            : Text(
+                'Send OTP',
+                style: TextStyle(
+                  fontSize: 12.5,
+                  fontWeight: FontWeight.w600,
+                  color: canSend
+                      ? colorScheme.primary
+                      : colorScheme.onSurfaceVariant,
+                ),
               ),
-            )
-          : Text(
-              "Send verification code",
-              style: TextStyle(
-                fontSize: 12.5,
-                fontWeight: FontWeight.w600,
-                color: canSend
-                    ? colorScheme.primary
-                    : colorScheme.onSurfaceVariant,
-              ),
-            ),
+      ),
     );
   }
 }
 
-/// Primary register button with clear disabled state.
 class _RegisterButton extends StatelessWidget {
   final bool isLoading;
   final bool isEnabled;
   final VoidCallback onPressed;
+  final String label;
 
   const _RegisterButton({
     required this.isLoading,
     required this.isEnabled,
     required this.onPressed,
+    required this.label,
   });
 
   @override
@@ -780,7 +701,7 @@ class _RegisterButton extends StatelessWidget {
                 ),
               )
             : Text(
-                "Create Account",
+                label,
                 style: TextStyle(
                   fontSize: 15,
                   fontWeight: FontWeight.w600,

@@ -2,7 +2,6 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import 'package:liquid_pull_to_refresh/liquid_pull_to_refresh.dart';
-import 'package:untitled2/core/utlis/colors/colors.dart';
 import 'package:untitled2/core/utlis/widgets/custom_appBar.dart';
 import 'package:untitled2/features/modules/all_Modules/dpr/screens/widgets/moc_selection_page.dart';
 import '../../../../../core/utlis/widgets/buttons.dart';
@@ -41,6 +40,7 @@ class _DprTeamScreenState extends ConsumerState<DprTeamScreen> {
       await notifier.fetchTeams(type: type!, siteId: siteId);
     }
   }
+
   @override
   void initState() {
     super.initState();
@@ -49,6 +49,7 @@ class _DprTeamScreenState extends ConsumerState<DprTeamScreen> {
       await _refreshTeams();
     });
   }
+
   Future<void> _handleTeamAutoNavigation() async {
     final teamState = ref.read(teamProvider);
     final type = ref.read(typeProvider);
@@ -84,14 +85,29 @@ class _DprTeamScreenState extends ConsumerState<DprTeamScreen> {
     }
   }
 
-
   @override
   Widget build(BuildContext context) {
     final teamState = ref.watch(teamProvider);
-    print(teamState.error );
+    final cs = Theme.of(context).colorScheme;
+
+    Widget teamIconAvatar() {
+      return Container(
+        height: 80,
+        width: 80,
+        decoration: BoxDecoration(
+          color: cs.surfaceContainerHighest,
+          shape: BoxShape.circle,
+        ),
+        child: Icon(
+          Icons.groups_rounded,
+          color: cs.onSurfaceVariant,
+          size: 36,
+        ),
+      );
+    }
 
     return Scaffold(
-      backgroundColor: AppColors.lightBlue,
+      backgroundColor: cs.surface,
       drawer: const CustomDrawer(),
       body: NestedScrollView(
         headerSliverBuilder: (context, innerBoxIsScrolled) {
@@ -99,28 +115,28 @@ class _DprTeamScreenState extends ConsumerState<DprTeamScreen> {
             CustomSliverAppBar(title: "Select Your Team"),
           ];
         },
-
         body: CornerClippedScreenSimple(
           child: Builder(
             builder: (context) {
               // ✅ show loader only if no offline data
               if (teamState.isLoading && !teamState.hasData) {
-                return const Center(child: CircularProgressIndicator());
+                return Center(
+                  child: CircularProgressIndicator(color: cs.primary),
+                );
               }
               //
-              // // ✅ show error only if no cached data
+              // If loading fails and no cached data exists, keep UI neutral.
               if (!teamState.hasData && teamState.error != null) {
-                print(teamState.error);
                 return Column(
                   children: [
-                    Expanded(child: Center(child: Text("Error: ${teamState.error}"))),
+                    Expanded(child: Center(child: Text("No teams available"))),
                     Container(
                       width: double.infinity,
                       padding: const EdgeInsets.all(16),
                       child: RoundedButton(
                         text: "Back",
-                        color: Colors.white,
-                        textColor: Colors.black,
+                        color: cs.surfaceContainerHigh,
+                        textColor: cs.onSurface,
                         onPressed: () => context.pop(),
                         width: double.infinity,
                       ),
@@ -131,36 +147,50 @@ class _DprTeamScreenState extends ConsumerState<DprTeamScreen> {
 
               final teams = teamState.teams;
 
-              return Column(
-                children: [
-                  // ✅ show sync error but keep UI running
-                  if (teamState.error != null && teamState.hasData)
-                    Container(
-                      width: double.infinity,
-                      margin: const EdgeInsets.fromLTRB(12, 12, 12, 0),
-                      padding: const EdgeInsets.all(10),
-                      decoration: BoxDecoration(
-                        color: Colors.orange.withOpacity(0.12),
-                        borderRadius: BorderRadius.circular(12),
-                        border: Border.all(color: Colors.orange),
-                      ),
-                      child: Text(
-                        teamState.error!,
-                        style: const TextStyle(color: Colors.orange),
+              if (teams.isEmpty) {
+                return Column(
+                  children: [
+                    Expanded(
+                      child: Center(
+                        child: Text(
+                          "No teams available",
+                          style: TextStyle(
+                            fontSize: 15,
+                            fontWeight: FontWeight.w500,
+                            color: cs.onSurfaceVariant,
+                          ),
+                        ),
                       ),
                     ),
+                    Container(
+                      width: double.infinity,
+                      padding: const EdgeInsets.all(16),
+                      child: RoundedButton(
+                        text: "Back",
+                        color: cs.surfaceContainerHigh,
+                        textColor: cs.onSurface,
+                        onPressed: () => context.pop(),
+                        width: double.infinity,
+                      ),
+                    ),
+                  ],
+                );
+              }
 
+              return Column(
+                children: [
                   Expanded(
                     child: LiquidPullToRefresh(
                       onRefresh: _refreshTeams,
                       height: 200,
-                      backgroundColor: Colors.blue,
-                      color: Colors.white,
+                      backgroundColor: cs.primary,
+                      color: cs.onPrimary,
                       animSpeedFactor: 2.0,
                       showChildOpacityTransition: true,
                       child: GridView.builder(
                         padding: const EdgeInsets.all(12),
-                        gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
+                        gridDelegate:
+                            const SliverGridDelegateWithFixedCrossAxisCount(
                           crossAxisCount: 2,
                           crossAxisSpacing: 12,
                           mainAxisSpacing: 12,
@@ -172,14 +202,14 @@ class _DprTeamScreenState extends ConsumerState<DprTeamScreen> {
 
                           return InkWell(
                             onTap: () {
-
                               final isDefault = team.isDefaultTeam == true;
 
                               // 🔥 If default team → force empty ID
                               final effectiveTeamId = isDefault ? "" : team.id;
                               print("effectiveteam $effectiveTeamId");
 
-                              ref.read(selectedTeamIdProvider.notifier).state = effectiveTeamId;
+                              ref.read(selectedTeamIdProvider.notifier).state =
+                                  effectiveTeamId;
 
                               final type = ref.read(typeProvider);
 
@@ -211,42 +241,46 @@ class _DprTeamScreenState extends ConsumerState<DprTeamScreen> {
                             },
                             child: Container(
                               decoration: BoxDecoration(
-                                color: Colors.white,
+                                color: cs.surfaceContainerLow,
                                 borderRadius: BorderRadius.circular(16),
+                                border: Border.all(
+                                  color: cs.outlineVariant.withOpacity(0.65),
+                                ),
+                                boxShadow: [
+                                  BoxShadow(
+                                    color: cs.shadow.withOpacity(0.08),
+                                    blurRadius: 8,
+                                    offset: const Offset(0, 3),
+                                  ),
+                                ],
                               ),
                               child: Column(
                                 mainAxisAlignment: MainAxisAlignment.center,
                                 children: [
                                   ClipOval(
                                     child: team.teamLeadImage != null &&
-                                        team.teamLeadImage!.isNotEmpty
+                                            team.teamLeadImage!.isNotEmpty
                                         ? Image.network(
-                                      team.teamLeadImage!,
-                                      height: 80,
-                                      width: 80,
-                                      fit: BoxFit.cover,
-                                      errorBuilder: (context, error, stackTrace) {
-                                        return Image.asset(
-                                          "assets/images/team_def.webp",
-                                          height: 80,
-                                          width: 80,
-                                          fit: BoxFit.cover,
-                                        );
-                                      },
-                                    )
-                                        : Image.asset(
-                                      "assets/images/team_def.webp",
-                                      height: 80,
-                                      width: 80,
-                                      fit: BoxFit.cover,
-                                    ),
+                                            team.teamLeadImage!,
+                                            height: 80,
+                                            width: 80,
+                                            fit: BoxFit.cover,
+                                            errorBuilder:
+                                                (context, error, stackTrace) {
+                                              return teamIconAvatar();
+                                            },
+                                          )
+                                        : teamIconAvatar(),
                                   ),
                                   const SizedBox(height: 10),
                                   Text(
-                                    team.isDefaultTeam?'Default team':team.teamName ?? '',
-                                    style: const TextStyle(
+                                    team.isDefaultTeam
+                                        ? 'Default team'
+                                        : team.teamName ?? '',
+                                    style: TextStyle(
                                       fontWeight: FontWeight.w600,
                                       fontSize: 15,
+                                      color: cs.onSurface,
                                     ),
                                   ),
                                 ],
@@ -257,14 +291,13 @@ class _DprTeamScreenState extends ConsumerState<DprTeamScreen> {
                       ),
                     ),
                   ),
-
                   Container(
                     width: double.infinity,
                     padding: const EdgeInsets.all(16),
                     child: RoundedButton(
                       text: "Back",
-                      color: Colors.white,
-                      textColor: Colors.black,
+                      color: cs.surfaceContainerHigh,
+                      textColor: cs.onSurface,
                       onPressed: () => context.pop(),
                       width: double.infinity,
                     ),
@@ -273,7 +306,6 @@ class _DprTeamScreenState extends ConsumerState<DprTeamScreen> {
               );
             },
           ),
-
         ),
       ),
     );

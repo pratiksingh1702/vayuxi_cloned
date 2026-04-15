@@ -132,11 +132,9 @@ class SiteSelectCardGrid extends ConsumerWidget {
                     children: [
                       // ---------------- VIEW ----------------
                       SelectCard(
-                        icon: Image.asset(
-                          "assets/images/icons/view.webp",
-                          height: 120,
-                          width: double.infinity,
-                          fit: BoxFit.cover,
+                        icon: const SelectCardIcon(
+                          icon: Icons.visibility_rounded,
+                          color: Colors.blue,
                         ),
                         label: "View",
                         onTap: () {
@@ -151,11 +149,9 @@ class SiteSelectCardGrid extends ConsumerWidget {
                         key: SiteRegistry.addSiteCardKey,
                         description: 'Tap Add to create your first Site.',
                         child: SelectCard(
-                          icon: Image.asset(
-                            "assets/images/icons/add.webp",
-                            height: 120,
-                            width: double.infinity,
-                            fit: BoxFit.cover,
+                          icon: const SelectCardIcon(
+                            icon: Icons.add_circle_outline_rounded,
+                            color: Colors.green,
                           ),
                           label: "Add",
                           onTap: () {

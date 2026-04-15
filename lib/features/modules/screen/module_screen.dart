@@ -334,18 +334,26 @@ class _ModuleScreenState extends ConsumerState<ModuleScreen> {
   final List<ModuleItem> _dailyEntryModules = [
     ModuleItem(
         labelKey: 'attendance_card',
+        icon: Icons.how_to_reg_rounded,
+        iconColor: Colors.green,
         imagePath: "assets/images/icons/attendance.webp",
         routeName: "/site-list/attendance"),
     ModuleItem(
         labelKey: 'daily_progress_card',
+        icon: Icons.description_rounded,
+        iconColor: Colors.indigo,
         imagePath: "assets/images/icons/dpr.webp",
         routeName: "/site-list/dpr"),
     ModuleItem(
         labelKey: 'expense_card',
+        icon: Icons.receipt_long_rounded,
+        iconColor: Colors.orange,
         imagePath: "assets/images/icons/expense_daily.webp",
         routeName: "/site-list/add-exp"),
     ModuleItem(
         labelKey: 'inventory_entry_card',
+        icon: Icons.inventory_2_rounded,
+        iconColor: Colors.teal,
         imagePath: "assets/images/icons/inventory_entry.webp",
         routeName: "/site-list/inv-entry"),
     ModuleItem(labelKey: '', imagePath: '', routeName: '', isEmpty: true),
@@ -355,26 +363,38 @@ class _ModuleScreenState extends ConsumerState<ModuleScreen> {
   final List<ModuleItem> _setupModules = [
     ModuleItem(
         labelKey: 'site_details_card',
+        icon: Icons.location_city_rounded,
+        iconColor: Colors.cyan,
         imagePath: "assets/images/icons/site_details.webp",
         routeName: "/site"),
     ModuleItem(
         labelKey: 'rate_card',
+        icon: Icons.currency_rupee_rounded,
+        iconColor: Colors.amber,
         imagePath: "assets/images/icons/rate.webp",
         routeName: "/site-list/rate"),
     ModuleItem(
         labelKey: 'manpower_details_card',
+        icon: Icons.engineering_rounded,
+        iconColor: Colors.deepOrange,
         imagePath: "assets/images/icons/manpower_setup.webp",
         routeName: "/manpower"),
     ModuleItem(
         labelKey: 'create_team_card',
+        icon: Icons.groups_rounded,
+        iconColor: Colors.purple,
         imagePath: "assets/images/icons/add_team.webp",
         routeName: "/site-list/team"),
     ModuleItem(
         labelKey: 'dpr_setup_card',
+        icon: Icons.settings_suggest_rounded,
+        iconColor: Colors.blueGrey,
         imagePath: "assets/images/icons/dpr_setup.webp",
         routeName: "/site-list/addMoc"),
     ModuleItem(
         labelKey: 'inventory_setup_card',
+        icon: Icons.warehouse_rounded,
+        iconColor: Colors.brown,
         imagePath: "assets/images/icons/inventory_setup.webp",
         routeName: "/site-list/inv-setup"),
     // ModuleItem(labelKey: 'boq_card', imagePath: "assets/images/icons/boq.webp", routeName: "/site-list/boq"),
@@ -383,26 +403,38 @@ class _ModuleScreenState extends ConsumerState<ModuleScreen> {
   final List<ModuleItem> _reportModules = [
     ModuleItem(
         labelKey: 'summary_analysis_card',
+        icon: Icons.analytics_rounded,
+        iconColor: Colors.blue,
         imagePath: "assets/images/icons/summary_analysis.webp",
         routeName: "/summary"),
     ModuleItem(
         labelKey: 'salary_slip_card',
+        icon: Icons.payments_rounded,
+        iconColor: Colors.lightGreen,
         imagePath: "assets/images/icons/salary_slip.webp",
         routeName: "/salary"),
     ModuleItem(
         labelKey: 'dpr_sheets_card',
+        icon: Icons.table_chart_rounded,
+        iconColor: Colors.deepPurple,
         imagePath: "assets/images/icons/dpr_report.webp",
         routeName: "/site-list/dprReport"),
     ModuleItem(
         labelKey: 'expense_sheet_card',
+        icon: Icons.request_quote_rounded,
+        iconColor: Colors.redAccent,
         imagePath: "assets/images/icons/expense_sheet.webp",
         routeName: "/site-list/expense"),
     ModuleItem(
         labelKey: 'attendance_sheet_card',
+        icon: Icons.fact_check_rounded,
+        iconColor: Colors.lime,
         imagePath: "assets/images/icons/attendance_sheet.webp",
         routeName: "/site-list/att-sheet"),
     ModuleItem(
         labelKey: 'inventory_summary_card',
+        icon: Icons.assessment_rounded,
+        iconColor: Colors.pink,
         imagePath: "assets/images/icons/inventory_summary.webp",
         routeName: "/site-list/inv-Report"),
   ];
@@ -410,26 +442,38 @@ class _ModuleScreenState extends ConsumerState<ModuleScreen> {
   final List<ModuleItem> _moreModules = [
     ModuleItem(
         labelKey: 'profile_card',
+        icon: Icons.account_circle_rounded,
+        iconColor: Colors.deepPurpleAccent,
         imagePath: "assets/images/icons/profile.webp",
         routeName: "/profile"),
     ModuleItem(
         labelKey: 'subscription_card',
+        icon: Icons.workspace_premium_rounded,
+        iconColor: Colors.amberAccent,
         imagePath: "assets/images/icons/subscription.webp",
         routeName: "/subscription"),
     ModuleItem(
         labelKey: 'upcoming_update_card',
+        icon: Icons.new_releases_rounded,
+        iconColor: Colors.lightBlue,
         imagePath: "assets/images/icons/updates.webp",
         routeName: "/upcoming-update"),
     ModuleItem(
         labelKey: 'theme_card',
+        icon: Icons.palette_rounded,
+        iconColor: Colors.pinkAccent,
         imagePath: "assets/images/icons/theme.webp",
         routeName: "/theme"),
     ModuleItem(
         labelKey: 'language_card',
+        icon: Icons.translate_rounded,
+        iconColor: Colors.cyanAccent,
         imagePath: "assets/images/icons/language.webp",
         routeName: "/language"),
     ModuleItem(
         labelKey: 'help_card',
+        icon: Icons.support_agent_rounded,
+        iconColor: Colors.greenAccent,
         imagePath: "assets/images/icons/help.webp",
         routeName: "/help"),
   ];
@@ -480,6 +524,23 @@ class _ModuleScreenState extends ConsumerState<ModuleScreen> {
     return isDark
         ? cs.outline.withOpacity(0.42)
         : cs.outlineVariant.withOpacity(0.92);
+  }
+
+  Color _moduleIconContainerColor(ColorScheme cs, bool isDark) {
+    return isDark
+        ? cs.surfaceContainerHighest.withOpacity(0.70)
+        : cs.surfaceContainerHigh.withOpacity(0.85);
+  }
+
+  Color _moduleIconBorderColor(ColorScheme cs, bool isDark) {
+    return isDark
+        ? cs.outlineVariant.withOpacity(0.42)
+        : cs.outlineVariant.withOpacity(0.72);
+  }
+
+  Color _moduleIconColor(Color baseColor, ColorScheme cs, bool isDark) {
+    return Color.lerp(baseColor, cs.onSurface, isDark ? 0.12 : 0.24) ??
+        baseColor;
   }
 
   List<BoxShadow> _moduleCardShadow(ColorScheme cs, bool isDark) {
@@ -787,6 +848,11 @@ class _ModuleScreenState extends ConsumerState<ModuleScreen> {
                                                             BorderRadius
                                                                 .circular(20)));
                                               }
+                                              final iconColor =
+                                                  _moduleIconColor(
+                                                      item.iconColor,
+                                                      colorScheme,
+                                                      isDark);
 
                                               Widget card = GestureDetector(
                                                 onTap: _overlayType != null
@@ -820,13 +886,28 @@ class _ModuleScreenState extends ConsumerState<ModuleScreen> {
                                                         height: 90,
                                                         width: 90,
                                                         child: Container(
-                                                          padding:
-                                                              const EdgeInsets
-                                                                  .all(12),
-                                                          child: Image.asset(
-                                                              item.imagePath,
-                                                              fit: BoxFit
-                                                                  .contain),
+                                                          decoration:
+                                                              BoxDecoration(
+                                                            color:
+                                                                _moduleIconContainerColor(
+                                                                    colorScheme,
+                                                                    isDark),
+                                                            borderRadius:
+                                                                BorderRadius
+                                                                    .circular(
+                                                                        22),
+                                                            border: Border.all(
+                                                              color:
+                                                                  _moduleIconBorderColor(
+                                                                      colorScheme,
+                                                                      isDark),
+                                                            ),
+                                                          ),
+                                                          child: Icon(
+                                                            item.icon,
+                                                            size: 42,
+                                                            color: iconColor,
+                                                          ),
                                                         ),
                                                       ),
                                                       const SizedBox(height: 8),
@@ -1319,12 +1400,16 @@ class _ModuleScreenState extends ConsumerState<ModuleScreen> {
 
 class ModuleItem {
   final String labelKey;
+  final IconData icon;
+  final Color iconColor;
   final String imagePath;
   final String routeName;
   final bool isEmpty;
 
   ModuleItem({
     required this.labelKey,
+    this.icon = Icons.widgets_rounded,
+    this.iconColor = Colors.blue,
     required this.imagePath,
     required this.routeName,
     this.isEmpty = false,

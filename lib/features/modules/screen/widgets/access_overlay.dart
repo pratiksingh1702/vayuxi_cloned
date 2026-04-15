@@ -81,6 +81,7 @@ class AccessOverlay extends ConsumerWidget {
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
+    final colorScheme = Theme.of(context).colorScheme;
     return TweenAnimationBuilder<double>(
       duration: const Duration(milliseconds: 320),
       tween: Tween(begin: 0.0, end: 1.0),
@@ -89,7 +90,7 @@ class AccessOverlay extends ConsumerWidget {
       child: BackdropFilter(
         filter: ImageFilter.blur(sigmaX: 14, sigmaY: 14),
         child: Container(
-          color: Colors.black.withOpacity(0.58),
+          color: colorScheme.scrim.withOpacity(0.58),
           child: Column(
             children: [
               _OverlayTopBar(showClose: false, onClose: onDismiss),
@@ -132,13 +133,14 @@ class GracePeriodBanner extends ConsumerWidget {
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final graceAsync = ref.watch(graceStatusProvider);
+    final colorScheme = Theme.of(context).colorScheme;
 
     return graceAsync.when(
       loading: () => const SizedBox.shrink(),
       error: (_, __) => const SizedBox.shrink(),
       data: (graceData) {
-        final bool isWithinGrace   = graceData['isWithinGracePeriod'] == true;
-        final bool isPrimaryDevice = graceData['isPrimaryDevice']     == true;
+        final bool isWithinGrace = graceData['isWithinGracePeriod'] == true;
+        final bool isPrimaryDevice = graceData['isPrimaryDevice'] == true;
         final double hours =
             (graceData['hoursRemaining'] as num?)?.toDouble() ?? 0;
 
@@ -148,21 +150,22 @@ class GracePeriodBanner extends ConsumerWidget {
           margin: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
           padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
           decoration: BoxDecoration(
-            color: const Color(0xFFFFF8E1),
+            color: colorScheme.tertiaryContainer,
             borderRadius: BorderRadius.circular(10),
-            border: Border.all(color: const Color(0xFFFFE082)),
+            border: Border.all(color: colorScheme.tertiary.withOpacity(0.35)),
           ),
           child: Row(
             children: [
-              const Icon(Icons.timer_outlined, size: 16, color: Color(0xFFF57F17)),
+              Icon(Icons.timer_outlined,
+                  size: 16, color: colorScheme.onTertiaryContainer),
               const SizedBox(width: 8),
               Expanded(
                 child: Text(
                   '${hours.toStringAsFixed(1)}h left in your free exploration window. '
-                      'After that, device verification will be required on new devices.',
-                  style: const TextStyle(
+                  'After that, device verification will be required on new devices.',
+                  style: TextStyle(
                     fontSize: 12,
-                    color: Color(0xFF5D4037),
+                    color: colorScheme.onTertiaryContainer,
                     decoration: TextDecoration.none,
                   ),
                 ),
@@ -186,10 +189,11 @@ class _OverlayTopBar extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final colorScheme = Theme.of(context).colorScheme;
     final topPadding = MediaQuery.of(context).padding.top;
     return Padding(
-      padding: EdgeInsets.only(
-          top: topPadding + 8, left: 16, right: 16, bottom: 4),
+      padding:
+          EdgeInsets.only(top: topPadding + 8, left: 16, right: 16, bottom: 4),
       child: Row(
         mainAxisAlignment: MainAxisAlignment.end,
         children: [
@@ -199,10 +203,11 @@ class _OverlayTopBar extends StatelessWidget {
               child: Container(
                 padding: const EdgeInsets.all(8),
                 decoration: BoxDecoration(
-                  color: Colors.white.withOpacity(0.18),
+                  color: colorScheme.surface.withOpacity(0.22),
                   shape: BoxShape.circle,
                 ),
-                child: const Icon(Icons.close, color: Colors.white, size: 18),
+                child:
+                    Icon(Icons.close, color: colorScheme.onSurface, size: 18),
               ),
             ),
         ],
@@ -254,25 +259,25 @@ class _InlinePlanCardsState extends ConsumerState<_InlinePlanCards> {
     } else {
       setState(() => _activePlanId = plan.id);
       ref.read(paymentNotifierProvider.notifier).startSubscriptionPayment(
-        plan: plan.id,
-        coinsToUse: 0,
-      );
+            plan: plan.id,
+            coinsToUse: 0,
+          );
     }
   }
 
   @override
   Widget build(BuildContext context) {
-    final payState       = ref.watch(paymentNotifierProvider);
-    final sub            = ref.watch(currentSubscriptionProvider).valueOrNull;
+    final colorScheme = Theme.of(context).colorScheme;
+    final payState = ref.watch(paymentNotifierProvider);
+    final sub = ref.watch(currentSubscriptionProvider).valueOrNull;
     final appAccessState = ref.watch(appAccessProvider);
 
     // ── Auto-unlock ONLY when subscription is genuinely active ───────────
     // Do NOT auto-unlock based on grace period here.
     // Grace bypasses device OTP, not subscription requirement.
-    final bool alreadyUnlocked =
-        (sub != null &&
+    final bool alreadyUnlocked = (sub != null &&
             (sub.hasSubscription == true || sub.status == 'active')) ||
-            appAccessState.trialActivated;
+        appAccessState.trialActivated;
 
     if (alreadyUnlocked) {
       print('✅ [_InlinePlanCards] Subscription active — auto-unlocking');
@@ -283,11 +288,10 @@ class _InlinePlanCardsState extends ConsumerState<_InlinePlanCards> {
     }
 
     // ── Hide trial for users with known subscription history ─────────────
-    final String? subStatus   = sub?.status;
+    final String? subStatus = sub?.status;
     final bool hasKnownStatus = subStatus != null && subStatus.isNotEmpty;
-    final visiblePlans = hasKnownStatus
-        ? kPlans.where((p) => p.id != 'trial').toList()
-        : kPlans;
+    final visiblePlans =
+        hasKnownStatus ? kPlans.where((p) => p.id != 'trial').toList() : kPlans;
 
     // ── Payment success listener ─────────────────────────────────────────
     ref.listen<PaymentState>(paymentNotifierProvider, (prev, next) {
@@ -298,7 +302,10 @@ class _InlinePlanCardsState extends ConsumerState<_InlinePlanCards> {
           if (mounted) {
             ref.invalidate(graceStatusProvider);
             ref.invalidate(deviceTrustProvider);
-            ref.read(appAccessProvider.notifier).refreshSubscription().then((_) {
+            ref
+                .read(appAccessProvider.notifier)
+                .refreshSubscription()
+                .then((_) {
               if (mounted) widget.onUnlocked();
             }).catchError((_) {
               if (mounted) widget.onUnlocked();
@@ -317,22 +324,20 @@ class _InlinePlanCardsState extends ConsumerState<_InlinePlanCards> {
       children: [
         _OverlayHeader(
           icon: Icons.lock_open_rounded,
-          iconGradient: const LinearGradient(
-            colors: [Color(0xFF1A73E8), Color(0xFF0D47A1)],
+          iconGradient: LinearGradient(
+            colors: [colorScheme.primary, colorScheme.secondary],
             begin: Alignment.topLeft,
             end: Alignment.bottomRight,
           ),
           title: "",
           subtitle:
-          "Choose a plan to use Setup, Reports, and all project modules.",
+              "Choose a plan to use Setup, Reports, and all project modules.",
         ),
         const SizedBox(height: 20),
-
         if (payState.error != null)
           _StatusBanner(isError: true, message: payState.error!),
         if (payState.successMessage != null)
           _StatusBanner(isError: false, message: payState.successMessage!),
-
         ...visiblePlans.map((plan) {
           final isThisPlanLoading =
               _activePlanId == plan.id && payState.isLoading;
@@ -348,7 +353,6 @@ class _InlinePlanCardsState extends ConsumerState<_InlinePlanCards> {
             ),
           );
         }),
-
         const SizedBox(height: 4),
         const Center(
           child: Text(
@@ -383,7 +387,7 @@ class _CompactPlanCard extends StatelessWidget {
   });
 
   bool get _isPremium => plan.tier == PlanTier.premium;
-  bool get _isTrial   => plan.tier == PlanTier.trial;
+  bool get _isTrial => plan.tier == PlanTier.trial;
 
   @override
   Widget build(BuildContext context) {
@@ -400,7 +404,12 @@ class _CompactPlanCard extends StatelessWidget {
             width: _isPremium ? 1.5 : 1.0,
           ),
           boxShadow: _isPremium
-              ? [BoxShadow(color: accent.withOpacity(0.12), blurRadius: 18, offset: const Offset(0, 4))]
+              ? [
+                  BoxShadow(
+                      color: accent.withOpacity(0.12),
+                      blurRadius: 18,
+                      offset: const Offset(0, 4))
+                ]
               : [],
         ),
         child: Opacity(
@@ -412,11 +421,12 @@ class _CompactPlanCard extends StatelessWidget {
                 decoration: BoxDecoration(
                   gradient: _isTrial
                       ? LinearGradient(colors: [
-                    AppColors.trialGradStart.withOpacity(0.4),
-                    AppColors.trialGradEnd.withOpacity(0.25),
-                  ])
+                          AppColors.trialGradStart.withOpacity(0.4),
+                          AppColors.trialGradEnd.withOpacity(0.25),
+                        ])
                       : plan.cardGradient,
-                  borderRadius: const BorderRadius.vertical(top: Radius.circular(18)),
+                  borderRadius:
+                      const BorderRadius.vertical(top: Radius.circular(18)),
                 ),
               ),
               Padding(
@@ -432,17 +442,21 @@ class _CompactPlanCard extends StatelessWidget {
                             children: [
                               Text(plan.name,
                                   style: AppTextStyles.planTitle.copyWith(
-                                      fontSize: 15, decoration: TextDecoration.none)),
+                                      fontSize: 15,
+                                      decoration: TextDecoration.none)),
                               if (plan.badge.isNotEmpty) ...[
                                 const SizedBox(width: 6),
                                 Container(
-                                  padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
+                                  padding: const EdgeInsets.symmetric(
+                                      horizontal: 6, vertical: 2),
                                   decoration: BoxDecoration(
                                       color: accent.withOpacity(0.12),
                                       borderRadius: BorderRadius.circular(4)),
                                   child: Text(plan.badge,
                                       style: AppTextStyles.badgeText.copyWith(
-                                          color: accent, fontSize: 9, decoration: TextDecoration.none)),
+                                          color: accent,
+                                          fontSize: 9,
+                                          decoration: TextDecoration.none)),
                                 ),
                               ],
                             ],
@@ -454,7 +468,8 @@ class _CompactPlanCard extends StatelessWidget {
                               Text(
                                 _isTrial ? '₹1' : '₹${plan.priceMonthly}',
                                 style: AppTextStyles.priceMain.copyWith(
-                                    fontSize: 24, decoration: TextDecoration.none),
+                                    fontSize: 24,
+                                    decoration: TextDecoration.none),
                               ),
                               const SizedBox(width: 3),
                               Padding(
@@ -462,7 +477,8 @@ class _CompactPlanCard extends StatelessWidget {
                                 child: Text(
                                   _isTrial ? ' for trial' : '/mo',
                                   style: AppTextStyles.featureText.copyWith(
-                                      fontSize: 10, decoration: TextDecoration.none),
+                                      fontSize: 10,
+                                      decoration: TextDecoration.none),
                                 ),
                               ),
                             ],
@@ -470,22 +486,26 @@ class _CompactPlanCard extends StatelessWidget {
                           const SizedBox(height: 4),
                           ...plan.features.take(2).map(
                                 (f) => Padding(
-                              padding: const EdgeInsets.only(bottom: 2),
-                              child: Row(
-                                children: [
-                                  Icon(Icons.check_rounded, size: 11, color: accent),
-                                  const SizedBox(width: 5),
-                                  Flexible(
-                                    child: Text(f,
-                                        style: AppTextStyles.featureText.copyWith(
-                                            fontSize: 11, decoration: TextDecoration.none),
-                                        maxLines: 1,
-                                        overflow: TextOverflow.ellipsis),
+                                  padding: const EdgeInsets.only(bottom: 2),
+                                  child: Row(
+                                    children: [
+                                      Icon(Icons.check_rounded,
+                                          size: 11, color: accent),
+                                      const SizedBox(width: 5),
+                                      Flexible(
+                                        child: Text(f,
+                                            style: AppTextStyles.featureText
+                                                .copyWith(
+                                                    fontSize: 11,
+                                                    decoration:
+                                                        TextDecoration.none),
+                                            maxLines: 1,
+                                            overflow: TextOverflow.ellipsis),
+                                      ),
+                                    ],
                                   ),
-                                ],
+                                ),
                               ),
-                            ),
-                          ),
                         ],
                       ),
                     ),
@@ -494,54 +514,66 @@ class _CompactPlanCard extends StatelessWidget {
                       onTap: (isLoading || disabled) ? null : onTap,
                       child: AnimatedContainer(
                         duration: const Duration(milliseconds: 180),
-                        padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
+                        padding: const EdgeInsets.symmetric(
+                            horizontal: 14, vertical: 12),
                         decoration: BoxDecoration(
-                          gradient: (isLoading || disabled || _isTrial) ? null : plan.cardGradient,
+                          gradient: (isLoading || disabled || _isTrial)
+                              ? null
+                              : plan.cardGradient,
                           color: isLoading
                               ? AppColors.divider
                               : disabled
-                              ? AppColors.divider
-                              : _isTrial
-                              ? AppColors.surface
-                              : null,
+                                  ? AppColors.divider
+                                  : _isTrial
+                                      ? AppColors.surface
+                                      : null,
                           borderRadius: BorderRadius.circular(12),
-                          border: _isTrial ? Border.all(color: AppColors.divider) : null,
+                          border: _isTrial
+                              ? Border.all(color: AppColors.divider)
+                              : null,
                           boxShadow: (!isLoading && !disabled && !_isTrial)
-                              ? [BoxShadow(color: accent.withOpacity(0.28), blurRadius: 8, offset: const Offset(0, 3))]
+                              ? [
+                                  BoxShadow(
+                                      color: accent.withOpacity(0.28),
+                                      blurRadius: 8,
+                                      offset: const Offset(0, 3))
+                                ]
                               : [],
                         ),
                         child: isLoading
                             ? const SizedBox(
-                          width: 16,
-                          height: 16,
-                          child: CircularProgressIndicator(strokeWidth: 2, color: AppColors.textMuted),
-                        )
+                                width: 16,
+                                height: 16,
+                                child: CircularProgressIndicator(
+                                    strokeWidth: 2, color: AppColors.textMuted),
+                              )
                             : Column(
-                          mainAxisSize: MainAxisSize.min,
-                          children: [
-                            Text(
-                              _isTrial ? 'Try Free' : 'Select',
-                              style: TextStyle(
-                                fontFamily: 'Outfit',
-                                fontSize: 13,
-                                fontWeight: FontWeight.w700,
-                                decoration: TextDecoration.none,
-                                color: disabled
-                                    ? AppColors.textMuted
-                                    : _isTrial
-                                    ? AppColors.textSecondary
-                                    : Colors.white,
-                              ),
-                            ),
-                            if (!_isTrial)
-                              Text('/mo',
-                                  style: TextStyle(
-                                      fontSize: 9,
+                                mainAxisSize: MainAxisSize.min,
+                                children: [
+                                  Text(
+                                    _isTrial ? 'Try Free' : 'Select',
+                                    style: TextStyle(
+                                      fontFamily: 'Outfit',
+                                      fontSize: 13,
+                                      fontWeight: FontWeight.w700,
                                       decoration: TextDecoration.none,
-                                      color: Colors.white.withOpacity(0.75),
-                                      fontWeight: FontWeight.w500)),
-                          ],
-                        ),
+                                      color: disabled
+                                          ? AppColors.textMuted
+                                          : _isTrial
+                                              ? AppColors.textSecondary
+                                              : Colors.white,
+                                    ),
+                                  ),
+                                  if (!_isTrial)
+                                    Text('/mo',
+                                        style: TextStyle(
+                                            fontSize: 9,
+                                            decoration: TextDecoration.none,
+                                            color:
+                                                Colors.white.withOpacity(0.75),
+                                            fontWeight: FontWeight.w500)),
+                                ],
+                              ),
                       ),
                     ),
                   ],
@@ -565,6 +597,7 @@ class _InlineOnboardingCard extends ConsumerWidget {
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
+    final colorScheme = Theme.of(context).colorScheme;
     return _WhiteCard(
       child: Padding(
         padding: const EdgeInsets.all(24),
@@ -573,14 +606,14 @@ class _InlineOnboardingCard extends ConsumerWidget {
           children: [
             _OverlayHeader(
               icon: Icons.rocket_launch_rounded,
-              iconGradient: const LinearGradient(
-                colors: [Color(0xFF00C853), Color(0xFF007B33)],
+              iconGradient: LinearGradient(
+                colors: [colorScheme.tertiary, colorScheme.primary],
                 begin: Alignment.topLeft,
                 end: Alignment.bottomRight,
               ),
               title: "Complete Setup First",
               subtitle:
-              "Your free plan is active. A quick one-time setup unlocks all modules.",
+                  "Your free plan is active. A quick one-time setup unlocks all modules.",
             ),
             const SizedBox(height: 20),
             ...[
@@ -588,32 +621,34 @@ class _InlineOnboardingCard extends ConsumerWidget {
               ('2', 'Configure team & rates'),
               ('3', "You're all set!"),
             ].map(
-                  (s) => Padding(
+              (s) => Padding(
                 padding: const EdgeInsets.only(bottom: 10),
                 child: Row(
                   children: [
                     Container(
-                      width: 30, height: 30,
+                      width: 30,
+                      height: 30,
                       decoration: BoxDecoration(
-                        color: const Color(0xFFF0FFF4),
+                        color: colorScheme.tertiaryContainer,
                         shape: BoxShape.circle,
-                        border: Border.all(color: const Color(0xFF00C853).withOpacity(0.4)),
+                        border: Border.all(
+                            color: colorScheme.tertiary.withOpacity(0.35)),
                       ),
                       child: Center(
                         child: Text(s.$1,
-                            style: const TextStyle(
+                            style: TextStyle(
                                 fontWeight: FontWeight.w800,
                                 fontSize: 12,
-                                color: Color(0xFF00C853),
+                                color: colorScheme.onTertiaryContainer,
                                 decoration: TextDecoration.none)),
                       ),
                     ),
                     const SizedBox(width: 12),
                     Text(s.$2,
-                        style: const TextStyle(
+                        style: TextStyle(
                             fontSize: 14,
                             fontWeight: FontWeight.w500,
-                            color: Color(0xFF1B1B1B),
+                            color: colorScheme.onSurface,
                             decoration: TextDecoration.none)),
                   ],
                 ),
@@ -622,7 +657,7 @@ class _InlineOnboardingCard extends ConsumerWidget {
             const SizedBox(height: 24),
             _PlainButton(
               label: "Start Setup →",
-              color: const Color(0xFF00C853),
+              color: colorScheme.primary,
               onTap: () async {
                 ref.read(appAccessProvider.notifier).markOnboardingCompleted();
                 await Future.delayed(const Duration(milliseconds: 100));
@@ -658,8 +693,8 @@ class _InlineDeviceCard extends ConsumerStatefulWidget {
 
 class _InlineDeviceCardState extends ConsumerState<_InlineDeviceCard> {
   final TextEditingController _otpCtrl = TextEditingController();
-  bool _otpSent   = false;
-  bool _loading   = false;
+  bool _otpSent = false;
+  bool _loading = false;
   String? _message;
   bool _isSuccess = false;
 
@@ -670,26 +705,38 @@ class _InlineDeviceCardState extends ConsumerState<_InlineDeviceCard> {
   }
 
   Future<void> _sendOtp() async {
-    setState(() { _loading = true; _message = null; });
+    setState(() {
+      _loading = true;
+      _message = null;
+    });
     try {
       final res = await AuthAPI.generateDeviceOtp();
       setState(() {
-        _otpSent   = true;
-        _message   = res['message'] ?? "OTP sent to your email";
+        _otpSent = true;
+        _message = res['message'] ?? "OTP sent to your email";
         _isSuccess = true;
       });
     } catch (e) {
-      setState(() { _message = "Failed to send OTP. Try again."; _isSuccess = false; });
+      setState(() {
+        _message = "Failed to send OTP. Try again.";
+        _isSuccess = false;
+      });
     }
     setState(() => _loading = false);
   }
 
   Future<void> _verifyOtp() async {
     if (_otpCtrl.text.trim().length != 4) {
-      setState(() { _message = "Please enter the 4-digit code"; _isSuccess = false; });
+      setState(() {
+        _message = "Please enter the 4-digit code";
+        _isSuccess = false;
+      });
       return;
     }
-    setState(() { _loading = true; _message = null; });
+    setState(() {
+      _loading = true;
+      _message = null;
+    });
     try {
       final res = await AuthAPI.verifyDeviceOtp({'otp': _otpCtrl.text.trim()});
 
@@ -705,13 +752,17 @@ class _InlineDeviceCardState extends ConsumerState<_InlineDeviceCard> {
 
       widget.onUnlocked();
     } catch (e) {
-      setState(() { _message = "Invalid OTP. Please try again."; _isSuccess = false; });
+      setState(() {
+        _message = "Invalid OTP. Please try again.";
+        _isSuccess = false;
+      });
     }
     setState(() => _loading = false);
   }
 
   @override
   Widget build(BuildContext context) {
+    final colorScheme = Theme.of(context).colorScheme;
     // Use deviceTrustProvider for requiresDeviceAuth — this is the correct source
     final trustAsync = ref.watch(deviceTrustProvider);
 
@@ -726,29 +777,32 @@ class _InlineDeviceCardState extends ConsumerState<_InlineDeviceCard> {
               SizedBox(height: 16),
               Text('Checking device status...',
                   style: TextStyle(
-                      color: Colors.white70, fontSize: 13, decoration: TextDecoration.none)),
+                      color: Colors.white70,
+                      fontSize: 13,
+                      decoration: TextDecoration.none)),
             ],
           ),
         ),
       ),
-      error: (_, __) => _buildOtpContent(),
+      error: (_, __) => _buildOtpContent(colorScheme),
       data: (trustData) {
         final bool requiresDeviceAuth = trustData['requiresDeviceAuth'] == true;
 
         if (!requiresDeviceAuth) {
-          print('✅ [_InlineDeviceCard] requiresDeviceAuth=false — auto-unlocking');
+          print(
+              '✅ [_InlineDeviceCard] requiresDeviceAuth=false — auto-unlocking');
           WidgetsBinding.instance.addPostFrameCallback((_) {
             if (mounted) widget.onUnlocked();
           });
           return const SizedBox.shrink();
         }
 
-        return _buildOtpContent();
+        return _buildOtpContent(colorScheme);
       },
     );
   }
 
-  Widget _buildOtpContent() {
+  Widget _buildOtpContent(ColorScheme colorScheme) {
     return _WhiteCard(
       child: Padding(
         padding: const EdgeInsets.all(24),
@@ -757,27 +811,35 @@ class _InlineDeviceCardState extends ConsumerState<_InlineDeviceCard> {
           children: [
             _OverlayHeader(
               icon: Icons.shield_rounded,
-              iconGradient: const LinearGradient(
-                colors: [Color(0xFF5C35E8), Color(0xFF3A1DBF)],
+              iconGradient: LinearGradient(
+                colors: [colorScheme.primary, colorScheme.secondary],
                 begin: Alignment.topLeft,
                 end: Alignment.bottomRight,
               ),
-              title: _otpSent ? "Enter Verification Code" : "Verify Your Device",
+              title:
+                  _otpSent ? "Enter Verification Code" : "Verify Your Device",
               subtitle: _otpSent
                   ? "A 4-digit code has been sent to your registered email."
                   : "One-time verification to protect your project data.",
             ),
             const SizedBox(height: 20),
-
             if (!_otpSent) ...[
-              _InfoTile(icon: Icons.lock_outline, text: "Data accessible only to you", color: const Color(0xFF5C35E8)),
+              _InfoTile(
+                  icon: Icons.lock_outline,
+                  text: "Data accessible only to you",
+                  color: colorScheme.primary),
               const SizedBox(height: 8),
-              _InfoTile(icon: Icons.block, text: "Stops misuse from shared APKs", color: const Color(0xFF5C35E8)),
+              _InfoTile(
+                  icon: Icons.block,
+                  text: "Stops misuse from shared APKs",
+                  color: colorScheme.primary),
               const SizedBox(height: 8),
-              _InfoTile(icon: Icons.verified_user_outlined, text: "Done once — never repeated on this device", color: const Color(0xFF5C35E8)),
+              _InfoTile(
+                  icon: Icons.verified_user_outlined,
+                  text: "Done once — never repeated on this device",
+                  color: colorScheme.primary),
               const SizedBox(height: 20),
             ],
-
             if (_otpSent) ...[
               PinCodeTextField(
                 length: 4,
@@ -785,18 +847,24 @@ class _InlineDeviceCardState extends ConsumerState<_InlineDeviceCard> {
                 controller: _otpCtrl,
                 keyboardType: TextInputType.number,
                 animationType: AnimationType.fade,
-                cursorColor: const Color(0xFF5C35E8),
-                textStyle: const TextStyle(fontSize: 20, fontWeight: FontWeight.bold, decoration: TextDecoration.none),
+                cursorColor: colorScheme.primary,
+                textStyle: TextStyle(
+                  fontSize: 20,
+                  fontWeight: FontWeight.bold,
+                  color: colorScheme.onSurface,
+                  decoration: TextDecoration.none,
+                ),
                 pinTheme: PinTheme(
                   shape: PinCodeFieldShape.box,
                   borderRadius: BorderRadius.circular(10),
-                  fieldHeight: 50, fieldWidth: 42,
-                  activeColor: const Color(0xFF5C35E8),
-                  selectedColor: const Color(0xFF5C35E8),
-                  inactiveColor: Colors.grey.shade300,
-                  activeFillColor: Colors.white,
-                  selectedFillColor: const Color(0xFFF3F0FF),
-                  inactiveFillColor: Colors.white,
+                  fieldHeight: 50,
+                  fieldWidth: 42,
+                  activeColor: colorScheme.primary,
+                  selectedColor: colorScheme.primary,
+                  inactiveColor: colorScheme.outlineVariant,
+                  activeFillColor: colorScheme.surface,
+                  selectedFillColor: colorScheme.surfaceContainerLow,
+                  inactiveFillColor: colorScheme.surface,
                   borderWidth: 2,
                 ),
                 enableActiveFill: true,
@@ -811,29 +879,36 @@ class _InlineDeviceCardState extends ConsumerState<_InlineDeviceCard> {
                   mainAxisSize: MainAxisSize.min,
                   children: [
                     Text("Didn't receive it? ",
-                        style: TextStyle(fontSize: 12, color: Colors.grey[500], decoration: TextDecoration.none)),
+                        style: TextStyle(
+                            fontSize: 12,
+                            color: colorScheme.onSurfaceVariant,
+                            decoration: TextDecoration.none)),
                     GestureDetector(
                       onTap: _loading ? null : _sendOtp,
                       child: Text("Resend",
                           style: TextStyle(
-                              fontSize: 12, fontWeight: FontWeight.w700,
+                              fontSize: 12,
+                              fontWeight: FontWeight.w700,
                               decoration: TextDecoration.none,
-                              color: _loading ? Colors.grey[400] : const Color(0xFF5C35E8))),
+                              color: _loading
+                                  ? colorScheme.outline
+                                  : colorScheme.primary)),
                     ),
                   ],
                 ),
               ),
               const SizedBox(height: 16),
             ],
-
             if (_message != null)
               _StatusBanner(isError: !_isSuccess, message: _message!),
-
             const SizedBox(height: 16),
-
             _PlainButton(
-              label: _loading ? '' : _otpSent ? "Verify & Unlock" : "Send Verification Code",
-              color: const Color(0xFF5C35E8),
+              label: _loading
+                  ? ''
+                  : _otpSent
+                      ? "Verify & Unlock"
+                      : "Send Verification Code",
+              color: colorScheme.primary,
               isLoading: _loading,
               onTap: _loading ? null : (_otpSent ? _verifyOtp : _sendOtp),
             ),
@@ -854,7 +929,11 @@ class _PlainButton extends StatelessWidget {
   final VoidCallback? onTap;
   final bool isLoading;
 
-  const _PlainButton({required this.label, required this.color, this.onTap, this.isLoading = false});
+  const _PlainButton(
+      {required this.label,
+      required this.color,
+      this.onTap,
+      this.isLoading = false});
 
   @override
   Widget build(BuildContext context) {
@@ -869,25 +948,30 @@ class _PlainButton extends StatelessWidget {
           decoration: BoxDecoration(
             color: onTap == null ? color.withOpacity(0.5) : color,
             borderRadius: BorderRadius.circular(16),
-            boxShadow: onTap == null ? [] : [
-              BoxShadow(
-                color: color.withOpacity(0.25),
-                blurRadius: 16,
-                offset: const Offset(0, 6),
-              )
-            ],
+            boxShadow: onTap == null
+                ? []
+                : [
+                    BoxShadow(
+                      color: color.withOpacity(0.25),
+                      blurRadius: 16,
+                      offset: const Offset(0, 6),
+                    )
+                  ],
           ),
           alignment: Alignment.center,
           child: isLoading
-              ? const SizedBox(width: 22, height: 22,
-              child: CircularProgressIndicator(strokeWidth: 3, color: Colors.white))
+              ? const SizedBox(
+                  width: 22,
+                  height: 22,
+                  child: CircularProgressIndicator(
+                      strokeWidth: 3, color: Colors.white))
               : Text(label,
-              style: const TextStyle(
-                  fontSize: 16, 
-                  fontWeight: FontWeight.w700,
-                  color: Colors.white, 
-                  letterSpacing: -0.1,
-                  decoration: TextDecoration.none)),
+                  style: const TextStyle(
+                      fontSize: 16,
+                      fontWeight: FontWeight.w700,
+                      color: Colors.white,
+                      letterSpacing: -0.1,
+                      decoration: TextDecoration.none)),
         ),
       ),
     );
@@ -904,24 +988,27 @@ class _WhiteCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final colorScheme = Theme.of(context).colorScheme;
     return Material(
-      color: Colors.white,
+      color: colorScheme.surfaceContainerLow,
       borderRadius: BorderRadius.circular(32),
       elevation: 0,
       child: Container(
         width: double.infinity,
         constraints: const BoxConstraints(maxWidth: 440),
         decoration: BoxDecoration(
-          color: Colors.white,
+          color: colorScheme.surfaceContainerLow,
           borderRadius: BorderRadius.circular(32),
+          border:
+              Border.all(color: colorScheme.outlineVariant.withOpacity(0.5)),
           boxShadow: [
             BoxShadow(
-              color: Colors.black.withOpacity(0.12),
+              color: colorScheme.shadow.withOpacity(0.18),
               blurRadius: 40,
               offset: const Offset(0, 16),
             ),
             BoxShadow(
-              color: Colors.black.withOpacity(0.04),
+              color: colorScheme.shadow.withOpacity(0.08),
               blurRadius: 4,
               offset: const Offset(0, 2),
             ),
@@ -939,21 +1026,30 @@ class _OverlayHeader extends StatelessWidget {
   final String title;
   final String subtitle;
 
-  const _OverlayHeader({required this.icon, required this.iconGradient, required this.title, required this.subtitle});
+  const _OverlayHeader(
+      {required this.icon,
+      required this.iconGradient,
+      required this.title,
+      required this.subtitle});
 
   @override
   Widget build(BuildContext context) {
+    final colorScheme = Theme.of(context).colorScheme;
     return Column(
       children: [
         if (title.isNotEmpty)
           Container(
-            width: 72, height: 72,
+            width: 72,
+            height: 72,
             decoration: BoxDecoration(
               gradient: iconGradient,
               borderRadius: BorderRadius.circular(24),
               boxShadow: [
                 BoxShadow(
-                  color: (iconGradient as LinearGradient).colors.first.withOpacity(0.25),
+                  color: (iconGradient as LinearGradient)
+                      .colors
+                      .first
+                      .withOpacity(0.25),
                   blurRadius: 20,
                   offset: const Offset(0, 8),
                 )
@@ -965,19 +1061,19 @@ class _OverlayHeader extends StatelessWidget {
         if (title.isNotEmpty)
           Text(title,
               textAlign: TextAlign.center,
-              style: const TextStyle(
-                  fontSize: 22, 
+              style: TextStyle(
+                  fontSize: 22,
                   fontWeight: FontWeight.w800,
-                  color: Color(0xFF1A1A1A), 
+                  color: colorScheme.onSurface,
                   letterSpacing: -0.5,
                   decoration: TextDecoration.none)),
         const SizedBox(height: 8),
         Text(subtitle,
             textAlign: TextAlign.center,
-            style: const TextStyle(
-                fontSize: 14, 
-                color: Color(0xFF666666), 
-                height: 1.5, 
+            style: TextStyle(
+                fontSize: 14,
+                color: colorScheme.onSurfaceVariant,
+                height: 1.5,
                 fontWeight: FontWeight.w400,
                 decoration: TextDecoration.none)),
       ],
@@ -989,23 +1085,29 @@ class _InfoTile extends StatelessWidget {
   final IconData icon;
   final String text;
   final Color color;
-  const _InfoTile({required this.icon, required this.text, required this.color});
+  const _InfoTile(
+      {required this.icon, required this.text, required this.color});
 
   @override
   Widget build(BuildContext context) {
+    final colorScheme = Theme.of(context).colorScheme;
     return Row(
       children: [
         Container(
           padding: const EdgeInsets.all(6),
-          decoration: BoxDecoration(color: color.withOpacity(0.1), borderRadius: BorderRadius.circular(8)),
+          decoration: BoxDecoration(
+              color: color.withOpacity(0.1),
+              borderRadius: BorderRadius.circular(8)),
           child: Icon(icon, size: 14, color: color),
         ),
         const SizedBox(width: 10),
         Expanded(
           child: Text(text,
               style: TextStyle(
-                  fontSize: 13, color: Colors.grey[700],
-                  fontWeight: FontWeight.w500, decoration: TextDecoration.none)),
+                  fontSize: 13,
+                  color: colorScheme.onSurfaceVariant,
+                  fontWeight: FontWeight.w500,
+                  decoration: TextDecoration.none)),
         ),
       ],
     );
@@ -1019,22 +1121,37 @@ class _StatusBanner extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final color = isError ? Colors.red : Colors.green;
+    final colorScheme = Theme.of(context).colorScheme;
+    final background =
+        isError ? colorScheme.errorContainer : colorScheme.tertiaryContainer;
+    final foreground = isError
+        ? colorScheme.onErrorContainer
+        : colorScheme.onTertiaryContainer;
+    final border = isError
+        ? colorScheme.error.withOpacity(0.45)
+        : colorScheme.tertiary.withOpacity(0.4);
     return Container(
       margin: const EdgeInsets.only(bottom: 12),
       padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
       decoration: BoxDecoration(
-        color: color.shade50,
+        color: background,
         borderRadius: BorderRadius.circular(10),
-        border: Border.all(color: color.shade200),
+        border: Border.all(color: border),
       ),
       child: Row(
         children: [
-          Icon(isError ? Icons.error_outline : Icons.check_circle_outline, size: 16, color: color.shade700),
+          Icon(
+            isError ? Icons.error_outline : Icons.check_circle_outline,
+            size: 16,
+            color: foreground,
+          ),
           const SizedBox(width: 8),
           Expanded(
             child: Text(message,
-                style: TextStyle(fontSize: 12.5, color: color.shade900, decoration: TextDecoration.none)),
+                style: TextStyle(
+                    fontSize: 12.5,
+                    color: foreground,
+                    decoration: TextDecoration.none)),
           ),
         ],
       ),

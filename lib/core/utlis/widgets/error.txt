@@ -1,0 +1,1042 @@
+/WindowOnBackDispatcher(27544): Set 'android:enableOnBackInvokedCallback="true"' in the application manifest.
+
+══╡ EXCEPTION CAUGHT BY WIDGETS LIBRARY ╞═══════════════════════════════════════════════════════════
+The following assertion was thrown while finalizing the widget tree:
+'package:flutter/src/widgets/framework.dart': Failed assertion: line 5340 pos 12: '_lifecycleState
+!= _ElementLifecycle.defunct': is not true.
+
+Either the assertion indicates an error in the framework itself, or we should provide substantially
+more information in this error message to help you determine and fix the underlying cause.
+In either case, please report this assertion by filing a bug on GitHub:
+  https://github.com/flutter/flutter/issues/new?template=02_bug.yml
+
+When the exception was thrown, this was the stack:
+#2      Element.markNeedsBuild (package:flutter/src/widgets/framework.dart:5340:12)
+#3      State.setState (package:flutter/src/widgets/framework.dart:1219:15)
+#4      _ExitWrapperState._removeOverlay (package:untitled2/exit_wrapper.dart:20:18)
+#5      _ExitWrapperState.dispose (package:untitled2/exit_wrapper.dart:164:5)
+#6      StatefulElement.unmount (package:flutter/src/widgets/framework.dart:6030:11)
+#7      _InactiveElements._unmount (package:flutter/src/widgets/framework.dart:2117:13)
+#8      _InactiveElements._unmount.<anonymous closure> (package:flutter/src/widgets/framework.dart:2115:7)
+#9      ComponentElement.visitChildren (package:flutter/src/widgets/framework.dart:5871:14)
+#10     _InactiveElements._unmount (package:flutter/src/widgets/framework.dart:2113:13)
+#11     _InactiveElements._unmount.<anonymous closure> (package:flutter/src/widgets/framework.dart:2115:7)
+#12     SingleChildRenderObjectElement.visitChildren (package:flutter/src/widgets/framework.dart:7101:14)
+#13     _InactiveElements._unmount (package:flutter/src/widgets/framework.dart:2113:13)
+#14     _InactiveElements._unmount.<anonymous closure> (package:flutter/src/widgets/framework.dart:2115:7)
+#15     ComponentElement.visitChildren (package:flutter/src/widgets/framework.dart:5871:14)
+#16     _InactiveElements._unmount (package:flutter/src/widgets/framework.dart:2113:13)
+#17     _InactiveElements._unmount.<anonymous closure> (package:flutter/src/widgets/framework.dart:2115:7)
+#18     SingleChildRenderObjectElement.visitChildren (package:flutter/src/widgets/framework.dart:7101:14)
+#19     _InactiveElements._unmount (package:flutter/src/widgets/framework.dart:2113:13)
+#20     _InactiveElements._unmount.<anonymous closure> (package:flutter/src/widgets/framework.dart:2115:7)
+#21     SingleChildRenderObjectElement.visitChildren (package:flutter/src/widgets/framework.dart:7101:14)
+#22     _InactiveElements._unmount (package:flutter/src/widgets/framework.dart:2113:13)
+#23     _InactiveElements._unmount.<anonymous closure> (package:flutter/src/widgets/framework.dart:2115:7)
+#24     ComponentElement.visitChildren (package:flutter/src/widgets/framework.dart:5871:14)
+#25     _InactiveElements._unmount (package:flutter/src/widgets/framework.dart:2113:13)
+#26     _InactiveElements._unmount.<anonymous closure> (package:flutter/src/widgets/framework.dart:2115:7)
+#27     SingleChildRenderObjectElement.visitChildren (package:flutter/src/widgets/framework.dart:7101:14)
+#28     _InactiveElements._unmount (package:flutter/src/widgets/framework.dart:2113:13)
+#29     _InactiveElements._unmount.<anonymous closure> (package:flutter/src/widgets/framework.dart:2115:7)
+#30     ComponentElement.visitChildren (package:flutter/src/widgets/framework.dart:5871:14)
+#31     _InactiveElements._unmount (package:flutter/src/widgets/framework.dart:2113:13)
+#32     _InactiveElements._unmount.<anonymous closure> (package:flutter/src/widgets/framework.dart:2115:7)
+#33     ComponentElement.visitChildren (package:flutter/src/widgets/framework.dart:5871:14)
+#34     _InactiveElements._unmount (package:flutter/src/widgets/framework.dart:2113:13)
+#35     _InactiveElements._unmount.<anonymous closure> (package:flutter/src/widgets/framework.dart:2115:7)
+#36     ComponentElement.visitChildren (package:flutter/src/widgets/framework.dart:5871:14)
+#37     _InactiveElements._unmount (package:flutter/src/widgets/framework.dart:2113:13)
+#38     _InactiveElements._unmount.<anonymous closure> (package:flutter/src/widgets/framework.dart:2115:7)
+#39     SingleChildRenderObjectElement.visitChildren (package:flutter/src/widgets/framework.dart:7101:14)
+#40     _InactiveElements._unmount (package:flutter/src/widgets/framework.dart:2113:13)
+#41     _InactiveElements._unmount.<anonymous closure> (package:flutter/src/widgets/framework.dart:2115:7)
+#42     ComponentElement.visitChildren (package:flutter/src/widgets/framework.dart:5871:14)
+#43     _InactiveElements._unmount (package:flutter/src/widgets/framework.dart:2113:13)
+#44     _InactiveElements._unmount.<anonymous closure> (package:flutter/src/widgets/framework.dart:2115:7)
+#45     SingleChildRenderObjectElement.visitChildren (package:flutter/src/widgets/framework.dart:7101:14)
+#46     _InactiveElements._unmount (package:flutter/src/widgets/framework.dart:2113:13)
+#47     _InactiveElements._unmount.<anonymous closure> (package:flutter/src/widgets/framework.dart:2115:7)
+#48     ComponentElement.visitChildren (package:flutter/src/widgets/framework.dart:5871:14)
+#49     _InactiveElements._unmount (package:flutter/src/widgets/framework.dart:2113:13)
+#50     _InactiveElements._unmount.<anonymous closure> (package:flutter/src/widgets/framework.dart:2115:7)
+#51     ComponentElement.visitChildren (package:flutter/src/widgets/framework.dart:5871:14)
+#52     _InactiveElements._unmount (package:flutter/src/widgets/framework.dart:2113:13)
+#53     _InactiveElements._unmount.<anonymous closure> (package:flutter/src/widgets/framework.dart:2115:7)
+#54     ComponentElement.visitChildren (package:flutter/src/widgets/framework.dart:5871:14)
+#55     _InactiveElements._unmount (package:flutter/src/widgets/framework.dart:2113:13)
+#56     _InactiveElements._unmount.<anonymous closure> (package:flutter/src/widgets/framework.dart:2115:7)
+#57     ComponentElement.visitChildren (package:flutter/src/widgets/framework.dart:5871:14)
+#58     _InactiveElements._unmount (package:flutter/src/widgets/framework.dart:2113:13)
+#59     _InactiveElements._unmount.<anonymous closure> (package:flutter/src/widgets/framework.dart:2115:7)
+#60     ComponentElement.visitChildren (package:flutter/src/widgets/framework.dart:5871:14)
+#61     _InactiveElements._unmount (package:flutter/src/widgets/framework.dart:2113:13)
+#62     _InactiveElements._unmount.<anonymous closure> (package:flutter/src/widgets/framework.dart:2115:7)
+#63     ComponentElement.visitChildren (package:flutter/src/widgets/framework.dart:5871:14)
+#64     _InactiveElements._unmount (package:flutter/src/widgets/framework.dart:2113:13)
+#65     _InactiveElements._unmount.<anonymous closure> (package:flutter/src/widgets/framework.dart:2115:7)
+#66     SingleChildRenderObjectElement.visitChildren (package:flutter/src/widgets/framework.dart:7101:14)
+#67     _InactiveElements._unmount (package:flutter/src/widgets/framework.dart:2113:13)
+#68     _InactiveElements._unmount.<anonymous closure> (package:flutter/src/widgets/framework.dart:2115:7)
+#69     ComponentElement.visitChildren (package:flutter/src/widgets/framework.dart:5871:14)
+#70     _InactiveElements._unmount (package:flutter/src/widgets/framework.dart:2113:13)
+#71     _InactiveElements._unmount.<anonymous closure> (package:flutter/src/widgets/framework.dart:2115:7)
+#72     ComponentElement.visitChildren (package:flutter/src/widgets/framework.dart:5871:14)
+#73     _InactiveElements._unmount (package:flutter/src/widgets/framework.dart:2113:13)
+#74     _InactiveElements._unmount.<anonymous closure> (package:flutter/src/widgets/framework.dart:2115:7)
+#75     ComponentElement.visitChildren (package:flutter/src/widgets/framework.dart:5871:14)
+#76     _InactiveElements._unmount (package:flutter/src/widgets/framework.dart:2113:13)
+#77     _InactiveElements._unmount.<anonymous closure> (package:flutter/src/widgets/framework.dart:2115:7)
+#78     ComponentElement.visitChildren (package:flutter/src/widgets/framework.dart:5871:14)
+#79     _InactiveElements._unmount (package:flutter/src/widgets/framework.dart:2113:13)
+#80     _InactiveElements._unmount.<anonymous closure> (package:flutter/src/widgets/framework.dart:2115:7)
+#81     ComponentElement.visitChildren (package:flutter/src/widgets/framework.dart:5871:14)
+#82     _InactiveElements._unmount (package:flutter/src/widgets/framework.dart:2113:13)
+#83     _InactiveElements._unmount.<anonymous closure> (package:flutter/src/widgets/framework.dart:2115:7)
+#84     SingleChildRenderObjectElement.visitChildren (package:flutter/src/widgets/framework.dart:7101:14)
+#85     _InactiveElements._unmount (package:flutter/src/widgets/framework.dart:2113:13)
+#86     _InactiveElements._unmount.<anonymous closure> (package:flutter/src/widgets/framework.dart:2115:7)
+#87     ComponentElement.visitChildren (package:flutter/src/widgets/framework.dart:5871:14)
+#88     _InactiveElements._unmount (package:flutter/src/widgets/framework.dart:2113:13)
+#89     _InactiveElements._unmount.<anonymous closure> (package:flutter/src/widgets/framework.dart:2115:7)
+#90     ComponentElement.visitChildren (package:flutter/src/widgets/framework.dart:5871:14)
+#91     _InactiveElements._unmount (package:flutter/src/widgets/framework.dart:2113:13)
+#92     _InactiveElements._unmount.<anonymous closure> (package:flutter/src/widgets/framework.dart:2115:7)
+#93     ComponentElement.visitChildren (package:flutter/src/widgets/framework.dart:5871:14)
+#94     _InactiveElements._unmount (package:flutter/src/widgets/framework.dart:2113:13)
+#95     _InactiveElements._unmount.<anonymous closure> (package:flutter/src/widgets/framework.dart:2115:7)
+#96     ComponentElement.visitChildren (package:flutter/src/widgets/framework.dart:5871:14)
+#97     _InactiveElements._unmount (package:flutter/src/widgets/framework.dart:2113:13)
+#98     _InactiveElements._unmount.<anonymous closure> (package:flutter/src/widgets/framework.dart:2115:7)
+#99     ComponentElement.visitChildren (package:flutter/src/widgets/framework.dart:5871:14)
+#100    _InactiveElements._unmount (package:flutter/src/widgets/framework.dart:2113:13)
+#101    ListIterable.forEach (dart:_internal/iterable.dart:49:13)
+#102    _InactiveElements._unmountAll (package:flutter/src/widgets/framework.dart:2126:25)
+#103    BuildOwner.lockState (package:flutter/src/widgets/framework.dart:3020:15)
+#104    BuildOwner.finalizeTree (package:flutter/src/widgets/framework.dart:3344:7)
+#105    WidgetsBinding.drawFrame (package:flutter/src/widgets/binding.dart:1309:19)
+#106    RendererBinding._handlePersistentFrameCallback (package:flutter/src/rendering/binding.dart:495:5)
+#107    SchedulerBinding._invokeFrameCallback (package:flutter/src/scheduler/binding.dart:1430:15)
+#108    SchedulerBinding.handleDrawFrame (package:flutter/src/scheduler/binding.dart:1345:9)
+#109    SchedulerBinding._handleDrawFrame (package:flutter/src/scheduler/binding.dart:1198:5)
+#113    _invoke (dart:ui/hooks.dart:358:10)
+#114    PlatformDispatcher._drawFrame (dart:ui/platform_dispatcher.dart:444:5)
+#115    _drawFrame (dart:ui/hooks.dart:328:31)
+(elided 5 frames from class _AssertionError and dart:async)
+════════════════════════════════════════════════════════════════════════════════════════════════════
+
+I/flutter (27544): ----------------FIREBASE CRASHLYTICS----------------
+I/flutter (27544): Looking up a deactivated widget's ancestor is unsafe.
+I/flutter (27544): At this point the state of the widget's element tree is no longer stable.
+I/flutter (27544): To safely refer to a widget's ancestor in its dispose() method, save a reference to the ancestor by calling dependOnInheritedWidgetOfExactType() in the widget's didChangeDependencies() method.
+I/flutter (27544): #0      Element._debugCheckStateIsActiveForAncestorLookup.<anonymous closure> (package:flutter/src/widgets/framework.dart:5049:9)
+I/flutter (27544): #1      Element._debugCheckStateIsActiveForAncestorLookup (package:flutter/src/widgets/framework.dart:5063:6)
+I/flutter (27544): #2      Element.dependOnInheritedWidgetOfExactType (package:flutter/src/widgets/framework.dart:5082:12)
+I/flutter (27544): #3      InheritedModel.inheritFrom (package:flutter/src/widgets/inherited_model.dart:194:22)
+I/flutter (27544): #4      ModalRoute._of (package:flutter/src/widgets/routes.dart:1320:27)
+I/flutter (27544): #5      ModalRoute.of (package:flutter/src/widgets/routes.dart:1316:12)
+I/flutter (27544): #6      CarouselSliderState.getTimer.<anonymous closure> (package:carousel_slider/carousel_slider.dart:137:38)
+I/flutter (27544): #7      _rootRunUnary (dart:async/zone_root.dart:48:47)
+I/flutter (27544): #8      _CustomZone.runUnary (dart:async/zone.dart:733:19)
+I/flutter (27544): #9      _CustomZone.runUnaryGuarded (dart:async/zone.dart:633:7)
+I/flutter (27544): #10     _CustomZone.bindUnaryCallbackGuarded.<anonymous closure> (dart:async/zone.dart:671:26)
+I/flutter (27544): #11     _rootRunUnary (dart:async/zone_root.dart:56:13
+I/flutter (27544): ----------------------------------------------------
+W/WindowOnBackDispatcher(27544): OnBackInvokedCallback is not enabled for the application.
+W/WindowOnBackDispatcher(27544): Set 'android:enableOnBackInvokedCallback="true"' in the application manifest.
+I/flutter (27544): ----------------FIREBASE CRASHLYTICS----------------
+I/flutter (27544): Looking up a deactivated widget's ancestor is unsafe.
+I/flutter (27544): At this point the state of the widget's element tree is no longer stable.
+I/flutter (27544): To safely refer to a widget's ancestor in its dispose() method, save a reference to the ancestor by calling dependOnInheritedWidgetOfExactType() in the widget's didChangeDependencies() method.
+I/flutter (27544): #0      Element._debugCheckStateIsActiveForAncestorLookup.<anonymous closure> (package:flutter/src/widgets/framework.dart:5049:9)
+I/flutter (27544): #1      Element._debugCheckStateIsActiveForAncestorLookup (package:flutter/src/widgets/framework.dart:5063:6)
+I/flutter (27544): #2      Element.dependOnInheritedWidgetOfExactType (package:flutter/src/widgets/framework.dart:5082:12)
+I/flutter (27544): #3      InheritedModel.inheritFrom (package:flutter/src/widgets/inherited_model.dart:194:22)
+I/flutter (27544): #4      ModalRoute._of (package:flutter/src/widgets/routes.dart:1320:27)
+I/flutter (27544): #5      ModalRoute.of (package:flutter/src/widgets/routes.dart:1316:12)
+I/flutter (27544): #6      CarouselSliderState.getTimer.<anonymous closure> (package:carousel_slider/carousel_slider.dart:137:38)
+I/flutter (27544): #7      _rootRunUnary (dart:async/zone_root.dart:48:47)
+I/flutter (27544): #8      _CustomZone.runUnary (dart:async/zone.dart:733:19)
+I/flutter (27544): #9      _CustomZone.runUnaryGuarded (dart:async/zone.dart:633:7)
+I/flutter (27544): #10     _CustomZone.bindUnaryCallbackGuarded.<anonymous closure> (dart:async/zone.dart:671:26)
+I/flutter (27544): #11     _rootRunUnary (dart:async/zone_root.dart:56:13
+I/flutter (27544): ----------------------------------------------------
+I/flutter (27544): ----------------FIREBASE CRASHLYTICS----------------
+I/flutter (27544): Looking up a deactivated widget's ancestor is unsafe.
+I/flutter (27544): At this point the state of the widget's element tree is no longer stable.
+I/flutter (27544): To safely refer to a widget's ancestor in its dispose() method, save a reference to the ancestor by calling dependOnInheritedWidgetOfExactType() in the widget's didChangeDependencies() method.
+I/flutter (27544): #0      Element._debugCheckStateIsActiveForAncestorLookup.<anonymous closure> (package:flutter/src/widgets/framework.dart:5049:9)
+I/flutter (27544): #1      Element._debugCheckStateIsActiveForAncestorLookup (package:flutter/src/widgets/framework.dart:5063:6)
+I/flutter (27544): #2      Element.dependOnInheritedWidgetOfExactType (package:flutter/src/widgets/framework.dart:5082:12)
+I/flutter (27544): #3      InheritedModel.inheritFrom (package:flutter/src/widgets/inherited_model.dart:194:22)
+I/flutter (27544): #4      ModalRoute._of (package:flutter/src/widgets/routes.dart:1320:27)
+I/flutter (27544): #5      ModalRoute.of (package:flutter/src/widgets/routes.dart:1316:12)
+I/flutter (27544): #6      CarouselSliderState.getTimer.<anonymous closure> (package:carousel_slider/carousel_slider.dart:137:38)
+I/flutter (27544): #7      _rootRunUnary (dart:async/zone_root.dart:48:47)
+I/flutter (27544): #8      _CustomZone.runUnary (dart:async/zone.dart:733:19)
+I/flutter (27544): #9      _CustomZone.runUnaryGuarded (dart:async/zone.dart:633:7)
+I/flutter (27544): #10     _CustomZone.bindUnaryCallbackGuarded.<anonymous closure> (dart:async/zone.dart:671:26)
+I/flutter (27544): #11     _rootRunUnary (dart:async/zone_root.dart:56:13
+I/flutter (27544): ----------------------------------------------------
+I/flutter (27544): ----------------FIREBASE CRASHLYTICS----------------
+I/flutter (27544): Looking up a deactivated widget's ancestor is unsafe.
+I/flutter (27544): At this point the state of the widget's element tree is no longer stable.
+I/flutter (27544): To safely refer to a widget's ancestor in its dispose() method, save a reference to the ancestor by calling dependOnInheritedWidgetOfExactType() in the widget's didChangeDependencies() method.
+I/flutter (27544): #0      Element._debugCheckStateIsActiveForAncestorLookup.<anonymous closure> (package:flutter/src/widgets/framework.dart:5049:9)
+I/flutter (27544): #1      Element._debugCheckStateIsActiveForAncestorLookup (package:flutter/src/widgets/framework.dart:5063:6)
+I/flutter (27544): #2      Element.dependOnInheritedWidgetOfExactType (package:flutter/src/widgets/framework.dart:5082:12)
+I/flutter (27544): #3      InheritedModel.inheritFrom (package:flutter/src/widgets/inherited_model.dart:194:22)
+I/flutter (27544): #4      ModalRoute._of (package:flutter/src/widgets/routes.dart:1320:27)
+I/flutter (27544): #5      ModalRoute.of (package:flutter/src/widgets/routes.dart:1316:12)
+I/flutter (27544): #6      CarouselSliderState.getTimer.<anonymous closure> (package:carousel_slider/carousel_slider.dart:137:38)
+I/flutter (27544): #7      _rootRunUnary (dart:async/zone_root.dart:48:47)
+I/flutter (27544): #8      _CustomZone.runUnary (dart:async/zone.dart:733:19)
+I/flutter (27544): #9      _CustomZone.runUnaryGuarded (dart:async/zone.dart:633:7)
+I/flutter (27544): #10     _CustomZone.bindUnaryCallbackGuarded.<anonymous closure> (dart:async/zone.dart:671:26)
+I/flutter (27544): #11     _rootRunUnary (dart:async/zone_root.dart:56:13
+I/flutter (27544): ----------------------------------------------------
+I/flutter (27544): ----------------FIREBASE CRASHLYTICS----------------
+I/flutter (27544): Looking up a deactivated widget's ancestor is unsafe.
+I/flutter (27544): At this point the state of the widget's element tree is no longer stable.
+I/flutter (27544): To safely refer to a widget's ancestor in its dispose() method, save a reference to the ancestor by calling dependOnInheritedWidgetOfExactType() in the widget's didChangeDependencies() method.
+I/flutter (27544): #0      Element._debugCheckStateIsActiveForAncestorLookup.<anonymous closure> (package:flutter/src/widgets/framework.dart:5049:9)
+I/flutter (27544): #1      Element._debugCheckStateIsActiveForAncestorLookup (package:flutter/src/widgets/framework.dart:5063:6)
+I/flutter (27544): #2      Element.dependOnInheritedWidgetOfExactType (package:flutter/src/widgets/framework.dart:5082:12)
+I/flutter (27544): #3      InheritedModel.inheritFrom (package:flutter/src/widgets/inherited_model.dart:194:22)
+I/flutter (27544): #4      ModalRoute._of (package:flutter/src/widgets/routes.dart:1320:27)
+I/flutter (27544): #5      ModalRoute.of (package:flutter/src/widgets/routes.dart:1316:12)
+I/flutter (27544): #6      CarouselSliderState.getTimer.<anonymous closure> (package:carousel_slider/carousel_slider.dart:137:38)
+I/flutter (27544): #7      _rootRunUnary (dart:async/zone_root.dart:48:47)
+I/flutter (27544): #8      _CustomZone.runUnary (dart:async/zone.dart:733:19)
+I/flutter (27544): #9      _CustomZone.runUnaryGuarded (dart:async/zone.dart:633:7)
+I/flutter (27544): #10     _CustomZone.bindUnaryCallbackGuarded.<anonymous closure> (dart:async/zone.dart:671:26)
+I/flutter (27544): #11     _rootRunUnary (dart:async/zone_root.dart:56:13
+I/flutter (27544): ----------------------------------------------------
+I/TRuntime.CctTransportBackend(27544): Making request to: https://crashlyticsreports-pa.googleapis.com/v1/firelog/legacy/batchlog
+I/flutter (27544): ----------------FIREBASE CRASHLYTICS----------------
+I/flutter (27544): Looking up a deactivated widget's ancestor is unsafe.
+I/flutter (27544): At this point the state of the widget's element tree is no longer stable.
+I/flutter (27544): To safely refer to a widget's ancestor in its dispose() method, save a reference to the ancestor by calling dependOnInheritedWidgetOfExactType() in the widget's didChangeDependencies() method.
+I/flutter (27544): #0      Element._debugCheckStateIsActiveForAncestorLookup.<anonymous closure> (package:flutter/src/widgets/framework.dart:5049:9)
+I/flutter (27544): #1      Element._debugCheckStateIsActiveForAncestorLookup (package:flutter/src/widgets/framework.dart:5063:6)
+I/flutter (27544): #2      Element.dependOnInheritedWidgetOfExactType (package:flutter/src/widgets/framework.dart:5082:12)
+I/flutter (27544): #3      InheritedModel.inheritFrom (package:flutter/src/widgets/inherited_model.dart:194:22)
+I/flutter (27544): #4      ModalRoute._of (package:flutter/src/widgets/routes.dart:1320:27)
+I/flutter (27544): #5      ModalRoute.of (package:flutter/src/widgets/routes.dart:1316:12)
+I/flutter (27544): #6      CarouselSliderState.getTimer.<anonymous closure> (package:carousel_slider/carousel_slider.dart:137:38)
+I/flutter (27544): #7      _rootRunUnary (dart:async/zone_root.dart:48:47)
+I/flutter (27544): #8      _CustomZone.runUnary (dart:async/zone.dart:733:19)
+I/flutter (27544): #9      _CustomZone.runUnaryGuarded (dart:async/zone.dart:633:7)
+I/flutter (27544): #10     _CustomZone.bindUnaryCallbackGuarded.<anonymous closure> (dart:async/zone.dart:671:26)
+I/flutter (27544): #11     _rootRunUnary (dart:async/zone_root.dart:56:13
+I/flutter (27544): ----------------------------------------------------
+I/TRuntime.CctTransportBackend(27544): Status Code: 200
+I/flutter (27544): ----------------FIREBASE CRASHLYTICS----------------
+I/flutter (27544): Looking up a deactivated widget's ancestor is unsafe.
+I/flutter (27544): At this point the state of the widget's element tree is no longer stable.
+I/flutter (27544): To safely refer to a widget's ancestor in its dispose() method, save a reference to the ancestor by calling dependOnInheritedWidgetOfExactType() in the widget's didChangeDependencies() method.
+I/flutter (27544): #0      Element._debugCheckStateIsActiveForAncestorLookup.<anonymous closure> (package:flutter/src/widgets/framework.dart:5049:9)
+I/flutter (27544): #1      Element._debugCheckStateIsActiveForAncestorLookup (package:flutter/src/widgets/framework.dart:5063:6)
+I/flutter (27544): #2      Element.dependOnInheritedWidgetOfExactType (package:flutter/src/widgets/framework.dart:5082:12)
+I/flutter (27544): #3      InheritedModel.inheritFrom (package:flutter/src/widgets/inherited_model.dart:194:22)
+I/flutter (27544): #4      ModalRoute._of (package:flutter/src/widgets/routes.dart:1320:27)
+I/flutter (27544): #5      ModalRoute.of (package:flutter/src/widgets/routes.dart:1316:12)
+I/flutter (27544): #6      CarouselSliderState.getTimer.<anonymous closure> (package:carousel_slider/carousel_slider.dart:137:38)
+I/flutter (27544): #7      _rootRunUnary (dart:async/zone_root.dart:48:47)
+I/flutter (27544): #8      _CustomZone.runUnary (dart:async/zone.dart:733:19)
+I/flutter (27544): #9      _CustomZone.runUnaryGuarded (dart:async/zone.dart:633:7)
+I/flutter (27544): #10     _CustomZone.bindUnaryCallbackGuarded.<anonymous closure> (dart:async/zone.dart:671:26)
+I/flutter (27544): #11     _rootRunUnary (dart:async/zone_root.dart:56:13
+I/flutter (27544): ----------------------------------------------------
+I/flutter (27544): ----------------FIREBASE CRASHLYTICS----------------
+I/flutter (27544): Looking up a deactivated widget's ancestor is unsafe.
+I/flutter (27544): At this point the state of the widget's element tree is no longer stable.
+I/flutter (27544): To safely refer to a widget's ancestor in its dispose() method, save a reference to the ancestor by calling dependOnInheritedWidgetOfExactType() in the widget's didChangeDependencies() method.
+I/flutter (27544): #0      Element._debugCheckStateIsActiveForAncestorLookup.<anonymous closure> (package:flutter/src/widgets/framework.dart:5049:9)
+I/flutter (27544): #1      Element._debugCheckStateIsActiveForAncestorLookup (package:flutter/src/widgets/framework.dart:5063:6)
+I/flutter (27544): #2      Element.dependOnInheritedWidgetOfExactType (package:flutter/src/widgets/framework.dart:5082:12)
+I/flutter (27544): #3      InheritedModel.inheritFrom (package:flutter/src/widgets/inherited_model.dart:194:22)
+I/flutter (27544): #4      ModalRoute._of (package:flutter/src/widgets/routes.dart:1320:27)
+I/flutter (27544): #5      ModalRoute.of (package:flutter/src/widgets/routes.dart:1316:12)
+I/flutter (27544): #6      CarouselSliderState.getTimer.<anonymous closure> (package:carousel_slider/carousel_slider.dart:137:38)
+I/flutter (27544): #7      _rootRunUnary (dart:async/zone_root.dart:48:47)
+I/flutter (27544): #8      _CustomZone.runUnary (dart:async/zone.dart:733:19)
+I/flutter (27544): #9      _CustomZone.runUnaryGuarded (dart:async/zone.dart:633:7)
+I/flutter (27544): #10     _CustomZone.bindUnaryCallbackGuarded.<anonymous closure> (dart:async/zone.dart:671:26)
+I/flutter (27544): #11     _rootRunUnary (dart:async/zone_root.dart:56:13
+I/flutter (27544): ----------------------------------------------------
+I/flutter (27544): ----------------FIREBASE CRASHLYTICS----------------
+I/flutter (27544): Looking up a deactivated widget's ancestor is unsafe.
+I/flutter (27544): At this point the state of the widget's element tree is no longer stable.
+I/flutter (27544): To safely refer to a widget's ancestor in its dispose() method, save a reference to the ancestor by calling dependOnInheritedWidgetOfExactType() in the widget's didChangeDependencies() method.
+I/flutter (27544): #0      Element._debugCheckStateIsActiveForAncestorLookup.<anonymous closure> (package:flutter/src/widgets/framework.dart:5049:9)
+I/flutter (27544): #1      Element._debugCheckStateIsActiveForAncestorLookup (package:flutter/src/widgets/framework.dart:5063:6)
+I/flutter (27544): #2      Element.dependOnInheritedWidgetOfExactType (package:flutter/src/widgets/framework.dart:5082:12)
+I/flutter (27544): #3      InheritedModel.inheritFrom (package:flutter/src/widgets/inherited_model.dart:194:22)
+I/flutter (27544): #4      ModalRoute._of (package:flutter/src/widgets/routes.dart:1320:27)
+I/flutter (27544): #5      ModalRoute.of (package:flutter/src/widgets/routes.dart:1316:12)
+I/flutter (27544): #6      CarouselSliderState.getTimer.<anonymous closure> (package:carousel_slider/carousel_slider.dart:137:38)
+I/flutter (27544): #7      _rootRunUnary (dart:async/zone_root.dart:48:47)
+I/flutter (27544): #8      _CustomZone.runUnary (dart:async/zone.dart:733:19)
+I/flutter (27544): #9      _CustomZone.runUnaryGuarded (dart:async/zone.dart:633:7)
+I/flutter (27544): #10     _CustomZone.bindUnaryCallbackGuarded.<anonymous closure> (dart:async/zone.dart:671:26)
+I/flutter (27544): #11     _rootRunUnary (dart:async/zone_root.dart:56:13
+I/flutter (27544): ----------------------------------------------------
+I/flutter (27544): 🔎 Retry trigger from: periodic
+I/flutter (27544): 🔍 DEBUG - All Cookies:
+I/flutter (27544):    No cookies stored at all!
+I/flutter (27544): 🍪 Cookies being sent:
+I/flutter (27544): ➡️ Sending request: GET https://be-vayuxi-chi.vercel.app/api/v1/site
+I/flutter (27544): ❌ TECH ERROR: DioExceptionType.badResponse
+I/flutter (27544): ❌ TECH DETAILS: null
+I/flutter (27544): ❌ TECH RESPONSE: {success: false, message: Authentication token missing}
+I/flutter (27544): Authentication token missing
+I/flutter (27544): ❌ Request failed: GET https://be-vayuxi-chi.vercel.app/api/v1/site
+I/flutter (27544):    Error type: DioExceptionType.badResponse
+I/flutter (27544):    Error: Authentication token missing
+I/flutter (27544): 🚫 Not queued (server/client error)
+I/flutter (27544): 📌 Saved request to queue: GET /site
+I/flutter (27544): ❌ Server unreachable
+I/flutter (27544): ----------------FIREBASE CRASHLYTICS----------------
+I/flutter (27544): Looking up a deactivated widget's ancestor is unsafe.
+I/flutter (27544): At this point the state of the widget's element tree is no longer stable.
+I/flutter (27544): To safely refer to a widget's ancestor in its dispose() method, save a reference to the ancestor by calling dependOnInheritedWidgetOfExactType() in the widget's didChangeDependencies() method.
+I/flutter (27544): #0      Element._debugCheckStateIsActiveForAncestorLookup.<anonymous closure> (package:flutter/src/widgets/framework.dart:5049:9)
+I/flutter (27544): #1      Element._debugCheckStateIsActiveForAncestorLookup (package:flutter/src/widgets/framework.dart:5063:6)
+I/flutter (27544): #2      Element.dependOnInheritedWidgetOfExactType (package:flutter/src/widgets/framework.dart:5082:12)
+I/flutter (27544): #3      InheritedModel.inheritFrom (package:flutter/src/widgets/inherited_model.dart:194:22)
+I/flutter (27544): #4      ModalRoute._of (package:flutter/src/widgets/routes.dart:1320:27)
+I/flutter (27544): #5      ModalRoute.of (package:flutter/src/widgets/routes.dart:1316:12)
+I/flutter (27544): #6      CarouselSliderState.getTimer.<anonymous closure> (package:carousel_slider/carousel_slider.dart:137:38)
+I/flutter (27544): #7      _rootRunUnary (dart:async/zone_root.dart:48:47)
+I/flutter (27544): #8      _CustomZone.runUnary (dart:async/zone.dart:733:19)
+I/flutter (27544): #9      _CustomZone.runUnaryGuarded (dart:async/zone.dart:633:7)
+I/flutter (27544): #10     _CustomZone.bindUnaryCallbackGuarded.<anonymous closure> (dart:async/zone.dart:671:26)
+I/flutter (27544): #11     _rootRunUnary (dart:async/zone_root.dart:56:13
+I/flutter (27544): ----------------------------------------------------
+I/flutter (27544): ----------------FIREBASE CRASHLYTICS----------------
+I/flutter (27544): Looking up a deactivated widget's ancestor is unsafe.
+I/flutter (27544): At this point the state of the widget's element tree is no longer stable.
+I/flutter (27544): To safely refer to a widget's ancestor in its dispose() method, save a reference to the ancestor by calling dependOnInheritedWidgetOfExactType() in the widget's didChangeDependencies() method.
+I/flutter (27544): #0      Element._debugCheckStateIsActiveForAncestorLookup.<anonymous closure> (package:flutter/src/widgets/framework.dart:5049:9)
+I/flutter (27544): #1      Element._debugCheckStateIsActiveForAncestorLookup (package:flutter/src/widgets/framework.dart:5063:6)
+I/flutter (27544): #2      Element.dependOnInheritedWidgetOfExactType (package:flutter/src/widgets/framework.dart:5082:12)
+I/flutter (27544): #3      InheritedModel.inheritFrom (package:flutter/src/widgets/inherited_model.dart:194:22)
+I/flutter (27544): #4      ModalRoute._of (package:flutter/src/widgets/routes.dart:1320:27)
+I/flutter (27544): #5      ModalRoute.of (package:flutter/src/widgets/routes.dart:1316:12)
+I/flutter (27544): #6      CarouselSliderState.getTimer.<anonymous closure> (package:carousel_slider/carousel_slider.dart:137:38)
+I/flutter (27544): #7      _rootRunUnary (dart:async/zone_root.dart:48:47)
+I/flutter (27544): #8      _CustomZone.runUnary (dart:async/zone.dart:733:19)
+I/flutter (27544): #9      _CustomZone.runUnaryGuarded (dart:async/zone.dart:633:7)
+I/flutter (27544): #10     _CustomZone.bindUnaryCallbackGuarded.<anonymous closure> (dart:async/zone.dart:671:26)
+I/flutter (27544): #11     _rootRunUnary (dart:async/zone_root.dart:56:13
+I/flutter (27544): ----------------------------------------------------
+I/flutter (27544): ----------------FIREBASE CRASHLYTICS----------------
+I/flutter (27544): Looking up a deactivated widget's ancestor is unsafe.
+I/flutter (27544): At this point the state of the widget's element tree is no longer stable.
+I/flutter (27544): To safely refer to a widget's ancestor in its dispose() method, save a reference to the ancestor by calling dependOnInheritedWidgetOfExactType() in the widget's didChangeDependencies() method.
+I/flutter (27544): #0      Element._debugCheckStateIsActiveForAncestorLookup.<anonymous closure> (package:flutter/src/widgets/framework.dart:5049:9)
+I/flutter (27544): #1      Element._debugCheckStateIsActiveForAncestorLookup (package:flutter/src/widgets/framework.dart:5063:6)
+I/flutter (27544): #2      Element.dependOnInheritedWidgetOfExactType (package:flutter/src/widgets/framework.dart:5082:12)
+I/flutter (27544): #3      InheritedModel.inheritFrom (package:flutter/src/widgets/inherited_model.dart:194:22)
+I/flutter (27544): #4      ModalRoute._of (package:flutter/src/widgets/routes.dart:1320:27)
+I/flutter (27544): #5      ModalRoute.of (package:flutter/src/widgets/routes.dart:1316:12)
+I/flutter (27544): #6      CarouselSliderState.getTimer.<anonymous closure> (package:carousel_slider/carousel_slider.dart:137:38)
+I/flutter (27544): #7      _rootRunUnary (dart:async/zone_root.dart:48:47)
+I/flutter (27544): #8      _CustomZone.runUnary (dart:async/zone.dart:733:19)
+I/flutter (27544): #9      _CustomZone.runUnaryGuarded (dart:async/zone.dart:633:7)
+I/flutter (27544): #10     _CustomZone.bindUnaryCallbackGuarded.<anonymous closure> (dart:async/zone.dart:671:26)
+I/flutter (27544): #11     _rootRunUnary (dart:async/zone_root.dart:56:13
+I/flutter (27544): ----------------------------------------------------
+I/flutter (27544): ----------------FIREBASE CRASHLYTICS----------------
+I/flutter (27544): Looking up a deactivated widget's ancestor is unsafe.
+I/flutter (27544): At this point the state of the widget's element tree is no longer stable.
+I/flutter (27544): To safely refer to a widget's ancestor in its dispose() method, save a reference to the ancestor by calling dependOnInheritedWidgetOfExactType() in the widget's didChangeDependencies() method.
+I/flutter (27544): #0      Element._debugCheckStateIsActiveForAncestorLookup.<anonymous closure> (package:flutter/src/widgets/framework.dart:5049:9)
+I/flutter (27544): #1      Element._debugCheckStateIsActiveForAncestorLookup (package:flutter/src/widgets/framework.dart:5063:6)
+I/flutter (27544): #2      Element.dependOnInheritedWidgetOfExactType (package:flutter/src/widgets/framework.dart:5082:12)
+I/flutter (27544): #3      InheritedModel.inheritFrom (package:flutter/src/widgets/inherited_model.dart:194:22)
+I/flutter (27544): #4      ModalRoute._of (package:flutter/src/widgets/routes.dart:1320:27)
+I/flutter (27544): #5      ModalRoute.of (package:flutter/src/widgets/routes.dart:1316:12)
+I/flutter (27544): #6      CarouselSliderState.getTimer.<anonymous closure> (package:carousel_slider/carousel_slider.dart:137:38)
+I/flutter (27544): #7      _rootRunUnary (dart:async/zone_root.dart:48:47)
+I/flutter (27544): #8      _CustomZone.runUnary (dart:async/zone.dart:733:19)
+I/flutter (27544): #9      _CustomZone.runUnaryGuarded (dart:async/zone.dart:633:7)
+I/flutter (27544): #10     _CustomZone.bindUnaryCallbackGuarded.<anonymous closure> (dart:async/zone.dart:671:26)
+I/flutter (27544): #11     _rootRunUnary (dart:async/zone_root.dart:56:13
+I/flutter (27544): ----------------------------------------------------
+I/flutter (27544): ----------------FIREBASE CRASHLYTICS----------------
+I/flutter (27544): Looking up a deactivated widget's ancestor is unsafe.
+I/flutter (27544): At this point the state of the widget's element tree is no longer stable.
+I/flutter (27544): To safely refer to a widget's ancestor in its dispose() method, save a reference to the ancestor by calling dependOnInheritedWidgetOfExactType() in the widget's didChangeDependencies() method.
+I/flutter (27544): #0      Element._debugCheckStateIsActiveForAncestorLookup.<anonymous closure> (package:flutter/src/widgets/framework.dart:5049:9)
+I/flutter (27544): #1      Element._debugCheckStateIsActiveForAncestorLookup (package:flutter/src/widgets/framework.dart:5063:6)
+I/flutter (27544): #2      Element.dependOnInheritedWidgetOfExactType (package:flutter/src/widgets/framework.dart:5082:12)
+I/flutter (27544): #3      InheritedModel.inheritFrom (package:flutter/src/widgets/inherited_model.dart:194:22)
+I/flutter (27544): #4      ModalRoute._of (package:flutter/src/widgets/routes.dart:1320:27)
+I/flutter (27544): #5      ModalRoute.of (package:flutter/src/widgets/routes.dart:1316:12)
+I/flutter (27544): #6      CarouselSliderState.getTimer.<anonymous closure> (package:carousel_slider/carousel_slider.dart:137:38)
+I/flutter (27544): #7      _rootRunUnary (dart:async/zone_root.dart:48:47)
+I/flutter (27544): #8      _CustomZone.runUnary (dart:async/zone.dart:733:19)
+I/flutter (27544): #9      _CustomZone.runUnaryGuarded (dart:async/zone.dart:633:7)
+I/flutter (27544): #10     _CustomZone.bindUnaryCallbackGuarded.<anonymous closure> (dart:async/zone.dart:671:26)
+I/flutter (27544): #11     _rootRunUnary (dart:async/zone_root.dart:56:13
+I/flutter (27544): ----------------------------------------------------
+I/flutter (27544): ----------------FIREBASE CRASHLYTICS----------------
+I/flutter (27544): Looking up a deactivated widget's ancestor is unsafe.
+I/flutter (27544): At this point the state of the widget's element tree is no longer stable.
+I/flutter (27544): To safely refer to a widget's ancestor in its dispose() method, save a reference to the ancestor by calling dependOnInheritedWidgetOfExactType() in the widget's didChangeDependencies() method.
+I/flutter (27544): #0      Element._debugCheckStateIsActiveForAncestorLookup.<anonymous closure> (package:flutter/src/widgets/framework.dart:5049:9)
+I/flutter (27544): #1      Element._debugCheckStateIsActiveForAncestorLookup (package:flutter/src/widgets/framework.dart:5063:6)
+I/flutter (27544): #2      Element.dependOnInheritedWidgetOfExactType (package:flutter/src/widgets/framework.dart:5082:12)
+I/flutter (27544): #3      InheritedModel.inheritFrom (package:flutter/src/widgets/inherited_model.dart:194:22)
+I/flutter (27544): #4      ModalRoute._of (package:flutter/src/widgets/routes.dart:1320:27)
+I/flutter (27544): #5      ModalRoute.of (package:flutter/src/widgets/routes.dart:1316:12)
+I/flutter (27544): #6      CarouselSliderState.getTimer.<anonymous closure> (package:carousel_slider/carousel_slider.dart:137:38)
+I/flutter (27544): #7      _rootRunUnary (dart:async/zone_root.dart:48:47)
+I/flutter (27544): #8      _CustomZone.runUnary (dart:async/zone.dart:733:19)
+I/flutter (27544): #9      _CustomZone.runUnaryGuarded (dart:async/zone.dart:633:7)
+I/flutter (27544): #10     _CustomZone.bindUnaryCallbackGuarded.<anonymous closure> (dart:async/zone.dart:671:26)
+I/flutter (27544): #11     _rootRunUnary (dart:async/zone_root.dart:56:13
+I/flutter (27544): ----------------------------------------------------
+I/flutter (27544): ----------------FIREBASE CRASHLYTICS----------------
+I/flutter (27544): Looking up a deactivated widget's ancestor is unsafe.
+I/flutter (27544): At this point the state of the widget's element tree is no longer stable.
+I/flutter (27544): To safely refer to a widget's ancestor in its dispose() method, save a reference to the ancestor by calling dependOnInheritedWidgetOfExactType() in the widget's didChangeDependencies() method.
+I/flutter (27544): #0      Element._debugCheckStateIsActiveForAncestorLookup.<anonymous closure> (package:flutter/src/widgets/framework.dart:5049:9)
+I/flutter (27544): #1      Element._debugCheckStateIsActiveForAncestorLookup (package:flutter/src/widgets/framework.dart:5063:6)
+I/flutter (27544): #2      Element.dependOnInheritedWidgetOfExactType (package:flutter/src/widgets/framework.dart:5082:12)
+I/flutter (27544): #3      InheritedModel.inheritFrom (package:flutter/src/widgets/inherited_model.dart:194:22)
+I/flutter (27544): #4      ModalRoute._of (package:flutter/src/widgets/routes.dart:1320:27)
+I/flutter (27544): #5      ModalRoute.of (package:flutter/src/widgets/routes.dart:1316:12)
+I/flutter (27544): #6      CarouselSliderState.getTimer.<anonymous closure> (package:carousel_slider/carousel_slider.dart:137:38)
+I/flutter (27544): #7      _rootRunUnary (dart:async/zone_root.dart:48:47)
+I/flutter (27544): #8      _CustomZone.runUnary (dart:async/zone.dart:733:19)
+I/flutter (27544): #9      _CustomZone.runUnaryGuarded (dart:async/zone.dart:633:7)
+I/flutter (27544): #10     _CustomZone.bindUnaryCallbackGuarded.<anonymous closure> (dart:async/zone.dart:671:26)
+I/flutter (27544): #11     _rootRunUnary (dart:async/zone_root.dart:56:13
+I/flutter (27544): ----------------------------------------------------
+I/flutter (27544): ----------------FIREBASE CRASHLYTICS----------------
+I/flutter (27544): Looking up a deactivated widget's ancestor is unsafe.
+I/flutter (27544): At this point the state of the widget's element tree is no longer stable.
+I/flutter (27544): To safely refer to a widget's ancestor in its dispose() method, save a reference to the ancestor by calling dependOnInheritedWidgetOfExactType() in the widget's didChangeDependencies() method.
+I/flutter (27544): #0      Element._debugCheckStateIsActiveForAncestorLookup.<anonymous closure> (package:flutter/src/widgets/framework.dart:5049:9)
+I/flutter (27544): #1      Element._debugCheckStateIsActiveForAncestorLookup (package:flutter/src/widgets/framework.dart:5063:6)
+I/flutter (27544): #2      Element.dependOnInheritedWidgetOfExactType (package:flutter/src/widgets/framework.dart:5082:12)
+I/flutter (27544): #3      InheritedModel.inheritFrom (package:flutter/src/widgets/inherited_model.dart:194:22)
+I/flutter (27544): #4      ModalRoute._of (package:flutter/src/widgets/routes.dart:1320:27)
+I/flutter (27544): #5      ModalRoute.of (package:flutter/src/widgets/routes.dart:1316:12)
+I/flutter (27544): #6      CarouselSliderState.getTimer.<anonymous closure> (package:carousel_slider/carousel_slider.dart:137:38)
+I/flutter (27544): #7      _rootRunUnary (dart:async/zone_root.dart:48:47)
+I/flutter (27544): #8      _CustomZone.runUnary (dart:async/zone.dart:733:19)
+I/flutter (27544): #9      _CustomZone.runUnaryGuarded (dart:async/zone.dart:633:7)
+I/flutter (27544): #10     _CustomZone.bindUnaryCallbackGuarded.<anonymous closure> (dart:async/zone.dart:671:26)
+I/flutter (27544): #11     _rootRunUnary (dart:async/zone_root.dart:56:13
+I/flutter (27544): ----------------------------------------------------
+I/flutter (27544): ----------------FIREBASE CRASHLYTICS----------------
+I/flutter (27544): Looking up a deactivated widget's ancestor is unsafe.
+I/flutter (27544): At this point the state of the widget's element tree is no longer stable.
+I/flutter (27544): To safely refer to a widget's ancestor in its dispose() method, save a reference to the ancestor by calling dependOnInheritedWidgetOfExactType() in the widget's didChangeDependencies() method.
+I/flutter (27544): #0      Element._debugCheckStateIsActiveForAncestorLookup.<anonymous closure> (package:flutter/src/widgets/framework.dart:5049:9)
+I/flutter (27544): #1      Element._debugCheckStateIsActiveForAncestorLookup (package:flutter/src/widgets/framework.dart:5063:6)
+I/flutter (27544): #2      Element.dependOnInheritedWidgetOfExactType (package:flutter/src/widgets/framework.dart:5082:12)
+I/flutter (27544): #3      InheritedModel.inheritFrom (package:flutter/src/widgets/inherited_model.dart:194:22)
+I/flutter (27544): #4      ModalRoute._of (package:flutter/src/widgets/routes.dart:1320:27)
+I/flutter (27544): #5      ModalRoute.of (package:flutter/src/widgets/routes.dart:1316:12)
+I/flutter (27544): #6      CarouselSliderState.getTimer.<anonymous closure> (package:carousel_slider/carousel_slider.dart:137:38)
+I/flutter (27544): #7      _rootRunUnary (dart:async/zone_root.dart:48:47)
+I/flutter (27544): #8      _CustomZone.runUnary (dart:async/zone.dart:733:19)
+I/flutter (27544): #9      _CustomZone.runUnaryGuarded (dart:async/zone.dart:633:7)
+I/flutter (27544): #10     _CustomZone.bindUnaryCallbackGuarded.<anonymous closure> (dart:async/zone.dart:671:26)
+I/flutter (27544): #11     _rootRunUnary (dart:async/zone_root.dart:56:13
+I/flutter (27544): ----------------------------------------------------
+I/flutter (27544): ----------------FIREBASE CRASHLYTICS----------------
+I/flutter (27544): Looking up a deactivated widget's ancestor is unsafe.
+I/flutter (27544): At this point the state of the widget's element tree is no longer stable.
+I/flutter (27544): To safely refer to a widget's ancestor in its dispose() method, save a reference to the ancestor by calling dependOnInheritedWidgetOfExactType() in the widget's didChangeDependencies() method.
+I/flutter (27544): #0      Element._debugCheckStateIsActiveForAncestorLookup.<anonymous closure> (package:flutter/src/widgets/framework.dart:5049:9)
+I/flutter (27544): #1      Element._debugCheckStateIsActiveForAncestorLookup (package:flutter/src/widgets/framework.dart:5063:6)
+I/flutter (27544): #2      Element.dependOnInheritedWidgetOfExactType (package:flutter/src/widgets/framework.dart:5082:12)
+I/flutter (27544): #3      InheritedModel.inheritFrom (package:flutter/src/widgets/inherited_model.dart:194:22)
+I/flutter (27544): #4      ModalRoute._of (package:flutter/src/widgets/routes.dart:1320:27)
+I/flutter (27544): #5      ModalRoute.of (package:flutter/src/widgets/routes.dart:1316:12)
+I/flutter (27544): #6      CarouselSliderState.getTimer.<anonymous closure> (package:carousel_slider/carousel_slider.dart:137:38)
+I/flutter (27544): #7      _rootRunUnary (dart:async/zone_root.dart:48:47)
+I/flutter (27544): #8      _CustomZone.runUnary (dart:async/zone.dart:733:19)
+I/flutter (27544): #9      _CustomZone.runUnaryGuarded (dart:async/zone.dart:633:7)
+I/flutter (27544): #10     _CustomZone.bindUnaryCallbackGuarded.<anonymous closure> (dart:async/zone.dart:671:26)
+I/flutter (27544): #11     _rootRunUnary (dart:async/zone_root.dart:56:13
+I/flutter (27544): ----------------------------------------------------
+I/flutter (27544): ----------------FIREBASE CRASHLYTICS----------------
+I/flutter (27544): Looking up a deactivated widget's ancestor is unsafe.
+I/flutter (27544): At this point the state of the widget's element tree is no longer stable.
+I/flutter (27544): To safely refer to a widget's ancestor in its dispose() method, save a reference to the ancestor by calling dependOnInheritedWidgetOfExactType() in the widget's didChangeDependencies() method.
+I/flutter (27544): #0      Element._debugCheckStateIsActiveForAncestorLookup.<anonymous closure> (package:flutter/src/widgets/framework.dart:5049:9)
+I/flutter (27544): #1      Element._debugCheckStateIsActiveForAncestorLookup (package:flutter/src/widgets/framework.dart:5063:6)
+I/flutter (27544): #2      Element.dependOnInheritedWidgetOfExactType (package:flutter/src/widgets/framework.dart:5082:12)
+I/flutter (27544): #3      InheritedModel.inheritFrom (package:flutter/src/widgets/inherited_model.dart:194:22)
+I/flutter (27544): #4      ModalRoute._of (package:flutter/src/widgets/routes.dart:1320:27)
+I/flutter (27544): #5      ModalRoute.of (package:flutter/src/widgets/routes.dart:1316:12)
+I/flutter (27544): #6      CarouselSliderState.getTimer.<anonymous closure> (package:carousel_slider/carousel_slider.dart:137:38)
+I/flutter (27544): #7      _rootRunUnary (dart:async/zone_root.dart:48:47)
+I/flutter (27544): #8      _CustomZone.runUnary (dart:async/zone.dart:733:19)
+I/flutter (27544): #9      _CustomZone.runUnaryGuarded (dart:async/zone.dart:633:7)
+I/flutter (27544): #10     _CustomZone.bindUnaryCallbackGuarded.<anonymous closure> (dart:async/zone.dart:671:26)
+I/flutter (27544): #11     _rootRunUnary (dart:async/zone_root.dart:56:13
+I/flutter (27544): ----------------------------------------------------
+I/flutter (27544): ----------------FIREBASE CRASHLYTICS----------------
+I/flutter (27544): Looking up a deactivated widget's ancestor is unsafe.
+I/flutter (27544): At this point the state of the widget's element tree is no longer stable.
+I/flutter (27544): To safely refer to a widget's ancestor in its dispose() method, save a reference to the ancestor by calling dependOnInheritedWidgetOfExactType() in the widget's didChangeDependencies() method.
+I/flutter (27544): #0      Element._debugCheckStateIsActiveForAncestorLookup.<anonymous closure> (package:flutter/src/widgets/framework.dart:5049:9)
+I/flutter (27544): #1      Element._debugCheckStateIsActiveForAncestorLookup (package:flutter/src/widgets/framework.dart:5063:6)
+I/flutter (27544): #2      Element.dependOnInheritedWidgetOfExactType (package:flutter/src/widgets/framework.dart:5082:12)
+I/flutter (27544): #3      InheritedModel.inheritFrom (package:flutter/src/widgets/inherited_model.dart:194:22)
+I/flutter (27544): #4      ModalRoute._of (package:flutter/src/widgets/routes.dart:1320:27)
+I/flutter (27544): #5      ModalRoute.of (package:flutter/src/widgets/routes.dart:1316:12)
+I/flutter (27544): #6      CarouselSliderState.getTimer.<anonymous closure> (package:carousel_slider/carousel_slider.dart:137:38)
+I/flutter (27544): #7      _rootRunUnary (dart:async/zone_root.dart:48:47)
+I/flutter (27544): #8      _CustomZone.runUnary (dart:async/zone.dart:733:19)
+I/flutter (27544): #9      _CustomZone.runUnaryGuarded (dart:async/zone.dart:633:7)
+I/flutter (27544): #10     _CustomZone.bindUnaryCallbackGuarded.<anonymous closure> (dart:async/zone.dart:671:26)
+I/flutter (27544): #11     _rootRunUnary (dart:async/zone_root.dart:56:13
+I/flutter (27544): ----------------------------------------------------
+I/flutter (27544): ----------------FIREBASE CRASHLYTICS----------------
+I/flutter (27544): Looking up a deactivated widget's ancestor is unsafe.
+I/flutter (27544): At this point the state of the widget's element tree is no longer stable.
+I/flutter (27544): To safely refer to a widget's ancestor in its dispose() method, save a reference to the ancestor by calling dependOnInheritedWidgetOfExactType() in the widget's didChangeDependencies() method.
+I/flutter (27544): #0      Element._debugCheckStateIsActiveForAncestorLookup.<anonymous closure> (package:flutter/src/widgets/framework.dart:5049:9)
+I/flutter (27544): #1      Element._debugCheckStateIsActiveForAncestorLookup (package:flutter/src/widgets/framework.dart:5063:6)
+I/flutter (27544): #2      Element.dependOnInheritedWidgetOfExactType (package:flutter/src/widgets/framework.dart:5082:12)
+I/flutter (27544): #3      InheritedModel.inheritFrom (package:flutter/src/widgets/inherited_model.dart:194:22)
+I/flutter (27544): #4      ModalRoute._of (package:flutter/src/widgets/routes.dart:1320:27)
+I/flutter (27544): #5      ModalRoute.of (package:flutter/src/widgets/routes.dart:1316:12)
+I/flutter (27544): #6      CarouselSliderState.getTimer.<anonymous closure> (package:carousel_slider/carousel_slider.dart:137:38)
+I/flutter (27544): #7      _rootRunUnary (dart:async/zone_root.dart:48:47)
+I/flutter (27544): #8      _CustomZone.runUnary (dart:async/zone.dart:733:19)
+I/flutter (27544): #9      _CustomZone.runUnaryGuarded (dart:async/zone.dart:633:7)
+I/flutter (27544): #10     _CustomZone.bindUnaryCallbackGuarded.<anonymous closure> (dart:async/zone.dart:671:26)
+I/flutter (27544): #11     _rootRunUnary (dart:async/zone_root.dart:56:13
+I/flutter (27544): ----------------------------------------------------
+I/flutter (27544): ----------------FIREBASE CRASHLYTICS----------------
+I/flutter (27544): Looking up a deactivated widget's ancestor is unsafe.
+I/flutter (27544): At this point the state of the widget's element tree is no longer stable.
+I/flutter (27544): To safely refer to a widget's ancestor in its dispose() method, save a reference to the ancestor by calling dependOnInheritedWidgetOfExactType() in the widget's didChangeDependencies() method.
+I/flutter (27544): #0      Element._debugCheckStateIsActiveForAncestorLookup.<anonymous closure> (package:flutter/src/widgets/framework.dart:5049:9)
+I/flutter (27544): #1      Element._debugCheckStateIsActiveForAncestorLookup (package:flutter/src/widgets/framework.dart:5063:6)
+I/flutter (27544): #2      Element.dependOnInheritedWidgetOfExactType (package:flutter/src/widgets/framework.dart:5082:12)
+I/flutter (27544): #3      InheritedModel.inheritFrom (package:flutter/src/widgets/inherited_model.dart:194:22)
+I/flutter (27544): #4      ModalRoute._of (package:flutter/src/widgets/routes.dart:1320:27)
+I/flutter (27544): #5      ModalRoute.of (package:flutter/src/widgets/routes.dart:1316:12)
+I/flutter (27544): #6      CarouselSliderState.getTimer.<anonymous closure> (package:carousel_slider/carousel_slider.dart:137:38)
+I/flutter (27544): #7      _rootRunUnary (dart:async/zone_root.dart:48:47)
+I/flutter (27544): #8      _CustomZone.runUnary (dart:async/zone.dart:733:19)
+I/flutter (27544): #9      _CustomZone.runUnaryGuarded (dart:async/zone.dart:633:7)
+I/flutter (27544): #10     _CustomZone.bindUnaryCallbackGuarded.<anonymous closure> (dart:async/zone.dart:671:26)
+I/flutter (27544): #11     _rootRunUnary (dart:async/zone_root.dart:56:13
+I/flutter (27544): ----------------------------------------------------
+I/flutter (27544): ----------------FIREBASE CRASHLYTICS----------------
+I/flutter (27544): Looking up a deactivated widget's ancestor is unsafe.
+I/flutter (27544): At this point the state of the widget's element tree is no longer stable.
+I/flutter (27544): To safely refer to a widget's ancestor in its dispose() method, save a reference to the ancestor by calling dependOnInheritedWidgetOfExactType() in the widget's didChangeDependencies() method.
+I/flutter (27544): #0      Element._debugCheckStateIsActiveForAncestorLookup.<anonymous closure> (package:flutter/src/widgets/framework.dart:5049:9)
+I/flutter (27544): #1      Element._debugCheckStateIsActiveForAncestorLookup (package:flutter/src/widgets/framework.dart:5063:6)
+I/flutter (27544): #2      Element.dependOnInheritedWidgetOfExactType (package:flutter/src/widgets/framework.dart:5082:12)
+I/flutter (27544): #3      InheritedModel.inheritFrom (package:flutter/src/widgets/inherited_model.dart:194:22)
+I/flutter (27544): #4      ModalRoute._of (package:flutter/src/widgets/routes.dart:1320:27)
+I/flutter (27544): #5      ModalRoute.of (package:flutter/src/widgets/routes.dart:1316:12)
+I/flutter (27544): #6      CarouselSliderState.getTimer.<anonymous closure> (package:carousel_slider/carousel_slider.dart:137:38)
+I/flutter (27544): #7      _rootRunUnary (dart:async/zone_root.dart:48:47)
+I/flutter (27544): #8      _CustomZone.runUnary (dart:async/zone.dart:733:19)
+I/flutter (27544): #9      _CustomZone.runUnaryGuarded (dart:async/zone.dart:633:7)
+I/flutter (27544): #10     _CustomZone.bindUnaryCallbackGuarded.<anonymous closure> (dart:async/zone.dart:671:26)
+I/flutter (27544): #11     _rootRunUnary (dart:async/zone_root.dart:56:13
+I/flutter (27544): ----------------------------------------------------
+I/flutter (27544): 🔎 Retry trigger from: periodic
+I/flutter (27544): 🔍 DEBUG - All Cookies:
+I/flutter (27544):    No cookies stored at all!
+I/flutter (27544): 🍪 Cookies being sent:
+I/flutter (27544): ➡️ Sending request: GET https://be-vayuxi-chi.vercel.app/api/v1/site
+I/flutter (27544): ❌ TECH ERROR: DioExceptionType.badResponse
+I/flutter (27544): ❌ TECH DETAILS: null
+I/flutter (27544): ❌ TECH RESPONSE: {success: false, message: Authentication token missing}
+I/flutter (27544): Authentication token missing
+I/flutter (27544): ❌ Request failed: GET https://be-vayuxi-chi.vercel.app/api/v1/site
+I/flutter (27544):    Error type: DioExceptionType.badResponse
+I/flutter (27544):    Error: Authentication token missing
+I/flutter (27544): 🚫 Not queued (server/client error)
+I/flutter (27544): 📌 Saved request to queue: GET /site
+I/flutter (27544): ❌ Server unreachable
+I/flutter (27544): ----------------FIREBASE CRASHLYTICS----------------
+I/flutter (27544): Looking up a deactivated widget's ancestor is unsafe.
+I/flutter (27544): At this point the state of the widget's element tree is no longer stable.
+I/flutter (27544): To safely refer to a widget's ancestor in its dispose() method, save a reference to the ancestor by calling dependOnInheritedWidgetOfExactType() in the widget's didChangeDependencies() method.
+I/flutter (27544): #0      Element._debugCheckStateIsActiveForAncestorLookup.<anonymous closure> (package:flutter/src/widgets/framework.dart:5049:9)
+I/flutter (27544): #1      Element._debugCheckStateIsActiveForAncestorLookup (package:flutter/src/widgets/framework.dart:5063:6)
+I/flutter (27544): #2      Element.dependOnInheritedWidgetOfExactType (package:flutter/src/widgets/framework.dart:5082:12)
+I/flutter (27544): #3      InheritedModel.inheritFrom (package:flutter/src/widgets/inherited_model.dart:194:22)
+I/flutter (27544): #4      ModalRoute._of (package:flutter/src/widgets/routes.dart:1320:27)
+I/flutter (27544): #5      ModalRoute.of (package:flutter/src/widgets/routes.dart:1316:12)
+I/flutter (27544): #6      CarouselSliderState.getTimer.<anonymous closure> (package:carousel_slider/carousel_slider.dart:137:38)
+I/flutter (27544): #7      _rootRunUnary (dart:async/zone_root.dart:48:47)
+I/flutter (27544): #8      _CustomZone.runUnary (dart:async/zone.dart:733:19)
+I/flutter (27544): #9      _CustomZone.runUnaryGuarded (dart:async/zone.dart:633:7)
+I/flutter (27544): #10     _CustomZone.bindUnaryCallbackGuarded.<anonymous closure> (dart:async/zone.dart:671:26)
+I/flutter (27544): #11     _rootRunUnary (dart:async/zone_root.dart:56:13
+I/flutter (27544): ----------------------------------------------------
+
+I/flutter (27544): Color(alpha: 1.0000, red: 0.5906, green: 0.7441, blue: 0.9153, colorSpace: ColorSpace.sRGB)
+I/flutter (27544): 😅😅😅😅 light color at controller
+
+══╡ EXCEPTION CAUGHT BY WIDGETS LIBRARY ╞═══════════════════════════════════════════════════════════
+The following assertion was thrown building Builder(dirty):
+Cannot get renderObject of inactive element.
+In order for an element to have a valid renderObject, it must be active, which means it is part of
+the tree.
+Instead, this element is in the _ElementLifecycle.inactive state.
+If you called this method from a State object, consider guarding it with State.mounted.
+The findRenderObject() method was called for the following element:
+  Showcase
+
+The relevant error-causing widget was:
+  Navigator-[LabeledGlobalKey<NavigatorState>#01447 root]
+  Navigator:file:///C:/Users/Dell/AppData/Local/Pub/Cache/hosted/pub.dev/go_router-14.8.1/lib/src/builder.dart:438:16
+
+When the exception was thrown, this was the stack:
+#0      Element.findRenderObject.<anonymous closure> (package:flutter/src/widgets/framework.dart:4899:9)
+#1      Element.findRenderObject (package:flutter/src/widgets/framework.dart:4912:6)
+#2      ShowcaseController.updateControllerData (package:showcaseview/src/showcase/showcase_controller.dart:245:32)
+#3      OverlayManager._getBuilder (package:showcaseview/src/utils/overlay_manager.dart:170:20)
+#4      Builder.build (package:flutter/src/widgets/basic.dart:8396:48)
+#5      StatelessElement.build (package:flutter/src/widgets/framework.dart:5889:49)
+#6      ComponentElement.performRebuild (package:flutter/src/widgets/framework.dart:5817:15)
+#7      Element.rebuild (package:flutter/src/widgets/framework.dart:5529:7)
+#8      StatelessElement.update (package:flutter/src/widgets/framework.dart:5895:5)
+#9      Element.updateChild (package:flutter/src/widgets/framework.dart:4037:15)
+#10     ComponentElement.performRebuild (package:flutter/src/widgets/framework.dart:5841:16)
+#11     Element.rebuild (package:flutter/src/widgets/framework.dart:5529:7)
+#12     ProxyElement.update (package:flutter/src/widgets/framework.dart:6149:5)
+#13     Element.updateChild (package:flutter/src/widgets/framework.dart:4037:15)
+#14     ComponentElement.performRebuild (package:flutter/src/widgets/framework.dart:5841:16)
+#15     Element.rebuild (package:flutter/src/widgets/framework.dart:5529:7)
+#16     ProxyElement.update (package:flutter/src/widgets/framework.dart:6149:5)
+#17     Element.updateChild (package:flutter/src/widgets/framework.dart:4037:15)
+#18     ComponentElement.performRebuild (package:flutter/src/widgets/framework.dart:5841:16)
+#19     StatefulElement.performRebuild (package:flutter/src/widgets/framework.dart:5982:11)
+#20     Element.rebuild (package:flutter/src/widgets/framework.dart:5529:7)
+#21     StatefulElement.update (package:flutter/src/widgets/framework.dart:6007:5)
+#22     Element.updateChild (package:flutter/src/widgets/framework.dart:4037:15)
+#23     ComponentElement.performRebuild (package:flutter/src/widgets/framework.dart:5841:16)
+#24     StatefulElement.performRebuild (package:flutter/src/widgets/framework.dart:5982:11)
+#25     Element.rebuild (package:flutter/src/widgets/framework.dart:5529:7)
+#26     StatefulElement.update (package:flutter/src/widgets/framework.dart:6007:5)
+#27     Element.updateChild (package:flutter/src/widgets/framework.dart:4037:15)
+#28     Element.updateChildren (package:flutter/src/widgets/framework.dart:4191:32)
+#29     MultiChildRenderObjectElement.update (package:flutter/src/widgets/framework.dart:7295:17)
+#30     Element.updateChild (package:flutter/src/widgets/framework.dart:4037:15)
+#31     ComponentElement.performRebuild (package:flutter/src/widgets/framework.dart:5841:16)
+#32     StatefulElement.performRebuild (package:flutter/src/widgets/framework.dart:5982:11)
+#33     Element.rebuild (package:flutter/src/widgets/framework.dart:5529:7)
+#34     StatefulElement.update (package:flutter/src/widgets/framework.dart:6007:5)
+#35     Element.updateChild (package:flutter/src/widgets/framework.dart:4037:15)
+#36     ComponentElement.performRebuild (package:flutter/src/widgets/framework.dart:5841:16)
+#37     Element.rebuild (package:flutter/src/widgets/framework.dart:5529:7)
+#38     ProxyElement.update (package:flutter/src/widgets/framework.dart:6149:5)
+#39     Element.updateChild (package:flutter/src/widgets/framework.dart:4037:15)
+#40     ComponentElement.performRebuild (package:flutter/src/widgets/framework.dart:5841:16)
+#41     Element.rebuild (package:flutter/src/widgets/framework.dart:5529:7)
+#42     ProxyElement.update (package:flutter/src/widgets/framework.dart:6149:5)
+#43     _InheritedNotifierElement.update (package:flutter/src/widgets/inherited_notifier.dart:108:11)
+#44     Element.updateChild (package:flutter/src/widgets/framework.dart:4037:15)
+#45     ComponentElement.performRebuild (package:flutter/src/widgets/framework.dart:5841:16)
+#46     StatefulElement.performRebuild (package:flutter/src/widgets/framework.dart:5982:11)
+#47     Element.rebuild (package:flutter/src/widgets/framework.dart:5529:7)
+#48     StatefulElement.update (package:flutter/src/widgets/framework.dart:6007:5)
+#49     Element.updateChild (package:flutter/src/widgets/framework.dart:4037:15)
+#50     ComponentElement.performRebuild (package:flutter/src/widgets/framework.dart:5841:16)
+#51     Element.rebuild (package:flutter/src/widgets/framework.dart:5529:7)
+#52     ProxyElement.update (package:flutter/src/widgets/framework.dart:6149:5)
+#53     _InheritedNotifierElement.update (package:flutter/src/widgets/inherited_notifier.dart:108:11)
+#54     Element.updateChild (package:flutter/src/widgets/framework.dart:4037:15)
+#55     ComponentElement.performRebuild (package:flutter/src/widgets/framework.dart:5841:16)
+#56     StatefulElement.performRebuild (package:flutter/src/widgets/framework.dart:5982:11)
+#57     Element.rebuild (package:flutter/src/widgets/framework.dart:5529:7)
+#58     StatefulElement.update (package:flutter/src/widgets/framework.dart:6007:5)
+#59     Element.updateChild (package:flutter/src/widgets/framework.dart:4037:15)
+#60     ComponentElement.performRebuild (package:flutter/src/widgets/framework.dart:5841:16)
+#61     StatefulElement.performRebuild (package:flutter/src/widgets/framework.dart:5982:11)
+#62     Element.rebuild (package:flutter/src/widgets/framework.dart:5529:7)
+#63     StatefulElement.update (package:flutter/src/widgets/framework.dart:6007:5)
+#64     Element.updateChild (package:flutter/src/widgets/framework.dart:4037:15)
+#65     SingleChildRenderObjectElement.update (package:flutter/src/widgets/framework.dart:7122:14)
+#66     Element.updateChild (package:flutter/src/widgets/framework.dart:4037:15)
+#67     SingleChildRenderObjectElement.update (package:flutter/src/widgets/framework.dart:7122:14)
+#68     Element.updateChild (package:flutter/src/widgets/framework.dart:4037:15)
+#69     ComponentElement.performRebuild (package:flutter/src/widgets/framework.dart:5841:16)
+#70     Element.rebuild (package:flutter/src/widgets/framework.dart:5529:7)
+#71     ProxyElement.update (package:flutter/src/widgets/framework.dart:6149:5)
+#72     Element.updateChild (package:flutter/src/widgets/framework.dart:4037:15)
+#73     ComponentElement.performRebuild (package:flutter/src/widgets/framework.dart:5841:16)
+#74     Element.rebuild (package:flutter/src/widgets/framework.dart:5529:7)
+#75     ProxyElement.update (package:flutter/src/widgets/framework.dart:6149:5)
+#76     Element.updateChild (package:flutter/src/widgets/framework.dart:4037:15)
+#77     ComponentElement.performRebuild (package:flutter/src/widgets/framework.dart:5841:16)
+#78     StatefulElement.performRebuild (package:flutter/src/widgets/framework.dart:5982:11)
+#79     Element.rebuild (package:flutter/src/widgets/framework.dart:5529:7)
+#80     StatefulElement.update (package:flutter/src/widgets/framework.dart:6007:5)
+#81     Element.updateChild (package:flutter/src/widgets/framework.dart:4037:15)
+#82     ComponentElement.performRebuild (package:flutter/src/widgets/framework.dart:5841:16)
+#83     Element.rebuild (package:flutter/src/widgets/framework.dart:5529:7)
+#84     ProxyElement.update (package:flutter/src/widgets/framework.dart:6149:5)
+#85     Element.updateChild (package:flutter/src/widgets/framework.dart:4037:15)
+#86     ComponentElement.performRebuild (package:flutter/src/widgets/framework.dart:5841:16)
+#87     Element.rebuild (package:flutter/src/widgets/framework.dart:5529:7)
+#88     ProxyElement.update (package:flutter/src/widgets/framework.dart:6149:5)
+#89     _InheritedNotifierElement.update (package:flutter/src/widgets/inherited_notifier.dart:108:11)
+#90     Element.updateChild (package:flutter/src/widgets/framework.dart:4037:15)
+#91     ComponentElement.performRebuild (package:flutter/src/widgets/framework.dart:5841:16)
+#92     StatefulElement.performRebuild (package:flutter/src/widgets/framework.dart:5982:11)
+#93     Element.rebuild (package:flutter/src/widgets/framework.dart:5529:7)
+#94     StatefulElement.update (package:flutter/src/widgets/framework.dart:6007:5)
+#95     Element.updateChild (package:flutter/src/widgets/framework.dart:4037:15)
+#96     ComponentElement.performRebuild (package:flutter/src/widgets/framework.dart:5841:16)
+#97     Element.rebuild (package:flutter/src/widgets/framework.dart:5529:7)
+#98     ProxyElement.update (package:flutter/src/widgets/framework.dart:6149:5)
+#99     Element.updateChild (package:flutter/src/widgets/framework.dart:4037:15)
+#100    ComponentElement.performRebuild (package:flutter/src/widgets/framework.dart:5841:16)
+#101    Element.rebuild (package:flutter/src/widgets/framework.dart:5529:7)
+#102    StatelessElement.update (package:flutter/src/widgets/framework.dart:5895:5)
+#103    Element.updateChild (package:flutter/src/widgets/framework.dart:4037:15)
+#104    ComponentElement.performRebuild (package:flutter/src/widgets/framework.dart:5841:16)
+#105    Element.rebuild (package:flutter/src/widgets/framework.dart:5529:7)
+#106    ProxyElement.update (package:flutter/src/widgets/framework.dart:6149:5)
+#107    Element.updateChild (package:flutter/src/widgets/framework.dart:4037:15)
+#108    ComponentElement.performRebuild (package:flutter/src/widgets/framework.dart:5841:16)
+#109    Element.rebuild (package:flutter/src/widgets/framework.dart:5529:7)
+#110    ProxyElement.update (package:flutter/src/widgets/framework.dart:6149:5)
+#111    Element.updateChild (package:flutter/src/widgets/framework.dart:4037:15)
+#112    ComponentElement.performRebuild (package:flutter/src/widgets/framework.dart:5841:16)
+#113    StatefulElement.performRebuild (package:flutter/src/widgets/framework.dart:5982:11)
+#114    Element.rebuild (package:flutter/src/widgets/framework.dart:5529:7)
+#115    StatefulElement.update (package:flutter/src/widgets/framework.dart:6007:5)
+#116    Element.updateChild (package:flutter/src/widgets/framework.dart:4037:15)
+#117    Element.updateChildren (package:flutter/src/widgets/framework.dart:4191:32)
+#118    MultiChildRenderObjectElement.update (package:flutter/src/widgets/framework.dart:7295:17)
+#119    Element.updateChild (package:flutter/src/widgets/framework.dart:4037:15)
+#120    ComponentElement.performRebuild (package:flutter/src/widgets/framework.dart:5841:16)
+#121    StatefulElement.performRebuild (package:flutter/src/widgets/framework.dart:5982:11)
+#122    Element.rebuild (package:flutter/src/widgets/framework.dart:5529:7)
+#123    StatefulElement.update (package:flutter/src/widgets/framework.dart:6007:5)
+#124    Element.updateChild (package:flutter/src/widgets/framework.dart:4037:15)
+#125    Element.updateChildren (package:flutter/src/widgets/framework.dart:4191:32)
+#126    MultiChildRenderObjectElement.update (package:flutter/src/widgets/framework.dart:7295:17)
+#127    Element.updateChild (package:flutter/src/widgets/framework.dart:4037:15)
+#128    ComponentElement.performRebuild (package:flutter/src/widgets/framework.dart:5841:16)
+#129    StatefulElement.performRebuild (package:flutter/src/widgets/framework.dart:5982:11)
+#130    Element.rebuild (package:flutter/src/widgets/framework.dart:5529:7)
+#131    StatefulElement.update (package:flutter/src/widgets/framework.dart:6007:5)
+#132    Element.updateChild (package:flutter/src/widgets/framework.dart:4037:15)
+#133    ComponentElement.performRebuild (package:flutter/src/widgets/framework.dart:5841:16)
+#134    StatefulElement.performRebuild (package:flutter/src/widgets/framework.dart:5982:11)
+#135    Element.rebuild (package:flutter/src/widgets/framework.dart:5529:7)
+#136    StatefulElement.update (package:flutter/src/widgets/framework.dart:6007:5)
+#137    Element.updateChild (package:flutter/src/widgets/framework.dart:4037:15)
+#138    ComponentElement.performRebuild (package:flutter/src/widgets/framework.dart:5841:16)
+#139    Element.rebuild (package:flutter/src/widgets/framework.dart:5529:7)
+#140    StatelessElement.update (package:flutter/src/widgets/framework.dart:5895:5)
+#141    Element.updateChild (package:flutter/src/widgets/framework.dart:4037:15)
+#142    ComponentElement.performRebuild (package:flutter/src/widgets/framework.dart:5841:16)
+#143    Element.rebuild (package:flutter/src/widgets/framework.dart:5529:7)
+#144    ProxyElement.update (package:flutter/src/widgets/framework.dart:6149:5)
+#145    Element.updateChild (package:flutter/src/widgets/framework.dart:4037:15)
+#146    ComponentElement.performRebuild (package:flutter/src/widgets/framework.dart:5841:16)
+#147    Element.rebuild (package:flutter/src/widgets/framework.dart:5529:7)
+#148    ProxyElement.update (package:flutter/src/widgets/framework.dart:6149:5)
+#149    Element.updateChild (package:flutter/src/widgets/framework.dart:4037:15)
+#150    ComponentElement.performRebuild (package:flutter/src/widgets/framework.dart:5841:16)
+#151    StatefulElement.performRebuild (package:flutter/src/widgets/framework.dart:5982:11)
+#152    Element.rebuild (package:flutter/src/widgets/framework.dart:5529:7)
+#153    StatefulElement.update (package:flutter/src/widgets/framework.dart:6007:5)
+#154    Element.updateChild (package:flutter/src/widgets/framework.dart:4037:15)
+#155    ComponentElement.performRebuild (package:flutter/src/widgets/framework.dart:5841:16)
+#156    Element.rebuild (package:flutter/src/widgets/framework.dart:5529:7)
+#157    ProxyElement.update (package:flutter/src/widgets/framework.dart:6149:5)
+#158    Element.updateChild (package:flutter/src/widgets/framework.dart:4037:15)
+#159    ComponentElement.performRebuild (package:flutter/src/widgets/framework.dart:5841:16)
+#160    Element.rebuild (package:flutter/src/widgets/framework.dart:5529:7)
+#161    ProxyElement.update (package:flutter/src/widgets/framework.dart:6149:5)
+#162    Element.updateChild (package:flutter/src/widgets/framework.dart:4037:15)
+#163    ComponentElement.performRebuild (package:flutter/src/widgets/framework.dart:5841:16)
+#164    Element.rebuild (package:flutter/src/widgets/framework.dart:5529:7)
+#165    ProxyElement.update (package:flutter/src/widgets/framework.dart:6149:5)
+#166    Element.updateChild (package:flutter/src/widgets/framework.dart:4037:15)
+#167    ComponentElement.performRebuild (package:flutter/src/widgets/framework.dart:5841:16)
+#168    Element.rebuild (package:flutter/src/widgets/framework.dart:5529:7)
+#169    ProxyElement.update (package:flutter/src/widgets/framework.dart:6149:5)
+#170    Element.updateChild (package:flutter/src/widgets/framework.dart:4037:15)
+#171    ComponentElement.performRebuild (package:flutter/src/widgets/framework.dart:5841:16)
+#172    Element.rebuild (package:flutter/src/widgets/framework.dart:5529:7)
+#173    StatelessElement.update (package:flutter/src/widgets/framework.dart:5895:5)
+#174    Element.updateChild (package:flutter/src/widgets/framework.dart:4037:15)
+#175    ComponentElement.performRebuild (package:flutter/src/widgets/framework.dart:5841:16)
+#176    Element.rebuild (package:flutter/src/widgets/framework.dart:5529:7)
+#177    ProxyElement.update (package:flutter/src/widgets/framework.dart:6149:5)
+#178    Element.updateChild (package:flutter/src/widgets/framework.dart:4037:15)
+#179    ComponentElement.performRebuild (package:flutter/src/widgets/framework.dart:5841:16)
+#180    Element.rebuild (package:flutter/src/widgets/framework.dart:5529:7)
+#181    StatelessElement.update (package:flutter/src/widgets/framework.dart:5895:5)
+#182    Element.updateChild (package:flutter/src/widgets/framework.dart:4037:15)
+#183    ComponentElement.performRebuild (package:flutter/src/widgets/framework.dart:5841:16)
+#184    StatefulElement.performRebuild (package:flutter/src/widgets/framework.dart:5982:11)
+#185    Element.rebuild (package:flutter/src/widgets/framework.dart:5529:7)
+#186    StatefulElement.update (package:flutter/src/widgets/framework.dart:6007:5)
+#187    Element.updateChild (package:flutter/src/widgets/framework.dart:4037:15)
+#188    ComponentElement.performRebuild (package:flutter/src/widgets/framework.dart:5841:16)
+#189    Element.rebuild (package:flutter/src/widgets/framework.dart:5529:7)
+#190    StatelessElement.update (package:flutter/src/widgets/framework.dart:5895:5)
+#191    Element.updateChild (package:flutter/src/widgets/framework.dart:4037:15)
+#192    ComponentElement.performRebuild (package:flutter/src/widgets/framework.dart:5841:16)
+#193    Element.rebuild (package:flutter/src/widgets/framework.dart:5529:7)
+#194    ProxyElement.update (package:flutter/src/widgets/framework.dart:6149:5)
+#195    Element.updateChild (package:flutter/src/widgets/framework.dart:4037:15)
+#196    ComponentElement.performRebuild (package:flutter/src/widgets/framework.dart:5841:16)
+#197    StatefulElement.performRebuild (package:flutter/src/widgets/framework.dart:5982:11)
+#198    Element.rebuild (package:flutter/src/widgets/framework.dart:5529:7)
+#199    StatefulElement.update (package:flutter/src/widgets/framework.dart:6007:5)
+#200    Element.updateChild (package:flutter/src/widgets/framework.dart:4037:15)
+#201    SingleChildRenderObjectElement.update (package:flutter/src/widgets/framework.dart:7122:14)
+#202    Element.updateChild (package:flutter/src/widgets/framework.dart:4037:15)
+#203    ComponentElement.performRebuild (package:flutter/src/widgets/framework.dart:5841:16)
+#204    Element.rebuild (package:flutter/src/widgets/framework.dart:5529:7)
+#205    ProxyElement.update (package:flutter/src/widgets/framework.dart:6149:5)
+#206    _InheritedNotifierElement.update (package:flutter/src/widgets/inherited_notifier.dart:108:11)
+#207    Element.updateChild (package:flutter/src/widgets/framework.dart:4037:15)
+#208    ComponentElement.performRebuild (package:flutter/src/widgets/framework.dart:5841:16)
+#209    StatefulElement.performRebuild (package:flutter/src/widgets/framework.dart:5982:11)
+#210    Element.rebuild (package:flutter/src/widgets/framework.dart:5529:7)
+#211    StatefulElement.update (package:flutter/src/widgets/framework.dart:6007:5)
+#212    Element.updateChild (package:flutter/src/widgets/framework.dart:4037:15)
+#213    ComponentElement.performRebuild (package:flutter/src/widgets/framework.dart:5841:16)
+#214    StatefulElement.performRebuild (package:flutter/src/widgets/framework.dart:5982:11)
+#215    Element.rebuild (package:flutter/src/widgets/framework.dart:5529:7)
+#216    StatefulElement.update (package:flutter/src/widgets/framework.dart:6007:5)
+#217    Element.updateChild (package:flutter/src/widgets/framework.dart:4037:15)
+#218    ComponentElement.performRebuild (package:flutter/src/widgets/framework.dart:5841:16)
+#219    Element.rebuild (package:flutter/src/widgets/framework.dart:5529:7)
+#220    ProxyElement.update (package:flutter/src/widgets/framework.dart:6149:5)
+#221    Element.updateChild (package:flutter/src/widgets/framework.dart:4037:15)
+#222    ComponentElement.performRebuild (package:flutter/src/widgets/framework.dart:5841:16)
+#223    Element.rebuild (package:flutter/src/widgets/framework.dart:5529:7)
+#224    ProxyElement.update (package:flutter/src/widgets/framework.dart:6149:5)
+#225    Element.updateChild (package:flutter/src/widgets/framework.dart:4037:15)
+#226    SingleChildRenderObjectElement.update (package:flutter/src/widgets/framework.dart:7122:14)
+#227    Element.updateChild (package:flutter/src/widgets/framework.dart:4037:15)
+#228    ComponentElement.performRebuild (package:flutter/src/widgets/framework.dart:5841:16)
+#229    StatefulElement.performRebuild (package:flutter/src/widgets/framework.dart:5982:11)
+#230    Element.rebuild (package:flutter/src/widgets/framework.dart:5529:7)
+#231    StatefulElement.update (package:flutter/src/widgets/framework.dart:6007:5)
+#232    Element.updateChild (package:flutter/src/widgets/framework.dart:4037:15)
+#233    ComponentElement.performRebuild (package:flutter/src/widgets/framework.dart:5841:16)
+#234    StatefulElement.performRebuild (package:flutter/src/widgets/framework.dart:5982:11)
+#235    Element.rebuild (package:flutter/src/widgets/framework.dart:5529:7)
+#236    StatefulElement.update (package:flutter/src/widgets/framework.dart:6007:5)
+#237    Element.updateChild (package:flutter/src/widgets/framework.dart:4037:15)
+#238    SingleChildRenderObjectElement.update (package:flutter/src/widgets/framework.dart:7122:14)
+#239    Element.updateChild (package:flutter/src/widgets/framework.dart:4037:15)
+#240    ComponentElement.performRebuild (package:flutter/src/widgets/framework.dart:5841:16)
+#241    Element.rebuild (package:flutter/src/widgets/framework.dart:5529:7)
+#242    ProxyElement.update (package:flutter/src/widgets/framework.dart:6149:5)
+#243    _InheritedNotifierElement.update (package:flutter/src/widgets/inherited_notifier.dart:108:11)
+#244    Element.updateChild (package:flutter/src/widgets/framework.dart:4037:15)
+#245    ComponentElement.performRebuild (package:flutter/src/widgets/framework.dart:5841:16)
+#246    StatefulElement.performRebuild (package:flutter/src/widgets/framework.dart:5982:11)
+#247    Element.rebuild (package:flutter/src/widgets/framework.dart:5529:7)
+#248    StatefulElement.update (package:flutter/src/widgets/framework.dart:6007:5)
+#249    Element.updateChild (package:flutter/src/widgets/framework.dart:4037:15)
+#250    ComponentElement.performRebuild (package:flutter/src/widgets/framework.dart:5841:16)
+#251    StatefulElement.performRebuild (package:flutter/src/widgets/framework.dart:5982:11)
+#252    Element.rebuild (package:flutter/src/widgets/framework.dart:5529:7)
+#253    StatefulElement.update (package:flutter/src/widgets/framework.dart:6007:5)
+#254    Element.updateChild (package:flutter/src/widgets/framework.dart:4037:15)
+#255    ComponentElement.performRebuild (package:flutter/src/widgets/framework.dart:5841:16)
+#256    Element.rebuild (package:flutter/src/widgets/framework.dart:5529:7)
+#257    ProxyElement.update (package:flutter/src/widgets/framework.dart:6149:5)
+#258    Element.updateChild (package:flutter/src/widgets/framework.dart:4037:15)
+#259    ComponentElement.performRebuild (package:flutter/src/widgets/framework.dart:5841:16)
+#260    StatefulElement.performRebuild (package:flutter/src/widgets/framework.dart:5982:11)
+#261    Element.rebuild (package:flutter/src/widgets/framework.dart:5529:7)
+#262    StatefulElement.update (package:flutter/src/widgets/framework.dart:6007:5)
+#263    Element.updateChild (package:flutter/src/widgets/framework.dart:4037:15)
+#264    SingleChildRenderObjectElement.update (package:flutter/src/widgets/framework.dart:7122:14)
+#265    Element.updateChild (package:flutter/src/widgets/framework.dart:4037:15)
+#266    ComponentElement.performRebuild (package:flutter/src/widgets/framework.dart:5841:16)
+#267    Element.rebuild (package:flutter/src/widgets/framework.dart:5529:7)
+#268    ProxyElement.update (package:flutter/src/widgets/framework.dart:6149:5)
+#269    _InheritedNotifierElement.update (package:flutter/src/widgets/inherited_notifier.dart:108:11)
+#270    Element.updateChild (package:flutter/src/widgets/framework.dart:4037:15)
+#271    ComponentElement.performRebuild (package:flutter/src/widgets/framework.dart:5841:16)
+#272    StatefulElement.performRebuild (package:flutter/src/widgets/framework.dart:5982:11)
+#273    Element.rebuild (package:flutter/src/widgets/framework.dart:5529:7)
+#274    StatefulElement.update (package:flutter/src/widgets/framework.dart:6007:5)
+#275    Element.updateChild (package:flutter/src/widgets/framework.dart:4037:15)
+#276    ComponentElement.performRebuild (package:flutter/src/widgets/framework.dart:5841:16)
+#277    StatefulElement.performRebuild (package:flutter/src/widgets/framework.dart:5982:11)
+#278    Element.rebuild (package:flutter/src/widgets/framework.dart:5529:7)
+#279    StatefulElement.update (package:flutter/src/widgets/framework.dart:6007:5)
+#280    Element.updateChild (package:flutter/src/widgets/framework.dart:4037:15)
+#281    ComponentElement.performRebuild (package:flutter/src/widgets/framework.dart:5841:16)
+#282    Element.rebuild (package:flutter/src/widgets/framework.dart:5529:7)
+#283    ProxyElement.update (package:flutter/src/widgets/framework.dart:6149:5)
+#284    Element.updateChild (package:flutter/src/widgets/framework.dart:4037:15)
+#285    ComponentElement.performRebuild (package:flutter/src/widgets/framework.dart:5841:16)
+#286    StatefulElement.performRebuild (package:flutter/src/widgets/framework.dart:5982:11)
+#287    Element.rebuild (package:flutter/src/widgets/framework.dart:5529:7)
+#288    StatefulElement.update (package:flutter/src/widgets/framework.dart:6007:5)
+#289    Element.updateChild (package:flutter/src/widgets/framework.dart:4037:15)
+#290    SingleChildRenderObjectElement.update (package:flutter/src/widgets/framework.dart:7122:14)
+#291    Element.updateChild (package:flutter/src/widgets/framework.dart:4037:15)
+#292    ComponentElement.performRebuild (package:flutter/src/widgets/framework.dart:5841:16)
+#293    Element.rebuild (package:flutter/src/widgets/framework.dart:5529:7)
+#294    ProxyElement.update (package:flutter/src/widgets/framework.dart:6149:5)
+#295    _InheritedNotifierElement.update (package:flutter/src/widgets/inherited_notifier.dart:108:11)
+#296    Element.updateChild (package:flutter/src/widgets/framework.dart:4037:15)
+#297    ComponentElement.performRebuild (package:flutter/src/widgets/framework.dart:5841:16)
+#298    StatefulElement.performRebuild (package:flutter/src/widgets/framework.dart:5982:11)
+#299    Element.rebuild (package:flutter/src/widgets/framework.dart:5529:7)
+#300    StatefulElement.update (package:flutter/src/widgets/framework.dart:6007:5)
+#301    Element.updateChild (package:flutter/src/widgets/framework.dart:4037:15)
+#302    ComponentElement.performRebuild (package:flutter/src/widgets/framework.dart:5841:16)
+#303    StatefulElement.performRebuild (package:flutter/src/widgets/framework.dart:5982:11)
+#304    Element.rebuild (package:flutter/src/widgets/framework.dart:5529:7)
+#305    StatefulElement.update (package:flutter/src/widgets/framework.dart:6007:5)
+#306    Element.updateChild (package:flutter/src/widgets/framework.dart:4037:15)
+#307    ComponentElement.performRebuild (package:flutter/src/widgets/framework.dart:5841:16)
+#308    Element.rebuild (package:flutter/src/widgets/framework.dart:5529:7)
+#309    StatelessElement.update (package:flutter/src/widgets/framework.dart:5895:5)
+#310    Element.updateChild (package:flutter/src/widgets/framework.dart:4037:15)
+#311    SingleChildRenderObjectElement.update (package:flutter/src/widgets/framework.dart:7122:14)
+#312    Element.updateChild (package:flutter/src/widgets/framework.dart:4037:15)
+#313    ComponentElement.performRebuild (package:flutter/src/widgets/framework.dart:5841:16)
+#314    Element.rebuild (package:flutter/src/widgets/framework.dart:5529:7)
+#315    ProxyElement.update (package:flutter/src/widgets/framework.dart:6149:5)
+#316    _InheritedNotifierElement.update (package:flutter/src/widgets/inherited_notifier.dart:108:11)
+#317    Element.updateChild (package:flutter/src/widgets/framework.dart:4037:15)
+#318    ComponentElement.performRebuild (package:flutter/src/widgets/framework.dart:5841:16)
+#319    StatefulElement.performRebuild (package:flutter/src/widgets/framework.dart:5982:11)
+#320    Element.rebuild (package:flutter/src/widgets/framework.dart:5529:7)
+#321    StatefulElement.update (package:flutter/src/widgets/framework.dart:6007:5)
+#322    Element.updateChild (package:flutter/src/widgets/framework.dart:4037:15)
+#323    ComponentElement.performRebuild (package:flutter/src/widgets/framework.dart:5841:16)
+#324    StatefulElement.performRebuild (package:flutter/src/widgets/framework.dart:5982:11)
+#325    Element.rebuild (package:flutter/src/widgets/framework.dart:5529:7)
+#326    StatefulElement.update (package:flutter/src/widgets/framework.dart:6007:5)
+#327    Element.updateChild (package:flutter/src/widgets/framework.dart:4037:15)
+#328    ComponentElement.performRebuild (package:flutter/src/widgets/framework.dart:5841:16)
+#329    Element.rebuild (package:flutter/src/widgets/framework.dart:5529:7)
+#330    ProxyElement.update (package:flutter/src/widgets/framework.dart:6149:5)
+#331    Element.updateChild (package:flutter/src/widgets/framework.dart:4037:15)
+#332    ComponentElement.performRebuild (package:flutter/src/widgets/framework.dart:5841:16)
+#333    Element.rebuild (package:flutter/src/widgets/framework.dart:5529:7)
+#334    ProxyElement.update (package:flutter/src/widgets/framework.dart:6149:5)
+#335    Element.updateChild (package:flutter/src/widgets/framework.dart:4037:15)
+#336    ComponentElement.performRebuild (package:flutter/src/widgets/framework.dart:5841:16)
+#337    StatefulElement.performRebuild (package:flutter/src/widgets/framework.dart:5982:11)
+#338    Element.rebuild (package:flutter/src/widgets/framework.dart:5529:7)
+#339    StatefulElement.update (package:flutter/src/widgets/framework.dart:6007:5)
+#340    Element.updateChild (package:flutter/src/widgets/framework.dart:4037:15)
+#341    ComponentElement.performRebuild (package:flutter/src/widgets/framework.dart:5841:16)
+#342    Element.rebuild (package:flutter/src/widgets/framework.dart:5529:7)
+#343    ProxyElement.update (package:flutter/src/widgets/framework.dart:6149:5)
+#344    Element.updateChild (package:flutter/src/widgets/framework.dart:4037:15)
+#345    ComponentElement.performRebuild (package:flutter/src/widgets/framework.dart:5841:16)
+#346    StatefulElement.performRebuild (package:flutter/src/widgets/framework.dart:5982:11)
+#347    Element.rebuild (package:flutter/src/widgets/framework.dart:5529:7)
+#348    StatefulElement.update (package:flutter/src/widgets/framework.dart:6007:5)
+#349    Element.updateChild (package:flutter/src/widgets/framework.dart:4037:15)
+#350    ComponentElement.performRebuild (package:flutter/src/widgets/framework.dart:5841:16)
+#351    Element.rebuild (package:flutter/src/widgets/framework.dart:5529:7)
+#352    ProxyElement.update (package:flutter/src/widgets/framework.dart:6149:5)
+#353    Element.updateChild (package:flutter/src/widgets/framework.dart:4037:15)
+#354    ComponentElement.performRebuild (package:flutter/src/widgets/framework.dart:5841:16)
+#355    StatefulElement.performRebuild (package:flutter/src/widgets/framework.dart:5982:11)
+#356    Element.rebuild (package:flutter/src/widgets/framework.dart:5529:7)
+#357    StatefulElement.update (package:flutter/src/widgets/framework.dart:6007:5)
+#358    Element.updateChild (package:flutter/src/widgets/framework.dart:4037:15)
+#359    ComponentElement.performRebuild (package:flutter/src/widgets/framework.dart:5841:16)
+#360    StatefulElement.performRebuild (package:flutter/src/widgets/framework.dart:5982:11)
+#361    Element.rebuild (package:flutter/src/widgets/framework.dart:5529:7)
+#362    StatefulElement.update (package:flutter/src/widgets/framework.dart:6007:5)
+#363    Element.updateChild (package:flutter/src/widgets/framework.dart:4037:15)
+#364    ComponentElement.performRebuild (package:flutter/src/widgets/framework.dart:5841:16)
+#365    Element.rebuild (package:flutter/src/widgets/framework.dart:5529:7)
+#366    ProxyElement.update (package:flutter/src/widgets/framework.dart:6149:5)
+#367    Element.updateChild (package:flutter/src/widgets/framework.dart:4037:15)
+#368    ComponentElement.performRebuild (package:flutter/src/widgets/framework.dart:5841:16)
+#369    Element.rebuild (package:flutter/src/widgets/framework.dart:5529:7)
+#370    ProxyElement.update (package:flutter/src/widgets/framework.dart:6149:5)
+#371    Element.updateChild (package:flutter/src/widgets/framework.dart:4037:15)
+#372    ComponentElement.performRebuild (package:flutter/src/widgets/framework.dart:5841:16)
+#373    StatefulElement.performRebuild (package:flutter/src/widgets/framework.dart:5982:11)
+#374    Element.rebuild (package:flutter/src/widgets/framework.dart:5529:7)
+#375    StatefulElement.update (package:flutter/src/widgets/framework.dart:6007:5)
+#376    Element.updateChild (package:flutter/src/widgets/framework.dart:4037:15)
+#377    ComponentElement.performRebuild (package:flutter/src/widgets/framework.dart:5841:16)
+#378    StatefulElement.performRebuild (package:flutter/src/widgets/framework.dart:5982:11)
+#379    Element.rebuild (package:flutter/src/widgets/framework.dart:5529:7)
+#380    BuildScope._tryRebuild (package:flutter/src/widgets/framework.dart:2750:15)
+#381    BuildScope._flushDirtyElements (package:flutter/src/widgets/framework.dart:2807:11)
+#382    BuildOwner.buildScope (package:flutter/src/widgets/framework.dart:3111:18)
+#383    WidgetsBinding.drawFrame (package:flutter/src/widgets/binding.dart:1302:21)
+#384    RendererBinding._handlePersistentFrameCallback (package:flutter/src/rendering/binding.dart:495:5)
+#385    SchedulerBinding._invokeFrameCallback (package:flutter/src/scheduler/binding.dart:1430:15)
+#386    SchedulerBinding.handleDrawFrame (package:flutter/src/scheduler/binding.dart:1345:9)
+#387    SchedulerBinding.scheduleWarmUpFrame.<anonymous closure> (package:flutter/src/scheduler/binding.dart:1055:9)
+#388    PlatformDispatcher.scheduleWarmUpFrame.<anonymous closure> (dart:ui/platform_dispatcher.dart:906:16)
+#399    _RawReceivePort._handleMessage (dart:isolate-patch/isolate_patch.dart:193:12)
+(elided 10 frames from class _Timer, dart:async, and dart:async-patch)
+
+════════════════════════════════════════════════════════════════════════════════════════════════════
+
+I/flutter (27544): 🧭 [ROUTER] LoginScreen | path: /login
+I/com.vayuxi.erp(27544): Background young concurrent copying GC freed 1106KB AllocSpace bytes, 11(452KB) LOS objects, 16% free, 6405KB/7680KB, paused 10.129ms,98us total 30.890ms
+I/flutter (27544): ----------------FIREBASE CRASHLYTICS----------------
+Performing hot reload...
+Reloaded 0 of 3662 libraries in 1,764ms (compile: 48 ms, reload: 224 ms, reassemble: 805 ms).
+I/flutter (27544): Looking up a deactivated widget's ancestor is unsafe.
+I/flutter (27544): At this point the state of the widget's element tree is no longer stable.
+I/flutter (27544): To safely refer to a widget's ancestor in its dispose() method, save a reference to the ancestor by calling dependOnInheritedWidgetOfExactType() in the widget's didChangeDependencies() method.
+I/flutter (27544): #0      Element._debugCheckStateIsActiveForAncestorLookup.<anonymous closure> (package:flutter/src/widgets/framework.dart:5049:9)
+I/flutter (27544): #1      Element._debugCheckStateIsActiveForAncestorLookup (package:flutter/src/widgets/framework.dart:5063:6)
+I/flutter (27544): #2      Element.dependOnInheritedWidgetOfExactType (package:flutter/src/widgets/framework.dart:5082:12)
+I/flutter (27544): #3      InheritedModel.inheritFrom (package:flutter/src/widgets/inherited_model.dart:194:22)
+I/flutter (27544): #4      ModalRoute._of (package:flutter/src/widgets/routes.dart:1320:27)
+I/flutter (27544): #5      ModalRoute.of (package:flutter/src/widgets/routes.dart:1316:12)
+I/flutter (27544): #6      CarouselSliderState.getTimer.<anonymous closure> (package:carousel_slider/carousel_slider.dart:137:38)
+I/flutter (27544): #7      _rootRunUnary (dart:async/zone_root.dart:48:47)
+I/flutter (27544): #8      _CustomZone.runUnary (dart:async/zone.dart:733:19)
+I/flutter (27544): #9      _CustomZone.runUnaryGuarded (dart:async/zone.dart:633:7)
+I/flutter (27544): #10     _CustomZone.bindUnaryCallbackGuarded.<anonymous closure> (dart:async/zone.dart:671:26)
+I/flutter (27544): #11     _rootRunUnary (dart:async/zone_root.dart:56:13
+I/flutter (27544): ----------------------------------------------------
+I/flutter (27544): ----------------FIREBASE CRASHLYTICS----------------
+I/flutter (27544): Looking up a deactivated widget's ancestor is unsafe.
+I/flutter (27544): At this point the state of the widget's element tree is no longer stable.
+I/flutter (27544): To safely refer to a widget's ancestor in its dispose() method, save a reference to the ancestor by calling dependOnInheritedWidgetOfExactType() in the widget's didChangeDependencies() method.
+I/flutter (27544): #0      Element._debugCheckStateIsActiveForAncestorLookup.<anonymous closure> (package:flutter/src/widgets/framework.dart:5049:9)
+I/flutter (27544): #1      Element._debugCheckStateIsActiveForAncestorLookup (package:flutter/src/widgets/framework.dart:5063:6)
+I/flutter (27544): #2      Element.dependOnInheritedWidgetOfExactType (package:flutter/src/widgets/framework.dart:5082:12)
+I/flutter (27544): #3      InheritedModel.inheritFrom (package:flutter/src/widgets/inherited_model.dart:194:22)
+I/flutter (27544): #4      ModalRoute._of (package:flutter/src/widgets/routes.dart:1320:27)
+I/flutter (27544): #5      ModalRoute.of (package:flutter/src/widgets/routes.dart:1316:12)
+I/flutter (27544): #6      CarouselSliderState.getTimer.<anonymous closure> (package:carousel_slider/carousel_slider.dart:137:38)
+I/flutter (27544): #7      _rootRunUnary (dart:async/zone_root.dart:48:47)
+I/flutter (27544): #8      _CustomZone.runUnary (dart:async/zone.dart:733:19)
+I/flutter (27544): #9      _CustomZone.runUnaryGuarded (dart:async/zone.dart:633:7)
+I/flutter (27544): #10     _CustomZone.bindUnaryCallbackGuarded.<anonymous closure> (dart:async/zone.dart:671:26)
+I/flutter (27544): #11     _rootRunUnary (dart:async/zone_root.dart:56:13
+I/flutter (27544): ----------------------------------------------------
+Another exception was thrown: Cannot get renderObject of inactive element.
+D/FirebaseSessions(27544): App backgrounded on com.vayuxi.erp
+W/com.vayuxi.erp(27544): SuspendThreadByPeer failed for unattached thread: 0xb400006f15b0c4f0
+Lost connection to device.
+PS C:\Users\Dell\Downloads\u

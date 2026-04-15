@@ -1,5 +1,37 @@
 import 'package:flutter/material.dart';
 
+class SelectCardIcon extends StatelessWidget {
+  final IconData icon;
+  final Color color;
+
+  const SelectCardIcon({
+    super.key,
+    required this.icon,
+    required this.color,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    final isDark = Theme.of(context).brightness == Brightness.dark;
+    return Container(
+      width: 64,
+      height: 64,
+      decoration: BoxDecoration(
+        color: color.withOpacity(isDark ? 0.20 : 0.14),
+        borderRadius: BorderRadius.circular(18),
+        border: Border.all(
+          color: color.withOpacity(isDark ? 0.58 : 0.34),
+        ),
+      ),
+      child: Icon(
+        icon,
+        size: 34,
+        color: color,
+      ),
+    );
+  }
+}
+
 class SelectCard extends StatelessWidget {
   final Widget icon;
   final String label;

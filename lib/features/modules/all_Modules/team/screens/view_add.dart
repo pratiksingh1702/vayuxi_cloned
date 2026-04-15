@@ -43,11 +43,9 @@ class TeamSelectCardGrid extends StatelessWidget {
                 childAspectRatio: 1,
                 children: [
                   SelectCard(
-                    icon: Image.asset(
-                      "assets/images/icons/view.webp",
-                      height: 90,
-                      width: 90,
-                      fit: BoxFit.cover,
+                    icon: const SelectCardIcon(
+                      icon: Icons.visibility_rounded,
+                      color: Colors.blue,
                     ),
                     label: "View",
                     onTap: () {
@@ -58,13 +56,11 @@ class TeamSelectCardGrid extends StatelessWidget {
                     },
                   ),
                   SelectCard(
-                    icon: Image.asset(
-                      "assets/images/icons/add.webp",
-                      height: 120,
-                      width: double.infinity,
-                      fit: BoxFit.cover,
+                    icon: const SelectCardIcon(
+                      icon: Icons.add_circle_outline_rounded,
+                      color: Colors.green,
                     ),
-                    label: "add",
+                    label: "Add",
                     onTap: () {
                       Navigator.push(
                         context,

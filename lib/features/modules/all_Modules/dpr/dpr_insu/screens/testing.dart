@@ -1488,11 +1488,12 @@ class _AddInsulationDescriptionScreenState
 
   void _showSnackBar(String message, {bool isError = false}) {
     if (!mounted || _isDisposed) return;
+    final colorScheme = Theme.of(context).colorScheme;
 
     ScaffoldMessenger.of(context).showSnackBar(
       SnackBar(
         content: Text(message),
-        backgroundColor: isError ? Colors.red[700] : Colors.green[700],
+        backgroundColor: isError ? colorScheme.error : colorScheme.tertiary,
         behavior: SnackBarBehavior.floating,
         duration: Duration(seconds: isError ? 3 : 2),
         shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
@@ -1523,14 +1524,17 @@ class _AddInsulationDescriptionScreenState
       LayerType.values.map((e) => e.name.toUpperCase()).toList();
   Widget _buildLayerTypeSection() {
     print("cladding in the buildlayer section ${_cladding.thickness}");
+    final colorScheme = Theme.of(context).colorScheme;
+    final textTheme = Theme.of(context).textTheme;
     return Container(
       padding: const EdgeInsets.all(16),
       decoration: BoxDecoration(
-        color: Colors.white,
+        color: colorScheme.surfaceContainerLow,
         borderRadius: BorderRadius.circular(12),
+        border: Border.all(color: colorScheme.outlineVariant.withOpacity(0.55)),
         boxShadow: [
           BoxShadow(
-            color: Colors.black.withOpacity(0.05),
+            color: colorScheme.shadow.withOpacity(0.08),
             blurRadius: 6,
             offset: const Offset(0, 2),
           ),
@@ -1541,11 +1545,14 @@ class _AddInsulationDescriptionScreenState
         children: [
           Row(
             children: [
-              const Expanded(
+              Expanded(
                 flex: 3,
                 child: Text(
                   'Layer',
-                  style: TextStyle(fontSize: 16, fontWeight: FontWeight.w600),
+                  style: textTheme.titleMedium?.copyWith(
+                    fontWeight: FontWeight.w700,
+                    color: colorScheme.onSurface,
+                  ),
                 ),
               ),
               const SizedBox(width: 12),
@@ -1612,14 +1619,14 @@ class _AddInsulationDescriptionScreenState
                     child: Column(
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
-                        const Padding(
-                          padding: EdgeInsets.only(bottom: 6),
+                        Padding(
+                          padding: const EdgeInsets.only(bottom: 6),
                           child: Text(
                             'Thickness (mm)',
                             style: TextStyle(
                               fontSize: 12,
                               fontWeight: FontWeight.w600,
-                              color: Colors.grey,
+                              color: colorScheme.onSurfaceVariant,
                             ),
                           ),
                         ),
@@ -1638,17 +1645,27 @@ class _AddInsulationDescriptionScreenState
                             decoration: InputDecoration(
                               isDense: true,
                               filled: true,
-                              fillColor: const Color(0xFFE3F2FD),
+                              fillColor: colorScheme.surface,
                               contentPadding: const EdgeInsets.symmetric(
                                   horizontal: 8, vertical: 6),
                               border: OutlineInputBorder(
                                 borderRadius: BorderRadius.circular(10),
-                                borderSide: BorderSide.none,
+                                borderSide: BorderSide(
+                                  color: colorScheme.outlineVariant,
+                                ),
+                              ),
+                              enabledBorder: OutlineInputBorder(
+                                borderRadius: BorderRadius.circular(10),
+                                borderSide: BorderSide(
+                                  color: colorScheme.outlineVariant,
+                                ),
                               ),
                               focusedBorder: OutlineInputBorder(
                                 borderRadius: BorderRadius.circular(10),
-                                borderSide: const BorderSide(
-                                    color: Colors.blue, width: 2),
+                                borderSide: BorderSide(
+                                  color: colorScheme.primary,
+                                  width: 2,
+                                ),
                               ),
                             ),
                             onChanged: (v) {
@@ -1692,14 +1709,14 @@ class _AddInsulationDescriptionScreenState
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    const Padding(
-                      padding: EdgeInsets.only(bottom: 6),
+                    Padding(
+                      padding: const EdgeInsets.only(bottom: 6),
                       child: Text(
                         'Thickness (SWG)',
                         style: TextStyle(
                           fontSize: 12,
                           fontWeight: FontWeight.w600,
-                          color: Colors.grey,
+                          color: colorScheme.onSurfaceVariant,
                         ),
                       ),
                     ),
@@ -1716,17 +1733,27 @@ class _AddInsulationDescriptionScreenState
                         decoration: InputDecoration(
                           isDense: true,
                           filled: true,
-                          fillColor: const Color(0xFFE3F2FD),
+                          fillColor: colorScheme.surface,
                           contentPadding: const EdgeInsets.symmetric(
                               horizontal: 8, vertical: 6),
                           border: OutlineInputBorder(
                             borderRadius: BorderRadius.circular(10),
-                            borderSide: BorderSide.none,
+                            borderSide: BorderSide(
+                              color: colorScheme.outlineVariant,
+                            ),
+                          ),
+                          enabledBorder: OutlineInputBorder(
+                            borderRadius: BorderRadius.circular(10),
+                            borderSide: BorderSide(
+                              color: colorScheme.outlineVariant,
+                            ),
                           ),
                           focusedBorder: OutlineInputBorder(
                             borderRadius: BorderRadius.circular(10),
-                            borderSide:
-                                const BorderSide(color: Colors.blue, width: 2),
+                            borderSide: BorderSide(
+                              color: colorScheme.primary,
+                              width: 2,
+                            ),
                           ),
                         ),
                         onChanged: (v) {
@@ -2006,6 +2033,7 @@ class _AddInsulationDescriptionScreenState
     required bool value,
     required ValueChanged<bool> onChanged,
   }) {
+    final colorScheme = Theme.of(context).colorScheme;
     return Row(
       mainAxisSize: MainAxisSize.min,
       children: [
@@ -2014,10 +2042,10 @@ class _AddInsulationDescriptionScreenState
           onChanged: (v) {
             if (v != null) onChanged(v);
           },
-          activeColor: Colors.blue,
-          checkColor: Colors.white,
+          activeColor: colorScheme.primary,
+          checkColor: colorScheme.onPrimary,
           side: BorderSide(
-            color: Colors.blue.shade600,
+            color: colorScheme.primary,
             width: 1.5,
           ),
           shape: RoundedRectangleBorder(
@@ -2026,9 +2054,10 @@ class _AddInsulationDescriptionScreenState
         ),
         Text(
           label,
-          style: const TextStyle(
+          style: TextStyle(
             fontSize: 13,
             fontWeight: FontWeight.w600,
+            color: colorScheme.onSurface,
           ),
         ),
       ],
@@ -2040,6 +2069,7 @@ class _AddInsulationDescriptionScreenState
     required List<String> items,
     required ValueChanged<String> onChanged,
   }) {
+    final colorScheme = Theme.of(context).colorScheme;
     return SizedBox(
       height: 34,
       child: DropdownButtonFormField<String>(
@@ -2048,12 +2078,20 @@ class _AddInsulationDescriptionScreenState
         decoration: InputDecoration(
           isDense: true,
           filled: true,
-          fillColor: const Color(0xFFE3F2FD),
+          fillColor: colorScheme.surface,
           contentPadding:
               const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
           border: OutlineInputBorder(
             borderRadius: BorderRadius.circular(8),
-            borderSide: BorderSide.none,
+            borderSide: BorderSide(color: colorScheme.outlineVariant),
+          ),
+          enabledBorder: OutlineInputBorder(
+            borderRadius: BorderRadius.circular(8),
+            borderSide: BorderSide(color: colorScheme.outlineVariant),
+          ),
+          focusedBorder: OutlineInputBorder(
+            borderRadius: BorderRadius.circular(8),
+            borderSide: BorderSide(color: colorScheme.primary, width: 1.5),
           ),
         ),
         items: items
@@ -2062,8 +2100,11 @@ class _AddInsulationDescriptionScreenState
                 value: e,
                 child: Text(
                   e,
-                  style: const TextStyle(
-                      fontSize: 13, fontWeight: FontWeight.w500),
+                  style: TextStyle(
+                    fontSize: 13,
+                    fontWeight: FontWeight.w500,
+                    color: colorScheme.onSurface,
+                  ),
                 ),
               ),
             )
@@ -2078,6 +2119,7 @@ class _AddInsulationDescriptionScreenState
   @override
   Widget build(BuildContext context) {
     print("againnnnnnnnnnnnn");
+    final colorScheme = Theme.of(context).colorScheme;
 
     // ✅ ref.listen only fires on VALUE CHANGE, not every rebuild
     // No infinite loop!
@@ -2168,7 +2210,7 @@ class _AddInsulationDescriptionScreenState
       },
       child: Scaffold(
         drawer: const CustomDrawer(),
-        backgroundColor: Colors.grey[50],
+        backgroundColor: colorScheme.surface,
         body: NestedScrollView(
           // AFTER
           headerSliverBuilder: (context, innerBoxIsScrolled) {
@@ -2182,8 +2224,12 @@ class _AddInsulationDescriptionScreenState
               CustomButton(
                 button: RoundedButton(
                   text: _isSubmitting ? 'Saving..' : 'Save',
-                  color: _isEditable ? const Color(0xFF1B6DCE) : Colors.grey,
-                  textColor: Colors.white,
+                  color: _isEditable
+                      ? colorScheme.primary
+                      : colorScheme.surfaceContainerHighest,
+                  textColor: _isEditable
+                      ? colorScheme.onPrimary
+                      : colorScheme.onSurfaceVariant,
                   onPressed: _isSubmitting ? () {} : _handleSubmitFields,
                   isOutlined: false,
                 ),
@@ -2192,10 +2238,10 @@ class _AddInsulationDescriptionScreenState
             child: Column(
               children: [
                 if (_isLoadingMaterials || _isCreatingWork)
-                  const LinearProgressIndicator(
+                  LinearProgressIndicator(
                     backgroundColor: Colors.transparent,
                     valueColor:
-                        AlwaysStoppedAnimation<Color>(Color(0xFF1B6DCE)),
+                        AlwaysStoppedAnimation<Color>(colorScheme.primary),
                   ),
                 Expanded(
                   child: SingleChildScrollView(
@@ -2434,18 +2480,20 @@ class _AddInsulationDescriptionScreenState
     bool isExpanded,
     VoidCallback onToggle,
   ) {
+    final colorScheme = Theme.of(context).colorScheme;
     return GestureDetector(
       onTap: onToggle,
       child: Container(
         margin: const EdgeInsets.only(bottom: 12),
         padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
         decoration: BoxDecoration(
-          color: Colors.white,
+          color: colorScheme.surfaceContainerLow,
           borderRadius: BorderRadius.circular(12),
-          border: Border.all(color: Colors.blue.shade100),
+          border:
+              Border.all(color: colorScheme.outlineVariant.withOpacity(0.6)),
           boxShadow: [
             BoxShadow(
-              color: Colors.black.withOpacity(0.05),
+              color: colorScheme.shadow.withOpacity(0.08),
               blurRadius: 6,
               offset: const Offset(0, 2),
             ),
@@ -2458,16 +2506,16 @@ class _AddInsulationDescriptionScreenState
               children: [
                 Icon(
                   isExpanded ? Icons.expand_less : Icons.expand_more,
-                  color: Colors.blue,
+                  color: colorScheme.primary,
                   size: 20,
                 ),
                 const SizedBox(width: 8),
                 Text(
                   title,
-                  style: const TextStyle(
+                  style: TextStyle(
                     fontSize: 14,
                     fontWeight: FontWeight.w600,
-                    color: Colors.blue,
+                    color: colorScheme.primary,
                   ),
                 ),
                 const SizedBox(width: 8),
@@ -2475,15 +2523,15 @@ class _AddInsulationDescriptionScreenState
                   padding:
                       const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
                   decoration: BoxDecoration(
-                    color: Colors.blue.shade50,
+                    color: colorScheme.primaryContainer,
                     borderRadius: BorderRadius.circular(12),
                   ),
                   child: Text(
                     '$count',
-                    style: const TextStyle(
+                    style: TextStyle(
                       fontSize: 12,
                       fontWeight: FontWeight.w600,
-                      color: Colors.blue,
+                      color: colorScheme.onPrimaryContainer,
                     ),
                   ),
                 ),
@@ -2494,7 +2542,7 @@ class _AddInsulationDescriptionScreenState
               isExpanded ? 'Hide' : 'Show',
               style: TextStyle(
                 fontSize: 12,
-                color: Colors.grey[600],
+                color: colorScheme.onSurfaceVariant,
               ),
             ),
           ],
@@ -2504,6 +2552,7 @@ class _AddInsulationDescriptionScreenState
   }
 
   Widget _buildAddInsulationMaterialButton() {
+    final colorScheme = Theme.of(context).colorScheme;
     return InkWell(
       borderRadius: BorderRadius.circular(20),
       onTap: () async {
@@ -2530,19 +2579,20 @@ class _AddInsulationDescriptionScreenState
       child: Container(
         padding: const EdgeInsets.all(6),
         decoration: BoxDecoration(
-          color: Colors.blue,
+          color: colorScheme.primary,
           shape: BoxShape.circle,
         ),
-        child: const Icon(
+        child: Icon(
           Icons.add,
           size: 18,
-          color: Colors.white,
+          color: colorScheme.onPrimary,
         ),
       ),
     );
   }
 
   Widget _buildDateSection() {
+    final colorScheme = Theme.of(context).colorScheme;
     final bool canChangeDateNormal = _globalEditMode;
     final bool showPencil = isEditingDpr;
 
@@ -2553,20 +2603,29 @@ class _AddInsulationDescriptionScreenState
           padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
           decoration: BoxDecoration(
             gradient: LinearGradient(
-              colors: [Colors.blue[50]!, Colors.blue[100]!],
+              colors: [
+                colorScheme.primaryContainer.withOpacity(0.55),
+                colorScheme.secondaryContainer.withOpacity(0.55),
+              ],
             ),
             borderRadius: BorderRadius.circular(12),
+            border:
+                Border.all(color: colorScheme.outlineVariant.withOpacity(0.6)),
           ),
           child: Row(
             mainAxisAlignment: MainAxisAlignment.spaceBetween,
             children: [
-              const Row(
+              Row(
                 children: [
-                  Icon(Icons.description, color: Colors.blue, size: 20),
-                  SizedBox(width: 8),
+                  Icon(Icons.description, color: colorScheme.primary, size: 20),
+                  const SizedBox(width: 8),
                   Text(
                     'Daily Report',
-                    style: TextStyle(fontSize: 15, fontWeight: FontWeight.w600),
+                    style: TextStyle(
+                      fontSize: 15,
+                      fontWeight: FontWeight.w600,
+                      color: colorScheme.onSurface,
+                    ),
                   ),
                 ],
               ),
@@ -2580,12 +2639,12 @@ class _AddInsulationDescriptionScreenState
                           horizontal: 12, vertical: 6),
                       decoration: BoxDecoration(
                         color: _globalEditMode
-                            ? Colors.blue.shade50
+                            ? colorScheme.primaryContainer
                             : Colors.transparent,
                         borderRadius: BorderRadius.circular(8),
                         border: Border.all(
                           color: _globalEditMode
-                              ? Colors.blue.shade200
+                              ? colorScheme.primary.withOpacity(0.35)
                               : Colors.transparent,
                           width: 1,
                         ),
@@ -2598,16 +2657,17 @@ class _AddInsulationDescriptionScreenState
                             style: TextStyle(
                               fontSize: 14,
                               fontWeight: FontWeight.w600,
-                              color:
-                                  _globalEditMode ? Colors.blue : Colors.black,
+                              color: _globalEditMode
+                                  ? colorScheme.primary
+                                  : colorScheme.onSurface,
                             ),
                           ),
                           if (canChangeDateNormal) ...[
                             const SizedBox(width: 6),
-                            const Icon(
+                            Icon(
                               Icons.calendar_month,
                               size: 14,
-                              color: Colors.blue,
+                              color: colorScheme.primary,
                             ),
                           ],
                         ],
@@ -2617,8 +2677,8 @@ class _AddInsulationDescriptionScreenState
                   if (showPencil) ...[
                     const SizedBox(width: 8),
                     IconButton(
-                      icon:
-                          const Icon(Icons.edit, color: Colors.blue, size: 20),
+                      icon: Icon(Icons.edit,
+                          color: colorScheme.primary, size: 20),
                       onPressed: () => _handleDateOverride(context),
                       padding: EdgeInsets.zero,
                       constraints: const BoxConstraints(),
@@ -2637,17 +2697,17 @@ class _AddInsulationDescriptionScreenState
                 Container(
                   width: 8,
                   height: 8,
-                  decoration: const BoxDecoration(
-                    color: Colors.blue,
+                  decoration: BoxDecoration(
+                    color: colorScheme.primary,
                     shape: BoxShape.circle,
                   ),
                 ),
                 const SizedBox(width: 6),
-                const Text(
+                Text(
                   "Date modified",
                   style: TextStyle(
                     fontSize: 12,
-                    color: Colors.blue,
+                    color: colorScheme.primary,
                     fontWeight: FontWeight.bold,
                   ),
                 ),
@@ -2659,21 +2719,25 @@ class _AddInsulationDescriptionScreenState
   }
 
   Widget _buildEditModeButton() {
+    final colorScheme = Theme.of(context).colorScheme;
     return GestureDetector(
       onTap: _toggleGlobalEditMode,
       child: Container(
         padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
         decoration: BoxDecoration(
+          color: _globalEditMode
+              ? colorScheme.primaryContainer.withOpacity(0.45)
+              : colorScheme.surfaceContainerLow,
           borderRadius: BorderRadius.circular(20),
-          border: Border.all(color: Colors.blue.shade700),
+          border: Border.all(color: colorScheme.primary.withOpacity(0.65)),
         ),
         child: Row(
           mainAxisSize: MainAxisSize.min,
           children: [
             Text(
               _globalEditMode ? "Editing" : "Edit",
-              style: const TextStyle(
-                color: Colors.blue,
+              style: TextStyle(
+                color: colorScheme.primary,
                 fontWeight: FontWeight.bold,
               ),
             ),
@@ -2684,13 +2748,15 @@ class _AddInsulationDescriptionScreenState
   }
 
   Widget _buildDprInfoCard(bool shouldShowDropdown) {
+    final colorScheme = Theme.of(context).colorScheme;
     return Container(
       decoration: BoxDecoration(
-        color: Colors.white,
+        color: colorScheme.surfaceContainerLow,
         borderRadius: BorderRadius.circular(16),
+        border: Border.all(color: colorScheme.outlineVariant.withOpacity(0.55)),
         boxShadow: [
           BoxShadow(
-            color: Colors.black.withOpacity(0.05),
+            color: colorScheme.shadow.withOpacity(0.08),
             blurRadius: 10,
             offset: const Offset(0, 4),
           ),
@@ -2721,23 +2787,24 @@ class _AddInsulationDescriptionScreenState
   }
 
   Widget _buildDprDropdown() {
+    final colorScheme = Theme.of(context).colorScheme;
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        const Text(
+        Text(
           'Select Insulation DPR',
           style: TextStyle(
             fontSize: 12,
             fontWeight: FontWeight.w600,
-            color: Colors.grey,
+            color: colorScheme.onSurfaceVariant,
           ),
         ),
         const SizedBox(height: 4),
         Container(
           decoration: BoxDecoration(
-            color: Colors.white,
+            color: colorScheme.surface,
             borderRadius: BorderRadius.circular(10),
-            border: Border.all(color: Colors.grey[300]!),
+            border: Border.all(color: colorScheme.outlineVariant),
           ),
           child: _isLoadingDprList
               ? Padding(
@@ -2746,7 +2813,10 @@ class _AddInsulationDescriptionScreenState
                     child: SizedBox(
                       width: 20,
                       height: 20,
-                      child: CircularProgressIndicator(strokeWidth: 2),
+                      child: CircularProgressIndicator(
+                        strokeWidth: 2,
+                        color: colorScheme.primary,
+                      ),
                     ),
                   ),
                 )
@@ -2754,14 +2824,16 @@ class _AddInsulationDescriptionScreenState
                   child: DropdownButton<String>(
                     value: _selectedDprId,
                     isExpanded: true,
-                    icon: const Icon(Icons.arrow_drop_down, color: Colors.blue),
+                    icon:
+                        Icon(Icons.arrow_drop_down, color: colorScheme.primary),
                     elevation: 16,
-                    style: const TextStyle(
+                    style: TextStyle(
                       fontSize: 16,
                       fontWeight: FontWeight.w600,
-                      color: Colors.black,
+                      color: colorScheme.onSurface,
                     ),
-                    hint: const Text('Select DPR'),
+                    hint: Text('Select DPR',
+                        style: TextStyle(color: colorScheme.onSurfaceVariant)),
                     onChanged: (String? newValue) async {
                       if (newValue == null) return;
                       await _loadSelectedDpr(newValue);
@@ -2792,7 +2864,7 @@ class _AddInsulationDescriptionScreenState
                 '${_dprListForSelectedDate.length} Insulation DPR(s) found for ${_formatDate(_selectedDate)}',
                 style: TextStyle(
                   fontSize: 11,
-                  color: Colors.grey[600],
+                  color: colorScheme.onSurfaceVariant,
                   fontStyle: FontStyle.italic,
                 ),
               ),
@@ -2817,45 +2889,55 @@ class _AddInsulationDescriptionScreenState
   }
 
   Widget _buildRegularDprNameField() {
+    final colorScheme = Theme.of(context).colorScheme;
     return Row(
       children: [
         Expanded(
           child: _editMode
               ? TextField(
                   controller: _dprNameController,
-                  style: const TextStyle(
-                      fontSize: 16, fontWeight: FontWeight.w600),
+                  style: TextStyle(fontSize: 16, fontWeight: FontWeight.w600),
                   decoration: InputDecoration(
                     border: OutlineInputBorder(
                       borderRadius: BorderRadius.circular(10),
-                      borderSide: BorderSide(color: Colors.grey[300]!),
+                      borderSide: BorderSide(color: colorScheme.outlineVariant),
+                    ),
+                    enabledBorder: OutlineInputBorder(
+                      borderRadius: BorderRadius.circular(10),
+                      borderSide: BorderSide(color: colorScheme.outlineVariant),
                     ),
                     focusedBorder: OutlineInputBorder(
                       borderRadius: BorderRadius.circular(10),
                       borderSide:
-                          const BorderSide(color: Colors.blue, width: 2),
+                          BorderSide(color: colorScheme.primary, width: 2),
                     ),
                     contentPadding: const EdgeInsets.symmetric(
                         horizontal: 16, vertical: 14),
                     hintText: 'Enter Insulation DPR Name',
-                    prefixIcon: const Icon(Icons.insights, size: 20),
+                    hintStyle: TextStyle(color: colorScheme.onSurfaceVariant),
+                    prefixIcon: Icon(Icons.insights,
+                        size: 20, color: colorScheme.primary),
+                    filled: true,
+                    fillColor: colorScheme.surface,
                   ),
                 )
               : Container(
                   padding:
                       const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
                   decoration: BoxDecoration(
-                    color: Colors.grey[100],
+                    color: colorScheme.surface,
                     borderRadius: BorderRadius.circular(10),
+                    border: Border.all(color: colorScheme.outlineVariant),
                   ),
                   child: Row(
                     children: [
-                      Icon(Icons.insights, color: Colors.grey[700], size: 20),
+                      Icon(Icons.insights,
+                          color: colorScheme.onSurfaceVariant, size: 20),
                       const SizedBox(width: 12),
                       Expanded(
                         child: Text(
                           _dprNameController.text,
-                          style: const TextStyle(
+                          style: TextStyle(
                               fontSize: 16, fontWeight: FontWeight.w600),
                         ),
                       ),
@@ -2867,7 +2949,7 @@ class _AddInsulationDescriptionScreenState
         if (_editMode)
           Container(
             decoration: BoxDecoration(
-              color: Colors.blue[50],
+              color: colorScheme.primaryContainer,
               borderRadius: BorderRadius.circular(10),
             ),
             child: IconButton(
@@ -2880,7 +2962,7 @@ class _AddInsulationDescriptionScreenState
               },
               icon: Icon(
                 _editMode ? Icons.check_circle : Icons.edit_rounded,
-                color: _editMode ? Colors.blue[700] : Colors.blue[700],
+                color: colorScheme.primary,
                 size: 24,
               ),
             ),
@@ -2891,6 +2973,7 @@ class _AddInsulationDescriptionScreenState
 
   Widget _buildInputFields() {
     final selectedUnit = ref.watch(selectedUnitProvider);
+    final colorScheme = Theme.of(context).colorScheme;
 
     return Row(
       crossAxisAlignment: CrossAxisAlignment.end,
@@ -2953,7 +3036,7 @@ class _AddInsulationDescriptionScreenState
                   style: TextStyle(
                     fontSize: 12,
                     fontWeight: FontWeight.w600,
-                    color: Colors.grey[700],
+                    color: colorScheme.onSurfaceVariant,
                   ),
                 ),
               ),
@@ -2967,10 +3050,19 @@ class _AddInsulationDescriptionScreenState
                     contentPadding:
                         const EdgeInsets.symmetric(vertical: 2, horizontal: 2),
                     filled: true,
-                    fillColor: const Color(0xFFE3F2FD),
+                    fillColor: colorScheme.surface,
                     border: OutlineInputBorder(
                       borderRadius: BorderRadius.circular(10),
-                      borderSide: BorderSide.none,
+                      borderSide: BorderSide(color: colorScheme.outlineVariant),
+                    ),
+                    enabledBorder: OutlineInputBorder(
+                      borderRadius: BorderRadius.circular(10),
+                      borderSide: BorderSide(color: colorScheme.outlineVariant),
+                    ),
+                    focusedBorder: OutlineInputBorder(
+                      borderRadius: BorderRadius.circular(10),
+                      borderSide:
+                          BorderSide(color: colorScheme.primary, width: 1.5),
                     ),
                   ),
                   items: const ['mm', 'inch']
@@ -3024,6 +3116,7 @@ class _AddInsulationDescriptionScreenState
     TextInputType? keyboardType,
     ValueChanged<String>? onChanged,
   }) {
+    final colorScheme = Theme.of(context).colorScheme;
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
@@ -3034,7 +3127,7 @@ class _AddInsulationDescriptionScreenState
             style: TextStyle(
               fontSize: 12,
               fontWeight: FontWeight.w600,
-              color: Colors.grey[700],
+              color: colorScheme.onSurfaceVariant,
             ),
           ),
         ),
@@ -3049,19 +3142,24 @@ class _AddInsulationDescriptionScreenState
               fontSize: 14,
               fontWeight: FontWeight.w500,
             ),
+            cursorColor: colorScheme.primary,
             decoration: InputDecoration(
               isDense: true,
               contentPadding:
                   const EdgeInsets.symmetric(vertical: 2, horizontal: 2),
               filled: true,
-              fillColor: const Color(0xFFE3F2FD),
+              fillColor: colorScheme.surface,
               border: OutlineInputBorder(
                 borderRadius: BorderRadius.circular(10),
-                borderSide: BorderSide.none,
+                borderSide: BorderSide(color: colorScheme.outlineVariant),
+              ),
+              enabledBorder: OutlineInputBorder(
+                borderRadius: BorderRadius.circular(10),
+                borderSide: BorderSide(color: colorScheme.outlineVariant),
               ),
               focusedBorder: OutlineInputBorder(
                 borderRadius: BorderRadius.circular(10),
-                borderSide: const BorderSide(color: Colors.blue, width: 2),
+                borderSide: BorderSide(color: colorScheme.primary, width: 2),
               ),
             ),
           ),
@@ -3076,6 +3174,7 @@ class _AddInsulationDescriptionScreenState
     required List<String> items,
     required ValueChanged<String> onChanged,
   }) {
+    final colorScheme = Theme.of(context).colorScheme;
     final validValue = (value != null && items.contains(value)) ? value : null;
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
@@ -3087,7 +3186,7 @@ class _AddInsulationDescriptionScreenState
             style: TextStyle(
               fontSize: 12,
               fontWeight: FontWeight.w600,
-              color: Colors.grey[700],
+              color: colorScheme.onSurfaceVariant,
             ),
           ),
         ),
@@ -3099,17 +3198,26 @@ class _AddInsulationDescriptionScreenState
             decoration: InputDecoration(
               isDense: true,
               filled: true,
-              fillColor: const Color(0xFFE3F2FD),
+              fillColor: colorScheme.surface,
               contentPadding:
                   const EdgeInsets.symmetric(horizontal: 8, vertical: 6),
               border: OutlineInputBorder(
                 borderRadius: BorderRadius.circular(10),
-                borderSide: BorderSide.none,
+                borderSide: BorderSide(color: colorScheme.outlineVariant),
+              ),
+              enabledBorder: OutlineInputBorder(
+                borderRadius: BorderRadius.circular(10),
+                borderSide: BorderSide(color: colorScheme.outlineVariant),
+              ),
+              focusedBorder: OutlineInputBorder(
+                borderRadius: BorderRadius.circular(10),
+                borderSide: BorderSide(color: colorScheme.primary, width: 1.5),
               ),
             ),
-            hint: const Text(
+            hint: Text(
               'Select',
-              style: TextStyle(fontSize: 13),
+              style:
+                  TextStyle(fontSize: 13, color: colorScheme.onSurfaceVariant),
             ),
             items: items
                 .map(
@@ -3117,9 +3225,10 @@ class _AddInsulationDescriptionScreenState
                     value: m,
                     child: Text(
                       m,
-                      style: const TextStyle(
+                      style: TextStyle(
                         fontSize: 13,
                         fontWeight: FontWeight.w500,
+                        color: colorScheme.onSurface,
                       ),
                     ),
                   ),
@@ -3172,6 +3281,7 @@ class _AddInsulationDescriptionScreenState
     bool isLoading,
     Function(bool) onChanged,
   ) {
+    final colorScheme = Theme.of(context).colorScheme;
     return GestureDetector(
       onTap: isLoading ? null : () => onChanged(!value),
       child: AnimatedContainer(
@@ -3179,20 +3289,20 @@ class _AddInsulationDescriptionScreenState
         padding: const EdgeInsets.symmetric(vertical: 15, horizontal: 5),
         decoration: BoxDecoration(
           gradient: value
-              ? const LinearGradient(
-                  colors: [Colors.blue, Colors.blue],
+              ? LinearGradient(
+                  colors: [colorScheme.primary, colorScheme.primary],
                 )
               : null,
-          color: value ? null : Colors.white,
+          color: value ? null : colorScheme.surfaceContainerLow,
           borderRadius: BorderRadius.circular(14),
           border: Border.all(
-            color: value ? Colors.blue : Colors.grey[300]!,
+            color: value ? colorScheme.primary : colorScheme.outlineVariant,
             width: value ? 2 : 1.5,
           ),
           boxShadow: value
               ? [
                   BoxShadow(
-                    color: Colors.blue.withOpacity(0.4),
+                    color: colorScheme.primary.withOpacity(0.3),
                     blurRadius: 12,
                     offset: const Offset(0, 4),
                   ),
@@ -3207,7 +3317,7 @@ class _AddInsulationDescriptionScreenState
                 height: 28,
                 child: CircularProgressIndicator(
                   strokeWidth: 3,
-                  color: value ? Colors.white : Colors.blue,
+                  color: value ? colorScheme.onPrimary : colorScheme.primary,
                 ),
               ),
             Text(
@@ -3216,7 +3326,7 @@ class _AddInsulationDescriptionScreenState
               style: TextStyle(
                 fontSize: 13,
                 fontWeight: FontWeight.w700,
-                color: value ? Colors.white : Colors.blue,
+                color: value ? colorScheme.onPrimary : colorScheme.primary,
               ),
             ),
           ],
@@ -3562,11 +3672,11 @@ class _AddInsulationDescriptionScreenState
                     qtyEntry.value != null &&
                     qtyEntry.value != 0)
                 ? qtyEntry.value
-              : hasExplicitQty
-                ? qtyEntryNum
-                : (baseQtyNum > 0 && (hasMaterialInputs || baseQtyNum != 1)
-                  ? baseQtyNum
-                  : (hasMaterialInputs ? 1 : 0));
+                : hasExplicitQty
+                    ? qtyEntryNum
+                    : (baseQtyNum > 0 && (hasMaterialInputs || baseQtyNum != 1)
+                        ? baseQtyNum
+                        : (hasMaterialInputs ? 1 : 0));
             fieldValues["quantity"] = resolvedQty;
             fieldValues["qtyUom"] =
                 qtyEntry?.unit != null && qtyEntry!.unit!.isNotEmpty
@@ -3603,13 +3713,13 @@ class _AddInsulationDescriptionScreenState
           final qtyEntry = p.cardFormState?.fieldEntries['quantity'];
           final sizeValue = sizeEntry?.value;
           final resolvedSize =
-            (sizeValue != null && sizeValue.toString().trim().isNotEmpty)
-              ? sizeValue.toString()
-              : p.size;
+              (sizeValue != null && sizeValue.toString().trim().isNotEmpty)
+                  ? sizeValue.toString()
+                  : p.size;
           final resolvedSizeUom =
-            (sizeEntry?.unit != null && sizeEntry!.unit!.isNotEmpty)
-              ? sizeEntry.unit
-              : p.sizeUom;
+              (sizeEntry?.unit != null && sizeEntry!.unit!.isNotEmpty)
+                  ? sizeEntry.unit
+                  : p.sizeUom;
 
           final hasFieldValues = _hasMeaningfulMapValues(
             p.fieldValues?.values,
@@ -3627,8 +3737,10 @@ class _AddInsulationDescriptionScreenState
           final updatedPiping = p.copyWith(qty: qty);
           final json = updatedPiping.toJson();
           final cardFormState = json['cardFormState'] as Map<String, dynamic>?;
-          final fieldEntries = cardFormState?['fieldEntries'] as Map<String, dynamic>?;
-          final quantityField = fieldEntries?['quantity'] as Map<String, dynamic>?;
+          final fieldEntries =
+              cardFormState?['fieldEntries'] as Map<String, dynamic>?;
+          final quantityField =
+              fieldEntries?['quantity'] as Map<String, dynamic>?;
 
           if (quantityField != null) {
             final qtyEntryValue = qtyEntry?.value;
@@ -3639,7 +3751,7 @@ class _AddInsulationDescriptionScreenState
 
           json['images'] = p.image;
           debugPrint(
-            '📦 Piping Material Payload [${p.name}]: Qty=$qty, Size=${json['size']}, SizeUom=${json['sizeUom']}');
+              '📦 Piping Material Payload [${p.name}]: Qty=$qty, Size=${json['size']}, SizeUom=${json['sizeUom']}');
           return json;
         }).toList(),
     };
@@ -3812,7 +3924,6 @@ class _AddInsulationDescriptionScreenState
       debugPrint("📤 INSULATION DPR PAYLOAD:");
       debugPrint(const JsonEncoder.withIndent('  ').convert(payload));
 
-
       // ✅ STEP 6: Send the payload to server
       debugPrint('📤 Step 6: Sending DPR payload to server...');
       if (_insulationId == null) {
@@ -3838,7 +3949,7 @@ class _AddInsulationDescriptionScreenState
       WidgetsBinding.instance.addPostFrameCallback((_) {
         if (mounted && !_isDisposed) {
           int count = 0;
-            if (widget.work == null) {
+          if (widget.work == null) {
             Navigator.of(context).popUntil((_) => count++ >= 5);
           } else {
             context.pop(true);

@@ -27,10 +27,12 @@ class LayerSelectionScreen extends ConsumerWidget {
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final selectedType = ref.watch(insulationStateProvider).layerType;
+    final colorScheme = Theme.of(context).colorScheme;
+    final textTheme = Theme.of(context).textTheme;
 
     return Scaffold(
       drawer: const CustomDrawer(),
-      backgroundColor: const Color(0xFFD7ECFF),
+      backgroundColor: colorScheme.surface,
       appBar: const CustomAppBar(
         title: 'Select Layer Type',
       ),
@@ -52,7 +54,7 @@ class LayerSelectionScreen extends ConsumerWidget {
                       );
                     },
                     style: TextButton.styleFrom(
-                      backgroundColor: const Color(0xFF007BFF),
+                      backgroundColor: colorScheme.primary,
                       padding: const EdgeInsets.symmetric(
                         horizontal: 18,
                         vertical: 6,
@@ -70,6 +72,25 @@ class LayerSelectionScreen extends ConsumerWidget {
                     ),
                   ),
                 ],
+              ),
+
+              Container(
+                width: double.infinity,
+                padding:
+                    const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
+                decoration: BoxDecoration(
+                  color: colorScheme.surfaceContainerLow,
+                  borderRadius: BorderRadius.circular(12),
+                  border: Border.all(
+                      color: colorScheme.outlineVariant.withOpacity(0.55)),
+                ),
+                child: Text(
+                  'Choose layer configuration for this setup.',
+                  style: textTheme.bodyMedium?.copyWith(
+                    color: colorScheme.onSurfaceVariant,
+                    fontWeight: FontWeight.w500,
+                  ),
+                ),
               ),
 
               const SizedBox(height: 32),
@@ -104,28 +125,32 @@ class LayerSelectionScreen extends ConsumerWidget {
         ),
       ),
     );
-
   }
-  Widget layerIcon(int layers, {required bool isSelected}) {
+
+  Widget layerIcon(int layers,
+      {required bool isSelected, required ColorScheme colorScheme}) {
     return Column(
       mainAxisAlignment: MainAxisAlignment.center,
       children: List.generate(
         layers,
-            (i) => Container(
+        (i) => Container(
           margin: const EdgeInsets.only(bottom: 6),
           height: 10,
           width: 60,
           decoration: BoxDecoration(
             color: isSelected
-                ? Colors.white
-                : Colors.amber[700 - i * 100],
+                ? colorScheme.onPrimary
+                : (i == 0
+                    ? colorScheme.tertiary
+                    : i == 1
+                        ? colorScheme.secondary
+                        : colorScheme.primary.withOpacity(0.8)),
             borderRadius: BorderRadius.circular(4),
           ),
         ),
       ),
     );
   }
-
 
   Widget _layerOption({
     required BuildContext context,
@@ -135,6 +160,8 @@ class LayerSelectionScreen extends ConsumerWidget {
     required LayerType? selectedType,
   }) {
     final isSelected = selectedType == type;
+    final colorScheme = Theme.of(context).colorScheme;
+    final textTheme = Theme.of(context).textTheme;
 
     return GestureDetector(
       onTap: () {
@@ -147,36 +174,72 @@ class LayerSelectionScreen extends ConsumerWidget {
             'layerIndex': 0,
           },
         );
-
       },
       child: Container(
         padding: const EdgeInsets.all(20),
         decoration: BoxDecoration(
-          color: isSelected ? const Color(0xFF007BFF) : Colors.white,
+          color: isSelected
+              ? colorScheme.primary
+              : colorScheme.surfaceContainerLow,
           borderRadius: BorderRadius.circular(12),
-
+          border: Border.all(
+            color: isSelected
+                ? colorScheme.primary
+                : colorScheme.outlineVariant.withOpacity(0.55),
+          ),
+          boxShadow: [
+            BoxShadow(
+              color: colorScheme.shadow.withOpacity(0.08),
+              blurRadius: 10,
+              offset: const Offset(0, 4),
+            ),
+          ],
         ),
         child: Row(
           children: [
             layerIcon(
               _layerCount(type),
               isSelected: isSelected,
+              colorScheme: colorScheme,
             ),
-
             const SizedBox(width: 16),
-            Text(
-              label,
-              style: TextStyle(
-                fontSize: 18,
-                fontWeight: FontWeight.w600,
-                color: isSelected ? Colors.white : Colors.black,
+            Expanded(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(
+                    label,
+                    style: textTheme.titleMedium?.copyWith(
+                      fontWeight: FontWeight.w700,
+                      color: isSelected
+                          ? colorScheme.onPrimary
+                          : colorScheme.onSurface,
+                    ),
+                  ),
+                  const SizedBox(height: 3),
+                  Text(
+                    'Tap to configure',
+                    style: textTheme.bodySmall?.copyWith(
+                      color: isSelected
+                          ? colorScheme.onPrimary.withOpacity(0.86)
+                          : colorScheme.onSurfaceVariant,
+                    ),
+                  ),
+                ],
               ),
+            ),
+            Icon(
+              Icons.chevron_right,
+              color: isSelected
+                  ? colorScheme.onPrimary
+                  : colorScheme.onSurfaceVariant,
             ),
           ],
         ),
       ),
     );
   }
+
   int _layerCount(LayerType type) {
     switch (type) {
       case LayerType.single:
@@ -187,7 +250,6 @@ class LayerSelectionScreen extends ConsumerWidget {
         return 3;
     }
   }
-
 
   Map<String, String> _navArgs() {
     return {

@@ -33,4 +33,754 @@ The specific RenderFlex in question is: RenderFlex#74f4d relayoutBoundary=up11 O
   verticalDirection: down
   spacing: 0.0
 ◢◤◢◤◢◤◢◤◢◤◢◤◢◤◢◤◢◤◢◤◢◤◢◤◢◤◢◤◢◤◢◤◢◤◢◤◢◤◢◤◢◤◢◤◢◤◢◤◢◤◢◤◢◤◢◤◢◤◢◤◢◤◢◤◢◤◢◤◢◤◢◤◢◤◢◤◢◤◢◤◢◤◢◤◢◤◢◤◢◤◢◤◢◤◢◤◢◤◢◤
-════════════════════════════
+════════════════════════════PS C:\Users\Dell\Downloads\untitled2\untitled2> flutter run
+Connected devices:
+V2153 (mobile)    • 10BC9A0UWG000PZ • android-arm64  • Android 14 (API 34)
+Windows (desktop) • windows         • windows-x64    • Microsoft Windows [Version 10.0.26200.8117]
+Chrome (web)      • chrome          • web-javascript • Google Chrome 147.0.7727.56
+Edge (web)        • edge            • web-javascript • Microsoft Edge 146.0.3856.97
+
+Wirelessly connected devices:
+V2153 (wireless) (mobile) • adb-10BC9A0UWG000PZ-z3E0B3._adb-tls-connect._tcp • android-arm64 • Android 14 (API 34)
+
+[1]: V2153 (10BC9A0UWG000PZ)
+[2]: Windows (windows)
+[3]: Chrome (chrome)
+[4]: Edge (edge)
+[5]: V2153 (wireless) (adb-10BC9A0UWG000PZ-z3E0B3._adb-tls-connect._tcp)
+Please choose one (or "q" to quit): Terminate batch job (Y/N)? y
+PS C:\Users\Dell\Downloads\untitled2\untitled2> flutter run
+Connected devices:
+V2153 (mobile)    • 10BC9A0UWG000PZ • android-arm64  • Android 14 (API 34)
+Windows (desktop) • windows         • windows-x64    • Microsoft Windows [Version 10.0.26200.8117]
+Chrome (web)      • chrome          • web-javascript • Google Chrome 147.0.7727.56
+Edge (web)        • edge            • web-javascript • Microsoft Edge 146.0.3856.97
+
+Wirelessly connected devices:
+V2153 (wireless) (mobile) • adb-10BC9A0UWG000PZ-z3E0B3._adb-tls-connect._tcp • android-arm64 • Android 14 (API 34)
+
+[1]: V2153 (10BC9A0UWG000PZ)
+[2]: Windows (windows)
+[3]: Chrome (chrome)
+[4]: Edge (edge)
+[5]: V2153 (wireless) (adb-10BC9A0UWG000PZ-z3E0B3._adb-tls-connect._tcp)
+Please choose one (or "q" to quit): 5
+Launching lib\main.dart on V2153 (wireless) in debug mode...
+Running Gradle task 'assembleDebug'...                             33.0s
+✓ Built build\app\outputs\flutter-apk\app-debug.apk
+Installing build\app\outputs\flutter-apk\app-debug.apk...          49.4s
+D/FlutterJNI( 3039): Beginning load of flutter...
+D/FlutterJNI( 3039): flutter (null) was loaded normally!
+I/flutter ( 3039): [IMPORTANT:flutter/shell/platform/android/android_context_vk_impeller.cc(62)] Using the Impeller rendering backend (Vulkan).
+I/flutter ( 3039): [IMPORTANT:flutter/shell/platform/android/android_context_gl_impeller.cc(104)] Using the Impeller rendering backend (OpenGLES).
+D/FlutterFileDialogPlugin( 3039): onAttachedToEngine - IN
+D/FlutterFileDialogPlugin( 3039): doOnAttachedToEngine - IN
+D/FlutterFileDialogPlugin( 3039): doOnAttachedToEngine - OUT
+D/FlutterFileDialogPlugin( 3039): onAttachedToEngine - OUT
+D/FlutterFileDialogPlugin( 3039): onAttachedToActivity
+D/FlutterFileDialogPlugin( 3039): doOnAttachedToActivity - IN
+D/FlutterFileDialogPlugin( 3039): createFileDialog - IN
+D/FlutterFileDialogPlugin( 3039): createFileDialog - OUT
+D/FlutterFileDialogPlugin( 3039): doOnAttachedToActivity - OUT
+D/FlutterRenderer( 3039): Width is zero. 0,0
+D/FlutterRenderer( 3039): Width is zero. 0,0
+D/FlutterJNI( 3039): Sending viewport metrics to the engine.
+Syncing files to device V2153 (wireless)...                        233ms
+
+Flutter run key commands.
+r Hot reload. 🔥🔥🔥
+R Hot restart.
+h List all available interactive commands.
+d Detach (terminate "flutter run" but leave application running).
+c Clear the screen
+q Quit (terminate the application on the device).
+
+A Dart VM Service on V2153 is available at: http://127.0.0.1:64166/YgPpxn6jdCw=/
+The Flutter DevTools debugger and profiler on V2153 is available at:
+http://127.0.0.1:64166/YgPpxn6jdCw=/devtools/?uri=ws://127.0.0.1:64166/YgPpxn6jdCw=/ws
+D/FlutterJNI( 3039): Sending viewport metrics to the engine.
+I/FLTFireBGExecutor( 3039): Creating background FlutterEngine instance, with args: [--enable-dart-profiling]
+D/FLTFireContextHolder( 3039): received application context.
+D/FlutterFileDialogPlugin( 3039): onAttachedToEngine - IN
+D/FlutterFileDialogPlugin( 3039): doOnAttachedToEngine - IN
+D/FlutterFileDialogPlugin( 3039): doOnAttachedToEngine - OUT
+D/FlutterFileDialogPlugin( 3039): onAttachedToEngine - OUT
+I/AdrenoVK-0( 3039): QUALCOMM build          : 0a31cc5b53, I80d2918b26
+I/AdrenoVK-0( 3039): Build Date              : 09/27/23
+I/AdrenoVK-0( 3039): Shader Compiler Version : EV031.32.02.17
+I/AdrenoVK-0( 3039): Local Branch            :
+I/AdrenoVK-0( 3039): Remote Branch           :
+I/AdrenoVK-0( 3039): Remote Branch           :
+I/AdrenoVK-0( 3039): Reconstruct Branch      :
+I/AdrenoVK-0( 3039): Build Config            : S P 10.0.7 AArch64
+I/AdrenoVK-0( 3039): Driver Path             : /vendor/lib64/hw/vulkan.adreno.so
+I/flutter ( 3039): [IMPORTANT:flutter/shell/platform/android/android_context_vk_impeller.cc(62)] Using the Impeller rendering backend (Vulkan).
+I/flutter ( 3039): [IMPORTANT:flutter/shell/platform/android/android_context_gl_impeller.cc(104)] Using the Impeller rendering backend (OpenGLES).
+I/TextToSpeech( 3039): Connected to TTS engine
+I/TextToSpeech( 3039): Connected to TTS engine
+I/TextToSpeech( 3039): Setting up the connection to TTS engine...
+I/TextToSpeech( 3039): Setting up the connection to TTS engine...
+I/Choreographer( 3039): Skipped 85 frames!  The application may be doing too much work on its main thread.
+I/flutter ( 3039): ✅ Schema: LocalMaterial
+I/flutter ( 3039): ✅ Schema: CachedImage
+I/flutter ( 3039): ✅ Schema: TeamIsar
+I/flutter ( 3039): ✅ Schema: RateFileAnalysisIsar
+I/flutter ( 3039): ✅ Schema: RateFileMaterialIsar
+I/flutter ( 3039): ✅ Schema: RateVariantIsar
+I/flutter ( 3039): ✅ Schema: DprIsar
+I/flutter ( 3039): ✅ Schema: OutboxIsar
+I/flutter ( 3039): ✅ Schema: SyncMetaIsar
+I/flutter ( 3039): ✅ Schema: InventoryCategoryIsar
+I/flutter ( 3039): ✅ Schema: InventoryIsar
+I/flutter ( 3039): ✅ Schema: InventoryUsageIsar
+I/flutter ( 3039): ✅ Schema: InventoryCheckoutIsar
+I/flutter ( 3039): ✅ Schema: AttendanceIsar
+I/flutter ( 3039): ✅ Schema: ManpowerIsar
+I/flutter ( 3039): ✅ Schema: UpdateNotificationIsar
+I/flutter ( 3039): ╔══════════════════════════════════════════════════════╗
+I/flutter ( 3039): ║                 ISAR CONNECT STARTED                 ║
+I/flutter ( 3039): ╟──────────────────────────────────────────────────────╢
+I/flutter ( 3039): ║         Open the link to connect to the Isar         ║
+I/flutter ( 3039): ║        Inspector while this build is running.        ║
+I/flutter ( 3039): ╟──────────────────────────────────────────────────────╢
+I/flutter ( 3039): ║ https://inspect.isar.dev/3.1.0+1/#/64166/YgPpxn6jdCw ║
+I/flutter ( 3039): ╚══════════════════════════════════════════════════════╝
+I/FLTFireMsgService( 3039): FlutterFirebaseMessagingBackgroundService started!
+I/Choreographer( 3039): Skipped 62 frames!  The application may be doing too much work on its main thread.
+I/flutter ( 3039): 😊😊😊😊😊😊😊😊😊😊😊😊
+I/flutter ( 3039): 2026-04-15 00:50:03.568253 - Notification service initialized
+D/FirebaseSessions( 3039): App backgrounded on com.vayuxi.erp
+D/ProfileInstaller( 3039): Installing profile for com.vayuxi.erp
+D/CompatibilityChangeReporter( 3039): Compat change id reported: 78294732; UID 10744; state: ENABLED
+D/FirebaseSessions( 3039): App foregrounded on com.vayuxi.erp
+I/flutter ( 3039): ❤️❤️❤️❤️❤️❤️❤️
+I/flutter ( 3039): Project ID: vayuxi-erp
+I/flutter ( 3039): App ID: 1:116466611447:android:d33eedf1737069e0e1cff2
+I/flutter ( 3039): Sender ID: 116466611447
+I/flutter ( 3039): API Key: AIzaSyBuU7FSdd49zg0StMJOIqLhQk50rpgeVPA
+I/flutter ( 3039): 🔍 DEBUG - All Cookies:
+I/flutter ( 3039):    No cookies stored at all!
+I/flutter ( 3039): 🍪 Cookies being sent:
+I/flutter ( 3039): ➡️ Sending request: POST https://be-vayuxi-chi.vercel.app/api/v1/notifications/save-token
+I/flutter ( 3039):    Body: {fcmToken: cjoHInbVQdCx1e__eF2OiT:APA91bHtBbb3Zh6tsdaBLBjFg1Rvzjxf_uD5sfBf-GG770axkYmchr2m2hSkEnwbwasP8ISDev5dYQeupHqQCAE7hhBCk6ESVDptjk9pXhM-ZH8brXd5yBg, deviceInfo: vivo V2153 (Android 14)}
+D/FlutterJNI( 3039): Sending viewport metrics to the engine.
+E/OpenGLRenderer( 3039): Unable to match the desired swap behavior.
+D/FlutterJNI( 3039): Sending viewport metrics to the engine.
+I/flutter ( 3039): ❌ TECH ERROR: DioExceptionType.badResponse
+I/flutter ( 3039): ❌ TECH DETAILS: null
+I/flutter ( 3039): ❌ TECH RESPONSE: {success: false, message: Authentication token missing}
+I/flutter ( 3039): Authentication token missing
+I/flutter ( 3039): ❌ Request failed: POST https://be-vayuxi-chi.vercel.app/api/v1/notifications/save-token
+I/flutter ( 3039):    Error type: DioExceptionType.badResponse
+I/flutter ( 3039):    Error: Authentication token missing
+I/flutter ( 3039): 🚫 Not queued (server/client error)
+I/flutter ( 3039): 📌 Saved request to queue: POST /notifications/save-token
+I/flutter ( 3039):    Saved data: {fcmToken: cjoHInbVQdCx1e__eF2OiT:APA91bHtBbb3Zh6tsdaBLBjFg1Rvzjxf_uD5sfBf-GG770axkYmchr2m2hSkEnwbwasP8ISDev5dYQeupHqQCAE7hhBCk6ESVDptjk9pXhM-ZH8brXd5yBg, deviceInfo: vivo V2153 (Android 14)}
+I/flutter ( 3039): DioException [bad response]: null
+I/flutter ( 3039): Error: Authentication token missing
+I/flutter ( 3039): 🔥 FCM Token: cjoHInbVQdCx1e__eF2OiT:APA91bHtBbb3Zh6tsdaBLBjFg1Rvzjxf_uD5sfBf-GG770axkYmchr2m2hSkEnwbwasP8ISDev5dYQeupHqQCAE7hhBCk6ESVDptjk9pXhM-ZH8brXd5yBg
+I/flutter ( 3039): [Razorpay] Initialized
+I/flutter ( 3039): 🚀 [AppAccess] ══════════ INITIALIZE STARTED ══════════
+I/flutter ( 3039): Color(alpha: 1.0000, red: 0.5906, green: 0.7441, blue: 0.9153, colorSpace: ColorSpace.sRGB)
+I/flutter ( 3039): 😅😅😅😅 light color at controller
+I/flutter ( 3039): 🔀 [ROUTER REDIRECT] booting=true loggedIn=false matchedLocation=/splash fullPath=/splash
+I/flutter ( 3039): 🔀 [ROUTER REDIRECT] → /splash  (reason: booting)
+I/flutter ( 3039): 🧭 [ROUTER] SplashScreen | path: /splash
+I/flutter ( 3039): 😴 No pending requests → skip
+I/flutter ( 3039): ⚠️  [AppAccess] No saved DeviceId — new device or first install
+I/flutter ( 3039): ⏳ [AppAccess] Waiting for AuthNotifier to restore from cache...
+I/flutter ( 3039): 🔐 AUTH INIT - No token found, user not logged in
+I/flutter ( 3039): Color(alpha: 1.0000, red: 0.5906, green: 0.7441, blue: 0.9153, colorSpace: ColorSpace.sRGB)
+I/flutter ( 3039): 😅😅😅😅 light color at controller
+I/flutter ( 3039): 🔐 CHECKING LOGIN - Starting auth check
+I/flutter ( 3039): 🔐 CHECKING LOGIN - No token found
+I/flutter ( 3039): ✅ [AppAccess] Auth restored after 50ms
+I/flutter ( 3039):    ├─ isLoggedIn : false
+I/flutter ( 3039):    └─ role       : null
+I/flutter ( 3039): 🔴 [AppAccess] Not logged in — clearing cache and grace state
+I/Choreographer( 3039): Skipped 204 frames!  The application may be doing too much work on its main thread.
+I/OpenGLRenderer( 3039): Davey! duration=3558ms; Flags=1, FrameTimelineVsyncId=37348268, IntendedVsync=258113234435874, Vsync=258116578750266, InputEventId=0, HandleInputStart=258116590885128, AnimationStart=258116590894034, PerformTraversalsStart=258116590897628, DrawStart=258116605048878, FrameDeadline=258113250829316, FrameInterval=258116590400805, FrameStartTime=16393698, SyncQueued=258116630941534, SyncStart=258116631254242, IssueDrawCommandsStart=258116634197471, SwapBuffers=258116786747784, FrameCompleted=258116793138930, DequeueBufferDuration=6408490, QueueBufferDuration=429062, GpuCompleted=258116793138930, SwapBuffersCompleted=258116788304919, DisplayPresentTime=0, CommandSubmissionCompleted=258116786747784,
+I/flutter ( 3039): 🔄 [AppAccess] Invalidating trust providers for fresh data...
+I/flutter ( 3039): 🔍 [graceStatusProvider] Fetching grace period status from backend...
+I/flutter ( 3039): 🔍 [deviceTrustProvider] Checking device trust...
+I/flutter ( 3039): ROUTER REFRESH
+I/flutter ( 3039): 🔀 [ROUTER REDIRECT] booting=false loggedIn=false matchedLocation=/splash fullPath=/splash
+I/flutter ( 3039): 🔀 [ROUTER REDIRECT] → /login  (reason: not logged in, tried: /splash)
+I/flutter ( 3039): 🔀 [ROUTER REDIRECT] booting=false loggedIn=false matchedLocation=/login fullPath=/login
+I/flutter ( 3039): 🔀 [ROUTER REDIRECT] → null  (reason: public route, not logged in)
+I/flutter ( 3039): 🚀 [AppAccess] ══════════ INITIALIZE COMPLETE (not logged in) ══════════
+I/flutter ( 3039): 🔍 [checkDeviceTrust] deviceId: Instance of 'Future<String>'
+I/flutter ( 3039): 🧭 [ROUTER] LoginScreen | path: /login
+I/flutter ( 3039): 🔍 DEBUG - All Cookies:
+I/flutter ( 3039):    No cookies stored at all!
+I/flutter ( 3039): 🍪 Cookies being sent:
+I/flutter ( 3039): ➡️ Sending request: GET https://be-vayuxi-chi.vercel.app/api/v1/auth/grace-period-status
+I/flutter ( 3039): 🔍 DEBUG - All Cookies:
+I/flutter ( 3039):    No cookies stored at all!
+I/flutter ( 3039): 🍪 Cookies being sent:
+I/flutter ( 3039): ➡️ Sending request: POST https://be-vayuxi-chi.vercel.app/api/v1/auth/check-device-trust
+I/flutter ( 3039):    Body: {deviceId: Instance of 'Future<String>'}
+I/flutter ( 3039): 😴 No pending requests → skip
+I/flutter ( 3039): ❌ TECH ERROR: DioExceptionType.unknown
+I/flutter ( 3039): ❌ TECH DETAILS: Converting object to an encodable object failed: Instance of 'Future<String>'
+I/flutter ( 3039): ❌ TECH RESPONSE: null
+I/flutter ( 3039): Converting object to an encodable object failed: Instance of 'Future<String>'
+I/flutter ( 3039): ❌ Request failed: POST https://be-vayuxi-chi.vercel.app/api/v1/auth/check-device-trust
+I/flutter ( 3039):    Error type: DioExceptionType.unknown
+I/flutter ( 3039):    Error: Converting object to an encodable object failed: Instance of 'Future<String>'
+I/flutter ( 3039): QUEUE RAW:
+I/flutter ( 3039): {id: 1776194413292_133967679, method: POST, path: /auth/check-device-trust, data: {deviceId: Instance of 'Future<String>'}, query: {}, files: null, contentType: json}
+I/flutter ( 3039): Instance of 'ProviderContainer'
+I/flutter ( 3039): 🔥 PROVIDER ADD CALLED
+I/flutter ( 3039): 📌 Queued: /auth/check-device-trust
+I/flutter ( 3039): 📌 Saved request to queue: POST /auth/check-device-trust
+I/flutter ( 3039): 📌 Saved request to queue: POST /auth/check-device-trust
+I/flutter ( 3039):    Saved data: {deviceId: Instance of 'Future<String>'}
+I/flutter ( 3039): ❌ [deviceTrustProvider] Fetch FAILED: DioException [unknown]: null
+I/flutter ( 3039): Error: Converting object to an encodable object failed: Instance of 'Future<String>'
+I/Choreographer( 3039): Skipped 96 frames!  The application may be doing too much work on its main thread.
+D/FlutterJNI( 3039): Sending viewport metrics to the engine.
+E/OpenGLRenderer( 3039): Unable to match the desired swap behavior.
+D/FlutterJNI( 3039): Sending viewport metrics to the engine.
+I/OpenGLRenderer( 3039): Davey! duration=1672ms; Flags=0, FrameTimelineVsyncId=37349803, IntendedVsync=258116611417768, Vsync=258118185188200, InputEventId=0, HandleInputStart=258118192975179, AnimationStart=258118192991638, PerformTraversalsStart=258118192995440, DrawStart=258118271472158, FrameDeadline=258116824655480, FrameInterval=258118192129398, FrameStartTime=16393442, SyncQueued=258118273164294, SyncStart=258118273285440, IssueDrawCommandsStart=258118274407210, SwapBuffers=258118279827106, FrameCompleted=258118283635596, DequeueBufferDuration=4579531, QueueBufferDuration=522291, GpuCompleted=258118283635596, SwapBuffersCompleted=258118281140752, DisplayPresentTime=0, CommandSubmissionCompleted=258118279827106,
+W/WindowOnBackDispatcher( 3039): OnBackInvokedCallback is not enabled for the application.
+W/WindowOnBackDispatcher( 3039): Set 'android:enableOnBackInvokedCallback="true"' in the application manifest.
+I/flutter ( 3039): ❌ TECH ERROR: DioExceptionType.badResponse
+I/flutter ( 3039): ❌ TECH DETAILS: null
+I/flutter ( 3039): ❌ TECH RESPONSE: {success: false, message: Authentication token missing}
+I/flutter ( 3039): Authentication token missing
+I/flutter ( 3039): 🔎 Retry trigger from: connectivity change
+I/flutter ( 3039): ❌ Request failed: GET https://be-vayuxi-chi.vercel.app/api/v1/auth/grace-period-status
+I/flutter ( 3039):    Error type: DioExceptionType.badResponse
+I/flutter ( 3039):    Error: Authentication token missing
+I/flutter ( 3039): 🚫 Not queued (server/client error)
+I/flutter ( 3039): 📌 Saved request to queue: GET /auth/grace-period-status
+I/flutter ( 3039): ❌ [graceStatusProvider] Fetch FAILED: DioException [bad response]: null
+I/flutter ( 3039): Error: Authentication token missing
+I/flutter ( 3039):    └─ Returning {} (grace defaults to false — gates still enforced)
+V/ImeFocusController( 3039): onWindowFocus: DecorView@93fec9b[MainActivity] softInputMode=STATE_UNSPECIFIED|ADJUST_RESIZE
+I/Choreographer( 3039): Skipped 43 frames!  The application may be doing too much work on its main thread.
+I/OpenGLRenderer( 3039): Davey! duration=741ms; Flags=0, FrameTimelineVsyncId=37350090, IntendedVsync=258118201816947, Vsync=258118906833466, InputEventId=0, HandleInputStart=258118911592523, AnimationStart=258118911599971, PerformTraversalsStart=258118911602471, DrawStart=258118912129033, FrameDeadline=258118316335736, FrameInterval=258118911084450, FrameStartTime=16395733, SyncQueued=258118912387939, SyncStart=258118912456533, IssueDrawCommandsStart=258118912543460, SwapBuffers=258118927610856, FrameCompleted=258118943217314, DequeueBufferDuration=13935781, QueueBufferDuration=350209, GpuCompleted=258118943217314, SwapBuffersCompleted=258118928531481, DisplayPresentTime=72057628414509145, CommandSubmissionCompleted=258118927610856,
+I/flutter ( 3039): 🔍 DEBUG - All Cookies:
+I/flutter ( 3039):    No cookies stored at all!
+I/flutter ( 3039): 🍪 Cookies being sent:
+I/flutter ( 3039): ➡️ Sending request: GET https://be-vayuxi-chi.vercel.app/api/v1/site
+I/flutter ( 3039): ❌ TECH ERROR: DioExceptionType.badResponse
+I/flutter ( 3039): ❌ TECH DETAILS: null
+I/flutter ( 3039): ❌ TECH RESPONSE: {success: false, message: Authentication token missing}
+I/flutter ( 3039): Authentication token missing
+I/flutter ( 3039): ❌ Request failed: GET https://be-vayuxi-chi.vercel.app/api/v1/site
+I/flutter ( 3039):    Error type: DioExceptionType.badResponse
+I/flutter ( 3039):    Error: Authentication token missing
+I/flutter ( 3039): 🚫 Not queued (server/client error)
+I/flutter ( 3039): 📌 Saved request to queue: GET /site
+I/flutter ( 3039): ❌ Server unreachable
+I/flutter ( 3039): 🔀 [ROUTER REDIRECT] booting=false loggedIn=false matchedLocation=/register fullPath=/register
+I/flutter ( 3039): 🔀 [ROUTER REDIRECT] → null  (reason: public route, not logged in)
+I/flutter ( 3039): 🧭 [ROUTER] RegisterScreen | path: /register
+I/flutter ( 3039): 🧭 [ROUTER] LoginScreen | path: /login
+W/WindowOnBackDispatcher( 3039): OnBackInvokedCallback is not enabled for the application.
+W/WindowOnBackDispatcher( 3039): Set 'android:enableOnBackInvokedCallback="true"' in the application manifest.
+I/ImeTracker( 3039): com.vayuxi.erp:53f405ca: onRequestShow at ORIGIN_CLIENT_SHOW_SOFT_INPUT reason SHOW_SOFT_INPUT
+D/InputConnectionAdaptor( 3039): The input method toggled cursor monitoring on
+D/InsetsController( 3039): show(ime(), fromIme=true)
+D/FlutterJNI( 3039): Sending viewport metrics to the engine.
+D/FlutterJNI( 3039): Sending viewport metrics to the engine.
+D/FlutterJNI( 3039): Sending viewport metrics to the engine.
+D/FlutterJNI( 3039): Sending viewport metrics to the engine.
+D/FlutterJNI( 3039): Sending viewport metrics to the engine.
+D/FlutterJNI( 3039): Sending viewport metrics to the engine.
+D/FlutterJNI( 3039): Sending viewport metrics to the engine.
+D/FlutterJNI( 3039): Sending viewport metrics to the engine.
+D/FlutterJNI( 3039): Sending viewport metrics to the engine.
+D/FlutterJNI( 3039): Sending viewport metrics to the engine.
+I/ImeTracker( 3039): com.vayuxi.erp:53f405ca: onShown
+D/FlutterJNI( 3039): Sending viewport metrics to the engine.
+D/FlutterJNI( 3039): Sending viewport metrics to the engine.
+I/ImeTracker( 3039): com.vayuxi.erp:8d2891c3: onRequestShow at ORIGIN_CLIENT_SHOW_SOFT_INPUT reason SHOW_SOFT_INPUT
+D/InsetsController( 3039): show(ime(), fromIme=true)
+I/ImeTracker( 3039): com.vayuxi.erp:8d2891c3: onCancelled at PHASE_CLIENT_APPLY_ANIMATION
+I/ImeTracker( 3039): com.vayuxi.erp:9b3a49fb: onRequestShow at ORIGIN_CLIENT_SHOW_SOFT_INPUT reason SHOW_SOFT_INPUT
+D/InsetsController( 3039): show(ime(), fromIme=true)
+I/ImeTracker( 3039): com.vayuxi.erp:9b3a49fb: onCancelled at PHASE_CLIENT_APPLY_ANIMATION
+I/flutter ( 3039): 🔍 DEBUG - All Cookies:
+I/flutter ( 3039):    No cookies stored at all!
+I/flutter ( 3039): 🍪 Cookies being sent:
+I/flutter ( 3039): ➡️ Sending request: POST https://be-vayuxi-chi.vercel.app/api/v1/auth/send-otp
+I/flutter ( 3039):    Body: {phoneNumber: 6239114838}
+I/flutter ( 3039): ✅ Response received: 200 https://be-vayuxi-chi.vercel.app/api/v1/auth/send-otp
+I/flutter ( 3039):    Data: {message: OTP sent successfully, sessionId: ff6ab171-3836-11f1-9800-0200cd936042, expiresIn: 600, isExistingUser: true}
+I/flutter ( 3039): 🔎 Retry trigger from: periodic
+I/flutter ( 3039): 🔍 DEBUG - All Cookies:
+I/flutter ( 3039):    No cookies stored at all!
+I/flutter ( 3039): 🍪 Cookies being sent:
+I/flutter ( 3039): ➡️ Sending request: GET https://be-vayuxi-chi.vercel.app/api/v1/site
+I/flutter ( 3039): ❌ TECH ERROR: DioExceptionType.badResponse
+I/flutter ( 3039): ❌ TECH DETAILS: null
+I/flutter ( 3039): ❌ TECH RESPONSE: {success: false, message: Authentication token missing}
+I/flutter ( 3039): Authentication token missing
+I/flutter ( 3039): ❌ Request failed: GET https://be-vayuxi-chi.vercel.app/api/v1/site
+I/flutter ( 3039):    Error type: DioExceptionType.badResponse
+I/flutter ( 3039):    Error: Authentication token missing
+I/flutter ( 3039): 🚫 Not queued (server/client error)
+I/flutter ( 3039): 📌 Saved request to queue: GET /site
+I/flutter ( 3039): ❌ Server unreachable
+I/TRuntime.CctTransportBackend( 3039): Making request to: https://firebaselogging-pa.googleapis.com/v1/firelog/legacy/batchlog
+I/ImeTracker( 3039): com.vayuxi.erp:9da1cd5d: onRequestShow at ORIGIN_CLIENT_SHOW_SOFT_INPUT reason SHOW_SOFT_INPUT
+I/TRuntime.CctTransportBackend( 3039): Status Code: 200
+I/ImeTracker( 3039): com.vayuxi.erp:dccadec6: onRequestShow at ORIGIN_CLIENT_SHOW_SOFT_INPUT reason SHOW_SOFT_INPUT
+D/InputConnectionAdaptor( 3039): The input method toggled cursor monitoring on
+I/AssistStructure( 3039): Flattened final assist data: 404 bytes, containing 1 windows, 3 views
+D/InputConnectionAdaptor( 3039): The input method toggled cursor monitoring off
+D/InputConnectionAdaptor( 3039): The input method toggled cursor monitoring on
+D/InsetsController( 3039): show(ime(), fromIme=true)
+I/ImeTracker( 3039): com.vayuxi.erp:9da1cd5d: onCancelled at PHASE_CLIENT_APPLY_ANIMATION
+D/InsetsController( 3039): show(ime(), fromIme=true)
+I/ImeTracker( 3039): com.vayuxi.erp:dccadec6: onCancelled at PHASE_CLIENT_APPLY_ANIMATION
+I/ImeTracker( 3039): com.vayuxi.erp:71194bb7: onRequestHide at ORIGIN_CLIENT_HIDE_SOFT_INPUT reason HIDE_SOFT_INPUT
+D/InputConnectionAdaptor( 3039): The input method toggled cursor monitoring off
+W/WindowOnBackDispatcher( 3039): sendCancelIfRunning: isInProgress=falsecallback=ImeCallback=ImeOnBackInvokedCallback@11107301 Callback=android.window.IOnBackInvokedCallback$Stub$Proxy@590357a
+D/FlutterJNI( 3039): Sending viewport metrics to the engine.
+D/FlutterJNI( 3039): Sending viewport metrics to the engine.
+D/FlutterJNI( 3039): Sending viewport metrics to the engine.
+D/FlutterJNI( 3039): Sending viewport metrics to the engine.
+D/FlutterJNI( 3039): Sending viewport metrics to the engine.
+D/FlutterJNI( 3039): Sending viewport metrics to the engine.
+D/FlutterJNI( 3039): Sending viewport metrics to the engine.
+D/FlutterJNI( 3039): Sending viewport metrics to the engine.
+D/FlutterJNI( 3039): Sending viewport metrics to the engine.
+I/ImeTracker( 3039): com.vayuxi.erp:117f5cbf: onRequestHide at ORIGIN_CLIENT_HIDE_SOFT_INPUT reason HIDE_SOFT_INPUT_BY_INSETS_API
+I/ImeTracker( 3039): com.vayuxi.erp:71194bb7: onHidden
+D/FlutterJNI( 3039): Sending viewport metrics to the engine.
+D/FlutterJNI( 3039): Sending viewport metrics to the engine.
+I/flutter ( 3039): 🔎 Retry trigger from: periodic
+I/flutter ( 3039): 🔍 DEBUG - All Cookies:
+I/flutter ( 3039):    No cookies stored at all!
+I/flutter ( 3039): 🍪 Cookies being sent:
+I/flutter ( 3039): ➡️ Sending request: GET https://be-vayuxi-chi.vercel.app/api/v1/site
+I/flutter ( 3039): 🔐 USER LOGIN WITH PHONE OTP - Starting
+I/flutter ( 3039): 🔍 DEBUG - All Cookies:
+I/flutter ( 3039):    No cookies stored at all!
+I/flutter ( 3039): 🍪 Cookies being sent:
+I/flutter ( 3039): ➡️ Sending request: POST https://be-vayuxi-chi.vercel.app/api/v1/auth/verify-otp
+I/flutter ( 3039):    Body: {phoneNumber: 6239114838, otp: 9340}
+I/flutter ( 3039): ❌ TECH ERROR: DioExceptionType.badResponse
+I/flutter ( 3039): ❌ TECH DETAILS: null
+I/flutter ( 3039): ❌ TECH RESPONSE: {success: false, message: Authentication token missing}
+I/flutter ( 3039): Authentication token missing
+I/flutter ( 3039): ❌ Request failed: GET https://be-vayuxi-chi.vercel.app/api/v1/site
+I/flutter ( 3039):    Error type: DioExceptionType.badResponse
+I/flutter ( 3039):    Error: Authentication token missing
+I/flutter ( 3039): 🚫 Not queued (server/client error)
+I/flutter ( 3039): 📌 Saved request to queue: GET /site
+I/flutter ( 3039): ❌ Server unreachable
+I/flutter ( 3039): ✅ Response received: 200 https://be-vayuxi-chi.vercel.app/api/v1/auth/verify-otp
+I/flutter ( 3039):    Data: {message: Login successful, user: {_id: 69de880cde6451621227b994, fullName: , phoneNumber: 6239114838, isPhoneVerified: true, email: , isEmailVerified: false, role: admin, selectedServices: [], tokenVersion: 0, isDeleted: false, vayuxiCoins: 0, totalReferrals: 0, registrationDeviceId: 48506f8014fe13e94c82b1c054a8972831fb1b846a584b240e4a5530a2b20b76, registeredAt: 2026-04-14T18:31:40.585Z, createdAt: 2026-04-14T18:31:40.591Z, updatedAt: 2026-04-14T18:31:40.591Z}, token: {token: eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJfaWQiOiI2OWRlODgwY2RlNjQ1MTYyMTIyN2I5OTQiLCJmdWxsTmFtZSI6IiIsInBob25lTnVtYmVyIjoiNjIzOTExNDgzOCIsImlzUGhvbmVWZXJpZmllZCI6dHJ1ZSwiZW1haWwiOiIiLCJpc0VtYWlsVmVyaWZpZWQiOmZhbHNlLCJyb2xlIjoiYWRtaW4iLCJzZWxlY3RlZFNlcnZpY2VzIjpbXSwidG9rZW5WZXJzaW9uIjowLCJpc0RlbGV0ZWQiOmZhbHNlLCJ2YXl1eGlDb2lucyI6MCwidG90YWxSZWZlcnJhbHMiOjAsInJlZ2lzdHJhdGlvbkRldmljZUlkIjoiNDg1MDZmODAxNGZlMTNlOTRjODJiMWMwNTRhODk3MjgzMWZiMWI4NDZhNTg0YjI0MGU0YTU1MzBhMmIyMGI3NiIsInJlZ2lzdGVyZWRBdCI6IjIwMjYtMDQtMTRUMTg6MzE6NDAuNTg1WiI
+I/flutter ( 3039): 🔐 VERIFY OTP FLAGS | isNewUser=false | requiresProfileCompletion=false | gracePeriodEndsAt=
+I/flutter ( 3039): 🔐 STORED FLAGS | requires_profile_completion=false | pending_phone_number=6239114838 | profile_completion_grace_ends_at=null
+I/flutter ( 3039): eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJfaWQiOiI2OWRlODgwY2RlNjQ1MTYyMTIyN2I5OTQiLCJmdWxsTmFtZSI6IiIsInBob25lTnVtYmVyIjoiNjIzOTExNDgzOCIsImlzUGhvbmVWZXJpZmllZCI6dHJ1ZSwiZW1haWwiOiIiLCJpc0VtYWlsVmVyaWZpZWQiOmZhbHNlLCJyb2xlIjoiYWRtaW4iLCJzZWxlY3RlZFNlcnZpY2VzIjpbXSwidG9rZW5WZXJzaW9uIjowLCJpc0RlbGV0ZWQiOmZhbHNlLCJ2YXl1eGlDb2lucyI6MCwidG90YWxSZWZlcnJhbHMiOjAsInJlZ2lzdHJhdGlvbkRldmljZUlkIjoiNDg1MDZmODAxNGZlMTNlOTRjODJiMWMwNTRhODk3MjgzMWZiMWI4NDZhNTg0YjI0MGU0YTU1MzBhMmIyMGI3NiIsInJlZ2lzdGVyZWRBdCI6IjIwMjYtMDQtMTRUMTg6MzE6NDAuNTg1WiIsImNyZWF0ZWRBdCI6IjIwMjYtMDQtMTRUMTg6MzE6NDAuNTkxWiIsInVwZGF0ZWRBdCI6IjIwMjYtMDQtMTRUMTg6MzE6NDAuNTkxWiIsImlhdCI6MTc3NjE5NDQ3MX0.8fZ6KbkxqQFagggYos7ZJMo_1u2mU3n_Kk04tFcKWNw
+I/flutter ( 3039): 🔍 DEBUG - All Cookies:
+I/flutter ( 3039):    🍪 Authorization=eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJfaWQiOiI2OWRlODgwY2RlNjQ1MTYyMTIyN2I5OTQiLCJmdWxsTmFtZSI6IiIsInBob25lTnVtYmVyIjoiNjIzOTExNDgzOCIsImlzUGhvbmVWZXJpZmllZCI6dHJ1ZSwiZW1haWwiOiIiLCJpc0VtYWlsVmVyaWZpZWQiOmZhbHNlLCJyb2xlIjoiYWRtaW4iLCJzZWxlY3RlZFNlcnZpY2VzIjpbXSwidG9rZW5WZXJzaW9uIjowLCJpc0RlbGV0ZWQiOmZhbHNlLCJ2YXl1eGlDb2lucyI6MCwidG90YWxSZWZlcnJhbHMiOjAsInJlZ2lzdHJhdGlvbkRldmljZUlkIjoiNDg1MDZmODAxNGZlMTNlOTRjODJiMWMwNTRhODk3MjgzMWZiMWI4NDZhNTg0YjI0MGU0YTU1MzBhMmIyMGI3NiIsInJlZ2lzdGVyZWRBdCI6IjIwMjYtMDQtMTRUMTg6MzE6NDAuNTg1WiIsImNyZWF0ZWRBdCI6IjIwMjYtMDQtMTRUMTg6MzE6NDAuNTkxWiIsInVwZGF0ZWRBdCI6IjIwMjYtMDQtMTRUMTg6MzE6NDAuNTkxWiIsImlhdCI6MTc3NjE5NDQ3MX0.8fZ6KbkxqQFagggYos7ZJMo_1u2mU3n_Kk04tFcKWNw
+I/flutter ( 3039): 🍪 Cookies being sent:
+I/flutter ( 3039): ➡️ Sending request: GET https://be-vayuxi-chi.vercel.app/api/v1/user/me
+I/flutter ( 3039): ✅ Response received: 200 https://be-vayuxi-chi.vercel.app/api/v1/user/me
+I/flutter ( 3039):    Data: {_id: 69de880cde6451621227b994, fullName: , phoneNumber: 6239114838, isPhoneVerified: true, email: , isEmailVerified: false, role: admin, selectedServices: [], tokenVersion: 0, isDeleted: false, vayuxiCoins: 0, totalReferrals: 0, registrationDeviceId: 48506f8014fe13e94c82b1c054a8972831fb1b846a584b240e4a5530a2b20b76, registeredAt: 2026-04-14T18:31:40.585Z, createdAt: 2026-04-14T18:31:40.591Z, updatedAt: 2026-04-14T18:31:40.591Z}
+I/flutter ( 3039):    updatedAt: 2026-04-14T18:31:40.591Z
+I/flutter ( 3039): 🚀 [AppAccess] ══════════ INITIALIZE STARTED ══════════
+I/flutter ( 3039): ⚠️  [AppAccess] No saved DeviceId — new device or first install
+I/flutter ( 3039): ⏳ [AppAccess] Waiting for AuthNotifier to restore from cache...
+I/flutter ( 3039): ✅ [AppAccess] Auth restored after 0ms
+I/flutter ( 3039):    ├─ isLoggedIn : true
+I/flutter ( 3039):    └─ role       : user
+I/flutter ( 3039): 👤 [AppAccess] Logged in — preloading user BEFORE app access emit...
+I/flutter ( 3039): 👤 [AppAccess] Pre-warming userNotifierProvider...
+I/flutter ( 3039): {
+I/flutter ( 3039):   "id": "69de880cde6451621227b994",
+I/flutter ( 3039):   "email": "",
+I/flutter ( 3039):   "fullName": "",
+I/flutter ( 3039):   "phoneNumber": "6239114838",
+I/flutter ( 3039):   "profilePhoto": null,
+I/flutter ( 3039):   "aadhaarCard": null,
+I/flutter ( 3039):   "gstNumber": null,
+I/flutter ( 3039):   "company": null,
+I/flutter ( 3039):   "address": null,
+I/flutter ( 3039):   "other": null,
+I/flutter ( 3039):   "selectedServices": [],
+I/flutter ( 3039):   "firstName": null,
+I/flutter ( 3039):   "lastName": null
+I/flutter ( 3039): }
+I/flutter ( 3039): eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJfaWQiOiI2OWRlODgwY2RlNjQ1MTYyMTIyN2I5OTQiLCJmdWxsTmFtZSI6IiIsInBob25lTnVtYmVyIjoiNjIzOTExNDgzOCIsImlzUGhvbmVWZXJpZmllZCI6dHJ1ZSwiZW1haWwiOiIiLCJpc0VtYWlsVmVyaWZpZWQiOmZhbHNlLCJyb2xlIjoiYWRtaW4iLCJzZWxlY3RlZFNlcnZpY2VzIjpbXSwidG9rZW5WZXJzaW9uIjowLCJpc0RlbGV0ZWQiOmZhbHNlLCJ2YXl1eGlDb2lucyI6MCwidG90YWxSZWZlcnJhbHMiOjAsInJlZ2lzdHJhdGlvbkRldmljZUlkIjoiNDg1MDZmODAxNGZlMTNlOTRjODJiMWMwNTRhODk3MjgzMWZiMWI4NDZhNTg0YjI0MGU0YTU1MzBhMmIyMGI3NiIsInJlZ2lzdGVyZWRBdCI6IjIwMjYtMDQtMTRUMTg6MzE6NDAuNTg1WiIsImNyZWF0ZWRBdCI6IjIwMjYtMDQtMTRUMTg6MzE6NDAuNTkxWiIsInVwZGF0ZWRBdCI6IjIwMjYtMDQtMTRUMTg6MzE6NDAuNTkxWiIsImlhdCI6MTc3NjE5NDQ3MX0.8fZ6KbkxqQFagggYos7ZJMo_1u2mU3n_Kk04tFcKWNw
+I/flutter ( 3039): 🔍 DEBUG - All Cookies:
+I/flutter ( 3039):    🍪 Authorization=eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJfaWQiOiI2OWRlODgwY2RlNjQ1MTYyMTIyN2I5OTQiLCJmdWxsTmFtZSI6IiIsInBob25lTnVtYmVyIjoiNjIzOTExNDgzOCIsImlzUGhvbmVWZXJpZmllZCI6dHJ1ZSwiZW1haWwiOiIiLCJpc0VtYWlsVmVyaWZpZWQiOmZhbHNlLCJyb2xlIjoiYWRtaW4iLCJzZWxlY3RlZFNlcnZpY2VzIjpbXSwidG9rZW5WZXJzaW9uIjowLCJpc0RlbGV0ZWQiOmZhbHNlLCJ2YXl1eGlDb2lucyI6MCwidG90YWxSZWZlcnJhbHMiOjAsInJlZ2lzdHJhdGlvbkRldmljZUlkIjoiNDg1MDZmODAxNGZlMTNlOTRjODJiMWMwNTRhODk3MjgzMWZiMWI4NDZhNTg0YjI0MGU0YTU1MzBhMmIyMGI3NiIsInJlZ2lzdGVyZWRBdCI6IjIwMjYtMDQtMTRUMTg6MzE6NDAuNTg1WiIsImNyZWF0ZWRBdCI6IjIwMjYtMDQtMTRUMTg6MzE6NDAuNTkxWiIsInVwZGF0ZWRBdCI6IjIwMjYtMDQtMTRUMTg6MzE6NDAuNTkxWiIsImlhdCI6MTc3NjE5NDQ3MX0.8fZ6KbkxqQFagggYos7ZJMo_1u2mU3n_Kk04tFcKWNw
+I/flutter ( 3039): 🍪 Cookies being sent:
+I/flutter ( 3039): ➡️ Sending request: GET https://be-vayuxi-chi.vercel.app/api/v1/user/me
+I/flutter ( 3039): ✅ Response received: 200 https://be-vayuxi-chi.vercel.app/api/v1/user/me
+I/flutter ( 3039):    Data: {_id: 69de880cde6451621227b994, fullName: , phoneNumber: 6239114838, isPhoneVerified: true, email: , isEmailVerified: false, role: admin, selectedServices: [], tokenVersion: 0, isDeleted: false, vayuxiCoins: 0, totalReferrals: 0, registrationDeviceId: 48506f8014fe13e94c82b1c054a8972831fb1b846a584b240e4a5530a2b20b76, registeredAt: 2026-04-14T18:31:40.585Z, createdAt: 2026-04-14T18:31:40.591Z, updatedAt: 2026-04-14T18:31:40.591Z}
+I/flutter ( 3039):    updatedAt: 2026-04-14T18:31:40.591Z
+I/flutter ( 3039): 👤 [AppAccess] userNotifierProvider pre-warmed ✅
+I/flutter ( 3039): 👤 [AppAccess] User preload completed before boot release ✅
+I/flutter ( 3039): 📦 [AppAccess] Reading cached access flags...
+I/flutter ( 3039):    ├─ onboardingCompleted : false
+I/flutter ( 3039):    ├─ trialActivated      : false
+I/flutter ( 3039):    └─ hasSubscription     : false
+I/flutter ( 3039): ROUTER REFRESH
+I/flutter ( 3039): 🔀 [ROUTER REDIRECT] booting=false loggedIn=true matchedLocation=/login fullPath=/login
+I/flutter ( 3039): 🔀 [ROUTER REDIRECT] → /workCategory  (reason: logged in, was at gate page: /login)
+I/flutter ( 3039): 🔀 [ROUTER REDIRECT] booting=false loggedIn=true matchedLocation=/workCategory fullPath=/workCategory
+I/flutter ( 3039): 🔀 [ROUTER REDIRECT] → null  (reason: logged in, free navigation to /workCategory)
+I/flutter ( 3039): ✅ [AppAccess] Cached state emitted — app is visible immediately
+I/flutter ( 3039): 🔄 [AppAccess] Starting parallel background syncs...
+I/flutter ( 3039): 🔄 [AppAccess] _syncOnboardingAndSubscription started
+I/flutter ( 3039):    ├─ Fetching onboarding status from API...
+I/flutter ( 3039): 🎬 TourScope initialized - Site tour will start on /site page
+I/flutter ( 3039): 🧭 [ROUTER] WorkCategoryScreen | path: /workCategory
+I/flutter ( 3039): ⏳ Showcase blocked: language flow not done
+I/flutter ( 3039): {
+I/flutter ( 3039):   "id": "69de880cde6451621227b994",
+I/flutter ( 3039):   "email": "",
+I/flutter ( 3039):   "fullName": "",
+I/flutter ( 3039):   "phoneNumber": "6239114838",
+I/flutter ( 3039):   "profilePhoto": null,
+I/flutter ( 3039):   "aadhaarCard": null,
+I/flutter ( 3039):   "gstNumber": null,
+I/flutter ( 3039):   "company": null,
+I/flutter ( 3039):   "address": null,
+I/flutter ( 3039):   "other": null,
+I/flutter ( 3039):   "selectedServices": [],
+I/flutter ( 3039):   "firstName": null,
+I/flutter ( 3039):   "lastName": null
+I/flutter ( 3039): }
+I/flutter ( 3039): eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJfaWQiOiI2OWRlODgwY2RlNjQ1MTYyMTIyN2I5OTQiLCJmdWxsTmFtZSI6IiIsInBob25lTnVtYmVyIjoiNjIzOTExNDgzOCIsImlzUGhvbmVWZXJpZmllZCI6dHJ1ZSwiZW1haWwiOiIiLCJpc0VtYWlsVmVyaWZpZWQiOmZhbHNlLCJyb2xlIjoiYWRtaW4iLCJzZWxlY3RlZFNlcnZpY2VzIjpbXSwidG9rZW5WZXJzaW9uIjowLCJpc0RlbGV0ZWQiOmZhbHNlLCJ2YXl1eGlDb2lucyI6MCwidG90YWxSZWZlcnJhbHMiOjAsInJlZ2lzdHJhdGlvbkRldmljZUlkIjoiNDg1MDZmODAxNGZlMTNlOTRjODJiMWMwNTRhODk3MjgzMWZiMWI4NDZhNTg0YjI0MGU0YTU1MzBhMmIyMGI3NiIsInJlZ2lzdGVyZWRBdCI6IjIwMjYtMDQtMTRUMTg6MzE6NDAuNTg1WiIsImNyZWF0ZWRBdCI6IjIwMjYtMDQtMTRUMTg6MzE6NDAuNTkxWiIsInVwZGF0ZWRBdCI6IjIwMjYtMDQtMTRUMTg6MzE6NDAuNTkxWiIsImlhdCI6MTc3NjE5NDQ3MX0.8fZ6KbkxqQFagggYos7ZJMo_1u2mU3n_Kk04tFcKWNw
+I/flutter ( 3039): 🔍 DEBUG - All Cookies:
+I/flutter ( 3039):    🍪 Authorization=eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJfaWQiOiI2OWRlODgwY2RlNjQ1MTYyMTIyN2I5OTQiLCJmdWxsTmFtZSI6IiIsInBob25lTnVtYmVyIjoiNjIzOTExNDgzOCIsImlzUGhvbmVWZXJpZmllZCI6dHJ1ZSwiZW1haWwiOiIiLCJpc0VtYWlsVmVyaWZpZWQiOmZhbHNlLCJyb2xlIjoiYWRtaW4iLCJzZWxlY3RlZFNlcnZpY2VzIjpbXSwidG9rZW5WZXJzaW9uIjowLCJpc0RlbGV0ZWQiOmZhbHNlLCJ2YXl1eGlDb2lucyI6MCwidG90YWxSZWZlcnJhbHMiOjAsInJlZ2lzdHJhdGlvbkRldmljZUlkIjoiNDg1MDZmODAxNGZlMTNlOTRjODJiMWMwNTRhODk3MjgzMWZiMWI4NDZhNTg0YjI0MGU0YTU1MzBhMmIyMGI3NiIsInJlZ2lzdGVyZWRBdCI6IjIwMjYtMDQtMTRUMTg6MzE6NDAuNTg1WiIsImNyZWF0ZWRBdCI6IjIwMjYtMDQtMTRUMTg6MzE6NDAuNTkxWiIsInVwZGF0ZWRBdCI6IjIwMjYtMDQtMTRUMTg6MzE6NDAuNTkxWiIsImlhdCI6MTc3NjE5NDQ3MX0.8fZ6KbkxqQFagggYos7ZJMo_1u2mU3n_Kk04tFcKWNw
+I/flutter ( 3039): 🍪 Cookies being sent:
+I/flutter ( 3039): ➡️ Sending request: GET https://be-vayuxi-chi.vercel.app/api/v1/trial-onboarding/status
+
+══╡ EXCEPTION CAUGHT BY WIDGETS LIBRARY ╞═══════════════════════════════════════════════════════════
+The following assertion was thrown while finalizing the widget tree:
+A TextEditingController was used after being disposed.
+Once you have called dispose() on a TextEditingController, it can no longer be used.
+
+When the exception was thrown, this was the stack:
+#0      ChangeNotifier.debugAssertNotDisposed.<anonymous closure>
+(package:flutter/src/foundation/change_notifier.dart:182:9)
+#1      ChangeNotifier.debugAssertNotDisposed (package:flutter/src/foundation/change_notifier.dart:189:6)
+#2      ChangeNotifier.dispose (package:flutter/src/foundation/change_notifier.dart:374:27)
+#3      _RegisterScreenState.dispose (package:untitled2/features/auth/screens/sign_up.dart:60:19)
+#4      StatefulElement.unmount (package:flutter/src/widgets/framework.dart:6030:11)
+#5      ConsumerStatefulElement.unmount (package:flutter_riverpod/src/consumer.dart:575:11)
+#6      _InactiveElements._unmount (package:flutter/src/widgets/framework.dart:2117:13)
+#7      _InactiveElements._unmount.<anonymous closure> (package:flutter/src/widgets/framework.dart:2115:7)
+#8      ComponentElement.visitChildren (package:flutter/src/widgets/framework.dart:5871:14)
+#9      _InactiveElements._unmount (package:flutter/src/widgets/framework.dart:2113:13)
+#10     _InactiveElements._unmount.<anonymous closure> (package:flutter/src/widgets/framework.dart:2115:7)
+#11     SingleChildRenderObjectElement.visitChildren (package:flutter/src/widgets/framework.dart:7101:14)
+#12     _InactiveElements._unmount (package:flutter/src/widgets/framework.dart:2113:13)
+#13     _InactiveElements._unmount.<anonymous closure> (package:flutter/src/widgets/framework.dart:2115:7)
+#14     ComponentElement.visitChildren (package:flutter/src/widgets/framework.dart:5871:14)
+#15     _InactiveElements._unmount (package:flutter/src/widgets/framework.dart:2113:13)
+#16     _InactiveElements._unmount.<anonymous closure> (package:flutter/src/widgets/framework.dart:2115:7)
+#17     SingleChildRenderObjectElement.visitChildren (package:flutter/src/widgets/framework.dart:7101:14)
+#18     _InactiveElements._unmount (package:flutter/src/widgets/framework.dart:2113:13)
+#19     _InactiveElements._unmount.<anonymous closure> (package:flutter/src/widgets/framework.dart:2115:7)
+#20     SingleChildRenderObjectElement.visitChildren (package:flutter/src/widgets/framework.dart:7101:14)
+#21     _InactiveElements._unmount (package:flutter/src/widgets/framework.dart:2113:13)
+#22     _InactiveElements._unmount.<anonymous closure> (package:flutter/src/widgets/framework.dart:2115:7)
+#23     ComponentElement.visitChildren (package:flutter/src/widgets/framework.dart:5871:14)
+#24     _InactiveElements._unmount (package:flutter/src/widgets/framework.dart:2113:13)
+#25     _InactiveElements._unmount.<anonymous closure> (package:flutter/src/widgets/framework.dart:2115:7)
+#26     SingleChildRenderObjectElement.visitChildren (package:flutter/src/widgets/framework.dart:7101:14)
+#27     _InactiveElements._unmount (package:flutter/src/widgets/framework.dart:2113:13)
+#28     _InactiveElements._unmount.<anonymous closure> (package:flutter/src/widgets/framework.dart:2115:7)
+#29     ComponentElement.visitChildren (package:flutter/src/widgets/framework.dart:5871:14)
+#30     _InactiveElements._unmount (package:flutter/src/widgets/framework.dart:2113:13)
+#31     _InactiveElements._unmount.<anonymous closure> (package:flutter/src/widgets/framework.dart:2115:7)
+#32     ComponentElement.visitChildren (package:flutter/src/widgets/framework.dart:5871:14)
+#33     _InactiveElements._unmount (package:flutter/src/widgets/framework.dart:2113:13)
+#34     _InactiveElements._unmount.<anonymous closure> (package:flutter/src/widgets/framework.dart:2115:7)
+#35     ComponentElement.visitChildren (package:flutter/src/widgets/framework.dart:5871:14)
+#36     _InactiveElements._unmount (package:flutter/src/widgets/framework.dart:2113:13)
+#37     _InactiveElements._unmount.<anonymous closure> (package:flutter/src/widgets/framework.dart:2115:7)
+#38     SingleChildRenderObjectElement.visitChildren (package:flutter/src/widgets/framework.dart:7101:14)
+#39     _InactiveElements._unmount (package:flutter/src/widgets/framework.dart:2113:13)
+#40     _InactiveElements._unmount.<anonymous closure> (package:flutter/src/widgets/framework.dart:2115:7)
+#41     ComponentElement.visitChildren (package:flutter/src/widgets/framework.dart:5871:14)
+#42     _InactiveElements._unmount (package:flutter/src/widgets/framework.dart:2113:13)
+#43     _InactiveElements._unmount.<anonymous closure> (package:flutter/src/widgets/framework.dart:2115:7)
+#44     SingleChildRenderObjectElement.visitChildren (package:flutter/src/widgets/framework.dart:7101:14)
+#45     _InactiveElements._unmount (package:flutter/src/widgets/framework.dart:2113:13)
+#46     _InactiveElements._unmount.<anonymous closure> (package:flutter/src/widgets/framework.dart:2115:7)
+#47     ComponentElement.visitChildren (package:flutter/src/widgets/framework.dart:5871:14)
+#48     _InactiveElements._unmount (package:flutter/src/widgets/framework.dart:2113:13)
+#49     _InactiveElements._unmount.<anonymous closure> (package:flutter/src/widgets/framework.dart:2115:7)
+#50     ComponentElement.visitChildren (package:flutter/src/widgets/framework.dart:5871:14)
+#51     _InactiveElements._unmount (package:flutter/src/widgets/framework.dart:2113:13)
+#52     _InactiveElements._unmount.<anonymous closure> (package:flutter/src/widgets/framework.dart:2115:7)
+#53     ComponentElement.visitChildren (package:flutter/src/widgets/framework.dart:5871:14)
+#54     _InactiveElements._unmount (package:flutter/src/widgets/framework.dart:2113:13)
+#55     _InactiveElements._unmount.<anonymous closure> (package:flutter/src/widgets/framework.dart:2115:7)
+#56     ComponentElement.visitChildren (package:flutter/src/widgets/framework.dart:5871:14)
+#57     _InactiveElements._unmount (package:flutter/src/widgets/framework.dart:2113:13)
+#58     _InactiveElements._unmount.<anonymous closure> (package:flutter/src/widgets/framework.dart:2115:7)
+#59     ComponentElement.visitChildren (package:flutter/src/widgets/framework.dart:5871:14)
+#60     _InactiveElements._unmount (package:flutter/src/widgets/framework.dart:2113:13)
+#61     _InactiveElements._unmount.<anonymous closure> (package:flutter/src/widgets/framework.dart:2115:7)
+#62     ComponentElement.visitChildren (package:flutter/src/widgets/framework.dart:5871:14)
+#63     _InactiveElements._unmount (package:flutter/src/widgets/framework.dart:2113:13)
+#64     _InactiveElements._unmount.<anonymous closure> (package:flutter/src/widgets/framework.dart:2115:7)
+#65     SingleChildRenderObjectElement.visitChildren (package:flutter/src/widgets/framework.dart:7101:14)
+#66     _InactiveElements._unmount (package:flutter/src/widgets/framework.dart:2113:13)
+#67     _InactiveElements._unmount.<anonymous closure> (package:flutter/src/widgets/framework.dart:2115:7)
+#68     ComponentElement.visitChildren (package:flutter/src/widgets/framework.dart:5871:14)
+#69     _InactiveElements._unmount (package:flutter/src/widgets/framework.dart:2113:13)
+#70     _InactiveElements._unmount.<anonymous closure> (package:flutter/src/widgets/framework.dart:2115:7)
+#71     ComponentElement.visitChildren (package:flutter/src/widgets/framework.dart:5871:14)
+#72     _InactiveElements._unmount (package:flutter/src/widgets/framework.dart:2113:13)
+#73     _InactiveElements._unmount.<anonymous closure> (package:flutter/src/widgets/framework.dart:2115:7)
+#74     ComponentElement.visitChildren (package:flutter/src/widgets/framework.dart:5871:14)
+#75     _InactiveElements._unmount (package:flutter/src/widgets/framework.dart:2113:13)
+#76     _InactiveElements._unmount.<anonymous closure> (package:flutter/src/widgets/framework.dart:2115:7)
+#77     ComponentElement.visitChildren (package:flutter/src/widgets/framework.dart:5871:14)
+#78     _InactiveElements._unmount (package:flutter/src/widgets/framework.dart:2113:13)
+#79     _InactiveElements._unmount.<anonymous closure> (package:flutter/src/widgets/framework.dart:2115:7)
+#80     ComponentElement.visitChildren (package:flutter/src/widgets/framework.dart:5871:14)
+#81     _InactiveElements._unmount (package:flutter/src/widgets/framework.dart:2113:13)
+#82     _InactiveElements._unmount.<anonymous closure> (package:flutter/src/widgets/framework.dart:2115:7)
+#83     SingleChildRenderObjectElement.visitChildren (package:flutter/src/widgets/framework.dart:7101:14)
+#84     _InactiveElements._unmount (package:flutter/src/widgets/framework.dart:2113:13)
+#85     _InactiveElements._unmount.<anonymous closure> (package:flutter/src/widgets/framework.dart:2115:7)
+#86     ComponentElement.visitChildren (package:flutter/src/widgets/framework.dart:5871:14)
+#87     _InactiveElements._unmount (package:flutter/src/widgets/framework.dart:2113:13)
+#88     _InactiveElements._unmount.<anonymous closure> (package:flutter/src/widgets/framework.dart:2115:7)
+#89     ComponentElement.visitChildren (package:flutter/src/widgets/framework.dart:5871:14)
+#90     _InactiveElements._unmount (package:flutter/src/widgets/framework.dart:2113:13)
+#91     _InactiveElements._unmount.<anonymous closure> (package:flutter/src/widgets/framework.dart:2115:7)
+#92     ComponentElement.visitChildren (package:flutter/src/widgets/framework.dart:5871:14)
+#93     _InactiveElements._unmount (package:flutter/src/widgets/framework.dart:2113:13)
+#94     _InactiveElements._unmount.<anonymous closure> (package:flutter/src/widgets/framework.dart:2115:7)
+#95     ComponentElement.visitChildren (package:flutter/src/widgets/framework.dart:5871:14)
+#96     _InactiveElements._unmount (package:flutter/src/widgets/framework.dart:2113:13)
+#97     _InactiveElements._unmount.<anonymous closure> (package:flutter/src/widgets/framework.dart:2115:7)
+#98     ComponentElement.visitChildren (package:flutter/src/widgets/framework.dart:5871:14)
+#99     _InactiveElements._unmount (package:flutter/src/widgets/framework.dart:2113:13)
+#100    ListIterable.forEach (dart:_internal/iterable.dart:49:13)
+#101    _InactiveElements._unmountAll (package:flutter/src/widgets/framework.dart:2126:25)
+#102    BuildOwner.lockState (package:flutter/src/widgets/framework.dart:3020:15)
+#103    BuildOwner.finalizeTree (package:flutter/src/widgets/framework.dart:3344:7)
+#104    WidgetsBinding.drawFrame (package:flutter/src/widgets/binding.dart:1309:19)
+#105    RendererBinding._handlePersistentFrameCallback (package:flutter/src/rendering/binding.dart:495:5)
+#106    SchedulerBinding._invokeFrameCallback (package:flutter/src/scheduler/binding.dart:1430:15)
+#107    SchedulerBinding.handleDrawFrame (package:flutter/src/scheduler/binding.dart:1345:9)
+#108    SchedulerBinding._handleDrawFrame (package:flutter/src/scheduler/binding.dart:1198:5)
+#112    _invoke (dart:ui/hooks.dart:358:10)
+#113    PlatformDispatcher._drawFrame (dart:ui/platform_dispatcher.dart:444:5)
+#114    _drawFrame (dart:ui/hooks.dart:328:31)
+(elided 3 frames from dart:async)
+════════════════════════════════════════════════════════════════════════════════════════════════════
+
+W/WindowOnBackDispatcher( 3039): OnBackInvokedCallback is not enabled for the application.
+W/WindowOnBackDispatcher( 3039): Set 'android:enableOnBackInvokedCallback="true"' in the application manifest.
+I/flutter ( 3039): eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJfaWQiOiI2OWRlODgwY2RlNjQ1MTYyMTIyN2I5OTQiLCJmdWxsTmFtZSI6IiIsInBob25lTnVtYmVyIjoiNjIzOTExNDgzOCIsImlzUGhvbmVWZXJpZmllZCI6dHJ1ZSwiZW1haWwiOiIiLCJpc0VtYWlsVmVyaWZpZWQiOmZhbHNlLCJyb2xlIjoiYWRtaW4iLCJzZWxlY3RlZFNlcnZpY2VzIjpbXSwidG9rZW5WZXJzaW9uIjowLCJpc0RlbGV0ZWQiOmZhbHNlLCJ2YXl1eGlDb2lucyI6MCwidG90YWxSZWZlcnJhbHMiOjAsInJlZ2lzdHJhdGlvbkRldmljZUlkIjoiNDg1MDZmODAxNGZlMTNlOTRjODJiMWMwNTRhODk3MjgzMWZiMWI4NDZhNTg0YjI0MGU0YTU1MzBhMmIyMGI3NiIsInJlZ2lzdGVyZWRBdCI6IjIwMjYtMDQtMTRUMTg6MzE6NDAuNTg1WiIsImNyZWF0ZWRBdCI6IjIwMjYtMDQtMTRUMTg6MzE6NDAuNTkxWiIsInVwZGF0ZWRBdCI6IjIwMjYtMDQtMTRUMTg6MzE6NDAuNTkxWiIsImlhdCI6MTc3NjE5NDQ3MX0.8fZ6KbkxqQFagggYos7ZJMo_1u2mU3n_Kk04tFcKWNw
+I/flutter ( 3039): 🔍 DEBUG - All Cookies:
+I/flutter ( 3039):    🍪 Authorization=eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJfaWQiOiI2OWRlODgwY2RlNjQ1MTYyMTIyN2I5OTQiLCJmdWxsTmFtZSI6IiIsInBob25lTnVtYmVyIjoiNjIzOTExNDgzOCIsImlzUGhvbmVWZXJpZmllZCI6dHJ1ZSwiZW1haWwiOiIiLCJpc0VtYWlsVmVyaWZpZWQiOmZhbHNlLCJyb2xlIjoiYWRtaW4iLCJzZWxlY3RlZFNlcnZpY2VzIjpbXSwidG9rZW5WZXJzaW9uIjowLCJpc0RlbGV0ZWQiOmZhbHNlLCJ2YXl1eGlDb2lucyI6MCwidG90YWxSZWZlcnJhbHMiOjAsInJlZ2lzdHJhdGlvbkRldmljZUlkIjoiNDg1MDZmODAxNGZlMTNlOTRjODJiMWMwNTRhODk3MjgzMWZiMWI4NDZhNTg0YjI0MGU0YTU1MzBhMmIyMGI3NiIsInJlZ2lzdGVyZWRBdCI6IjIwMjYtMDQtMTRUMTg6MzE6NDAuNTg1WiIsImNyZWF0ZWRBdCI6IjIwMjYtMDQtMTRUMTg6MzE6NDAuNTkxWiIsInVwZGF0ZWRBdCI6IjIwMjYtMDQtMTRUMTg6MzE6NDAuNTkxWiIsImlhdCI6MTc3NjE5NDQ3MX0.8fZ6KbkxqQFagggYos7ZJMo_1u2mU3n_Kk04tFcKWNw
+I/flutter ( 3039): 🍪 Cookies being sent:
+I/flutter ( 3039): ➡️ Sending request: GET https://be-vayuxi-chi.vercel.app/api/v1/user/me
+I/flutter ( 3039): ❌ TECH ERROR: DioExceptionType.badResponse
+I/flutter ( 3039): ❌ TECH DETAILS: null
+I/flutter ( 3039): ❌ TECH RESPONSE: {success: false, error: Cannot read properties of undefined (reading 'toString')}
+I/flutter ( 3039): Cannot read properties of undefined (reading 'toString')
+I/flutter ( 3039): ❌ Request failed: GET https://be-vayuxi-chi.vercel.app/api/v1/trial-onboarding/status
+I/flutter ( 3039):    Error type: DioExceptionType.badResponse
+I/flutter ( 3039):    Error: Cannot read properties of undefined (reading 'toString')
+I/flutter ( 3039): 🚫 Not queued (server/client error)
+I/flutter ( 3039): 📌 Saved request to queue: GET /trial-onboarding/status
+I/flutter ( 3039): OnboardingService.getStatus: API failed (DioException [bad response]: null
+I/flutter ( 3039): Error: Cannot read properties of undefined (reading 'toString')), checking cache…
+I/flutter ( 3039):    ├─ Onboarding sync ❌ (using cache) — DioException [bad response]: null
+I/flutter ( 3039): Error: Cannot read properties of undefined (reading 'toString')
+I/flutter ( 3039):    └─ Fetching subscription status from API...
+I/flutter ( 3039): eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJfaWQiOiI2OWRlODgwY2RlNjQ1MTYyMTIyN2I5OTQiLCJmdWxsTmFtZSI6IiIsInBob25lTnVtYmVyIjoiNjIzOTExNDgzOCIsImlzUGhvbmVWZXJpZmllZCI6dHJ1ZSwiZW1haWwiOiIiLCJpc0VtYWlsVmVyaWZpZWQiOmZhbHNlLCJyb2xlIjoiYWRtaW4iLCJzZWxlY3RlZFNlcnZpY2VzIjpbXSwidG9rZW5WZXJzaW9uIjowLCJpc0RlbGV0ZWQiOmZhbHNlLCJ2YXl1eGlDb2lucyI6MCwidG90YWxSZWZlcnJhbHMiOjAsInJlZ2lzdHJhdGlvbkRldmljZUlkIjoiNDg1MDZmODAxNGZlMTNlOTRjODJiMWMwNTRhODk3MjgzMWZiMWI4NDZhNTg0YjI0MGU0YTU1MzBhMmIyMGI3NiIsInJlZ2lzdGVyZWRBdCI6IjIwMjYtMDQtMTRUMTg6MzE6NDAuNTg1WiIsImNyZWF0ZWRBdCI6IjIwMjYtMDQtMTRUMTg6MzE6NDAuNTkxWiIsInVwZGF0ZWRBdCI6IjIwMjYtMDQtMTRUMTg6MzE6NDAuNTkxWiIsImlhdCI6MTc3NjE5NDQ3MX0.8fZ6KbkxqQFagggYos7ZJMo_1u2mU3n_Kk04tFcKWNw
+I/flutter ( 3039): 🔍 DEBUG - All Cookies:
+I/flutter ( 3039):    🍪 Authorization=eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJfaWQiOiI2OWRlODgwY2RlNjQ1MTYyMTIyN2I5OTQiLCJmdWxsTmFtZSI6IiIsInBob25lTnVtYmVyIjoiNjIzOTExNDgzOCIsImlzUGhvbmVWZXJpZmllZCI6dHJ1ZSwiZW1haWwiOiIiLCJpc0VtYWlsVmVyaWZpZWQiOmZhbHNlLCJyb2xlIjoiYWRtaW4iLCJzZWxlY3RlZFNlcnZpY2VzIjpbXSwidG9rZW5WZXJzaW9uIjowLCJpc0RlbGV0ZWQiOmZhbHNlLCJ2YXl1eGlDb2lucyI6MCwidG90YWxSZWZlcnJhbHMiOjAsInJlZ2lzdHJhdGlvbkRldmljZUlkIjoiNDg1MDZmODAxNGZlMTNlOTRjODJiMWMwNTRhODk3MjgzMWZiMWI4NDZhNTg0YjI0MGU0YTU1MzBhMmIyMGI3NiIsInJlZ2lzdGVyZWRBdCI6IjIwMjYtMDQtMTRUMTg6MzE6NDAuNTg1WiIsImNyZWF0ZWRBdCI6IjIwMjYtMDQtMTRUMTg6MzE6NDAuNTkxWiIsInVwZGF0ZWRBdCI6IjIwMjYtMDQtMTRUMTg6MzE6NDAuNTkxWiIsImlhdCI6MTc3NjE5NDQ3MX0.8fZ6KbkxqQFagggYos7ZJMo_1u2mU3n_Kk04tFcKWNw
+I/flutter ( 3039): 🍪 Cookies being sent:
+I/flutter ( 3039): ➡️ Sending request: GET https://be-vayuxi-chi.vercel.app/api/v1/subscription/current
+I/flutter ( 3039): ✅ Response received: 200 https://be-vayuxi-chi.vercel.app/api/v1/user/me
+I/flutter ( 3039):    Data: {_id: 69de880cde6451621227b994, fullName: , phoneNumber: 6239114838, isPhoneVerified: true, email: , isEmailVerified: false, role: admin, selectedServices: [], tokenVersion: 0, isDeleted: false, vayuxiCoins: 0, totalReferrals: 0, registrationDeviceId: 48506f8014fe13e94c82b1c054a8972831fb1b846a584b240e4a5530a2b20b76, registeredAt: 2026-04-14T18:31:40.585Z, createdAt: 2026-04-14T18:31:40.591Z, updatedAt: 2026-04-14T18:31:40.591Z}
+I/flutter ( 3039):    updatedAt: 2026-04-14T18:31:40.591Z
+I/flutter ( 3039): eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJfaWQiOiI2OWRlODgwY2RlNjQ1MTYyMTIyN2I5OTQiLCJmdWxsTmFtZSI6IiIsInBob25lTnVtYmVyIjoiNjIzOTExNDgzOCIsImlzUGhvbmVWZXJpZmllZCI6dHJ1ZSwiZW1haWwiOiIiLCJpc0VtYWlsVmVyaWZpZWQiOmZhbHNlLCJyb2xlIjoiYWRtaW4iLCJzZWxlY3RlZFNlcnZpY2VzIjpbXSwidG9rZW5WZXJzaW9uIjowLCJpc0RlbGV0ZWQiOmZhbHNlLCJ2YXl1eGlDb2lucyI6MCwidG90YWxSZWZlcnJhbHMiOjAsInJlZ2lzdHJhdGlvbkRldmljZUlkIjoiNDg1MDZmODAxNGZlMTNlOTRjODJiMWMwNTRhODk3MjgzMWZiMWI4NDZhNTg0YjI0MGU0YTU1MzBhMmIyMGI3NiIsInJlZ2lzdGVyZWRBdCI6IjIwMjYtMDQtMTRUMTg6MzE6NDAuNTg1WiIsImNyZWF0ZWRBdCI6IjIwMjYtMDQtMTRUMTg6MzE6NDAuNTkxWiIsInVwZGF0ZWRBdCI6IjIwMjYtMDQtMTRUMTg6MzE6NDAuNTkxWiIsImlhdCI6MTc3NjE5NDQ3MX0.8fZ6KbkxqQFagggYos7ZJMo_1u2mU3n_Kk04tFcKWNw
+I/flutter ( 3039): 🔍 DEBUG - All Cookies:
+I/flutter ( 3039):    🍪 Authorization=eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJfaWQiOiI2OWRlODgwY2RlNjQ1MTYyMTIyN2I5OTQiLCJmdWxsTmFtZSI6IiIsInBob25lTnVtYmVyIjoiNjIzOTExNDgzOCIsImlzUGhvbmVWZXJpZmllZCI6dHJ1ZSwiZW1haWwiOiIiLCJpc0VtYWlsVmVyaWZpZWQiOmZhbHNlLCJyb2xlIjoiYWRtaW4iLCJzZWxlY3RlZFNlcnZpY2VzIjpbXSwidG9rZW5WZXJzaW9uIjowLCJpc0RlbGV0ZWQiOmZhbHNlLCJ2YXl1eGlDb2lucyI6MCwidG90YWxSZWZlcnJhbHMiOjAsInJlZ2lzdHJhdGlvbkRldmljZUlkIjoiNDg1MDZmODAxNGZlMTNlOTRjODJiMWMwNTRhODk3MjgzMWZiMWI4NDZhNTg0YjI0MGU0YTU1MzBhMmIyMGI3NiIsInJlZ2lzdGVyZWRBdCI6IjIwMjYtMDQtMTRUMTg6MzE6NDAuNTg1WiIsImNyZWF0ZWRBdCI6IjIwMjYtMDQtMTRUMTg6MzE6NDAuNTkxWiIsInVwZGF0ZWRBdCI6IjIwMjYtMDQtMTRUMTg6MzE6NDAuNTkxWiIsImlhdCI6MTc3NjE5NDQ3MX0.8fZ6KbkxqQFagggYos7ZJMo_1u2mU3n_Kk04tFcKWNw
+I/flutter ( 3039): 🍪 Cookies being sent:
+I/flutter ( 3039): ➡️ Sending request: POST https://be-vayuxi-chi.vercel.app/api/v1/language/download
+I/flutter ( 3039):    Body: {userId: 69de880cde6451621227b994, languageCode: en-IN}
+I/flutter ( 3039): ⏳ Showcase blocked: language flow not done
+I/flutter ( 3039): ❌ TECH ERROR: DioExceptionType.badResponse
+I/flutter ( 3039): ❌ TECH DETAILS: null
+I/flutter ( 3039): ❌ TECH RESPONSE: {success: false, error: Cannot read properties of undefined (reading 'toString')}
+I/flutter ( 3039): Cannot read properties of undefined (reading 'toString')
+I/flutter ( 3039): ❌ Request failed: GET https://be-vayuxi-chi.vercel.app/api/v1/subscription/current
+I/flutter ( 3039):    Error type: DioExceptionType.badResponse
+I/flutter ( 3039):    Error: Cannot read properties of undefined (reading 'toString')
+I/flutter ( 3039): 🚫 Not queued (server/client error)
+I/flutter ( 3039): 📌 Saved request to queue: GET /subscription/current
+I/flutter ( 3039):       Subscription sync ❌ (using cache) — Exception: Cannot read properties of undefined (reading 'toString')
+I/flutter ( 3039): ROUTER REFRESH
+I/flutter ( 3039): 🔀 [ROUTER REDIRECT] booting=false loggedIn=true matchedLocation=/workCategory fullPath=/workCategory
+I/flutter ( 3039): 🔀 [ROUTER REDIRECT] → null  (reason: logged in, free navigation to /workCategory)
+I/flutter ( 3039): 📊 [AppAccess] Final authoritative state emitted:
+I/flutter ( 3039):    ├─ hasSubscription    : false
+I/flutter ( 3039):    ├─ onboardingCompleted: false
+I/flutter ( 3039):    ├─ trialActivated     : false
+I/flutter ( 3039):    └─ isFromCache        : true
+I/flutter ( 3039): 🔄 [AppAccess] Invalidating graceStatusProvider for fresh trust data...
+I/flutter ( 3039): 🔄 [AppAccess] Calling accessControlProvider.evaluate()...
+I/flutter ( 3039): 🚦 [accessControlProvider] ══════════ ACCESS CHECK STARTED ══════════
+I/flutter ( 3039): 📊 [accessControlProvider] AppAccessState:
+I/flutter ( 3039):    ├─ isBooting          : false
+I/flutter ( 3039):    ├─ loggedIn           : true
+I/flutter ( 3039):    ├─ hasSubscription    : false
+I/flutter ( 3039):    ├─ trialActivated     : false
+I/flutter ( 3039):    ├─ onboardingCompleted: false
+I/flutter ( 3039):    └─ isFromCache        : true
+I/flutter ( 3039): 🔐 [accessControlProvider] Gate 0 — Fetching trust + grace data...
+I/flutter ( 3039): 🔍 [deviceTrustProvider] Checking device trust...
+I/flutter ( 3039): 🔍 [graceStatusProvider] Fetching grace period status from backend...
+I/flutter ( 3039): 🔍 [checkDeviceTrust] deviceId: Instance of 'Future<String>'
+I/flutter ( 3039): eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJfaWQiOiI2OWRlODgwY2RlNjQ1MTYyMTIyN2I5OTQiLCJmdWxsTmFtZSI6IiIsInBob25lTnVtYmVyIjoiNjIzOTExNDgzOCIsImlzUGhvbmVWZXJpZmllZCI6dHJ1ZSwiZW1haWwiOiIiLCJpc0VtYWlsVmVyaWZpZWQiOmZhbHNlLCJyb2xlIjoiYWRtaW4iLCJzZWxlY3RlZFNlcnZpY2VzIjpbXSwidG9rZW5WZXJzaW9uIjowLCJpc0RlbGV0ZWQiOmZhbHNlLCJ2YXl1eGlDb2lucyI6MCwidG90YWxSZWZlcnJhbHMiOjAsInJlZ2lzdHJhdGlvbkRldmljZUlkIjoiNDg1MDZmODAxNGZlMTNlOTRjODJiMWMwNTRhODk3MjgzMWZiMWI4NDZhNTg0YjI0MGU0YTU1MzBhMmIyMGI3NiIsInJlZ2lzdGVyZWRBdCI6IjIwMjYtMDQtMTRUMTg6MzE6NDAuNTg1WiIsImNyZWF0ZWRBdCI6IjIwMjYtMDQtMTRUMTg6MzE6NDAuNTkxWiIsInVwZGF0ZWRBdCI6IjIwMjYtMDQtMTRUMTg6MzE6NDAuNTkxWiIsImlhdCI6MTc3NjE5NDQ3MX0.8fZ6KbkxqQFagggYos7ZJMo_1u2mU3n_Kk04tFcKWNw
+I/flutter ( 3039): 🔍 DEBUG - All Cookies:
+I/flutter ( 3039):    🍪 Authorization=eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJfaWQiOiI2OWRlODgwY2RlNjQ1MTYyMTIyN2I5OTQiLCJmdWxsTmFtZSI6IiIsInBob25lTnVtYmVyIjoiNjIzOTExNDgzOCIsImlzUGhvbmVWZXJpZmllZCI6dHJ1ZSwiZW1haWwiOiIiLCJpc0VtYWlsVmVyaWZpZWQiOmZhbHNlLCJyb2xlIjoiYWRtaW4iLCJzZWxlY3RlZFNlcnZpY2VzIjpbXSwidG9rZW5WZXJzaW9uIjowLCJpc0RlbGV0ZWQiOmZhbHNlLCJ2YXl1eGlDb2lucyI6MCwidG90YWxSZWZlcnJhbHMiOjAsInJlZ2lzdHJhdGlvbkRldmljZUlkIjoiNDg1MDZmODAxNGZlMTNlOTRjODJiMWMwNTRhODk3MjgzMWZiMWI4NDZhNTg0YjI0MGU0YTU1MzBhMmIyMGI3NiIsInJlZ2lzdGVyZWRBdCI6IjIwMjYtMDQtMTRUMTg6MzE6NDAuNTg1WiIsImNyZWF0ZWRBdCI6IjIwMjYtMDQtMTRUMTg6MzE6NDAuNTkxWiIsInVwZGF0ZWRBdCI6IjIwMjYtMDQtMTRUMTg6MzE6NDAuNTkxWiIsImlhdCI6MTc3NjE5NDQ3MX0.8fZ6KbkxqQFagggYos7ZJMo_1u2mU3n_Kk04tFcKWNw
+I/flutter ( 3039): 🍪 Cookies being sent:
+I/flutter ( 3039): ➡️ Sending request: GET https://be-vayuxi-chi.vercel.app/api/v1/auth/grace-period-status
+I/flutter ( 3039): eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJfaWQiOiI2OWRlODgwY2RlNjQ1MTYyMTIyN2I5OTQiLCJmdWxsTmFtZSI6IiIsInBob25lTnVtYmVyIjoiNjIzOTExNDgzOCIsImlzUGhvbmVWZXJpZmllZCI6dHJ1ZSwiZW1haWwiOiIiLCJpc0VtYWlsVmVyaWZpZWQiOmZhbHNlLCJyb2xlIjoiYWRtaW4iLCJzZWxlY3RlZFNlcnZpY2VzIjpbXSwidG9rZW5WZXJzaW9uIjowLCJpc0RlbGV0ZWQiOmZhbHNlLCJ2YXl1eGlDb2lucyI6MCwidG90YWxSZWZlcnJhbHMiOjAsInJlZ2lzdHJhdGlvbkRldmljZUlkIjoiNDg1MDZmODAxNGZlMTNlOTRjODJiMWMwNTRhODk3MjgzMWZiMWI4NDZhNTg0YjI0MGU0YTU1MzBhMmIyMGI3NiIsInJlZ2lzdGVyZWRBdCI6IjIwMjYtMDQtMTRUMTg6MzE6NDAuNTg1WiIsImNyZWF0ZWRBdCI6IjIwMjYtMDQtMTRUMTg6MzE6NDAuNTkxWiIsInVwZGF0ZWRBdCI6IjIwMjYtMDQtMTRUMTg6MzE6NDAuNTkxWiIsImlhdCI6MTc3NjE5NDQ3MX0.8fZ6KbkxqQFagggYos7ZJMo_1u2mU3n_Kk04tFcKWNw
+I/flutter ( 3039): 🔍 DEBUG - All Cookies:
+I/flutter ( 3039):    🍪 Authorization=eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJfaWQiOiI2OWRlODgwY2RlNjQ1MTYyMTIyN2I5OTQiLCJmdWxsTmFtZSI6IiIsInBob25lTnVtYmVyIjoiNjIzOTExNDgzOCIsImlzUGhvbmVWZXJpZmllZCI6dHJ1ZSwiZW1haWwiOiIiLCJpc0VtYWlsVmVyaWZpZWQiOmZhbHNlLCJyb2xlIjoiYWRtaW4iLCJzZWxlY3RlZFNlcnZpY2VzIjpbXSwidG9rZW5WZXJzaW9uIjowLCJpc0RlbGV0ZWQiOmZhbHNlLCJ2YXl1eGlDb2lucyI6MCwidG90YWxSZWZlcnJhbHMiOjAsInJlZ2lzdHJhdGlvbkRldmljZUlkIjoiNDg1MDZmODAxNGZlMTNlOTRjODJiMWMwNTRhODk3MjgzMWZiMWI4NDZhNTg0YjI0MGU0YTU1MzBhMmIyMGI3NiIsInJlZ2lzdGVyZWRBdCI6IjIwMjYtMDQtMTRUMTg6MzE6NDAuNTg1WiIsImNyZWF0ZWRBdCI6IjIwMjYtMDQtMTRUMTg6MzE6NDAuNTkxWiIsInVwZGF0ZWRBdCI6IjIwMjYtMDQtMTRUMTg6MzE6NDAuNTkxWiIsImlhdCI6MTc3NjE5NDQ3MX0.8fZ6KbkxqQFagggYos7ZJMo_1u2mU3n_Kk04tFcKWNw
+I/flutter ( 3039): 🍪 Cookies being sent:
+I/flutter ( 3039): ➡️ Sending request: POST https://be-vayuxi-chi.vercel.app/api/v1/auth/check-device-trust
+I/flutter ( 3039):    Body: {deviceId: Instance of 'Future<String>'}
+I/flutter ( 3039): ❌ TECH ERROR: DioExceptionType.unknown
+I/flutter ( 3039): ❌ TECH DETAILS: Converting object to an encodable object failed: Instance of 'Future<String>'
+I/flutter ( 3039): ❌ TECH RESPONSE: null
+I/flutter ( 3039): Converting object to an encodable object failed: Instance of 'Future<String>'
+I/flutter ( 3039): ❌ Request failed: POST https://be-vayuxi-chi.vercel.app/api/v1/auth/check-device-trust
+I/flutter ( 3039):    Error type: DioExceptionType.unknown
+I/flutter ( 3039):    Error: Converting object to an encodable object failed: Instance of 'Future<String>'
+I/flutter ( 3039): QUEUE RAW:
+I/flutter ( 3039): {id: 1776194475171_831136804, method: POST, path: /auth/check-device-trust, data: {deviceId: Instance of 'Future<String>'}, query: {}, files: null, contentType: json}
+I/flutter ( 3039): Instance of 'ProviderContainer'
+I/flutter ( 3039): 🔥 PROVIDER ADD CALLED
+I/flutter ( 3039): 📌 Queued: /auth/check-device-trust
+I/flutter ( 3039): 📌 Saved request to queue: POST /auth/check-device-trust
+I/flutter ( 3039): 📌 Saved request to queue: POST /auth/check-device-trust
+I/flutter ( 3039):    Saved data: {deviceId: Instance of 'Future<String>'}
+I/flutter ( 3039): ❌ [deviceTrustProvider] Fetch FAILED: DioException [unknown]: null
+I/flutter ( 3039): Error: Converting object to an encodable object failed: Instance of 'Future<String>'
+I/flutter ( 3039): ✅ Response received: 200 https://be-vayuxi-chi.vercel.app/api/v1/auth/grace-period-status
+I/flutter ( 3039):    Data: {success: true, data: {isWithinGracePeriod: true, gracePeriodEndsAt: 2026-04-15T18:31:40.585Z, hoursRemaining: 23.17, registeredAt: 2026-04-14T18:31:40.585Z, isPrimaryDevice: false, hasRegistrationDevice: true, hasPurchaseDevice: false, requiresDeviceAuth: false}}
+I/flutter ( 3039): ✅ [graceStatusProvider] Response received:
+I/flutter ( 3039):    ├─ isWithinGracePeriod : true
+I/flutter ( 3039):    ├─ isPrimaryDevice     : false
+I/flutter ( 3039):    ├─ requiresDeviceAuth  : false
+I/flutter ( 3039):    ├─ hoursRemaining      : 23.17
+I/flutter ( 3039):    ├─ hasRegistrationDevice: true
+I/flutter ( 3039):    └─ hasPurchaseDevice   : false
+I/flutter ( 3039): 📡 [accessControlProvider] Trust result:
+I/flutter ( 3039):    ├─ isTrustedDevice     : false
+I/flutter ( 3039):    ├─ requiresDeviceAuth  : true
+I/flutter ( 3039):    ├─ isWithinGracePeriod : true
+I/flutter ( 3039):    └─ hoursRemaining      : 23.17
+I/flutter ( 3039): 🟢 [accessControlProvider] Gate 0 PASSED — grace period active
+I/flutter ( 3039): ✅ [accessControlProvider] → RESULT: allowed (grace period full access)
+I/flutter ( 3039): 🚦 [accessControlProvider] ══════════ ACCESS CHECK COMPLETE ══════════
+I/flutter ( 3039): 🚀 [AppAccess] ══════════ INITIALIZE COMPLETE ══════════
+I/flutter ( 3039): ----------------FIREBASE CRASHLYTICS----------------
+I/flutter ( 3039): 'package:flutter/src/widgets/framework.dart': Failed assertion: line 5340 pos 12: '_lifecycleState != _ElementLifecycle.defunct': is not true.
+I/flutter ( 3039): #0      _AssertionError._doThrowNew (dart:core-patch/errors_patch.dart:67:4)
+I/flutter ( 3039): #1      _AssertionError._throwNew (dart:core-patch/errors_patch.dart:49:5)
+I/flutter ( 3039): #2      Element.markNeedsBuild (package:flutter/src/widgets/framework.dart:5340:12)
+I/flutter ( 3039): #3      State.setState (package:flutter/src/widgets/framework.dart:1219:15)
+I/flutter ( 3039): #4      _RegisterScreenState._verifyPhoneOtp (package:untitled2/features/auth/screens/sign_up.dart:182:20)
+I/flutter ( 3039): <asynchronous suspension>
+I/flutter ( 3039): ----------------------------------------------------
+I/com.vayuxi.erp( 3039): Waiting for a blocking GC ProfileSaver
+I/com.vayuxi.erp( 3039): WaitForGcToComplete blocked ProfileSaver on Background for 12.181ms
+I/flutter ( 3039): ✅ Response received: 200 https://be-vayuxi-chi.vercel.app/api/v1/language/download
+I/flutter ( 3039):    Data: {success: true, data: {languageCode: en-IN, languageName: English, nativeName: English, version: 1.0.0, modules: {home: {home: {daily_entry_title: Daily Entry, setup_title: Set Up, report_title: Report, more_title: More, advertise_banner_text: ADVERTISE & REACH NEW CUSTOMERS, select_site_label: Select Site, site_name_placeholder: Site Name, select_team_label: Select Team, team_name_placeholder: Team Name, attendance_card: Attendance, daily_progress_card: Daily Progress, expense_card: Expense, inventory_entry_card: Inventory Entry, site_details_card: Site Details, rate_card: Rate, manpower_details_card: Manpower Details, create_team_card: Create Team, dpr_setup_card: Dpr Set Up, inventory_setup_card: Inventory Setup, summary_analysis_card: Summary & Analysis, salary_slip_card: Salary Slip, dpr_sheets_card: Dpr Sheets, expense_sheet_card: Expense Sheet, attendance_sheet_card: Attendance Sheet, inventory_summary_card: Inventory Summary, profile_card: Profile, subscription_card: Subscription, upcoming_u
+I/flutter ( 3039): ⏳ Showcase blocked: language flow not done
+I/TRuntime.CctTransportBackend( 3039): Making request to: https://crashlyticsreports-pa.googleapis.com/v1/firelog/legacy/batchlog
+I/TRuntime.CctTransportBackend( 3039): Status Code: 200
+I/flutter ( 3039): 🔎 Retry trigger from: periodic
+I/flutter ( 3039): eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJfaWQiOiI2OWRlODgwY2RlNjQ1MTYyMTIyN2I5OTQiLCJmdWxsTmFtZSI6IiIsInBob25lTnVtYmVyIjoiNjIzOTExNDgzOCIsImlzUGhvbmVWZXJpZmllZCI6dHJ1ZSwiZW1haWwiOiIiLCJpc0VtYWlsVmVyaWZpZWQiOmZhbHNlLCJyb2xlIjoiYWRtaW4iLCJzZWxlY3RlZFNlcnZpY2VzIjpbXSwidG9rZW5WZXJzaW9uIjowLCJpc0RlbGV0ZWQiOmZhbHNlLCJ2YXl1eGlDb2lucyI6MCwidG90YWxSZWZlcnJhbHMiOjAsInJlZ2lzdHJhdGlvbkRldmljZUlkIjoiNDg1MDZmODAxNGZlMTNlOTRjODJiMWMwNTRhODk3MjgzMWZiMWI4NDZhNTg0YjI0MGU0YTU1MzBhMmIyMGI3NiIsInJlZ2lzdGVyZWRBdCI6IjIwMjYtMDQtMTRUMTg6MzE6NDAuNTg1WiIsImNyZWF0ZWRBdCI6IjIwMjYtMDQtMTRUMTg6MzE6NDAuNTkxWiIsInVwZGF0ZWRBdCI6IjIwMjYtMDQtMTRUMTg6MzE6NDAuNTkxWiIsImlhdCI6MTc3NjE5NDQ3MX0.8fZ6KbkxqQFagggYos7ZJMo_1u2mU3n_Kk04tFcKWNw
+I/flutter ( 3039): 🔍 DEBUG - All Cookies:
+I/flutter ( 3039):    🍪 Authorization=eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJfaWQiOiI2OWRlODgwY2RlNjQ1MTYyMTIyN2I5OTQiLCJmdWxsTmFtZSI6IiIsInBob25lTnVtYmVyIjoiNjIzOTExNDgzOCIsImlzUGhvbmVWZXJpZmllZCI6dHJ1ZSwiZW1haWwiOiIiLCJpc0VtYWlsVmVyaWZpZWQiOmZhbHNlLCJyb2xlIjoiYWRtaW4iLCJzZWxlY3RlZFNlcnZpY2VzIjpbXSwidG9rZW5WZXJzaW9uIjowLCJpc0RlbGV0ZWQiOmZhbHNlLCJ2YXl1eGlDb2lucyI6MCwidG90YWxSZWZlcnJhbHMiOjAsInJlZ2lzdHJhdGlvbkRldmljZUlkIjoiNDg1MDZmODAxNGZlMTNlOTRjODJiMWMwNTRhODk3MjgzMWZiMWI4NDZhNTg0YjI0MGU0YTU1MzBhMmIyMGI3NiIsInJlZ2lzdGVyZWRBdCI6IjIwMjYtMDQtMTRUMTg6MzE6NDAuNTg1WiIsImNyZWF0ZWRBdCI6IjIwMjYtMDQtMTRUMTg6MzE6NDAuNTkxWiIsInVwZGF0ZWRBdCI6IjIwMjYtMDQtMTRUMTg6MzE6NDAuNTkxWiIsImlhdCI6MTc3NjE5NDQ3MX0.8fZ6KbkxqQFagggYos7ZJMo_1u2mU3n_Kk04tFcKWNw
+I/flutter ( 3039): 🍪 Cookies being sent:
+I/flutter ( 3039): ➡️ Sending request: GET https://be-vayuxi-chi.vercel.app/api/v1/site
+I/flutter ( 3039): ❌ TECH ERROR: DioExceptionType.badResponse
+I/flutter ( 3039): ❌ TECH DETAILS: null
+I/flutter ( 3039): ❌ TECH RESPONSE: {error: Cannot read properties of undefined (reading '_id')}
+I/flutter ( 3039): Cannot read properties of undefined (reading '_id')
+I/flutter ( 3039): ❌ Request failed: GET https://be-vayuxi-chi.vercel.app/api/v1/site
+I/flutter ( 3039):    Error type: DioExceptionType.badResponse
+I/flutter ( 3039):    Error: Cannot read properties of undefined (reading '_id')
+I/flutter ( 3039): 🚫 Not queued (server/client error)
+I/flutter ( 3039): 📌 Saved request to queue: GET /site
+I/flutter ( 3039): ❌ Server unreachable
+I/flutter ( 3039): ⏳ Showcase blocked: no current step
+I/flutter ( 3039): 🔎 Retry trigger from: periodic
+I/flutter ( 3039): eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJfaWQiOiI2OWRlODgwY2RlNjQ1MTYyMTIyN2I5OTQiLCJmdWxsTmFtZSI6IiIsInBob25lTnVtYmVyIjoiNjIzOTExNDgzOCIsImlzUGhvbmVWZXJpZmllZCI6dHJ1ZSwiZW1haWwiOiIiLCJpc0VtYWlsVmVyaWZpZWQiOmZhbHNlLCJyb2xlIjoiYWRtaW4iLCJzZWxlY3RlZFNlcnZpY2VzIjpbXSwidG9rZW5WZXJzaW9uIjowLCJpc0RlbGV0ZWQiOmZhbHNlLCJ2YXl1eGlDb2lucyI6MCwidG90YWxSZWZlcnJhbHMiOjAsInJlZ2lzdHJhdGlvbkRldmljZUlkIjoiNDg1MDZmODAxNGZlMTNlOTRjODJiMWMwNTRhODk3MjgzMWZiMWI4NDZhNTg0YjI0MGU0YTU1MzBhMmIyMGI3NiIsInJlZ2lzdGVyZWRBdCI6IjIwMjYtMDQtMTRUMTg6MzE6NDAuNTg1WiIsImNyZWF0ZWRBdCI6IjIwMjYtMDQtMTRUMTg6MzE6NDAuNTkxWiIsInVwZGF0ZWRBdCI6IjIwMjYtMDQtMTRUMTg6MzE6NDAuNTkxWiIsImlhdCI6MTc3NjE5NDQ3MX0.8fZ6KbkxqQFagggYos7ZJMo_1u2mU3n_Kk04tFcKWNw
+I/flutter ( 3039): 🔍 DEBUG - All Cookies:
+I/flutter ( 3039):    🍪 Authorization=eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJfaWQiOiI2OWRlODgwY2RlNjQ1MTYyMTIyN2I5OTQiLCJmdWxsTmFtZSI6IiIsInBob25lTnVtYmVyIjoiNjIzOTExNDgzOCIsImlzUGhvbmVWZXJpZmllZCI6dHJ1ZSwiZW1haWwiOiIiLCJpc0VtYWlsVmVyaWZpZWQiOmZhbHNlLCJyb2xlIjoiYWRtaW4iLCJzZWxlY3RlZFNlcnZpY2VzIjpbXSwidG9rZW5WZXJzaW9uIjowLCJpc0RlbGV0ZWQiOmZhbHNlLCJ2YXl1eGlDb2lucyI6MCwidG90YWxSZWZlcnJhbHMiOjAsInJlZ2lzdHJhdGlvbkRldmljZUlkIjoiNDg1MDZmODAxNGZlMTNlOTRjODJiMWMwNTRhODk3MjgzMWZiMWI4NDZhNTg0YjI0MGU0YTU1MzBhMmIyMGI3NiIsInJlZ2lzdGVyZWRBdCI6IjIwMjYtMDQtMTRUMTg6MzE6NDAuNTg1WiIsImNyZWF0ZWRBdCI6IjIwMjYtMDQtMTRUMTg6MzE6NDAuNTkxWiIsInVwZGF0ZWRBdCI6IjIwMjYtMDQtMTRUMTg6MzE6NDAuNTkxWiIsImlhdCI6MTc3NjE5NDQ3MX0.8fZ6KbkxqQFagggYos7ZJMo_1u2mU3n_Kk04tFcKWNw
+I/flutter ( 3039): 🍪 Cookies being sent:
+I/flutter ( 3039): ➡️ Sending request: GET https://be-vayuxi-chi.vercel.app/api/v1/site
+I/flutter ( 3039): ❌ TECH ERROR: DioExceptionType.badResponse
+I/flutter ( 3039): ❌ TECH DETAILS: null
+I/flutter ( 3039): ❌ TECH RESPONSE: {error: Cannot read properties of undefined (reading '_id')}
+I/flutter ( 3039): Cannot read properties of undefined (reading '_id')
+I/flutter ( 3039): ❌ Request failed: GET https://be-vayuxi-chi.vercel.app/api/v1/site
+I/flutter ( 3039):    Error type: DioExceptionType.badResponse
+I/flutter ( 3039):    Error: Cannot read properties of undefined (reading '_id')
+I/flutter ( 3039): 🚫 Not queued (server/client error)
+I/flutter ( 3039): 📌 Saved request to queue: GET /site
+I/flutter ( 3039): ❌ Server unreachable
+I/TRuntime.CctTransportBackend( 3039): Making request to: https://crashlyticsreports-pa.googleapis.com/v1/firelog/legacy/batchlog
+I/TRuntime.CctTransportBackend( 3039): Status Code: 200
+I/flutter ( 3039): 🧾 PROFILE FLAGS CHECK | requires_profile_completion=false | hasPendingPhone=false | gracePeriodEndsAt=
+I/flutter ( 3039): {
+I/flutter ( 3039):   "id": "69de880cde6451621227b994",
+I/flutter ( 3039):   "email": "",
+I/flutter ( 3039):   "fullName": "",
+I/flutter ( 3039):   "phoneNumber": "6239114838",
+I/flutter ( 3039):   "profilePhoto": null,
+I/flutter ( 3039):   "aadhaarCard": null,
+I/flutter ( 3039):   "gstNumber": null,
+I/flutter ( 3039):   "company": null,
+I/flutter ( 3039):   "address": null,
+I/flutter ( 3039):   "other": null,
+I/flutter ( 3039):   "selectedServices": [],
+I/flutter ( 3039):   "firstName": null,
+I/flutter ( 3039):   "lastName": null
+I/flutter ( 3039): }
+I/flutter ( 3039): eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJfaWQiOiI2OWRlODgwY2RlNjQ1MTYyMTIyN2I5OTQiLCJmdWxsTmFtZSI6IiIsInBob25lTnVtYmVyIjoiNjIzOTExNDgzOCIsImlzUGhvbmVWZXJpZmllZCI6dHJ1ZSwiZW1haWwiOiIiLCJpc0VtYWlsVmVyaWZpZWQiOmZhbHNlLCJyb2xlIjoiYWRtaW4iLCJzZWxlY3RlZFNlcnZpY2VzIjpbXSwidG9rZW5WZXJzaW9uIjowLCJpc0RlbGV0ZWQiOmZhbHNlLCJ2YXl1eGlDb2lucyI6MCwidG90YWxSZWZlcnJhbHMiOjAsInJlZ2lzdHJhdGlvbkRldmljZUlkIjoiNDg1MDZmODAxNGZlMTNlOTRjODJiMWMwNTRhODk3MjgzMWZiMWI4NDZhNTg0YjI0MGU0YTU1MzBhMmIyMGI3NiIsInJlZ2lzdGVyZWRBdCI6IjIwMjYtMDQtMTRUMTg6MzE6NDAuNTg1WiIsImNyZWF0ZWRBdCI6IjIwMjYtMDQtMTRUMTg6MzE6NDAuNTkxWiIsInVwZGF0ZWRBdCI6IjIwMjYtMDQtMTRUMTg6MzE6NDAuNTkxWiIsImlhdCI6MTc3NjE5NDQ3MX0.8fZ6KbkxqQFagggYos7ZJMo_1u2mU3n_Kk04tFcKWNw
+I/flutter ( 3039): 🔍 DEBUG - All Cookies:
+I/flutter ( 3039):    🍪 Authorization=eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJfaWQiOiI2OWRlODgwY2RlNjQ1MTYyMTIyN2I5OTQiLCJmdWxsTmFtZSI6IiIsInBob25lTnVtYmVyIjoiNjIzOTExNDgzOCIsImlzUGhvbmVWZXJpZmllZCI6dHJ1ZSwiZW1haWwiOiIiLCJpc0VtYWlsVmVyaWZpZWQiOmZhbHNlLCJyb2xlIjoiYWRtaW4iLCJzZWxlY3RlZFNlcnZpY2VzIjpbXSwidG9rZW5WZXJzaW9uIjowLCJpc0RlbGV0ZWQiOmZhbHNlLCJ2YXl1eGlDb2lucyI6MCwidG90YWxSZWZlcnJhbHMiOjAsInJlZ2lzdHJhdGlvbkRldmljZUlkIjoiNDg1MDZmODAxNGZlMTNlOTRjODJiMWMwNTRhODk3MjgzMWZiMWI4NDZhNTg0YjI0MGU0YTU1MzBhMmIyMGI3NiIsInJlZ2lzdGVyZWRBdCI6IjIwMjYtMDQtMTRUMTg6MzE6NDAuNTg1WiIsImNyZWF0ZWRBdCI6IjIwMjYtMDQtMTRUMTg6MzE6NDAuNTkxWiIsInVwZGF0ZWRBdCI6IjIwMjYtMDQtMTRUMTg6MzE6NDAuNTkxWiIsImlhdCI6MTc3NjE5NDQ3MX0.8fZ6KbkxqQFagggYos7ZJMo_1u2mU3n_Kk04tFcKWNw
+I/flutter ( 3039): 🍪 Cookies being sent:
+I/flutter ( 3039): ➡️ Sending request: GET https://be-vayuxi-chi.vercel.app/api/v1/user/me
+I/flutter ( 3039): ✅ Response received: 200 https://be-vayuxi-chi.vercel.app/api/v1/user/me
+I/flutter ( 3039):    Data: {_id: 69de880cde6451621227b994, fullName: , phoneNumber: 6239114838, isPhoneVerified: true, email: , isEmailVerified: false, role: admin, selectedServices: [], tokenVersion: 0, isDeleted: false, vayuxiCoins: 0, totalReferrals: 0, registrationDeviceId: 48506f8014fe13e94c82b1c054a8972831fb1b846a584b240e4a5530a2b20b76, registeredAt: 2026-04-14T18:31:40.585Z, createdAt: 2026-04-14T18:31:40.591Z, updatedAt: 2026-04-14T18:31:40.591Z}
+I/flutter ( 3039):    updatedAt: 2026-04-14T18:31:40.591Z
+I/flutter ( 3039): ⏳ Showcase blocked: no current step
+I/flutter ( 3039): 🔎 Retry trigger from: periodic
+I/flutter ( 3039): eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJfaWQiOiI2OWRlODgwY2RlNjQ1MTYyMTIyN2I5OTQiLCJmdWxsTmFtZSI6IiIsInBob25lTnVtYmVyIjoiNjIzOTExNDgzOCIsImlzUGhvbmVWZXJpZmllZCI6dHJ1ZSwiZW1haWwiOiIiLCJpc0VtYWlsVmVyaWZpZWQiOmZhbHNlLCJyb2xlIjoiYWRtaW4iLCJzZWxlY3RlZFNlcnZpY2VzIjpbXSwidG9rZW5WZXJzaW9uIjowLCJpc0RlbGV0ZWQiOmZhbHNlLCJ2YXl1eGlDb2lucyI6MCwidG90YWxSZWZlcnJhbHMiOjAsInJlZ2lzdHJhdGlvbkRldmljZUlkIjoiNDg1MDZmODAxNGZlMTNlOTRjODJiMWMwNTRhODk3MjgzMWZiMWI4NDZhNTg0YjI0MGU0YTU1MzBhMmIyMGI3NiIsInJlZ2lzdGVyZWRBdCI6IjIwMjYtMDQtMTRUMTg6MzE6NDAuNTg1WiIsImNyZWF0ZWRBdCI6IjIwMjYtMDQtMTRUMTg6MzE6NDAuNTkxWiIsInVwZGF0ZWRBdCI6IjIwMjYtMDQtMTRUMTg6MzE6NDAuNTkxWiIsImlhdCI6MTc3NjE5NDQ3MX0.8fZ6KbkxqQFagggYos7ZJMo_1u2mU3n_Kk04tFcKWNw
+I/flutter ( 3039): 🔍 DEBUG - All Cookies:
+I/flutter ( 3039):    🍪 Authorization=eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJfaWQiOiI2OWRlODgwY2RlNjQ1MTYyMTIyN2I5OTQiLCJmdWxsTmFtZSI6IiIsInBob25lTnVtYmVyIjoiNjIzOTExNDgzOCIsImlzUGhvbmVWZXJpZmllZCI6dHJ1ZSwiZW1haWwiOiIiLCJpc0VtYWlsVmVyaWZpZWQiOmZhbHNlLCJyb2xlIjoiYWRtaW4iLCJzZWxlY3RlZFNlcnZpY2VzIjpbXSwidG9rZW5WZXJzaW9uIjowLCJpc0RlbGV0ZWQiOmZhbHNlLCJ2YXl1eGlDb2lucyI6MCwidG90YWxSZWZlcnJhbHMiOjAsInJlZ2lzdHJhdGlvbkRldmljZUlkIjoiNDg1MDZmODAxNGZlMTNlOTRjODJiMWMwNTRhODk3MjgzMWZiMWI4NDZhNTg0YjI0MGU0YTU1MzBhMmIyMGI3NiIsInJlZ2lzdGVyZWRBdCI6IjIwMjYtMDQtMTRUMTg6MzE6NDAuNTg1WiIsImNyZWF0ZWRBdCI6IjIwMjYtMDQtMTRUMTg6MzE6NDAuNTkxWiIsInVwZGF0ZWRBdCI6IjIwMjYtMDQtMTRUMTg6MzE6NDAuNTkxWiIsImlhdCI6MTc3NjE5NDQ3MX0.8fZ6KbkxqQFagggYos7ZJMo_1u2mU3n_Kk04tFcKWNw
+I/flutter ( 3039): 🍪 Cookies being sent:
+I/flutter ( 3039): ➡️ Sending request: GET https://be-vayuxi-chi.vercel.app/api/v1/site
+I/flutter ( 3039): ❌ TECH ERROR: DioExceptionType.badResponse
+I/flutter ( 3039): ❌ TECH DETAILS: null
+I/flutter ( 3039): ❌ TECH RESPONSE: {error: Cannot read properties of undefined (reading '_id')}
+I/flutter ( 3039): Cannot read properties of undefined (reading '_id')
+I/flutter ( 3039): ❌ Request failed: GET https://be-vayuxi-chi.vercel.app/api/v1/site
+I/flutter ( 3039):    Error type: DioExceptionType.badResponse
+I/flutter ( 3039):    Error: Cannot read properties of undefined (reading '_id')
+I/flutter ( 3039): 🚫 Not queued (server/client error)
+I/flutter ( 3039): 📌 Saved request to queue: GET /site
+I/flutter ( 3039): ❌ Server unreachable
