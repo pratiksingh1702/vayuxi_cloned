@@ -408,6 +408,12 @@ class _DprWorkScreenState extends ConsumerState<DprWorkScreen> {
   }
 
   Widget _buildListSectionShimmer(String workType) {
+    final theme = Theme.of(context);
+    final scheme = theme.colorScheme;
+    final isDark = theme.brightness == Brightness.dark;
+    final accentColor =
+        workType == WorkType.mechanical ? Colors.blue : Colors.green;
+
     return ListView.builder(
       padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 8),
       itemCount: 6,
@@ -418,7 +424,7 @@ class _DprWorkScreenState extends ConsumerState<DprWorkScreen> {
             borderRadius: BorderRadius.circular(12),
           ),
           elevation: 0,
-          color: Colors.white,
+          color: theme.cardColor,
           child: Padding(
             padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 12),
             child: Row(
@@ -428,10 +434,7 @@ class _DprWorkScreenState extends ConsumerState<DprWorkScreen> {
                   width: 42,
                   height: 42,
                   decoration: BoxDecoration(
-                    color: (workType == WorkType.mechanical
-                            ? Colors.blue
-                            : Colors.green)
-                        .withOpacity(0.08),
+                    color: accentColor.withValues(alpha: isDark ? 0.22 : 0.08),
                     borderRadius: BorderRadius.circular(10),
                   ),
                   child: const Center(
@@ -458,12 +461,16 @@ class _DprWorkScreenState extends ConsumerState<DprWorkScreen> {
                 const SizedBox(width: 10),
                 Column(
                   crossAxisAlignment: CrossAxisAlignment.end,
-                  children: const [
-                    ShimmerBox(width: 52, height: 10, borderRadius: 5),
-                    SizedBox(height: 8),
-                    ShimmerBox(width: 12, height: 12, borderRadius: 6),
-                    SizedBox(height: 8),
-                    ShimmerCircle(size: 20),
+                  children: [
+                    const ShimmerBox(width: 52, height: 10, borderRadius: 5),
+                    const SizedBox(height: 8),
+                    const ShimmerBox(width: 12, height: 12, borderRadius: 6),
+                    const SizedBox(height: 8),
+                    ShimmerCircle(
+                      size: 20,
+                      baseColor:
+                          scheme.onSurface.withValues(alpha: isDark ? 0.14 : 0.08),
+                    ),
                   ],
                 ),
               ],
@@ -836,6 +843,11 @@ class _DprWorkScreenState extends ConsumerState<DprWorkScreen> {
                   itemCount: filteredList.length,
                   itemBuilder: (context, index) {
                     final dpr = filteredList[index];
+                    final theme = Theme.of(context);
+                    final scheme = theme.colorScheme;
+                    final isDark = theme.brightness == Brightness.dark;
+                    final accentColor =
+                        workType == WorkType.mechanical ? Colors.blue : Colors.green;
 
                     return Card(
                       margin: const EdgeInsets.only(bottom: 10),
@@ -843,23 +855,21 @@ class _DprWorkScreenState extends ConsumerState<DprWorkScreen> {
                         borderRadius: BorderRadius.circular(12),
                       ),
                       elevation: 0,
-                      color: Colors.white,
+                      color: theme.cardColor,
                       child: ListTile(
                         leading: Container(
                           padding: const EdgeInsets.all(10),
                           decoration: BoxDecoration(
-                            color: workType == WorkType.mechanical
-                                ? Colors.blue.shade50
-                                : Colors.green.shade50,
+                            color: accentColor.withValues(alpha: isDark ? 0.22 : 0.1),
                             borderRadius: BorderRadius.circular(10),
                           ),
                           child: Icon(
                             workType == WorkType.mechanical
                                 ? Icons.build
                                 : Icons.thermostat_auto,
-                            color: workType == WorkType.mechanical
-                                ? Colors.blue.shade700
-                                : Colors.green.shade700,
+                            color: isDark
+                                ? accentColor.shade300
+                                : accentColor.shade700,
                             size: 22,
                           ),
                         ),
@@ -872,7 +882,7 @@ class _DprWorkScreenState extends ConsumerState<DprWorkScreen> {
                           style: const TextStyle(
                             fontSize: 14,
                             fontWeight: FontWeight.w600,
-                          ),
+                          ).copyWith(color: scheme.onSurface),
                           maxLines: 1,
                           overflow: TextOverflow.ellipsis,
                         ),
@@ -884,7 +894,7 @@ class _DprWorkScreenState extends ConsumerState<DprWorkScreen> {
                             _buildSubtitle(dpr, workType),
                             style: TextStyle(
                               fontSize: 11,
-                              color: Colors.grey.shade600,
+                              color: scheme.onSurfaceVariant,
                             ),
                             maxLines: 2,
                             overflow: TextOverflow.ellipsis,
@@ -920,21 +930,23 @@ class _DprWorkScreenState extends ConsumerState<DprWorkScreen> {
                                   ),
                                   style: TextStyle(
                                     fontSize: 10,
-                                    color: Colors.grey.shade500,
+                                    color: scheme.onSurfaceVariant,
                                   ),
                                 ),
                                 const SizedBox(height: 4),
-                                const Icon(
+                                Icon(
                                   Icons.arrow_forward_ios,
                                   size: 12,
-                                  color: Colors.grey,
+                                  color: scheme.onSurfaceVariant,
                                 ),
                               ],
                             ),
                             const SizedBox(width: 8),
                             IconButton(
-                              icon: const Icon(Icons.delete_outline,
-                                  color: Colors.red),
+                              icon: Icon(
+                                Icons.delete_outline,
+                                color: scheme.error,
+                              ),
                               onPressed: () => _deleteDpr(dpr),
                             ),
                           ],

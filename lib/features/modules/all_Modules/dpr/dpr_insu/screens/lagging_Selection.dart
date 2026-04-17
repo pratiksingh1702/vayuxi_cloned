@@ -231,14 +231,16 @@ class _LaggingMaterialScreenState
   Widget _thicknessInput(double selectedThickness) {
 
 
+    final colorScheme = Theme.of(context).colorScheme;
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 6),
       decoration: BoxDecoration(
-        color: Colors.white,
+        color: colorScheme.surfaceContainerLow,
         borderRadius: BorderRadius.circular(12),
+        border: Border.all(color: colorScheme.outlineVariant.withOpacity(0.6)),
         boxShadow: [
           BoxShadow(
-            color: Colors.black.withOpacity(0.05),
+            color: colorScheme.shadow.withOpacity(0.08),
             blurRadius: 10,
             offset: const Offset(0, 4),
           ),
@@ -247,19 +249,20 @@ class _LaggingMaterialScreenState
       child: TextFormField(
         controller: _thicknessController,
         keyboardType: const TextInputType.numberWithOptions(decimal: true),
-        decoration: const InputDecoration(
+        style: TextStyle(color: colorScheme.onSurface),
+        cursorColor: colorScheme.primary,
+        decoration: InputDecoration(
           border: InputBorder.none,
           hintText: "Enter thickness (mm)",
+          hintStyle: TextStyle(color: colorScheme.onSurfaceVariant),
         ),
-       onChanged: (value) {
-            final thickness = double.tryParse(value.trim()) ?? 0;
-
-            ref.read(insulationStateProvider.notifier).updateLayer(
-              index: widget.layerIndex,
-              thickness: thickness,
-            );
-          },
-
+        onChanged: (value) {
+          final thickness = double.tryParse(value.trim()) ?? 0;
+          ref.read(insulationStateProvider.notifier).updateLayer(
+            index: widget.layerIndex,
+            thickness: thickness,
+          );
+        },
       ),
     );
   }

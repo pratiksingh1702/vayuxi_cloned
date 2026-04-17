@@ -430,37 +430,18 @@ class _SiteDetailScreenState extends ConsumerState<SiteDetailScreen> {
                   const SizedBox(height: 24),
 
                   const SizedBox(height: 12),
-                  Row(
-                    children: [
-                      Text(
-                        "Site Name",
-                        style: TextStyle(
-                          fontSize: 18,
-                          fontWeight: FontWeight.w500,
-                          color: cs.onSurface,
-                        ),
-                      ),
-                      Text(
-                        " *",
-                        style: TextStyle(
-                          color: cs.error,
-                          fontSize: 18,
-                          fontWeight: FontWeight.bold,
-                        ),
-                      ),
-                    ],
-                  ),
-                  const SizedBox(height: 8),
+          
                   CustomTextField(
-                    label: "", // Label is handled by Row above
+                    label: "Site Name", // Label is handled by Row above
                     controller: siteNameController,
+isRequired: true,
                     TextSize: 18,
                     validator: (value) {
                       if (value == null || value.trim().isEmpty) {
                         return 'Site name is required';
                       }
                       return null;
-                    },
+                    }
                   ),
                   const SizedBox(height: 16),
                   CustomTextField(
