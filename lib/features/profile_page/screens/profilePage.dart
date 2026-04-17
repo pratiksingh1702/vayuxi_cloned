@@ -2,6 +2,7 @@ import 'dart:io';
 
 import 'package:dio/dio.dart';
 import 'package:flutter/material.dart';
+import 'package:go_router/go_router.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:untitled2/core/utlis/app_toasts.dart';
@@ -212,7 +213,9 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
           'name': user.company?.name ?? '',
           'logo': user.company?.logo ?? '',
         },
-        'companyLogo': user.company?.logo ?? '',
+        'companyLogo': user.company!.logo?.trim().isNotEmpty == true
+            ? user.company!.logo!
+            : '',
         'address': user.address ?? '',
         'other': user.other ?? '',
         'bankName': user.company?.bankName ?? '',
@@ -318,14 +321,8 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
         );
       }
 
-      final nameParts = _fullNameController.text.trim().split(' ');
-      final firstName = nameParts.first;
-      final lastName =
-          nameParts.length > 1 ? nameParts.sublist(1).join(' ') : '';
-
       formData.fields.addAll([
-        MapEntry('firstName', firstName),
-        MapEntry('lastName', lastName),
+        MapEntry('fullName', _fullNameController.text.trim()),
         MapEntry('phoneNumber', _phoneNumberController.text.trim()),
         MapEntry('email', _emailController.text.trim()),
         MapEntry('aadhaarCard', _aadhaarController.text.trim()),
@@ -342,6 +339,18 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
       ]);
 
       await userNotifier.updateUser(formData);
+
+      // Clear local files and refresh form with backend data
+      if (mounted) {
+        setState(() {
+          // Refresh _formValues from the updated user in provider
+          final updatedUser = ref.read(userNotifierProvider).user;
+          if (updatedUser != null) {
+            _populateFormFields(updatedUser);
+          }
+        });
+      }
+
       AppToast.success('Profile updated successfully');
     } catch (e, stackTrace) {
       debugPrint(stackTrace.toString());
@@ -385,7 +394,7 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
     final colorScheme = Theme.of(context).colorScheme;
     final userState = ref.watch(userNotifierProvider);
 
-    if (userState.user != null && _fullNameController.text.isEmpty) {
+    if (userState.user != null) {
       _populateFormFields(userState.user!);
     }
 
@@ -634,11 +643,16 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
                                     .toString()
                                     .trim()
                                     .isNotEmpty
-                                ? Image.network(
-                                    _formValues['companyLogo'],
-                                    fit: BoxFit.cover,
-                                  )
-                                : null),
+                                ? Image.network(_formValues['companyLogo'],
+                                    fit: BoxFit.cover)
+                                : ((_formValues['company']?['logo'] ?? '')
+                                        .toString()
+                                        .trim()
+                                        .isNotEmpty
+                                    ? Image.network(
+                                        _formValues['company']['logo'],
+                                        fit: BoxFit.cover)
+                                    : null)),
                         onTap: () => _handleImagePick(false),
                       ),
                     ],
@@ -766,7 +780,7 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
                               borderRadius: BorderRadius.circular(12),
                             ),
                           ),
-                          onPressed: () => Navigator.pop(context),
+                          onPressed: () => context.pop(),
                           icon: Icon(
                             Icons.arrow_back_rounded,
                             color: colorScheme.onSurface,

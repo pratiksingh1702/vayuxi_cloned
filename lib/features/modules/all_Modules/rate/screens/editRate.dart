@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:go_router/go_router.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:untitled2/core/utlis/app_toasts.dart';
 import 'package:untitled2/core/utlis/widgets/Button_wrapper.dart';
@@ -114,7 +115,7 @@ class _EditRateScreenState extends ConsumerState<EditRateScreen> {
                       uomController.text = uom;
                       isCustomUOM = false;
                     });
-                    Navigator.pop(context);
+                    context.pop();
                   },
                 );
               },
@@ -157,7 +158,7 @@ class _EditRateScreenState extends ConsumerState<EditRateScreen> {
           .updateRate(updatedData, siteId, widget.rate.id);
 
       AppToast.success('Rate updated successfully');
-      Navigator.pop(context, true); // return true to refresh list if needed
+      context.pop(true); // return true to refresh list if needed
     } catch (e, stackrace) {
       print(e);
       print(stackrace);

@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:go_router/go_router.dart';
 import 'package:url_launcher/url_launcher.dart';
 
 class HelpCenterScreen extends StatefulWidget {
@@ -81,7 +82,7 @@ class _HelpCenterScreenState extends State<HelpCenterScreen>
               ),
               minimumSize: const Size(double.infinity, 50),
             ),
-            onPressed: () => Navigator.pop(context),
+            onPressed: () => context.pop(),
             child: const Text("Back", style: TextStyle(fontSize: 16)),
           ),
         ),

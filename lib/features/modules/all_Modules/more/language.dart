@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:go_router/go_router.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../../language/model/language_storage.dart';
@@ -146,7 +147,7 @@ class _LanguageSelectionScreenState
         ScaffoldMessenger.of(context).showSnackBar(
           const SnackBar(content: Text('Language updated successfully')),
         );
-        Navigator.pop(context);
+        context.pop();
       }
     } catch (e) {
       if (mounted) {
@@ -259,7 +260,7 @@ class _LanguageSelectionScreenState
                     borderRadius: BorderRadius.circular(30),
                   ),
                 ),
-                onPressed: () => Navigator.pop(context),
+                onPressed: () => context.pop(),
                 child: const Text("Back"),
               ),
             ),
@@ -402,12 +403,12 @@ class _LanguageSelectionScreenState
         ),
         actions: [
           TextButton(
-            onPressed: () => Navigator.pop(context),
+            onPressed: () => context.pop(),
             child: const Text('Cancel'),
           ),
           ElevatedButton(
             onPressed: () {
-              Navigator.pop(context);
+              context.pop();
               _downloadLanguage(lang.code);
             },
             child: const Text('Download'),

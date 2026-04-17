@@ -231,8 +231,8 @@ class _RegisterScreenState extends ConsumerState<RegisterScreen> {
         actions: [
           TextButton(
             onPressed: () {
-              Navigator.of(context).pop();
-              Navigator.of(context).pop();
+              context.pop();
+              context.pop();
             },
             child:
                 Text('Continue', style: TextStyle(color: colorScheme.primary)),
@@ -280,7 +280,7 @@ class _RegisterScreenState extends ConsumerState<RegisterScreen> {
             size: 18,
             color: colorScheme.onSurface,
           ),
-          onPressed: () => Navigator.of(context).pop(),
+          onPressed: () => context.pop(),
         ),
         title: Text(
           _phase == _Phase.phoneOtp ? 'Create account' : 'Complete profile',
@@ -500,7 +500,7 @@ class _RegisterScreenState extends ConsumerState<RegisterScreen> {
                       ),
                     ),
                     GestureDetector(
-                      onTap: () => Navigator.of(context).pop(),
+                      onTap: () => context.pop(),
                       child: Text(
                         'Login',
                         style: TextStyle(

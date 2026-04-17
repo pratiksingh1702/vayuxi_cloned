@@ -123,11 +123,11 @@ class _ExpenseListScreenState extends ConsumerState<ExpenseListScreen> {
         ),
         actions: [
           TextButton(
-            onPressed: () => Navigator.pop(context, false),
+            onPressed: () => context.pop(false),
             child: const Text('Cancel'),
           ),
           TextButton(
-            onPressed: () => Navigator.pop(context, true),
+            onPressed: () => context.pop(true),
             style: TextButton.styleFrom(
                 foregroundColor: Theme.of(context).colorScheme.error),
             child: const Text('Delete'),
@@ -185,11 +185,11 @@ class _ExpenseListScreenState extends ConsumerState<ExpenseListScreen> {
         ),
         actions: [
           TextButton(
-            onPressed: () => Navigator.pop(context, false),
+            onPressed: () => context.pop(false),
             child: const Text("Cancel"),
           ),
           TextButton(
-            onPressed: () => Navigator.pop(context, true),
+            onPressed: () => context.pop(true),
             style: TextButton.styleFrom(
                 foregroundColor: Theme.of(context).colorScheme.error),
             child: const Text("Delete"),
@@ -637,7 +637,7 @@ class _CategoryModal extends StatelessWidget {
           ),
           const SizedBox(height: 16),
           OutlinedButton(
-            onPressed: () => Navigator.pop(context),
+            onPressed: () => context.pop(),
             child: const Text("Cancel"),
           ),
         ],

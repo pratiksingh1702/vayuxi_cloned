@@ -21,7 +21,8 @@ import '../../providers/dprService.dart';
 class SheetDownloadPage extends ConsumerStatefulWidget {
   final DateTime? selectedStartDate;
   final DateTime? selectedEndDate;
-  const SheetDownloadPage({super.key,this.selectedEndDate,this.selectedStartDate});
+  const SheetDownloadPage(
+      {super.key, this.selectedEndDate, this.selectedStartDate});
 
   @override
   ConsumerState<SheetDownloadPage> createState() => _SheetDownloadPageState();
@@ -63,10 +64,13 @@ class _SheetDownloadPageState extends ConsumerState<SheetDownloadPage> {
 
     showModalBottomSheet(
       context: context,
+      backgroundColor: Theme.of(context).colorScheme.surface,
       shape: const RoundedRectangleBorder(
         borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
       ),
       builder: (context) {
+        final scheme = Theme.of(context).colorScheme;
+        final textTheme = Theme.of(context).textTheme;
         return Padding(
           padding: const EdgeInsets.fromLTRB(20, 16, 20, 24),
           child: Column(
@@ -77,26 +81,29 @@ class _SheetDownloadPageState extends ConsumerState<SheetDownloadPage> {
                 height: 4,
                 margin: const EdgeInsets.only(bottom: 16),
                 decoration: BoxDecoration(
-                  color: Colors.grey.shade400,
+                  color: scheme.outlineVariant,
                   borderRadius: BorderRadius.circular(4),
                 ),
               ),
               Text(
                 "$sheetName Report",
-                style: const TextStyle(
-                  fontSize: 18,
-                  fontWeight: FontWeight.w600,
+                style: textTheme.titleMedium?.copyWith(
+                  fontWeight: FontWeight.w700,
                 ),
               ),
               const SizedBox(height: 6),
               Text(
                 "Period: ${DateFormat('dd/MM/yyyy').format(_selectedStartDate!)} to ${DateFormat('dd/MM/yyyy').format(_selectedEndDate!)}",
-                style: const TextStyle(color: Colors.grey, fontSize: 12),
+                style: textTheme.bodySmall?.copyWith(
+                  color: scheme.onSurfaceVariant,
+                ),
               ),
               const SizedBox(height: 6),
-              const Text(
+              Text(
                 "Select format:",
-                style: TextStyle(color: Colors.grey),
+                style: textTheme.bodyMedium?.copyWith(
+                  color: scheme.onSurfaceVariant,
+                ),
               ),
               const SizedBox(height: 20),
               _FormatTile(
@@ -107,7 +114,7 @@ class _SheetDownloadPageState extends ConsumerState<SheetDownloadPage> {
                 isSelected: _selectedFormat == 'excel',
                 onTap: () {
                   setState(() => _selectedFormat = 'excel');
-                  Navigator.pop(context);
+                  context.pop();
                   _showShareOrDownloadDialog(
                     sheetName: sheetName,
                     apiCall: apiCall,
@@ -124,7 +131,7 @@ class _SheetDownloadPageState extends ConsumerState<SheetDownloadPage> {
                 isSelected: _selectedFormat == 'pdf',
                 onTap: () {
                   setState(() => _selectedFormat = 'pdf');
-                  Navigator.pop(context);
+                  context.pop();
                   _showShareOrDownloadDialog(
                     sheetName: sheetName,
                     apiCall: apiCall,
@@ -134,10 +141,10 @@ class _SheetDownloadPageState extends ConsumerState<SheetDownloadPage> {
               ),
               const SizedBox(height: 16),
               TextButton(
-                onPressed: () => Navigator.pop(context),
-                child: const Text(
+                onPressed: () => context.pop(),
+                child: Text(
                   "Cancel",
-                  style: TextStyle(fontSize: 16),
+                  style: textTheme.titleSmall,
                 ),
               ),
             ],
@@ -155,10 +162,13 @@ class _SheetDownloadPageState extends ConsumerState<SheetDownloadPage> {
   }) {
     showModalBottomSheet(
       context: context,
+      backgroundColor: Theme.of(context).colorScheme.surface,
       shape: const RoundedRectangleBorder(
         borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
       ),
       builder: (context) {
+        final scheme = Theme.of(context).colorScheme;
+        final textTheme = Theme.of(context).textTheme;
         return Padding(
           padding: const EdgeInsets.fromLTRB(20, 16, 20, 24),
           child: Column(
@@ -169,31 +179,36 @@ class _SheetDownloadPageState extends ConsumerState<SheetDownloadPage> {
                 height: 4,
                 margin: const EdgeInsets.only(bottom: 16),
                 decoration: BoxDecoration(
-                  color: Colors.grey.shade400,
+                  color: scheme.outlineVariant,
                   borderRadius: BorderRadius.circular(4),
                 ),
               ),
               Text(
                 sheetName,
-                style: const TextStyle(
-                  fontSize: 18,
-                  fontWeight: FontWeight.w600,
+                style: textTheme.titleMedium?.copyWith(
+                  fontWeight: FontWeight.w700,
                 ),
               ),
               const SizedBox(height: 6),
               Text(
                 "Period: ${DateFormat('dd/MM/yyyy').format(_selectedStartDate!)} to ${DateFormat('dd/MM/yyyy').format(_selectedEndDate!)}",
-                style: const TextStyle(color: Colors.grey, fontSize: 12),
+                style: textTheme.bodySmall?.copyWith(
+                  color: scheme.onSurfaceVariant,
+                ),
               ),
               const SizedBox(height: 6),
               Text(
                 "Format: ${_selectedFormat.toUpperCase()}",
-                style: const TextStyle(color: Colors.grey, fontSize: 12),
+                style: textTheme.bodySmall?.copyWith(
+                  color: scheme.onSurfaceVariant,
+                ),
               ),
               const SizedBox(height: 6),
-              const Text(
+              Text(
                 "What would you like to do?",
-                style: TextStyle(color: Colors.grey),
+                style: textTheme.bodyMedium?.copyWith(
+                  color: scheme.onSurfaceVariant,
+                ),
               ),
               const SizedBox(height: 20),
               _ActionTile(
@@ -202,7 +217,7 @@ class _SheetDownloadPageState extends ConsumerState<SheetDownloadPage> {
                 title: "Share",
                 subtitle: "Send file via apps",
                 onTap: () {
-                  Navigator.pop(context);
+                  context.pop();
                   _downloadAndShare(sheetName, apiCall, defaultFileName);
                 },
               ),
@@ -213,7 +228,7 @@ class _SheetDownloadPageState extends ConsumerState<SheetDownloadPage> {
                 title: "Download",
                 subtitle: "Save to your device",
                 onTap: () {
-                  Navigator.pop(context);
+                  context.pop();
                   handleDownload(
                     sheetName: sheetName,
                     apiCall: apiCall,
@@ -223,10 +238,10 @@ class _SheetDownloadPageState extends ConsumerState<SheetDownloadPage> {
               ),
               const SizedBox(height: 16),
               TextButton(
-                onPressed: () => Navigator.pop(context),
-                child: const Text(
+                onPressed: () => context.pop(),
+                child: Text(
                   "Cancel",
-                  style: TextStyle(fontSize: 16),
+                  style: textTheme.titleSmall,
                 ),
               ),
             ],
@@ -252,8 +267,10 @@ class _SheetDownloadPageState extends ConsumerState<SheetDownloadPage> {
         throw Exception('Date range not selected');
       }
 
-      final fromDateStr = "${_selectedStartDate!.year}-${_selectedStartDate!.month.toString().padLeft(2, '0')}-${_selectedStartDate!.day.toString().padLeft(2, '0')}";
-      final toDateStr = "${_selectedEndDate!.year}-${_selectedEndDate!.month.toString().padLeft(2, '0')}-${_selectedEndDate!.day.toString().padLeft(2, '0')}";
+      final fromDateStr =
+          "${_selectedStartDate!.year}-${_selectedStartDate!.month.toString().padLeft(2, '0')}-${_selectedStartDate!.day.toString().padLeft(2, '0')}";
+      final toDateStr =
+          "${_selectedEndDate!.year}-${_selectedEndDate!.month.toString().padLeft(2, '0')}-${_selectedEndDate!.day.toString().padLeft(2, '0')}";
 
       final bytes = await apiCall(fromDateStr, toDateStr, _selectedFormat);
       debugPrint('📦 Bytes received: ${bytes.length} bytes');
@@ -263,7 +280,8 @@ class _SheetDownloadPageState extends ConsumerState<SheetDownloadPage> {
       }
 
       final fileExtension = _selectedFormat == 'pdf' ? '.pdf' : '.xlsx';
-      final fileName = '${defaultFileName}_${DateFormat('yyyyMMdd').format(_selectedStartDate!)}_${DateFormat('yyyyMMdd').format(_selectedEndDate!)}$fileExtension';
+      final fileName =
+          '${defaultFileName}_${DateFormat('yyyyMMdd').format(_selectedStartDate!)}_${DateFormat('yyyyMMdd').format(_selectedEndDate!)}$fileExtension';
 
       if (Platform.isAndroid || Platform.isIOS) {
         await _saveMobile(bytes, fileName);
@@ -276,7 +294,8 @@ class _SheetDownloadPageState extends ConsumerState<SheetDownloadPage> {
 
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
-          content: Text('Download failed: Data not available for selected period !!!'),
+          content: Text(
+              'Download failed: Data not available for selected period !!!'),
           backgroundColor: Colors.red,
           behavior: SnackBarBehavior.floating,
           duration: const Duration(seconds: 5),
@@ -291,10 +310,10 @@ class _SheetDownloadPageState extends ConsumerState<SheetDownloadPage> {
   }
 
   Future<void> _downloadAndShare(
-      String sheetName,
-      Future<Uint8List> Function(String, String, String) apiCall,
-      String defaultFileName,
-      ) async {
+    String sheetName,
+    Future<Uint8List> Function(String, String, String) apiCall,
+    String defaultFileName,
+  ) async {
     try {
       setState(() {
         isLoading = true;
@@ -306,8 +325,10 @@ class _SheetDownloadPageState extends ConsumerState<SheetDownloadPage> {
         throw Exception('Date range not selected');
       }
 
-      final fromDateStr = "${_selectedStartDate!.year}-${_selectedStartDate!.month.toString().padLeft(2, '0')}-${_selectedStartDate!.day.toString().padLeft(2, '0')}";
-      final toDateStr = "${_selectedEndDate!.year}-${_selectedEndDate!.month.toString().padLeft(2, '0')}-${_selectedEndDate!.day.toString().padLeft(2, '0')}";
+      final fromDateStr =
+          "${_selectedStartDate!.year}-${_selectedStartDate!.month.toString().padLeft(2, '0')}-${_selectedStartDate!.day.toString().padLeft(2, '0')}";
+      final toDateStr =
+          "${_selectedEndDate!.year}-${_selectedEndDate!.month.toString().padLeft(2, '0')}-${_selectedEndDate!.day.toString().padLeft(2, '0')}";
 
       final bytes = await apiCall(fromDateStr, toDateStr, _selectedFormat);
       debugPrint('📦 Bytes received for sharing: ${bytes.length} bytes');
@@ -318,7 +339,8 @@ class _SheetDownloadPageState extends ConsumerState<SheetDownloadPage> {
 
       final tempDir = await getTemporaryDirectory();
       final fileExtension = _selectedFormat == 'pdf' ? '.pdf' : '.xlsx';
-      final fileName = '${defaultFileName}_${DateFormat('yyyyMMdd').format(_selectedStartDate!)}_${DateFormat('yyyyMMdd').format(_selectedEndDate!)}$fileExtension';
+      final fileName =
+          '${defaultFileName}_${DateFormat('yyyyMMdd').format(_selectedStartDate!)}_${DateFormat('yyyyMMdd').format(_selectedEndDate!)}$fileExtension';
       final tempPath = '${tempDir.path}/$fileName';
       final tempFile = File(tempPath);
 
@@ -328,15 +350,16 @@ class _SheetDownloadPageState extends ConsumerState<SheetDownloadPage> {
         String.fromCharCodes(bytes.take(10)),
       );
 
-
       final mimeType = _selectedFormat == 'pdf'
           ? 'application/pdf'
           : 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet';
 
       await Share.shareXFiles(
         [XFile(tempPath, mimeType: mimeType)],
-        text: 'Here is your $sheetName for period ${DateFormat('dd/MM/yyyy').format(_selectedStartDate!)} to ${DateFormat('dd/MM/yyyy').format(_selectedEndDate!)}',
-        subject: '$sheetName - ${DateFormat('dd/MM/yyyy').format(_selectedStartDate!)} to ${DateFormat('dd/MM/yyyy').format(_selectedEndDate!)}',
+        text:
+            'Here is your $sheetName for period ${DateFormat('dd/MM/yyyy').format(_selectedStartDate!)} to ${DateFormat('dd/MM/yyyy').format(_selectedEndDate!)}',
+        subject:
+            '$sheetName - ${DateFormat('dd/MM/yyyy').format(_selectedStartDate!)} to ${DateFormat('dd/MM/yyyy').format(_selectedEndDate!)}',
       );
 
       Future.delayed(const Duration(seconds: 30), () {
@@ -345,7 +368,6 @@ class _SheetDownloadPageState extends ConsumerState<SheetDownloadPage> {
           debugPrint('🗑️ Temporary file deleted: $tempPath');
         }
       });
-
     } catch (e, st) {
       debugPrint('❌ Share failed: $e');
       debugPrintStack(stackTrace: st);
@@ -494,7 +516,8 @@ class _SheetDownloadPageState extends ConsumerState<SheetDownloadPage> {
     );
   }
 
-  Future<void> _showDatePicker(BuildContext context, {required bool isStartDate}) async {
+  Future<void> _showDatePicker(BuildContext context,
+      {required bool isStartDate}) async {
     final selectedDate = await showDialog<DateTime>(
       context: context,
       builder: (context) => BeautifulDatePicker(
@@ -513,7 +536,8 @@ class _SheetDownloadPageState extends ConsumerState<SheetDownloadPage> {
         if (isStartDate) {
           _selectedStartDate = selectedDate;
           // If end date is before start date, reset end date
-          if (_selectedEndDate != null && _selectedEndDate!.isBefore(selectedDate)) {
+          if (_selectedEndDate != null &&
+              _selectedEndDate!.isBefore(selectedDate)) {
             _selectedEndDate = null;
           }
         } else {
@@ -534,24 +558,27 @@ class _SheetDownloadPageState extends ConsumerState<SheetDownloadPage> {
   @override
   Widget build(BuildContext context) {
     final siteId = ref.watch(selectedSiteIdProvider);
-    final type=ref.read(typeProvider)!;
+    final type = ref.read(typeProvider)!;
+    final scheme = Theme.of(context).colorScheme;
+    final textTheme = Theme.of(context).textTheme;
 
     if (siteId == null) {
       return Scaffold(
-        backgroundColor: AppColors.lightBlue,
+        backgroundColor: scheme.surface,
         appBar: CustomAppBar(title: "DPR Sheet"),
-        body: const Center(
+        body: Center(
           child: Text(
             "Please select a site first",
-            style: TextStyle(fontSize: 18, color: Colors.red),
+            style: textTheme.titleMedium?.copyWith(
+              color: scheme.error,
+            ),
           ),
         ),
       );
-
     }
 
     return Scaffold(
-      backgroundColor: AppColors.lightBlue,
+      backgroundColor: scheme.surface,
       appBar: CustomAppBar(title: "DPR Sheet"),
       body: Stack(
         children: [
@@ -576,14 +603,13 @@ class _SheetDownloadPageState extends ConsumerState<SheetDownloadPage> {
                           ),
                           const SizedBox(height: 6),
                           Container(
-
                             decoration: BoxDecoration(
-                              color: Colors.grey.shade50,
+                              color: scheme.surfaceContainerLowest,
                               borderRadius: BorderRadius.circular(12),
                               border: Border.all(
                                 color: _selectedStartDate != null
-                                    ? AppColors.primaryColor
-                                    : Colors.grey.shade300,
+                                    ? scheme.primary
+                                    : scheme.outlineVariant,
                                 width: 1.5,
                               ),
                             ),
@@ -592,15 +618,16 @@ class _SheetDownloadPageState extends ConsumerState<SheetDownloadPage> {
                               vertical: 12,
                             ),
                             child: GestureDetector(
-                              onTap: () => _showDatePicker(context, isStartDate: true),
+                              onTap: () =>
+                                  _showDatePicker(context, isStartDate: true),
                               child: Row(
                                 children: [
                                   Icon(
                                     Icons.calendar_today,
                                     size: 18,
                                     color: _selectedStartDate != null
-                                        ? AppColors.primaryColor
-                                        : Colors.grey,
+                                        ? scheme.primary
+                                        : scheme.onSurfaceVariant,
                                   ),
                                   const SizedBox(width: 8),
                                   Expanded(
@@ -614,8 +641,8 @@ class _SheetDownloadPageState extends ConsumerState<SheetDownloadPage> {
                                             ? FontWeight.w500
                                             : FontWeight.normal,
                                         color: _selectedStartDate != null
-                                            ? Colors.black
-                                            : Colors.grey.shade600,
+                                            ? scheme.onSurface
+                                            : scheme.onSurfaceVariant,
                                       ),
                                     ),
                                   ),
@@ -643,12 +670,12 @@ class _SheetDownloadPageState extends ConsumerState<SheetDownloadPage> {
                           const SizedBox(height: 6),
                           Container(
                             decoration: BoxDecoration(
-                              color: Colors.grey.shade50,
+                              color: scheme.surfaceContainerLowest,
                               borderRadius: BorderRadius.circular(12),
                               border: Border.all(
                                 color: _selectedEndDate != null
-                                    ? AppColors.primaryColor
-                                    : Colors.grey.shade300,
+                                    ? scheme.primary
+                                    : scheme.outlineVariant,
                                 width: 1.5,
                               ),
                             ),
@@ -657,15 +684,16 @@ class _SheetDownloadPageState extends ConsumerState<SheetDownloadPage> {
                               vertical: 12,
                             ),
                             child: GestureDetector(
-                              onTap: () => _showDatePicker(context, isStartDate: false),
+                              onTap: () =>
+                                  _showDatePicker(context, isStartDate: false),
                               child: Row(
                                 children: [
                                   Icon(
                                     Icons.calendar_today,
                                     size: 18,
                                     color: _selectedEndDate != null
-                                        ? AppColors.primaryColor
-                                        : Colors.grey,
+                                        ? scheme.primary
+                                        : scheme.onSurfaceVariant,
                                   ),
                                   const SizedBox(width: 8),
                                   Expanded(
@@ -679,8 +707,8 @@ class _SheetDownloadPageState extends ConsumerState<SheetDownloadPage> {
                                             ? FontWeight.w500
                                             : FontWeight.normal,
                                         color: _selectedEndDate != null
-                                            ? Colors.black
-                                            : Colors.grey.shade600,
+                                            ? scheme.onSurface
+                                            : scheme.onSurfaceVariant,
                                       ),
                                     ),
                                   ),
@@ -710,11 +738,12 @@ class _SheetDownloadPageState extends ConsumerState<SheetDownloadPage> {
                       sheetName: "Measurement Sheet",
                       apiCall: (fromDate, toDate, format) =>
                           DprApi.fetchMeasurementSheet(
-                            siteId: siteId,
-                            fromDate: fromDate,
-                            toDate: toDate,
-                            format: format, workType: type,
-                          ),
+                        siteId: siteId,
+                        fromDate: fromDate,
+                        toDate: toDate,
+                        format: format,
+                        workType: type,
+                      ),
                       defaultFileName: "measurement_sheet",
                     ),
                     sheetButton(
@@ -723,11 +752,12 @@ class _SheetDownloadPageState extends ConsumerState<SheetDownloadPage> {
                       sheetName: "Calculation Sheet",
                       apiCall: (fromDate, toDate, format) =>
                           DprApi.fetchMeasurementCalculationSheet(
-                            siteId: siteId,
-                            fromDate: fromDate,
-                            toDate: toDate,
-                            format: format, workType: type,
-                          ),
+                        siteId: siteId,
+                        fromDate: fromDate,
+                        toDate: toDate,
+                        format: format,
+                        workType: type,
+                      ),
                       defaultFileName: "Abstract sheet",
                     ),
                     sheetButton(
@@ -736,11 +766,12 @@ class _SheetDownloadPageState extends ConsumerState<SheetDownloadPage> {
                       sheetName: "Summary Sheet",
                       apiCall: (fromDate, toDate, format) =>
                           DprApi.fetchSummarySheet(
-                            siteId: siteId,
-                            fromDate: fromDate,
-                            toDate: toDate,
-                            format: format, workType:type,
-                          ),
+                        siteId: siteId,
+                        fromDate: fromDate,
+                        toDate: toDate,
+                        format: format,
+                        workType: type,
+                      ),
                       defaultFileName: "summary_sheet",
                     ),
                     sheetButton(
@@ -749,11 +780,12 @@ class _SheetDownloadPageState extends ConsumerState<SheetDownloadPage> {
                       sheetName: "Invoice Sheet",
                       apiCall: (fromDate, toDate, format) =>
                           DprApi.fetchInvoiceSheet(
-                            siteId: siteId,
-                            fromDate: fromDate,
-                            toDate: toDate,
-                            format: format, workType:type,
-                          ),
+                        siteId: siteId,
+                        fromDate: fromDate,
+                        toDate: toDate,
+                        format: format,
+                        workType: type,
+                      ),
                       defaultFileName: "invoice_sheet",
                     ),
                     SelectCard(
@@ -777,30 +809,20 @@ class _SheetDownloadPageState extends ConsumerState<SheetDownloadPage> {
                           return;
                         }
 
-                        if (selectedTeam == null) {
-                          ScaffoldMessenger.of(context).showSnackBar(
-                            const SnackBar(
-                              content: Text(
-                                "Please select a team from the home screen dropdown",
-                              ),
-                              backgroundColor: Colors.orange,
-                              behavior: SnackBarBehavior.floating,
-                              duration: Duration(seconds: 2),
-                            ),
-                          );
-                        }
-                        final teamName = selectedTeam!=null?selectedTeam.teamName :'no-team';
+                        final teamName = selectedTeam != null
+                            ? selectedTeam.teamName
+                            : 'no-team';
 
                         context.push(
                           '/dpr-work-list/$sid/$teamName',
                           extra: {
-                            'startDate': _selectedStartDate ?? widget.selectedStartDate,
-                            'endDate': _selectedEndDate ?? widget.selectedEndDate,
+                            'startDate':
+                                _selectedStartDate ?? widget.selectedStartDate,
+                            'endDate':
+                                _selectedEndDate ?? widget.selectedEndDate,
                           },
                         );
-
                       },
-
                     ),
                   ],
                 ),
@@ -809,16 +831,20 @@ class _SheetDownloadPageState extends ConsumerState<SheetDownloadPage> {
           ),
           if (isLoading)
             Container(
-              color: Colors.black54,
+              color: scheme.scrim.withValues(alpha: 0.54),
               child: Center(
                 child: Column(
                   mainAxisSize: MainAxisSize.min,
                   children: [
-                    const CircularProgressIndicator(color: Colors.white),
+                    CircularProgressIndicator(color: scheme.primary),
                     const SizedBox(height: 16),
                     Text(
-                      isDownloading ? 'Downloading file...' : 'Preparing to share...',
-                      style: const TextStyle(color: Colors.white, fontSize: 16),
+                      isDownloading
+                          ? 'Downloading file...'
+                          : 'Preparing to share...',
+                      style: textTheme.titleSmall?.copyWith(
+                        color: scheme.onPrimary,
+                      ),
                     ),
                   ],
                 ),
@@ -847,32 +873,35 @@ class _ActionTile extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final scheme = Theme.of(context).colorScheme;
+    final textTheme = Theme.of(context).textTheme;
     return ListTile(
       contentPadding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
       leading: Container(
         width: 48,
         height: 48,
         decoration: BoxDecoration(
-          color: color.withOpacity(0.1),
+          color: color.withValues(alpha: 0.12),
           borderRadius: BorderRadius.circular(12),
         ),
         child: Icon(icon, color: color, size: 24),
       ),
       title: Text(
         title,
-        style: const TextStyle(
-          fontSize: 16,
-          fontWeight: FontWeight.w500,
+        style: textTheme.titleSmall?.copyWith(
+          fontWeight: FontWeight.w600,
         ),
       ),
       subtitle: Text(
         subtitle,
-        style: const TextStyle(
-          fontSize: 13,
-          color: Colors.grey,
+        style: textTheme.bodySmall?.copyWith(
+          color: scheme.onSurfaceVariant,
         ),
       ),
-      trailing: const Icon(Icons.chevron_right_rounded, color: Colors.grey),
+      trailing: Icon(
+        Icons.chevron_right_rounded,
+        color: scheme.onSurfaceVariant,
+      ),
       onTap: onTap,
     );
   }
@@ -897,30 +926,30 @@ class _FormatTile extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final scheme = Theme.of(context).colorScheme;
+    final textTheme = Theme.of(context).textTheme;
     return ListTile(
       contentPadding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
       leading: Container(
         width: 48,
         height: 48,
         decoration: BoxDecoration(
-          color: color.withOpacity(0.1),
+          color: color.withValues(alpha: 0.12),
           borderRadius: BorderRadius.circular(12),
         ),
         child: Icon(icon, color: color, size: 24),
       ),
       title: Text(
         title,
-        style: TextStyle(
-          fontSize: 16,
-          fontWeight: FontWeight.w500,
-          color: isSelected ? color : Colors.black,
+        style: textTheme.titleSmall?.copyWith(
+          fontWeight: FontWeight.w600,
+          color: isSelected ? color : scheme.onSurface,
         ),
       ),
       subtitle: Text(
         subtitle,
-        style: const TextStyle(
-          fontSize: 13,
-          color: Colors.grey,
+        style: textTheme.bodySmall?.copyWith(
+          color: scheme.onSurfaceVariant,
         ),
       ),
       trailing: isSelected

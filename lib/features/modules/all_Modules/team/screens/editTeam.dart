@@ -272,17 +272,44 @@ class _EditTeamScreenState extends ConsumerState<EditTeamScreen> {
 
       print("=====================");
       final type = ref.read(typeProvider);
+      final colorScheme = Theme.of(context).colorScheme;
 
-      await ref.read(teamProvider.notifier).updateTeam(
-            siteId: widget.site.id,
-            teamId: widget.team.id,
-            data: formData,
-            type: type!,
+      try {
+        await ref.read(teamProvider.notifier).updateTeam(
+              siteId: widget.site.id,
+              teamId: widget.team.id,
+              data: formData,
+              type: type!,
+            );
+        ref.invalidate(manpowerSyncControllerProvider((type: type!)));
+
+        if (!mounted) return;
+
+        ScaffoldMessenger.of(context)
+          ..hideCurrentSnackBar()
+          ..showSnackBar(
+            SnackBar(
+              content: const Text('Team updated successfully'),
+              backgroundColor: colorScheme.primary,
+            ),
           );
-      ref.invalidate(manpowerSyncControllerProvider((type: type!)));
 
-      if (mounted) {
-        context.pop();
+        Future.delayed(const Duration(milliseconds: 700), () {
+          if (mounted) {
+            context.pop();
+          }
+        });
+      } catch (e) {
+        if (!mounted) return;
+
+        ScaffoldMessenger.of(context)
+          ..hideCurrentSnackBar()
+          ..showSnackBar(
+            SnackBar(
+              content: Text('Failed to update team: ${e.toString()}'),
+              backgroundColor: colorScheme.error,
+            ),
+          );
       }
     }
   }

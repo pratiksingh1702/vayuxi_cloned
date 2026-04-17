@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:go_router/go_router.dart';
 import 'package:flutter_markdown_plus/flutter_markdown_plus.dart';
 import 'package:flutter/services.dart';
 
@@ -104,7 +105,7 @@ class _TermsAndConditionsScreenState extends State<TermsAndConditionsScreen>
                             color: Colors.transparent,
                             child: InkWell(
                               borderRadius: BorderRadius.circular(12),
-                              onTap: () => Navigator.of(context).pop(),
+                              onTap: () => context.pop(),
                               child: Container(
                                 width: 44,
                                 height: 44,
@@ -476,7 +477,7 @@ class _TermsAndConditionsScreenState extends State<TermsAndConditionsScreen>
                 child: ElevatedButton(
                   onPressed: () {
                     // Handle accept
-                    Navigator.of(context).pop(true);
+                    context.pop(true);
                   },
                   style: ElevatedButton.styleFrom(
                     backgroundColor: accentColor,
@@ -509,7 +510,7 @@ class _TermsAndConditionsScreenState extends State<TermsAndConditionsScreen>
               const SizedBox(height: 4),
               // Decline link
               TextButton(
-                onPressed: () => Navigator.of(context).pop(false),
+                onPressed: () => context.pop(false),
                 child: const Text(
                   "Decline",
                   style: TextStyle(

@@ -146,6 +146,9 @@ class _AddInsulationDescriptionScreenState
         // When setups load, setState triggers rebuild with proper materialSetup
         await _loadMaterialSetupsOnly(siteId);
 
+        // Re-hydrate piping cardFormState so dynamic cards retain work size values.
+        if (mounted) _rehydratePipingWithSetups();
+
         // Re-hydrate equipment cardFormState now that setups are available
         if (mounted) _rehydrateEquipmentWithSetups();
       } else {
@@ -201,37 +204,97 @@ class _AddInsulationDescriptionScreenState
 
 // ✅ Fix 3 & 4: Corrected _buildCardStateFromFieldValues
   CardFormState _buildCardStateFromFieldValues(EquipmentMaterial e) {
-    if (e.cardFormState != null && e.cardFormState!.fieldEntries.isNotEmpty) {
-      return e.cardFormState!;
+    final existing = e.cardFormState;
+    final fieldValuesMap = e.fieldValues?.values ?? const <String, dynamic>{};
+
+    final entries = <String, FieldEntry>{
+      ...?existing?.fieldEntries,
+    };
+
+    var geometryMode = existing?.geometryMode;
+
+    if (fieldValuesMap.isNotEmpty) {
+      geometryMode = fieldValuesMap['geometryMode']?.toString() ?? geometryMode;
+
+      fieldValuesMap.forEach((key, value) {
+        if (key.endsWith('Uom') || key == 'geometryMode') return;
+        final unit =
+            fieldValuesMap['${key}Uom']?.toString() ?? entries[key]?.unit ?? '';
+        entries[key] = FieldEntry(value: value, unit: unit);
+      });
     }
 
-    final fieldValuesMap = e.fieldValues?.values;
-
-    if (fieldValuesMap == null || fieldValuesMap.isEmpty) {
-      return const CardFormState(
-        fieldEntries: {},
-        geometryMode: null,
-        customLabels: {},
-      );
-    }
-
-    final geometryMode = fieldValuesMap['geometryMode']?.toString();
-
-    // ✅ Explicitly typed as card_form_State.dart's FieldEntry
-    final entries =
-        <String, FieldEntry>{}; // FieldEntry from card_form_State.dart
-
-    fieldValuesMap.forEach((key, value) {
-      if (key.endsWith('Uom') || key == 'geometryMode') return;
-      final unit = fieldValuesMap['${key}Uom']?.toString();
-      entries[key] = FieldEntry(value: value, unit: unit ?? '');
-    });
+    // Ensure PATCH cards get quantity from API/model even when cardFormState exists.
+    final quantityValue =
+        fieldValuesMap.containsKey('quantity') ? fieldValuesMap['quantity'] : e.qty;
+    final quantityUnit =
+        fieldValuesMap['quantityUom']?.toString() ?? entries['quantity']?.unit ?? 'NOS';
+    entries['quantity'] = FieldEntry(value: quantityValue, unit: quantityUnit);
 
     return CardFormState(
       fieldEntries: entries,
       geometryMode: geometryMode,
-      customLabels: const {},
+      customLabels: existing?.customLabels ?? const {},
     );
+  }
+
+  void _rehydratePipingWithSetups() {
+    final existing = ref.read(insulationPipingMaterialsProvider);
+
+    final rehydrated = existing.map((p) {
+      MaterialSetup? setup;
+      try {
+        setup =
+            _pipingSetups.firstWhere((s) => s.materialCode == p.materialCode);
+      } catch (_) {
+        setup = null;
+      }
+      if (setup == null) return p;
+
+      final incomingSize = (p.size ?? '').trim();
+      final incomingUnit = (p.sizeUom ?? '').trim();
+
+      var state = p.cardFormState ??
+          CardFormState.buildInitial(fieldConfig: setup.fieldConfig);
+
+      for (final field in setup.fieldConfig.fields) {
+        final isSizeField =
+            field.role == 'SIZE' || field.key.toLowerCase().contains('size');
+        if (!isSizeField) continue;
+
+        final currentValue = state.getValue(field.key)?.toString().trim() ?? '';
+        final currentUnit = state.getUnit(field.key)?.trim() ?? '';
+
+        if (currentValue.isEmpty && incomingSize.isNotEmpty) {
+          state = state.updateValue(field.key, incomingSize);
+        }
+
+        if (currentUnit.isEmpty) {
+          String? resolvedUnit;
+          if (incomingUnit.isNotEmpty) {
+            resolvedUnit = incomingUnit;
+          } else if (field.dropdown != null) {
+            resolvedUnit =
+                setup.fieldConfig.defaults.defaultFor(field.dropdown!);
+            if (resolvedUnit == null || resolvedUnit.isEmpty) {
+              final opts =
+                  setup.fieldConfig.unitDropdowns.optionsFor(field.dropdown!);
+              resolvedUnit = opts.isNotEmpty ? opts.first : null;
+            }
+          }
+
+          if (resolvedUnit != null && resolvedUnit.isNotEmpty) {
+            state = state.updateUnit(field.key, resolvedUnit);
+          }
+        }
+      }
+
+      return p.copyWith(cardFormState: state);
+    }).toList();
+
+    ref
+        .read(insulationPipingMaterialsProvider.notifier)
+        .setMaterials(rehydrated);
   }
 
 // ✅ Fix 4: Corrected _rehydrateEquipmentWithSetups
@@ -239,53 +302,44 @@ class _AddInsulationDescriptionScreenState
   void _rehydrateEquipmentWithSetups() {
     final existing = ref.read(insulationEquipmentMaterialsProvider);
 
-    final rehydrated = existing.map((e) {
+    final List<EquipmentMaterial> rehydrated = existing.map((e) {
       final setup = _equipmentSetups.firstWhere(
         (s) => s.materialCode == e.materialCode,
         orElse: () => _emptySetup(e, siteId),
       );
 
-      if (e.cardFormState != null && e.cardFormState!.fieldEntries.isNotEmpty) {
-        var state = e.cardFormState!;
+      // Start from merged API/work state so PATCH quantity and dynamic values are preserved.
+      var state = _buildCardStateFromFieldValues(e);
 
-        // Add missing fields from setup schema without overwriting existing values
-        for (final field in setup.fieldConfig.fields) {
-          if (!state.fieldEntries.containsKey(field.key)) {
-            // Resolve default unit from fieldConfig.defaults (not field.defaultUnit)
-            String? defaultUnit;
-            if (field.dropdown != null) {
-              defaultUnit =
-                  setup.fieldConfig.defaults.defaultFor(field.dropdown!);
-              // Fallback: first option in the dropdown list
-              if (defaultUnit == null) {
-                final opts =
-                    setup.fieldConfig.unitDropdowns.optionsFor(field.dropdown!);
-                defaultUnit = opts.isNotEmpty ? opts.first : null;
-              }
-            }
-            state = state.updateValue(field.key, null);
-            if (defaultUnit != null) {
-              state = state.updateUnit(field.key, defaultUnit);
+      // Add missing fields from setup schema without overwriting existing values.
+      for (final field in setup.fieldConfig.fields) {
+        if (!state.fieldEntries.containsKey(field.key)) {
+          String? defaultUnit;
+          if (field.dropdown != null) {
+            defaultUnit = setup.fieldConfig.defaults.defaultFor(field.dropdown!);
+            if (defaultUnit == null || defaultUnit.isEmpty) {
+              final opts =
+                  setup.fieldConfig.unitDropdowns.optionsFor(field.dropdown!);
+              defaultUnit = opts.isNotEmpty ? opts.first : null;
             }
           }
-        }
 
-        // Set geometryMode from setup defaults if missing in state
-        if ((state.geometryMode == null || state.geometryMode!.isEmpty) &&
-            setup.fieldConfig.defaults.geometryMode != null) {
-          state = state.copyWith(
-            geometryMode: setup.fieldConfig.defaults.geometryMode,
-          );
+          state = state.updateValue(field.key, null);
+          if (defaultUnit != null && defaultUnit.isNotEmpty) {
+            state = state.updateUnit(field.key, defaultUnit);
+          }
         }
-
-        return e.copyWith(cardFormState: state);
       }
 
-      // No cardFormState — build fresh from setup schema
-      return e.copyWith(
-        cardFormState:
-            CardFormState.buildInitial(fieldConfig: setup.fieldConfig),
-      );
+      // Set geometryMode from setup defaults only when missing.
+      if ((state.geometryMode == null || state.geometryMode!.isEmpty) &&
+          setup.fieldConfig.defaults.geometryMode != null) {
+        state = state.copyWith(
+          geometryMode: setup.fieldConfig.defaults.geometryMode,
+        );
+      }
+
+      return e.copyWith(cardFormState: state);
     }).toList();
 
     ref
@@ -3406,7 +3460,11 @@ class _AddInsulationDescriptionScreenState
               );
             },
             onRemark: () {
-              _showRemarkDialog(material.id, material.remarks ?? '');
+              _showRemarkDialog(
+                material.id,
+                material.remarks,
+                isPiping: true,
+              );
             },
           ));
     }).toList();
@@ -3448,7 +3506,11 @@ class _AddInsulationDescriptionScreenState
               );
             },
             onRemark: () {
-              _showRemarkDialog(material.id, material.remarks ?? '');
+              _showRemarkDialog(
+                material.id,
+                material.remarks,
+                isPiping: false,
+              );
             },
           ));
     }).toList();
@@ -3475,12 +3537,12 @@ class _AddInsulationDescriptionScreenState
         ),
         actions: [
           TextButton(
-            onPressed: () => Navigator.pop(context),
+            onPressed: () => context.pop(),
             child: Text('Cancel', style: TextStyle(color: Colors.grey[600])),
           ),
           ElevatedButton(
             onPressed: () {
-              Navigator.pop(context);
+              context.pop();
               _updateMaterialRemark(materialId, remarkController.text,
                   isPiping: isPiping);
             },

@@ -106,11 +106,11 @@ class _TeamListPageState extends ConsumerState<TeamListPage> {
         ),
         actions: [
           TextButton(
-            onPressed: () => Navigator.pop(context, false),
+            onPressed: () => context.pop(false),
             child: const Text('Cancel'),
           ),
           TextButton(
-            onPressed: () => Navigator.pop(context, true),
+            onPressed: () => context.pop(true),
             style: TextButton.styleFrom(
               foregroundColor: Theme.of(context).colorScheme.error,
             ),
@@ -198,8 +198,15 @@ class _TeamListPageState extends ConsumerState<TeamListPage> {
 
             // ✅ show error only if no data
             if (!teamState.hasData && teamState.error != null) {
-              return const Center(
-                child: Text("No teams available"),
+              return Center(
+                child: Text(
+                  "Team data is empty",
+                  style: TextStyle(
+                    fontSize: 16,
+                    fontWeight: FontWeight.w600,
+                    color: colorScheme.onSurface,
+                  ),
+                ),
               );
             }
 
@@ -255,30 +262,60 @@ class _TeamListPageState extends ConsumerState<TeamListPage> {
                 Expanded(
                   child: Padding(
                     padding: const EdgeInsets.all(16),
-                    child: LiquidPullToRefresh(
-                      onRefresh: _refreshTeams,
-                      child: CustomScrollbar(
-                        controller: _scrollController,
-                        child: GridView.builder(
-                          controller: _scrollController,
-                          physics: const AlwaysScrollableScrollPhysics(),
-                          itemCount: teams.length,
-                          gridDelegate:
-                              const SliverGridDelegateWithFixedCrossAxisCount(
-                            crossAxisCount: 2,
-                            mainAxisSpacing: 16,
-                            crossAxisSpacing: 16,
-                            childAspectRatio: 0.9,
+                    child: teams.isEmpty
+                        ? Center(
+                            child: Column(
+                              mainAxisAlignment: MainAxisAlignment.center,
+                              children: [
+                                Icon(
+                                  Icons.group_off,
+                                  size: 64,
+                                  color: colorScheme.onSurfaceVariant,
+                                ),
+                                const SizedBox(height: 16),
+                                Text(
+                                  "Team data is empty",
+                                  style: TextStyle(
+                                    fontSize: 18,
+                                    fontWeight: FontWeight.w600,
+                                    color: colorScheme.onSurface,
+                                  ),
+                                ),
+                                const SizedBox(height: 6),
+                                Text(
+                                  "No team records found. Please add a team.",
+                                  textAlign: TextAlign.center,
+                                  style: TextStyle(
+                                    color: colorScheme.onSurfaceVariant,
+                                  ),
+                                ),
+                              ],
+                            ),
+                          )
+                        : LiquidPullToRefresh(
+                            onRefresh: _refreshTeams,
+                            child: CustomScrollbar(
+                              controller: _scrollController,
+                              child: GridView.builder(
+                                controller: _scrollController,
+                                physics: const AlwaysScrollableScrollPhysics(),
+                                itemCount: teams.length,
+                                gridDelegate:
+                                    const SliverGridDelegateWithFixedCrossAxisCount(
+                                  crossAxisCount: 2,
+                                  mainAxisSpacing: 16,
+                                  crossAxisSpacing: 16,
+                                  childAspectRatio: 0.9,
+                                ),
+                                itemBuilder: (context, index) {
+                                  final team = teams[index];
+                                  final isSelected =
+                                      _selectedTeamIds.contains(team.id);
+                                  return _buildTeamCard(team, isSelected, site);
+                                },
+                              ),
+                            ),
                           ),
-                          itemBuilder: (context, index) {
-                            final team = teams[index];
-                            final isSelected =
-                                _selectedTeamIds.contains(team.id);
-                            return _buildTeamCard(team, isSelected, site);
-                          },
-                        ),
-                      ),
-                    ),
                   ),
                 ),
               ],
@@ -458,7 +495,7 @@ class _TeamListPageState extends ConsumerState<TeamListPage> {
         ),
         actions: [
           TextButton(
-            onPressed: () => Navigator.pop(context, false),
+            onPressed: () => context.pop(false),
             child: const Text("Cancel"),
           ),
           ElevatedButton(
@@ -466,7 +503,7 @@ class _TeamListPageState extends ConsumerState<TeamListPage> {
               backgroundColor: Theme.of(context).colorScheme.error,
               foregroundColor: Theme.of(context).colorScheme.onError,
             ),
-            onPressed: () => Navigator.pop(context, true),
+            onPressed: () => context.pop(true),
             child: const Text("Delete"),
           ),
         ],

@@ -2,6 +2,7 @@ import 'dart:convert';
 import 'dart:io';
 import 'dart:typed_data';
 import 'package:flutter/material.dart';
+import 'package:go_router/go_router.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:intl/intl.dart';
 import 'package:path_provider/path_provider.dart';
@@ -111,7 +112,7 @@ class _BeautifulDatePickerState extends State<BeautifulDatePicker> {
                   ),
                   IconButton(
                     icon: Icon(Icons.close, color: Colors.grey.shade600),
-                    onPressed: () => Navigator.pop(context),
+                    onPressed: () => context.pop(),
                   ),
                 ],
               ),
@@ -252,7 +253,7 @@ class _BeautifulDatePickerState extends State<BeautifulDatePicker> {
                 children: [
                   Expanded(
                     child: OutlinedButton(
-                      onPressed: () => Navigator.pop(context),
+                      onPressed: () => context.pop(),
                       style: OutlinedButton.styleFrom(
                         padding: const EdgeInsets.symmetric(vertical: 16),
                         shape: RoundedRectangleBorder(
@@ -272,7 +273,7 @@ class _BeautifulDatePickerState extends State<BeautifulDatePicker> {
                   const SizedBox(width: 12),
                   Expanded(
                     child: ElevatedButton(
-                      onPressed: () => Navigator.pop(context, _selectedDate),
+                      onPressed: () => context.pop(_selectedDate),
                       style: ElevatedButton.styleFrom(
                         backgroundColor: primaryColor,
                         padding: const EdgeInsets.symmetric(vertical: 16),
@@ -494,7 +495,7 @@ class _DailyUsagePageState extends ConsumerState<DailyUsagePage> {
                 title: "Share",
                 subtitle: "Send file via apps",
                 onTap: () {
-                  Navigator.pop(context);
+                  context.pop();
                   _downloadAndShare();
                 },
               ),
@@ -507,7 +508,7 @@ class _DailyUsagePageState extends ConsumerState<DailyUsagePage> {
                 title: "Download",
                 subtitle: "Save to device",
                 onTap: () {
-                  Navigator.pop(context);
+                  context.pop();
                   _downloadReport();
                 },
               ),
@@ -515,7 +516,7 @@ class _DailyUsagePageState extends ConsumerState<DailyUsagePage> {
               const SizedBox(height: 16),
 
               TextButton(
-                onPressed: () => Navigator.pop(context),
+                onPressed: () => context.pop(),
                 child: const Text("Cancel"),
               ),
             ],

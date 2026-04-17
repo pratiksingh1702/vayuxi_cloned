@@ -2,6 +2,7 @@ import 'dart:convert';
 import 'dart:io';
 
 import 'package:flutter/material.dart';
+import 'package:go_router/go_router.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:file_picker/file_picker.dart';
 import 'package:path_provider/path_provider.dart';
@@ -107,12 +108,12 @@ class _RateScreenState extends ConsumerState<RateScreen> {
           ),
           actions: [
             TextButton(
-              onPressed: () => Navigator.pop(context, false),
+              onPressed: () => context.pop(false),
               style: TextButton.styleFrom(foregroundColor: colorScheme.primary),
               child: const Text('Cancel'),
             ),
             TextButton(
-              onPressed: () => Navigator.pop(context, true),
+              onPressed: () => context.pop(true),
               style: TextButton.styleFrom(foregroundColor: colorScheme.error),
               child: const Text('Delete'),
             ),
@@ -248,17 +249,66 @@ class _RateScreenState extends ConsumerState<RateScreen> {
                       )
                     : state.error != null
                         ? Center(
-                            child: Text(
-                              'Error: ${state.error}',
-                              style: TextStyle(color: colorScheme.error),
+                            child: Column(
+                              mainAxisAlignment: MainAxisAlignment.center,
+                              children: [
+                                Icon(
+                                  Icons.error_outline,
+                                  size: 56,
+                                  color: colorScheme.error,
+                                ),
+                                const SizedBox(height: 12),
+                                Text(
+                                  'Rate data is empty',
+                                  style: TextStyle(
+                                    fontSize: 18,
+                                    fontWeight: FontWeight.w600,
+                                    color: colorScheme.onSurface,
+                                  ),
+                                ),
+                                const SizedBox(height: 6),
+                                Padding(
+                                  padding: const EdgeInsets.symmetric(
+                                      horizontal: 20),
+                                  child: Text(
+                                    'Could not load rate records right now. Please try again.',
+                                    textAlign: TextAlign.center,
+                                    style: TextStyle(
+                                      color: colorScheme.onSurfaceVariant,
+                                    ),
+                                  ),
+                                ),
+                              ],
                             ),
                           )
                         : state.data == null || state.data!.isEmpty
                             ? Center(
-                                child: Text(
-                                  'No rates available',
-                                  style: TextStyle(
-                                      color: colorScheme.onSurfaceVariant),
+                                child: Column(
+                                  mainAxisAlignment: MainAxisAlignment.center,
+                                  children: [
+                                    Icon(
+                                      Icons.receipt_long_outlined,
+                                      size: 64,
+                                      color: colorScheme.onSurfaceVariant,
+                                    ),
+                                    const SizedBox(height: 16),
+                                    Text(
+                                      'Rate data is empty',
+                                      style: TextStyle(
+                                        fontSize: 18,
+                                        fontWeight: FontWeight.w600,
+                                        color: colorScheme.onSurface,
+                                      ),
+                                    ),
+                                    const SizedBox(height: 6),
+                                    Text(
+                                      'No rate records found. Please add a rate.',
+                                      textAlign: TextAlign.center,
+                                      style: TextStyle(
+                                        color: colorScheme.onSurfaceVariant,
+                                      ),
+                                    ),
+                                  ],
                                 ),
                               )
                             : CustomScrollbar(
@@ -539,7 +589,7 @@ Future<void> _confirmDeleteRate(
         ),
         actions: [
           TextButton(
-            onPressed: () => Navigator.pop(context, false),
+            onPressed: () => context.pop(false),
             style: TextButton.styleFrom(foregroundColor: colorScheme.primary),
             child: const Text("Cancel"),
           ),
@@ -548,7 +598,7 @@ Future<void> _confirmDeleteRate(
               backgroundColor: colorScheme.error,
               foregroundColor: colorScheme.onError,
             ),
-            onPressed: () => Navigator.pop(context, true),
+            onPressed: () => context.pop(true),
             child: const Text("Delete"),
           ),
         ],

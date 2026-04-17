@@ -27,7 +27,7 @@ class ManSelectCardGrid extends StatelessWidget {
       appBar: CustomAppBar(title: "Select Manpower"),
       body: BottomButtonWrapper(
         onBackPressed: () {
-          Navigator.pop(context);
+          context.pop();
         },
         child: Column(
           children: [

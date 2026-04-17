@@ -13,6 +13,7 @@ import '../../features/modules/all_Modules/dpr/offline/mech/isar/sync_meta_isar.
 import '../../features/modules/all_Modules/inventory/offline/isar/inventory_isar.dart';
 import '../../features/modules/all_Modules/team/offline/isar/team_isar.dart';
 import '../../features/noti_system/updates/data/models/notification_isar.dart';
+import '../../features/profile_page/offline/isar/user_isar.dart';
 
 class AppIsarDB {
   static Isar? _isar;
@@ -51,6 +52,7 @@ class AppIsarDB {
       AttendanceIsarSchema,
       ManpowerIsarSchema,
       UpdateNotificationIsarSchema,
+      UserIsarSchema,
     ];
 
     for (final s in schemas) {

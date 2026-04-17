@@ -27,7 +27,7 @@ class TeamSelectCardGrid extends StatelessWidget {
       appBar: CustomAppBar(title: "Select Team"),
       body: BottomButtonWrapper(
         onBackPressed: () {
-          Navigator.pop(context);
+          context.pop();
         },
         child: Column(
           children: [

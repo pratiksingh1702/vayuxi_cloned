@@ -23,6 +23,7 @@ import 'features/profile_page/provider/userProvider.dart';
 import 'features/tour/domain/tour_controller.dart';
 import 'features/tour/domain/tour_registery.dart';
 import 'core/screens/settings_screen.dart';
+import 'core/screens/theme_switcher.dart';
 
 const String kUserProfileHeroTag = 'user-profile-hero-card';
 
@@ -223,6 +224,39 @@ class _WorkCategoryScreenState extends ConsumerState<WorkCategoryScreen> {
     );
   }
 
+  Future<void> _confirmAndLogout() async {
+    final colorScheme = Theme.of(context).colorScheme;
+    final shouldLogout = await showDialog<bool>(
+      context: context,
+      builder: (context) => AlertDialog(
+        title: const Text('Logout'),
+        content: const Text('Are you sure you want to logout?'),
+        actions: [
+          TextButton(
+            onPressed: () => context.pop(false),
+            child: const Text('Cancel'),
+          ),
+          ElevatedButton(
+            style: ElevatedButton.styleFrom(
+              backgroundColor: colorScheme.error,
+              foregroundColor: colorScheme.onError,
+            ),
+            onPressed: () => context.pop(true),
+            child: const Text('Logout'),
+          ),
+        ],
+      ),
+    );
+
+    if (shouldLogout != true) return;
+
+    try {
+      ShowCaseWidget.of(context)?.dismiss();
+    } catch (_) {}
+
+    await ref.read(authProvider.notifier).logout();
+  }
+
   String _timeGreeting() {
     final hour = DateTime.now().hour;
     if (hour < 12) return 'Good morning';
@@ -348,13 +382,6 @@ class _WorkCategoryScreenState extends ConsumerState<WorkCategoryScreen> {
                           title: appBarTitle,
                           subtitle: appBarSubtitle,
                           onAvatarTap: _openProfileWithHeroTransition,
-                          onSettingsTap: () {
-                            Navigator.of(context).push(
-                              MaterialPageRoute(
-                                builder: (_) => const SettingsScreen(),
-                              ),
-                            );
-                          },
                           onNotificationsTap: () =>
                               context.push(UpdatesRoutes.list),
                         ),
@@ -783,6 +810,7 @@ class _WideCardBody extends StatelessWidget {
   }
 }
 
+// ignore: unused_element
 class _PremiumWelcomeHeader extends StatelessWidget {
   const _PremiumWelcomeHeader({
     required this.userName,
@@ -1432,6 +1460,100 @@ class _BottomNavPill extends StatelessWidget {
   }
 }
 
+class _PremiumAnimatedGreeting extends StatefulWidget {
+  const _PremiumAnimatedGreeting({required this.text});
+
+  final String text;
+
+  @override
+  State<_PremiumAnimatedGreeting> createState() =>
+      _PremiumAnimatedGreetingState();
+}
+
+class _PremiumAnimatedGreetingState extends State<_PremiumAnimatedGreeting>
+    with TickerProviderStateMixin {
+  late final AnimationController _typeController;
+  late final AnimationController _shimmerController;
+
+  @override
+  void initState() {
+    super.initState();
+    _typeController = AnimationController(
+      vsync: this,
+      duration: const Duration(milliseconds: 1400),
+    )..forward();
+    _shimmerController = AnimationController(
+      vsync: this,
+      duration: const Duration(milliseconds: 2600),
+    )..repeat();
+  }
+
+  @override
+  void didUpdateWidget(covariant _PremiumAnimatedGreeting oldWidget) {
+    super.didUpdateWidget(oldWidget);
+    if (oldWidget.text != widget.text) {
+      _typeController
+        ..reset()
+        ..forward();
+    }
+  }
+
+  @override
+  void dispose() {
+    _typeController.dispose();
+    _shimmerController.dispose();
+    super.dispose();
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final colorScheme = Theme.of(context).colorScheme;
+    return AnimatedBuilder(
+      animation: Listenable.merge([_typeController, _shimmerController]),
+      builder: (context, child) {
+        final chars = (widget.text.length * _typeController.value)
+            .floor()
+            .clamp(1, widget.text.length);
+        final visibleText = widget.text.substring(0, chars);
+        final shift = _shimmerController.value;
+
+        return ShaderMask(
+          shaderCallback: (Rect bounds) {
+            return LinearGradient(
+              begin: Alignment(-1 + (2 * shift), 0),
+              end: Alignment(1 + (2 * shift), 0),
+              colors: [
+                colorScheme.primary,
+                colorScheme.tertiary,
+                colorScheme.primary,
+              ],
+              stops: const [0.1, 0.5, 0.9],
+            ).createShader(bounds);
+          },
+          blendMode: BlendMode.srcIn,
+          child: Text(
+            visibleText,
+            maxLines: 1,
+            overflow: TextOverflow.ellipsis,
+            style: TextStyle(
+              fontSize: 24,
+              fontWeight: FontWeight.w900,
+              letterSpacing: 0.2,
+              shadows: [
+                Shadow(
+                  color: colorScheme.primary.withValues(alpha: 0.25),
+                  blurRadius: 14,
+                  offset: const Offset(0, 3),
+                ),
+              ],
+            ),
+          ),
+        );
+      },
+    );
+  }
+}
+
 class _LandingHeaderRow extends StatelessWidget {
   const _LandingHeaderRow({
     required this.photoUrl,
@@ -1439,7 +1561,6 @@ class _LandingHeaderRow extends StatelessWidget {
     required this.title,
     required this.subtitle,
     required this.onAvatarTap,
-    required this.onSettingsTap,
     required this.onNotificationsTap,
   });
 
@@ -1448,7 +1569,6 @@ class _LandingHeaderRow extends StatelessWidget {
   final String title;
   final String subtitle;
   final VoidCallback onAvatarTap;
-  final VoidCallback onSettingsTap;
   final VoidCallback onNotificationsTap;
 
   @override
@@ -1456,62 +1576,40 @@ class _LandingHeaderRow extends StatelessWidget {
     final colorScheme = Theme.of(context).colorScheme;
     return Container(
       padding: const EdgeInsets.symmetric(vertical: 6),
-      child: Row(
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          _AppBarProfileAction(
-            photoUrl: photoUrl,
-            userName: userName,
-            onTap: onAvatarTap,
-            padding: const EdgeInsets.only(right: 12),
-            outerRadius: 22,
-            innerRadius: 19,
-          ),
-          Expanded(
-            child: Column(
-              mainAxisSize: MainAxisSize.min,
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Text(
-                  title,
-                  maxLines: 1,
-                  overflow: TextOverflow.ellipsis,
-                  style: TextStyle(
-                    fontSize: 21,
-                    fontWeight: FontWeight.w800,
-                    color: colorScheme.onSurface,
+          Row(
+            children: [
+              _AppBarProfileAction(
+                photoUrl: photoUrl,
+                userName: userName,
+                onTap: onAvatarTap,
+                padding: const EdgeInsets.only(right: 0),
+                outerRadius: 22,
+                innerRadius: 19,
+              ),
+              const Spacer(),
+              Row(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  const BeautifulThemeSwitcher(compact: true),
+                  const SizedBox(width: 8),
+                  PremiumActionIcon(
+                    icon: Icons.notifications_rounded,
+                    tooltip: 'Notifications',
+                    backgroundColor: colorScheme.surfaceContainerHigh,
+                    iconColor: colorScheme.onSurface,
+                    borderColor: colorScheme.outlineVariant,
+                    onPressed: onNotificationsTap,
                   ),
-                ),
-                const SizedBox(height: 3),
-                Text(
-                  subtitle,
-                  maxLines: 1,
-                  overflow: TextOverflow.ellipsis,
-                  style: TextStyle(
-                    fontSize: 19,
-                    fontWeight: FontWeight.w800,
-                    color: colorScheme.onSurface,
-                  ),
-                ),
-              ],
-            ),
+                ],
+              ),
+            ],
           ),
-          const SizedBox(width: 8),
-          PremiumActionIcon(
-            icon: Icons.settings_rounded,
-            tooltip: 'Settings',
-            backgroundColor: colorScheme.surfaceContainerHigh,
-            iconColor: colorScheme.onSurface,
-            borderColor: colorScheme.outlineVariant,
-            onPressed: onSettingsTap,
-          ),
-          const SizedBox(width: 8),
-          PremiumActionIcon(
-            icon: Icons.notifications_rounded,
-            tooltip: 'Notifications',
-            backgroundColor: colorScheme.surfaceContainerHigh,
-            iconColor: colorScheme.onSurface,
-            borderColor: colorScheme.outlineVariant,
-            onPressed: onNotificationsTap,
+          const SizedBox(height: 10),
+          _PremiumAnimatedGreeting(
+            text: '$title, $subtitle',
           ),
         ],
       ),

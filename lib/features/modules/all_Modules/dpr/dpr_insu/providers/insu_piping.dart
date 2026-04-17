@@ -37,11 +37,50 @@ class InsulationPipingMaterialsNotifier extends StateNotifier<List<PipingMateria
     required String size,
     required String unit,
   }) {
-    debugPrint('🔄 updateAllSizes: Processing ${state.length} materials. Available setups: ${_setups.length}. Size: $size, Unit: $unit');
+    final normalizedSize = size.trim();
+    final normalizedUnit = unit.trim();
+
+    debugPrint('🔄 updateAllSizes: Processing ${state.length} materials. Available setups: ${_setups.length}. Size: $normalizedSize, Unit: $normalizedUnit');
+
+    if (normalizedSize.isEmpty) {
+      // Guard: never wipe existing per-material size values on empty global size.
+      state = [
+        for (final material in state)
+          _syncUnitOnlyToMaterial(material, normalizedUnit),
+      ];
+      return;
+    }
+
     state = [
       for (final material in state)
-        _syncSizeToMaterial(material, size, unit),
+        _syncSizeToMaterial(material, normalizedSize, normalizedUnit),
     ];
+  }
+
+  PipingMaterial _syncUnitOnlyToMaterial(PipingMaterial material, String unit) {
+    var updated = unit.isNotEmpty ? material.copyWith(sizeUom: unit) : material;
+
+    if (unit.isEmpty) return updated;
+
+    final setup = findSetup(material.materialCode);
+    if (setup != null && setup.fieldConfig != null) {
+      var newState = material.cardFormState ??
+          CardFormState.buildInitial(fieldConfig: setup.fieldConfig!);
+
+      bool changed = false;
+      for (final field in setup.fieldConfig!.fields) {
+        if (field.role == 'SIZE' || field.key.toLowerCase().contains('size')) {
+          newState = newState.updateUnit(field.key, unit);
+          changed = true;
+        }
+      }
+
+      if (changed) {
+        updated = updated.copyWith(cardFormState: newState);
+      }
+    }
+
+    return updated;
   }
 
   PipingMaterial _syncSizeToMaterial(PipingMaterial material, String size, String unit) {

@@ -2,6 +2,7 @@
 import 'dart:io';
 
 import 'package:flutter/material.dart';
+import 'package:go_router/go_router.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:untitled2/core/utlis/colors/colors.dart';
 import 'package:untitled2/core/utlis/widgets/custom_appBar.dart';
@@ -156,7 +157,7 @@ class _AddMOCPageState extends ConsumerState<AddMOCPage> {
       }
 
       if (!mounted) return;
-      Navigator.pop(context, true);
+      context.pop(true);
     } catch (e, stackTrace) {
       print(stackTrace);
       ScaffoldMessenger.of(context).showSnackBar(
@@ -256,7 +257,7 @@ class _AddMOCPageState extends ConsumerState<AddMOCPage> {
         
                 // Cancel Button
                 OutlinedButton(
-                  onPressed: _isSubmitting ? null : () => Navigator.of(context).pop(),
+                  onPressed: _isSubmitting ? null : () => context.pop(),
                   style: OutlinedButton.styleFrom(
                     padding: const EdgeInsets.symmetric(vertical: 16),
                     shape: RoundedRectangleBorder(

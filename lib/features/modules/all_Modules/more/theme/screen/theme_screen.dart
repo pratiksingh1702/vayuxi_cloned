@@ -1,6 +1,7 @@
 import 'package:flex_color_picker/flex_color_picker.dart';
 import 'package:flex_color_scheme/flex_color_scheme.dart';
 import 'package:flutter/material.dart';
+import 'package:go_router/go_router.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../provider/theme_controller.dart';
@@ -253,7 +254,7 @@ class ThemeScreen extends ConsumerWidget {
                             selected ? colors.primary : colors.onSurfaceVariant,
                       ),
                       title: Text(_schemeLabel(item)),
-                      onTap: () => Navigator.pop(context, item),
+                      onTap: () => context.pop(item),
                     );
                   },
                 ),

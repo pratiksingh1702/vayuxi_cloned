@@ -101,6 +101,7 @@ import '../../core/router/routes.dart';
 import '../utlis/widgets/date_picker_Screen.dart';
 import 'app_access.dart';
 import 'go_router_refresh.dart';
+import 'not_found_screen.dart';
 import 'package:bot_toast/bot_toast.dart';
 import 'route_tracker.dart';
 
@@ -147,19 +148,22 @@ class _RouteObserver extends NavigatorObserver {
 }
 
 final appRouterProvider = Provider<GoRouter>((ref) {
-  return GoRouter(
+  final router = GoRouter(
     initialLocation: Routes.splash,
     debugLogDiagnostics: true,
+    errorBuilder: (context, state) => const NotFoundScreen(),
     refreshListenable: ref.watch(routerRefreshProvider),
     redirect: (context, state) {
       final access = ref.read(appAccessProvider);
       final loc = state.matchedLocation;
+      final concretePath =
+          state.uri.path.isEmpty ? '/' : normalizeRouteLocation(state.uri.path);
 
       // ✅ Update current route for job auto-navigation
       // Use microtask to avoid "Tried to modify a provider while the widget tree was building" error
       Future.microtask(() {
-        ref.read(currentRouteProvider.notifier).state = loc;
-        ref.read(routeTrailProvider.notifier).syncFromLocation(loc);
+        ref.read(currentRouteProvider.notifier).state = concretePath;
+        ref.read(routeTrailProvider.notifier).syncFromLocation(concretePath);
       });
 
       debugPrint(
@@ -259,15 +263,16 @@ final appRouterProvider = Provider<GoRouter>((ref) {
           return const ManpowerLoginScreen();
         },
       ),
-   GoRoute(
-  path: Routes.workCategory,
-  builder: (context, state) {
-    _logRoute('WorkCategoryScreen', path: state.uri.toString());
-    return const ExitWrapper(           // ✅ add this
-      child: WorkCategoryScreen(),
-    );
-  },
-),
+      GoRoute(
+        path: Routes.workCategory,
+        builder: (context, state) {
+          _logRoute('WorkCategoryScreen', path: state.uri.toString());
+          return const ExitWrapper(
+            // ✅ add this
+            child: WorkCategoryScreen(),
+          );
+        },
+      ),
       GoRoute(
         path: Routes.selectModule,
         builder: (context, state) {
@@ -335,6 +340,7 @@ final appRouterProvider = Provider<GoRouter>((ref) {
                 screen = InventoryCategorySelectionScreen();
                 break;
               case 'inv-setup':
+              
                 screen = ViewAddInventorySetup();
                 break;
               case 'att-sheet':
@@ -805,4 +811,20 @@ final appRouterProvider = Provider<GoRouter>((ref) {
       ...UpdatesRoutes.routes,
     ],
   );
+
+  void syncFromRouterState() {
+    final uri = router.routeInformationProvider.value.uri;
+    final concretePath = uri.path.isEmpty ? '/' : normalizeRouteLocation(uri.path);
+    ref.read(currentRouteProvider.notifier).state = concretePath;
+    ref.read(routeTrailProvider.notifier).syncFromLocation(concretePath);
+  }
+
+  router.routerDelegate.addListener(syncFromRouterState);
+  ref.onDispose(() {
+    router.routerDelegate.removeListener(syncFromRouterState);
+  });
+
+  Future.microtask(syncFromRouterState);
+
+  return router;
 });

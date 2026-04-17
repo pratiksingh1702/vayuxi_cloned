@@ -1,5 +1,6 @@
 // screens/expense/add_expense_screen.dart
 import 'package:flutter/material.dart';
+import 'package:go_router/go_router.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:untitled2/core/utlis/widgets/Button_wrapper.dart';
 import 'package:untitled2/features/language/service/providers.dart';
@@ -21,7 +22,7 @@ class _AddExpenseScreenState extends ConsumerState<AddExpenseScreen> {
       context: context,
       builder: (context) => _CategoryModal(
         onCategorySelected: (category) {
-          Navigator.pop(context);
+          context.pop();
           _navigateToExpenseForm(category);
         },
       ),
@@ -244,7 +245,7 @@ class _CategoryModal extends StatelessWidget {
           ),
           const SizedBox(height: 16),
           OutlinedButton(
-            onPressed: () => Navigator.pop(context),
+            onPressed: () => context.pop(),
             child: const Text("Cancel"),
           ),
         ],

@@ -174,14 +174,14 @@ final Map<String, List<EquipmentFieldConfig>> equipmentFieldConfig = {
 
   'PATCH': [
     EquipmentFieldConfig(
-      label: 'Circumference',
-      type: EquipmentFieldType.circumference,
+      label: 'Patch',
+      type: EquipmentFieldType.qty,
       imageIndex: 0,
-      unitType: 'LENGTH',
-      dropdown: 'lengthUom',
+      unitType: 'COUNT',
+      dropdown: 'qtyUom',
       required: true,
       editable: true,
-      role: 'CIRCUMFERENCE',
+      role: 'QUANTITY',
     ),
   ],
 

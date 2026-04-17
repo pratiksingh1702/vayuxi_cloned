@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:go_router/go_router.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../../../../core/utlis/widgets/Button_wrapper.dart';
 import '../../../../../core/utlis/widgets/buttons.dart';
@@ -85,7 +86,7 @@ class _EditInventoryScreenState extends ConsumerState<EditInventoryScreen> {
       )).future);
 
       _success("Updated successfully");
-      Navigator.pop(context, true);
+      context.pop(true);
     } catch (e) {
       _error("Failed: $e");
     }

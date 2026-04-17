@@ -25,7 +25,13 @@ class RouteTrailNotifier extends StateNotifier<List<RouteTrailEntry>> {
     final path = normalizeRouteLocation(location);
     final label = routeBreadcrumbLabel(path);
 
+    if (!isBreadcrumbVisibleLocation(path)) {
+      state = const [];
+      return;
+    }
+
     if (state.isNotEmpty && state.last.path == path) {
+      // Keep label fresh while avoiding duplicate stack entries.
       state = [
         ...state.sublist(0, state.length - 1),
         RouteTrailEntry(path: path, label: label),
@@ -35,10 +41,12 @@ class RouteTrailNotifier extends StateNotifier<List<RouteTrailEntry>> {
 
     final existingIndex = state.indexWhere((entry) => entry.path == path);
     if (existingIndex >= 0) {
+      // Pop/back case: trim stack to the existing route.
       state = state.sublist(0, existingIndex + 1);
       return;
     }
 
+    // Push/replace-to-new case: append as newest stack entry.
     final nextTrail = [
       ...state,
       RouteTrailEntry(path: path, label: label),

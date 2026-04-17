@@ -374,7 +374,7 @@ class _AttendanceScreenState extends ConsumerState<AttendanceScreen> {
                   children: [
                     Expanded(
                       child: OutlinedButton(
-                        onPressed: () => Navigator.pop(context),
+                        onPressed: () => context.pop(),
                         style: OutlinedButton.styleFrom(
                           foregroundColor:
                               Theme.of(context).colorScheme.onSurfaceVariant,
@@ -392,7 +392,7 @@ class _AttendanceScreenState extends ConsumerState<AttendanceScreen> {
                     Expanded(
                       child: ElevatedButton(
                         onPressed: () {
-                          Navigator.pop(context);
+                          context.pop();
                           _applyOTToAll(otValue, index);
                         },
                         style: ElevatedButton.styleFrom(
@@ -550,7 +550,7 @@ class _AttendanceScreenState extends ConsumerState<AttendanceScreen> {
         ),
       );
       if (mounted) {
-        Navigator.pop(context);
+        context.pop();
       }
       _isFirstOTEntry = true;
       _firstOTValue = null;

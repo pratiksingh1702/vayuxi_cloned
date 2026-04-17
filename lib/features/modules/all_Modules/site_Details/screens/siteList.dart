@@ -76,7 +76,7 @@ class _SiteListScreenState extends ConsumerState<SiteListScreen>
         ),
         actions: [
           TextButton(
-            onPressed: () => Navigator.pop(context, false),
+            onPressed: () => context.pop(false),
             child: const Text("Cancel"),
           ),
           ElevatedButton(
@@ -84,7 +84,7 @@ class _SiteListScreenState extends ConsumerState<SiteListScreen>
               backgroundColor: cs.error,
               foregroundColor: cs.onError,
             ),
-            onPressed: () => Navigator.pop(context, true),
+            onPressed: () => context.pop(true),
             child: const Text("Delete"),
           ),
         ],
@@ -162,11 +162,11 @@ class _SiteListScreenState extends ConsumerState<SiteListScreen>
         ),
         actions: [
           TextButton(
-            onPressed: () => Navigator.pop(context, false),
+            onPressed: () => context.pop(false),
             child: const Text('Cancel'),
           ),
           TextButton(
-            onPressed: () => Navigator.pop(context, true),
+            onPressed: () => context.pop(true),
             style: TextButton.styleFrom(foregroundColor: cs.error),
             child: const Text('Delete'),
           ),
@@ -363,15 +363,25 @@ class _SiteListScreenState extends ConsumerState<SiteListScreen>
     // Show empty state
     if (siteState.sites.isEmpty) {
       print("📭 Showing empty state");
-      return const Center(
+      return Center(
         child: Column(
           mainAxisAlignment: MainAxisAlignment.center,
           children: [
-            Icon(Icons.search_off, size: 64),
-            SizedBox(height: 16),
+            Icon(Icons.search_off, size: 64, color: cs.onSurfaceVariant),
+            const SizedBox(height: 16),
             Text(
-              "No sites available",
-              style: TextStyle(fontSize: 18),
+              "Site data is empty",
+              style: TextStyle(
+                fontSize: 18,
+                fontWeight: FontWeight.w600,
+                color: cs.onSurface,
+              ),
+            ),
+            const SizedBox(height: 6),
+            Text(
+              "No site records found. Please add a site to continue.",
+              textAlign: TextAlign.center,
+              style: TextStyle(color: cs.onSurfaceVariant),
             ),
           ],
         ),

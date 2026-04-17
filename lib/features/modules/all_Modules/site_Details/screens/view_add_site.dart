@@ -114,7 +114,7 @@ class SiteSelectCardGrid extends ConsumerWidget {
           backgroundColor: isDark ? cs.surface : cs.surfaceContainerLowest,
           appBar: CustomAppBar(title: "Select Site Entry"),
           body: BottomButtonWrapper(
-            onBackPressed: () => Navigator.pop(context),
+            onBackPressed: () => context.pop(),
             child: Padding(
               padding: const EdgeInsets.symmetric(horizontal: 16),
               child: Column(

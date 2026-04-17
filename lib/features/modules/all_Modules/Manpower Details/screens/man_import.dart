@@ -594,7 +594,7 @@ class _ManImportCsvScreenState extends ConsumerState<ManImportCsvScreen> {
           ),
           actions: [
             TextButton(
-              onPressed: () => Navigator.pop(context),
+              onPressed: () => context.pop(),
               child: Text(hasErrors ? "Fix & Re-upload" : "Continue"),
             ),
           ],
@@ -655,7 +655,7 @@ class _ManImportCsvScreenState extends ConsumerState<ManImportCsvScreen> {
           ),
           actions: [
             TextButton(
-              onPressed: () => Navigator.pop(context),
+              onPressed: () => context.pop(),
               child: const Text("OK"),
             ),
           ],

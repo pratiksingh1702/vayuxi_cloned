@@ -1,5 +1,6 @@
 import 'dart:math' as math;
 import 'package:flutter/material.dart';
+import 'package:go_router/go_router.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:untitled2/core/utlis/common_functions.dart';
@@ -391,7 +392,7 @@ class _SubscriptionScreenState extends ConsumerState<SubscriptionScreen>
                 leading: IconButton(
                   icon: const Icon(Icons.arrow_back_ios_new_rounded,
                       size: 18, color: AppColors.textSecondary),
-                  onPressed: () => Navigator.pop(context),
+                  onPressed: () => context.pop(),
                 ),
                 title: Text('Choose a plan',
                     style: AppTextStyles.screenTitle),

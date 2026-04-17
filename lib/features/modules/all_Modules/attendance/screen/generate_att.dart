@@ -3,6 +3,7 @@ import 'dart:io';
 import 'dart:math';
 import 'dart:typed_data';
 import 'package:flutter/material.dart';
+import 'package:go_router/go_router.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:intl/intl.dart';
@@ -121,7 +122,7 @@ class _GenerateAttendanceSheetScreenState
                         : const SizedBox.shrink(),
                     onTap: () {
                       setSheetState(() => selectedFormat = 'excel');
-                      Navigator.pop(context);
+                      context.pop();
                       _showShareOrDownloadDialog(format: selectedFormat);
                     },
                   ),
@@ -162,14 +163,14 @@ class _GenerateAttendanceSheetScreenState
                         : const SizedBox.shrink(),
                     onTap: () {
                       setSheetState(() => selectedFormat = 'pdf');
-                      Navigator.pop(context);
+                      context.pop();
                       _showShareOrDownloadDialog(format: selectedFormat);
                     },
                   ),
 
                   const SizedBox(height: 16),
                   TextButton(
-                    onPressed: () => Navigator.pop(context),
+                    onPressed: () => context.pop(),
                     child: const Text("Cancel", style: TextStyle(fontSize: 16)),
                   ),
                 ],
@@ -229,7 +230,7 @@ class _GenerateAttendanceSheetScreenState
                 title: "Share",
                 subtitle: "Send file via apps",
                 onTap: () {
-                  Navigator.pop(context);
+                  context.pop();
                   _downloadAndShareAttendance(format: format);
                 },
               ),
@@ -240,13 +241,13 @@ class _GenerateAttendanceSheetScreenState
                 title: "Download",
                 subtitle: "Save to your device",
                 onTap: () {
-                  Navigator.pop(context);
+                  context.pop();
                   _downloadAttendanceFile(format: format);
                 },
               ),
               const SizedBox(height: 16),
               TextButton(
-                onPressed: () => Navigator.pop(context),
+                onPressed: () => context.pop(),
                 child: const Text("Cancel", style: TextStyle(fontSize: 16)),
               ),
             ],
@@ -836,7 +837,7 @@ class _DateRangePickerDialogState extends State<DateRangePickerDialog> {
                     borderRadius: BorderRadius.circular(12),
                   ),
                 ),
-                onPressed: () => Navigator.pop(context),
+                onPressed: () => context.pop(),
                 child: const Text("Back"),
               ),
             ),

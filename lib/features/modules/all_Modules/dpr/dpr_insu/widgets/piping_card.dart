@@ -950,11 +950,11 @@ class _PipingMaterialCardState extends State<PipingMaterialCard> {
             // ✅ MATCHES: testDynamicItemCard _blueBox label format "UOM ( ${widget.lengthPlaceholder} )"
             // For piping, "Qty" is the UOM equivalent label shown with same large style
             'Qty ($qtyUom)',
-            style: const TextStyle(
+            style: TextStyle(
               // ✅ MATCHES: testDynamicItemCard isUOM fontSize: 14
               fontSize: 14,
               fontWeight: FontWeight.w600,
-              color: Colors.black87,
+              color: _cs.onSurface,
             ),
           ),
         ),
@@ -981,11 +981,11 @@ class _PipingMaterialCardState extends State<PipingMaterialCard> {
               // Save to parent when editing is complete
               widget.onChanged(_draftMaterial);
             },
-            style: const TextStyle(
+            style: TextStyle(
               // ✅ MATCHES: testDynamicItemCard isUOM fontSize: 14, fontWeight: w500
               fontSize: 14,
               fontWeight: FontWeight.w500,
-              color: Colors.black,
+              color: _cs.onSurface,
             ),
             decoration: InputDecoration(
               isDense: true,
@@ -995,8 +995,7 @@ class _PipingMaterialCardState extends State<PipingMaterialCard> {
                 horizontal: 8,
               ),
               filled: true,
-              // ✅ MATCHES: testDynamicItemCard isUOM fillColor: Colors.transparent
-              fillColor: Colors.transparent,
+              fillColor: _fieldFill,
               enabledBorder: OutlineInputBorder(
                 // ✅ MATCHES: testDynamicItemCard isUOM borderRadius: 8
                 borderRadius: BorderRadius.circular(8),
@@ -1740,11 +1739,11 @@ class _PipingMaterialCardState extends State<PipingMaterialCard> {
               config.type == PipingFieldType.qty
                   ? '$customLabel ($qtyUom)'
                   : '$customLabel (${config.unit ?? ''})',
-              style: const TextStyle(
+              style: TextStyle(
                 // ✅ MATCHES: testDynamicItemCard _blueBox isUOM fontSize: 14
                 fontSize: 14,
                 fontWeight: FontWeight.w600,
-                color: Colors.black87,
+                color: _cs.onSurface,
               ),
             ),
           ),
@@ -1780,22 +1779,21 @@ class _PipingMaterialCardState extends State<PipingMaterialCard> {
             focusNode: _legacyFocusNodes[config.type],
             textAlign: TextAlign.center,
             keyboardType: const TextInputType.numberWithOptions(decimal: true),
-            style: const TextStyle(
+            style: TextStyle(
               // ✅ MATCHES: testDynamicItemCard isUOM fontSize: 14, fontWeight: w500
               fontSize: 14,
               fontWeight: FontWeight.w500,
-              color: Colors.black,
+              color: _cs.onSurface,
             ),
             decoration: InputDecoration(
               isDense: true,
               filled: true,
-              // ✅ MATCHES: testDynamicItemCard isUOM fillColor: Colors.transparent
-              fillColor: Colors.transparent,
+              fillColor: _fieldFill,
               border: OutlineInputBorder(
                 // ✅ MATCHES: testDynamicItemCard isUOM borderRadius: 8
                 borderRadius: BorderRadius.circular(8),
                 borderSide: BorderSide(
-                  color: Colors.grey[300]!,
+                  color: _cs.outlineVariant,
                   width: 1,
                 ),
               ),

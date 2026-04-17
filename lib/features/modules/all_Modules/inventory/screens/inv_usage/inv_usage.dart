@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:go_router/go_router.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:table_calendar/table_calendar.dart';
 import 'package:untitled2/core/utlis/widgets/Button_wrapper.dart';
@@ -90,7 +91,7 @@ class _BeautifulDatePickerState extends State<BeautifulDatePicker> {
                   IconButton(
                     icon:
                         Icon(Icons.close, color: colorScheme.onSurfaceVariant),
-                    onPressed: () => Navigator.pop(context),
+                    onPressed: () => context.pop(),
                   ),
                 ],
               ),
@@ -230,7 +231,7 @@ class _BeautifulDatePickerState extends State<BeautifulDatePicker> {
                 children: [
                   Expanded(
                     child: OutlinedButton(
-                      onPressed: () => Navigator.pop(context),
+                      onPressed: () => context.pop(),
                       style: OutlinedButton.styleFrom(
                         padding: const EdgeInsets.symmetric(vertical: 16),
                         shape: RoundedRectangleBorder(
@@ -250,7 +251,7 @@ class _BeautifulDatePickerState extends State<BeautifulDatePicker> {
                   const SizedBox(width: 12),
                   Expanded(
                     child: ElevatedButton(
-                      onPressed: () => Navigator.pop(context, _selectedDate),
+                      onPressed: () => context.pop(_selectedDate),
                       style: ElevatedButton.styleFrom(
                         backgroundColor: primaryColor,
                         padding: const EdgeInsets.symmetric(vertical: 16),

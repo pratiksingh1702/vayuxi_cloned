@@ -1,5 +1,6 @@
 // screens/add_floor_page.dart
 import 'package:flutter/material.dart';
+import 'package:go_router/go_router.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:showcaseview/showcaseview.dart';
 import 'package:untitled2/core/router/routes.dart';
@@ -42,7 +43,7 @@ class SiteEntrySelectCardGrid extends ConsumerWidget {
           appBar: CustomAppBar(title: "Select Card"),
           body: BottomButtonWrapper(
             onBackPressed: () {
-              Navigator.pop(context);
+              context.pop();
             },
             child: Padding(
               padding: const EdgeInsets.symmetric(horizontal: 16),

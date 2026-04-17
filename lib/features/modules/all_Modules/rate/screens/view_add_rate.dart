@@ -25,7 +25,7 @@ class RateSelectCardGrid extends StatelessWidget {
       appBar: CustomAppBar(title: "Select Rate "),
       body: BottomButtonWrapper(
         onBackPressed: () {
-          Navigator.pop(context);
+          context.pop();
         },
         child: Column(
           children: [

@@ -752,14 +752,14 @@ class _AddDescriptionScreenState extends ConsumerState<AddDescriptionScreen>
                 leading: const Icon(Icons.precision_manufacturing),
                 title: const Text('Piping'),
                 onTap: () {
-                  Navigator.pop(context, ['piping']);
+                  context.pop(['piping']);
                 },
               ),
               ListTile(
                 leading: const Icon(Icons.build),
                 title: const Text('Equipment'),
                 onTap: () {
-                  Navigator.pop(context, ['equipment']);
+                  context.pop(['equipment']);
                 },
               ),
               const Divider(),
@@ -767,7 +767,7 @@ class _AddDescriptionScreenState extends ConsumerState<AddDescriptionScreen>
                 leading: const Icon(Icons.layers),
                 title: const Text('Both (Piping + Equipment)'),
                 onTap: () {
-                  Navigator.pop(context, ['piping', 'equipment']);
+                  context.pop(['piping', 'equipment']);
                 },
               ),
             ],
@@ -1088,7 +1088,7 @@ class _AddDescriptionScreenState extends ConsumerState<AddDescriptionScreen>
                           ),
                           elevation: 0,
                         ),
-                        onPressed: () => Navigator.pop(context, true),
+                        onPressed: () => context.pop(true),
                         child: const Text(
                           "Permanent Changes",
                           style: TextStyle(fontWeight: FontWeight.bold),
@@ -1107,7 +1107,7 @@ class _AddDescriptionScreenState extends ConsumerState<AddDescriptionScreen>
                             borderRadius: BorderRadius.circular(8),
                           ),
                         ),
-                        onPressed: () => Navigator.pop(context, false),
+                        onPressed: () => context.pop(false),
                         child: const Text(
                           "Temporary Changes",
                           style: TextStyle(fontWeight: FontWeight.bold),

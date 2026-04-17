@@ -298,7 +298,7 @@ class _NewManpowerScreenState extends ConsumerState<NewManpowerScreen> {
         );
       }
 
-      Navigator.pop(context);
+      context.pop();
       context.push("/manpower");
     } catch (e, s) {
       print(s);
@@ -908,7 +908,7 @@ class _NewManpowerScreenState extends ConsumerState<NewManpowerScreen> {
                   const SizedBox(width: 10),
                   Expanded(
                     child: ElevatedButton(
-                      onPressed: () => Navigator.pop(context),
+                      onPressed: () => context.pop(),
                       style: ElevatedButton.styleFrom(
                         backgroundColor: colorScheme.surface,
                         foregroundColor: colorScheme.onSurface,

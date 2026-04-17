@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:go_router/go_router.dart';
 import 'package:flutter_svg/svg.dart';
 
 class GetPremiumScreen extends StatelessWidget {
@@ -112,7 +113,7 @@ class GetPremiumScreen extends StatelessWidget {
 
               // BACK BUTTON
               TextButton(
-                onPressed: () => Navigator.pop(context),
+                onPressed: () => context.pop(),
                 child: const Text(
                   "Back",
                   style: TextStyle(

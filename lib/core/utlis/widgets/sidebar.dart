@@ -7,6 +7,7 @@ import 'package:untitled2/core/router/routes.dart';
 import 'package:untitled2/features/tour/domain/tour_controller.dart';
 import 'package:untitled2/features/tour/registry/site_registry.dart';
 import '../../../features/auth/provider/auth_provider.dart';
+import '../../screens/theme_switcher.dart';
 import '../../../features/modules/screen/device_id.dart';
 import '../../../features/modules/screen/device_id_helper.dart';
 
@@ -428,44 +429,36 @@ class CustomDrawer extends ConsumerWidget {
   }
 
   Widget _buildCompactThemeButton(BuildContext context) {
-    final router = GoRouter.maybeOf(context);
-    final currentRoute = router?.routeInformationProvider.value.uri.path ?? '';
-    final isActive =
-        currentRoute == '/theme' || currentRoute.startsWith('/theme');
-
     return Padding(
       padding: const EdgeInsets.symmetric(horizontal: 12),
-      child: Row(
-        mainAxisAlignment: MainAxisAlignment.end,
-        children: [
-          Material(
-            color: _cs(context).surface.withOpacity(0),
-            child: InkWell(
-              borderRadius: BorderRadius.circular(11),
-              onTap: () => _handleNavigation(context, '/theme', true),
-              child: Ink(
-                width: 34,
-                height: 34,
-                decoration: BoxDecoration(
-                  color: isActive
-                      ? _primary(context).withOpacity(0.16)
-                      : _surface(context),
-                  borderRadius: BorderRadius.circular(11),
-                  border: Border.all(
-                    color: isActive
-                        ? _primary(context).withOpacity(0.42)
-                        : _divider(context).withOpacity(0.58),
-                  ),
-                ),
-                child: Icon(
-                  Icons.palette_outlined,
-                  size: 18,
-                  color: isActive ? _primary(context) : _textSecondary(context),
+      child: Container(
+        padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 8),
+        decoration: BoxDecoration(
+          color: _surface(context),
+          borderRadius: BorderRadius.circular(12),
+          border: Border.all(color: _divider(context).withOpacity(0.5)),
+        ),
+        child: Row(
+          children: [
+            Icon(
+              Icons.brightness_6_rounded,
+              size: 18,
+              color: _textSecondary(context),
+            ),
+            const SizedBox(width: 8),
+            Expanded(
+              child: Text(
+                'Theme',
+                style: TextStyle(
+                  fontSize: 12.5,
+                  fontWeight: FontWeight.w700,
+                  color: _textPrimary(context),
                 ),
               ),
             ),
-          ),
-        ],
+            const BeautifulThemeSwitcher(compact: true),
+          ],
+        ),
       ),
     );
   }

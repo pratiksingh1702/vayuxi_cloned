@@ -23,6 +23,7 @@ class _LoginScreenState extends ConsumerState<LoginScreen>
     with TickerProviderStateMixin, WidgetsBindingObserver {
   final TextEditingController phoneController = TextEditingController();
   final TextEditingController otpController = TextEditingController();
+  final FocusNode _phoneFocusNode = FocusNode();
   final SmartAuth _smartAuth = SmartAuth.instance;
 
   bool otpVisible = false;
@@ -49,6 +50,7 @@ class _LoginScreenState extends ConsumerState<LoginScreen>
     super.initState();
     WidgetsBinding.instance.addObserver(this);
     phoneController.addListener(_refreshUi);
+    _phoneFocusNode.addListener(_onPhoneFocusChanged);
 
     _topAnimController = AnimationController(
       vsync: this,
@@ -98,11 +100,12 @@ class _LoginScreenState extends ConsumerState<LoginScreen>
     if (isRequestingPhoneHint) return;
     if (otpVisible) return;
     if (_showOnboarding) return;
+    if (_phoneFocusNode.hasFocus) return;
     if (phoneController.text.trim().isNotEmpty) return;
     _hasAttemptedAutoPhoneHint = true;
     _lastAutoHintAt = DateTime.now();
     debugPrint('[SMART_AUTH] Auto phone hint trigger started');
-    await _requestPhoneHint(showPickerMessage: false, showConfirmDialog: true);
+    await _requestPhoneHint(showPickerMessage: false);
   }
 
   void _openLoginFromOnboarding() {
@@ -120,6 +123,7 @@ class _LoginScreenState extends ConsumerState<LoginScreen>
     if (!mounted) return;
     if (isRequestingPhoneHint || otpVisible) return;
     if (_showOnboarding) return;
+    if (_phoneFocusNode.hasFocus) return;
     if (phoneController.text.trim().isNotEmpty) return;
 
     final now = DateTime.now();
@@ -129,12 +133,19 @@ class _LoginScreenState extends ConsumerState<LoginScreen>
     }
 
     _lastAutoHintAt = now;
-    _requestPhoneHint(showPickerMessage: false, showConfirmDialog: true);
+    _requestPhoneHint(showPickerMessage: false);
   }
 
   void _refreshUi() {
     if (!mounted) return;
     setState(() {});
+  }
+
+  void _onPhoneFocusChanged() {
+    if (_phoneFocusNode.hasFocus) {
+      // User is entering phone manually, so don't interrupt with auto-hint flow.
+      _hasAttemptedAutoPhoneHint = true;
+    }
   }
 
   String _normalizedPhone() {
@@ -149,7 +160,6 @@ class _LoginScreenState extends ConsumerState<LoginScreen>
 
   Future<void> _requestPhoneHint({
     bool showPickerMessage = true,
-    bool showConfirmDialog = true,
   }) async {
     if (isRequestingPhoneHint) return;
     setState(() => isRequestingPhoneHint = true);
@@ -166,13 +176,9 @@ class _LoginScreenState extends ConsumerState<LoginScreen>
           digits = digits.substring(digits.length - 10);
         }
         if (digits.length == 10) {
-          if (showConfirmDialog) {
-            await _showPhoneHintConfirmationDialog(digits);
-          } else {
-            phoneController.text = digits;
-            if (showPickerMessage) {
-              _showSuccessSnackBar('Phone number selected');
-            }
+          phoneController.text = digits;
+          if (showPickerMessage) {
+            _showSuccessSnackBar('Phone number selected');
           }
         } else {
           debugPrint('[SMART_AUTH] Hint parse failed. Digits: $digits');
@@ -192,57 +198,6 @@ class _LoginScreenState extends ConsumerState<LoginScreen>
     } finally {
       if (mounted) setState(() => isRequestingPhoneHint = false);
     }
-  }
-
-  Future<void> _showPhoneHintConfirmationDialog(String detectedPhone) async {
-    debugPrint('[SMART_AUTH] Showing confirmation popup for: $detectedPhone');
-    await showDialog<void>(
-      context: context,
-      builder: (dialogContext) => AlertDialog(
-        backgroundColor: const Color(0xFFFFFFFF),
-        elevation: 0,
-        shadowColor: const Color(0x20000000),
-        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(18)),
-        title: const Text(
-          'Use this phone number?',
-          style: TextStyle(
-            color: Color(0xFF1B1A17),
-            fontWeight: FontWeight.w700,
-          ),
-        ),
-        content: Text(
-          '+91 $detectedPhone was detected from your device.',
-          style: const TextStyle(
-            color: Color(0xFF6B6560),
-            height: 1.4,
-          ),
-        ),
-        actions: [
-          TextButton(
-            onPressed: () {
-              debugPrint('[SMART_AUTH] User rejected detected phone number');
-              Navigator.of(dialogContext).pop();
-            },
-            child: const Text(
-              'No',
-              style: TextStyle(color: Color(0xFF8F887F)),
-            ),
-          ),
-          FilledButton(
-            style: FilledButton.styleFrom(
-              backgroundColor: const Color(0xFF121926),
-              foregroundColor: const Color(0xFFFDFBF7),
-            ),
-            onPressed: () {
-              debugPrint('[SMART_AUTH] User accepted detected phone number');
-              phoneController.text = detectedPhone;
-              Navigator.of(dialogContext).pop();
-            },
-            child: const Text('Use Number'),
-          ),
-        ],
-      ),
-    );
   }
 
   Future<void> _startSmsAutofill() async {
@@ -367,6 +322,8 @@ class _LoginScreenState extends ConsumerState<LoginScreen>
     WidgetsBinding.instance.removeObserver(this);
     _topAnimController.dispose();
     _sheetAnimController.dispose();
+    _phoneFocusNode.removeListener(_onPhoneFocusChanged);
+    _phoneFocusNode.dispose();
     phoneController.removeListener(_refreshUi);
     phoneController.dispose();
     otpController.dispose();
@@ -376,10 +333,10 @@ class _LoginScreenState extends ConsumerState<LoginScreen>
   Widget _buildLoginPane() {
     final scheme = Theme.of(context).colorScheme;
     final textTheme = Theme.of(context).textTheme;
+    final keyboardInset = MediaQuery.of(context).viewInsets.bottom;
     return SingleChildScrollView(
       key: const ValueKey('login-pane'),
-      keyboardDismissBehavior: ScrollViewKeyboardDismissBehavior.onDrag,
-      padding: const EdgeInsets.fromLTRB(18, 6, 18, 18),
+      padding: EdgeInsets.fromLTRB(18, 6, 18, 18 + keyboardInset),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.stretch,
         children: [
@@ -416,58 +373,16 @@ class _LoginScreenState extends ConsumerState<LoginScreen>
               Expanded(
                 child: _PhoneField(
                   controller: phoneController,
+                  focusNode: _phoneFocusNode,
                   isValid: _isPhoneValid,
                   onChanged: (_) => setState(() {}),
-                ),
-              ),
-              const SizedBox(width: 10),
-              _HintButton(
-                isLoading: isRequestingPhoneHint,
-                onPressed: () => _requestPhoneHint(
-                  showPickerMessage: true,
-                  showConfirmDialog: true,
                 ),
               ),
             ],
           ),
           const SizedBox(height: 10),
-          Align(
-            alignment: Alignment.centerRight,
-            child: TextButton(
-              onPressed: (!_isPhoneValid || isSendingOtp) ? null : _sendOtp,
-              style: TextButton.styleFrom(
-                backgroundColor: const Color(0xFFE8EEFF),
-                foregroundColor: const Color(0xFF3554C7),
-                disabledBackgroundColor: const Color(0xFFE8EEFF),
-                disabledForegroundColor:
-                    const Color(0xFF3554C7).withValues(alpha: 0.52),
-                side: const BorderSide(
-                  color: Color(0xFFD4DEFF),
-                  width: 1,
-                ),
-                padding:
-                    const EdgeInsets.symmetric(horizontal: 14, vertical: 8),
-                shape: RoundedRectangleBorder(
-                  borderRadius: BorderRadius.circular(10),
-                ),
-              ),
-              child: isSendingOtp
-                  ? const SizedBox(
-                      width: 16,
-                      height: 16,
-                      child: CircularProgressIndicator(
-                        strokeWidth: 2,
-                        color: Color(0xFF3554C7),
-                      ),
-                    )
-                  : const Text(
-                      'Send OTP',
-                      style: TextStyle(fontWeight: FontWeight.w700),
-                    ),
-            ),
-          ),
           if (otpVisible) ...[
-            const SizedBox(height: 10),
+            const SizedBox(height: 6),
             const Text(
               'One-Time Password',
               style: TextStyle(
@@ -502,11 +417,12 @@ class _LoginScreenState extends ConsumerState<LoginScreen>
               ),
             ),
           ],
-          const SizedBox(height: 18),
+          const SizedBox(height: 20),
           GestureDetector(
             onTapDown: (details) {
-              final canPress =
-                  !isVerifyingOtp && otpController.text.trim().length == 4;
+              final canPress = otpVisible
+                  ? (!isVerifyingOtp && otpController.text.trim().length == 4)
+                  : (!isSendingOtp && _isPhoneValid);
               if (!canPress) return;
               setState(() => _isContinuePressed = true);
             },
@@ -526,9 +442,11 @@ class _LoginScreenState extends ConsumerState<LoginScreen>
               child: SizedBox(
                 height: 54,
                 child: ElevatedButton(
-                  onPressed: isVerifyingOtp || otpController.text.trim().length != 4
-                      ? null
-                      : _verifyOtp,
+                  onPressed: otpVisible
+                      ? (isVerifyingOtp || otpController.text.trim().length != 4
+                          ? null
+                          : _verifyOtp)
+                      : (isSendingOtp || !_isPhoneValid ? null : _sendOtp),
                   style: ElevatedButton.styleFrom(
                     elevation: 0,
                     backgroundColor: const Color(0xFF121926),
@@ -547,12 +465,29 @@ class _LoginScreenState extends ConsumerState<LoginScreen>
                             color: Color(0xFFF7F9FF),
                           ),
                         )
-                      : const Text(
-                          'Continue',
-                          style: TextStyle(
-                            fontSize: 15,
-                            fontWeight: FontWeight.w700,
-                            color: Color(0xFFF7F9FF),
+                      : AnimatedSwitcher(
+                          duration: const Duration(milliseconds: 220),
+                          transitionBuilder: (child, animation) {
+                            return FadeTransition(
+                              opacity: animation,
+                              child: SlideTransition(
+                                position: Tween<Offset>(
+                                  begin: const Offset(0, 0.2),
+                                  end: Offset.zero,
+                                ).animate(animation),
+                                child: child,
+                              ),
+                            );
+                          },
+                          child: Text(
+                            otpVisible ? 'Continue' : 'Send OTP',
+                            key: ValueKey(
+                                'cta-${otpVisible ? 'continue' : 'send'}'),
+                            style: const TextStyle(
+                              fontSize: 15,
+                              fontWeight: FontWeight.w700,
+                              color: Color(0xFFF7F9FF),
+                            ),
                           ),
                         ),
                 ),
@@ -560,19 +495,6 @@ class _LoginScreenState extends ConsumerState<LoginScreen>
             ),
           ),
           const SizedBox(height: 12),
-          Center(
-            child: GestureDetector(
-              onTap: () => context.push('/manpower-login'),
-              child: const Text(
-                'Manpower login',
-                style: TextStyle(
-                  color: Color(0xFF7E8498),
-                  fontSize: 12,
-                  decoration: TextDecoration.underline,
-                ),
-              ),
-            ),
-          ),
         ],
       ),
     );
@@ -612,6 +534,9 @@ class _LoginScreenState extends ConsumerState<LoginScreen>
     final mediaQuery = MediaQuery.of(context);
     final keyboardInset = mediaQuery.viewInsets.bottom;
     final isKeyboardVisible = keyboardInset > 0;
+    final sheetMaxHeight = _showOnboarding
+        ? mediaQuery.size.height * 0.63
+        : mediaQuery.size.height * 0.72;
 
     return Theme(
       data: pageTheme,
@@ -620,50 +545,57 @@ class _LoginScreenState extends ConsumerState<LoginScreen>
         body: Stack(
           children: [
             _AuthBackground(showOnboarding: _showOnboarding),
-            if (!_showOnboarding)
-              const Positioned.fill(
-                child: _FullScreenLoginLottie(),
-              ),
             SafeArea(
               bottom: false,
               child: Stack(
                 children: [
-                  if (!isKeyboardVisible)
-                    Positioned(
-                      top: 8,
-                      left: 18,
-                      child: FadeTransition(
-                        opacity: _topFade,
-                        child: const _HeaderLogoAvatar(),
-                      ),
-                    ),
-                  if (!isKeyboardVisible)
-                    Positioned(
-                      top: 8,
-                      right: 18,
-                      child: FadeTransition(
-                        opacity: _topFade,
-                        child: const _HeaderSocialProof(),
-                      ),
-                    ),
-                  if (_showOnboarding)
-                    Positioned(
-                      top: 98,
-                      left: 18,
-                      right: 18,
+                  Positioned(
+                    top: 8,
+                    left: 18,
+                    child: IgnorePointer(
+                      ignoring: isKeyboardVisible,
                       child: AnimatedOpacity(
-                        duration: const Duration(milliseconds: 220),
-                        curve: Curves.easeOut,
-                        opacity: 1,
+                        duration: const Duration(milliseconds: 140),
+                        opacity: isKeyboardVisible ? 0 : 1,
                         child: FadeTransition(
                           opacity: _topFade,
-                          child: SlideTransition(
-                            position: _topSlide,
-                            child: _AuthTopPanel(showOnboarding: _showOnboarding),
-                          ),
+                          child: const _HeaderLogoAvatar(),
                         ),
                       ),
                     ),
+                  ),
+                  Positioned(
+                    top: 8,
+                    right: 18,
+                    child: IgnorePointer(
+                      ignoring: isKeyboardVisible,
+                      child: AnimatedOpacity(
+                        duration: const Duration(milliseconds: 140),
+                        opacity: isKeyboardVisible ? 0 : 1,
+                        child: FadeTransition(
+                          opacity: _topFade,
+                          child: const _HeaderSocialProof(),
+                        ),
+                      ),
+                    ),
+                  ),
+                  Positioned(
+                    top: _showOnboarding ? 98 : 88,
+                    left: _showOnboarding ? 18 : 8,
+                    right: _showOnboarding ? 18 : 8,
+                    child: AnimatedOpacity(
+                      duration: const Duration(milliseconds: 220),
+                      curve: Curves.easeOut,
+                      opacity: isKeyboardVisible ? 0 : 1,
+                      child: FadeTransition(
+                        opacity: _topFade,
+                        child: SlideTransition(
+                          position: _topSlide,
+                          child: _AuthTopPanel(showOnboarding: _showOnboarding),
+                        ),
+                      ),
+                    ),
+                  ),
                   Positioned(
                     left: 0,
                     right: 0,
@@ -672,42 +604,33 @@ class _LoginScreenState extends ConsumerState<LoginScreen>
                       opacity: _sheetFade,
                       child: SlideTransition(
                         position: _sheetSlide,
-                        child: AnimatedPadding(
-                          duration: const Duration(milliseconds: 260),
-                          curve: Curves.easeOutCubic,
-                          padding: EdgeInsets.only(bottom: keyboardInset),
-                          child: ConstrainedBox(
-                            constraints: BoxConstraints(
-                              maxHeight: _showOnboarding
-                                  ? mediaQuery.size.height * 0.63
-                                  : isKeyboardVisible
-                                      ? mediaQuery.size.height * 0.86
-                                      : mediaQuery.size.height * 0.72,
-                            ),
-                            child: _AuthSheet(
-                              child: AnimatedSwitcher(
-                                duration: const Duration(milliseconds: 450),
-                                switchInCurve: Curves.easeOutCubic,
-                                switchOutCurve: Curves.easeInCubic,
-                                transitionBuilder: (child, animation) {
-                                  return FadeTransition(
-                                    opacity: animation,
-                                    child: SlideTransition(
-                                      position: Tween<Offset>(
-                                        begin: const Offset(0, 0.08),
-                                        end: Offset.zero,
-                                      ).animate(animation),
-                                      child: child,
-                                    ),
-                                  );
-                                },
-                                child: _showOnboarding
-                                    ? _OnboardingPane(
-                                        key: const ValueKey('onboarding-pane'),
-                                        onContinue: _openLoginFromOnboarding,
-                                      )
-                                    : _buildLoginPane(),
-                              ),
+                        child: ConstrainedBox(
+                          constraints: BoxConstraints(
+                            maxHeight: sheetMaxHeight,
+                          ),
+                          child: _AuthSheet(
+                            child: AnimatedSwitcher(
+                              duration: const Duration(milliseconds: 450),
+                              switchInCurve: Curves.easeOutCubic,
+                              switchOutCurve: Curves.easeInCubic,
+                              transitionBuilder: (child, animation) {
+                                return FadeTransition(
+                                  opacity: animation,
+                                  child: SlideTransition(
+                                    position: Tween<Offset>(
+                                      begin: const Offset(0, 0.08),
+                                      end: Offset.zero,
+                                    ).animate(animation),
+                                    child: child,
+                                  ),
+                                );
+                              },
+                              child: _showOnboarding
+                                  ? _OnboardingPane(
+                                      key: const ValueKey('onboarding-pane'),
+                                      onContinue: _openLoginFromOnboarding,
+                                    )
+                                  : _buildLoginPane(),
                             ),
                           ),
                         ),
@@ -731,14 +654,11 @@ class _AuthBackground extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final scheme = Theme.of(context).colorScheme;
-    final colors = showOnboarding
-        ? const [Color(0xFF0A3D99), Color(0xFF1262D3), Color(0xFF2690FF)]
-        : [
-            scheme.surface,
-            scheme.surface.withValues(alpha: 0.96),
-            scheme.surfaceContainerHighest.withValues(alpha: 0.7),
-          ];
+    final colors = const [
+      Color(0xFF0A3D99),
+      Color(0xFF1262D3),
+      Color(0xFF2690FF),
+    ];
 
     return Container(
       decoration: BoxDecoration(
@@ -789,16 +709,6 @@ class _AuthBackground extends StatelessWidget {
           Positioned.fill(
             child: IgnorePointer(
               child: _GridTexture(),
-            ),
-          ),
-          Positioned.fill(
-            child: BackdropFilter(
-              filter: ImageFilter.blur(sigmaX: 18, sigmaY: 18),
-              child: Container(
-                color: showOnboarding
-                    ? const Color(0xFF001124).withValues(alpha: 0.12)
-                    : scheme.surface.withValues(alpha: 0.1),
-              ),
             ),
           ),
         ],
@@ -896,7 +806,9 @@ class _GridTexturePainter extends CustomPainter {
 
     const ringGap = 58.0;
     final center = Offset(size.width * 0.78, size.height * 0.12);
-    for (double radius = 36; radius < size.longestSide * 0.9; radius += ringGap) {
+    for (double radius = 36;
+        radius < size.longestSide * 0.9;
+        radius += ringGap) {
       canvas.drawCircle(center, radius, ringPaint);
     }
 
@@ -947,7 +859,204 @@ class _AuthTopPanel extends StatelessWidget {
                 _RotatingTypewriterPanel(),
               ],
             )
-          : const SizedBox.shrink(),
+          : const _HappyStoriesPanel(
+              key: ValueKey('stories-top'),
+            ),
+    );
+  }
+}
+
+class _HappyStoriesPanel extends StatefulWidget {
+  const _HappyStoriesPanel({super.key});
+
+  @override
+  State<_HappyStoriesPanel> createState() => _HappyStoriesPanelState();
+}
+
+class _HappyStoriesPanelState extends State<_HappyStoriesPanel> {
+  static const List<({String name, String quote})> _stories = [
+    (
+      name: 'Rakesh, Site Supervisor',
+      quote: 'Attendance updates are finally smooth. My day starts calmer now.'
+    ),
+    (
+      name: 'Anita, Project Coordinator',
+      quote:
+          'Progress tracking feels clean and fast. Teams stay perfectly aligned.'
+    ),
+    (
+      name: 'Mohan, Field Engineer',
+      quote:
+          'From material checks to logs, everything is now one effortless flow.'
+    ),
+  ];
+
+  late final PageController _pageController;
+  Timer? _autoPlayTimer;
+  int _currentPage = 0;
+
+  @override
+  void initState() {
+    super.initState();
+    _pageController = PageController(viewportFraction: 0.86);
+    _autoPlayTimer = Timer.periodic(const Duration(milliseconds: 3400), (_) {
+      if (!mounted || !_pageController.hasClients) return;
+      final next = (_currentPage + 1) % _stories.length;
+      _pageController.animateToPage(
+        next,
+        duration: const Duration(milliseconds: 620),
+        curve: Curves.easeInOutCubic,
+      );
+    });
+  }
+
+  @override
+  void dispose() {
+    _autoPlayTimer?.cancel();
+    _pageController.dispose();
+    super.dispose();
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return SizedBox(
+      height: 210,
+      child: Stack(
+        children: [
+          PageView.builder(
+            controller: _pageController,
+            itemCount: _stories.length,
+            physics: const BouncingScrollPhysics(),
+            onPageChanged: (value) => setState(() => _currentPage = value),
+            itemBuilder: (context, index) {
+              final story = _stories[index];
+              return AnimatedBuilder(
+                animation: _pageController,
+                builder: (context, child) {
+                  var page = _currentPage.toDouble();
+                  if (_pageController.hasClients) {
+                    page = _pageController.page ?? page;
+                  }
+                  final distance = (page - index).abs().clamp(0.0, 1.0);
+                  final scale = 1 - (distance * 0.14);
+                  final lift = 14 * distance;
+                  return Transform.translate(
+                    offset: Offset(0, lift),
+                    child: Transform.scale(
+                      scale: scale,
+                      child: Opacity(
+                        opacity: 1 - (distance * 0.42),
+                        child: child,
+                      ),
+                    ),
+                  );
+                },
+                child: Padding(
+                  padding: const EdgeInsets.symmetric(horizontal: 6),
+                  child: _StoryCardSurface(story: story),
+                ),
+              );
+            },
+          ),
+          Positioned(
+            left: 0,
+            right: 0,
+            bottom: 4,
+            child: _StoryPageIndicator(
+              itemCount: _stories.length,
+              currentIndex: _currentPage,
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+class _StoryCardSurface extends StatelessWidget {
+  const _StoryCardSurface({required this.story});
+
+  final ({String name, String quote}) story;
+
+  @override
+  Widget build(BuildContext context) {
+    return ClipRRect(
+      borderRadius: BorderRadius.circular(20),
+      child: BackdropFilter(
+        filter: ImageFilter.blur(sigmaX: 10, sigmaY: 10),
+        child: Container(
+          padding: const EdgeInsets.all(14),
+          decoration: BoxDecoration(
+            borderRadius: BorderRadius.circular(20),
+            color: const Color(0xFFFFFFFF).withValues(alpha: 0.13),
+            border: Border.all(
+              color: const Color(0xFFFFFFFF).withValues(alpha: 0.3),
+              width: 1,
+            ),
+          ),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              const Icon(
+                Icons.format_quote_rounded,
+                color: Color(0xFFEAF4FF),
+                size: 24,
+              ),
+              const SizedBox(height: 8),
+              Text(
+                story.quote,
+                style: GoogleFonts.poppins(
+                  fontSize: 13,
+                  height: 1.45,
+                  color: const Color(0xFFF3F9FF),
+                  fontWeight: FontWeight.w500,
+                ),
+              ),
+              const Spacer(),
+              Text(
+                story.name,
+                style: GoogleFonts.poppins(
+                  color: const Color(0xFFBCE0FF),
+                  fontSize: 11.5,
+                  fontWeight: FontWeight.w700,
+                ),
+              ),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+}
+
+class _StoryPageIndicator extends StatelessWidget {
+  const _StoryPageIndicator({
+    required this.itemCount,
+    required this.currentIndex,
+  });
+
+  final int itemCount;
+  final int currentIndex;
+
+  @override
+  Widget build(BuildContext context) {
+    return Row(
+      mainAxisAlignment: MainAxisAlignment.center,
+      children: List.generate(itemCount, (index) {
+        final selected = index == currentIndex;
+        return AnimatedContainer(
+          duration: const Duration(milliseconds: 220),
+          margin: const EdgeInsets.symmetric(horizontal: 3),
+          width: selected ? 16 : 6,
+          height: 6,
+          decoration: BoxDecoration(
+            borderRadius: BorderRadius.circular(8),
+            color: selected
+                ? const Color(0xFFEAF5FF)
+                : const Color(0xFFEAF5FF).withValues(alpha: 0.45),
+          ),
+        );
+      }),
     );
   }
 }
@@ -973,10 +1082,12 @@ class _FullScreenLoginLottie extends StatelessWidget {
               frameRate: FrameRate.max,
               alignment: Alignment.center,
               errorBuilder: (context, error, stackTrace) {
-                debugPrint('[Lottie][_FullScreenLoginLottie] Failed to load assets/images/Login.json');
+                debugPrint(
+                    '[Lottie][_FullScreenLoginLottie] Failed to load assets/images/Login.json');
                 debugPrint('[Lottie][_FullScreenLoginLottie] Error: $error');
                 if (stackTrace != null) {
-                  debugPrint('[Lottie][_FullScreenLoginLottie] StackTrace: $stackTrace');
+                  debugPrint(
+                      '[Lottie][_FullScreenLoginLottie] StackTrace: $stackTrace');
                 }
                 return Container(
                   color: const Color(0xFFF6F8FC),
@@ -1019,11 +1130,10 @@ class _HeaderLogoAvatar extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Container(
-      width: 44,
-      height: 44,
+      width: 54,
+      height: 54,
       decoration: BoxDecoration(
         shape: BoxShape.circle,
-        border: Border.all(color: Colors.white, width: 2),
         boxShadow: const [
           BoxShadow(
             blurRadius: 10,
@@ -1144,13 +1254,15 @@ class _RotatingTypewriterPanel extends StatefulWidget {
   const _RotatingTypewriterPanel();
 
   @override
-  State<_RotatingTypewriterPanel> createState() => _RotatingTypewriterPanelState();
+  State<_RotatingTypewriterPanel> createState() =>
+      _RotatingTypewriterPanelState();
 }
 
 class _RotatingTypewriterPanelState extends State<_RotatingTypewriterPanel> {
   static const Color _accent = Color(0xFF4AA3FF);
 
-  static const List<({String keyword, String sentence, String subtitle})> _items = [
+  static const List<({String keyword, String sentence, String subtitle})>
+      _items = [
     (
       keyword: 'Workforce',
       sentence: 'Workforce visibility at every shift.',
@@ -1279,8 +1391,9 @@ class _SingleTypewriterLineState extends State<_SingleTypewriterLine>
     return AnimatedBuilder(
       animation: _controller,
       builder: (context, child) {
-        final typedCount =
-            (widget.sentence.length * _controller.value).floor().clamp(0, widget.sentence.length);
+        final typedCount = (widget.sentence.length * _controller.value)
+            .floor()
+            .clamp(0, widget.sentence.length);
         final visible = widget.sentence.substring(0, typedCount);
 
         final String keywordVisible;
@@ -1358,7 +1471,8 @@ class _TopLottieCard extends StatelessWidget {
       decoration: BoxDecoration(
         borderRadius: BorderRadius.circular(20),
         color: const Color(0xFFFFFFFF).withValues(alpha: 0.14),
-        border: Border.all(color: const Color(0xFF9EC5F0).withValues(alpha: 0.55)),
+        border:
+            Border.all(color: const Color(0xFF9EC5F0).withValues(alpha: 0.55)),
         boxShadow: const [
           BoxShadow(
             blurRadius: 20,
@@ -1377,7 +1491,8 @@ class _TopLottieCard extends StatelessWidget {
             repeat: true,
             frameRate: FrameRate.max,
             errorBuilder: (context, error, stackTrace) {
-              debugPrint('[Lottie][_TopLottieCard] Failed to load asset: $assetPath');
+              debugPrint(
+                  '[Lottie][_TopLottieCard] Failed to load asset: $assetPath');
               debugPrint('[Lottie][_TopLottieCard] Error: $error');
               if (stackTrace != null) {
                 debugPrint('[Lottie][_TopLottieCard] StackTrace: $stackTrace');
@@ -1449,7 +1564,8 @@ class _TypewriterTextState extends State<_TypewriterText>
       animation: _controller,
       builder: (context, child) {
         final count = (widget.text.length * _controller.value).floor();
-        final visible = widget.text.substring(0, count.clamp(0, widget.text.length));
+        final visible =
+            widget.text.substring(0, count.clamp(0, widget.text.length));
         return Text(
           visible,
           textAlign: widget.textAlign,
@@ -1518,7 +1634,7 @@ class _OnboardingPane extends StatelessWidget {
         crossAxisAlignment: CrossAxisAlignment.stretch,
         children: [
           const _TypewriterText(
-            text: 'Everything you need on site, beautifully organized.',
+            text: 'Everything you need on site, Perfectly organized.',
             textAlign: TextAlign.center,
             style: TextStyle(
               fontSize: 24,
@@ -1778,11 +1894,13 @@ class _MiniBar extends StatelessWidget {
 class _PhoneField extends StatefulWidget {
   const _PhoneField({
     required this.controller,
+    required this.focusNode,
     required this.isValid,
     required this.onChanged,
   });
 
   final TextEditingController controller;
+  final FocusNode focusNode;
   final bool isValid;
   final ValueChanged<String> onChanged;
 
@@ -1792,6 +1910,34 @@ class _PhoneField extends StatefulWidget {
 
 class _PhoneFieldState extends State<_PhoneField> {
   bool _isFocused = false;
+
+  @override
+  void initState() {
+    super.initState();
+    widget.focusNode.addListener(_handleFocusChanged);
+    _isFocused = widget.focusNode.hasFocus;
+  }
+
+  @override
+  void didUpdateWidget(covariant _PhoneField oldWidget) {
+    super.didUpdateWidget(oldWidget);
+    if (oldWidget.focusNode != widget.focusNode) {
+      oldWidget.focusNode.removeListener(_handleFocusChanged);
+      widget.focusNode.addListener(_handleFocusChanged);
+      _isFocused = widget.focusNode.hasFocus;
+    }
+  }
+
+  @override
+  void dispose() {
+    widget.focusNode.removeListener(_handleFocusChanged);
+    super.dispose();
+  }
+
+  void _handleFocusChanged() {
+    if (!mounted) return;
+    setState(() => _isFocused = widget.focusNode.hasFocus);
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -1822,23 +1968,19 @@ class _PhoneFieldState extends State<_PhoneField> {
             ),
           ),
           Expanded(
-            child: Focus(
-              onFocusChange: (focused) {
-                if (mounted) setState(() => _isFocused = focused);
-              },
-              child: TextField(
-                controller: widget.controller,
-                keyboardType: TextInputType.phone,
-                maxLength: 10,
-                onChanged: widget.onChanged,
-                style: const TextStyle(color: Color(0xFF151823), fontSize: 15),
-                decoration: const InputDecoration(
-                  counterText: '',
-                  border: InputBorder.none,
-                  hintText: 'Enter phone number',
-                  hintStyle: TextStyle(color: Color(0xFFA0A8C2)),
-                  contentPadding: EdgeInsets.symmetric(vertical: 16),
-                ),
+            child: TextField(
+              controller: widget.controller,
+              focusNode: widget.focusNode,
+              keyboardType: TextInputType.phone,
+              maxLength: 10,
+              onChanged: widget.onChanged,
+              style: const TextStyle(color: Color(0xFF151823), fontSize: 15),
+              decoration: const InputDecoration(
+                counterText: '',
+                border: InputBorder.none,
+                hintText: 'Enter phone number',
+                hintStyle: TextStyle(color: Color(0xFFA0A8C2)),
+                contentPadding: EdgeInsets.symmetric(vertical: 16),
               ),
             ),
           ),
@@ -1917,10 +2059,9 @@ class _OtpField extends StatelessWidget {
         inactiveColor: const Color(0xFFE0E6F7),
         selectedColor: const Color(0xFF4A69DC),
       ),
-      textStyle:
-          const TextStyle(color: Color(0xFF151823), fontWeight: FontWeight.w700),
+      textStyle: const TextStyle(
+          color: Color(0xFF151823), fontWeight: FontWeight.w700),
       onChanged: onChanged,
     );
   }
 }
-

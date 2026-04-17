@@ -873,7 +873,7 @@ class _ExpenseFormScreenState extends ConsumerState<ExpenseFormScreen> {
           ),
         ],
         showBackButton: true,
-        onBackPressed: _isLoading ? null : () => Navigator.pop(context),
+        onBackPressed: _isLoading ? null : () => context.pop(),
         child: SafeArea(
           child: Padding(
             padding: const EdgeInsets.all(16),

@@ -1,6 +1,7 @@
 // lib/features/modules/all_Modules/salary/screens/select_range_screen.dart
 import 'dart:io';
 import 'package:flutter/material.dart';
+import 'package:go_router/go_router.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:table_calendar/table_calendar.dart';
 import 'package:untitled2/core/utlis/widgets/custom_appBar.dart';
@@ -298,7 +299,7 @@ class _SelectRangeScreenState extends ConsumerState<SelectRangeScreen> {
         content: Text(message),
         actions: [
           TextButton(
-            onPressed: () => Navigator.pop(context),
+            onPressed: () => context.pop(),
             child: const Text('OK'),
           ),
         ],
@@ -489,7 +490,7 @@ class _SelectRangeScreenState extends ConsumerState<SelectRangeScreen> {
                         child: OutlinedButton(
                           onPressed: _isGenerating
                               ? null
-                              : () => Navigator.pop(context),
+                              : () => context.pop(),
                           style: OutlinedButton.styleFrom(
                             padding: const EdgeInsets.symmetric(vertical: 14),
                             side: BorderSide(color: colorScheme.outline),

@@ -124,9 +124,14 @@ class _EquipmentMaterialCardState extends State<EquipmentMaterialCard> {
 
   void _initDynamicControllers() {
     if (_config == null) return;
+    final isPatch = widget.material.name.trim().toLowerCase() == 'patch';
+    debugPrint('🔍 [${widget.material.name}] Initializing dynamic controllers (isPatch: $isPatch)');
     for (final field in _config!.fields) {
-      if (field.role == 'QUANTITY' || field.role == 'QTY') continue;
+      if (!isPatch && (field.role == 'QUANTITY' || field.role == 'QTY')) {
+        continue;
+      }
       final raw = _cardState.getValue(field.key);
+      debugPrint('   -> Field: ${field.key} (Role: ${field.role}), Value: $raw');
       _valueControllers[field.key] =
           TextEditingController(text: raw != null ? raw.toString() : '');
       _labelControllers[field.key] = TextEditingController(
@@ -234,10 +239,13 @@ class _EquipmentMaterialCardState extends State<EquipmentMaterialCard> {
     _draftMaterial = _draftMaterial.copyWith(qty: qty);
 
     if (_isDynamic && _config != null) {
+      final isPatch = widget.material.name.trim().toLowerCase() == 'patch';
       // 2. dynamic field values
       var state = _cardState;
       for (final field in _config!.fields) {
-        if (field.role == 'QUANTITY' || field.role == 'QTY') continue;
+        if (!isPatch && (field.role == 'QUANTITY' || field.role == 'QTY')) {
+          continue;
+        }
         final text = _valueControllers[field.key]?.text ?? '';
         final parsed = num.tryParse(text);
 
@@ -251,7 +259,9 @@ class _EquipmentMaterialCardState extends State<EquipmentMaterialCard> {
 
       // 3. dynamic labels
       for (final field in _config!.fields) {
-        if (field.role == 'QUANTITY' || field.role == 'QTY') continue;
+        if (!isPatch && (field.role == 'QUANTITY' || field.role == 'QTY')) {
+          continue;
+        }
         final labelText = _labelControllers[field.key]?.text ?? '';
         if (labelText.isNotEmpty) {
           state = state.updateLabel(field.key, labelText);
@@ -508,8 +518,11 @@ class _EquipmentMaterialCardState extends State<EquipmentMaterialCard> {
 
     // Recreate dynamic focus nodes
     if (_isDynamic && _config != null) {
+      final isPatch = widget.material.name.trim().toLowerCase() == 'patch';
       for (final field in _config!.fields) {
-        if (field.role == 'QUANTITY' || field.role == 'QTY') continue;
+        if (!isPatch && (field.role == 'QUANTITY' || field.role == 'QTY')) {
+          continue;
+        }
         final fn = FocusNode();
         fn.addListener(() {
           if (!fn.hasFocus) {
@@ -544,9 +557,12 @@ class _EquipmentMaterialCardState extends State<EquipmentMaterialCard> {
 // Add this helper to ensure focus nodes are valid
   void _ensureFocusNodesValid() {
     if (_isDynamic) {
+      final isPatch = widget.material.name.trim().toLowerCase() == 'patch';
       // Recreate any disposed or invalid focus nodes
       for (final field in _config!.fields) {
-        if (field.role == 'QUANTITY' || field.role == 'QTY') continue;
+        if (!isPatch && (field.role == 'QUANTITY' || field.role == 'QTY')) {
+          continue;
+        }
         final node = _focusNodes[field.key];
         if (node == null || !node.canRequestFocus) {
           if (node != null) node.dispose();

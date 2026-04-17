@@ -1,6 +1,7 @@
 // screens/inventory/bulk_upload_screen.dart
 import 'dart:io';
 import 'package:flutter/material.dart';
+import 'package:go_router/go_router.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:file_picker/file_picker.dart';
 import 'package:path_provider/path_provider.dart';
@@ -370,7 +371,7 @@ class _BulkUploadScreenState extends ConsumerState<BulkUploadScreen> {
                     icon: const Icon(Icons.list),
                     label: const Text('View Inventory'),
                     onPressed: () {
-                      Navigator.pop(context);
+                      context.pop();
                     },
                     style: OutlinedButton.styleFrom(
                       foregroundColor: Colors.green,
@@ -537,13 +538,13 @@ class _BulkUploadScreenState extends ConsumerState<BulkUploadScreen> {
   //       ),
   //       actions: [
   //         TextButton(
-  //           onPressed: () => Navigator.pop(context),
+  //           onPressed: () => context.pop(),
   //           child: const Text('OK'),
   //         ),
   //         ElevatedButton(
   //           onPressed: () {
-  //             Navigator.pop(context);
-  //             Navigator.pop(context); // Go back to inventory list
+  //             context.pop();
+  //             context.pop(); // Go back to inventory list
   //           },
   //           child: const Text('View Inventory'),
   //         ),

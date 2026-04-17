@@ -186,7 +186,7 @@ class _InventoryListScreenState extends ConsumerState<InventoryListScreen> {
                                             actions: [
                                               TextButton(
                                                 onPressed: () =>
-                                                    Navigator.pop(ctx, false),
+                                                    ctx.pop(false),
                                                 style: TextButton.styleFrom(
                                                     foregroundColor:
                                                         cs.primary),
@@ -194,7 +194,7 @@ class _InventoryListScreenState extends ConsumerState<InventoryListScreen> {
                                               ),
                                               TextButton(
                                                 onPressed: () =>
-                                                    Navigator.pop(ctx, true),
+                                                    ctx.pop(true),
                                                 style: TextButton.styleFrom(
                                                     foregroundColor: cs.error),
                                                 child: const Text("Delete"),

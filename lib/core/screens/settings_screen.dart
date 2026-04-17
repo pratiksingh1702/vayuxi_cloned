@@ -1,10 +1,13 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
+import 'package:showcaseview/showcaseview.dart';
 
 import '../router/routes.dart';
 import '../utlis/widgets/premium_app_bar.dart';
+import 'theme_switcher.dart';
 import '../../../features/noti_system/noti_settings/notification_settings_screen.dart';
+import '../../../features/auth/provider/auth_provider.dart';
 import '../../../features/profile_page/provider/userProvider.dart';
 
 class SettingsScreen extends ConsumerStatefulWidget {
@@ -17,6 +20,39 @@ class SettingsScreen extends ConsumerStatefulWidget {
 class _SettingsScreenState extends ConsumerState<SettingsScreen> {
   final TextEditingController _searchController = TextEditingController();
   String _query = '';
+
+  Future<void> _confirmAndLogout() async {
+    final colorScheme = Theme.of(context).colorScheme;
+    final shouldLogout = await showDialog<bool>(
+      context: context,
+      builder: (context) => AlertDialog(
+        title: const Text('Logout'),
+        content: const Text('Are you sure you want to logout?'),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(context, false),
+            child: const Text('Cancel'),
+          ),
+          ElevatedButton(
+            style: ElevatedButton.styleFrom(
+              backgroundColor: colorScheme.error,
+              foregroundColor: colorScheme.onError,
+            ),
+            onPressed: () => Navigator.pop(context, true),
+            child: const Text('Logout'),
+          ),
+        ],
+      ),
+    );
+
+    if (shouldLogout != true) return;
+
+    try {
+      ShowCaseWidget.of(context)?.dismiss();
+    } catch (_) {}
+
+    await ref.read(authProvider.notifier).logout();
+  }
 
   @override
   void dispose() {
@@ -115,6 +151,14 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
         section: 'Support',
         route: Routes.upcomingUpdate,
       ),
+      _SettingsItem(
+        title: 'Logout',
+        subtitle: 'Sign out safely from this device.',
+        icon: Icons.logout_rounded,
+        accent: const Color(0xFFB42318),
+        section: 'Support',
+        type: _SettingsActionType.logout,
+      ),
    
     ];
 
@@ -172,6 +216,7 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
               name: userName,
               company: companyName,
               avatarUrl: avatarUrl,
+              onLogoutTap: _confirmAndLogout,
             ),
             const SizedBox(height: 12),
             _SettingsSearchBar(
@@ -182,6 +227,8 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
                 setState(() => _query = '');
               },
             ),
+            const SizedBox(height: 12),
+            const _ThemeSwitcherCard(),
             const SizedBox(height: 14),
             if (grouped.isEmpty)
               _EmptySearchState(query: _query)
@@ -197,6 +244,11 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
                           builder: (_) => const NotificationSettingsScreen(),
                         ),
                       );
+                      return;
+                    }
+
+                    if (item.type == _SettingsActionType.logout) {
+                      _confirmAndLogout();
                       return;
                     }
 
@@ -277,11 +329,13 @@ class _SettingsUserBanner extends StatelessWidget {
     required this.name,
     required this.company,
     required this.avatarUrl,
+    required this.onLogoutTap,
   });
 
   final String name;
   final String company;
   final String? avatarUrl;
+  final VoidCallback onLogoutTap;
 
   @override
   Widget build(BuildContext context) {
@@ -325,20 +379,31 @@ class _SettingsUserBanner extends StatelessWidget {
               ],
             ),
           ),
-          Container(
-            padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 5),
-            decoration: BoxDecoration(
-              color: colorScheme.primary.withOpacity(0.08),
-              borderRadius: BorderRadius.circular(999),
-            ),
-            child: Text(
-              'Account',
-              style: TextStyle(
-                color: colorScheme.primary,
-                fontWeight: FontWeight.w700,
-                fontSize: 10.5,
+          Row(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              Container(
+                padding:
+                    const EdgeInsets.symmetric(horizontal: 8, vertical: 5),
+                decoration: BoxDecoration(
+                  color: colorScheme.primary.withOpacity(0.08),
+                  borderRadius: BorderRadius.circular(999),
+                ),
+                child: Text(
+                  'Account',
+                  style: TextStyle(
+                    color: colorScheme.primary,
+                    fontWeight: FontWeight.w700,
+                    fontSize: 10.5,
+                  ),
+                ),
               ),
-            ),
+              const SizedBox(width: 8),
+              BeautifulLogoutButton(
+                compact: true,
+                onPressed: onLogoutTap,
+              ),
+            ],
           ),
         ],
       ),
@@ -432,6 +497,61 @@ class _SettingsSearchBar extends StatelessWidget {
   }
 }
 
+class _ThemeSwitcherCard extends StatelessWidget {
+  const _ThemeSwitcherCard();
+
+  @override
+  Widget build(BuildContext context) {
+    final colorScheme = Theme.of(context).colorScheme;
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
+      decoration: BoxDecoration(
+        color: colorScheme.surfaceContainerLow,
+        borderRadius: BorderRadius.circular(14),
+      ),
+      child: Row(
+        children: [
+          Container(
+            width: 36,
+            height: 36,
+            decoration: BoxDecoration(
+              color: colorScheme.primary.withOpacity(0.12),
+              borderRadius: BorderRadius.circular(10),
+            ),
+            child: Icon(Icons.brightness_6_rounded, color: colorScheme.primary),
+          ),
+          const SizedBox(width: 10),
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  'Light / Dark Mode',
+                  style: TextStyle(
+                    fontWeight: FontWeight.w800,
+                    color: colorScheme.onSurface,
+                    fontSize: 13,
+                  ),
+                ),
+                const SizedBox(height: 2),
+                Text(
+                  'Switch app appearance instantly.',
+                  style: TextStyle(
+                    color: colorScheme.onSurfaceVariant,
+                    fontSize: 11.5,
+                    fontWeight: FontWeight.w600,
+                  ),
+                ),
+              ],
+            ),
+          ),
+          const BeautifulThemeSwitcher(),
+        ],
+      ),
+    );
+  }
+}
+
 class _SettingsSection extends StatelessWidget {
   const _SettingsSection({
     required this.title,
@@ -512,7 +632,7 @@ class _EmptySearchState extends StatelessWidget {
   }
 }
 
-enum _SettingsActionType { notifications, regular }
+enum _SettingsActionType { notifications, logout, regular }
 
 class _SettingsItem {
   const _SettingsItem({

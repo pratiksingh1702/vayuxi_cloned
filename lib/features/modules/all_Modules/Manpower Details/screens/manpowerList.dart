@@ -113,12 +113,12 @@ class _ManpowerListScreenState extends ConsumerState<ManpowerListScreen> {
           ),
           actions: [
             TextButton(
-              onPressed: () => Navigator.pop(context, false),
+              onPressed: () => context.pop(false),
               style: TextButton.styleFrom(foregroundColor: colorScheme.primary),
               child: const Text('Cancel'),
             ),
             TextButton(
-              onPressed: () => Navigator.pop(context, true),
+              onPressed: () => context.pop(true),
               style: TextButton.styleFrom(foregroundColor: colorScheme.error),
               child: const Text('Delete'),
             ),
@@ -196,19 +196,19 @@ class _ManpowerListScreenState extends ConsumerState<ManpowerListScreen> {
         actions: [
           // ❌ Cancel
           TextButton(
-            onPressed: () => Navigator.pop(context, false),
+            onPressed: () => context.pop(false),
             child: const Text("Cancel"),
           ),
 
           // ⏭ Skip
           TextButton(
-            onPressed: () => Navigator.pop(context, true),
+            onPressed: () => context.pop(true),
             child: const Text("Skip"),
           ),
 
           // ✅ Submit
           ElevatedButton(
-            onPressed: () => Navigator.pop(context, true),
+            onPressed: () => context.pop(true),
             child: const Text("Mark Left"),
           ),
         ],
@@ -302,7 +302,7 @@ class _ManpowerListScreenState extends ConsumerState<ManpowerListScreen> {
                 trailing: Icon(Icons.chevron_right_rounded,
                     color: colorScheme.onSurfaceVariant),
                 onTap: () {
-                  Navigator.pop(context);
+                  context.pop();
                   _showShareOrDownloadDialog(format: 'excel');
                 },
               ),
@@ -335,14 +335,14 @@ class _ManpowerListScreenState extends ConsumerState<ManpowerListScreen> {
                 trailing: Icon(Icons.chevron_right_rounded,
                     color: colorScheme.onSurfaceVariant),
                 onTap: () {
-                  Navigator.pop(context);
+                  context.pop();
                   _showShareOrDownloadDialog(format: 'pdf');
                 },
               ),
 
               const SizedBox(height: 16),
               TextButton(
-                onPressed: () => Navigator.pop(context),
+                onPressed: () => context.pop(),
                 style:
                     TextButton.styleFrom(foregroundColor: colorScheme.primary),
                 child: const Text("Cancel", style: TextStyle(fontSize: 16)),
@@ -423,7 +423,7 @@ class _ManpowerListScreenState extends ConsumerState<ManpowerListScreen> {
                 trailing: Icon(Icons.chevron_right_rounded,
                     color: colorScheme.onSurfaceVariant),
                 onTap: () {
-                  Navigator.pop(context);
+                  context.pop();
                   _downloadAndShareManpower(format: format);
                 },
               ),
@@ -453,14 +453,14 @@ class _ManpowerListScreenState extends ConsumerState<ManpowerListScreen> {
                 trailing: Icon(Icons.chevron_right_rounded,
                     color: colorScheme.onSurfaceVariant),
                 onTap: () {
-                  Navigator.pop(context);
+                  context.pop();
                   _downloadManpowerFile(format: format);
                 },
               ),
 
               const SizedBox(height: 16),
               TextButton(
-                onPressed: () => Navigator.pop(context),
+                onPressed: () => context.pop(),
                 style:
                     TextButton.styleFrom(foregroundColor: colorScheme.primary),
                 child: const Text("Cancel", style: TextStyle(fontSize: 16)),
@@ -598,9 +598,33 @@ class _ManpowerListScreenState extends ConsumerState<ManpowerListScreen> {
               );
             },
             error: (e, s) => Center(
-              child: Text(
-                "Error: $e",
-                style: TextStyle(color: colorScheme.error),
+              child: Column(
+                mainAxisAlignment: MainAxisAlignment.center,
+                children: [
+                  Icon(
+                    Icons.error_outline,
+                    size: 56,
+                    color: colorScheme.error,
+                  ),
+                  const SizedBox(height: 12),
+                  Text(
+                    "Manpower data is empty",
+                    style: TextStyle(
+                      fontSize: 18,
+                      fontWeight: FontWeight.w600,
+                      color: colorScheme.onSurface,
+                    ),
+                  ),
+                  const SizedBox(height: 6),
+                  Padding(
+                    padding: const EdgeInsets.symmetric(horizontal: 20),
+                    child: Text(
+                      "Could not load manpower records right now. Please try again.",
+                      textAlign: TextAlign.center,
+                      style: TextStyle(color: colorScheme.onSurfaceVariant),
+                    ),
+                  ),
+                ],
               ),
             ),
             data: (manpowerList) {
@@ -644,9 +668,22 @@ class _ManpowerListScreenState extends ConsumerState<ManpowerListScreen> {
                 }
 
                 return const Center(
-                  child: Text(
-                    "No manpower found",
-                    style: TextStyle(fontSize: 18, fontWeight: FontWeight.w500),
+                  child: Column(
+                    mainAxisAlignment: MainAxisAlignment.center,
+                    children: [
+                      Icon(Icons.people_outline, size: 64),
+                      SizedBox(height: 16),
+                      Text(
+                        "Manpower data is empty",
+                        style: TextStyle(
+                            fontSize: 18, fontWeight: FontWeight.w600),
+                      ),
+                      SizedBox(height: 6),
+                      Text(
+                        "No manpower records found. Please add manpower.",
+                        textAlign: TextAlign.center,
+                      ),
+                    ],
                   ),
                 );
               }
@@ -872,7 +909,7 @@ class _ManpowerListScreenState extends ConsumerState<ManpowerListScreen> {
           ),
           actions: [
             TextButton(
-              onPressed: () => Navigator.pop(context, false),
+              onPressed: () => context.pop(false),
               style: TextButton.styleFrom(foregroundColor: colorScheme.primary),
               child: const Text("Cancel"),
             ),
@@ -881,7 +918,7 @@ class _ManpowerListScreenState extends ConsumerState<ManpowerListScreen> {
                 backgroundColor: colorScheme.error,
                 foregroundColor: colorScheme.onError,
               ),
-              onPressed: () => Navigator.pop(context, true),
+              onPressed: () => context.pop(true),
               child: const Text("Delete"),
             ),
           ],

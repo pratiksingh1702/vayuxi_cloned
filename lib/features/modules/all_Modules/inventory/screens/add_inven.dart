@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:go_router/go_router.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:untitled2/core/utlis/widgets/Button_wrapper.dart';
 import 'package:untitled2/core/utlis/widgets/buttons.dart';
@@ -104,7 +105,7 @@ class _CreateInventoryScreenState extends ConsumerState<CreateInventoryScreen> {
             : _remarksController.text.trim(),
       )).future);
 
-      Navigator.pop(context);
+      context.pop();
       _success("Inventory created");
     } catch (e) {
       print(e);

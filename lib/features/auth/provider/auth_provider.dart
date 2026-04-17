@@ -28,12 +28,13 @@ import 'package:flutter/cupertino.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:untitled2/features/modules/screen/device_id_helper.dart';
+import 'package:untitled2/features/profile_page/offline/repository/user_local_repository.dart';
 import '../../../core/router/app_access.dart';
 import '../../modules/all_Modules/Manpower Details/model/manpower_model.dart';
 import '../../profile_page/userModel/userModel.dart';
 
 import '../service/auth_client.dart';
-import '../service/guard.dart';
+import '../service/guard.dart' hide AuthAPI;
 
 // ─────────────────────────────────────────────────────────────────────────────
 // AUTH STATE
@@ -81,6 +82,7 @@ class AuthState {
 
 class AuthNotifier extends StateNotifier<AuthState> {
   final Ref ref;
+  final UserLocalRepository _userLocalRepository = const UserLocalRepository();
 
   AuthNotifier(this.ref) : super(AuthState(isLoading: true)) {
     _initializeAuthState();
@@ -151,6 +153,7 @@ class AuthNotifier extends StateNotifier<AuthState> {
     await prefs.setString('auth_token', token);
     await prefs.setString('auth_role', 'user');
     await prefs.setString('user_data', json.encode(user.toJson()));
+    await _userLocalRepository.saveUser(user);
     await prefs.setBool('requires_profile_completion', false);
     await prefs.remove('profile_completion_grace_ends_at');
     await prefs.remove('pending_phone_number');
@@ -181,6 +184,7 @@ class AuthNotifier extends StateNotifier<AuthState> {
     await prefs.remove('pending_phone_number');
     await prefs.remove('show_complete_profile_prompt');
     await prefs.remove('manpower_data');
+    await _userLocalRepository.clearUsers();
   }
 
   // ── Check login ───────────────────────────────────────────────────────────
@@ -310,19 +314,19 @@ class AuthNotifier extends StateNotifier<AuthState> {
       final data = res['data'] is Map<String, dynamic>
           ? res['data'] as Map<String, dynamic>
           : const <String, dynamic>{};
-        final rawUser = res['user'] is Map<String, dynamic>
+      final rawUser = res['user'] is Map<String, dynamic>
           ? res['user'] as Map<String, dynamic>
           : (data['user'] is Map<String, dynamic>
-            ? data['user'] as Map<String, dynamic>
-            : const <String, dynamic>{});
+              ? data['user'] as Map<String, dynamic>
+              : const <String, dynamic>{});
       final isNewUser = _asBool(res['isNewUser']) || _asBool(data['isNewUser']);
-        final fullName = (rawUser['fullName'] ?? '').toString().trim();
-        final email = (rawUser['email'] ?? '').toString().trim();
-        final missingRequiredProfileFields = fullName.isEmpty || email.isEmpty;
+      final fullName = (rawUser['fullName'] ?? '').toString().trim();
+      final email = (rawUser['email'] ?? '').toString().trim();
+      final missingRequiredProfileFields = fullName.isEmpty || email.isEmpty;
       final requiresProfileCompletion =
           _asBool(res['requiresProfileCompletion']) ||
               _asBool(data['requiresProfileCompletion']) ||
-            missingRequiredProfileFields ||
+              missingRequiredProfileFields ||
               isNewUser;
       final gracePeriodEndsAt =
           (res['gracePeriodEndsAt'] ?? data['gracePeriodEndsAt'] ?? '')
@@ -341,7 +345,8 @@ class AuthNotifier extends StateNotifier<AuthState> {
 
       final prefs = await SharedPreferences.getInstance();
       await prefs.setString('pending_phone_number', phoneNumber);
-      await prefs.setBool('requires_profile_completion', requiresProfileCompletion);
+      await prefs.setBool(
+          'requires_profile_completion', requiresProfileCompletion);
       if (gracePeriodEndsAt.trim().isNotEmpty) {
         await prefs.setString(
           'profile_completion_grace_ends_at',
@@ -375,7 +380,7 @@ class AuthNotifier extends StateNotifier<AuthState> {
         await ref.read(appAccessProvider.notifier).initialize();
       } else {
         final user = rawUser.isNotEmpty
-          ? User.fromJson(rawUser)
+            ? User.fromJson(rawUser)
             : User(
                 id: '',
                 email: '',
@@ -386,8 +391,10 @@ class AuthNotifier extends StateNotifier<AuthState> {
 
         await prefs.setString('auth_role', 'user');
         await prefs.setString('user_data', json.encode(user.toJson()));
+        await _userLocalRepository.saveUser(user);
         await prefs.setBool('show_complete_profile_prompt', true);
-        await prefs.setBool('requires_profile_completion', requiresProfileCompletion);
+        await prefs.setBool(
+            'requires_profile_completion', requiresProfileCompletion);
 
         state = state.copyWith(
           isLoading: false,

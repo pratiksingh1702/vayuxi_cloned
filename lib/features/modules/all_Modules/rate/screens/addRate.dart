@@ -96,7 +96,7 @@ class _AddRateScreenState extends ConsumerState<AddRateScreen> {
                       uomController.text = uom;
                       isCustomUOM = false;
                     });
-                    Navigator.pop(context);
+                    context.pop();
                   },
                 );
               },
@@ -152,7 +152,7 @@ class _AddRateScreenState extends ConsumerState<AddRateScreen> {
 
         // Navigate back after successful save
         if (mounted) {
-          Navigator.pop(context);
+          context.pop();
           context.push("/site-list/rate");
         }
       }

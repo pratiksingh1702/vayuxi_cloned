@@ -25,7 +25,7 @@ class ExpenseEntrySelectCardGrid extends ConsumerWidget {
       appBar: CustomAppBar(title: "Select Card"),
       body: BottomButtonWrapper(
         onBackPressed: () {
-          Navigator.pop(context);
+          context.pop();
         },
         child: Container(
           padding:

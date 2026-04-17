@@ -1,5 +1,6 @@
 // screens/moc_selection_page.dart
 import 'package:flutter/material.dart';
+import 'package:go_router/go_router.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../../../../../core/utlis/widgets/Button_wrapper.dart';
@@ -63,11 +64,11 @@ class _MOCSelectionPageState extends ConsumerState<MOCSelectionPage>
             "Are you sure you want to delete ${selectedIds.length} items?"),
         actions: [
           TextButton(
-            onPressed: () => Navigator.pop(context, false),
+            onPressed: () => context.pop(false),
             child: const Text("Cancel"),
           ),
           TextButton(
-            onPressed: () => Navigator.pop(context, true),
+            onPressed: () => context.pop(true),
             child: const Text("Delete", style: TextStyle(color: Colors.red)),
           ),
         ],
@@ -121,11 +122,11 @@ class _MOCSelectionPageState extends ConsumerState<MOCSelectionPage>
         content: const Text("This will remove all MOCs. Continue?"),
         actions: [
           TextButton(
-            onPressed: () => Navigator.pop(context, false),
+            onPressed: () => context.pop(false),
             child: const Text("Cancel"),
           ),
           TextButton(
-            onPressed: () => Navigator.pop(context, true),
+            onPressed: () => context.pop(true),
             child: const Text("Delete", style: TextStyle(color: Colors.red)),
           ),
         ],
@@ -165,11 +166,11 @@ class _MOCSelectionPageState extends ConsumerState<MOCSelectionPage>
             const Text("This will reset MOCs and restore defaults. Continue?"),
         actions: [
           TextButton(
-            onPressed: () => Navigator.pop(context, false),
+            onPressed: () => context.pop(false),
             child: const Text("Cancel"),
           ),
           TextButton(
-            onPressed: () => Navigator.pop(context, true),
+            onPressed: () => context.pop(true),
             child: const Text("Reset", style: TextStyle(color: Colors.blue)),
           ),
         ],
@@ -207,11 +208,11 @@ class _MOCSelectionPageState extends ConsumerState<MOCSelectionPage>
         content: Text("Are you sure you want to delete ${moc.name}?"),
         actions: [
           TextButton(
-            onPressed: () => Navigator.pop(context, false),
+            onPressed: () => context.pop(false),
             child: const Text("Cancel"),
           ),
           TextButton(
-            onPressed: () => Navigator.pop(context, true),
+            onPressed: () => context.pop(true),
             child: const Text("Delete", style: TextStyle(color: Colors.red)),
           ),
         ],

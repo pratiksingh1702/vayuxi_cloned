@@ -84,7 +84,7 @@ class _DeviceOtpScreenState extends State<DeviceOtpScreen> {
       widget.redirectExtraData?['targetTabIndex'] as int?;
 
       if (targetTabIndex != null) {
-        Navigator.pop(context, targetTabIndex);
+        context.pop(targetTabIndex);
         return;
       }
 
@@ -100,7 +100,7 @@ class _DeviceOtpScreenState extends State<DeviceOtpScreen> {
         return;
       }
 
-      Navigator.pop(context, true);
+      context.pop(true);
     } catch (e) {
       setState(() {
         message = "Invalid OTP. Please try again.";
