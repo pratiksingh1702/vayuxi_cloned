@@ -19,6 +19,8 @@ class CalculationCategorySelector extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final colorScheme = Theme.of(context).colorScheme;
+
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
@@ -34,7 +36,7 @@ class CalculationCategorySelector extends StatelessWidget {
           'Determines how price is calculated for this material',
           style: TextStyle(
             fontSize: 12,
-            color: Colors.grey.shade600,
+            color: colorScheme.onSurfaceVariant,
           ),
         ),
         const SizedBox(height: 10),
@@ -46,9 +48,9 @@ class CalculationCategorySelector extends StatelessWidget {
           return Container(
             margin: const EdgeInsets.only(bottom: 12),
             decoration: BoxDecoration(
-              color: Colors.white,
+              color: colorScheme.surface,
               borderRadius: BorderRadius.circular(12),
-              border: Border.all(color: const Color(0xFF197278)),
+              border: Border.all(color: colorScheme.outlineVariant),
             ),
             child: Column(
               children: [
@@ -65,18 +67,18 @@ class CalculationCategorySelector extends StatelessWidget {
                             shape: BoxShape.circle,
                             border: Border.all(
                               color: isSelected
-                                  ? const Color(0xFF1B6DCE)
-                                  : const Color(0xFFD1D5DB),
+                                  ? colorScheme.primary
+                                  : colorScheme.outlineVariant,
                               width: 2,
                             ),
                           ),
                           child: isSelected
-                              ? const Center(
-                            child: CircleAvatar(
-                              radius: 4,
-                              backgroundColor: Color(0xFF1B6DCE),
-                            ),
-                          )
+                              ? Center(
+                                  child: CircleAvatar(
+                                    radius: 4,
+                                    backgroundColor: colorScheme.primary,
+                                  ),
+                                )
                               : null,
                         ),
                         const SizedBox(width: 12),
@@ -87,15 +89,16 @@ class CalculationCategorySelector extends StatelessWidget {
                             children: [
                               Text(
                                 category.label,
-                                style: const TextStyle(
+                                style: TextStyle(
                                   fontWeight: FontWeight.w600,
+                                  color: colorScheme.onSurface,
                                 ),
                               ),
                               Text(
                                 category.description,
-                                style: const TextStyle(
+                                style: TextStyle(
                                   fontSize: 12,
-                                  color: Colors.grey,
+                                  color: colorScheme.onSurfaceVariant,
                                 ),
                               ),
                             ],
@@ -110,13 +113,13 @@ class CalculationCategorySelector extends StatelessWidget {
                               vertical: 5,
                             ),
                             decoration: BoxDecoration(
-                              color: const Color(0xFF1B6DCE),
+                              color: colorScheme.primary,
                               borderRadius: BorderRadius.circular(4),
                             ),
                             child: Text(
                               isExpanded ? "Show Less" : "Know More",
-                              style: const TextStyle(
-                                color: Colors.white,
+                              style: TextStyle(
+                                color: colorScheme.onPrimary,
                                 fontSize: 12,
                               ),
                             ),
@@ -133,10 +136,13 @@ class CalculationCategorySelector extends StatelessWidget {
                     margin: const EdgeInsets.symmetric(horizontal: 15)
                         .copyWith(bottom: 15),
                     decoration: BoxDecoration(
-                      color: const Color(0xFFF8FAFC),
+                      color: colorScheme.surfaceContainerLow,
                       borderRadius: BorderRadius.circular(6),
                     ),
-                    child: Text(category.fullDetails.example),
+                    child: Text(
+                      category.fullDetails.example,
+                      style: TextStyle(color: colorScheme.onSurface),
+                    ),
                   ),
               ],
             ),
@@ -149,7 +155,7 @@ class CalculationCategorySelector extends StatelessWidget {
             child: Text(
               "Calculation category is required",
               style: TextStyle(
-                color: Colors.red.shade600,
+                color: colorScheme.error,
                 fontSize: 12,
               ),
             ),

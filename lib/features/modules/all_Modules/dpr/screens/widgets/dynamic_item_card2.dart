@@ -18,6 +18,7 @@ class DynamicItemCard2 extends StatefulWidget {
   final String quantity;
   final String ton;
   final String meter;
+  final String length;
   final String floor;
   final String moc;
   final String? size;
@@ -55,6 +56,7 @@ class DynamicItemCard2 extends StatefulWidget {
     required this.quantity,
     required this.ton,
     required this.meter,
+    this.length = '',
     required this.floor,
     required this.moc,
     this.size,
@@ -91,6 +93,8 @@ class _DynamicItemCard2State extends State<DynamicItemCard2>
   late TextEditingController _mocCtrl;
   final Map<String, TextEditingController> _controllers = {};
   late TextEditingController _uomCtrl;
+  late FocusNode _lengthFocusNode;
+  bool _isEditingLength = false;
 
   // Edit-mode draft state
   late String draftName;
@@ -106,9 +110,10 @@ class _DynamicItemCard2State extends State<DynamicItemCard2>
   void initState() {
     super.initState();
     _initDraft();
-    _uomCtrl = TextEditingController(text: '');
-    _uomCtrl.addListener(() {
-      widget.onMeterChanged(_uomCtrl.text);
+    _uomCtrl = TextEditingController(text: widget.length);
+    _lengthFocusNode = FocusNode();
+    _lengthFocusNode.addListener(() {
+      _isEditingLength = _lengthFocusNode.hasFocus;
     });
     _qtyCtrl = TextEditingController(text: widget.quantity);
     _tonCtrl = TextEditingController(text: widget.ton);
@@ -172,6 +177,9 @@ class _DynamicItemCard2State extends State<DynamicItemCard2>
 
     if (widget.quantity != _qtyCtrl.text) _qtyCtrl.text = widget.quantity;
     if (widget.ton != _tonCtrl.text) _tonCtrl.text = widget.ton;
+    if (!_isEditingLength && widget.length != _uomCtrl.text) {
+      _uomCtrl.text = widget.length;
+    }
     if (widget.floor != _floorCtrl.text) _floorCtrl.text = widget.floor;
     if (widget.moc != _mocCtrl.text) _mocCtrl.text = widget.moc;
   }
@@ -208,10 +216,29 @@ class _DynamicItemCard2State extends State<DynamicItemCard2>
   }
 
   Widget _viewFieldTile(DynamicField field) {
+    final key = field.key.toLowerCase();
     final controller = _controllers.putIfAbsent(
       field.key,
       () => TextEditingController(text: field.displayText),
     );
+
+    // Keep controller in sync with latest provider-backed values.
+    final fromField = field.value?.toString() ?? '';
+    final fallback = switch (key) {
+      'qty' => widget.quantity,
+      'floor' => widget.floor,
+      'moc' => widget.moc,
+      'size' => widget.size ?? '',
+      _ => '',
+    };
+    final newValue = fromField.isNotEmpty
+        ? fromField
+        : (field.displayText.isNotEmpty ? field.displayText : fallback);
+
+    if (controller.text != newValue) {
+      controller.text = newValue;
+    }
+
     return _updatedblueBox(
       label: field.label,
       controller: controller,
@@ -639,7 +666,7 @@ class _DynamicItemCard2State extends State<DynamicItemCard2>
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
         Text(
-          'UOM',
+          widget.meter.trim().isEmpty ? 'UOM' : 'UOM (${widget.meter})',
           style: TextStyle(
             fontSize: 11, // bigger label
             fontWeight: FontWeight.w700,
@@ -651,6 +678,8 @@ class _DynamicItemCard2State extends State<DynamicItemCard2>
           height: 40, // bigger height
           child: TextFormField(
             controller: _uomCtrl,
+            onChanged: widget.onMeterChanged,
+            focusNode: _lengthFocusNode,
             enabled: widget.isEditable,
             keyboardType: const TextInputType.numberWithOptions(decimal: true),
             textAlign: TextAlign.center,
@@ -662,6 +691,7 @@ class _DynamicItemCard2State extends State<DynamicItemCard2>
               filled: true,
               fillColor: cs.surfaceContainerHigh,
               contentPadding: const EdgeInsets.symmetric(vertical: 8),
+              hintText: '',
               border: OutlineInputBorder(
                 borderRadius: BorderRadius.circular(8),
                 borderSide: BorderSide(color: cs.outline, width: 1.2),
@@ -783,6 +813,7 @@ class _DynamicItemCard2State extends State<DynamicItemCard2>
     _floorCtrl.dispose();
     _mocCtrl.dispose();
     _uomCtrl.dispose();
+    _lengthFocusNode.dispose();
     for (final c in _controllers.values) {
       c.dispose();
     }

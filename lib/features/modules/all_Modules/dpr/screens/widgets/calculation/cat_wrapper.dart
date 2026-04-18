@@ -49,14 +49,18 @@ class _MaterialCategoryWrapperState extends State<MaterialCategoryWrapper> {
   }
 
   Widget _buildTile(CalculationCategory category, {required bool selected}) {
+    final colorScheme = Theme.of(context).colorScheme;
     final expanded = expandedId == category.id;
 
     return Container(
       margin: const EdgeInsets.only(bottom: 8),
       decoration: BoxDecoration(
-        color: Colors.white,
-        borderRadius: BorderRadius.only( bottomLeft: Radius.circular(14), bottomRight: Radius.circular(14), ),
-
+        color: colorScheme.surface,
+        borderRadius: const BorderRadius.only(
+          bottomLeft: Radius.circular(14),
+          bottomRight: Radius.circular(14),
+        ),
+        border: Border.all(color: colorScheme.outlineVariant),
       ),
       child: Column(
         children: [
@@ -83,22 +87,29 @@ class _MaterialCategoryWrapperState extends State<MaterialCategoryWrapper> {
                         selected
                             ? Icons.radio_button_checked
                             : Icons.radio_button_off,
-                        color: Colors.blue,
+                        color: colorScheme.primary,
                       ),
                     ),
-                  const Icon(Icons.calculate, size: 18),
+                  Icon(
+                    Icons.calculate,
+                    size: 18,
+                    color: colorScheme.onSurfaceVariant,
+                  ),
                   const SizedBox(width: 8),
                   Expanded(
                     child: Text(
                       "Category ${category.id} — ${category.label}",
-                      style: const TextStyle(fontWeight: FontWeight.w600),
+                      style: TextStyle(
+                        fontWeight: FontWeight.w600,
+                        color: colorScheme.onSurface,
+                      ),
                     ),
                   ),
                   Text(
                     expanded ? "Hide" : "View",
-                    style: const TextStyle(
+                    style: TextStyle(
                       fontSize: 11,
-                      color: Colors.blue,
+                      color: colorScheme.primary,
                       fontWeight: FontWeight.w600,
                     ),
                   ),
@@ -112,8 +123,11 @@ class _MaterialCategoryWrapperState extends State<MaterialCategoryWrapper> {
               padding: const EdgeInsets.all(12),
 
               decoration: BoxDecoration(
-                color: const Color(0xFFF8FAFC),
-                borderRadius: BorderRadius.only( bottomLeft: Radius.circular(14), bottomRight: Radius.circular(14), ),
+                color: colorScheme.surfaceContainerLow,
+                borderRadius: const BorderRadius.only(
+                  bottomLeft: Radius.circular(14),
+                  bottomRight: Radius.circular(14),
+                ),
               ),
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
@@ -121,11 +135,16 @@ class _MaterialCategoryWrapperState extends State<MaterialCategoryWrapper> {
                   Text("Formula",
                       style: TextStyle(
                           fontWeight: FontWeight.w600,
-                          color: Colors.grey.shade700)),
+                          color: colorScheme.onSurfaceVariant)),
                   Text(category.fullDetails.formula,
-                      style: const TextStyle(color: Colors.blue)),
+                      style: TextStyle(color: colorScheme.primary)),
                   const SizedBox(height: 6),
-                  ...category.fullDetails.howItWorks.map((e) => Text("• $e")),
+                  ...category.fullDetails.howItWorks.map(
+                    (e) => Text(
+                      "• $e",
+                      style: TextStyle(color: colorScheme.onSurface),
+                    ),
+                  ),
                 ],
               ),
             ),

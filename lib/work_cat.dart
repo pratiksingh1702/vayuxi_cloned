@@ -5,6 +5,7 @@ import 'package:go_router/go_router.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:showcaseview/showcaseview.dart';
 import 'package:untitled2/core/utlis/common_functions.dart';
+import 'package:untitled2/core/utlis/widgets/adaptive_name_display.dart';
 import 'package:untitled2/core/utlis/widgets/premium_app_bar.dart';
 import 'package:untitled2/features/modules/all_Modules/site_Details/providers/siteProvider.dart';
 import 'package:untitled2/typeProvider/type_provider.dart';
@@ -1608,8 +1609,29 @@ class _LandingHeaderRow extends StatelessWidget {
             ],
           ),
           const SizedBox(height: 10),
-          _PremiumAnimatedGreeting(
-            text: '$title, $subtitle',
+          Row(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Expanded(
+                child: _PremiumAnimatedGreeting(
+                  text: '$title,',
+                ),
+              ),
+              const SizedBox(width: 8),
+              Expanded(
+                child: AdaptiveNameDisplay(
+                  name: subtitle,
+                  minFontSize: 13,
+                  maxLines: 2,
+                  style: TextStyle(
+                    fontSize: 24,
+                    fontWeight: FontWeight.w900,
+                    color: colorScheme.onSurface,
+                    letterSpacing: 0.2,
+                  ),
+                ),
+              ),
+            ],
           ),
         ],
       ),

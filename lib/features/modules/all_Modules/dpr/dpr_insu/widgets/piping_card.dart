@@ -83,6 +83,21 @@ class _PipingMaterialCardState extends State<PipingMaterialCard> {
   ColorScheme get _cs => Theme.of(context).colorScheme;
   Color get _fieldFill => _cs.surfaceContainerHighest;
 
+  bool get _isAnyInputFocused {
+    if (_qtyFocusNode.hasFocus) return true;
+    if (_isDynamic) {
+      for (final node in _focusNodes.values) {
+        if (node.hasFocus) return true;
+      }
+      return false;
+    }
+
+    for (final node in _legacyFocusNodes.values) {
+      if (node.hasFocus) return true;
+    }
+    return false;
+  }
+
   // ─────────────────────────────────────────────
   // LIFECYCLE
   // ─────────────────────────────────────────────
@@ -97,6 +112,11 @@ class _PipingMaterialCardState extends State<PipingMaterialCard> {
         (widget.material.qty > 0) ? widget.material.qty.toString() : '';
     _qtyController = TextEditingController(text: initialQtyText);
     _qtyFocusNode = FocusNode();
+    _qtyFocusNode.addListener(() {
+      if (!_qtyFocusNode.hasFocus) {
+        widget.onChanged(getLatestMaterial());
+      }
+    });
 
     if (_isDynamic) {
       _initCardState();
@@ -131,7 +151,13 @@ class _PipingMaterialCardState extends State<PipingMaterialCard> {
       _labelControllers[field.key] = TextEditingController(
         text: _cardState.getLabel(field.key, field.label),
       );
-      _focusNodes[field.key] = FocusNode();
+      final focusNode = FocusNode();
+      focusNode.addListener(() {
+        if (!focusNode.hasFocus) {
+          widget.onChanged(getLatestMaterial());
+        }
+      });
+      _focusNodes[field.key] = focusNode;
     }
   }
 
@@ -181,14 +207,14 @@ class _PipingMaterialCardState extends State<PipingMaterialCard> {
         _initLegacyControllers();
       }
     } else if (!_isEditMode) {
+      if (_isAnyInputFocused) return;
+
       _draftMaterial = widget.material;
       _draftImageUrl =
           widget.material.image.isNotEmpty ? widget.material.image.first : null;
 
-      // Only update QTY controller if it's not currently focused
-      if (!_qtyController.value.selection.isValid ||
-          _qtyController.value.selection.start ==
-              _qtyController.value.selection.end) {
+      // Only update QTY controller when QTY field is not focused.
+      if (!_qtyFocusNode.hasFocus) {
         final qty = widget.material.qty;
         final newQtyText = (qty == 0 || qty == null) ? '' : qty.toString();
 
@@ -231,18 +257,20 @@ class _PipingMaterialCardState extends State<PipingMaterialCard> {
         // same guard for legacy controllers
         final sizeVal = widget.material.size ?? '';
         final sizeController = _legacyValueControllers[PipingFieldType.size];
+        final sizeFocusNode = _legacyFocusNodes[PipingFieldType.size];
         if (sizeController != null &&
             sizeController.text != sizeVal &&
-            !sizeController.value.selection.isValid) {
+            (sizeFocusNode == null || !sizeFocusNode.hasFocus)) {
           sizeController.text = sizeVal;
         }
 
         final lengthVal = widget.material.length.toString();
         final lengthController =
             _legacyValueControllers[PipingFieldType.length];
+        final lengthFocusNode = _legacyFocusNodes[PipingFieldType.length];
         if (lengthController != null &&
             lengthController.text != lengthVal &&
-            !lengthController.value.selection.isValid) {
+            (lengthFocusNode == null || !lengthFocusNode.hasFocus)) {
           lengthController.text = lengthVal;
         }
 
@@ -419,6 +447,7 @@ class _PipingMaterialCardState extends State<PipingMaterialCard> {
     setState(() => _cardState = newState);
     final updated = _draftMaterial.copyWith(cardFormState: newState);
     _draftMaterial = updated;
+    widget.onChanged(updated);
   }
 
   void _onFieldValueChanged(String key, dynamic value) =>
@@ -432,6 +461,7 @@ class _PipingMaterialCardState extends State<PipingMaterialCard> {
       _cardState = _cardState.updateLabel(key, label);
       _draftMaterial = _draftMaterial.copyWith(cardFormState: _cardState);
     });
+    widget.onChanged(_draftMaterial);
   }
 
   // Add a public method to _PipingMaterialCardState:
@@ -974,8 +1004,7 @@ class _PipingMaterialCardState extends State<PipingMaterialCard> {
               setState(() {
                 _draftMaterial = _draftMaterial.copyWith(qty: newQty);
               });
-
-              // 🔥 THIS WAS MISSING
+              widget.onChanged(_draftMaterial);
             },
             onEditingComplete: () {
               // Save to parent when editing is complete
@@ -1995,11 +2024,11 @@ class _PipingMaterialCardState extends State<PipingMaterialCard> {
   PipingMaterial _legacyUpdateMaterial(PipingFieldConfig config, num value) {
     switch (config.type) {
       case PipingFieldType.size:
-        return widget.material.copyWith(size: value.toString());
+        return _draftMaterial.copyWith(size: value.toString());
       case PipingFieldType.length:
-        return widget.material.copyWith(length: value.toDouble());
+        return _draftMaterial.copyWith(length: value.toDouble());
       case PipingFieldType.qty:
-        return widget.material.copyWith(qty: value.toInt());
+        return _draftMaterial.copyWith(qty: value.toInt());
     }
   }
 

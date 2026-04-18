@@ -8,6 +8,7 @@ import 'package:shared_preferences/shared_preferences.dart';
 import 'package:untitled2/core/utlis/app_toasts.dart';
 import 'package:untitled2/core/utlis/widgets/fields/custom_textField.dart';
 import 'package:untitled2/core/utlis/widgets/file_upload.dart';
+import 'package:untitled2/core/utlis/widgets/adaptive_name_display.dart';
 import 'package:untitled2/core/utlis/widgets/premium_app_bar.dart';
 import 'package:untitled2/core/utlis/widgets/shimmer.dart';
 import 'package:untitled2/features/profile_page/screens/widgets/loader.dart';
@@ -516,12 +517,13 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
                               child: Column(
                                 crossAxisAlignment: CrossAxisAlignment.start,
                                 children: [
-                                  Text(
-                                    _fullNameController.text.trim().isEmpty
-                                        ? 'User Profile'
-                                        : _fullNameController.text.trim(),
-                                    maxLines: 1,
-                                    overflow: TextOverflow.ellipsis,
+                                  AdaptiveNameDisplay(
+                                    name:
+                                        _fullNameController.text.trim().isEmpty
+                                            ? 'User Profile'
+                                            : _fullNameController.text.trim(),
+                                    minFontSize: 13,
+                                    maxLines: 2,
                                     style: const TextStyle(
                                       color: Colors.white,
                                       fontSize: 20,

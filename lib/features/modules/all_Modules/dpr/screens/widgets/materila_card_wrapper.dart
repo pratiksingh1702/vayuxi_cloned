@@ -12,15 +12,20 @@ class MaterialCardWrapper extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final colorScheme = Theme.of(context).colorScheme;
+
     return Stack(
       children: [
         child,
         if (isUpdating)
           Positioned.fill(
             child: Container(
-              color: Colors.black54,
-              child: const Center(
-                child: CircularProgressIndicator(strokeWidth: 2, color: Colors.white),
+              color: colorScheme.scrim.withOpacity(0.45),
+              child: Center(
+                child: CircularProgressIndicator(
+                  strokeWidth: 2,
+                  color: colorScheme.onPrimary,
+                ),
               ),
             ),
           ),

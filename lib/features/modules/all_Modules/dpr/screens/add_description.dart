@@ -98,6 +98,7 @@ class _AddDescriptionScreenState extends ConsumerState<AddDescriptionScreen>
   bool get isEditingDpr => _mechanicalId != null;
   bool get isEditing => _mechanicalId != null;
   Set<String> _updatingMaterialIds = {};
+  final Map<String, String> _equipmentLengthDraft = {};
   bool _headerInitialized = false;
   bool _isDateOverrideMode = false;
 
@@ -157,6 +158,7 @@ class _AddDescriptionScreenState extends ConsumerState<AddDescriptionScreen>
   }
 
   Future<void> loadScreenState({DprModel? Dpr}) async {
+    _equipmentLengthDraft.clear();
     ref.read(pipingMaterialsProvider.notifier).clear();
     ref.read(equipmentMaterialsProvider.notifier).clear();
 
@@ -403,13 +405,13 @@ class _AddDescriptionScreenState extends ConsumerState<AddDescriptionScreen>
         final key = f.key.toLowerCase();
 
         if (key == 'floor') {
-          return f.copyWith(value: floor);
+          return f.copyWith(displayText: floor, value: floor);
         }
         if (key == 'moc') {
           return f.copyWith(displayText: moc, value: moc);
         }
         if (key == 'size') {
-          return f.copyWith(value: size);
+          return f.copyWith(displayText: size, value: size);
         }
         if (key == 'qty') {
           return f.copyWith(displayText: '1', value: '1');
@@ -1465,10 +1467,10 @@ class _AddDescriptionScreenState extends ConsumerState<AddDescriptionScreen>
                                 children: [
                                   Text(
                                     site?.siteName ?? "DPR",
-                                    style: const TextStyle(
+                                    style: TextStyle(
                                       fontSize: 14,
                                       fontWeight: FontWeight.bold,
-                                      color: Colors.black,
+                                      color: cs.onSurfaceVariant,
                                     ),
                                     maxLines: 1,
                                     overflow: TextOverflow.ellipsis,
@@ -2559,7 +2561,7 @@ class _AddDescriptionScreenState extends ConsumerState<AddDescriptionScreen>
 
       final updatedFields = m.dynamicFields.map((f) {
         if (f.key == key) {
-          return f.copyWith(value: value);
+          return f.copyWith(value: value, displayText: value);
         }
         return f;
       }).toList();
@@ -2588,13 +2590,32 @@ class _AddDescriptionScreenState extends ConsumerState<AddDescriptionScreen>
               _onEquipmentDynamicChanged(material.id, key, value);
             },
             title: material.materialName,
-            quantity: material.qty.toString(),
+            quantity: material.dynamicFields
+                    .firstWhere(
+                      (f) => f.key.toLowerCase() == 'qty',
+                      orElse: () => DynamicField(
+                        key: 'qty',
+                        label: 'Qty',
+                        value: material.qty.toString(),
+                        unit: '',
+                        displayText: material.qty.toString(),
+                      ),
+                    )
+                    .value
+                    ?.toString() ??
+                material.qty.toString(),
             image: material.image,
             floor: _floorController.text,
             moc: _mocController.text,
             size: _sizeController.text,
             ton: material.weight.toString(),
             meter: material.uom,
+            length:
+                (_equipmentLengthDraft[material.id]?.trim().isNotEmpty ?? false)
+                    ? _equipmentLengthDraft[material.id]!
+                    : (material.length == null || material.length == 0)
+                        ? ''
+                        : material.length.toString(),
             remark: material.remarks,
             onMocChanged: (val) =>
                 _onEquipmentFieldChanged(material.id, 'moc', val),
@@ -2621,8 +2642,7 @@ class _AddDescriptionScreenState extends ConsumerState<AddDescriptionScreen>
               material.remarks ?? '',
               isPiping: false,
             ),
-            onMeterChanged: (val) =>
-                _onEquipmentFieldChanged(material.id, 'uom', val),
+            onMeterChanged: (val) => _equipmentLengthDraft[material.id] = val,
           ),
         ),
       );
@@ -2715,6 +2735,11 @@ class _AddDescriptionScreenState extends ConsumerState<AddDescriptionScreen>
       return;
     }
 
+    if (field == 'length') {
+      _equipmentLengthDraft[materialId] = value;
+      return;
+    }
+
     final equipmentMaterials = ref.read(equipmentMaterialsProvider);
     final updatedMaterials = equipmentMaterials.map((material) {
       if (material.id == materialId) {
@@ -2724,8 +2749,7 @@ class _AddDescriptionScreenState extends ConsumerState<AddDescriptionScreen>
               qty: int.tryParse(value)?.toDouble() ?? 0,
             );
           case 'uom':
-            return material.copyWith(
-                length: int.tryParse(value)?.toDouble() ?? 0);
+            return material;
           case 'ton':
             return material.copyWith(
                 weight: double.tryParse(value) ?? material.weight);
@@ -2743,7 +2767,6 @@ class _AddDescriptionScreenState extends ConsumerState<AddDescriptionScreen>
     }).toList();
 
     ref.read(equipmentMaterialsProvider.notifier).state = updatedMaterials;
-    print('Equipment material $materialId: $field changed to $value');
   }
 
   void _updateMaterialRemark(String materialId, String remark,
@@ -2904,7 +2927,18 @@ class _AddDescriptionScreenState extends ConsumerState<AddDescriptionScreen>
 
       // Get current piping and equipment materials from providers
       final pipingMaterials = ref.read(pipingMaterialsProvider);
-      final equipmentMaterials = ref.read(equipmentMaterialsProvider);
+      var equipmentMaterials = ref.read(equipmentMaterialsProvider);
+
+      // Flush buffered equipment length edits once, right before payload build.
+      if (_equipmentLengthDraft.isNotEmpty) {
+        equipmentMaterials = equipmentMaterials.map((material) {
+          final draft = _equipmentLengthDraft[material.id];
+          if (draft == null) return material;
+          return material.copyWith(length: double.tryParse(draft) ?? 0);
+        }).toList();
+        ref.read(equipmentMaterialsProvider.notifier).state =
+            equipmentMaterials;
+      }
       List<String> dprDesignation = [];
 
       if (pipingMaterials.isNotEmpty) {
@@ -2957,42 +2991,42 @@ class _AddDescriptionScreenState extends ConsumerState<AddDescriptionScreen>
 //       debugPrint("🟩 RAW EQUIPMENT MATERIALS (${equipmentMaterials.length})");
 //
 //
-//       for (final m in equipmentMaterials) {
-//         debugPrint("""
-// 🔩 EQUIPMENT
-//   id: ${m.id}
-//
-//   🔍 TRACEABILITY
-//   rawName: ${m.rawMaterialName}
-//   normalizedName: ${m.normalizedMaterialName}
-//   displayName: ${m.materialName}
-//   isFromRateFile: ${m.isFromRateFile}
-//   rateFileId: ${m.rateFileId}
-//   rateVariantId: ${m.rateVariantId}
-//
-//   📦 VALUES
-//   qty: ${m.qty}
-//   weight: ${m.weight}
-//   length: ${m.length}
-//   diameter: ${m.diameter}
-//   power: ${m.power}
-//   uom: ${m.uom}
-//   moc: ${m.moc}
-//   calcCat: ${m.calculationCategory}
-//   remarks: ${m.remarks}
-// """);
-//
-//         if (m.dynamicFields.isEmpty) {
-//           debugPrint("  ⚠️ No dynamic fields");
-//         } else {
-//           debugPrint("  🔸 Dynamic Fields:");
-//           for (final f in m.dynamicFields) {
-//             debugPrint(
-//               "     → key: ${f.key}, label: ${f.label}, value: ${f.value}, unit: ${f.unit}, display: ${f.displayText}",
-//             );
-//           }
-//         }
-//       }
+      for (final m in equipmentMaterials) {
+        debugPrint("""
+🔩 EQUIPMENT
+  id: ${m.id}
+
+  🔍 TRACEABILITY
+  rawName: ${m.rawMaterialName}
+  normalizedName: ${m.normalizedMaterialName}
+  displayName: ${m.materialName}
+  isFromRateFile: ${m.isFromRateFile}
+  rateFileId: ${m.rateFileId}
+  rateVariantId: ${m.rateVariantId}
+
+  📦 VALUES
+  qty: ${m.qty}
+  weight: ${m.weight}
+  length: ${m.length}
+  diameter: ${m.diameter}
+  power: ${m.power}
+  uom: ${m.uom}
+  moc: ${m.moc}
+  calcCat: ${m.calculationCategory}
+  remarks: ${m.remarks}
+""");
+
+        if (m.dynamicFields.isEmpty) {
+          debugPrint("  ⚠️ No dynamic fields");
+        } else {
+          debugPrint("  🔸 Dynamic Fields:");
+          for (final f in m.dynamicFields) {
+            debugPrint(
+              "     → key: ${f.key}, label: ${f.label}, value: ${f.value}, unit: ${f.unit}, display: ${f.displayText}",
+            );
+          }
+        }
+      }
 
       // Transform piping materials to API format
       // ✅ merge piping + equipment into ONE list

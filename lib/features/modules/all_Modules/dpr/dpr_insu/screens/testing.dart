@@ -225,10 +225,12 @@ class _AddInsulationDescriptionScreenState
     }
 
     // Ensure PATCH cards get quantity from API/model even when cardFormState exists.
-    final quantityValue =
-        fieldValuesMap.containsKey('quantity') ? fieldValuesMap['quantity'] : e.qty;
-    final quantityUnit =
-        fieldValuesMap['quantityUom']?.toString() ?? entries['quantity']?.unit ?? 'NOS';
+    final quantityValue = fieldValuesMap.containsKey('quantity')
+        ? fieldValuesMap['quantity']
+        : e.qty;
+    final quantityUnit = fieldValuesMap['quantityUom']?.toString() ??
+        entries['quantity']?.unit ??
+        'NOS';
     entries['quantity'] = FieldEntry(value: quantityValue, unit: quantityUnit);
 
     return CardFormState(
@@ -316,7 +318,8 @@ class _AddInsulationDescriptionScreenState
         if (!state.fieldEntries.containsKey(field.key)) {
           String? defaultUnit;
           if (field.dropdown != null) {
-            defaultUnit = setup.fieldConfig.defaults.defaultFor(field.dropdown!);
+            defaultUnit =
+                setup.fieldConfig.defaults.defaultFor(field.dropdown!);
             if (defaultUnit == null || defaultUnit.isEmpty) {
               final opts =
                   setup.fieldConfig.unitDropdowns.optionsFor(field.dropdown!);
@@ -3730,6 +3733,7 @@ class _AddInsulationDescriptionScreenState
             final baseQtyNum = num.tryParse('${e.qty ?? 0}') ?? 0;
             final hasExplicitQty = qtyEntryNum != null && qtyEntryNum > 0;
             final hasMaterialInputs = hasOtherFields;
+            final isPatchMaterial = e.name.trim().toLowerCase() == 'patch';
             final resolvedQty = (qtyEntry != null &&
                     qtyEntry.value != null &&
                     qtyEntry.value != 0)
@@ -3739,12 +3743,9 @@ class _AddInsulationDescriptionScreenState
                     : (baseQtyNum > 0 && (hasMaterialInputs || baseQtyNum != 1)
                         ? baseQtyNum
                         : (hasMaterialInputs ? 1 : 0));
-            fieldValues["quantity"] = resolvedQty;
-            fieldValues["qtyUom"] =
-                qtyEntry?.unit != null && qtyEntry!.unit!.isNotEmpty
-                    ? qtyEntry.unit
-                    : "NOS";
-
+            final resolvedQtyNum = num.tryParse('$resolvedQty') ?? 0;
+            fieldValues["quantity"] =
+                isPatchMaterial && resolvedQtyNum == 0 ? '' : resolvedQty;
             fieldValues["qtyUom"] =
                 qtyEntry?.unit != null && qtyEntry!.unit!.isNotEmpty
                     ? qtyEntry.unit
@@ -3753,8 +3754,11 @@ class _AddInsulationDescriptionScreenState
                 "📦 Equipment [${e.name}] - Final fieldValues: $fieldValues");
           } else {
             final baseQty = num.tryParse('${e.qty ?? 0}') ?? 0;
+            final isPatchMaterial = e.name.trim().toLowerCase() == 'patch';
             // No field state means no meaningful inputs; avoid synthetic default qty=1.
-            fieldValues["quantity"] = baseQty == 1 ? 0 : baseQty;
+            final fallbackQty = baseQty == 1 ? 0 : baseQty;
+            fieldValues["quantity"] =
+                isPatchMaterial && fallbackQty == 0 ? '' : fallbackQty;
             fieldValues["qtyUom"] = "NOS";
             debugPrint(
                 "📦 Equipment [${e.name}] - No state, using default: $fieldValues");
