@@ -98,7 +98,7 @@ const TeamIsarSchema = CollectionSchema(
   getId: _teamIsarGetId,
   getLinks: _teamIsarGetLinks,
   attach: _teamIsarAttach,
-  version: '3.1.0+1',
+  version: '3.3.0',
 );
 
 int _teamIsarEstimateSize(

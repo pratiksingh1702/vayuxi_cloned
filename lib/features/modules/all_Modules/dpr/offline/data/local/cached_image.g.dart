@@ -58,7 +58,7 @@ const CachedImageSchema = CollectionSchema(
   getId: _cachedImageGetId,
   getLinks: _cachedImageGetLinks,
   attach: _cachedImageAttach,
-  version: '3.1.0+1',
+  version: '3.3.0',
 );
 
 int _cachedImageEstimateSize(

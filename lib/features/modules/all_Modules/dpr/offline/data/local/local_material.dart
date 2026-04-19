@@ -1,7 +1,7 @@
 // lib/features/modules/all_Modules/offline/data/local/local_material.dart
 
 import 'dart:convert';
-import 'package:isar/isar.dart';
+import 'package:isar_community/isar.dart';
 import '../../../dpr_insu/model/card_form_State.dart';
 import '../../../dpr_insu/model/eqip_insu.dart';
 import '../../../dpr_insu/model/piping_insu.dart';

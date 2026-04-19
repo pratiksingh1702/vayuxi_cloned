@@ -1,4 +1,4 @@
-import 'package:isar/isar.dart';
+import 'package:isar_community/isar.dart';
 
 import '../../../../../core/local/isar_db.dart';
 import '../models/notification_isar.dart';

@@ -117,7 +117,7 @@ const UpdateNotificationIsarSchema = CollectionSchema(
   getId: _updateNotificationIsarGetId,
   getLinks: _updateNotificationIsarGetLinks,
   attach: _updateNotificationIsarAttach,
-  version: '3.1.0+1',
+  version: '3.3.0',
 );
 
 int _updateNotificationIsarEstimateSize(

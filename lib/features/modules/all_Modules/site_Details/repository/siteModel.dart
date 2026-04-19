@@ -16,6 +16,7 @@ class SiteModel {
   final String createdAt;
   final String updatedAt;
   final String? siteImage; // ✅ OPTIONAL FIELD
+  final SiteCounts counts;
 
   SiteModel({
     required this.id,
@@ -34,6 +35,7 @@ class SiteModel {
     required this.createdAt,
     required this.updatedAt,
     this.siteImage, // ✅ optional
+    this.counts = const SiteCounts(),
   });
 
   factory SiteModel.fromJson(Map<String, dynamic> json) {
@@ -57,6 +59,7 @@ class SiteModel {
               json['siteImage'].toString().trim().isNotEmpty)
           ? json['siteImage']
           : null,
+      counts: SiteCounts.fromJson(json['counts']),
     );
   }
 
@@ -77,6 +80,52 @@ class SiteModel {
       'createdAt': createdAt,
       'updatedAt': updatedAt,
       'siteImage': siteImage, // ✅ included
+      'counts': counts.toJson(),
+    };
+  }
+}
+
+class SiteCounts {
+  final int teams;
+  final int dprMechanical;
+  final int dprInsulation;
+  final int manpower;
+  final int totalDpr;
+
+  const SiteCounts({
+    this.teams = 0,
+    this.dprMechanical = 0,
+    this.dprInsulation = 0,
+    this.manpower = 0,
+    this.totalDpr = 0,
+  });
+
+  factory SiteCounts.fromJson(dynamic json) {
+    if (json is! Map<String, dynamic>) {
+      return const SiteCounts();
+    }
+
+    int parseInt(dynamic value) {
+      if (value is int) return value;
+      return int.tryParse(value?.toString() ?? '') ?? 0;
+    }
+
+    return SiteCounts(
+      teams: parseInt(json['teams']),
+      dprMechanical: parseInt(json['dprMechanical']),
+      dprInsulation: parseInt(json['dprInsulation']),
+      manpower: parseInt(json['manpower']),
+      totalDpr: parseInt(json['totalDpr']),
+    );
+  }
+
+  Map<String, dynamic> toJson() {
+    return {
+      'teams': teams,
+      'dprMechanical': dprMechanical,
+      'dprInsulation': dprInsulation,
+      'manpower': manpower,
+      'totalDpr': totalDpr,
     };
   }
 }

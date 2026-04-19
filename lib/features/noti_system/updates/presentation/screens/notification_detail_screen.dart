@@ -1,3 +1,5 @@
+import 'dart:convert';
+
 import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
 import '../../data/models/notification_model.dart';
@@ -12,6 +14,8 @@ class NotificationDetailScreen extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
+    final draftWork = _extractDraftWork(notification.metadata);
+    final detailsMetadata = _filterDetailsMetadata(notification.metadata);
 
     return Hero(
       tag: 'notification_card_${notification.id}',
@@ -60,9 +64,13 @@ class NotificationDetailScreen extends StatelessWidget {
                       notification.description,
                       style: theme.textTheme.bodyMedium?.copyWith(height: 1.7),
                     ),
-                    if (notification.metadata.isNotEmpty) ...[
+                    if (draftWork != null) ...[
+                      const SizedBox(height: 20),
+                      _DprDraftSnapshot(draftWork: draftWork),
+                    ],
+                    if (detailsMetadata.isNotEmpty) ...[
                       const SizedBox(height: 24),
-                      _MetadataSection(metadata: notification.metadata),
+                      _MetadataSection(metadata: detailsMetadata),
                     ],
                   ]),
                 ),
@@ -204,6 +212,190 @@ class _MetadataSection extends StatelessWidget {
           ),
         ),
       ],
+    );
+  }
+}
+
+Map<String, dynamic> _filterDetailsMetadata(Map<String, dynamic> metadata) {
+  final filtered = <String, dynamic>{};
+  for (final entry in metadata.entries) {
+    if (entry.key == 'actions' || entry.key == 'draftWork') continue;
+    filtered[entry.key] = entry.value;
+  }
+  return filtered;
+}
+
+Map<String, dynamic>? _extractDraftWork(Map<String, dynamic> metadata) {
+  final raw = metadata['draftWork'];
+  if (raw == null) return null;
+  if (raw is Map<String, dynamic>) return raw;
+  if (raw is Map) return Map<String, dynamic>.from(raw);
+  if (raw is String && raw.trim().isNotEmpty) {
+    try {
+      final decoded = jsonDecode(raw);
+      if (decoded is Map<String, dynamic>) return decoded;
+      if (decoded is Map) return Map<String, dynamic>.from(decoded);
+    } catch (_) {
+      return null;
+    }
+  }
+  return null;
+}
+
+class _DprDraftSnapshot extends StatelessWidget {
+  const _DprDraftSnapshot({required this.draftWork});
+
+  final Map<String, dynamic> draftWork;
+
+  String _s(dynamic value) => (value ?? '').toString().trim();
+
+  List<Map<String, dynamic>> _list(dynamic value) {
+    if (value is! List) return const [];
+    return value
+        .whereType<Map>()
+        .map((e) => Map<String, dynamic>.from(e))
+        .toList();
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+    final cs = theme.colorScheme;
+
+    final dprName = _s(draftWork['dprName']).isNotEmpty
+        ? _s(draftWork['dprName'])
+        : _s(draftWork['work_description']);
+    final plant = _s(draftWork['plant']);
+    final location = _s(draftWork['location']);
+    final size = _s(draftWork['size']);
+    final moc = _s(draftWork['moc']);
+    final date = _s(draftWork['date']);
+    final layerType = _s(draftWork['layerType']);
+
+    final piping = _list(draftWork['piping']).isNotEmpty
+        ? _list(draftWork['piping'])
+        : _list(draftWork['pipingMaterials']);
+    final equipment = _list(draftWork['equipment']).isNotEmpty
+        ? _list(draftWork['equipment'])
+        : _list(draftWork['equipmentMaterials']);
+
+    final isInsulation = _s(draftWork['work_description']).isNotEmpty ||
+        draftWork.containsKey('pipingMaterials') ||
+        draftWork.containsKey('equipmentMaterials');
+
+    String itemName(Map<String, dynamic> item) {
+      if (isInsulation) {
+        final direct = _s(item['name']);
+        if (direct.isNotEmpty) return direct;
+      }
+      final name = _s(item['materialName']);
+      if (name.isNotEmpty) return name;
+      return 'Unnamed';
+    }
+
+    String itemQty(Map<String, dynamic> item) {
+      final qty = item['qty'];
+      if (qty != null) return '$qty';
+      final area = item['totalArea'];
+      if (area != null) return '$area';
+      return '-';
+    }
+
+    return Container(
+      padding: const EdgeInsets.all(14),
+      decoration: BoxDecoration(
+        color: cs.surfaceContainerLow,
+        borderRadius: BorderRadius.circular(12),
+        border: Border.all(color: cs.outlineVariant),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Text(
+            isInsulation ? 'Insulation DPR Snapshot' : 'DPR Snapshot',
+            style: theme.textTheme.titleSmall?.copyWith(
+              fontWeight: FontWeight.w700,
+            ),
+          ),
+          const SizedBox(height: 10),
+          _kv(theme, 'Name', dprName.isEmpty ? '-' : dprName),
+          _kv(theme, 'Date', date.isEmpty ? '-' : date),
+          _kv(theme, 'Plant', plant.isEmpty ? '-' : plant),
+          _kv(theme, 'Location', location.isEmpty ? '-' : location),
+          _kv(theme, 'MOC', moc.isEmpty ? '-' : moc),
+          _kv(theme, 'Size', size.isEmpty ? '-' : size),
+          if (layerType.isNotEmpty) _kv(theme, 'Layer Type', layerType),
+          const SizedBox(height: 8),
+          _kv(theme, 'Piping Items', '${piping.length}'),
+          _kv(theme, 'Equipment Items', '${equipment.length}'),
+          if (piping.isNotEmpty) ...[
+            const SizedBox(height: 10),
+            Text('Piping', style: theme.textTheme.labelLarge),
+            const SizedBox(height: 6),
+            ...piping.take(6).map((item) {
+              final name = itemName(item);
+              final qty = itemQty(item);
+              return Padding(
+                padding: const EdgeInsets.only(bottom: 4),
+                child: Text(
+                  '• $name (qty/area: $qty)',
+                  style: theme.textTheme.bodySmall,
+                ),
+              );
+            }),
+            if (piping.length > 6)
+              Text(
+                '+${piping.length - 6} more',
+                style: theme.textTheme.bodySmall?.copyWith(
+                  color: cs.onSurfaceVariant,
+                ),
+              ),
+          ],
+          if (equipment.isNotEmpty) ...[
+            const SizedBox(height: 10),
+            Text('Equipment', style: theme.textTheme.labelLarge),
+            const SizedBox(height: 6),
+            ...equipment.take(6).map((item) {
+              final name = itemName(item);
+              final qty = itemQty(item);
+              return Padding(
+                padding: const EdgeInsets.only(bottom: 4),
+                child: Text(
+                  '• $name (qty/area: $qty)',
+                  style: theme.textTheme.bodySmall,
+                ),
+              );
+            }),
+            if (equipment.length > 6)
+              Text(
+                '+${equipment.length - 6} more',
+                style: theme.textTheme.bodySmall?.copyWith(
+                  color: cs.onSurfaceVariant,
+                ),
+              ),
+          ],
+        ],
+      ),
+    );
+  }
+
+  Widget _kv(ThemeData theme, String key, String value) {
+    return Padding(
+      padding: const EdgeInsets.only(bottom: 4),
+      child: RichText(
+        text: TextSpan(
+          style: theme.textTheme.bodySmall,
+          children: [
+            TextSpan(
+              text: '$key: ',
+              style: theme.textTheme.bodySmall?.copyWith(
+                fontWeight: FontWeight.w600,
+              ),
+            ),
+            TextSpan(text: value),
+          ],
+        ),
+      ),
     );
   }
 }

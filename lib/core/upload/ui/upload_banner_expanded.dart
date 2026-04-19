@@ -13,6 +13,7 @@ class UploadBannerExpanded extends ConsumerWidget {
   final void Function(String route) onNavigate;
   final void Function(String jobId) onRetry;
   final void Function(String jobId) onDismiss;
+  final void Function(UploadJob job) onEdit;
 
   const UploadBannerExpanded({
     super.key,
@@ -22,6 +23,7 @@ class UploadBannerExpanded extends ConsumerWidget {
     required this.onNavigate,
     required this.onRetry,
     required this.onDismiss,
+    required this.onEdit,
   });
 
   @override
@@ -124,18 +126,27 @@ class UploadBannerExpanded extends ConsumerWidget {
                     _JobTile(
                       job: job,
                       onNavigate: job.targetRoute != null &&
-                          job.status == UploadStatus.success
+                              job.status == UploadStatus.success
                           ? () {
-                              ref.read(uploadManagerProvider.notifier).stopAutoDismiss(job.jobId);
+                              ref
+                                  .read(uploadManagerProvider.notifier)
+                                  .stopAutoDismiss(job.jobId);
                               onNavigate(job.targetRoute!);
                             }
                           : null,
                       onRetry: job.status == UploadStatus.failed &&
-                          job.retryCount < job.maxRetries
+                              job.retryCount < job.maxRetries
                           ? () => onRetry(job.jobId)
                           : null,
+                      onEdit: job.status == UploadStatus.failed &&
+                              (job.moduleId == 'dpr' ||
+                                  job.moduleId == 'dpr_insu')
+                          ? () => onEdit(job)
+                          : null,
                       onDismiss: () => onDismiss(job.jobId),
-                      onStopTimer: () => ref.read(uploadManagerProvider.notifier).stopAutoDismiss(job.jobId),
+                      onStopTimer: () => ref
+                          .read(uploadManagerProvider.notifier)
+                          .stopAutoDismiss(job.jobId),
                     ),
                 ],
               ],
@@ -151,6 +162,7 @@ class _JobTile extends StatelessWidget {
   final UploadJob job;
   final VoidCallback? onNavigate;
   final VoidCallback? onRetry;
+  final VoidCallback? onEdit;
   final VoidCallback onDismiss;
   final VoidCallback onStopTimer;
 
@@ -158,17 +170,23 @@ class _JobTile extends StatelessWidget {
     required this.job,
     this.onNavigate,
     this.onRetry,
+    this.onEdit,
     required this.onDismiss,
     required this.onStopTimer,
   });
 
   Color get _statusColor {
     switch (job.status) {
-      case UploadStatus.success:   return Colors.greenAccent;
-      case UploadStatus.failed:    return Colors.redAccent;
-      case UploadStatus.uploading: return Colors.lightBlueAccent;
-      case UploadStatus.processing:return Colors.amberAccent;
-      case UploadStatus.queued:    return Colors.white38;
+      case UploadStatus.success:
+        return Colors.greenAccent;
+      case UploadStatus.failed:
+        return Colors.redAccent;
+      case UploadStatus.uploading:
+        return Colors.lightBlueAccent;
+      case UploadStatus.processing:
+        return Colors.amberAccent;
+      case UploadStatus.queued:
+        return Colors.white38;
     }
   }
 
@@ -200,11 +218,20 @@ class _JobTile extends StatelessWidget {
               ),
               if (onNavigate != null)
                 _ActionChip(
-                    label: 'View', color: Colors.lightBlueAccent, onTap: onNavigate!),
+                    label: 'View',
+                    color: Colors.lightBlueAccent,
+                    onTap: onNavigate!),
               if (onRetry != null)
                 _ActionChip(
                     label: 'Retry', color: Colors.orange, onTap: onRetry!),
-              
+              if (onEdit != null)
+                _ActionChip(
+                    label: 'Edit',
+                    color: Colors.lightBlueAccent,
+                    onTap: onEdit!),
+              if (job.status == UploadStatus.failed)
+                _ActionChip(
+                    label: 'Remove', color: Colors.white54, onTap: onDismiss),
               if (job.autoDismissAt != null)
                 Padding(
                   padding: const EdgeInsets.only(left: 6),
@@ -214,7 +241,6 @@ class _JobTile extends StatelessWidget {
                     onDismiss: onDismiss,
                   ),
                 ),
-
               if (job.status.isTerminal && job.autoDismissAt == null)
                 GestureDetector(
                   onTap: onDismiss,

@@ -3,7 +3,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import 'package:liquid_pull_to_refresh/liquid_pull_to_refresh.dart';
 import 'package:untitled2/core/utlis/widgets/custom_appBar.dart';
-import 'package:untitled2/features/modules/all_Modules/dpr/screens/widgets/moc_selection_page.dart';
+import 'package:untitled2/features/modules/all_Modules/dpr/screens/widgets/mechanichal_stepper.dart';
 import '../../../../../core/utlis/widgets/buttons.dart';
 import '../../../../../core/utlis/widgets/custom.dart';
 import '../../../../../core/utlis/widgets/image_clipped.dart';
@@ -27,6 +27,8 @@ class DprTeamScreen extends ConsumerStatefulWidget {
 }
 
 class _DprTeamScreenState extends ConsumerState<DprTeamScreen> {
+  bool _isNavigatingAway = false;
+
   Future<void> _refreshTeams() async {
     final type = ref.read(typeProvider);
     final notifier = ref.read(teamProvider.notifier);
@@ -47,41 +49,47 @@ class _DprTeamScreenState extends ConsumerState<DprTeamScreen> {
 
     WidgetsBinding.instance.addPostFrameCallback((_) async {
       await _refreshTeams();
+      _tryAutoSkipWhenTeamsEmpty();
     });
   }
 
-  Future<void> _handleTeamAutoNavigation() async {
+  void _tryAutoSkipWhenTeamsEmpty() {
+    if (_isNavigatingAway || !mounted) return;
+
     final teamState = ref.read(teamProvider);
+    if (teamState.isLoading) return;
+    if (teamState.teams.isNotEmpty) return;
+
+    _isNavigatingAway = true;
     final type = ref.read(typeProvider);
 
-    // 🚫 NO TEAMS → SKIP THIS SCREEN
-    if (teamState.teams.isEmpty) {
-      // clear selection explicitly
-      ref.read(selectedTeamIdProvider.notifier).state = "default";
-      ref.read(selectedTeamProvider.notifier).clear();
-      print("heeeeeeeeeeeeee");
+    // Clear team selection when bypassing team screen.
+    ref.read(selectedTeamIdProvider.notifier).state = "";
+    ref.read(selectedTeamProvider.notifier).clear();
 
-      if (type == "mechanical_work") {
-        context.push(
-          '/moc-selection',
-          extra: {
-            'siteId': widget.site.id,
-            'teamId': null,
-            'teamName': null,
-          },
-        );
-      } else if (type == "insulation_work") {
-        context.replace(
-          '/step-insulation',
-          extra: {
-            'siteId': widget.site.id,
-            'teamId': null,
-            'teamName': null,
-          },
-        );
-      }
-
-      return;
+    if (type == "mechanical_work") {
+      Navigator.pushReplacement(
+        context,
+        MaterialPageRoute(
+          builder: (_) => MechanichalStepperScreen(
+            siteId: widget.site.id,
+            teamId: '',
+            teamName: null,
+          ),
+        ),
+      );
+    } else if (type == "insulation_work") {
+      Navigator.pushReplacement(
+        context,
+        MaterialPageRoute(
+          builder: (_) => StepInsulationScreen(
+            siteId: widget.site.id,
+            teamId: '',
+            name: widget.site.siteName,
+            teamName: null,
+          ),
+        ),
+      );
     }
   }
 
@@ -89,6 +97,13 @@ class _DprTeamScreenState extends ConsumerState<DprTeamScreen> {
   Widget build(BuildContext context) {
     final teamState = ref.watch(teamProvider);
     final cs = Theme.of(context).colorScheme;
+
+    if (!_isNavigatingAway && !teamState.isLoading && teamState.teams.isEmpty) {
+      WidgetsBinding.instance.addPostFrameCallback((_) {
+        _tryAutoSkipWhenTeamsEmpty();
+      });
+      return const Scaffold(body: SizedBox.shrink());
+    }
 
     Widget teamIconAvatar() {
       return Container(
@@ -217,11 +232,10 @@ class _DprTeamScreenState extends ConsumerState<DprTeamScreen> {
                                 Navigator.push(
                                   context,
                                   MaterialPageRoute(
-                                    builder: (_) => MOCSelectionPage(
+                                    builder: (_) => MechanichalStepperScreen(
                                       siteId: widget.site.id,
                                       teamId: effectiveTeamId,
                                       teamName: team.teamName,
-                                      onMOCSelected: (_) {},
                                     ),
                                   ),
                                 );

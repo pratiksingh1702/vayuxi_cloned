@@ -7,6 +7,8 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import 'package:intl/intl.dart';
 import 'package:cached_network_image/cached_network_image.dart';
+import 'package:untitled2/core/router/routes.dart';
+import 'package:untitled2/core/upload/upload_exports.dart';
 import 'package:untitled2/core/utlis/app_toasts.dart';
 import 'package:untitled2/core/utlis/widgets/Button_wrapper.dart';
 import 'package:untitled2/core/utlis/widgets/custom_appBar.dart';
@@ -35,7 +37,7 @@ import '../model/field_config.dart' hide FieldEntry;
 import '../model/insu_step_date.dart';
 import '../model/material_setup.dart';
 import '../model/piping_insu.dart';
-import '../providers/draft_insu.dart';
+import '../offline/repo/insu_dpr_draft_repo.dart';
 import '../providers/insu_equipment.dart';
 import '../providers/insu_piping.dart';
 import '../providers/material_load.dart';
@@ -77,6 +79,7 @@ class _AddInsulationDescriptionScreenState
   late TeamModel team;
 
   InsulationDprApi service = InsulationDprApi();
+  final InsuDprDraftRepo _draftRepo = InsuDprDraftRepo();
 
   String? _insulationId;
   String? _selectedDprId;
@@ -976,7 +979,7 @@ class _AddInsulationDescriptionScreenState
   }
 
   void _initializeData() {
-    siteId = ref.read(selectedSiteIdProvider)!;
+    siteId = ref.read(selectedSiteIdProvider) ?? "";
     teamId = ref.read(selectedTeamIdProvider) ?? "";
 
     // ONLY read, never watch
@@ -3875,12 +3878,44 @@ class _AddInsulationDescriptionScreenState
 
   Future<void> _autoSaveDraft() async {
     final draft = _buildDraftModel();
+    final draftId =
+        draft.id.isNotEmpty ? draft.id : (_insulationId ?? generateObjectId());
+    final dprName = (draft.workDescription.trim().isNotEmpty)
+        ? draft.workDescription.trim()
+        : 'Insulation DPR';
+
     debugPrint(
         "PIPING COUNT: ${ref.read(insulationPipingMaterialsProvider).length}");
     debugPrint(
         "EQUIPMENT COUNT: ${ref.read(insulationEquipmentMaterialsProvider).length}");
 
-    ref.read(insulationDraftProvider.notifier).saveDraft(draft);
+    await _draftRepo.saveDraft(
+      InsuDprDraftRecord(
+        draftId: draftId,
+        draft: draft,
+        updateData: const {},
+        siteId: siteId,
+        teamId: teamId,
+        insulationId: _insulationId,
+        savedAt: DateTime.now(),
+        expiresAt: DateTime.now().add(const Duration(hours: 24)),
+      ),
+    );
+
+    await ref.read(uploadManagerProvider.notifier).notifyDraftSaved(
+          moduleId: 'dpr_insu',
+          draftId: draftId,
+          dprName: dprName,
+          draftWork: draft.toJson(),
+          metadata: {
+            'siteId': siteId,
+            'teamId': teamId,
+            'insulationId': _insulationId,
+            'editRoute': Routes.dprInsuDescription,
+            'date': _selectedDate.toIso8601String(),
+          },
+          sendInstant: true,
+        );
 
     debugPrint("💾 Draft Auto Saved");
   }
@@ -3990,33 +4025,58 @@ class _AddInsulationDescriptionScreenState
       debugPrint("📤 INSULATION DPR PAYLOAD:");
       debugPrint(const JsonEncoder.withIndent('  ').convert(payload));
 
-      // ✅ STEP 6: Send the payload to server
-      debugPrint('📤 Step 6: Sending DPR payload to server...');
-      if (_insulationId == null) {
-        await InsulationDprApi.createInsulationDpr(
-          data: payload,
+      // ✅ STEP 6: Save draft and enqueue background sync (create/update by handler)
+      debugPrint('📤 Step 6: Queueing insulation DPR for background sync...');
+
+      final draft = _buildDraftModel();
+      final draftId = draft.id.isNotEmpty
+          ? draft.id
+          : (_insulationId ?? generateObjectId());
+      final draftWork = draft.toJson();
+
+      await _draftRepo.saveDraft(
+        InsuDprDraftRecord(
+          draftId: draftId,
+          draft: draft,
+          updateData: payload,
           siteId: siteId,
           teamId: teamId,
-        );
-        debugPrint('✅ Insulation DPR created successfully');
-      } else {
-        await InsulationDprApi.updateInsulationDpr(
-          dprId: _insulationId!,
-          data: payload,
-        );
-        debugPrint('✅ Insulation DPR updated successfully');
-      }
+          insulationId: _insulationId,
+          savedAt: DateTime.now(),
+          expiresAt: DateTime.now().add(const Duration(hours: 24)),
+        ),
+      );
+
+      ref.read(uploadManagerProvider.notifier).enqueue(
+            UploadJob.create(
+              moduleId: 'dpr_insu',
+              filePath: 'dpr_insu://$draftId',
+              metadata: {
+                'draftId': draftId,
+                'draftWork': draftWork,
+                'insulationId': _insulationId,
+                'siteId': siteId,
+                'teamId': teamId,
+                'dprName': (draft.workDescription?.isNotEmpty ?? false)
+                    ? draft.workDescription!
+                    : 'Insulation DPR',
+                'date': _selectedDate.toIso8601String(),
+                'updateData': payload,
+                'editRoute': Routes.dprInsuDescription,
+              },
+            ),
+          );
 
       // Clean up staged images
       imageService.clearAll();
 
-      _showSnackBar("Insulation DPR Saved Successfully");
+      _showSnackBar("Insulation DPR saved. Background sync started.");
 
       WidgetsBinding.instance.addPostFrameCallback((_) {
         if (mounted && !_isDisposed) {
           int count = 0;
           if (widget.work == null) {
-            Navigator.of(context).popUntil((_) => count++ >= 5);
+            Navigator.of(context).popUntil((_) => count++ >= 2);
           } else {
             context.pop(true);
           }

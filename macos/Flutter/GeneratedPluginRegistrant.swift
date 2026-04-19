@@ -15,7 +15,7 @@ import firebase_crashlytics
 import firebase_messaging
 import flutter_local_notifications
 import flutter_tts
-import isar_flutter_libs
+import isar_community_flutter_libs
 import open_file_mac
 import printing
 import record_macos

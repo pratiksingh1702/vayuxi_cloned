@@ -119,6 +119,8 @@ String routeBreadcrumbLabel(String location) {
       return 'AI Analysis';
     case Routes.mocSelection:
       return 'MOC Selection';
+    case Routes.mechanichalStepper:
+      return 'Mechanichal Stepper';
     case Routes.manpower:
       return 'Manpower';
     case Routes.manpowerAddDetails:

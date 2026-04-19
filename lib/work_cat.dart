@@ -19,6 +19,7 @@ import 'features/modules/all_Modules/dpr/dpr_insu/model/dpr_model_insu.dart';
 import 'features/modules/all_Modules/dpr/dpr_insu/screens/testing.dart';
 import 'features/modules/all_Modules/more/language.dart';
 import 'features/noti_system/noti_providers/noti_provider.dart';
+import 'features/noti_system/updates/application/providers/notification_providers.dart';
 import 'features/profile_page/screens/profilePage.dart';
 import 'features/profile_page/provider/userProvider.dart';
 import 'features/tour/domain/tour_controller.dart';
@@ -1555,7 +1556,7 @@ class _PremiumAnimatedGreetingState extends State<_PremiumAnimatedGreeting>
   }
 }
 
-class _LandingHeaderRow extends StatelessWidget {
+class _LandingHeaderRow extends ConsumerWidget {
   const _LandingHeaderRow({
     required this.photoUrl,
     required this.userName,
@@ -1573,8 +1574,9 @@ class _LandingHeaderRow extends StatelessWidget {
   final VoidCallback onNotificationsTap;
 
   @override
-  Widget build(BuildContext context) {
+  Widget build(BuildContext context, WidgetRef ref) {
     final colorScheme = Theme.of(context).colorScheme;
+    final unreadCount = ref.watch(unreadCountProvider);
     return Container(
       padding: const EdgeInsets.symmetric(vertical: 6),
       child: Column(
@@ -1596,13 +1598,48 @@ class _LandingHeaderRow extends StatelessWidget {
                 children: [
                   const BeautifulThemeSwitcher(compact: true),
                   const SizedBox(width: 8),
-                  PremiumActionIcon(
-                    icon: Icons.notifications_rounded,
-                    tooltip: 'Notifications',
-                    backgroundColor: colorScheme.surfaceContainerHigh,
-                    iconColor: colorScheme.onSurface,
-                    borderColor: colorScheme.outlineVariant,
-                    onPressed: onNotificationsTap,
+                  Stack(
+                    clipBehavior: Clip.none,
+                    children: [
+                      PremiumActionIcon(
+                        icon: Icons.notifications_rounded,
+                        tooltip: 'Notifications',
+                        backgroundColor: colorScheme.surfaceContainerHigh,
+                        iconColor: colorScheme.onSurface,
+                        borderColor: colorScheme.outlineVariant,
+                        onPressed: onNotificationsTap,
+                      ),
+                      if (unreadCount > 0)
+                        Positioned(
+                          right: -2,
+                          top: -2,
+                          child: Container(
+                            constraints: const BoxConstraints(
+                              minWidth: 16,
+                              minHeight: 16,
+                            ),
+                            padding: const EdgeInsets.symmetric(horizontal: 4),
+                            decoration: BoxDecoration(
+                              color: colorScheme.error,
+                              borderRadius: BorderRadius.circular(999),
+                              border: Border.all(
+                                color: colorScheme.surface,
+                                width: 1,
+                              ),
+                            ),
+                            child: Center(
+                              child: Text(
+                                unreadCount > 99 ? '99+' : '$unreadCount',
+                                style: TextStyle(
+                                  fontSize: 9,
+                                  fontWeight: FontWeight.w700,
+                                  color: colorScheme.onError,
+                                ),
+                              ),
+                            ),
+                          ),
+                        ),
+                    ],
                   ),
                 ],
               ),

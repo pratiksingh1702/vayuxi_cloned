@@ -168,7 +168,7 @@ const AttendanceIsarSchema = CollectionSchema(
   getId: _attendanceIsarGetId,
   getLinks: _attendanceIsarGetLinks,
   attach: _attendanceIsarAttach,
-  version: '3.1.0+1',
+  version: '3.3.0',
 );
 
 int _attendanceIsarEstimateSize(

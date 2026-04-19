@@ -7,6 +7,8 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import 'package:intl/intl.dart';
 import 'package:cached_network_image/cached_network_image.dart';
+import 'package:untitled2/core/router/routes.dart';
+import 'package:untitled2/core/upload/upload_exports.dart';
 import 'package:untitled2/core/utlis/app_toasts.dart';
 import 'package:untitled2/core/utlis/widgets/Button_wrapper.dart';
 import 'package:untitled2/core/utlis/widgets/custom_appBar.dart';
@@ -36,13 +38,13 @@ import '../models/dprModel.dart';
 import '../models/equipmentModel.dart';
 import '../models/pipingModel.dart';
 import '../models/rate_file_models.dart';
+import '../offline/mech/repo/dpr_draft_repo.dart';
 import '../offline/mech/repo/rate_Repo.dart';
 import '../providers/dpr.dart';
 import '../providers/material_service.dart';
 import '../providers/rate_variant_provider.dart';
 import '../providers/selectedSize_provider.dart';
 import '../providers/selection_provider.dart';
-import '../providers/service/rate_upload_material_dpr.dart';
 import 'controllers/dpr_session_provider.dart';
 import 'material_sync_util.dart';
 import 'widgets/material_overlay_edit.dart';
@@ -101,6 +103,7 @@ class _AddDescriptionScreenState extends ConsumerState<AddDescriptionScreen>
   final Map<String, String> _equipmentLengthDraft = {};
   bool _headerInitialized = false;
   bool _isDateOverrideMode = false;
+  final DprDraftRepo _draftRepo = DprDraftRepo();
 
   // @override
   // void initState() {
@@ -113,7 +116,6 @@ class _AddDescriptionScreenState extends ConsumerState<AddDescriptionScreen>
   //     _loadInitialData();
   //   });
   // }
-  @override
   @override
   void initState() {
     super.initState();
@@ -165,20 +167,58 @@ class _AddDescriptionScreenState extends ConsumerState<AddDescriptionScreen>
     // ✅ Always reset flag at the START of every load
     _headerInitialized = false;
 
+    final work = widget.work ?? Dpr;
+
+    if (work != null && (work.id == null || work.id!.trim().isEmpty)) {
+      _hydrateFromWorkModel(work);
+      return;
+    }
+
     if (_mechanicalId != null) {
-      final work = widget.work ?? Dpr;
       if (work != null) {
         _mechanicalId = work.id;
         _selectedDprId = work.id;
-        // ❌ DON'T set controllers here — _loadDprMaterials does it
-        await _loadDprMaterials(Dpr);
+        await _loadDprMaterials(work);
       } else {
         await _loadDefaultMaterials();
-        _headerInitialized = true; // new DPR
+        _headerInitialized = true;
       }
     } else {
       await _loadDefaultMaterials();
-      _headerInitialized = true; // new DPR
+      _headerInitialized = true;
+    }
+  }
+
+  void _hydrateFromWorkModel(DprModel work) {
+    if (work.siteId.trim().isNotEmpty) {
+      siteId = work.siteId;
+    }
+    if (work.teamId.trim().isNotEmpty) {
+      teamId = work.teamId;
+    }
+
+    _mechanicalId = work.id;
+    _selectedDprId = work.id;
+    _selectedDate = work.date;
+
+    _dprNameController.text = work.dprName;
+    _mocController.text = work.moc;
+    _sizeController.text = work.size;
+    _floorController.text = work.location;
+    _plantController.text = work.plant;
+
+    ref.read(pipingMaterialsProvider.notifier).setMaterials(work.piping);
+    ref.read(equipmentMaterialsProvider.notifier).setMaterials(work.equipment);
+
+    _headerInitialized = true;
+    if (mounted) {
+      setState(() {
+        _showPipingMaterials = work.piping.isNotEmpty;
+        _showEquipmentMaterials = work.equipment.isNotEmpty;
+        _pipeFittingOn = work.piping.isNotEmpty;
+        _equipmentOn = work.equipment.isNotEmpty;
+      });
+      _showSnackBar('Draft restored for editing');
     }
   }
 
@@ -1419,127 +1459,133 @@ class _AddDescriptionScreenState extends ConsumerState<AddDescriptionScreen>
     final team = ref.read(currentTeamProvider);
     final site = ref.read(currentSiteProvider);
 
-    return Scaffold(
-      backgroundColor: cs.surfaceContainerLowest,
-      drawer: const CustomDrawer(),
-      body: NestedScrollView(
-        headerSliverBuilder: (context, innerBoxIsScrolled) {
-          return [CustomSliverAppBar(title: "Dpr Entry")];
-        },
-        body: BottomButtonWrapper(
-          customButtons: [
-            CustomButton(
-              button: RoundedButton(
-                text: _isSubmitting ? 'Saving..' : 'Save',
-                color: _isEditable || _isDateOverrideMode
-                    ? cs.primary
-                    : cs.surfaceContainerHigh,
-                textColor: _isEditable || _isDateOverrideMode
-                    ? cs.onPrimary
-                    : cs.onSurfaceVariant,
-                onPressed: _isSubmitting ? () {} : _handleSubmitFields,
-                isOutlined: false,
-              ),
-            ),
-          ],
-          child: Column(
-            children: [
-              if (_isLoading)
-                const ShimmerList(
-                  type: ShimmerListType.card,
-                  itemCount: 3,
-                  scrollable: false,
-                ),
-              Expanded(
-                child: SingleChildScrollView(
-                  padding: const EdgeInsets.all(6),
-                  physics: const BouncingScrollPhysics(),
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      Row(
-                        mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                        children: [
-                          Row(
-                            children: [
-                              Column(
-                                crossAxisAlignment: CrossAxisAlignment.start,
-                                children: [
-                                  Text(
-                                    site?.siteName ?? "DPR",
-                                    style: TextStyle(
-                                      fontSize: 14,
-                                      fontWeight: FontWeight.bold,
-                                      color: cs.onSurfaceVariant,
-                                    ),
-                                    maxLines: 1,
-                                    overflow: TextOverflow.ellipsis,
-                                  ),
-                                  Text(
-                                    team?.teamName ?? "Default Team",
-                                    style: TextStyle(
-                                      fontSize: 10,
-                                      color: cs.onSurfaceVariant,
-                                      fontStyle: FontStyle.italic,
-                                    ),
-                                    maxLines: 1,
-                                    overflow: TextOverflow.ellipsis,
-                                  ),
-                                ],
-                              ),
-                            ],
-                          ),
-                          _buildEditModeButton(),
-                        ],
-                      ),
-                      const SizedBox(height: 16),
-                      _buildDateSection(),
-                      const SizedBox(height: 16),
-                      _buildDprInfoCard(shouldShowDropdown),
-                      const SizedBox(height: 16),
-                      // _buildToggleSection(),
-                      // const SizedBox(height: 16),
-                      Column(
-                        key: _materialsRebuildKey,
-                        children: [
-                          if (_pipeFittingOn && hasPipingMaterials)
-                            _buildMaterialToggleCard(
-                              lang.pipeFittingMaterialLabel,
-                              pipingMaterials.length,
-                              _showPipingMaterials,
-                              () => _toggleMaterialVisibility(true),
-                            ),
-                          if (shouldShowPiping)
-                            ..._buildPipingMaterials(pipingMaterials),
-                          if (_equipmentOn && hasEquipmentMaterials)
-                            _buildMaterialToggleCard(
-                              lang.equipmentMaterialLabel,
-                              equipmentMaterials.length,
-                              _showEquipmentMaterials,
-                              () => _toggleMaterialVisibility(false),
-                            ),
-                          if (shouldShowEquipment)
-                            ..._buildEquipmentMaterials(equipmentMaterials),
-                          if (_pipeFittingOn && !hasPipingMaterials)
-                            _buildEmptyMaterialsCard(
-                                'No piping materials available'),
-                          if (_equipmentOn && !hasEquipmentMaterials)
-                            _buildEmptyMaterialsCard(
-                                'No equipment materials available'),
-                          if (!_pipeFittingOn &&
-                              !_equipmentOn &&
-                              _initialDataLoaded)
-                            _buildEmptyState(
-                                'Materials will appear here once loaded',
-                                Icons.downloading),
-                        ],
-                      ),
-                      const SizedBox(height: 100),
-                    ],
-                  ),
+    return WillPopScope(
+      onWillPop: () async {
+        await _autoSaveDraftOnExit();
+        return true;
+      },
+      child: Scaffold(
+        backgroundColor: cs.surfaceContainerLowest,
+        drawer: const CustomDrawer(),
+        body: NestedScrollView(
+          headerSliverBuilder: (context, innerBoxIsScrolled) {
+            return [CustomSliverAppBar(title: "Dpr Entry")];
+          },
+          body: BottomButtonWrapper(
+            customButtons: [
+              CustomButton(
+                button: RoundedButton(
+                  text: _isSubmitting ? 'Saving..' : 'Save',
+                  color: _isEditable || _isDateOverrideMode
+                      ? cs.primary
+                      : cs.surfaceContainerHigh,
+                  textColor: _isEditable || _isDateOverrideMode
+                      ? cs.onPrimary
+                      : cs.onSurfaceVariant,
+                  onPressed: _isSubmitting ? () {} : _handleSubmitFields,
+                  isOutlined: false,
                 ),
               ),
             ],
+            child: Column(
+              children: [
+                if (_isLoading)
+                  const ShimmerList(
+                    type: ShimmerListType.card,
+                    itemCount: 3,
+                    scrollable: false,
+                  ),
+                Expanded(
+                  child: SingleChildScrollView(
+                    padding: const EdgeInsets.all(6),
+                    physics: const BouncingScrollPhysics(),
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Row(
+                          mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                          children: [
+                            Row(
+                              children: [
+                                Column(
+                                  crossAxisAlignment: CrossAxisAlignment.start,
+                                  children: [
+                                    Text(
+                                      site?.siteName ?? "DPR",
+                                      style: TextStyle(
+                                        fontSize: 14,
+                                        fontWeight: FontWeight.bold,
+                                        color: cs.onSurfaceVariant,
+                                      ),
+                                      maxLines: 1,
+                                      overflow: TextOverflow.ellipsis,
+                                    ),
+                                    Text(
+                                      team?.teamName ?? "Default Team",
+                                      style: TextStyle(
+                                        fontSize: 10,
+                                        color: cs.onSurfaceVariant,
+                                        fontStyle: FontStyle.italic,
+                                      ),
+                                      maxLines: 1,
+                                      overflow: TextOverflow.ellipsis,
+                                    ),
+                                  ],
+                                ),
+                              ],
+                            ),
+                            _buildEditModeButton(),
+                          ],
+                        ),
+                        const SizedBox(height: 16),
+                        _buildDateSection(),
+                        const SizedBox(height: 16),
+                        _buildDprInfoCard(shouldShowDropdown),
+                        const SizedBox(height: 16),
+                        // _buildToggleSection(),
+                        // const SizedBox(height: 16),
+                        Column(
+                          key: _materialsRebuildKey,
+                          children: [
+                            if (_pipeFittingOn && hasPipingMaterials)
+                              _buildMaterialToggleCard(
+                                lang.pipeFittingMaterialLabel,
+                                pipingMaterials.length,
+                                _showPipingMaterials,
+                                () => _toggleMaterialVisibility(true),
+                              ),
+                            if (shouldShowPiping)
+                              ..._buildPipingMaterials(pipingMaterials),
+                            if (_equipmentOn && hasEquipmentMaterials)
+                              _buildMaterialToggleCard(
+                                lang.equipmentMaterialLabel,
+                                equipmentMaterials.length,
+                                _showEquipmentMaterials,
+                                () => _toggleMaterialVisibility(false),
+                              ),
+                            if (shouldShowEquipment)
+                              ..._buildEquipmentMaterials(equipmentMaterials),
+                            if (_pipeFittingOn && !hasPipingMaterials)
+                              _buildEmptyMaterialsCard(
+                                  'No piping materials available'),
+                            if (_equipmentOn && !hasEquipmentMaterials)
+                              _buildEmptyMaterialsCard(
+                                  'No equipment materials available'),
+                            if (!_pipeFittingOn &&
+                                !_equipmentOn &&
+                                _initialDataLoaded)
+                              _buildEmptyState(
+                                  'Materials will appear here once loaded',
+                                  Icons.downloading),
+                          ],
+                        ),
+                        const SizedBox(height: 100),
+                      ],
+                    ),
+                  ),
+                ),
+              ],
+            ),
           ),
         ),
       ),
@@ -2905,6 +2951,135 @@ class _AddDescriptionScreenState extends ConsumerState<AddDescriptionScreen>
     return headerSize.isNotEmpty ? headerSize : null;
   }
 
+  DprModel _buildDraftDprModel({
+    required List<PipingItem> pipingMaterials,
+    required List<EquipmentItem> equipmentMaterials,
+    required List<String> designation,
+  }) {
+    final now = DateTime.now();
+    return DprModel(
+      id: _mechanicalId,
+      siteId: siteId,
+      teamId: teamId,
+      company: team.company,
+      dprName: _dprNameController.text.trim(),
+      plant: _plantController.text.trim(),
+      location: _floorController.text.trim(),
+      size: _sizeController.text.trim(),
+      moc: _mocController.text.trim(),
+      piping: pipingMaterials,
+      equipment: equipmentMaterials,
+      designation: designation,
+      createdAt: now,
+      updatedAt: now,
+      date: DateTime(
+        _selectedDate.year,
+        _selectedDate.month,
+        _selectedDate.day,
+      ),
+    );
+  }
+
+  Future<String> _draftDpr({
+    required DprModel draft,
+    required Map<String, dynamic> updateData,
+  }) async {
+    final draftId = _mechanicalId?.trim().isNotEmpty == true
+        ? _mechanicalId!
+        : generateObjectId();
+
+    final rawTeamId = ref.read(selectedTeamIdProvider);
+    final safeTeamId =
+        (rawTeamId == null || rawTeamId.trim().isEmpty) ? 'default' : rawTeamId;
+
+    await _draftRepo.saveDraft(
+      DprDraftRecord(
+        draftId: draftId,
+        draft: draft,
+        updateData: updateData,
+        siteId: siteId,
+        teamId: safeTeamId,
+        mechanicalId: _mechanicalId,
+        savedAt: DateTime.now(),
+        expiresAt: DateTime.now().add(const Duration(hours: 24)),
+      ),
+    );
+    return draftId;
+  }
+
+  Future<void> _enqueueDprBackgroundSave({
+    required String draftId,
+    required DprModel draft,
+    required Map<String, dynamic> updateData,
+    required String dprName,
+    required String dateString,
+  }) async {
+    final rawTeamId = ref.read(selectedTeamIdProvider);
+    final safeTeamId =
+        (rawTeamId == null || rawTeamId.trim().isEmpty) ? 'default' : rawTeamId;
+
+    final job = UploadJob.create(
+      moduleId: 'dpr',
+      filePath: 'dpr://$draftId',
+      metadata: {
+        'draftId': draftId,
+        'siteId': siteId,
+        'teamId': safeTeamId,
+        'mechanicalId': _mechanicalId,
+        'dprName': dprName,
+        'date': dateString,
+        'editRoute': Routes.dprDescription,
+        'draftWork': draft.toJson(),
+        'updateData': updateData,
+      },
+      maxRetries: 2,
+    );
+
+    ref.read(uploadManagerProvider.notifier).enqueue(job);
+  }
+
+  Future<void> _autoSaveDraftOnExit() async {
+    if (_isDisposed || _isSubmitting) return;
+
+    final pipingMaterials = ref.read(pipingMaterialsProvider);
+    final equipmentMaterials = ref.read(equipmentMaterialsProvider);
+
+    final designation = <String>[
+      if (pipingMaterials.isNotEmpty) 'piping',
+      if (equipmentMaterials.isNotEmpty) 'equipment',
+    ];
+
+    final draftModel = _buildDraftDprModel(
+      pipingMaterials: pipingMaterials,
+      equipmentMaterials: equipmentMaterials,
+      designation: designation,
+    );
+
+    final draftId = await _draftDpr(
+      draft: draftModel,
+      updateData: const {},
+    );
+
+    final dprName = _dprNameController.text.trim().isNotEmpty
+        ? _dprNameController.text.trim()
+        : 'DPR';
+
+    await ref.read(uploadManagerProvider.notifier).notifyDraftSaved(
+          moduleId: 'dpr',
+          draftId: draftId,
+          dprName: dprName,
+          draftWork: draftModel.toJson(),
+          metadata: {
+            'siteId': siteId,
+            'teamId': teamId,
+            'mechanicalId': _mechanicalId,
+            'editRoute': Routes.dprDescription,
+            'date': _formatDate(_selectedDate),
+          },
+          sendInstant: true,
+        );
+  }
+
   Future<void> _handleSubmitFields() async {
     if (_isDisposed) return;
 
@@ -3253,33 +3428,23 @@ class _AddDescriptionScreenState extends ConsumerState<AddDescriptionScreen>
       print("🚀 FULL DPR UPDATE JSON:");
       printLongString(jsonString);
       print('---------------------------------------');
-      if (_mechanicalId == null) {
-        final rawTeamId = ref.read(selectedTeamIdProvider);
+      final draftModel = _buildDraftDprModel(
+        pipingMaterials: pipingMaterials,
+        equipmentMaterials: equipmentMaterials,
+        designation: dprDesignation,
+      );
+      final draftId = await _draftDpr(
+        draft: draftModel,
+        updateData: updateData,
+      );
 
-        final teamId = (rawTeamId == null || rawTeamId.trim().isEmpty)
-            ? "default"
-            : rawTeamId;
-
-        print("this is team id $teamId");
-
-        print('---------------------------------------');
-        if (_mechanicalId == null) {
-          final res = await RateUploadApi.createDprMechanicalV2(
-            siteId: ref.read(selectedSiteIdProvider)!,
-            teamId: teamId, // ✅ always non-null
-            data: updateData,
-          );
-
-          final jsonString =
-              const JsonEncoder.withIndent('  ').convert(res.data);
-          printLongString("Dpr : $jsonString");
-        }
-      } else {
-        await ref.read(dprProvider.notifier).updateDprWork(
-              data: updateData,
-              mechanicalId: _mechanicalId!,
-            );
-      }
+      await _enqueueDprBackgroundSave(
+        draftId: draftId,
+        draft: draftModel,
+        updateData: updateData,
+        dprName: _dprNameController.text.trim(),
+        dateString: dateString,
+      );
 
       WidgetsBinding.instance.addPostFrameCallback((_) {
         if (mounted && !_isDisposed) {
@@ -3291,7 +3456,7 @@ class _AddDescriptionScreenState extends ConsumerState<AddDescriptionScreen>
             context.pop(true);
           }
 
-          _showSnackBar("Successfully Saved");
+          _showSnackBar("Saved locally. Syncing in background");
 
           // ❌ DO NOT auto-disable edit mode for past dates
         }

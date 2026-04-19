@@ -1,4 +1,4 @@
-import 'package:isar/isar.dart';
+import 'package:isar_community/isar.dart';
 import '../../models/inventory_model.dart';
 import '../../service/inventory_service.dart';
 import '../isar/inventory_isar.dart';

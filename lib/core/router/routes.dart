@@ -18,6 +18,7 @@ class Routes {
   static const String siteImport = '/site-import';
   static const String analysis = '/analysis';
   static const String mocSelection = '/moc-selection';
+  static const String mechanichalStepper = '/mechanichal-stepper';
   static const String manpower = '/manpower';
   static const String manpowerAddDetails = '/manpower/addDetails';
   static const String editManpower = '/edit-manpower';

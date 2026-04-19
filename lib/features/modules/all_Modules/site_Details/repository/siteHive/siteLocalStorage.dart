@@ -48,6 +48,21 @@ class SiteModelHive {
   @HiveField(13)
   final String updatedAt;
 
+  @HiveField(14)
+  final int teamsCount;
+
+  @HiveField(15)
+  final int dprMechanicalCount;
+
+  @HiveField(16)
+  final int dprInsulationCount;
+
+  @HiveField(17)
+  final int manpowerCount;
+
+  @HiveField(18)
+  final int totalDprCount;
+
   SiteModelHive({
     required this.id,
     required this.siteName,
@@ -63,6 +78,11 @@ class SiteModelHive {
     required this.type,
     required this.createdAt,
     required this.updatedAt,
+    this.teamsCount = 0,
+    this.dprMechanicalCount = 0,
+    this.dprInsulationCount = 0,
+    this.manpowerCount = 0,
+    this.totalDprCount = 0,
   });
 
   // Convert from your original SiteModel to Hive model
@@ -82,6 +102,11 @@ class SiteModelHive {
       type: site.type,
       createdAt: site.createdAt,
       updatedAt: site.updatedAt,
+      teamsCount: site.counts.teams,
+      dprMechanicalCount: site.counts.dprMechanical,
+      dprInsulationCount: site.counts.dprInsulation,
+      manpowerCount: site.counts.manpower,
+      totalDprCount: site.counts.totalDpr,
     );
   }
 
@@ -101,12 +126,23 @@ class SiteModelHive {
       company: company,
       type: type,
       createdAt: createdAt,
-      updatedAt: updatedAt, shippingAddress: '',
+      updatedAt: updatedAt,
+      shippingAddress: '',
+      counts: SiteCounts(
+        teams: teamsCount,
+        dprMechanical: dprMechanicalCount,
+        dprInsulation: dprInsulationCount,
+        manpower: manpowerCount,
+        totalDpr: totalDprCount,
+      ),
     );
   }
 
   // Convert from JSON to Hive model
   factory SiteModelHive.fromJson(Map<String, dynamic> json) {
+    final countsJson = json['counts'];
+    final counts = SiteCounts.fromJson(countsJson);
+
     return SiteModelHive(
       id: json['_id'] ?? '',
       siteName: json['siteName'] ?? '',
@@ -122,6 +158,11 @@ class SiteModelHive {
       type: json['type'] ?? '',
       createdAt: json['createdAt'] ?? '',
       updatedAt: json['updatedAt'] ?? '',
+      teamsCount: counts.teams,
+      dprMechanicalCount: counts.dprMechanical,
+      dprInsulationCount: counts.dprInsulation,
+      manpowerCount: counts.manpower,
+      totalDprCount: counts.totalDpr,
     );
   }
 
@@ -142,6 +183,13 @@ class SiteModelHive {
       'type': type,
       'createdAt': createdAt,
       'updatedAt': updatedAt,
+      'counts': {
+        'teams': teamsCount,
+        'dprMechanical': dprMechanicalCount,
+        'dprInsulation': dprInsulationCount,
+        'manpower': manpowerCount,
+        'totalDpr': totalDprCount,
+      },
     };
   }
 }

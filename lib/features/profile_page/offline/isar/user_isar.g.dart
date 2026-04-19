@@ -53,7 +53,7 @@ const UserIsarSchema = CollectionSchema(
   getId: _userIsarGetId,
   getLinks: _userIsarGetLinks,
   attach: _userIsarAttach,
-  version: '3.1.0+1',
+  version: '3.3.0',
 );
 
 int _userIsarEstimateSize(

@@ -23,14 +23,15 @@ extension LayerTypeX on LayerType {
 
   static LayerType fromString(String value) {
     return LayerType.values.firstWhere(
-          (e) => e.name == value,
+      (e) => e.name == value,
       orElse: () => LayerType.single,
     );
   }
 }
+
 final laggingMaterialProvider =
-StateNotifierProvider<LaggingNotifier, List<LaggingMaterial>>(
-      (ref) => LaggingNotifier(),
+    StateNotifierProvider<LaggingNotifier, List<LaggingMaterial>>(
+  (ref) => LaggingNotifier(),
 );
 
 class LaggingNotifier extends StateNotifier<List<LaggingMaterial>> {
@@ -55,7 +56,6 @@ class LaggingNotifier extends StateNotifier<List<LaggingMaterial>> {
     }).toList();
   }
 
-
   void delete(String id) {
     state = state.where((m) => m.id != id).toList();
   }
@@ -63,11 +63,10 @@ class LaggingNotifier extends StateNotifier<List<LaggingMaterial>> {
   void clear() => state = [];
 }
 
-
 /// ----------------------------
 /// MODELS
 /// ----------------------------
- class LaggingMaterial extends Equatable {
+class LaggingMaterial extends Equatable {
   final String id;
   final String name;
   final double thickness;
@@ -185,8 +184,8 @@ class InsulationState extends Equatable {
 /// ----------------------------
 
 final insulationStateProvider =
-StateNotifierProvider<InsulationNotifier, InsulationState>(
-      (ref) => InsulationNotifier(ref),
+    StateNotifierProvider<InsulationNotifier, InsulationState>(
+  (ref) => InsulationNotifier(ref),
 );
 
 final currentStepProvider = StateProvider<int>((ref) => 0);
@@ -220,7 +219,6 @@ class InsulationNotifier extends StateNotifier<InsulationState> {
     );
   }
 
-
   void setFloor(String floor) {
     state = state.copyWith(floor: floor);
   }
@@ -233,7 +231,7 @@ class InsulationNotifier extends StateNotifier<InsulationState> {
     if (state.layers.length != requiredCount) {
       updatedLayers = List.generate(
         requiredCount,
-            (index) => index < state.layers.length
+        (index) => index < state.layers.length
             ? state.layers[index]
             : LayerData.empty(),
       );
@@ -242,6 +240,13 @@ class InsulationNotifier extends StateNotifier<InsulationState> {
     state = state.copyWith(
       layerType: type,
       layers: updatedLayers,
+    );
+  }
+
+  void clearLayerSelection() {
+    state = state.copyWith(
+      layerType: null,
+      layers: const [],
     );
   }
 

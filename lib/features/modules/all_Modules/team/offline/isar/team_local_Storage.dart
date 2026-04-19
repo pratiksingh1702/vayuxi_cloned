@@ -1,4 +1,4 @@
-import 'package:isar/isar.dart';
+import 'package:isar_community/isar.dart';
 import '../../../../../../core/local/isar_db.dart';
 import '../../model/teamModel.dart';
 import 'team_isar.dart';

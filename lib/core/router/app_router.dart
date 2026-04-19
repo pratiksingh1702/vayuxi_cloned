@@ -5,6 +5,7 @@ import 'package:untitled2/core/router/site_aware.dart';
 import 'package:untitled2/exit_wrapper.dart';
 import 'package:untitled2/features/modules/all_Modules/Manpower%20Details/screens/ManFieldMappingScreen.dart';
 import 'package:untitled2/features/modules/all_Modules/ai_analyze/model/ai_analyze_model.dart';
+import 'package:untitled2/features/modules/all_Modules/dpr/dpr_insu/screens/step_insulation_screen.dart';
 import 'package:untitled2/features/modules/all_Modules/site_Details/repository/siteModel.dart';
 import 'package:untitled2/features/modules/all_Modules/site_Details/screens/siteList.dart';
 import 'package:untitled2/features/modules/all_Modules/summary/screens/summaru_screen.dart';
@@ -49,7 +50,7 @@ import '../../features/modules/all_Modules/dpr/screens/dprTeamDetails.dart';
 import '../../features/modules/all_Modules/dpr/screens/dprTeamPage.dart';
 import '../../features/modules/all_Modules/dpr/screens/dpr_flow_gate.dart';
 import '../../features/modules/all_Modules/dpr/screens/add_description.dart';
-import '../../features/modules/all_Modules/dpr/screens/widgets/moc_selection_page.dart';
+import '../../features/modules/all_Modules/dpr/screens/widgets/mechanichal_stepper.dart';
 import '../../features/modules/all_Modules/expense/screens/add-exp/add_expense.dart';
 import '../../features/modules/all_Modules/expense/screens/expense_screen.dart';
 import '../../features/modules/all_Modules/expense/screens/genericFormScreen.dart';
@@ -96,6 +97,7 @@ import '../../features/profile_page/screens/profilePage.dart';
 import '../../features/noti_system/updates/presentation/navigation/updates_routes.dart';
 import '../../features/modules/screen/module_screen.dart';
 import '../../features/modules/screen/module_detail.dart';
+import '../../typeProvider/type_provider.dart';
 import '../../work_cat.dart';
 import '../../core/router/routes.dart';
 import '../utlis/widgets/date_picker_Screen.dart';
@@ -300,11 +302,13 @@ final appRouterProvider = Provider<GoRouter>((ref) {
           final bool show = module == 'site';
           _logRoute('SiteListScreen → module=$module',
               path: state.uri.toString());
+          final container = ProviderScope.containerOf(context, listen: false);
 
           // ── Build the pageBuilder switch once ──────────────────────────────
           Widget buildDestination(SiteModel site) {
             debugPrint(
                 '📍 [ROUTER] pageBuilder called | module=$module | siteId=${site.id}');
+            final type = container.read(typeProvider);
 
             Widget screen;
             switch (module) {
@@ -315,7 +319,22 @@ final appRouterProvider = Provider<GoRouter>((ref) {
                 screen = TeamSelectCardGrid();
                 break;
               case 'dpr':
-                screen = DprFlowGate(site: site);
+                screen = site.counts.teams == 0
+                    ? (type == 'mechanical_work'
+                        ? MechanichalStepperScreen(
+                            siteId: site.id,
+                            teamId: '',
+                            teamName: null,
+                          )
+                        : type == 'insulation_work'
+                            ? StepInsulationScreen(
+                                siteId: site.id,
+                                teamId: '',
+                                name: site.siteName,
+                                teamName: null,
+                              )
+                            : const SizedBox.shrink())
+                    : DprFlowGate(site: site);
                 break;
               case 'boq':
                 screen = BoqDashboardScreen(
@@ -340,7 +359,6 @@ final appRouterProvider = Provider<GoRouter>((ref) {
                 screen = InventoryCategorySelectionScreen();
                 break;
               case 'inv-setup':
-              
                 screen = ViewAddInventorySetup();
                 break;
               case 'att-sheet':
@@ -375,7 +393,6 @@ final appRouterProvider = Provider<GoRouter>((ref) {
           }
 
           // ── Read the container to check if a site is already selected ──────
-          final container = ProviderScope.containerOf(context, listen: false);
           final preSelectedSite = container.read(siteDropdownValueProvider);
 
           // ── If site already chosen AND this is not the site-management screen,
@@ -430,17 +447,37 @@ final appRouterProvider = Provider<GoRouter>((ref) {
         path: Routes.mocSelection,
         name: 'mocSelection',
         builder: (context, state) {
-          final data = state.extra as Map<String, dynamic>;
-          _logRoute('MOCSelectionPage', path: state.uri.toString(), extra: {
-            'siteId': data['siteId'],
-            'teamId': data['teamId'],
-            'teamName': data['teamName'],
-          });
-          return MOCSelectionPage(
+          final data = state.extra as Map<String, dynamic>? ?? {};
+          _logRoute('MechanichalStepperScreen',
+              path: state.uri.toString(),
+              extra: {
+                'siteId': data['siteId'],
+                'teamId': data['teamId'],
+                'teamName': data['teamName'],
+              });
+          return MechanichalStepperScreen(
             siteId: data['siteId'],
             teamId: data['teamId'],
             teamName: data['teamName'],
-            onMOCSelected: data['onMOCSelected'],
+          );
+        },
+      ),
+      GoRoute(
+        path: '/mechanichal-stepper',
+        name: 'mechanichalStepper',
+        builder: (context, state) {
+          final data = state.extra as Map<String, dynamic>? ?? {};
+          _logRoute('MechanichalStepperScreen',
+              path: state.uri.toString(),
+              extra: {
+                'siteId': data['siteId'],
+                'teamId': data['teamId'],
+                'teamName': data['teamName'],
+              });
+          return MechanichalStepperScreen(
+            siteId: data['siteId'],
+            teamId: data['teamId'],
+            teamName: data['teamName'],
           );
         },
       ),
@@ -677,7 +714,20 @@ final appRouterProvider = Provider<GoRouter>((ref) {
       GoRoute(
         path: Routes.dprDescription,
         builder: (context, state) {
-          final work = state.extra as DprModel?;
+          final extra = state.extra;
+          DprModel? work;
+
+          if (extra is DprModel) {
+            work = extra;
+          } else if (extra is Map<String, dynamic>) {
+            final rawWork = extra['draftWork'] ?? extra['work'];
+            if (rawWork is DprModel) {
+              work = rawWork;
+            } else if (rawWork is Map<String, dynamic>) {
+              work = DprModel.fromJson(rawWork);
+            }
+          }
+
           _logRoute('AddDescriptionScreen (dprDescription)',
               path: state.uri.toString(), extra: {'workId': work?.id});
           return AddDescriptionScreen(work: work);
@@ -686,7 +736,20 @@ final appRouterProvider = Provider<GoRouter>((ref) {
       GoRoute(
         path: Routes.dprInsuDescription,
         builder: (context, state) {
-          final work = state.extra as InsulationDprModel?;
+          InsulationDprModel? work;
+          final extra = state.extra;
+
+          if (extra is InsulationDprModel) {
+            work = extra;
+          } else if (extra is Map<String, dynamic>) {
+            final rawWork = extra['draftWork'] ?? extra['work'];
+            if (rawWork is InsulationDprModel) {
+              work = rawWork;
+            } else if (rawWork is Map<String, dynamic>) {
+              work = InsulationDprModel.fromJson(rawWork);
+            }
+          }
+
           _logRoute('AddInsulationDescriptionScreen (dprInsuDescription)',
               path: state.uri.toString(), extra: {'workId': work?.id});
           return AddInsulationDescriptionScreen(work: work);
@@ -812,19 +875,37 @@ final appRouterProvider = Provider<GoRouter>((ref) {
     ],
   );
 
-  void syncFromRouterState() {
+  var isSyncScheduled = false;
+  var isDisposed = false;
+  String? pendingConcretePath;
+
+  void scheduleRouterStateSync() {
     final uri = router.routeInformationProvider.value.uri;
-    final concretePath = uri.path.isEmpty ? '/' : normalizeRouteLocation(uri.path);
-    ref.read(currentRouteProvider.notifier).state = concretePath;
-    ref.read(routeTrailProvider.notifier).syncFromLocation(concretePath);
+    pendingConcretePath =
+        uri.path.isEmpty ? '/' : normalizeRouteLocation(uri.path);
+
+    if (isSyncScheduled) return;
+    isSyncScheduled = true;
+
+    Future.microtask(() {
+      isSyncScheduled = false;
+      if (isDisposed) return;
+
+      final concretePath = pendingConcretePath;
+      if (concretePath == null) return;
+
+      ref.read(currentRouteProvider.notifier).state = concretePath;
+      ref.read(routeTrailProvider.notifier).syncFromLocation(concretePath);
+    });
   }
 
-  router.routerDelegate.addListener(syncFromRouterState);
+  router.routerDelegate.addListener(scheduleRouterStateSync);
   ref.onDispose(() {
-    router.routerDelegate.removeListener(syncFromRouterState);
+    isDisposed = true;
+    router.routerDelegate.removeListener(scheduleRouterStateSync);
   });
 
-  Future.microtask(syncFromRouterState);
+  scheduleRouterStateSync();
 
   return router;
 });

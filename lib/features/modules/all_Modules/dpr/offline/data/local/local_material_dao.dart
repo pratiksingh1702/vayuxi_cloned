@@ -1,7 +1,7 @@
 // lib/features/modules/all_Modules/offline/data/local/local_material_dao.dart
 
 import 'dart:convert';
-import 'package:isar/isar.dart';
+import 'package:isar_community/isar.dart';
 import 'package:untitled2/core/local/isar_db.dart';
 
 import '../../../dpr_insu/model/card_form_State.dart';

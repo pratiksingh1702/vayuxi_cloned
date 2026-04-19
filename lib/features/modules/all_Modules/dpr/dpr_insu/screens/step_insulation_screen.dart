@@ -1,7 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import '../providers/insu_step_provider.dart';
-import 'floor_selection.dart';
+import 'insulation_stepper.dart';
 
 class StepInsulationScreen extends ConsumerWidget {
   final String siteId;
@@ -19,11 +18,10 @@ class StepInsulationScreen extends ConsumerWidget {
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
-    // Always start with floor selection
-    return FloorSelectionScreen(
+    return InsulationStepperScreen(
       siteId: siteId,
       teamId: teamId,
-      name: name,
+      siteName: name,
       teamName: teamName ?? '',
     );
   }

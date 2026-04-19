@@ -17,6 +17,8 @@ import 'core/api/dio.dart';
 import 'core/api/requestQueue.dart';
 import 'core/local/isar_db.dart';
 import 'core/upload/handlers/manpower_upload_handler.dart';
+import 'core/upload/handlers/dpr_upload_handler.dart';
+import 'core/upload/handlers/insulation_dpr_upload_handler.dart';
 import 'core/upload/handlers/rate_upload_handler.dart';
 import 'core/upload/handlers/site_upload_handler.dart';
 import 'core/upload/upload_exports.dart';
@@ -30,6 +32,7 @@ import 'features/modules/all_Modules/team/offline/state/isar_provider.dart';
 import 'features/noti_system/noti_services/bg_handler.dart';
 import 'features/noti_system/noti_services/fcm_service.dart';
 import 'features/noti_system/noti_services/noti_service.dart';
+import 'features/noti_system/updates/data/repositories/local_notification_repository.dart';
 
 Future<void> main() async {
   debugPaintBaselinesEnabled = false;
@@ -86,7 +89,11 @@ Future<void> main() async {
     UploadHandlerRegistry.instance
       ..register(SiteUploadHandler())
       ..register(RateUploadHandler())
-      ..register(ManpowerUploadHandler());
+      ..register(ManpowerUploadHandler())
+      ..register(DprUploadHandler())
+      ..register(InsulationDprUploadHandler());
+
+    final updatesRepository = LocalNotificationRepository();
 
     // In your main.dart or app_startup.dart
     ActionHandlerRegistry.instance
@@ -94,6 +101,11 @@ Future<void> main() async {
         final hours = payload['hours'] as int? ?? 24;
         // Schedule a local notification reminder
         debugPrint('Snoozed for $hours hours');
+      })
+      ..register('dpr_remove_notification', (payload) async {
+        final id = payload['notificationId']?.toString();
+        if (id == null || id.isEmpty) return;
+        await updatesRepository.deleteNotification(id);
       });
     runApp(
       UncontrolledProviderScope(

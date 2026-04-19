@@ -249,7 +249,7 @@ const ManpowerIsarSchema = CollectionSchema(
   getId: _manpowerIsarGetId,
   getLinks: _manpowerIsarGetLinks,
   attach: _manpowerIsarAttach,
-  version: '3.1.0+1',
+  version: '3.3.0',
 );
 
 int _manpowerIsarEstimateSize(

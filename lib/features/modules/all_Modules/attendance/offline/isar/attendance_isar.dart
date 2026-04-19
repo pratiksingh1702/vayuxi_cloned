@@ -1,4 +1,4 @@
-import 'package:isar/isar.dart';
+import 'package:isar_community/isar.dart';
 
 import '../../../Manpower Details/model/manpower_model.dart';
 import '../../model/attModel.dart';

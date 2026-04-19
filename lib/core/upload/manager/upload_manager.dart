@@ -1,5 +1,11 @@
 import 'dart:async';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:untitled2/core/router/routes.dart';
+import 'package:untitled2/features/noti_system/noti_services/noti_service.dart';
+import 'package:untitled2/features/noti_system/updates/data/models/notification_model.dart';
+import 'package:untitled2/features/noti_system/updates/data/models/notification_priority.dart';
+import 'package:untitled2/features/noti_system/updates/data/models/notification_type.dart';
+import 'package:untitled2/features/noti_system/updates/data/repositories/local_notification_repository.dart';
 import '../models/upload_job.dart';
 import '../models/upload_status.dart';
 import '../registry/upload_handler_registry.dart';
@@ -9,22 +15,30 @@ import 'package:go_router/go_router.dart';
 import 'package:flutter/foundation.dart';
 
 final uploadManagerProvider =
-NotifierProvider<UploadManager, List<UploadJob>>(UploadManager.new);
+    NotifierProvider<UploadManager, List<UploadJob>>(UploadManager.new);
 
 class UploadManager extends Notifier<List<UploadJob>> {
   /// Active processor tasks per moduleId (for sequential-per-module enforcement)
   final Map<String, bool> _processingModules = {};
+  final LocalNotificationRepository _updatesRepository =
+      LocalNotificationRepository();
+  final NotificationService _notificationService = NotificationService();
   Timer? _autoDismissTimer;
 
   @override
   List<UploadJob> build() => [];
 
+  bool _isDprModule(String moduleId) =>
+      moduleId == 'dpr' || moduleId == 'dpr_insu';
+
   // ─── Public API ───────────────────────────────────────────────────────────
 
   /// Wait for a specific job to complete and return its final state.
   /// Throws a [TimeoutException] if the job does not complete within [timeout].
-  Future<UploadJob> waitForCompletion(String jobId, {Duration timeout = const Duration(minutes: 5)}) async {
-    print("🔍 [UploadManager] Starting tracking for job: $jobId (timeout: ${timeout.inSeconds}s)");
+  Future<UploadJob> waitForCompletion(String jobId,
+      {Duration timeout = const Duration(minutes: 5)}) async {
+    print(
+        "🔍 [UploadManager] Starting tracking for job: $jobId (timeout: ${timeout.inSeconds}s)");
 
     final completer = Completer<UploadJob>();
     Timer? timeoutTimer;
@@ -34,7 +48,8 @@ class UploadManager extends Notifier<List<UploadJob>> {
     // Check if already completed
     final initial = _getJob(jobId);
     if (initial != null && initial.status.isTerminal) {
-      print("✅ [UploadManager] Job $jobId already in terminal state: ${initial.status}");
+      print(
+          "✅ [UploadManager] Job $jobId already in terminal state: ${initial.status}");
       return initial;
     }
 
@@ -42,7 +57,8 @@ class UploadManager extends Notifier<List<UploadJob>> {
     timeoutTimer = Timer(timeout, () {
       if (!completer.isCompleted) {
         print("⏰ [UploadManager] Timeout reached for job: $jobId");
-        completer.completeError(TimeoutException("Job $jobId timed out after ${timeout.inSeconds}s"));
+        completer.completeError(TimeoutException(
+            "Job $jobId timed out after ${timeout.inSeconds}s"));
       }
     });
 
@@ -51,9 +67,11 @@ class UploadManager extends Notifier<List<UploadJob>> {
       final job = _getJob(jobId);
 
       if (job == null) {
-        print("❓ [UploadManager] Job $jobId removed from queue during tracking");
+        print(
+            "❓ [UploadManager] Job $jobId removed from queue during tracking");
         if (!completer.isCompleted) {
-          completer.completeError(Exception("Job $jobId was removed from queue"));
+          completer
+              .completeError(Exception("Job $jobId was removed from queue"));
         }
         return;
       }
@@ -61,9 +79,11 @@ class UploadManager extends Notifier<List<UploadJob>> {
       if (lastStatus != job.status) {
         lastStatus = job.status;
         if (job.status.isTerminal) {
-          print("🏁 [UploadManager] Job $jobId reached terminal state: ${job.status}");
+          print(
+              "🏁 [UploadManager] Job $jobId reached terminal state: ${job.status}");
         } else {
-          print("⏳ [UploadManager] Job $jobId status update: ${job.status} (${(job.progress * 100).toStringAsFixed(0)}%)");
+          print(
+              "⏳ [UploadManager] Job $jobId status update: ${job.status} (${(job.progress * 100).toStringAsFixed(0)}%)");
         }
       }
 
@@ -83,25 +103,65 @@ class UploadManager extends Notifier<List<UploadJob>> {
 
   String enqueue(UploadJob job) {
     _cancelAutoDismiss();
-    
+
     // ✅ Automatically record the current route if not provided
     final currentRoute = ref.read(currentRouteProvider);
-    final finalJob = job.originatingRoute == null 
-        ? job.copyWith(originatingRoute: currentRoute) 
+    final finalJob = job.originatingRoute == null
+        ? job.copyWith(originatingRoute: currentRoute)
         : job;
 
     state = [...state, finalJob];
+    if (_isDprModule(finalJob.moduleId)) {
+      unawaited(_upsertDprUnsavedNotification(finalJob));
+    }
     _tryProcessModule(finalJob.moduleId);
     return finalJob.jobId;
   }
 
+  Future<void> notifyDraftSaved({
+    required String moduleId,
+    required String draftId,
+    required String dprName,
+    Map<String, dynamic>? draftWork,
+    Map<String, dynamic>? metadata,
+    bool sendInstant = true,
+  }) async {
+    if (!_isDprModule(moduleId)) return;
+
+    final mergedMetadata = <String, dynamic>{
+      ...?metadata,
+      'draftId': draftId,
+      'dprName': dprName,
+      if (draftWork != null) 'draftWork': draftWork,
+    };
+
+    final job = UploadJob.create(
+      moduleId: moduleId,
+      filePath: '$moduleId://$draftId',
+      metadata: mergedMetadata,
+    );
+
+    await _upsertDprUnsavedNotification(job);
+
+    if (!sendInstant) return;
+
+    final isInsulation = moduleId == 'dpr_insu';
+    await _notificationService.sendInstantNotification(
+      title: isInsulation ? 'Insulation draft saved' : 'DPR draft saved',
+      body: '$dprName saved as draft. Open notifications to review.',
+      payload: _dprNotificationId(job),
+    );
+  }
+
   void retry(String jobId) {
-    _updateJob(jobId, (j) => j.copyWith(
-      status: UploadStatus.queued,
-      progress: 0,
-      message: 'Retrying...',
-      retryCount: j.retryCount + 1,
-    ));
+    _updateJob(
+        jobId,
+        (j) => j.copyWith(
+              status: UploadStatus.queued,
+              progress: 0,
+              message: 'Retrying...',
+              retryCount: j.retryCount + 1,
+            ));
     final job = _getJob(jobId);
     if (job != null) _tryProcessModule(job.moduleId);
   }
@@ -138,7 +198,7 @@ class UploadManager extends Notifier<List<UploadJob>> {
       while (true) {
         final nextJob = state
             .where((j) =>
-        j.moduleId == moduleId && j.status == UploadStatus.queued)
+                j.moduleId == moduleId && j.status == UploadStatus.queued)
             .firstOrNull;
 
         if (nextJob == null) break;
@@ -152,12 +212,14 @@ class UploadManager extends Notifier<List<UploadJob>> {
   }
 
   Future<void> _executeJob(UploadJob job) async {
-    _updateJob(job.jobId, (j) => j.copyWith(
-      status: UploadStatus.uploading,
-      progress: 0.01,
-      message: 'Uploading...',
-      startedAt: DateTime.now(),
-    ));
+    _updateJob(
+        job.jobId,
+        (j) => j.copyWith(
+              status: UploadStatus.uploading,
+              progress: 0.01,
+              message: 'Uploading...',
+              startedAt: DateTime.now(),
+            ));
 
     try {
       final handler = UploadHandlerRegistry.instance.resolve(job.moduleId);
@@ -166,33 +228,43 @@ class UploadManager extends Notifier<List<UploadJob>> {
         job: job,
         onProgress: (progress, message) {
           if (progress >= 1.0) {
-            _updateJob(job.jobId, (j) => j.copyWith(
-              status: UploadStatus.processing,
-              progress: 1.0,
-              message: 'Processing on server...',
-            ));
+            _updateJob(
+                job.jobId,
+                (j) => j.copyWith(
+                      status: UploadStatus.processing,
+                      progress: 1.0,
+                      message: 'Processing on server...',
+                    ));
           } else {
-            _updateJob(job.jobId, (j) => j.copyWith(
-              status: UploadStatus.uploading,
-              progress: progress,
-              message: message,
-            ));
+            _updateJob(
+                job.jobId,
+                (j) => j.copyWith(
+                      status: UploadStatus.uploading,
+                      progress: progress,
+                      message: message,
+                    ));
           }
         },
       );
 
-      _updateJob(job.jobId, (j) => j.copyWith(
-        status: UploadStatus.success,
-        progress: 1.0,
-        message: '✅ Upload complete',
-        completedAt: DateTime.now(),
-        autoDismissAt: DateTime.now().add(const Duration(seconds: 5)),
-        response: result,
-      ));
+      _updateJob(
+          job.jobId,
+          (j) => j.copyWith(
+                status: UploadStatus.success,
+                progress: 1.0,
+                message: '✅ Upload complete',
+                completedAt: DateTime.now(),
+                autoDismissAt: DateTime.now().add(const Duration(seconds: 5)),
+                response: result,
+              ));
+
+      if (_isDprModule(job.moduleId)) {
+        unawaited(_handleDprUploadSuccess(job));
+      }
 
       // ✅ Check for auto-navigation on success
       _handleAutoNavigation(job.jobId);
-      
+
       // Auto-remove terminal jobs after delay
       _scheduleJobRemoval(job.jobId);
     } catch (e) {
@@ -201,15 +273,21 @@ class UploadManager extends Notifier<List<UploadJob>> {
       final canRetry =
           current != null && current.retryCount < current.maxRetries;
 
-      _updateJob(job.jobId, (j) => j.copyWith(
-        status: UploadStatus.failed,
-        message: canRetry
-            ? '❌ Failed — tap to retry'
-            : '❌ Failed after ${current?.maxRetries} retries',
-        completedAt: DateTime.now(),
-        autoDismissAt: DateTime.now().add(const Duration(seconds: 5)),
-        response: e.toString(),
-      ));
+      _updateJob(
+          job.jobId,
+          (j) => j.copyWith(
+                status: UploadStatus.failed,
+                message: canRetry
+                    ? '❌ Failed — tap to retry'
+                    : '❌ Failed after ${current?.maxRetries} retries',
+                completedAt: DateTime.now(),
+                autoDismissAt: DateTime.now().add(const Duration(seconds: 5)),
+                response: e.toString(),
+              ));
+
+      if (_isDprModule(job.moduleId)) {
+        unawaited(_handleDprUploadFailure(job, e));
+      }
 
       // ✅ Check for auto-navigation on failure
       _handleAutoNavigation(job.jobId);
@@ -223,11 +301,12 @@ class UploadManager extends Notifier<List<UploadJob>> {
     if (job == null || job.targetRoute == null) return;
 
     final currentRoute = ref.read(currentRouteProvider);
-    
+
     // Only navigate if user is still on the originating screen
     if (currentRoute == job.originatingRoute) {
-      print("🚀 [UploadManager] Auto-navigating for job $jobId to ${job.targetRoute}");
-      
+      print(
+          "🚀 [UploadManager] Auto-navigating for job $jobId to ${job.targetRoute}");
+
       // Trigger navigation using GoRouter
       final router = ref.read(appRouterProvider);
       router.push(job.targetRoute!);
@@ -235,14 +314,17 @@ class UploadManager extends Notifier<List<UploadJob>> {
       // Immediately remove from queue as requested
       removeJob(jobId);
     } else {
-      print("ℹ️ [UploadManager] Skipping auto-navigation for job $jobId (current: $currentRoute, originating: ${job.originatingRoute})");
+      print(
+          "ℹ️ [UploadManager] Skipping auto-navigation for job $jobId (current: $currentRoute, originating: ${job.originatingRoute})");
     }
   }
 
   void _scheduleJobRemoval(String jobId) {
     Future.delayed(const Duration(seconds: 5), () {
       final current = _getJob(jobId);
-      if (current != null && current.status.isTerminal && current.autoDismissAt != null) {
+      if (current != null &&
+          current.status.isTerminal &&
+          current.autoDismissAt != null) {
         removeJob(jobId);
       }
     });
@@ -269,7 +351,133 @@ class UploadManager extends Notifier<List<UploadJob>> {
 
   void _updateJob(String jobId, UploadJob Function(UploadJob) updater) {
     state = [
-      for (final j in state) if (j.jobId == jobId) updater(j) else j,
+      for (final j in state)
+        if (j.jobId == jobId) updater(j) else j,
     ];
+  }
+
+  String _dprNotificationId(UploadJob job) {
+    final prefix =
+        job.moduleId == 'dpr_insu' ? 'dpr_insu_upload' : 'dpr_upload';
+    final draftId = job.metadata['draftId']?.toString().trim();
+    if (draftId != null && draftId.isNotEmpty) return '${prefix}_$draftId';
+    return '${prefix}_${job.jobId}';
+  }
+
+  List<Map<String, dynamic>> _dprActions(
+    UploadJob job,
+    String notificationId,
+    String draftId,
+    dynamic draftWork,
+  ) {
+    final route = job.moduleId == 'dpr_insu'
+        ? Routes.dprInsuDescription
+        : Routes.dprDescription;
+    return [
+      {
+        'actionType': 'navigate',
+        'label': 'Edit',
+        'route': route,
+        'params': {
+          if (draftWork != null) 'draftWork': draftWork,
+          'draftId': draftId,
+        },
+        'isPrimary': true,
+      },
+      {
+        'actionType': 'callback',
+        'label': 'Remove',
+        'handlerKey': 'dpr_remove_notification',
+        'payload': {'notificationId': notificationId},
+        'isPrimary': false,
+      },
+    ];
+  }
+
+  Future<void> _upsertDprUnsavedNotification(UploadJob job) async {
+    final notificationId = _dprNotificationId(job);
+    final draftId = (job.metadata['draftId'] ?? job.jobId).toString().trim();
+    final dprName = (job.metadata['dprName'] ?? 'DPR').toString().trim();
+    final draftWork = job.metadata['draftWork'];
+    final isInsulation = job.moduleId == 'dpr_insu';
+    final now = DateTime.now();
+    final expiresAt = now.add(const Duration(hours: 24));
+
+    await _updatesRepository.addNotification(
+      NotificationModel(
+        id: notificationId,
+        type: NotificationType.alert,
+        title:
+            isInsulation ? 'Insulation DPR pending sync' : 'DPR pending sync',
+        description: '$dprName is saved locally and syncing in background.',
+        timestamp: now,
+        priority: NotificationPriority.medium,
+        metadata: {
+          'source': isInsulation ? 'dpr_insu_upload' : 'dpr_upload',
+          'moduleId': job.moduleId,
+          'uploadStatus': 'unsaved',
+          'draftId': draftId,
+          'dprName': dprName,
+          if (draftWork != null) 'draftWork': draftWork,
+          'expiresAt': expiresAt.toIso8601String(),
+          'actions': _dprActions(job, notificationId, draftId, draftWork),
+        },
+      ),
+    );
+  }
+
+  Future<void> _handleDprUploadSuccess(UploadJob job) async {
+    await _updatesRepository.deleteNotification(_dprNotificationId(job));
+  }
+
+  Future<void> _handleDprUploadFailure(UploadJob job, Object error) async {
+    final notificationId = _dprNotificationId(job);
+    final draftId = (job.metadata['draftId'] ?? job.jobId).toString().trim();
+    final dprName = (job.metadata['dprName'] ?? 'DPR').toString().trim();
+    final draftWork = job.metadata['draftWork'];
+    final isInsulation = job.moduleId == 'dpr_insu';
+    final now = DateTime.now();
+    final expiresAt = now.add(const Duration(hours: 24));
+
+    await _updatesRepository.addNotification(
+      NotificationModel(
+        id: notificationId,
+        type: NotificationType.alert,
+        title: isInsulation ? 'Insulation DPR sync failed' : 'DPR sync failed',
+        description: '$dprName failed to sync. Tap Edit to retry changes.',
+        timestamp: now,
+        priority: NotificationPriority.high,
+        metadata: {
+          'source': isInsulation ? 'dpr_insu_upload' : 'dpr_upload',
+          'moduleId': job.moduleId,
+          'uploadStatus': 'failed',
+          'draftId': draftId,
+          'dprName': dprName,
+          if (draftWork != null) 'draftWork': draftWork,
+          'error': error.toString(),
+          'expiresAt': expiresAt.toIso8601String(),
+          'actions': _dprActions(job, notificationId, draftId, draftWork),
+        },
+      ),
+    );
+
+    final baseId = notificationId.hashCode & 0x7fffffff;
+    final reminderTitle =
+        isInsulation ? 'Insulation DPR still unsynced' : 'DPR still unsynced';
+    await _notificationService.scheduleOneTimeNotification(
+      id: (baseId + 1) & 0x7fffffff,
+      title: reminderTitle,
+      body: '$dprName needs your attention. Open notifications to edit.',
+      scheduledAt: now.add(const Duration(hours: 12)),
+      payload: notificationId,
+    );
+
+    await _notificationService.scheduleOneTimeNotification(
+      id: (baseId + 2) & 0x7fffffff,
+      title: reminderTitle,
+      body: '$dprName has not been synced yet.',
+      scheduledAt: now.add(const Duration(hours: 24)),
+      payload: notificationId,
+    );
   }
 }

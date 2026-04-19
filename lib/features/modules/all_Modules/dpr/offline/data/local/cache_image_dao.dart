@@ -1,5 +1,5 @@
 import 'package:flutter/cupertino.dart';
-import 'package:isar/isar.dart';
+import 'package:isar_community/isar.dart';
 import 'package:untitled2/core/local/isar_db.dart';
 import 'cached_image.dart';
 

@@ -91,7 +91,7 @@ const OutboxIsarSchema = CollectionSchema(
   getId: _outboxIsarGetId,
   getLinks: _outboxIsarGetLinks,
   attach: _outboxIsarAttach,
-  version: '3.1.0+1',
+  version: '3.3.0',
 );
 
 int _outboxIsarEstimateSize(

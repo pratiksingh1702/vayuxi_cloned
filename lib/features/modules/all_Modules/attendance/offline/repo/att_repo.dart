@@ -1,5 +1,5 @@
 import 'package:connectivity_plus/connectivity_plus.dart';
-import 'package:isar/isar.dart';
+import 'package:isar_community/isar.dart';
 import 'package:untitled2/features/modules/all_Modules/attendance/provider/AttendanceService.dart';
 import 'package:rxdart/rxdart.dart';
 import '../../../../../../core/api/dio.dart';

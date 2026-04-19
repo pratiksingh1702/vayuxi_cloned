@@ -92,7 +92,7 @@ const RateFileAnalysisIsarSchema = CollectionSchema(
   getId: _rateFileAnalysisIsarGetId,
   getLinks: _rateFileAnalysisIsarGetLinks,
   attach: _rateFileAnalysisIsarAttach,
-  version: '3.1.0+1',
+  version: '3.3.0',
 );
 
 int _rateFileAnalysisIsarEstimateSize(
@@ -1817,7 +1817,7 @@ const RateFileMaterialIsarSchema = CollectionSchema(
   getId: _rateFileMaterialIsarGetId,
   getLinks: _rateFileMaterialIsarGetLinks,
   attach: _rateFileMaterialIsarAttach,
-  version: '3.1.0+1',
+  version: '3.3.0',
 );
 
 int _rateFileMaterialIsarEstimateSize(
@@ -4707,7 +4707,7 @@ const RateVariantIsarSchema = CollectionSchema(
   getId: _rateVariantIsarGetId,
   getLinks: _rateVariantIsarGetLinks,
   attach: _rateVariantIsarAttach,
-  version: '3.1.0+1',
+  version: '3.3.0',
 );
 
 int _rateVariantIsarEstimateSize(

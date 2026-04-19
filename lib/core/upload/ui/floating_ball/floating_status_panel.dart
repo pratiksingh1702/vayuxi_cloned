@@ -12,6 +12,7 @@ class FloatingStatusPanel extends ConsumerStatefulWidget {
   final VoidCallback onDismiss;
   final void Function(String jobId) onRetry;
   final void Function(String route) onNavigate;
+  final void Function(UploadJob job) onEdit;
 
   const FloatingStatusPanel({
     super.key,
@@ -21,10 +22,12 @@ class FloatingStatusPanel extends ConsumerStatefulWidget {
     required this.onDismiss,
     required this.onRetry,
     required this.onNavigate,
+    required this.onEdit,
   });
 
   @override
-  ConsumerState<FloatingStatusPanel> createState() => _FloatingStatusPanelState();
+  ConsumerState<FloatingStatusPanel> createState() =>
+      _FloatingStatusPanelState();
 }
 
 class _FloatingStatusPanelState extends ConsumerState<FloatingStatusPanel>
@@ -34,8 +37,7 @@ class _FloatingStatusPanelState extends ConsumerState<FloatingStatusPanel>
   late Animation<double> _fadeAnim;
 
   // Panel opens right/left depending on ball position
-  bool get _openRight =>
-      widget.ballPosition.dx < widget.screenSize.width / 2;
+  bool get _openRight => widget.ballPosition.dx < widget.screenSize.width / 2;
 
   @override
   void initState() {
@@ -57,11 +59,16 @@ class _FloatingStatusPanelState extends ConsumerState<FloatingStatusPanel>
 
   Color _statusColor(UploadStatus s) {
     switch (s) {
-      case UploadStatus.uploading:  return const Color(0xFF2196F3);
-      case UploadStatus.processing: return const Color(0xFFFF9800);
-      case UploadStatus.success:    return const Color(0xFF4CAF50);
-      case UploadStatus.failed:     return const Color(0xFFF44336);
-      case UploadStatus.queued:     return const Color(0xFF607D8B);
+      case UploadStatus.uploading:
+        return const Color(0xFF2196F3);
+      case UploadStatus.processing:
+        return const Color(0xFFFF9800);
+      case UploadStatus.success:
+        return const Color(0xFF4CAF50);
+      case UploadStatus.failed:
+        return const Color(0xFFF44336);
+      case UploadStatus.queued:
+        return const Color(0xFF607D8B);
     }
   }
 
@@ -73,9 +80,7 @@ class _FloatingStatusPanelState extends ConsumerState<FloatingStatusPanel>
         scale: _scaleAnim,
         alignment: _openRight ? Alignment.topLeft : Alignment.topRight,
         child: Transform.translate(
-          offset: _openRight
-              ? const Offset(64, -8)
-              : const Offset(-240, -8),
+          offset: _openRight ? const Offset(64, -8) : const Offset(-240, -8),
           child: Material(
             color: Colors.transparent,
             child: Container(
@@ -130,23 +135,35 @@ class _FloatingStatusPanelState extends ConsumerState<FloatingStatusPanel>
                         shrinkWrap: true,
                         padding: const EdgeInsets.symmetric(vertical: 6),
                         itemCount: widget.jobs.length,
-                        itemBuilder: (_, i) =>
-                            _PanelJobTile(
-                              job: widget.jobs[i],
-                              statusColor: _statusColor(widget.jobs[i].status),
-                              onRetry: widget.jobs[i].status == UploadStatus.failed
-                                  ? () => widget.onRetry(widget.jobs[i].jobId)
+                        itemBuilder: (_, i) => _PanelJobTile(
+                          job: widget.jobs[i],
+                          statusColor: _statusColor(widget.jobs[i].status),
+                          onRetry: widget.jobs[i].status == UploadStatus.failed
+                              ? () => widget.onRetry(widget.jobs[i].jobId)
+                              : null,
+                          onEdit:
+                              widget.jobs[i].status == UploadStatus.failed &&
+                                      (widget.jobs[i].moduleId == 'dpr' ||
+                                          widget.jobs[i].moduleId == 'dpr_insu')
+                                  ? () => widget.onEdit(widget.jobs[i])
                                   : null,
-                              onNavigate: widget.jobs[i].targetRoute != null &&
+                          onNavigate: widget.jobs[i].targetRoute != null &&
                                   widget.jobs[i].status == UploadStatus.success
-                                  ? () {
-                                      ref.read(uploadManagerProvider.notifier).stopAutoDismiss(widget.jobs[i].jobId);
-                                      widget.onNavigate(widget.jobs[i].targetRoute!);
-                                    }
-                                  : null,
-                              onDismiss: () => ref.read(uploadManagerProvider.notifier).removeJob(widget.jobs[i].jobId),
-                              onStopTimer: () => ref.read(uploadManagerProvider.notifier).stopAutoDismiss(widget.jobs[i].jobId),
-                            ),
+                              ? () {
+                                  ref
+                                      .read(uploadManagerProvider.notifier)
+                                      .stopAutoDismiss(widget.jobs[i].jobId);
+                                  widget
+                                      .onNavigate(widget.jobs[i].targetRoute!);
+                                }
+                              : null,
+                          onDismiss: () => ref
+                              .read(uploadManagerProvider.notifier)
+                              .removeJob(widget.jobs[i].jobId),
+                          onStopTimer: () => ref
+                              .read(uploadManagerProvider.notifier)
+                              .stopAutoDismiss(widget.jobs[i].jobId),
+                        ),
                       ),
                     ),
                   ],
@@ -164,6 +181,7 @@ class _PanelJobTile extends StatelessWidget {
   final UploadJob job;
   final Color statusColor;
   final VoidCallback? onRetry;
+  final VoidCallback? onEdit;
   final VoidCallback? onNavigate;
   final VoidCallback onDismiss;
   final VoidCallback onStopTimer;
@@ -172,6 +190,7 @@ class _PanelJobTile extends StatelessWidget {
     required this.job,
     required this.statusColor,
     this.onRetry,
+    this.onEdit,
     this.onNavigate,
     required this.onDismiss,
     required this.onStopTimer,
@@ -192,15 +211,14 @@ class _PanelJobTile extends StatelessWidget {
               Container(
                 width: 6,
                 height: 6,
-                decoration: BoxDecoration(
-                    color: statusColor, shape: BoxShape.circle),
+                decoration:
+                    BoxDecoration(color: statusColor, shape: BoxShape.circle),
               ),
               const SizedBox(width: 8),
               Expanded(
                 child: Text(
                   job.message,
-                  style:
-                  const TextStyle(color: Colors.white70, fontSize: 11.5),
+                  style: const TextStyle(color: Colors.white70, fontSize: 11.5),
                   maxLines: 1,
                   overflow: TextOverflow.ellipsis,
                 ),
@@ -229,7 +247,30 @@ class _PanelJobTile extends StatelessWidget {
                             fontWeight: FontWeight.w600)),
                   ),
                 ),
-              
+              if (onEdit != null)
+                GestureDetector(
+                  onTap: onEdit,
+                  child: const Padding(
+                    padding: EdgeInsets.only(left: 6),
+                    child: Text('Edit',
+                        style: TextStyle(
+                            color: Color(0xFF64B5F6),
+                            fontSize: 11,
+                            fontWeight: FontWeight.w600)),
+                  ),
+                ),
+              if (job.status == UploadStatus.failed)
+                GestureDetector(
+                  onTap: onDismiss,
+                  child: const Padding(
+                    padding: EdgeInsets.only(left: 6),
+                    child: Text('Remove',
+                        style: TextStyle(
+                            color: Colors.white54,
+                            fontSize: 11,
+                            fontWeight: FontWeight.w600)),
+                  ),
+                ),
               if (job.autoDismissAt != null)
                 Padding(
                   padding: const EdgeInsets.only(left: 6),

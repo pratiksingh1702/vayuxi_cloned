@@ -1,7 +1,12 @@
 import 'dart:convert';
 
-import 'package:isar/isar.dart';
+import 'package:isar_community/isar.dart';
 
+import '../actions/api_action.dart';
+import '../actions/callback_action.dart';
+import '../actions/external_link_action.dart';
+import '../actions/navigate_action.dart';
+import '../actions/notification_action.dart';
 import 'notification_media.dart';
 import 'notification_model.dart';
 import 'notification_priority.dart';
@@ -43,7 +48,11 @@ class UpdateNotificationIsar {
     entity.mediaType = model.media?.type.name;
     entity.mediaThumbnailUrl = model.media?.thumbnailUrl;
     entity.mediaAltText = model.media?.altText;
-    entity.metadataJson = jsonEncode(model.metadata);
+    final metadata = Map<String, dynamic>.from(model.metadata);
+    if (model.actions.isNotEmpty) {
+      metadata['actions'] = model.actions.map((a) => a.toJson()).toList();
+    }
+    entity.metadataJson = jsonEncode(metadata);
     return entity;
   }
 
@@ -67,6 +76,8 @@ class UpdateNotificationIsar {
       );
     }
 
+    final actions = _actionsFromMetadata(metadata);
+
     return NotificationModel(
       id: id,
       type: _typeFromName(type),
@@ -76,8 +87,61 @@ class UpdateNotificationIsar {
       isRead: isRead,
       priority: _priorityFromName(priority),
       media: media,
+      actions: actions,
       metadata: metadata,
     );
+  }
+
+  List<NotificationAction> _actionsFromMetadata(Map<String, dynamic> metadata) {
+    final rawActions = metadata['actions'];
+    if (rawActions is! List) return const [];
+
+    final actions = <NotificationAction>[];
+    for (final raw in rawActions) {
+      if (raw is! Map) continue;
+      final action = _actionFromJson(Map<String, dynamic>.from(raw));
+      if (action != null) actions.add(action);
+    }
+    return actions;
+  }
+
+  NotificationAction? _actionFromJson(Map<String, dynamic> json) {
+    final type = (json['actionType'] ?? '').toString();
+    final label = (json['label'] ?? '').toString();
+    final isPrimary = json['isPrimary'] == true;
+
+    switch (type) {
+      case 'navigate':
+        return NavigateAction(
+          label: label,
+          route: (json['route'] ?? '').toString(),
+          params: Map<String, dynamic>.from(json['params'] ?? {}),
+          isPrimary: isPrimary,
+        );
+      case 'callback':
+        return CallbackAction(
+          label: label,
+          handlerKey: (json['handlerKey'] ?? '').toString(),
+          payload: Map<String, dynamic>.from(json['payload'] ?? {}),
+          isPrimary: isPrimary,
+        );
+      case 'api':
+        return ApiAction(
+          label: label,
+          endpoint: (json['endpoint'] ?? '').toString(),
+          method: (json['method'] ?? 'POST').toString(),
+          body: Map<String, dynamic>.from(json['body'] ?? {}),
+          isPrimary: isPrimary,
+        );
+      case 'external_link':
+        return ExternalLinkAction(
+          label: label,
+          url: (json['url'] ?? '').toString(),
+          isPrimary: isPrimary,
+        );
+      default:
+        return null;
+    }
   }
 
   NotificationType _typeFromName(String raw) {

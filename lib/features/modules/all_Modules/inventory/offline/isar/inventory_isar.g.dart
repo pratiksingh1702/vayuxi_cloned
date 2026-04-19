@@ -82,7 +82,7 @@ const InventoryCategoryIsarSchema = CollectionSchema(
   getId: _inventoryCategoryIsarGetId,
   getLinks: _inventoryCategoryIsarGetLinks,
   attach: _inventoryCategoryIsarAttach,
-  version: '3.1.0+1',
+  version: '3.3.0',
 );
 
 int _inventoryCategoryIsarEstimateSize(
@@ -1450,7 +1450,7 @@ const InventoryIsarSchema = CollectionSchema(
   getId: _inventoryIsarGetId,
   getLinks: _inventoryIsarGetLinks,
   attach: _inventoryIsarAttach,
-  version: '3.1.0+1',
+  version: '3.3.0',
 );
 
 int _inventoryIsarEstimateSize(
@@ -4614,7 +4614,7 @@ const InventoryUsageIsarSchema = CollectionSchema(
   getId: _inventoryUsageIsarGetId,
   getLinks: _inventoryUsageIsarGetLinks,
   attach: _inventoryUsageIsarAttach,
-  version: '3.1.0+1',
+  version: '3.3.0',
 );
 
 int _inventoryUsageIsarEstimateSize(
@@ -6745,7 +6745,7 @@ const InventoryCheckoutIsarSchema = CollectionSchema(
   getId: _inventoryCheckoutIsarGetId,
   getLinks: _inventoryCheckoutIsarGetLinks,
   attach: _inventoryCheckoutIsarAttach,
-  version: '3.1.0+1',
+  version: '3.3.0',
 );
 
 int _inventoryCheckoutIsarEstimateSize(

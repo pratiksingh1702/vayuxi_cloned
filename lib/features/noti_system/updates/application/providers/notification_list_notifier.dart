@@ -35,24 +35,54 @@ class NotificationListState {
 class NotificationListNotifier extends AsyncNotifier<NotificationListState> {
   StreamSubscription<List<NotificationModel>>? _watchSubscription;
 
+  Future<List<NotificationModel>> _pruneExpired(
+    List<NotificationModel> items,
+  ) async {
+    final now = DateTime.now();
+    final valid = <NotificationModel>[];
+
+    for (final item in items) {
+      final rawExpiresAt = item.metadata['expiresAt']?.toString();
+      if (rawExpiresAt == null || rawExpiresAt.isEmpty) {
+        valid.add(item);
+        continue;
+      }
+
+      final expiresAt = DateTime.tryParse(rawExpiresAt);
+      if (expiresAt == null || !now.isAfter(expiresAt)) {
+        valid.add(item);
+        continue;
+      }
+
+      await ref
+          .read(notificationRepositoryProvider)
+          .deleteNotification(item.id);
+    }
+
+    return valid;
+  }
+
   @override
   Future<NotificationListState> build() async {
     final repo = ref.read(notificationRepositoryProvider);
 
     _watchSubscription ??= repo.watchNotifications().listen((items) {
       final current = state.valueOrNull;
-      final next = NotificationListState(
-        notifications: items,
-        isLoadingMore: false,
-        hasReachedEnd: current?.hasReachedEnd ?? false,
-        currentPage: current?.currentPage ?? 0,
-      );
-      state = AsyncData(next);
+      _pruneExpired(items).then((filteredItems) {
+        final next = NotificationListState(
+          notifications: filteredItems,
+          isLoadingMore: false,
+          hasReachedEnd: current?.hasReachedEnd ?? false,
+          currentPage: current?.currentPage ?? 0,
+        );
+        state = AsyncData(next);
+      });
     });
     ref.onDispose(() => _watchSubscription?.cancel());
 
     final items = await repo.fetchNotifications();
-    return NotificationListState(notifications: items);
+    final filteredItems = await _pruneExpired(items);
+    return NotificationListState(notifications: filteredItems);
   }
 
   Future<void> loadMore() async {

@@ -2,6 +2,10 @@ import 'dart:math';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:go_router/go_router.dart';
+import 'package:untitled2/core/router/routes.dart';
+import 'package:untitled2/features/modules/all_Modules/dpr/offline/mech/repo/dpr_draft_repo.dart';
+import 'package:untitled2/features/modules/all_Modules/dpr/dpr_insu/offline/repo/insu_dpr_draft_repo.dart';
 import '../../manager/upload_manager.dart';
 import '../../models/upload_job.dart';
 import '../../models/upload_status.dart';
@@ -17,12 +21,14 @@ class FloatingUploadBall extends ConsumerStatefulWidget {
 
 class _FloatingUploadBallState extends ConsumerState<FloatingUploadBall>
     with TickerProviderStateMixin {
+  final DprDraftRepo _draftRepo = DprDraftRepo();
+  final InsuDprDraftRepo _insuDraftRepo = InsuDprDraftRepo();
   // ── Animation controllers
-  late AnimationController _morphController;   // entry morph-in
-  late AnimationController _bounceController;  // tap bounce
-  late AnimationController _pulseController;   // active pulse ring
-  late AnimationController _rippleController;  // drag ripple
-  late AnimationController _rotateController;  // upload spinner ring
+  late AnimationController _morphController; // entry morph-in
+  late AnimationController _bounceController; // tap bounce
+  late AnimationController _pulseController; // active pulse ring
+  late AnimationController _rippleController; // drag ripple
+  late AnimationController _rotateController; // upload spinner ring
 
   late Animation<double> _morphScaleAnim;
   late Animation<double> _morphFadeAnim;
@@ -58,19 +64,22 @@ class _FloatingUploadBallState extends ConsumerState<FloatingUploadBall>
       TweenSequenceItem(tween: Tween(begin: 0.82, end: 1.12), weight: 35),
       TweenSequenceItem(tween: Tween(begin: 1.12, end: 0.96), weight: 15),
       TweenSequenceItem(tween: Tween(begin: 0.96, end: 1.00), weight: 15),
-    ]).animate(CurvedAnimation(parent: _bounceController, curve: Curves.easeOut));
+    ]).animate(
+        CurvedAnimation(parent: _bounceController, curve: Curves.easeOut));
 
     _pulseController = AnimationController(
       vsync: this,
       duration: const Duration(milliseconds: 1800),
     )..repeat();
-    _pulseAnim = CurvedAnimation(parent: _pulseController, curve: Curves.easeOut);
+    _pulseAnim =
+        CurvedAnimation(parent: _pulseController, curve: Curves.easeOut);
 
     _rippleController = AnimationController(
       vsync: this,
       duration: const Duration(milliseconds: 400),
     );
-    _rippleAnim = CurvedAnimation(parent: _rippleController, curve: Curves.easeOut);
+    _rippleAnim =
+        CurvedAnimation(parent: _rippleController, curve: Curves.easeOut);
 
     _rotateController = AnimationController(
       vsync: this,
@@ -140,11 +149,11 @@ class _FloatingUploadBallState extends ConsumerState<FloatingUploadBall>
     return jobs.firstWhere((j) => j.status == UploadStatus.uploading,
         orElse: () => jobs.firstWhere(
               (j) => j.status == UploadStatus.processing,
-          orElse: () => jobs.firstWhere(
+              orElse: () => jobs.firstWhere(
                 (j) => j.status == UploadStatus.success,
-            orElse: () => jobs.first,
-          ),
-        ));
+                orElse: () => jobs.first,
+              ),
+            ));
   }
 
   void _onTap() {
@@ -215,7 +224,8 @@ class _FloatingUploadBallState extends ConsumerState<FloatingUploadBall>
                         return Container(
                           width: size,
                           height: size,
-                          margin: EdgeInsets.all((56.0 - size) / 2 + (size - 56) / 2),
+                          margin: EdgeInsets.all(
+                              (56.0 - size) / 2 + (size - 56) / 2),
                           decoration: BoxDecoration(
                             shape: BoxShape.circle,
                             color: theme.glow.withOpacity(opacity),
@@ -235,12 +245,14 @@ class _FloatingUploadBallState extends ConsumerState<FloatingUploadBall>
                     onPanStart: (_) => _onDragStart(),
                     onPanUpdate: (details) {
                       final newPos = ballState.position + details.delta;
-                      ref.read(floatingBallControllerProvider.notifier).updatePosition(
-                        Offset(
-                          newPos.dx.clamp(0, screenSize.width - 56),
-                          newPos.dy.clamp(80, screenSize.height - 160),
-                        ),
-                      );
+                      ref
+                          .read(floatingBallControllerProvider.notifier)
+                          .updatePosition(
+                            Offset(
+                              newPos.dx.clamp(0, screenSize.width - 56),
+                              newPos.dy.clamp(80, screenSize.height - 160),
+                            ),
+                          );
                     },
                     onPanEnd: (_) => _onDragEnd(screenSize),
                     child: AnimatedBuilder(
@@ -249,8 +261,8 @@ class _FloatingUploadBallState extends ConsumerState<FloatingUploadBall>
                         final scale = _isDragging
                             ? 1.18
                             : _bounceController.isAnimating
-                            ? _bounceAnim.value
-                            : 1.0;
+                                ? _bounceAnim.value
+                                : 1.0;
                         return Transform.scale(scale: scale, child: child);
                       },
                       child: _BallBody(
@@ -313,13 +325,52 @@ class _FloatingUploadBallState extends ConsumerState<FloatingUploadBall>
                       jobs: jobs,
                       ballPosition: ballState.position,
                       screenSize: screenSize,
-                      onDismiss: () =>
-                          ref.read(floatingBallControllerProvider.notifier).closePanel(),
+                      onDismiss: () => ref
+                          .read(floatingBallControllerProvider.notifier)
+                          .closePanel(),
                       onRetry: (id) =>
                           ref.read(uploadManagerProvider.notifier).retry(id),
                       onNavigate: (route) {
-                        ref.read(floatingBallControllerProvider.notifier).closePanel();
+                        ref
+                            .read(floatingBallControllerProvider.notifier)
+                            .closePanel();
                         Navigator.of(context).pushNamed(route);
+                      },
+                      onEdit: (job) async {
+                        final draftId = job.metadata['draftId']?.toString();
+                        if (draftId == null || draftId.isEmpty) return;
+
+                        Object? work;
+                        String route = Routes.dprDescription;
+
+                        if (job.moduleId == 'dpr_insu') {
+                          route = Routes.dprInsuDescription;
+                          final rawWork = job.metadata['draftWork'];
+                          if (rawWork != null) {
+                            work = rawWork;
+                          } else {
+                            final record =
+                                await _insuDraftRepo.getDraft(draftId);
+                            work = record?.draft;
+                          }
+                        } else {
+                          final rawWork = job.metadata['draftWork'];
+                          if (rawWork != null) {
+                            work = rawWork;
+                          } else {
+                            final record = await _draftRepo.getDraft(draftId);
+                            work = record?.draft;
+                          }
+                        }
+
+                        if (work == null || !mounted) return;
+                        ref
+                            .read(uploadManagerProvider.notifier)
+                            .stopAutoDismiss(job.jobId);
+                        ref
+                            .read(floatingBallControllerProvider.notifier)
+                            .closePanel();
+                        context.push(route, extra: {'draftWork': work});
                       },
                     ),
                   ),
@@ -429,8 +480,8 @@ class _BallBody extends StatelessWidget {
                 height: 56,
                 decoration: BoxDecoration(
                   shape: BoxShape.circle,
-                  color: Colors.white
-                      .withOpacity((1 - rippleAnim.value) * 0.12),
+                  color:
+                      Colors.white.withOpacity((1 - rippleAnim.value) * 0.12),
                 ),
               );
             },

@@ -119,7 +119,7 @@ const DprIsarSchema = CollectionSchema(
   getId: _dprIsarGetId,
   getLinks: _dprIsarGetLinks,
   attach: _dprIsarAttach,
-  version: '3.1.0+1',
+  version: '3.3.0',
 );
 
 int _dprIsarEstimateSize(

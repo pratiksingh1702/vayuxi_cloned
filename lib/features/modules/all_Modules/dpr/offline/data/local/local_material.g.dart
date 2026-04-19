@@ -173,7 +173,7 @@ const LocalMaterialSchema = CollectionSchema(
   getId: _localMaterialGetId,
   getLinks: _localMaterialGetLinks,
   attach: _localMaterialAttach,
-  version: '3.1.0+1',
+  version: '3.3.0',
 );
 
 int _localMaterialEstimateSize(

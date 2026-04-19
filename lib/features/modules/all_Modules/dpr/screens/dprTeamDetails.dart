@@ -468,8 +468,8 @@ class _DprWorkScreenState extends ConsumerState<DprWorkScreen> {
                     const SizedBox(height: 8),
                     ShimmerCircle(
                       size: 20,
-                      baseColor:
-                          scheme.onSurface.withValues(alpha: isDark ? 0.14 : 0.08),
+                      baseColor: scheme.onSurface
+                          .withValues(alpha: isDark ? 0.14 : 0.08),
                     ),
                   ],
                 ),
@@ -846,8 +846,9 @@ class _DprWorkScreenState extends ConsumerState<DprWorkScreen> {
                     final theme = Theme.of(context);
                     final scheme = theme.colorScheme;
                     final isDark = theme.brightness == Brightness.dark;
-                    final accentColor =
-                        workType == WorkType.mechanical ? Colors.blue : Colors.green;
+                    final accentColor = workType == WorkType.mechanical
+                        ? Colors.blue
+                        : Colors.green;
 
                     return Card(
                       margin: const EdgeInsets.only(bottom: 10),
@@ -860,7 +861,8 @@ class _DprWorkScreenState extends ConsumerState<DprWorkScreen> {
                         leading: Container(
                           padding: const EdgeInsets.all(10),
                           decoration: BoxDecoration(
-                            color: accentColor.withValues(alpha: isDark ? 0.22 : 0.1),
+                            color: accentColor.withValues(
+                                alpha: isDark ? 0.22 : 0.1),
                             borderRadius: BorderRadius.circular(10),
                           ),
                           child: Icon(
