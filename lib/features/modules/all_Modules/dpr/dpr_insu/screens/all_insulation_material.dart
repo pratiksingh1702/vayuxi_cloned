@@ -3,6 +3,7 @@
 import 'dart:convert';
 
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:untitled2/core/utlis/colors/colors.dart';
 import 'package:untitled2/core/utlis/widgets/premium_app_bar.dart';
@@ -44,6 +45,15 @@ class _AllInsulationMaterialsScreenState
   List<MaterialSetup> _pipingSetups = [];
   List<MaterialSetup> _equipmentSetups = [];
   bool _setupsLoaded = false;
+
+  // Reorder state
+  bool _isReorderMode = false;
+  String? _reorderCategory;
+  List<int> _reorderMaterialIds = [];
+  List<LocalMaterial> _reorderDisplayMaterials = [];
+  int? _draggingReorderIndex;
+  String? _draggingMaterialId;
+  bool _isOrderSyncing = false;
 
   @override
   void initState() {
@@ -407,6 +417,138 @@ class _AllInsulationMaterialsScreenState
     }
   }
 
+  void _enterReorderMode(String category, List<LocalMaterial> materials) {
+    if (materials.length < 2) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text('At least 2 items are needed to reorder'),
+          backgroundColor: Colors.orange,
+        ),
+      );
+      return;
+    }
+
+    setState(() {
+      isDeleteMode = false;
+      selectedIds.clear();
+      _isReorderMode = true;
+      _reorderCategory = category;
+      _reorderMaterialIds = materials.map((m) => m.id).toList();
+      _reorderDisplayMaterials = List<LocalMaterial>.from(materials);
+      _draggingReorderIndex = null;
+      _draggingMaterialId = null;
+    });
+  }
+
+  void _exitReorderMode() {
+    _isReorderMode = false;
+    _reorderCategory = null;
+    _reorderMaterialIds = [];
+    _reorderDisplayMaterials = [];
+    _draggingReorderIndex = null;
+    _draggingMaterialId = null;
+  }
+
+  List<LocalMaterial> _effectiveOrderForCategory(
+    String category,
+    List<LocalMaterial> materials,
+  ) {
+    final isActive = _isReorderMode && _reorderCategory == category;
+    if (!isActive) return materials;
+
+    if (_reorderDisplayMaterials.isNotEmpty) {
+      return _reorderDisplayMaterials;
+    }
+
+    final mapById = {for (final m in materials) m.id: m};
+    return _reorderMaterialIds
+        .map((id) => mapById[id])
+        .whereType<LocalMaterial>()
+        .toList(growable: false);
+  }
+
+  Future<void> _persistInsulationDisplayOrder({
+    required String siteId,
+    required String category,
+    required List<int> orderedIds,
+  }) async {
+    final dao = LocalMaterialDao();
+    await dao.persistDisplayOrderForSubset(
+      siteId: siteId,
+      domain: MaterialDomain.insulation.key,
+      designation: category == 'piping'
+          ? MaterialDesignation.piping.key
+          : MaterialDesignation.equipment.key,
+      orderedIsarIds: orderedIds,
+    );
+  }
+
+  Future<void> _handleMaterialReorder({
+    required String category,
+    required int oldIndex,
+    required int newIndex,
+  }) async {
+    if (!_isReorderMode || _reorderCategory != category) return;
+
+    if (newIndex > oldIndex) {
+      newIndex -= 1;
+    }
+    if (oldIndex == newIndex) return;
+    if (newIndex < 0 || newIndex >= _reorderMaterialIds.length) return;
+
+    HapticFeedback.mediumImpact();
+
+    final previousIds = List<int>.from(_reorderMaterialIds);
+    final previousDisplay = List<LocalMaterial>.from(_reorderDisplayMaterials);
+
+    final updatedIds = List<int>.from(_reorderMaterialIds);
+    final updatedDisplay = List<LocalMaterial>.from(_reorderDisplayMaterials);
+
+    final movedId = updatedIds.removeAt(oldIndex);
+    updatedIds.insert(newIndex, movedId);
+
+    final movedItem = updatedDisplay.removeAt(oldIndex);
+    updatedDisplay.insert(newIndex, movedItem);
+
+    setState(() {
+      _reorderMaterialIds = updatedIds;
+      _reorderDisplayMaterials = updatedDisplay;
+    });
+
+    final siteId = ref.read(selectedSiteIdProvider);
+    if (siteId == null) return;
+
+    try {
+      setState(() => _isOrderSyncing = true);
+      await _persistInsulationDisplayOrder(
+        siteId: siteId,
+        category: category,
+        orderedIds: _reorderMaterialIds,
+      );
+    } catch (e) {
+      setState(() {
+        _reorderMaterialIds = previousIds;
+        _reorderDisplayMaterials = previousDisplay;
+      });
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text('Failed to persist order: $e'),
+            backgroundColor: Colors.red,
+          ),
+        );
+      }
+    } finally {
+      if (mounted) {
+        setState(() {
+          _isOrderSyncing = false;
+          _draggingReorderIndex = null;
+          _draggingMaterialId = null;
+        });
+      }
+    }
+  }
+
   // ─────────────────────────────────────────────
   // BUILD
   // ─────────────────────────────────────────────
@@ -618,6 +760,26 @@ class _AllInsulationMaterialsScreenState
       return _buildLoadingState(category: category, color: color);
     }
 
+    final isReorderForCategory = _isReorderMode && _reorderCategory == category;
+    final displayMaterials = _effectiveOrderForCategory(category, materials);
+
+    if (displayMaterials.isEmpty) {
+      return Center(
+        child: Padding(
+          padding: const EdgeInsets.all(24),
+          child: Text(
+            emptyMessage,
+            textAlign: TextAlign.center,
+            style: const TextStyle(
+              fontSize: 15,
+              fontWeight: FontWeight.w500,
+              color: Color(0xFF5A6E89),
+            ),
+          ),
+        ),
+      );
+    }
+
     return Column(
       children: [
         Padding(
@@ -640,7 +802,43 @@ class _AllInsulationMaterialsScreenState
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                if (isDeleteMode)
+                if (isReorderForCategory)
+                  Container(
+                    margin: const EdgeInsets.only(bottom: 8),
+                    padding:
+                        const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
+                    decoration: BoxDecoration(
+                      color: color.withOpacity(0.12),
+                      borderRadius: BorderRadius.circular(8),
+                    ),
+                    child: Row(
+                      children: [
+                        Icon(Icons.drag_indicator, size: 16, color: color),
+                        const SizedBox(width: 6),
+                        Expanded(
+                          child: Text(
+                            _isOrderSyncing
+                                ? 'Reorder mode active. Saving order...'
+                                : 'Reorder mode active. Drag cards to arrange display order.',
+                            style: const TextStyle(
+                              fontSize: 12,
+                              fontWeight: FontWeight.w700,
+                              color: Color(0xFF2E4E79),
+                            ),
+                          ),
+                        ),
+                        const SizedBox(width: 8),
+                        _buildHeaderActionButton(
+                          label: 'Done',
+                          icon: Icons.check,
+                          textColor: Colors.white,
+                          bgColor: const Color(0xFF2B5FAE),
+                          onTap: () => setState(_exitReorderMode),
+                        ),
+                      ],
+                    ),
+                  )
+                else if (isDeleteMode)
                   SingleChildScrollView(
                     scrollDirection: Axis.horizontal,
                     child: Row(
@@ -709,10 +907,31 @@ class _AllInsulationMaterialsScreenState
                       ),
                       const SizedBox(width: 8),
                       _buildHeaderIconButton(
+                        icon: isReorderForCategory
+                            ? Icons.checklist_rtl_rounded
+                            : Icons.reorder_rounded,
+                        tooltip: isReorderForCategory
+                            ? 'Exit Reorder Mode'
+                            : 'Reorder Materials',
+                        iconColor: isReorderForCategory
+                            ? const Color(0xFF2B5FAE)
+                            : color,
+                        onTap: displayMaterials.length < 2
+                            ? null
+                            : () {
+                                if (isReorderForCategory) {
+                                  setState(_exitReorderMode);
+                                  return;
+                                }
+                                _enterReorderMode(category, displayMaterials);
+                              },
+                      ),
+                      const SizedBox(width: 8),
+                      _buildHeaderIconButton(
                         icon: Icons.delete_sweep,
                         tooltip: 'Select Items',
                         iconColor: const Color(0xFFD34747),
-                        onTap: materials.isEmpty
+                        onTap: displayMaterials.isEmpty || _isReorderMode
                             ? null
                             : () => setState(() => toggleDeleteMode()),
                       ),
@@ -729,25 +948,221 @@ class _AllInsulationMaterialsScreenState
             ),
           ),
         ),
-        if (materials.isNotEmpty)
-          Expanded(
-            child: ListView.builder(
-              padding: const EdgeInsets.all(8),
-              itemCount: materials.length,
-              itemBuilder: (context, index) {
-                final local = materials[index];
+        Expanded(
+          child: isReorderForCategory
+              ? _buildReorderableList(
+                  category: category,
+                  color: color,
+                  materials: displayMaterials,
+                )
+              : ListView.builder(
+                  padding: const EdgeInsets.all(8),
+                  itemCount: displayMaterials.length,
+                  itemBuilder: (context, index) {
+                    final local = displayMaterials[index];
 
-                return Padding(
-                  padding:
-                      const EdgeInsets.only(bottom: 12), // adjust spacing here
-                  child: category == 'piping'
-                      ? _buildPipingCard(local, color)
-                      : _buildEquipmentCard(local, color),
-                );
-              },
+                    return Padding(
+                      padding: const EdgeInsets.only(bottom: 12),
+                      child: GestureDetector(
+                        onLongPress: isDeleteMode
+                            ? null
+                            : () =>
+                                _enterReorderMode(category, displayMaterials),
+                        child: category == 'piping'
+                            ? _buildPipingCard(local, color)
+                            : _buildEquipmentCard(local, color),
+                      ),
+                    );
+                  },
+                ),
+        ),
+      ],
+    );
+  }
+
+  Widget _buildReorderableList({
+    required String category,
+    required Color color,
+    required List<LocalMaterial> materials,
+  }) {
+    if (materials.length < 2) {
+      return ListView(
+        padding: const EdgeInsets.fromLTRB(8, 4, 8, 10),
+        children: [
+          category == 'piping'
+              ? _buildPipingCard(materials.first, color)
+              : _buildEquipmentCard(materials.first, color),
+        ],
+      );
+    }
+
+    return Theme(
+      data: Theme.of(context).copyWith(
+        canvasColor: Colors.transparent,
+        shadowColor: Colors.transparent,
+      ),
+      child: ReorderableListView.builder(
+        buildDefaultDragHandles: false,
+        padding: const EdgeInsets.fromLTRB(8, 4, 8, 10),
+        onReorderStart: (index) {
+          HapticFeedback.mediumImpact();
+          if (index < _reorderDisplayMaterials.length) {
+            setState(() {
+              _draggingReorderIndex = index;
+              _draggingMaterialId =
+                  _reorderDisplayMaterials[index].id.toString();
+            });
+          }
+        },
+        onReorderEnd: (_) {
+          if (!mounted) return;
+          setState(() {
+            _draggingReorderIndex = null;
+            _draggingMaterialId = null;
+          });
+        },
+        proxyDecorator: (child, index, animation) {
+          return AnimatedBuilder(
+            animation: animation,
+            child: child,
+            builder: (context, child) {
+              final elevation = Tween<double>(begin: 0, end: 20)
+                  .animate(CurvedAnimation(
+                    parent: animation,
+                    curve: Curves.easeOutCubic,
+                  ))
+                  .value;
+              final scale = Tween<double>(begin: 1.0, end: 1.04)
+                  .animate(CurvedAnimation(
+                    parent: animation,
+                    curve: Curves.easeOutCubic,
+                  ))
+                  .value;
+
+              return Opacity(
+                opacity: 0.98,
+                child: Material(
+                  elevation: elevation,
+                  color: Colors.transparent,
+                  shadowColor: color.withOpacity(0.4),
+                  borderRadius: BorderRadius.circular(14),
+                  child: Transform(
+                    transform: Matrix4.identity()
+                      ..translate(0.0, -6.0, 0.0)
+                      ..scale(scale),
+                    alignment: Alignment.topCenter,
+                    child: child,
+                  ),
+                ),
+              );
+            },
+          );
+        },
+        itemCount: _reorderDisplayMaterials.length,
+        onReorder: (oldIndex, newIndex) {
+          _handleMaterialReorder(
+            category: category,
+            oldIndex: oldIndex,
+            newIndex: newIndex,
+          );
+        },
+        itemBuilder: (context, index) {
+          if (index >= _reorderDisplayMaterials.length) {
+            return const SizedBox.shrink(key: ValueKey('empty'));
+          }
+
+          final item = _reorderDisplayMaterials[index];
+          final isDragging = _draggingMaterialId == item.id.toString();
+
+          return _buildReorderableItem(
+            key: ValueKey('reorder_${item.id}'),
+            index: index,
+            color: color,
+            category: category,
+            material: item,
+            isDragging: isDragging,
+          );
+        },
+      ),
+    );
+  }
+
+  Widget _buildReorderableItem({
+    required Key key,
+    required int index,
+    required Color color,
+    required String category,
+    required LocalMaterial material,
+    required bool isDragging,
+  }) {
+    return AnimatedContainer(
+      key: key,
+      duration: const Duration(milliseconds: 220),
+      curve: Curves.easeOutCubic,
+      margin: const EdgeInsets.only(bottom: 12),
+      decoration: BoxDecoration(
+        borderRadius: BorderRadius.circular(14),
+        boxShadow: isDragging
+            ? [
+                BoxShadow(
+                  color: color.withOpacity(0.25),
+                  blurRadius: 20,
+                  spreadRadius: 2,
+                  offset: const Offset(0, 8),
+                ),
+              ]
+            : const [],
+      ),
+      child: Stack(
+        children: [
+          IgnorePointer(
+            ignoring: true,
+            child: Opacity(
+              opacity: isDragging ? 0.5 : 1.0,
+              child: category == 'piping'
+                  ? _buildPipingCard(material, color)
+                  : _buildEquipmentCard(material, color),
             ),
           ),
-      ],
+          Positioned(
+            top: 0,
+            right: 0,
+            bottom: 0,
+            child: ReorderableDragStartListener(
+              index: index,
+              child: Container(
+                width: 48,
+                decoration: BoxDecoration(
+                  borderRadius: const BorderRadius.only(
+                    topRight: Radius.circular(14),
+                    bottomRight: Radius.circular(14),
+                  ),
+                  color: color.withOpacity(0.10),
+                ),
+                child: Column(
+                  mainAxisAlignment: MainAxisAlignment.center,
+                  children: [
+                    Icon(
+                      Icons.drag_indicator_rounded,
+                      color: color.withOpacity(0.8),
+                      size: 22,
+                    ),
+                    const SizedBox(height: 2),
+                    Text(
+                      '${index + 1}',
+                      style: TextStyle(
+                        fontSize: 10,
+                        fontWeight: FontWeight.w700,
+                        color: color.withOpacity(0.6),
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+            ),
+          ),
+        ],
+      ),
     );
   }
 
@@ -877,6 +1292,7 @@ class _AllInsulationMaterialsScreenState
   Widget _buildPipingCard(LocalMaterial local, Color color) {
     final material = _toPiping(local);
     final isSelected = selectedIds.contains(local.id);
+    final isInteractionLocked = isDeleteMode || _isReorderMode;
 
     // ✅ Correct MaterialSetup lookup — never falls back incorrectly
     final materialSetup = _findMaterialSetup(local);
@@ -886,7 +1302,7 @@ class _AllInsulationMaterialsScreenState
         Opacity(
           opacity: isDeleteMode && !isSelected ? 0.5 : 1.0,
           child: IgnorePointer(
-            ignoring: isDeleteMode,
+            ignoring: isInteractionLocked,
             child: PipingMaterialCard(
               // Key by materialDataJson so card rebuilds when data changes
               key: ValueKey(
@@ -909,6 +1325,7 @@ class _AllInsulationMaterialsScreenState
   Widget _buildEquipmentCard(LocalMaterial local, Color color) {
     final material = _toEquipment(local);
     final isSelected = selectedIds.contains(local.id);
+    final isInteractionLocked = isDeleteMode || _isReorderMode;
 
     // ✅ Correct MaterialSetup lookup
     final materialSetup = _findMaterialSetup(local);
@@ -918,7 +1335,7 @@ class _AllInsulationMaterialsScreenState
         Opacity(
           opacity: isDeleteMode && !isSelected ? 0.5 : 1.0,
           child: IgnorePointer(
-            ignoring: isDeleteMode,
+            ignoring: isInteractionLocked,
             child: EquipmentMaterialCard(
               key: ValueKey(
                   'equipment_${local.id}_${local.materialDataJson?.hashCode}'),

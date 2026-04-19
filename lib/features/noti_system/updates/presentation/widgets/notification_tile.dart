@@ -22,163 +22,114 @@ class NotificationTile extends ConsumerWidget {
 
     return Padding(
       padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 6),
-      child: Hero(
-        tag: 'notification_card_${notification.id}',
-        transitionOnUserGestures: true,
-        createRectTween: (begin, end) =>
-            MaterialRectArcTween(begin: begin, end: end),
-        flightShuttleBuilder: _heroShuttle,
-        child: Material(
-          color: Colors.transparent,
-          child: AnimatedContainer(
-            duration: const Duration(milliseconds: 200),
-            decoration: BoxDecoration(
-              color: notification.isRead
-                  ? theme.colorScheme.surface
-                  : theme.colorScheme.primaryContainer.withOpacity(0.18),
-              borderRadius: BorderRadius.circular(16),
-              border: Border.all(
-                color: theme.colorScheme.outlineVariant.withOpacity(0.6),
-              ),
+      child: Material(
+        color: Colors.transparent,
+        child: AnimatedContainer(
+          duration: const Duration(milliseconds: 200),
+          decoration: BoxDecoration(
+            color: notification.isRead
+                ? theme.colorScheme.surface
+                : theme.colorScheme.primaryContainer.withOpacity(0.18),
+            borderRadius: BorderRadius.circular(16),
+            border: Border.all(
+              color: theme.colorScheme.outlineVariant.withOpacity(0.6),
             ),
-            child: InkWell(
-              borderRadius: BorderRadius.circular(16),
-              onTap: () {
-                ref
-                    .read(notificationListProvider.notifier)
-                    .markAsRead(notification.id);
-                UpdatesRoutes.goDetail(context, notification);
-              },
-              child: Padding(
-                padding: const EdgeInsets.all(14),
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Row(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        PriorityIndicator(priority: notification.priority),
-                        const SizedBox(width: 10),
-                        Expanded(
-                          child: Column(
-                            crossAxisAlignment: CrossAxisAlignment.start,
-                            children: [
-                              Row(
-                                children: [
-                                  Expanded(
-                                    child: Text(
-                                      notification.title,
-                                      style:
-                                          theme.textTheme.titleSmall?.copyWith(
-                                        fontWeight: FontWeight.w600,
-                                      ),
-                                      maxLines: 1,
-                                      overflow: TextOverflow.ellipsis,
+          ),
+          child: InkWell(
+            borderRadius: BorderRadius.circular(16),
+            onTap: () {
+              ref.read(notificationListProvider.notifier).markAsRead(notification.id);
+              UpdatesRoutes.goDetail(context, notification);
+            },
+            child: Padding(
+              padding: const EdgeInsets.all(14),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Row(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      PriorityIndicator(priority: notification.priority),
+                      const SizedBox(width: 10),
+                      Expanded(
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            Row(
+                              children: [
+                                Expanded(
+                                  child: Text(
+                                    notification.title,
+                                    style: theme.textTheme.titleSmall?.copyWith(
+                                      fontWeight: FontWeight.w600,
                                     ),
+                                    maxLines: 1,
+                                    overflow: TextOverflow.ellipsis,
                                   ),
-                                  const SizedBox(width: 8),
-                                  Text(
-                                    _formatTimestamp(notification.timestamp),
-                                    style: theme.textTheme.labelSmall?.copyWith(
-                                      color: theme.colorScheme.onSurfaceVariant,
-                                    ),
-                                  ),
-                                  const SizedBox(width: 6),
-                                  UnreadBadge(isRead: notification.isRead),
-                                  PopupMenuButton<_NotificationMenuAction>(
-                                    icon: const Icon(Icons.more_horiz_rounded,
-                                        size: 18),
-                                    itemBuilder: (context) => const [
-                                      PopupMenuItem(
-                                        value:
-                                            _NotificationMenuAction.remindLater,
-                                        child: Text('Remind in 1 hour'),
-                                      ),
-                                      PopupMenuItem(
-                                        value: _NotificationMenuAction.delete,
-                                        child: Text('Delete'),
-                                      ),
-                                    ],
-                                    onSelected: (value) =>
-                                        _onMenuSelected(context, ref, value),
-                                  ),
-                                ],
-                              ),
-                              const SizedBox(height: 4),
-                              Text(
-                                notification.description,
-                                style: theme.textTheme.bodySmall?.copyWith(
-                                  color: theme.colorScheme.onSurfaceVariant,
-                                  height: 1.5,
                                 ),
-                                maxLines: 2,
-                                overflow: TextOverflow.ellipsis,
+                                const SizedBox(width: 8),
+                                Text(
+                                  _formatTimestamp(notification.timestamp),
+                                  style: theme.textTheme.labelSmall?.copyWith(
+                                    color: theme.colorScheme.onSurfaceVariant,
+                                  ),
+                                ),
+                                const SizedBox(width: 6),
+                                UnreadBadge(isRead: notification.isRead),
+                                PopupMenuButton<_NotificationMenuAction>(
+                                  icon: const Icon(Icons.more_horiz_rounded, size: 18),
+                                  itemBuilder: (context) => const [
+                                    PopupMenuItem(
+                                      value: _NotificationMenuAction.remindLater,
+                                      child: Text('Remind in 1 hour'),
+                                    ),
+                                    PopupMenuItem(
+                                      value: _NotificationMenuAction.delete,
+                                      child: Text('Delete'),
+                                    ),
+                                  ],
+                                  onSelected: (value) => _onMenuSelected(context, ref, value),
+                                ),
+                              ],
+                            ),
+                            const SizedBox(height: 4),
+                            Text(
+                              notification.description,
+                              style: theme.textTheme.bodySmall?.copyWith(
+                                color: theme.colorScheme.onSurfaceVariant,
+                                height: 1.5,
                               ),
-                            ],
-                          ),
+                              maxLines: 2,
+                              overflow: TextOverflow.ellipsis,
+                            ),
+                          ],
                         ),
-                      ],
-                    ),
-                    if (notification.media != null) ...[
-                      const SizedBox(height: 10),
-                      NotificationMediaWidget(media: notification.media!),
-                    ],
-                    if (notification.actions.isNotEmpty) ...[
-                      const SizedBox(height: 12),
-                      Wrap(
-                        spacing: 8,
-                        runSpacing: 6,
-                        children: notification.actions
-                            .map((a) => NotificationActionButton(
-                                  action: a,
-                                  notificationId: notification.id,
-                                ))
-                            .toList(),
                       ),
                     ],
+                  ),
+                  if (notification.media != null) ...[
+                    const SizedBox(height: 10),
+                    NotificationMediaWidget(media: notification.media!),
                   ],
-                ),
+                  if (notification.actions.isNotEmpty) ...[
+                    const SizedBox(height: 12),
+                    Wrap(
+                      spacing: 8,
+                      runSpacing: 6,
+                      children: notification.actions
+                          .map((a) => NotificationActionButton(
+                                action: a,
+                                notificationId: notification.id,
+                              ))
+                          .toList(),
+                    ),
+                  ],
+                ],
               ),
             ),
           ),
         ),
       ),
-    );
-  }
-
-  Widget _heroShuttle(
-    BuildContext flightContext,
-    Animation<double> animation,
-    HeroFlightDirection direction,
-    BuildContext fromHeroContext,
-    BuildContext toHeroContext,
-  ) {
-    final heroWidget = direction == HeroFlightDirection.push
-        ? toHeroContext.widget as Hero
-        : fromHeroContext.widget as Hero;
-    final curved = CurvedAnimation(
-      parent: animation,
-      curve: Curves.easeInOutCubicEmphasized,
-      reverseCurve: Curves.easeOutCubic,
-    );
-
-    return AnimatedBuilder(
-      animation: curved,
-      child: Material(
-        color: Colors.transparent,
-        child: heroWidget.child,
-      ),
-      builder: (context, child) {
-        final t = curved.value;
-        return Opacity(
-          opacity: 0.88 + (0.12 * t),
-          child: Transform.scale(
-            scale: 0.985 + (0.015 * t),
-            alignment: Alignment.center,
-            child: child,
-          ),
-        );
-      },
     );
   }
 

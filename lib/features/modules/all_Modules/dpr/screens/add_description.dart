@@ -74,7 +74,6 @@ class _AddDescriptionScreenState extends ConsumerState<AddDescriptionScreen>
   late String siteId;
   late String teamId;
   late TeamModel team;
-
   String? _mechanicalId;
   String? _selectedDprId;
 
@@ -483,8 +482,12 @@ class _AddDescriptionScreenState extends ConsumerState<AddDescriptionScreen>
   }
 
   void _initializeData() {
-    siteId = ref.read(selectedSiteIdProvider)!;
-    teamId = ref.read(selectedTeamIdProvider) ?? "default";
+    siteId = widget.work?.siteId.trim().isNotEmpty == true
+      ? widget.work!.siteId
+      : (ref.read(selectedSiteIdProvider) ?? '');
+    teamId = widget.work?.teamId.trim().isNotEmpty == true
+      ? widget.work!.teamId
+      : (ref.read(selectedTeamIdProvider) ?? 'default');
     team = ref.read(currentTeamProvider) ??
         TeamModel(
           id: "",
@@ -507,8 +510,8 @@ class _AddDescriptionScreenState extends ConsumerState<AddDescriptionScreen>
             : widget.work?.size) ??
         "";
     _sizeUomController.text = (widget.work == null
-            ? ref.read(selectedUnitProvider)!
-            : widget.work?.size) ??
+        ? (ref.read(selectedUnitProvider) ?? '')
+        : widget.work?.size) ??
         "";
   }
 

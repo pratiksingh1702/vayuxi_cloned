@@ -29,10 +29,11 @@ class _MechanichalStepperScreenState
     extends ConsumerState<MechanichalStepperScreen> {
   final TextEditingController _sizeController = TextEditingController();
   int _currentStep = 0;
+  int _maxUnlockedStep = 0;
   String? _selectedMoc;
   String? _selectedFloor;
 
-  static const List<String> _stepLabels = ['MOC', 'Floor', 'Size'];
+  static const List<String> _stepLabels = ['MOC', 'Location', 'Size'];
 
   @override
   void initState() {
@@ -49,7 +50,24 @@ class _MechanichalStepperScreenState
   }
 
   void _jumpTo(int index) {
+    if (index > _maxUnlockedStep) return;
     setState(() => _currentStep = index.clamp(0, _stepLabels.length - 1));
+  }
+
+  bool _isStepComplete(int stepIndex) {
+    if (stepIndex == 0) return (_selectedMoc ?? '').trim().isNotEmpty;
+    if (stepIndex == 1) return (_selectedFloor ?? '').trim().isNotEmpty;
+    return _sizeController.text.trim().isNotEmpty;
+  }
+
+  void _unlockNextIfCurrentCompleted() {
+    if (!_isStepComplete(_currentStep)) return;
+    if (_currentStep >= _stepLabels.length - 1) return;
+    setState(() {
+      if (_maxUnlockedStep < _currentStep + 1) {
+        _maxUnlockedStep = _currentStep + 1;
+      }
+    });
   }
 
   void _nextStep() {
@@ -57,6 +75,7 @@ class _MechanichalStepperScreenState
       _continueToDescription();
       return;
     }
+    if (!_isStepComplete(_currentStep)) return;
     setState(() => _currentStep += 1);
   }
 
@@ -66,28 +85,29 @@ class _MechanichalStepperScreenState
   }
 
   void _skipStep() {
-    if (_currentStep == 0) {
-      setState(() => _selectedMoc = null);
-      ref.read(selectedMocNameProvider.notifier).state = null;
-    } else if (_currentStep == 1) {
-      setState(() => _selectedFloor = null);
-      ref.read(selectedFloorNameProvider.notifier).state = null;
-    } else {
-      _sizeController.clear();
-      ref.read(selectedSizeProvider.notifier).state = null;
+    if (_currentStep >= _stepLabels.length - 1) {
+      _continueToDescription();
+      return;
     }
 
-    _nextStep();
+    setState(() {
+      if (_maxUnlockedStep < _currentStep + 1) {
+        _maxUnlockedStep = _currentStep + 1;
+      }
+      _currentStep += 1;
+    });
   }
 
   void _selectMoc(String mocName) {
     setState(() => _selectedMoc = mocName);
     ref.read(selectedMocNameProvider.notifier).state = mocName;
+    _unlockNextIfCurrentCompleted();
   }
 
   void _selectFloor(String floorName) {
     setState(() => _selectedFloor = floorName);
     ref.read(selectedFloorNameProvider.notifier).state = floorName;
+    _unlockNextIfCurrentCompleted();
   }
 
   void _setSizeFromChip(String value) {
@@ -96,6 +116,7 @@ class _MechanichalStepperScreenState
       TextPosition(offset: _sizeController.text.length),
     );
     ref.read(selectedSizeProvider.notifier).state = value;
+    _unlockNextIfCurrentCompleted();
   }
 
   void _continueToDescription() {
@@ -112,6 +133,7 @@ class _MechanichalStepperScreenState
   void _clearAllSelections() {
     setState(() {
       _currentStep = 0;
+      _maxUnlockedStep = 0;
       _selectedMoc = null;
       _selectedFloor = null;
       _sizeController.clear();
@@ -416,38 +438,6 @@ class _MechanichalStepperScreenState
               ],
             ),
             const SizedBox(height: 12),
-            if (detectedSizes.isNotEmpty) ...[
-              Text(
-                'Detected from rate file',
-                style: Theme.of(context).textTheme.titleSmall?.copyWith(
-                      fontWeight: FontWeight.w700,
-                      color: cs.primary,
-                    ),
-              ),
-              const SizedBox(height: 8),
-              Wrap(
-                spacing: 8,
-                runSpacing: 8,
-                children: detectedSizes
-                    .where((e) => e.trim().isNotEmpty)
-                    .take(12)
-                    .map(
-                      (size) => ActionChip(
-                        label: Text(size),
-                        onPressed: () {
-                          _setSizeFromChip(size);
-                          setState(() {});
-                        },
-                        backgroundColor: isDark
-                            ? cs.secondaryContainer.withValues(alpha: 0.4)
-                            : cs.secondaryContainer,
-                        side: BorderSide(color: cs.outlineVariant),
-                      ),
-                    )
-                    .toList(),
-              ),
-            ],
-            const SizedBox(height: 12),
             if ((_sizeController.text.trim()).isNotEmpty)
               Container(
                 padding: const EdgeInsets.symmetric(
@@ -491,7 +481,7 @@ class _MechanichalStepperScreenState
     final title = _currentStep == 0
         ? lang.chooseMocTitle
         : _currentStep == 1
-            ? lang.chooseFloorTitle
+            ? 'Choose Location'
             : lang.enterSizeTitle;
 
     return Scaffold(
@@ -511,21 +501,42 @@ class _MechanichalStepperScreenState
                 padding: const EdgeInsets.fromLTRB(16, 12, 16, 10),
                 child: _StepperHeader(
                   currentStep: _currentStep,
+                  maxUnlockedStep: _maxUnlockedStep,
                   labels: _stepLabels,
                   onTapStep: _jumpTo,
                 ),
               ),
               Padding(
                 padding: const EdgeInsets.symmetric(horizontal: 16),
-                child: Align(
-                  alignment: Alignment.centerLeft,
-                  child: Text(
-                    title,
-                    style: Theme.of(context).textTheme.titleMedium?.copyWith(
-                          color: Theme.of(context).colorScheme.primary,
-                          fontWeight: FontWeight.w800,
+                child: Row(
+                  children: [
+                    Expanded(
+                      child: Text(
+                        title,
+                        style:
+                            Theme.of(context).textTheme.titleMedium?.copyWith(
+                                  color: cs.primary,
+                                  fontWeight: FontWeight.w800,
+                                ),
+                      ),
+                    ),
+                    TextButton(
+                      onPressed: _skipStep,
+                      style: TextButton.styleFrom(
+                        backgroundColor: cs.primary,
+                        foregroundColor: cs.onPrimary,
+                        padding: const EdgeInsets.symmetric(
+                            horizontal: 16, vertical: 8),
+                        shape: RoundedRectangleBorder(
+                          borderRadius: BorderRadius.circular(20),
                         ),
-                  ),
+                      ),
+                      child: const Text(
+                        'Skip',
+                        style: TextStyle(fontWeight: FontWeight.w700),
+                      ),
+                    ),
+                  ],
                 ),
               ),
               const SizedBox(height: 10),
@@ -551,8 +562,8 @@ class _MechanichalStepperScreenState
               _StepperBottomBar(
                 currentStep: _currentStep,
                 onBack: _currentStep == 0 ? null : _previousStep,
-                onSkip: _skipStep,
                 onNext: _nextStep,
+                canProceed: _isStepComplete(_currentStep),
               ),
             ],
           ),
@@ -565,70 +576,86 @@ class _MechanichalStepperScreenState
 class _StepperHeader extends StatelessWidget {
   const _StepperHeader({
     required this.currentStep,
+    required this.maxUnlockedStep,
     required this.labels,
     required this.onTapStep,
   });
 
   final int currentStep;
+  final int maxUnlockedStep;
   final List<String> labels;
   final ValueChanged<int> onTapStep;
 
   @override
   Widget build(BuildContext context) {
     final cs = Theme.of(context).colorScheme;
-    return SingleChildScrollView(
-      scrollDirection: Axis.horizontal,
-      child: Row(
-        children: [
-          for (int i = 0; i < labels.length; i++)
-            Padding(
-              padding: const EdgeInsets.only(right: 8),
-              child: InkWell(
-                onTap: () => onTapStep(i),
-                borderRadius: BorderRadius.circular(999),
-                child: AnimatedContainer(
-                  duration: const Duration(milliseconds: 220),
-                  padding:
-                      const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
-                  decoration: BoxDecoration(
-                    color: i == currentStep
-                        ? cs.primary
-                        : (i < currentStep ? cs.tertiary : cs.surface),
-                    borderRadius: BorderRadius.circular(999),
-                    border: Border.all(
-                      color: i == currentStep ? cs.primary : cs.outlineVariant,
+    return Row(
+      children: [
+        for (int i = 0; i < labels.length; i++) ...[
+          Expanded(
+            child: InkWell(
+              onTap: i <= maxUnlockedStep ? () => onTapStep(i) : null,
+              borderRadius: BorderRadius.circular(10),
+              child: Column(
+                children: [
+                  AnimatedContainer(
+                    duration: const Duration(milliseconds: 220),
+                    width: 26,
+                    height: 26,
+                    decoration: BoxDecoration(
+                      color: i <= currentStep
+                          ? cs.primary
+                          : cs.surfaceContainerHighest,
+                      shape: BoxShape.circle,
+                      border: Border.all(
+                        color:
+                            i <= currentStep ? cs.primary : cs.outlineVariant,
+                      ),
+                    ),
+                    alignment: Alignment.center,
+                    child: i < currentStep
+                        ? Icon(Icons.check, size: 16, color: cs.onPrimary)
+                        : Text(
+                            '${i + 1}',
+                            style: TextStyle(
+                              fontSize: 11,
+                              fontWeight: FontWeight.w700,
+                              color: i <= currentStep
+                                  ? cs.onPrimary
+                                  : cs.onSurfaceVariant,
+                            ),
+                          ),
+                  ),
+                  const SizedBox(height: 6),
+                  Text(
+                    labels[i],
+                    style: TextStyle(
+                      fontSize: 11,
+                      fontWeight: FontWeight.w700,
+                      color:
+                          i <= currentStep ? cs.primary : cs.onSurfaceVariant,
                     ),
                   ),
-                  child: Row(
-                    mainAxisSize: MainAxisSize.min,
-                    children: [
-                      Icon(
-                        i < currentStep
-                            ? Icons.check_circle
-                            : Icons.radio_button_checked,
-                        size: 14,
-                        color: i <= currentStep
-                            ? cs.onPrimary
-                            : cs.onSurfaceVariant,
-                      ),
-                      const SizedBox(width: 6),
-                      Text(
-                        labels[i],
-                        style: TextStyle(
-                          fontSize: 12,
-                          fontWeight: FontWeight.w700,
-                          color: i <= currentStep
-                              ? cs.onPrimary
-                              : cs.onSurfaceVariant,
-                        ),
-                      ),
-                    ],
-                  ),
+                ],
+              ),
+            ),
+          ),
+          if (i != labels.length - 1)
+            Expanded(
+              child: AnimatedContainer(
+                duration: const Duration(milliseconds: 220),
+                height: 3,
+                margin: const EdgeInsets.only(bottom: 20),
+                decoration: BoxDecoration(
+                  color: i < currentStep
+                      ? cs.primary
+                      : cs.outlineVariant.withValues(alpha: 0.45),
+                  borderRadius: BorderRadius.circular(999),
                 ),
               ),
             ),
         ],
-      ),
+      ],
     );
   }
 }
@@ -675,7 +702,7 @@ class _MechanicalWizardAppBar extends StatelessWidget
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           Text(
-            'Mechanichal Stepper',
+            'Work Setup',
             style: TextStyle(
               fontSize: 18,
               fontWeight: FontWeight.w800,
@@ -722,14 +749,14 @@ class _StepperBottomBar extends StatelessWidget {
   const _StepperBottomBar({
     required this.currentStep,
     required this.onBack,
-    required this.onSkip,
     required this.onNext,
+    required this.canProceed,
   });
 
   final int currentStep;
   final VoidCallback? onBack;
-  final VoidCallback onSkip;
   final VoidCallback onNext;
+  final bool canProceed;
 
   @override
   Widget build(BuildContext context) {
@@ -759,15 +786,11 @@ class _StepperBottomBar extends StatelessWidget {
               label: const Text('Back'),
             ),
           if (onBack != null) const SizedBox(width: 8),
-          TextButton(
-            onPressed: onSkip,
-            child: const Text('Skip step'),
-          ),
           const Spacer(),
           ElevatedButton.icon(
-            onPressed: onNext,
+            onPressed: canProceed ? onNext : null,
             icon: Icon(isLast ? Icons.done_all : Icons.arrow_forward),
-            label: Text(isLast ? 'Go to Description' : 'Next'),
+            label: Text(isLast ? 'Enter' : 'Next'),
             style: ElevatedButton.styleFrom(
               backgroundColor: cs.primary,
               foregroundColor: cs.onPrimary,

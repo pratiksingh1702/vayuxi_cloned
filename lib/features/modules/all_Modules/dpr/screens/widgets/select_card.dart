@@ -37,6 +37,8 @@ class SelectCard extends StatelessWidget {
   final String label;
   final VoidCallback onTap;
   final Color color;
+  final double? width;
+  final double? height;
 
   const SelectCard({
     super.key,
@@ -44,6 +46,8 @@ class SelectCard extends StatelessWidget {
     this.color = Colors.black,
     required this.label,
     required this.onTap,
+    this.width,
+    this.height,
   });
 
   // Helper function to capitalize first letter
@@ -57,7 +61,7 @@ class SelectCard extends StatelessWidget {
     final cs = Theme.of(context).colorScheme;
     final isDark = Theme.of(context).brightness == Brightness.dark;
 
-    return Card(
+    final card = Card(
       elevation: 0.8,
       color: isDark ? cs.surfaceContainer : cs.surface,
       surfaceTintColor: cs.surfaceTint,
@@ -99,5 +103,17 @@ class SelectCard extends StatelessWidget {
         ),
       ),
     );
+
+    if (width != null || height != null) {
+      return Align(
+        child: SizedBox(
+          width: width,
+          height: height,
+          child: card,
+        ),
+      );
+    }
+
+    return card;
   }
 }

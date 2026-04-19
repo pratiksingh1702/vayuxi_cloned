@@ -47,8 +47,10 @@ class ViewSelectCardGrid extends ConsumerWidget {
           childAspectRatio: 1,
           children: [
             /// ✅ MOC
-
-              SelectCard(
+            FractionallySizedBox(
+              widthFactor: 0.88,
+              heightFactor: 0.88,
+              child: SelectCard(
                 icon: const SelectCardIcon(
                   icon: Icons.account_tree_rounded,
                   color: Colors.deepPurple,
@@ -63,10 +65,13 @@ class ViewSelectCardGrid extends ConsumerWidget {
                   );
                 }:(){},
               ),
+            ),
 
             /// ✅ FLOOR
-
-              SelectCard(
+            FractionallySizedBox(
+              widthFactor: 0.88,
+              heightFactor: 0.88,
+              child: SelectCard(
                 icon: const SelectCardIcon(
                   icon: Icons.layers_rounded,
                   color: Colors.teal,
@@ -83,10 +88,14 @@ class ViewSelectCardGrid extends ConsumerWidget {
                 }
                     : (){},
               ),
+            ),
 
             /// ✅ ELEVATION (if you have a page for it)
             if (elevations.isNotEmpty)
-              SelectCard(
+            FractionallySizedBox(
+              widthFactor: 0.88,
+              heightFactor: 0.88,
+              child: SelectCard(
                 icon: const SelectCardIcon(
                   icon: Icons.terrain_rounded,
                   color: Colors.orange,
@@ -101,9 +110,13 @@ class ViewSelectCardGrid extends ConsumerWidget {
                   );
                 },
               ),
+            ),
 
             /// DPR SCREEN (always visible)
-            SelectCard(
+            FractionallySizedBox(
+              widthFactor: 0.88,
+              heightFactor: 0.88,
+              child: SelectCard(
               icon: const SelectCardIcon(
                 icon: Icons.dashboard_customize_rounded,
                 color: Colors.indigo,
@@ -128,6 +141,7 @@ class ViewSelectCardGrid extends ConsumerWidget {
                   );
                 }
               },
+            ),
             ),
           ],
         ),

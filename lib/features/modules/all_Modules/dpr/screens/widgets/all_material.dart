@@ -2,6 +2,7 @@ import 'dart:convert';
 
 import 'package:dio/dio.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:isar_community/isar.dart';
 import 'package:untitled2/core/utlis/widgets/premium_app_bar.dart';
@@ -60,6 +61,13 @@ class _AllMaterialsScreenState extends ConsumerState<AllMaterialsScreen>
   // Selection mode test
   bool _isSelectionMode = false;
   Set<String> _selectedMaterialIds = {};
+  bool _isReorderMode = false;
+  String? _reorderCategory;
+  List<String> _reorderMaterialIds = [];
+  List<dynamic> _reorderDisplayMaterials = [];
+  int? _draggingReorderIndex;
+  String? _draggingMaterialId;
+  bool _isOrderSyncing = false;
   int _suggestedViewIndex = 0;
 
   ColorScheme get _cs => Theme.of(context).colorScheme;
@@ -88,10 +96,11 @@ class _AllMaterialsScreenState extends ConsumerState<AllMaterialsScreen>
     String? rateUploadId,
   ) async {
     // Disable selection mode while editing
-    if (_isSelectionMode) {
+    if (_isSelectionMode || _isReorderMode) {
       setState(() {
         _isSelectionMode = false;
         _selectedMaterialIds.clear();
+        _exitReorderMode();
       });
     }
 
@@ -116,10 +125,11 @@ class _AllMaterialsScreenState extends ConsumerState<AllMaterialsScreen>
     EquipmentItem material,
     String? rateUploadId,
   ) async {
-    if (_isSelectionMode) {
+    if (_isSelectionMode || _isReorderMode) {
       setState(() {
         _isSelectionMode = false;
         _selectedMaterialIds.clear();
+        _exitReorderMode();
       });
     }
 
@@ -185,7 +195,10 @@ class _AllMaterialsScreenState extends ConsumerState<AllMaterialsScreen>
 
   /// Refresh materials from server
   Future<void> _refreshMaterials() async {
-    setState(() => _isLoading = true);
+    setState(() {
+      _isLoading = true;
+      _exitReorderMode();
+    });
 
     try {
       final materials = await _materialService.getDefaultMaterials(
@@ -238,10 +251,136 @@ class _AllMaterialsScreenState extends ConsumerState<AllMaterialsScreen>
   void _toggleSelectionMode(String category) {
     setState(() {
       _isSelectionMode = !_isSelectionMode;
+      if (_isSelectionMode) {
+        _exitReorderMode();
+      }
       if (!_isSelectionMode) {
         _selectedMaterialIds.clear();
       }
     });
+  }
+
+  void _enterReorderMode(String category, List<dynamic> materials) {
+    if (materials.length < 2) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: const Text('At least 2 items are needed to reorder'),
+          backgroundColor: _warningColor,
+        ),
+      );
+      return;
+    }
+
+    setState(() {
+      _isSelectionMode = false;
+      _selectedMaterialIds.clear();
+      _isReorderMode = true;
+      _reorderCategory = category;
+      _reorderMaterialIds = materials.map((m) => m.id as String).toList();
+      _reorderDisplayMaterials = List<dynamic>.from(materials);
+      _draggingReorderIndex = null;
+      _draggingMaterialId = null;
+    });
+  }
+
+  void _exitReorderMode() {
+    _isReorderMode = false;
+    _reorderCategory = null;
+    _reorderMaterialIds = [];
+    _reorderDisplayMaterials = [];
+    _draggingReorderIndex = null;
+    _draggingMaterialId = null;
+  }
+
+  List<dynamic> _effectiveOrderForCategory(
+    String category,
+    List<dynamic> materials,
+  ) {
+    final isActive = _isReorderMode && _reorderCategory == category;
+    if (!isActive) {
+      return materials;
+    }
+
+    if (_reorderDisplayMaterials.isNotEmpty) {
+      return _reorderDisplayMaterials;
+    }
+
+    final mapById = {
+      for (final m in materials) m.id as String: m,
+    };
+    return _reorderMaterialIds
+        .map((id) => mapById[id])
+        .where((m) => m != null)
+        .cast<dynamic>()
+        .toList(growable: false);
+  }
+
+  Future<void> _handleMaterialReorder({
+    required String category,
+    required int oldIndex,
+    required int newIndex,
+  }) async {
+    if (!_isReorderMode || _reorderCategory != category) return;
+    if (newIndex > oldIndex) {
+      newIndex -= 1;
+    }
+    if (oldIndex == newIndex) return;
+
+    if (newIndex < 0 || newIndex >= _reorderMaterialIds.length) {
+      return;
+    }
+
+    HapticFeedback.mediumImpact();
+
+    final previousIds = List<String>.from(_reorderMaterialIds);
+    final previousDisplay = List<dynamic>.from(_reorderDisplayMaterials);
+
+    final updatedIds = List<String>.from(_reorderMaterialIds);
+    final updatedDisplay = List<dynamic>.from(_reorderDisplayMaterials);
+
+    final movedId = updatedIds.removeAt(oldIndex);
+    updatedIds.insert(newIndex, movedId);
+
+    final movedItem = updatedDisplay.removeAt(oldIndex);
+    updatedDisplay.insert(newIndex, movedItem);
+
+    setState(() {
+      _reorderMaterialIds = updatedIds;
+      _reorderDisplayMaterials = updatedDisplay;
+    });
+
+    final siteId = ref.read(selectedSiteIdProvider);
+    if (siteId == null) return;
+
+    try {
+      setState(() => _isOrderSyncing = true);
+      final repo = RateRepository(AppIsarDB.isar);
+      await repo.persistDisplayOrderForSubset(
+        siteId: siteId,
+        orderedSubsetMaterialIds: _reorderMaterialIds,
+      );
+    } catch (e) {
+      setState(() {
+        _reorderMaterialIds = previousIds;
+        _reorderDisplayMaterials = previousDisplay;
+      });
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text('Failed to persist order: $e'),
+            backgroundColor: _errorColor,
+          ),
+        );
+      }
+    } finally {
+      if (mounted) {
+        setState(() {
+          _isOrderSyncing = false;
+          _draggingReorderIndex = null;
+          _draggingMaterialId = null;
+        });
+      }
+    }
   }
 
   /// Toggle individual material selection
@@ -1436,7 +1575,10 @@ class _AllMaterialsScreenState extends ConsumerState<AllMaterialsScreen>
       return _buildLoadingState(category: category, color: color);
     }
 
-    if (materials.isEmpty) {
+    final isReorderForCategory = _isReorderMode && _reorderCategory == category;
+    final displayMaterials = _effectiveOrderForCategory(category, materials);
+
+    if (displayMaterials.isEmpty) {
       return _buildEmptyCategoryState(emptyMessage);
     }
 
@@ -1450,7 +1592,10 @@ class _AllMaterialsScreenState extends ConsumerState<AllMaterialsScreen>
             decoration: BoxDecoration(
               color: _cs.surface,
               borderRadius: BorderRadius.circular(14),
-              border: Border.all(color: _cs.outlineVariant),
+              border: Border.all(
+                color: isReorderForCategory ? color : _cs.outlineVariant,
+                width: isReorderForCategory ? 1.4 : 1,
+              ),
               boxShadow: [
                 BoxShadow(
                   color: _cs.shadow.withOpacity(0.06),
@@ -1462,7 +1607,43 @@ class _AllMaterialsScreenState extends ConsumerState<AllMaterialsScreen>
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                if (_isSelectionMode)
+                if (isReorderForCategory)
+                  Container(
+                    margin: const EdgeInsets.only(bottom: 8),
+                    padding:
+                        const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
+                    decoration: BoxDecoration(
+                      color: color.withOpacity(0.12),
+                      borderRadius: BorderRadius.circular(8),
+                    ),
+                    child: Row(
+                      children: [
+                        Icon(Icons.drag_indicator, size: 16, color: color),
+                        const SizedBox(width: 6),
+                        Expanded(
+                          child: Text(
+                            _isOrderSyncing
+                                ? 'Reorder mode active. Saving order...'
+                                : 'Reorder mode active. Drag cards to arrange display order.',
+                            style: TextStyle(
+                              fontSize: 12,
+                              fontWeight: FontWeight.w700,
+                              color: _cs.onSurface,
+                            ),
+                          ),
+                        ),
+                        const SizedBox(width: 8),
+                        _buildHeaderActionButton(
+                          label: 'Done',
+                          icon: Icons.check,
+                          textColor: _cs.onPrimary,
+                          bgColor: _cs.primary,
+                          onTap: () => setState(_exitReorderMode),
+                        ),
+                      ],
+                    ),
+                  )
+                else if (_isSelectionMode)
                   SingleChildScrollView(
                     scrollDirection: Axis.horizontal,
                     child: Row(
@@ -1480,7 +1661,7 @@ class _AllMaterialsScreenState extends ConsumerState<AllMaterialsScreen>
                           icon: Icons.done_all,
                           textColor: _cs.primary,
                           bgColor: _cs.primaryContainer,
-                          onTap: () => _selectAllMaterials(materials),
+                          onTap: () => _selectAllMaterials(displayMaterials),
                         ),
                         const SizedBox(width: 8),
                         _buildHeaderActionButton(
@@ -1512,7 +1693,7 @@ class _AllMaterialsScreenState extends ConsumerState<AllMaterialsScreen>
                             const SizedBox(width: 8),
                             Expanded(
                               child: Text(
-                                'Total ${category == 'piping' ? 'Piping' : 'Equipment'}: ${materials.length}',
+                                'Total ${category == 'piping' ? 'Piping' : 'Equipment'}: ${displayMaterials.length}',
                                 style: TextStyle(
                                   fontWeight: FontWeight.w700,
                                   fontSize: 13,
@@ -1525,10 +1706,29 @@ class _AllMaterialsScreenState extends ConsumerState<AllMaterialsScreen>
                       ),
                       const SizedBox(width: 8),
                       _buildHeaderIconButton(
+                        icon: isReorderForCategory
+                            ? Icons.checklist_rtl_rounded
+                            : Icons.reorder_rounded,
+                        tooltip: isReorderForCategory
+                            ? 'Exit Reorder Mode'
+                            : 'Reorder Materials',
+                        iconColor: isReorderForCategory ? _cs.primary : color,
+                        onTap: displayMaterials.length < 2
+                            ? null
+                            : () {
+                                if (isReorderForCategory) {
+                                  setState(_exitReorderMode);
+                                  return;
+                                }
+                                _enterReorderMode(category, displayMaterials);
+                              },
+                      ),
+                      const SizedBox(width: 8),
+                      _buildHeaderIconButton(
                         icon: Icons.delete_sweep,
                         tooltip: 'Select Items',
                         iconColor: _cs.error,
-                        onTap: materials.isEmpty
+                        onTap: displayMaterials.isEmpty || _isReorderMode
                             ? null
                             : () => _toggleSelectionMode(category),
                       ),
@@ -1546,34 +1746,250 @@ class _AllMaterialsScreenState extends ConsumerState<AllMaterialsScreen>
           ),
         ),
         Expanded(
-          child: RefreshIndicator(
-            onRefresh: _refreshMaterials,
-            child: CustomScrollbar(
-              controller: category == 'piping'
-                  ? _approvedPipingController
-                  : _approvedEquipmentController,
-              child: ListView.builder(
-                controller: category == 'piping'
-                    ? _approvedPipingController
-                    : _approvedEquipmentController,
-                physics: const AlwaysScrollableScrollPhysics(),
-                padding: const EdgeInsets.fromLTRB(8, 4, 8, 10),
-                itemCount: materials.length,
-                itemBuilder: (context, index) {
-                  final item = materials[index];
+          child: isReorderForCategory
+              ? _buildReorderableList(
+                  category: category,
+                  color: color,
+                  materials: displayMaterials,
+                )
+              : RefreshIndicator(
+                  onRefresh: _refreshMaterials,
+                  child: CustomScrollbar(
+                    controller: category == 'piping'
+                        ? _approvedPipingController
+                        : _approvedEquipmentController,
+                    child: ListView.builder(
+                      controller: category == 'piping'
+                          ? _approvedPipingController
+                          : _approvedEquipmentController,
+                      physics: const AlwaysScrollableScrollPhysics(),
+                      padding: const EdgeInsets.fromLTRB(8, 4, 8, 10),
+                      itemCount: displayMaterials.length,
+                      itemBuilder: (context, index) {
+                        final item = displayMaterials[index];
 
-                  return Padding(
-                    padding: const EdgeInsets.only(bottom: 12),
-                    child: category == 'piping'
-                        ? _buildPipingCard(item as PipingItem, color)
-                        : _buildEquipmentCard(item as EquipmentItem, color),
-                  );
-                },
+                        return Padding(
+                          padding: const EdgeInsets.only(bottom: 12),
+                          child: GestureDetector(
+                            onLongPress: _isSelectionMode
+                                ? null
+                                : () => _enterReorderMode(
+                                    category, displayMaterials),
+                            child: category == 'piping'
+                                ? _buildPipingCard(
+                                    item as PipingItem,
+                                    color,
+                                  )
+                                : _buildEquipmentCard(
+                                    item as EquipmentItem,
+                                    color,
+                                  ),
+                          ),
+                        );
+                      },
+                    ),
+                  ),
+                ),
+        )
+      ],
+    );
+  }
+
+  Widget _buildReorderableList({
+    required String category,
+    required Color color,
+    required List<dynamic> materials,
+  }) {
+    final controller = category == 'piping'
+        ? _approvedPipingController
+        : _approvedEquipmentController;
+
+    if (materials.length < 2) {
+      return CustomScrollbar(
+        controller: controller,
+        child: ListView(
+          controller: controller,
+          padding: const EdgeInsets.fromLTRB(8, 4, 8, 10),
+          children: [
+            category == 'piping'
+                ? _buildPipingCard(materials.first as PipingItem, color)
+                : _buildEquipmentCard(materials.first as EquipmentItem, color),
+          ],
+        ),
+      );
+    }
+
+    return Theme(
+      data: Theme.of(context).copyWith(
+        canvasColor: Colors.transparent,
+        shadowColor: Colors.transparent,
+      ),
+      child: ReorderableListView.builder(
+        scrollController: controller,
+        buildDefaultDragHandles: false,
+        padding: const EdgeInsets.fromLTRB(8, 4, 8, 10),
+        onReorderStart: (index) {
+          HapticFeedback.mediumImpact();
+          // ✅ Read from _reorderDisplayMaterials directly, NOT from materials param
+          if (index < _reorderDisplayMaterials.length) {
+            setState(() {
+              _draggingReorderIndex = index;
+              _draggingMaterialId =
+                  _reorderDisplayMaterials[index].id as String;
+            });
+          }
+        },
+        onReorderEnd: (_) {
+          if (!mounted) return;
+          setState(() {
+            _draggingReorderIndex = null;
+            _draggingMaterialId = null;
+          });
+        },
+        proxyDecorator: (child, index, animation) {
+          return AnimatedBuilder(
+            animation: animation,
+            child: child,
+            builder: (context, child) {
+              final elevation = Tween<double>(begin: 0, end: 20)
+                  .animate(CurvedAnimation(
+                    parent: animation,
+                    curve: Curves.easeOutCubic,
+                  ))
+                  .value;
+              final scale = Tween<double>(begin: 1.0, end: 1.04)
+                  .animate(CurvedAnimation(
+                    parent: animation,
+                    curve: Curves.easeOutCubic,
+                  ))
+                  .value;
+
+              return Opacity(
+                opacity: 0.98,
+                child: Material(
+                  elevation: elevation,
+                  color: Colors.transparent,
+                  shadowColor: color.withOpacity(0.4),
+                  borderRadius: BorderRadius.circular(14),
+                  child: Transform(
+                    transform: Matrix4.identity()
+                      ..translate(0.0, -6.0, 0.0)
+                      ..scale(scale),
+                    alignment: Alignment.topCenter,
+                    child: child,
+                  ),
+                ),
+              );
+            },
+          );
+        },
+        // ✅ Use _reorderDisplayMaterials.length directly
+        itemCount: _reorderDisplayMaterials.length,
+        onReorder: (oldIndex, newIndex) {
+          _handleMaterialReorder(
+            category: category,
+            oldIndex: oldIndex,
+            newIndex: newIndex,
+          );
+        },
+        itemBuilder: (context, index) {
+          // ✅ Read from _reorderDisplayMaterials directly — never from closure-captured param
+          if (index >= _reorderDisplayMaterials.length)
+            return const SizedBox.shrink(key: ValueKey('empty'));
+
+          final item = _reorderDisplayMaterials[index];
+          final isDragging = _draggingMaterialId == item.id;
+
+          return _buildReorderableItem(
+            key: ValueKey('reorder_${item.id}'),
+            index: index,
+            color: color,
+            category: category,
+            material: item,
+            isDragging: isDragging,
+          );
+        },
+      ),
+    );
+  }
+
+  Widget _buildReorderableItem({
+    required Key key,
+    required int index,
+    required Color color,
+    required String category,
+    required dynamic material,
+    required bool isDragging,
+  }) {
+    return AnimatedContainer(
+      key: key,
+      duration: const Duration(milliseconds: 220),
+      curve: Curves.easeOutCubic,
+      margin: const EdgeInsets.only(bottom: 12),
+      decoration: BoxDecoration(
+        borderRadius: BorderRadius.circular(14),
+        boxShadow: isDragging
+            ? [
+                BoxShadow(
+                  color: color.withOpacity(0.25),
+                  blurRadius: 20,
+                  spreadRadius: 2,
+                  offset: const Offset(0, 8),
+                ),
+              ]
+            : const [],
+      ),
+      child: Stack(
+        children: [
+          IgnorePointer(
+            ignoring: true,
+            child: Opacity(
+              opacity: isDragging ? 0.5 : 1.0,
+              child: category == 'piping'
+                  ? _buildPipingCard(material as PipingItem, color)
+                  : _buildEquipmentCard(material as EquipmentItem, color),
+            ),
+          ),
+          Positioned(
+            top: 0,
+            right: 0,
+            bottom: 0,
+            child: ReorderableDragStartListener(
+              index: index,
+              child: Container(
+                width: 48,
+                decoration: BoxDecoration(
+                  borderRadius: const BorderRadius.only(
+                    topRight: Radius.circular(14),
+                    bottomRight: Radius.circular(14),
+                  ),
+                  color: color.withOpacity(0.8),
+                ),
+                child: Column(
+                  mainAxisAlignment: MainAxisAlignment.center,
+                  children: [
+                    Icon(
+                      Icons.drag_indicator_rounded,
+                      color: color.withOpacity(0.8),
+                      size: 22,
+                    ),
+                    const SizedBox(height: 2),
+                    Text(
+                      '${index + 1}',
+                      style: TextStyle(
+                        fontSize: 10,
+                        fontWeight: FontWeight.w700,
+                        color: color.withOpacity(0.6),
+                      ),
+                    ),
+                  ],
+                ),
               ),
             ),
           ),
-        )
-      ],
+     
+        ],
+      ),
     );
   }
 
@@ -1714,8 +2130,11 @@ class _AllMaterialsScreenState extends ConsumerState<AllMaterialsScreen>
     );
   }
 
-  Widget _buildPipingCard(PipingItem material, Color color,
-      {bool isSuggested = false}) {
+  Widget _buildPipingCard(
+    PipingItem material,
+    Color color, {
+    bool isSuggested = false,
+  }) {
     final imageUrl = _cleanImageUrl(material.image);
     final isSelected = _selectedMaterialIds.contains(material.id);
     final siteId = ref.read(selectedSiteIdProvider)!;
@@ -1725,6 +2144,7 @@ class _AllMaterialsScreenState extends ConsumerState<AllMaterialsScreen>
 
     final bool showFloor = detected?.hasFloor == true;
     final bool showElevation = !showFloor && detected?.hasElevation == true;
+    final isInteractionLocked = _isSelectionMode || _isReorderMode;
 
     final rateUploadId = rateFileMeta['rateFileId'] as String?;
     print("🧠 UI IMAGE = ${material.image}");
@@ -1740,7 +2160,7 @@ class _AllMaterialsScreenState extends ConsumerState<AllMaterialsScreen>
               lengthLabel: material.materialName,
               lengthPlaceholder: material.uom,
               fields: material.dynamicFields,
-              isEditable: !_isSelectionMode && editingMaterialId == null,
+              isEditable: !isInteractionLocked && editingMaterialId == null,
               isEditMode: editingMaterialId == material.id,
               onCancel: () {
                 setState(() => editingMaterialId = null);
@@ -1797,10 +2217,12 @@ class _AllMaterialsScreenState extends ConsumerState<AllMaterialsScreen>
               onChanged: (key, value) {
                 _updatePipingField(material.id, key, value);
               },
-              onEdit: _isSelectionMode
+              onEdit: isInteractionLocked
                   ? null
                   : () => _openPipingEditOverlay(material, rateUploadId),
-              onDelete: editingMaterialId != null || rateUploadId == null
+              onDelete: editingMaterialId != null ||
+                      rateUploadId == null ||
+                      isInteractionLocked
                   ? null
                   : () => _deleteRateLineItem(
                         siteId: siteId,
@@ -1808,14 +2230,16 @@ class _AllMaterialsScreenState extends ConsumerState<AllMaterialsScreen>
                         lineItemId: material.id,
                         materialName: material.materialName,
                       ),
-              onCopy: editingMaterialId != null || rateUploadId == null
+              onCopy: editingMaterialId != null ||
+                      rateUploadId == null ||
+                      isInteractionLocked
                   ? null
                   : () => _copyRateLineItem(
                         siteId: siteId,
                         rateUploadId: rateUploadId,
                         lineItemId: material.rateFileId ?? '',
                       ),
-              onAdd: editingMaterialId != null
+              onAdd: editingMaterialId != null || isInteractionLocked
                   ? null
                   : () => _copyMaterial(material, 'piping'),
               quantity: '',
@@ -1870,12 +2294,16 @@ class _AllMaterialsScreenState extends ConsumerState<AllMaterialsScreen>
     );
   }
 
-  Widget _buildEquipmentCard(EquipmentItem material, Color color,
-      {bool isSuggested = false}) {
+  Widget _buildEquipmentCard(
+    EquipmentItem material,
+    Color color, {
+    bool isSuggested = false,
+  }) {
     final isSelected = _selectedMaterialIds.contains(material.id);
     final siteId = ref.read(selectedSiteIdProvider)!;
     final rateFileMeta = ref.read(rateFileMetaProvider(siteId));
     final rateUploadId = rateFileMeta['rateFileId'] as String?;
+    final isInteractionLocked = _isSelectionMode || _isReorderMode;
 
     return Stack(
       children: [
@@ -1900,7 +2328,7 @@ class _AllMaterialsScreenState extends ConsumerState<AllMaterialsScreen>
               moc: material.moc,
               fields: material.dynamicFields,
               isEditMode: editingMaterialId == material.id,
-              isEditable: !_isSelectionMode && editingMaterialId == null,
+              isEditable: !isInteractionLocked && editingMaterialId == null,
               onCancel: () {
                 setState(() => editingMaterialId = null);
               },
@@ -1959,7 +2387,7 @@ class _AllMaterialsScreenState extends ConsumerState<AllMaterialsScreen>
               onChanged: (key, value) {
                 _updateEquipmentField(material.id, key, value);
               },
-              onEdit: _isSelectionMode
+              onEdit: isInteractionLocked
                   ? null
                   : () {
                       setState(() {
@@ -1967,7 +2395,9 @@ class _AllMaterialsScreenState extends ConsumerState<AllMaterialsScreen>
                         draftCategoryId = material.calculationCategory;
                       });
                     },
-              onDelete: editingMaterialId != null || rateUploadId == null
+              onDelete: editingMaterialId != null ||
+                      rateUploadId == null ||
+                      isInteractionLocked
                   ? null
                   : () => _deleteRateLineItem(
                         siteId: siteId,
@@ -1975,17 +2405,19 @@ class _AllMaterialsScreenState extends ConsumerState<AllMaterialsScreen>
                         lineItemId: material.rateFileId ?? '',
                         materialName: material.materialName,
                       ),
-              onCopy: editingMaterialId != null || rateUploadId == null
+              onCopy: editingMaterialId != null ||
+                      rateUploadId == null ||
+                      isInteractionLocked
                   ? null
                   : () => _copyRateLineItem(
                         siteId: siteId,
                         rateUploadId: rateUploadId,
                         lineItemId: material.rateFileId ?? '',
                       ),
-              onAdd: editingMaterialId != null
+              onAdd: editingMaterialId != null || isInteractionLocked
                   ? null
                   : () => _copyMaterial(material, 'equipment'),
-              onRemark: _isSelectionMode
+              onRemark: isInteractionLocked
                   ? () {}
                   : () => _showRemarksDialog(material, 'equipment'),
               // legacy field callbacks (still needed for DPR mode)

@@ -37,6 +37,7 @@ class RateFileMaterialIsar {
   late String rateFileId;
 
   late String materialName;
+  late int displayOrder;
   late String image;
   late String uom;
   late String calculationCategory;

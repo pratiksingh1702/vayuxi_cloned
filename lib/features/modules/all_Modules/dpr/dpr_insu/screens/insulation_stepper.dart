@@ -118,6 +118,7 @@ class _InsulationStepperScreenState
       TextEditingController();
 
   int _currentStep = 0;
+  int _maxUnlockedStep = 0;
   int _activeLaggingLayerIndex = 0;
 
   @override
@@ -174,9 +175,42 @@ class _InsulationStepperScreenState
 
   void _jumpTo(int step) {
     final steps = _visibleSteps(ref.read(insulationStateProvider));
+    if (step > _maxUnlockedStep) return;
     setState(() {
       _currentStep = step.clamp(0, steps.length - 1);
       _syncThicknessControllers();
+    });
+  }
+
+  bool _isStepComplete(_InsuStepKind kind, InsulationState state) {
+    switch (kind) {
+      case _InsuStepKind.floor:
+        return state.floor.trim().isNotEmpty;
+      case _InsuStepKind.layer:
+        return state.layerType != null;
+      case _InsuStepKind.lagging:
+        if (state.layers.isEmpty) return false;
+        return state.layers.every(
+          (e) => e.name.trim().isNotEmpty && e.thickness > 0,
+        );
+      case _InsuStepKind.cladding:
+        return state.cladding.name.trim().isNotEmpty &&
+            state.cladding.thickness > 0;
+      case _InsuStepKind.size:
+        return _sizeController.text.trim().isNotEmpty;
+    }
+  }
+
+  void _unlockNextIfCurrentCompleted() {
+    final state = ref.read(insulationStateProvider);
+    final steps = _visibleSteps(state);
+    if (_currentStep >= steps.length) return;
+    if (!_isStepComplete(steps[_currentStep], state)) return;
+    if (_currentStep >= steps.length - 1) return;
+    setState(() {
+      if (_maxUnlockedStep < _currentStep + 1) {
+        _maxUnlockedStep = _currentStep + 1;
+      }
     });
   }
 
@@ -186,6 +220,8 @@ class _InsulationStepperScreenState
       _submitAndOpenDescription();
       return;
     }
+    final state = ref.read(insulationStateProvider);
+    if (!_isStepComplete(steps[_currentStep], state)) return;
     setState(() {
       _currentStep += 1;
       _syncThicknessControllers();
@@ -201,38 +237,25 @@ class _InsulationStepperScreenState
   }
 
   void _skipStep() {
-    final notifier = ref.read(insulationStateProvider.notifier);
-    final laggingNotifier = ref.read(laggingMaterialProvider.notifier);
     final steps = _visibleSteps(ref.read(insulationStateProvider));
-    final currentKind = steps[_currentStep];
-
-    if (currentKind == _InsuStepKind.floor) {
-      notifier.setFloor('');
-    } else if (currentKind == _InsuStepKind.layer) {
-      notifier.clearLayerSelection();
-      laggingNotifier.clear();
-    } else if (currentKind == _InsuStepKind.lagging) {
-      final state = ref.read(insulationStateProvider);
-      for (var i = 0; i < state.layers.length; i++) {
-        notifier.updateLayer(index: i, name: '', thickness: 0);
-        laggingNotifier.delete('layer_$i');
-      }
-      _laggingThicknessController.clear();
-    } else if (currentKind == _InsuStepKind.cladding) {
-      notifier.setCladding(name: '', thickness: 0);
-      _claddingThicknessController.clear();
-    } else {
-      _sizeController.clear();
-      ref.read(selectedSizeProvider.notifier).state = null;
+    if (_currentStep >= steps.length - 1) {
+      _submitAndOpenDescription();
+      return;
     }
 
-    _ensureStepInRange(ref.read(insulationStateProvider));
-    _nextStep();
+    setState(() {
+      if (_maxUnlockedStep < _currentStep + 1) {
+        _maxUnlockedStep = _currentStep + 1;
+      }
+      _currentStep += 1;
+      _syncThicknessControllers();
+    });
   }
 
   void _clearAll() {
     setState(() {
       _currentStep = 0;
+      _maxUnlockedStep = 0;
       _activeLaggingLayerIndex = 0;
       _sizeController.clear();
       _laggingThicknessController.clear();
@@ -271,6 +294,7 @@ class _InsulationStepperScreenState
     });
 
     _ensureStepInRange(ref.read(insulationStateProvider));
+    _unlockNextIfCurrentCompleted();
   }
 
   void _updateLaggingLayer({String? name, double? thickness}) {
@@ -304,6 +328,8 @@ class _InsulationStepperScreenState
         ),
       );
     }
+
+    _unlockNextIfCurrentCompleted();
   }
 
   void _submitAndOpenDescription() {
@@ -344,8 +370,10 @@ class _InsulationStepperScreenState
         final selected = state.floor == floor.name;
 
         return InkWell(
-          onTap: () =>
-              ref.read(insulationStateProvider.notifier).setFloor(floor.name),
+          onTap: () {
+            ref.read(insulationStateProvider.notifier).setFloor(floor.name);
+            _unlockNextIfCurrentCompleted();
+          },
           borderRadius: BorderRadius.circular(16),
           child: AnimatedContainer(
             duration: const Duration(milliseconds: 220),
@@ -612,10 +640,12 @@ class _InsulationStepperScreenState
             final selected = state.cladding.name == material['name'];
 
             return InkWell(
-              onTap: () =>
-                  ref.read(insulationStateProvider.notifier).setCladding(
-                        name: material['name'],
-                      ),
+              onTap: () {
+                ref.read(insulationStateProvider.notifier).setCladding(
+                      name: material['name'],
+                    );
+                _unlockNextIfCurrentCompleted();
+              },
               borderRadius: BorderRadius.circular(16),
               child: AnimatedContainer(
                 duration: const Duration(milliseconds: 220),
@@ -672,6 +702,7 @@ class _InsulationStepperScreenState
             ref.read(insulationStateProvider.notifier).setCladding(
                   thickness: double.tryParse(value.trim()) ?? 0,
                 );
+            _unlockNextIfCurrentCompleted();
           },
           decoration: InputDecoration(
             hintText: 'Enter cladding thickness',
@@ -716,6 +747,7 @@ class _InsulationStepperScreenState
                   final cleaned = value.trim();
                   ref.read(selectedSizeProvider.notifier).state =
                       cleaned.isEmpty ? null : cleaned;
+                  _unlockNextIfCurrentCompleted();
                   setState(() {});
                 },
                 decoration: InputDecoration(
@@ -795,21 +827,42 @@ class _InsulationStepperScreenState
                 padding: const EdgeInsets.fromLTRB(16, 12, 16, 8),
                 child: _InsulationStepHeader(
                   currentStep: _currentStep,
+                  maxUnlockedStep: _maxUnlockedStep,
                   labels: steps.map((e) => _stepLabels[e]!).toList(),
                   onTapStep: _jumpTo,
                 ),
               ),
               Padding(
                 padding: const EdgeInsets.symmetric(horizontal: 16),
-                child: Align(
-                  alignment: Alignment.centerLeft,
-                  child: Text(
-                    title,
-                    style: Theme.of(context).textTheme.titleMedium?.copyWith(
-                          color: cs.primary,
-                          fontWeight: FontWeight.w800,
+                child: Row(
+                  children: [
+                    Expanded(
+                      child: Text(
+                        title,
+                        style:
+                            Theme.of(context).textTheme.titleMedium?.copyWith(
+                                  color: cs.primary,
+                                  fontWeight: FontWeight.w800,
+                                ),
+                      ),
+                    ),
+                    TextButton(
+                      onPressed: _skipStep,
+                      style: TextButton.styleFrom(
+                        backgroundColor: cs.primary,
+                        foregroundColor: cs.onPrimary,
+                        padding: const EdgeInsets.symmetric(
+                            horizontal: 16, vertical: 8),
+                        shape: RoundedRectangleBorder(
+                          borderRadius: BorderRadius.circular(20),
                         ),
-                  ),
+                      ),
+                      child: const Text(
+                        'Skip',
+                        style: TextStyle(fontWeight: FontWeight.w700),
+                      ),
+                    ),
+                  ],
                 ),
               ),
               const SizedBox(height: 10),
@@ -836,9 +889,10 @@ class _InsulationStepperScreenState
               ),
               _InsulationStepperBottomBar(
                 currentStep: _currentStep,
+                totalSteps: steps.length,
                 onBack: _currentStep == 0 ? null : _previousStep,
-                onSkip: _skipStep,
                 onNext: _nextStep,
+                canProceed: _isStepComplete(currentKind, insuState),
               ),
             ],
           ),
@@ -936,70 +990,86 @@ class _InsulationWizardAppBar extends StatelessWidget
 class _InsulationStepHeader extends StatelessWidget {
   const _InsulationStepHeader({
     required this.currentStep,
+    required this.maxUnlockedStep,
     required this.labels,
     required this.onTapStep,
   });
 
   final int currentStep;
+  final int maxUnlockedStep;
   final List<String> labels;
   final ValueChanged<int> onTapStep;
 
   @override
   Widget build(BuildContext context) {
     final cs = Theme.of(context).colorScheme;
-    return SingleChildScrollView(
-      scrollDirection: Axis.horizontal,
-      child: Row(
-        children: [
-          for (var i = 0; i < labels.length; i++)
-            Padding(
-              padding: const EdgeInsets.only(right: 8),
-              child: InkWell(
-                onTap: () => onTapStep(i),
-                borderRadius: BorderRadius.circular(999),
-                child: AnimatedContainer(
-                  duration: const Duration(milliseconds: 200),
-                  padding:
-                      const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
-                  decoration: BoxDecoration(
-                    color: i == currentStep
-                        ? cs.primary
-                        : (i < currentStep ? cs.tertiary : cs.surface),
-                    borderRadius: BorderRadius.circular(999),
-                    border: Border.all(
-                      color: i == currentStep ? cs.primary : cs.outlineVariant,
+    return Row(
+      children: [
+        for (int i = 0; i < labels.length; i++) ...[
+          Expanded(
+            child: InkWell(
+              onTap: i <= maxUnlockedStep ? () => onTapStep(i) : null,
+              borderRadius: BorderRadius.circular(10),
+              child: Column(
+                children: [
+                  AnimatedContainer(
+                    duration: const Duration(milliseconds: 220),
+                    width: 26,
+                    height: 26,
+                    decoration: BoxDecoration(
+                      color: i <= currentStep
+                          ? cs.primary
+                          : cs.surfaceContainerHighest,
+                      shape: BoxShape.circle,
+                      border: Border.all(
+                        color:
+                            i <= currentStep ? cs.primary : cs.outlineVariant,
+                      ),
+                    ),
+                    alignment: Alignment.center,
+                    child: i < currentStep
+                        ? Icon(Icons.check, size: 16, color: cs.onPrimary)
+                        : Text(
+                            '${i + 1}',
+                            style: TextStyle(
+                              fontSize: 11,
+                              fontWeight: FontWeight.w700,
+                              color: i <= currentStep
+                                  ? cs.onPrimary
+                                  : cs.onSurfaceVariant,
+                            ),
+                          ),
+                  ),
+                  const SizedBox(height: 6),
+                  Text(
+                    labels[i],
+                    style: TextStyle(
+                      fontSize: 11,
+                      fontWeight: FontWeight.w700,
+                      color:
+                          i <= currentStep ? cs.primary : cs.onSurfaceVariant,
                     ),
                   ),
-                  child: Row(
-                    mainAxisSize: MainAxisSize.min,
-                    children: [
-                      Icon(
-                        i < currentStep
-                            ? Icons.check_circle
-                            : Icons.radio_button_checked,
-                        size: 14,
-                        color: i <= currentStep
-                            ? cs.onPrimary
-                            : cs.onSurfaceVariant,
-                      ),
-                      const SizedBox(width: 6),
-                      Text(
-                        labels[i],
-                        style: TextStyle(
-                          fontSize: 12,
-                          fontWeight: FontWeight.w700,
-                          color: i <= currentStep
-                              ? cs.onPrimary
-                              : cs.onSurfaceVariant,
-                        ),
-                      ),
-                    ],
-                  ),
+                ],
+              ),
+            ),
+          ),
+          if (i != labels.length - 1)
+            Expanded(
+              child: AnimatedContainer(
+                duration: const Duration(milliseconds: 220),
+                height: 3,
+                margin: const EdgeInsets.only(bottom: 20),
+                decoration: BoxDecoration(
+                  color: i < currentStep
+                      ? cs.primary
+                      : cs.outlineVariant.withValues(alpha: 0.45),
+                  borderRadius: BorderRadius.circular(999),
                 ),
               ),
             ),
         ],
-      ),
+      ],
     );
   }
 }
@@ -1007,19 +1077,21 @@ class _InsulationStepHeader extends StatelessWidget {
 class _InsulationStepperBottomBar extends StatelessWidget {
   const _InsulationStepperBottomBar({
     required this.currentStep,
+    required this.totalSteps,
     required this.onBack,
-    required this.onSkip,
     required this.onNext,
+    required this.canProceed,
   });
 
   final int currentStep;
+  final int totalSteps;
   final VoidCallback? onBack;
-  final VoidCallback onSkip;
   final VoidCallback onNext;
+  final bool canProceed;
 
   @override
   Widget build(BuildContext context) {
-    final isLast = currentStep == 4;
+    final isLast = currentStep == totalSteps - 1;
     final cs = Theme.of(context).colorScheme;
     final isDark = Theme.of(context).brightness == Brightness.dark;
 
@@ -1045,15 +1117,11 @@ class _InsulationStepperBottomBar extends StatelessWidget {
               label: const Text('Back'),
             ),
           if (onBack != null) const SizedBox(width: 8),
-          TextButton(
-            onPressed: onSkip,
-            child: const Text('Skip step'),
-          ),
           const Spacer(),
           ElevatedButton.icon(
-            onPressed: onNext,
+            onPressed: canProceed ? onNext : null,
             icon: Icon(isLast ? Icons.done_all : Icons.arrow_forward_rounded),
-            label: Text(isLast ? 'Go to Description' : 'Next'),
+            label: Text(isLast ? 'Enter' : 'Next'),
             style: ElevatedButton.styleFrom(
               backgroundColor: cs.primary,
               foregroundColor: cs.onPrimary,

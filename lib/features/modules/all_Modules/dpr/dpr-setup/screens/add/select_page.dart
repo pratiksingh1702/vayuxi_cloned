@@ -29,51 +29,63 @@ class AddSelectCardGrid extends StatelessWidget {
           crossAxisSpacing: 20,
           childAspectRatio: 1,
           children: [
-            SelectCard(
-              icon: const SelectCardIcon(
-                icon: Icons.account_tree_rounded,
-                color: Colors.deepPurple,
+            FractionallySizedBox(
+              widthFactor: 0.88,
+              heightFactor: 0.88,
+              child: SelectCard(
+                icon: const SelectCardIcon(
+                  icon: Icons.account_tree_rounded,
+                  color: Colors.deepPurple,
+                ),
+                label: "Moc",
+                onTap: () {
+                  Navigator.push(
+                    context,
+                    MaterialPageRoute(builder: (context) => AddMOCPage()),
+                  );
+                },
               ),
-              label: "Moc",
-              onTap: () {
-                Navigator.push(
-                  context,
-                  MaterialPageRoute(builder: (context) => AddMOCPage()),
-                );
-              },
             ),
-            SelectCard(
-              icon: const SelectCardIcon(
-                icon: Icons.layers_rounded,
-                color: Colors.teal,
+            FractionallySizedBox(
+              widthFactor: 0.88,
+              heightFactor: 0.88,
+              child: SelectCard(
+                icon: const SelectCardIcon(
+                  icon: Icons.layers_rounded,
+                  color: Colors.teal,
+                ),
+                label: "Floor",
+                onTap: () {
+                  Navigator.push(
+                    context,
+                    MaterialPageRoute(builder: (context) => AddFloorPage()),
+                  );
+                },
               ),
-              label: "Floor",
-              onTap: () {
-                Navigator.push(
-                  context,
-                  MaterialPageRoute(builder: (context) => AddFloorPage()),
-                );
-              },
             ),
-            SelectCard(
-              icon: const SelectCardIcon(
-                icon: Icons.dashboard_customize_rounded,
-                color: Colors.indigo,
+            FractionallySizedBox(
+              widthFactor: 0.88,
+              heightFactor: 0.88,
+              child: SelectCard(
+                icon: const SelectCardIcon(
+                  icon: Icons.dashboard_customize_rounded,
+                  color: Colors.indigo,
+                ),
+                label: "DPR Screen",
+                onTap: () {
+
+                  Navigator.push(
+                    context,
+                    MaterialPageRoute(
+                      builder: (_) => PersistDPRScreen(
+
+
+                              )
+                      ,
+                    ),
+                  );
+                },
               ),
-              label: "DPR Screen",
-              onTap: () {
-
-                Navigator.push(
-                  context,
-                  MaterialPageRoute(
-                    builder: (_) => PersistDPRScreen(
-
-
-                            )
-                    ,
-                  ),
-                );
-              },
             ),
           ],
         ),

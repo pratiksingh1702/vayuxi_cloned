@@ -39,6 +39,29 @@ class SiteState {
 class SiteNotifier extends BaseNotifier<SiteState> {
   SiteNotifier(Ref ref) : super(ref, SiteState());
 
+  List<SiteModel> _sortSites(List<SiteModel> sites) {
+    final sorted = List<SiteModel>.from(sites);
+
+    DateTime parseDate(String value) {
+      return DateTime.tryParse(value)?.toUtc() ??
+          DateTime.fromMillisecondsSinceEpoch(0, isUtc: true);
+    }
+
+    sorted.sort((a, b) {
+      final byCreatedAt =
+          parseDate(b.createdAt).compareTo(parseDate(a.createdAt));
+      if (byCreatedAt != 0) return byCreatedAt;
+
+      final byName =
+          a.siteName.toLowerCase().compareTo(b.siteName.toLowerCase());
+      if (byName != 0) return byName;
+
+      return a.id.compareTo(b.id);
+    });
+
+    return sorted;
+  }
+
   @override
   Future<void> onSync() async {
     await fetchSites();
@@ -52,41 +75,44 @@ class SiteNotifier extends BaseNotifier<SiteState> {
           sites: [],
           isLoading: false,
           hasData: false,
-          error: 'Type not available'
-      );
+          error: 'Type not available');
       print("[SYNC] Type is null/empty → cleared sites");
       return;
     }
 
-    // Only set loading if we don't already have data
-    if (state.sites.isEmpty) {
-      state = state.copyWith(isLoading: true, error: null);
-    }
+    // Always reset UI for a new fetch request (new type or manual refresh).
+    state = state.copyWith(
+      sites: [],
+      isLoading: true,
+      hasData: false,
+      error: null,
+    );
 
     print("[SYNC] Fetching sites for type: $type");
 
     try {
       // 1️⃣ Load cache first for immediate UI
       final cachedSites = SiteHiveStorage.getAllSites()
-          .where((cachedSite) => cachedSite.type == type) // Filter by current type
+          .where(
+              (cachedSite) => cachedSite.type == type) // Filter by current type
           .map((e) => e.toSiteModel())
           .toList();
+      final sortedCachedSites = _sortSites(cachedSites);
 
-      print("[CACHE] Loaded ${cachedSites.length} sites from Hive for type: $type");
+      print(
+          "[CACHE] Loaded ${sortedCachedSites.length} sites from Hive for type: $type");
 
       // Show cached data immediately if available
-      if (cachedSites.isNotEmpty && state.sites.isEmpty) {
+      if (sortedCachedSites.isNotEmpty) {
         state = state.copyWith(
-            sites: cachedSites,
-            isLoading: false,
-            hasData: true
-        );
+            sites: sortedCachedSites, isLoading: false, hasData: true);
         print("[UI] Showing cached sites immediately");
       }
 
       // 2️⃣ Fetch fresh data from API
       final res = await SiteAPI.fetchSites(type);
-      final siteList = res.map((e) => SiteModel.fromJson(e)).toList();
+      final siteList =
+          _sortSites(res.map((e) => SiteModel.fromJson(e)).toList());
       print("[API] Fetched ${siteList.length} sites from backend");
 
       // Save to Hive
@@ -106,13 +132,8 @@ class SiteNotifier extends BaseNotifier<SiteState> {
 
       // Update state with fresh data
       state = state.copyWith(
-          isLoading: false,
-          sites: siteList,
-          hasData: true,
-          error: null
-      );
+          isLoading: false, sites: siteList, hasData: true, error: null);
       print("[SYNC DONE] Synced ${siteList.length} sites");
-
     } catch (e) {
       print("[ERROR] API fetch failed: $e");
 
@@ -121,22 +142,18 @@ class SiteNotifier extends BaseNotifier<SiteState> {
           .where((cachedSite) => cachedSite.type == type)
           .map((e) => e.toSiteModel())
           .toList();
+      final sortedCachedSites = _sortSites(cachedSites);
 
-      if (cachedSites.isNotEmpty) {
+      if (sortedCachedSites.isNotEmpty) {
         state = state.copyWith(
             isLoading: false,
-            sites: cachedSites,
+            sites: sortedCachedSites,
             hasData: true,
-            error: 'Using cached data - ${e.toString()}'
-        );
-        print("[FALLBACK] Showing ${cachedSites.length} cached sites");
+            error: 'Using cached data - ${e.toString()}');
+        print("[FALLBACK] Showing ${sortedCachedSites.length} cached sites");
       } else {
         state = state.copyWith(
-            isLoading: false,
-            sites: [],
-            hasData: false,
-            error: e.toString()
-        );
+            isLoading: false, sites: [], hasData: false, error: e.toString());
         print("[FALLBACK] No cache available → showing error");
       }
     }
@@ -152,5 +169,5 @@ class SiteNotifier extends BaseNotifier<SiteState> {
   }
 }
 
-
-final siteProvider = StateNotifierProvider<SiteNotifier, SiteState>((ref) => SiteNotifier(ref));
+final siteProvider =
+    StateNotifierProvider<SiteNotifier, SiteState>((ref) => SiteNotifier(ref));

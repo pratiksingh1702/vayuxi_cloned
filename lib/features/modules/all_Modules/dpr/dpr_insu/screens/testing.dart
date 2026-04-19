@@ -1151,12 +1151,12 @@ class _AddInsulationDescriptionScreenState
     final service = InsulationMaterialSetupService();
     final apiNotifier = ref.read(insulationMaterialsApiProvider.notifier);
     try {
-      final siteID = ref.read(selectedSiteIdProvider)!;
+      final siteID = siteId;
       await apiNotifier.fetchAndSetMaterials(siteId: siteID);
-      final size = ref.read(selectedSizeProvider);
-      final unit = ref.read(selectedUnitProvider);
+      final size = ref.read(selectedSizeProvider) ?? '';
+      final unit = ref.read(selectedUnitProvider) ?? '';
       ref.read(insulationPipingMaterialsProvider.notifier).updateAllSizes(
-            size: size!,
+            size: size,
             unit: unit,
           );
     } catch (e) {
@@ -2249,8 +2249,10 @@ class _AddInsulationDescriptionScreenState
         _globalEditMode && _dprListForSelectedDate.isNotEmpty;
     final team = ref.read(currentTeamProvider);
     final site = ref.read(currentSiteProvider);
-    final teamid = ref.read(selectedTeamIdProvider)!;
-    final siteid = ref.read(selectedSiteIdProvider)!;
+    final teamid = widget.work?.teamId?.trim().isNotEmpty == true
+        ? widget.work!.teamId!
+        : (ref.read(selectedTeamIdProvider) ?? '');
+    final siteid = siteId;
 
     debugPrint("Team -> $team");
     debugPrint("Site -> $site");
@@ -3149,7 +3151,7 @@ class _AddInsulationDescriptionScreenState
                                           ?.trim()
                                           .isNotEmpty ??
                                       false)
-                                  ? ref.read(selectedSizeProvider)!
+                              ? (ref.read(selectedSizeProvider) ?? '')
                                   : '';
 
                       ref
@@ -3881,8 +3883,8 @@ class _AddInsulationDescriptionScreenState
     final draftId =
         draft.id.isNotEmpty ? draft.id : (_insulationId ?? generateObjectId());
     final dprName = (draft.workDescription.trim().isNotEmpty)
-        ? draft.workDescription.trim()
-        : 'Insulation DPR';
+      ? draft.workDescription.trim()
+      : 'Insulation DPR';
 
     debugPrint(
         "PIPING COUNT: ${ref.read(insulationPipingMaterialsProvider).length}");
@@ -3903,19 +3905,19 @@ class _AddInsulationDescriptionScreenState
     );
 
     await ref.read(uploadManagerProvider.notifier).notifyDraftSaved(
-          moduleId: 'dpr_insu',
-          draftId: draftId,
-          dprName: dprName,
-          draftWork: draft.toJson(),
-          metadata: {
-            'siteId': siteId,
-            'teamId': teamId,
-            'insulationId': _insulationId,
-            'editRoute': Routes.dprInsuDescription,
-            'date': _selectedDate.toIso8601String(),
-          },
-          sendInstant: true,
-        );
+      moduleId: 'dpr_insu',
+      draftId: draftId,
+      dprName: dprName,
+      draftWork: draft.toJson(),
+      metadata: {
+        'siteId': siteId,
+        'teamId': teamId,
+        'insulationId': _insulationId,
+        'editRoute': Routes.dprInsuDescription,
+        'date': _selectedDate.toIso8601String(),
+      },
+      sendInstant: true,
+    );
 
     debugPrint("💾 Draft Auto Saved");
   }

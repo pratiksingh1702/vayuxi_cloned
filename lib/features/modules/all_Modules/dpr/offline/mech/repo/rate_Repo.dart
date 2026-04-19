@@ -1,4 +1,5 @@
 import 'dart:convert';
+import 'dart:math' as math;
 
 import 'package:isar_community/isar.dart';
 
@@ -30,7 +31,6 @@ class RateRepository {
     });
   }
 
-
   // ---------------------------------------------------------------------------
   // ✅ OFFLINE CACHE READERS (IMPORTANT)
   // ---------------------------------------------------------------------------
@@ -54,8 +54,13 @@ class RateRepository {
         .rateFileIdEqualTo(analysisIsar.rateFileId)
         .findAll();
 
+    final sortedMats = _sortedByDisplayOrder(mats);
+    if (!_hasContiguousDisplayOrder(sortedMats)) {
+      await _normalizeDisplayOrder(sortedMats);
+    }
+
     // variants for those materials
-    final materialIds = mats.map((m) => m.materialId).toList();
+    final materialIds = sortedMats.map((m) => m.materialId).toList();
 
     final vars = await isar.rateVariantIsars
         .filter()
@@ -72,7 +77,7 @@ class RateRepository {
     }
 
     // build lineItems
-    final lineItems = mats.map((m) {
+    final lineItems = sortedMats.map((m) {
       final variants = variantsByMaterial[m.materialId] ?? [];
       return _materialFromIsar(m, variants);
     }).toList();
@@ -98,14 +103,15 @@ class RateRepository {
         mocs: const [],
         sizes: const [],
         thicknesses: const [],
-        uoms: const [], mocsWithImages: [], floorsWithImages: [],
+        uoms: const [],
+        mocsWithImages: [],
+        floorsWithImages: [],
       );
     } else {
       detected = DetectedFields.fromJson(jsonDecode(raw));
     }
     print("🧠 analysis = ${analysisIsar.rateFileId}");
-    print("📦 materials count = ${mats.length}");
-
+    print("📦 materials count = ${sortedMats.length}");
 
     return RateFileAnalysis(
       id: analysisIsar.rateFileId,
@@ -119,7 +125,6 @@ class RateRepository {
       lineItems: lineItems,
       detectedFields: detected, // ✅ FIXED
     );
-
   }
 
   /// ✅ quick cached variants by material (used by provider `rateVariantsByMaterialProvider`)
@@ -144,6 +149,17 @@ class RateRepository {
   Future<void> syncRateFile(String siteId) async {
     final analysis = await RateUploadApi.fetchRateFileAnalysis(siteId: siteId);
 
+    final existingMaterials = await isar.rateFileMaterialIsars
+        .filter()
+        .siteIdEqualTo(siteId)
+        .findAll();
+    final existingOrderByMaterialId = <String, int>{
+      for (final m in existingMaterials) m.materialId: m.displayOrder,
+    };
+    var nextDisplayOrder = existingMaterials.isEmpty
+        ? 0
+        : existingMaterials.map((m) => m.displayOrder).reduce(math.max) + 1;
+
     await local.saveRateFile(
       siteId: siteId,
       rateFileId: analysis.id,
@@ -152,7 +168,6 @@ class RateRepository {
       uploadDate: analysis.uploadDate.toString(),
       detectedFields: analysis.detectedFields, // ✅ critical
     );
-
 
     final materials = <RateFileMaterialIsar>[];
     final variants = <RateVariantIsar>[];
@@ -180,15 +195,22 @@ class RateRepository {
 //         }
 //       }}
 
-    for (final m in analysis.lineItems) {
+    for (var index = 0; index < analysis.lineItems.length; index++) {
+      final m = analysis.lineItems[index];
+      final existingOrder = existingOrderByMaterialId[m.id];
+      final resolvedDisplayOrder = m.displayOrder >= 0
+          ? m.displayOrder
+          : (existingOrder ?? nextDisplayOrder++);
+
       final material = RateFileMaterialIsar()
         ..siteId = siteId
-        ..rawMaterialName=m.rawMaterialName
-        ..normalizedMaterialName=m.normalizedMaterialName
+        ..rawMaterialName = m.rawMaterialName
+        ..normalizedMaterialName = m.normalizedMaterialName
         ..uom = m.uom
         ..rateFileId = analysis.id
         ..materialId = m.id
         ..materialName = m.MaterialName
+        ..displayOrder = resolvedDisplayOrder
         ..image = m.image
         ..calculationCategory = m.calculationCategory
         ..designationJoined = m.designation.join(',')
@@ -202,7 +224,6 @@ class RateRepository {
             ..displayText = f.displayText
             ..valueJson = f.value == null ? null : jsonEncode(f.value);
         }).toList();
-
 
       materials.add(material);
 
@@ -222,7 +243,6 @@ class RateRepository {
 
         variants.add(variant);
       }
-
     }
 
     // ✅ ensure unique variants/materials in input before saving
@@ -247,7 +267,6 @@ class RateRepository {
         await isar.rateFileAnalysisIsars.put(analysis);
       }
     });
-
 
     // ✅ cleanup stale materials/variants for this site + rateFileId
     await _cleanupStaleRateFile(siteId: siteId, rateFileId: analysis.id);
@@ -287,10 +306,8 @@ class RateRepository {
     final keepMaterialIds = materials.map((e) => e.materialId).toSet();
 
     // delete variants not belonging to materials
-    final variants = await isar.rateVariantIsars
-        .filter()
-        .siteIdEqualTo(siteId)
-        .findAll();
+    final variants =
+        await isar.rateVariantIsars.filter().siteIdEqualTo(siteId).findAll();
 
     final staleVariantIds = <Id>[];
     for (final v in variants) {
@@ -306,9 +323,96 @@ class RateRepository {
     }
   }
 
+  Future<void> persistDisplayOrderForSubset({
+    required String siteId,
+    required List<String> orderedSubsetMaterialIds,
+  }) async {
+    if (orderedSubsetMaterialIds.length < 2) return;
+
+    final activeAnalysis = await isar.rateFileAnalysisIsars
+        .filter()
+        .siteIdEqualTo(siteId)
+        .sortBySyncedAtDesc()
+        .findFirst();
+    if (activeAnalysis == null) return;
+
+    final allMaterials = await isar.rateFileMaterialIsars
+        .filter()
+        .siteIdEqualTo(siteId)
+        .rateFileIdEqualTo(activeAnalysis.rateFileId)
+        .findAll();
+
+    if (allMaterials.isEmpty) return;
+
+    final sortedAll = _sortedByDisplayOrder(allMaterials);
+    final idToMaterial = <String, RateFileMaterialIsar>{
+      for (final m in sortedAll) m.materialId: m,
+    };
+
+    final subsetSet = orderedSubsetMaterialIds.toSet();
+    final subsetIndexes = <int>[];
+    for (var i = 0; i < sortedAll.length; i++) {
+      if (subsetSet.contains(sortedAll[i].materialId)) {
+        subsetIndexes.add(i);
+      }
+    }
+
+    if (subsetIndexes.length != orderedSubsetMaterialIds.length) {
+      return;
+    }
+
+    final reorderedSubset = orderedSubsetMaterialIds
+        .map((id) => idToMaterial[id])
+        .whereType<RateFileMaterialIsar>()
+        .toList(growable: false);
+
+    if (reorderedSubset.length != subsetIndexes.length) return;
+
+    for (var i = 0; i < subsetIndexes.length; i++) {
+      sortedAll[subsetIndexes[i]] = reorderedSubset[i];
+    }
+
+    await _normalizeDisplayOrder(sortedAll);
+
+    await isar.writeTxn(() async {
+      activeAnalysis.syncedAt = DateTime.now();
+      await isar.rateFileAnalysisIsars.put(activeAnalysis);
+    });
+  }
+
   // ---------------------------------------------------------------------------
   // ✅ CONVERTERS: ISAR -> YOUR MODELS
   // ---------------------------------------------------------------------------
+
+  List<RateFileMaterialIsar> _sortedByDisplayOrder(
+      List<RateFileMaterialIsar> list) {
+    final sorted = List<RateFileMaterialIsar>.from(list);
+    sorted.sort((a, b) {
+      final byOrder = a.displayOrder.compareTo(b.displayOrder);
+      if (byOrder != 0) return byOrder;
+      return a.materialId.compareTo(b.materialId);
+    });
+    return sorted;
+  }
+
+  bool _hasContiguousDisplayOrder(List<RateFileMaterialIsar> list) {
+    for (var i = 0; i < list.length; i++) {
+      if (list[i].displayOrder != i) {
+        return false;
+      }
+    }
+    return true;
+  }
+
+  Future<void> _normalizeDisplayOrder(List<RateFileMaterialIsar> list) async {
+    for (var i = 0; i < list.length; i++) {
+      list[i].displayOrder = i;
+    }
+
+    await isar.writeTxn(() async {
+      await isar.rateFileMaterialIsars.putAll(list);
+    });
+  }
 
   RateVariant _variantFromIsar(RateVariantIsar v) {
     return RateVariant(
@@ -317,21 +421,28 @@ class RateRepository {
       uom: v.uom,
       rate: v.rate,
       remarks: v.remarks,
-      sizeRange: null, materialMasterId: v.materialId, mocId: v.moc, sizeRangeId: '', thicknessRangeId: '', floorId: '', elevationId: '', elevation: '',
+      sizeRange: null,
+      materialMasterId: v.materialId,
+      mocId: v.moc,
+      sizeRangeId: '',
+      thicknessRangeId: '',
+      floorId: '',
+      elevationId: '',
+      elevation: '',
     );
   }
 
   RateFileMaterial _materialFromIsar(
-      RateFileMaterialIsar m,
-      List<RateVariant> variants,
-      ) {
+    RateFileMaterialIsar m,
+    List<RateVariant> variants,
+  ) {
     final designation = (m.designationJoined.isEmpty)
         ? <String>[]
         : m.designationJoined
-        .split(',')
-        .map((e) => e.trim())
-        .where((e) => e.isNotEmpty)
-        .toList();
+            .split(',')
+            .map((e) => e.trim())
+            .where((e) => e.isNotEmpty)
+            .toList();
     List<DynamicField> dynamicFields = m.dynamicFields.map((f) {
       return DynamicField(
         key: f.key,
@@ -342,13 +453,12 @@ class RateRepository {
       );
     }).toList();
 
-
     return RateFileMaterial(
       id: m.materialId,
+      displayOrder: m.displayOrder,
       MaterialName: m.materialName,
-      rawMaterialName: m.rawMaterialName.isNotEmpty
-          ? m.rawMaterialName
-          : m.materialName,
+      rawMaterialName:
+          m.rawMaterialName.isNotEmpty ? m.rawMaterialName : m.materialName,
 
       normalizedMaterialName: m.normalizedMaterialName.isNotEmpty
           ? m.normalizedMaterialName
@@ -363,8 +473,7 @@ class RateRepository {
       uom: m.uom,
       materialMasterId: '',
       isDefaultMaterial: false,
-      dynamicFields: dynamicFields,   // 🔥
+      dynamicFields: dynamicFields, // 🔥
     );
-
   }
 }

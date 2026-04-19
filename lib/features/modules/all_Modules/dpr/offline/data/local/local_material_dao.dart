@@ -24,6 +24,7 @@ class LocalMaterialDao {
       await _isar.localMaterials.putAll(materials);
     });
   }
+
   Future<LocalMaterial?> findByServerId(String serverId) async {
     return await _isar.localMaterials
         .filter()
@@ -49,6 +50,7 @@ class LocalMaterialDao {
       await _isar.localMaterials.put(material);
     });
   }
+
   Stream<List<LocalMaterial>> watchAll({
     required String siteId,
     required String domain,
@@ -67,9 +69,7 @@ class LocalMaterialDao {
           .watch(fireImmediately: true);
     }
 
-    return query
-        .sortByDisplayOrder()
-        .watch(fireImmediately: true);
+    return query.sortByDisplayOrder().watch(fireImmediately: true);
   }
 
   Future<List<LocalMaterial>> getAll({
@@ -123,6 +123,32 @@ class LocalMaterialDao {
   Future<void> deleteHard(Id id) async {
     await _isar.writeTxn(() async {
       await _isar.localMaterials.delete(id);
+    });
+  }
+
+  Future<void> persistDisplayOrderForSubset({
+    required String siteId,
+    required String domain,
+    required String designation,
+    required List<int> orderedIsarIds,
+  }) async {
+    if (orderedIsarIds.isEmpty) return;
+
+    await _isar.writeTxn(() async {
+      for (var i = 0; i < orderedIsarIds.length; i++) {
+        final material = await _isar.localMaterials.get(orderedIsarIds[i]);
+        if (material == null) continue;
+        if (material.siteId != siteId ||
+            material.domain != domain ||
+            material.designation != designation ||
+            material.isDeleted) {
+          continue;
+        }
+
+        material.displayOrder = i;
+        material.updatedAt = DateTime.now();
+        await _isar.localMaterials.put(material);
+      }
     });
   }
 
@@ -252,16 +278,16 @@ class LocalMaterialDao {
       calculationType: local.calculationType ?? 'AREA',
       fieldConfig: local.fieldConfigJson != null
           ? FieldConfig.fromJson(
-          jsonDecode(local.fieldConfigJson!) as Map<String, dynamic>)
+              jsonDecode(local.fieldConfigJson!) as Map<String, dynamic>)
           : FieldConfig(
-        fields: [],
-        unitDropdowns: UnitDropdowns.fromJson({}),
-        defaults: FieldDefaults.fromJson({}),
-        ui: UiConfig.fromJson({}),
-      ),
+              fields: [],
+              unitDropdowns: UnitDropdowns.fromJson({}),
+              defaults: FieldDefaults.fromJson({}),
+              ui: UiConfig.fromJson({}),
+            ),
       calculationConfig: local.calculationConfigJson != null
           ? CalculationConfig.fromJson(
-          jsonDecode(local.calculationConfigJson!) as Map<String, dynamic>)
+              jsonDecode(local.calculationConfigJson!) as Map<String, dynamic>)
           : null,
       isConstants: local.materialDataJson != null
           ? jsonDecode(local.materialDataJson!) as Map<String, dynamic>?

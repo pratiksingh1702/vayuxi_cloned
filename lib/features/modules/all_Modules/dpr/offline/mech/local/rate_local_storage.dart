@@ -12,7 +12,16 @@ class RateLocalStorage {
     return isar.rateFileMaterialIsars
         .filter()
         .siteIdEqualTo(siteId)
-        .watch(fireImmediately: true);
+        .watch(fireImmediately: true)
+        .map((items) {
+      final sorted = [...items];
+      sorted.sort((a, b) {
+        final byOrder = a.displayOrder.compareTo(b.displayOrder);
+        if (byOrder != 0) return byOrder;
+        return a.materialId.compareTo(b.materialId);
+      });
+      return sorted;
+    });
   }
 
   Future<void> saveRateFile({
@@ -32,11 +41,11 @@ class RateLocalStorage {
       ..syncedAt = DateTime.now()
       ..detectedFieldsJson = jsonEncode(detectedFields.toJson());
 
-
     await isar.writeTxn(() async {
       await isar.rateFileAnalysisIsars.put(entity);
     });
   }
+
   Map<String, dynamic> _detectedFieldsToJson(DetectedFields d) {
     return {
       'hasFloor': d.hasFloor,
@@ -56,8 +65,6 @@ class RateLocalStorage {
       'uoms': d.uoms,
     };
   }
-
-
 
   Future<void> saveMaterialsAndVariants({
     required String siteId,

@@ -17,107 +17,64 @@ class NotificationDetailScreen extends StatelessWidget {
     final draftWork = _extractDraftWork(notification.metadata);
     final detailsMetadata = _filterDetailsMetadata(notification.metadata);
 
-    return Hero(
-      tag: 'notification_card_${notification.id}',
-      transitionOnUserGestures: true,
-      createRectTween: (begin, end) =>
-          MaterialRectArcTween(begin: begin, end: end),
-      flightShuttleBuilder: _heroShuttle,
-      child: Material(
-        color: theme.colorScheme.surface,
-        child: Scaffold(
-          backgroundColor: Colors.transparent,
-          body: CustomScrollView(
-            slivers: [
-              SliverAppBar(
-                pinned: true,
-                expandedHeight: notification.media != null ? 280 : 120,
-                flexibleSpace: FlexibleSpaceBar(
-                  background: notification.media != null
-                      ? NotificationMediaWidget(
-                          media: notification.media!,
-                          isExpanded: true,
-                        )
-                      : null,
-                  titlePadding: const EdgeInsets.only(left: 56, bottom: 14),
-                  title: Text(
-                    notification.title,
-                    style: theme.textTheme.titleMedium?.copyWith(
-                      fontWeight: FontWeight.w600,
-                      color: notification.media != null ? Colors.white : null,
-                      shadows: notification.media != null
-                          ? [const Shadow(blurRadius: 6, color: Colors.black54)]
-                          : null,
-                    ),
-                    maxLines: 2,
-                    overflow: TextOverflow.ellipsis,
+    return Material(
+      color: theme.colorScheme.surface,
+      child: Scaffold(
+        backgroundColor: Colors.transparent,
+        body: CustomScrollView(
+          slivers: [
+            SliverAppBar(
+              pinned: true,
+              expandedHeight: notification.media != null ? 280 : 120,
+              flexibleSpace: FlexibleSpaceBar(
+                background: notification.media != null
+                    ? NotificationMediaWidget(
+                        media: notification.media!,
+                        isExpanded: true,
+                      )
+                    : null,
+                titlePadding: const EdgeInsets.only(left: 56, bottom: 14),
+                title: Text(
+                  notification.title,
+                  style: theme.textTheme.titleMedium?.copyWith(
+                    fontWeight: FontWeight.w600,
+                    color: notification.media != null ? Colors.white : null,
+                    shadows: notification.media != null
+                        ? [const Shadow(blurRadius: 6, color: Colors.black54)]
+                        : null,
                   ),
+                  maxLines: 2,
+                  overflow: TextOverflow.ellipsis,
                 ),
               ),
-              SliverPadding(
-                padding: const EdgeInsets.fromLTRB(20, 20, 20, 120),
-                sliver: SliverList(
-                  delegate: SliverChildListDelegate([
-                    _MetaRow(notification: notification),
+            ),
+            SliverPadding(
+              padding: const EdgeInsets.fromLTRB(20, 20, 20, 120),
+              sliver: SliverList(
+                delegate: SliverChildListDelegate([
+                  _MetaRow(notification: notification),
+                  const SizedBox(height: 20),
+                  Text(
+                    notification.description,
+                    style: theme.textTheme.bodyMedium?.copyWith(height: 1.7),
+                  ),
+                  if (draftWork != null) ...[
                     const SizedBox(height: 20),
-                    Text(
-                      notification.description,
-                      style: theme.textTheme.bodyMedium?.copyWith(height: 1.7),
-                    ),
-                    if (draftWork != null) ...[
-                      const SizedBox(height: 20),
-                      _DprDraftSnapshot(draftWork: draftWork),
-                    ],
-                    if (detailsMetadata.isNotEmpty) ...[
-                      const SizedBox(height: 24),
-                      _MetadataSection(metadata: detailsMetadata),
-                    ],
-                  ]),
-                ),
+                    _DprDraftSnapshot(draftWork: draftWork),
+                  ],
+                  if (detailsMetadata.isNotEmpty) ...[
+                    const SizedBox(height: 24),
+                    _MetadataSection(metadata: detailsMetadata),
+                  ],
+                ]),
               ),
-            ],
+            ),
+          ],
           ),
-          bottomSheet: notification.actions.isNotEmpty
-              ? _StickyActions(notification: notification)
-              : null,
-        ),
+        bottomSheet: notification.actions.isNotEmpty
+            ? _StickyActions(notification: notification)
+            : null,
       ),
-    );
-  }
-
-  Widget _heroShuttle(
-    BuildContext flightContext,
-    Animation<double> animation,
-    HeroFlightDirection direction,
-    BuildContext fromHeroContext,
-    BuildContext toHeroContext,
-  ) {
-    final heroWidget = direction == HeroFlightDirection.push
-        ? toHeroContext.widget as Hero
-        : fromHeroContext.widget as Hero;
-    final curved = CurvedAnimation(
-      parent: animation,
-      curve: Curves.easeInOutCubicEmphasized,
-      reverseCurve: Curves.easeOutCubic,
-    );
-
-    return AnimatedBuilder(
-      animation: curved,
-      child: Material(
-        color: Colors.transparent,
-        child: heroWidget.child,
-      ),
-      builder: (context, child) {
-        final t = curved.value;
-        return Opacity(
-          opacity: 0.88 + (0.12 * t),
-          child: Transform.scale(
-            scale: 0.985 + (0.015 * t),
-            alignment: Alignment.center,
-            child: child,
-          ),
-        );
-      },
     );
   }
 }

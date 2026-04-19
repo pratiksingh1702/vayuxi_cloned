@@ -15,26 +15,51 @@ import '../provider/teamService.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../model/teamModel.dart';
 
-
 final teamProvider =
-StateNotifierProvider<TeamNotifier, TeamState>((ref) => TeamNotifier(ref));
+    StateNotifierProvider<TeamNotifier, TeamState>((ref) => TeamNotifier(ref));
 
 class TeamNotifier extends StateNotifier<TeamState> {
   TeamNotifier(this.ref) : super(TeamState());
 
   final Ref ref;
+
+  List<TeamModel> _sortTeams(List<TeamModel> teams) {
+    final sorted = List<TeamModel>.from(teams);
+
+    DateTime parseDate(String? value) {
+      if (value == null || value.trim().isEmpty) {
+        return DateTime.fromMillisecondsSinceEpoch(0, isUtc: true);
+      }
+      return DateTime.tryParse(value)?.toUtc() ??
+          DateTime.fromMillisecondsSinceEpoch(0, isUtc: true);
+    }
+
+    sorted.sort((a, b) {
+      final byCreatedAt =
+          parseDate(b.createdAt).compareTo(parseDate(a.createdAt));
+      if (byCreatedAt != 0) return byCreatedAt;
+
+      final byName =
+          a.teamName.toLowerCase().compareTo(b.teamName.toLowerCase());
+      if (byName != 0) return byName;
+
+      return a.id.compareTo(b.id);
+    });
+
+    return sorted;
+  }
+
   Future<void> fetchMechanicalCombined({
     required String siteId,
-
   }) async {
     if (siteId.isEmpty) return;
 
-    state = state.copyWith(isLoading: true, error: null,teams: null);
+    state = state.copyWith(isLoading: true, error: null, teams: null);
 
     try {
       // Normal teams
       final normalTeams =
-      await TeamApi.fetchTeams(type: "mechanical_work", siteId: siteId);
+          await TeamApi.fetchTeams(type: "mechanical_work", siteId: siteId);
 
       debugPrint("🟢 Normal Teams Count: ${normalTeams.length}");
       for (final t in normalTeams) {
@@ -42,8 +67,7 @@ class TeamNotifier extends StateNotifier<TeamState> {
       }
 
 // DPR mechanical teams
-      final dprTeams =
-      await TeamApi.fetchMechanicalTeams(siteId: siteId);
+      final dprTeams = await TeamApi.fetchMechanicalTeams(siteId: siteId);
 
       debugPrint("🔵 DPR Mechanical Teams Count: ${dprTeams.length}");
       for (final t in dprTeams) {
@@ -65,7 +89,7 @@ class TeamNotifier extends StateNotifier<TeamState> {
         uniqueMap[team.id] = team;
       }
 
-      final uniqueList = uniqueMap.values.toList();
+      final uniqueList = _sortTeams(uniqueMap.values.toList());
 
       debugPrint("🟣 Final Unique Count: ${uniqueList.length}");
 
@@ -86,6 +110,7 @@ class TeamNotifier extends StateNotifier<TeamState> {
       );
     }
   }
+
   Future<void> fetchInsulationCombined({
     required String siteId,
   }) async {
@@ -96,11 +121,10 @@ class TeamNotifier extends StateNotifier<TeamState> {
     try {
       // Normal teams
       final normalTeams =
-      await TeamApi.fetchTeams(type: "insulation-work", siteId: siteId);
+          await TeamApi.fetchTeams(type: "insulation-work", siteId: siteId);
 
       // DPR insulation teams
-      final dprTeams =
-      await TeamApi.fetchInsulationTeams(siteId: siteId);
+      final dprTeams = await TeamApi.fetchInsulationTeams(siteId: siteId);
 
       // Combine
       final combined = [...normalTeams, ...dprTeams];
@@ -111,7 +135,7 @@ class TeamNotifier extends StateNotifier<TeamState> {
         uniqueMap[team.id] = team;
       }
 
-      final uniqueList = uniqueMap.values.toList();
+      final uniqueList = _sortTeams(uniqueMap.values.toList());
 
       state = state.copyWith(
         teams: uniqueList,
@@ -142,18 +166,20 @@ class TeamNotifier extends StateNotifier<TeamState> {
       return;
     }
 
-
     final local = TeamLocalStorage();
 
-    // show loader ONLY if no data
-    if (state.teams.isEmpty) {
-      state = state.copyWith(isLoading: true, error: null);
-    }
+    // Always reset UI for a new fetch request (new site/type or manual refresh).
+    state = state.copyWith(
+      teams: [],
+      isLoading: true,
+      hasData: false,
+      error: null,
+    );
 
     try {
       // ✅ 1) LOAD OFFLINE FIRST
       final cached = await local.getTeams(type: type, siteId: siteId);
-      final cachedTeams = cached.map((e) => e.toModel()).toList();
+      final cachedTeams = _sortTeams(cached.map((e) => e.toModel()).toList());
 
       if (cachedTeams.isNotEmpty) {
         state = state.copyWith(
@@ -164,7 +190,9 @@ class TeamNotifier extends StateNotifier<TeamState> {
       }
 
       // ✅ 2) FETCH ONLINE
-      final apiTeams = await TeamApi.fetchTeams(type: type, siteId: siteId);
+      final apiTeams = _sortTeams(
+        await TeamApi.fetchTeams(type: type, siteId: siteId),
+      );
 
       // ✅ 3) SAVE TO ISAR
       final keepIds = <String>{};
@@ -178,7 +206,8 @@ class TeamNotifier extends StateNotifier<TeamState> {
       await local.saveTeams(type: type, siteId: siteId, teams: isarTeams);
 
       // ✅ 4) CLEANUP STALE
-      await local.deleteTeamsNotIn(type: type, siteId: siteId, keepIds: keepIds);
+      await local.deleteTeamsNotIn(
+          type: type, siteId: siteId, keepIds: keepIds);
 
       // ✅ 5) UPDATE UI
       state = state.copyWith(
@@ -190,7 +219,7 @@ class TeamNotifier extends StateNotifier<TeamState> {
     } catch (e) {
       // ✅ fallback offline
       final cached = await local.getTeams(type: type, siteId: siteId);
-      final cachedTeams = cached.map((e) => e.toModel()).toList();
+      final cachedTeams = _sortTeams(cached.map((e) => e.toModel()).toList());
 
       if (cachedTeams.isNotEmpty) {
         state = state.copyWith(
@@ -209,6 +238,7 @@ class TeamNotifier extends StateNotifier<TeamState> {
       }
     }
   }
+
   Future<void> deleteTeam({
     required String siteId,
     required String teamId,
@@ -242,12 +272,11 @@ class TeamNotifier extends StateNotifier<TeamState> {
   }
 }
 
-
 /// ------------------------------------------------------------
 /// FETCH SINGLE TEAM (API CALL)
 /// ------------------------------------------------------------
 final teamDetailsProvider =
-FutureProvider.family<TeamModel, Map<String, String>>((ref, params) async {
+    FutureProvider.family<TeamModel, Map<String, String>>((ref, params) async {
   return await TeamApi.fetchTeamById(
     siteId: params["siteId"]!,
     teamId: params["teamId"]!,
@@ -263,7 +292,6 @@ final teamDropdownValueProvider = StateProvider<TeamModel?>((ref) => null);
 
 /// Stores only the selected team's ID
 final selectedTeamIdProvider = StateProvider<String?>((ref) => null);
-
 
 /// Manages team selection with clear() method
 class SelectedTeamNotifier extends StateNotifier<TeamModel?> {
@@ -284,8 +312,8 @@ class SelectedTeamNotifier extends StateNotifier<TeamModel?> {
 }
 
 final selectedTeamProvider =
-StateNotifierProvider<SelectedTeamNotifier, TeamModel?>(
-      (ref) => SelectedTeamNotifier(ref),
+    StateNotifierProvider<SelectedTeamNotifier, TeamModel?>(
+  (ref) => SelectedTeamNotifier(ref),
 );
 
 /// Auto-derives selected team from list & selected ID

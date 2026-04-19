@@ -1714,54 +1714,59 @@ const RateFileMaterialIsarSchema = CollectionSchema(
       name: r'designationJoined',
       type: IsarType.string,
     ),
-    r'dynamicFields': PropertySchema(
+    r'displayOrder': PropertySchema(
       id: 3,
+      name: r'displayOrder',
+      type: IsarType.long,
+    ),
+    r'dynamicFields': PropertySchema(
+      id: 4,
       name: r'dynamicFields',
       type: IsarType.objectList,
       target: r'DynamicFieldIsar',
     ),
     r'image': PropertySchema(
-      id: 4,
+      id: 5,
       name: r'image',
       type: IsarType.string,
     ),
     r'materialId': PropertySchema(
-      id: 5,
+      id: 6,
       name: r'materialId',
       type: IsarType.string,
     ),
     r'materialName': PropertySchema(
-      id: 6,
+      id: 7,
       name: r'materialName',
       type: IsarType.string,
     ),
     r'normalizedMaterialName': PropertySchema(
-      id: 7,
+      id: 8,
       name: r'normalizedMaterialName',
       type: IsarType.string,
     ),
     r'normalizedMoc': PropertySchema(
-      id: 8,
+      id: 9,
       name: r'normalizedMoc',
       type: IsarType.string,
     ),
     r'rateFileId': PropertySchema(
-      id: 9,
+      id: 10,
       name: r'rateFileId',
       type: IsarType.string,
     ),
     r'rawMaterialName': PropertySchema(
-      id: 10,
+      id: 11,
       name: r'rawMaterialName',
       type: IsarType.string,
     ),
     r'siteId': PropertySchema(
-      id: 11,
+      id: 12,
       name: r'siteId',
       type: IsarType.string,
     ),
     r'uom': PropertySchema(
-      id: 12,
+      id: 13,
       name: r'uom',
       type: IsarType.string,
     )
@@ -1859,21 +1864,22 @@ void _rateFileMaterialIsarSerialize(
   writer.writeString(offsets[0], object.approvalStatus);
   writer.writeString(offsets[1], object.calculationCategory);
   writer.writeString(offsets[2], object.designationJoined);
+  writer.writeLong(offsets[3], object.displayOrder);
   writer.writeObjectList<DynamicFieldIsar>(
-    offsets[3],
+    offsets[4],
     allOffsets,
     DynamicFieldIsarSchema.serialize,
     object.dynamicFields,
   );
-  writer.writeString(offsets[4], object.image);
-  writer.writeString(offsets[5], object.materialId);
-  writer.writeString(offsets[6], object.materialName);
-  writer.writeString(offsets[7], object.normalizedMaterialName);
-  writer.writeString(offsets[8], object.normalizedMoc);
-  writer.writeString(offsets[9], object.rateFileId);
-  writer.writeString(offsets[10], object.rawMaterialName);
-  writer.writeString(offsets[11], object.siteId);
-  writer.writeString(offsets[12], object.uom);
+  writer.writeString(offsets[5], object.image);
+  writer.writeString(offsets[6], object.materialId);
+  writer.writeString(offsets[7], object.materialName);
+  writer.writeString(offsets[8], object.normalizedMaterialName);
+  writer.writeString(offsets[9], object.normalizedMoc);
+  writer.writeString(offsets[10], object.rateFileId);
+  writer.writeString(offsets[11], object.rawMaterialName);
+  writer.writeString(offsets[12], object.siteId);
+  writer.writeString(offsets[13], object.uom);
 }
 
 RateFileMaterialIsar _rateFileMaterialIsarDeserialize(
@@ -1886,23 +1892,24 @@ RateFileMaterialIsar _rateFileMaterialIsarDeserialize(
   object.approvalStatus = reader.readString(offsets[0]);
   object.calculationCategory = reader.readString(offsets[1]);
   object.designationJoined = reader.readString(offsets[2]);
+  object.displayOrder = reader.readLong(offsets[3]);
   object.dynamicFields = reader.readObjectList<DynamicFieldIsar>(
-        offsets[3],
+        offsets[4],
         DynamicFieldIsarSchema.deserialize,
         allOffsets,
         DynamicFieldIsar(),
       ) ??
       [];
-  object.image = reader.readString(offsets[4]);
+  object.image = reader.readString(offsets[5]);
   object.isarId = id;
-  object.materialId = reader.readString(offsets[5]);
-  object.materialName = reader.readString(offsets[6]);
-  object.normalizedMaterialName = reader.readString(offsets[7]);
-  object.normalizedMoc = reader.readString(offsets[8]);
-  object.rateFileId = reader.readString(offsets[9]);
-  object.rawMaterialName = reader.readString(offsets[10]);
-  object.siteId = reader.readString(offsets[11]);
-  object.uom = reader.readString(offsets[12]);
+  object.materialId = reader.readString(offsets[6]);
+  object.materialName = reader.readString(offsets[7]);
+  object.normalizedMaterialName = reader.readString(offsets[8]);
+  object.normalizedMoc = reader.readString(offsets[9]);
+  object.rateFileId = reader.readString(offsets[10]);
+  object.rawMaterialName = reader.readString(offsets[11]);
+  object.siteId = reader.readString(offsets[12]);
+  object.uom = reader.readString(offsets[13]);
   return object;
 }
 
@@ -1920,6 +1927,8 @@ P _rateFileMaterialIsarDeserializeProp<P>(
     case 2:
       return (reader.readString(offset)) as P;
     case 3:
+      return (reader.readLong(offset)) as P;
+    case 4:
       return (reader.readObjectList<DynamicFieldIsar>(
             offset,
             DynamicFieldIsarSchema.deserialize,
@@ -1927,8 +1936,6 @@ P _rateFileMaterialIsarDeserializeProp<P>(
             DynamicFieldIsar(),
           ) ??
           []) as P;
-    case 4:
-      return (reader.readString(offset)) as P;
     case 5:
       return (reader.readString(offset)) as P;
     case 6:
@@ -1944,6 +1951,8 @@ P _rateFileMaterialIsarDeserializeProp<P>(
     case 11:
       return (reader.readString(offset)) as P;
     case 12:
+      return (reader.readString(offset)) as P;
+    case 13:
       return (reader.readString(offset)) as P;
     default:
       throw IsarError('Unknown property with id $propertyId');
@@ -2649,6 +2658,62 @@ extension RateFileMaterialIsarQueryFilter on QueryBuilder<RateFileMaterialIsar,
       return query.addFilterCondition(FilterCondition.greaterThan(
         property: r'designationJoined',
         value: '',
+      ));
+    });
+  }
+
+  QueryBuilder<RateFileMaterialIsar, RateFileMaterialIsar,
+      QAfterFilterCondition> displayOrderEqualTo(int value) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(FilterCondition.equalTo(
+        property: r'displayOrder',
+        value: value,
+      ));
+    });
+  }
+
+  QueryBuilder<RateFileMaterialIsar, RateFileMaterialIsar,
+      QAfterFilterCondition> displayOrderGreaterThan(
+    int value, {
+    bool include = false,
+  }) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(FilterCondition.greaterThan(
+        include: include,
+        property: r'displayOrder',
+        value: value,
+      ));
+    });
+  }
+
+  QueryBuilder<RateFileMaterialIsar, RateFileMaterialIsar,
+      QAfterFilterCondition> displayOrderLessThan(
+    int value, {
+    bool include = false,
+  }) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(FilterCondition.lessThan(
+        include: include,
+        property: r'displayOrder',
+        value: value,
+      ));
+    });
+  }
+
+  QueryBuilder<RateFileMaterialIsar, RateFileMaterialIsar,
+      QAfterFilterCondition> displayOrderBetween(
+    int lower,
+    int upper, {
+    bool includeLower = true,
+    bool includeUpper = true,
+  }) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(FilterCondition.between(
+        property: r'displayOrder',
+        lower: lower,
+        includeLower: includeLower,
+        upper: upper,
+        includeUpper: includeUpper,
       ));
     });
   }
@@ -4102,6 +4167,20 @@ extension RateFileMaterialIsarQuerySortBy
   }
 
   QueryBuilder<RateFileMaterialIsar, RateFileMaterialIsar, QAfterSortBy>
+      sortByDisplayOrder() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addSortBy(r'displayOrder', Sort.asc);
+    });
+  }
+
+  QueryBuilder<RateFileMaterialIsar, RateFileMaterialIsar, QAfterSortBy>
+      sortByDisplayOrderDesc() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addSortBy(r'displayOrder', Sort.desc);
+    });
+  }
+
+  QueryBuilder<RateFileMaterialIsar, RateFileMaterialIsar, QAfterSortBy>
       sortByImage() {
     return QueryBuilder.apply(this, (query) {
       return query.addSortBy(r'image', Sort.asc);
@@ -4273,6 +4352,20 @@ extension RateFileMaterialIsarQuerySortThenBy
   }
 
   QueryBuilder<RateFileMaterialIsar, RateFileMaterialIsar, QAfterSortBy>
+      thenByDisplayOrder() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addSortBy(r'displayOrder', Sort.asc);
+    });
+  }
+
+  QueryBuilder<RateFileMaterialIsar, RateFileMaterialIsar, QAfterSortBy>
+      thenByDisplayOrderDesc() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addSortBy(r'displayOrder', Sort.desc);
+    });
+  }
+
+  QueryBuilder<RateFileMaterialIsar, RateFileMaterialIsar, QAfterSortBy>
       thenByImage() {
     return QueryBuilder.apply(this, (query) {
       return query.addSortBy(r'image', Sort.asc);
@@ -4440,6 +4533,13 @@ extension RateFileMaterialIsarQueryWhereDistinct
   }
 
   QueryBuilder<RateFileMaterialIsar, RateFileMaterialIsar, QDistinct>
+      distinctByDisplayOrder() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addDistinctBy(r'displayOrder');
+    });
+  }
+
+  QueryBuilder<RateFileMaterialIsar, RateFileMaterialIsar, QDistinct>
       distinctByImage({bool caseSensitive = true}) {
     return QueryBuilder.apply(this, (query) {
       return query.addDistinctBy(r'image', caseSensitive: caseSensitive);
@@ -4532,6 +4632,13 @@ extension RateFileMaterialIsarQueryProperty on QueryBuilder<
       designationJoinedProperty() {
     return QueryBuilder.apply(this, (query) {
       return query.addPropertyName(r'designationJoined');
+    });
+  }
+
+  QueryBuilder<RateFileMaterialIsar, int, QQueryOperations>
+      displayOrderProperty() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addPropertyName(r'displayOrder');
     });
   }
 
