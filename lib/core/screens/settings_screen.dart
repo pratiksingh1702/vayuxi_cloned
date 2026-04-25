@@ -5,6 +5,7 @@ import 'package:showcaseview/showcaseview.dart';
 
 import '../router/routes.dart';
 import '../utlis/widgets/premium_app_bar.dart';
+import 'dpr_offline_dashboard_screen.dart';
 import 'theme_switcher.dart';
 import '../../../features/noti_system/noti_settings/notification_settings_screen.dart';
 import '../../../features/auth/provider/auth_provider.dart';
@@ -134,6 +135,7 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
         icon: Icons.sync_rounded,
         accent: const Color(0xFF0D7A62),
         section: 'Data & Security',
+        type: _SettingsActionType.dprOffline,
       ),
       _SettingsItem(
         title: 'Help',
@@ -159,7 +161,6 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
         section: 'Support',
         type: _SettingsActionType.logout,
       ),
-   
     ];
 
     final normalizedQuery = _query.trim().toLowerCase();
@@ -249,6 +250,15 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
 
                     if (item.type == _SettingsActionType.logout) {
                       _confirmAndLogout();
+                      return;
+                    }
+
+                    if (item.type == _SettingsActionType.dprOffline) {
+                      Navigator.of(context).push(
+                        MaterialPageRoute(
+                          builder: (_) => const DprOfflineDashboardScreen(),
+                        ),
+                      );
                       return;
                     }
 
@@ -383,8 +393,7 @@ class _SettingsUserBanner extends StatelessWidget {
             mainAxisSize: MainAxisSize.min,
             children: [
               Container(
-                padding:
-                    const EdgeInsets.symmetric(horizontal: 8, vertical: 5),
+                padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 5),
                 decoration: BoxDecoration(
                   color: colorScheme.primary.withOpacity(0.08),
                   borderRadius: BorderRadius.circular(999),
@@ -632,7 +641,7 @@ class _EmptySearchState extends StatelessWidget {
   }
 }
 
-enum _SettingsActionType { notifications, logout, regular }
+enum _SettingsActionType { notifications, logout, dprOffline, regular }
 
 class _SettingsItem {
   const _SettingsItem({

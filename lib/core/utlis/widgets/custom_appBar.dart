@@ -5,6 +5,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
+import 'package:untitled2/core/api/sync_job.dart';
 import 'package:untitled2/features/noti_system/updates/presentation/navigation/updates_routes.dart';
 import 'package:untitled2/features/noti_system/updates/application/providers/notification_providers.dart';
 import 'package:untitled2/typeProvider/type_provider.dart';
@@ -60,6 +61,11 @@ class CustomAppBar extends ConsumerWidget implements PreferredSizeWidget {
         visibleTrail.isNotEmpty ? visibleTrail.last.label : null;
     final workTypeLabel = _formatWorkTypeLabel(selectedType ?? fallbackType);
     final unreadCount = ref.watch(unreadCountProvider);
+    final syncJobs = ref.watch(syncJobsProvider);
+    final isSyncing = syncJobs.any(
+      (j) =>
+          j.status == SyncJobStatus.running || j.status == SyncJobStatus.queued,
+    );
 
     return DecoratedBox(
       decoration: const BoxDecoration(
@@ -109,6 +115,7 @@ class CustomAppBar extends ConsumerWidget implements PreferredSizeWidget {
                         alignment: Alignment.centerRight,
                         child: _NotificationButton(
                           unreadCount: unreadCount,
+                          isSyncing: isSyncing,
                           onPressed: () => context.push(UpdatesRoutes.list),
                         ),
                       ),
@@ -899,9 +906,12 @@ class _MenuButton extends StatelessWidget {
 class _NotificationButton extends StatelessWidget {
   final VoidCallback onPressed;
   final int unreadCount;
+  final bool isSyncing;
 
   const _NotificationButton(
-      {required this.onPressed, required this.unreadCount});
+      {required this.onPressed,
+      required this.unreadCount,
+      required this.isSyncing});
 
   @override
   Widget build(BuildContext context) {
@@ -929,6 +939,19 @@ class _NotificationButton extends StatelessWidget {
               child: Icon(Icons.notifications_none_rounded,
                   color: cs.onSurface, size: 22),
             ),
+            if (isSyncing)
+              Positioned.fill(
+                child: Center(
+                  child: SizedBox(
+                    width: 20,
+                    height: 20,
+                    child: CircularProgressIndicator(
+                      strokeWidth: 2,
+                      color: cs.primary,
+                    ),
+                  ),
+                ),
+              ),
             if (unreadCount > 0)
               Positioned(
                 right: -4,

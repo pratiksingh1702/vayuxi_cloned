@@ -4,6 +4,7 @@ import 'package:go_router/go_router.dart';
 
 import 'package:untitled2/core/utlis/widgets/Button_wrapper.dart';
 import 'package:untitled2/core/utlis/widgets/custom_appBar.dart';
+import 'package:untitled2/features/modules/all_Modules/Manpower%20Details/screens/ManFieldMappingScreen.dart';
 import 'package:untitled2/features/modules/all_Modules/dpr/dpr-setup/screens/view/view_select_page.dart';
 import 'package:untitled2/features/modules/all_Modules/rate/screens/rate.dart';
 import 'package:untitled2/features/modules/all_Modules/site_Details/screens/siteDetailScreen.dart';
@@ -44,11 +45,9 @@ class ManEntrySelectCardGrid extends StatelessWidget {
                 childAspectRatio: 1,
                 children: [
                   SelectCard(
-                    icon: Image.asset(
-                      "assets/images/icons/manual_entry.webp",
-                      height: 120,
-                      width: double.infinity,
-                      fit: BoxFit.cover,
+                    icon: const SelectCardIcon(
+                      icon: Icons.edit_note_rounded,
+                      color: Colors.blue,
                     ),
                     label: "Manual Entry",
                     onTap: () {
@@ -60,19 +59,17 @@ class ManEntrySelectCardGrid extends StatelessWidget {
                     },
                   ),
                   SelectCard(
-                    icon: Image.asset(
-                      "assets/images/icons/import_sheet.webp",
-                      height: 120,
-                      width: double.infinity,
-                      fit: BoxFit.cover,
+                    icon: const SelectCardIcon(
+                      icon: Icons.upload_file_rounded,
+                      color: Colors.deepOrange,
                     ),
                     label: "Import Sheet",
                     onTap: () {
-                      // Navigator.push(
-                      //   context,
-                      //   MaterialPageRoute(builder: (context) =>ManImportCsvScreen() ),
-                      // );
-                      context.push("/site-list/man-import");
+                      Navigator.push(
+                        context,
+                        MaterialPageRoute(
+                            builder: (context) => const ManFieldMappingScreen()),
+                      );
                     },
                   ),
                 ],

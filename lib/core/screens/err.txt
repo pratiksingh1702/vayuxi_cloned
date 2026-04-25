@@ -1,0 +1,423 @@
+flutter run
+Launching lib\main.dart on V2153 (wireless) in debug mode...
+lib/core/screens/dpr_offline_dashboard_screen.dart:29:70: Error: The method 'findAll' isn't defined for the type 'QueryBuilder<LocalMaterial, LocalMaterial, QAfterWhere>'.
+ - 'QueryBuilder' is from 'package:isar_community/isar.dart' ('../../../AppData/Local/Pub/Cache/hosted/pub.dev/isar_community-3.3.0/lib/isar.dart').
+ - 'LocalMaterial' is from 'package:untitled2/features/modules/all_Modules/dpr/offline/data/local/local_material.dart' ('lib/features/modules/all_Modules/dpr/offline/data/local/local_material.dart').
+ - 'QAfterWhere' is from 'package:isar_community/isar.dart' ('../../../AppData/Local/Pub/Cache/hosted/pub.dev/isar_community-3.3.0/lib/isar.dart').
+Try correcting the name to the name of an existing method, or defining a method named 'findAll'.
+    final localMaterials = await isar.localMaterials.where().anyId().findAll();
+                                                                     ^^^^^^^
+lib/core/screens/dpr_offline_dashboard_screen.dart:30:66: Error: The method 'findAll' isn't defined for the type 'QueryBuilder<CachedImage, CachedImage, QAfterWhere>'.
+ - 'QueryBuilder' is from 'package:isar_community/isar.dart' ('../../../AppData/Local/Pub/Cache/hosted/pub.dev/isar_community-3.3.0/lib/isar.dart').
+ - 'CachedImage' is from 'package:untitled2/features/modules/all_Modules/dpr/offline/data/local/cached_image.dart' ('lib/features/modules/all_Modules/dpr/offline/data/local/cached_image.dart').
+ - 'QAfterWhere' is from 'package:isar_community/isar.dart' ('../../../AppData/Local/Pub/Cache/hosted/pub.dev/isar_community-3.3.0/lib/isar.dart').
+Try correcting the name to the name of an existing method, or defining a method named 'findAll'.
+    final cachedImages = await isar.cachedImages.where().anyId().findAll();
+                                                                 ^^^^^^^
+lib/core/screens/dpr_offline_dashboard_screen.dart:32:60: Error: The method 'findAll' isn't defined for the type 'QueryBuilder<RateFileAnalysisIsar, RateFileAnalysisIsar, QAfterWhere>'.
+ - 'QueryBuilder' is from 'package:isar_community/isar.dart' ('../../../AppData/Local/Pub/Cache/hosted/pub.dev/isar_community-3.3.0/lib/isar.dart').
+ - 'RateFileAnalysisIsar' is from 'package:untitled2/features/modules/all_Modules/dpr/offline/mech/isar/rate_file_isar.dart' ('lib/features/modules/all_Modules/dpr/offline/mech/isar/rate_file_isar.dart').
+ - 'QAfterWhere' is from 'package:isar_community/isar.dart' ('../../../AppData/Local/Pub/Cache/hosted/pub.dev/isar_community-3.3.0/lib/isar.dart').
+Try correcting the name to the name of an existing method, or defining a method named 'findAll'.
+      await isar.rateFileAnalysisIsars.where().anyIsarId().findAll();
+                                                           ^^^^^^^
+lib/core/screens/dpr_offline_dashboard_screen.dart:34:60: Error: The method 'findAll' isn't defined for the type 'QueryBuilder<RateFileMaterialIsar, RateFileMaterialIsar, QAfterWhere>'.
+ - 'QueryBuilder' is from 'package:isar_community/isar.dart' ('../../../AppData/Local/Pub/Cache/hosted/pub.dev/isar_community-3.3.0/lib/isar.dart').
+ - 'RateFileMaterialIsar' is from 'package:untitled2/features/modules/all_Modules/dpr/offline/mech/isar/rate_file_isar.dart' ('lib/features/modules/all_Modules/dpr/offline/mech/isar/rate_file_isar.dart').
+ - 'QAfterWhere' is from 'package:isar_community/isar.dart' ('../../../AppData/Local/Pub/Cache/hosted/pub.dev/isar_community-3.3.0/lib/isar.dart').
+Try correcting the name to the name of an existing method, or defining a method named 'findAll'.
+      await isar.rateFileMaterialIsars.where().anyIsarId().findAll();
+                                                           ^^^^^^^
+lib/core/screens/dpr_offline_dashboard_screen.dart:36:55: Error: The method 'findAll' isn't defined for the type 'QueryBuilder<RateVariantIsar, RateVariantIsar, QAfterWhere>'.
+ - 'QueryBuilder' is from 'package:isar_community/isar.dart' ('../../../AppData/Local/Pub/Cache/hosted/pub.dev/isar_community-3.3.0/lib/isar.dart').
+ - 'RateVariantIsar' is from 'package:untitled2/features/modules/all_Modules/dpr/offline/mech/isar/rate_file_isar.dart' ('lib/features/modules/all_Modules/dpr/offline/mech/isar/rate_file_isar.dart').
+ - 'QAfterWhere' is from 'package:isar_community/isar.dart' ('../../../AppData/Local/Pub/Cache/hosted/pub.dev/isar_community-3.3.0/lib/isar.dart').
+Try correcting the name to the name of an existing method, or defining a method named 'findAll'.
+      await isar.rateVariantIsars.where().anyIsarId().findAll();
+                                                      ^^^^^^^
+lib/core/screens/dpr_offline_dashboard_screen.dart:37:62: Error: The method 'findAll' isn't defined for the type 'QueryBuilder<DprIsar, DprIsar, QAfterWhere>'.
+ - 'QueryBuilder' is from 'package:isar_community/isar.dart' ('../../../AppData/Local/Pub/Cache/hosted/pub.dev/isar_community-3.3.0/lib/isar.dart').
+ - 'DprIsar' is from 'package:untitled2/features/modules/all_Modules/dpr/offline/mech/isar/dpr_work.dart' ('lib/features/modules/all_Modules/dpr/offline/mech/isar/dpr_work.dart').
+ - 'QAfterWhere' is from 'package:isar_community/isar.dart' ('../../../AppData/Local/Pub/Cache/hosted/pub.dev/isar_community-3.3.0/lib/isar.dart').
+Try correcting the name to the name of an existing method, or defining a method named 'findAll'.
+    final dprWorks = await isar.dprIsars.where().anyIsarId().findAll();
+                                                             ^^^^^^^
+lib/core/screens/dpr_offline_dashboard_screen.dart:38:63: Error: The method 'findAll' isn't defined for the type 'QueryBuilder<OutboxIsar, OutboxIsar, QAfterWhere>'.
+ - 'QueryBuilder' is from 'package:isar_community/isar.dart' ('../../../AppData/Local/Pub/Cache/hosted/pub.dev/isar_community-3.3.0/lib/isar.dart').
+ - 'OutboxIsar' is from 'package:untitled2/features/modules/all_Modules/dpr/offline/mech/isar/outbox.dart' ('lib/features/modules/all_Modules/dpr/offline/mech/isar/outbox.dart').
+ - 'QAfterWhere' is from 'package:isar_community/isar.dart' ('../../../AppData/Local/Pub/Cache/hosted/pub.dev/isar_community-3.3.0/lib/isar.dart').
+Try correcting the name to the name of an existing method, or defining a method named 'findAll'.
+    final outbox = await isar.outboxIsars.where().anyIsarId().findAll();
+                                                              ^^^^^^^
+lib/core/screens/dpr_offline_dashboard_screen.dart:39:67: Error: The method 'findAll' isn't defined for the type 'QueryBuilder<SyncMetaIsar, SyncMetaIsar, QAfterWhere>'.
+ - 'QueryBuilder' is from 'package:isar_community/isar.dart' ('../../../AppData/Local/Pub/Cache/hosted/pub.dev/isar_community-3.3.0/lib/isar.dart').
+ - 'SyncMetaIsar' is from 'package:untitled2/features/modules/all_Modules/dpr/offline/mech/isar/sync_meta_isar.dart' ('lib/features/modules/all_Modules/dpr/offline/mech/isar/sync_meta_isar.dart').
+ - 'QAfterWhere' is from 'package:isar_community/isar.dart' ('../../../AppData/Local/Pub/Cache/hosted/pub.dev/isar_community-3.3.0/lib/isar.dart').
+Try correcting the name to the name of an existing method, or defining a method named 'findAll'.
+    final syncMeta = await isar.syncMetaIsars.where().anyIsarId().findAll();
+                                                                  ^^^^^^^
+lib/core/screens/dpr_offline_dashboard_screen.dart:42:48: Error: The getter 'siteId' isn't defined for the type 'Object?'.
+ - 'Object' is from 'dart:core'.
+Try correcting the name to the name of an existing getter, or defining a getter or field named 'siteId'.
+        _filterBySite(localMaterials, (m) => m.siteId, siteId);
+                                               ^^^^^^
+lib/core/screens/dpr_offline_dashboard_screen.dart:44:46: Error: The getter 'siteId' isn't defined for the type 'Object?'.
+ - 'Object' is from 'dart:core'.
+Try correcting the name to the name of an existing getter, or defining a getter or field named 'siteId'.
+        _filterBySite(rateAnalyses, (m) => m.siteId, siteId);
+                                             ^^^^^^
+lib/core/screens/dpr_offline_dashboard_screen.dart:46:47: Error: The getter 'siteId' isn't defined for the type 'Object?'.
+ - 'Object' is from 'dart:core'.
+Try correcting the name to the name of an existing getter, or defining a getter or field named 'siteId'.
+        _filterBySite(rateMaterials, (m) => m.siteId, siteId);
+                                              ^^^^^^
+lib/core/screens/dpr_offline_dashboard_screen.dart:48:46: Error: The getter 'siteId' isn't defined for the type 'Object?'.
+ - 'Object' is from 'dart:core'.
+Try correcting the name to the name of an existing getter, or defining a getter or field named 'siteId'.
+        _filterBySite(rateVariants, (m) => m.siteId, siteId);
+                                             ^^^^^^
+lib/core/screens/dpr_offline_dashboard_screen.dart:49:61: Error: The getter 'siteId' isn't defined for the type 'Object?'.
+ - 'Object' is from 'dart:core'.
+Try correcting the name to the name of an existing getter, or defining a getter or field named 'siteId'.
+    final scopedDprWorks = _filterBySite(dprWorks, (m) => m.siteId, siteId);
+                                                            ^^^^^^
+lib/core/screens/dpr_offline_dashboard_screen.dart:50:57: Error: The getter 'siteId' isn't defined for the type 'Object?'.
+ - 'Object' is from 'dart:core'.
+Try correcting the name to the name of an existing getter, or defining a getter or field named 'siteId'.
+    final scopedOutbox = _filterBySite(outbox, (m) => m.siteId, siteId);
+                                                        ^^^^^^
+lib/core/screens/dpr_offline_dashboard_screen.dart:53:25: Error: The getter 'domain' isn't defined for the type 'Object?'.
+ - 'Object' is from 'dart:core'.
+Try correcting the name to the name of an existing getter, or defining a getter or field named 'domain'.
+        .where((m) => m.domain == MaterialDomain.insulation.key && !m.isDeleted)
+                        ^^^^^^
+lib/core/screens/dpr_offline_dashboard_screen.dart:53:71: Error: The getter 'isDeleted' isn't defined for the type 'Object?'.
+ - 'Object' is from 'dart:core'.
+Try correcting the name to the name of an existing getter, or defining a getter or field named 'isDeleted'.
+        .where((m) => m.domain == MaterialDomain.insulation.key && !m.isDeleted)
+                                                                      ^^^^^^^^^
+lib/core/screens/dpr_offline_dashboard_screen.dart:58:15: Error: The getter 'designation' isn't defined for the type 'Object?'.
+ - 'Object' is from 'dart:core'.
+Try correcting the name to the name of an existing getter, or defining a getter or field named 'designation'.
+            m.designation.toLowerCase() == MaterialDesignation.piping.key)
+              ^^^^^^^^^^^
+lib/core/screens/dpr_offline_dashboard_screen.dart:62:15: Error: The getter 'designation' isn't defined for the type 'Object?'.
+ - 'Object' is from 'dart:core'.
+Try correcting the name to the name of an existing getter, or defining a getter or field named 'designation'.
+            m.designation.toLowerCase() == MaterialDesignation.equipment.key)
+              ^^^^^^^^^^^
+lib/core/screens/dpr_offline_dashboard_screen.dart:65:63: Error: The getter 'isDirty' isn't defined for the type 'Object?'.
+ - 'Object' is from 'dart:core'.
+Try correcting the name to the name of an existing getter, or defining a getter or field named 'isDirty'.
+    final dirtyMaterials = insulationMaterials.where((m) => m.isDirty).length;
+                                                              ^^^^^^^
+lib/core/screens/dpr_offline_dashboard_screen.dart:67:26: Error: The getter 'cardFormStateJson' isn't defined for the type 'Object?'.
+ - 'Object' is from 'dart:core'.
+Try correcting the name to the name of an existing getter, or defining a getter or field named 'cardFormStateJson'.
+        .where((m) => (m.cardFormStateJson ?? '').trim().isNotEmpty)
+                         ^^^^^^^^^^^^^^^^^
+lib/core/screens/dpr_offline_dashboard_screen.dart:73:34: Error: The getter 'syncedAt' isn't defined for the type 'Object?'.
+ - 'Object' is from 'dart:core'.
+Try correcting the name to the name of an existing getter, or defining a getter or field named 'syncedAt'.
+              ..sort((a, b) => b.syncedAt.compareTo(a.syncedAt)))
+                                 ^^^^^^^^
+lib/core/screens/dpr_offline_dashboard_screen.dart:73:55: Error: The getter 'syncedAt' isn't defined for the type 'Object?'.
+ - 'Object' is from 'dart:core'.
+Try correcting the name to the name of an existing getter, or defining a getter or field named 'syncedAt'.
+              ..sort((a, b) => b.syncedAt.compareTo(a.syncedAt)))
+                                                      ^^^^^^^^
+lib/core/screens/dpr_offline_dashboard_screen.dart:77:27: Error: The getter 'detectedFieldsJson' isn't defined for the type 'Object'.
+ - 'Object' is from 'dart:core'.
+Try correcting the name to the name of an existing getter, or defining a getter or field named 'detectedFieldsJson'.
+      latestRateAnalysis?.detectedFieldsJson,
+                          ^^^^^^^^^^^^^^^^^^
+lib/core/screens/dpr_offline_dashboard_screen.dart:81:25: Error: The getter 'workType' isn't defined for the type 'Object?'.
+ - 'Object' is from 'dart:core'.
+Try correcting the name to the name of an existing getter, or defining a getter or field named 'workType'.
+        .where((w) => w.workType == 'mechanical_work' && !w.isDeleted)
+                        ^^^^^^^^
+lib/core/screens/dpr_offline_dashboard_screen.dart:81:61: Error: The getter 'isDeleted' isn't defined for the type 'Object?'.
+ - 'Object' is from 'dart:core'.
+Try correcting the name to the name of an existing getter, or defining a getter or field named 'isDeleted'.
+        .where((w) => w.workType == 'mechanical_work' && !w.isDeleted)
+                                                            ^^^^^^^^^
+lib/core/screens/dpr_offline_dashboard_screen.dart:84:25: Error: The getter 'workType' isn't defined for the type 'Object?'.
+ - 'Object' is from 'dart:core'.
+Try correcting the name to the name of an existing getter, or defining a getter or field named 'workType'.
+        .where((w) => w.workType == 'insulation_work' && !w.isDeleted)
+                        ^^^^^^^^
+lib/core/screens/dpr_offline_dashboard_screen.dart:84:61: Error: The getter 'isDeleted' isn't defined for the type 'Object?'.
+ - 'Object' is from 'dart:core'.
+Try correcting the name to the name of an existing getter, or defining a getter or field named 'isDeleted'.
+        .where((w) => w.workType == 'insulation_work' && !w.isDeleted)
+                                                            ^^^^^^^^^
+lib/core/screens/dpr_offline_dashboard_screen.dart:87:64: Error: The getter 'isSynced' isn't defined for the type 'Object?'.
+ - 'Object' is from 'dart:core'.
+Try correcting the name to the name of an existing getter, or defining a getter or field named 'isSynced'.
+    final unsyncedMechanical = mechanicalWorks.where((w) => !w.isSynced).length;
+                                                               ^^^^^^^^
+lib/core/screens/dpr_offline_dashboard_screen.dart:88:64: Error: The getter 'isSynced' isn't defined for the type 'Object?'.
+ - 'Object' is from 'dart:core'.
+Try correcting the name to the name of an existing getter, or defining a getter or field named 'isSynced'.
+    final unsyncedInsulation = insulationWorks.where((w) => !w.isSynced).length;
+                                                               ^^^^^^^^
+lib/core/screens/dpr_offline_dashboard_screen.dart:90:56: Error: The getter 'isDone' isn't defined for the type 'Object?'.
+ - 'Object' is from 'dart:core'.
+Try correcting the name to the name of an existing getter, or defining a getter or field named 'isDone'.
+    final pendingOutbox = scopedOutbox.where((o) => !o.isDone).length;
+                                                       ^^^^^^
+lib/core/screens/dpr_offline_dashboard_screen.dart:92:26: Error: The getter 'isDone' isn't defined for the type 'Object?'.
+ - 'Object' is from 'dart:core'.
+Try correcting the name to the name of an existing getter, or defining a getter or field named 'isDone'.
+        .where((o) => !o.isDone && (o.error ?? '').isNotEmpty)
+                         ^^^^^^
+lib/core/screens/dpr_offline_dashboard_screen.dart:92:39: Error: The getter 'error' isn't defined for the type 'Object?'.
+ - 'Object' is from 'dart:core'.
+Try correcting the name to the name of an existing getter, or defining a getter or field named 'error'.
+        .where((o) => !o.isDone && (o.error ?? '').isNotEmpty)
+                                      ^^^^^
+lib/core/screens/dpr_offline_dashboard_screen.dart:116:43: Error: The getter 'syncedAt' isn't defined for the type 'Object'.
+ - 'Object' is from 'dart:core'.
+Try correcting the name to the name of an existing getter, or defining a getter or field named 'syncedAt'.
+      lastRateSyncAt: latestRateAnalysis?.syncedAt,
+                                          ^^^^^^^^
+lib/core/screens/dpr_offline_dashboard_screen.dart:117:47: Error: The getter 'fileName' isn't defined for the type 'Object'.
+ - 'Object' is from 'dart:core'.
+Try correcting the name to the name of an existing getter, or defining a getter or field named 'fileName'.
+      latestRateFileName: latestRateAnalysis?.fileName,
+                                              ^^^^^^^^
+lib/core/screens/dpr_offline_dashboard_screen.dart:118:45: Error: The getter 'status' isn't defined for the type 'Object'.
+ - 'Object' is from 'dart:core'.
+Try correcting the name to the name of an existing getter, or defining a getter or field named 'status'.
+      latestRateStatus: latestRateAnalysis?.status,
+                                            ^^^^^^
+Target kernel_snapshot_program failed: Exception
+
+
+FAILURE: Build failed with an exception.
+
+* What went wrong:
+Execution failed for task ':app:compileFlutterBuildDebug'.
+> Process 'command 'C:\Users\Dell\Downloads\flutter_windows_3.35.3-stable\flutter\bin\flutter.bat'' finished with non-zero exit value 1
+
+* Try:
+> Run with --stacktrace option to get the stack trace.
+> Run with --info or --debug option to get more log output.
+> Run with --scan to get full insights.
+> Get more help at https://help.gradle.org.
+
+BUILD FAILED in 16s
+Running Gradle task 'assembleDebug'...                             16.4s
+Error: Gradle task assembleDebug failed with exit code 1
+PS C:\Users\Dell\Downloads\untitled2\untitled2> flutter run
+Launching lib\main.dart on V2153 (wireless) in debug mode...
+lib/core/screens/dpr_offline_dashboard_screen.dart:29:70: Error: The method 'findAll' isn't defined for the type 'QueryBuilder<LocalMaterial, LocalMaterial, QAfterWhere>'.
+ - 'QueryBuilder' is from 'package:isar_community/isar.dart' ('../../../AppData/Local/Pub/Cache/hosted/pub.dev/isar_community-3.3.0/lib/isar.dart').
+ - 'LocalMaterial' is from 'package:untitled2/features/modules/all_Modules/dpr/offline/data/local/local_material.dart' ('lib/features/modules/all_Modules/dpr/offline/data/local/local_material.dart').
+ - 'QAfterWhere' is from 'package:isar_community/isar.dart' ('../../../AppData/Local/Pub/Cache/hosted/pub.dev/isar_community-3.3.0/lib/isar.dart').
+Try correcting the name to the name of an existing method, or defining a method named 'findAll'.
+    final localMaterials = await isar.localMaterials.where().anyId().findAll();
+                                                                     ^^^^^^^
+lib/core/screens/dpr_offline_dashboard_screen.dart:30:66: Error: The method 'findAll' isn't defined for the type 'QueryBuilder<CachedImage, CachedImage, QAfterWhere>'.
+ - 'QueryBuilder' is from 'package:isar_community/isar.dart' ('../../../AppData/Local/Pub/Cache/hosted/pub.dev/isar_community-3.3.0/lib/isar.dart').
+ - 'CachedImage' is from 'package:untitled2/features/modules/all_Modules/dpr/offline/data/local/cached_image.dart' ('lib/features/modules/all_Modules/dpr/offline/data/local/cached_image.dart').
+ - 'QAfterWhere' is from 'package:isar_community/isar.dart' ('../../../AppData/Local/Pub/Cache/hosted/pub.dev/isar_community-3.3.0/lib/isar.dart').
+Try correcting the name to the name of an existing method, or defining a method named 'findAll'.
+    final cachedImages = await isar.cachedImages.where().anyId().findAll();
+                                                                 ^^^^^^^
+lib/core/screens/dpr_offline_dashboard_screen.dart:32:60: Error: The method 'findAll' isn't defined for the type 'QueryBuilder<RateFileAnalysisIsar, RateFileAnalysisIsar, QAfterWhere>'.
+ - 'QueryBuilder' is from 'package:isar_community/isar.dart' ('../../../AppData/Local/Pub/Cache/hosted/pub.dev/isar_community-3.3.0/lib/isar.dart').
+ - 'RateFileAnalysisIsar' is from 'package:untitled2/features/modules/all_Modules/dpr/offline/mech/isar/rate_file_isar.dart' ('lib/features/modules/all_Modules/dpr/offline/mech/isar/rate_file_isar.dart').
+ - 'QAfterWhere' is from 'package:isar_community/isar.dart' ('../../../AppData/Local/Pub/Cache/hosted/pub.dev/isar_community-3.3.0/lib/isar.dart').
+Try correcting the name to the name of an existing method, or defining a method named 'findAll'.
+      await isar.rateFileAnalysisIsars.where().anyIsarId().findAll();
+                                                           ^^^^^^^
+lib/core/screens/dpr_offline_dashboard_screen.dart:34:60: Error: The method 'findAll' isn't defined for the type 'QueryBuilder<RateFileMaterialIsar, RateFileMaterialIsar, QAfterWhere>'.
+ - 'QueryBuilder' is from 'package:isar_community/isar.dart' ('../../../AppData/Local/Pub/Cache/hosted/pub.dev/isar_community-3.3.0/lib/isar.dart').
+ - 'RateFileMaterialIsar' is from 'package:untitled2/features/modules/all_Modules/dpr/offline/mech/isar/rate_file_isar.dart' ('lib/features/modules/all_Modules/dpr/offline/mech/isar/rate_file_isar.dart').
+ - 'QAfterWhere' is from 'package:isar_community/isar.dart' ('../../../AppData/Local/Pub/Cache/hosted/pub.dev/isar_community-3.3.0/lib/isar.dart').
+Try correcting the name to the name of an existing method, or defining a method named 'findAll'.
+      await isar.rateFileMaterialIsars.where().anyIsarId().findAll();
+                                                           ^^^^^^^
+lib/core/screens/dpr_offline_dashboard_screen.dart:36:55: Error: The method 'findAll' isn't defined for the type 'QueryBuilder<RateVariantIsar, RateVariantIsar, QAfterWhere>'.
+ - 'QueryBuilder' is from 'package:isar_community/isar.dart' ('../../../AppData/Local/Pub/Cache/hosted/pub.dev/isar_community-3.3.0/lib/isar.dart').
+ - 'RateVariantIsar' is from 'package:untitled2/features/modules/all_Modules/dpr/offline/mech/isar/rate_file_isar.dart' ('lib/features/modules/all_Modules/dpr/offline/mech/isar/rate_file_isar.dart').
+ - 'QAfterWhere' is from 'package:isar_community/isar.dart' ('../../../AppData/Local/Pub/Cache/hosted/pub.dev/isar_community-3.3.0/lib/isar.dart').
+Try correcting the name to the name of an existing method, or defining a method named 'findAll'.
+      await isar.rateVariantIsars.where().anyIsarId().findAll();
+                                                      ^^^^^^^
+lib/core/screens/dpr_offline_dashboard_screen.dart:37:62: Error: The method 'findAll' isn't defined for the type 'QueryBuilder<DprIsar, DprIsar, QAfterWhere>'.
+ - 'QueryBuilder' is from 'package:isar_community/isar.dart' ('../../../AppData/Local/Pub/Cache/hosted/pub.dev/isar_community-3.3.0/lib/isar.dart').
+ - 'DprIsar' is from 'package:untitled2/features/modules/all_Modules/dpr/offline/mech/isar/dpr_work.dart' ('lib/features/modules/all_Modules/dpr/offline/mech/isar/dpr_work.dart').
+ - 'QAfterWhere' is from 'package:isar_community/isar.dart' ('../../../AppData/Local/Pub/Cache/hosted/pub.dev/isar_community-3.3.0/lib/isar.dart').
+Try correcting the name to the name of an existing method, or defining a method named 'findAll'.
+    final dprWorks = await isar.dprIsars.where().anyIsarId().findAll();
+                                                             ^^^^^^^
+lib/core/screens/dpr_offline_dashboard_screen.dart:38:63: Error: The method 'findAll' isn't defined for the type 'QueryBuilder<OutboxIsar, OutboxIsar, QAfterWhere>'.
+ - 'QueryBuilder' is from 'package:isar_community/isar.dart' ('../../../AppData/Local/Pub/Cache/hosted/pub.dev/isar_community-3.3.0/lib/isar.dart').
+ - 'OutboxIsar' is from 'package:untitled2/features/modules/all_Modules/dpr/offline/mech/isar/outbox.dart' ('lib/features/modules/all_Modules/dpr/offline/mech/isar/outbox.dart').
+ - 'QAfterWhere' is from 'package:isar_community/isar.dart' ('../../../AppData/Local/Pub/Cache/hosted/pub.dev/isar_community-3.3.0/lib/isar.dart').
+Try correcting the name to the name of an existing method, or defining a method named 'findAll'.
+    final outbox = await isar.outboxIsars.where().anyIsarId().findAll();
+                                                              ^^^^^^^
+lib/core/screens/dpr_offline_dashboard_screen.dart:39:67: Error: The method 'findAll' isn't defined for the type 'QueryBuilder<SyncMetaIsar, SyncMetaIsar, QAfterWhere>'.
+ - 'QueryBuilder' is from 'package:isar_community/isar.dart' ('../../../AppData/Local/Pub/Cache/hosted/pub.dev/isar_community-3.3.0/lib/isar.dart').
+ - 'SyncMetaIsar' is from 'package:untitled2/features/modules/all_Modules/dpr/offline/mech/isar/sync_meta_isar.dart' ('lib/features/modules/all_Modules/dpr/offline/mech/isar/sync_meta_isar.dart').
+ - 'QAfterWhere' is from 'package:isar_community/isar.dart' ('../../../AppData/Local/Pub/Cache/hosted/pub.dev/isar_community-3.3.0/lib/isar.dart').
+Try correcting the name to the name of an existing method, or defining a method named 'findAll'.
+    final syncMeta = await isar.syncMetaIsars.where().anyIsarId().findAll();
+                                                                  ^^^^^^^
+lib/core/screens/dpr_offline_dashboard_screen.dart:42:48: Error: The getter 'siteId' isn't defined for the type 'Object?'.
+ - 'Object' is from 'dart:core'.
+Try correcting the name to the name of an existing getter, or defining a getter or field named 'siteId'.
+        _filterBySite(localMaterials, (m) => m.siteId, siteId);
+                                               ^^^^^^
+lib/core/screens/dpr_offline_dashboard_screen.dart:44:46: Error: The getter 'siteId' isn't defined for the type 'Object?'.
+ - 'Object' is from 'dart:core'.
+Try correcting the name to the name of an existing getter, or defining a getter or field named 'siteId'.
+        _filterBySite(rateAnalyses, (m) => m.siteId, siteId);
+                                             ^^^^^^
+lib/core/screens/dpr_offline_dashboard_screen.dart:46:47: Error: The getter 'siteId' isn't defined for the type 'Object?'.
+ - 'Object' is from 'dart:core'.
+Try correcting the name to the name of an existing getter, or defining a getter or field named 'siteId'.
+        _filterBySite(rateMaterials, (m) => m.siteId, siteId);
+                                              ^^^^^^
+lib/core/screens/dpr_offline_dashboard_screen.dart:48:46: Error: The getter 'siteId' isn't defined for the type 'Object?'.
+ - 'Object' is from 'dart:core'.
+Try correcting the name to the name of an existing getter, or defining a getter or field named 'siteId'.
+        _filterBySite(rateVariants, (m) => m.siteId, siteId);
+                                             ^^^^^^
+lib/core/screens/dpr_offline_dashboard_screen.dart:49:61: Error: The getter 'siteId' isn't defined for the type 'Object?'.
+ - 'Object' is from 'dart:core'.
+Try correcting the name to the name of an existing getter, or defining a getter or field named 'siteId'.
+    final scopedDprWorks = _filterBySite(dprWorks, (m) => m.siteId, siteId);
+                                                            ^^^^^^
+lib/core/screens/dpr_offline_dashboard_screen.dart:50:57: Error: The getter 'siteId' isn't defined for the type 'Object?'.
+ - 'Object' is from 'dart:core'.
+Try correcting the name to the name of an existing getter, or defining a getter or field named 'siteId'.
+    final scopedOutbox = _filterBySite(outbox, (m) => m.siteId, siteId);
+                                                        ^^^^^^
+lib/core/screens/dpr_offline_dashboard_screen.dart:53:25: Error: The getter 'domain' isn't defined for the type 'Object?'.
+ - 'Object' is from 'dart:core'.
+Try correcting the name to the name of an existing getter, or defining a getter or field named 'domain'.
+        .where((m) => m.domain == MaterialDomain.insulation.key && !m.isDeleted)
+                        ^^^^^^
+lib/core/screens/dpr_offline_dashboard_screen.dart:53:71: Error: The getter 'isDeleted' isn't defined for the type 'Object?'.
+ - 'Object' is from 'dart:core'.
+Try correcting the name to the name of an existing getter, or defining a getter or field named 'isDeleted'.
+        .where((m) => m.domain == MaterialDomain.insulation.key && !m.isDeleted)
+                                                                      ^^^^^^^^^
+lib/core/screens/dpr_offline_dashboard_screen.dart:58:15: Error: The getter 'designation' isn't defined for the type 'Object?'.
+ - 'Object' is from 'dart:core'.
+Try correcting the name to the name of an existing getter, or defining a getter or field named 'designation'.
+            m.designation.toLowerCase() == MaterialDesignation.piping.key)
+              ^^^^^^^^^^^
+lib/core/screens/dpr_offline_dashboard_screen.dart:62:15: Error: The getter 'designation' isn't defined for the type 'Object?'.
+ - 'Object' is from 'dart:core'.
+Try correcting the name to the name of an existing getter, or defining a getter or field named 'designation'.
+            m.designation.toLowerCase() == MaterialDesignation.equipment.key)
+              ^^^^^^^^^^^
+lib/core/screens/dpr_offline_dashboard_screen.dart:65:63: Error: The getter 'isDirty' isn't defined for the type 'Object?'.
+ - 'Object' is from 'dart:core'.
+Try correcting the name to the name of an existing getter, or defining a getter or field named 'isDirty'.
+    final dirtyMaterials = insulationMaterials.where((m) => m.isDirty).length;
+                                                              ^^^^^^^
+lib/core/screens/dpr_offline_dashboard_screen.dart:67:26: Error: The getter 'cardFormStateJson' isn't defined for the type 'Object?'.
+ - 'Object' is from 'dart:core'.
+Try correcting the name to the name of an existing getter, or defining a getter or field named 'cardFormStateJson'.
+        .where((m) => (m.cardFormStateJson ?? '').trim().isNotEmpty)
+                         ^^^^^^^^^^^^^^^^^
+lib/core/screens/dpr_offline_dashboard_screen.dart:73:34: Error: The getter 'syncedAt' isn't defined for the type 'Object?'.
+ - 'Object' is from 'dart:core'.
+Try correcting the name to the name of an existing getter, or defining a getter or field named 'syncedAt'.
+              ..sort((a, b) => b.syncedAt.compareTo(a.syncedAt)))
+                                 ^^^^^^^^
+lib/core/screens/dpr_offline_dashboard_screen.dart:73:55: Error: The getter 'syncedAt' isn't defined for the type 'Object?'.
+ - 'Object' is from 'dart:core'.
+Try correcting the name to the name of an existing getter, or defining a getter or field named 'syncedAt'.
+              ..sort((a, b) => b.syncedAt.compareTo(a.syncedAt)))
+                                                      ^^^^^^^^
+lib/core/screens/dpr_offline_dashboard_screen.dart:77:27: Error: The getter 'detectedFieldsJson' isn't defined for the type 'Object'.
+ - 'Object' is from 'dart:core'.
+Try correcting the name to the name of an existing getter, or defining a getter or field named 'detectedFieldsJson'.
+      latestRateAnalysis?.detectedFieldsJson,
+                          ^^^^^^^^^^^^^^^^^^
+lib/core/screens/dpr_offline_dashboard_screen.dart:81:25: Error: The getter 'workType' isn't defined for the type 'Object?'.
+ - 'Object' is from 'dart:core'.
+Try correcting the name to the name of an existing getter, or defining a getter or field named 'workType'.
+        .where((w) => w.workType == 'mechanical_work' && !w.isDeleted)
+                        ^^^^^^^^
+lib/core/screens/dpr_offline_dashboard_screen.dart:81:61: Error: The getter 'isDeleted' isn't defined for the type 'Object?'.
+ - 'Object' is from 'dart:core'.
+Try correcting the name to the name of an existing getter, or defining a getter or field named 'isDeleted'.
+        .where((w) => w.workType == 'mechanical_work' && !w.isDeleted)
+                                                            ^^^^^^^^^
+lib/core/screens/dpr_offline_dashboard_screen.dart:84:25: Error: The getter 'workType' isn't defined for the type 'Object?'.
+ - 'Object' is from 'dart:core'.
+Try correcting the name to the name of an existing getter, or defining a getter or field named 'workType'.
+        .where((w) => w.workType == 'insulation_work' && !w.isDeleted)
+                        ^^^^^^^^
+lib/core/screens/dpr_offline_dashboard_screen.dart:84:61: Error: The getter 'isDeleted' isn't defined for the type 'Object?'.
+ - 'Object' is from 'dart:core'.
+Try correcting the name to the name of an existing getter, or defining a getter or field named 'isDeleted'.
+        .where((w) => w.workType == 'insulation_work' && !w.isDeleted)
+                                                            ^^^^^^^^^
+lib/core/screens/dpr_offline_dashboard_screen.dart:87:64: Error: The getter 'isSynced' isn't defined for the type 'Object?'.
+ - 'Object' is from 'dart:core'.
+Try correcting the name to the name of an existing getter, or defining a getter or field named 'isSynced'.
+    final unsyncedMechanical = mechanicalWorks.where((w) => !w.isSynced).length;
+                                                               ^^^^^^^^
+lib/core/screens/dpr_offline_dashboard_screen.dart:88:64: Error: The getter 'isSynced' isn't defined for the type 'Object?'.
+ - 'Object' is from 'dart:core'.
+Try correcting the name to the name of an existing getter, or defining a getter or field named 'isSynced'.
+    final unsyncedInsulation = insulationWorks.where((w) => !w.isSynced).length;
+                                                               ^^^^^^^^
+lib/core/screens/dpr_offline_dashboard_screen.dart:90:56: Error: The getter 'isDone' isn't defined for the type 'Object?'.
+ - 'Object' is from 'dart:core'.
+Try correcting the name to the name of an existing getter, or defining a getter or field named 'isDone'.
+    final pendingOutbox = scopedOutbox.where((o) => !o.isDone).length;
+                                                       ^^^^^^
+lib/core/screens/dpr_offline_dashboard_screen.dart:92:26: Error: The getter 'isDone' isn't defined for the type 'Object?'.
+ - 'Object' is from 'dart:core'.
+Try correcting the name to the name of an existing getter, or defining a getter or field named 'isDone'.
+        .where((o) => !o.isDone && (o.error ?? '').isNotEmpty)
+                         ^^^^^^
+lib/core/screens/dpr_offline_dashboard_screen.dart:92:39: Error: The getter 'error' isn't defined for the type 'Object?'.
+ - 'Object' is from 'dart:core'.
+Try correcting the name to the name of an existing getter, or defining a getter or field named 'error'.
+        .where((o) => !o.isDone && (o.error ?? '').isNotEmpty)
+                                      ^^^^^
+lib/core/screens/dpr_offline_dashboard_screen.dart:116:43: Error: The getter 'syncedAt' isn't defined for the type 'Object'.
+ - 'Object' is from 'dart:core'.
+Try correcting the name to the name of an existing getter, or defining a getter or field named 'syncedAt'.
+      lastRateSyncAt: latestRateAnalysis?.syncedAt,
+                                          ^^^^^^^^
+lib/core/screens/dpr_offline_dashboard_screen.dart:117:47: Error: The getter 'fileName' isn't defined for the type 'Object'.
+ - 'Object' is from 'dart:core'.
+Try correcting the name to the name of an existing getter, or defining a getter or field named 'fileName'.
+      latestRateFileName: latestRateAnalysis?.fileName,
+                                              ^^^^^^^^
+lib/core/screens/dpr_offline_dashboard_screen.dart:118:45: Error: The getter 'status' isn't defined for the type 'Object'.
+ - 'Object' is from 'dart:core'.
+Try correcting the name to the name of an existing getter, or defining a getter or field named 'status'.
+      latestRateStatus: latestRateAnalysis?.status,
+                                            ^^^^^^
+Target kernel_snapshot_program failed: Exception
+
+
+FAILURE: Build failed with an exception.
+
+* What went wrong:
+Execution failed for task ':app:compileFlutterBuildDebug'.
+> Process 'command 'C:\Users\Dell\Downloads\flutter_windows_3.35.3-stable\flutter\bin\flutter.bat'' finished with non-zero exit value 1
+
+* Try:
+> Run with --stacktrace option to get the stack trace.
+> Run with --info or --debug option to get more log output.
+> Run with --scan to get full insights.
+> Get more help at https://help.gradle.org.
+
+BUILD FAILED in 12s
+Running Gradle task 'assembleDebug'...                             12.9s
+Error: Gradle task assembleDebug failed with exit code 1
+PS C:\Users\Dell\Downloads\untitled2\untitled2>

@@ -7,12 +7,13 @@ import 'package:untitled2/core/api/requestQueueModel.dart';
 import 'package:cookie_jar/cookie_jar.dart';
 import 'package:dio_cookie_manager/dio_cookie_manager.dart';
 import 'package:untitled2/core/api/sync_job.dart';
+import 'package:untitled2/features/noti_system/updates/domain/services/notification_ingestion_service.dart';
 
 import '../utlis/common_functions.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 class DioClient {
-  static  ProviderContainer? syncRef;
+  static ProviderContainer? syncRef;
 
   static late CookieJar cookieJar;
   static final Dio dio = Dio(BaseOptions(
@@ -38,13 +39,13 @@ class DioClient {
     Future<void> debugAllCookies() async {
       print("🔍 DEBUG - All Cookies:");
       try {
-        final cookies = await cookieJar.loadForRequest(Uri.parse("https://be-vayuxi-chi.vercel.app/api/v1"));
+        final cookies = await cookieJar.loadForRequest(
+            Uri.parse("https://be-vayuxi-chi.vercel.app/api/v1"));
         if (cookies.isEmpty) {
           print("   No cookies stored at all!");
         } else {
           for (final cookie in cookies) {
             print("   🍪 ${cookie.name}=${cookie.value}");
-
           }
         }
       } catch (e) {
@@ -56,10 +57,7 @@ class DioClient {
       final result = <String, dynamic>{};
 
       data.forEach((key, value) {
-        if (value is String ||
-            value is num ||
-            value is bool ||
-            value == null) {
+        if (value is String || value is num || value is bool || value == null) {
           result[key] = value;
         } else if (value is List) {
           result[key] = value.map((e) {
@@ -80,8 +78,6 @@ class DioClient {
     // Create interceptor wrapper
     final interceptor = InterceptorsWrapper(
       onRequest: (options, handler) async {
-
-
         final prefs = await SharedPreferences.getInstance();
         final token = prefs.getString('auth_token');
         if (token != null) {
@@ -95,17 +91,13 @@ class DioClient {
         print("🍪 Cookies being sent:");
         final cookies = await cookieJar.loadForRequest(options.uri);
 
-
         print("➡️ Sending request: ${options.method} ${options.uri}");
-
 
         // Check if device ID cookie exists
         final deviceIdCookie = cookies.firstWhere(
-              (cookie) => cookie.name == 'deviceId',
+          (cookie) => cookie.name == 'deviceId',
           orElse: () => Cookie('', ''),
         );
-
-
 
         // FIX: Properly handle FormData logging
         if (options.data is FormData) {
@@ -120,7 +112,8 @@ class DioClient {
           if (formData.files.isNotEmpty) {
             print("   Files: ${formData.files.length}");
             for (final file in formData.files) {
-              print("     ${file.key}: ${file.value.filename} (${file.value.length} bytes)");
+              print(
+                  "     ${file.key}: ${file.value.filename} (${file.value.length} bytes)");
             }
           }
         } else if (options.data != null) {
@@ -129,11 +122,11 @@ class DioClient {
 
         return handler.next(options);
       },
-
       onError: (DioException e, handler) async {
         final requestOptions = e.requestOptions;
 
-        print("❌ Request failed: ${requestOptions.method} ${requestOptions.uri}");
+        print(
+            "❌ Request failed: ${requestOptions.method} ${requestOptions.uri}");
         print("   Error type: ${e.type}");
         print("   Error: ${e.error}");
 
@@ -162,14 +155,9 @@ class DioClient {
           });
         } else if (requestOptions.data is Map<String, dynamic>) {
           jsonData = _safeJson(requestOptions.data);
+        } else if (requestOptions.data is List) {
+          jsonData = {"__isList": true, "data": requestOptions.data};
         }
-        else if (requestOptions.data is List) {
-          jsonData = {
-            "__isList": true,
-            "data": requestOptions.data
-          };
-        }
-
 
         // Only queue network errors, not server errors
         List<Map<String, String>> _extractFiles(FormData formData) {
@@ -182,14 +170,15 @@ class DioClient {
           }).toList();
         }
 
-
         // Queue the request
         final queuedReq = QueuedRequest(
           method: requestOptions.method,
           path: requestOptions.path,
           data: jsonData,
           query: requestOptions.queryParameters,
-          files: requestOptions.data is FormData ? _extractFiles(requestOptions.data) : null,
+          files: requestOptions.data is FormData
+              ? _extractFiles(requestOptions.data)
+              : null,
           contentType: requestOptions.data is FormData ? "form" : "json",
         );
 
@@ -203,38 +192,38 @@ class DioClient {
           print(queuedReq.toJson());
 
           await RequestQueue.add(queuedReq);
+          await NotificationIngestionService.persistQueuedRequest(queuedReq);
           print(DioClient.syncRef);
-
 
           final label = buildTaskLabel(
             requestOptions.method,
             requestOptions.path,
           );
 
-          syncRef?.read(syncJobsProvider.notifier)
+          syncRef
+              ?.read(syncJobsProvider.notifier)
               .addQueued(queuedReq.id, label);
 
           print("🔥 PROVIDER ADD CALLED");
 
-
           print("📌 Queued: ${queuedReq.path}");
-          await RequestQueue.add(queuedReq);
-          print("📌 Saved request to queue: ${queuedReq.method} ${queuedReq.path}");
-
+          print(
+              "📌 Saved request to queue: ${queuedReq.method} ${queuedReq.path}");
         } else {
           print("🚫 Not queued (server/client error)");
         }
 
-
-        print("📌 Saved request to queue: ${queuedReq.method} ${queuedReq.path}");
+        print(
+            "📌 Saved request to queue: ${queuedReq.method} ${queuedReq.path}");
         if (queuedReq.data != null) print("   Saved data: ${queuedReq.data}");
-        if (queuedReq.files != null) print("   Saved files: ${queuedReq.files}");
+        if (queuedReq.files != null)
+          print("   Saved files: ${queuedReq.files}");
 
         return handler.next(e);
       },
-
       onResponse: (response, handler) {
-        print("✅ Response received: ${response.statusCode} ${response.requestOptions.uri}");
+        print(
+            "✅ Response received: ${response.statusCode} ${response.requestOptions.uri}");
 
         // FIX: Better response logging
         if (response.data is Map) {
@@ -332,9 +321,10 @@ class DioClient {
   // Helper method to get current device ID from cookies
   static Future<String?> getDeviceId() async {
     try {
-      final cookies = await cookieJar.loadForRequest(Uri.parse("https://be-vayuxi-chi.vercel.app"));
+      final cookies = await cookieJar
+          .loadForRequest(Uri.parse("https://be-vayuxi-chi.vercel.app"));
       final deviceIdCookie = cookies.firstWhere(
-            (cookie) => cookie.name == 'deviceId',
+        (cookie) => cookie.name == 'deviceId',
         orElse: () => Cookie('', ''),
       );
 

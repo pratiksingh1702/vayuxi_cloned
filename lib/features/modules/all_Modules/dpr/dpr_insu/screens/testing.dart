@@ -51,8 +51,13 @@ import '../model/field_config.dart' as fc;
 
 class AddInsulationDescriptionScreen extends ConsumerStatefulWidget {
   final InsulationDprModel? work;
+  final bool fromDraft;
 
-  const AddInsulationDescriptionScreen({super.key, this.work});
+  const AddInsulationDescriptionScreen({
+    super.key,
+    this.work,
+    this.fromDraft = false,
+  });
 
   @override
   ConsumerState<AddInsulationDescriptionScreen> createState() =>
@@ -131,7 +136,7 @@ class _AddInsulationDescriptionScreenState
     super.initState();
     _initializeControllers();
     _initializeData();
-    _isEditingExistingWork = widget.work != null;
+    _isEditingExistingWork = widget.work != null && !widget.fromDraft;
 
     WidgetsBinding.instance.addPostFrameCallback((_) async {
       ref.read(insulationPipingMaterialsProvider.notifier).clear();
@@ -143,7 +148,10 @@ class _AddInsulationDescriptionScreenState
         // ✅ Step 1: immediately set materials from work (no waiting)
         //    Cards render with correct qty/size from day 1
         // Set materials FIRST so cards show immediately with correct data
-        _initializeFromWorkImmediate(widget.work!);
+        _initializeFromWorkImmediate(
+          widget.work!,
+          keepAsCreate: widget.fromDraft,
+        );
 
         // THEN load setups in background for field config
         // When setups load, setState triggers rebuild with proper materialSetup
@@ -163,10 +171,13 @@ class _AddInsulationDescriptionScreenState
   }
 
 // ✅ Sets all UI state and providers immediately — no setup dependency
-  void _initializeFromWorkImmediate(InsulationDprModel work) {
+  void _initializeFromWorkImmediate(
+    InsulationDprModel work, {
+    bool keepAsCreate = false,
+  }) {
     setState(() {
-      _insulationId = work.id;
-      _selectedDprId = work.id;
+      _insulationId = keepAsCreate ? null : work.id;
+      _selectedDprId = keepAsCreate ? null : work.id;
       _selectedDate = work.date;
       _dprNameController.text = work.workDescription;
       _plantController.text = work.plant ?? '';
@@ -1151,12 +1162,12 @@ class _AddInsulationDescriptionScreenState
     final service = InsulationMaterialSetupService();
     final apiNotifier = ref.read(insulationMaterialsApiProvider.notifier);
     try {
-      final siteID = siteId;
+      final siteID = ref.read(selectedSiteIdProvider)!;
       await apiNotifier.fetchAndSetMaterials(siteId: siteID);
-      final size = ref.read(selectedSizeProvider) ?? '';
-      final unit = ref.read(selectedUnitProvider) ?? '';
+      final size = ref.read(selectedSizeProvider);
+      final unit = ref.read(selectedUnitProvider);
       ref.read(insulationPipingMaterialsProvider.notifier).updateAllSizes(
-            size: size,
+            size: size!,
             unit: unit,
           );
     } catch (e) {
@@ -1356,6 +1367,73 @@ class _AddInsulationDescriptionScreenState
   }
 
   String _formatDate(DateTime d) => "${d.day}/${d.month}/${d.year}";
+
+  Future<String?> _showDraftNameDialog({
+    required String initialValue,
+    required String fallbackValue,
+  }) async {
+    final controller = TextEditingController(text: initialValue);
+
+    return showDialog<String>(
+      context: context,
+      builder: (context) {
+        return AlertDialog(
+          title: const Text('Save Draft'),
+          content: Column(
+            mainAxisSize: MainAxisSize.min,
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              const Text('Enter a draft name so you can find it in Updates.'),
+              const SizedBox(height: 12),
+              TextField(
+                controller: controller,
+                autofocus: true,
+                decoration: const InputDecoration(
+                  labelText: 'Draft name',
+                  border: OutlineInputBorder(),
+                ),
+              ),
+            ],
+          ),
+          actions: [
+            TextButton(
+              onPressed: () => Navigator.of(context).pop(),
+              child: const Text('Cancel'),
+            ),
+            ElevatedButton(
+              onPressed: () {
+                final value = controller.text.trim();
+                Navigator.of(context).pop(
+                  value.isNotEmpty ? value : fallbackValue,
+                );
+              },
+              child: const Text('Save Draft'),
+            ),
+          ],
+        );
+      },
+    );
+  }
+
+  Future<void> _handleManualDraftSave() async {
+    if (_isDisposed || _isSubmitting) return;
+
+    final defaultName = _dprNameController.text.trim().isNotEmpty
+        ? _dprNameController.text.trim()
+        : 'Insulation DPR Draft';
+
+    final draftName = await _showDraftNameDialog(
+      initialValue: defaultName,
+      fallbackValue: defaultName,
+    );
+
+    if (draftName == null || draftName.trim().isEmpty) return;
+
+    await _saveDraft(
+      customDraftName: draftName.trim(),
+      showSuccessToast: true,
+    );
+  }
 
   void _handleToggleChange(bool isPiping, bool newValue) {
     if (_isDisposed) return;
@@ -2249,10 +2327,8 @@ class _AddInsulationDescriptionScreenState
         _globalEditMode && _dprListForSelectedDate.isNotEmpty;
     final team = ref.read(currentTeamProvider);
     final site = ref.read(currentSiteProvider);
-    final teamid = widget.work?.teamId?.trim().isNotEmpty == true
-        ? widget.work!.teamId!
-        : (ref.read(selectedTeamIdProvider) ?? '');
-    final siteid = siteId;
+    final teamid = ref.read(selectedTeamIdProvider)!;
+    final siteid = ref.read(selectedSiteIdProvider)!;
 
     debugPrint("Team -> $team");
     debugPrint("Site -> $site");
@@ -2315,6 +2391,12 @@ class _AddInsulationDescriptionScreenState
                         Row(
                           mainAxisAlignment: MainAxisAlignment.end,
                           children: [
+                            IconButton(
+                              tooltip: 'Save Draft',
+                              onPressed:
+                                  _isSubmitting ? null : _handleManualDraftSave,
+                              icon: const Icon(Icons.save_as_rounded),
+                            ),
                             _buildEditModeButton(),
                           ],
                         ),
@@ -3151,7 +3233,7 @@ class _AddInsulationDescriptionScreenState
                                           ?.trim()
                                           .isNotEmpty ??
                                       false)
-                              ? (ref.read(selectedSizeProvider) ?? '')
+                                  ? ref.read(selectedSizeProvider)!
                                   : '';
 
                       ref
@@ -3838,13 +3920,22 @@ class _AddInsulationDescriptionScreenState
     final validLayers =
         state.layers.where((l) => l.name.trim().isNotEmpty).toList();
 
+    final currentSiteId =
+        widget.work?.siteId ?? ref.read(selectedSiteIdProvider) ?? siteId;
+    final currentTeamId =
+        widget.work?.teamId ?? ref.read(selectedTeamIdProvider) ?? teamId;
+
     return InsulationDprModel(
-      id: _insulationId ?? generateObjectId(),
+      id: widget.fromDraft
+          ? generateObjectId()
+          : (_insulationId ?? generateObjectId()),
       workDescription: _dprNameController.text.trim(),
       designation: [
         if (pipingMaterials.isNotEmpty) 'piping',
         if (equipmentMaterials.isNotEmpty) 'equipment',
       ],
+      siteId: currentSiteId,
+      teamId: currentTeamId,
       plant: _plantController.text.trim(),
       location: _floorController.text.trim(),
       size: int.tryParse(_sizeController.text.trim()) ?? 0,
@@ -3878,13 +3969,24 @@ class _AddInsulationDescriptionScreenState
     );
   }
 
-  Future<void> _autoSaveDraft() async {
+  Future<void> _saveDraft({
+    String? customDraftName,
+    bool showSuccessToast = false,
+  }) async {
     final draft = _buildDraftModel();
     final draftId =
         draft.id.isNotEmpty ? draft.id : (_insulationId ?? generateObjectId());
     final dprName = (draft.workDescription.trim().isNotEmpty)
-      ? draft.workDescription.trim()
-      : 'Insulation DPR';
+        ? draft.workDescription.trim()
+        : 'Insulation DPR';
+    final draftName = customDraftName?.trim().isNotEmpty == true
+        ? customDraftName!.trim()
+        : dprName;
+
+    // ✅ Use latest site/team IDs for draft save
+    final currentSiteId = ref.read(selectedSiteIdProvider) ?? siteId;
+    final currentTeamId = ref.read(selectedTeamIdProvider) ?? teamId;
+    print(currentSiteId);
 
     debugPrint(
         "PIPING COUNT: ${ref.read(insulationPipingMaterialsProvider).length}");
@@ -3896,8 +3998,8 @@ class _AddInsulationDescriptionScreenState
         draftId: draftId,
         draft: draft,
         updateData: const {},
-        siteId: siteId,
-        teamId: teamId,
+        siteId: currentSiteId,
+        teamId: currentTeamId,
         insulationId: _insulationId,
         savedAt: DateTime.now(),
         expiresAt: DateTime.now().add(const Duration(hours: 24)),
@@ -3905,21 +4007,31 @@ class _AddInsulationDescriptionScreenState
     );
 
     await ref.read(uploadManagerProvider.notifier).notifyDraftSaved(
-      moduleId: 'dpr_insu',
-      draftId: draftId,
-      dprName: dprName,
-      draftWork: draft.toJson(),
-      metadata: {
-        'siteId': siteId,
-        'teamId': teamId,
-        'insulationId': _insulationId,
-        'editRoute': Routes.dprInsuDescription,
-        'date': _selectedDate.toIso8601String(),
-      },
-      sendInstant: true,
-    );
+          moduleId: 'dpr_insu',
+          draftId: draftId,
+          dprName: draftName,
+          draftWork: draft.toJson(),
+          metadata: {
+            'siteId': currentSiteId,
+            'teamId': currentTeamId,
+            'insulationId': _insulationId,
+            'editRoute': Routes.dprInsuDescription,
+            'date': _selectedDate.toIso8601String(),
+            'draftName': draftName,
+            'dprName': dprName,
+          },
+          sendInstant: true,
+        );
 
     debugPrint("💾 Draft Auto Saved");
+
+    if (showSuccessToast) {
+      AppToast.success('Draft "$draftName" saved. Check Updates for details.');
+    }
+  }
+
+  Future<void> _autoSaveDraft() async {
+    await _saveDraft();
   }
 
   Future<void> _handleSubmitFields() async {
@@ -3931,6 +4043,24 @@ class _AddInsulationDescriptionScreenState
     if (_isSubmitting) return;
 
     setState(() => _isSubmitting = true);
+
+    // ✅ Ensure siteId and teamId are available before submission
+    final currentSiteId =
+        widget.work?.siteId ?? ref.read(selectedSiteIdProvider) ?? siteId;
+    final currentTeamId =
+        widget.work?.teamId ?? ref.read(selectedTeamIdProvider) ?? teamId;
+
+    debugPrint('''
+==============================
+🔥🔥 CURRENT SITE ID
+$currentTeamId
+==============================
+''');
+    if (currentSiteId.isEmpty) {
+      AppToast.error("Site ID is missing. Please select a site.");
+      setState(() => _isSubmitting = false);
+      return;
+    }
 
     try {
       // Sync latest state from cards
@@ -4041,8 +4171,8 @@ class _AddInsulationDescriptionScreenState
           draftId: draftId,
           draft: draft,
           updateData: payload,
-          siteId: siteId,
-          teamId: teamId,
+          siteId: currentSiteId, // ✅ Use verified siteId
+          teamId: currentTeamId, // ✅ Use verified teamId
           insulationId: _insulationId,
           savedAt: DateTime.now(),
           expiresAt: DateTime.now().add(const Duration(hours: 24)),
@@ -4057,8 +4187,8 @@ class _AddInsulationDescriptionScreenState
                 'draftId': draftId,
                 'draftWork': draftWork,
                 'insulationId': _insulationId,
-                'siteId': siteId,
-                'teamId': teamId,
+                'siteId': currentSiteId, // ✅ Use verified siteId
+                'teamId': currentTeamId, // ✅ Use verified teamId
                 'dprName': (draft.workDescription?.isNotEmpty ?? false)
                     ? draft.workDescription!
                     : 'Insulation DPR',
@@ -4076,12 +4206,7 @@ class _AddInsulationDescriptionScreenState
 
       WidgetsBinding.instance.addPostFrameCallback((_) {
         if (mounted && !_isDisposed) {
-          int count = 0;
-          if (widget.work == null) {
-            Navigator.of(context).popUntil((_) => count++ >= 2);
-          } else {
-            context.pop(true);
-          }
+          context.pop(true);
           _showSnackBar("Successfully Saved");
         }
       });

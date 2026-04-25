@@ -556,6 +556,9 @@ class _AllInsulationMaterialsScreenState
   @override
   Widget build(BuildContext context) {
     final siteId = ref.watch(selectedSiteIdProvider);
+    final cs = Theme.of(context).colorScheme;
+    final isDark = Theme.of(context).brightness == Brightness.dark;
+    final pageBg = isDark ? const Color(0xFF111315) : const Color(0xFFF4F6FA);
 
     if (siteId == null) {
       return const Scaffold(body: Center(child: Text('No site selected')));
@@ -576,7 +579,7 @@ class _AllInsulationMaterialsScreenState
     if (pipingAsync.isLoading || equipmentAsync.isLoading) {
       return Scaffold(
         drawer: CustomDrawer(),
-        backgroundColor: AppColors.lightBlue,
+        backgroundColor: pageBg,
         appBar: PremiumAppBar(
           title: isDeleteMode
               ? '${selectedIds.length} Selected'
@@ -598,7 +601,7 @@ class _AllInsulationMaterialsScreenState
 
     return Scaffold(
       drawer: CustomDrawer(),
-      backgroundColor: AppColors.lightBlue,
+      backgroundColor: pageBg,
       appBar: PremiumAppBar(
         title: isDeleteMode
             ? '${selectedIds.length} Selected'
@@ -648,6 +651,9 @@ class _AllInsulationMaterialsScreenState
     required List<LocalMaterial> equipmentMaterials,
     bool isLoading = false,
   }) {
+    final cs = Theme.of(context).colorScheme;
+    final isDark = Theme.of(context).brightness == Brightness.dark;
+
     return SafeArea(
       child: Column(
         children: [
@@ -656,12 +662,12 @@ class _AllInsulationMaterialsScreenState
             child: Container(
               padding: const EdgeInsets.symmetric(horizontal: 4, vertical: 4),
               decoration: BoxDecoration(
-                color: Colors.white,
+                color: isDark ? const Color(0xFF1A1D21) : Colors.white,
                 borderRadius: BorderRadius.circular(14),
-                border: Border.all(color: const Color(0xFFD8E5FF)),
+                border: Border.all(color: cs.outlineVariant),
                 boxShadow: [
                   BoxShadow(
-                    color: Colors.black.withOpacity(0.04),
+                    color: cs.shadow.withValues(alpha: isDark ? 0.28 : 0.04),
                     blurRadius: 8,
                     offset: const Offset(0, 2),
                   ),
@@ -669,8 +675,8 @@ class _AllInsulationMaterialsScreenState
               ),
               child: TabBar(
                 controller: _tabController,
-                labelColor: Colors.white,
-                unselectedLabelColor: const Color(0xFF56739E),
+                labelColor: cs.onPrimary,
+                unselectedLabelColor: cs.onSurfaceVariant,
                 labelStyle: const TextStyle(
                   fontSize: 12,
                   fontWeight: FontWeight.w700,
@@ -685,12 +691,10 @@ class _AllInsulationMaterialsScreenState
                 dividerColor: Colors.transparent,
                 indicator: BoxDecoration(
                   borderRadius: BorderRadius.circular(10),
-                  gradient: const LinearGradient(
-                    colors: [Color(0xFF2A66CC), Color(0xFF4F86E8)],
-                  ),
+                  color: cs.primary,
                   boxShadow: [
                     BoxShadow(
-                      color: const Color(0xFF2A66CC).withOpacity(0.28),
+                      color: cs.primary.withValues(alpha: 0.28),
                       blurRadius: 7,
                       offset: const Offset(0, 2),
                     ),
@@ -756,6 +760,9 @@ class _AllInsulationMaterialsScreenState
     required String category,
     bool isLoading = false,
   }) {
+    final cs = Theme.of(context).colorScheme;
+    final isDark = Theme.of(context).brightness == Brightness.dark;
+
     if (isLoading) {
       return _buildLoadingState(category: category, color: color);
     }
@@ -770,10 +777,10 @@ class _AllInsulationMaterialsScreenState
           child: Text(
             emptyMessage,
             textAlign: TextAlign.center,
-            style: const TextStyle(
+            style: TextStyle(
               fontSize: 15,
               fontWeight: FontWeight.w500,
-              color: Color(0xFF5A6E89),
+              color: cs.onSurfaceVariant,
             ),
           ),
         ),
@@ -788,12 +795,12 @@ class _AllInsulationMaterialsScreenState
             width: double.infinity,
             padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
             decoration: BoxDecoration(
-              color: Colors.white,
+              color: isDark ? const Color(0xFF1A1D21) : Colors.white,
               borderRadius: BorderRadius.circular(14),
-              border: Border.all(color: const Color(0xFFD8E5FF)),
+              border: Border.all(color: cs.outlineVariant),
               boxShadow: [
                 BoxShadow(
-                  color: Colors.black.withOpacity(0.03),
+                  color: cs.shadow.withValues(alpha: isDark ? 0.24 : 0.03),
                   blurRadius: 8,
                   offset: const Offset(0, 2),
                 ),
@@ -820,10 +827,10 @@ class _AllInsulationMaterialsScreenState
                             _isOrderSyncing
                                 ? 'Reorder mode active. Saving order...'
                                 : 'Reorder mode active. Drag cards to arrange display order.',
-                            style: const TextStyle(
+                            style: TextStyle(
                               fontSize: 12,
                               fontWeight: FontWeight.w700,
-                              color: Color(0xFF2E4E79),
+                              color: cs.onSurface,
                             ),
                           ),
                         ),
@@ -832,7 +839,7 @@ class _AllInsulationMaterialsScreenState
                           label: 'Done',
                           icon: Icons.check,
                           textColor: Colors.white,
-                          bgColor: const Color(0xFF2B5FAE),
+                          bgColor: cs.primary,
                           onTap: () => setState(_exitReorderMode),
                         ),
                       ],
@@ -846,8 +853,8 @@ class _AllInsulationMaterialsScreenState
                         _buildHeaderActionButton(
                           label: 'Close',
                           icon: Icons.close,
-                          textColor: const Color(0xFF5A6E89),
-                          bgColor: const Color(0xFFF1F5FB),
+                          textColor: cs.onSurfaceVariant,
+                          bgColor: cs.surfaceContainerHighest,
                           onTap: () => setState(() => toggleDeleteMode()),
                         ),
                         const SizedBox(width: 8),
@@ -856,8 +863,8 @@ class _AllInsulationMaterialsScreenState
                             materials.map((m) => m.id).toList(),
                           ),
                           icon: Icons.done_all,
-                          textColor: const Color(0xFF2B5FAE),
-                          bgColor: const Color(0xFFEAF2FF),
+                          textColor: cs.primary,
+                          bgColor: cs.primaryContainer,
                           onTap: () => setState(() {
                             handleSelectAllToggle(
                               materials.map((m) => m.id).toList(),
@@ -895,10 +902,10 @@ class _AllInsulationMaterialsScreenState
                             Expanded(
                               child: Text(
                                 'Total ${category == 'piping' ? 'Piping' : 'Equipment'}: ${materials.length}',
-                                style: const TextStyle(
+                                style: TextStyle(
                                   fontWeight: FontWeight.w700,
                                   fontSize: 13,
-                                  color: Color(0xFF2E4E79),
+                                  color: cs.onSurface,
                                 ),
                               ),
                             ),
@@ -1044,7 +1051,7 @@ class _AllInsulationMaterialsScreenState
                 child: Material(
                   elevation: elevation,
                   color: Colors.transparent,
-                  shadowColor: color.withOpacity(0.4),
+                  shadowColor: color.withValues(alpha: 0.4),
                   borderRadius: BorderRadius.circular(14),
                   child: Transform(
                     transform: Matrix4.identity()
@@ -1105,7 +1112,7 @@ class _AllInsulationMaterialsScreenState
         boxShadow: isDragging
             ? [
                 BoxShadow(
-                  color: color.withOpacity(0.25),
+                  color: color.withValues(alpha: 0.25),
                   blurRadius: 20,
                   spreadRadius: 2,
                   offset: const Offset(0, 8),
@@ -1137,14 +1144,14 @@ class _AllInsulationMaterialsScreenState
                     topRight: Radius.circular(14),
                     bottomRight: Radius.circular(14),
                   ),
-                  color: color.withOpacity(0.10),
+                  color: color.withValues(alpha: 0.10),
                 ),
                 child: Column(
                   mainAxisAlignment: MainAxisAlignment.center,
                   children: [
                     Icon(
                       Icons.drag_indicator_rounded,
-                      color: color.withOpacity(0.8),
+                      color: color.withValues(alpha: 0.8),
                       size: 22,
                     ),
                     const SizedBox(height: 2),
@@ -1153,7 +1160,7 @@ class _AllInsulationMaterialsScreenState
                       style: TextStyle(
                         fontSize: 10,
                         fontWeight: FontWeight.w700,
-                        color: color.withOpacity(0.6),
+                        color: color.withValues(alpha: 0.6),
                       ),
                     ),
                   ],
@@ -1210,6 +1217,7 @@ class _AllInsulationMaterialsScreenState
     required Color iconColor,
     VoidCallback? onTap,
   }) {
+    final isDark = Theme.of(context).brightness == Brightness.dark;
     return Tooltip(
       message: tooltip,
       child: Material(
@@ -1221,9 +1229,9 @@ class _AllInsulationMaterialsScreenState
             width: 38,
             height: 38,
             decoration: BoxDecoration(
-              color: Colors.white,
+              color: isDark ? const Color(0xFF232830) : Colors.white,
               borderRadius: BorderRadius.circular(12),
-              border: Border.all(color: iconColor.withOpacity(0.25)),
+              border: Border.all(color: iconColor.withValues(alpha: 0.25)),
             ),
             child: Icon(icon, size: 19, color: iconColor),
           ),
@@ -1355,12 +1363,14 @@ class _AllInsulationMaterialsScreenState
   }
 
   Widget _selectionOverlay(int materialId, bool isSelected) {
+    final cs = Theme.of(context).colorScheme;
+    final isDark = Theme.of(context).brightness == Brightness.dark;
     return Positioned.fill(
       child: GestureDetector(
         onTap: () => setState(() => toggleSelection(materialId)),
         behavior: HitTestBehavior.opaque,
         child: Container(
-          color: Colors.black.withOpacity(0.05),
+          color: cs.scrim.withValues(alpha: 0.08),
           child: Stack(
             children: [
               Positioned(
@@ -1371,11 +1381,13 @@ class _AllInsulationMaterialsScreenState
                   height: 32,
                   decoration: BoxDecoration(
                     shape: BoxShape.circle,
-                    color: isSelected ? Colors.red : Colors.white,
+                    color: isSelected
+                        ? cs.error
+                        : (isDark ? const Color(0xFF232830) : Colors.white),
                     border: Border.all(color: Colors.red, width: 2),
                     boxShadow: [
                       BoxShadow(
-                        color: Colors.black.withOpacity(0.2),
+                        color: cs.shadow.withValues(alpha: 0.2),
                         blurRadius: 4,
                         offset: const Offset(0, 2),
                       ),
@@ -1399,9 +1411,10 @@ class _AllInsulationMaterialsScreenState
 
   void _showSnack(String message, {required bool isError}) {
     if (!mounted) return;
+    final cs = Theme.of(context).colorScheme;
     ScaffoldMessenger.of(context).showSnackBar(SnackBar(
       content: Text(message),
-      backgroundColor: isError ? Colors.red : Colors.green,
+      backgroundColor: isError ? cs.error : cs.tertiary,
     ));
   }
 
@@ -1421,7 +1434,9 @@ class _AllInsulationMaterialsScreenState
           ),
           TextButton(
             onPressed: () => Navigator.pop(ctx, true),
-            style: TextButton.styleFrom(foregroundColor: Colors.red),
+            style: TextButton.styleFrom(
+              foregroundColor: Theme.of(context).colorScheme.error,
+            ),
             child: const Text('Delete'),
           ),
         ],

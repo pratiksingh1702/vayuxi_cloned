@@ -27,7 +27,7 @@ class InsulationDprUploadHandler implements UploadHandler {
     onProgress(0.6, 'Submitting insulation DPR to server...');
 
     if (insulationId == null || insulationId.isEmpty) {
-      if (siteId.isEmpty || teamId.isEmpty) {
+      if (siteId.isEmpty ) {
         throw Exception('Missing siteId/teamId for insulation DPR create API.');
       }
       final response = await InsulationDprApi.createInsulationDpr(

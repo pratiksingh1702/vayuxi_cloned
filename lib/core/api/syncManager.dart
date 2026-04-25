@@ -8,6 +8,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:untitled2/core/api/requestQueue.dart';
 import 'package:untitled2/core/api/requestQueueModel.dart';
 import 'package:untitled2/core/api/sync_job.dart';
+import 'package:untitled2/features/noti_system/updates/domain/services/notification_ingestion_service.dart';
 
 import 'package:internet_connection_checker_plus/internet_connection_checker_plus.dart';
 
@@ -44,29 +45,23 @@ class SyncManager {
     _init();
   }
 
-
-
-
   void _init() {
     /// Connectivity hint
-    _connectivitySub =
-        Connectivity().onConnectivityChanged.listen((_) {
-          _triggerCheck("connectivity change");
-        });
+    _connectivitySub = Connectivity().onConnectivityChanged.listen((_) {
+      _triggerCheck("connectivity change");
+    });
 
     /// Real internet
-    _internetSub = InternetConnectionChecker.I.onStatusChange
-        .listen((status) {
+    _internetSub = InternetConnectionChecker.I.onStatusChange.listen((status) {
       if (status == InternetConnectionStatus.connected) {
         _triggerCheck("internet connected");
       }
     });
 
     /// Safety retry (VERY IMPORTANT)
-    _periodicTimer =
-        Timer.periodic(const Duration(seconds: 30), (_) {
-          _triggerCheck("periodic");
-        });
+    _periodicTimer = Timer.periodic(const Duration(seconds: 30), (_) {
+      _triggerCheck("periodic");
+    });
 
     /// Initial
     Future.microtask(() => _triggerCheck("initial"));
@@ -79,7 +74,7 @@ class SyncManager {
     }
   }
 
-  Future<void> _triggerCheck(String source) async  {
+  Future<void> _triggerCheck(String source) async {
     if (_isRetrying) return;
     if (RequestQueue.count == 0) {
       print("😴 No pending requests → skip");
@@ -146,6 +141,7 @@ class SyncManager {
       for (final req in requests) {
         final label = buildTaskLabel(req.method, req.path);
         ref.read(syncJobsProvider.notifier).start(req.id, label);
+        await NotificationIngestionService.persistSyncRunning(req);
 
         try {
           dynamic requestData;
@@ -156,8 +152,7 @@ class SyncManager {
             options.headers = {'Content-Type': 'multipart/form-data'};
           } else {
             requestData = req.data;
-            if (requestData is Map &&
-                requestData["__isList"] == true) {
+            if (requestData is Map && requestData["__isList"] == true) {
               requestData = requestData["data"];
             }
             options.headers = {'Content-Type': 'application/json'};
@@ -173,9 +168,9 @@ class SyncManager {
           if (res.statusCode != null &&
               res.statusCode! >= 200 &&
               res.statusCode! < 300) {
-
             await RequestQueue.remove(req.id);
             ref.read(syncJobsProvider.notifier).success(req.id);
+            await NotificationIngestionService.persistSyncSuccess(req);
 
             if (RequestQueue.count == 0) {
               ref.read(syncJobsProvider.notifier).allDone();
@@ -183,8 +178,7 @@ class SyncManager {
 
             print("✅ Success: ${req.id}");
           } else {
-            ref.read(syncJobsProvider.notifier)
-                .failed(req.id, "Server error");
+            ref.read(syncJobsProvider.notifier).failed(req.id, "Server error");
 
             await RequestQueue.remove(req.id);
             print("❌ Failed: ${req.id}");
@@ -197,12 +191,16 @@ class SyncManager {
           if (msg.contains("already exists")) {
             await RequestQueue.remove(req.id);
             ref.read(syncJobsProvider.notifier).success(req.id);
+            await NotificationIngestionService.persistSyncSuccess(req);
             print("⚠️ Already exists: ${req.id}");
             continue;
           }
 
-          ref.read(syncJobsProvider.notifier)
-              .failed(req.id, e.toString());
+          ref.read(syncJobsProvider.notifier).failed(req.id, e.toString());
+          await NotificationIngestionService.persistSyncRetryFailed(
+            req,
+            e.toString(),
+          );
           print("❌ Error: ${req.id}");
 
           // ❗ keep in queue
@@ -215,12 +213,13 @@ class SyncManager {
 
   Future<void> retryNow() async {
     await _triggerCheck("manual");
-  }  Future<void> retry() async {
+  }
+
+  Future<void> retry() async {
     await _retryQueuedRequests();
   }
 
   Future<void> dispose() async {
-
     await _connectivitySub?.cancel();
     await _internetSub?.cancel();
     _periodicTimer?.cancel();

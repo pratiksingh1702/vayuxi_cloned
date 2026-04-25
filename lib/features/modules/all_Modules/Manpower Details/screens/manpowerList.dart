@@ -27,6 +27,15 @@ import '../service/manPowerProvider.dart';
 import '../service/manpowerService.dart';
 import '../util/ViewExcel.dart';
 
+enum ManpowerSortOption {
+  nameAsc,
+  nameDesc,
+  createdAtDesc,
+  createdAtAsc,
+  salaryHighToLow,
+  salaryLowToHigh,
+}
+
 class ManpowerListScreen extends ConsumerStatefulWidget {
   const ManpowerListScreen({super.key});
 
@@ -41,6 +50,12 @@ class _ManpowerListScreenState extends ConsumerState<ManpowerListScreen> {
   String _searchQuery = '';
   String _lastSortedOrderSignature = '';
   final ScrollController _scrollController = ScrollController();
+
+  // Sorting and Filtering State
+  ManpowerSortOption _currentSort = ManpowerSortOption.createdAtDesc;
+  String? _selectedDesignation;
+  double? _minSalary;
+  double? _maxSalary;
 
   @override
   void dispose() {
@@ -560,6 +575,8 @@ class _ManpowerListScreenState extends ConsumerState<ManpowerListScreen> {
   Widget build(BuildContext context) {
     final type = ref.read(typeProvider)!;
     final colorScheme = Theme.of(context).colorScheme;
+    final selectedSiteId = ref.watch(selectedSiteIdProvider);
+    final selectedSite = ref.watch(siteDropdownValueProvider);
 
     final manpowerAsync = ref.watch(
       manpowerOfflineProvider((type: type)),
@@ -628,19 +645,83 @@ class _ManpowerListScreenState extends ConsumerState<ManpowerListScreen> {
               ),
             ),
             data: (manpowerList) {
-              final filteredList = _searchQuery.isEmpty
-                  ? manpowerList
-                  : manpowerList.where((m) {
-                      final name = (m.fullName ?? '').toLowerCase();
-                      final code = (m.employeeCode ?? '').toLowerCase();
-                      final query = _searchQuery.toLowerCase();
-                      return name.contains(query) || code.contains(query);
-                    }).toList();
+              if (selectedSiteId == null || selectedSiteId.isEmpty) {
+                return Center(
+                  child: Padding(
+                    padding: const EdgeInsets.symmetric(horizontal: 20),
+                    child: Text(
+                      "Please select a site first to view manpower.",
+                      textAlign: TextAlign.center,
+                      style: TextStyle(color: colorScheme.onSurfaceVariant),
+                    ),
+                  ),
+                );
+              }
 
+              // 1. APPLY FILTERS
+              var filteredList = manpowerList.where((m) {
+                // Fixed site filter (cannot be changed from this screen)
+                if (!m.sites.contains(selectedSiteId)) {
+                  return false;
+                }
+
+                // Search query filter
+                if (_searchQuery.isNotEmpty) {
+                  final name = (m.fullName ?? '').toLowerCase();
+                  final code = (m.employeeCode ?? '').toLowerCase();
+                  final query = _searchQuery.toLowerCase();
+                  if (!name.contains(query) && !code.contains(query)) {
+                    return false;
+                  }
+                }
+
+                // Designation filter
+                if (_selectedDesignation != null &&
+                    m.designation != _selectedDesignation) {
+                  return false;
+                }
+
+                // Salary range filter
+                if (_minSalary != null && (m.salary ?? 0) < _minSalary!) {
+                  return false;
+                }
+                if (_maxSalary != null && (m.salary ?? 0) > _maxSalary!) {
+                  return false;
+                }
+
+                return true;
+              }).toList();
+
+              // 2. APPLY SORTING
               filteredList.sort((a, b) {
-                final aName = (a.fullName ?? '').trim().toLowerCase();
-                final bName = (b.fullName ?? '').trim().toLowerCase();
-                return aName.compareTo(bName);
+                switch (_currentSort) {
+                  case ManpowerSortOption.nameAsc:
+                    return (a.fullName ?? '')
+                        .trim()
+                        .toLowerCase()
+                        .compareTo((b.fullName ?? '').trim().toLowerCase());
+                  case ManpowerSortOption.nameDesc:
+                    return (b.fullName ?? '')
+                        .trim()
+                        .toLowerCase()
+                        .compareTo((a.fullName ?? '').trim().toLowerCase());
+                  case ManpowerSortOption.createdAtDesc:
+                    final aTime = DateTime.tryParse(a.updatedAt ?? "") ??
+                        DateTime.fromMillisecondsSinceEpoch(0);
+                    final bTime = DateTime.tryParse(b.updatedAt ?? "") ??
+                        DateTime.fromMillisecondsSinceEpoch(0);
+                    return bTime.compareTo(aTime);
+                  case ManpowerSortOption.createdAtAsc:
+                    final aTime = DateTime.tryParse(a.updatedAt ?? "") ??
+                        DateTime.fromMillisecondsSinceEpoch(0);
+                    final bTime = DateTime.tryParse(b.updatedAt ?? "") ??
+                        DateTime.fromMillisecondsSinceEpoch(0);
+                    return aTime.compareTo(bTime);
+                  case ManpowerSortOption.salaryHighToLow:
+                    return (b.salary ?? 0).compareTo(a.salary ?? 0);
+                  case ManpowerSortOption.salaryLowToHigh:
+                    return (a.salary ?? 0).compareTo(b.salary ?? 0);
+                }
               });
 
               final sortedSignature = filteredList
@@ -692,28 +773,40 @@ class _ManpowerListScreenState extends ConsumerState<ManpowerListScreen> {
                 children: [
                   Padding(
                     padding: const EdgeInsets.fromLTRB(16, 8, 16, 4),
-                    child: TextField(
-                      onChanged: (val) => setState(() => _searchQuery = val),
-                      decoration: InputDecoration(
-                        hintText: 'Search by name or employee code...',
-                        prefixIcon: const Icon(Icons.search, size: 20),
-                        suffixIcon: _searchQuery.isNotEmpty
-                            ? IconButton(
-                                icon: const Icon(Icons.close, size: 18),
-                                onPressed: () =>
-                                    setState(() => _searchQuery = ''),
-                              )
-                            : null,
-                        isDense: true,
-                        filled: true,
-                        fillColor: colorScheme.surface,
-                        contentPadding: const EdgeInsets.symmetric(
-                            horizontal: 12, vertical: 10),
-                        border: OutlineInputBorder(
-                          borderRadius: BorderRadius.circular(10),
-                          borderSide: BorderSide.none,
+                    child: Row(
+                      children: [
+                        Expanded(
+                          child: TextField(
+                            onChanged: (val) =>
+                                setState(() => _searchQuery = val),
+                            decoration: InputDecoration(
+                              hintText: 'Search by name or code...',
+                              prefixIcon: const Icon(Icons.search, size: 20),
+                              suffixIcon: _searchQuery.isNotEmpty
+                                  ? IconButton(
+                                      icon: const Icon(Icons.close, size: 18),
+                                      onPressed: () =>
+                                          setState(() => _searchQuery = ''),
+                                    )
+                                  : null,
+                              isDense: true,
+                              filled: true,
+                              fillColor: colorScheme.surface,
+                              contentPadding: const EdgeInsets.symmetric(
+                                  horizontal: 12, vertical: 10),
+                              border: OutlineInputBorder(
+                                borderRadius: BorderRadius.circular(10),
+                                borderSide: BorderSide.none,
+                              ),
+                            ),
+                          ),
                         ),
-                      ),
+                        const SizedBox(width: 8),
+                        _buildFilterButton(
+                          manpowerList,
+                          selectedSiteName: selectedSite?.siteName,
+                        ),
+                      ],
                     ),
                   ),
 
@@ -779,6 +872,72 @@ class _ManpowerListScreenState extends ConsumerState<ManpowerListScreen> {
               );
             },
           ),
+        ),
+      ),
+    );
+  }
+
+  Widget _buildFilterButton(
+    List<ManpowerModel> allManpower, {
+    String? selectedSiteName,
+  }) {
+    final colorScheme = Theme.of(context).colorScheme;
+    final bool hasActiveFilters = _selectedDesignation != null ||
+        _minSalary != null ||
+        _maxSalary != null ||
+        _currentSort != ManpowerSortOption.createdAtDesc;
+
+    return GestureDetector(
+      onTap: () => _showFilterSortBottomSheet(
+        allManpower,
+        selectedSiteName: selectedSiteName,
+      ),
+      child: Container(
+        height: 40,
+        width: 40,
+        decoration: BoxDecoration(
+          color: hasActiveFilters ? colorScheme.primary : colorScheme.surface,
+          borderRadius: BorderRadius.circular(10),
+          border: Border.all(
+            color: hasActiveFilters
+                ? colorScheme.primary
+                : colorScheme.outlineVariant,
+          ),
+          boxShadow: hasActiveFilters
+              ? [
+                  BoxShadow(
+                    color: colorScheme.primary.withOpacity(0.3),
+                    blurRadius: 8,
+                    offset: const Offset(0, 2),
+                  )
+                ]
+              : null,
+        ),
+        child: Stack(
+          alignment: Alignment.center,
+          children: [
+            Icon(
+              Icons.tune_rounded,
+              size: 20,
+              color: hasActiveFilters
+                  ? colorScheme.onPrimary
+                  : colorScheme.primary,
+            ),
+            if (hasActiveFilters)
+              Positioned(
+                top: 6,
+                right: 6,
+                child: Container(
+                  width: 8,
+                  height: 8,
+                  decoration: BoxDecoration(
+                    color: colorScheme.error,
+                    shape: BoxShape.circle,
+                    border: Border.all(color: colorScheme.primary, width: 1.5),
+                  ),
+                ),
+              ),
+          ],
         ),
       ),
     );
@@ -929,6 +1088,375 @@ class _ManpowerListScreenState extends ConsumerState<ManpowerListScreen> {
     if (confirm == true) {
       _deleteManpower(context, manpowerId);
     }
+  }
+
+  void _showFilterSortBottomSheet(
+    List<ManpowerModel> allManpower, {
+    String? selectedSiteName,
+  }) {
+    final colorScheme = Theme.of(context).colorScheme;
+    final designations = allManpower
+        .map((m) => m.designation)
+        .where((d) => d != null && d.isNotEmpty)
+        .toSet()
+        .toList()
+      ..sort();
+
+    showModalBottomSheet(
+      context: context,
+      isScrollControlled: true,
+      backgroundColor: Colors.transparent,
+      builder: (context) => StatefulBuilder(
+        builder: (context, setModalState) {
+          return Container(
+            height: MediaQuery.of(context).size.height * 0.75,
+            decoration: BoxDecoration(
+              color: colorScheme.surface,
+              borderRadius:
+                  const BorderRadius.vertical(top: Radius.circular(24)),
+            ),
+            child: Column(
+              children: [
+                // Handle
+                Container(
+                  margin: const EdgeInsets.symmetric(vertical: 12),
+                  width: 40,
+                  height: 4,
+                  decoration: BoxDecoration(
+                    color: colorScheme.outlineVariant,
+                    borderRadius: BorderRadius.circular(2),
+                  ),
+                ),
+
+                // Header
+                Padding(
+                  padding: const EdgeInsets.symmetric(horizontal: 20),
+                  child: Row(
+                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                    children: [
+                      Text(
+                        "Sort & Filter",
+                        style: TextStyle(
+                          fontSize: 20,
+                          fontWeight: FontWeight.bold,
+                          color: colorScheme.onSurface,
+                        ),
+                      ),
+                      TextButton(
+                        onPressed: () {
+                          setModalState(() {
+                            _currentSort = ManpowerSortOption.createdAtDesc;
+                            _selectedDesignation = null;
+                            _minSalary = null;
+                            _maxSalary = null;
+                          });
+                          setState(() {});
+                        },
+                        child: const Text("Reset All"),
+                      ),
+                    ],
+                  ),
+                ),
+
+                const Divider(),
+
+                Expanded(
+                  child: ListView(
+                    padding: const EdgeInsets.all(20),
+                    children: [
+                      _buildSectionTitle(context, "Site"),
+                      const SizedBox(height: 10),
+                      Container(
+                        width: double.infinity,
+                        padding: const EdgeInsets.all(12),
+                        decoration: BoxDecoration(
+                          color: colorScheme.primaryContainer.withOpacity(0.45),
+                          borderRadius: BorderRadius.circular(10),
+                          border:
+                              Border.all(color: colorScheme.primaryContainer),
+                        ),
+                        child: Row(
+                          children: [
+                            Icon(Icons.lock_outline,
+                                size: 18, color: colorScheme.primary),
+                            const SizedBox(width: 8),
+                            Expanded(
+                              child: Text(
+                                selectedSiteName?.isNotEmpty == true
+                                    ? 'Fixed to: $selectedSiteName'
+                                    : 'Fixed to selected site',
+                                style: TextStyle(
+                                  color: colorScheme.onSurface,
+                                  fontWeight: FontWeight.w600,
+                                ),
+                              ),
+                            ),
+                          ],
+                        ),
+                      ),
+
+                      const SizedBox(height: 24),
+
+                      // SORT SECTION
+                      _buildSectionTitle(context, "Sort By"),
+                      const SizedBox(height: 12),
+                      Wrap(
+                        spacing: 8,
+                        runSpacing: 8,
+                        children: [
+                          _buildSortChip(
+                            context,
+                            setModalState,
+                            "Newest First",
+                            ManpowerSortOption.createdAtDesc,
+                            Icons.calendar_today,
+                          ),
+                          _buildSortChip(
+                            context,
+                            setModalState,
+                            "Oldest First",
+                            ManpowerSortOption.createdAtAsc,
+                            Icons.history,
+                          ),
+                          _buildSortChip(
+                            context,
+                            setModalState,
+                            "Name A-Z",
+                            ManpowerSortOption.nameAsc,
+                            Icons.sort_by_alpha,
+                          ),
+                          _buildSortChip(
+                            context,
+                            setModalState,
+                            "Name Z-A",
+                            ManpowerSortOption.nameDesc,
+                            Icons.sort_by_alpha,
+                          ),
+                          _buildSortChip(
+                            context,
+                            setModalState,
+                            "Salary: High-Low",
+                            ManpowerSortOption.salaryHighToLow,
+                            Icons.trending_down,
+                          ),
+                          _buildSortChip(
+                            context,
+                            setModalState,
+                            "Salary: Low-High",
+                            ManpowerSortOption.salaryLowToHigh,
+                            Icons.trending_up,
+                          ),
+                        ],
+                      ),
+
+                      const SizedBox(height: 24),
+
+                      // DESIGNATION FILTER
+                      _buildSectionTitle(context, "Designation"),
+                      const SizedBox(height: 12),
+                      designations.isEmpty
+                          ? Text(
+                              "No designations found",
+                              style: TextStyle(
+                                  color: colorScheme.onSurfaceVariant,
+                                  fontSize: 13),
+                            )
+                          : Wrap(
+                              spacing: 8,
+                              runSpacing: 8,
+                              children: designations.map((d) {
+                                final isSelected = _selectedDesignation == d;
+                                return FilterChip(
+                                  selected: isSelected,
+                                  label: Text(d!),
+                                  onSelected: (val) {
+                                    setModalState(() {
+                                      _selectedDesignation = val ? d : null;
+                                    });
+                                    setState(() {});
+                                  },
+                                  backgroundColor: colorScheme.surface,
+                                  selectedColor: colorScheme.primaryContainer,
+                                  checkmarkColor: colorScheme.primary,
+                                  labelStyle: TextStyle(
+                                    color: isSelected
+                                        ? colorScheme.primary
+                                        : colorScheme.onSurface,
+                                    fontWeight: isSelected
+                                        ? FontWeight.bold
+                                        : FontWeight.normal,
+                                  ),
+                                  shape: RoundedRectangleBorder(
+                                    borderRadius: BorderRadius.circular(8),
+                                    side: BorderSide(
+                                      color: isSelected
+                                          ? colorScheme.primary
+                                          : colorScheme.outlineVariant,
+                                    ),
+                                  ),
+                                );
+                              }).toList(),
+                            ),
+
+                      const SizedBox(height: 24),
+
+                      // SALARY RANGE
+                      _buildSectionTitle(context, "Salary Range"),
+                      const SizedBox(height: 12),
+                      Row(
+                        children: [
+                          Expanded(
+                            child: TextField(
+                              keyboardType: TextInputType.number,
+                              decoration: InputDecoration(
+                                hintText: "Min",
+                                prefixText: "₹ ",
+                                border: OutlineInputBorder(
+                                  borderRadius: BorderRadius.circular(12),
+                                ),
+                                contentPadding: const EdgeInsets.symmetric(
+                                    horizontal: 12, vertical: 8),
+                              ),
+                              controller: TextEditingController(
+                                  text: _minSalary?.toString() ?? ""),
+                              onChanged: (val) {
+                                _minSalary = double.tryParse(val);
+                                setState(() {});
+                              },
+                            ),
+                          ),
+                          const Padding(
+                            padding: EdgeInsets.symmetric(horizontal: 12),
+                            child: Text("-"),
+                          ),
+                          Expanded(
+                            child: TextField(
+                              keyboardType: TextInputType.number,
+                              decoration: InputDecoration(
+                                hintText: "Max",
+                                prefixText: "₹ ",
+                                border: OutlineInputBorder(
+                                  borderRadius: BorderRadius.circular(12),
+                                ),
+                                contentPadding: const EdgeInsets.symmetric(
+                                    horizontal: 12, vertical: 8),
+                              ),
+                              controller: TextEditingController(
+                                  text: _maxSalary?.toString() ?? ""),
+                              onChanged: (val) {
+                                _maxSalary = double.tryParse(val);
+                                setState(() {});
+                              },
+                            ),
+                          ),
+                        ],
+                      ),
+                      const SizedBox(height: 40),
+                    ],
+                  ),
+                ),
+
+                // Apply Button
+                Padding(
+                  padding: const EdgeInsets.all(20),
+                  child: SizedBox(
+                    width: double.infinity,
+                    height: 54,
+                    child: ElevatedButton(
+                      onPressed: () => Navigator.pop(context),
+                      style: ElevatedButton.styleFrom(
+                        backgroundColor: colorScheme.primary,
+                        foregroundColor: colorScheme.onPrimary,
+                        shape: RoundedRectangleBorder(
+                          borderRadius: BorderRadius.circular(16),
+                        ),
+                        elevation: 0,
+                      ),
+                      child: const Text(
+                        "Apply Filters",
+                        style: TextStyle(
+                            fontSize: 16, fontWeight: FontWeight.bold),
+                      ),
+                    ),
+                  ),
+                ),
+              ],
+            ),
+          );
+        },
+      ),
+    );
+  }
+
+  Widget _buildSectionTitle(BuildContext context, String title) {
+    return Text(
+      title,
+      style: TextStyle(
+        fontSize: 16,
+        fontWeight: FontWeight.bold,
+        color: Theme.of(context).colorScheme.onSurface,
+      ),
+    );
+  }
+
+  Widget _buildSortChip(
+    BuildContext context,
+    StateSetter setModalState,
+    String label,
+    ManpowerSortOption option,
+    IconData icon,
+  ) {
+    final colorScheme = Theme.of(context).colorScheme;
+    final isSelected = _currentSort == option;
+
+    return GestureDetector(
+      onTap: () {
+        setModalState(() {
+          _currentSort = option;
+        });
+        setState(() {});
+      },
+      child: Container(
+        padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+        decoration: BoxDecoration(
+          color: isSelected ? colorScheme.primary : colorScheme.surface,
+          borderRadius: BorderRadius.circular(10),
+          border: Border.all(
+            color:
+                isSelected ? colorScheme.primary : colorScheme.outlineVariant,
+          ),
+          boxShadow: isSelected
+              ? [
+                  BoxShadow(
+                    color: colorScheme.primary.withOpacity(0.2),
+                    blurRadius: 4,
+                    offset: const Offset(0, 2),
+                  )
+                ]
+              : null,
+        ),
+        child: Row(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Icon(
+              icon,
+              size: 16,
+              color: isSelected ? colorScheme.onPrimary : colorScheme.onSurface,
+            ),
+            const SizedBox(width: 8),
+            Text(
+              label,
+              style: TextStyle(
+                color:
+                    isSelected ? colorScheme.onPrimary : colorScheme.onSurface,
+                fontWeight: isSelected ? FontWeight.bold : FontWeight.normal,
+                fontSize: 13,
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
   }
 
   Future<void> _deleteManpower(BuildContext context, String manpowerId) async {

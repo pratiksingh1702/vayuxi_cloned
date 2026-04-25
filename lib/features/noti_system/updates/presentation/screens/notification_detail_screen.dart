@@ -14,7 +14,11 @@ class NotificationDetailScreen extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
+    final isSyncUpdate = notification.metadata['source'] == 'sync_queue';
+    final syncSummary = _extractSyncSummary(notification.metadata);
     final draftWork = _extractDraftWork(notification.metadata);
+    final draftName =
+        (notification.metadata['draftName'] ?? '').toString().trim();
     final detailsMetadata = _filterDetailsMetadata(notification.metadata);
 
     return Material(
@@ -53,6 +57,10 @@ class NotificationDetailScreen extends StatelessWidget {
               sliver: SliverList(
                 delegate: SliverChildListDelegate([
                   _MetaRow(notification: notification),
+                  if (isSyncUpdate && syncSummary != null) ...[
+                    const SizedBox(height: 16),
+                    _SyncRequestOverview(summary: syncSummary),
+                  ],
                   const SizedBox(height: 20),
                   Text(
                     notification.description,
@@ -60,7 +68,10 @@ class NotificationDetailScreen extends StatelessWidget {
                   ),
                   if (draftWork != null) ...[
                     const SizedBox(height: 20),
-                    _DprDraftSnapshot(draftWork: draftWork),
+                    _DprDraftSnapshot(
+                      draftWork: draftWork,
+                      draftName: draftName,
+                    ),
                   ],
                   if (detailsMetadata.isNotEmpty) ...[
                     const SizedBox(height: 24),
@@ -70,7 +81,7 @@ class NotificationDetailScreen extends StatelessWidget {
               ),
             ),
           ],
-          ),
+        ),
         bottomSheet: notification.actions.isNotEmpty
             ? _StickyActions(notification: notification)
             : null,
@@ -175,11 +186,49 @@ class _MetadataSection extends StatelessWidget {
 
 Map<String, dynamic> _filterDetailsMetadata(Map<String, dynamic> metadata) {
   final filtered = <String, dynamic>{};
+  const hiddenKeys = {
+    'actions',
+    'draftWork',
+    'data',
+    'query',
+    'files',
+    'method',
+    'endpoint',
+    'requestId',
+    'source',
+    'syncStatus',
+    'taskLabel',
+    'queuedAt',
+    'syncedAt',
+    'lastTriedAt',
+    'friendlyReason',
+  };
+
   for (final entry in metadata.entries) {
-    if (entry.key == 'actions' || entry.key == 'draftWork') continue;
+    if (hiddenKeys.contains(entry.key)) {
+      continue;
+    }
     filtered[entry.key] = entry.value;
   }
   return filtered;
+}
+
+Map<String, dynamic>? _extractSyncSummary(Map<String, dynamic> metadata) {
+  if (metadata['source'] != 'sync_queue') return null;
+
+  String read(String key) => (metadata[key] ?? '').toString().trim();
+  final rawData = metadata['data'];
+  final rawQuery = metadata['query'];
+  final rawFiles = metadata['files'];
+
+  return {
+    'taskLabel': read('taskLabel'),
+    'syncStatus': read('syncStatus'),
+    'friendlyReason': read('friendlyReason'),
+    'data': rawData is Map ? Map<String, dynamic>.from(rawData) : null,
+    'query': rawQuery is Map ? Map<String, dynamic>.from(rawQuery) : null,
+    'files': rawFiles is List ? List<dynamic>.from(rawFiles) : null,
+  };
 }
 
 Map<String, dynamic>? _extractDraftWork(Map<String, dynamic> metadata) {
@@ -200,9 +249,13 @@ Map<String, dynamic>? _extractDraftWork(Map<String, dynamic> metadata) {
 }
 
 class _DprDraftSnapshot extends StatelessWidget {
-  const _DprDraftSnapshot({required this.draftWork});
+  const _DprDraftSnapshot({
+    required this.draftWork,
+    required this.draftName,
+  });
 
   final Map<String, dynamic> draftWork;
+  final String draftName;
 
   String _s(dynamic value) => (value ?? '').toString().trim();
 
@@ -275,6 +328,7 @@ class _DprDraftSnapshot extends StatelessWidget {
             ),
           ),
           const SizedBox(height: 10),
+          if (draftName.isNotEmpty) _kv(theme, 'Draft Name', draftName),
           _kv(theme, 'Name', dprName.isEmpty ? '-' : dprName),
           _kv(theme, 'Date', date.isEmpty ? '-' : date),
           _kv(theme, 'Plant', plant.isEmpty ? '-' : plant),
@@ -353,6 +407,148 @@ class _DprDraftSnapshot extends StatelessWidget {
           ],
         ),
       ),
+    );
+  }
+}
+
+class _SyncRequestOverview extends StatelessWidget {
+  const _SyncRequestOverview({required this.summary});
+
+  final Map<String, dynamic> summary;
+
+  @override
+  Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+    final status = (summary['syncStatus'] ?? '').toString();
+    final taskLabel = (summary['taskLabel'] ?? '').toString();
+    final reason = (summary['friendlyReason'] ?? '').toString();
+    final data = summary['data'] as Map<String, dynamic>?;
+    final query = summary['query'] as Map<String, dynamic>?;
+    final files = summary['files'] as List<dynamic>?;
+
+    final (statusLabel, statusColor) = switch (status) {
+      'running' => ('Sending now', Colors.teal),
+      'success' => ('Sent', Colors.green),
+      'retry_failed' => ('Will retry automatically', Colors.orange),
+      _ => ('Saved offline', Colors.blue),
+    };
+
+    String mapPreview(Map<String, dynamic>? map) {
+      if (map == null || map.isEmpty) return 'None';
+      final entries =
+          map.entries.take(4).map((e) => '${e.key}: ${e.value}').join(' • ');
+      if (map.length > 4) return '$entries • +${map.length - 4} more';
+      return entries;
+    }
+
+    final filesCount = files?.length ?? 0;
+
+    return Container(
+      width: double.infinity,
+      padding: const EdgeInsets.all(14),
+      decoration: BoxDecoration(
+        borderRadius: BorderRadius.circular(14),
+        color: statusColor.withOpacity(0.10),
+        border: Border.all(color: statusColor.withOpacity(0.35)),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
+            children: [
+              Icon(Icons.sync_alt_rounded, size: 18, color: statusColor),
+              const SizedBox(width: 8),
+              Expanded(
+                child: Text(
+                  taskLabel.isNotEmpty ? taskLabel : 'Saved request',
+                  style: theme.textTheme.titleSmall?.copyWith(
+                    fontWeight: FontWeight.w700,
+                  ),
+                ),
+              ),
+              Container(
+                padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                decoration: BoxDecoration(
+                  color: statusColor.withOpacity(0.15),
+                  borderRadius: BorderRadius.circular(999),
+                ),
+                child: Text(
+                  statusLabel,
+                  style: TextStyle(
+                    color: statusColor,
+                    fontSize: 11,
+                    fontWeight: FontWeight.w700,
+                  ),
+                ),
+              ),
+            ],
+          ),
+          const SizedBox(height: 10),
+          Text(
+            'What you were saving: ${taskLabel.isNotEmpty ? taskLabel : 'Update details'}',
+            style: theme.textTheme.bodySmall?.copyWith(
+              fontWeight: FontWeight.w600,
+              color: theme.colorScheme.onSurface,
+            ),
+          ),
+          if (reason.isNotEmpty) ...[
+            const SizedBox(height: 8),
+            Text(
+              reason,
+              style: theme.textTheme.bodySmall?.copyWith(height: 1.45),
+            ),
+          ],
+          const SizedBox(height: 10),
+          _SyncInfoRow(
+            label: 'Saved details',
+            value: mapPreview(data),
+          ),
+          const SizedBox(height: 6),
+          _SyncInfoRow(
+            label: 'Query details',
+            value: mapPreview(query),
+          ),
+          const SizedBox(height: 6),
+          _SyncInfoRow(
+            label: 'Attached files',
+            value: filesCount == 0 ? 'None' : '$filesCount file(s)',
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+class _SyncInfoRow extends StatelessWidget {
+  const _SyncInfoRow({required this.label, required this.value});
+
+  final String label;
+  final String value;
+
+  @override
+  Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+    return Row(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        SizedBox(
+          width: 98,
+          child: Text(
+            label,
+            style: theme.textTheme.labelSmall?.copyWith(
+              color: theme.colorScheme.onSurfaceVariant,
+              fontWeight: FontWeight.w600,
+            ),
+          ),
+        ),
+        const SizedBox(width: 6),
+        Expanded(
+          child: Text(
+            value,
+            style: theme.textTheme.bodySmall,
+          ),
+        ),
+      ],
     );
   }
 }

@@ -216,7 +216,8 @@ class CustomDrawer extends ConsumerWidget {
                       const SizedBox(height: 4),
                       _buildNavItem(
                         context,
-                        imagePath: "assets/images/icons/dashboard.webp",
+                        iconData: Icons.home_rounded,
+                        iconColor: Colors.blueGrey,
                         title: 'Home',
                         route: '/workCategory',
                         requiresVerification: false,
@@ -233,29 +234,32 @@ class CustomDrawer extends ConsumerWidget {
                         children: [
                           _buildNavItem(
                             context,
-                            imagePath: "assets/images/icons/attendance.webp",
+                            iconData: Icons.how_to_reg_rounded,
+                            iconColor: Colors.green,
                             title: 'Attendance',
                             route: '/site-list/attendance',
                             requiresVerification: false,
                           ),
                           _buildNavItem(
                             context,
-                            imagePath: "assets/images/icons/dpr.webp",
+                            iconData: Icons.description_rounded,
+                            iconColor: Colors.indigo,
                             title: 'Daily Progress',
                             route: '/site-list/dpr',
                             requiresVerification: false,
                           ),
                           _buildNavItem(
                             context,
-                            imagePath: "assets/images/icons/expense_daily.webp",
+                            iconData: Icons.receipt_long_rounded,
+                            iconColor: Colors.orange,
                             title: 'Expense Entry',
                             route: '/site-list/add-exp',
                             requiresVerification: false,
                           ),
                           _buildNavItem(
                             context,
-                            imagePath:
-                                "assets/images/icons/inventory_entry.webp",
+                            iconData: Icons.inventory_2_rounded,
+                            iconColor: Colors.teal,
                             title: 'Inventory Entry',
                             route: '/site-list/inv-entry',
                             requiresVerification: false,
@@ -267,44 +271,48 @@ class CustomDrawer extends ConsumerWidget {
                         children: [
                           _buildNavItem(
                             context,
-                            imagePath: "assets/images/icons/site_details.webp",
+                            iconData: Icons.location_city_rounded,
+                            iconColor: Colors.cyan,
                             title: 'Site Details',
                             route: '/site',
                             requiresVerification: true,
                           ),
                           _buildNavItem(
                             context,
-                            imagePath: "assets/images/icons/rate.webp",
+                            iconData: Icons.currency_rupee_rounded,
+                            iconColor: Colors.amber,
                             title: 'Rate Management',
                             route: '/site-list/rate',
                             requiresVerification: true,
                           ),
                           _buildNavItem(
                             context,
-                            imagePath:
-                                "assets/images/icons/manpower_setup.webp",
+                            iconData: Icons.engineering_rounded,
+                            iconColor: Colors.deepOrange,
                             title: 'Manpower Details',
                             route: '/manpower',
                             requiresVerification: true,
                           ),
                           _buildNavItem(
                             context,
-                            imagePath: "assets/images/icons/add_team.webp",
+                            iconData: Icons.groups_rounded,
+                            iconColor: Colors.purple,
                             title: 'Team Management',
                             route: '/site-list/team',
                             requiresVerification: true,
                           ),
                           _buildNavItem(
                             context,
-                            imagePath: "assets/images/icons/dpr_setup.webp",
+                            iconData: Icons.settings_suggest_rounded,
+                            iconColor: Colors.blueGrey,
                             title: 'DPR Setup',
                             route: '/site-list/addMoc',
                             requiresVerification: true,
                           ),
                           _buildNavItem(
                             context,
-                            imagePath:
-                                "assets/images/icons/inventory_setup.webp",
+                            iconData: Icons.warehouse_rounded,
+                            iconColor: Colors.brown,
                             title: 'Inventory Setup',
                             route: '/site-list/inv-setup',
                             requiresVerification: true,
@@ -316,52 +324,56 @@ class CustomDrawer extends ConsumerWidget {
                         children: [
                           _buildNavItem(
                             context,
-                            imagePath:
-                                "assets/images/icons/summary_analysis.webp",
+                            iconData: Icons.analytics_rounded,
+                            iconColor: Colors.blue,
                             title: 'Summary & Analysis',
                             route: '/summary',
                             requiresVerification: true,
                           ),
                           _buildNavItem(
                             context,
-                            imagePath: "assets/images/icons/ai_analysis.webp",
+                            iconData: Icons.auto_awesome_rounded,
+                            iconColor: Colors.teal,
                             title: 'AI Analysis',
                             route: '/analysis',
                             requiresVerification: true,
                           ),
                           _buildNavItem(
                             context,
-                            imagePath: "assets/images/icons/salary_slip.webp",
+                            iconData: Icons.payments_rounded,
+                            iconColor: Colors.lightGreen,
                             title: 'Salary Reports',
                             route: '/salary',
                             requiresVerification: true,
                           ),
                           _buildNavItem(
                             context,
-                            imagePath: "assets/images/icons/dpr_report.webp",
+                            iconData: Icons.table_chart_rounded,
+                            iconColor: Colors.deepPurple,
                             title: 'DPR Sheets',
                             route: '/site-list/dprReport',
                             requiresVerification: true,
                           ),
                           _buildNavItem(
                             context,
-                            imagePath: "assets/images/icons/expense_sheet.webp",
+                            iconData: Icons.request_quote_rounded,
+                            iconColor: Colors.redAccent,
                             title: 'Expense Report',
                             route: '/site-list/expense',
                             requiresVerification: true,
                           ),
                           _buildNavItem(
                             context,
-                            imagePath:
-                                "assets/images/icons/attendance_sheet.webp",
+                            iconData: Icons.fact_check_rounded,
+                            iconColor: Colors.lime,
                             title: 'Attendance Sheet',
                             route: '/site-list/att-sheet',
                             requiresVerification: true,
                           ),
                           _buildNavItem(
                             context,
-                            imagePath:
-                                "assets/images/icons/inventory_summary.webp",
+                            iconData: Icons.assessment_rounded,
+                            iconColor: Colors.pink,
                             title: 'Inventory Report',
                             route: '/site-list/inv-Report',
                             requiresVerification: true,
@@ -373,42 +385,48 @@ class CustomDrawer extends ConsumerWidget {
                         children: [
                           _buildNavItem(
                             context,
-                            imagePath: "assets/images/icons/profile.webp",
+                            iconData: Icons.account_circle_rounded,
+                            iconColor: Colors.deepPurpleAccent,
                             title: 'Profile',
                             route: '/profile',
                             requiresVerification: true,
                           ),
                           _buildNavItem(
                             context,
-                            imagePath: "assets/images/icons/subscription.webp",
+                            iconData: Icons.workspace_premium_rounded,
+                            iconColor: Colors.amberAccent,
                             title: 'Subscription',
                             route: '/subscription',
                             requiresVerification: true,
                           ),
                           _buildNavItem(
                             context,
-                            imagePath: "assets/images/icons/theme.webp",
+                            iconData: Icons.palette_rounded,
+                            iconColor: Colors.pinkAccent,
                             title: 'Theme',
                             route: '/theme',
                             requiresVerification: true,
                           ),
                           _buildNavItem(
                             context,
-                            imagePath: "assets/images/icons/language.webp",
+                            iconData: Icons.translate_rounded,
+                            iconColor: Colors.cyanAccent,
                             title: 'Language',
                             route: '/language',
                             requiresVerification: true,
                           ),
                           _buildNavItem(
                             context,
-                            imagePath: "assets/images/icons/updates.webp",
+                            iconData: Icons.new_releases_rounded,
+                            iconColor: Colors.lightBlue,
                             title: 'What\'s New',
                             route: '/upcoming-update',
                             requiresVerification: true,
                           ),
                           _buildNavItem(
                             context,
-                            imagePath: "assets/images/icons/help.webp",
+                            iconData: Icons.support_agent_rounded,
+                            iconColor: Colors.greenAccent,
                             title: 'Help & Support',
                             route: '/help',
                             requiresVerification: true,
@@ -465,7 +483,8 @@ class CustomDrawer extends ConsumerWidget {
 
   Widget _buildNavItem(
     BuildContext context, {
-    required String imagePath,
+    IconData? iconData,
+    Color? iconColor,
     required String title,
     required String route,
     required bool requiresVerification,
@@ -519,29 +538,12 @@ class CustomDrawer extends ConsumerWidget {
                     borderRadius: BorderRadius.circular(8),
                   ),
                   alignment: Alignment.center,
-                  child: isHome
-                      ? Icon(
-                          Icons.home_rounded,
-                          color: isActive
-                              ? _primary(context)
-                              : _cs(context).secondary,
-                          size: 20,
-                        )
-                      : Image.asset(
-                          imagePath,
-                          width: 20,
-                          height: 20,
-                          fit: BoxFit.contain,
-                          errorBuilder: (context, error, stackTrace) {
-                            return Icon(
-                              Icons.circle_outlined,
-                              color: isActive
-                                  ? _primary(context)
-                                  : _textSecondary(context),
-                              size: 20,
-                            );
-                          },
-                        ),
+                  child: Icon(
+                    iconData ?? Icons.circle_outlined,
+                    color: iconColor ??
+                        (isActive ? _primary(context) : _textSecondary(context)),
+                    size: 20,
+                  ),
                 ),
                 const SizedBox(width: 12),
                 Expanded(

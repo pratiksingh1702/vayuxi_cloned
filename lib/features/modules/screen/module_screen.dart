@@ -47,7 +47,6 @@ import '../../tour/registry/site_registry.dart';
 import '../all_Modules/site_Details/providers/siteProvider.dart';
 import '../all_Modules/site_Details/providers/site_current_provider.dart';
 import '../all_Modules/team/provider/teamProvider.dart';
-import 'craosule_banner.dart';
 import 'widgets/access_overlay.dart';
 
 class ModuleScreen extends ConsumerStatefulWidget {
@@ -336,28 +335,22 @@ class _ModuleScreenState extends ConsumerState<ModuleScreen> {
         labelKey: 'attendance_card',
         icon: Icons.how_to_reg_rounded,
         iconColor: Colors.green,
-        imagePath: "assets/images/icons/attendance.webp",
         routeName: "/site-list/attendance"),
     ModuleItem(
         labelKey: 'daily_progress_card',
         icon: Icons.description_rounded,
         iconColor: Colors.indigo,
-        imagePath: "assets/images/icons/dpr.webp",
         routeName: "/site-list/dpr"),
     ModuleItem(
         labelKey: 'expense_card',
         icon: Icons.receipt_long_rounded,
         iconColor: Colors.orange,
-        imagePath: "assets/images/icons/expense_daily.webp",
         routeName: "/site-list/add-exp"),
     ModuleItem(
         labelKey: 'inventory_entry_card',
         icon: Icons.inventory_2_rounded,
         iconColor: Colors.teal,
-        imagePath: "assets/images/icons/inventory_entry.webp",
         routeName: "/site-list/inv-entry"),
-    ModuleItem(labelKey: '', imagePath: '', routeName: '', isEmpty: true),
-    ModuleItem(labelKey: '', imagePath: '', routeName: '', isEmpty: true),
   ];
 
   final List<ModuleItem> _setupModules = [
@@ -365,39 +358,33 @@ class _ModuleScreenState extends ConsumerState<ModuleScreen> {
         labelKey: 'site_details_card',
         icon: Icons.location_city_rounded,
         iconColor: Colors.cyan,
-        imagePath: "assets/images/icons/site_details.webp",
         routeName: "/site"),
     ModuleItem(
         labelKey: 'rate_card',
         icon: Icons.currency_rupee_rounded,
         iconColor: Colors.amber,
-        imagePath: "assets/images/icons/rate.webp",
         routeName: "/site-list/rate"),
     ModuleItem(
         labelKey: 'manpower_details_card',
         icon: Icons.engineering_rounded,
         iconColor: Colors.deepOrange,
-        imagePath: "assets/images/icons/manpower_setup.webp",
         routeName: "/manpower"),
     ModuleItem(
         labelKey: 'create_team_card',
         icon: Icons.groups_rounded,
         iconColor: Colors.purple,
-        imagePath: "assets/images/icons/add_team.webp",
         routeName: "/site-list/team"),
     ModuleItem(
         labelKey: 'dpr_setup_card',
         icon: Icons.settings_suggest_rounded,
         iconColor: Colors.blueGrey,
-        imagePath: "assets/images/icons/dpr_setup.webp",
         routeName: "/site-list/addMoc"),
     ModuleItem(
         labelKey: 'inventory_setup_card',
         icon: Icons.warehouse_rounded,
         iconColor: Colors.brown,
-        imagePath: "assets/images/icons/inventory_setup.webp",
         routeName: "/site-list/inv-setup"),
-    // ModuleItem(labelKey: 'boq_card', imagePath: "assets/images/icons/boq.webp", routeName: "/site-list/boq"),
+    // ModuleItem(labelKey: 'boq_card', routeName: "/site-list/boq"),
   ];
 
   final List<ModuleItem> _reportModules = [
@@ -405,37 +392,31 @@ class _ModuleScreenState extends ConsumerState<ModuleScreen> {
         labelKey: 'summary_analysis_card',
         icon: Icons.analytics_rounded,
         iconColor: Colors.blue,
-        imagePath: "assets/images/icons/summary_analysis.webp",
         routeName: "/summary"),
     ModuleItem(
         labelKey: 'salary_slip_card',
         icon: Icons.payments_rounded,
         iconColor: Colors.lightGreen,
-        imagePath: "assets/images/icons/salary_slip.webp",
         routeName: "/salary"),
     ModuleItem(
         labelKey: 'dpr_sheets_card',
         icon: Icons.table_chart_rounded,
         iconColor: Colors.deepPurple,
-        imagePath: "assets/images/icons/dpr_report.webp",
         routeName: "/site-list/dprReport"),
     ModuleItem(
         labelKey: 'expense_sheet_card',
         icon: Icons.request_quote_rounded,
         iconColor: Colors.redAccent,
-        imagePath: "assets/images/icons/expense_sheet.webp",
         routeName: "/site-list/expense"),
     ModuleItem(
         labelKey: 'attendance_sheet_card',
         icon: Icons.fact_check_rounded,
         iconColor: Colors.lime,
-        imagePath: "assets/images/icons/attendance_sheet.webp",
         routeName: "/site-list/att-sheet"),
     ModuleItem(
         labelKey: 'inventory_summary_card',
         icon: Icons.assessment_rounded,
         iconColor: Colors.pink,
-        imagePath: "assets/images/icons/inventory_summary.webp",
         routeName: "/site-list/inv-Report"),
   ];
 
@@ -444,37 +425,31 @@ class _ModuleScreenState extends ConsumerState<ModuleScreen> {
         labelKey: 'profile_card',
         icon: Icons.account_circle_rounded,
         iconColor: Colors.deepPurpleAccent,
-        imagePath: "assets/images/icons/profile.webp",
         routeName: "/profile"),
     ModuleItem(
         labelKey: 'subscription_card',
         icon: Icons.workspace_premium_rounded,
         iconColor: Colors.amberAccent,
-        imagePath: "assets/images/icons/subscription.webp",
         routeName: "/subscription"),
     ModuleItem(
         labelKey: 'upcoming_update_card',
         icon: Icons.new_releases_rounded,
         iconColor: Colors.lightBlue,
-        imagePath: "assets/images/icons/updates.webp",
         routeName: "/upcoming-update"),
     ModuleItem(
         labelKey: 'theme_card',
         icon: Icons.palette_rounded,
         iconColor: Colors.pinkAccent,
-        imagePath: "assets/images/icons/theme.webp",
         routeName: "/theme"),
     ModuleItem(
         labelKey: 'language_card',
         icon: Icons.translate_rounded,
         iconColor: Colors.cyanAccent,
-        imagePath: "assets/images/icons/language.webp",
         routeName: "/language"),
     ModuleItem(
         labelKey: 'help_card',
         icon: Icons.support_agent_rounded,
         iconColor: Colors.greenAccent,
-        imagePath: "assets/images/icons/help.webp",
         routeName: "/help"),
   ];
 
@@ -632,24 +607,22 @@ class _ModuleScreenState extends ConsumerState<ModuleScreen> {
           child: Column(
             children: [
               const SizedBox(height: 10),
-              AdBannerCarousel(
-                height: 130,
-                imageUrls: const [
-                  'assets/images/b1.webp',
-                  'assets/images/b4.webp',
-                  'assets/images/b2.webp',
-                  'assets/images/b3.webp',
-                ],
+              Padding(
+                padding: const EdgeInsets.symmetric(horizontal: 20),
+                child: Row(
+                  children: [
+                    Expanded(child: _buildDropdownLoadingBox(label: 'Site')),
+                    const SizedBox(width: 12),
+                    Expanded(child: _buildDropdownLoadingBox(label: 'Team')),
+                  ],
+                ),
               ),
-              const SizedBox(height: 16),
-              Row(
-                children: [
-                  Expanded(child: _buildDropdownLoadingBox()),
-                  const SizedBox(width: 8),
-                  Expanded(child: _buildDropdownLoadingBox()),
-                ],
+              const SizedBox(height: 12),
+              Padding(
+                padding: const EdgeInsets.symmetric(horizontal: 20),
+                child: _buildRecentActivitySkeleton(),
               ),
-              const SizedBox(height: 8),
+              const SizedBox(height: 10),
               Expanded(
                 child: ShimmerList(
                   type: ShimmerListType.grid,
@@ -668,32 +641,184 @@ class _ModuleScreenState extends ConsumerState<ModuleScreen> {
     );
   }
 
-  Widget _buildDropdownLoadingBox() {
+  Widget _buildDropdownLoadingBox({required String label}) {
     final colorScheme = Theme.of(context).colorScheme;
     final isDark = Theme.of(context).brightness == Brightness.dark;
-    return Padding(
-      padding: const EdgeInsets.symmetric(horizontal: 16),
-      child: Container(
-        height: 52,
-        decoration: BoxDecoration(
-          color: _panelColor(colorScheme, isDark),
-          borderRadius: BorderRadius.circular(16),
-          border: Border.all(
-            color: _moduleCardBorderColor(colorScheme, isDark),
-          ),
-          boxShadow: [
-            BoxShadow(
-              color: colorScheme.shadow.withOpacity(isDark ? 0.22 : 0.06),
-              blurRadius: 8,
-              offset: const Offset(0, 2),
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Padding(
+          padding: const EdgeInsets.only(left: 6, bottom: 6),
+          child: Text(
+            label,
+            style: TextStyle(
+              fontSize: 12,
+              fontWeight: FontWeight.w600,
+              color: colorScheme.onSurfaceVariant,
             ),
-          ],
+          ),
         ),
-        child: const ShimmerImage(
+        Container(
           height: 52,
-          width: double.infinity,
-          borderRadius: 16,
+          decoration: BoxDecoration(
+            color: _panelColor(colorScheme, isDark),
+            borderRadius: BorderRadius.circular(16),
+            border: Border.all(
+              color: _moduleCardBorderColor(colorScheme, isDark),
+            ),
+            boxShadow: [
+              BoxShadow(
+                color: colorScheme.shadow.withOpacity(isDark ? 0.22 : 0.06),
+                blurRadius: 8,
+                offset: const Offset(0, 2),
+              ),
+            ],
+          ),
+          child: const ShimmerImage(
+            height: 52,
+            width: double.infinity,
+            borderRadius: 16,
+          ),
         ),
+      ],
+    );
+  }
+
+  Widget _buildRecentActivitySkeleton() {
+    final colorScheme = Theme.of(context).colorScheme;
+    final isDark = Theme.of(context).brightness == Brightness.dark;
+    return Container(
+      padding: const EdgeInsets.all(14),
+      decoration: BoxDecoration(
+        color: _panelColor(colorScheme, isDark),
+        borderRadius: BorderRadius.circular(18),
+        border: Border.all(color: _moduleCardBorderColor(colorScheme, isDark)),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: const [
+          ShimmerImage(height: 12, width: 110, borderRadius: 6),
+          SizedBox(height: 10),
+          ShimmerImage(height: 10, width: double.infinity, borderRadius: 6),
+          SizedBox(height: 8),
+          ShimmerImage(height: 10, width: double.infinity, borderRadius: 6),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildRecentActivityCard() {
+    final colorScheme = Theme.of(context).colorScheme;
+    final isDark = Theme.of(context).brightness == Brightness.dark;
+    final updates = <({IconData icon, String title, String subtitle})>[
+      (
+        icon: Icons.receipt_long_rounded,
+        title: 'Expense entry added',
+        subtitle: '2 min ago'
+      ),
+      (
+        icon: Icons.how_to_reg_rounded,
+        title: 'Attendance submitted',
+        subtitle: 'Today 9:30 AM'
+      ),
+    ];
+
+    return Container(
+      padding: const EdgeInsets.all(14),
+      decoration: BoxDecoration(
+        gradient: LinearGradient(
+          begin: Alignment.topLeft,
+          end: Alignment.bottomRight,
+          colors: isDark
+              ? [
+                  colorScheme.surfaceContainerHighest.withOpacity(0.88),
+                  colorScheme.surfaceContainer.withOpacity(0.94),
+                ]
+              : [
+                  colorScheme.primaryContainer.withOpacity(0.34),
+                  colorScheme.surface,
+                ],
+        ),
+        borderRadius: BorderRadius.circular(18),
+        border: Border.all(color: _moduleCardBorderColor(colorScheme, isDark)),
+        boxShadow: [
+          BoxShadow(
+            color: colorScheme.shadow.withOpacity(isDark ? 0.2 : 0.08),
+            blurRadius: 10,
+            offset: const Offset(0, 3),
+          ),
+        ],
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
+            children: [
+              Icon(Icons.history_rounded,
+                  size: 18, color: colorScheme.onSurfaceVariant),
+              const SizedBox(width: 8),
+              Text(
+                'Recent activity',
+                style: TextStyle(
+                  fontSize: 13,
+                  fontWeight: FontWeight.w700,
+                  color: colorScheme.onSurface,
+                ),
+              ),
+              const Spacer(),
+              Text(
+                'Live',
+                style: TextStyle(
+                  fontSize: 11,
+                  fontWeight: FontWeight.w600,
+                  color: colorScheme.primary,
+                ),
+              ),
+            ],
+          ),
+          const SizedBox(height: 10),
+          ...updates.map(
+            (item) => Padding(
+              padding: const EdgeInsets.only(bottom: 8),
+              child: Row(
+                children: [
+                  Container(
+                    height: 26,
+                    width: 26,
+                    decoration: BoxDecoration(
+                      color:
+                          colorScheme.surface.withOpacity(isDark ? 0.34 : 0.8),
+                      borderRadius: BorderRadius.circular(8),
+                    ),
+                    child: Icon(item.icon,
+                        size: 15, color: colorScheme.onSurfaceVariant),
+                  ),
+                  const SizedBox(width: 8),
+                  Expanded(
+                    child: Text(
+                      item.title,
+                      maxLines: 1,
+                      overflow: TextOverflow.ellipsis,
+                      style: TextStyle(
+                        fontSize: 12,
+                        fontWeight: FontWeight.w600,
+                        color: colorScheme.onSurface,
+                      ),
+                    ),
+                  ),
+                  const SizedBox(width: 8),
+                  Text(
+                    item.subtitle,
+                    style: TextStyle(
+                      fontSize: 11,
+                      color: colorScheme.onSurfaceVariant,
+                    ),
+                  ),
+                ],
+              ),
+            ),
+          ),
+        ],
       ),
     );
   }
@@ -760,25 +885,70 @@ class _ModuleScreenState extends ConsumerState<ModuleScreen> {
                               if (_currentIndex == 0)
                                 Column(
                                   children: [
-                                    const SizedBox(height: 10),
-                                    AdBannerCarousel(
-                                      height: 130,
-                                      imageUrls: const [
-                                        'assets/images/b1.webp',
-                                        'assets/images/b4.webp',
-                                        'assets/images/b2.webp',
-                                        'assets/images/b3.webp',
-                                      ],
+                                    Padding(
+                                      padding: const EdgeInsets.symmetric(
+                                          horizontal: 20),
+                                      child: Row(
+                                        children: [
+                                          Expanded(
+                                            child: Column(
+                                              crossAxisAlignment:
+                                                  CrossAxisAlignment.start,
+                                              children: [
+                                                Padding(
+                                                  padding:
+                                                      const EdgeInsets.only(
+                                                          left: 6, bottom: 6),
+                                                  child: Text(
+                                                    'Site',
+                                                    style: TextStyle(
+                                                      fontSize: 12,
+                                                      fontWeight:
+                                                          FontWeight.w700,
+                                                      color: colorScheme
+                                                          .onSurfaceVariant,
+                                                    ),
+                                                  ),
+                                                ),
+                                                _buildSiteDropdown(siteState),
+                                              ],
+                                            ),
+                                          ),
+                                          const SizedBox(width: 12),
+                                          Expanded(
+                                            child: Column(
+                                              crossAxisAlignment:
+                                                  CrossAxisAlignment.start,
+                                              children: [
+                                                Padding(
+                                                  padding:
+                                                      const EdgeInsets.only(
+                                                          left: 6, bottom: 6),
+                                                  child: Text(
+                                                    'Team',
+                                                    style: TextStyle(
+                                                      fontSize: 12,
+                                                      fontWeight:
+                                                          FontWeight.w700,
+                                                      color: colorScheme
+                                                          .onSurfaceVariant,
+                                                    ),
+                                                  ),
+                                                ),
+                                                _buildTeamDropdown(teamState),
+                                              ],
+                                            ),
+                                          ),
+                                        ],
+                                      ),
                                     ),
-                                    const SizedBox(height: 16),
-                                    Row(children: [
-                                      Expanded(
-                                          child: _buildSiteDropdown(siteState)),
-                                      const SizedBox(width: 8),
-                                      Expanded(
-                                          child: _buildTeamDropdown(teamState)),
-                                    ]),
-                                    const SizedBox(height: 1),
+                                    const SizedBox(height: 12),
+                                    Padding(
+                                      padding: const EdgeInsets.symmetric(
+                                          horizontal: 20),
+                                      child: _buildRecentActivityCard(),
+                                    ),
+                                    const SizedBox(height: 8),
                                   ],
                                 ),
                               Expanded(
@@ -819,223 +989,266 @@ class _ModuleScreenState extends ConsumerState<ModuleScreen> {
                                             ],
                                           ),
                                         )
-                                      : CustomScrollbar(
-                                          enabled: false,
-                                          controller: _gridScrollController,
-                                          child: GridView.builder(
-                                            controller: _gridScrollController,
-                                            physics: _overlayType != null
-                                                ? const NeverScrollableScrollPhysics()
-                                                : const AlwaysScrollableScrollPhysics(),
-                                            itemCount: _currentModules.length,
-                                            gridDelegate:
-                                                const SliverGridDelegateWithFixedCrossAxisCount(
-                                              crossAxisCount: 2,
-                                              mainAxisSpacing: 16,
-                                              crossAxisSpacing: 16,
-                                              childAspectRatio: 1,
-                                            ),
-                                            itemBuilder: (context, index) {
-                                              final item =
-                                                  _currentModules[index];
-                                              if (item.isEmpty) {
-                                                return Container(
-                                                    decoration: BoxDecoration(
-                                                        color: colorScheme
-                                                            .surface
-                                                            .withOpacity(0),
-                                                        borderRadius:
-                                                            BorderRadius
-                                                                .circular(20)));
-                                              }
-                                              final iconColor =
-                                                  _moduleIconColor(
-                                                      item.iconColor,
-                                                      colorScheme,
-                                                      isDark);
+                                      : LayoutBuilder(
+                                          builder: (context, constraints) {
+                                            final isDailyTab =
+                                                _currentIndex == 0;
+                                            const spacing = 16.0;
+                                            final cardWidth =
+                                                (constraints.maxWidth -
+                                                        spacing) /
+                                                    2;
+                                            final cardHeight = isDailyTab
+                                                ? (constraints.maxHeight -
+                                                        spacing) /
+                                                    2
+                                                : cardWidth;
+                                            final aspectRatio =
+                                                (cardWidth / cardHeight)
+                                                    .clamp(0.76, 1.22);
 
-                                              Widget card = GestureDetector(
-                                                onTap: _overlayType != null
-                                                    ? null
-                                                    : () =>
-                                                        _handleModuleTap(item),
-                                                child: Container(
-                                                  decoration: BoxDecoration(
-                                                    color: _moduleCardColor(
-                                                        colorScheme, isDark),
-                                                    borderRadius:
-                                                        BorderRadius.circular(
-                                                            20),
-                                                    border: Border.all(
-                                                      color:
-                                                          _moduleCardBorderColor(
-                                                              colorScheme,
-                                                              isDark),
-                                                    ),
-                                                    boxShadow:
-                                                        _moduleCardShadow(
-                                                            colorScheme,
-                                                            isDark),
-                                                  ),
-                                                  child: Column(
-                                                    mainAxisAlignment:
-                                                        MainAxisAlignment
-                                                            .center,
-                                                    children: [
-                                                      SizedBox(
-                                                        height: 90,
-                                                        width: 90,
-                                                        child: Container(
-                                                          decoration:
-                                                              BoxDecoration(
-                                                            color:
-                                                                _moduleIconContainerColor(
-                                                                    colorScheme,
-                                                                    isDark),
+                                            return CustomScrollbar(
+                                              enabled: false,
+                                              controller: _gridScrollController,
+                                              child: GridView.builder(
+                                                controller:
+                                                    _gridScrollController,
+                                                physics: _overlayType != null
+                                                    ? const NeverScrollableScrollPhysics()
+                                                    : (isDailyTab
+                                                        ? const NeverScrollableScrollPhysics()
+                                                        : const AlwaysScrollableScrollPhysics()),
+                                                itemCount:
+                                                    _currentModules.length,
+                                                gridDelegate:
+                                                    SliverGridDelegateWithFixedCrossAxisCount(
+                                                  crossAxisCount: 2,
+                                                  mainAxisSpacing: spacing,
+                                                  crossAxisSpacing: spacing,
+                                                  childAspectRatio: aspectRatio,
+                                                ),
+                                                itemBuilder: (context, index) {
+                                                  final item =
+                                                      _currentModules[index];
+                                                  if (item.isEmpty) {
+                                                    return Container(
+                                                        decoration: BoxDecoration(
+                                                            color: colorScheme
+                                                                .surface
+                                                                .withOpacity(0),
                                                             borderRadius:
                                                                 BorderRadius
                                                                     .circular(
-                                                                        22),
-                                                            border: Border.all(
-                                                              color:
-                                                                  _moduleIconBorderColor(
+                                                                        20)));
+                                                  }
+                                                  final iconColor =
+                                                      _moduleIconColor(
+                                                          item.iconColor,
+                                                          colorScheme,
+                                                          isDark);
+
+                                                  Widget card = GestureDetector(
+                                                    onTap: _overlayType != null
+                                                        ? null
+                                                        : () =>
+                                                            _handleModuleTap(
+                                                                item),
+                                                    child: Container(
+                                                      decoration: BoxDecoration(
+                                                        color: _moduleCardColor(
+                                                            colorScheme,
+                                                            isDark),
+                                                        borderRadius:
+                                                            BorderRadius
+                                                                .circular(20),
+                                                        border: Border.all(
+                                                          color:
+                                                              _moduleCardBorderColor(
+                                                                  colorScheme,
+                                                                  isDark),
+                                                        ),
+                                                        boxShadow:
+                                                            _moduleCardShadow(
+                                                                colorScheme,
+                                                                isDark),
+                                                      ),
+                                                      child: Column(
+                                                        mainAxisAlignment:
+                                                            MainAxisAlignment
+                                                                .center,
+                                                        children: [
+                                                          SizedBox(
+                                                            height: 90,
+                                                            width: 90,
+                                                            child: Container(
+                                                              decoration:
+                                                                  BoxDecoration(
+                                                                color: _moduleIconContainerColor(
+                                                                    colorScheme,
+                                                                    isDark),
+                                                                borderRadius:
+                                                                    BorderRadius
+                                                                        .circular(
+                                                                            22),
+                                                                border:
+                                                                    Border.all(
+                                                                  color: _moduleIconBorderColor(
                                                                       colorScheme,
                                                                       isDark),
+                                                                ),
+                                                              ),
+                                                              child: Icon(
+                                                                item.icon,
+                                                                size: 42,
+                                                                color:
+                                                                    iconColor,
+                                                              ),
                                                             ),
                                                           ),
-                                                          child: Icon(
-                                                            item.icon,
-                                                            size: 42,
-                                                            color: iconColor,
+                                                          const SizedBox(
+                                                              height: 8),
+                                                          Padding(
+                                                            padding:
+                                                                const EdgeInsets
+                                                                    .symmetric(
+                                                                    horizontal:
+                                                                        8),
+                                                            child: Text(
+                                                              t.t(item
+                                                                  .labelKey),
+                                                              textAlign:
+                                                                  TextAlign
+                                                                      .center,
+                                                              maxLines: 2,
+                                                              overflow:
+                                                                  TextOverflow
+                                                                      .ellipsis,
+                                                              style: TextStyle(
+                                                                fontSize: 14,
+                                                                fontWeight:
+                                                                    FontWeight
+                                                                        .w600,
+                                                                color: colorScheme
+                                                                    .onSurface,
+                                                              ),
+                                                            ),
                                                           ),
-                                                        ),
+                                                        ],
                                                       ),
-                                                      const SizedBox(height: 8),
-                                                      Padding(
-                                                        padding:
-                                                            const EdgeInsets
-                                                                .symmetric(
-                                                                horizontal: 8),
-                                                        child: Text(
-                                                          t.t(item.labelKey),
-                                                          textAlign:
-                                                              TextAlign.center,
-                                                          maxLines: 2,
-                                                          overflow: TextOverflow
-                                                              .ellipsis,
-                                                          style: TextStyle(
-                                                            fontSize: 14,
-                                                            fontWeight:
-                                                                FontWeight.w600,
-                                                            color: colorScheme
-                                                                .onSurface,
-                                                          ),
-                                                        ),
-                                                      ),
-                                                    ],
-                                                  ),
-                                                ),
-                                              );
+                                                    ),
+                                                  );
 
-                                              final bool isSetupTab =
-                                                  _currentIndex == 1;
+                                                  final bool isSetupTab =
+                                                      _currentIndex == 1;
 
-                                              if (isSetupTab &&
-                                                  item.routeName == '/site') {
-                                                card = Showcase(
-                                                  key: SiteRegistry
-                                                      .siteModuleCardKey,
-                                                  description:
-                                                      'Tap Site Details to begin setup.',
-                                                  child: card,
-                                                );
-                                              }
+                                                  if (isSetupTab &&
+                                                      item.routeName ==
+                                                          '/site') {
+                                                    card = Showcase(
+                                                      key: SiteRegistry
+                                                          .siteModuleCardKey,
+                                                      description:
+                                                          'Tap Site Details to begin setup.',
+                                                      child: card,
+                                                    );
+                                                  }
 
-                                              if (_checkpoint ==
-                                                      TourCheckpoint.rate &&
-                                                  isSetupTab &&
-                                                  item.routeName ==
-                                                      "/site-list/rate") {
-                                                card = Showcase(
-                                                    key: TourRegistry
-                                                        .rateModuleKey,
-                                                    description:
-                                                        "Now add Rate here 💰",
-                                                    disposeOnTap: true,
-                                                    onTargetClick: () async {
-                                                      await ref
-                                                          .read(
-                                                              tourPersistenceProvider)
-                                                          .markRateDone();
-                                                      setState(() =>
-                                                          _tourChecked = false);
-                                                    },
-                                                    child: card);
-                                              } else if (_checkpoint ==
-                                                      TourCheckpoint.manpower &&
-                                                  isSetupTab &&
-                                                  item.routeName ==
-                                                      "/manpower") {
-                                                card = Showcase(
-                                                    key: TourRegistry
-                                                        .manpowerModuleKey,
-                                                    description:
-                                                        "Now add Manpower 👷",
-                                                    disposeOnTap: true,
-                                                    onTargetClick: () async {
-                                                      await ref
-                                                          .read(
-                                                              tourPersistenceProvider)
-                                                          .markManpowerDone();
-                                                      setState(() =>
-                                                          _tourChecked = false);
-                                                    },
-                                                    child: card);
-                                              } else if (_checkpoint ==
-                                                      TourCheckpoint.team &&
-                                                  isSetupTab &&
-                                                  item.routeName ==
-                                                      "/site-list/team") {
-                                                card = Showcase(
-                                                    key: TourRegistry
-                                                        .teamModuleKey,
-                                                    description:
-                                                        "Finally create your Team 👥",
-                                                    disposeOnTap: true,
-                                                    onTargetClick: () async {
-                                                      await ref
-                                                          .read(
-                                                              tourPersistenceProvider)
-                                                          .markTeamDone();
-                                                      setState(() =>
-                                                          _tourChecked = false);
-                                                    },
-                                                    child: card);
-                                              } else if (_checkpoint ==
-                                                      TourCheckpoint.dpr &&
-                                                  isSetupTab &&
-                                                  item.routeName ==
-                                                      "/site-list/addMoc") {
-                                                card = Showcase(
-                                                    key: TourRegistry
-                                                        .dprModuleKey,
-                                                    description:
-                                                        "Now configure DPR settings 📋",
-                                                    disposeOnTap: true,
-                                                    onTargetClick: () async {
-                                                      await ref
-                                                          .read(
-                                                              tourPersistenceProvider)
-                                                          .markDprDone();
-                                                      setState(() =>
-                                                          _tourChecked = false);
-                                                    },
-                                                    child: card);
-                                              }
+                                                  if (_checkpoint ==
+                                                          TourCheckpoint.rate &&
+                                                      isSetupTab &&
+                                                      item.routeName ==
+                                                          "/site-list/rate") {
+                                                    card = Showcase(
+                                                        key: TourRegistry
+                                                            .rateModuleKey,
+                                                        description:
+                                                            "Now add Rate here 💰",
+                                                        disposeOnTap: true,
+                                                        onTargetClick:
+                                                            () async {
+                                                          await ref
+                                                              .read(
+                                                                  tourPersistenceProvider)
+                                                              .markRateDone();
+                                                          setState(() =>
+                                                              _tourChecked =
+                                                                  false);
+                                                        },
+                                                        child: card);
+                                                  } else if (_checkpoint ==
+                                                          TourCheckpoint
+                                                              .manpower &&
+                                                      isSetupTab &&
+                                                      item.routeName ==
+                                                          "/manpower") {
+                                                    card = Showcase(
+                                                        key: TourRegistry
+                                                            .manpowerModuleKey,
+                                                        description:
+                                                            "Now add Manpower 👷",
+                                                        disposeOnTap: true,
+                                                        onTargetClick:
+                                                            () async {
+                                                          await ref
+                                                              .read(
+                                                                  tourPersistenceProvider)
+                                                              .markManpowerDone();
+                                                          setState(() =>
+                                                              _tourChecked =
+                                                                  false);
+                                                        },
+                                                        child: card);
+                                                  } else if (_checkpoint ==
+                                                          TourCheckpoint.team &&
+                                                      isSetupTab &&
+                                                      item.routeName ==
+                                                          "/site-list/team") {
+                                                    card = Showcase(
+                                                        key: TourRegistry
+                                                            .teamModuleKey,
+                                                        description:
+                                                            "Finally create your Team 👥",
+                                                        disposeOnTap: true,
+                                                        onTargetClick:
+                                                            () async {
+                                                          await ref
+                                                              .read(
+                                                                  tourPersistenceProvider)
+                                                              .markTeamDone();
+                                                          setState(() =>
+                                                              _tourChecked =
+                                                                  false);
+                                                        },
+                                                        child: card);
+                                                  } else if (_checkpoint ==
+                                                          TourCheckpoint.dpr &&
+                                                      isSetupTab &&
+                                                      item.routeName ==
+                                                          "/site-list/addMoc") {
+                                                    card = Showcase(
+                                                        key: TourRegistry
+                                                            .dprModuleKey,
+                                                        description:
+                                                            "Now configure DPR settings 📋",
+                                                        disposeOnTap: true,
+                                                        onTargetClick:
+                                                            () async {
+                                                          await ref
+                                                              .read(
+                                                                  tourPersistenceProvider)
+                                                              .markDprDone();
+                                                          setState(() =>
+                                                              _tourChecked =
+                                                                  false);
+                                                        },
+                                                        child: card);
+                                                  }
 
-                                              return card;
-                                            },
-                                          ),
+                                                  return card;
+                                                },
+                                              ),
+                                            );
+                                          },
                                         ),
                                 ),
                               )
@@ -1226,79 +1439,76 @@ class _ModuleScreenState extends ConsumerState<ModuleScreen> {
             orElse: () => noneSite)
         : noneSite;
 
-    return Padding(
-      padding: const EdgeInsets.symmetric(horizontal: 16),
-      child: Container(
-        padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 4),
-        decoration: BoxDecoration(
-            color: _panelColor(colorScheme, isDark),
-            borderRadius: BorderRadius.circular(16),
-            border:
-                Border.all(color: _moduleCardBorderColor(colorScheme, isDark)),
-            boxShadow: [
-              BoxShadow(
-                color: colorScheme.shadow.withOpacity(isDark ? 0.22 : 0.06),
-                blurRadius: 8,
-                offset: const Offset(0, 2),
-              ),
-            ]),
-        child: DropdownButtonHideUnderline(
-          child: DropdownButton<SiteModel>(
-            value: currentSelectedSite,
-            isExpanded: true,
-            icon: Icon(Icons.keyboard_arrow_down_rounded,
-                color: colorScheme.primary),
-            items: dropdownList
-                .map((site) => DropdownMenuItem<SiteModel>(
-                    value: site,
-                    child: Text(site.siteName,
-                        maxLines: 1,
-                        overflow: TextOverflow.ellipsis,
-                        style: TextStyle(
-                          fontSize: 15,
-                          fontWeight: FontWeight.w500,
-                          color: colorScheme.onSurface,
-                        ))))
-                .toList(),
-            onChanged: (SiteModel? newSite) {
-              if (newSite == null || newSite.id == "none") {
-                _onSiteChanged(null);
-                ref.read(siteDropdownValueProvider.notifier).state = null;
-                ref.read(selectedSiteIdProvider.notifier).state = null;
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 4),
+      decoration: BoxDecoration(
+          color: _panelColor(colorScheme, isDark),
+          borderRadius: BorderRadius.circular(16),
+          border:
+              Border.all(color: _moduleCardBorderColor(colorScheme, isDark)),
+          boxShadow: [
+            BoxShadow(
+              color: colorScheme.shadow.withOpacity(isDark ? 0.22 : 0.06),
+              blurRadius: 8,
+              offset: const Offset(0, 2),
+            ),
+          ]),
+      child: DropdownButtonHideUnderline(
+        child: DropdownButton<SiteModel>(
+          value: currentSelectedSite,
+          isExpanded: true,
+          icon: Icon(Icons.keyboard_arrow_down_rounded,
+              color: colorScheme.primary),
+          items: dropdownList
+              .map((site) => DropdownMenuItem<SiteModel>(
+                  value: site,
+                  child: Text(site.siteName,
+                      maxLines: 1,
+                      overflow: TextOverflow.ellipsis,
+                      style: TextStyle(
+                        fontSize: 15,
+                        fontWeight: FontWeight.w500,
+                        color: colorScheme.onSurface,
+                      ))))
+              .toList(),
+          onChanged: (SiteModel? newSite) {
+            if (newSite == null || newSite.id == "none") {
+              _onSiteChanged(null);
+              ref.read(siteDropdownValueProvider.notifier).state = null;
+              ref.read(selectedSiteIdProvider.notifier).state = null;
 
-                // 🔥 Clear team dropdown when "None" is selected
-                ref.read(teamDropdownValueProvider.notifier).state = null;
-                ref.read(selectedTeamIdProvider.notifier).state = "";
-                ref.read(selectedTeamProvider.notifier).clear();
+              // 🔥 Clear team dropdown when "None" is selected
+              ref.read(teamDropdownValueProvider.notifier).state = null;
+              ref.read(selectedTeamIdProvider.notifier).state = "";
+              ref.read(selectedTeamProvider.notifier).clear();
 
-                // 🔥 Set teams to empty list
-                ref.read(teamProvider.notifier).state =
-                    ref.read(teamProvider.notifier).state.copyWith(
-                  teams: [],
-                  hasData: false,
-                );
+              // 🔥 Set teams to empty list
+              ref.read(teamProvider.notifier).state =
+                  ref.read(teamProvider.notifier).state.copyWith(
+                teams: [],
+                hasData: false,
+              );
+            } else {
+              _onSiteChanged(newSite);
+              ref.read(siteDropdownValueProvider.notifier).state = newSite;
+              ref.read(selectedSiteIdProvider.notifier).state = newSite.id;
+
+              // 🔥 Fetch teams for the selected site
+              final type = ref.read(typeProvider); // Get selected type
+              final notifier = ref.read(teamProvider.notifier);
+
+              if (type == "mechanical_work") {
+                notifier.fetchMechanicalCombined(siteId: newSite.id);
+              } else if (type == "insulation_work") {
+                notifier.fetchInsulationCombined(siteId: newSite.id);
               } else {
-                _onSiteChanged(newSite);
-                ref.read(siteDropdownValueProvider.notifier).state = newSite;
-                ref.read(selectedSiteIdProvider.notifier).state = newSite.id;
-
-                // 🔥 Fetch teams for the selected site
-                final type = ref.read(typeProvider); // Get selected type
-                final notifier = ref.read(teamProvider.notifier);
-
-                if (type == "mechanical_work") {
-                  notifier.fetchMechanicalCombined(siteId: newSite.id);
-                } else if (type == "insulation_work") {
-                  notifier.fetchInsulationCombined(siteId: newSite.id);
-                } else {
-                  notifier.fetchTeams(
-                    type: type ?? "",
-                    siteId: newSite.id,
-                  );
-                }
+                notifier.fetchTeams(
+                  type: type ?? "",
+                  siteId: newSite.id,
+                );
               }
-            },
-          ),
+            }
+          },
         ),
       ),
     );
@@ -1307,89 +1517,85 @@ class _ModuleScreenState extends ConsumerState<ModuleScreen> {
   Widget _buildTeamDropdown(TeamState teamState) {
     final colorScheme = Theme.of(context).colorScheme;
     final isDark = Theme.of(context).brightness == Brightness.dark;
-    return Padding(
-      padding: const EdgeInsets.symmetric(horizontal: 16),
-      child: Container(
-        padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 4),
-        decoration: BoxDecoration(
-            color: _panelColor(colorScheme, isDark),
-            borderRadius: BorderRadius.circular(16),
-            border:
-                Border.all(color: _moduleCardBorderColor(colorScheme, isDark)),
-            boxShadow: [
-              BoxShadow(
-                color: colorScheme.shadow.withOpacity(isDark ? 0.22 : 0.06),
-                blurRadius: 8,
-                offset: const Offset(0, 2),
-              ),
-            ]),
-        child: Builder(builder: (context) {
-          if (teamState.isLoading && !teamState.hasData)
-            return Padding(
-                padding: EdgeInsets.symmetric(vertical: 12),
-                child: Center(
-                    child: Text("Loading teams...",
-                        style: TextStyle(
-                            fontSize: 14,
-                            color: colorScheme.onSurfaceVariant))));
-          if (!teamState.hasData && teamState.error != null)
-            return Padding(
-                padding: EdgeInsets.symmetric(vertical: 12),
-                child: Text("None",
-                    style: TextStyle(
-                        fontSize: 14, color: colorScheme.onSurfaceVariant)));
-          final uniqueTeams = teamState.teams
-              .fold<Map<String, TeamModel>>({}, (map, team) {
-                map[team.id] = team;
-                return map;
-              })
-              .values
-              .toList();
-          final noneTeam = TeamModel(
-              id: "none",
-              teamName: "None",
-              teamMemberIds: const [],
-              company: '',
-              isDeleted: false,
-              type: '');
-          final dropdownList = [noneTeam, ...uniqueTeams];
-          final currentSelectedTeam = _selectedTeam != null
-              ? dropdownList.firstWhere((t) => t.id == _selectedTeam!.id,
-                  orElse: () => noneTeam)
-              : noneTeam;
-          return DropdownButtonHideUnderline(
-            child: DropdownButton<TeamModel>(
-              value: currentSelectedTeam,
-              isExpanded: true,
-              icon: Icon(Icons.keyboard_arrow_down_rounded,
-                  color: colorScheme.primary),
-              items: dropdownList
-                  .map((team) => DropdownMenuItem<TeamModel>(
-                      value: team,
-                      child: Text(team.teamName,
-                          maxLines: 1,
-                          overflow: TextOverflow.ellipsis,
-                          style: TextStyle(
-                            fontSize: 15,
-                            fontWeight: FontWeight.w500,
-                            color: colorScheme.onSurface,
-                          ))))
-                  .toList(),
-              onChanged: (TeamModel? newTeam) {
-                if (newTeam == null || newTeam.id == "none") {
-                  _onTeamChanged(null);
-                  ref.read(teamDropdownValueProvider.notifier).state = null;
-                  ref.read(selectedTeamIdProvider.notifier).state = "";
-                } else {
-                  _onTeamChanged(newTeam);
-                  ref.read(teamDropdownValueProvider.notifier).state = newTeam;
-                  ref.read(selectedTeamIdProvider.notifier).state = newTeam.id;
-                }
-              },
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 4),
+      decoration: BoxDecoration(
+          color: _panelColor(colorScheme, isDark),
+          borderRadius: BorderRadius.circular(16),
+          border:
+              Border.all(color: _moduleCardBorderColor(colorScheme, isDark)),
+          boxShadow: [
+            BoxShadow(
+              color: colorScheme.shadow.withOpacity(isDark ? 0.22 : 0.06),
+              blurRadius: 8,
+              offset: const Offset(0, 2),
             ),
-          );
-        }),
-      ),
+          ]),
+      child: Builder(builder: (context) {
+        if (teamState.isLoading && !teamState.hasData)
+          return Padding(
+              padding: EdgeInsets.symmetric(vertical: 12),
+              child: Center(
+                  child: Text("Loading teams...",
+                      style: TextStyle(
+                          fontSize: 14, color: colorScheme.onSurfaceVariant))));
+        if (!teamState.hasData && teamState.error != null)
+          return Padding(
+              padding: EdgeInsets.symmetric(vertical: 12),
+              child: Text("None",
+                  style: TextStyle(
+                      fontSize: 14, color: colorScheme.onSurfaceVariant)));
+        final uniqueTeams = teamState.teams
+            .fold<Map<String, TeamModel>>({}, (map, team) {
+              map[team.id] = team;
+              return map;
+            })
+            .values
+            .toList();
+        final noneTeam = TeamModel(
+            id: "none",
+            teamName: "None",
+            teamMemberIds: const [],
+            company: '',
+            isDeleted: false,
+            type: '');
+        final dropdownList = [noneTeam, ...uniqueTeams];
+        final currentSelectedTeam = _selectedTeam != null
+            ? dropdownList.firstWhere((t) => t.id == _selectedTeam!.id,
+                orElse: () => noneTeam)
+            : noneTeam;
+        return DropdownButtonHideUnderline(
+          child: DropdownButton<TeamModel>(
+            value: currentSelectedTeam,
+            isExpanded: true,
+            icon: Icon(Icons.keyboard_arrow_down_rounded,
+                color: colorScheme.primary),
+            items: dropdownList
+                .map((team) => DropdownMenuItem<TeamModel>(
+                    value: team,
+                    child: Text(team.teamName,
+                        maxLines: 1,
+                        overflow: TextOverflow.ellipsis,
+                        style: TextStyle(
+                          fontSize: 15,
+                          fontWeight: FontWeight.w500,
+                          color: colorScheme.onSurface,
+                        ))))
+                .toList(),
+            onChanged: (TeamModel? newTeam) {
+              if (newTeam == null || newTeam.id == "none") {
+                _onTeamChanged(null);
+                ref.read(teamDropdownValueProvider.notifier).state = null;
+                ref.read(selectedTeamIdProvider.notifier).state = "";
+              } else {
+                _onTeamChanged(newTeam);
+                ref.read(teamDropdownValueProvider.notifier).state = newTeam;
+                ref.read(selectedTeamIdProvider.notifier).state = newTeam.id;
+              }
+            },
+          ),
+        );
+      }),
     );
   }
 }
@@ -1402,7 +1608,6 @@ class ModuleItem {
   final String labelKey;
   final IconData icon;
   final Color iconColor;
-  final String imagePath;
   final String routeName;
   final bool isEmpty;
 
@@ -1410,7 +1615,6 @@ class ModuleItem {
     required this.labelKey,
     this.icon = Icons.widgets_rounded,
     this.iconColor = Colors.blue,
-    required this.imagePath,
     required this.routeName,
     this.isEmpty = false,
   });

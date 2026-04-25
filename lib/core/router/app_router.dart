@@ -95,6 +95,7 @@ import '../../features/pricing/Screens/subsciption_screen.dart';
 import '../../features/pricing/providers/razorpay_provider.dart';
 import '../../features/profile_page/screens/profilePage.dart';
 import '../../features/noti_system/updates/presentation/navigation/updates_routes.dart';
+import '../../features/modules/screen/module_screen_v2.dart';
 import '../../features/modules/screen/module_screen.dart';
 import '../../features/modules/screen/module_detail.dart';
 import '../../typeProvider/type_provider.dart';
@@ -283,7 +284,7 @@ final appRouterProvider = Provider<GoRouter>((ref) {
           _logRoute('ModuleScreen',
               path: state.uri.toString(),
               extra: {'initialIndex': initialIndex});
-          return ModuleScreen(initialIndex: initialIndex);
+          return ModuleScreenV2(initialIndex: initialIndex);
         },
       ),
       GoRoute(
@@ -364,6 +365,9 @@ final appRouterProvider = Provider<GoRouter>((ref) {
               case 'att-sheet':
                 screen = GenerateAttendanceSheetScreen();
                 break;
+              case 'manpower':
+                screen = ManSelectCardGrid();
+                break;
 
               case 'man-import':
                 screen = ManFieldMappingScreen();
@@ -394,10 +398,13 @@ final appRouterProvider = Provider<GoRouter>((ref) {
 
           // ── Read the container to check if a site is already selected ──────
           final preSelectedSite = container.read(siteDropdownValueProvider);
+          const modulesRequiringFreshSitePick = {'manpower'};
 
           // ── If site already chosen AND this is not the site-management screen,
           //    skip SiteListScreen entirely and go straight to destination ──────
-          if (preSelectedSite != null && !show) {
+          if (preSelectedSite != null &&
+              !show &&
+              !modulesRequiringFreshSitePick.contains(module)) {
             debugPrint(
                 '⚡ [ROUTER] Skipping SiteListScreen — using pre-selected site: ${preSelectedSite.siteName}');
             // ✅ No provider writes here — SiteAwareWrapper handles it after build
@@ -484,8 +491,22 @@ final appRouterProvider = Provider<GoRouter>((ref) {
       GoRoute(
         path: Routes.manpower,
         builder: (context, state) {
-          _logRoute('ManSelectCardGrid', path: state.uri.toString());
-          return const ManSelectCardGrid();
+          _logRoute('SiteListScreen → module=manpower',
+              path: state.uri.toString());
+
+          Widget buildDestination(SiteModel site) {
+            _logRoute('ManSelectCardGrid',
+                path: state.uri.toString(), extra: {'siteId': site.id});
+            return SiteAwareWrapper(
+              site: site,
+              child: const ManSelectCardGrid(),
+            );
+          }
+
+          return SiteListScreen(
+            module: 'manpower',
+            pageBuilder: buildDestination,
+          );
         },
       ),
       GoRoute(
@@ -716,10 +737,12 @@ final appRouterProvider = Provider<GoRouter>((ref) {
         builder: (context, state) {
           final extra = state.extra;
           DprModel? work;
+          var isDraftWork = false;
 
           if (extra is DprModel) {
             work = extra;
           } else if (extra is Map<String, dynamic>) {
+            isDraftWork = extra.containsKey('draftWork');
             final rawWork = extra['draftWork'] ?? extra['work'];
             if (rawWork is DprModel) {
               work = rawWork;
@@ -730,7 +753,7 @@ final appRouterProvider = Provider<GoRouter>((ref) {
 
           _logRoute('AddDescriptionScreen (dprDescription)',
               path: state.uri.toString(), extra: {'workId': work?.id});
-          return AddDescriptionScreen(work: work);
+          return AddDescriptionScreen(work: work, fromDraft: isDraftWork);
         },
       ),
       GoRoute(
@@ -738,10 +761,12 @@ final appRouterProvider = Provider<GoRouter>((ref) {
         builder: (context, state) {
           InsulationDprModel? work;
           final extra = state.extra;
+          var isDraftWork = false;
 
           if (extra is InsulationDprModel) {
             work = extra;
           } else if (extra is Map<String, dynamic>) {
+            isDraftWork = extra.containsKey('draftWork');
             final rawWork = extra['draftWork'] ?? extra['work'];
             if (rawWork is InsulationDprModel) {
               work = rawWork;
@@ -752,7 +777,10 @@ final appRouterProvider = Provider<GoRouter>((ref) {
 
           _logRoute('AddInsulationDescriptionScreen (dprInsuDescription)',
               path: state.uri.toString(), extra: {'workId': work?.id});
-          return AddInsulationDescriptionScreen(work: work);
+          return AddInsulationDescriptionScreen(
+            work: work,
+            fromDraft: isDraftWork,
+          );
         },
       ),
       GoRoute(

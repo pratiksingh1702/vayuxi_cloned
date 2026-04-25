@@ -1,0 +1,877 @@
+You are creating a BRAND NEW FILE called module_screen_v2.dart in the same
+directory as module_screen.dart. DO NOT modify module_screen.dart at all.
+The new file is a complete reimagination of the same screen with identical
+business logic but a radically different UI architecture.
+
+Copy ALL of the following from module_screen.dart into module_screen_v2.dart
+and keep them 100% unchanged — only the UI layer changes:
+  - _checkAccess(), _onUnlocked(), _hideOverlay(), _storePendingAndShowOverlay()
+  - noSubscription → context.push('/subscription')
+  - needsOnboarding / deviceNotVerified → AccessOverlay
+  - All provider reads and wiring (siteProvider, teamProvider, typeProvider,
+    accessControlProvider, languageModuleProvider, moduleScreenSyncProvider,
+    tourControllerProvider, tourPersistenceProvider)
+  - _handleModuleTap(), _handleAiAnalysisTap(), _handleBottomNavTap()
+  - All _dailyEntryModules, _setupModules, _reportModules, _moreModules lists
+  - _currentModules getter
+  - _onSiteChanged(), _onTeamChanged()
+  - ModuleItem model class
+  - All Showcase / TourRegistry / TourCheckpoint / TourPersistence logic
+  - _maybeStartShowcase() method entirely unchanged
+  - The _overlayLoading blur spinner Positioned.fill
+  - The AccessOverlay Positioned.fill
+  - All color helper methods
+  - All state variables: _currentIndex, _selectedSite, _selectedTeam,
+    _overlayType, _overlayLoading, _checkInProgress, _pendingAction,
+    _tourChecked, _tourStartPending, _checkpoint, _showcaseContext
+
+The class is named ModuleScreenV2 (ConsumerStatefulWidget).
+State class: _ModuleScreenV2State.
+
+═══════════════════════════════════════════════════════════════════════
+CORE ARCHITECTURE CONCEPT — READ THIS FIRST
+═══════════════════════════════════════════════════════════════════════
+
+The entire screen is built around ONE central "Module Card" — a large
+rounded container that takes up the majority of the screen real estate.
+This card is NOT a list of 4 tabs. It is one living, breathing card
+whose CONTENT changes based on which tab is active in the floating navbar.
+
+Think of it like an iPad home screen widget that morphs. The card itself
+stays. Only the icons inside it change when the user taps a tab in the
+floating navbar below.
+
+Inside this card, modules are shown as a compact ICON GRID — NOT large
+square cards. Each module is a small icon with a tiny label below it,
+arranged in rows. Think: iOS app grid or Apple Watch app layout.
+Scannable in under one second. No visual weight. Pure function + delight.
+
+The floating navbar at the bottom controls which tab content shows in the
+card. It has 3 zones: [☰ menu] [Daily|Setup|Reports|More pill tabs] [✦ AI]
+
+═══════════════════════════════════════════════════════════════════════
+PART 1 — OVERALL SCREEN STRUCTURE
+═══════════════════════════════════════════════════════════════════════
+
+Scaffold:
+  appBar: null
+  drawer: const CustomDrawer()
+  backgroundColor: _pageBackgroundColor(cs, isDark)
+  body: ShowCaseWidget(
+    builder: (showcaseContext) {
+      ... store _showcaseContext, schedule _maybeStartShowcase ...
+      return Stack(children: [
+        SafeArea(
+          child: Column(
+            children: [
+              _buildContextualHeader(),         // Part 2
+              SizedBox(height: 12),
+              if (_currentIndex == 0) ...[
+                _buildDropdownRow(),            // Part 3
+                SizedBox(height: 10),
+                _buildActivityCard(),           // Part 4
+                SizedBox(height: 10),
+              ],
+              Expanded(
+                child: _buildModuleCard(),      // Part 5 — THE BIG CHANGE
+              ),
+              SizedBox(height: 80),             // space for floating nav
+            ],
+          ),
+        ),
+        Positioned(                             // Part 6 — floating nav
+          bottom: 16,
+          left: 20,
+          right: 20,
+          child: _buildFloatingNavBar(showcaseContext),
+        ),
+        if (_overlayLoading) ... spinner overlay (KEEP EXACTLY),
+        if (!_overlayLoading && _overlayType != null &&
+            _overlayType != AccessState.noSubscription)
+          Positioned.fill(AccessOverlay(...))  (KEEP EXACTLY),
+      ]);
+    }
+  )
+
+═══════════════════════════════════════════════════════════════════════
+PART 2 — CONTEXTUAL HEADER
+═══════════════════════════════════════════════════════════════════════
+
+A horizontal row, padding: EdgeInsets.fromLTRB(20, 16, 20, 0)
+
+LEFT COLUMN:
+  - Eyebrow text: read ref.watch(typeProvider), map to human label:
+      "mechanical_work" → "MECHANICAL WORK"
+      "insulation_work" → "INSULATION WORK"
+      anything else → show nothing (empty SizedBox)
+    Style: 10sp, w700, letterSpacing 1.4, colorScheme.primary, uppercase
+    Wrap in AnimatedOpacity(duration: 150ms) so it fades on tab change
+
+  - Title text: current tab name
+      index 0 → t.t('daily_entry_title')
+      index 1 → t.t('setup_title')
+      index 2 → t.t('report_title')
+      index 3 → t.t('more_title')
+    Style: 24sp, w800, colorScheme.onSurface, height: 1.1
+
+  - Date subtitle: format DateTime.now() manually:
+      final now = DateTime.now();
+      final days = ['Mon','Tue','Wed','Thu','Fri','Sat','Sun'];
+      final months = ['Jan','Feb','Mar','Apr','May','Jun',
+                      'Jul','Aug','Sep','Oct','Nov','Dec'];
+      "${days[now.weekday-1]}, ${now.day} ${months[now.month-1]}"
+    Style: 11sp, w400, colorScheme.onSurfaceVariant
+
+RIGHT SIDE:
+  - Module count badge pill:
+      Text: "${_currentModules.where((m) => !m.isEmpty).length} modules"
+      Background: colorScheme.primaryContainer.withOpacity(0.65)
+      Text color: colorScheme.onPrimaryContainer
+      Font: 11sp, w600
+      Padding: horizontal 12, vertical 6
+      BorderRadius: 20dp
+
+═══════════════════════════════════════════════════════════════════════
+PART 3 — DROPDOWNS (Daily tab only)
+═══════════════════════════════════════════════════════════════════════
+
+Keep _buildSiteDropdown() and _buildTeamDropdown() logic 100% unchanged.
+Wrap them in a Row with horizontal padding 20px, gap 10px between them.
+
+Redesign ONLY the container styling of each dropdown:
+  Container(
+    height: 54,
+    decoration: BoxDecoration(
+      color: colorScheme.surfaceContainerLow,
+      borderRadius: BorderRadius.circular(14),
+      border: Border.all(
+        color: colorScheme.outlineVariant.withOpacity(0.5),
+        width: 0.8,
+      ),
+    ),
+    child: Stack(
+      children: [
+        Positioned(top: 6, left: 14,
+          child: Text("SITE" or "TEAM",  // whichever dropdown
+            style: TextStyle(
+              fontSize: 10, fontWeight: FontWeight.w700,
+              letterSpacing: 0.6, color: colorScheme.primary,
+            )
+          )
+        ),
+        Padding(
+          padding: EdgeInsets.only(top: 18, left: 10, right: 4),
+          child: DropdownButtonHideUnderline(
+            child: DropdownButton(...) // exact same as before
+          )
+        )
+      ]
+    )
+  )
+
+Remove the external label Text widgets above the dropdowns.
+No box shadows on dropdowns.
+
+═══════════════════════════════════════════════════════════════════════
+PART 4 — ACTIVITY CARD (Daily tab only)
+═══════════════════════════════════════════════════════════════════════
+
+Horizontal padding 20px. Build as a method _buildActivityCard().
+
+Container(
+  padding: EdgeInsets.all(12),
+  decoration: BoxDecoration(
+    color: colorScheme.surfaceContainerLow,
+    borderRadius: BorderRadius.circular(16),
+    border: Border.all(
+      color: colorScheme.outlineVariant.withOpacity(0.45),
+      width: 0.8,
+    ),
+  ),
+  child: Column(
+    children: [
+      // Header row
+      Row(children: [
+        Container(width: 6, height: 6,
+          decoration: BoxDecoration(
+            color: Colors.greenAccent.withOpacity(0.9),
+            shape: BoxShape.circle,
+          )
+        ),
+        SizedBox(width: 6),
+        Text("Recent Activity",
+          style: 11sp, w700, letterSpacing 0.4, onSurfaceVariant),
+        Spacer(),
+        Container(
+          padding: horizontal 8, vertical 3,
+          decoration: BoxDecoration(
+            color: Colors.green.withOpacity(0.10),
+            borderRadius: BorderRadius.circular(20),
+            border: Border.all(color: Colors.green.withOpacity(0.35), width: 0.8),
+          ),
+          child: Text("● Live", style: 10sp, w700, Colors.green.shade400),
+        )
+      ]),
+      SizedBox(height: 8),
+      // Activity rows — hardcoded (same data as original)
+      _buildActivityRow(
+        icon: Icons.receipt_long_rounded,
+        title: 'Expense entry added',
+        time: '2 min ago',
+        isRecent: true,
+      ),
+      SizedBox(height: 6),
+      _buildActivityRow(
+        icon: Icons.how_to_reg_rounded,
+        title: 'Attendance submitted',
+        time: 'Today 9:30 AM',
+        isRecent: false,
+      ),
+    ]
+  )
+)
+
+_buildActivityRow widget:
+  Row(children: [
+    Container(
+      width: 26, height: 26,
+      decoration: BoxDecoration(
+        color: colorScheme.surfaceContainerHigh,
+        borderRadius: BorderRadius.circular(8),
+      ),
+      child: Icon(icon, size: 14, color: colorScheme.onSurfaceVariant),
+    ),
+    SizedBox(width: 8),
+    Expanded(child: Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Text(title, style: 12sp, w600, onSurface),
+        Text(time, style: 10sp, w400, onSurfaceVariant),
+      ]
+    )),
+    if (isRecent)
+      Container(width: 6, height: 6,
+        decoration: BoxDecoration(
+          color: Colors.greenAccent, shape: BoxShape.circle)),
+  ])
+
+═══════════════════════════════════════════════════════════════════════
+PART 5 — THE MODULE CARD (CORE NEW CONCEPT)
+═══════════════════════════════════════════════════════════════════════
+
+This replaces the old GridView of big cards entirely.
+Build as method _buildModuleCard(). It returns:
+
+Padding(
+  padding: EdgeInsets.symmetric(horizontal: 16),
+  child: Container(
+    width: double.infinity,
+    decoration: BoxDecoration(
+      color: isDark ? colorScheme.surfaceContainerLow : colorScheme.surface,
+      borderRadius: BorderRadius.circular(28),
+      border: Border.all(
+        color: colorScheme.outlineVariant.withOpacity(isDark ? 0.35 : 0.55),
+        width: 0.8,
+      ),
+      boxShadow: isDark ? [] : [
+        BoxShadow(
+          color: colorScheme.shadow.withOpacity(0.06),
+          blurRadius: 16,
+          offset: Offset(0, 4),
+        )
+      ],
+    ),
+    child: Padding(
+      padding: EdgeInsets.fromLTRB(16, 20, 16, 16),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          _buildCardTabLabel(),     // tiny label at card top showing current tab
+          SizedBox(height: 16),
+          Expanded(
+            child: _buildIconGrid(), // the icon grid inside
+          ),
+        ]
+      )
+    )
+  )
+)
+
+──────────────────────────────────────────────────
+_buildCardTabLabel():
+
+A small row inside the card at the top:
+  Row(children: [
+    Container(
+      width: 4, height: 18,
+      decoration: BoxDecoration(
+        color: colorScheme.primary,
+        borderRadius: BorderRadius.circular(2),
+      ),
+    ),
+    SizedBox(width: 8),
+    Text(currentTabName,  // "Daily Entry" / "Setup" / etc.
+      style: 13sp, w700, onSurface),
+    Spacer(),
+    // small animated switcher dots — 4 dots, active one filled with primary
+    Row(children: List.generate(4, (i) => AnimatedContainer(
+      duration: Duration(milliseconds: 250),
+      margin: EdgeInsets.only(left: 4),
+      width: i == _currentIndex ? 16 : 6,
+      height: 6,
+      decoration: BoxDecoration(
+        color: i == _currentIndex
+          ? colorScheme.primary
+          : colorScheme.outlineVariant.withOpacity(0.5),
+        borderRadius: BorderRadius.circular(3),
+      ),
+    ))),
+  ])
+
+──────────────────────────────────────────────────
+_buildIconGrid():
+
+This is the key UI change. Modules are shown as SMALL ICON BUTTONS in a
+grid — like iOS home screen icons. NOT big square cards.
+
+Use a Wrap widget (NOT GridView) for flexibility:
+  Wrap(
+    spacing: 0,
+    runSpacing: 16,
+    alignment: WrapAlignment.spaceAround,
+    children: _currentModules
+      .where((m) => !m.isEmpty)
+      .map((item) => _buildModuleIconItem(item))
+      .toList(),
+  )
+
+Each icon item width = (screenWidth - 32 - 32) / 4  (4 icons per row)
+So 4 columns always. For Daily tab that means 1 row of 4. For Setup: 2 rows.
+For Reports: 2 rows. For More: 2 rows.
+
+_buildModuleIconItem(ModuleItem item):
+  Returns a GestureDetector-wrapped Column of width = calculated above.
+
+  The tap logic is IDENTICAL to the old _handleModuleTap:
+    onTap: _overlayType != null ? null : () => _handleModuleTap(item)
+
+  With AnimatedScale for tap feedback:
+    Use a bool _pressedMap = {} keyed by item.routeName
+    onTapDown: setState(() => _pressedMap[item.routeName] = true)
+    onTapUp / onTapCancel: setState(() => _pressedMap[item.routeName] = false)
+    Wrap icon container in AnimatedScale(
+      scale: _pressedMap[item.routeName] == true ? 0.88 : 1.0,
+      duration: Duration(milliseconds: 120),
+      curve: Curves.easeOut,
+    )
+
+  ICON ITEM STRUCTURE (column, centered, width: itemWidth):
+    Column(
+      mainAxisSize: MainAxisSize.min,
+      children: [
+        AnimatedScale(
+          scale: ...,
+          child: Container(
+            width: 52, height: 52,
+            decoration: BoxDecoration(
+              // Subtle icon-color tint:
+              color: Color.lerp(
+                item.iconColor.withOpacity(0.13),
+                isDark ? cs.surfaceContainerHigh : cs.surfaceContainerLow,
+                0.72,
+              ),
+              borderRadius: BorderRadius.circular(16),
+              border: Border.all(
+                color: item.iconColor.withOpacity(isDark ? 0.22 : 0.18),
+                width: 0.8,
+              ),
+            ),
+            child: Icon(
+              item.icon,
+              size: 24,
+              color: Color.lerp(item.iconColor, cs.onSurface, isDark ? 0.08 : 0.15),
+            ),
+          ),
+        ),
+        SizedBox(height: 6),
+        Text(
+          t.t(item.labelKey),
+          textAlign: TextAlign.center,
+          maxLines: 2,
+          overflow: TextOverflow.ellipsis,
+          style: TextStyle(
+            fontSize: 10,
+            fontWeight: FontWeight.w600,
+            color: colorScheme.onSurface.withOpacity(0.85),
+            height: 1.3,
+          ),
+        ),
+      ],
+    )
+
+  SHOWCASE WRAPPING:
+  Apply the EXACT same Showcase wrapping as the original _buildModuleCard.
+  The Showcase widget wraps the Column returned by _buildModuleIconItem.
+  Keep all keys, descriptions, disposeOnTap, onTargetClick callbacks identical:
+
+    if (isSetupTab && item.routeName == '/site')
+      → wrap Column in Showcase(key: SiteRegistry.siteModuleCardKey, ...)
+
+    if (_checkpoint == TourCheckpoint.rate && item.routeName == '/site-list/rate')
+      → wrap in Showcase(key: TourRegistry.rateModuleKey, ...)
+
+    if (_checkpoint == TourCheckpoint.manpower && item.routeName == '/manpower')
+      → wrap in Showcase(key: TourRegistry.manpowerModuleKey, ...)
+
+    if (_checkpoint == TourCheckpoint.team && item.routeName == '/site-list/team')
+      → wrap in Showcase(key: TourRegistry.teamModuleKey, ...)
+
+    if (_checkpoint == TourCheckpoint.dpr && item.routeName == '/site-list/addMoc')
+      → wrap in Showcase(key: TourRegistry.dprModuleKey, ...)
+
+    All Showcase onTargetClick callbacks, markXDone() calls, and
+    setState(() => _tourChecked = false) remain IDENTICAL.
+
+  SHOWCASE ORDER (critical — this is the tour flow):
+    Step 1: setupBottomNavKey fires on the "Setup" tab in the floating navbar
+            (when user first sees the screen — _maybeStartShowcase handles this)
+    Step 2: siteModuleCardKey fires on the Site Details icon when Setup tab is active
+            (SiteRegistry.siteModuleCardKey wraps the site icon item)
+    The rest of the tour (rate, manpower, team, dpr) follow exactly as before.
+    _maybeStartShowcase() is UNCHANGED — it handles all ordering internally.
+
+═══════════════════════════════════════════════════════════════════════
+PART 6 — FLOATING NAVBAR
+═══════════════════════════════════════════════════════════════════════
+
+Build as _buildFloatingNavBar(BuildContext showcaseContext).
+
+Positioned(bottom: 16 + MediaQuery.of(context).padding.bottom, left: 20, right: 20)
+
+ClipRRect(
+  borderRadius: BorderRadius.circular(28),
+  child: BackdropFilter(
+    filter: ImageFilter.blur(sigmaX: 20, sigmaY: 20),
+    child: Container(
+      height: 58,
+      decoration: BoxDecoration(
+        color: isDark
+          ? colorScheme.surfaceContainerHigh.withOpacity(0.88)
+          : colorScheme.surface.withOpacity(0.92),
+        borderRadius: BorderRadius.circular(28),
+        border: Border.all(
+          color: colorScheme.outlineVariant.withOpacity(0.28),
+          width: 0.8,
+        ),
+        boxShadow: [
+          BoxShadow(
+            color: colorScheme.shadow.withOpacity(isDark ? 0.35 : 0.14),
+            blurRadius: 28,
+            offset: Offset(0, 8),
+          )
+        ],
+      ),
+      padding: EdgeInsets.symmetric(horizontal: 10, vertical: 8),
+      child: Row(
+        children: [
+          // ── LEFT: Menu button ──────────────────────────────────────
+          _buildMenuButton(),
+
+          SizedBox(width: 8),
+
+          // ── CENTER: Tab pills ──────────────────────────────────────
+          Expanded(child: _buildTabPills(showcaseContext)),
+
+          SizedBox(width: 8),
+
+          // ── RIGHT: AI button ───────────────────────────────────────
+          _buildAiButton(),
+        ],
+      ),
+    ),
+  ),
+)
+
+──────────────────────────────────────────────────
+_buildMenuButton():
+
+GestureDetector(
+  onTap: () => Scaffold.of(context).openDrawer(),
+  child: Container(
+    width: 36, height: 36,
+    decoration: BoxDecoration(
+      color: colorScheme.surfaceContainerHigh.withOpacity(0.7),
+      borderRadius: BorderRadius.circular(11),
+      border: Border.all(
+        color: colorScheme.outlineVariant.withOpacity(0.4),
+        width: 0.8,
+      ),
+    ),
+    child: Column(
+      mainAxisAlignment: MainAxisAlignment.center,
+      crossAxisAlignment: CrossAxisAlignment.center,
+      children: [
+        _navLine(14),
+        SizedBox(height: 3.5),
+        _navLine(10),   // middle line slightly shorter for style
+        SizedBox(height: 3.5),
+        _navLine(14),
+      ],
+    ),
+  ),
+)
+
+_navLine(double width) → Container(
+  width: width, height: 1.8,
+  decoration: BoxDecoration(
+    color: colorScheme.onSurfaceVariant.withOpacity(0.7),
+    borderRadius: BorderRadius.circular(1),
+  ),
+)
+
+──────────────────────────────────────────────────
+_buildTabPills(BuildContext showcaseContext):
+
+The 4 tabs inside a subtle background container:
+
+Container(
+  height: 38,
+  padding: EdgeInsets.all(3),
+  decoration: BoxDecoration(
+    color: colorScheme.surfaceContainerLow.withOpacity(0.6),
+    borderRadius: BorderRadius.circular(22),
+    border: Border.all(
+      color: colorScheme.outlineVariant.withOpacity(0.25),
+      width: 0.6,
+    ),
+  ),
+  child: Row(
+    children: [
+      _buildTabPill(label: 'Daily', index: 0, showcaseContext: null),
+      _buildTabPill(label: 'Setup', index: 1, showcaseContext: showcaseContext),
+      _buildTabPill(label: 'Reports', index: 2, showcaseContext: null),
+      _buildTabPill(label: 'More', index: 3, showcaseContext: null),
+    ],
+  ),
+)
+
+_buildTabPill(label, index, showcaseContext):
+
+  final isActive = _currentIndex == index;
+
+  Widget pill = Expanded(
+    child: GestureDetector(
+      onTap: () {
+        if (index == 0 || index == 3) {
+          _hideOverlay();
+          setState(() => _currentIndex = index);
+        } else {
+          if (_overlayType != null) return;
+          _handleBottomNavTap(index);
+        }
+      },
+      child: AnimatedContainer(
+        duration: Duration(milliseconds: 200),
+        curve: Curves.easeInOut,
+        height: double.infinity,
+        decoration: BoxDecoration(
+          color: isActive ? colorScheme.primary : Colors.transparent,
+          borderRadius: BorderRadius.circular(20),
+        ),
+        child: Center(
+          child: Text(
+            label,
+            style: TextStyle(
+              fontSize: 11,
+              fontWeight: isActive ? FontWeight.w700 : FontWeight.w600,
+              color: isActive
+                ? Colors.white
+                : colorScheme.onSurfaceVariant.withOpacity(0.65),
+            ),
+          ),
+        ),
+      ),
+    ),
+  );
+
+  // Showcase wrapping for Setup tab only:
+  if (index == 1 && showcaseContext != null) {
+    pill = Showcase(
+      key: TourRegistry.setupBottomNavKey,
+      description: "Tap Setup to configure Site, Rate, Manpower, Team etc ⚙️",
+      disposeOnTap: true,
+      onTargetClick: () async {
+        await ref.read(tourPersistenceProvider).markSetupClicked();
+        await _handleBottomNavTap(1);
+        setState(() => _tourChecked = false);
+      },
+      child: pill,
+    );
+    // NOTE: Showcase wraps the entire Expanded pill for proper highlight
+  }
+
+  return pill;
+
+──────────────────────────────────────────────────
+_buildAiButton():
+
+Use a StatefulWidget inner state or AnimationController for pulse.
+Declare in _ModuleScreenV2State:
+  late AnimationController _pulseController;
+  late Animation<double> _pulseAnimation;
+
+In initState:
+  _pulseController = AnimationController(
+    vsync: this, duration: Duration(seconds: 2))..repeat(reverse: true);
+  _pulseAnimation = Tween<double>(begin: 0.0, end: 1.0)
+    .animate(CurvedAnimation(parent: _pulseController, curve: Curves.easeInOut));
+
+In dispose: _pulseController.dispose();
+
+Add SingleTickerProviderStateMixin to the state class.
+
+The button:
+AnimatedBuilder(
+  animation: _pulseAnimation,
+  builder: (context, child) {
+    return GestureDetector(
+      onTap: _overlayType != null ? null : _handleAiAnalysisTap,
+      child: Container(
+        width: 36, height: 36,
+        decoration: BoxDecoration(
+          shape: BoxShape.circle,
+          gradient: LinearGradient(
+            begin: Alignment.topLeft,
+            end: Alignment.bottomRight,
+            colors: [
+              colorScheme.primary,
+              colorScheme.secondary,
+            ],
+          ),
+          boxShadow: [
+            BoxShadow(
+              color: colorScheme.primary.withOpacity(
+                0.25 + (_pulseAnimation.value * 0.20)),
+              blurRadius: 8 + (_pulseAnimation.value * 6),
+              spreadRadius: _pulseAnimation.value * 2,
+            ),
+          ],
+        ),
+        child: Icon(Icons.auto_awesome_rounded, size: 18, color: Colors.white),
+      ),
+    );
+  },
+)
+
+═══════════════════════════════════════════════════════════════════════
+PART 7 — SHIMMER LOADING STATE
+═══════════════════════════════════════════════════════════════════════
+
+Update _buildLoadingState() completely. Shimmer must appear on EVERY
+placeholder element — not just the grid. Use ShimmerImage for all placeholders.
+
+Return a Scaffold(
+  appBar: null,
+  backgroundColor: _pageBackgroundColor(cs, isDark),
+  drawer: const CustomDrawer(),
+  body: SafeArea(
+    child: Column(children: [
+      // Header shimmer
+      Padding(
+        padding: EdgeInsets.fromLTRB(20, 16, 20, 12),
+        child: Row(children: [
+          Expanded(child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              ShimmerImage(height: 10, width: 100, borderRadius: 6),
+              SizedBox(height: 6),
+              ShimmerImage(height: 26, width: 180, borderRadius: 8),
+              SizedBox(height: 4),
+              ShimmerImage(height: 10, width: 120, borderRadius: 6),
+            ]
+          )),
+          ShimmerImage(height: 28, width: 80, borderRadius: 14),
+        ]),
+      ),
+
+      // Dropdown shimmer (always show in loading — matches Daily tab default)
+      Padding(
+        padding: EdgeInsets.symmetric(horizontal: 20),
+        child: Row(children: [
+          Expanded(child: ShimmerImage(height: 54, width: double.infinity, borderRadius: 14)),
+          SizedBox(width: 10),
+          Expanded(child: ShimmerImage(height: 54, width: double.infinity, borderRadius: 14)),
+        ]),
+      ),
+      SizedBox(height: 10),
+
+      // Activity card shimmer
+      Padding(
+        padding: EdgeInsets.symmetric(horizontal: 20),
+        child: Container(
+          padding: EdgeInsets.all(12),
+          decoration: BoxDecoration(
+            color: _panelColor(cs, isDark),
+            borderRadius: BorderRadius.circular(16),
+            border: Border.all(color: _moduleCardBorderColor(cs, isDark), width: 0.8),
+          ),
+          child: Column(children: [
+            Row(children: [
+              ShimmerImage(height: 6, width: 6, borderRadius: 3),
+              SizedBox(width: 6),
+              ShimmerImage(height: 10, width: 100, borderRadius: 5),
+              Spacer(),
+              ShimmerImage(height: 20, width: 48, borderRadius: 10),
+            ]),
+            SizedBox(height: 10),
+            _buildActivityRowShimmer(),
+            SizedBox(height: 6),
+            _buildActivityRowShimmer(),
+          ]),
+        ),
+      ),
+      SizedBox(height: 10),
+
+      // Module card shimmer (the big card)
+      Expanded(
+        child: Padding(
+          padding: EdgeInsets.symmetric(horizontal: 16),
+          child: Container(
+            decoration: BoxDecoration(
+              color: _panelColor(cs, isDark),
+              borderRadius: BorderRadius.circular(28),
+              border: Border.all(color: _moduleCardBorderColor(cs, isDark), width: 0.8),
+            ),
+            padding: EdgeInsets.fromLTRB(16, 20, 16, 16),
+            child: Column(children: [
+              // Card tab label shimmer
+              Row(children: [
+                ShimmerImage(height: 18, width: 4, borderRadius: 2),
+                SizedBox(width: 8),
+                ShimmerImage(height: 14, width: 100, borderRadius: 6),
+                Spacer(),
+                Row(children: List.generate(4, (i) =>
+                  Padding(
+                    padding: EdgeInsets.only(left: 4),
+                    child: ShimmerImage(height: 6, width: i == 0 ? 16 : 6, borderRadius: 3),
+                  )
+                )),
+              ]),
+              SizedBox(height: 20),
+              // Icon grid shimmer — 4 items per row, 2 rows
+              Expanded(
+                child: Wrap(
+                  spacing: 0,
+                  runSpacing: 20,
+                  alignment: WrapAlignment.spaceAround,
+                  children: List.generate(8, (i) =>
+                    SizedBox(
+                      width: (MediaQuery.of(context).size.width - 64) / 4,
+                      child: Column(
+                        mainAxisSize: MainAxisSize.min,
+                        children: [
+                          ShimmerImage(height: 52, width: 52, borderRadius: 16),
+                          SizedBox(height: 6),
+                          ShimmerImage(height: 10, width: 44, borderRadius: 5),
+                        ],
+                      ),
+                    )
+                  ),
+                ),
+              ),
+            ]),
+          ),
+        ),
+      ),
+
+      SizedBox(height: 80), // floating nav clearance
+    ]),
+  ),
+)
+
+_buildActivityRowShimmer() helper:
+  Row(children: [
+    ShimmerImage(height: 26, width: 26, borderRadius: 8),
+    SizedBox(width: 8),
+    Expanded(child: Column(children: [
+      ShimmerImage(height: 11, width: double.infinity, borderRadius: 5),
+      SizedBox(height: 4),
+      ShimmerImage(height: 9, width: 80, borderRadius: 4),
+    ])),
+  ])
+
+═══════════════════════════════════════════════════════════════════════
+PART 8 — STATE ADDITIONS
+═══════════════════════════════════════════════════════════════════════
+
+Add to _ModuleScreenV2State:
+  final Map<String, bool> _pressedMap = {};
+  late AnimationController _pulseController;
+  late Animation<double> _pulseAnimation;
+
+Add SingleTickerProviderStateMixin to the class declaration:
+  class _ModuleScreenV2State extends ConsumerState<ModuleScreenV2>
+    with SingleTickerProviderStateMixin {
+
+In initState: initialize _pulseController and _pulseAnimation as described in Part 6.
+In dispose: _pulseController.dispose() BEFORE super.dispose().
+
+═══════════════════════════════════════════════════════════════════════
+PART 9 — CRITICAL RULES SUMMARY
+═══════════════════════════════════════════════════════════════════════
+
+RULE 1: File is module_screen_v2.dart. Class is ModuleScreenV2.
+        Original module_screen.dart is UNTOUCHED.
+
+RULE 2: _maybeStartShowcase() is COPIED VERBATIM — zero changes.
+        The tour flow is: setupBottomNavKey → siteModuleCardKey → rate → manpower → team → dpr
+
+RULE 3: The Showcase for setupBottomNavKey wraps the "Setup" tab pill Expanded widget
+        inside _buildTabPills(). The Showcase highlight will frame the pill.
+
+RULE 4: The Showcase for SiteRegistry.siteModuleCardKey wraps the Column
+        returned by _buildModuleIconItem for the '/site' route item,
+        but ONLY when _currentIndex == 1 (Setup tab). Same condition as before.
+
+RULE 5: No GridView at all in the module display. Use Wrap as described.
+        The Wrap auto-flows into rows of 4. Daily = 4 icons, 1 row.
+        Setup = 6 icons, 2 rows. Reports = 6 icons, 2 rows. More = 6 icons, 2 rows.
+
+RULE 6: The module card Container uses Expanded to fill available vertical space.
+        Inside it, the Wrap uses its natural height (no Expanded around it).
+        The Column inside the card uses MainAxisSize.max so the card stretches.
+
+RULE 7: All color helpers from original are copied. Two new helpers added:
+        _subtleTintCardColor() and _subtleTintBorderColor() as specified earlier.
+
+RULE 8: typeProvider is watched: final workType = ref.watch(typeProvider);
+        Map it to eyebrow label in _buildContextualHeader().
+
+RULE 9: homeModuleAsync.when() wraps the main UI, same as original.
+        Loading state shows _buildLoadingState() with full shimmer everywhere.
+        Error state also shows _buildLoadingState().
+
+RULE 10: The overall Stack structure from Part 1 must be followed exactly.
+         ShowCaseWidget builder contains the Stack. The builder stores
+         _showcaseContext and schedules _maybeStartShowcase via
+         WidgetsBinding.instance.addPostFrameCallback — IDENTICAL to original.
+
+RULE 11: _handleBottomNavTap still exists and is called for index 1 and 2.
+         The method is UNCHANGED. It calls _checkAccess internally.
+
+RULE 12: When _overlayLoading is true: spinner overlay covers everything.
+         When _overlayType is not null and not noSubscription: AccessOverlay shows.
+         These are Positioned.fill inside the outermost Stack — IDENTICAL to original.
+
+RULE 13: Every color must work in light AND dark mode. No hardcoded hex values.
+         Use only colorScheme properties and the provided color helpers.
+
+RULE 14: Remove _gridScrollController — it was for GridView. Not needed with Wrap.
+         Remove the GridView entirely. The Wrap does not need a scroll controller.
+         The _buildModuleCard Container itself does NOT scroll — Wrap fits naturally.
+         If needed for very small screens, wrap the Wrap in a SingleChildScrollView
+         ONLY inside the card's Expanded — do not make the outer card scrollable.
+
+RULE 15: The floating navbar Positioned uses:
+         bottom: 16 + MediaQuery.of(context).padding.bottom
+         to respect device safe area (notch phones, home indicator bars).

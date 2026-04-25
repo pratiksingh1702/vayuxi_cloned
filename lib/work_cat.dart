@@ -26,6 +26,7 @@ import 'features/tour/domain/tour_controller.dart';
 import 'features/tour/domain/tour_registery.dart';
 import 'core/screens/settings_screen.dart';
 import 'core/screens/theme_switcher.dart';
+import 'core/api/sync_job.dart';
 
 const String kUserProfileHeroTag = 'user-profile-hero-card';
 
@@ -1577,6 +1578,11 @@ class _LandingHeaderRow extends ConsumerWidget {
   Widget build(BuildContext context, WidgetRef ref) {
     final colorScheme = Theme.of(context).colorScheme;
     final unreadCount = ref.watch(unreadCountProvider);
+    final syncJobs = ref.watch(syncJobsProvider);
+    final isSyncing = syncJobs.any(
+      (j) =>
+          j.status == SyncJobStatus.running || j.status == SyncJobStatus.queued,
+    );
     return Container(
       padding: const EdgeInsets.symmetric(vertical: 6),
       child: Column(
@@ -1602,13 +1608,30 @@ class _LandingHeaderRow extends ConsumerWidget {
                     clipBehavior: Clip.none,
                     children: [
                       PremiumActionIcon(
-                        icon: Icons.notifications_rounded,
+                        icon: isSyncing
+                            ? Icons.sync_rounded
+                            : Icons.notifications_rounded,
                         tooltip: 'Notifications',
                         backgroundColor: colorScheme.surfaceContainerHigh,
                         iconColor: colorScheme.onSurface,
                         borderColor: colorScheme.outlineVariant,
                         onPressed: onNotificationsTap,
                       ),
+                      if (isSyncing)
+                        Positioned.fill(
+                          child: IgnorePointer(
+                            child: Center(
+                              child: SizedBox(
+                                width: 18,
+                                height: 18,
+                                child: CircularProgressIndicator(
+                                  strokeWidth: 2,
+                                  color: colorScheme.primary,
+                                ),
+                              ),
+                            ),
+                          ),
+                        ),
                       if (unreadCount > 0)
                         Positioned(
                           right: -2,
@@ -1646,26 +1669,22 @@ class _LandingHeaderRow extends ConsumerWidget {
             ],
           ),
           const SizedBox(height: 10),
-          Row(
+          Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              Expanded(
-                child: _PremiumAnimatedGreeting(
-                  text: '$title,',
-                ),
+              _PremiumAnimatedGreeting(
+                text: '$title,',
               ),
-              const SizedBox(width: 8),
-              Expanded(
-                child: AdaptiveNameDisplay(
-                  name: subtitle,
-                  minFontSize: 13,
-                  maxLines: 2,
-                  style: TextStyle(
-                    fontSize: 24,
-                    fontWeight: FontWeight.w900,
-                    color: colorScheme.onSurface,
-                    letterSpacing: 0.2,
-                  ),
+              const SizedBox(height: 4),
+              AdaptiveNameDisplay(
+                name: subtitle,
+                minFontSize: 13,
+                maxLines: 3,
+                style: TextStyle(
+                  fontSize: 24,
+                  fontWeight: FontWeight.w900,
+                  color: colorScheme.onSurface,
+                  letterSpacing: 0.2,
                 ),
               ),
             ],

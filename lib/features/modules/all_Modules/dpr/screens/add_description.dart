@@ -51,8 +51,13 @@ import 'widgets/material_overlay_edit.dart';
 
 class AddDescriptionScreen extends ConsumerStatefulWidget {
   final DprModel? work;
+  final bool fromDraft;
 
-  const AddDescriptionScreen({super.key, this.work});
+  const AddDescriptionScreen({
+    super.key,
+    this.work,
+    this.fromDraft = false,
+  });
 
   @override
   ConsumerState<AddDescriptionScreen> createState() =>
@@ -130,7 +135,7 @@ class _AddDescriptionScreenState extends ConsumerState<AddDescriptionScreen>
       _selectedDate = session.selectedDate;
       _globalEditMode = session.isEditMode;
 
-      if (widget.work != null) {
+      if (widget.work != null && !widget.fromDraft) {
         _mechanicalId = widget.work!.id;
       }
 
@@ -168,6 +173,11 @@ class _AddDescriptionScreenState extends ConsumerState<AddDescriptionScreen>
 
     final work = widget.work ?? Dpr;
 
+    if (work != null && widget.fromDraft) {
+      _hydrateFromWorkModel(work, keepAsCreate: true);
+      return;
+    }
+
     if (work != null && (work.id == null || work.id!.trim().isEmpty)) {
       _hydrateFromWorkModel(work);
       return;
@@ -188,7 +198,7 @@ class _AddDescriptionScreenState extends ConsumerState<AddDescriptionScreen>
     }
   }
 
-  void _hydrateFromWorkModel(DprModel work) {
+  void _hydrateFromWorkModel(DprModel work, {bool keepAsCreate = false}) {
     if (work.siteId.trim().isNotEmpty) {
       siteId = work.siteId;
     }
@@ -196,8 +206,8 @@ class _AddDescriptionScreenState extends ConsumerState<AddDescriptionScreen>
       teamId = work.teamId;
     }
 
-    _mechanicalId = work.id;
-    _selectedDprId = work.id;
+    _mechanicalId = keepAsCreate ? null : work.id;
+    _selectedDprId = keepAsCreate ? null : work.id;
     _selectedDate = work.date;
 
     _dprNameController.text = work.dprName;
@@ -483,11 +493,11 @@ class _AddDescriptionScreenState extends ConsumerState<AddDescriptionScreen>
 
   void _initializeData() {
     siteId = widget.work?.siteId.trim().isNotEmpty == true
-      ? widget.work!.siteId
-      : (ref.read(selectedSiteIdProvider) ?? '');
+        ? widget.work!.siteId
+        : (ref.read(selectedSiteIdProvider) ?? '');
     teamId = widget.work?.teamId.trim().isNotEmpty == true
-      ? widget.work!.teamId
-      : (ref.read(selectedTeamIdProvider) ?? 'default');
+        ? widget.work!.teamId
+        : (ref.read(selectedTeamIdProvider) ?? 'default');
     team = ref.read(currentTeamProvider) ??
         TeamModel(
           id: "",
@@ -510,8 +520,8 @@ class _AddDescriptionScreenState extends ConsumerState<AddDescriptionScreen>
             : widget.work?.size) ??
         "";
     _sizeUomController.text = (widget.work == null
-        ? (ref.read(selectedUnitProvider) ?? '')
-        : widget.work?.size) ??
+            ? (ref.read(selectedUnitProvider) ?? '')
+            : widget.work?.size) ??
         "";
   }
 
@@ -957,6 +967,73 @@ class _AddDescriptionScreenState extends ConsumerState<AddDescriptionScreen>
   }
 
   String _formatDate(DateTime d) => "${d.day}/${d.month}/${d.year}";
+
+  Future<String?> _showDraftNameDialog({
+    required String initialValue,
+    required String fallbackValue,
+  }) async {
+    final controller = TextEditingController(text: initialValue);
+
+    return showDialog<String>(
+      context: context,
+      builder: (context) {
+        return AlertDialog(
+          title: const Text('Save Draft'),
+          content: Column(
+            mainAxisSize: MainAxisSize.min,
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              const Text('Enter a draft name so you can find it in Updates.'),
+              const SizedBox(height: 12),
+              TextField(
+                controller: controller,
+                autofocus: true,
+                decoration: const InputDecoration(
+                  labelText: 'Draft name',
+                  border: OutlineInputBorder(),
+                ),
+              ),
+            ],
+          ),
+          actions: [
+            TextButton(
+              onPressed: () => Navigator.of(context).pop(),
+              child: const Text('Cancel'),
+            ),
+            ElevatedButton(
+              onPressed: () {
+                final value = controller.text.trim();
+                Navigator.of(context).pop(
+                  value.isNotEmpty ? value : fallbackValue,
+                );
+              },
+              child: const Text('Save Draft'),
+            ),
+          ],
+        );
+      },
+    );
+  }
+
+  Future<void> _handleManualDraftSave() async {
+    if (_isDisposed || _isSubmitting) return;
+
+    final defaultName = _dprNameController.text.trim().isNotEmpty
+        ? _dprNameController.text.trim()
+        : 'DPR Draft';
+
+    final draftName = await _showDraftNameDialog(
+      initialValue: defaultName,
+      fallbackValue: defaultName,
+    );
+
+    if (draftName == null || draftName.trim().isEmpty) return;
+
+    await _saveDraft(
+      customDraftName: draftName.trim(),
+      showSuccessToast: true,
+    );
+  }
 
   void _handleToggleChange(bool isPiping, bool newValue) {
     if (_isDisposed) return;
@@ -1537,7 +1614,18 @@ class _AddDescriptionScreenState extends ConsumerState<AddDescriptionScreen>
                                 ),
                               ],
                             ),
-                            _buildEditModeButton(),
+                            Row(
+                              children: [
+                                IconButton(
+                                  tooltip: 'Save Draft',
+                                  onPressed: _isSubmitting
+                                      ? null
+                                      : _handleManualDraftSave,
+                                  icon: const Icon(Icons.save_as_rounded),
+                                ),
+                                _buildEditModeButton(),
+                              ],
+                            ),
                           ],
                         ),
                         const SizedBox(height: 16),
@@ -2961,7 +3049,7 @@ class _AddDescriptionScreenState extends ConsumerState<AddDescriptionScreen>
   }) {
     final now = DateTime.now();
     return DprModel(
-      id: _mechanicalId,
+      id: widget.fromDraft ? null : _mechanicalId,
       siteId: siteId,
       teamId: teamId,
       company: team.company,
@@ -3041,7 +3129,10 @@ class _AddDescriptionScreenState extends ConsumerState<AddDescriptionScreen>
     ref.read(uploadManagerProvider.notifier).enqueue(job);
   }
 
-  Future<void> _autoSaveDraftOnExit() async {
+  Future<void> _saveDraft({
+    String? customDraftName,
+    bool showSuccessToast = false,
+  }) async {
     if (_isDisposed || _isSubmitting) return;
 
     final pipingMaterials = ref.read(pipingMaterialsProvider);
@@ -3066,11 +3157,14 @@ class _AddDescriptionScreenState extends ConsumerState<AddDescriptionScreen>
     final dprName = _dprNameController.text.trim().isNotEmpty
         ? _dprNameController.text.trim()
         : 'DPR';
+    final draftName = customDraftName?.trim().isNotEmpty == true
+        ? customDraftName!.trim()
+        : dprName;
 
     await ref.read(uploadManagerProvider.notifier).notifyDraftSaved(
           moduleId: 'dpr',
           draftId: draftId,
-          dprName: dprName,
+          dprName: draftName,
           draftWork: draftModel.toJson(),
           metadata: {
             'siteId': siteId,
@@ -3078,9 +3172,19 @@ class _AddDescriptionScreenState extends ConsumerState<AddDescriptionScreen>
             'mechanicalId': _mechanicalId,
             'editRoute': Routes.dprDescription,
             'date': _formatDate(_selectedDate),
+            'draftName': draftName,
+            'dprName': dprName,
           },
           sendInstant: true,
         );
+
+    if (showSuccessToast) {
+      AppToast.success('Draft "$draftName" saved. Check Updates for details.');
+    }
+  }
+
+  Future<void> _autoSaveDraftOnExit() async {
+    await _saveDraft();
   }
 
   Future<void> _handleSubmitFields() async {
@@ -3367,13 +3471,16 @@ class _AddDescriptionScreenState extends ConsumerState<AddDescriptionScreen>
       );
 
       final dateString = DateFormat('yyyy-MM-dd').format(pureDate);
+      final dprName = _dprNameController.text.trim().isEmpty
+          ? 'work description'
+          : _dprNameController.text.trim();
 
       final Map<String, dynamic> updateData;
 
       if (_isDateOverrideMode) {
         updateData = {
           'date': dateString,
-          'dprName': _dprNameController.text.trim(),
+          'dprName': dprName,
           'moc': _mocController.text.trim(),
           'size': _sizeController.text.trim(),
           'sizeUom': _sizeUomController.text.trim(),
@@ -3383,7 +3490,7 @@ class _AddDescriptionScreenState extends ConsumerState<AddDescriptionScreen>
         };
       } else {
         updateData = {
-          'dprName': _dprNameController.text.trim(),
+          'dprName': dprName,
           'moc': _mocController.text.trim(),
           'size': _sizeController.text.trim(),
           'sizeUom': _sizeUomController.text.trim(),
@@ -3451,13 +3558,7 @@ class _AddDescriptionScreenState extends ConsumerState<AddDescriptionScreen>
 
       WidgetsBinding.instance.addPostFrameCallback((_) {
         if (mounted && !_isDisposed) {
-          int count = 0;
-
-          if (widget.work == null) {
-            Navigator.of(context).popUntil((_) => count++ >= 4);
-          } else {
-            context.pop(true);
-          }
+          context.pop(true);
 
           _showSnackBar("Saved locally. Syncing in background");
 

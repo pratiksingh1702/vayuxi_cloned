@@ -677,6 +677,7 @@ class AttendanceRepository {
         .typeEqualTo(type)
         .isDeletedEqualTo(false)
         .sitesElementEqualTo(siteId)
+        .sortByUpdatedAtDesc() // ✅ Added sorting
         .watch(fireImmediately: true);
 
     return Rx.combineLatest2(

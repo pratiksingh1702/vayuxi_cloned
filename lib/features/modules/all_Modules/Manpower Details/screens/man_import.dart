@@ -289,13 +289,17 @@ class _ManImportCsvScreenState extends ConsumerState<ManImportCsvScreen> {
       });
 
       _dbg("✅ No issues found. Proceeding to Upload...");
-      final siteId=ref.read(selectedSiteIdProvider)!;
+      final siteId = ref.read(selectedSiteIdProvider);
+      final metadata = <String, dynamic>{'type': type};
+      if (siteId != null && siteId.isNotEmpty) {
+        metadata['siteId'] = siteId;
+      }
 
       ref.read(uploadManagerProvider.notifier).enqueue(
         UploadJob.create(
           moduleId:    'manpower',
           filePath:    _selectedFile!.path!,
-          metadata:    {'type': type,'siteId': siteId},
+          metadata:    metadata,
           targetRoute: '/manpower',   // "View" button navigates here on success
           maxRetries:  2,
         ),

@@ -19,6 +19,9 @@ class NotificationTile extends ConsumerWidget {
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final theme = Theme.of(context);
+    final isSyncUpdate = notification.metadata['source'] == 'sync_queue';
+    final syncStatus = notification.metadata['syncStatus']?.toString();
+    final taskLabel = notification.metadata['taskLabel']?.toString();
 
     return Padding(
       padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 6),
@@ -27,18 +30,26 @@ class NotificationTile extends ConsumerWidget {
         child: AnimatedContainer(
           duration: const Duration(milliseconds: 200),
           decoration: BoxDecoration(
-            color: notification.isRead
-                ? theme.colorScheme.surface
-                : theme.colorScheme.primaryContainer.withOpacity(0.18),
+            color: _tileColor(
+              theme,
+              isSyncUpdate: isSyncUpdate,
+              syncStatus: syncStatus,
+            ),
             borderRadius: BorderRadius.circular(16),
             border: Border.all(
-              color: theme.colorScheme.outlineVariant.withOpacity(0.6),
+              color: _tileBorderColor(
+                theme,
+                isSyncUpdate: isSyncUpdate,
+                syncStatus: syncStatus,
+              ),
             ),
           ),
           child: InkWell(
             borderRadius: BorderRadius.circular(16),
             onTap: () {
-              ref.read(notificationListProvider.notifier).markAsRead(notification.id);
+              ref
+                  .read(notificationListProvider.notifier)
+                  .markAsRead(notification.id);
               UpdatesRoutes.goDetail(context, notification);
             },
             child: Padding(
@@ -77,10 +88,12 @@ class NotificationTile extends ConsumerWidget {
                                 const SizedBox(width: 6),
                                 UnreadBadge(isRead: notification.isRead),
                                 PopupMenuButton<_NotificationMenuAction>(
-                                  icon: const Icon(Icons.more_horiz_rounded, size: 18),
+                                  icon: const Icon(Icons.more_horiz_rounded,
+                                      size: 18),
                                   itemBuilder: (context) => const [
                                     PopupMenuItem(
-                                      value: _NotificationMenuAction.remindLater,
+                                      value:
+                                          _NotificationMenuAction.remindLater,
                                       child: Text('Remind in 1 hour'),
                                     ),
                                     PopupMenuItem(
@@ -88,7 +101,8 @@ class NotificationTile extends ConsumerWidget {
                                       child: Text('Delete'),
                                     ),
                                   ],
-                                  onSelected: (value) => _onMenuSelected(context, ref, value),
+                                  onSelected: (value) =>
+                                      _onMenuSelected(context, ref, value),
                                 ),
                               ],
                             ),
@@ -102,6 +116,18 @@ class NotificationTile extends ConsumerWidget {
                               maxLines: 2,
                               overflow: TextOverflow.ellipsis,
                             ),
+                            if (isSyncUpdate) ...[
+                              const SizedBox(height: 8),
+                              Wrap(
+                                spacing: 8,
+                                runSpacing: 6,
+                                children: [
+                                  _SyncStatusChip(status: syncStatus),
+                                  if (taskLabel != null && taskLabel.isNotEmpty)
+                                    _InfoChip(text: 'For: $taskLabel'),
+                                ],
+                              ),
+                            ],
                           ],
                         ),
                       ),
@@ -131,6 +157,52 @@ class NotificationTile extends ConsumerWidget {
         ),
       ),
     );
+  }
+
+  Color _tileColor(
+    ThemeData theme, {
+    required bool isSyncUpdate,
+    required String? syncStatus,
+  }) {
+    if (!isSyncUpdate) {
+      return notification.isRead
+          ? theme.colorScheme.surface
+          : theme.colorScheme.primaryContainer.withOpacity(0.18);
+    }
+
+    switch (syncStatus) {
+      case 'running':
+        return Colors.teal.withOpacity(0.10);
+      case 'success':
+        return Colors.green.withOpacity(0.08);
+      case 'retry_failed':
+        return Colors.orange.withOpacity(0.10);
+      case 'queued':
+      default:
+        return Colors.blue.withOpacity(0.08);
+    }
+  }
+
+  Color _tileBorderColor(
+    ThemeData theme, {
+    required bool isSyncUpdate,
+    required String? syncStatus,
+  }) {
+    if (!isSyncUpdate) {
+      return theme.colorScheme.outlineVariant.withOpacity(0.6);
+    }
+
+    switch (syncStatus) {
+      case 'running':
+        return Colors.teal.withOpacity(0.45);
+      case 'success':
+        return Colors.green.withOpacity(0.4);
+      case 'retry_failed':
+        return Colors.orange.withOpacity(0.5);
+      case 'queued':
+      default:
+        return Colors.blue.withOpacity(0.4);
+    }
   }
 
   String _formatTimestamp(DateTime dt) {
@@ -169,5 +241,75 @@ class NotificationTile extends ConsumerWidget {
         }
         return;
     }
+  }
+}
+
+class _SyncStatusChip extends StatelessWidget {
+  const _SyncStatusChip({required this.status});
+
+  final String? status;
+
+  @override
+  Widget build(BuildContext context) {
+    final (label, color, icon) = switch (status) {
+      'running' => ('Syncing now', Colors.teal, Icons.sync_rounded),
+      'success' => ('Synced', Colors.green, Icons.check_circle_rounded),
+      'retry_failed' => (
+          'Will retry automatically',
+          Colors.orange,
+          Icons.autorenew_rounded
+        ),
+      _ => ('Saved offline', Colors.blue, Icons.cloud_off_rounded),
+    };
+
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
+      decoration: BoxDecoration(
+        color: color.withOpacity(0.12),
+        borderRadius: BorderRadius.circular(999),
+        border: Border.all(color: color.withOpacity(0.35)),
+      ),
+      child: Row(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          Icon(icon, size: 14, color: color),
+          const SizedBox(width: 6),
+          Text(
+            label,
+            style: TextStyle(
+              fontSize: 11,
+              fontWeight: FontWeight.w600,
+              color: color,
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+class _InfoChip extends StatelessWidget {
+  const _InfoChip({required this.text});
+
+  final String text;
+
+  @override
+  Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
+      decoration: BoxDecoration(
+        color: theme.colorScheme.surfaceContainerHighest.withOpacity(0.5),
+        borderRadius: BorderRadius.circular(999),
+        border: Border.all(color: theme.colorScheme.outlineVariant),
+      ),
+      child: Text(
+        text,
+        style: theme.textTheme.labelSmall?.copyWith(
+          color: theme.colorScheme.onSurfaceVariant,
+          fontWeight: FontWeight.w600,
+        ),
+      ),
+    );
   }
 }

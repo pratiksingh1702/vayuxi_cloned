@@ -118,13 +118,21 @@ class _InsulationStepperScreenState
       TextEditingController();
 
   int _currentStep = 0;
-  int _maxUnlockedStep = 0;
   int _activeLaggingLayerIndex = 0;
 
   @override
   void initState() {
     super.initState();
     _sizeController.text = ref.read(selectedSizeProvider) ?? '';
+
+    // ✅ Select single layer by default
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      final insuState = ref.read(insulationStateProvider);
+      if (insuState.layerType == null) {
+        _onLayerTypeSelected(LayerType.single);
+      }
+    });
+
     _syncThicknessControllers();
   }
 
@@ -175,42 +183,9 @@ class _InsulationStepperScreenState
 
   void _jumpTo(int step) {
     final steps = _visibleSteps(ref.read(insulationStateProvider));
-    if (step > _maxUnlockedStep) return;
     setState(() {
       _currentStep = step.clamp(0, steps.length - 1);
       _syncThicknessControllers();
-    });
-  }
-
-  bool _isStepComplete(_InsuStepKind kind, InsulationState state) {
-    switch (kind) {
-      case _InsuStepKind.floor:
-        return state.floor.trim().isNotEmpty;
-      case _InsuStepKind.layer:
-        return state.layerType != null;
-      case _InsuStepKind.lagging:
-        if (state.layers.isEmpty) return false;
-        return state.layers.every(
-          (e) => e.name.trim().isNotEmpty && e.thickness > 0,
-        );
-      case _InsuStepKind.cladding:
-        return state.cladding.name.trim().isNotEmpty &&
-            state.cladding.thickness > 0;
-      case _InsuStepKind.size:
-        return _sizeController.text.trim().isNotEmpty;
-    }
-  }
-
-  void _unlockNextIfCurrentCompleted() {
-    final state = ref.read(insulationStateProvider);
-    final steps = _visibleSteps(state);
-    if (_currentStep >= steps.length) return;
-    if (!_isStepComplete(steps[_currentStep], state)) return;
-    if (_currentStep >= steps.length - 1) return;
-    setState(() {
-      if (_maxUnlockedStep < _currentStep + 1) {
-        _maxUnlockedStep = _currentStep + 1;
-      }
     });
   }
 
@@ -220,8 +195,6 @@ class _InsulationStepperScreenState
       _submitAndOpenDescription();
       return;
     }
-    final state = ref.read(insulationStateProvider);
-    if (!_isStepComplete(steps[_currentStep], state)) return;
     setState(() {
       _currentStep += 1;
       _syncThicknessControllers();
@@ -237,25 +210,38 @@ class _InsulationStepperScreenState
   }
 
   void _skipStep() {
+    final notifier = ref.read(insulationStateProvider.notifier);
+    final laggingNotifier = ref.read(laggingMaterialProvider.notifier);
     final steps = _visibleSteps(ref.read(insulationStateProvider));
-    if (_currentStep >= steps.length - 1) {
-      _submitAndOpenDescription();
-      return;
+    final currentKind = steps[_currentStep];
+
+    if (currentKind == _InsuStepKind.floor) {
+      notifier.setFloor('');
+    } else if (currentKind == _InsuStepKind.layer) {
+      notifier.clearLayerSelection();
+      laggingNotifier.clear();
+    } else if (currentKind == _InsuStepKind.lagging) {
+      final state = ref.read(insulationStateProvider);
+      for (var i = 0; i < state.layers.length; i++) {
+        notifier.updateLayer(index: i, name: '', thickness: 0);
+        laggingNotifier.delete('layer_$i');
+      }
+      _laggingThicknessController.clear();
+    } else if (currentKind == _InsuStepKind.cladding) {
+      notifier.setCladding(name: '', thickness: 0);
+      _claddingThicknessController.clear();
+    } else {
+      _sizeController.clear();
+      ref.read(selectedSizeProvider.notifier).state = null;
     }
 
-    setState(() {
-      if (_maxUnlockedStep < _currentStep + 1) {
-        _maxUnlockedStep = _currentStep + 1;
-      }
-      _currentStep += 1;
-      _syncThicknessControllers();
-    });
+    _ensureStepInRange(ref.read(insulationStateProvider));
+    _nextStep();
   }
 
   void _clearAll() {
     setState(() {
       _currentStep = 0;
-      _maxUnlockedStep = 0;
       _activeLaggingLayerIndex = 0;
       _sizeController.clear();
       _laggingThicknessController.clear();
@@ -294,17 +280,23 @@ class _InsulationStepperScreenState
     });
 
     _ensureStepInRange(ref.read(insulationStateProvider));
-    _unlockNextIfCurrentCompleted();
   }
 
   void _updateLaggingLayer({String? name, double? thickness}) {
-    final state = ref.read(insulationStateProvider);
+    final notifier = ref.read(insulationStateProvider.notifier);
+    var state = ref.read(insulationStateProvider);
+
+    // ✅ If layers are empty, default to single layer
+    if (state.layers.isEmpty) {
+      _onLayerTypeSelected(LayerType.single);
+      state = ref.read(insulationStateProvider);
+    }
+
     if (state.layers.isEmpty ||
         _activeLaggingLayerIndex >= state.layers.length) {
       return;
     }
 
-    final notifier = ref.read(insulationStateProvider.notifier);
     notifier.updateLayer(
       index: _activeLaggingLayerIndex,
       name: name,
@@ -328,8 +320,6 @@ class _InsulationStepperScreenState
         ),
       );
     }
-
-    _unlockNextIfCurrentCompleted();
   }
 
   void _submitAndOpenDescription() {
@@ -370,10 +360,8 @@ class _InsulationStepperScreenState
         final selected = state.floor == floor.name;
 
         return InkWell(
-          onTap: () {
-            ref.read(insulationStateProvider.notifier).setFloor(floor.name);
-            _unlockNextIfCurrentCompleted();
-          },
+          onTap: () =>
+              ref.read(insulationStateProvider.notifier).setFloor(floor.name),
           borderRadius: BorderRadius.circular(16),
           child: AnimatedContainer(
             duration: const Duration(milliseconds: 220),
@@ -501,36 +489,28 @@ class _InsulationStepperScreenState
     final isDark = Theme.of(context).brightness == Brightness.dark;
     final layers = state.layers;
 
-    if (layers.isEmpty) {
-      return Center(
-        child: Text(
-          'Choose layer type first.',
-          style: TextStyle(color: cs.onSurfaceVariant),
-        ),
-      );
-    }
-
     final layer = _currentLayer(state) ?? LayerData.empty();
 
     return ListView(
       children: [
-        Wrap(
-          spacing: 8,
-          children: List.generate(layers.length, (i) {
-            final selected = i == _activeLaggingLayerIndex;
-            return ChoiceChip(
-              label: Text('Layer ${i + 1}'),
-              selected: selected,
-              onSelected: (_) {
-                setState(() {
-                  _activeLaggingLayerIndex = i;
-                  _syncThicknessControllers();
-                });
-              },
-            );
-          }),
-        ),
-        const SizedBox(height: 12),
+        if (layers.isNotEmpty)
+          Wrap(
+            spacing: 8,
+            children: List.generate(layers.length, (i) {
+              final selected = i == _activeLaggingLayerIndex;
+              return ChoiceChip(
+                label: Text('Layer ${i + 1}'),
+                selected: selected,
+                onSelected: (_) {
+                  setState(() {
+                    _activeLaggingLayerIndex = i;
+                    _syncThicknessControllers();
+                  });
+                },
+              );
+            }),
+          ),
+        if (layers.isNotEmpty) const SizedBox(height: 12),
         GridView.builder(
           shrinkWrap: true,
           physics: const NeverScrollableScrollPhysics(),
@@ -640,12 +620,10 @@ class _InsulationStepperScreenState
             final selected = state.cladding.name == material['name'];
 
             return InkWell(
-              onTap: () {
-                ref.read(insulationStateProvider.notifier).setCladding(
-                      name: material['name'],
-                    );
-                _unlockNextIfCurrentCompleted();
-              },
+              onTap: () =>
+                  ref.read(insulationStateProvider.notifier).setCladding(
+                        name: material['name'],
+                      ),
               borderRadius: BorderRadius.circular(16),
               child: AnimatedContainer(
                 duration: const Duration(milliseconds: 220),
@@ -702,7 +680,6 @@ class _InsulationStepperScreenState
             ref.read(insulationStateProvider.notifier).setCladding(
                   thickness: double.tryParse(value.trim()) ?? 0,
                 );
-            _unlockNextIfCurrentCompleted();
           },
           decoration: InputDecoration(
             hintText: 'Enter cladding thickness',
@@ -747,7 +724,6 @@ class _InsulationStepperScreenState
                   final cleaned = value.trim();
                   ref.read(selectedSizeProvider.notifier).state =
                       cleaned.isEmpty ? null : cleaned;
-                  _unlockNextIfCurrentCompleted();
                   setState(() {});
                 },
                 decoration: InputDecoration(
@@ -827,7 +803,6 @@ class _InsulationStepperScreenState
                 padding: const EdgeInsets.fromLTRB(16, 12, 16, 8),
                 child: _InsulationStepHeader(
                   currentStep: _currentStep,
-                  maxUnlockedStep: _maxUnlockedStep,
                   labels: steps.map((e) => _stepLabels[e]!).toList(),
                   onTapStep: _jumpTo,
                 ),
@@ -892,7 +867,6 @@ class _InsulationStepperScreenState
                 totalSteps: steps.length,
                 onBack: _currentStep == 0 ? null : _previousStep,
                 onNext: _nextStep,
-                canProceed: _isStepComplete(currentKind, insuState),
               ),
             ],
           ),
@@ -990,13 +964,11 @@ class _InsulationWizardAppBar extends StatelessWidget
 class _InsulationStepHeader extends StatelessWidget {
   const _InsulationStepHeader({
     required this.currentStep,
-    required this.maxUnlockedStep,
     required this.labels,
     required this.onTapStep,
   });
 
   final int currentStep;
-  final int maxUnlockedStep;
   final List<String> labels;
   final ValueChanged<int> onTapStep;
 
@@ -1008,7 +980,7 @@ class _InsulationStepHeader extends StatelessWidget {
         for (int i = 0; i < labels.length; i++) ...[
           Expanded(
             child: InkWell(
-              onTap: i <= maxUnlockedStep ? () => onTapStep(i) : null,
+              onTap: () => onTapStep(i),
               borderRadius: BorderRadius.circular(10),
               child: Column(
                 children: [
@@ -1080,14 +1052,12 @@ class _InsulationStepperBottomBar extends StatelessWidget {
     required this.totalSteps,
     required this.onBack,
     required this.onNext,
-    required this.canProceed,
   });
 
   final int currentStep;
   final int totalSteps;
   final VoidCallback? onBack;
   final VoidCallback onNext;
-  final bool canProceed;
 
   @override
   Widget build(BuildContext context) {
@@ -1119,7 +1089,7 @@ class _InsulationStepperBottomBar extends StatelessWidget {
           if (onBack != null) const SizedBox(width: 8),
           const Spacer(),
           ElevatedButton.icon(
-            onPressed: canProceed ? onNext : null,
+            onPressed: onNext,
             icon: Icon(isLast ? Icons.done_all : Icons.arrow_forward_rounded),
             label: Text(isLast ? 'Enter' : 'Next'),
             style: ElevatedButton.styleFrom(

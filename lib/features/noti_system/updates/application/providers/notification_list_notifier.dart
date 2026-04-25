@@ -128,6 +128,10 @@ class NotificationListNotifier extends AsyncNotifier<NotificationListState> {
     await ref.read(notificationRepositoryProvider).deleteNotification(id);
   }
 
+  Future<void> clearAllNotifications() async {
+    await ref.read(notificationRepositoryProvider).clearNotifications();
+  }
+
   Future<void> remindLater(
     NotificationModel notification, {
     Duration delay = const Duration(hours: 1),

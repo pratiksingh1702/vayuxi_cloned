@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import '../../../../../core/api/requestQueue.dart';
 import '../../application/providers/notification_list_notifier.dart';
 import '../../application/providers/notification_providers.dart';
 import '../../data/models/notification_model.dart';
@@ -126,6 +127,67 @@ class _NotificationListScreenState
           icon: const Icon(Icons.refresh_rounded),
           onPressed: () =>
               ref.read(notificationListProvider.notifier).refresh(),
+        ),
+        IconButton(
+          icon: const Icon(Icons.delete_sweep_rounded),
+          tooltip: 'Clear All',
+          onPressed: () async {
+            final confirm = await showDialog<bool>(
+              context: context,
+              builder: (context) => AlertDialog(
+                title: const Text('Clear All Notifications'),
+                content: const Text(
+                    'Are you sure you want to delete all notifications?'),
+                actions: [
+                  TextButton(
+                    onPressed: () => Navigator.pop(context, false),
+                    child: const Text('Cancel'),
+                  ),
+                  TextButton(
+                    onPressed: () => Navigator.pop(context, true),
+                    child: const Text('Clear All'),
+                  ),
+                ],
+              ),
+            );
+            if (confirm == true) {
+              await ref
+                  .read(notificationListProvider.notifier)
+                  .clearAllNotifications();
+            }
+          },
+        ),
+        IconButton(
+          icon: const Icon(Icons.cloud_off_rounded),
+          tooltip: 'Clear API Queue',
+          onPressed: () async {
+            final confirm = await showDialog<bool>(
+              context: context,
+              builder: (context) => AlertDialog(
+                title: const Text('Clear API Queue'),
+                content: const Text(
+                    'This will delete all offline saved API requests. Use this only if you want to discard pending changes.'),
+                actions: [
+                  TextButton(
+                    onPressed: () => Navigator.pop(context, false),
+                    child: const Text('Cancel'),
+                  ),
+                  TextButton(
+                    onPressed: () => Navigator.pop(context, true),
+                    child: const Text('Clear Queue'),
+                  ),
+                ],
+              ),
+            );
+            if (confirm == true) {
+              await RequestQueue.clearAll();
+              if (context.mounted) {
+                ScaffoldMessenger.of(context).showSnackBar(
+                  const SnackBar(content: Text('API Queue cleared')),
+                );
+              }
+            }
+          },
         ),
       ],
     );

@@ -125,13 +125,15 @@ class _EquipmentMaterialCardState extends State<EquipmentMaterialCard> {
   void _initDynamicControllers() {
     if (_config == null) return;
     final isPatch = widget.material.name.trim().toLowerCase() == 'patch';
-    debugPrint('🔍 [${widget.material.name}] Initializing dynamic controllers (isPatch: $isPatch)');
+    debugPrint(
+        '🔍 [${widget.material.name}] Initializing dynamic controllers (isPatch: $isPatch)');
     for (final field in _config!.fields) {
       if (!isPatch && (field.role == 'QUANTITY' || field.role == 'QTY')) {
         continue;
       }
       final raw = _cardState.getValue(field.key);
-      debugPrint('   -> Field: ${field.key} (Role: ${field.role}), Value: $raw');
+      debugPrint(
+          '   -> Field: ${field.key} (Role: ${field.role}), Value: $raw');
       _valueControllers[field.key] =
           TextEditingController(text: raw != null ? raw.toString() : '');
       _labelControllers[field.key] = TextEditingController(
@@ -405,10 +407,51 @@ class _EquipmentMaterialCardState extends State<EquipmentMaterialCard> {
     // Do NOT call widget.onChanged here — wait for focus loss or Save
   }
 
-  void _onFieldValueChanged(String key, dynamic value) =>
-      _updateCardState(_cardState.updateValue(key, value));
+  String? _fieldKeyByRole(String role) {
+    if (_config == null) return null;
+    for (final field in _config!.fields) {
+      if (field.role.toUpperCase() == role.toUpperCase()) return field.key;
+    }
+    return null;
+  }
+
+  bool _hasValue(dynamic value) {
+    if (value == null) return false;
+    if (value is String) return value.trim().isNotEmpty;
+    return value.toString().trim().isNotEmpty;
+  }
+
+  void _mirrorDiameterAndCircumferenceValue(
+    String changedKey,
+    dynamic value,
+  ) {
+    final diameterKey = _fieldKeyByRole('DIAMETER');
+    final circumferenceKey = _fieldKeyByRole('CIRCUMFERENCE');
+    if (diameterKey == null || circumferenceKey == null) return;
+    if (!_hasValue(value)) return;
+
+    if (changedKey == diameterKey) {
+      _cardState = _cardState.updateValue(circumferenceKey, value);
+      if (_valueControllers.containsKey(circumferenceKey)) {
+        _valueControllers[circumferenceKey]!.text = value.toString();
+      }
+    } else if (changedKey == circumferenceKey) {
+      _cardState = _cardState.updateValue(diameterKey, value);
+      if (_valueControllers.containsKey(diameterKey)) {
+        _valueControllers[diameterKey]!.text = value.toString();
+      }
+    }
+  }
+
+  void _onFieldValueChanged(String key, dynamic value) {
+    final updated = _cardState.updateValue(key, value);
+    _updateCardState(updated);
+    _mirrorDiameterAndCircumferenceValue(key, value);
+  }
 
   void _onUnitChanged(String key, String unit) {
+    // Preserve any in-progress keyboard input before notifying parent.
+    _flushAllControllersToDraft();
     _updateCardState(_cardState.updateUnit(key, unit));
     widget.onChanged(_draftMaterial.copyWith(cardFormState: _cardState));
   }
@@ -422,6 +465,30 @@ class _EquipmentMaterialCardState extends State<EquipmentMaterialCard> {
 
   void _selectGeometryMode(String mode) {
     if (_cardState.geometryMode == mode) return;
+    // Preserve typed values while geometry mode changes visible fields.
+    _flushAllControllersToDraft();
+
+    final diameterKey = _fieldKeyByRole('DIAMETER');
+    final circumferenceKey = _fieldKeyByRole('CIRCUMFERENCE');
+    if (diameterKey != null && circumferenceKey != null) {
+      final diameterValue = _cardState.getValue(diameterKey);
+      final circumferenceValue = _cardState.getValue(circumferenceKey);
+
+      if (mode.toUpperCase() == 'CIRCUMFERENCE' &&
+          !_hasValue(circumferenceValue) &&
+          _hasValue(diameterValue)) {
+        _cardState = _cardState.updateValue(circumferenceKey, diameterValue);
+        _valueControllers[circumferenceKey]?.text = diameterValue.toString();
+      }
+
+      if (mode.toUpperCase() == 'DIAMETER' &&
+          !_hasValue(diameterValue) &&
+          _hasValue(circumferenceValue)) {
+        _cardState = _cardState.updateValue(diameterKey, circumferenceValue);
+        _valueControllers[diameterKey]?.text = circumferenceValue.toString();
+      }
+    }
+
     setState(() {
       _cardState = _cardState.updateGeometryMode(mode);
       _draftMaterial = _draftMaterial.copyWith(cardFormState: _cardState);
