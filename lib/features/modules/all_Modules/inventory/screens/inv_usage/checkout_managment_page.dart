@@ -17,6 +17,7 @@ import '../../offline/repo/inventory_sync.dart';
 import '../../provider/inventory_provider.dart';
 import '../../../../../../core/utlis/widgets/custom_dropdown.dart';
 import '../../../../../../core/utlis/widgets/fields/custom_textField.dart';
+import '../../../../screen/module_preferences.dart';
 
 // Beautiful Date Picker Widget (reused from usage page)
 class BeautifulDatePicker extends StatefulWidget {
@@ -479,6 +480,11 @@ class _CheckoutManagementPageState
 
       // Hide loading snackbar
       ScaffoldMessenger.of(context).hideCurrentSnackBar();
+
+      final isMultiple = await ModulePreferences.isMultipleEntry();
+      if (!isMultiple && mounted) {
+        context.pop();
+      }
 
       // Show success message
       ScaffoldMessenger.of(context).showSnackBar(

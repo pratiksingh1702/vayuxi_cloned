@@ -6,11 +6,38 @@ import '../local/cache_image_dao.dart';
 
 
 class ImageCacheService {
-  static final Dio _dio = Dio();
+  static final Dio _dio = Dio(
+    BaseOptions(
+      connectTimeout: const Duration(seconds: 8),
+      receiveTimeout: const Duration(seconds: 20),
+      sendTimeout: const Duration(seconds: 8),
+      followRedirects: true,
+      maxRedirects: 3,
+    ),
+  );
   static final CachedImageDao _dao = CachedImageDao();
+  static final Map<String, Future<String>> _inFlight = {};
 
   /// Returns local file path — checks Isar cache first, downloads only if missing
   static Future<String> cacheImage({
+    required String url,
+    required String fileName,
+  }) async {
+    debugPrint("📥 Incoming URL to cache: $url");
+
+    final inFlight = _inFlight[url];
+    if (inFlight != null) return inFlight;
+
+    final future = _cacheImageInternal(url: url, fileName: fileName);
+    _inFlight[url] = future;
+    try {
+      return await future;
+    } finally {
+      _inFlight.remove(url);
+    }
+  }
+
+  static Future<String> _cacheImageInternal({
     required String url,
     required String fileName,
   }) async {

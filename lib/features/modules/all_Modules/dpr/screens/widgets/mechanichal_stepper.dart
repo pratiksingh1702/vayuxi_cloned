@@ -6,6 +6,7 @@ import '../../../site_Details/providers/site_current_provider.dart';
 import '../../providers/rate_variant_provider.dart';
 import '../../providers/selectedSize_provider.dart';
 import '../../providers/selection_provider.dart';
+import '../../utils/image_track/dpr_cached_image.dart';
 import '../add_description.dart';
 
 class MechanichalStepperScreen extends ConsumerStatefulWidget {
@@ -149,25 +150,12 @@ class _MechanichalStepperScreenState
     BoxFit fit = BoxFit.cover,
     Alignment alignment = Alignment.center,
   }) {
-    if (imagePath.startsWith('http://') || imagePath.startsWith('https://')) {
-      return Image.network(
-        imagePath,
-        fit: fit,
-        alignment: alignment,
-        errorBuilder: (_, __, ___) => const _FallbackImage(),
-      );
-    }
-
-    if (imagePath.isNotEmpty) {
-      return Image.asset(
-        imagePath,
-        fit: fit,
-        alignment: alignment,
-        errorBuilder: (_, __, ___) => const _FallbackImage(),
-      );
-    }
-
-    return const _FallbackImage();
+    return DprCachedImage(
+      imagePath: imagePath,
+      fit: fit,
+      alignment: alignment,
+      fallback: const _FallbackImage(),
+    );
   }
 
   Widget _buildMocStep(String siteId, AsyncValue<dynamic> asyncRateUpload) {

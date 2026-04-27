@@ -1,5 +1,7 @@
 import 'dart:convert';
+import 'dart:io';
 import 'dart:math';
+import '../../../screen/module_preferences.dart';
 
 import 'package:dio/dio.dart';
 import 'package:flutter/material.dart';
@@ -3556,9 +3558,13 @@ class _AddDescriptionScreenState extends ConsumerState<AddDescriptionScreen>
         dateString: dateString,
       );
 
+      final isMultiple = await ModulePreferences.isMultipleEntry();
+
       WidgetsBinding.instance.addPostFrameCallback((_) {
         if (mounted && !_isDisposed) {
-          context.pop(true);
+          if (!isMultiple) {
+            context.pop(true);
+          }
 
           _showSnackBar("Saved locally. Syncing in background");
 

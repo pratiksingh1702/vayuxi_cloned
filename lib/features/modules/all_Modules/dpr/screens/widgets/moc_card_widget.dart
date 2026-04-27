@@ -1,9 +1,7 @@
 // widgets/moc_card.dart
-import 'dart:io';
-
 import 'package:flutter/material.dart';
-import 'package:cached_network_image/cached_network_image.dart';
 import '../../models/moc.dart';
+import '../../utils/image_track/dpr_cached_image.dart';
 
 class MOCCard extends StatelessWidget {
   final MOC moc;
@@ -150,36 +148,10 @@ class MOCCard extends StatelessWidget {
   Widget _buildImage(BuildContext context) {
     final img = moc.imageUrl;
 
-    return _resolveImage(context, img!);
-  }
-
-  Widget _resolveImage(BuildContext context, String img) {
-    // NETWORK (CACHED)
-    if (img.startsWith('http')) {
-      return CachedNetworkImage(
-        imageUrl: img,
-        fit: BoxFit.cover,
-        placeholder: (_, __) => const Center(
-          child: CircularProgressIndicator(strokeWidth: 2),
-        ),
-        errorWidget: (_, __, ___) => _fallbackIcon(context),
-      );
-    }
-
-    // FILE PATH
-    if (img.startsWith('/') || img.contains('storage')) {
-      return Image.file(
-        File(img),
-        fit: BoxFit.cover,
-        errorBuilder: (_, __, ___) => _fallbackIcon(context),
-      );
-    }
-
-    // ASSET IMAGE
-    return Image.asset(
-      img,
+    return DprCachedImage(
+      imagePath: img ?? '',
       fit: BoxFit.cover,
-      errorBuilder: (_, __, ___) => _fallbackIcon(context),
+      fallback: _fallbackIcon(context),
     );
   }
 

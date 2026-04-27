@@ -1,6 +1,7 @@
 import 'dart:convert';
 import 'dart:math';
 import 'dart:io';
+import '../../../../screen/module_preferences.dart';
 
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
@@ -3581,9 +3582,18 @@ class _AddInsulationDescriptionScreenState
             material: material,
             materialSetup: materialSetup,
             onChanged: (updated) {
-              ref
-                  .read(insulationEquipmentMaterialsProvider.notifier)
-                  .editEquipmentMaterial(material.id, updated);
+              final notifier =
+                  ref.read(insulationEquipmentMaterialsProvider.notifier);
+              final prevMode = material.cardFormState?.geometryMode;
+              final nextMode = updated.cardFormState?.geometryMode;
+
+              notifier.editEquipmentMaterial(material.id, updated);
+
+              if (nextMode != null &&
+                  nextMode.isNotEmpty &&
+                  nextMode != prevMode) {
+                notifier.updateAllGeometryMode(nextMode);
+              }
             },
             onAdd: () {
               copyInsulationMaterial(material: material, isPiping: false);
@@ -3790,16 +3800,51 @@ class _AddInsulationDescriptionScreenState
             debugPrint(
                 "📦 Equipment [${e.name}] - GeometryMode: ${state.geometryMode}");
 
+            final currentGeoMode = (state.geometryMode ?? '').toUpperCase();
+            final setup = _findMaterialSetup(e.materialCode, 'equipment');
+            final fields = setup?.fieldConfig.fields ?? [];
+
             // Map ALL dynamic fields from cardFormState
             state.fieldEntries.forEach((key, entry) {
-              final val = entry.value;
+              var val = entry.value;
+              var unit = entry.unit;
 
-              // Always include the field, even if null
+              // Logic to empty out fields based on geometry mode
+              if (currentGeoMode == 'DIAMETER' ||
+                  currentGeoMode == 'CIRCUMFERENCE' ||
+                  currentGeoMode == 'DIA' ||
+                  currentGeoMode == 'CIRCUM') {
+                final fieldDef = fields.cast<fc.FieldDefinition?>().firstWhere(
+                      (f) => f?.key == key,
+                      orElse: () => null,
+                    );
+
+                if (fieldDef != null) {
+                  final role = fieldDef.role.toUpperCase();
+                  final isDiaRole = role == 'DIAMETER' || role == 'DIA';
+                  final isCircumRole =
+                      role == 'CIRCUMFERENCE' || role == 'CIRCUM';
+
+                  if ((currentGeoMode == 'DIAMETER' ||
+                          currentGeoMode == 'DIA') &&
+                      isCircumRole) {
+                    val = '';
+                    unit = null;
+                  } else if ((currentGeoMode == 'CIRCUMFERENCE' ||
+                          currentGeoMode == 'CIRCUM') &&
+                      isDiaRole) {
+                    val = '';
+                    unit = null;
+                  }
+                }
+              }
+
+              // Always include the field, even if null/empty
               fieldValues[key] = val;
 
-              // Always include unit if it exists
-              if (entry.unit != null && entry.unit!.isNotEmpty) {
-                fieldValues["${key}Uom"] = entry.unit;
+              // Always include unit if it exists and wasn't cleared by geometric logic
+              if (unit != null && unit.isNotEmpty) {
+                fieldValues["${key}Uom"] = unit;
               }
             });
 
@@ -4204,9 +4249,13 @@ $currentTeamId
 
       _showSnackBar("Insulation DPR saved. Background sync started.");
 
+      final isMultiple = await ModulePreferences.isMultipleEntry();
+
       WidgetsBinding.instance.addPostFrameCallback((_) {
         if (mounted && !_isDisposed) {
-          context.pop(true);
+          if (!isMultiple) {
+            context.pop(true);
+          }
           _showSnackBar("Successfully Saved");
         }
       });

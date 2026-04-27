@@ -14,6 +14,7 @@ import '../../../site_Details/providers/site_current_provider.dart';
 import '../../models/inventory_model.dart';
 import '../../offline/repo/inventory_sync.dart';
 import '../../provider/inventory_provider.dart';
+import '../../../../screen/module_preferences.dart';
 
 // BeautifulDatePicker Widget
 class BeautifulDatePicker extends StatefulWidget {
@@ -458,12 +459,18 @@ class _InventorySelectionPageState
       ScaffoldMessenger.of(context).hideCurrentSnackBar();
       ref.invalidate(inventoryProvider(siteId));
 
-      // Clear form
-      setState(() {
-        _selectedInventoryId = null;
-        _quantityController.clear();
-        _uomController.clear();
-      });
+      final isMultiple = await ModulePreferences.isMultipleEntry();
+
+      if (!isMultiple) {
+        context.pop();
+      } else {
+        // Clear form
+        setState(() {
+          _selectedInventoryId = null;
+          _quantityController.clear();
+          _uomController.clear();
+        });
+      }
 
       // Show success message
       ScaffoldMessenger.of(context).showSnackBar(

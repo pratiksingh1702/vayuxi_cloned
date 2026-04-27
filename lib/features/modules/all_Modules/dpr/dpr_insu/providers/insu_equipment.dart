@@ -4,6 +4,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../model/eqip_insu.dart';
 import '../model/material_setup.dart';
+import '../model/card_form_State.dart';
 
 // ==============================================
 // MAIN EQUIPMENT MATERIALS PROVIDER
@@ -17,6 +18,42 @@ StateNotifierProvider<InsulationEquipmentMaterialsNotifier, List<EquipmentMateri
 class InsulationEquipmentMaterialsNotifier extends StateNotifier<List<EquipmentMaterial>> {
   InsulationEquipmentMaterialsNotifier() : super(const []);
   List<MaterialSetup> _setups = [];
+
+  MaterialSetup? _findSetup(EquipmentMaterial material) {
+    final code = material.materialCode;
+    if (code != null && code.isNotEmpty) {
+      try {
+        return _setups.firstWhere((s) => s.materialCode == code);
+      } catch (_) {
+        // ignore
+      }
+    }
+    try {
+      return _setups.firstWhere((s) => s.id == material.id);
+    } catch (_) {
+      return null;
+    }
+  }
+
+  CardFormState _ensureCardState(
+    EquipmentMaterial material,
+    String geometryMode,
+  ) {
+    if (material.cardFormState != null) {
+      return material.cardFormState!;
+    }
+
+    final setup = _findSetup(material);
+    if (setup != null) {
+      return CardFormState.buildInitial(fieldConfig: setup.fieldConfig);
+    }
+
+    return CardFormState(
+      geometryMode: geometryMode,
+      fieldEntries: const {},
+      customLabels: const {},
+    );
+  }
 
   void updateSetups(List<MaterialSetup> setups) {
     _setups = setups;
@@ -67,6 +104,18 @@ class InsulationEquipmentMaterialsNotifier extends StateNotifier<List<EquipmentM
     }).toList();
 
     state = newState;
+  }
+
+  // Update geometry mode for all equipment cards.
+  void updateAllGeometryMode(String geometryMode) {
+    final mode = geometryMode.trim();
+    if (mode.isEmpty) return;
+
+    state = state.map((material) {
+      final currentState = _ensureCardState(material, mode);
+      final updatedState = currentState.updateGeometryMode(mode);
+      return material.copyWith(cardFormState: updatedState);
+    }).toList();
   }
 
   // Delete equipment material

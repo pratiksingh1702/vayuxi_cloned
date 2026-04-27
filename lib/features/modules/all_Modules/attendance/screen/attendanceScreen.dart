@@ -15,7 +15,9 @@ import '../../../../../core/utlis/widgets/image_clipped.dart';
 import '../../../../../core/utlis/widgets/shimmer.dart';
 import '../../../../../core/utlis/widgets/sidebar.dart';
 import '../../../../../core/utlis/widgets/custom_scrollbar.dart';
+
 import '../../../../../typeProvider/type_provider.dart';
+import '../../../screen/module_preferences.dart';
 import '../../../screen/device_id.dart';
 import '../model/attModel.dart';
 import '../offline/repo/att_offline_provider.dart';
@@ -549,7 +551,8 @@ class _AttendanceScreenState extends ConsumerState<AttendanceScreen> {
           behavior: SnackBarBehavior.floating,
         ),
       );
-      if (mounted) {
+      final isMultiple = await ModulePreferences.isMultipleEntry();
+      if (mounted && !isMultiple) {
         context.pop();
       }
       _isFirstOTEntry = true;

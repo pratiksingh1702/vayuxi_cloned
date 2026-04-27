@@ -2135,7 +2135,6 @@ class _AllMaterialsScreenState extends ConsumerState<AllMaterialsScreen>
     Color color, {
     bool isSuggested = false,
   }) {
-    final imageUrl = _cleanImageUrl(material.image);
     final isSelected = _selectedMaterialIds.contains(material.id);
     final siteId = ref.read(selectedSiteIdProvider)!;
     final rateFileMeta = ref.read(rateFileMetaProvider(siteId));

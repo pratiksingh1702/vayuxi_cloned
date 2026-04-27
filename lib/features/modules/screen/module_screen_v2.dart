@@ -1,3 +1,4 @@
+import 'dart:async';
 import 'dart:ui';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
@@ -21,6 +22,7 @@ import 'package:untitled2/features/tour/domain/tour_registery.dart';
 import 'package:untitled2/features/tour/registry/site_registry.dart';
 import 'package:untitled2/typeProvider/type_provider.dart';
 import 'widgets/access_overlay.dart';
+import 'module_preferences.dart';
 
 class ModuleItem {
   final String labelKey;
@@ -67,11 +69,26 @@ class _ModuleScreenV2State extends ConsumerState<ModuleScreenV2> with SingleTick
     _pulseAnimation = Tween<double>(begin: 0.0, end: 1.0).animate(
       CurvedAnimation(parent: _pulseController, curve: Curves.easeInOut),
     );
+    _loadPreferences();
+  }
+
+  Future<void> _loadPreferences() async {
+    final isAttached = await ModulePreferences.isCardAttached();
+    final isMultiple = await ModulePreferences.isMultipleEntry();
+    if (mounted) {
+      setState(() {
+        _moduleCardAttached = isAttached;
+        _moduleCardVisible = !isAttached;
+        _multipleEntryMode = isMultiple;
+      });
+    }
   }
 
   @override
   void dispose() {
     _pulseController.dispose();
+    _scrollController.dispose();
+    _toastTimer?.cancel();
     super.dispose();
   }
 
@@ -84,6 +101,17 @@ class _ModuleScreenV2State extends ConsumerState<ModuleScreenV2> with SingleTick
   bool _tourStartPending = false;
   TourCheckpoint? _checkpoint;
   BuildContext? _showcaseContext;
+
+  // NEW — module card attach/detach
+  bool _moduleCardAttached = false;
+  bool _moduleCardVisible = true;
+  bool _multipleEntryMode = false;
+  final ScrollController _scrollController = ScrollController();
+
+  // NEW — toast system
+  String _toastMessage = '';
+  bool _toastVisible = false;
+  Timer? _toastTimer;
 
   @override
   void didChangeDependencies() {
@@ -340,6 +368,141 @@ class _ModuleScreenV2State extends ConsumerState<ModuleScreenV2> with SingleTick
   Color _panelColor(ColorScheme cs, bool isDark) => isDark ? cs.surfaceContainerHigh : cs.surface;
   Color _moduleCardBorderColor(ColorScheme cs, bool isDark) => isDark ? cs.outline.withOpacity(0.35) : cs.outlineVariant.withOpacity(0.55);
 
+  // ── NEW Design Tokens ──────────────────────────────────────────────────────
+  Color _cardBg(ColorScheme cs, bool isDark) => isDark ? cs.surfaceContainerHigh : Colors.white;
+  Color _borderColor(ColorScheme cs, bool isDark) => isDark ? cs.outline.withOpacity(0.35) : cs.outlineVariant.withOpacity(0.5);
+
+  List<BoxShadow> _cardShadow(bool isDark) => isDark ? [] : [
+    BoxShadow(color: Colors.black.withOpacity(0.06), blurRadius: 16, offset: const Offset(0, 4))
+  ];
+
+  List<BoxShadow> _dockShadow() => [
+    BoxShadow(color: Colors.black.withOpacity(0.13), blurRadius: 32, offset: const Offset(0, 10))
+  ];
+
+  // ── NEW Helpers ────────────────────────────────────────────────────────────
+  void _showToast(String msg) {
+    setState(() {
+      _toastMessage = msg;
+      _toastVisible = true;
+    });
+    _toastTimer?.cancel();
+    _toastTimer = Timer(const Duration(seconds: 2), () {
+      if (mounted) setState(() => _toastVisible = false);
+    });
+  }
+
+  void _attachModuleCard(Translator t) {
+    setState(() {
+      _moduleCardAttached = true;
+      _moduleCardVisible = false;
+    });
+    ModulePreferences.setCardAttached(true);
+    Future.delayed(const Duration(milliseconds: 320), () {
+      if (mounted) setState(() {});
+      _showToast("Module card attached to nav");
+    });
+    Future.delayed(const Duration(milliseconds: 150), () {
+      if (_scrollController.hasClients) {
+        _scrollController.animateTo(
+          _scrollController.position.maxScrollExtent,
+          duration: const Duration(milliseconds: 400),
+          curve: Curves.easeOutCubic,
+        );
+      }
+    });
+  }
+
+  void _detachModuleCard() {
+    setState(() {
+      _moduleCardAttached = false;
+    });
+    ModulePreferences.setCardAttached(false);
+    Future.delayed(const Duration(milliseconds: 100), () {
+      if (mounted) {
+        setState(() => _moduleCardVisible = true);
+        _showToast("Module card moved to page");
+      }
+      Future.delayed(const Duration(milliseconds: 200), () {
+        if (_scrollController.hasClients) {
+          _scrollController.animateTo(
+            0,
+            duration: const Duration(milliseconds: 350),
+            curve: Curves.easeOutCubic,
+          );
+        }
+      });
+    });
+  }
+  Widget _buildScrollBody(Translator t, ColorScheme cs, bool isDark) {
+    return SingleChildScrollView(
+      controller: _scrollController,
+      physics: const AlwaysScrollableScrollPhysics(),
+      child: Column(
+        children: [
+          _buildContextualHeader(t),
+          const SizedBox(height: 12),
+          _buildDropdownRow(),
+          const SizedBox(height: 10),
+          // CONDITIONAL: inline module card (detached state)
+          AnimatedSize(
+            duration: const Duration(milliseconds: 400),
+            curve: Curves.easeOutCubic,
+            child: _moduleCardAttached || !_moduleCardVisible
+                ? const SizedBox.shrink()
+                : _buildInlineModuleCard(t, cs, isDark),
+          ),
+          const SizedBox(height: 10),
+          _buildActivityCard(),
+          const SizedBox(height: 10),
+          _buildOverviewCard(cs, isDark),
+          // bottom padding = dock height + 24
+          AnimatedContainer(
+            duration: const Duration(milliseconds: 450),
+            curve: Curves.easeOutCubic,
+            height: _getDockSpacerHeight(_currentModules),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildToastOverlay() {
+    return AnimatedPositioned(
+      duration: const Duration(milliseconds: 300),
+      curve: Curves.easeOutBack,
+      top: _toastVisible ? 20 : -50,
+      left: 0,
+      right: 0,
+      child: Center(
+        child: AnimatedOpacity(
+          duration: const Duration(milliseconds: 220),
+          opacity: _toastVisible ? 1.0 : 0.0,
+          child: Container(
+            padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+            decoration: BoxDecoration(
+              color: Colors.black.withOpacity(0.80),
+              borderRadius: BorderRadius.circular(20),
+            ),
+            child: Text(
+              _toastMessage,
+              style: const TextStyle(color: Colors.white, fontSize: 12, fontWeight: FontWeight.w600),
+            ),
+          ),
+        ),
+      ),
+    );
+  }
+
+  double _getDockSpacerHeight(List<ModuleItem> currentModules) {
+    double base = 62 + 16 + 24;
+    if (_moduleCardAttached) {
+      int rows = (currentModules.where((m) => !m.isEmpty).length / 4).ceil();
+      base += 58 + (rows * 78.0) + 30;
+    }
+    return base;
+  }
+
   @override
   Widget build(BuildContext context) {
     final cs = Theme.of(context).colorScheme;
@@ -352,8 +515,6 @@ class _ModuleScreenV2State extends ConsumerState<ModuleScreenV2> with SingleTick
       error: (e, _) => _buildLoadingState(),
       data: (homeData) {
         final t = Translator(homeData);
-        final cs = Theme.of(context).colorScheme;
-        final isDark = Theme.of(context).brightness == Brightness.dark;
 
         return Scaffold(
           drawer: const CustomDrawer(),
@@ -367,33 +528,28 @@ class _ModuleScreenV2State extends ConsumerState<ModuleScreenV2> with SingleTick
                   if (_showQuickSettings) setState(() => _showQuickSettings = false);
                 },
                 child: Stack(
+                  fit: StackFit.expand,
                   children: [
+                    // Layer 1: Scrollable page content
                     SafeArea(
-                      child: Column(
-                        children: [
-                          _buildContextualHeader(t),
-                          const SizedBox(height: 12),
-                          _buildDropdownRow(),
-                          const SizedBox(height: 10),
-                          _buildActivityCard(),
-                          const SizedBox(height: 12),
-                          _buildModuleCard(t),
-                          const SizedBox(height: 80),
-                        ],
-                      ),
+                      child: _buildScrollBody(t, cs, isDark),
                     ),
-                    Positioned(
-                      bottom: 16 + MediaQuery.of(context).padding.bottom,
-                      left: 12,
-                      right: 12,
-                      child: _buildFloatingNavBar(showcaseContext, t),
-                    ),
+
+                    // Layer 2: Floating dock (nav + optional attached card)
+                    _buildFloatingDock(showcaseContext, t, cs, isDark),
+
+                    // Layer 3: Quick settings panel
                     if (_showQuickSettings)
                       Positioned(
                         bottom: 84 + MediaQuery.of(context).padding.bottom,
                         left: 20,
-                        child: _buildQuickSettingsMenu(cs, isDark),
+                        child: _buildQuickSettingsMenu(t, cs, isDark),
                       ),
+
+                    // Layer 4: Toast notification
+                    _buildToastOverlay(),
+
+                    // Layer 5: Access overlay loading spinner
                     if (_overlayLoading)
                       Positioned.fill(
                         child: Container(
@@ -401,6 +557,8 @@ class _ModuleScreenV2State extends ConsumerState<ModuleScreenV2> with SingleTick
                           child: const Center(child: CircularProgressIndicator()),
                         ),
                       ),
+
+                    // Layer 6: Access overlay widget
                     if (!_overlayLoading && _overlayType != null && _overlayType != AccessState.noSubscription)
                       Positioned.fill(
                         child: AccessOverlay(
@@ -594,7 +752,7 @@ class _ModuleScreenV2State extends ConsumerState<ModuleScreenV2> with SingleTick
       Container(
         width: 26, height: 26,
         decoration: BoxDecoration(color: cs.surfaceContainerHigh, borderRadius: BorderRadius.circular(8)),
-        child: Icon(icon, size: 14, color: cs.onSurfaceVariant),
+        child: Icon(icon, size: 13, color: cs.onSurfaceVariant),
       ),
       const SizedBox(width: 8),
       Expanded(child: Column(
@@ -608,39 +766,305 @@ class _ModuleScreenV2State extends ConsumerState<ModuleScreenV2> with SingleTick
     ]);
   }
 
-  // ── Part 5: Module Card ─────────────────────────────────────────────────────
-  Widget _buildModuleCard(Translator t) {
-    final cs = Theme.of(context).colorScheme;
-    final isDark = Theme.of(context).brightness == Brightness.dark;
+  Widget _buildOverviewCard(ColorScheme cs, bool isDark) {
     return Padding(
-      padding: const EdgeInsets.symmetric(horizontal: 16),
-      child: GestureDetector(
-        onHorizontalDragEnd: (details) {
-          if (details.primaryVelocity! > 500) {
-            // Swipe Right -> Previous Tab
-            if (_currentIndex > 0) _handleSwipe(_currentIndex - 1);
-          } else if (details.primaryVelocity! < -500) {
-            // Swipe Left -> Next Tab
-            if (_currentIndex < 3) _handleSwipe(_currentIndex + 1);
-          }
-        },
-        child: Container(
-          width: double.infinity,
-          padding: const EdgeInsets.fromLTRB(16, 20, 16, 16),
-          decoration: BoxDecoration(
-            color: isDark ? cs.surfaceContainerLow : cs.surface,
-            borderRadius: BorderRadius.circular(28),
-            border: Border.all(color: _moduleCardBorderColor(cs, isDark), width: 0.8),
-            boxShadow: isDark ? [] : [BoxShadow(color: cs.shadow.withOpacity(0.06), blurRadius: 16, offset: const Offset(0, 4))],
+      padding: const EdgeInsets.symmetric(horizontal: 20),
+      child: Container(
+        padding: const EdgeInsets.all(12),
+        decoration: BoxDecoration(
+          color: cs.surfaceContainerLow,
+          borderRadius: BorderRadius.circular(16),
+          border: Border.all(color: cs.outlineVariant.withOpacity(0.45), width: 0.8),
+        ),
+        child: Column(
+          children: [
+            Row(children: [
+              Icon(Icons.bar_chart_rounded, size: 13, color: cs.onSurfaceVariant),
+              const SizedBox(width: 6),
+              Text("Overview", style: TextStyle(fontSize: 11, fontWeight: FontWeight.w700, letterSpacing: 0.4, color: cs.onSurfaceVariant)),
+            ]),
+            const SizedBox(height: 8),
+            _buildOverviewRow(Icons.location_city_rounded, "Site Summary", "3 active · 2 pending", "Active", cs.primary),
+            _buildOverviewRow(Icons.payments_rounded, "Today's Totals", "₹12,400 · 24/30", "24/30", Colors.green),
+            _buildOverviewRow(Icons.description_rounded, "Pending Approvals", "3 DPR awaiting review", "3 Pending", Colors.orange),
+            _buildOverviewRow(Icons.analytics_rounded, "Weekly Progress", "78% completion", "78%", Colors.green, last: true),
+          ],
+        ),
+      ),
+    );
+  }
+
+  Widget _buildOverviewRow(IconData icon, String title, String subtitle, String badge, Color badgeColor, {bool last = false}) {
+    final cs = Theme.of(context).colorScheme;
+    return Column(
+      children: [
+        Row(children: [
+          Container(
+            width: 26, height: 26,
+            decoration: BoxDecoration(color: cs.surfaceContainerHigh, borderRadius: BorderRadius.circular(8)),
+            child: Icon(icon, size: 13, color: cs.onSurfaceVariant),
           ),
-          child: Column(
-            mainAxisSize: MainAxisSize.min,
+          const SizedBox(width: 8),
+          Expanded(child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              _buildCardTabLabel(t),
-              const SizedBox(height: 16),
-              _buildIconGrid(t),
+              Text(title, style: TextStyle(fontSize: 12, fontWeight: FontWeight.w600, color: cs.onSurface)),
+              Text(subtitle, style: TextStyle(fontSize: 10, fontWeight: FontWeight.w400, color: cs.onSurfaceVariant)),
+            ]
+          )),
+          Container(
+            padding: const EdgeInsets.symmetric(horizontal: 7, vertical: 2),
+            decoration: BoxDecoration(
+              color: badgeColor.withOpacity(0.12),
+              borderRadius: BorderRadius.circular(10),
+            ),
+            child: Text(
+              badge,
+              style: TextStyle(fontSize: 9, fontWeight: FontWeight.w700, color: badgeColor),
+            ),
+          ),
+        ]),
+        if (!last) Padding(
+          padding: const EdgeInsets.symmetric(vertical: 6),
+          child: Divider(height: 1, color: cs.outlineVariant.withOpacity(0.2)),
+        ),
+      ],
+    );
+  }
+
+  // ── Part 5: Module Card ─────────────────────────────────────────────────────
+  Widget _buildInlineModuleCard(Translator t, ColorScheme cs, bool isDark) {
+    return AnimatedOpacity(
+      duration: const Duration(milliseconds: 350),
+      opacity: _moduleCardVisible ? 1.0 : 0.0,
+      child: AnimatedSlide(
+        duration: const Duration(milliseconds: 420),
+        offset: _moduleCardVisible ? Offset.zero : const Offset(0, 0.15),
+        curve: Curves.easeOutCubic,
+        child: Padding(
+          padding: const EdgeInsets.only(left: 16, right: 16, top: 12, bottom: 32),
+          child: GestureDetector(
+            onHorizontalDragEnd: (details) {
+              if (details.primaryVelocity! > 500) {
+                // Swipe Right -> Previous Tab
+                if (_currentIndex > 0) _handleSwipe(_currentIndex - 1);
+              } else if (details.primaryVelocity! < -500) {
+                // Swipe Left -> Next Tab
+                if (_currentIndex < 3) _handleSwipe(_currentIndex + 1);
+              }
+            },
+            child: Container(
+              width: double.infinity,
+              padding: const EdgeInsets.fromLTRB(16, 14, 16, 16),
+              decoration: BoxDecoration(
+                color: _cardBg(cs, isDark),
+                borderRadius: BorderRadius.circular(28),
+                border: Border.all(color: _borderColor(cs, isDark), width: 0.8),
+                boxShadow: [
+                  BoxShadow(
+                    color: Colors.black.withOpacity(isDark ? 0.4 : 0.18),
+                    blurRadius: 36,
+                    spreadRadius: 6,
+                    offset: const Offset(0, 12),
+                  )
+                ],
+              ),
+              child: Column(
+                mainAxisSize: MainAxisSize.min,
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  // TOP BAR: drag hint + attach button
+                  Row(
+                    children: [
+                      Expanded(
+                        child: Center(
+                          child: Container(
+                            width: 36, height: 4,
+                            decoration: BoxDecoration(
+                              color: cs.onSurface.withOpacity(0.12),
+                              borderRadius: BorderRadius.circular(2),
+                            ),
+                          ),
+                        ),
+                      ),
+                      GestureDetector(
+                        onTap: () => _attachModuleCard(t),
+                        child: Container(
+                          padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 5),
+                          decoration: BoxDecoration(
+                            color: cs.primary.withOpacity(0.09),
+                            borderRadius: BorderRadius.circular(20),
+                            border: Border.all(color: cs.primary.withOpacity(0.2)),
+                          ),
+                          child: Row(
+                            mainAxisSize: MainAxisSize.min,
+                            children: [
+                              Icon(Icons.south_rounded, size: 11, color: cs.primary),
+                              const SizedBox(width: 4),
+                              Text("Attach to nav", style: TextStyle(fontSize: 10, fontWeight: FontWeight.w700, color: cs.primary)),
+                            ],
+                          ),
+                        ),
+                      ),
+                    ],
+                  ),
+                  const SizedBox(height: 10),
+                  _buildCardTabLabel(t),
+                  const SizedBox(height: 14),
+                  _buildIconGrid(t),
+                ],
+              ),
+            ),
+          ),
+        ),
+      ),
+    );
+  }
+
+  Widget _buildAttachedModulePanel(Translator t, ColorScheme cs, bool isDark) {
+    return Container(
+      decoration: BoxDecoration(
+        color: isDark ? cs.surfaceContainerHigh.withOpacity(0.96) : Colors.white.withOpacity(0.97),
+        borderRadius: const BorderRadius.only(
+          topLeft: Radius.circular(28),
+          topRight: Radius.circular(28),
+          bottomLeft: Radius.zero,
+          bottomRight: Radius.zero,
+        ),
+        border: Border(
+          top: BorderSide(color: _borderColor(cs, isDark), width: 0.8),
+          left: BorderSide(color: _borderColor(cs, isDark), width: 0.8),
+          right: BorderSide(color: _borderColor(cs, isDark), width: 0.8),
+        ),
+        boxShadow: [
+          BoxShadow(
+            color: Colors.black.withOpacity(isDark ? 0.35 : 0.18), 
+            blurRadius: 36, 
+            spreadRadius: 4, 
+            offset: const Offset(0, -8)
+          )
+        ],
+      ),
+      padding: const EdgeInsets.fromLTRB(16, 10, 16, 14),
+      child: Column(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          // TOP BAR: drag pill + detach button
+          Row(
+            children: [
+              const SizedBox(width: 88), // balance spacer
+              Expanded(
+                child: Center(
+                  child: Container(
+                    width: 40, height: 4,
+                    decoration: BoxDecoration(
+                      color: cs.onSurface.withOpacity(0.14),
+                      borderRadius: BorderRadius.circular(2),
+                    ),
+                  ),
+                ),
+              ),
+              // Detach chip
+              GestureDetector(
+                onTap: _detachModuleCard,
+                child: Container(
+                  width: 88,
+                  padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 5),
+                  decoration: BoxDecoration(
+                    color: cs.primary.withOpacity(0.09),
+                    borderRadius: BorderRadius.circular(20),
+                    border: Border.all(color: cs.primary.withOpacity(0.2)),
+                  ),
+                  child: Row(
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      Icon(Icons.north_rounded, size: 11, color: cs.primary),
+                      const SizedBox(width: 4),
+                      Text("Detach", style: TextStyle(fontSize: 10, fontWeight: FontWeight.w700, color: cs.primary)),
+                    ],
+                  ),
+                ),
+              ),
             ],
+          ),
+          const SizedBox(height: 10),
+          _buildCardTabLabel(t),
+          const SizedBox(height: 14),
+          _buildIconGrid(t),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildFloatingDock(BuildContext showcaseContext, Translator t, ColorScheme cs, bool isDark) {
+    return Positioned(
+      bottom: 16 + MediaQuery.of(context).padding.bottom,
+      left: 12,
+      right: 12,
+      child: Column(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          // Attached panel — slides in/out with AnimatedSize
+          AnimatedSize(
+            duration: const Duration(milliseconds: 450),
+            curve: Curves.easeOutCubic,
+            child: _moduleCardAttached
+                ? _buildAttachedModulePanel(t, cs, isDark)
+                : const SizedBox.shrink(),
+          ),
+          // Nav bar — always visible
+          _buildNavBar(showcaseContext, t, cs, isDark),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildNavBar(BuildContext showcaseContext, Translator t, ColorScheme cs, bool isDark) {
+    return AnimatedContainer(
+      duration: const Duration(milliseconds: 400),
+      curve: Curves.easeOutCubic,
+      height: 62,
+      decoration: BoxDecoration(
+        color: isDark
+            ? cs.surfaceContainerHigh.withOpacity(0.88)
+            : Colors.white.withOpacity(0.93),
+        borderRadius: BorderRadius.only(
+          topLeft: Radius.circular(_moduleCardAttached ? 0 : 30),
+          topRight: Radius.circular(_moduleCardAttached ? 0 : 30),
+          bottomLeft: const Radius.circular(30),
+          bottomRight: const Radius.circular(30),
+        ),
+        border: Border(
+          // when attached, no top border (seamless join with panel)
+          top: _moduleCardAttached
+              ? BorderSide.none
+              : BorderSide(color: cs.outlineVariant.withOpacity(0.2), width: 0.8),
+          left: BorderSide(color: cs.outlineVariant.withOpacity(0.2), width: 0.8),
+          right: BorderSide(color: cs.outlineVariant.withOpacity(0.2), width: 0.8),
+          bottom: BorderSide(color: cs.outlineVariant.withOpacity(0.2), width: 0.8),
+        ),
+        boxShadow: _dockShadow(),
+      ),
+      child: ClipRRect(
+        borderRadius: BorderRadius.only(
+          topLeft: Radius.circular(_moduleCardAttached ? 0 : 30),
+          topRight: Radius.circular(_moduleCardAttached ? 0 : 30),
+          bottomLeft: const Radius.circular(30),
+          bottomRight: const Radius.circular(30),
+        ),
+        child: BackdropFilter(
+          filter: ImageFilter.blur(sigmaX: 30, sigmaY: 30),
+          child: Padding(
+            padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 8),
+            child: Row(
+              children: [
+                _buildMenuButton(),
+                const SizedBox(width: 8),
+                Expanded(child: _buildTabPills(showcaseContext)),
+                const SizedBox(width: 8),
+                _buildAiButton(t),
+              ],
+            ),
           ),
         ),
       ),
@@ -760,35 +1184,6 @@ class _ModuleScreenV2State extends ConsumerState<ModuleScreenV2> with SingleTick
   }
 
   // ── Part 6: Floating NavBar ────────────────────────────────────────────────
-  Widget _buildFloatingNavBar(BuildContext showcaseContext, Translator t) {
-    final cs = Theme.of(context).colorScheme;
-    final isDark = Theme.of(context).brightness == Brightness.dark;
-    return ClipRRect(
-      borderRadius: BorderRadius.circular(30),
-      child: BackdropFilter(
-        filter: ImageFilter.blur(sigmaX: 30, sigmaY: 30),
-        child: Container(
-          height: 62,
-          decoration: BoxDecoration(
-            color: isDark ? cs.surfaceContainerHigh.withOpacity(0.75) : cs.surface.withOpacity(0.82),
-            borderRadius: BorderRadius.circular(30),
-            border: Border.all(color: cs.outlineVariant.withOpacity(0.2), width: 0.8),
-            boxShadow: [BoxShadow(color: cs.shadow.withOpacity(isDark ? 0.35 : 0.12), blurRadius: 30, offset: const Offset(0, 10))],
-          ),
-          padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 8),
-          child: Row(
-            children: [
-              _buildMenuButton(),
-              const SizedBox(width: 8),
-              Expanded(child: _buildTabPills(showcaseContext)),
-              const SizedBox(width: 8),
-              _buildAiButton(),
-            ],
-          ),
-        ),
-      ),
-    );
-  }
 
   Widget _buildMenuButton() {
     final cs = Theme.of(context).colorScheme;
@@ -806,7 +1201,7 @@ class _ModuleScreenV2State extends ConsumerState<ModuleScreenV2> with SingleTick
     );
   }
 
-  Widget _buildQuickSettingsMenu(ColorScheme cs, bool isDark) {
+  Widget _buildQuickSettingsMenu(Translator t, ColorScheme cs, bool isDark) {
     return TweenAnimationBuilder<double>(
       duration: const Duration(milliseconds: 200),
       tween: Tween(begin: 0, end: 1),
@@ -833,6 +1228,19 @@ class _ModuleScreenV2State extends ConsumerState<ModuleScreenV2> with SingleTick
             child: Column(
               mainAxisSize: MainAxisSize.min,
               children: [
+                _buildQuickSettingRow("Attach to Nav", _moduleCardAttached, (val) {
+                  if (val) {
+                    _attachModuleCard(t);
+                  } else {
+                    _detachModuleCard();
+                  }
+                }),
+                const Divider(height: 16, thickness: 0.5),
+                _buildQuickSettingRow("Multiple Entry Mode", _multipleEntryMode, (val) {
+                  setState(() => _multipleEntryMode = val);
+                  ModulePreferences.setMultipleEntry(val);
+                }),
+                const Divider(height: 16, thickness: 0.5),
                 _buildQuickSettingRow("Compact Mode", _dummyToggle1, (val) => setState(() => _dummyToggle1 = val)),
                 const Divider(height: 16, thickness: 0.5),
                 _buildQuickSettingRow("Show Labels", _dummyToggle2, (val) => setState(() => _dummyToggle2 = val)),
@@ -972,13 +1380,19 @@ class _ModuleScreenV2State extends ConsumerState<ModuleScreenV2> with SingleTick
     return pill;
   }
 
-  Widget _buildAiButton() {
+  Widget _buildAiButton(Translator t) {
     final cs = Theme.of(context).colorScheme;
     return AnimatedBuilder(
       animation: _pulseAnimation,
       builder: (context, child) {
         return GestureDetector(
-          onTap: _overlayType != null ? null : _handleAiAnalysisTap,
+          onTap: _overlayType != null ? null : () {
+            if (!_moduleCardAttached) {
+              _attachModuleCard(t);
+            } else {
+              _handleAiAnalysisTap();
+            }
+          },
           child: Padding(
             padding: const EdgeInsets.all(8.0), // Space for shadow pulse
             child: Container(
@@ -1117,6 +1531,11 @@ class _ModuleScreenV2State extends ConsumerState<ModuleScreenV2> with SingleTick
                 ]),
               ),
             ),
+          ),
+          const SizedBox(height: 10),
+          Padding(
+            padding: const EdgeInsets.fromLTRB(16, 0, 16, 0),
+            child: ShimmerImage(height: 62, width: double.infinity, borderRadius: 30),
           ),
           const SizedBox(height: 80),
         ]),

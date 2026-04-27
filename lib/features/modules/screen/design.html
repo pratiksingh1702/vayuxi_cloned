@@ -1,0 +1,587 @@
+<style>
+*{box-sizing:border-box;margin:0;padding:0;}
+body{font-family:var(--font-sans,system-ui,sans-serif);}
+.pw{display:flex;justify-content:center;padding:16px 0;}
+.phone{width:390px;height:800px;background:#f2f2f7;border-radius:44px;overflow:hidden;position:relative;border:1px solid #d1d1d6;display:flex;flex-direction:column;}
+
+/* SCROLL AREA */
+.scroll-body{flex:1;overflow-y:auto;overflow-x:hidden;scroll-behavior:smooth;}
+.scroll-body::-webkit-scrollbar{display:none;}
+
+/* ── FLOATING DOCK ── */
+.dock{
+  position:absolute;
+  bottom:16px;left:12px;right:12px;
+  z-index:30;
+}
+
+/* ── MODULE PANEL (default = attached above nav) ── */
+.module-panel{
+  background:rgba(255,255,255,0.96);
+  border-radius:28px 28px 0 0;
+  border:0.8px solid rgba(0,0,0,0.09);
+  border-bottom:none;
+  box-shadow:0 -12px 48px rgba(0,0,0,0.22), 0 -4px 16px rgba(0,0,0,0.12);
+  padding:10px 16px 12px;
+  max-height:0;
+  overflow:hidden;
+  opacity:0;
+  pointer-events:none;
+  transition:
+    max-height 0.45s cubic-bezier(0.4,0,0.2,1),
+    padding 0.35s cubic-bezier(0.4,0,0.2,1),
+    opacity 0.3s,
+    border-radius 0.4s cubic-bezier(0.4,0,0.2,1);
+}
+.module-panel.open{
+  max-height:360px;
+  opacity:1;
+  pointer-events:all;
+}
+
+/* ── INLINE CARD (detached, lives in scroll body) ── */
+.inline-card{
+  margin:0 20px;
+  background:rgba(255,255,255,0.97);
+  border-radius:22px;
+  border:0.8px solid rgba(0,0,0,0.09);
+  box-shadow:0 4px 20px rgba(0,0,0,0.08);
+  overflow:hidden;
+  max-height:0;
+  opacity:0;
+  pointer-events:none;
+  transition:
+    max-height 0.5s cubic-bezier(0.4,0,0.2,1),
+    opacity 0.38s cubic-bezier(0.4,0,0.2,1),
+    margin-top 0.4s cubic-bezier(0.4,0,0.2,1),
+    margin-bottom 0.4s cubic-bezier(0.4,0,0.2,1),
+    transform 0.48s cubic-bezier(0.34,1.15,0.64,1);
+  transform:translateY(10px) scale(0.97);
+  transform-origin:top center;
+}
+.inline-card.visible{
+  max-height:420px;
+  opacity:1;
+  pointer-events:all;
+  transform:translateY(0) scale(1);
+  margin-top:10px;
+  margin-bottom:2px;
+}
+
+.inline-card-inner{padding:12px 16px 16px;}
+
+/* inline card top row: drag pill + attach button */
+.inline-topbar{
+  display:flex;align-items:center;gap:8px;margin-bottom:10px;
+}
+.inline-drag{flex:1;display:flex;justify-content:center;padding:6px 0;cursor:grab;}
+.inline-pill{width:36px;height:4px;background:rgba(0,0,0,0.12);border-radius:2px;transition:background 0.2s,width 0.2s;}
+.inline-drag:hover .inline-pill{background:rgba(0,122,255,0.35);width:44px;}
+
+/* attach chip */
+.action-chip{
+  display:flex;align-items:center;gap:5px;
+  border-radius:20px;
+  padding:5px 10px 5px 8px;
+  cursor:pointer;
+  flex-shrink:0;
+  transition:background 0.2s, transform 0.18s cubic-bezier(0.34,1.56,0.64,1), box-shadow 0.2s;
+}
+.action-chip.blue{
+  background:rgba(0,122,255,0.09);
+  border:0.8px solid rgba(0,122,255,0.2);
+}
+.action-chip.blue:hover{background:rgba(0,122,255,0.16);transform:scale(1.06);box-shadow:0 2px 10px rgba(0,122,255,0.15);}
+.action-chip:active{transform:scale(0.94);}
+.chip-lbl{font-size:10px;font-weight:700;letter-spacing:0.2px;}
+.chip-lbl.blue{color:#007AFF;}
+
+.inline-meta{display:flex;align-items:center;gap:8px;margin-bottom:12px;}
+.inline-accent{width:4px;height:16px;background:#007AFF;border-radius:2px;flex-shrink:0;}
+.inline-title{font-size:13px;font-weight:700;color:#1c1c1e;flex:1;}
+.inline-dots{display:flex;align-items:center;gap:4px;}
+
+/* icon grid */
+.icon-grid{display:grid;grid-template-columns:repeat(4,1fr);gap:14px 0;}
+.icon-item{display:flex;flex-direction:column;align-items:center;gap:5px;cursor:pointer;transition:transform 0.12s;user-select:none;}
+.icon-item:active{transform:scale(0.88);}
+.icon-box{width:50px;height:50px;border-radius:15px;display:flex;align-items:center;justify-content:center;}
+.icon-text{font-size:10px;font-weight:600;color:rgba(28,28,30,0.85);text-align:center;line-height:1.3;max-width:66px;}
+
+/* ── NAV BAR ── */
+.nav-bar{
+  background:rgba(255,255,255,0.92);
+  border-radius:0 0 28px 28px;
+  border:0.8px solid rgba(0,0,0,0.09);
+  border-top:0.5px solid rgba(0,0,0,0.06);
+  box-shadow:0 8px 32px rgba(0,0,0,0.13);
+  height:62px;display:flex;align-items:center;padding:8px 10px;gap:8px;
+  transition:border-radius 0.45s cubic-bezier(0.4,0,0.2,1);
+}
+.nav-bar.pill{border-radius:30px;box-shadow:0 10px 32px rgba(0,0,0,0.13);}
+
+.more-btn{width:40px;height:40px;background:rgba(120,120,128,0.14);border-radius:14px;border:0.8px solid rgba(0,0,0,0.1);display:flex;align-items:center;justify-content:center;flex-shrink:0;cursor:pointer;transition:background 0.2s;}
+.more-btn:active{background:rgba(120,120,128,0.28);}
+.tab-pills{flex:1;height:40px;background:rgba(120,120,128,0.11);border-radius:22px;border:0.6px solid rgba(0,0,0,0.09);position:relative;display:flex;}
+.pill-track{position:absolute;top:4px;bottom:4px;background:#007AFF;border-radius:18px;box-shadow:0 2px 8px rgba(0,122,255,0.28);transition:left 0.38s cubic-bezier(0.34,1.56,0.64,1),width 0.38s;}
+.tab-pill{flex:1;display:flex;align-items:center;justify-content:center;cursor:pointer;z-index:1;position:relative;}
+.tab-pill span{font-size:11px;font-weight:600;transition:color 0.22s;}
+.tab-pill.active span{color:#fff;font-weight:700;}
+.tab-pill:not(.active) span{color:rgba(60,60,67,0.52);}
+
+/* AI button */
+.ai-btn{width:44px;height:44px;border-radius:50%;background:#fff;display:flex;align-items:center;justify-content:center;flex-shrink:0;cursor:pointer;position:relative;}
+.ai-inner{width:40px;height:40px;border-radius:50%;background:linear-gradient(135deg,#007AFF,#5856D6);display:flex;align-items:center;justify-content:center;}
+
+/* ── ATTACHED panel top bar ── */
+.panel-bar{display:flex;align-items:center;gap:8px;padding:2px 0 6px;}
+.panel-drag{flex:1;display:flex;justify-content:center;padding:4px 0;cursor:grab;}
+.drag-pill{width:40px;height:4px;background:rgba(0,0,0,0.14);border-radius:2px;transition:background 0.2s,width 0.2s;}
+.panel-drag:hover .drag-pill{background:rgba(0,122,255,0.4);width:48px;}
+
+/* detach chip (inside attached panel) */
+.detach-chip{
+  opacity:0;pointer-events:none;
+  transition:opacity 0.25s 0.1s;
+}
+.detach-chip.show{opacity:1;pointer-events:all;}
+
+.panel-tab-row{display:flex;align-items:center;gap:8px;margin-bottom:12px;}
+.panel-accent{width:4px;height:16px;background:#007AFF;border-radius:2px;flex-shrink:0;}
+.panel-tab-name{font-size:13px;font-weight:700;color:#1c1c1e;flex:1;}
+.panel-dots{display:flex;align-items:center;gap:4px;}
+.panel-dot{height:5px;border-radius:3px;transition:width 0.25s,background 0.25s;background:rgba(0,0,0,0.13);}
+.panel-dot.active{background:#007AFF;}
+
+/* ── SCROLL CONTENT ── */
+.s-header{padding:12px 20px 0;display:flex;align-items:center;gap:12px;}
+.menu-btn{width:44px;height:44px;background:#e5e5ea;border-radius:12px;border:0.8px solid rgba(0,0,0,0.08);display:flex;align-items:center;justify-content:center;cursor:pointer;flex-shrink:0;}
+.header-text{flex:1;}
+.eyebrow{font-size:10px;font-weight:700;letter-spacing:1.4px;color:#007AFF;}
+.page-title{font-size:22px;font-weight:800;color:#1c1c1e;line-height:1.1;}
+.date-str{font-size:11px;color:#8e8e93;}
+.mod-badge{background:rgba(0,122,255,0.12);border-radius:20px;padding:4px 10px;font-size:10px;font-weight:600;color:#0056b3;white-space:nowrap;}
+.dd-row{display:flex;gap:10px;padding:10px 20px 0;}
+.dd-box{flex:1;height:54px;background:#e5e5ea;border-radius:14px;border:0.8px solid rgba(0,0,0,0.1);padding:6px 10px 4px 14px;cursor:pointer;}
+.dd-lbl{font-size:10px;font-weight:700;letter-spacing:0.6px;color:#007AFF;}
+.dd-val{font-size:12px;color:#8e8e93;margin-top:2px;display:flex;align-items:center;justify-content:space-between;}
+.act-card{margin:10px 20px 0;background:#e5e5ea;border-radius:16px;border:0.8px solid rgba(0,0,0,0.1);padding:10px 12px;}
+.act-hdr{display:flex;align-items:center;gap:6px;margin-bottom:8px;}
+.live-dot{width:6px;height:6px;background:#34c759;border-radius:50%;}
+.act-lbl{font-size:11px;font-weight:700;letter-spacing:0.4px;color:#8e8e93;flex:1;}
+.live-badge{background:rgba(52,199,89,0.12);border:0.8px solid rgba(52,199,89,0.4);border-radius:20px;padding:3px 8px;font-size:10px;font-weight:700;color:#1a7a35;}
+.act-row{display:flex;align-items:center;gap:8px;margin-bottom:6px;}
+.act-icon{width:26px;height:26px;background:#d1d1d6;border-radius:8px;display:flex;align-items:center;justify-content:center;flex-shrink:0;}
+.act-info{flex:1;}
+.act-title{font-size:12px;font-weight:600;color:#1c1c1e;}
+.act-time{font-size:10px;color:#8e8e93;}
+.r-dot{width:6px;height:6px;background:#34c759;border-radius:50%;}
+.content-cards{padding:10px 20px 0;display:flex;flex-direction:column;gap:10px;}
+.c-card{background:#fff;border-radius:18px;border:0.8px solid rgba(0,0,0,0.08);padding:14px 16px;box-shadow:0 2px 8px rgba(0,0,0,0.04);}
+.c-card-title{font-size:13px;font-weight:700;color:#1c1c1e;margin-bottom:4px;}
+.c-card-sub{font-size:11px;color:#8e8e93;}
+.c-card-row{display:flex;align-items:center;gap:10px;margin-top:10px;}
+.c-pill{background:rgba(0,122,255,0.1);border-radius:20px;padding:4px 10px;font-size:10px;font-weight:600;color:#0056b3;}
+.c-pill.green{background:rgba(52,199,89,0.1);color:#1a7a35;}
+.c-pill.orange{background:rgba(255,149,0,0.1);color:#a05e00;}
+.bottom-spacer{transition:height 0.45s cubic-bezier(0.4,0,0.2,1);}
+
+/* quick menu */
+.qmenu{position:absolute;bottom:72px;left:10px;width:210px;background:rgba(255,255,255,0.97);border-radius:20px;border:0.8px solid rgba(0,0,0,0.1);box-shadow:0 10px 24px rgba(0,0,0,0.14);padding:12px;display:none;z-index:40;}
+.qmenu.open{display:block;animation:pop 0.22s cubic-bezier(0.34,1.56,0.64,1);}
+@keyframes pop{from{opacity:0;transform:scale(0.82) translateY(10px);}to{opacity:1;transform:scale(1) translateY(0);}}
+.q-row{display:flex;justify-content:space-between;align-items:center;padding:2px 0;}
+.q-lbl{font-size:13px;font-weight:500;color:#1c1c1e;}
+.tog{width:40px;height:24px;border-radius:12px;position:relative;cursor:pointer;transition:background 0.25s;}
+.tog.on{background:#007AFF;}.tog.off{background:#d1d1d6;}
+.tok{width:20px;height:20px;background:#fff;border-radius:50%;position:absolute;top:2px;transition:left 0.22s;box-shadow:0 1px 4px rgba(0,0,0,0.2);}
+.tog.on .tok{left:18px;}.tog.off .tok{left:2px;}
+.qdiv{height:0.5px;background:rgba(0,0,0,0.1);margin:8px 0;}
+.q-out{display:flex;align-items:center;gap:8px;cursor:pointer;padding:4px 0;}
+.q-out-lbl{font-size:13px;font-weight:600;color:#ff3b30;}
+
+/* ── TOAST ── */
+.toast{
+  position:absolute;top:20px;left:50%;
+  transform:translateX(-50%) translateY(-12px);
+  background:rgba(28,28,30,0.86);
+  backdrop-filter:blur(10px);
+  color:#fff;font-size:11px;font-weight:600;
+  border-radius:20px;padding:6px 14px;
+  white-space:nowrap;z-index:100;
+  pointer-events:none;opacity:0;
+  transition:opacity 0.22s,transform 0.28s cubic-bezier(0.34,1.4,0.64,1);
+}
+.toast.show{opacity:1;transform:translateX(-50%) translateY(0);}
+</style>
+
+<div class="pw">
+<div class="phone">
+
+  <div class="toast" id="toast"></div>
+
+  <!-- ── SCROLL BODY ── -->
+  <div class="scroll-body" id="sb">
+
+    <div class="s-header">
+      <div class="menu-btn" onclick="toggleQ()">
+        <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="#636366" stroke-width="2" stroke-linecap="round"><line x1="4" y1="7" x2="20" y2="7"/><line x1="4" y1="12" x2="20" y2="12"/><line x1="4" y1="17" x2="20" y2="17"/></svg>
+      </div>
+      <div class="header-text">
+        <div class="eyebrow">MECHANICAL WORK</div>
+        <div class="page-title" id="pgTitle">Daily Entry</div>
+        <div class="date-str" id="dStr"></div>
+      </div>
+      <div class="mod-badge" id="mBadge">4 modules</div>
+    </div>
+
+    <div class="dd-row">
+      <div class="dd-box"><div class="dd-lbl">SITE</div><div class="dd-val"><span>Select Site</span><svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="#8e8e93" stroke-width="2"><polyline points="6 9 12 15 18 9"/></svg></div></div>
+      <div class="dd-box"><div class="dd-lbl">TEAM</div><div class="dd-val"><span>Select Team</span><svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="#8e8e93" stroke-width="2"><polyline points="6 9 12 15 18 9"/></svg></div></div>
+    </div>
+
+    <div class="act-card">
+      <div class="act-hdr"><div class="live-dot"></div><div class="act-lbl">Recent Activity</div><div class="live-badge">● Live</div></div>
+      <div class="act-row">
+        <div class="act-icon"><svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="#636366" stroke-width="2"><path d="M4 4h16v14H4z"/><line x1="8" y1="8" x2="16" y2="8"/><line x1="8" y1="12" x2="12" y2="12"/></svg></div>
+        <div class="act-info"><div class="act-title">Expense entry added</div><div class="act-time">2 min ago</div></div>
+        <div class="r-dot"></div>
+      </div>
+      <div class="act-row" style="margin-bottom:0">
+        <div class="act-icon"><svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="#636366" stroke-width="2"><path d="M9 11l3 3L22 4"/><path d="M21 12v7a2 2 0 01-2 2H5a2 2 0 01-2-2V5a2 2 0 012-2h11"/></svg></div>
+        <div class="act-info"><div class="act-title">Attendance submitted</div><div class="act-time">Today 9:30 AM</div></div>
+      </div>
+    </div>
+
+    <!-- ══ INLINE CARD — appears here when detached ══ -->
+    <div class="inline-card" id="inlineCard">
+      <div class="inline-card-inner">
+
+        <!-- drag pill row + attach button -->
+        <div class="inline-topbar">
+          <!-- left spacer to balance attach chip -->
+          <div style="width:100px;"></div>
+          <div class="inline-drag" onclick="closeInline()">
+            <div class="inline-pill"></div>
+          </div>
+          <div class="action-chip blue" onclick="attachCard()" style="width:100px;justify-content:flex-end;">
+            <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="#007AFF" stroke-width="2.3" stroke-linecap="round" stroke-linejoin="round"><path d="M12 19V5M5 15l7 7 7-7"/></svg>
+            <span class="chip-lbl blue">Attach to nav</span>
+          </div>
+        </div>
+
+        <div class="inline-meta">
+          <div class="inline-accent"></div>
+          <div class="inline-title" id="inlineTitle">Daily Entry</div>
+          <div class="inline-dots" id="inlineDots"></div>
+        </div>
+
+        <div class="icon-grid" id="inlineGrid"></div>
+      </div>
+    </div>
+
+    <!-- ── CONTENT OVERVIEW CARD ── -->
+    <div class="act-card" style="margin-top:10px;">
+      <div class="act-hdr">
+        <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="#8e8e93" stroke-width="2"><rect x="3" y="3" width="18" height="18" rx="2"/><path d="M7 16V9M12 16V7M17 16v-5"/></svg>
+        <div class="act-lbl">Overview</div>
+      </div>
+
+      <!-- Site Summary row -->
+      <div class="act-row">
+        <div class="act-icon"><svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="#636366" stroke-width="2"><rect x="3" y="3" width="18" height="18" rx="2"/><path d="M9 22V12h6v10"/></svg></div>
+        <div class="act-info"><div class="act-title">Site Summary</div><div class="act-time">3 active sites · 2 pending approvals</div></div>
+        <span style="font-size:9px;font-weight:700;background:rgba(0,122,255,0.12);color:#0056b3;border-radius:10px;padding:2px 7px;">Active</span>
+      </div>
+
+      <!-- Today's Totals row -->
+      <div class="act-row">
+        <div class="act-icon"><svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="#636366" stroke-width="2"><rect x="2" y="5" width="20" height="14" rx="2"/><line x1="2" y1="10" x2="22" y2="10"/></svg></div>
+        <div class="act-info"><div class="act-title">Today's Totals</div><div class="act-time">Expense ₹12,400 · Attendance 24/30</div></div>
+        <span style="font-size:9px;font-weight:700;background:rgba(52,199,89,0.12);color:#1a7a35;border-radius:10px;padding:2px 7px;">24/30</span>
+      </div>
+
+      <!-- Pending Approvals row -->
+      <div class="act-row">
+        <div class="act-icon"><svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="#636366" stroke-width="2"><path d="M14 2H6a2 2 0 00-2 2v16a2 2 0 002 2h12a2 2 0 002-2V8z"/><polyline points="9 12 11 14 15 10"/></svg></div>
+        <div class="act-info"><div class="act-title">Pending Approvals</div><div class="act-time">3 DPR entries awaiting review</div></div>
+        <span style="font-size:9px;font-weight:700;background:rgba(255,149,0,0.12);color:#a05e00;border-radius:10px;padding:2px 7px;">3 Pending</span>
+      </div>
+
+      <!-- Weekly Progress row -->
+      <div class="act-row" style="margin-bottom:0">
+        <div class="act-icon"><svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="#636366" stroke-width="2"><polyline points="22 12 18 12 15 21 9 3 6 12 2 12"/></svg></div>
+        <div class="act-info"><div class="act-title">Weekly Progress</div><div class="act-time">On track — 78% completion</div></div>
+        <span style="font-size:9px;font-weight:700;background:rgba(52,199,89,0.12);color:#1a7a35;border-radius:10px;padding:2px 7px;">78%</span>
+      </div>
+    </div>
+
+    <div class="bottom-spacer" id="bSpacer" style="height:96px;"></div>
+  </div>
+
+  <!-- ── FLOATING DOCK ── -->
+  <div class="dock" id="dock">
+
+    <!-- attached module panel (above nav) -->
+    <div class="module-panel" id="modulePanel">
+      <div class="panel-bar">
+        <!-- left spacer matching detach chip -->
+        <div style="width:88px;flex-shrink:0;"></div>
+        <div class="panel-drag" onclick="togglePanel()">
+          <div class="drag-pill"></div>
+        </div>
+        <!-- detach chip -->
+        <div class="action-chip blue detach-chip" id="detachChip" onclick="detachCard()" style="width:88px;">
+          <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="#007AFF" stroke-width="2.3" stroke-linecap="round" stroke-linejoin="round"><path d="M12 5v14M5 9l7-7 7 7"/></svg>
+          <span class="chip-lbl blue">Detach</span>
+        </div>
+      </div>
+
+      <div class="panel-tab-row">
+        <div class="panel-accent"></div>
+        <div class="panel-tab-name" id="panelTabName">Daily Entry</div>
+        <div class="panel-dots" id="panelDots"></div>
+      </div>
+      <div class="icon-grid" id="iconGrid"></div>
+    </div>
+
+    <!-- nav bar -->
+    <div class="nav-bar pill" id="navBar">
+      <div class="more-btn" onclick="toggleQ()">
+        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#636366" stroke-width="2"><circle cx="12" cy="5" r="1.2" fill="#636366"/><circle cx="12" cy="12" r="1.2" fill="#636366"/><circle cx="12" cy="19" r="1.2" fill="#636366"/></svg>
+      </div>
+      <div class="tab-pills" id="tabPills">
+        <div class="pill-track" id="pTrack"></div>
+        <div class="tab-pill active" onclick="switchTab(0)"><span>Daily</span></div>
+        <div class="tab-pill" onclick="switchTab(1)"><span>Setup</span></div>
+        <div class="tab-pill" onclick="switchTab(2)"><span>Reports</span></div>
+        <div class="tab-pill" onclick="switchTab(3)"><span>More</span></div>
+      </div>
+      <div class="ai-btn" onclick="togglePanel()">
+        <div class="ai-inner" id="aiInner">
+          <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="white" stroke-width="1.8"><path d="M12 3c0 0-4 4-4 9s4 9 4 9 4-4 4-9-4-9-4-9z"/><path d="M3 12c0 0 4-4 9-4s9 4 9 4-4 4-9 4-9-4-9-4z"/></svg>
+        </div>
+      </div>
+    </div>
+
+    <!-- quick menu -->
+    <div class="qmenu" id="qMenu">
+      <div class="q-row"><span class="q-lbl">Compact Mode</span><div class="tog on" id="tg1" onclick="togSw('tg1')"><div class="tok"></div></div></div>
+      <div class="qdiv"></div>
+      <div class="q-row"><span class="q-lbl">Show Labels</span><div class="tog off" id="tg2" onclick="togSw('tg2')"><div class="tok"></div></div></div>
+      <div class="qdiv"></div>
+      <div class="q-out"><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="#ff3b30" stroke-width="2"><path d="M9 21H5a2 2 0 01-2-2V5a2 2 0 012-2h4"/><polyline points="16 17 21 12 16 7"/><line x1="21" y1="12" x2="9" y2="12"/></svg><span class="q-out-lbl">Log Out</span></div>
+    </div>
+  </div>
+
+</div>
+</div>
+
+<script>
+const mods=[
+  [{l:'Attendance',i:'check',c:'#30d158'},{l:'Daily Progress',i:'doc',c:'#5e5ce6'},{l:'Expense',i:'rcpt',c:'#ff9500'},{l:'Inv Entry',i:'box',c:'#32ade6'}],
+  [{l:'Site Details',i:'bldg',c:'#32ade6'},{l:'Rate Card',i:'rupe',c:'#ffd60a'},{l:'Manpower',i:'hhat',c:'#ff6b35'},{l:'Create Team',i:'grp',c:'#bf5af2'},{l:'DPR Setup',i:'cog',c:'#636366'},{l:'Inv Setup',i:'whs',c:'#8b4513'}],
+  [{l:'Summary',i:'anlt',c:'#007AFF'},{l:'Salary Slip',i:'pay',c:'#34c759'},{l:'DPR Sheets',i:'tbl',c:'#5856d6'},{l:'Expense Sheet',i:'qte',c:'#ff3b30'},{l:'Att Sheet',i:'fchk',c:'#85a000'},{l:'Inv Summary',i:'asmt',c:'#e91e63'}],
+  [{l:'Profile',i:'prsn',c:'#7c3aed'},{l:'Subscription',i:'star',c:'#ffd60a'},{l:'Updates',i:'nw',c:'#32ade6'},{l:'Theme',i:'palt',c:'#ff2d92'},{l:'Language',i:'trns',c:'#00bcd4'},{l:'Help',i:'supp',c:'#4caf50'}]
+];
+const tabNames=['Daily Entry','Setup','Reports','More'];
+let curTab=0, panelOpen=false, isDetached=false;
+
+const paths={
+  check:`<path d="M9 11l3 3L22 4" stroke-width="2"/><path d="M21 12v7a2 2 0 01-2 2H5a2 2 0 01-2-2V5a2 2 0 012-2h11" stroke-width="2"/>`,
+  doc:`<path d="M14 2H6a2 2 0 00-2 2v16a2 2 0 002 2h12a2 2 0 002-2V8z" stroke-width="2"/><polyline points="14 2 14 8 20 8" stroke-width="2"/><line x1="8" y1="13" x2="16" y2="13" stroke-width="2"/>`,
+  rcpt:`<path d="M4 4h16v14H4z" stroke-width="2"/><line x1="8" y1="8" x2="16" y2="8" stroke-width="2"/><line x1="8" y1="12" x2="14" y2="12" stroke-width="2"/>`,
+  box:`<path d="M20 7L12 3 4 7v10l8 4 8-4V7z" stroke-width="2"/><line x1="12" y1="3" x2="12" y2="21" stroke-width="2"/>`,
+  bldg:`<rect x="3" y="3" width="18" height="18" rx="2" stroke-width="2"/><path d="M9 22V12h6v10" stroke-width="2"/>`,
+  rupe:`<text x="12" y="17" text-anchor="middle" font-size="15" font-weight="700" fill="CLR" stroke="none">₹</text>`,
+  hhat:`<path d="M12 3C8 3 5 6 5 10v2h14v-2c0-4-3-7-7-7z" stroke-width="2"/><path d="M3 16h18" stroke-width="2"/>`,
+  grp:`<circle cx="9" cy="8" r="3" stroke-width="2"/><path d="M3 20v-1a6 6 0 0112 0v1" stroke-width="2"/><path d="M16 8c1.7 0 3 1.3 3 3" stroke-width="2"/><path d="M21 20c0-2.2-1.3-4-3-5" stroke-width="2"/>`,
+  cog:`<circle cx="12" cy="12" r="3" stroke-width="2"/><path d="M19.4 15a1.65 1.65 0 00.33 1.82l.06.06a2 2 0 010 2.83 2 2 0 01-2.83 0l-.06-.06a1.65 1.65 0 00-1.82-.33 1.65 1.65 0 00-1 1.51V21a2 2 0 01-4 0v-.09A1.65 1.65 0 009 19.4a1.65 1.65 0 00-1.82.33l-.06-.06a2 2 0 01-2.83-2.83l.06-.06A1.65 1.65 0 004.68 15a1.65 1.65 0 00-1.51-1H3a2 2 0 010-4h.09A1.65 1.65 0 004.6 9a1.65 1.65 0 00-.33-1.82l-.06-.06a2 2 0 012.83-2.83l.06.06A1.65 1.65 0 009 4.68a1.65 1.65 0 001-1.51V3a2 2 0 014 0v.09a1.65 1.65 0 001 1.51 1.65 1.65 0 001.82-.33l.06-.06a2 2 0 012.83 2.83l-.06.06A1.65 1.65 0 0019.4 9a1.65 1.65 0 001.51 1H21a2 2 0 010 4h-.09a1.65 1.65 0 00-1.51 1z" stroke-width="2"/>`,
+  whs:`<rect x="2" y="6" width="20" height="16" rx="2" stroke-width="2"/><path d="M2 10h20M8 14h8" stroke-width="2"/>`,
+  anlt:`<polyline points="22 12 18 12 15 21 9 3 6 12 2 12" stroke-width="2"/>`,
+  pay:`<rect x="2" y="5" width="20" height="14" rx="2" stroke-width="2"/><line x1="2" y1="10" x2="22" y2="10" stroke-width="2"/>`,
+  tbl:`<rect x="3" y="3" width="18" height="18" rx="2" stroke-width="2"/><line x1="3" y1="9" x2="21" y2="9" stroke-width="2"/><line x1="9" y1="3" x2="9" y2="21" stroke-width="2"/>`,
+  qte:`<path d="M4 4h16v16H4z" stroke-width="2"/><path d="M8 10h4M8 14h8" stroke-width="2"/>`,
+  fchk:`<path d="M14 2H6a2 2 0 00-2 2v16a2 2 0 002 2h12a2 2 0 002-2V8z" stroke-width="2"/><polyline points="9 12 11 14 15 10" stroke-width="2"/>`,
+  asmt:`<path d="M3 3h18v18H3z" stroke-width="2"/><path d="M7 16V9M12 16V7M17 16v-5" stroke-width="2"/>`,
+  prsn:`<circle cx="12" cy="8" r="4" stroke-width="2"/><path d="M4 20c0-4 3.6-7 8-7s8 3 8 7" stroke-width="2"/>`,
+  star:`<polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2" stroke-width="2"/>`,
+  nw:`<circle cx="12" cy="12" r="10" stroke-width="2"/><line x1="12" y1="8" x2="12" y2="12" stroke-width="2"/><circle cx="12" cy="16" r="0.8" fill="currentColor"/>`,
+  palt:`<circle cx="12" cy="12" r="10" stroke-width="2"/><circle cx="8" cy="14" r="1.5" fill="currentColor" stroke="none"/><circle cx="12" cy="10" r="1.5" fill="currentColor" stroke="none"/><circle cx="16" cy="14" r="1.5" fill="currentColor" stroke="none"/>`,
+  trns:`<path d="M4 5h7M9 3v2M11.5 13l2.5 6M14 9L5 19" stroke-width="2"/>`,
+  supp:`<path d="M22 16.92v3a2 2 0 01-2.18 2 19.79 19.79 0 01-8.63-3.07 19.5 19.5 0 01-6-6A19.79 19.79 0 012.12 4.18 2 2 0 014.11 2h3a2 2 0 012 1.72c.127.96.361 1.903.7 2.81a2 2 0 01-.45 2.11L8.09 9.91a16 16 0 006 6l1.27-1.27a2 2 0 012.11-.45c.907.339 1.85.573 2.81.7A2 2 0 0122 16.92z" stroke-width="2"/>`,
+};
+
+function hex2rgba(h,a){const r=parseInt(h.slice(1,3),16),g=parseInt(h.slice(3,5),16),b=parseInt(h.slice(5,7),16);return `rgba(${r},${g},${b},${a})`;}
+
+function buildGrid(tab){
+  return mods[tab].map(m=>{
+    const bg=hex2rgba(m.c,0.12),bd=hex2rgba(m.c,0.2);
+    const p=paths[m.i]||paths.doc;
+    const isR=m.i==='rupe';
+    const svg=isR
+      ?`<svg viewBox="0 0 24 24" width="24" height="24">${p.replace('CLR',m.c)}</svg>`
+      :`<svg viewBox="0 0 24 24" fill="none" stroke="${m.c}" width="24" height="24">${p}</svg>`;
+    return `<div class="icon-item"><div class="icon-box" style="background:${bg};border:0.8px solid ${bd}">${svg}</div><div class="icon-text">${m.l}</div></div>`;
+  }).join('');
+}
+
+function renderDots(tab,elId){
+  document.getElementById(elId).innerHTML=[0,1,2,3].map(i=>
+    `<div class="panel-dot${i===tab?' active':''}" style="width:${i===tab?14:5}px"></div>`
+  ).join('');
+}
+
+function renderPill(tab){
+  document.querySelectorAll('.tab-pill').forEach((p,i)=>p.classList.toggle('active',i===tab));
+  const pills=document.getElementById('tabPills');
+  const w=pills.offsetWidth;
+  const pw=(w-20)/4;
+  const tr=document.getElementById('pTrack');
+  tr.style.cssText=`position:absolute;top:4px;bottom:4px;width:${pw}px;left:${4+tab*(pw+4)}px;background:#007AFF;border-radius:18px;box-shadow:0 2px 8px rgba(0,122,255,0.28);transition:left 0.38s cubic-bezier(0.34,1.56,0.64,1)`;
+}
+
+function updateSpacer(){
+  const dock=document.getElementById('dock');
+  document.getElementById('bSpacer').style.height=(dock.offsetHeight+24)+'px';
+}
+
+/* ── TOGGLE ATTACHED PANEL ── */
+function togglePanel(){
+  if(isDetached) return;
+  panelOpen=!panelOpen;
+  const panel=document.getElementById('modulePanel');
+  const nav=document.getElementById('navBar');
+  const chip=document.getElementById('detachChip');
+  panel.classList.toggle('open',panelOpen);
+  nav.classList.toggle('pill',!panelOpen);
+  chip.classList.toggle('show',panelOpen);
+  setTimeout(updateSpacer, panelOpen?450:50);
+  if(panelOpen){
+    setTimeout(()=>document.getElementById('sb').scrollTo({top:document.getElementById('sb').scrollHeight,behavior:'smooth'}),200);
+  }
+}
+
+/* ── DETACH: collapse nav panel → expand inline card in scroll ── */
+function detachCard(){
+  if(isDetached||!panelOpen) return;
+  isDetached=true;
+
+  // Close attached panel
+  const panel=document.getElementById('modulePanel');
+  const nav=document.getElementById('navBar');
+  const chip=document.getElementById('detachChip');
+  panel.classList.remove('open');
+  nav.classList.add('pill');
+  chip.classList.remove('show');
+  panelOpen=false;
+
+  // Sync inline content
+  syncInline();
+
+  // Show inline card after short delay (feels like content dropping in)
+  setTimeout(()=>{
+    document.getElementById('inlineCard').classList.add('visible');
+    setTimeout(()=>{
+      document.getElementById('inlineCard').scrollIntoView({behavior:'smooth',block:'nearest'});
+    },120);
+  },80);
+
+  setTimeout(updateSpacer,100);
+  showToast('Module card moved to page');
+}
+
+/* ── ATTACH: collapse inline card → re-open nav panel ── */
+function attachCard(){
+  if(!isDetached) return;
+  isDetached=false;
+
+  const ic=document.getElementById('inlineCard');
+  ic.classList.remove('visible');
+
+  setTimeout(()=>{
+    const panel=document.getElementById('modulePanel');
+    const nav=document.getElementById('navBar');
+    const chip=document.getElementById('detachChip');
+    panel.classList.add('open');
+    nav.classList.remove('pill');
+    chip.classList.add('show');
+    panelOpen=true;
+    setTimeout(updateSpacer,450);
+    setTimeout(()=>document.getElementById('sb').scrollTo({top:document.getElementById('sb').scrollHeight,behavior:'smooth'}),120);
+  },380);
+
+  showToast('Module card attached to nav');
+}
+
+/* close inline by tapping drag pill (just dismiss, no reattach) */
+function closeInline(){
+  if(!isDetached) return;
+  document.getElementById('inlineCard').classList.remove('visible');
+  isDetached=false;
+  setTimeout(updateSpacer,100);
+}
+
+function syncInline(){
+  document.getElementById('inlineTitle').textContent=tabNames[curTab];
+  document.getElementById('inlineGrid').innerHTML=buildGrid(curTab);
+  renderDots(curTab,'inlineDots');
+}
+
+function switchTab(i){
+  curTab=i;
+  document.getElementById('pgTitle').textContent=tabNames[i];
+  document.getElementById('panelTabName').textContent=tabNames[i];
+  document.getElementById('mBadge').textContent=mods[i].length+' modules';
+  document.getElementById('iconGrid').innerHTML=buildGrid(i);
+  renderDots(i,'panelDots');
+  renderPill(i);
+  if(isDetached) syncInline();
+}
+
+function toggleQ(){document.getElementById('qMenu').classList.toggle('open');}
+function togSw(id){const e=document.getElementById(id);e.classList.toggle('on');e.classList.toggle('off');}
+
+let toastT=null;
+function showToast(msg){
+  const t=document.getElementById('toast');
+  t.textContent=msg;t.classList.add('show');
+  if(toastT)clearTimeout(toastT);
+  toastT=setTimeout(()=>t.classList.remove('show'),2000);
+}
+
+function setDate(){
+  const d=['Sun','Mon','Tue','Wed','Thu','Fri','Sat'],mn=['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'];
+  const n=new Date();
+  document.getElementById('dStr').textContent=`${d[n.getDay()]}, ${n.getDate()} ${mn[n.getMonth()]}`;
+}
+
+let pulse=0,pdir=1;
+function animAI(){
+  pulse+=pdir*0.018;if(pulse>=1)pdir=-1;if(pulse<=0)pdir=1;
+  const el=document.getElementById('aiInner');
+  if(el)el.parentElement.style.boxShadow=`0 0 ${8+pulse*10}px rgba(88,86,214,${0.18+pulse*0.14})`;
+  requestAnimationFrame(animAI);
+}
+
+document.addEventListener('click',e=>{
+  const q=document.getElementById('qMenu');
+  if(!q.contains(e.target)&&!e.target.closest('.more-btn'))q.classList.remove('open');
+});
+
+setDate();
+document.getElementById('iconGrid').innerHTML=buildGrid(0);
+document.getElementById('inlineGrid').innerHTML=buildGrid(0);
+renderDots(0,'panelDots');
+renderDots(0,'inlineDots');
+setTimeout(()=>{
+  renderPill(0);
+  updateSpacer();
+  animAI();
+  // Start in detached mode
+  isDetached=true;
+  syncInline();
+  document.getElementById('inlineCard').classList.add('visible');
+  updateSpacer();
+},100);
+</script>

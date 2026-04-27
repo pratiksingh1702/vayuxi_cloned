@@ -12,6 +12,7 @@ import '../../../../../../core/utlis/widgets/file_upload.dart';
 import '../../../../../../core/utlis/widgets/image.dart';
 import '../../models/dprModel.dart';
 import '../../models/rate_file_models.dart';
+import '../../utils/image_track/dpr_cached_image.dart';
 
 class DynamicItemCard2 extends StatefulWidget {
   final String title;
@@ -333,26 +334,25 @@ class _DynamicItemCard2State extends State<DynamicItemCard2>
       return SizedBox(
         height: height,
         width: double.infinity,
-        child: Image.file(imageFile,
-            fit: BoxFit.contain,
-            errorBuilder: (_, __, ___) => _imgPlaceholder(height, context)),
+        child: Image.file(
+          imageFile,
+          fit: BoxFit.contain,
+          gaplessPlayback: true,
+          errorBuilder: (_, __, ___) => _imgPlaceholder(height, context),
+        ),
       );
     }
     if (imageUrl == null || imageUrl.isEmpty) {
       return _imgPlaceholder(height, context);
     }
-    final isNet =
-        imageUrl.startsWith('http://') || imageUrl.startsWith('https://');
     return SizedBox(
       height: height,
       width: double.infinity,
-      child: isNet
-          ? Image.network(imageUrl,
-              fit: BoxFit.contain,
-              errorBuilder: (_, __, ___) => _imgPlaceholder(height, context))
-          : Image.asset(imageUrl,
-              fit: BoxFit.contain,
-              errorBuilder: (_, __, ___) => _imgPlaceholder(height, context)),
+      child: DprCachedImage(
+        imagePath: imageUrl,
+        fit: BoxFit.contain,
+        fallback: _imgPlaceholder(height, context),
+      ),
     );
   }
 

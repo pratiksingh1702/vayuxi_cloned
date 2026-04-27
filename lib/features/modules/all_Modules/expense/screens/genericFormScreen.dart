@@ -19,6 +19,7 @@ import '../../Manpower Details/service/manPowerProvider.dart';
 import '../model/expense_model.dart';
 import '../service/expense_service.dart';
 import 'package:dropdown_search/dropdown_search.dart';
+import '../../../screen/module_preferences.dart';
 
 class ExpenseFormScreen extends ConsumerStatefulWidget {
   final String siteId;
@@ -329,7 +330,15 @@ class _ExpenseFormScreenState extends ConsumerState<ExpenseFormScreen> {
         AppToast.success("Expense created successfully");
       }
 
-      context.pop();
+      final isMultiple = await ModulePreferences.isMultipleEntry();
+      if (!isMultiple) {
+        context.pop();
+      } else {
+        // Clear main fields for next entry
+        _amountController.clear();
+        _descriptionController.clear();
+        _remarksController.clear();
+      }
     } catch (e) {
       AppToast.error("Failed to save expense: $e");
     } finally {

@@ -1,7 +1,6 @@
-import 'dart:io';
-
 import 'package:flutter/material.dart';
 import '../../models/floorModel.dart';
+import '../../utils/image_track/dpr_cached_image.dart';
 
 class FloorCard extends StatelessWidget {
   final Floor floor;
@@ -159,34 +158,10 @@ class FloorCard extends StatelessWidget {
   }
 
   Widget _buildImage(BuildContext context) {
-    final img = floor.image;
-
-    return _resolveImage(context, img);
-  }
-
-  Widget _resolveImage(BuildContext context, String img) {
-    if (img.startsWith('http')) {
-      return Image.network(
-        img,
-        fit: BoxFit.fitHeight,
-        errorBuilder: (_, __, ___) => _fallbackIcon(context),
-      );
-    }
-
-    // FILE PATH
-    if (img.startsWith('/') || img.contains('storage')) {
-      return Image.file(
-        File(img),
-        fit: BoxFit.fitHeight,
-        errorBuilder: (_, __, ___) => _fallbackIcon(context),
-      );
-    }
-
-    // ASSET IMAGE (mock)
-    return Image.asset(
-      img,
+    return DprCachedImage(
+      imagePath: floor.image,
       fit: BoxFit.fitHeight,
-      errorBuilder: (_, __, ___) => _fallbackIcon(context),
+      fallback: _fallbackIcon(context),
     );
   }
 

@@ -5,6 +5,7 @@ import 'package:flutter/material.dart';
 import '../../../../../../core/utlis/widgets/file_upload.dart';
 import '../../models/dprModel.dart';
 import '../../models/rate_file_models.dart';
+import '../../utils/image_track/dpr_cached_image.dart';
 
 class testDynamicItemCard extends StatefulWidget {
   final String quantity;
@@ -464,24 +465,14 @@ class _testDynamicItemCardState extends State<testDynamicItemCard> {
     if (imageUrl == null || imageUrl.isEmpty) {
       return _imagePlaceholder(height, width);
     }
-
-    final isNetwork =
-        imageUrl.startsWith('http://') || imageUrl.startsWith('https://');
-
     return SizedBox(
       height: height,
       width: width,
-      child: isNetwork
-          ? Image.network(
-              imageUrl,
-              fit: fit,
-              errorBuilder: (_, __, ___) => _imagePlaceholder(height, width),
-            )
-          : Image.asset(
-              imageUrl,
-              fit: fit,
-              errorBuilder: (_, __, ___) => _imagePlaceholder(height, width),
-            ),
+      child: DprCachedImage(
+        imagePath: imageUrl,
+        fit: fit,
+        fallback: _imagePlaceholder(height, width),
+      ),
     );
   }
 

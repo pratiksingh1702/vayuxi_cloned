@@ -370,6 +370,24 @@ class _EquipmentMaterialCardState extends State<EquipmentMaterialCard> {
       }
     }
     // NO else-branch — _draftMaterial is the truth while typing.
+
+    if (_isDynamic && _config != null) {
+      final oldMode = oldWidget.material.cardFormState?.geometryMode;
+      final newMode = widget.material.cardFormState?.geometryMode;
+      if (oldMode != newMode && newMode != null && newMode.isNotEmpty) {
+        _cardStateField = CardFormState.buildInitial(
+          fieldConfig: _config!,
+          existing: widget.material.cardFormState,
+        );
+        for (final field in _config!.fields) {
+          final controller = _valueControllers[field.key];
+          if (controller == null) continue;
+          final val = _cardState.getValue(field.key);
+          controller.text = val?.toString() ?? '';
+        }
+        setState(() {});
+      }
+    }
   }
 
   void _disposeControllers() {
