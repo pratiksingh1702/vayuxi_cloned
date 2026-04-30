@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import 'core/api/syncManager.dart';
+import 'core/api/network_mode_banner.dart';
 import 'core/router/app_router.dart';
 import 'custom_slider.dart';
 import 'features/modules/all_Modules/more/theme/provider/theme_controller.dart';
@@ -41,7 +42,14 @@ class _MyAppState extends ConsumerState<MyApp> {
         final appChild = child ?? const SizedBox.shrink();
         final toasted = BotToastInit()(context, appChild);
         return TourScope(
-          child: GlobalTourOverlay(child: toasted),
+          child: GlobalTourOverlay(
+            child: Stack(
+              children: [
+                toasted,
+                const NetworkModeBanner(),
+              ],
+            ),
+          ),
         );
       },
       theme: themeState.lightTheme,

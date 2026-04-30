@@ -1,0 +1,80 @@
+lib/features/modules/all_Modules/dpr/dpr_insu/screens/testing.dart:2331:25: Error: 'BaseMaterial' isn't a type.
+    void applySort(List<BaseMaterial> list) {
+                        ^^^^^^^^^^^^
+lib/features/modules/all_Modules/dpr/dpr_insu/screens/testing.dart:2316:53: Error: The argument type 'CardFormState?'
+can't be assigned to the parameter type 'Map<String, dynamic>?'.
+ - 'CardFormState' is from 'package:untitled2/features/modules/all_Modules/dpr/dpr_insu/model/card_form_State.dart'
+ ('lib/features/modules/all_Modules/dpr/dpr_insu/model/card_form_State.dart').
+ - 'Map' is from 'dart:core'.
+        final hasValues = _hasMeaningfulMapValues(m.cardFormState);
+                                                    ^
+lib/features/modules/all_Modules/dpr/dpr_insu/screens/testing.dart:2323:53: Error: The argument type 'CardFormState?'
+can't be assigned to the parameter type 'Map<String, dynamic>?'.
+ - 'CardFormState' is from 'package:untitled2/features/modules/all_Modules/dpr/dpr_insu/model/card_form_State.dart'
+ ('lib/features/modules/all_Modules/dpr/dpr_insu/model/card_form_State.dart').
+ - 'Map' is from 'dart:core'.
+        final hasValues = _hasMeaningfulMapValues(m.cardFormState);
+                                                    ^
+lib/features/modules/all_Modules/dpr/dpr_insu/screens/testing.dart:2335:22: Error: The getter 'name' isn't defined for
+the type 'Object?'.
+ - 'Object' is from 'dart:core'.
+Try correcting the name to the name of an existing getter, or defining a getter or field named 'name'.
+            return a.name.toLowerCase().compareTo(b.name.toLowerCase());
+                     ^^^^
+lib/features/modules/all_Modules/dpr/dpr_insu/screens/testing.dart:2335:53: Error: The getter 'name' isn't defined for
+the type 'Object?'.
+ - 'Object' is from 'dart:core'.
+Try correcting the name to the name of an existing getter, or defining a getter or field named 'name'.
+            return a.name.toLowerCase().compareTo(b.name.toLowerCase());
+                                                    ^^^^
+lib/features/modules/all_Modules/dpr/dpr_insu/screens/testing.dart:2337:22: Error: The getter 'name' isn't defined for
+the type 'Object?'.
+ - 'Object' is from 'dart:core'.
+Try correcting the name to the name of an existing getter, or defining a getter or field named 'name'.
+            return b.name.toLowerCase().compareTo(a.name.toLowerCase());
+                     ^^^^
+lib/features/modules/all_Modules/dpr/dpr_insu/screens/testing.dart:2337:53: Error: The getter 'name' isn't defined for
+the type 'Object?'.
+ - 'Object' is from 'dart:core'.
+Try correcting the name to the name of an existing getter, or defining a getter or field named 'name'.
+            return b.name.toLowerCase().compareTo(a.name.toLowerCase());
+                                                    ^^^^
+lib/features/modules/all_Modules/dpr/dpr_insu/screens/testing.dart:2347:22: Error: The getter 'displayOrder' isn't
+defined for the type 'Object?'.
+ - 'Object' is from 'dart:core'.
+Try correcting the name to the name of an existing getter, or defining a getter or field named 'displayOrder'.
+            return a.displayOrder.compareTo(b.displayOrder);
+                     ^^^^^^^^^^^^
+lib/features/modules/all_Modules/dpr/dpr_insu/screens/testing.dart:2347:47: Error: The getter 'displayOrder' isn't
+defined for the type 'Object?'.
+ - 'Object' is from 'dart:core'.
+Try correcting the name to the name of an existing getter, or defining a getter or field named 'displayOrder'.
+            return a.displayOrder.compareTo(b.displayOrder);
+                                              ^^^^^^^^^^^^
+lib/features/modules/all_Modules/dpr/dpr_insu/screens/testing.dart:2349:22: Error: The getter 'displayOrder' isn't
+defined for the type 'Object?'.
+ - 'Object' is from 'dart:core'.
+Try correcting the name to the name of an existing getter, or defining a getter or field named 'displayOrder'.
+            return b.displayOrder.compareTo(a.displayOrder);
+                     ^^^^^^^^^^^^
+lib/features/modules/all_Modules/dpr/dpr_insu/screens/testing.dart:2349:47: Error: The getter 'displayOrder' isn't
+defined for the type 'Object?'.
+ - 'Object' is from 'dart:core'.
+Try correcting the name to the name of an existing getter, or defining a getter or field named 'displayOrder'.
+            return b.displayOrder.compareTo(a.displayOrder);
+                                              ^^^^^^^^^^^^
+lib/features/modules/all_Modules/dpr/dpr_insu/screens/testing.dart:2622:30: Error: The getter '_filterType' isn't
+defined for the type '_AddInsulationDescriptionScreenState'.
+ - '_AddInsulationDescriptionScreenState' is from
+ 'package:untitled2/features/modules/all_Modules/dpr/dpr_insu/screens/testing.dart'
+ ('lib/features/modules/all_Modules/dpr/dpr_insu/screens/testing.dart').
+Try correcting the name to the name of an existing getter, or defining a getter or field named '_filterType'.
+    final hasActiveFilters = _filterType != 'All' || _filterStatus != 'All';
+                             ^^^^^^^^^^^
+lib/features/modules/all_Modules/dpr/dpr_insu/screens/testing.dart:2622:54: Error: The getter '_filterStatus' isn't
+defined for the type '_AddInsulationDescriptionScreenState'.
+ - '_AddInsulationDescriptionScreenState' is from
+ 'package:untitled2/features/modules/all_Modules/dpr/dpr_insu/screens/testing.dart'
+ ('lib/features/modules/all_Modules/dpr/dpr_insu/screens/testing.dart').
+Try correcting the name to the name of an existing getter, or defining a getter or field named '_filterStatus'.
+    final hasActiveFilters = _filterType != 'All' || _filterStatus != 'All';

@@ -2,6 +2,7 @@ import 'package:untitled2/features/modules/all_Modules/dpr/models/rate_file_mode
 
 class PipingItem {
   final String id;
+  final int displayOrder;
   final String lineItemId;
   final String rateId; // 🔥 NEW
 
@@ -44,6 +45,7 @@ class PipingItem {
 
   const PipingItem({
     required this.id,
+    this.displayOrder = 0,
     this.lineItemId = '',
     this.rateId = '', // 🔥 NEW
     required this.rawMaterialName,
@@ -81,6 +83,7 @@ class PipingItem {
   factory PipingItem.fromJson(Map<String, dynamic> json) {
     return PipingItem(
       id: json['_id'] ?? json['id'] ?? json['lineItemId'] ?? '',
+      displayOrder: json['displayOrder'] ?? 0,
       lineItemId: json['lineItemId'] ?? '',
       rateId: json['rateId'] ?? '', // 🔥 NEW
       rawMaterialName: json['rawMaterialName'] ?? '',
@@ -133,6 +136,7 @@ class PipingItem {
 
     return PipingItem(
       id: rateMaterial.id,
+      displayOrder: rateMaterial.displayOrder,
       lineItemId: '',
       rateId: '', // 🔥 NEW
       rawMaterialName: rateMaterial.rawMaterialName,
@@ -171,6 +175,7 @@ class PipingItem {
   Map<String, dynamic> toJson() {
     return {
       'id': id,
+      'displayOrder': displayOrder,
       'lineItemId': lineItemId,
       'rateId': rateId, // 🔥 NEW
       'rawMaterialName': rawMaterialName,
@@ -208,6 +213,7 @@ class PipingItem {
 
   PipingItem copyWith({
     String? id,
+    int? displayOrder,
     String? lineItemId,
     String? rateId, // 🔥 NEW
     String? rawMaterialName,
@@ -239,6 +245,7 @@ class PipingItem {
   }) {
     return PipingItem(
       id: id ?? this.id,
+      displayOrder: displayOrder ?? this.displayOrder,
       lineItemId: lineItemId ?? this.lineItemId,
       rateId: rateId ?? this.rateId, // 🔥 NEW
       rawMaterialName: rawMaterialName ?? this.rawMaterialName,

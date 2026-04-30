@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
+import 'package:skeletonizer/skeletonizer.dart';
 import 'package:untitled2/core/utlis/widgets/Button_wrapper.dart';
 import 'package:untitled2/core/utlis/widgets/custom_appBar.dart';
 import 'package:untitled2/core/utlis/widgets/buttons.dart';
@@ -8,7 +9,6 @@ import 'package:untitled2/core/utlis/widgets/image_clipped.dart';
 import 'package:untitled2/typeProvider/type_provider.dart';
 import '../../../../../core/router/routes.dart';
 import '../../../../../core/utlis/widgets/custom.dart';
-import '../../../../../core/utlis/widgets/shimmer.dart';
 import '../../../../../core/utlis/widgets/sidebar.dart';
 import '../../../../../core/utlis/widgets/custom_scrollbar.dart';
 import '../model/expense_model.dart';
@@ -342,10 +342,7 @@ class _ExpenseListScreenState extends ConsumerState<ExpenseListScreen> {
                 // Expense List
                 Expanded(
                   child: isLoading
-                      ? const ShimmerList(
-                          type: ShimmerListType.card,
-                          itemCount: 6,
-                        )
+                      ? _buildExpenseSkeletonList()
                       : expenseList.isEmpty
                           ? Center(
                               child: Column(
@@ -391,6 +388,7 @@ class _ExpenseListScreenState extends ConsumerState<ExpenseListScreen> {
                                   return _buildExpenseCard(
                                     expense,
                                     isSelected,
+                                    isLoading: false,
                                   );
                                 },
                               ),
@@ -404,7 +402,11 @@ class _ExpenseListScreenState extends ConsumerState<ExpenseListScreen> {
     );
   }
 
-  Widget _buildExpenseCard(ExpenseModel expense, bool isSelected) {
+  Widget _buildExpenseCard(
+    ExpenseModel expense,
+    bool isSelected, {
+    required bool isLoading,
+  }) {
     final colorScheme = Theme.of(context).colorScheme;
     debugPrint(expense.toString());
     final description =
@@ -542,15 +544,17 @@ class _ExpenseListScreenState extends ConsumerState<ExpenseListScreen> {
                               IconButton(
                                 icon: Icon(Icons.edit,
                                     color: colorScheme.primary),
-                                onPressed: () =>
-                                    _navigateToEditExpense(expense),
+                                onPressed: isLoading
+                                    ? null
+                                    : () => _navigateToEditExpense(expense),
                                 tooltip: "Edit",
                               ),
                               IconButton(
                                 icon: Icon(Icons.delete_outline,
                                     color: colorScheme.error),
-                                onPressed: () =>
-                                    _deleteSingleExpense(expense.id!),
+                                onPressed: isLoading
+                                    ? null
+                                    : () => _deleteSingleExpense(expense.id!),
                                 tooltip: "Delete",
                               ),
                             ],
@@ -565,7 +569,7 @@ class _ExpenseListScreenState extends ConsumerState<ExpenseListScreen> {
         ),
 
         // Selection checkbox overlay
-        if (_isSelectionMode)
+        if (_isSelectionMode && !isLoading)
           Positioned(
             top: 8,
             right: 8,
@@ -600,6 +604,40 @@ class _ExpenseListScreenState extends ConsumerState<ExpenseListScreen> {
             ),
           ),
       ],
+    );
+  }
+
+  Widget _buildExpenseSkeletonList() {
+    final colorScheme = Theme.of(context).colorScheme;
+    final skeletonItems = List.generate(
+      6,
+      (index) => ExpenseModel(
+        description: 'Loading expense',
+        expenseType: 'material_tools',
+        amount: 0,
+        rate: 0,
+        invoiceValue: 0,
+        manpowerId: 'loading',
+      ),
+    );
+
+    return Skeletonizer(
+      enabled: true,
+      effect: ShimmerEffect(
+        baseColor: colorScheme.surfaceContainerHighest,
+        highlightColor: colorScheme.surfaceContainerLow,
+      ),
+      child: ListView.builder(
+        controller: _scrollController,
+        physics: const NeverScrollableScrollPhysics(),
+        padding: const EdgeInsets.symmetric(horizontal: 10),
+        itemCount: skeletonItems.length,
+        itemBuilder: (context, index) => _buildExpenseCard(
+          skeletonItems[index],
+          false,
+          isLoading: true,
+        ),
+      ),
     );
   }
 }

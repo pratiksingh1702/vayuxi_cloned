@@ -322,16 +322,29 @@ class _InsulationStepperScreenState
     }
   }
 
-  void _submitAndOpenDescription() {
+  void _resetStepperPosition() {
+    final size = ref.read(selectedSizeProvider) ?? '';
+    setState(() {
+      _currentStep = 0;
+      _activeLaggingLayerIndex = 0;
+      _sizeController.text = size;
+      _syncThicknessControllers();
+    });
+  }
+
+  Future<void> _submitAndOpenDescription() async {
     final size = _sizeController.text.trim();
     ref.read(selectedSizeProvider.notifier).state = size.isEmpty ? null : size;
 
-    Navigator.push(
+    await Navigator.push(
       context,
       MaterialPageRoute(
         builder: (_) => AddInsulationDescriptionScreen(),
       ),
     );
+
+    if (!mounted) return;
+    _resetStepperPosition();
   }
 
   Widget _buildImage(String path, {BoxFit fit = BoxFit.cover}) {
@@ -1013,13 +1026,22 @@ class _InsulationStepHeader extends StatelessWidget {
                           ),
                   ),
                   const SizedBox(height: 6),
-                  Text(
-                    labels[i],
-                    style: TextStyle(
-                      fontSize: 11,
-                      fontWeight: FontWeight.w700,
-                      color:
-                          i <= currentStep ? cs.primary : cs.onSurfaceVariant,
+                  SizedBox(
+                    height: 14,
+                    child: FittedBox(
+                      fit: BoxFit.scaleDown,
+                      child: Text(
+                        labels[i],
+                        maxLines: 1,
+                        overflow: TextOverflow.ellipsis,
+                        style: TextStyle(
+                          fontSize: 11,
+                          fontWeight: FontWeight.w700,
+                          color: i <= currentStep
+                              ? cs.primary
+                              : cs.onSurfaceVariant,
+                        ),
+                      ),
                     ),
                   ),
                 ],

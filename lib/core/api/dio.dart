@@ -10,10 +10,19 @@ import 'package:untitled2/core/api/sync_job.dart';
 import 'package:untitled2/features/noti_system/updates/domain/services/notification_ingestion_service.dart';
 
 import '../utlis/common_functions.dart';
+import 'network_mode.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 class DioClient {
   static ProviderContainer? syncRef;
+
+  static const String healthUrl =
+      "https://be-vayuxi-chi.vercel.app/api/health";
+
+  static const String _startTimeKey = 'startTimeMs';
+  static const String _forcedOfflineKey = 'forcedOffline';
+  static const String _bypassOfflineKey = 'bypassOffline';
+  static const String _skipQueueKey = 'skipQueue';
 
   static late CookieJar cookieJar;
   static final Dio dio = Dio(BaseOptions(
@@ -75,9 +84,37 @@ class DioClient {
       return result;
     }
 
+    void recordLatency(Duration latency) {
+      final ref = syncRef;
+      if (ref == null) return;
+      ref.read(networkModeProvider.notifier).recordLatency(latency);
+    }
+
+    void recordNetworkError(String reason) {
+      final ref = syncRef;
+      if (ref == null) return;
+      ref.read(networkModeProvider.notifier).recordNetworkError(reason);
+    }
+
     // Create interceptor wrapper
     final interceptor = InterceptorsWrapper(
       onRequest: (options, handler) async {
+        final bypassOffline = options.extra[_bypassOfflineKey] == true;
+        final networkState = syncRef?.read(networkModeProvider);
+
+        if (networkState?.isOffline == true && !bypassOffline) {
+          options.extra[_forcedOfflineKey] = true;
+          return handler.reject(
+            DioException(
+              requestOptions: options,
+              type: DioExceptionType.connectionError,
+              error: 'Offline mode enabled',
+            ),
+          );
+        }
+
+        options.extra[_startTimeKey] = DateTime.now().millisecondsSinceEpoch;
+
         final prefs = await SharedPreferences.getInstance();
         final token = prefs.getString('auth_token');
         if (token != null) {
@@ -124,11 +161,34 @@ class DioClient {
       },
       onError: (DioException e, handler) async {
         final requestOptions = e.requestOptions;
+        final extra = requestOptions.extra;
+        final forcedOffline = extra[_forcedOfflineKey] == true;
+        final skipQueue = extra[_skipQueueKey] == true;
+        final startMs = extra[_startTimeKey] as int?;
+        final nowMs = DateTime.now().millisecondsSinceEpoch;
 
         print(
             "❌ Request failed: ${requestOptions.method} ${requestOptions.uri}");
         print("   Error type: ${e.type}");
         print("   Error: ${e.error}");
+
+        if (!forcedOffline && startMs != null && e.response != null) {
+          recordLatency(Duration(milliseconds: nowMs - startMs));
+        }
+
+        if (!forcedOffline) {
+          if (e.type == DioExceptionType.connectionError ||
+              e.type == DioExceptionType.connectionTimeout ||
+              e.type == DioExceptionType.receiveTimeout ||
+              e.type == DioExceptionType.sendTimeout ||
+              e.type == DioExceptionType.unknown) {
+            recordNetworkError(e.type.toString());
+          }
+        }
+
+        if (skipQueue) {
+          return handler.next(e);
+        }
 
         // Prepare data for queue
         Map<String, dynamic>? jsonData;
@@ -225,6 +285,12 @@ class DioClient {
         print(
             "✅ Response received: ${response.statusCode} ${response.requestOptions.uri}");
 
+        final startMs = response.requestOptions.extra[_startTimeKey] as int?;
+        if (startMs != null) {
+          final nowMs = DateTime.now().millisecondsSinceEpoch;
+          recordLatency(Duration(milliseconds: nowMs - startMs));
+        }
+
         // FIX: Better response logging
         if (response.data is Map) {
           final data = response.data as Map;
@@ -296,6 +362,18 @@ class DioClient {
     print("😊😊😊😊😊😊😊😊😊😊😊😊");
     final dir = await getApplicationDocumentsDirectory();
     return "${dir.path}/.cookies/";
+  }
+
+  static Future<Response<dynamic>> probe(String path) {
+    return dio.get(
+      path,
+      options: Options(
+        extra: {
+          _bypassOfflineKey: true,
+          _skipQueueKey: true,
+        },
+      ),
+    );
   }
 
   // Helper method to manually set device ID cookie

@@ -55,4 +55,6 @@ class Routes {
   static const String editInventory = '/edit-inventory';
   static const String editTeam = '/edit-team';
   static const deviceOtp = '/device-otp';
+  static const String networkSettings = '/network-settings';
+  static const String settings = '/settings';
 }

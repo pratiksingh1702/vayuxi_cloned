@@ -15,6 +15,7 @@ import 'package:internet_connection_checker_plus/internet_connection_checker_plu
 import 'package:internet_connection_checker/internet_connection_checker.dart';
 import '../utlis/common_functions.dart';
 import 'dio.dart';
+import 'network_mode.dart';
 
 final syncManagerProvider = Provider<SyncManager>((ref) {
   return SyncManager(ref);
@@ -82,6 +83,27 @@ class SyncManager {
     }
     print("🔎 Retry trigger from: $source");
 
+    final networkMode = ref.read(networkModeProvider);
+    if (networkMode.isOffline) {
+      final hasInternet = await InternetConnectionChecker.I.hasConnection;
+      if (!hasInternet) {
+        print("📵 Offline mode: no internet");
+        return;
+      }
+
+      final serverOk = await _canReachServer(allowOfflineBypass: true);
+      if (serverOk) {
+        ref
+            .read(networkModeProvider.notifier)
+            .switchToOnline(reason: 'Network stable');
+      }
+
+      if (ref.read(networkModeProvider).isOffline) {
+        print("📴 Offline mode active");
+        return;
+      }
+    }
+
     final hasInternet = await InternetConnectionChecker.I.hasConnection;
     if (!hasInternet) {
       print("📵 No internet");
@@ -97,9 +119,11 @@ class SyncManager {
     await _retryQueuedRequests();
   }
 
-  Future<bool> _canReachServer() async {
+  Future<bool> _canReachServer({bool allowOfflineBypass = false}) async {
     try {
-      final res = await DioClient.dio.get("/site");
+      final res = allowOfflineBypass
+          ? await DioClient.probe(DioClient.healthUrl)
+          : await DioClient.dio.get(DioClient.healthUrl);
       return res.statusCode == 200;
     } catch (_) {
       return false;

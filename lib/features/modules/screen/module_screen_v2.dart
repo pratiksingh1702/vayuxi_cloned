@@ -5,6 +5,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import 'package:showcaseview/showcaseview.dart';
 import 'package:untitled2/core/router/access_control_provider.dart';
+import 'package:untitled2/core/router/routes.dart';
 import 'package:untitled2/core/utlis/widgets/shimmer.dart';
 import 'package:untitled2/core/utlis/widgets/sidebar.dart';
 import 'package:untitled2/features/language/service/lang_providers.dart';
@@ -640,6 +641,19 @@ class _ModuleScreenV2State extends ConsumerState<ModuleScreenV2> with SingleTick
             child: Text(
               "${_currentModules.where((m) => !m.isEmpty).length} modules",
               style: TextStyle(fontSize: 10, fontWeight: FontWeight.w600, color: cs.onPrimaryContainer),
+            ),
+          ),
+          const SizedBox(width: 8),
+          GestureDetector(
+            onTap: () => context.push(Routes.settings),
+            child: Container(
+              width: 44, height: 44,
+              decoration: BoxDecoration(
+                color: cs.surfaceContainerLow,
+                borderRadius: BorderRadius.circular(12),
+                border: Border.all(color: cs.outlineVariant.withOpacity(0.4), width: 0.8),
+              ),
+              child: Icon(Icons.settings_suggest_rounded, size: 22, color: cs.onSurfaceVariant),
             ),
           ),
         ],

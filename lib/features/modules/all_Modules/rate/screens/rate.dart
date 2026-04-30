@@ -27,6 +27,14 @@ import 'addRate.dart';
 import 'editRate.dart';
 import 'import_sheet.dart';
 
+enum RateSortOption {
+  latestFirst,
+  nameAsc,
+  nameDesc,
+  rateHighToLow,
+  rateLowToHigh
+}
+
 class RateScreen extends ConsumerStatefulWidget {
   const RateScreen({super.key});
 
@@ -40,10 +48,287 @@ class _RateScreenState extends ConsumerState<RateScreen> {
   Set<String> _selectedRateIds = {};
   final ScrollController _scrollController = ScrollController();
 
+  // Filter & Sort State
+  RateSortOption _currentSort = RateSortOption.latestFirst;
+  final TextEditingController _searchController = TextEditingController();
+  String _searchQuery = '';
+  Set<String> _filterUOM = {};
+  Set<String> _filterType = {};
+  double? _filterRateMin;
+  double? _filterRateMax;
+
   @override
   void dispose() {
     _scrollController.dispose();
+    _searchController.dispose();
     super.dispose();
+  }
+
+  bool get hasActiveFilters =>
+      _searchQuery.isNotEmpty ||
+      _filterUOM.isNotEmpty ||
+      _filterType.isNotEmpty ||
+      _filterRateMin != null ||
+      _filterRateMax != null ||
+      _currentSort != RateSortOption.latestFirst;
+
+  void _showFilterSortBottomSheet() {
+    showModalBottomSheet(
+      context: context,
+      isScrollControlled: true,
+      backgroundColor: Colors.transparent,
+      builder: (context) => StatefulBuilder(
+        builder: (context, setSheetState) {
+          final colorScheme = Theme.of(context).colorScheme;
+          final rates = ref.read(rateNotifierProvider).data ?? [];
+          
+          final uoms = rates.map((e) => e.uom).toSet().toList()..sort();
+          final types = rates.map((e) => e.type).toSet().toList()..sort();
+          
+          double maxRate = 0;
+          if (rates.isNotEmpty) {
+            maxRate = rates.map((e) => e.rate).reduce((a, b) => a > b ? a : b);
+          }
+          if (maxRate < 1000) maxRate = 5000; // default max if data is small
+
+          return Container(
+            decoration: BoxDecoration(
+              color: colorScheme.surface,
+              borderRadius: const BorderRadius.vertical(top: Radius.circular(24)),
+            ),
+            padding: EdgeInsets.fromLTRB(
+                20, 12, 20, MediaQuery.of(context).viewInsets.bottom + 32),
+            child: SingleChildScrollView(
+              child: Column(
+                mainAxisSize: MainAxisSize.min,
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Center(
+                    child: Container(
+                      width: 40,
+                      height: 4,
+                      decoration: BoxDecoration(
+                        color: colorScheme.outlineVariant,
+                        borderRadius: BorderRadius.circular(2),
+                      ),
+                    ),
+                  ),
+                  const SizedBox(height: 20),
+                  Row(
+                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                    children: [
+                      Text(
+                        'Filter & Sort',
+                        style: TextStyle(
+                          fontSize: 20,
+                          fontWeight: FontWeight.bold,
+                          color: colorScheme.onSurface,
+                        ),
+                      ),
+                      TextButton(
+                        onPressed: () {
+                          setSheetState(() {
+                            _currentSort = RateSortOption.latestFirst;
+                            _filterUOM = {};
+                            _filterType = {};
+                            _filterRateMin = null;
+                            _filterRateMax = null;
+                          });
+                          setState(() {});
+                        },
+                        child: const Text('Reset All'),
+                      ),
+                    ],
+                  ),
+                  const Divider(height: 32),
+
+                  // Sorting
+                  _buildFilterLabel('Sort By'),
+                  Wrap(
+                    spacing: 8,
+                    children: [
+                      _buildFilterChip(
+                        label: 'Latest First',
+                        selected: _currentSort == RateSortOption.latestFirst,
+                        onSelected: (val) {
+                          setSheetState(() => _currentSort = RateSortOption.latestFirst);
+                          setState(() {});
+                        },
+                      ),
+                      _buildFilterChip(
+                        label: 'Name (A-Z)',
+                        selected: _currentSort == RateSortOption.nameAsc,
+                        onSelected: (val) {
+                          setSheetState(() => _currentSort = RateSortOption.nameAsc);
+                          setState(() {});
+                        },
+                      ),
+                      _buildFilterChip(
+                        label: 'Rate (High-Low)',
+                        selected: _currentSort == RateSortOption.rateHighToLow,
+                        onSelected: (val) {
+                          setSheetState(() => _currentSort = RateSortOption.rateHighToLow);
+                          setState(() {});
+                        },
+                      ),
+                    ],
+                  ),
+                  const SizedBox(height: 24),
+
+                  // UOM
+                  if (uoms.isNotEmpty) ...[
+                    _buildFilterLabel('Unit of Measurement (UOM)'),
+                    Wrap(
+                      spacing: 8,
+                      children: uoms.map((uom) {
+                        return _buildFilterChip(
+                          label: uom,
+                          selected: _filterUOM.contains(uom),
+                          onSelected: (val) {
+                            setSheetState(() {
+                              if (val) {
+                                _filterUOM.add(uom);
+                              } else {
+                                _filterUOM.remove(uom);
+                              }
+                            });
+                            setState(() {});
+                          },
+                        );
+                      }).toList(),
+                    ),
+                    const SizedBox(height: 24),
+                  ],
+
+                  // Type
+                  if (types.isNotEmpty) ...[
+                    _buildFilterLabel('Rate Type'),
+                    Wrap(
+                      spacing: 8,
+                      children: types.map((t) {
+                        return _buildFilterChip(
+                          label: t,
+                          selected: _filterType.contains(t),
+                          onSelected: (val) {
+                            setSheetState(() {
+                              if (val) {
+                                _filterType.add(t);
+                              } else {
+                                _filterType.remove(t);
+                              }
+                            });
+                            setState(() {});
+                          },
+                        );
+                      }).toList(),
+                    ),
+                    const SizedBox(height: 24),
+                  ],
+
+                  // Rate Range
+                  _buildFilterLabel(
+                      'Rate Range: ₹${_filterRateMin?.toStringAsFixed(0) ?? "0"} - ₹${_filterRateMax?.toStringAsFixed(0) ?? maxRate.toStringAsFixed(0)}'),
+                  _buildSliderRange(
+                    min: 0,
+                    max: maxRate,
+                    values: RangeValues(_filterRateMin ?? 0, _filterRateMax ?? maxRate),
+                    onChanged: (values) {
+                      setSheetState(() {
+                        _filterRateMin = values.start;
+                        _filterRateMax = values.end;
+                      });
+                      setState(() {});
+                    },
+                  ),
+                  const SizedBox(height: 32),
+
+                  SizedBox(
+                    width: double.infinity,
+                    child: ElevatedButton(
+                      onPressed: () => Navigator.pop(context),
+                      style: ElevatedButton.styleFrom(
+                        backgroundColor: colorScheme.primary,
+                        foregroundColor: colorScheme.onPrimary,
+                        padding: const EdgeInsets.symmetric(vertical: 16),
+                        shape: RoundedRectangleBorder(
+                          borderRadius: BorderRadius.circular(12),
+                        ),
+                      ),
+                      child: const Text('Apply Filters',
+                          style: TextStyle(fontWeight: FontWeight.bold, fontSize: 16)),
+                    ),
+                  ),
+                ],
+              ),
+            ),
+          );
+        },
+      ),
+    );
+  }
+
+  Widget _buildFilterLabel(String label) {
+    return Padding(
+      padding: const EdgeInsets.only(bottom: 12),
+      child: Text(
+        label,
+        style: const TextStyle(
+          fontSize: 14,
+          fontWeight: FontWeight.w600,
+          color: Colors.grey,
+        ),
+      ),
+    );
+  }
+
+  Widget _buildFilterChip({
+    required String label,
+    required bool selected,
+    required ValueChanged<bool> onSelected,
+  }) {
+    final colorScheme = Theme.of(context).colorScheme;
+    return FilterChip(
+      label: Text(label),
+      selected: selected,
+      onSelected: onSelected,
+      backgroundColor: colorScheme.surface,
+      selectedColor: colorScheme.primaryContainer,
+      checkmarkColor: colorScheme.primary,
+      labelStyle: TextStyle(
+        fontSize: 13,
+        fontWeight: selected ? FontWeight.bold : FontWeight.normal,
+        color: selected ? colorScheme.primary : colorScheme.onSurface,
+      ),
+      shape: RoundedRectangleBorder(
+        borderRadius: BorderRadius.circular(8),
+        side: BorderSide(
+          color: selected ? colorScheme.primary : colorScheme.outlineVariant,
+          width: selected ? 1.5 : 1,
+        ),
+      ),
+    );
+  }
+
+  Widget _buildSliderRange({
+    required double min,
+    required double max,
+    required RangeValues values,
+    required ValueChanged<RangeValues> onChanged,
+  }) {
+    final colorScheme = Theme.of(context).colorScheme;
+    return RangeSlider(
+      values: values,
+      min: min,
+      max: max,
+      divisions: max > 0 ? (max / 10).toInt().clamp(1, 100) : 1,
+      labels: RangeLabels(
+        values.start.toStringAsFixed(0),
+        values.end.toStringAsFixed(0),
+      ),
+      activeColor: colorScheme.primary,
+      inactiveColor: colorScheme.primaryContainer,
+      onChanged: onChanged,
+    );
   }
 
   @override
@@ -56,6 +341,11 @@ class _RateScreenState extends ConsumerState<RateScreen> {
       if (type != null) {
         ref.read(rateNotifierProvider.notifier).fetchRate(type, siteId!);
       }
+    });
+    _searchController.addListener(() {
+      setState(() {
+        _searchQuery = _searchController.text;
+      });
     });
   }
 
@@ -197,6 +487,71 @@ class _RateScreenState extends ConsumerState<RateScreen> {
           ],
           child: Column(
             children: [
+              // Search and Filter Row
+              Padding(
+                padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+                child: Row(
+                  children: [
+                    Expanded(
+                      child: Container(
+                        height: 48,
+                        decoration: BoxDecoration(
+                          color: colorScheme.surfaceContainerLow,
+                          borderRadius: BorderRadius.circular(12),
+                          border: Border.all(
+                              color: colorScheme.outlineVariant.withOpacity(0.5)),
+                        ),
+                        child: TextField(
+                          controller: _searchController,
+                          style: const TextStyle(fontSize: 14),
+                          decoration: InputDecoration(
+                            hintText: 'Search service...',
+                            prefixIcon: Icon(Icons.search,
+                                color: colorScheme.primary, size: 20),
+                            border: InputBorder.none,
+                            contentPadding:
+                                const EdgeInsets.symmetric(vertical: 14),
+                            suffixIcon: _searchQuery.isNotEmpty
+                                ? IconButton(
+                                    icon: const Icon(Icons.clear, size: 18),
+                                    onPressed: () => _searchController.clear(),
+                                  )
+                                : null,
+                          ),
+                        ),
+                      ),
+                    ),
+                    const SizedBox(width: 8),
+                    InkWell(
+                      onTap: _showFilterSortBottomSheet,
+                      borderRadius: BorderRadius.circular(12),
+                      child: Container(
+                        width: 48,
+                        height: 48,
+                        decoration: BoxDecoration(
+                          color: hasActiveFilters
+                              ? colorScheme.primary
+                              : colorScheme.surfaceContainerLow,
+                          borderRadius: BorderRadius.circular(12),
+                          border: Border.all(
+                            color: hasActiveFilters
+                                ? colorScheme.primary
+                                : colorScheme.outlineVariant.withOpacity(0.5),
+                          ),
+                        ),
+                        child: Icon(
+                          Icons.tune,
+                          color: hasActiveFilters
+                              ? colorScheme.onPrimary
+                              : colorScheme.primary,
+                          size: 22,
+                        ),
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+
               // Top action bar with selection controls
               if (rates.isNotEmpty)
                 Row(
@@ -311,28 +666,111 @@ class _RateScreenState extends ConsumerState<RateScreen> {
                                   ],
                                 ),
                               )
-                            : CustomScrollbar(
-                                controller: _scrollController,
-                                child: ListView.builder(
-                                  controller: _scrollController,
-                                  physics:
-                                      const AlwaysScrollableScrollPhysics(),
-                                  itemCount: state.data!.length,
-                                  itemBuilder: (context, index) {
-                                    final rate = state.data![index];
-                                    final isSelected =
-                                        _selectedRateIds.contains(rate.id);
+                            : () {
+                                // Apply Filtering
+                                var filteredList = rates.where((rate) {
+                                  // Search
+                                  if (_searchQuery.isNotEmpty &&
+                                      !rate.serviceName
+                                          .toLowerCase()
+                                          .contains(_searchQuery.toLowerCase()) &&
+                                      !rate.hsnSacCode
+                                          .toLowerCase()
+                                          .contains(_searchQuery.toLowerCase())) {
+                                    return false;
+                                  }
 
-                                    return _buildRateTile(
-                                      context,
-                                      rate,
-                                      site!,
-                                      ref,
-                                      isSelected,
-                                    );
-                                  },
-                                ),
-                              ),
+                                  // UOM
+                                  if (_filterUOM.isNotEmpty &&
+                                      !_filterUOM.contains(rate.uom)) {
+                                    return false;
+                                  }
+
+                                  // Type
+                                  if (_filterType.isNotEmpty &&
+                                      !_filterType.contains(rate.type)) {
+                                    return false;
+                                  }
+
+                                  // Rate Range
+                                  if (_filterRateMin != null &&
+                                      rate.rate < _filterRateMin!) return false;
+                                  if (_filterRateMax != null &&
+                                      rate.rate > _filterRateMax!) return false;
+
+                                  return true;
+                                }).toList();
+
+                                // Apply Sorting
+                                filteredList.sort((a, b) {
+                                  switch (_currentSort) {
+                                    case RateSortOption.latestFirst:
+                                      return b.createdAt.compareTo(a.createdAt);
+                                    case RateSortOption.nameAsc:
+                                      return a.serviceName.compareTo(b.serviceName);
+                                    case RateSortOption.nameDesc:
+                                      return b.serviceName.compareTo(a.serviceName);
+                                    case RateSortOption.rateHighToLow:
+                                      return b.rate.compareTo(a.rate);
+                                    case RateSortOption.rateLowToHigh:
+                                      return a.rate.compareTo(b.rate);
+                                  }
+                                });
+
+                                if (filteredList.isEmpty) {
+                                  return Center(
+                                    child: Column(
+                                      mainAxisAlignment: MainAxisAlignment.center,
+                                      children: [
+                                        Icon(
+                                          Icons.search_off_outlined,
+                                          size: 64,
+                                          color: colorScheme.onSurfaceVariant,
+                                        ),
+                                        const SizedBox(height: 16),
+                                        Text(
+                                          'No results found',
+                                          style: TextStyle(
+                                            fontSize: 18,
+                                            fontWeight: FontWeight.w600,
+                                            color: colorScheme.onSurface,
+                                          ),
+                                        ),
+                                        const SizedBox(height: 6),
+                                        Text(
+                                          'Try adjusting your search or filters.',
+                                          textAlign: TextAlign.center,
+                                          style: TextStyle(
+                                            color: colorScheme.onSurfaceVariant,
+                                          ),
+                                        ),
+                                      ],
+                                    ),
+                                  );
+                                }
+
+                                return CustomScrollbar(
+                                  controller: _scrollController,
+                                  child: ListView.builder(
+                                    controller: _scrollController,
+                                    physics: const AlwaysScrollableScrollPhysics(),
+                                    itemCount: filteredList.length,
+                                    itemBuilder: (context, index) {
+                                      final rate = filteredList[index];
+                                      final isSelected =
+                                          _selectedRateIds.contains(rate.id);
+
+                                      return _buildRateTile(
+                                        context,
+                                        rate,
+                                        site!,
+                                        ref,
+                                        isSelected,
+                                      );
+                                    },
+                                  ),
+                                );
+                              }() as Widget
               )
             ],
           ),

@@ -18,9 +18,10 @@ class PipingMaterial extends BaseMaterial {
     String? materialCode,
     FieldValues? fieldValues,
     Map<String, String>? customLabels,
+    int displayOrder = 0,
     this.size,
     this.sizeUom,
-   num qty = 0,
+    num qty = 0,
     double length = 0,
     double circumference = 0,
     double circumference1 = 0,
@@ -51,6 +52,7 @@ class PipingMaterial extends BaseMaterial {
     image: image,
     uom: uom,
     remarks: remarks,
+    displayOrder: displayOrder,
     cardFormState: cardFormState,
     materialCode: materialCode,
     fieldValues: fieldValues,
@@ -131,6 +133,7 @@ class PipingMaterial extends BaseMaterial {
       o3: (json['o3'] as num?)?.toDouble() ?? 0,
       o2: (json['o2'] as num?)?.toDouble() ?? 0,
       o1: (json['o1'] as num?)?.toDouble() ?? 0,
+      displayOrder: json['displayOrder'] as int? ?? 0,
     );
   }
 
@@ -173,6 +176,7 @@ class PipingMaterial extends BaseMaterial {
       'o3': o3,
       'o2': o2,
       'o1': o1,
+      'displayOrder': displayOrder,
     };
   }
 
@@ -214,6 +218,7 @@ class PipingMaterial extends BaseMaterial {
     double? o3,
     double? o2,
     double? o1,
+    int? displayOrder,
   }) {
     return PipingMaterial(
       id: id ?? this.id,
@@ -252,6 +257,7 @@ class PipingMaterial extends BaseMaterial {
       o3: o3 ?? this.o3,
       o2: o2 ?? this.o2,
       o1: o1 ?? this.o1,
+      displayOrder: displayOrder ?? this.displayOrder,
     );
   }
 }

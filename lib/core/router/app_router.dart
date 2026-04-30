@@ -106,6 +106,8 @@ import 'app_access.dart';
 import 'go_router_refresh.dart';
 import 'not_found_screen.dart';
 import 'package:bot_toast/bot_toast.dart';
+import '../screens/network_settings_screen.dart';
+import '../screens/settings_screen.dart';
 import 'route_tracker.dart';
 
 // ─────────────────────────────────────────────────────────────
@@ -585,6 +587,20 @@ final appRouterProvider = Provider<GoRouter>((ref) {
         builder: (context, state) {
           _logRoute('HelpCenterScreen', path: state.uri.toString());
           return HelpCenterScreen();
+        },
+      ),
+      GoRoute(
+        path: Routes.networkSettings,
+        builder: (context, state) {
+          _logRoute('NetworkSettingsScreen', path: state.uri.toString());
+          return const NetworkSettingsScreen();
+        },
+      ),
+      GoRoute(
+        path: Routes.settings,
+        builder: (context, state) {
+          _logRoute('SettingsScreen', path: state.uri.toString());
+          return const SettingsScreen();
         },
       ),
       GoRoute(

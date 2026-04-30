@@ -51,6 +51,15 @@ import 'controllers/dpr_session_provider.dart';
 import 'material_sync_util.dart';
 import 'widgets/material_overlay_edit.dart';
 
+enum MechModuleSortOption {
+  nameAsc,
+  nameDesc,
+  typeAsc,
+  typeDesc,
+  displayOrderAsc,
+  displayOrderDesc
+}
+
 class AddDescriptionScreen extends ConsumerStatefulWidget {
   final DprModel? work;
   final bool fromDraft;
@@ -84,12 +93,8 @@ class _AddDescriptionScreenState extends ConsumerState<AddDescriptionScreen>
   String? _mechanicalId;
   String? _selectedDprId;
 
-  bool _pipeFittingOn = true;
-  bool _equipmentOn = true;
   bool _editMode = true;
   bool _globalEditMode = false;
-  bool _showPipingMaterials = true;
-  bool _showEquipmentMaterials = true;
 
   DateTime _selectedDate = DateTime.now();
 
@@ -110,6 +115,12 @@ class _AddDescriptionScreenState extends ConsumerState<AddDescriptionScreen>
   bool _headerInitialized = false;
   bool _isDateOverrideMode = false;
   final DprDraftRepo _draftRepo = DprDraftRepo();
+
+  final TextEditingController _searchController = TextEditingController();
+  String _searchQuery = '';
+  Set<String> _filterTypes = {};
+  Set<String> _filterStatuses = {};
+  MechModuleSortOption _currentSort = MechModuleSortOption.displayOrderAsc;
 
   // @override
   // void initState() {
@@ -224,10 +235,7 @@ class _AddDescriptionScreenState extends ConsumerState<AddDescriptionScreen>
     _headerInitialized = true;
     if (mounted) {
       setState(() {
-        _showPipingMaterials = work.piping.isNotEmpty;
-        _showEquipmentMaterials = work.equipment.isNotEmpty;
-        _pipeFittingOn = work.piping.isNotEmpty;
-        _equipmentOn = work.equipment.isNotEmpty;
+        _isLoading = false;
       });
       _showSnackBar('Draft restored for editing');
     }
@@ -486,6 +494,11 @@ class _AddDescriptionScreenState extends ConsumerState<AddDescriptionScreen>
   void _initializeControllers() {
     _dprNameController = TextEditingController();
     _dprNameController.addListener(() => setState(() {}));
+    _searchController.addListener(() {
+      setState(() {
+        _searchQuery = _searchController.text.toLowerCase().trim();
+      });
+    });
     _mocController = TextEditingController();
     _sizeController = TextEditingController();
     _sizeUomController = TextEditingController();
@@ -767,10 +780,7 @@ class _AddDescriptionScreenState extends ConsumerState<AddDescriptionScreen>
 
         if (mounted) {
           setState(() {
-            _pipeFittingOn = true;
-            _equipmentOn = true;
-            _showPipingMaterials = true;
-            _showEquipmentMaterials = true;
+            // Unused toggles removed
           });
         }
 
@@ -894,18 +904,7 @@ class _AddDescriptionScreenState extends ConsumerState<AddDescriptionScreen>
       _floorController.text = dprWork.location ?? _floorController.text;
       _plantController.text = dprWork.plant ?? _plantController.text;
 
-      if (mounted) {
-        setState(() {
-          if (dprWork.piping.isNotEmpty) {
-            _pipeFittingOn = true;
-            _showPipingMaterials = true;
-          }
-          if (dprWork.equipment.isNotEmpty) {
-            _equipmentOn = true;
-            _showEquipmentMaterials = true;
-          }
-        });
-      }
+      // No-op for removed toggles
 
       print(
           'Fetched DPR work successfully with ${dprWork.piping.length} piping and ${dprWork.equipment.length} equipment materials');
@@ -1037,45 +1036,6 @@ class _AddDescriptionScreenState extends ConsumerState<AddDescriptionScreen>
     );
   }
 
-  void _handleToggleChange(bool isPiping, bool newValue) {
-    if (_isDisposed) return;
-
-    setState(() {
-      if (isPiping) {
-        _pipeFittingOn = newValue;
-        if (!newValue) {
-          _showPipingMaterials = false;
-        } else {
-          final materials = ref.read(pipingMaterialsProvider);
-          if (materials.isNotEmpty) {
-            _showPipingMaterials = true;
-          }
-        }
-      } else {
-        _equipmentOn = newValue;
-        if (!newValue) {
-          _showEquipmentMaterials = false;
-        } else {
-          final materials = ref.read(equipmentMaterialsProvider);
-          if (materials.isNotEmpty) {
-            _showEquipmentMaterials = true;
-          }
-        }
-      }
-    });
-  }
-
-  void _toggleMaterialVisibility(bool isPiping) {
-    if (isPiping) {
-      setState(() {
-        _showPipingMaterials = !_showPipingMaterials;
-      });
-    } else {
-      setState(() {
-        _showEquipmentMaterials = !_showEquipmentMaterials;
-      });
-    }
-  }
 
   // _________MATERIAL  FUNCTIONS_______ //
   String generateObjectId() {
@@ -1524,12 +1484,78 @@ class _AddDescriptionScreenState extends ConsumerState<AddDescriptionScreen>
     final pipingMaterials = ref.watch(pipingMaterialsProvider);
     final equipmentMaterials = ref.watch(equipmentMaterialsProvider);
 
-    final hasPipingMaterials = pipingMaterials.isNotEmpty;
-    final hasEquipmentMaterials = equipmentMaterials.isNotEmpty;
-    final shouldShowPiping =
-        _pipeFittingOn && _showPipingMaterials && hasPipingMaterials;
-    final shouldShowEquipment =
-        _equipmentOn && _showEquipmentMaterials && hasEquipmentMaterials;
+    // Initial Filter by Search Query
+    List<PipingItem> filteredPiping = pipingMaterials.where((m) {
+      if (_searchQuery.isEmpty) return true;
+      return m.materialName.toLowerCase().contains(_searchQuery.toLowerCase());
+    }).toList();
+
+    List<EquipmentItem> filteredEquipment = equipmentMaterials.where((m) {
+      if (_searchQuery.isEmpty) return true;
+      return m.materialName.toLowerCase().contains(_searchQuery.toLowerCase());
+    }).toList();
+
+    // Filter by Designation (Piping/Equipment)
+    List<PipingItem> pipingToDisplay = filteredPiping;
+    List<EquipmentItem> equipmentToDisplay = filteredEquipment;
+
+    if (_filterTypes.isNotEmpty) {
+      if (!_filterTypes.contains('Piping')) pipingToDisplay = [];
+      if (!_filterTypes.contains('Equipment')) equipmentToDisplay = [];
+    }
+
+    // Filter by Status (Has Values / Empty)
+    if (_filterStatuses.isNotEmpty) {
+      pipingToDisplay = pipingToDisplay.where((m) {
+        final hasValues = _hasMeaningfulMaterialValues(m.dynamicFields);
+        if (_filterStatuses.contains('Has Values') && hasValues) return true;
+        if (_filterStatuses.contains('Empty') && !hasValues) return true;
+        return false;
+      }).toList();
+
+      equipmentToDisplay = equipmentToDisplay.where((m) {
+        final hasValues = _hasMeaningfulMaterialValues(m.dynamicFields);
+        if (_filterStatuses.contains('Has Values') && hasValues) return true;
+        if (_filterStatuses.contains('Empty') && !hasValues) return true;
+        return false;
+      }).toList();
+    }
+
+    // Sort function
+    void applySort(List<dynamic> list) {
+      list.sort((a, b) {
+        switch (_currentSort) {
+          case MechModuleSortOption.nameAsc:
+            return a.materialName
+                .toLowerCase()
+                .compareTo(b.materialName.toLowerCase());
+          case MechModuleSortOption.nameDesc:
+            return b.materialName
+                .toLowerCase()
+                .compareTo(a.materialName.toLowerCase());
+          case MechModuleSortOption.typeAsc:
+            final typeA = a is PipingItem ? 'Piping' : 'Equipment';
+            final typeB = b is PipingItem ? 'Piping' : 'Equipment';
+            return typeA.compareTo(typeB);
+          case MechModuleSortOption.typeDesc:
+            final typeA = a is PipingItem ? 'Piping' : 'Equipment';
+            final typeB = b is PipingItem ? 'Piping' : 'Equipment';
+            return typeB.compareTo(typeA);
+          case MechModuleSortOption.displayOrderAsc:
+            return a.displayOrder.compareTo(b.displayOrder);
+          case MechModuleSortOption.displayOrderDesc:
+            return b.displayOrder.compareTo(a.displayOrder);
+          default:
+            return 0;
+        }
+      });
+    }
+
+    applySort(pipingToDisplay);
+    applySort(equipmentToDisplay);
+
+    final hasPipingMaterials = pipingToDisplay.isNotEmpty;
+    final hasEquipmentMaterials = equipmentToDisplay.isNotEmpty;
     final lang = ref.watch(dailyEntryTranslationHelperProvider);
 
     // Only show dropdown when:
@@ -1635,41 +1661,34 @@ class _AddDescriptionScreenState extends ConsumerState<AddDescriptionScreen>
                         const SizedBox(height: 16),
                         _buildDprInfoCard(shouldShowDropdown),
                         const SizedBox(height: 16),
-                        // _buildToggleSection(),
-                        // const SizedBox(height: 16),
+
+                        _buildSearchAndFilterRow(),
+                        const SizedBox(height: 16),
+
                         Column(
                           key: _materialsRebuildKey,
                           children: [
-                            if (_pipeFittingOn && hasPipingMaterials)
-                              _buildMaterialToggleCard(
-                                lang.pipeFittingMaterialLabel,
-                                pipingMaterials.length,
-                                _showPipingMaterials,
-                                () => _toggleMaterialVisibility(true),
-                              ),
-                            if (shouldShowPiping)
-                              ..._buildPipingMaterials(pipingMaterials),
-                            if (_equipmentOn && hasEquipmentMaterials)
-                              _buildMaterialToggleCard(
-                                lang.equipmentMaterialLabel,
-                                equipmentMaterials.length,
-                                _showEquipmentMaterials,
-                                () => _toggleMaterialVisibility(false),
-                              ),
-                            if (shouldShowEquipment)
-                              ..._buildEquipmentMaterials(equipmentMaterials),
-                            if (_pipeFittingOn && !hasPipingMaterials)
-                              _buildEmptyMaterialsCard(
-                                  'No piping materials available'),
-                            if (_equipmentOn && !hasEquipmentMaterials)
-                              _buildEmptyMaterialsCard(
-                                  'No equipment materials available'),
-                            if (!_pipeFittingOn &&
-                                !_equipmentOn &&
-                                _initialDataLoaded)
-                              _buildEmptyState(
-                                  'Materials will appear here once loaded',
-                                  Icons.downloading),
+                            if (pipingToDisplay.isNotEmpty) ...[
+                              _buildSectionHeader('Piping', Icons.plumbing),
+                              ..._buildPipingMaterials(pipingToDisplay),
+                              const SizedBox(height: 16),
+                            ],
+                            if (equipmentToDisplay.isNotEmpty) ...[
+                              _buildSectionHeader('Equipment',
+                                  Icons.precision_manufacturing),
+                              ..._buildEquipmentMaterials(equipmentToDisplay),
+                            ],
+                            if (pipingToDisplay.isEmpty &&
+                                equipmentToDisplay.isEmpty)
+                              if (pipingMaterials.isEmpty &&
+                                  equipmentMaterials.isEmpty)
+                                _buildEmptyState(
+                                    'Materials will appear here once loaded',
+                                    Icons.downloading)
+                              else
+                                _buildEmptyState(
+                                    'No materials match your filters',
+                                    Icons.search_off),
                           ],
                         ),
                         const SizedBox(height: 100),
@@ -1685,112 +1704,6 @@ class _AddDescriptionScreenState extends ConsumerState<AddDescriptionScreen>
     );
   }
 
-  Widget _buildEmptyMaterialsCard(String message) {
-    final cs = Theme.of(context).colorScheme;
-    return Container(
-      margin: const EdgeInsets.only(bottom: 12),
-      padding: const EdgeInsets.all(20),
-      decoration: BoxDecoration(
-        color: cs.surface,
-        borderRadius: BorderRadius.circular(12),
-        border: Border.all(color: cs.outlineVariant),
-      ),
-      child: Column(
-        children: [
-          Icon(
-            Icons.inventory_2_outlined,
-            size: 40,
-            color: cs.onSurfaceVariant,
-          ),
-          const SizedBox(height: 12),
-          Text(
-            message,
-            style: TextStyle(
-              color: cs.onSurfaceVariant,
-              fontSize: 14,
-              fontWeight: FontWeight.w500,
-            ),
-          ),
-        ],
-      ),
-    );
-  }
-
-  Widget _buildMaterialToggleCard(
-    String title,
-    int count,
-    bool isExpanded,
-    VoidCallback onToggle,
-  ) {
-    final cs = Theme.of(context).colorScheme;
-    return GestureDetector(
-      onTap: onToggle,
-      child: Container(
-        margin: const EdgeInsets.only(bottom: 12),
-        padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
-        decoration: BoxDecoration(
-          color: cs.surface,
-          borderRadius: BorderRadius.circular(12),
-          border: Border.all(color: cs.outlineVariant),
-          boxShadow: [
-            BoxShadow(
-              color: cs.shadow.withOpacity(0.08),
-              blurRadius: 6,
-              offset: const Offset(0, 2),
-            ),
-          ],
-        ),
-        child: Row(
-          mainAxisAlignment: MainAxisAlignment.spaceBetween,
-          children: [
-            Row(
-              children: [
-                Icon(
-                  isExpanded ? Icons.expand_less : Icons.expand_more,
-                  color: cs.primary,
-                  size: 20,
-                ),
-                const SizedBox(width: 8),
-                Text(
-                  title,
-                  style: TextStyle(
-                    fontSize: 14,
-                    fontWeight: FontWeight.w600,
-                    color: cs.primary,
-                  ),
-                ),
-                const SizedBox(width: 8),
-                Container(
-                  padding:
-                      const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
-                  decoration: BoxDecoration(
-                    color: cs.primaryContainer,
-                    borderRadius: BorderRadius.circular(12),
-                  ),
-                  child: Text(
-                    '$count',
-                    style: TextStyle(
-                      fontSize: 12,
-                      fontWeight: FontWeight.w600,
-                      color: cs.onPrimaryContainer,
-                    ),
-                  ),
-                ),
-              ],
-            ),
-            _buildAddDprMaterialButton(),
-            Text(
-              isExpanded ? 'Hide' : 'Show',
-              style: TextStyle(
-                fontSize: 12,
-                color: cs.onSurfaceVariant,
-              ),
-            ),
-          ],
-        ),
-      ),
-    );
-  }
 
   Widget _buildAddDprMaterialButton() {
     final cs = Theme.of(context).colorScheme;
@@ -2397,84 +2310,348 @@ class _AddDescriptionScreenState extends ConsumerState<AddDescriptionScreen>
     );
   }
 
-  Widget _buildToggleSection() {
-    final lang = ref.watch(dailyEntryTranslationHelperProvider);
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
+  Widget _buildSectionHeader(String title, IconData icon) {
+    return Padding(
+      padding: const EdgeInsets.fromLTRB(8, 16, 8, 8),
+      child: Text(
+        title.toUpperCase(),
+        style: const TextStyle(
+          fontSize: 12,
+          fontWeight: FontWeight.w700,
+          color: Colors.grey,
+          letterSpacing: 1.1,
+        ),
+      ),
+    );
+  }
+
+
+  bool get hasActiveFilters =>
+      _searchQuery.isNotEmpty ||
+      _filterTypes.isNotEmpty ||
+      _filterStatuses.isNotEmpty ||
+      _currentSort != MechModuleSortOption.displayOrderAsc;
+
+  Widget _buildSearchAndFilterRow() {
+    final colorScheme = Theme.of(context).colorScheme;
+
+    return Row(
       children: [
-        Row(
-          children: [
-            Expanded(
-              child: _buildToggleCard(
-                lang.pipeFittingsTab,
-                Icons.plumbing_rounded,
-                _pipeFittingOn,
-                false,
-                (value) => _handleToggleChange(true, value),
+        Expanded(
+          child: Container(
+            height: 48,
+            decoration: BoxDecoration(
+              color: colorScheme.surfaceContainerLow,
+              borderRadius: BorderRadius.circular(12),
+              border: Border.all(
+                  color: colorScheme.outlineVariant.withOpacity(0.5)),
+              boxShadow: [
+                BoxShadow(
+                  color: colorScheme.shadow.withOpacity(0.05),
+                  blurRadius: 10,
+                  offset: const Offset(0, 4),
+                ),
+              ],
+            ),
+            child: TextField(
+              controller: _searchController,
+              style: const TextStyle(fontSize: 14, fontWeight: FontWeight.w500),
+              decoration: InputDecoration(
+                hintText: 'Search material...',
+                hintStyle: TextStyle(
+                    color: colorScheme.onSurfaceVariant.withOpacity(0.6)),
+                prefixIcon:
+                    Icon(Icons.search, color: colorScheme.primary, size: 20),
+                suffixIcon: _searchQuery.isNotEmpty
+                    ? IconButton(
+                        icon: const Icon(Icons.clear, size: 18),
+                        onPressed: () => _searchController.clear(),
+                      )
+                    : null,
+                border: InputBorder.none,
+                contentPadding: const EdgeInsets.symmetric(vertical: 14),
               ),
             ),
-            const SizedBox(width: 12),
-            Expanded(
-              child: _buildToggleCard(
-                lang.equipmentTab,
-                Icons.precision_manufacturing_rounded,
-                _equipmentOn,
-                false,
-                (value) => _handleToggleChange(false, value),
-              ),
-            ),
-          ],
+          ),
+        ),
+        const SizedBox(width: 8),
+        _buildActionButton(
+          icon: Icons.tune,
+          onPressed: _showFilterSortBottomSheet,
+          tooltip: 'Filter & Sort',
+          isActive: hasActiveFilters,
         ),
       ],
     );
   }
 
-  Widget _buildToggleCard(
-    String title,
-    IconData ico,
-    bool value,
-    bool isLoading,
-    Function(bool) onChanged,
-  ) {
-    final cs = Theme.of(context).colorScheme;
-    return GestureDetector(
-      onTap: isLoading ? null : () => onChanged(!value),
-      child: AnimatedContainer(
-        duration: const Duration(milliseconds: 200),
-        padding: const EdgeInsets.symmetric(vertical: 15, horizontal: 5),
-        decoration: BoxDecoration(
-          color: value ? cs.primaryContainer : cs.surface,
-          borderRadius: BorderRadius.circular(14),
-          border: Border.all(
-            color: value ? cs.primary : cs.outlineVariant,
-            width: value ? 2 : 1.5,
-          ),
-          boxShadow: value
-              ? [
-                  BoxShadow(
-                    color: cs.primary.withOpacity(0.3),
-                    blurRadius: 12,
-                    offset: const Offset(0, 4),
-                  ),
-                ]
-              : null,
-        ),
-        child: Column(
-          children: [
-            if (isLoading) const ShimmerCircle(size: 28),
-            Text(
-              title,
-              textAlign: TextAlign.center,
-              style: TextStyle(
-                fontSize: 13,
-                fontWeight: FontWeight.w700,
-                color: value ? cs.onPrimaryContainer : cs.primary,
-              ),
+  Widget _buildActionButton({
+    required IconData icon,
+    required VoidCallback onPressed,
+    required String tooltip,
+    bool isActive = false,
+  }) {
+    final colorScheme = Theme.of(context).colorScheme;
+    return Tooltip(
+      message: tooltip,
+      child: InkWell(
+        onTap: onPressed,
+        borderRadius: BorderRadius.circular(12),
+        child: Container(
+          width: 48,
+          height: 48,
+          decoration: BoxDecoration(
+            color: isActive
+                ? colorScheme.primary
+                : colorScheme.surfaceContainerLow,
+            borderRadius: BorderRadius.circular(12),
+            border: Border.all(
+              color: isActive
+                  ? colorScheme.primary
+                  : colorScheme.outlineVariant.withOpacity(0.5),
             ),
-          ],
+          ),
+          child: Icon(
+            icon,
+            color: isActive ? colorScheme.onPrimary : colorScheme.primary,
+            size: 22,
+          ),
         ),
       ),
     );
+  }
+
+  void _showFilterSortBottomSheet() {
+    showModalBottomSheet(
+      context: context,
+      isScrollControlled: true,
+      backgroundColor: Colors.transparent,
+      builder: (context) => StatefulBuilder(
+        builder: (context, setSheetState) {
+          final colorScheme = Theme.of(context).colorScheme;
+          return Container(
+            decoration: BoxDecoration(
+              color: colorScheme.surface,
+              borderRadius:
+                  const BorderRadius.vertical(top: Radius.circular(24)),
+            ),
+            padding: const EdgeInsets.fromLTRB(20, 12, 20, 32),
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Center(
+                  child: Container(
+                    width: 40,
+                    height: 4,
+                    decoration: BoxDecoration(
+                      color: colorScheme.outlineVariant,
+                      borderRadius: BorderRadius.circular(2),
+                    ),
+                  ),
+                ),
+                const SizedBox(height: 20),
+                Row(
+                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                  children: [
+                    Text(
+                      'Filter & Sort',
+                      style: TextStyle(
+                        fontSize: 20,
+                        fontWeight: FontWeight.w700,
+                        color: colorScheme.onSurface,
+                      ),
+                    ),
+                    TextButton(
+                      onPressed: () {
+                        setSheetState(() {
+                          _currentSort = MechModuleSortOption.displayOrderAsc;
+                          _filterTypes = {};
+                          _filterStatuses = {};
+                        });
+                        setState(() {});
+                      },
+                      child: const Text('Reset All'),
+                    ),
+                  ],
+                ),
+                const Divider(height: 32),
+                _buildFilterLabel('Sort By'),
+                Wrap(
+                  spacing: 8,
+                  children: [
+                    _buildFilterChip(
+                      label: 'Name (A-Z)',
+                      selected: _currentSort == MechModuleSortOption.nameAsc,
+                      onSelected: (val) {
+                        setSheetState(
+                            () => _currentSort = MechModuleSortOption.nameAsc);
+                        setState(() {});
+                      },
+                    ),
+                    _buildFilterChip(
+                      label: 'Name (Z-A)',
+                      selected: _currentSort == MechModuleSortOption.nameDesc,
+                      onSelected: (val) {
+                        setSheetState(
+                            () => _currentSort = MechModuleSortOption.nameDesc);
+                        setState(() {});
+                      },
+                    ),
+                    _buildFilterChip(
+                      label: 'Display Order',
+                      selected:
+                          _currentSort == MechModuleSortOption.displayOrderAsc,
+                      onSelected: (val) {
+                        setSheetState(() => _currentSort =
+                            MechModuleSortOption.displayOrderAsc);
+                        setState(() {});
+                      },
+                    ),
+                  ],
+                ),
+                const SizedBox(height: 24),
+                _buildFilterLabel('Material Type'),
+                Wrap(
+                  spacing: 8,
+                  children: [
+                    _buildFilterChip(
+                      label: 'Piping',
+                      selected: _filterTypes.contains('Piping'),
+                      onSelected: (val) {
+                        setSheetState(() {
+                          if (val) {
+                            _filterTypes.add('Piping');
+                          } else {
+                            _filterTypes.remove('Piping');
+                          }
+                        });
+                        setState(() {});
+                      },
+                    ),
+                    _buildFilterChip(
+                      label: 'Equipment',
+                      selected: _filterTypes.contains('Equipment'),
+                      onSelected: (val) {
+                        setSheetState(() {
+                          if (val) {
+                            _filterTypes.add('Equipment');
+                          } else {
+                            _filterTypes.remove('Equipment');
+                          }
+                        });
+                        setState(() {});
+                      },
+                    ),
+                  ],
+                ),
+                const SizedBox(height: 24),
+                _buildFilterLabel('Status'),
+                Wrap(
+                  spacing: 8,
+                  children: [
+                    _buildFilterChip(
+                      label: 'Has Values',
+                      selected: _filterStatuses.contains('Has Values'),
+                      onSelected: (val) {
+                        setSheetState(() {
+                          if (val) {
+                            _filterStatuses.add('Has Values');
+                          } else {
+                            _filterStatuses.remove('Has Values');
+                          }
+                        });
+                        setState(() {});
+                      },
+                    ),
+                    _buildFilterChip(
+                      label: 'Empty',
+                      selected: _filterStatuses.contains('Empty'),
+                      onSelected: (val) {
+                        setSheetState(() {
+                          if (val) {
+                            _filterStatuses.add('Empty');
+                          } else {
+                            _filterStatuses.remove('Empty');
+                          }
+                        });
+                        setState(() {});
+                      },
+                    ),
+                  ],
+                ),
+                const SizedBox(height: 32),
+                SizedBox(
+                  width: double.infinity,
+                  child: ElevatedButton(
+                    onPressed: () => Navigator.pop(context),
+                    style: ElevatedButton.styleFrom(
+                      backgroundColor: colorScheme.primary,
+                      foregroundColor: colorScheme.onPrimary,
+                      padding: const EdgeInsets.symmetric(vertical: 16),
+                      shape: RoundedRectangleBorder(
+                        borderRadius: BorderRadius.circular(12),
+                      ),
+                    ),
+                    child: const Text('Apply Filters',
+                        style: TextStyle(
+                            fontWeight: FontWeight.w700, fontSize: 16)),
+                  ),
+                ),
+              ],
+            ),
+          );
+        },
+      ),
+    );
+  }
+
+  Widget _buildFilterLabel(String label) {
+    return Padding(
+      padding: const EdgeInsets.only(bottom: 12),
+      child: Text(
+        label,
+        style: const TextStyle(
+            fontSize: 14, fontWeight: FontWeight.w600, color: Colors.grey),
+      ),
+    );
+  }
+
+  Widget _buildFilterChip({
+    required String label,
+    required bool selected,
+    required ValueChanged<bool> onSelected,
+  }) {
+    final colorScheme = Theme.of(context).colorScheme;
+    return FilterChip(
+      label: Text(label),
+      selected: selected,
+      onSelected: onSelected,
+      backgroundColor: colorScheme.surface,
+      selectedColor: colorScheme.primaryContainer,
+      checkmarkColor: colorScheme.primary,
+      labelStyle: TextStyle(
+        fontSize: 13,
+        fontWeight: selected ? FontWeight.w600 : FontWeight.w500,
+        color: selected ? colorScheme.primary : colorScheme.onSurface,
+      ),
+      shape: RoundedRectangleBorder(
+        borderRadius: BorderRadius.circular(8),
+        side: BorderSide(
+          color: selected ? colorScheme.primary : colorScheme.outlineVariant,
+          width: selected ? 1.5 : 1,
+        ),
+      ),
+    );
+  }
+
+
+  bool _hasMeaningfulMaterialValues(List<DynamicField> fields) {
+    return fields.any((f) =>
+        f.value != null &&
+        f.value.toString().trim().isNotEmpty &&
+        f.value.toString() != '0' &&
+        !['floor', 'moc', 'size', 'qty'].contains(f.key.toLowerCase()));
   }
 
   List<Widget> _buildPipingMaterials(List<PipingItem> materials) {

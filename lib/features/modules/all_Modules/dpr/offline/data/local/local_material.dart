@@ -105,6 +105,7 @@ extension LocalMaterialMapper on LocalMaterial {
           image: images.isNotEmpty ? images : m.image,  // ✅ Preserve images
           materialCode: materialCode ?? m.materialCode,
           cardFormState: savedCardFormState,
+          displayOrder: displayOrder,
         );
 
         return updated;
@@ -147,6 +148,7 @@ extension LocalMaterialMapper on LocalMaterial {
       o2: 0,
       o1: 0,
       remarks: remarks,
+      displayOrder: displayOrder,
     );
   }
 
@@ -163,6 +165,7 @@ extension LocalMaterialMapper on LocalMaterial {
           image: images.isNotEmpty ? images : m.image,  // ✅ Preserve images
           materialCode: materialCode ?? m.materialCode,
           cardFormState: savedCardFormState,
+          displayOrder: displayOrder,
         );
 
         return updated;
@@ -203,6 +206,7 @@ extension LocalMaterialMapper on LocalMaterial {
       o2: 0,
       o1: 0,
       remarks: remarks,
+      displayOrder: displayOrder,
     );
   }
 }

@@ -17,6 +17,7 @@ abstract class BaseMaterial {
   final String? materialCode;
   final FieldValues? fieldValues;
   final Map<String, String>? customLabels;
+  final int displayOrder;
   final num qty;
   final double length;
   final double circumference;
@@ -49,6 +50,7 @@ abstract class BaseMaterial {
     required this.image,
     required this.uom,
     required this.remarks,
+    this.displayOrder = 0,
     this.cardFormState,
     this.materialCode,
     this.fieldValues,
@@ -92,6 +94,7 @@ abstract class BaseMaterial {
     String? materialCode,
     FieldValues? fieldValues,
     Map<String, String>? customLabels,
+    int? displayOrder,
     int? qty,
     double? length,
     double? circumference,

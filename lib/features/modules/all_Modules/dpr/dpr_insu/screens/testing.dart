@@ -2,6 +2,9 @@ import 'dart:convert';
 import 'dart:math';
 import 'dart:io';
 import '../../../../screen/module_preferences.dart';
+import '../model/base_material.dart';
+import '../model/piping_insu.dart';
+import '../model/eqip_insu.dart';
 
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
@@ -48,7 +51,19 @@ import '../service/material_service.dart';
 import '../widgets/equipment_card.dart';
 import '../widgets/piping_card.dart';
 import '../../../../../../core/utlis/widgets/shimmer.dart';
+import 'all_insulation_material.dart';
 import '../model/field_config.dart' as fc;
+
+enum InsuModuleSortOption {
+  nameAsc,
+  nameDesc,
+  designationAsc,
+  designationDesc,
+  typeAsc,
+  typeDesc,
+  displayOrderAsc,
+  displayOrderDesc
+}
 
 class AddInsulationDescriptionScreen extends ConsumerStatefulWidget {
   final InsulationDprModel? work;
@@ -67,6 +82,7 @@ class AddInsulationDescriptionScreen extends ConsumerStatefulWidget {
 
 class _AddInsulationDescriptionScreenState
     extends ConsumerState<AddInsulationDescriptionScreen> {
+  final ScrollController _pageScrollController = ScrollController();
   late final TextEditingController _dprNameController;
   late final TextEditingController _mocController;
   late final TextEditingController _sizeController;
@@ -79,6 +95,16 @@ class _AddInsulationDescriptionScreenState
   late final TextEditingController _claddingNameController;
   late final TextEditingController _claddingThicknessController;
   late TextEditingController _claddingController;
+  final TextEditingController _searchController = TextEditingController();
+  String _searchQuery = '';
+  bool get hasActiveFilters =>
+      _searchQuery.isNotEmpty ||
+      _filterTypes.isNotEmpty ||
+      _filterStatuses.isNotEmpty ||
+      _currentSort != InsuModuleSortOption.displayOrderAsc;
+  Set<String> _filterTypes = {};
+  Set<String> _filterStatuses = {};
+  InsuModuleSortOption _currentSort = InsuModuleSortOption.displayOrderAsc;
 
   late String siteId;
   late String teamId;
@@ -90,12 +116,8 @@ class _AddInsulationDescriptionScreenState
   String? _insulationId;
   String? _selectedDprId;
 
-  bool _pipeInsulationOn = true;
-  bool _equipmentInsulationOn = true;
   bool _editMode = true;
   bool _globalEditMode = false;
-  bool _showPipingMaterials = true;
-  bool _showEquipmentMaterials = true;
 
   DateTime _selectedDate = DateTime.now();
 
@@ -185,10 +207,6 @@ class _AddInsulationDescriptionScreenState
       _floorController.text = work.location;
       ref.read(dprSizeProvider.notifier).state = work.size.toString();
       _sizeController.text = work.size.toString();
-      _pipeInsulationOn = work.pipingMaterials.isNotEmpty;
-      _equipmentInsulationOn = work.equipmentMaterials.isNotEmpty;
-      _showPipingMaterials = _pipeInsulationOn;
-      _showEquipmentMaterials = _equipmentInsulationOn;
       _loadLayersFromModel(work);
     });
 
@@ -864,6 +882,12 @@ class _AddInsulationDescriptionScreenState
     _claddingNameController = TextEditingController();
     _claddingThicknessController = TextEditingController();
     _claddingController = TextEditingController();
+    // _searchController is already initialized as final
+    _searchController.addListener(() {
+      setState(() {
+        _searchQuery = _searchController.text.trim().toLowerCase();
+      });
+    });
   }
   // void _initializeFromWork(InsulationDprModel work) {
   //   ref.read(insulationPipingMaterialsProvider.notifier).clear();
@@ -1434,46 +1458,6 @@ class _AddInsulationDescriptionScreenState
       customDraftName: draftName.trim(),
       showSuccessToast: true,
     );
-  }
-
-  void _handleToggleChange(bool isPiping, bool newValue) {
-    if (_isDisposed) return;
-
-    setState(() {
-      if (isPiping) {
-        _pipeInsulationOn = newValue;
-        if (!newValue) {
-          _showPipingMaterials = false;
-        } else {
-          final materials = ref.read(insulationPipingMaterialsProvider);
-          if (materials.isNotEmpty) {
-            _showPipingMaterials = true;
-          }
-        }
-      } else {
-        _equipmentInsulationOn = newValue;
-        if (!newValue) {
-          _showEquipmentMaterials = false;
-        } else {
-          final materials = ref.read(insulationEquipmentMaterialsProvider);
-          if (materials.isNotEmpty) {
-            _showEquipmentMaterials = true;
-          }
-        }
-      }
-    });
-  }
-
-  void _toggleMaterialVisibility(bool isPiping) {
-    if (isPiping) {
-      setState(() {
-        _showPipingMaterials = !_showPipingMaterials;
-      });
-    } else {
-      setState(() {
-        _showEquipmentMaterials = !_showEquipmentMaterials;
-      });
-    }
   }
 
   // _________INSULATION MATERIAL FUNCTIONS_______ //
@@ -2313,16 +2297,78 @@ class _AddInsulationDescriptionScreenState
     // }
     final pipingMaterials = ref.watch(insulationPipingMaterialsProvider);
     final equipmentMaterials = ref.watch(insulationEquipmentMaterialsProvider);
+
+    // Initial Filter by Search Query
+    List<PipingMaterial> filteredPiping = pipingMaterials.where((m) {
+      if (_searchQuery.isEmpty) return true;
+      return m.name.toLowerCase().contains(_searchQuery.toLowerCase());
+    }).toList();
+
+    List<EquipmentMaterial> filteredEquipment = equipmentMaterials.where((m) {
+      if (_searchQuery.isEmpty) return true;
+      return m.name.toLowerCase().contains(_searchQuery.toLowerCase());
+    }).toList();
+
+    // Filter by Designation (Piping/Equipment)
+    List<PipingMaterial> pipingToDisplay = filteredPiping;
+    List<EquipmentMaterial> equipmentToDisplay = filteredEquipment;
+
+    if (_filterTypes.isNotEmpty) {
+      if (!_filterTypes.contains('Piping')) pipingToDisplay = [];
+      if (!_filterTypes.contains('Equipment')) equipmentToDisplay = [];
+    }
+
+    // Filter by Status (Has Values / Empty)
+    if (_filterStatuses.isNotEmpty) {
+      pipingToDisplay = pipingToDisplay.where((m) {
+        final hasValues = _hasMeaningfulCardValues(m.cardFormState);
+        if (_filterStatuses.contains('Has Values') && hasValues) return true;
+        if (_filterStatuses.contains('Empty') && !hasValues) return true;
+        return false;
+      }).toList();
+
+      equipmentToDisplay = equipmentToDisplay.where((m) {
+        final hasValues = _hasMeaningfulCardValues(m.cardFormState);
+        if (_filterStatuses.contains('Has Values') && hasValues) return true;
+        if (_filterStatuses.contains('Empty') && !hasValues) return true;
+        return false;
+      }).toList();
+    }
+
+    // Sort function
+    void applySort(List<BaseMaterial> list) {
+      list.sort((a, b) {
+        switch (_currentSort) {
+          case InsuModuleSortOption.nameAsc:
+            return a.name.toLowerCase().compareTo(b.name.toLowerCase());
+          case InsuModuleSortOption.nameDesc:
+            return b.name.toLowerCase().compareTo(a.name.toLowerCase());
+          case InsuModuleSortOption.typeAsc:
+            final typeA = a is PipingMaterial ? 'Piping' : 'Equipment';
+            final typeB = b is PipingMaterial ? 'Piping' : 'Equipment';
+            return typeA.compareTo(typeB);
+          case InsuModuleSortOption.typeDesc:
+            final typeA = a is PipingMaterial ? 'Piping' : 'Equipment';
+            final typeB = b is PipingMaterial ? 'Piping' : 'Equipment';
+            return typeB.compareTo(typeA);
+          case InsuModuleSortOption.displayOrderAsc:
+            return a.displayOrder.compareTo(b.displayOrder);
+          case InsuModuleSortOption.displayOrderDesc:
+            return b.displayOrder.compareTo(a.displayOrder);
+          default:
+            return 0;
+        }
+      });
+    }
+
+    applySort(pipingToDisplay);
+    applySort(equipmentToDisplay);
+
     final insulationState = ref.watch(insulationStateProvider);
     final insulationNotifier = ref.read(insulationStateProvider.notifier);
 
-    final hasPipingMaterials = pipingMaterials.isNotEmpty;
-    final hasEquipmentMaterials = equipmentMaterials.isNotEmpty;
-    final shouldShowPiping =
-        _pipeInsulationOn && _showPipingMaterials && hasPipingMaterials;
-    final shouldShowEquipment = _equipmentInsulationOn &&
-        _showEquipmentMaterials &&
-        hasEquipmentMaterials;
+    final hasPipingMaterials = pipingToDisplay.isNotEmpty;
+    final hasEquipmentMaterials = equipmentToDisplay.isNotEmpty;
 
     final shouldShowDropdown =
         _globalEditMode && _dprListForSelectedDate.isNotEmpty;
@@ -2384,6 +2430,10 @@ class _AddInsulationDescriptionScreenState
                   ),
                 Expanded(
                   child: SingleChildScrollView(
+                    key: const PageStorageKey<String>(
+                      'insulation_dpr_scroll',
+                    ),
+                    controller: _pageScrollController,
                     padding: const EdgeInsets.all(6),
                     physics: const BouncingScrollPhysics(),
                     child: Column(
@@ -2411,40 +2461,32 @@ class _AddInsulationDescriptionScreenState
                         _buildLayerTypeSection(),
                         const SizedBox(height: 16),
 
-                        _buildToggleSection(),
+                        _buildSearchAndFilterRow(),
                         const SizedBox(height: 16),
 
                         Column(
                           children: [
-                            if (_pipeInsulationOn && hasPipingMaterials)
-                              _buildMaterialToggleCard(
-                                'Pipe Insulation Materials',
-                                pipingMaterials.length,
-                                _showPipingMaterials,
-                                () => _toggleMaterialVisibility(true),
-                              ),
+                            if (pipingToDisplay.isNotEmpty) ...[
+                              _buildSectionHeader('Piping', Icons.plumbing),
+                              ..._buildPipingMaterials(pipingToDisplay),
+                              const SizedBox(height: 16),
+                            ],
 
-                            if (shouldShowPiping)
-                              ..._buildPipingMaterials(pipingMaterials),
+                            if (equipmentToDisplay.isNotEmpty) ...[
+                              _buildSectionHeader('Equipment',
+                                  Icons.precision_manufacturing),
+                              ..._buildEquipmentMaterials(equipmentToDisplay),
+                            ],
 
-                            if (_equipmentInsulationOn && hasEquipmentMaterials)
-                              _buildMaterialToggleCard(
-                                'Equipment Insulation Materials',
-                                equipmentMaterials.length,
-                                _showEquipmentMaterials,
-                                () => _toggleMaterialVisibility(false),
-                              ),
-
-                            if (shouldShowEquipment)
-                              ..._buildEquipmentMaterials(equipmentMaterials),
-
-                            if (_pipeInsulationOn && !hasPipingMaterials ||
-                                (_equipmentInsulationOn &&
-                                    !hasEquipmentMaterials))
-                              _buildSetupState(siteId)
-
-                            // if (!_pipeInsulationOn && !_equipmentInsulationOn && _initialDataLoaded)
-                            //   _buildEmptyState('Materials will appear here once loaded', Icons.downloading),
+                            if (pipingToDisplay.isEmpty &&
+                                equipmentToDisplay.isEmpty)
+                              if (pipingMaterials.isEmpty &&
+                                  equipmentMaterials.isEmpty)
+                                _buildSetupState(siteid)
+                              else
+                                _buildEmptyState(
+                                    'No materials match your filters',
+                                    Icons.search_off),
                           ],
                         ),
 
@@ -2589,149 +2631,384 @@ class _AddInsulationDescriptionScreenState
     );
   }
 
-  Widget _buildEmptyMaterialsCard(String message) {
-    return Container(
-      margin: const EdgeInsets.only(bottom: 12),
-      padding: const EdgeInsets.all(20),
-      decoration: BoxDecoration(
-        color: Colors.white,
-        borderRadius: BorderRadius.circular(12),
-        border: Border.all(color: Colors.grey[200]!),
-      ),
-      child: Column(
-        children: [
-          Icon(
-            Icons.insights_outlined,
-            size: 40,
-            color: Colors.grey[400],
-          ),
-          const SizedBox(height: 12),
-          Text(
-            message,
-            style: TextStyle(
-              color: Colors.grey[600],
-              fontSize: 14,
-              fontWeight: FontWeight.w500,
+  Widget _buildSearchAndFilterRow() {
+    final colorScheme = Theme.of(context).colorScheme;
+
+    return Row(
+      children: [
+        Expanded(
+          child: Container(
+            height: 48,
+            decoration: BoxDecoration(
+              color: colorScheme.surfaceContainerLow,
+              borderRadius: BorderRadius.circular(12),
+              border: Border.all(
+                  color: colorScheme.outlineVariant.withOpacity(0.5)),
+              boxShadow: [
+                BoxShadow(
+                  color: colorScheme.shadow.withOpacity(0.05),
+                  blurRadius: 10,
+                  offset: const Offset(0, 4),
+                ),
+              ],
+            ),
+            child: TextField(
+              controller: _searchController,
+              style: const TextStyle(fontSize: 14, fontWeight: FontWeight.w500),
+              decoration: InputDecoration(
+                hintText: 'Search material...',
+                hintStyle: TextStyle(
+                    color: colorScheme.onSurfaceVariant.withOpacity(0.6)),
+                prefixIcon:
+                    Icon(Icons.search, color: colorScheme.primary, size: 20),
+                suffixIcon: _searchQuery.isNotEmpty
+                    ? IconButton(
+                        icon: const Icon(Icons.clear, size: 18),
+                        onPressed: () => _searchController.clear(),
+                      )
+                    : null,
+                border: InputBorder.none,
+                contentPadding: const EdgeInsets.symmetric(vertical: 14),
+              ),
             ),
           ),
-        ],
+        ),
+        const SizedBox(width: 12),
+        _buildActionButton(
+          icon: Icons.add,
+          onPressed: () {
+            _showAddMaterialDialog();
+          },
+          tooltip: 'Add Material',
+        ),
+        const SizedBox(width: 8),
+        _buildActionButton(
+          icon: Icons.tune,
+          onPressed: _showFilterSortBottomSheet,
+          tooltip: 'Filter & Sort',
+          isActive: hasActiveFilters,
+        ),
+      ],
+    );
+  }
+
+  Widget _buildActionButton({
+    required IconData icon,
+    required VoidCallback onPressed,
+    required String tooltip,
+    bool isActive = false,
+  }) {
+    final colorScheme = Theme.of(context).colorScheme;
+    return Tooltip(
+      message: tooltip,
+      child: InkWell(
+        onTap: onPressed,
+        borderRadius: BorderRadius.circular(12),
+        child: Container(
+          width: 48,
+          height: 48,
+          decoration: BoxDecoration(
+            color: isActive
+                ? colorScheme.primary
+                : colorScheme.surfaceContainerLow,
+            borderRadius: BorderRadius.circular(12),
+            border: Border.all(
+              color: isActive
+                  ? colorScheme.primary
+                  : colorScheme.outlineVariant.withOpacity(0.5),
+            ),
+          ),
+          child: Icon(
+            icon,
+            color: isActive ? colorScheme.onPrimary : colorScheme.primary,
+            size: 22,
+          ),
+        ),
       ),
     );
   }
 
-  Widget _buildMaterialToggleCard(
-    String title,
-    int count,
-    bool isExpanded,
-    VoidCallback onToggle,
-  ) {
-    final colorScheme = Theme.of(context).colorScheme;
-    return GestureDetector(
-      onTap: onToggle,
-      child: Container(
-        margin: const EdgeInsets.only(bottom: 12),
-        padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
-        decoration: BoxDecoration(
-          color: colorScheme.surfaceContainerLow,
-          borderRadius: BorderRadius.circular(12),
-          border:
-              Border.all(color: colorScheme.outlineVariant.withOpacity(0.6)),
-          boxShadow: [
-            BoxShadow(
-              color: colorScheme.shadow.withOpacity(0.08),
-              blurRadius: 6,
-              offset: const Offset(0, 2),
+  void _showAddMaterialDialog() async {
+    final result = await Navigator.of(context).push(
+      MaterialPageRoute(
+        builder: (_) => const AllInsulationMaterialsScreen(),
+      ),
+    );
+
+    if (result == true) {
+      // Refresh logic if needed
+      if (mounted) {
+        setState(() {});
+      }
+    }
+  }
+
+  void _showFilterSortBottomSheet() {
+    showModalBottomSheet(
+      context: context,
+      isScrollControlled: true,
+      backgroundColor: Colors.transparent,
+      builder: (context) => StatefulBuilder(
+        builder: (context, setSheetState) {
+          final colorScheme = Theme.of(context).colorScheme;
+          return Container(
+            decoration: BoxDecoration(
+              color: colorScheme.surface,
+              borderRadius:
+                  const BorderRadius.vertical(top: Radius.circular(24)),
             ),
-          ],
-        ),
-        child: Row(
-          mainAxisAlignment: MainAxisAlignment.spaceBetween,
-          children: [
-            Row(
+            padding: const EdgeInsets.fromLTRB(20, 12, 20, 32),
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                Icon(
-                  isExpanded ? Icons.expand_less : Icons.expand_more,
-                  color: colorScheme.primary,
-                  size: 20,
-                ),
-                const SizedBox(width: 8),
-                Text(
-                  title,
-                  style: TextStyle(
-                    fontSize: 14,
-                    fontWeight: FontWeight.w600,
-                    color: colorScheme.primary,
-                  ),
-                ),
-                const SizedBox(width: 8),
-                Container(
-                  padding:
-                      const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
-                  decoration: BoxDecoration(
-                    color: colorScheme.primaryContainer,
-                    borderRadius: BorderRadius.circular(12),
-                  ),
-                  child: Text(
-                    '$count',
-                    style: TextStyle(
-                      fontSize: 12,
-                      fontWeight: FontWeight.w600,
-                      color: colorScheme.onPrimaryContainer,
+                Center(
+                  child: Container(
+                    width: 40,
+                    height: 4,
+                    decoration: BoxDecoration(
+                      color: colorScheme.outlineVariant,
+                      borderRadius: BorderRadius.circular(2),
                     ),
+                  ),
+                ),
+                const SizedBox(height: 20),
+                Row(
+                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                  children: [
+                    Text(
+                      'Filter & Sort',
+                      style: TextStyle(
+                        fontSize: 20,
+                        fontWeight: FontWeight.w700,
+                        color: colorScheme.onSurface,
+                      ),
+                    ),
+                    TextButton(
+                      onPressed: () {
+                        setSheetState(() {
+                          _currentSort = InsuModuleSortOption.displayOrderAsc;
+                          _filterTypes = {};
+                          _filterStatuses = {};
+                        });
+                        setState(() {});
+                      },
+                      child: const Text('Reset All'),
+                    ),
+                  ],
+                ),
+                const Divider(height: 32),
+                _buildFilterLabel('Sort By'),
+                Wrap(
+                  spacing: 8,
+                  children: [
+                    _buildFilterChip(
+                      label: 'Name (A-Z)',
+                      selected: _currentSort == InsuModuleSortOption.nameAsc,
+                      onSelected: (val) {
+                        setSheetState(
+                            () => _currentSort = InsuModuleSortOption.nameAsc);
+                        setState(() {});
+                      },
+                    ),
+                    _buildFilterChip(
+                      label: 'Name (Z-A)',
+                      selected: _currentSort == InsuModuleSortOption.nameDesc,
+                      onSelected: (val) {
+                        setSheetState(
+                            () => _currentSort = InsuModuleSortOption.nameDesc);
+                        setState(() {});
+                      },
+                    ),
+                    _buildFilterChip(
+                      label: 'Type',
+                      selected: _currentSort == InsuModuleSortOption.typeAsc,
+                      onSelected: (val) {
+                        setSheetState(
+                            () => _currentSort = InsuModuleSortOption.typeAsc);
+                        setState(() {});
+                      },
+                    ),
+                    _buildFilterChip(
+                      label: 'Display Order',
+                      selected:
+                          _currentSort == InsuModuleSortOption.displayOrderAsc,
+                      onSelected: (val) {
+                        setSheetState(() => _currentSort =
+                            InsuModuleSortOption.displayOrderAsc);
+                        setState(() {});
+                      },
+                    ),
+                  ],
+                ),
+                const SizedBox(height: 24),
+                _buildFilterLabel('Material Type'),
+                Wrap(
+                  spacing: 8,
+                  children: [
+                    _buildFilterChip(
+                      label: 'Piping',
+                      selected: _filterTypes.contains('Piping'),
+                      onSelected: (val) {
+                        setSheetState(() {
+                          if (val) {
+                            _filterTypes.add('Piping');
+                          } else {
+                            _filterTypes.remove('Piping');
+                          }
+                        });
+                        setState(() {});
+                      },
+                    ),
+                    _buildFilterChip(
+                      label: 'Equipment',
+                      selected: _filterTypes.contains('Equipment'),
+                      onSelected: (val) {
+                        setSheetState(() {
+                          if (val) {
+                            _filterTypes.add('Equipment');
+                          } else {
+                            _filterTypes.remove('Equipment');
+                          }
+                        });
+                        setState(() {});
+                      },
+                    ),
+                  ],
+                ),
+                const SizedBox(height: 24),
+                _buildFilterLabel('Status'),
+                Wrap(
+                  spacing: 8,
+                  children: [
+                    _buildFilterChip(
+                      label: 'Has Values',
+                      selected: _filterStatuses.contains('Has Values'),
+                      onSelected: (val) {
+                        setSheetState(() {
+                          if (val) {
+                            _filterStatuses.add('Has Values');
+                          } else {
+                            _filterStatuses.remove('Has Values');
+                          }
+                        });
+                        setState(() {});
+                      },
+                    ),
+                    _buildFilterChip(
+                      label: 'Empty',
+                      selected: _filterStatuses.contains('Empty'),
+                      onSelected: (val) {
+                        setSheetState(() {
+                          if (val) {
+                            _filterStatuses.add('Empty');
+                          } else {
+                            _filterStatuses.remove('Empty');
+                          }
+                        });
+                        setState(() {});
+                      },
+                    ),
+                  ],
+                ),
+                const SizedBox(height: 32),
+                SizedBox(
+                  width: double.infinity,
+                  child: ElevatedButton(
+                    onPressed: () => Navigator.pop(context),
+                    style: ElevatedButton.styleFrom(
+                      backgroundColor: colorScheme.primary,
+                      foregroundColor: colorScheme.onPrimary,
+                      padding: const EdgeInsets.symmetric(vertical: 16),
+                      shape: RoundedRectangleBorder(
+                        borderRadius: BorderRadius.circular(12),
+                      ),
+                    ),
+                    child: const Text('Apply Filters',
+                        style: TextStyle(
+                            fontWeight: FontWeight.w700, fontSize: 16)),
                   ),
                 ),
               ],
             ),
-            _buildAddInsulationMaterialButton(),
-            Text(
-              isExpanded ? 'Hide' : 'Show',
-              style: TextStyle(
-                fontSize: 12,
-                color: colorScheme.onSurfaceVariant,
-              ),
-            ),
-          ],
+          );
+        },
+      ),
+    );
+  }
+
+  Widget _buildSectionHeader(String title, IconData icon) {
+    return Padding(
+      padding: const EdgeInsets.fromLTRB(8, 16, 8, 8),
+      child: Text(
+        title.toUpperCase(),
+        style: const TextStyle(
+          fontSize: 12,
+          fontWeight: FontWeight.w700,
+          color: Colors.grey,
+          letterSpacing: 1.1,
         ),
       ),
     );
   }
 
-  Widget _buildAddInsulationMaterialButton() {
+  Widget _buildFilterLabel(String label) {
+    return Padding(
+      padding: const EdgeInsets.only(bottom: 12),
+      child: Text(
+        label,
+        style: const TextStyle(
+            fontSize: 14, fontWeight: FontWeight.w600, color: Colors.grey),
+      ),
+    );
+  }
+
+  Widget _buildFilterChip({
+    required String label,
+    required bool selected,
+    required ValueChanged<bool> onSelected,
+  }) {
     final colorScheme = Theme.of(context).colorScheme;
-    return InkWell(
-      borderRadius: BorderRadius.circular(20),
-      onTap: () async {
-        // if (_insulationId == null) {
-        //   _showSnackBar('DPR not created yet', isError: true);
-        //   return;
-        // }
-        //
-        // final result = await Navigator.of(context).push(
-        //   MaterialPageRoute(
-        //     builder: (_) => AddInsulationMaterialScreen(
-        //       isDpr: true,
-        //       dprId: _insulationId!,
-        //       siteId: siteId,
-        //       teamId: teamId,
-        //     ),
-        //   ),
-        // );
-        //
-        // if (result == true) {
-        //   await _loadInsulationDprMaterials();
-        // }
-      },
-      child: Container(
-        padding: const EdgeInsets.all(6),
-        decoration: BoxDecoration(
-          color: colorScheme.primary,
-          shape: BoxShape.circle,
+    return FilterChip(
+      label: Text(label),
+      selected: selected,
+      onSelected: onSelected,
+      backgroundColor: colorScheme.surface,
+      selectedColor: colorScheme.primaryContainer,
+      checkmarkColor: colorScheme.primary,
+      labelStyle: TextStyle(
+        fontSize: 13,
+        fontWeight: selected ? FontWeight.w600 : FontWeight.w500,
+        color: selected ? colorScheme.primary : colorScheme.onSurface,
+      ),
+      shape: RoundedRectangleBorder(
+        borderRadius: BorderRadius.circular(8),
+        side: BorderSide(
+          color: selected ? colorScheme.primary : colorScheme.outlineVariant,
+          width: selected ? 1.5 : 1,
         ),
-        child: Icon(
-          Icons.add,
-          size: 18,
-          color: colorScheme.onPrimary,
-        ),
+      ),
+    );
+  }
+
+  Widget _buildEmptyState(String message, IconData icon) {
+    final colorScheme = Theme.of(context).colorScheme;
+    return Container(
+      padding: const EdgeInsets.symmetric(vertical: 60, horizontal: 40),
+      child: Column(
+        children: [
+          Icon(icon, size: 64, color: colorScheme.outlineVariant),
+          const SizedBox(height: 16),
+          Text(
+            message,
+            textAlign: TextAlign.center,
+            style: TextStyle(
+              fontSize: 16,
+              fontWeight: FontWeight.w500,
+              color: colorScheme.onSurfaceVariant,
+            ),
+          ),
+        ],
       ),
     );
   }
@@ -3261,7 +3538,7 @@ class _AddInsulationDescriptionScreenState
     TextInputType? keyboardType,
     ValueChanged<String>? onChanged,
   }) {
-    final colorScheme = Theme.of(context).colorScheme;
+    final cs = Theme.of(context).colorScheme;
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
@@ -3272,7 +3549,7 @@ class _AddInsulationDescriptionScreenState
             style: TextStyle(
               fontSize: 12,
               fontWeight: FontWeight.w600,
-              color: colorScheme.onSurfaceVariant,
+              color: cs.onSurfaceVariant,
             ),
           ),
         ),
@@ -3283,28 +3560,20 @@ class _AddInsulationDescriptionScreenState
             keyboardType: keyboardType,
             onChanged: onChanged,
             textAlign: TextAlign.center,
-            style: const TextStyle(
-              fontSize: 14,
-              fontWeight: FontWeight.w500,
-            ),
-            cursorColor: colorScheme.primary,
+            style: const TextStyle(fontSize: 14, fontWeight: FontWeight.w500),
             decoration: InputDecoration(
               isDense: true,
               contentPadding:
                   const EdgeInsets.symmetric(vertical: 2, horizontal: 2),
               filled: true,
-              fillColor: colorScheme.surface,
+              fillColor: cs.surfaceContainerHigh,
               border: OutlineInputBorder(
                 borderRadius: BorderRadius.circular(10),
-                borderSide: BorderSide(color: colorScheme.outlineVariant),
-              ),
-              enabledBorder: OutlineInputBorder(
-                borderRadius: BorderRadius.circular(10),
-                borderSide: BorderSide(color: colorScheme.outlineVariant),
+                borderSide: BorderSide.none,
               ),
               focusedBorder: OutlineInputBorder(
                 borderRadius: BorderRadius.circular(10),
-                borderSide: BorderSide(color: colorScheme.primary, width: 2),
+                borderSide: BorderSide(color: cs.primary, width: 2),
               ),
             ),
           ),
@@ -3317,10 +3586,9 @@ class _AddInsulationDescriptionScreenState
     required String label,
     required String? value,
     required List<String> items,
-    required ValueChanged<String> onChanged,
+    required ValueChanged<String?> onChanged,
   }) {
-    final colorScheme = Theme.of(context).colorScheme;
-    final validValue = (value != null && items.contains(value)) ? value : null;
+    final cs = Theme.of(context).colorScheme;
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
@@ -3331,152 +3599,36 @@ class _AddInsulationDescriptionScreenState
             style: TextStyle(
               fontSize: 12,
               fontWeight: FontWeight.w600,
-              color: colorScheme.onSurfaceVariant,
+              color: cs.onSurfaceVariant,
             ),
           ),
         ),
         SizedBox(
           height: 34,
           child: DropdownButtonFormField<String>(
-            value: validValue, // ✅ Use validated value
+            value: value,
             isExpanded: true,
             decoration: InputDecoration(
               isDense: true,
-              filled: true,
-              fillColor: colorScheme.surface,
               contentPadding:
-                  const EdgeInsets.symmetric(horizontal: 8, vertical: 6),
+                  const EdgeInsets.symmetric(vertical: 2, horizontal: 8),
+              filled: true,
+              fillColor: cs.surfaceContainerHigh,
               border: OutlineInputBorder(
                 borderRadius: BorderRadius.circular(10),
-                borderSide: BorderSide(color: colorScheme.outlineVariant),
+                borderSide: BorderSide.none,
               ),
-              enabledBorder: OutlineInputBorder(
-                borderRadius: BorderRadius.circular(10),
-                borderSide: BorderSide(color: colorScheme.outlineVariant),
-              ),
-              focusedBorder: OutlineInputBorder(
-                borderRadius: BorderRadius.circular(10),
-                borderSide: BorderSide(color: colorScheme.primary, width: 1.5),
-              ),
-            ),
-            hint: Text(
-              'Select',
-              style:
-                  TextStyle(fontSize: 13, color: colorScheme.onSurfaceVariant),
             ),
             items: items
-                .map(
-                  (m) => DropdownMenuItem<String>(
-                    value: m,
-                    child: Text(
-                      m,
-                      style: TextStyle(
-                        fontSize: 13,
-                        fontWeight: FontWeight.w500,
-                        color: colorScheme.onSurface,
-                      ),
-                    ),
-                  ),
-                )
+                .map((e) => DropdownMenuItem<String>(
+                      value: e,
+                      child: Text(e, style: const TextStyle(fontSize: 13)),
+                    ))
                 .toList(),
-            onChanged: (v) {
-              if (v != null) onChanged(v);
-            },
+            onChanged: onChanged,
           ),
         ),
       ],
-    );
-  }
-
-  Widget _buildToggleSection() {
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        Row(
-          children: [
-            Expanded(
-              child: _buildToggleCard(
-                'Pipe Insulation',
-                Icons.insights,
-                _pipeInsulationOn,
-                false,
-                (value) => _handleToggleChange(true, value),
-              ),
-            ),
-            const SizedBox(width: 12),
-            Expanded(
-              child: _buildToggleCard(
-                'Equipment Insulation',
-                Icons.thermostat,
-                _equipmentInsulationOn,
-                false,
-                (value) => _handleToggleChange(false, value),
-              ),
-            ),
-          ],
-        ),
-      ],
-    );
-  }
-
-  Widget _buildToggleCard(
-    String title,
-    IconData ico,
-    bool value,
-    bool isLoading,
-    Function(bool) onChanged,
-  ) {
-    final colorScheme = Theme.of(context).colorScheme;
-    return GestureDetector(
-      onTap: isLoading ? null : () => onChanged(!value),
-      child: AnimatedContainer(
-        duration: const Duration(milliseconds: 200),
-        padding: const EdgeInsets.symmetric(vertical: 15, horizontal: 5),
-        decoration: BoxDecoration(
-          gradient: value
-              ? LinearGradient(
-                  colors: [colorScheme.primary, colorScheme.primary],
-                )
-              : null,
-          color: value ? null : colorScheme.surfaceContainerLow,
-          borderRadius: BorderRadius.circular(14),
-          border: Border.all(
-            color: value ? colorScheme.primary : colorScheme.outlineVariant,
-            width: value ? 2 : 1.5,
-          ),
-          boxShadow: value
-              ? [
-                  BoxShadow(
-                    color: colorScheme.primary.withOpacity(0.3),
-                    blurRadius: 12,
-                    offset: const Offset(0, 4),
-                  ),
-                ]
-              : null,
-        ),
-        child: Column(
-          children: [
-            if (isLoading)
-              SizedBox(
-                width: 28,
-                height: 28,
-                child: CircularProgressIndicator(
-                  strokeWidth: 3,
-                  color: value ? colorScheme.onPrimary : colorScheme.primary,
-                ),
-              ),
-            Text(
-              title,
-              textAlign: TextAlign.center,
-              style: TextStyle(
-                fontSize: 13,
-                fontWeight: FontWeight.w700,
-                color: value ? colorScheme.onPrimary : colorScheme.primary,
-              ),
-            ),
-          ],
-        ),
-      ),
     );
   }
 
@@ -3587,7 +3739,9 @@ class _AddInsulationDescriptionScreenState
               final prevMode = material.cardFormState?.geometryMode;
               final nextMode = updated.cardFormState?.geometryMode;
 
-              notifier.editEquipmentMaterial(material.id, updated);
+              // Preserve provider remark to avoid stale overwrite.
+              final safeUpdated = updated.copyWith(remarks: material.remarks);
+              notifier.editEquipmentMaterial(material.id, safeUpdated);
 
               if (nextMode != null &&
                   nextMode.isNotEmpty &&
@@ -3901,6 +4055,7 @@ class _AddInsulationDescriptionScreenState
             "materialCode": e.materialCode,
             "fieldValues": fieldValues,
             "image": e.image,
+            "remarks": e.remarks,
           };
         }).toList(),
       if (pipingMaterials.isNotEmpty)
@@ -4313,6 +4468,14 @@ $currentTeamId
     return false;
   }
 
+  bool _hasMeaningfulCardValues(CardFormState? state) {
+    if (state == null) return false;
+    for (final entry in state.fieldEntries.values) {
+      if (_hasMeaningfulValue(entry.value)) return true;
+    }
+    return false;
+  }
+
   /// NEW: Synchronizes all equipment cards by calling getLatestMaterial() on each.
   void _syncEquipmentBeforeSubmit() {
     final notifier = ref.read(insulationEquipmentMaterialsProvider.notifier);
@@ -4369,10 +4532,12 @@ $currentTeamId
     notifier.setMaterials(updatedList);
   }
 
+
   @override
   void dispose() {
     _isDisposed = true;
 
+    _pageScrollController.dispose();
     _dprNameController.dispose();
     _mocController.dispose();
     _sizeController.dispose();

@@ -28,22 +28,20 @@ class ExpenseEntrySelectCardGrid extends ConsumerWidget {
           context.pop();
         },
         child: Container(
-          padding:
-              const EdgeInsets.symmetric(horizontal: 16), // Add side padding
+          padding: const EdgeInsets.symmetric(horizontal: 16),
           child: GridView.count(
             physics: const NeverScrollableScrollPhysics(),
             shrinkWrap: true,
             crossAxisCount: 2,
-            mainAxisSpacing: 12, // Reduced vertical space between cards
-            crossAxisSpacing: 10, // Reduced horizontal space between cards
+            mainAxisSpacing: 12,
+            crossAxisSpacing: 10,
             childAspectRatio: 1,
             children: [
               SelectCard(
-                icon: Image.asset(
-                  "assets/images/icons/import_sheet.webp",
-                  height: 120,
-                  width: double.infinity,
-                  fit: BoxFit.cover,
+                icon: Icon(
+                  Icons.download_for_offline_rounded,
+                  size: 64,
+                  color: colorScheme.primary,
                 ),
                 label: "Download Sheet",
                 onTap: () {
@@ -67,11 +65,10 @@ class ExpenseEntrySelectCardGrid extends ConsumerWidget {
                 },
               ),
               SelectCard(
-                icon: Image.asset(
-                  "assets/images/icons/manual_entry.webp",
-                  height: 120,
-                  width: double.infinity,
-                  fit: BoxFit.cover,
+                icon: Icon(
+                  Icons.visibility_rounded,
+                  size: 64,
+                  color: colorScheme.primary,
                 ),
                 label: "View",
                 onTap: () {

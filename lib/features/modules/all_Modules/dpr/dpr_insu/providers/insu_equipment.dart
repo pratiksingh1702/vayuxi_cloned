@@ -1,7 +1,6 @@
 // providers/insulation_equipment_provider.dart
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
-
 import '../model/eqip_insu.dart';
 import '../model/material_setup.dart';
 import '../model/card_form_State.dart';
@@ -10,12 +9,13 @@ import '../model/card_form_State.dart';
 // MAIN EQUIPMENT MATERIALS PROVIDER
 // ==============================================
 
-final insulationEquipmentMaterialsProvider =
-StateNotifierProvider<InsulationEquipmentMaterialsNotifier, List<EquipmentMaterial>>(
-      (ref) => InsulationEquipmentMaterialsNotifier(),
+final insulationEquipmentMaterialsProvider = StateNotifierProvider<
+    InsulationEquipmentMaterialsNotifier, List<EquipmentMaterial>>(
+  (ref) => InsulationEquipmentMaterialsNotifier(),
 );
 
-class InsulationEquipmentMaterialsNotifier extends StateNotifier<List<EquipmentMaterial>> {
+class InsulationEquipmentMaterialsNotifier
+    extends StateNotifier<List<EquipmentMaterial>> {
   InsulationEquipmentMaterialsNotifier() : super(const []);
   List<MaterialSetup> _setups = [];
 
@@ -63,9 +63,11 @@ class InsulationEquipmentMaterialsNotifier extends StateNotifier<List<EquipmentM
   void setMaterials(List<EquipmentMaterial> materials) {
     state = List<EquipmentMaterial>.unmodifiable(materials);
   }
+
   void addMaterials(List<EquipmentMaterial> newMaterials) {
     state = [...state, ...newMaterials];
   }
+
   // Alternative name for clarity
   void setFromServer(List<EquipmentMaterial> serverMaterials) {
     state = List.unmodifiable(serverMaterials);
@@ -125,9 +127,9 @@ class InsulationEquipmentMaterialsNotifier extends StateNotifier<List<EquipmentM
 
   // Update specific fields of a material
   void updateEquipmentMaterialField(
-      String id,
-      Map<String, dynamic> updates,
-      ) {
+    String id,
+    Map<String, dynamic> updates,
+  ) {
     final updatedMaterials = state.map((material) {
       if (material.id == id) {
         return material.copyWith(
@@ -148,13 +150,16 @@ class InsulationEquipmentMaterialsNotifier extends StateNotifier<List<EquipmentM
           diameterB2: updates['diameterB2'] ?? material.diameterB2,
           diameterA1: updates['diameterA1'] ?? material.diameterA1,
           diameterB1: updates['diameterB1'] ?? material.diameterB1,
-          circumferenceFinal: updates['circumferenceFinal'] ?? material.circumferenceFinal,
+          circumferenceFinal:
+              updates['circumferenceFinal'] ?? material.circumferenceFinal,
           layer1Area: updates['layer1Area'] ?? material.layer1Area,
           layer2Area: updates['layer2Area'] ?? material.layer2Area,
           layer3Area: updates['layer3Area'] ?? material.layer3Area,
           circumference3: updates['circumference3'] ?? material.circumference3,
-          circumference2Calc: updates['circumference2Calc'] ?? material.circumference2Calc,
-          circumference1Calc: updates['circumference1Calc'] ?? material.circumference1Calc,
+          circumference2Calc:
+              updates['circumference2Calc'] ?? material.circumference2Calc,
+          circumference1Calc:
+              updates['circumference1Calc'] ?? material.circumference1Calc,
           o3: updates['o3'] ?? material.o3,
           o2: updates['o2'] ?? material.o2,
           o1: updates['o1'] ?? material.o1,
@@ -248,7 +253,7 @@ class InsulationEquipmentMaterialsNotifier extends StateNotifier<List<EquipmentM
 
 // Get equipment material by ID
 final insulationEquipmentMaterialByIdProvider =
-Provider.family<EquipmentMaterial?, String>((ref, id) {
+    Provider.family<EquipmentMaterial?, String>((ref, id) {
   final materials = ref.watch(insulationEquipmentMaterialsProvider);
   try {
     return materials.firstWhere((material) => material.id == id);
@@ -259,7 +264,7 @@ Provider.family<EquipmentMaterial?, String>((ref, id) {
 
 // Filtered equipment materials
 final filteredInsulationEquipmentMaterialsProvider =
-Provider.family<List<EquipmentMaterial>, String>((ref, query) {
+    Provider.family<List<EquipmentMaterial>, String>((ref, query) {
   final materials = ref.watch(insulationEquipmentMaterialsProvider);
 
   if (query.isEmpty) return materials;
@@ -291,7 +296,8 @@ final insulationEquipmentTotalAreaProvider = Provider<double>((ref) {
 });
 
 // Equipment materials grouped by type
-final insulationEquipmentMaterialsByTypeProvider = Provider<Map<String, List<EquipmentMaterial>>>((ref) {
+final insulationEquipmentMaterialsByTypeProvider =
+    Provider<Map<String, List<EquipmentMaterial>>>((ref) {
   final materials = ref.watch(insulationEquipmentMaterialsProvider);
   final Map<String, List<EquipmentMaterial>> grouped = {};
 
@@ -330,7 +336,8 @@ final insulationEquipmentMaterialsByTypeProvider = Provider<Map<String, List<Equ
 // });
 
 // Equipment materials by component type
-final insulationEquipmentByComponentProvider = Provider<Map<String, List<EquipmentMaterial>>>((ref) {
+final insulationEquipmentByComponentProvider =
+    Provider<Map<String, List<EquipmentMaterial>>>((ref) {
   final materials = ref.watch(insulationEquipmentMaterialsProvider);
   final Map<String, List<EquipmentMaterial>> components = {
     'SHELL': [],

@@ -2,6 +2,7 @@ import 'package:untitled2/features/modules/all_Modules/dpr/models/rate_file_mode
 
 class EquipmentItem {
   final String id;
+  final int displayOrder;
 
   // 🔥 Traceability
   final String rawMaterialName;
@@ -38,6 +39,7 @@ class EquipmentItem {
 
   const EquipmentItem({
     required this.id,
+    this.displayOrder = 0,
     required this.rawMaterialName,
     required this.normalizedMaterialName,
     required this.materialName,
@@ -71,6 +73,7 @@ class EquipmentItem {
   factory EquipmentItem.fromJson(Map<String, dynamic> json) {
     return EquipmentItem(
       id: json['_id'] ?? json['id'] ?? '',
+      displayOrder: json['displayOrder'] ?? 0,
       rawMaterialName: json['rawMaterialName'] ?? '',
       normalizedMaterialName: json['normalizedMaterialName'] ?? '',
       materialName: json['materialName'] ?? '',
@@ -119,6 +122,7 @@ class EquipmentItem {
 
     return EquipmentItem(
       id: rateMaterial.id,
+      displayOrder: rateMaterial.displayOrder,
       rawMaterialName: rateMaterial.rawMaterialName,
       normalizedMaterialName: rateMaterial.normalizedMaterialName,
       materialName: rateMaterial.MaterialName,
@@ -149,6 +153,7 @@ class EquipmentItem {
   }
   EquipmentItem copyWith({
     String? id,
+    int? displayOrder,
     String? rawMaterialName,
     String? normalizedMaterialName,
     String? materialName,
@@ -176,6 +181,7 @@ class EquipmentItem {
   }) {
     return EquipmentItem(
       id: id ?? this.id,
+      displayOrder: displayOrder ?? this.displayOrder,
       rawMaterialName: rawMaterialName ?? this.rawMaterialName,
       normalizedMaterialName:
       normalizedMaterialName ?? this.normalizedMaterialName,
@@ -212,6 +218,7 @@ class EquipmentItem {
   Map<String, dynamic> toJson() {
     return {
       'id': id,
+      'displayOrder': displayOrder,
       'rawMaterialName': rawMaterialName,
       'normalizedMaterialName': normalizedMaterialName,
       'materialName': materialName,

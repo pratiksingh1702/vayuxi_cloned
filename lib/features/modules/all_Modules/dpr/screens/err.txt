@@ -1,0 +1,41 @@
+
+lib/features/modules/all_Modules/dpr/screens/add_description.dart:2650:10: Error: '_buildSectionHeader' is already
+declared in this scope.
+  Widget _buildSectionHeader(String title, IconData icon) {
+         ^^^^^^^^^^^^^^^^^^^
+lib/features/modules/all_Modules/dpr/screens/add_description.dart:2316:10: Context: Previous declaration of
+'_buildSectionHeader'.
+  Widget _buildSectionHeader(String title, IconData icon) {
+         ^^^^^^^^^^^^^^^^^^^
+lib/features/modules/all_Modules/dpr/screens/add_description.dart:783:13: Error: The setter '_pipeFittingOn' isn't
+defined for the type '_AddDescriptionScreenState'.
+ - '_AddDescriptionScreenState' is from
+ 'package:untitled2/features/modules/all_Modules/dpr/screens/add_description.dart'
+ ('lib/features/modules/all_Modules/dpr/screens/add_description.dart').
+Try correcting the name to the name of an existing setter, or defining a setter or field named '_pipeFittingOn'.
+            _pipeFittingOn = true;
+            ^^^^^^^^^^^^^^
+lib/features/modules/all_Modules/dpr/screens/add_description.dart:784:13: Error: The setter '_equipmentOn' isn't defined
+for the type '_AddDescriptionScreenState'.
+ - '_AddDescriptionScreenState' is from
+ 'package:untitled2/features/modules/all_Modules/dpr/screens/add_description.dart'
+ ('lib/features/modules/all_Modules/dpr/screens/add_description.dart').
+Try correcting the name to the name of an existing setter, or defining a setter or field named '_equipmentOn'.
+            _equipmentOn = true;
+            ^^^^^^^^^^^^
+lib/features/modules/all_Modules/dpr/screens/add_description.dart:785:13: Error: The setter '_showPipingMaterials' isn't
+defined for the type '_AddDescriptionScreenState'.
+ - '_AddDescriptionScreenState' is from
+ 'package:untitled2/features/modules/all_Modules/dpr/screens/add_description.dart'
+ ('lib/features/modules/all_Modules/dpr/screens/add_description.dart').
+Try correcting the name to the name of an existing setter, or defining a setter or field named '_showPipingMaterials'.
+            _showPipingMaterials = true;
+            ^^^^^^^^^^^^^^^^^^^^
+lib/features/modules/all_Modules/dpr/screens/add_description.dart:786:13: Error: The setter '_showEquipmentMaterials'
+isn't defined for the type '_AddDescriptionScreenState'.
+ - '_AddDescriptionScreenState' is from
+ 'package:untitled2/features/modules/all_Modules/dpr/screens/add_description.dart'
+ ('lib/features/modules/all_Modules/dpr/screens/add_description.dart').
+Try correcting the name to the name of an existing setter, or defining a setter or field named
+'_showEquipmentMaterials'.
+            _showEquipmentMaterials = true;

@@ -371,6 +371,12 @@ class _EquipmentMaterialCardState extends State<EquipmentMaterialCard> {
     }
     // NO else-branch — _draftMaterial is the truth while typing.
 
+    // Keep remark in sync when provider updates it, without resetting edits.
+    if (oldWidget.material.remarks != widget.material.remarks && !_isEditMode) {
+      _draftMaterial =
+          _draftMaterial.copyWith(remarks: widget.material.remarks);
+    }
+
     if (_isDynamic && _config != null) {
       final oldMode = oldWidget.material.cardFormState?.geometryMode;
       final newMode = widget.material.cardFormState?.geometryMode;

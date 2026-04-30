@@ -120,15 +120,39 @@ class _MechanichalStepperScreenState
     _unlockNextIfCurrentCompleted();
   }
 
-  void _continueToDescription() {
+  int _computeMaxUnlockedStep() {
+    final hasMoc = (_selectedMoc ?? '').trim().isNotEmpty;
+    final hasFloor = (_selectedFloor ?? '').trim().isNotEmpty;
+    final hasSize = _sizeController.text.trim().isNotEmpty;
+
+    if (!hasMoc) return 0;
+    if (!hasFloor) return 1;
+    return hasSize ? 2 : 2;
+  }
+
+  void _resetStepperPosition() {
+    final size = ref.read(selectedSizeProvider) ?? '';
+    setState(() {
+      _currentStep = 0;
+      _selectedMoc = ref.read(selectedMocNameProvider);
+      _selectedFloor = ref.read(selectedFloorNameProvider);
+      _sizeController.text = size;
+      _maxUnlockedStep = _computeMaxUnlockedStep();
+    });
+  }
+
+  Future<void> _continueToDescription() async {
     final sizeValue = _sizeController.text.trim();
     ref.read(selectedSizeProvider.notifier).state =
         sizeValue.isEmpty ? null : sizeValue;
 
-    Navigator.push(
+    await Navigator.push(
       context,
       MaterialPageRoute(builder: (_) => AddDescriptionScreen()),
     );
+
+    if (!mounted) return;
+    _resetStepperPosition();
   }
 
   void _clearAllSelections() {
@@ -615,13 +639,22 @@ class _StepperHeader extends StatelessWidget {
                           ),
                   ),
                   const SizedBox(height: 6),
-                  Text(
-                    labels[i],
-                    style: TextStyle(
-                      fontSize: 11,
-                      fontWeight: FontWeight.w700,
-                      color:
-                          i <= currentStep ? cs.primary : cs.onSurfaceVariant,
+                  SizedBox(
+                    height: 14,
+                    child: FittedBox(
+                      fit: BoxFit.scaleDown,
+                      child: Text(
+                        labels[i],
+                        maxLines: 1,
+                        overflow: TextOverflow.ellipsis,
+                        style: TextStyle(
+                          fontSize: 11,
+                          fontWeight: FontWeight.w700,
+                          color: i <= currentStep
+                              ? cs.primary
+                              : cs.onSurfaceVariant,
+                        ),
+                      ),
                     ),
                   ),
                 ],

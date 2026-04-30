@@ -24,6 +24,18 @@ import '../offline/repo/att_offline_provider.dart';
 import '../offline/repo/att_sync.dart';
 import '../provider/AttendanceProvider.dart';
 
+enum AttendanceSortOption {
+  nameAsc,
+  nameDesc,
+  designationAsc,
+  designationDesc,
+  hoursHighToLow,
+  hoursLowToHigh,
+  otHighToLow,
+  otLowToHigh,
+  latestFirst
+}
+
 class AttendanceScreen extends ConsumerStatefulWidget {
   const AttendanceScreen({super.key});
 
@@ -66,6 +78,17 @@ class _AttendanceScreenState extends ConsumerState<AttendanceScreen> {
     return {"label": val.toString(), "value": val};
   });
 
+  // Filter & Sort State
+  AttendanceSortOption _currentSort = AttendanceSortOption.latestFirst;
+  final TextEditingController _searchController = TextEditingController();
+  String _searchQuery = '';
+  Set<String> _filterStatus = {};
+  Set<String> _filterDesignation = {};
+  double? _filterHoursMin;
+  double? _filterHoursMax;
+  double? _filterOTMin;
+  double? _filterOTMax;
+
   @override
   void initState() {
     super.initState();
@@ -78,13 +101,325 @@ class _AttendanceScreenState extends ConsumerState<AttendanceScreen> {
           .fetchTeams(type: type, siteId: siteId);
       _loadManpower();
     });
+    _searchController.addListener(() {
+      setState(() {
+        _searchQuery = _searchController.text;
+      });
+    });
   }
 
   @override
   void dispose() {
     _isEditMode = false;
     _scrollController.dispose();
+    _searchController.dispose();
     super.dispose();
+  }
+
+  bool get hasActiveFilters =>
+      _searchQuery.isNotEmpty ||
+      _filterStatus.isNotEmpty ||
+      _filterDesignation.isNotEmpty ||
+      _filterHoursMin != null ||
+      _filterHoursMax != null ||
+      _filterOTMin != null ||
+      _filterOTMax != null ||
+      _currentSort != AttendanceSortOption.latestFirst;
+
+  void _showFilterSortBottomSheet() {
+    showModalBottomSheet(
+      context: context,
+      isScrollControlled: true,
+      backgroundColor: Colors.transparent,
+      builder: (context) => StatefulBuilder(
+        builder: (context, setSheetState) {
+          final colorScheme = Theme.of(context).colorScheme;
+          final draft = ref.read(attendanceDraftProvider);
+          final designations =
+              draft.map((e) => e.manpower.designation ?? 'N/A').toSet().toList()
+                ..sort();
+
+          return Container(
+            decoration: BoxDecoration(
+              color: colorScheme.surface,
+              borderRadius:
+                  const BorderRadius.vertical(top: Radius.circular(24)),
+            ),
+            padding: EdgeInsets.fromLTRB(
+                20, 12, 20, MediaQuery.of(context).viewInsets.bottom + 32),
+            child: SingleChildScrollView(
+              child: Column(
+                mainAxisSize: MainAxisSize.min,
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Center(
+                    child: Container(
+                      width: 40,
+                      height: 4,
+                      decoration: BoxDecoration(
+                        color: colorScheme.outlineVariant,
+                        borderRadius: BorderRadius.circular(2),
+                      ),
+                    ),
+                  ),
+                  const SizedBox(height: 20),
+                  Row(
+                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                    children: [
+                      Text(
+                        'Filter & Sort',
+                        style: TextStyle(
+                          fontSize: 20,
+                          fontWeight: FontWeight.bold,
+                          color: colorScheme.onSurface,
+                        ),
+                      ),
+                      TextButton(
+                        onPressed: () {
+                          setSheetState(() {
+                            _currentSort = AttendanceSortOption.latestFirst;
+                            _filterStatus = {};
+                            _filterDesignation = {};
+                            _filterHoursMin = null;
+                            _filterHoursMax = null;
+                            _filterOTMin = null;
+                            _filterOTMax = null;
+                          });
+                          setState(() {});
+                        },
+                        child: const Text('Reset All'),
+                      ),
+                    ],
+                  ),
+                  const Divider(height: 32),
+
+                  // Sorting
+                  _buildFilterLabel('Sort By'),
+                  Wrap(
+                    spacing: 8,
+                    children: [
+                      _buildFilterChip(
+                        label: 'Latest First',
+                        selected:
+                            _currentSort == AttendanceSortOption.latestFirst,
+                        onSelected: (val) {
+                          setSheetState(() => _currentSort =
+                              AttendanceSortOption.latestFirst);
+                          setState(() {});
+                        },
+                      ),
+                      _buildFilterChip(
+                        label: 'Name (A-Z)',
+                        selected: _currentSort == AttendanceSortOption.nameAsc,
+                        onSelected: (val) {
+                          setSheetState(() =>
+                              _currentSort = AttendanceSortOption.nameAsc);
+                          setState(() {});
+                        },
+                      ),
+                      _buildFilterChip(
+                        label: 'Name (Z-A)',
+                        selected: _currentSort == AttendanceSortOption.nameDesc,
+                        onSelected: (val) {
+                          setSheetState(() =>
+                              _currentSort = AttendanceSortOption.nameDesc);
+                          setState(() {});
+                        },
+                      ),
+                      _buildFilterChip(
+                        label: 'Hours (High-Low)',
+                        selected:
+                            _currentSort == AttendanceSortOption.hoursHighToLow,
+                        onSelected: (val) {
+                          setSheetState(() => _currentSort =
+                              AttendanceSortOption.hoursHighToLow);
+                          setState(() {});
+                        },
+                      ),
+                      _buildFilterChip(
+                        label: 'OT (High-Low)',
+                        selected:
+                            _currentSort == AttendanceSortOption.otHighToLow,
+                        onSelected: (val) {
+                          setSheetState(() => _currentSort =
+                              AttendanceSortOption.otHighToLow);
+                          setState(() {});
+                        },
+                      ),
+                    ],
+                  ),
+                  const SizedBox(height: 24),
+
+                  // Status
+                  _buildFilterLabel('Attendance Status'),
+                  Wrap(
+                    spacing: 8,
+                    children: ['Present', 'Absent', 'Half Day'].map((status) {
+                      return _buildFilterChip(
+                        label: status,
+                        selected: _filterStatus.contains(status),
+                        onSelected: (val) {
+                          setSheetState(() {
+                            if (val) {
+                              _filterStatus.add(status);
+                            } else {
+                              _filterStatus.remove(status);
+                            }
+                          });
+                          setState(() {});
+                        },
+                      );
+                    }).toList(),
+                  ),
+                  const SizedBox(height: 24),
+
+                  // Designation
+                  if (designations.isNotEmpty) ...[
+                    _buildFilterLabel('Designation'),
+                    Wrap(
+                      spacing: 8,
+                      children: designations.map((des) {
+                        return _buildFilterChip(
+                          label: des,
+                          selected: _filterDesignation.contains(des),
+                          onSelected: (val) {
+                            setSheetState(() {
+                              if (val) {
+                                _filterDesignation.add(des);
+                              } else {
+                                _filterDesignation.remove(des);
+                              }
+                            });
+                            setState(() {});
+                          },
+                        );
+                      }).toList(),
+                    ),
+                    const SizedBox(height: 24),
+                  ],
+
+                  // Shift Hours Range
+                  _buildFilterLabel(
+                      'Shift Hours: ${_filterHoursMin?.toStringAsFixed(1) ?? "0"} - ${_filterHoursMax?.toStringAsFixed(1) ?? "12"}h'),
+                  _buildSliderRange(
+                    min: 0,
+                    max: 12,
+                    values: RangeValues(_filterHoursMin ?? 0, _filterHoursMax ?? 12),
+                    onChanged: (values) {
+                      setSheetState(() {
+                        _filterHoursMin = values.start;
+                        _filterHoursMax = values.end;
+                      });
+                      setState(() {});
+                    },
+                  ),
+                  const SizedBox(height: 24),
+
+                  // OT Range
+                  _buildFilterLabel(
+                      'OT Hours: ${_filterOTMin?.toStringAsFixed(1) ?? "0"} - ${_filterOTMax?.toStringAsFixed(1) ?? "8"}h'),
+                  _buildSliderRange(
+                    min: 0,
+                    max: 8,
+                    values: RangeValues(_filterOTMin ?? 0, _filterOTMax ?? 8),
+                    onChanged: (values) {
+                      setSheetState(() {
+                        _filterOTMin = values.start;
+                        _filterOTMax = values.end;
+                      });
+                      setState(() {});
+                    },
+                  ),
+                  const SizedBox(height: 32),
+
+                  SizedBox(
+                    width: double.infinity,
+                    child: ElevatedButton(
+                      onPressed: () => Navigator.pop(context),
+                      style: ElevatedButton.styleFrom(
+                        backgroundColor: colorScheme.primary,
+                        foregroundColor: colorScheme.onPrimary,
+                        padding: const EdgeInsets.symmetric(vertical: 16),
+                        shape: RoundedRectangleBorder(
+                          borderRadius: BorderRadius.circular(12),
+                        ),
+                      ),
+                      child: const Text('Apply Filters',
+                          style: TextStyle(
+                              fontWeight: FontWeight.bold, fontSize: 16)),
+                    ),
+                  ),
+                ],
+              ),
+            ),
+          );
+        },
+      ),
+    );
+  }
+
+  Widget _buildFilterLabel(String label) {
+    return Padding(
+      padding: const EdgeInsets.only(bottom: 12),
+      child: Text(
+        label,
+        style: const TextStyle(
+          fontSize: 14,
+          fontWeight: FontWeight.w600,
+          color: Colors.grey,
+        ),
+      ),
+    );
+  }
+
+  Widget _buildFilterChip({
+    required String label,
+    required bool selected,
+    required ValueChanged<bool> onSelected,
+  }) {
+    final colorScheme = Theme.of(context).colorScheme;
+    return FilterChip(
+      label: Text(label),
+      selected: selected,
+      onSelected: onSelected,
+      backgroundColor: colorScheme.surface,
+      selectedColor: colorScheme.primaryContainer,
+      checkmarkColor: colorScheme.primary,
+      labelStyle: TextStyle(
+        fontSize: 13,
+        fontWeight: selected ? FontWeight.bold : FontWeight.normal,
+        color: selected ? colorScheme.primary : colorScheme.onSurface,
+      ),
+      shape: RoundedRectangleBorder(
+        borderRadius: BorderRadius.circular(8),
+        side: BorderSide(
+          color: selected ? colorScheme.primary : colorScheme.outlineVariant,
+          width: selected ? 1.5 : 1,
+        ),
+      ),
+    );
+  }
+
+  Widget _buildSliderRange({
+    required double min,
+    required double max,
+    required RangeValues values,
+    required ValueChanged<RangeValues> onChanged,
+  }) {
+    final colorScheme = Theme.of(context).colorScheme;
+    return RangeSlider(
+      values: values,
+      min: min,
+      max: max,
+      divisions: (max - min) * 2 > 0 ? ((max - min) * 2).toInt() : 1,
+      labels: RangeLabels(
+        values.start.toStringAsFixed(1),
+        values.end.toStringAsFixed(1),
+      ),
+      activeColor: colorScheme.primary,
+      inactiveColor: colorScheme.primaryContainer,
+      onChanged: onChanged,
+    );
   }
 
   Future<void> _reloadAll() async {
@@ -208,7 +543,7 @@ class _AttendanceScreenState extends ConsumerState<AttendanceScreen> {
     }
   }
 
-  Future<void> _toggleAllPresent() async {
+  Future<void> _toggleAllPresent(List<AttendanceModel> listToUpdate) async {
     if (!_isEditable) {
       _showEditRequiredMessage();
       return;
@@ -220,18 +555,22 @@ class _AttendanceScreenState extends ConsumerState<AttendanceScreen> {
     });
 
     final notifier = ref.read(attendanceDraftProvider.notifier);
-    final list = notifier.state;
+    final fullList = notifier.state;
+    final idsToUpdate = listToUpdate.map((e) => e.manpower.id).toSet();
 
     notifier.state = [
-      for (final emp in list)
-        emp.copyWith(
-          status: "present",
-          totalHours: double.tryParse(emp.manpower.totalHour ?? "") ?? 8.0,
-        )
+      for (final emp in fullList)
+        if (idsToUpdate.contains(emp.manpower.id))
+          emp.copyWith(
+            status: "present",
+            totalHours: double.tryParse(emp.manpower.totalHour ?? "") ?? 8.0,
+          )
+        else
+          emp
     ];
   }
 
-  Future<void> _toggleAllAbsent() async {
+  Future<void> _toggleAllAbsent(List<AttendanceModel> listToUpdate) async {
     if (!_isEditable) {
       _showEditRequiredMessage();
       return;
@@ -243,11 +582,15 @@ class _AttendanceScreenState extends ConsumerState<AttendanceScreen> {
     });
 
     final notifier = ref.read(attendanceDraftProvider.notifier);
-    final list = notifier.state;
+    final fullList = notifier.state;
+    final idsToUpdate = listToUpdate.map((e) => e.manpower.id).toSet();
 
     notifier.state = [
-      for (final emp in list)
-        emp.copyWith(status: "absent", totalHours: 0, ot: 0)
+      for (final emp in fullList)
+        if (idsToUpdate.contains(emp.manpower.id))
+          emp.copyWith(status: "absent", totalHours: 0, ot: 0)
+        else
+          emp
     ];
   }
 
@@ -301,7 +644,7 @@ class _AttendanceScreenState extends ConsumerState<AttendanceScreen> {
     }
   }
 
-  void _handleOTChange(int index, double newOTValue) {
+  void _handleOTChange(String manpowerId, double newOTValue) {
     if (!_isEditable) {
       _showEditRequiredMessage();
       return;
@@ -309,7 +652,7 @@ class _AttendanceScreenState extends ConsumerState<AttendanceScreen> {
 
     final notifier = ref.read(attendanceDraftProvider.notifier);
     final list = notifier.state;
-    final emp = list[index];
+    final emp = list.firstWhere((e) => e.manpower.id == manpowerId);
 
     // rule → if absent or < 8h → OT must be 0
     if (emp.status == "absent" || emp.totalHours < 8) {
@@ -320,18 +663,21 @@ class _AttendanceScreenState extends ConsumerState<AttendanceScreen> {
     if (_isFirstOTEntry && newOTValue > 0) {
       _isFirstOTEntry = false;
       _firstOTValue = newOTValue;
-      _showOTConfirmationDialog(newOTValue, index);
+      _showOTConfirmationDialogForId(newOTValue, manpowerId);
       return;
     }
 
     // normal single update
     notifier.state = [
-      for (int i = 0; i < list.length; i++)
-        if (i == index) list[i].copyWith(ot: newOTValue) else list[i]
+      for (final item in list)
+        if (item.manpower.id == manpowerId)
+          item.copyWith(ot: newOTValue)
+        else
+          item
     ];
   }
 
-  void _showOTConfirmationDialog(double otValue, int index) {
+  void _showOTConfirmationDialogForId(double otValue, String manpowerId) {
     showDialog(
       context: context,
       barrierDismissible: false,
@@ -395,7 +741,7 @@ class _AttendanceScreenState extends ConsumerState<AttendanceScreen> {
                       child: ElevatedButton(
                         onPressed: () {
                           context.pop();
-                          _applyOTToAll(otValue, index);
+                          _applyOTToAllForId(otValue, manpowerId);
                         },
                         style: ElevatedButton.styleFrom(
                           backgroundColor:
@@ -422,29 +768,29 @@ class _AttendanceScreenState extends ConsumerState<AttendanceScreen> {
     );
   }
 
-  void _applyOTToAll(double otValue, int changedIndex) {
+  void _applyOTToAllForId(double otValue, String changedId) {
     if (!_isEditable) return;
 
     final notifier = ref.read(attendanceDraftProvider.notifier);
     final list = notifier.state;
 
     notifier.state = [
-      for (int i = 0; i < list.length; i++)
-        if (i == changedIndex)
-          list[i].copyWith(ot: otValue)
-        else if (list[i].status == "present")
+      for (final item in list)
+        if (item.manpower.id == changedId)
+          item.copyWith(ot: otValue)
+        else if (item.status == "present")
           () {
-            final totalHourRaw = list[i].manpower.totalHour;
+            final totalHourRaw = item.manpower.totalHour;
             final totalHour = double.tryParse(totalHourRaw ?? "") ?? 0;
 
             // fallback to 8 if not defined
             final maxOT = totalHour > 0 ? totalHour : 8.0;
 
             final safeOT = otValue.clamp(0, maxOT).toDouble();
-            return list[i].copyWith(ot: safeOT);
+            return item.copyWith(ot: safeOT);
           }()
         else
-          list[i]
+          item
     ];
 
     ScaffoldMessenger.of(context).showSnackBar(
@@ -685,6 +1031,81 @@ class _AttendanceScreenState extends ConsumerState<AttendanceScreen> {
 
                   final draft = ref.watch(attendanceDraftProvider);
 
+                  // Apply Filtering
+                  var filteredList = draft.where((emp) {
+                    // Search
+                    if (_searchQuery.isNotEmpty &&
+                        !(emp.manpower.fullName ?? '')
+                            .toLowerCase()
+                            .contains(_searchQuery.toLowerCase()) &&
+                        !(emp.manpower.employeeCode ?? '')
+                            .toLowerCase()
+                            .contains(_searchQuery.toLowerCase())) {
+                      return false;
+                    }
+
+                    // Status
+                    if (_filterStatus.isNotEmpty) {
+                      String status =
+                          emp.status == 'present' ? 'Present' : 'Absent';
+                      if (emp.totalHours > 0 && emp.totalHours < 8) {
+                        status = 'Half Day';
+                      }
+                      if (!_filterStatus.contains(status)) return false;
+                    }
+
+                    // Designation
+                    if (_filterDesignation.isNotEmpty &&
+                        !_filterDesignation
+                            .contains(emp.manpower.designation ?? 'N/A')) {
+                      return false;
+                    }
+
+                    // Hours Range
+                    if (_filterHoursMin != null &&
+                        emp.totalHours < _filterHoursMin!) return false;
+                    if (_filterHoursMax != null &&
+                        emp.totalHours > _filterHoursMax!) return false;
+
+                    // OT Range
+                    if (_filterOTMin != null && emp.ot < _filterOTMin!) {
+                      return false;
+                    }
+                    if (_filterOTMax != null && emp.ot > _filterOTMax!) {
+                      return false;
+                    }
+
+                    return true;
+                  }).toList();
+
+                  // Apply Sorting
+                  filteredList.sort((a, b) {
+                    switch (_currentSort) {
+                      case AttendanceSortOption.nameAsc:
+                        return (a.manpower.fullName ?? '')
+                            .compareTo(b.manpower.fullName ?? '');
+                      case AttendanceSortOption.nameDesc:
+                        return (b.manpower.fullName ?? '')
+                            .compareTo(a.manpower.fullName ?? '');
+                      case AttendanceSortOption.designationAsc:
+                        return (a.manpower.designation ?? '')
+                            .compareTo(b.manpower.designation ?? '');
+                      case AttendanceSortOption.designationDesc:
+                        return (b.manpower.designation ?? '')
+                            .compareTo(a.manpower.designation ?? '');
+                      case AttendanceSortOption.hoursHighToLow:
+                        return b.totalHours.compareTo(a.totalHours);
+                      case AttendanceSortOption.hoursLowToHigh:
+                        return a.totalHours.compareTo(b.totalHours);
+                      case AttendanceSortOption.otHighToLow:
+                        return b.ot.compareTo(a.ot);
+                      case AttendanceSortOption.otLowToHigh:
+                        return a.ot.compareTo(b.ot);
+                      case AttendanceSortOption.latestFirst:
+                        return b.createdAt.compareTo(a.createdAt);
+                    }
+                  });
+
                   return Padding(
                     padding: const EdgeInsets.all(5),
                     child: Column(
@@ -759,6 +1180,78 @@ class _AttendanceScreenState extends ConsumerState<AttendanceScreen> {
 
                         const SizedBox(height: 8),
 
+                        // Search and Filter Row
+                        Padding(
+                          padding: const EdgeInsets.symmetric(vertical: 8),
+                          child: Row(
+                            children: [
+                              Expanded(
+                                child: Container(
+                                  height: 48,
+                                  decoration: BoxDecoration(
+                                    color: colorScheme.surfaceContainerLow,
+                                    borderRadius: BorderRadius.circular(12),
+                                    border: Border.all(
+                                        color: colorScheme.outlineVariant
+                                            .withOpacity(0.5)),
+                                  ),
+                                  child: TextField(
+                                    controller: _searchController,
+                                    style: const TextStyle(fontSize: 14),
+                                    decoration: InputDecoration(
+                                      hintText: 'Search employee...',
+                                      prefixIcon: Icon(Icons.search,
+                                          color: colorScheme.primary, size: 20),
+                                      border: InputBorder.none,
+                                      contentPadding:
+                                          const EdgeInsets.symmetric(
+                                              vertical: 14),
+                                      suffixIcon: _searchQuery.isNotEmpty
+                                          ? IconButton(
+                                              icon: const Icon(Icons.clear,
+                                                  size: 18),
+                                              onPressed: () =>
+                                                  _searchController.clear(),
+                                            )
+                                          : null,
+                                    ),
+                                  ),
+                                ),
+                              ),
+                              const SizedBox(width: 8),
+                              InkWell(
+                                onTap: _showFilterSortBottomSheet,
+                                borderRadius: BorderRadius.circular(12),
+                                child: Container(
+                                  width: 48,
+                                  height: 48,
+                                  decoration: BoxDecoration(
+                                    color: hasActiveFilters
+                                        ? colorScheme.primary
+                                        : colorScheme.surfaceContainerLow,
+                                    borderRadius: BorderRadius.circular(12),
+                                    border: Border.all(
+                                      color: hasActiveFilters
+                                          ? colorScheme.primary
+                                          : colorScheme.outlineVariant
+                                              .withOpacity(0.5),
+                                    ),
+                                  ),
+                                  child: Icon(
+                                    Icons.tune,
+                                    color: hasActiveFilters
+                                        ? colorScheme.onPrimary
+                                        : colorScheme.primary,
+                                    size: 22,
+                                  ),
+                                ),
+                              ),
+                            ],
+                          ),
+                        ),
+
+                        const SizedBox(height: 8),
+
                         // Edit Mode Button and Action Buttons
                         Row(
                           mainAxisAlignment: MainAxisAlignment.spaceBetween,
@@ -812,7 +1305,7 @@ class _AttendanceScreenState extends ConsumerState<AttendanceScreen> {
                             Row(
                               children: [
                                 GestureDetector(
-                                  onTap: _toggleAllAbsent,
+                                  onTap: () => _toggleAllAbsent(filteredList),
                                   child: Container(
                                     padding: const EdgeInsets.symmetric(
                                       horizontal: 16,
@@ -838,7 +1331,7 @@ class _AttendanceScreenState extends ConsumerState<AttendanceScreen> {
                                 ),
                                 const SizedBox(width: 8),
                                 GestureDetector(
-                                  onTap: _toggleAllPresent,
+                                  onTap: () => _toggleAllPresent(filteredList),
                                   child: Container(
                                     padding: const EdgeInsets.symmetric(
                                       horizontal: 16,
@@ -876,9 +1369,9 @@ class _AttendanceScreenState extends ConsumerState<AttendanceScreen> {
                             child: ListView.builder(
                               controller: _scrollController,
                               physics: const AlwaysScrollableScrollPhysics(),
-                              itemCount: draft.length,
+                              itemCount: filteredList.length,
                               itemBuilder: (context, i) {
-                                final emp = draft[i];
+                                final emp = filteredList[i];
                                 final totalHours = double.tryParse(
                                         emp.manpower.totalHour ?? "") ??
                                     0;
@@ -887,6 +1380,7 @@ class _AttendanceScreenState extends ConsumerState<AttendanceScreen> {
                                   maxAllowedHours: totalHours,
                                 );
                                 return AttendanceCard(
+                                  key: ValueKey(emp.manpower.id),
                                   name: emp.manpower.fullName ?? "Unnamed",
                                   maxAllowedHours: totalHours,
                                   status: emp.status,
@@ -917,15 +1411,52 @@ class _AttendanceScreenState extends ConsumerState<AttendanceScreen> {
                                     final list = notifier.state;
 
                                     notifier.state = [
-                                      for (int j = 0; j < list.length; j++)
-                                        if (j == i)
-                                          list[j].copyWith(
+                                      for (final item in list)
+                                        if (item.manpower.id == emp.manpower.id)
+                                          item.copyWith(
                                               status: st, totalHours: hours)
                                         else
-                                          list[j]
+                                          item
                                     ];
                                   },
-                                  onOtChange: (v) => _handleOTChange(i, v),
+                                  onOtChange: (v) {
+                                    if (!_isEditable) {
+                                      _showEditRequiredMessage();
+                                      return;
+                                    }
+
+                                    final notifier = ref
+                                        .read(attendanceDraftProvider.notifier);
+                                    final list = notifier.state;
+
+                                    // rule → if absent or < 8h → OT must be 0
+                                    double newOTValue = v;
+                                    if (emp.status == "absent" ||
+                                        emp.totalHours < 8) {
+                                      newOTValue = 0;
+                                    }
+
+                                    // FIRST ENTRY → ASK
+                                    if (_isFirstOTEntry && newOTValue > 0) {
+                                      _isFirstOTEntry = false;
+                                      _firstOTValue = newOTValue;
+                                      // Need to find original index for existing dialog logic
+                                      // OR update dialog to use ID.
+                                      // For now, I'll update the state directly if dialog is too complex to refactor here.
+                                      // Wait, I should probably keep the dialog logic.
+                                      _showOTConfirmationDialogForId(
+                                          newOTValue, emp.manpower.id!);
+                                      return;
+                                    }
+
+                                    notifier.state = [
+                                      for (final item in list)
+                                        if (item.manpower.id == emp.manpower.id)
+                                          item.copyWith(ot: newOTValue)
+                                        else
+                                          item
+                                    ];
+                                  },
                                 );
                               },
                             ),

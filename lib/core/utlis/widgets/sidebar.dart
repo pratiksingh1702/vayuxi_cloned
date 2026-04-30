@@ -14,7 +14,9 @@ import '../../../features/modules/screen/device_id_helper.dart';
 import '../../../features/profile_page/provider/userProvider.dart';
 import '../../api/requestQueue.dart';
 import '../../api/syncManager.dart';
+import '../../api/network_status_card.dart';
 import 'custom_scrollbar.dart';
+import 'route_search_popup.dart';
 
 final drawerExpandedSectionProvider = StateProvider<String?>((ref) => 'MAIN');
 
@@ -213,6 +215,8 @@ class CustomDrawer extends ConsumerWidget {
                     padding: const EdgeInsets.symmetric(vertical: 12),
                     physics: const BouncingScrollPhysics(),
                     children: [
+                      const SizedBox(height: 4),
+                      const NetworkStatusCard(),
                       const SizedBox(height: 4),
                       _buildNavItem(
                         context,
@@ -838,6 +842,25 @@ class CustomDrawer extends ConsumerWidget {
                           ),
                         ],
                       ),
+                    ),
+                    Row(
+                      mainAxisSize: MainAxisSize.min,
+                      children: [
+                        IconButton(
+                          icon: Icon(Icons.search_rounded,
+                              size: 22, color: _textSecondary(context)),
+                          onPressed: () {
+                            Navigator.pop(context); // close drawer first
+                            showRouteSearchPopup(context);
+                          },
+                        ),
+                        IconButton(
+                          icon: Icon(Icons.settings_suggest_rounded,
+                              size: 22, color: _textSecondary(context)),
+                          onPressed: () =>
+                              _handleNavigation(context, Routes.settings, false),
+                        ),
+                      ],
                     ),
                   ],
                 ),
