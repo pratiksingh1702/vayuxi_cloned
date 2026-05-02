@@ -136,6 +136,7 @@ class _SiteDetailScreenState extends ConsumerState<SiteDetailScreen> {
     setState(() => isLoading = true);
     try {
       _validateFields();
+      final type = ref.read(typeProvider) ?? "mechanical_work";
 
       final formData = FormData.fromMap({
         "siteName": siteNameController.text.trim(),
@@ -148,7 +149,7 @@ class _SiteDetailScreenState extends ConsumerState<SiteDetailScreen> {
         "documentNumber": documentNumberController.text.trim(),
         "selectedDate": dateController.text,
         "company": widget.site?.company ?? "",
-        "type": widget.site?.type ?? "mechanical_work",
+        "type": widget.site?.type ?? type,
       });
 
       // Handle image based on three scenarios:

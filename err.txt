@@ -1,0 +1,17 @@
+bd71.js" defer=""></script><script src="/_next/static/chunks/pages/_error-577d20cf4b946d58.js" defer=""></script><script src="/_next/static/Hyokkg_8nLS1fzyDATKzy/_buildManifest.js" defer=""></script><s
+I/flutter ( 6389): Requested resource not found.
+I/flutter ( 6389): ❌ Request failed: GET https://be-vayuxi-chi.vercel.app/api/v1/structure/boq/list?site_id=69f64bdfeac94795846e29c7
+I/flutter ( 6389):    Error type: DioExceptionType.badResponse
+I/flutter ( 6389):    Error: Requested resource not found.
+I/flutter ( 6389): 🚫 Not queued (server/client error)
+I/flutter ( 6389): 📌 Saved request to queue: GET /structure/boq/list
+I/flutter ( 6389): 😴 No pending requests → skip
+E/flutter ( 6389): [ERROR:flutter/lib/ui/window/platform_configuration.cc(436)] Reported frame time is older than the last one; clamping. 388826167258 < 388826167292 ~= 34
+E/IJankManager( 6389): slideSceneEnd unknown scene 1003 mScene:-1
+I/PowerHalMgrImpl( 6389): hdl:277793, pid:6389
+D/OplusViewDragTouchViewHelper( 6389): dispatchTouchView action = 1
+D/ViewRootImplExtImpl( 6389): the up motion event handled by client, just return
+I/PowerHalMgrImpl( 6389): hdl:277794, pid:6389
+I/TRuntime.CctTransportBackend( 6389): Making request to: https://crashlyticsreports-pa.googleapis.com/v1/firelog/legacy/batchlog
+I/TRuntime.CctTransportBackend( 6389): Status Code: 200
+I/flutter ( 6389): 😴 No pending requests → skip

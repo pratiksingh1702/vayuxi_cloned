@@ -9,6 +9,7 @@ import 'package:untitled2/core/utlis/widgets/adaptive_name_display.dart';
 import 'package:untitled2/core/utlis/widgets/premium_app_bar.dart';
 import 'package:untitled2/features/modules/all_Modules/site_Details/providers/siteProvider.dart';
 import 'package:untitled2/typeProvider/type_provider.dart';
+import 'package:untitled2/typeProvider/work_type.dart';
 import 'features/noti_system/updates/presentation/navigation/updates_routes.dart';
 import 'core/router/routes.dart';
 import 'core/utlis/widgets/language_first_time_popup.dart';
@@ -188,6 +189,8 @@ class _WorkCategoryScreenState extends ConsumerState<WorkCategoryScreen> {
         typeNotifier.setType("mechanical_work");
       } else if (id == "insulation") {
         typeNotifier.setType("insulation_work");
+      } else if (id == "structure") {
+        typeNotifier.setType(WorkType.structure.apiValue);
       }
       ref.read(siteProvider.notifier).fetchSites();
 
@@ -414,6 +417,12 @@ class _WorkCategoryScreenState extends ConsumerState<WorkCategoryScreen> {
                             title: 'Insulation Work',
                             imagePath:
                                 'https://images.unsplash.com/photo-1581092795360-fd1ca04f0952?w=600',
+                          ),
+                          onSelectStructure: () => handlePress(
+                            id: 'structure',
+                            title: 'Structure Work',
+                            imagePath:
+                                'https://images.unsplash.com/photo-1587293852726-70cdb56c2866?w=600',
                           ),
                         ),
                         const SizedBox(height: 24),
@@ -1117,12 +1126,14 @@ class _CategorySpotlightCard extends StatelessWidget {
     required this.elevationColor,
     required this.onSelectMechanical,
     required this.onSelectInsulation,
+    required this.onSelectStructure,
   });
 
   final String? selectedImage;
   final Color elevationColor;
   final VoidCallback onSelectMechanical;
   final VoidCallback onSelectInsulation;
+  final VoidCallback onSelectStructure;
 
   @override
   Widget build(BuildContext context) {
@@ -1132,12 +1143,14 @@ class _CategorySpotlightCard extends StatelessWidget {
         final targetHeight = (tileWidth / 0.88).clamp(190.0, 248.0);
         final aspectRatio = (tileWidth / targetHeight).clamp(0.72, 0.96);
 
+        // Adjust height to accommodate two rows now that we have 3 items
         return SizedBox(
-          height: targetHeight,
+          height: (targetHeight * 2) + 12,
           child: GridView.count(
             physics: const NeverScrollableScrollPhysics(),
             crossAxisCount: 2,
             crossAxisSpacing: 12,
+            mainAxisSpacing: 12,
             childAspectRatio: aspectRatio,
             children: [
               Showcase(
@@ -1163,6 +1176,16 @@ class _CategorySpotlightCard extends StatelessWidget {
                 elevationColor: elevationColor,
                 isSelected: selectedImage == 'insulation',
                 onTap: onSelectInsulation,
+              ),
+              CompanyCard(
+                imagePath: 'assets/images/struc.png',
+                companyName: 'Structure Work',
+                subtitle:
+                    'BOQ tracking, DPR entry and structural progress management.',
+                accentColor: const Color(0xFF7B3F00),
+                elevationColor: elevationColor,
+                isSelected: selectedImage == 'structure',
+                onTap: onSelectStructure,
               ),
             ],
           ),

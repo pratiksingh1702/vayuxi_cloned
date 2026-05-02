@@ -4,6 +4,7 @@ import 'package:untitled2/features/modules/all_Modules/dpr/screens/dprTeamPage.d
 import 'package:untitled2/features/modules/all_Modules/dpr/screens/widgets/mechanichal_stepper.dart';
 import 'package:untitled2/features/modules/all_Modules/dpr/dpr_insu/screens/step_insulation_screen.dart';
 import 'package:untitled2/features/modules/all_Modules/site_Details/repository/siteModel.dart';
+import 'package:untitled2/features/modules/all_Modules/structure_work/dpr/screens/dpr_structure_flow_gate.dart';
 import 'package:untitled2/typeProvider/type_provider.dart';
 
 class DprFlowGate extends ConsumerWidget {
@@ -15,6 +16,11 @@ class DprFlowGate extends ConsumerWidget {
   Widget build(BuildContext context, WidgetRef ref) {
     final type = ref.watch(typeProvider);
     final teamsCount = site.counts.teams;
+
+    // Structure work has its own dedicated flow
+    if (type == 'structure_work') {
+      return DprStructureFlowGate(site: site);
+    }
 
     // If site has no teams, skip team screen and open DPR directly.
     if (teamsCount == 0) {

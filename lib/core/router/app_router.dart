@@ -10,6 +10,10 @@ import 'package:untitled2/features/modules/all_Modules/site_Details/repository/s
 import 'package:untitled2/features/modules/all_Modules/site_Details/screens/siteList.dart';
 import 'package:untitled2/features/modules/all_Modules/summary/screens/summaru_screen.dart';
 
+import '../../features/modules/all_Modules/structure_work/boq/screens/boq_structure_dashboard.dart';
+import '../../features/modules/all_Modules/structure_work/dpr/screens/dpr_structure_list_screen.dart';
+import '../../features/modules/all_Modules/structure_work/reports/structure_sheet_download_page.dart';
+
 import '../../features/auth/onboarding/screens/onboarding_screen.dart';
 import '../../features/auth/onboarding/screens/pla_Select_Screen.dart';
 import '../../features/auth/provider/auth_provider.dart';
@@ -322,25 +326,31 @@ final appRouterProvider = Provider<GoRouter>((ref) {
                 screen = TeamSelectCardGrid();
                 break;
               case 'dpr':
-                screen = site.counts.teams == 0
-                    ? (type == 'mechanical_work'
-                        ? MechanichalStepperScreen(
-                            siteId: site.id,
-                            teamId: '',
-                            teamName: null,
-                          )
-                        : type == 'insulation_work'
-                            ? StepInsulationScreen(
+                screen = (type == 'structure_work')
+                    ? DprFlowGate(site: site)
+                    : site.counts.teams == 0
+                        ? (type == 'mechanical_work'
+                            ? MechanichalStepperScreen(
                                 siteId: site.id,
                                 teamId: '',
-                                name: site.siteName,
                                 teamName: null,
                               )
-                            : const SizedBox.shrink())
-                    : DprFlowGate(site: site);
+                            : type == 'insulation_work'
+                                ? StepInsulationScreen(
+                                    siteId: site.id,
+                                    teamId: '',
+                                    name: site.siteName,
+                                    teamName: null,
+                                  )
+                                : const SizedBox.shrink())
+                        : DprFlowGate(site: site);
                 break;
               case 'boq':
                 screen = BoqDashboardScreen(
+                    siteId: site.id, siteName: site.siteName);
+                break;
+              case 'structure-boq':
+                screen = BOQStructureDashboard(
                     siteId: site.id, siteName: site.siteName);
                 break;
               case 'attendance':
@@ -732,6 +742,16 @@ final appRouterProvider = Provider<GoRouter>((ref) {
           );
         },
       ),
+      GoRoute(
+        path: '/structure-dpr/:siteId',
+        builder: (context, state) {
+          final siteId = state.pathParameters['siteId']!;
+          final siteName = (state.extra as Map<String, dynamic>?)?['siteName'] ?? '';
+          _logRoute('DprStructureListScreen', path: state.uri.toString(), extra: {'siteId': siteId});
+          return DprStructureListScreen(siteId: siteId, siteName: siteName);
+        },
+      ),
+
       GoRoute(
         path: Routes.inventoryReportDownload,
         builder: (context, state) {

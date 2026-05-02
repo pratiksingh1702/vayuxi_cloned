@@ -64,6 +64,8 @@ class HomeTranslationHelper extends TranslationHelper {
   String get themeCard => t('theme_card');
   String get languageCard => t('language_card');
   String get helpCard => t('help_card');
+  String get structureBOQCard => t('structure_boq_card');
+  String get structureDPRCard => t('structure_dpr_card');
 
   // Other Home Strings
   String get advertiseBannerText => t('advertise_banner_text');
@@ -136,6 +138,8 @@ class ReportTranslationHelper extends TranslationHelper {
   String get downloadIndividual => t('label_download_individual');
   String get downloadSiteWise => t('label_download_site_wise');
   String get selectRangeTitle => t('title_select_range');
+  String get structureReportsTitle => t('title_structure_reports');
+  String get detailedDPRSheet => t('label_detailed_dpr');
 }
 
 // Setup Module Helper

@@ -17,6 +17,7 @@ import 'package:untitled2/typeProvider/type_provider.dart';
 import '../../../../../../core/utlis/widgets/date_picker.dart';
 import '../../providers/dpr.dart';
 import '../../providers/dprService.dart';
+import '../../../../all_Modules/structure_work/dpr/repository/dpr_structure_repository.dart';
 
 class SheetDownloadPage extends ConsumerStatefulWidget {
   final DateTime? selectedStartDate;
@@ -49,6 +50,7 @@ class _SheetDownloadPageState extends ConsumerState<SheetDownloadPage> {
     required String sheetName,
     required Future<Uint8List> Function(String, String, String) apiCall,
     required String defaultFileName,
+    bool excelOnly = false,
   }) {
     // First check if dates are selected
     if (_selectedStartDate == null || _selectedEndDate == null) {
@@ -123,22 +125,35 @@ class _SheetDownloadPageState extends ConsumerState<SheetDownloadPage> {
                 },
               ),
               const SizedBox(height: 12),
-              _FormatTile(
-                icon: Icons.picture_as_pdf,
-                color: Colors.red,
-                title: "PDF (.pdf)",
-                subtitle: "Document format",
-                isSelected: _selectedFormat == 'pdf',
-                onTap: () {
-                  setState(() => _selectedFormat = 'pdf');
-                  context.pop();
-                  _showShareOrDownloadDialog(
-                    sheetName: sheetName,
-                    apiCall: apiCall,
-                    defaultFileName: defaultFileName,
-                  );
-                },
-              ),
+              if (!excelOnly)
+                _FormatTile(
+                  icon: Icons.picture_as_pdf,
+                  color: Colors.red,
+                  title: "PDF (.pdf)",
+                  subtitle: "Document format",
+                  isSelected: _selectedFormat == 'pdf',
+                  onTap: () {
+                    setState(() => _selectedFormat = 'pdf');
+                    context.pop();
+                    _showShareOrDownloadDialog(
+                      sheetName: sheetName,
+                      apiCall: apiCall,
+                      defaultFileName: defaultFileName,
+                    );
+                  },
+                )
+              else
+                Opacity(
+                  opacity: 0.5,
+                  child: _FormatTile(
+                    icon: Icons.picture_as_pdf,
+                    color: Colors.grey,
+                    title: "PDF Not Available",
+                    subtitle: "This report is Excel only",
+                    isSelected: false,
+                    onTap: null,
+                  ),
+                ),
               const SizedBox(height: 16),
               TextButton(
                 onPressed: () => context.pop(),
@@ -500,6 +515,7 @@ class _SheetDownloadPageState extends ConsumerState<SheetDownloadPage> {
     required String sheetName,
     required Future<Uint8List> Function(String, String, String) apiCall,
     required String defaultFileName,
+    bool excelOnly = false,
   }) {
     return SelectCard(
       icon: Icon(icon),
@@ -511,6 +527,7 @@ class _SheetDownloadPageState extends ConsumerState<SheetDownloadPage> {
           sheetName: sheetName,
           apiCall: apiCall,
           defaultFileName: defaultFileName,
+          excelOnly: excelOnly,
         );
       },
     );
@@ -724,108 +741,177 @@ class _SheetDownloadPageState extends ConsumerState<SheetDownloadPage> {
               ),
               // Grid of report cards
               Expanded(
-                child: GridView.count(
-                  physics: const BouncingScrollPhysics(),
-                  crossAxisCount: 2,
-                  mainAxisSpacing: 20,
-                  crossAxisSpacing: 20,
-                  childAspectRatio: 1,
-                  padding: const EdgeInsets.fromLTRB(16, 0, 16, 16),
-                  children: [
-                    sheetButton(
-                      label: "Measurement Sheet",
-                      icon: Icons.straighten,
-                      sheetName: "Measurement Sheet",
-                      apiCall: (fromDate, toDate, format) =>
-                          DprApi.fetchMeasurementSheet(
-                        siteId: siteId,
-                        fromDate: fromDate,
-                        toDate: toDate,
-                        format: format,
-                        workType: type,
-                      ),
-                      defaultFileName: "measurement_sheet",
-                    ),
-                    sheetButton(
-                      label: "Abstract Sheet",
-                      icon: Icons.calculate,
-                      sheetName: "Calculation Sheet",
-                      apiCall: (fromDate, toDate, format) =>
-                          DprApi.fetchMeasurementCalculationSheet(
-                        siteId: siteId,
-                        fromDate: fromDate,
-                        toDate: toDate,
-                        format: format,
-                        workType: type,
-                      ),
-                      defaultFileName: "Abstract sheet",
-                    ),
-                    sheetButton(
-                      label: "Summary Sheet",
-                      icon: Icons.summarize,
-                      sheetName: "Summary Sheet",
-                      apiCall: (fromDate, toDate, format) =>
-                          DprApi.fetchSummarySheet(
-                        siteId: siteId,
-                        fromDate: fromDate,
-                        toDate: toDate,
-                        format: format,
-                        workType: type,
-                      ),
-                      defaultFileName: "summary_sheet",
-                    ),
-                    sheetButton(
-                      label: "Invoice Sheet",
-                      icon: Icons.receipt_long,
-                      sheetName: "Invoice Sheet",
-                      apiCall: (fromDate, toDate, format) =>
-                          DprApi.fetchInvoiceSheet(
-                        siteId: siteId,
-                        fromDate: fromDate,
-                        toDate: toDate,
-                        format: format,
-                        workType: type,
-                      ),
-                      defaultFileName: "invoice_sheet",
-                    ),
-                    SelectCard(
-                      icon: const Icon(Icons.description),
-                      label: "Description Sheet",
-                      onTap: () async {
-                        final sid = ref.read(selectedSiteIdProvider);
-                        final selectedTeam = ref.read(selectedTeamProvider);
-
-                        if (sid == null) {
-                          ScaffoldMessenger.of(context).showSnackBar(
-                            const SnackBar(
-                              content: Text(
-                                "Please select a site from the home screen dropdown",
-                              ),
-                              backgroundColor: Colors.orange,
-                              behavior: SnackBarBehavior.floating,
-                              duration: Duration(seconds: 2),
+                child: type == 'structure_work'
+                    ? GridView.count(
+                        physics: const BouncingScrollPhysics(),
+                        crossAxisCount: 2,
+                        mainAxisSpacing: 20,
+                        crossAxisSpacing: 20,
+                        childAspectRatio: 1,
+                        padding: const EdgeInsets.fromLTRB(16, 0, 16, 16),
+                        children: [
+                          sheetButton(
+                            label: "Measurement Sheet",
+                            icon: Icons.straighten,
+                            sheetName: "Structure Measurement",
+                            apiCall: (fromDate, toDate, format) =>
+                                DPRStructureRepository().downloadSheet(
+                              siteId,
+                              fromDate: fromDate,
+                              toDate: toDate,
+                              sheetType: 'measurement',
+                              format: format,
                             ),
-                          );
-                          return;
-                        }
+                            defaultFileName: "structure_measurement",
+                          ),
+                          sheetButton(
+                            label: "Abstract Sheet",
+                            icon: Icons.calculate,
+                            sheetName: "Structure Abstract",
+                            apiCall: (fromDate, toDate, format) =>
+                                DPRStructureRepository().downloadSheet(
+                              siteId,
+                              fromDate: fromDate,
+                              toDate: toDate,
+                              sheetType: 'abstract',
+                              format: format,
+                            ),
+                            defaultFileName: "structure_abstract",
+                          ),
+                          sheetButton(
+                            label: "Summary Sheet",
+                            icon: Icons.summarize,
+                            sheetName: "Structure Summary",
+                            apiCall: (fromDate, toDate, format) =>
+                                DPRStructureRepository().downloadSheet(
+                              siteId,
+                              fromDate: fromDate,
+                              toDate: toDate,
+                              sheetType: 'summary',
+                              format: format,
+                            ),
+                            defaultFileName: "structure_summary",
+                          ),
+                          sheetButton(
+                            label: "Detailed DPR",
+                            icon: Icons.table_rows,
+                            sheetName: "Structure Detailed DPR",
+                            excelOnly: true,
+                            apiCall: (fromDate, toDate, format) =>
+                                DPRStructureRepository().downloadSheet(
+                              siteId,
+                              fromDate: fromDate,
+                              toDate: toDate,
+                              sheetType: 'detailed',
+                              format: format,
+                            ),
+                            defaultFileName: "structure_detailed_dpr",
+                          ),
+                        ],
+                      )
+                    : GridView.count(
+                        physics: const BouncingScrollPhysics(),
+                        crossAxisCount: 2,
+                        mainAxisSpacing: 20,
+                        crossAxisSpacing: 20,
+                        childAspectRatio: 1,
+                        padding: const EdgeInsets.fromLTRB(16, 0, 16, 16),
+                        children: [
+                          sheetButton(
+                            label: "Measurement Sheet",
+                            icon: Icons.straighten,
+                            sheetName: "Measurement Sheet",
+                            apiCall: (fromDate, toDate, format) =>
+                                DprApi.fetchMeasurementSheet(
+                              siteId: siteId,
+                              fromDate: fromDate,
+                              toDate: toDate,
+                              format: format,
+                              workType: type,
+                            ),
+                            defaultFileName: "measurement_sheet",
+                          ),
+                          sheetButton(
+                            label: "Abstract Sheet",
+                            icon: Icons.calculate,
+                            sheetName: "Calculation Sheet",
+                            apiCall: (fromDate, toDate, format) =>
+                                DprApi.fetchMeasurementCalculationSheet(
+                              siteId: siteId,
+                              fromDate: fromDate,
+                              toDate: toDate,
+                              format: format,
+                              workType: type,
+                            ),
+                            defaultFileName: "Abstract sheet",
+                          ),
+                          sheetButton(
+                            label: "Summary Sheet",
+                            icon: Icons.summarize,
+                            sheetName: "Summary Sheet",
+                            apiCall: (fromDate, toDate, format) =>
+                                DprApi.fetchSummarySheet(
+                              siteId: siteId,
+                              fromDate: fromDate,
+                              toDate: toDate,
+                              format: format,
+                              workType: type,
+                            ),
+                            defaultFileName: "summary_sheet",
+                          ),
+                          sheetButton(
+                            label: "Invoice Sheet",
+                            icon: Icons.receipt_long,
+                            sheetName: "Invoice Sheet",
+                            apiCall: (fromDate, toDate, format) =>
+                                DprApi.fetchInvoiceSheet(
+                              siteId: siteId,
+                              fromDate: fromDate,
+                              toDate: toDate,
+                              format: format,
+                              workType: type,
+                            ),
+                            defaultFileName: "invoice_sheet",
+                          ),
+                          SelectCard(
+                            icon: const Icon(Icons.description),
+                            label: "Description Sheet",
+                            onTap: () async {
+                              final sid = ref.read(selectedSiteIdProvider);
+                              final selectedTeam =
+                                  ref.read(selectedTeamProvider);
 
-                        final teamName = selectedTeam != null
-                            ? selectedTeam.teamName
-                            : 'no-team';
+                              if (sid == null) {
+                                ScaffoldMessenger.of(context).showSnackBar(
+                                  const SnackBar(
+                                    content: Text(
+                                      "Please select a site from the home screen dropdown",
+                                    ),
+                                    backgroundColor: Colors.orange,
+                                    behavior: SnackBarBehavior.floating,
+                                    duration: Duration(seconds: 2),
+                                  ),
+                                );
+                                return;
+                              }
 
-                        context.push(
-                          '/dpr-work-list/$sid/$teamName',
-                          extra: {
-                            'startDate':
-                                _selectedStartDate ?? widget.selectedStartDate,
-                            'endDate':
-                                _selectedEndDate ?? widget.selectedEndDate,
-                          },
-                        );
-                      },
-                    ),
-                  ],
-                ),
+                              final teamName = selectedTeam != null
+                                  ? selectedTeam.teamName
+                                  : 'no-team';
+
+                              context.push(
+                                '/dpr-work-list/$sid/$teamName',
+                                extra: {
+                                  'startDate': _selectedStartDate ??
+                                      widget.selectedStartDate,
+                                  'endDate': _selectedEndDate ??
+                                      widget.selectedEndDate,
+                                },
+                              );
+                            },
+                          ),
+                        ],
+                      ),
               ),
             ],
           ),
@@ -913,7 +999,7 @@ class _FormatTile extends StatelessWidget {
   final String title;
   final String subtitle;
   final bool isSelected;
-  final VoidCallback onTap;
+  final VoidCallback? onTap;
 
   const _FormatTile({
     required this.icon,
@@ -921,7 +1007,7 @@ class _FormatTile extends StatelessWidget {
     required this.title,
     required this.subtitle,
     required this.isSelected,
-    required this.onTap,
+    this.onTap,
   });
 
   @override

@@ -22,6 +22,7 @@ import 'package:untitled2/features/tour/domain/tour_presistent.dart';
 import 'package:untitled2/features/tour/domain/tour_registery.dart';
 import 'package:untitled2/features/tour/registry/site_registry.dart';
 import 'package:untitled2/typeProvider/type_provider.dart';
+import 'package:untitled2/typeProvider/work_type.dart';
 import 'widgets/access_overlay.dart';
 import 'module_preferences.dart';
 
@@ -270,14 +271,34 @@ class _ModuleScreenV2State extends ConsumerState<ModuleScreenV2> with SingleTick
     ModuleItem(labelKey: 'inventory_entry_card', icon: Icons.inventory_2_rounded, iconColor: Colors.teal, routeName: "/site-list/inv-entry"),
   ];
 
-  final List<ModuleItem> _setupModules = [
-    ModuleItem(labelKey: 'site_details_card', icon: Icons.location_city_rounded, iconColor: Colors.cyan, routeName: "/site"),
-    ModuleItem(labelKey: 'rate_card', icon: Icons.currency_rupee_rounded, iconColor: Colors.amber, routeName: "/site-list/rate"),
-    ModuleItem(labelKey: 'manpower_details_card', icon: Icons.engineering_rounded, iconColor: Colors.deepOrange, routeName: "/manpower"),
-    ModuleItem(labelKey: 'create_team_card', icon: Icons.groups_rounded, iconColor: Colors.purple, routeName: "/site-list/team"),
-    ModuleItem(labelKey: 'dpr_setup_card', icon: Icons.settings_suggest_rounded, iconColor: Colors.blueGrey, routeName: "/site-list/addMoc"),
-    ModuleItem(labelKey: 'inventory_setup_card', icon: Icons.warehouse_rounded, iconColor: Colors.brown, routeName: "/site-list/inv-setup"),
-  ];
+  List<ModuleItem> get _setupModules {
+    final type = ref.watch(typeProvider);
+    
+    final base = [
+      ModuleItem(labelKey: 'site_details_card', icon: Icons.location_city_rounded, iconColor: Colors.cyan, routeName: "/site"),
+      ModuleItem(labelKey: 'manpower_details_card', icon: Icons.engineering_rounded, iconColor: Colors.deepOrange, routeName: "/manpower"),
+      ModuleItem(labelKey: 'create_team_card', icon: Icons.groups_rounded, iconColor: Colors.purple, routeName: "/site-list/team"),
+      ModuleItem(labelKey: 'inventory_setup_card', icon: Icons.warehouse_rounded, iconColor: Colors.brown, routeName: "/site-list/inv-setup"),
+    ];
+
+    if (type == 'structure_work' || type == WorkType.structure.apiValue) {
+      return [
+        ...base,
+        ModuleItem(
+          labelKey: 'structure_boq_card', 
+          icon: Icons.table_rows_rounded, 
+          iconColor: const Color(0xFF7B3F00), 
+          routeName: "/site-list/structure-boq",
+        ),
+      ];
+    }
+
+    return [
+      ...base,
+      ModuleItem(labelKey: 'rate_card', icon: Icons.currency_rupee_rounded, iconColor: Colors.amber, routeName: "/site-list/rate"),
+      ModuleItem(labelKey: 'dpr_setup_card', icon: Icons.settings_suggest_rounded, iconColor: Colors.blueGrey, routeName: "/site-list/addMoc"),
+    ];
+  }
 
   final List<ModuleItem> _reportModules = [
     ModuleItem(labelKey: 'summary_analysis_card', icon: Icons.analytics_rounded, iconColor: Colors.blue, routeName: "/summary"),
