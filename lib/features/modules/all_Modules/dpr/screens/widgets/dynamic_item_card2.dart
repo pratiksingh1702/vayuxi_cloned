@@ -93,6 +93,7 @@ class _DynamicItemCard2State extends State<DynamicItemCard2>
   late TextEditingController _floorCtrl;
   late TextEditingController _mocCtrl;
   final Map<String, TextEditingController> _controllers = {};
+  final Map<String, TextEditingController> _labelControllers = {};
   late TextEditingController _uomCtrl;
   late FocusNode _lengthFocusNode;
   bool _isEditingLength = false;
@@ -122,8 +123,13 @@ class _DynamicItemCard2State extends State<DynamicItemCard2>
     _mocCtrl = TextEditingController(text: widget.moc);
 
     for (final f in widget.fields) {
-      _controllers[f.key] = TextEditingController(text: "");
+      _controllers.putIfAbsent(
+        f.key,
+        () => TextEditingController(text: ""),
+      );
     }
+
+    _seedEditControllers();
 
     _qtyCtrl.addListener(() {
       if (_qtyCtrl.text != widget.quantity) widget.onQtyChanged(_qtyCtrl.text);
@@ -162,6 +168,27 @@ class _DynamicItemCard2State extends State<DynamicItemCard2>
     draftFields = widget.fields.map((e) => e.copy()).toList();
   }
 
+  void _seedEditControllers() {
+    if (!widget.isEditMode) return;
+    for (final field in draftFields) {
+      final valueController = _controllers.putIfAbsent(
+        field.key,
+        () => TextEditingController(text: field.displayText),
+      );
+      if (valueController.text != field.displayText) {
+        valueController.text = field.displayText;
+      }
+
+      final labelController = _labelControllers.putIfAbsent(
+        field.key,
+        () => TextEditingController(text: field.label),
+      );
+      if (labelController.text != field.label) {
+        labelController.text = field.label;
+      }
+    }
+  }
+
   @override
   void didUpdateWidget(DynamicItemCard2 oldWidget) {
     super.didUpdateWidget(oldWidget);
@@ -169,6 +196,7 @@ class _DynamicItemCard2State extends State<DynamicItemCard2>
     // Reset draft when entering edit mode
     if (widget.isEditMode && !oldWidget.isEditMode) {
       _initDraft();
+      _seedEditControllers();
     }
 
     if (widget.image != oldWidget.image) {
@@ -255,7 +283,17 @@ class _DynamicItemCard2State extends State<DynamicItemCard2>
       field.key,
       () => TextEditingController(text: field.displayText),
     );
-    final labelController = TextEditingController(text: field.label);
+    if (valueController.text != field.displayText) {
+      valueController.text = field.displayText;
+    }
+
+    final labelController = _labelControllers.putIfAbsent(
+      field.key,
+      () => TextEditingController(text: field.label),
+    );
+    if (labelController.text != field.label) {
+      labelController.text = field.label;
+    }
 
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
@@ -278,7 +316,7 @@ class _DynamicItemCard2State extends State<DynamicItemCard2>
             ),
             style: const TextStyle(fontSize: 9, fontWeight: FontWeight.w600),
             onChanged: (v) {
-              setState(() => draftFields[index] = field.copyWith(label: v));
+              draftFields[index] = field.copyWith(label: v);
               _notifyResultChanged();
             },
           ),
@@ -302,8 +340,7 @@ class _DynamicItemCard2State extends State<DynamicItemCard2>
             ),
             style: const TextStyle(fontSize: 8),
             onChanged: (v) {
-              setState(
-                  () => draftFields[index] = field.copyWith(displayText: v));
+              draftFields[index] = field.copyWith(displayText: v);
               _notifyResultChanged();
             },
           ),
@@ -313,7 +350,12 @@ class _DynamicItemCard2State extends State<DynamicItemCard2>
           alignment: Alignment.centerRight,
           child: GestureDetector(
             onTap: () {
-              setState(() => draftFields.removeAt(index));
+              final removed = draftFields[index];
+              setState(() {
+                draftFields.removeAt(index);
+                _labelControllers.remove(removed.key)?.dispose();
+                _controllers.remove(removed.key)?.dispose();
+              });
               _notifyResultChanged();
             },
             child: Icon(Icons.delete_outline, size: 14, color: cs.error),
@@ -815,6 +857,9 @@ class _DynamicItemCard2State extends State<DynamicItemCard2>
     _uomCtrl.dispose();
     _lengthFocusNode.dispose();
     for (final c in _controllers.values) {
+      c.dispose();
+    }
+    for (final c in _labelControllers.values) {
       c.dispose();
     }
     super.dispose();

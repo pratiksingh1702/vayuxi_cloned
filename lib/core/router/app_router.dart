@@ -13,6 +13,9 @@ import 'package:untitled2/features/modules/all_Modules/summary/screens/summaru_s
 import '../../features/modules/all_Modules/structure_work/boq/screens/boq_structure_dashboard.dart';
 import '../../features/modules/all_Modules/structure_work/dpr/screens/dpr_structure_list_screen.dart';
 import '../../features/modules/all_Modules/structure_work/reports/structure_sheet_download_page.dart';
+import '../../features/modules/all_Modules/structure_work/dpr_setup/screens/dpr_setup_list_screen.dart';
+import '../../features/modules/all_Modules/structure_work/dpr_setup/screens/create_assembly_card_screen.dart';
+import '../../features/modules/all_Modules/structure_work/dpr_setup/isar/assembly_card_isar.dart';
 
 import '../../features/auth/onboarding/screens/onboarding_screen.dart';
 import '../../features/auth/onboarding/screens/pla_Select_Screen.dart';
@@ -352,6 +355,9 @@ final appRouterProvider = Provider<GoRouter>((ref) {
               case 'structure-boq':
                 screen = BOQStructureDashboard(
                     siteId: site.id, siteName: site.siteName);
+                break;
+              case 'structure-dpr-setup':
+                screen = DPRSetupListScreen(site: site);
                 break;
               case 'attendance':
                 screen = AttendanceScreen();
@@ -746,9 +752,20 @@ final appRouterProvider = Provider<GoRouter>((ref) {
         path: '/structure-dpr/:siteId',
         builder: (context, state) {
           final siteId = state.pathParameters['siteId']!;
-          final siteName = (state.extra as Map<String, dynamic>?)?['siteName'] ?? '';
-          _logRoute('DprStructureListScreen', path: state.uri.toString(), extra: {'siteId': siteId});
+          final siteName =
+              (state.extra as Map<String, dynamic>?)?['siteName'] ?? '';
+          _logRoute('DprStructureListScreen',
+              path: state.uri.toString(), extra: {'siteId': siteId});
           return DprStructureListScreen(siteId: siteId, siteName: siteName);
+        },
+      ),
+      GoRoute(
+        path: Routes.createAssemblyCard,
+        builder: (context, state) {
+          final data = state.extra as Map<String, dynamic>;
+          final site = data['site'] as SiteModel;
+          final card = data['card'] as AssemblyCardIsar?;
+          return CreateAssemblyCardScreen(site: site, card: card);
         },
       ),
 

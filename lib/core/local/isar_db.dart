@@ -14,6 +14,8 @@ import '../../features/modules/all_Modules/inventory/offline/isar/inventory_isar
 import '../../features/modules/all_Modules/team/offline/isar/team_isar.dart';
 import '../../features/noti_system/updates/data/models/notification_isar.dart';
 import '../../features/profile_page/offline/isar/user_isar.dart';
+import '../../features/modules/all_Modules/structure_work/dpr_setup/isar/assembly_card_isar.dart';
+import '../../features/modules/all_Modules/structure_work/boq/isar/boq_structure_isar.dart';
 
 class AppIsarDB {
   static Isar? _isar;
@@ -53,6 +55,9 @@ class AppIsarDB {
       ManpowerIsarSchema,
       UpdateNotificationIsarSchema,
       UserIsarSchema,
+      AssemblyCardIsarSchema,
+      BOQStructureIsarSchema,
+      BOQItemIsarSchema,
     ];
 
     for (final s in schemas) {

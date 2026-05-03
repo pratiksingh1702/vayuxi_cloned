@@ -1579,7 +1579,7 @@ class _AllMaterialsScreenState extends ConsumerState<AllMaterialsScreen>
     final displayMaterials = _effectiveOrderForCategory(category, materials);
 
     if (displayMaterials.isEmpty) {
-      return _buildEmptyCategoryState(emptyMessage);
+      return const SizedBox.shrink();
     }
 
     return Column(
@@ -1987,7 +1987,6 @@ class _AllMaterialsScreenState extends ConsumerState<AllMaterialsScreen>
               ),
             ),
           ),
-     
         ],
       ),
     );
@@ -2388,12 +2387,7 @@ class _AllMaterialsScreenState extends ConsumerState<AllMaterialsScreen>
               },
               onEdit: isInteractionLocked
                   ? null
-                  : () {
-                      setState(() {
-                        editingMaterialId = material.id;
-                        draftCategoryId = material.calculationCategory;
-                      });
-                    },
+                  : () => _openEquipmentEditOverlay(material, rateUploadId),
               onDelete: editingMaterialId != null ||
                       rateUploadId == null ||
                       isInteractionLocked

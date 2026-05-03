@@ -135,7 +135,8 @@ class _MaterialEditOverlay extends ConsumerStatefulWidget {
       );
 
   @override
-  ConsumerState<_MaterialEditOverlay> createState() => _MaterialEditOverlayState();
+  ConsumerState<_MaterialEditOverlay> createState() =>
+      _MaterialEditOverlayState();
 }
 
 class _MaterialEditOverlayState extends ConsumerState<_MaterialEditOverlay> {
@@ -245,7 +246,8 @@ class _MaterialEditOverlayState extends ConsumerState<_MaterialEditOverlay> {
         "designation": designation,
         "calculationCategory": _draftCategoryId ?? originalCategory,
         "isApplied": false,
-        "dynamicFields": jsonEncode(_pendingResult!.fields.map((e) => e.toJson()).toList()),
+        "dynamicFields":
+            jsonEncode(_pendingResult!.fields.map((e) => e.toJson()).toList()),
         if (_pendingResult!.imageFile != null)
           "image": await MultipartFile.fromFile(
             _pendingResult!.imageFile!.path,
@@ -278,7 +280,8 @@ class _MaterialEditOverlayState extends ConsumerState<_MaterialEditOverlay> {
             behavior: SnackBarBehavior.floating,
           ),
         );
-        Navigator.of(context, rootNavigator: true).pop(true); // Pop with success flag
+        Navigator.of(context, rootNavigator: true)
+            .pop(true); // Pop with success flag
       }
     } catch (e) {
       debugPrint('❌ Overlay save failed: $e');
@@ -348,8 +351,7 @@ class _MaterialEditOverlayState extends ConsumerState<_MaterialEditOverlay> {
                               Row(
                                 children: [
                                   Icon(Icons.calculate_outlined,
-                                      size: 16,
-                                      color: Colors.grey.shade600),
+                                      size: 16, color: Colors.grey.shade600),
                                   const SizedBox(width: 6),
                                   Text(
                                     "Calculation Category",
@@ -460,7 +462,8 @@ class _MaterialEditOverlayState extends ConsumerState<_MaterialEditOverlay> {
         onChanged: (_, __) {},
         floor: '',
         ton: m.weight.toString(),
-        meter: m.length.toString(),
+        meter: m.uom,
+        length: m.length.toString(),
         onQtyChanged: (_) {},
         onTonChanged: (_) {},
         onFloorChanged: (_) {},
@@ -536,9 +539,8 @@ class _BottomActionBar extends StatelessWidget {
             child: ElevatedButton(
               onPressed: isSaving ? null : onSave,
               style: ElevatedButton.styleFrom(
-                backgroundColor: hasChanges
-                    ? const Color(0xFF218AE6)
-                    : Colors.grey.shade300,
+                backgroundColor:
+                    hasChanges ? const Color(0xFF218AE6) : Colors.grey.shade300,
                 elevation: 0,
                 padding: const EdgeInsets.symmetric(vertical: 14),
                 shape: RoundedRectangleBorder(
@@ -547,35 +549,34 @@ class _BottomActionBar extends StatelessWidget {
               ),
               child: isSaving
                   ? const SizedBox(
-                width: 18,
-                height: 18,
-                child: CircularProgressIndicator(
-                  strokeWidth: 2,
-                  color: Colors.white,
-                ),
-              )
+                      width: 18,
+                      height: 18,
+                      child: CircularProgressIndicator(
+                        strokeWidth: 2,
+                        color: Colors.white,
+                      ),
+                    )
                   : Row(
-                mainAxisAlignment: MainAxisAlignment.center,
-                children: [
-                  Icon(
-                    hasChanges
-                        ? Icons.check_circle_rounded
-                        : Icons.edit_outlined,
-                    size: 16,
-                    color: hasChanges ? Colors.white : Colors.grey,
-                  ),
-                  const SizedBox(width: 6),
-                  Text(
-                    hasChanges ? "Save Changes" : "Make Changes First",
-                    style: TextStyle(
-                      fontSize: 14,
-                      fontWeight: FontWeight.w600,
-                      color:
-                      hasChanges ? Colors.white : Colors.grey,
+                      mainAxisAlignment: MainAxisAlignment.center,
+                      children: [
+                        Icon(
+                          hasChanges
+                              ? Icons.check_circle_rounded
+                              : Icons.edit_outlined,
+                          size: 16,
+                          color: hasChanges ? Colors.white : Colors.grey,
+                        ),
+                        const SizedBox(width: 6),
+                        Text(
+                          hasChanges ? "Save Changes" : "Make Changes First",
+                          style: TextStyle(
+                            fontSize: 14,
+                            fontWeight: FontWeight.w600,
+                            color: hasChanges ? Colors.white : Colors.grey,
+                          ),
+                        ),
+                      ],
                     ),
-                  ),
-                ],
-              ),
             ),
           ),
         ],

@@ -1036,7 +1036,6 @@ class _AddDescriptionScreenState extends ConsumerState<AddDescriptionScreen>
     );
   }
 
-
   // _________MATERIAL  FUNCTIONS_______ //
   String generateObjectId() {
     final seconds = (DateTime.now().millisecondsSinceEpoch ~/ 1000)
@@ -1661,10 +1660,8 @@ class _AddDescriptionScreenState extends ConsumerState<AddDescriptionScreen>
                         const SizedBox(height: 16),
                         _buildDprInfoCard(shouldShowDropdown),
                         const SizedBox(height: 16),
-
                         _buildSearchAndFilterRow(),
                         const SizedBox(height: 16),
-
                         Column(
                           key: _materialsRebuildKey,
                           children: [
@@ -1674,21 +1671,16 @@ class _AddDescriptionScreenState extends ConsumerState<AddDescriptionScreen>
                               const SizedBox(height: 16),
                             ],
                             if (equipmentToDisplay.isNotEmpty) ...[
-                              _buildSectionHeader('Equipment',
-                                  Icons.precision_manufacturing),
+                              _buildSectionHeader(
+                                  'Equipment', Icons.precision_manufacturing),
                               ..._buildEquipmentMaterials(equipmentToDisplay),
                             ],
                             if (pipingToDisplay.isEmpty &&
-                                equipmentToDisplay.isEmpty)
-                              if (pipingMaterials.isEmpty &&
-                                  equipmentMaterials.isEmpty)
-                                _buildEmptyState(
-                                    'Materials will appear here once loaded',
-                                    Icons.downloading)
-                              else
-                                _buildEmptyState(
-                                    'No materials match your filters',
-                                    Icons.search_off),
+                                equipmentToDisplay.isEmpty &&
+                                hasActiveFilters)
+                              _buildEmptyState(
+                                  'No materials match your filters',
+                                  Icons.search_off),
                           ],
                         ),
                         const SizedBox(height: 100),
@@ -1703,7 +1695,6 @@ class _AddDescriptionScreenState extends ConsumerState<AddDescriptionScreen>
       ),
     );
   }
-
 
   Widget _buildAddDprMaterialButton() {
     final cs = Theme.of(context).colorScheme;
@@ -2325,7 +2316,6 @@ class _AddDescriptionScreenState extends ConsumerState<AddDescriptionScreen>
     );
   }
 
-
   bool get hasActiveFilters =>
       _searchQuery.isNotEmpty ||
       _filterTypes.isNotEmpty ||
@@ -2644,7 +2634,6 @@ class _AddDescriptionScreenState extends ConsumerState<AddDescriptionScreen>
       ),
     );
   }
-
 
   bool _hasMeaningfulMaterialValues(List<DynamicField> fields) {
     return fields.any((f) =>

@@ -1,6 +1,7 @@
 class BOQStructureItem {
   final String id;
   final String assemblyMark;
+  final String typeDescription;
   final double quantity;
   final double availableQty;
   final double? length;
@@ -15,6 +16,7 @@ class BOQStructureItem {
   BOQStructureItem({
     required this.id,
     required this.assemblyMark,
+    required this.typeDescription,
     required this.quantity,
     required this.availableQty,
     this.length,
@@ -31,6 +33,7 @@ class BOQStructureItem {
     return BOQStructureItem(
       id: json['_id']?.toString() ?? '',
       assemblyMark: json['assemblyMark']?.toString() ?? '',
+      typeDescription: json['typeDescription']?.toString() ?? '',
       quantity: (json['quantity'] as num?)?.toDouble() ?? 0,
       availableQty: (json['availableQty'] as num?)?.toDouble() ?? 0,
       length: (json['length'] as num?)?.toDouble(),
@@ -40,8 +43,7 @@ class BOQStructureItem {
       totalNetWeight: (json['totalNetWeight'] as num?)?.toDouble(),
       usedQty: (json['usedQty'] as num?)?.toDouble() ?? 0,
       remainingQty: (json['remainingQty'] as num?)?.toDouble() ?? 0,
-      progressPercentage:
-          (json['progressPercentage'] as num?)?.toDouble() ?? 0,
+      progressPercentage: (json['progressPercentage'] as num?)?.toDouble() ?? 0,
     );
   }
 }
@@ -109,10 +111,10 @@ class BOQStructure {
       totalItems: (json['totalItems'] as num?)?.toInt() ?? 0,
       usedQuantity: (json['usedQuantity'] as num?)?.toDouble() ?? 0,
       remainingQuantity: (json['remainingQuantity'] as num?)?.toDouble() ?? 0,
-      progressPercentage:
-          (json['progressPercentage'] as num?)?.toDouble() ?? 0,
+      progressPercentage: (json['progressPercentage'] as num?)?.toDouble() ?? 0,
       status: json['status']?.toString() ?? 'active',
-      uploadedAt: json['uploadedAt']?.toString() ?? json['createdAt']?.toString(),
+      uploadedAt:
+          json['uploadedAt']?.toString() ?? json['createdAt']?.toString(),
     );
   }
 

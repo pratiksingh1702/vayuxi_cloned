@@ -57,4 +57,6 @@ class Routes {
   static const deviceOtp = '/device-otp';
   static const String networkSettings = '/network-settings';
   static const String settings = '/settings';
+  static const String structureDprSetup = '/structure-dpr-setup';
+  static const String createAssemblyCard = '/create-assembly-card';
 }

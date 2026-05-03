@@ -99,6 +99,7 @@ class _testDynamicItemCardState extends State<testDynamicItemCard> {
   late TextEditingController _mocController;
   bool _isEditingLength = false;
   final Map<String, TextEditingController> _controllers = {};
+  final Map<String, TextEditingController> _labelControllers = {};
 
   late FocusNode _lengthFocusNode; // ✅ Renamed from _uomFocusNode
 
@@ -134,6 +135,8 @@ class _testDynamicItemCardState extends State<testDynamicItemCard> {
       _controllers[f.key] = TextEditingController(text: text);
     }
 
+    _seedEditControllers();
+
     // Initialize controllers with current values
     _quantityController = TextEditingController(text: widget.quantity);
     _sizeController = TextEditingController(text: widget.size);
@@ -164,6 +167,27 @@ class _testDynamicItemCardState extends State<testDynamicItemCard> {
     _mocController.addListener(_onMocChanged);
   }
 
+  void _seedEditControllers() {
+    if (!widget.isEditMode) return;
+    for (final field in draftFields) {
+      final valueController = _controllers.putIfAbsent(
+        field.key,
+        () => TextEditingController(text: field.displayText),
+      );
+      if (valueController.text != field.displayText) {
+        valueController.text = field.displayText;
+      }
+
+      final labelController = _labelControllers.putIfAbsent(
+        field.key,
+        () => TextEditingController(text: field.label),
+      );
+      if (labelController.text != field.label) {
+        labelController.text = field.label;
+      }
+    }
+  }
+
   @override
   void didUpdateWidget(covariant testDynamicItemCard oldWidget) {
     super.didUpdateWidget(oldWidget);
@@ -174,6 +198,7 @@ class _testDynamicItemCardState extends State<testDynamicItemCard> {
 
       draftUom = widget.lengthPlaceholder;
       draftFields = widget.fields.map((e) => e.copy()).toList();
+      _seedEditControllers();
     }
     if (widget.image != oldWidget.image) {
       draftImageUrl = widget.image;
@@ -367,7 +392,18 @@ class _testDynamicItemCardState extends State<testDynamicItemCard> {
       () => TextEditingController(text: field.displayText),
     );
 
-    final labelController = TextEditingController(text: field.label);
+    if (valueController.text != field.displayText) {
+      valueController.text = field.displayText;
+    }
+
+    final labelController = _labelControllers.putIfAbsent(
+      field.key,
+      () => TextEditingController(text: field.label),
+    );
+
+    if (labelController.text != field.label) {
+      labelController.text = field.label;
+    }
 
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
@@ -433,7 +469,12 @@ class _testDynamicItemCardState extends State<testDynamicItemCard> {
           alignment: Alignment.centerRight,
           child: GestureDetector(
             onTap: () {
-              setState(() => draftFields.removeAt(index));
+              final removed = draftFields[index];
+              setState(() {
+                draftFields.removeAt(index);
+                _labelControllers.remove(removed.key)?.dispose();
+                _controllers.remove(removed.key)?.dispose();
+              });
               _notifyResultChanged();
             },
             child: Icon(Icons.delete_outline, size: 14, color: cs.error),
@@ -919,6 +960,12 @@ class _testDynamicItemCardState extends State<testDynamicItemCard> {
     _floorController.dispose();
     _mocController.dispose();
     _lengthFocusNode.dispose();
+    for (final c in _controllers.values) {
+      c.dispose();
+    }
+    for (final c in _labelControllers.values) {
+      c.dispose();
+    }
     super.dispose();
   }
 }

@@ -1,0 +1,9 @@
+lib/features/modules/all_Modules/structure_work/boq/providers/saved_boq_provider.dart:3:8: Error: Error when reading 'lib/features/core/local/isar_db.dart': The system cannot find the path specified
+import '../../../../../core/local/isar_db.dart';
+       ^
+lib/features/modules/all_Modules/structure_work/boq/providers/saved_boq_provider.dart:36:17: Error: Undefined name 'AppIsarDB'.
+  final _isar = AppIsarDB.isar;
+                ^^^^^^^^^
+lib/features/modules/all_Modules/structure_work/boq/providers/saved_boq_provider.dart:177:36: Error: Undefined name 'boqStructureRepositoryProvider'.
+  return SavedBOQNotifier(ref.read(boqStructureRepositoryProvider));
+                                   ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
