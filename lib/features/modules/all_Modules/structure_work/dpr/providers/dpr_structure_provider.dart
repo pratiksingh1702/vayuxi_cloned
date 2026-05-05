@@ -90,6 +90,7 @@ class DPRStructureNotifier extends StateNotifier<DPRStructureState> {
     String siteId, {
     required String boqId,
     required List<Map<String, dynamic>> items,
+    String? dprName,
     DateTime? date,
     String? remarks,
     String? teamId,
@@ -100,6 +101,7 @@ class DPRStructureNotifier extends StateNotifier<DPRStructureState> {
         siteId,
         boqId: boqId,
         items: items,
+        dprName: dprName,
         date: date,
         remarks: remarks,
         teamId: teamId,
@@ -115,12 +117,43 @@ class DPRStructureNotifier extends StateNotifier<DPRStructureState> {
     }
   }
 
+  Future<bool> updateDPR(
+    String siteId,
+    String dprId, {
+    List<Map<String, dynamic>>? items,
+    String? remarks,
+    String? status,
+    bool replaceMode = false,
+  }) async {
+    state = state.copyWith(isSaving: true, clearError: true);
+    try {
+      final updatedDpr = await _repo.updateDPR(
+        siteId,
+        dprId,
+        items: items,
+        remarks: remarks,
+        status: status,
+        replaceMode: replaceMode,
+      );
+      final List<DPRStructure> updatedList =
+          state.dprs.map<DPRStructure>((d) => d.id == dprId ? updatedDpr : d).toList();
+      state = state.copyWith(
+        dprs: updatedList,
+        selectedDPR: updatedDpr,
+        isSaving: false,
+      );
+      return true;
+    } catch (e) {
+      state = state.copyWith(isSaving: false, error: _extractError(e));
+      return false;
+    }
+  }
+
   Future<bool> deleteDPR(String siteId, String dprId) async {
     state = state.copyWith(isSaving: true, clearError: true);
     try {
       await _repo.deleteDPR(siteId, dprId);
-      final updated =
-          state.dprs.where((d) => d.id != dprId).toList();
+      final updated = state.dprs.where((d) => d.id != dprId).toList();
       state = state.copyWith(dprs: updated, isSaving: false);
       return true;
     } catch (e) {

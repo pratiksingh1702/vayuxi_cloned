@@ -12,6 +12,9 @@ class AssemblyCardIsar {
   @Index()
   late String boqItemId;
 
+  @Index()
+  late String boqId;
+
   late String assemblyMark;
   late String description;
   late double quantity;

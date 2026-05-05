@@ -807,6 +807,13 @@ class _SheetDownloadPageState extends ConsumerState<SheetDownloadPage> {
                             ),
                             defaultFileName: "structure_detailed_dpr",
                           ),
+                          SelectCard(
+                            icon: const Icon(Icons.assignment_rounded),
+                            label: "DPR List",
+                            onTap: () {
+                              context.push('/structure-dpr-report/$siteId');
+                            },
+                          ),
                         ],
                       )
                     : GridView.count(

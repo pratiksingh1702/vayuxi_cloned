@@ -3,6 +3,7 @@ import 'package:isar_community/isar.dart';
 import '../../../../../../core/local/isar_db.dart';
 import '../../boq/models/boq_structure_model.dart';
 import '../../boq/providers/saved_boq_provider.dart';
+import '../models/dpr_structure_model.dart';
 import '../../dpr_setup/isar/assembly_card_isar.dart';
 
 class DprEntryState {
@@ -60,10 +61,6 @@ class DprEntryNotifier extends StateNotifier<DprEntryState> {
         selectedWorkName: workNames.isNotEmpty ? workNames.first : null,
         isLoading: false,
       );
-
-      if (state.selectedWorkName != null) {
-        loadCardsForWork(siteId, state.selectedWorkName!);
-      }
     } catch (e) {
       state = state.copyWith(isLoading: false, error: e.toString());
     }
@@ -143,7 +140,7 @@ class DprEntryNotifier extends StateNotifier<DprEntryState> {
       ..boqItemId = ''
       ..assemblyMark = ''
       ..description = ''
-      ..quantity = 0
+      ..quantity = 1 // Default quantity of 1
       ..availableQty = 0
       ..usedQty = 0
       ..remainingQty = 0
@@ -156,7 +153,7 @@ class DprEntryNotifier extends StateNotifier<DprEntryState> {
       ..createdAt = DateTime.now()
       ..isSynced = false;
 
-    state = state.copyWith(activeCards: [...state.activeCards, newCard]);
+    state = state.copyWith(activeCards: [newCard, ...state.activeCards]);
   }
 
   void setWorkName(String name) {
@@ -232,6 +229,31 @@ class DprEntryNotifier extends StateNotifier<DprEntryState> {
       }
     }
     return null;
+  }
+
+  /// Load active cards from an existing DPR model
+  void loadFromExistingDpr(DPRStructure dpr) {
+    final newCards = dpr.items.map((item) {
+      return AssemblyCardIsar()
+        ..siteId = dpr.siteId ?? ''
+        ..boqItemId = item.boqItemId ?? ''
+        ..assemblyMark = item.assemblyMark
+        ..description = '' // We might need to look this up if not in item
+        ..quantity = item.qtyUsed
+        ..availableQty = item.availableQty ?? 0
+        ..usedQty = 0 // Not strictly needed for the card UI but good to have
+        ..remainingQty = item.remainingQty ?? 0
+        ..length = item.length
+        ..width = item.width
+        ..height = item.height
+        ..netWeightPerUnit = item.netWeightPerUnit
+        ..totalNetWeight = item.totalNetWeight
+        ..progressPercentage = 0 // Not calculated here
+        ..createdAt = dpr.date ?? DateTime.now()
+        ..isSynced = true;
+    }).toList();
+
+    state = state.copyWith(activeCards: newCards);
   }
 
   AssemblyCardIsar _copyCard(

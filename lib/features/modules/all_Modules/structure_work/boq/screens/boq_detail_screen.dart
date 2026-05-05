@@ -3,6 +3,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import '../models/boq_structure_model.dart';
 import '../providers/boq_structure_provider.dart';
+import '../../../../../../core/utlis/widgets/premium_app_bar.dart';
 
 const _kBrown = Color(0xFF7B3F00);
 
@@ -60,22 +61,11 @@ class _BOQDetailScreenState extends ConsumerState<BOQDetailScreen> {
 
     return Scaffold(
       backgroundColor: isDark ? cs.surface : cs.surfaceContainerLowest,
-      appBar: AppBar(
-        backgroundColor: _kBrown,
-        foregroundColor: Colors.white,
-        elevation: 0,
-        title: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Text(widget.boq.boqName,
-                style: const TextStyle(
-                    fontSize: 15, fontWeight: FontWeight.w800,
-                    color: Colors.white)),
-            Text(widget.boq.boqNumber,
-                style: const TextStyle(
-                    fontSize: 11, color: Colors.white70)),
-          ],
-        ),
+      appBar: PremiumAppBar(
+        title: widget.boq.boqName,
+        subtitle: Text(widget.boq.boqNumber),
+        onDrawerPressed: () => context.pop(),
+        drawerIcon: Icons.arrow_back_ios_new_rounded,
       ),
       body: Column(
         children: [

@@ -9,6 +9,7 @@ class DPRStructureRepository {
     String siteId, {
     required String boqId,
     required List<Map<String, dynamic>> items,
+    String? dprName,
     DateTime? date,
     String? remarks,
     String? teamId,
@@ -22,11 +23,13 @@ class DPRStructureRepository {
         'boqItemId': e['boqItemId'] ?? e['boq_item_id'],
       }).toList(),
     };
+    if (dprName != null && dprName.isNotEmpty) body['dprName'] = dprName;
     if (date != null) body['date'] = date.toIso8601String();
     if (remarks != null && remarks.isNotEmpty) body['remarks'] = remarks;
     if (teamId != null && teamId.isNotEmpty) body['teamId'] = teamId;
 
-    final res = await DioClient.dio.post('/site/$siteId/dpr-structure', data: body);
+    final res =
+        await DioClient.dio.post('/site/$siteId/dpr-structure', data: body);
     return DPRStructure.fromJson(res.data['data'] as Map<String, dynamic>);
   }
 
@@ -63,8 +66,7 @@ class DPRStructureRepository {
 
   // GET /api/v1/site/{siteId}/dpr-structure/{dprId}
   Future<DPRStructure> getDPRDetail(String siteId, String dprId) async {
-    final res =
-        await DioClient.dio.get('/site/$siteId/dpr-structure/$dprId');
+    final res = await DioClient.dio.get('/site/$siteId/dpr-structure/$dprId');
     return DPRStructure.fromJson(res.data['data'] as Map<String, dynamic>);
   }
 
@@ -72,6 +74,33 @@ class DPRStructureRepository {
   Future<bool> deleteDPR(String siteId, String dprId) async {
     final res = await DioClient.dio.delete('/site/$siteId/dpr-structure/$dprId');
     return res.statusCode == 200;
+  }
+
+  // PUT /api/v1/site/{siteId}/dpr-structure/{dprId}
+  Future<DPRStructure> updateDPR(
+    String siteId,
+    String dprId, {
+    List<Map<String, dynamic>>? items,
+    String? remarks,
+    String? status,
+    bool replaceMode = false,
+  }) async {
+    final body = <String, dynamic>{
+      'replaceMode': replaceMode,
+    };
+    if (items != null) {
+      body['items'] = items.map((e) => {
+            'assemblyMark': e['assemblyMark'] ?? e['assembly_mark'],
+            'qtyUsed': e['qtyUsed'] ?? e['qty_used'],
+            'boqItemId': e['boqItemId'] ?? e['boq_item_id'],
+          }).toList();
+    }
+    if (remarks != null && remarks.isNotEmpty) body['remarks'] = remarks;
+    if (status != null && status.isNotEmpty) body['status'] = status;
+
+    final res = await DioClient.dio
+        .put('/site/$siteId/dpr-structure/$dprId', data: body);
+    return DPRStructure.fromJson(res.data['data'] as Map<String, dynamic>);
   }
 
   // GET /api/v1/site/{siteId}/structure-work/sheets

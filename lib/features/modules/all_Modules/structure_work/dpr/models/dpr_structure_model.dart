@@ -42,24 +42,17 @@ class DPRStructureItem {
   }
 }
 
-class _BOQRef {
-  final String id;
-  final String boqName;
-  final String? boqNumber;
-  _BOQRef({required this.id, required this.boqName, this.boqNumber});
-}
-
 class DPRStructure {
   final String id;
   final String dprName;
   final String dprNumber;
   final String? siteId;
   final String? siteName;
+  final String? company;
   final String? boqId;
   final String? boqName;
   final String? boqNumber;
-  final String? teamId;
-  final String? teamName;
+  final String? type;
   final List<DPRStructureItem> items;
   final double totalQtyUsed;
   final double totalNetWeight;
@@ -67,6 +60,9 @@ class DPRStructure {
   final String status;
   final String? remarks;
   final String? createdByName;
+  final DateTime? createdAt;
+  final String? teamId;
+  final String? teamName;
 
   DPRStructure({
     required this.id,
@@ -74,11 +70,11 @@ class DPRStructure {
     required this.dprNumber,
     this.siteId,
     this.siteName,
+    this.company,
     this.boqId,
     this.boqName,
     this.boqNumber,
-    this.teamId,
-    this.teamName,
+    this.type,
     required this.items,
     required this.totalQtyUsed,
     required this.totalNetWeight,
@@ -86,58 +82,68 @@ class DPRStructure {
     required this.status,
     this.remarks,
     this.createdByName,
+    this.createdAt,
+    this.teamId,
+    this.teamName,
   });
 
   factory DPRStructure.fromJson(Map<String, dynamic> json) {
-    // BOQ
-    final boqData = json['boqId'];
-    String? boqId, boqName, boqNumber;
-    if (boqData is Map) {
-      boqId = boqData['_id']?.toString();
-      boqName = boqData['boqName']?.toString();
-      boqNumber = boqData['boqNumber']?.toString();
-    } else {
-      boqId = boqData?.toString();
-    }
-
-    // Site
+    // Site Handling
     final siteData = json['siteId'];
-    String? siteId, siteName;
+    String? sId, sName;
     if (siteData is Map) {
-      siteId = siteData['_id']?.toString();
-      siteName = siteData['siteName']?.toString();
+      sId = siteData['_id']?.toString();
+      sName = siteData['siteName']?.toString();
     } else {
-      siteId = siteData?.toString();
+      sId = siteData?.toString();
     }
 
-    // Team
+    // BOQ Handling
+    final boqData = json['boqId'];
+    String? bId, bName, bNumber;
+    if (boqData is Map) {
+      bId = boqData['_id']?.toString();
+      bName = boqData['boqName']?.toString();
+      bNumber = boqData['boqNumber']?.toString();
+    } else {
+      bId = boqData?.toString();
+    }
+
+    // Team Handling
     final teamData = json['teamId'];
-    String? teamId, teamName;
+    String? tId, tName;
     if (teamData is Map) {
-      teamId = teamData['_id']?.toString();
-      teamName = teamData['teamName']?.toString();
+      tId = teamData['_id']?.toString();
+      tName = teamData['teamName']?.toString();
     } else {
-      teamId = teamData?.toString();
+      tId = teamData?.toString();
     }
 
-    // createdBy
+    // CreatedBy Handling
     final createdByData = json['createdBy'];
-    String? createdByName;
+    String? cByName;
     if (createdByData is Map) {
-      createdByName = createdByData['fullName']?.toString();
+      cByName = createdByData['fullName']?.toString();
     }
 
     final rawItems = json['items'];
-    final items = rawItems is List
+    final itemsList = rawItems is List
         ? rawItems
             .map((e) => DPRStructureItem.fromJson(e as Map<String, dynamic>))
             .toList()
         : <DPRStructureItem>[];
 
-    DateTime? date;
+    DateTime? dprDate;
     if (json['date'] != null) {
       try {
-        date = DateTime.parse(json['date'].toString());
+        dprDate = DateTime.parse(json['date'].toString());
+      } catch (_) {}
+    }
+
+    DateTime? createdDate;
+    if (json['createdAt'] != null) {
+      try {
+        createdDate = DateTime.parse(json['createdAt'].toString());
       } catch (_) {}
     }
 
@@ -145,20 +151,23 @@ class DPRStructure {
       id: json['_id']?.toString() ?? '',
       dprName: json['dprName']?.toString() ?? '',
       dprNumber: json['dprNumber']?.toString() ?? '',
-      siteId: siteId,
-      siteName: siteName,
-      boqId: boqId,
-      boqName: boqName,
-      boqNumber: boqNumber,
-      teamId: teamId,
-      teamName: teamName,
-      items: items,
+      siteId: sId,
+      siteName: sName,
+      company: json['company']?.toString(),
+      boqId: bId,
+      boqName: bName,
+      boqNumber: bNumber,
+      type: json['type']?.toString(),
+      items: itemsList,
       totalQtyUsed: (json['totalQtyUsed'] as num?)?.toDouble() ?? 0,
       totalNetWeight: (json['totalNetWeight'] as num?)?.toDouble() ?? 0,
-      date: date,
+      date: dprDate,
       status: json['status']?.toString() ?? 'submitted',
       remarks: json['remarks']?.toString(),
-      createdByName: createdByName,
+      createdByName: cByName,
+      createdAt: createdDate,
+      teamId: tId,
+      teamName: tName,
     );
   }
 }

@@ -64,11 +64,11 @@ class _CreateAssemblyCardScreenState
     super.dispose();
   }
 
-  void _onBoqItemPicked(BOQStructureItem item, String boqName) {
+  void _onBoqItemPicked(BOQStructureItem item, String boqId, String boqName) {
     ref
         .read(assemblyCardConfigProvider(
             {'siteId': widget.site.id, 'card': widget.card}).notifier)
-        .selectBoqItem(item, boqName);
+        .selectBoqItem(item, boqId, boqName);
 
     // Update local text controllers to reflect new state
     _markController.text = item.assemblyMark;
@@ -368,7 +368,7 @@ class _CreateAssemblyCardScreenState
                             size: 28,
                             color: Theme.of(context).colorScheme.primary),
                         onTap: () {
-                          _onBoqItemPicked(item, boq.boqName);
+                          _onBoqItemPicked(item, boq.id, boq.boqName);
                           Navigator.pop(context);
                         },
                       ),

@@ -1,9 +1,135 @@
-lib/features/modules/all_Modules/structure_work/boq/providers/saved_boq_provider.dart:3:8: Error: Error when reading 'lib/features/core/local/isar_db.dart': The system cannot find the path specified
-import '../../../../../core/local/isar_db.dart';
-       ^
-lib/features/modules/all_Modules/structure_work/boq/providers/saved_boq_provider.dart:36:17: Error: Undefined name 'AppIsarDB'.
-  final _isar = AppIsarDB.isar;
-                ^^^^^^^^^
-lib/features/modules/all_Modules/structure_work/boq/providers/saved_boq_provider.dart:177:36: Error: Undefined name 'boqStructureRepositoryProvider'.
-  return SavedBOQNotifier(ref.read(boqStructureRepositoryProvider));
-                                   ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+Launching lib\main.dart on RMX5250 (wireless) in debug mode...
+lib/features/modules/all_Modules/structure_work/dpr/screens/dpr_structure_create_screen.dart:616:5: Error: Expected a declaration, but got '}'.
+  } }
+    ^
+lib/features/modules/all_Modules/structure_work/dpr/screens/dpr_structure_create_screen.dart:862:1: Error: Expected a declaration, but got '}'.
+}
+^
+lib/features/modules/all_Modules/structure_work/dpr/screens/dpr_structure_create_screen.dart:556:27: Error: Undefined name '_latestDpr'.
+    final existingItems = _latestDpr?.items ?? [];
+                          ^^^^^^^^^^
+lib/features/modules/all_Modules/structure_work/dpr/screens/dpr_structure_create_screen.dart:590:15: Error: Undefined name 'ref'.
+              ref.read(dprEntryProvider.notifier).updateCard(index, mark, qty);
+              ^^^
+lib/features/modules/all_Modules/structure_work/dpr/screens/dpr_structure_create_screen.dart:593:15: Error: Undefined name 'ref'.
+              ref.read(dprEntryProvider.notifier).removeCard(index);
+              ^^^
+lib/features/modules/all_Modules/structure_work/dpr/screens/dpr_structure_create_screen.dart:625:16: Error: Undefined name 'context'.
+      context: context,
+               ^^^^^^^
+lib/features/modules/all_Modules/structure_work/dpr/screens/dpr_structure_create_screen.dart:703:31: Error: Undefined name 'mounted'.
+    if (confirmed != true || !mounted) return;
+                              ^^^^^^^
+lib/features/modules/all_Modules/structure_work/dpr/screens/dpr_structure_create_screen.dart:712:15: Error: Undefined name 'ref'.
+        await ref.read(dprStructureProvider.notifier).updateDPR(
+              ^^^
+lib/features/modules/all_Modules/structure_work/dpr/screens/dpr_structure_create_screen.dart:713:15: Error: Undefined name 'widget'.
+              widget.siteId,
+              ^^^^^^
+lib/features/modules/all_Modules/structure_work/dpr/screens/dpr_structure_create_screen.dart:714:15: Error: Undefined name '_selectedDprId'.
+              _selectedDprId!,
+              ^^^^^^^^^^^^^^
+lib/features/modules/all_Modules/structure_work/dpr/screens/dpr_structure_create_screen.dart:725:20: Error: Undefined name 'mounted'.
+    if (success && mounted) {
+                   ^^^^^^^
+lib/features/modules/all_Modules/structure_work/dpr/screens/dpr_structure_create_screen.dart:729:31: Error: Undefined name '_selectedDate'.
+      await _fetchDprsForDate(_selectedDate);
+                              ^^^^^^^^^^^^^
+lib/features/modules/all_Modules/structure_work/dpr/screens/dpr_structure_create_screen.dart:729:13: Error: Method not found: '_fetchDprsForDate'.
+      await _fetchDprsForDate(_selectedDate);
+            ^^^^^^^^^^^^^^^^^
+lib/features/modules/all_Modules/structure_work/dpr/screens/dpr_structure_create_screen.dart:730:16: Error: Undefined name 'mounted'.
+    } else if (mounted) {
+               ^^^^^^^
+lib/features/modules/all_Modules/structure_work/dpr/screens/dpr_structure_create_screen.dart:731:21: Error: Undefined name 'ref'.
+      final error = ref.read(dprStructureProvider).error;
+                    ^^^
+lib/features/modules/all_Modules/structure_work/dpr/screens/dpr_structure_create_screen.dart:737:24: Error: Undefined name 'ref'.
+    final entryState = ref.read(dprEntryProvider);
+                       ^^^
+lib/features/modules/all_Modules/structure_work/dpr/screens/dpr_structure_create_screen.dart:748:22: Error: Undefined name 'ref'.
+    final boqState = ref.read(savedBOQProvider);
+                     ^^^
+lib/features/modules/all_Modules/structure_work/dpr/screens/dpr_structure_create_screen.dart:750:9: Error: Undefined name '_selectedBoqId'.
+        _selectedBoqId ?? _resolveBoqId(entryState.activeCards, boqState.boqs);
+        ^^^^^^^^^^^^^^
+lib/features/modules/all_Modules/structure_work/dpr/screens/dpr_structure_create_screen.dart:782:21: Error: Undefined name '_workNameController'.
+    final dprName = _workNameController.text.trim();
+                    ^^^^^^^^^^^^^^^^^^^
+lib/features/modules/all_Modules/structure_work/dpr/screens/dpr_structure_create_screen.dart:785:9: Error: Undefined name '_isUpdate'.
+    if (_isUpdate) {
+        ^^^^^^^^^
+lib/features/modules/all_Modules/structure_work/dpr/screens/dpr_structure_create_screen.dart:786:23: Error: Undefined name 'ref'.
+      success = await ref.read(dprStructureProvider.notifier).updateDPR(
+                      ^^^
+lib/features/modules/all_Modules/structure_work/dpr/screens/dpr_structure_create_screen.dart:787:13: Error: Undefined name 'widget'.
+            widget.siteId,
+            ^^^^^^
+lib/features/modules/all_Modules/structure_work/dpr/screens/dpr_structure_create_screen.dart:788:13: Error: Undefined name '_selectedDprId'.
+            _selectedDprId!,
+            ^^^^^^^^^^^^^^
+lib/features/modules/all_Modules/structure_work/dpr/screens/dpr_structure_create_screen.dart:793:23: Error: Undefined name 'ref'.
+      success = await ref.read(dprStructureProvider.notifier).createDPR(
+                      ^^^
+lib/features/modules/all_Modules/structure_work/dpr/screens/dpr_structure_create_screen.dart:794:13: Error: Undefined name 'widget'.
+            widget.siteId,
+            ^^^^^^
+lib/features/modules/all_Modules/structure_work/dpr/screens/dpr_structure_create_screen.dart:798:19: Error: Undefined name '_selectedDate'.
+            date: _selectedDate,
+                  ^^^^^^^^^^^^^
+lib/features/modules/all_Modules/structure_work/dpr/screens/dpr_structure_create_screen.dart:803:20: Error: Undefined name 'mounted'.
+    if (success && mounted) {
+                   ^^^^^^^
+lib/features/modules/all_Modules/structure_work/dpr/screens/dpr_structure_create_screen.dart:805:24: Error: Undefined name '_isUpdate'.
+      AppToast.success(_isUpdate ? "DPR Updated Successfully!" : "DPR Submitted Successfully!");
+                       ^^^^^^^^^
+lib/features/modules/all_Modules/structure_work/dpr/screens/dpr_structure_create_screen.dart:806:7: Error: Undefined name 'widget'.
+      widget.onSuccess?.call();
+      ^^^^^^
+lib/features/modules/all_Modules/structure_work/dpr/screens/dpr_structure_create_screen.dart:807:7: Error: Undefined name 'context'.
+      context.pop();
+      ^^^^^^^
+lib/features/modules/all_Modules/structure_work/dpr/screens/dpr_structure_create_screen.dart:808:16: Error: Undefined name 'mounted'.
+    } else if (mounted) {
+               ^^^^^^^
+lib/features/modules/all_Modules/structure_work/dpr/screens/dpr_structure_create_screen.dart:809:21: Error: Undefined name 'ref'.
+      final error = ref.read(dprStructureProvider).error;
+                    ^^^
+lib/features/modules/all_Modules/structure_work/dpr/screens/dpr_structure_create_screen.dart:849:16: Error: Undefined name 'context'.
+      context: context,
+               ^^^^^^^
+lib/features/modules/all_Modules/structure_work/dpr/screens/dpr_structure_create_screen.dart:850:20: Error: Undefined name '_selectedDate'.
+      initialDate: _selectedDate,
+                   ^^^^^^^^^^^^^
+lib/features/modules/all_Modules/structure_work/dpr/screens/dpr_structure_create_screen.dart:856:9: Error: Setter not found: '_selectedDate'.
+        _selectedDate = picked;
+        ^^^^^^^^^^^^^
+lib/features/modules/all_Modules/structure_work/dpr/screens/dpr_structure_create_screen.dart:857:9: Error: Setter not found: '_selectedDprId'.
+        _selectedDprId = null; // Clear selection on date change
+        ^^^^^^^^^^^^^^
+lib/features/modules/all_Modules/structure_work/dpr/screens/dpr_structure_create_screen.dart:855:7: Error: Method not found: 'setState'.
+      setState(() {
+      ^^^^^^^^
+lib/features/modules/all_Modules/structure_work/dpr/screens/dpr_structure_create_screen.dart:859:7: Error: Method not found: '_fetchDprsForDate'.
+      _fetchDprsForDate(picked);
+      ^^^^^^^^^^^^^^^^^
+Target kernel_snapshot_program failed: Exception
+
+
+FAILURE: Build failed with an exception.
+
+* What went wrong:
+Execution failed for task ':app:compileFlutterBuildDebug'.
+> Process 'command 'C:\Users\Dell\Downloads\flutter_windows_3.35.3-stable\flutter\bin\flutter.bat'' finished with non-zero exit value 1
+
+* Try:
+> Run with --stacktrace option to get the stack trace.
+> Run with --info or --debug option to get more log output.
+> Run with --scan to get full insights.
+> Get more help at https://help.gradle.org.
+
+BUILD FAILED in 3m 27s
+Running Gradle task 'assembleDebug'...                            209.3s
+Error: Gradle task assembleDebug failed with exit code 1
+PS C:\Users\Dell\Downloads\untitled2\untitled2>

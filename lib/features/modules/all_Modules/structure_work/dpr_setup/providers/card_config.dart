@@ -12,6 +12,7 @@ class AssemblyCardConfig {
   final double? width;
   final double? height;
   final String? boqItemId;
+  final String? boqId;
 
   AssemblyCardConfig({
     required this.mark,
@@ -22,6 +23,7 @@ class AssemblyCardConfig {
     this.width,
     this.height,
     this.boqItemId,
+    this.boqId,
   });
 
   AssemblyCardConfig copyWith({
@@ -33,6 +35,7 @@ class AssemblyCardConfig {
     double? width,
     double? height,
     String? boqItemId,
+    String? boqId,
   }) {
     return AssemblyCardConfig(
       mark: mark ?? this.mark,
@@ -43,6 +46,7 @@ class AssemblyCardConfig {
       width: width ?? this.width,
       height: height ?? this.height,
       boqItemId: boqItemId ?? this.boqItemId,
+      boqId: boqId ?? this.boqId,
     );
   }
 }
@@ -61,6 +65,7 @@ class AssemblyCardNotifier extends StateNotifier<AssemblyCardConfig> {
           width: initialCard?.width,
           height: initialCard?.height,
           boqItemId: initialCard?.boqItemId,
+          boqId: initialCard?.boqId,
         ));
 
   void updateMark(String mark) {
@@ -91,9 +96,10 @@ class AssemblyCardNotifier extends StateNotifier<AssemblyCardConfig> {
     state = state.copyWith(height: height);
   }
 
-  void selectBoqItem(BOQStructureItem item, String boqName) {
+  void selectBoqItem(BOQStructureItem item, String boqId, String boqName) {
     state = state.copyWith(
       boqItemId: item.id,
+      boqId: boqId,
       mark: item.assemblyMark,
       description: item.typeDescription,
       quantity: item.quantity,
@@ -108,6 +114,7 @@ class AssemblyCardNotifier extends StateNotifier<AssemblyCardConfig> {
     final card = existingCard ?? AssemblyCardIsar();
     card.siteId = siteId;
     card.boqItemId = state.boqItemId ?? "";
+    card.boqId = state.boqId ?? "";
     card.assemblyMark = state.mark;
     card.description = state.description;
     card.quantity = state.quantity;

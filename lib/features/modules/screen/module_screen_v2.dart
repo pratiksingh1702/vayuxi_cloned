@@ -322,13 +322,13 @@ class _ModuleScreenV2State extends ConsumerState<ModuleScreenV2>
       return [
         ...base,
         ModuleItem(
-          labelKey: 'structure_boq_card',
+          labelKey: 'BOQ',
           icon: Icons.table_rows_rounded,
           iconColor: const Color(0xFF7B3F00),
           routeName: "/site-list/structure-boq",
         ),
         ModuleItem(
-          labelKey: 'structure_dpr_setup_card',
+          labelKey: 'Dpr Setup',
           icon: Icons.architecture_rounded,
           iconColor: Colors.blueAccent,
           routeName: "/site-list/structure-dpr-setup",

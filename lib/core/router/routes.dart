@@ -59,4 +59,6 @@ class Routes {
   static const String settings = '/settings';
   static const String structureDprSetup = '/structure-dpr-setup';
   static const String createAssemblyCard = '/create-assembly-card';
+  static const String structureDprReportList = '/structure-dpr-report';
+  static const String structureDprCreate = '/structure-dpr-create';
 }

@@ -1,0 +1,87 @@
+lib/core/router/app_router.dart:21:8: Error: Error when reading
+'lib/features/modules/all_Modules/structure_work/dpr/screens/add_dpr_structure_screen.dart': The system cannot find the
+file specified
+import '../../features/modules/all_Modules/structure_work/dpr/screens/add_dpr_structure_screen.dart';
+       ^
+lib/features/modules/all_Modules/structure_work/reports/structure_dpr_report_list_screen.dart:9:8: Error: Error when
+reading 'lib/features/modules/all_Modules/structure_work/models/dpr_structure_model.dart': The system cannot find the
+path specified
+import '../models/dpr_structure_model.dart';
+       ^
+lib/features/modules/all_Modules/structure_work/reports/structure_dpr_report_list_screen.dart:10:8: Error: Error when
+reading 'lib/features/modules/all_Modules/structure_work/providers/dpr_structure_provider.dart': The system cannot find
+the path specified
+import '../providers/dpr_structure_provider.dart';
+       ^
+lib/features/modules/all_Modules/structure_work/reports/structure_dpr_report_list_screen.dart:11:8: Error: Error when
+reading 'lib/features/modules/all_Modules/structure_work/screens/dpr_structure_create_screen.dart': The system cannot
+find the path specified
+import '../screens/dpr_structure_create_screen.dart';
+       ^
+lib/features/modules/all_Modules/structure_work/reports/structure_dpr_report_list_screen.dart:175:36: Error: Type
+'TeamState' not found.
+  Widget _buildTeamSelectionScreen(TeamState teamState, ColorScheme cs, bool isDark) {
+                                   ^^^^^^^^^
+lib/features/modules/all_Modules/structure_work/reports/structure_dpr_report_list_screen.dart:266:26: Error: Type
+'TeamState' not found.
+  Widget _buildTeamChips(TeamState teamState, ColorScheme cs) {
+                         ^^^^^^^^^
+lib/features/modules/all_Modules/structure_work/reports/structure_dpr_report_list_screen.dart:364:9: Error: Type
+'DPRStructure' not found.
+  final DPRStructure dpr;
+        ^^^^^^^^^^^^
+lib/core/router/app_router.dart:779:18: Error: Method not found: 'DprStructureCreateScreen'.
+          return DprStructureCreateScreen(
+                 ^^^^^^^^^^^^^^^^^^^^^^^^
+lib/features/modules/all_Modules/structure_work/reports/structure_dpr_report_list_screen.dart:53:20: Error: The getter
+'dprStructureProvider' isn't defined for the type '_StructureDprReportListScreenState'.
+ - '_StructureDprReportListScreenState' is from
+ 'package:untitled2/features/modules/all_Modules/structure_work/reports/structure_dpr_report_list_screen.dart'
+ ('lib/features/modules/all_Modules/structure_work/reports/structure_dpr_report_list_screen.dart').
+Try correcting the name to the name of an existing getter, or defining a getter or field named 'dprStructureProvider'.
+    await ref.read(dprStructureProvider.notifier).fetchDPRList(widget.siteId);
+                   ^^^^^^^^^^^^^^^^^^^^
+lib/features/modules/all_Modules/structure_work/reports/structure_dpr_report_list_screen.dart:57:14: Error: The getter
+'dprStructureProvider' isn't defined for the type '_StructureDprReportListScreenState'.
+ - '_StructureDprReportListScreenState' is from
+ 'package:untitled2/features/modules/all_Modules/structure_work/reports/structure_dpr_report_list_screen.dart'
+ ('lib/features/modules/all_Modules/structure_work/reports/structure_dpr_report_list_screen.dart').
+Try correcting the name to the name of an existing getter, or defining a getter or field named 'dprStructureProvider'.
+    ref.read(dprStructureProvider.notifier).setFilters(
+             ^^^^^^^^^^^^^^^^^^^^
+lib/features/modules/all_Modules/structure_work/reports/structure_dpr_report_list_screen.dart:71:14: Error: The getter
+'dprStructureProvider' isn't defined for the type '_StructureDprReportListScreenState'.
+ - '_StructureDprReportListScreenState' is from
+ 'package:untitled2/features/modules/all_Modules/structure_work/reports/structure_dpr_report_list_screen.dart'
+ ('lib/features/modules/all_Modules/structure_work/reports/structure_dpr_report_list_screen.dart').
+Try correcting the name to the name of an existing getter, or defining a getter or field named 'dprStructureProvider'.
+    ref.read(dprStructureProvider.notifier).setFilters(clear: true);
+             ^^^^^^^^^^^^^^^^^^^^
+lib/features/modules/all_Modules/structure_work/reports/structure_dpr_report_list_screen.dart:106:29: Error: The getter
+'dprStructureProvider' isn't defined for the type '_StructureDprReportListScreenState'.
+ - '_StructureDprReportListScreenState' is from
+ 'package:untitled2/features/modules/all_Modules/structure_work/reports/structure_dpr_report_list_screen.dart'
+ ('lib/features/modules/all_Modules/structure_work/reports/structure_dpr_report_list_screen.dart').
+Try correcting the name to the name of an existing getter, or defining a getter or field named 'dprStructureProvider'.
+    final state = ref.watch(dprStructureProvider);
+                            ^^^^^^^^^^^^^^^^^^^^
+lib/features/modules/all_Modules/structure_work/reports/structure_dpr_report_list_screen.dart:158:38: Error: The getter
+'Routes' isn't defined for the type '_StructureDprReportListScreenState'.
+ - '_StructureDprReportListScreenState' is from
+ 'package:untitled2/features/modules/all_Modules/structure_work/reports/structure_dpr_report_list_screen.dart'
+ ('lib/features/modules/all_Modules/structure_work/reports/structure_dpr_report_list_screen.dart').
+Try correcting the name to the name of an existing getter, or defining a getter or field named 'Routes'.
+                                  '${Routes.structureDprCreate}/${widget.siteId}',
+                                     ^^^^^^
+lib/features/modules/all_Modules/structure_work/reports/structure_dpr_report_list_screen.dart:175:36: Error: 'TeamState'
+isn't a type.
+  Widget _buildTeamSelectionScreen(TeamState teamState, ColorScheme cs, bool isDark) {
+                                   ^^^^^^^^^
+lib/features/modules/all_Modules/structure_work/reports/structure_dpr_report_list_screen.dart:266:26: Error: 'TeamState'
+isn't a type.
+  Widget _buildTeamChips(TeamState teamState, ColorScheme cs) {
+                         ^^^^^^^^^
+lib/features/modules/all_Modules/structure_work/reports/structure_dpr_report_list_screen.dart:364:9: Error:
+'DPRStructure' isn't a type.
+  final DPRStructure dpr;
+        ^^^^^^^^^^^^

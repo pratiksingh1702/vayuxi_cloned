@@ -22,6 +22,11 @@ class AssemblyCardNotifier extends StateNotifier<List<AssemblyCardIsar>> {
   }
 
   Future<void> addCard(AssemblyCardIsar card) async {
+    // Enforce single card: Delete all existing cards for this site first
+    final existing = await _service.getLocalAssemblyCards(siteId);
+    for (final ec in existing) {
+      await _service.deleteAssemblyCardLocal(ec.isarId);
+    }
     await _service.saveAssemblyCardLocal(card);
     await loadCards();
   }

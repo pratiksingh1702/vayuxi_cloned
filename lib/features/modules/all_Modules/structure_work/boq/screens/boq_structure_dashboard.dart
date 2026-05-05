@@ -9,6 +9,7 @@ import 'package:go_router/go_router.dart';
 import '../models/boq_structure_model.dart';
 import '../providers/boq_structure_provider.dart';
 import 'boq_detail_screen.dart';
+import '../../../../../../core/utlis/widgets/premium_app_bar.dart';
 
 const _kBrown = Color(0xFF7B3F00);
 const _kGold = Color(0xFFD4891A);
@@ -61,134 +62,74 @@ class _BOQStructureDashboardState extends ConsumerState<BOQStructureDashboard>
     }
 
     return Scaffold(
-      backgroundColor:
-          isDark ? cs.surface : cs.surfaceContainerLowest,
-      body: CustomScrollView(
-        slivers: [
-          _buildSliverAppBar(cs, isDark, state),
-          if (state.isLoading)
-            const SliverFillRemaining(
-                child: Center(child: _BOQShimmerList()))
-          else if (state.error != null && state.boqs.isEmpty)
-            SliverFillRemaining(child: _ErrorState(
-              message: state.error!,
-              onRetry: () => ref
-                  .read(boqStructureProvider.notifier)
-                  .fetchBOQs(widget.siteId),
-            ))
-          else if (state.boqs.isEmpty)
-            const SliverFillRemaining(child: _EmptyBOQState())
-          else ...[
-            SliverToBoxAdapter(
-              child: _StatsRow(boqs: state.boqs),
-            ),
-            SliverPadding(
-              padding:
-                  const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
-              sliver: SliverList(
-                delegate: SliverChildBuilderDelegate(
-                  (ctx, i) {
-                    final boq = state.boqs[i];
-                    final delay = i * 0.12;
-                    return AnimatedBuilder(
-                      animation: _staggerCtrl,
-                      builder: (_, child) {
-                        final t = (((_staggerCtrl.value - delay) / 0.5)
-                                .clamp(0.0, 1.0));
-                        return Opacity(
-                          opacity: t,
-                          child: Transform.translate(
-                              offset: Offset(0, 24 * (1 - t)),
-                              child: child),
-                        );
-                      },
-                      child: _BOQCard(
-                        boq: boq,
-                        onTap: () {
-                          HapticFeedback.lightImpact();
-                          Navigator.of(context).push(MaterialPageRoute(
-                            builder: (_) => BOQDetailScreen(
-                              boq: boq,
-                              siteId: widget.siteId,
-                            ),
-                          ));
-                        },
-                      ),
-                    );
-                  },
-                  childCount: state.boqs.length,
-                ),
-              ),
-            ),
-            const SliverToBoxAdapter(child: SizedBox(height: 120)),
-          ],
+      backgroundColor: isDark ? cs.surface : cs.surfaceContainerLowest,
+      appBar: PremiumAppBar(
+        title: 'Structure BOQ',
+        subtitle: Text(widget.siteName),
+        onDrawerPressed: () => context.pop(),
+        drawerIcon: Icons.arrow_back_ios_new_rounded,
+        actions: [
+          PremiumActionIcon(
+            icon: Icons.refresh_rounded,
+            onPressed: () => ref.read(boqStructureProvider.notifier).fetchBOQs(widget.siteId),
+            tooltip: "Refresh",
+          ),
         ],
       ),
+      body: state.isLoading
+          ? const Center(child: _BOQShimmerList())
+          : state.error != null && state.boqs.isEmpty
+              ? _ErrorState(
+                  message: state.error!,
+                  onRetry: () => ref.read(boqStructureProvider.notifier).fetchBOQs(widget.siteId),
+                )
+              : state.boqs.isEmpty
+                  ? const _EmptyBOQState()
+                  : ListView(
+                      padding: const EdgeInsets.only(bottom: 120),
+                      children: [
+                        _StatsRow(boqs: state.boqs),
+                        ListView.builder(
+                          shrinkWrap: true,
+                          physics: const NeverScrollableScrollPhysics(),
+                          padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+                          itemCount: state.boqs.length,
+                          itemBuilder: (ctx, i) {
+                            final boq = state.boqs[i];
+                            final delay = i * 0.12;
+                            return AnimatedBuilder(
+                              animation: _staggerCtrl,
+                              builder: (_, child) {
+                                final t = (((_staggerCtrl.value - delay) / 0.5).clamp(0.0, 1.0));
+                                return Opacity(
+                                  opacity: t,
+                                  child: Transform.translate(
+                                    offset: Offset(0, 24 * (1 - t)),
+                                    child: child,
+                                  ),
+                                );
+                              },
+                              child: _BOQCard(
+                                boq: boq,
+                                onTap: () {
+                                  HapticFeedback.lightImpact();
+                                  Navigator.of(context).push(MaterialPageRoute(
+                                    builder: (_) => BOQDetailScreen(
+                                      boq: boq,
+                                      siteId: widget.siteId,
+                                    ),
+                                  ));
+                                },
+                              ),
+                            );
+                          },
+                        ),
+                      ],
+                    ),
       floatingActionButton: _UploadFAB(
         pulseCtrl: _pulseCtrl,
         isUploading: state.isUploading,
         onTap: () => _showUploadSheet(context),
-      ),
-    );
-  }
-
-  Widget _buildSliverAppBar(
-      ColorScheme cs, bool isDark, BOQStructureState state) {
-    return SliverAppBar(
-      expandedHeight: 140,
-      pinned: true,
-      backgroundColor: _kBrown,
-      leading: IconButton(
-        icon: const Icon(Icons.arrow_back_ios_new_rounded,
-            color: Colors.white, size: 20),
-        onPressed: () => context.pop(),
-      ),
-      actions: [
-        IconButton(
-          icon: const Icon(Icons.refresh_rounded, color: Colors.white),
-          onPressed: () => ref
-              .read(boqStructureProvider.notifier)
-              .fetchBOQs(widget.siteId),
-        ),
-      ],
-      flexibleSpace: FlexibleSpaceBar(
-        background: Container(
-          decoration: const BoxDecoration(
-            gradient: LinearGradient(
-              begin: Alignment.topLeft,
-              end: Alignment.bottomRight,
-              colors: [_kBrown, Color(0xFFBF6010)],
-            ),
-          ),
-          child: SafeArea(
-            child: Padding(
-              padding:
-                  const EdgeInsets.fromLTRB(20, 48, 20, 16),
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                mainAxisAlignment: MainAxisAlignment.end,
-                children: [
-                  const Text('Structure BOQ',
-                      style: TextStyle(
-                          color: Colors.white70,
-                          fontSize: 12,
-                          fontWeight: FontWeight.w600,
-                          letterSpacing: 1.2)),
-                  const SizedBox(height: 4),
-                  Text(
-                    widget.siteName,
-                    maxLines: 1,
-                    overflow: TextOverflow.ellipsis,
-                    style: const TextStyle(
-                        color: Colors.white,
-                        fontSize: 22,
-                        fontWeight: FontWeight.w800),
-                  ),
-                ],
-              ),
-            ),
-          ),
-        ),
       ),
     );
   }

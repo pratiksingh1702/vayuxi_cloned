@@ -1,109 +1,278 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:isar_community/isar.dart';
 import 'package:go_router/go_router.dart';
 import '../../../../../../core/utlis/widgets/premium_app_bar.dart';
 import '../../../site_Details/repository/siteModel.dart';
 import '../providers/dpr_setup_providers.dart';
 import '../widgets/assembly_card_widget.dart';
+import '../isar/assembly_card_isar.dart';
+import '../../boq/models/boq_structure_model.dart';
+import '../../boq/providers/boq_structure_provider.dart';
 
-class DPRSetupListScreen extends ConsumerWidget {
+class DPRSetupListScreen extends ConsumerStatefulWidget {
   final SiteModel site;
   const DPRSetupListScreen({super.key, required this.site});
 
   @override
-  Widget build(BuildContext context, WidgetRef ref) {
-    final cards = ref.watch(assemblyCardsProvider(site.id));
+  ConsumerState<DPRSetupListScreen> createState() => _DPRSetupListScreenState();
+}
+
+class _DPRSetupListScreenState extends ConsumerState<DPRSetupListScreen> {
+  late AssemblyCardIsar _workingCard;
+  bool _isFirstLoad = true;
+
+  @override
+  void initState() {
+    super.initState();
+    _resetWorkingCard();
+    // Ensure BOQs are loaded for syncing
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      ref.read(boqStructureProvider.notifier).fetchBOQs(widget.site.id);
+    });
+  }
+
+  void _resetWorkingCard() {
+    _workingCard = AssemblyCardIsar()
+      ..siteId = widget.site.id
+      ..boqItemId = ""
+      ..boqId = ""
+      ..assemblyMark = ""
+      ..description = "Description"
+      ..quantity = 0
+      ..availableQty = 0
+      ..length = null
+      ..width = null
+      ..height = null
+      ..netWeightPerUnit = 0
+      ..totalNetWeight = 0
+      ..usedQty = 0
+      ..remainingQty = 0
+      ..progressPercentage = 0
+      ..createdAt = DateTime.now()
+      ..isSynced = false;
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final cards = ref.watch(assemblyCardsProvider(widget.site.id));
+    final boqState = ref.watch(boqStructureProvider);
     final cs = Theme.of(context).colorScheme;
+
+    // AUTO-INITIALIZE or SYNC SETUP CARD
+    if (_isFirstLoad) {
+      if (cards.isEmpty) {
+        WidgetsBinding.instance.addPostFrameCallback((_) {
+          _resetWorkingCard();
+          ref.read(assemblyCardsProvider(widget.site.id).notifier).addCard(_workingCard);
+        });
+      } else {
+        _workingCard = cards.first;
+      }
+      _isFirstLoad = false;
+    }
 
     return Scaffold(
       backgroundColor: cs.surfaceContainerLowest,
       appBar: PremiumAppBar(
         title: "DPR Setup",
-        subtitle: Text(site.siteName),
+        subtitle: Text(widget.site.siteName),
         actions: [
           PremiumActionIcon(
             icon: Icons.refresh_rounded,
-            onPressed: () => ref.read(assemblyCardsProvider(site.id).notifier).loadCards(),
-            tooltip: "Refresh",
+            onPressed: () {
+              ref.read(assemblyCardsProvider(widget.site.id).notifier).loadCards();
+              setState(() => _isFirstLoad = true);
+            },
+            tooltip: "Sync",
+          ),
+          PremiumActionIcon(
+            icon: Icons.restart_alt_rounded,
+            onPressed: _handleReset,
+            tooltip: "Reset Fields",
+            iconColor: cs.onSurfaceVariant,
+          ),
+          PremiumActionIcon(
+            icon: Icons.delete_sweep_rounded,
+            onPressed: () => _showDeleteDialog(context, ref, _workingCard.isarId, widget.site.id),
+            tooltip: "Delete Card",
+            iconColor: cs.error,
           ),
         ],
       ),
-      body: cards.isEmpty
-          ? _buildEmptyState(context)
-          : ListView.builder(
-              padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 20),
-              itemCount: cards.length,
-              itemBuilder: (context, index) {
-                final card = cards[index];
-                return AssemblyCardWidget(
-                  card: card,
-                  onTap: () {
-                    context.push('/create-assembly-card', extra: {'site': site, 'card': card});
-                  },
-                  onDelete: () {
-                    _showDeleteDialog(context, ref, card.isarId, site.id);
-                  },
-                  onUpdate: (mark, qty) {
-                    card.assemblyMark = mark;
-                    card.quantity = qty;
-                    card.totalNetWeight = (card.netWeightPerUnit ?? 0) * qty;
-                    card.availableQty = qty - card.usedQty;
-                    card.remainingQty = qty - card.usedQty;
-                    ref.read(assemblyCardsProvider(site.id).notifier).updateCard(card);
-                  },
-                );
+      body: SingleChildScrollView(
+        padding: const EdgeInsets.all(20),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Padding(
+              padding: const EdgeInsets.only(left: 4, bottom: 16),
+              child: Text(
+                "Active Setup Card",
+                style: TextStyle(
+                  fontSize: 16,
+                  fontWeight: FontWeight.w800,
+                  color: cs.primary,
+                  letterSpacing: 0.5,
+                ),
+              ),
+            ),
+            AssemblyCardWidget(
+              card: _workingCard,
+              allowMarkEdit: true,
+              allowQtyEdit: true,
+              onUpdate: (mark, qty) {
+                _onCardUpdate(mark, qty, boqState);
+              },
+              onTap: () {
+                 if (_workingCard.isarId != Isar.autoIncrement) {
+                    context.push('/create-assembly-card', extra: {'site': widget.site, 'card': _workingCard});
+                 }
               },
             ),
-      floatingActionButton: FloatingActionButton.extended(
-        onPressed: () => context.push('/create-assembly-card', extra: {'site': site}),
-        icon: const Icon(Icons.add_rounded),
-        label: const Text("Create Card"),
-        backgroundColor: cs.primary,
-        foregroundColor: cs.onPrimary,
+            const SizedBox(height: 24),
+            Container(
+              padding: const EdgeInsets.all(16),
+              decoration: BoxDecoration(
+                color: cs.surfaceContainerHigh.withOpacity(0.5),
+                borderRadius: BorderRadius.circular(16),
+                border: Border.all(color: cs.outlineVariant.withOpacity(0.5)),
+              ),
+              child: Row(
+                children: [
+                  Icon(Icons.info_outline_rounded, color: cs.primary, size: 20),
+                  const SizedBox(width: 12),
+                  Expanded(
+                    child: Text(
+                      "Enter a Mark Number to automatically sync all details from the BOQ. This card will be used for your daily progress report.",
+                      style: TextStyle(
+                        fontSize: 12,
+                        color: cs.onSurfaceVariant,
+                        height: 1.5,
+                      ),
+                    ),
+                  ),
+                ],
+              ),
+            ),
+          ],
+        ),
       ),
     );
   }
 
-  Widget _buildEmptyState(BuildContext context) {
-    final cs = Theme.of(context).colorScheme;
-    return Center(
-      child: Column(
-        mainAxisAlignment: MainAxisAlignment.center,
-        children: [
-          Container(
-            padding: const EdgeInsets.all(24),
-            decoration: BoxDecoration(
-              color: cs.surfaceContainerHigh,
-              shape: BoxShape.circle,
-            ),
-            child: Icon(Icons.architecture_outlined, size: 64, color: cs.onSurfaceVariant.withOpacity(0.6)),
-          ),
-          const SizedBox(height: 24),
-          Text(
-            "No Assembly Cards yet",
-            style: TextStyle(fontSize: 20, fontWeight: FontWeight.w800, color: cs.onSurface),
-          ),
-          const SizedBox(height: 12),
-          Padding(
-            padding: const EdgeInsets.symmetric(horizontal: 40),
-            child: Text(
-              "Create assembly cards from your BOQ items to track daily progress efficiently.",
-              textAlign: TextAlign.center,
-              style: TextStyle(fontSize: 14, color: cs.onSurfaceVariant, height: 1.5),
-            ),
-          ),
-        ],
-      ),
+  void _onCardUpdate(String mark, double qty, BOQStructureState boqState) {
+    final notifier = ref.read(assemblyCardsProvider(widget.site.id).notifier);
+
+    if (mark.isEmpty) {
+      setState(() {
+        _workingCard.assemblyMark = "";
+        _workingCard.description = "Description";
+        _workingCard.quantity = qty;
+        _workingCard.boqItemId = "";
+        _workingCard.boqId = "";
+        _workingCard.availableQty = 0;
+        _workingCard.remainingQty = 0;
+        _workingCard.netWeightPerUnit = 0;
+        _workingCard.totalNetWeight = 0;
+        _workingCard.length = null;
+        _workingCard.width = null;
+        _workingCard.height = null;
+        _workingCard.progressPercentage = 0;
+      });
+      
+      if (_workingCard.isarId == Isar.autoIncrement) {
+        notifier.addCard(_workingCard);
+      } else {
+        notifier.updateCard(_workingCard);
+      }
+      return;
+    }
+
+    // Try to find matching BOQ item
+    BOQStructureItem? matchedItem;
+    String? matchedBoqId;
+
+    for (var boq in boqState.boqs) {
+      for (var item in boq.items) {
+        if (item.assemblyMark.toLowerCase() == mark.toLowerCase()) {
+          matchedItem = item;
+          matchedBoqId = boq.id;
+          break;
+        }
+      }
+      if (matchedItem != null) break;
+    }
+
+    if (matchedItem != null) {
+      // Sync details
+      setState(() {
+        _workingCard.boqId = matchedBoqId ?? "";
+        _workingCard.boqItemId = matchedItem!.id;
+        _workingCard.assemblyMark = matchedItem!.assemblyMark;
+        _workingCard.description = matchedItem!.typeDescription;
+        _workingCard.quantity = qty > 0 ? qty : matchedItem!.quantity;
+        _workingCard.netWeightPerUnit = matchedItem!.netWeightPerUnit;
+        _workingCard.totalNetWeight = (matchedItem!.netWeightPerUnit ?? 0) * (qty > 0 ? qty : matchedItem!.quantity);
+        _workingCard.length = matchedItem!.length;
+        _workingCard.width = matchedItem!.width;
+        _workingCard.height = matchedItem!.height;
+        _workingCard.availableQty = qty > 0 ? qty : matchedItem!.quantity;
+        _workingCard.remainingQty = qty > 0 ? qty : matchedItem!.quantity;
+        _workingCard.usedQty = 0;
+        _workingCard.progressPercentage = 0;
+        _workingCard.isSynced = false;
+      });
+
+      // Save/Update in provider
+      if (_workingCard.isarId == Isar.autoIncrement) {
+        notifier.addCard(_workingCard);
+      } else {
+        notifier.updateCard(_workingCard);
+      }
+    } else {
+      // Just update local state if no match found yet
+      setState(() {
+        _workingCard.assemblyMark = mark;
+        _workingCard.quantity = qty;
+      });
+      
+      // Still save the basic info (Mark and Qty)
+      if (_workingCard.isarId == Isar.autoIncrement) {
+        notifier.addCard(_workingCard);
+      } else {
+        notifier.updateCard(_workingCard);
+      }
+    }
+  }
+
+  void _handleReset() {
+    setState(() {
+      _resetWorkingCard();
+    });
+    // Save the reset state
+    final notifier = ref.read(assemblyCardsProvider(widget.site.id).notifier);
+    if (_workingCard.isarId != Isar.autoIncrement) {
+      notifier.updateCard(_workingCard);
+    }
+    ScaffoldMessenger.of(context).showSnackBar(
+      const SnackBar(content: Text("Card fields reset")),
     );
   }
 
   void _showDeleteDialog(BuildContext context, WidgetRef ref, int cardId, String siteId) {
+    if (cardId == Isar.autoIncrement) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text("Nothing to delete")),
+      );
+      return;
+    }
     final cs = Theme.of(context).colorScheme;
     showDialog(
       context: context,
       builder: (context) => AlertDialog(
         title: const Text("Delete Card"),
-        content: const Text("Are you sure you want to delete this assembly card? This action cannot be undone."),
+        content: const Text("Are you sure you want to delete this assembly card? This will remove it from the setup."),
         shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
         actions: [
           TextButton(
@@ -113,6 +282,10 @@ class DPRSetupListScreen extends ConsumerWidget {
           TextButton(
             onPressed: () {
               ref.read(assemblyCardsProvider(siteId).notifier).deleteCard(cardId);
+              setState(() {
+                _resetWorkingCard();
+                _isFirstLoad = true;
+              });
               Navigator.pop(context);
             },
             child: Text("Delete", style: TextStyle(color: cs.error, fontWeight: FontWeight.bold)),

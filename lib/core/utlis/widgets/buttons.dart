@@ -6,6 +6,7 @@ class RoundedButton extends StatelessWidget {
   final Color textColor;
   final VoidCallback onPressed;
   final bool isOutlined;
+  final bool isLoading;
   final double? width; // Optional width parameter
 
   const RoundedButton({
@@ -15,6 +16,7 @@ class RoundedButton extends StatelessWidget {
     required this.textColor,
     required this.onPressed,
     this.isOutlined = false,
+    this.isLoading = false,
     this.width, // Make width optional
   });
 
@@ -34,20 +36,29 @@ class RoundedButton extends StatelessWidget {
                 padding: const EdgeInsets.symmetric(horizontal: 18),
                 minimumSize: const Size(90, 48),
               ),
-              onPressed: onPressed,
-              child: FittedBox(
-                fit: BoxFit.scaleDown,
-                child: Text(
-                  text,
-                  maxLines: 1,
-                  softWrap: false,
-                  style: TextStyle(
-                    color: textColor,
-                    fontWeight: FontWeight.w600,
-                    fontSize: 15,
-                  ),
-                ),
-              ),
+              onPressed: isLoading ? null : onPressed,
+              child: isLoading
+                  ? SizedBox(
+                      height: 20,
+                      width: 20,
+                      child: CircularProgressIndicator(
+                        strokeWidth: 2,
+                        valueColor: AlwaysStoppedAnimation<Color>(color),
+                      ),
+                    )
+                  : FittedBox(
+                      fit: BoxFit.scaleDown,
+                      child: Text(
+                        text,
+                        maxLines: 1,
+                        softWrap: false,
+                        style: TextStyle(
+                          color: textColor,
+                          fontWeight: FontWeight.w600,
+                          fontSize: 15,
+                        ),
+                      ),
+                    ),
             )
           : ElevatedButton(
               style: ElevatedButton.styleFrom(
@@ -59,20 +70,29 @@ class RoundedButton extends StatelessWidget {
                 padding: const EdgeInsets.symmetric(horizontal: 18),
                 minimumSize: const Size(90, 48),
               ),
-              onPressed: onPressed,
-              child: FittedBox(
-                fit: BoxFit.scaleDown,
-                child: Text(
-                  text,
-                  maxLines: 1,
-                  softWrap: false,
-                  style: TextStyle(
-                    color: textColor,
-                    fontWeight: FontWeight.w600,
-                    fontSize: 15,
-                  ),
-                ),
-              ),
+              onPressed: isLoading ? null : onPressed,
+              child: isLoading
+                  ? SizedBox(
+                      height: 20,
+                      width: 20,
+                      child: CircularProgressIndicator(
+                        strokeWidth: 2,
+                        valueColor: AlwaysStoppedAnimation<Color>(textColor),
+                      ),
+                    )
+                  : FittedBox(
+                      fit: BoxFit.scaleDown,
+                      child: Text(
+                        text,
+                        maxLines: 1,
+                        softWrap: false,
+                        style: TextStyle(
+                          color: textColor,
+                          fontWeight: FontWeight.w600,
+                          fontSize: 15,
+                        ),
+                      ),
+                    ),
             ),
     );
   }
