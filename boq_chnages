@@ -1,0 +1,36 @@
+# Structure BOQ Refactoring Walkthrough
+
+The Structure Work BOQ module has been completely refactored to align with the premium, multi-screen navigation flow established in the `rate` and `manpower` modules.
+
+## Changes Made
+
+### 1. New BOQ Landing Screen
+Created `view_add_boq.dart`, replacing the old dashboard. It uses the `PremiumAppBar` and presents users with a clean, grid-based "View" or "Add" choice immediately after selecting a site.
+
+### 2. View: BOQ Item List
+Created `boq_item_list.dart` to list all BOQ items for the selected site. 
+- Implemented a premium list design (modeled after `manpowerList.dart`).
+- Features a search bar to filter by Mark or Description.
+- Includes a sorting menu (A-Z by Mark/Description, or High-Low by Weight).
+- The list displays the `Assembly Mark` avatar, `Type Description`, and total trailing weight.
+
+### 3. Add: BOQ Entry Select
+Created `boq_entry_select.dart` for adding new BOQ data. It allows users to choose between "Manual Entry" and "Import Sheet".
+
+### 4. Manual Entry: BOQ Details Form
+Created `boq_item_details.dart`, a premium data entry form for defining BOQ items. It includes structured inputs for:
+- Identification (Assembly Mark, Type Description)
+- Measurements (Quantity, Unit Weight, Length, Width, Height)
+- *Note: As the backend currently does not support creating a single item, saving this form triggers an explanatory toast message.*
+
+### 5. Import: BOQ Excel Upload
+Created `boq_import_sheet.dart` to handle Excel sheet uploads. It reuses the robust `boqStructureProvider` to push files to the backend and automatically navigates back to the BOQ item list upon a successful upload.
+
+### 6. Router Integration
+Updated `app_router.dart` so that navigating to the `structure-boq` module correctly points to the new `ViewAddBoqScreen`.
+
+## Verification
+- Navigate to the Structure BOQ module from the main menu.
+- Observe the new Grid selection (View / Add).
+- Check the item list's filtering and sorting capabilities.
+- Test the Import UI flow.

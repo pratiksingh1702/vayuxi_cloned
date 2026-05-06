@@ -10,7 +10,7 @@ import 'package:untitled2/features/modules/all_Modules/site_Details/repository/s
 import 'package:untitled2/features/modules/all_Modules/site_Details/screens/siteList.dart';
 import 'package:untitled2/features/modules/all_Modules/summary/screens/summaru_screen.dart';
 
-import '../../features/modules/all_Modules/structure_work/boq/screens/boq_structure_dashboard.dart';
+import '../../features/modules/all_Modules/structure_work/boq/screens/view_add_boq.dart';
 import '../../features/modules/all_Modules/structure_work/dpr/screens/dpr_structure_list_screen.dart';
 import '../../features/modules/all_Modules/structure_work/reports/structure_sheet_download_page.dart';
 import '../../features/modules/all_Modules/structure_work/dpr_setup/screens/dpr_setup_list_screen.dart';
@@ -356,7 +356,7 @@ final appRouterProvider = Provider<GoRouter>((ref) {
                     siteId: site.id, siteName: site.siteName);
                 break;
               case 'structure-boq':
-                screen = BOQStructureDashboard(
+                screen = ViewAddBoqScreen(
                     siteId: site.id, siteName: site.siteName);
                 break;
               case 'structure-dpr-setup':

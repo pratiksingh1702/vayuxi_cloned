@@ -31,4 +31,7 @@ class AssemblyCardIsar {
   // Metadata
   late DateTime createdAt;
   late bool isSynced;
+
+  @ignore
+  String? remarks;
 }

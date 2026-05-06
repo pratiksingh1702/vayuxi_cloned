@@ -37,6 +37,17 @@ class DprStructureCreateScreen extends ConsumerStatefulWidget {
       _DprStructureCreateScreenState();
 }
 
+enum StructureModuleSortOption {
+  nameAsc,
+  nameDesc,
+  markAsc,
+  markDesc,
+  weightAsc,
+  weightDesc,
+  createdAtAsc,
+  createdAtDesc
+}
+
 class _DprStructureCreateScreenState
     extends ConsumerState<DprStructureCreateScreen> {
   DateTime _selectedDate = DateTime(
@@ -49,6 +60,24 @@ class _DprStructureCreateScreenState
   String? _selectedBoqId;
   DPRStructure? _latestDpr;
   List<AssemblyCardIsar>? _localSetupCards;
+  bool _editMode = false;
+  
+  // New controllers for UI consistency with Insulation DPR
+  late final TextEditingController _plantController;
+  late final TextEditingController _floorController;
+  late final TextEditingController _sizeController;
+  late final TextEditingController _mocController;
+  late final TextEditingController _boqNameController;
+  final TextEditingController _searchController = TextEditingController();
+  String _searchQuery = '';
+  
+  // Filter and Sort state
+  StructureModuleSortOption _currentSort = StructureModuleSortOption.createdAtDesc;
+  Set<String> _filterCategories = {}; // e.g. "Setup", "New", "Existing"
+  Set<String> _filterStatuses = {};   // e.g. "Draft", "Submitted"
+  
+  bool get hasActiveFilters => _filterCategories.isNotEmpty || _filterStatuses.isNotEmpty || _currentSort != StructureModuleSortOption.createdAtDesc;
+  String _selectedUnit = 'mm';
 
   String? get selectedDprId => _selectedDprId;
   bool get _isUpdate => _selectedDprId != null;
@@ -64,6 +93,18 @@ class _DprStructureCreateScreenState
       _latestDpr = widget.initialDpr;
       _selectedBoqId = widget.initialDpr!.boqId;
     }
+
+    _plantController = TextEditingController();
+    _floorController = TextEditingController();
+    _sizeController = TextEditingController();
+    _mocController = TextEditingController();
+    _boqNameController = TextEditingController(text: 'Select BOQ');
+    
+    _searchController.addListener(() {
+      setState(() {
+        _searchQuery = _searchController.text.trim().toLowerCase();
+      });
+    });
 
     WidgetsBinding.instance.addPostFrameCallback((_) {
       ref.read(dprEntryProvider.notifier).initialize(widget.siteId);
@@ -83,32 +124,76 @@ class _DprStructureCreateScreenState
 
   Future<void> _fetchDprsForDate(DateTime date, {bool preserveInitial = false}) async {
     setState(() => _isLoadingDprs = true);
-    final normalizedDate = DateTime(date.year, date.month, date.day);
     try {
-      final dprs = await ref
-          .read(dprStructureRepositoryProvider)
-          .getDPRList(widget.siteId, startDate: normalizedDate, endDate: normalizedDate);
+      final dprs = await ref.read(dprStructureProvider.notifier).fetchDPRsForDate(widget.siteId, date);
       setState(() {
         _existingDprs = dprs;
         _isLoadingDprs = false;
+        
+        // Auto-load latest if available and not currently in manual edit mode
+        if (dprs.isNotEmpty && !preserveInitial && _selectedDprId == null) {
+          // Sort by updatedAt descending, then createdAt descending
+          final sortedDprs = List<DPRStructure>.from(dprs)
+            ..sort((a, b) {
+              final aTime = a.updatedAt ?? a.createdAt ?? DateTime(2000);
+              final bTime = b.updatedAt ?? b.createdAt ?? DateTime(2000);
+              return bTime.compareTo(aTime);
+            });
+          
+          final latest = sortedDprs.first;
+          _selectedDprId = latest.id;
+          _latestDpr = latest;
+          _populateFromDpr(latest);
+        } else if (dprs.isEmpty && !preserveInitial) {
+          _resetForFreshEntry();
+        }
       });
-
-      if (!preserveInitial) {
-        setState(() {
-          _selectedDprId = null;
-          _latestDpr = null;
-          _workNameController.text = 'Structure Work'; 
-        });
-      }
     } catch (e) {
       setState(() => _isLoadingDprs = false);
       debugPrint('Error fetching DPRs: $e');
     }
   }
 
+  void _populateFromDpr(DPRStructure dpr) {
+    _workNameController.text = dpr.dprName;
+    _plantController.text = dpr.plant ?? '';
+    _floorController.text = dpr.location ?? '';
+    _mocController.text = dpr.moc ?? '';
+    _sizeController.text = dpr.size?.toString() ?? '';
+    _selectedUnit = dpr.unit ?? 'mm';
+    _selectedBoqId = dpr.boqId;
+    _boqNameController.text = dpr.boqName ?? 'Select BOQ';
+    
+    // Clear active cards to show existing items from _latestDpr
+    ref.read(dprEntryProvider.notifier).clearCards();
+  }
+
+  void _resetForFreshEntry() {
+    setState(() {
+      _selectedDprId = null;
+      _latestDpr = null;
+      _workNameController.text = 'Structure Work';
+      _plantController.clear();
+      _floorController.clear();
+      _mocController.clear();
+      _sizeController.clear();
+      _boqNameController.text = 'Select BOQ';
+      _selectedBoqId = null;
+      
+      // Clear active cards for fresh entry
+      ref.read(dprEntryProvider.notifier).clearCards();
+    });
+  }
+
   @override
   void dispose() {
     _workNameController.dispose();
+    _plantController.dispose();
+    _floorController.dispose();
+    _sizeController.dispose();
+    _mocController.dispose();
+    _boqNameController.dispose();
+    _searchController.dispose();
     super.dispose();
   }
 
@@ -136,6 +221,20 @@ class _DprStructureCreateScreenState
     return Scaffold(
       drawer: const CustomDrawer(),
       backgroundColor: cs.surface,
+      floatingActionButton: Padding(
+        padding: const EdgeInsets.only(bottom: 70.0),
+        child: FloatingActionButton.extended(
+          onPressed: _resetForFreshEntry,
+          label: const Text(
+            'New Entry',
+            style: TextStyle(fontWeight: FontWeight.w700, letterSpacing: 0.5),
+          ),
+          icon: const Icon(Icons.add_rounded, size: 24),
+          backgroundColor: cs.primaryContainer,
+          foregroundColor: cs.onPrimaryContainer,
+          elevation: 4,
+        ),
+      ),
       body: NestedScrollView(
         headerSliverBuilder: (context, innerBoxIsScrolled) {
           final title = widget.siteName.isNotEmpty
@@ -171,28 +270,50 @@ class _DprStructureCreateScreenState
                 ),
               Expanded(
                 child: SingleChildScrollView(
-                  padding: const EdgeInsets.all(6),
+                  padding: const EdgeInsets.all(12),
                   physics: const BouncingScrollPhysics(),
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
+                      // Site Header
                       Row(
-                        mainAxisAlignment: MainAxisAlignment.end,
+                        mainAxisAlignment: MainAxisAlignment.spaceBetween,
                         children: [
-                          IconButton(
-                            tooltip: 'Select Date',
-                            onPressed: _selectDate,
-                            icon: const Icon(Icons.calendar_month_rounded),
+                          Expanded(
+                            child: Column(
+                              crossAxisAlignment: CrossAxisAlignment.start,
+                              children: [
+                                Text(
+                                  widget.siteName.isNotEmpty ? widget.siteName : "DPR Entry",
+                                  style: TextStyle(
+                                    fontSize: 14,
+                                    fontWeight: FontWeight.bold,
+                                    color: cs.onSurfaceVariant,
+                                  ),
+                                  maxLines: 1,
+                                  overflow: TextOverflow.ellipsis,
+                                ),
+                                Text(
+                                  "Structure Module",
+                                  style: TextStyle(
+                                    fontSize: 10,
+                                    color: cs.onSurfaceVariant,
+                                    fontStyle: FontStyle.italic,
+                                  ),
+                                  maxLines: 1,
+                                  overflow: TextOverflow.ellipsis,
+                                ),
+                              ],
+                            ),
                           ),
                         ],
                       ),
-                      const SizedBox(height: 8),
+                      const SizedBox(height: 16),
                       _buildDateSection(cs),
                       const SizedBox(height: 16),
-                      _buildEditableWorkHeader(cs, entryState, boqState),
+                      _buildDprInfoCard(cs, entryState, boqState),
                       const SizedBox(height: 16),
-                      _buildAddEntryRow(cs),
-                      const SizedBox(height: 12),
+                      _buildSearchAndFilterRow(cs),
                       _buildCardList(cs, entryState, boqState),
                       const SizedBox(height: 100),
                     ],
@@ -208,188 +329,585 @@ class _DprStructureCreateScreenState
 
   Widget _buildDateSection(ColorScheme cs) {
     return Container(
-      margin: const EdgeInsets.symmetric(horizontal: 8),
-      padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
+      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+      decoration: BoxDecoration(
+        color: cs.surfaceContainerHigh,
+        borderRadius: BorderRadius.circular(12),
+        border: Border.all(color: cs.outlineVariant),
+      ),
+      child: Row(
+        mainAxisAlignment: MainAxisAlignment.spaceBetween,
+        children: [
+          Row(
+            children: [
+              Icon(Icons.description, color: cs.primary, size: 20),
+              const SizedBox(width: 8),
+              Text(
+                'Daily Report',
+                style: TextStyle(
+                  fontSize: 15,
+                  fontWeight: FontWeight.w600,
+                  color: cs.onSurface,
+                ),
+              ),
+            ],
+          ),
+          GestureDetector(
+            onTap: _selectDate,
+            child: Container(
+              padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+              decoration: BoxDecoration(
+                color: Colors.blue.shade50,
+                borderRadius: BorderRadius.circular(8),
+                border: Border.all(
+                  color: Colors.blue.shade200,
+                  width: 1,
+                ),
+              ),
+              child: Row(
+                children: [
+                  Text(
+                    DateFormat('dd/MM/yyyy').format(_selectedDate),
+                    style: TextStyle(
+                      fontSize: 14,
+                      fontWeight: FontWeight.w600,
+                      color: cs.primary,
+                    ),
+                  ),
+                  const SizedBox(width: 6),
+                  Icon(
+                    Icons.calendar_month,
+                    size: 14,
+                    color: cs.primary,
+                  ),
+                ],
+              ),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildDprInfoCard(ColorScheme cs, DprEntryState state, SavedBOQState boqState) {
+    return Container(
       decoration: BoxDecoration(
         color: cs.surface,
-        borderRadius: BorderRadius.circular(14),
-        border: Border.all(color: cs.outlineVariant.withOpacity(0.5)),
+        borderRadius: BorderRadius.circular(16),
         boxShadow: [
           BoxShadow(
-            color: Colors.black.withOpacity(0.03),
+            color: cs.shadow.withOpacity(0.08),
             blurRadius: 10,
             offset: const Offset(0, 4),
           ),
         ],
       ),
-      child: Row(
-        children: [
-          Icon(Icons.calendar_today_rounded, size: 18, color: cs.primary),
-          const SizedBox(width: 10),
-          Expanded(
-            child: Text(
-              DateFormat('EEEE, dd MMMM yyyy').format(_selectedDate),
-              style: TextStyle(
-                fontSize: 13,
-                fontWeight: FontWeight.w600,
-                color: cs.onSurface,
-              ),
-            ),
-          ),
-          TextButton.icon(
-            onPressed: _selectDate,
-            icon:
-                Icon(Icons.edit_calendar_rounded, size: 16, color: cs.primary),
-            label: Text(
-              'Change',
-              style: TextStyle(
-                fontSize: 12,
-                fontWeight: FontWeight.w600,
-                color: cs.primary,
-              ),
-            ),
-          ),
-        ],
-      ),
-    );
-  }
-
-  Widget _buildEditableWorkHeader(
-      ColorScheme cs, DprEntryState state, SavedBOQState boqState) {
-    final hasBoqs = boqState.boqs.isNotEmpty;
-
-    return Container(
-      margin: const EdgeInsets.symmetric(horizontal: 8),
-      padding: const EdgeInsets.all(12),
-      decoration: BoxDecoration(
-        color: cs.surfaceContainerLow,
-        borderRadius: BorderRadius.circular(20),
-        border: Border.all(color: cs.outlineVariant.withOpacity(0.4)),
-        boxShadow: [
-          BoxShadow(
-            color: cs.shadow.withOpacity(0.06),
-            blurRadius: 12,
-            offset: const Offset(0, 4),
-          ),
-        ],
-      ),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          // 1. Entry Name TextField (Prominent)
-          TextField(
-            controller: _workNameController,
-            onChanged: (val) {
-              ref.read(dprEntryProvider.notifier).setWorkName(val);
-            },
-            style: const TextStyle(fontSize: 17, fontWeight: FontWeight.w700),
-            decoration: InputDecoration(
-              hintText: 'Enter Entry Name...',
-              hintStyle: TextStyle(
-                  color: cs.onSurfaceVariant.withOpacity(0.5),
-                  fontSize: 15,
-                  fontWeight: FontWeight.w500),
-              prefixIcon: Icon(Icons.edit_note_rounded, size: 24, color: cs.primary),
-              suffixIcon: _existingDprs.isNotEmpty
-                  ? IconButton(
-                      icon: Icon(Icons.arrow_drop_down_circle_outlined,
-                          color: cs.primary),
-                      onPressed: () => _showDprSelector(context),
-                    )
-                  : null,
-              border: InputBorder.none,
-              contentPadding: const EdgeInsets.symmetric(vertical: 12),
-            ),
-          ),
-          Divider(color: cs.outlineVariant.withOpacity(0.3), height: 1),
-          const SizedBox(height: 12),
-
-          // 2. Compact Selectors Row
-          SingleChildScrollView(
-            scrollDirection: Axis.horizontal,
-            child: Row(
-              children: [
-                if (hasBoqs)
-                  _buildCompactSelector(
-                    cs: cs,
-                    icon: Icons.folder_zip_rounded,
-                    label: _selectedBoqId != null
-                        ? (boqState.boqs
-                                .firstWhere((b) => b.id == _selectedBoqId,
-                                    orElse: () => boqState.boqs.first)
-                                .boqName)
-                        : 'Select BOQ',
-                    color: cs.primary,
-                    onTap: () {
-                      _showBoqSelector(context, boqState.boqs);
-                    },
-                  ),
-
-                if (_selectedDprId != null) ...[
-                  const SizedBox(width: 8),
-                  _buildCompactSelector(
-                    cs: cs,
-                    icon: Icons.add_circle_outline_rounded,
-                    label: 'New Entry',
-                    color: cs.onSurfaceVariant,
-                    onTap: () {
-                      setState(() {
-                        _selectedDprId = null;
-                        _latestDpr = null;
-                        _workNameController.text = 'Structure Work';
-                      });
-                    },
-                  ),
-                ],
-              ],
-            ),
-          ),
-        ],
-      ),
-    );
-  }
-
-  Widget _buildCompactSelector({
-    required ColorScheme cs,
-    required IconData icon,
-    required String label,
-    required Color color,
-    required VoidCallback onTap,
-  }) {
-    return InkWell(
-      onTap: onTap,
-      borderRadius: BorderRadius.circular(10),
-      child: Container(
-        padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 7),
-        decoration: BoxDecoration(
-          color: color.withOpacity(0.08),
-          borderRadius: BorderRadius.circular(10),
-          border: Border.all(color: color.withOpacity(0.2)),
-        ),
-        child: Row(
-          mainAxisSize: MainAxisSize.min,
+      child: Padding(
+        padding: const EdgeInsets.all(8),
+        child: Column(
           children: [
-            Icon(icon, size: 14, color: color),
-            const SizedBox(width: 6),
-            Flexible(
-              child: Text(
-                label,
-                maxLines: 1,
-                overflow: TextOverflow.ellipsis,
-                style: TextStyle(
-                  fontSize: 11,
-                  fontWeight: FontWeight.w700,
-                  color: color,
-                ),
-              ),
-            ),
-            const SizedBox(width: 2),
-            Icon(Icons.keyboard_arrow_down_rounded, size: 14, color: color),
+            _buildDprNameSection(cs),
+            const SizedBox(height: 16),
+            _buildInputFields(cs, boqState),
           ],
         ),
       ),
     );
   }
+
+  Widget _buildDprNameSection(ColorScheme cs) {
+    return Row(
+      children: [
+        Expanded(
+          child: _editMode
+              ? TextField(
+                  controller: _workNameController,
+                  style: const TextStyle(fontSize: 16, fontWeight: FontWeight.w600),
+                  onChanged: (val) {
+                    ref.read(dprEntryProvider.notifier).setWorkName(val);
+                  },
+                  decoration: InputDecoration(
+                    border: OutlineInputBorder(
+                      borderRadius: BorderRadius.circular(10),
+                      borderSide: BorderSide(color: cs.outlineVariant),
+                    ),
+                    focusedBorder: OutlineInputBorder(
+                      borderRadius: BorderRadius.circular(10),
+                      borderSide: BorderSide(color: cs.primary, width: 2),
+                    ),
+                    contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
+                    hintText: 'Enter DPR Name',
+                    prefixIcon: Icon(Icons.edit_document, size: 20, color: cs.primary),
+                  ),
+                )
+              : Container(
+                  padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
+                  decoration: BoxDecoration(
+                    color: cs.surface,
+                    borderRadius: BorderRadius.circular(10),
+                    border: Border.all(color: cs.outlineVariant),
+                  ),
+                  child: Row(
+                    children: [
+                      Icon(Icons.description, color: cs.onSurfaceVariant, size: 20),
+                      const SizedBox(width: 12),
+                      Expanded(
+                        child: Text(
+                          _workNameController.text,
+                          style: const TextStyle(fontSize: 16, fontWeight: FontWeight.w600),
+                        ),
+                      ),
+                      if (_existingDprs.isNotEmpty)
+                        IconButton(
+                          icon: Icon(Icons.keyboard_arrow_down_rounded, size: 28, color: cs.primary),
+                          onPressed: () => _showDprSelector(context),
+                          tooltip: 'Select Existing DPR',
+                        ),
+                    ],
+                  ),
+                ),
+        ),
+        const SizedBox(width: 12),
+        Container(
+          decoration: BoxDecoration(
+            color: cs.tertiaryContainer,
+            borderRadius: BorderRadius.circular(10),
+          ),
+          child: IconButton(
+            onPressed: () {
+              if (_editMode && _workNameController.text.trim().isEmpty) {
+                AppToast.error('Please enter DPR name');
+                return;
+              }
+              setState(() => _editMode = !_editMode);
+            },
+            icon: Icon(
+              _editMode ? Icons.check_circle : Icons.edit_rounded,
+              color: _editMode ? cs.tertiary : cs.primary,
+              size: 24,
+            ),
+          ),
+        ),
+      ],
+    );
+  }
+
+  Widget _buildInputFields(ColorScheme cs, SavedBOQState boqState) {
+    if (_selectedBoqId != null && _boqNameController.text == 'Select BOQ') {
+      final boq = boqState.boqs.firstWhere((b) => b.id == _selectedBoqId, orElse: () => boqState.boqs.first);
+      _boqNameController.text = boq.boqName;
+    }
+
+    return Column(
+      children: [
+        Row(
+          crossAxisAlignment: CrossAxisAlignment.end,
+          children: [
+            Expanded(
+              child: _buildCompactInputField(
+                'Plant',
+                _plantController,
+                Icons.factory,
+              ),
+            ),
+            const SizedBox(width: 12),
+            Expanded(
+              child: _buildCompactInputField(
+                'Location',
+                _floorController,
+                Icons.location_on,
+              ),
+            ),
+            const SizedBox(width: 12),
+            Expanded(
+              child: _buildCompactInputField(
+                'BOQ',
+                _boqNameController,
+                Icons.folder_zip_rounded,
+                readOnly: true,
+                onTap: () => _showBoqSelector(context, boqState.boqs),
+                suffixIcon: Icon(Icons.keyboard_arrow_down_rounded, size: 15, color: cs.primary),
+              ),
+            ),
+            const SizedBox(width: 12),
+            Expanded(
+              child: _buildCompactInputField(
+                'MOC',
+                _mocController,
+                Icons.category_rounded,
+              ),
+            ),
+          ],
+        ),
+      ],
+    );
+  }
+
+  Widget _buildCompactInputField(
+    String label,
+    TextEditingController controller,
+    IconData icon, {
+    TextInputType? keyboardType,
+    bool readOnly = false,
+    VoidCallback? onTap,
+    Widget? suffixIcon,
+  }) {
+    final cs = Theme.of(context).colorScheme;
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Padding(
+          padding: const EdgeInsets.only(bottom: 6),
+          child: Text(
+            label,
+            style: TextStyle(
+              fontSize: 12,
+              fontWeight: FontWeight.w600,
+              color: cs.onSurfaceVariant,
+            ),
+          ),
+        ),
+        SizedBox(
+          height: 44,
+          child: TextFormField(
+            controller: controller,
+            readOnly: readOnly,
+            onTap: onTap,
+            keyboardType: keyboardType,
+            textAlign: TextAlign.center,
+            style: const TextStyle(fontSize: 14, fontWeight: FontWeight.w500),
+            decoration: InputDecoration(
+              isDense: true,
+              contentPadding: const EdgeInsets.symmetric(vertical: 2, horizontal: 2),
+              filled: true,
+              fillColor: cs.surfaceContainerHigh,
+              suffixIcon: suffixIcon,
+              suffixIconConstraints: const BoxConstraints(minWidth: 5, minHeight: 10),
+              border: OutlineInputBorder(
+                borderRadius: BorderRadius.circular(10),
+                borderSide: BorderSide.none,
+              ),
+              focusedBorder: OutlineInputBorder(
+                borderRadius: BorderRadius.circular(10),
+                borderSide: BorderSide(color: cs.primary, width: 2),
+              ),
+            ),
+          ),
+        ),
+      ],
+    );
+  }
+
+
+
+  Widget _buildSearchAndFilterRow(ColorScheme cs) {
+    return Row(
+      children: [
+        Expanded(
+          child: Container(
+            height: 48,
+            decoration: BoxDecoration(
+              color: cs.surfaceContainerLow,
+              borderRadius: BorderRadius.circular(12),
+              border: Border.all(color: cs.outlineVariant.withOpacity(0.5)),
+            ),
+            child: TextField(
+              controller: _searchController,
+              onChanged: (val) => setState(() => _searchQuery = val.toLowerCase()),
+              decoration: InputDecoration(
+                hintText: 'Search assembly item...',
+                hintStyle: TextStyle(color: cs.onSurfaceVariant.withOpacity(0.6)),
+                prefixIcon: Icon(Icons.search, color: cs.primary, size: 20),
+                suffixIcon: _searchQuery.isNotEmpty
+                    ? IconButton(
+                        icon: const Icon(Icons.clear, size: 18),
+                        onPressed: () {
+                          _searchController.clear();
+                          setState(() => _searchQuery = '');
+                        },
+                      )
+                    : null,
+                border: InputBorder.none,
+                contentPadding: const EdgeInsets.symmetric(vertical: 14),
+              ),
+            ),
+          ),
+        ),
+        const SizedBox(width: 12),
+        _buildActionButton(
+          cs: cs,
+          icon: Icons.add,
+          onPressed: () {
+            ref.read(dprEntryProvider.notifier).addEmptyCard(widget.siteId);
+          },
+          tooltip: 'Add Entry',
+        ),
+        const SizedBox(width: 8),
+        _buildActionButton(
+          cs: cs,
+          icon: Icons.tune_rounded,
+          onPressed: _showFilterSortBottomSheet,
+          tooltip: 'Filter & Sort',
+          isActive: hasActiveFilters,
+        ),
+      ],
+    );
+  }
+
+  Widget _buildActionButton({
+    required ColorScheme cs,
+    required IconData icon,
+    required VoidCallback onPressed,
+    required String tooltip,
+    bool isActive = false,
+  }) {
+    return Tooltip(
+      message: tooltip,
+      child: InkWell(
+        onTap: onPressed,
+        borderRadius: BorderRadius.circular(12),
+        child: Container(
+          width: 48,
+          height: 48,
+          decoration: BoxDecoration(
+            color: isActive ? cs.primary : cs.surfaceContainerLow,
+            borderRadius: BorderRadius.circular(12),
+            border: Border.all(
+              color: isActive ? cs.primary : cs.outlineVariant.withOpacity(0.5),
+            ),
+          ),
+          child: Icon(
+            icon,
+            color: isActive ? cs.onPrimary : cs.primary,
+            size: 22,
+          ),
+        ),
+      ),
+    );
+  }
+
+  void _showFilterSortBottomSheet() {
+    showModalBottomSheet(
+      context: context,
+      isScrollControlled: true,
+      backgroundColor: Colors.transparent,
+      builder: (context) => StatefulBuilder(
+        builder: (context, setSheetState) {
+          final cs = Theme.of(context).colorScheme;
+          return Container(
+            decoration: BoxDecoration(
+              color: cs.surface,
+              borderRadius: const BorderRadius.vertical(top: Radius.circular(24)),
+            ),
+            padding: const EdgeInsets.fromLTRB(20, 12, 20, 32),
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Center(
+                  child: Container(
+                    width: 40,
+                    height: 4,
+                    decoration: BoxDecoration(
+                      color: cs.outlineVariant,
+                      borderRadius: BorderRadius.circular(2),
+                    ),
+                  ),
+                ),
+                const SizedBox(height: 20),
+                Row(
+                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                  children: [
+                    Text(
+                      'Filter & Sort',
+                      style: TextStyle(fontSize: 20, fontWeight: FontWeight.w700, color: cs.onSurface),
+                    ),
+                    TextButton(
+                      onPressed: () {
+                        setSheetState(() {
+                          _currentSort = StructureModuleSortOption.createdAtDesc;
+                          _filterCategories = {};
+                          _filterStatuses = {};
+                        });
+                        setState(() {});
+                      },
+                      child: const Text('Reset All'),
+                    ),
+                  ],
+                ),
+                const Divider(height: 32),
+                _buildFilterLabel(cs, 'Sort By'),
+                Wrap(
+                  spacing: 8,
+                  children: [
+                    _buildFilterChip(
+                      cs: cs,
+                      label: 'Name (A-Z)',
+                      selected: _currentSort == StructureModuleSortOption.nameAsc,
+                      onSelected: (val) {
+                        setSheetState(() => _currentSort = StructureModuleSortOption.nameAsc);
+                        setState(() {});
+                      },
+                    ),
+                    _buildFilterChip(
+                      cs: cs,
+                      label: 'Name (Z-A)',
+                      selected: _currentSort == StructureModuleSortOption.nameDesc,
+                      onSelected: (val) {
+                        setSheetState(() => _currentSort = StructureModuleSortOption.nameDesc);
+                        setState(() {});
+                      },
+                    ),
+                    _buildFilterChip(
+                      cs: cs,
+                      label: 'Mark (A-Z)',
+                      selected: _currentSort == StructureModuleSortOption.markAsc,
+                      onSelected: (val) {
+                        setSheetState(() => _currentSort = StructureModuleSortOption.markAsc);
+                        setState(() {});
+                      },
+                    ),
+                    _buildFilterChip(
+                      cs: cs,
+                      label: 'Weight',
+                      selected: _currentSort == StructureModuleSortOption.weightDesc,
+                      onSelected: (val) {
+                        setSheetState(() => _currentSort = StructureModuleSortOption.weightDesc);
+                        setState(() {});
+                      },
+                    ),
+                    _buildFilterChip(
+                      cs: cs,
+                      label: 'Latest',
+                      selected: _currentSort == StructureModuleSortOption.createdAtDesc,
+                      onSelected: (val) {
+                        setSheetState(() => _currentSort = StructureModuleSortOption.createdAtDesc);
+                        setState(() {});
+                      },
+                    ),
+                  ],
+                ),
+                const SizedBox(height: 24),
+                _buildFilterLabel(cs, 'Item Category'),
+                Wrap(
+                  spacing: 8,
+                  children: [
+                    _buildFilterChip(
+                      cs: cs,
+                      label: 'Setup Cards',
+                      selected: _filterCategories.contains('Setup'),
+                      onSelected: (val) {
+                        setSheetState(() {
+                          if (val) _filterCategories.add('Setup');
+                          else _filterCategories.remove('Setup');
+                        });
+                        setState(() {});
+                      },
+                    ),
+                    _buildFilterChip(
+                      cs: cs,
+                      label: 'New Entries',
+                      selected: _filterCategories.contains('New'),
+                      onSelected: (val) {
+                        setSheetState(() {
+                          if (val) _filterCategories.add('New');
+                          else _filterCategories.remove('New');
+                        });
+                        setState(() {});
+                      },
+                    ),
+                    _buildFilterChip(
+                      cs: cs,
+                      label: 'Existing Items',
+                      selected: _filterCategories.contains('Existing'),
+                      onSelected: (val) {
+                        setSheetState(() {
+                          if (val) _filterCategories.add('Existing');
+                          else _filterCategories.remove('Existing');
+                        });
+                        setState(() {});
+                      },
+                    ),
+                  ],
+                ),
+                const SizedBox(height: 32),
+                SizedBox(
+                  width: double.infinity,
+                  child: ElevatedButton(
+                    onPressed: () => Navigator.pop(context),
+                    style: ElevatedButton.styleFrom(
+                      backgroundColor: cs.primary,
+                      foregroundColor: cs.onPrimary,
+                      padding: const EdgeInsets.symmetric(vertical: 16),
+                      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                    ),
+                    child: const Text('Apply Filters', style: TextStyle(fontWeight: FontWeight.w700, fontSize: 16)),
+                  ),
+                ),
+              ],
+            ),
+          );
+        },
+      ),
+    );
+  }
+
+  Widget _buildFilterLabel(ColorScheme cs, String label) {
+    return Padding(
+      padding: const EdgeInsets.only(bottom: 12),
+      child: Text(
+        label,
+        style: TextStyle(fontSize: 14, fontWeight: FontWeight.w600, color: cs.onSurfaceVariant),
+      ),
+    );
+  }
+
+  Widget _buildFilterChip({
+    required ColorScheme cs,
+    required String label,
+    required bool selected,
+    required ValueChanged<bool> onSelected,
+  }) {
+    return FilterChip(
+      label: Text(label),
+      selected: selected,
+      onSelected: onSelected,
+      backgroundColor: cs.surface,
+      selectedColor: cs.primaryContainer,
+      checkmarkColor: cs.primary,
+      labelStyle: TextStyle(
+        fontSize: 13,
+        fontWeight: selected ? FontWeight.w600 : FontWeight.w500,
+        color: selected ? cs.primary : cs.onSurface,
+      ),
+      shape: RoundedRectangleBorder(
+        borderRadius: BorderRadius.circular(8),
+        side: BorderSide(
+          color: selected ? cs.primary : cs.outlineVariant,
+          width: selected ? 1.5 : 1,
+        ),
+      ),
+    );
+  }
+
+  Widget _buildSectionHeader(ColorScheme cs, String title, IconData icon) {
+    return Row(
+      children: [
+        Icon(icon, size: 20, color: cs.primary),
+        const SizedBox(width: 8),
+        Text(
+          title,
+          style: TextStyle(
+            fontSize: 16,
+            fontWeight: FontWeight.w700,
+            color: cs.onSurface,
+            letterSpacing: 0.2,
+          ),
+        ),
+      ],
+    );
+  }
+
 
   void _showBoqSelector(BuildContext context, List<BOQStructure> boqs) {
     showModalBottomSheet(
@@ -483,6 +1001,7 @@ class _DprStructureCreateScreenState
 
     setState(() {
       _selectedBoqId = boq.id;
+      _boqNameController.text = boq.boqName;
     });
   }
 
@@ -528,7 +1047,7 @@ class _DprStructureCreateScreenState
                       setState(() {
                         _selectedDprId = dpr.id;
                         _latestDpr = dpr;
-                        _workNameController.text = dpr.dprName;
+                        _populateFromDpr(dpr);
                       });
                       Navigator.pop(context);
                     },
@@ -543,43 +1062,78 @@ class _DprStructureCreateScreenState
     );
   }
 
-  Widget _buildAddEntryRow(ColorScheme cs) {
-    return Padding(
-      padding: const EdgeInsets.symmetric(horizontal: 12),
-      child: Row(
-        children: [
-          Text(
-            'Entries',
-            style: TextStyle(
-                fontSize: 13, fontWeight: FontWeight.w700, color: cs.onSurface),
-          ),
-          const Spacer(),
-          OutlinedButton.icon(
-            onPressed: () {
-              ref.read(dprEntryProvider.notifier).addEmptyCard(widget.siteId);
-            },
-            icon: const Icon(Icons.add_rounded, size: 18),
-            label: const Text('Add'),
-            style: OutlinedButton.styleFrom(
-              foregroundColor: cs.primary,
-              side: BorderSide(color: cs.primary.withOpacity(0.6)),
-              padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
-              shape: RoundedRectangleBorder(
-                  borderRadius: BorderRadius.circular(10)),
-            ),
-          ),
-        ],
-      ),
-    );
-  }
 
   Widget _buildCardList(ColorScheme cs, DprEntryState state, SavedBOQState boqState) {
     final displaySetupCards = _localSetupCards ?? [];
     final boqStructureState = ref.watch(boqStructureProvider);
     final existingItems = _latestDpr?.items ?? [];
     
-    // Combine setup cards, active (new) cards, and existing items
-    final totalItemsCount = displaySetupCards.length + state.activeCards.length + existingItems.length;
+    // 1. Search Filter
+    List<AssemblyCardIsar> filteredSetup = displaySetupCards.where((c) {
+      if (_searchQuery.isEmpty) return true;
+      return c.assemblyMark.toLowerCase().contains(_searchQuery) ||
+             c.description.toLowerCase().contains(_searchQuery);
+    }).toList();
+
+    List<AssemblyCardIsar> filteredActive = state.activeCards.where((c) {
+      if (_searchQuery.isEmpty) return true;
+      return c.assemblyMark.toLowerCase().contains(_searchQuery) ||
+             c.description.toLowerCase().contains(_searchQuery);
+    }).toList();
+
+    List<DPRStructureItem> filteredExisting = existingItems.where((item) {
+      if (_searchQuery.isEmpty) return true;
+      return item.assemblyMark.toLowerCase().contains(_searchQuery);
+    }).toList();
+
+    // 2. Category Filter
+    if (_filterCategories.isNotEmpty) {
+      if (!_filterCategories.contains('Setup')) filteredSetup = [];
+      if (!_filterCategories.contains('New')) filteredActive = [];
+      if (!_filterCategories.contains('Existing')) filteredExisting = [];
+    }
+
+    final totalItemsCount = filteredSetup.length + filteredActive.length + filteredExisting.length;
+
+    // 3. Sorting
+    void sortIsar(List<AssemblyCardIsar> list) {
+      list.sort((a, b) {
+        switch (_currentSort) {
+          case StructureModuleSortOption.nameAsc:
+            return a.description.toLowerCase().compareTo(b.description.toLowerCase());
+          case StructureModuleSortOption.nameDesc:
+            return b.description.toLowerCase().compareTo(a.description.toLowerCase());
+          case StructureModuleSortOption.markAsc:
+            return a.assemblyMark.toLowerCase().compareTo(b.assemblyMark.toLowerCase());
+          case StructureModuleSortOption.markDesc:
+            return b.assemblyMark.toLowerCase().compareTo(a.assemblyMark.toLowerCase());
+          case StructureModuleSortOption.weightDesc:
+            return (b.totalNetWeight ?? 0).compareTo(a.totalNetWeight ?? 0);
+          case StructureModuleSortOption.createdAtDesc:
+            return b.createdAt.compareTo(a.createdAt);
+          case StructureModuleSortOption.createdAtAsc:
+            return a.createdAt.compareTo(b.createdAt);
+          default:
+            return 0;
+        }
+      });
+    }
+
+    sortIsar(filteredSetup);
+    sortIsar(filteredActive);
+    
+    filteredExisting.sort((a, b) {
+       switch (_currentSort) {
+          case StructureModuleSortOption.markAsc:
+            return a.assemblyMark.toLowerCase().compareTo(b.assemblyMark.toLowerCase());
+          case StructureModuleSortOption.markDesc:
+            return b.assemblyMark.toLowerCase().compareTo(a.assemblyMark.toLowerCase());
+          case StructureModuleSortOption.weightDesc:
+            return (b.totalNetWeight ?? 0).compareTo(a.totalNetWeight ?? 0);
+          default:
+            return 0;
+        }
+    });
 
     if (totalItemsCount == 0) {
       return Center(
@@ -591,7 +1145,7 @@ class _DprStructureCreateScreenState
               Icon(Icons.inventory_2_outlined,
                   size: 48, color: cs.onSurfaceVariant.withOpacity(0.2)),
               const SizedBox(height: 16),
-              Text("No entries added yet",
+              Text(_searchQuery.isEmpty && !hasActiveFilters ? "No entries added yet" : "No matches found",
                   style: TextStyle(
                       color: cs.onSurfaceVariant, fontWeight: FontWeight.w600)),
             ],
@@ -606,63 +1160,56 @@ class _DprStructureCreateScreenState
       padding: const EdgeInsets.fromLTRB(10, 6, 10, 0),
       itemCount: totalItemsCount,
       itemBuilder: (context, index) {
-        // 1. LOCAL SETUP CARDS (Modified locally for this DPR)
-        if (index < displaySetupCards.length) {
-          final card = displaySetupCards[index];
-          return Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              Padding(
-                padding: const EdgeInsets.only(left: 4, bottom: 8),
-                child: Text(
-                  "Setup Card",
-                  style: TextStyle(
-                    fontSize: 12,
-                    fontWeight: FontWeight.w800,
-                    color: cs.primary,
-                    letterSpacing: 0.5,
-                  ),
-                ),
-              ),
-              AssemblyCardWidget(
-                card: card,
-                onUpdate: (mark, qty) {
-                  setState(() {
-                    _syncCardWithBOQ(card, mark, qty, boqStructureState);
-                  });
-                  // NOTE: WE DO NOT call setup notifier update here (No Vice-Versa reflection)
-                },
-                onDelete: () {
-                   setState(() {
-                     _localSetupCards?.removeAt(index);
-                   });
-                },
-              ),
-              const Divider(height: 32),
-            ],
-          );
-        }
-
-        // 2. ACTIVE (NEW) CARDS
-        final activeIndex = index - displaySetupCards.length;
-        if (activeIndex < state.activeCards.length) {
-          final card = state.activeCards[activeIndex];
+        // 1. LOCAL SETUP CARDS
+        if (index < filteredSetup.length) {
+          final card = filteredSetup[index];
           return AssemblyCardWidget(
             card: card,
             onUpdate: (mark, qty) {
               setState(() {
                 _syncCardWithBOQ(card, mark, qty, boqStructureState);
               });
-              ref.read(dprEntryProvider.notifier).updateCard(activeIndex, mark, qty);
             },
             onDelete: () {
-              ref.read(dprEntryProvider.notifier).removeCard(activeIndex);
+               setState(() {
+                 _localSetupCards?.remove(card);
+               });
             },
+            onCopy: () {
+              setState(() {
+                _localSetupCards?.add(_cloneCard(card));
+              });
+            },
+            onRemark: () => _showRemarksDialog(card),
+          );
+        }
+
+        // 2. ACTIVE (NEW) CARDS
+        final int activeIndex = index - filteredSetup.length;
+        if (activeIndex < filteredActive.length) {
+          final card = filteredActive[activeIndex];
+          return AssemblyCardWidget(
+            card: card,
+            onUpdate: (mark, qty) {
+              setState(() {
+                _syncCardWithBOQ(card, mark, qty, boqStructureState);
+              });
+              final originalIndex = state.activeCards.indexOf(card);
+              ref.read(dprEntryProvider.notifier).updateCard(originalIndex, mark, qty);
+            },
+            onDelete: () {
+              final originalIndex = state.activeCards.indexOf(card);
+              ref.read(dprEntryProvider.notifier).removeCard(originalIndex);
+            },
+            onCopy: () {
+              ref.read(dprEntryProvider.notifier).addCard(_cloneCard(card));
+            },
+            onRemark: () => _showRemarksDialog(card),
           );
         } else {
-          // 3. EXISTING ITEMS (Historical)
-          final existingItemIndex = index - displaySetupCards.length - state.activeCards.length;
-          final item = existingItems[existingItemIndex];
+          // 3. EXISTING ITEMS
+          final existingItemIndex = index - filteredSetup.length - filteredActive.length;
+          final item = filteredExisting[existingItemIndex];
           
           // Look up description from BOQ provider
           String lookedUpDesc = '';
@@ -721,13 +1268,14 @@ class _DprStructureCreateScreenState
               );
 
               if (success) {
-                // Refresh list to show updated values
                 _fetchDprsForDate(_selectedDate);
               }
             },
-            onDelete: () async {
-              // Optional: Add delete item from DPR functionality here if needed
+            onDelete: () async {},
+            onCopy: () {
+              ref.read(dprEntryProvider.notifier).addCard(_cloneCard(card));
             },
+            onRemark: () => _showRemarksDialog(card),
           );
         }
       },
@@ -740,7 +1288,7 @@ class _DprStructureCreateScreenState
     final boqState = ref.read(savedBOQProvider);
 
     // Collect all items to submit (Setup cards + Active cards)
-    final allCards = [...setupCards, ...entryState.activeCards];
+    final List<AssemblyCardIsar> allCards = [...setupCards, ...entryState.activeCards];
 
     if (allCards.isEmpty) return;
 
@@ -786,6 +1334,10 @@ class _DprStructureCreateScreenState
       return;
     }
     final dprName = _workNameController.text.trim();
+    final plant = _plantController.text.trim();
+    final location = _floorController.text.trim();
+    final moc = _mocController.text.trim();
+    final size = double.tryParse(_sizeController.text);
     
     final bool success;
     if (_isUpdate) {
@@ -794,6 +1346,11 @@ class _DprStructureCreateScreenState
             _selectedDprId!,
             items: items,
             remarks: dprName.isNotEmpty ? dprName : null,
+            plant: plant.isNotEmpty ? plant : null,
+            location: location.isNotEmpty ? location : null,
+            moc: moc.isNotEmpty ? moc : null,
+            size: size,
+            unit: _selectedUnit,
           );
     } else {
       success = await ref.read(dprStructureProvider.notifier).createDPR(
@@ -803,6 +1360,11 @@ class _DprStructureCreateScreenState
             dprName: dprName.isNotEmpty ? dprName : null,
             date: _selectedDate,
             remarks: dprName.isNotEmpty ? dprName : null,
+            plant: plant.isNotEmpty ? plant : null,
+            location: location.isNotEmpty ? location : null,
+            moc: moc.isNotEmpty ? moc : null,
+            size: size,
+            unit: _selectedUnit,
           );
     }
 
@@ -931,6 +1493,40 @@ class _DprStructureCreateScreenState
     }
   }
 
+  void _showRemarksDialog(AssemblyCardIsar card) {
+    final remarksController = TextEditingController(text: card.remarks ?? '');
+
+    showDialog(
+      context: context,
+      builder: (context) => AlertDialog(
+        title: Text('Remarks for ${card.assemblyMark.isNotEmpty ? card.assemblyMark : "Item"}'),
+        content: TextField(
+          controller: remarksController,
+          maxLines: 5,
+          decoration: const InputDecoration(
+            hintText: 'Enter your remarks here...',
+            border: OutlineInputBorder(),
+          ),
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(context),
+            child: const Text('Cancel'),
+          ),
+          TextButton(
+            onPressed: () {
+              setState(() {
+                card.remarks = remarksController.text;
+              });
+              Navigator.pop(context);
+            },
+            child: const Text('Save'),
+          ),
+        ],
+      ),
+    );
+  }
+
   AssemblyCardIsar _cloneCard(AssemblyCardIsar card) {
     final clone = AssemblyCardIsar();
     clone.isarId = card.isarId;
@@ -954,6 +1550,7 @@ class _DprStructureCreateScreenState
     clone.progressPercentage = card.progressPercentage;
     clone.createdAt = card.createdAt;
     clone.isSynced = card.isSynced;
+    clone.remarks = card.remarks; // Copy remarks
     
     return clone;
   }

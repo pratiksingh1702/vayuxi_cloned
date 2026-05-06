@@ -13,6 +13,11 @@ class DPRStructureRepository {
     DateTime? date,
     String? remarks,
     String? teamId,
+    String? plant,
+    String? location,
+    String? moc,
+    double? size,
+    String? unit,
   }) async {
     // items should be list of {"assemblyMark": "...", "qtyUsed": ..., "boqItemId": "..."}
     final body = <String, dynamic>{
@@ -27,6 +32,11 @@ class DPRStructureRepository {
     if (date != null) body['date'] = date.toIso8601String();
     if (remarks != null && remarks.isNotEmpty) body['remarks'] = remarks;
     if (teamId != null && teamId.isNotEmpty) body['teamId'] = teamId;
+    if (plant != null && plant.isNotEmpty) body['plant'] = plant;
+    if (location != null && location.isNotEmpty) body['location'] = location;
+    if (moc != null && moc.isNotEmpty) body['moc'] = moc;
+    if (size != null) body['size'] = size;
+    if (unit != null && unit.isNotEmpty) body['unit'] = unit;
 
     final res =
         await DioClient.dio.post('/site/$siteId/dpr-structure', data: body);
@@ -84,6 +94,11 @@ class DPRStructureRepository {
     String? remarks,
     String? status,
     bool replaceMode = false,
+    String? plant,
+    String? location,
+    String? moc,
+    double? size,
+    String? unit,
   }) async {
     final body = <String, dynamic>{
       'replaceMode': replaceMode,
@@ -97,6 +112,11 @@ class DPRStructureRepository {
     }
     if (remarks != null && remarks.isNotEmpty) body['remarks'] = remarks;
     if (status != null && status.isNotEmpty) body['status'] = status;
+    if (plant != null && plant.isNotEmpty) body['plant'] = plant;
+    if (location != null && location.isNotEmpty) body['location'] = location;
+    if (moc != null && moc.isNotEmpty) body['moc'] = moc;
+    if (size != null) body['size'] = size;
+    if (unit != null && unit.isNotEmpty) body['unit'] = unit;
 
     final res = await DioClient.dio
         .put('/site/$siteId/dpr-structure/$dprId', data: body);

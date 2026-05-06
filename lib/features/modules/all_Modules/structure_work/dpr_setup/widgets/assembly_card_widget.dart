@@ -6,6 +6,8 @@ class AssemblyCardWidget extends StatefulWidget {
   final VoidCallback? onTap;
   final VoidCallback? onDelete;
   final Function(String mark, double qty)? onUpdate;
+  final VoidCallback? onCopy;
+  final VoidCallback? onRemark;
   final bool readOnly;
   final bool allowMarkEdit;
   final bool allowQtyEdit;
@@ -16,6 +18,8 @@ class AssemblyCardWidget extends StatefulWidget {
     this.onTap,
     this.onDelete,
     this.onUpdate,
+    this.onCopy,
+    this.onRemark,
     this.readOnly = false,
     this.allowMarkEdit = true,
     this.allowQtyEdit = true,
@@ -80,7 +84,37 @@ class _AssemblyCardWidgetState extends State<AssemblyCardWidget> {
                     overflow: TextOverflow.ellipsis,
                   ),
                 ),
-                // Optional: Action column or delete button
+                if (widget.onRemark != null) ...[
+                  const SizedBox(width: 8),
+                  InkWell(
+                    onTap: widget.onRemark,
+                    borderRadius: BorderRadius.circular(4),
+                    child: Container(
+                      constraints: const BoxConstraints(
+                        minWidth: 78,
+                        maxWidth: 110,
+                      ),
+                      padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 5),
+                      decoration: BoxDecoration(
+                        color: cs.secondaryContainer.withOpacity(0.7),
+                        border: Border.all(color: cs.outline.withOpacity(0.3)),
+                        borderRadius: BorderRadius.circular(4),
+                      ),
+                      child: Text(
+                        widget.card.remarks?.isNotEmpty == true
+                            ? widget.card.remarks!
+                            : 'Remark',
+                        style: TextStyle(
+                          fontSize: 10,
+                          fontWeight: FontWeight.w700,
+                          color: cs.onSecondaryContainer,
+                        ),
+                        overflow: TextOverflow.ellipsis,
+                        maxLines: 1,
+                      ),
+                    ),
+                  ),
+                ],
               ],
             ),
           ),
@@ -104,6 +138,11 @@ class _AssemblyCardWidgetState extends State<AssemblyCardWidget> {
                             Expanded(
                               child: _buildActionIcon(Icons.edit_rounded,
                                   cs.primary, () => widget.onTap?.call()),
+                            ),
+                            const SizedBox(width: 8),
+                            Expanded(
+                              child: _buildActionIcon(Icons.copy_rounded,
+                                  Colors.green, () => widget.onCopy?.call()),
                             ),
                             if (!widget.readOnly) ...[
                               const SizedBox(width: 8),

@@ -63,6 +63,12 @@ class DPRStructure {
   final DateTime? createdAt;
   final String? teamId;
   final String? teamName;
+  final String? plant;
+  final String? location;
+  final String? moc;
+  final double? size;
+  final String? unit;
+  final DateTime? updatedAt;
 
   DPRStructure({
     required this.id,
@@ -85,6 +91,12 @@ class DPRStructure {
     this.createdAt,
     this.teamId,
     this.teamName,
+    this.plant,
+    this.location,
+    this.moc,
+    this.size,
+    this.unit,
+    this.updatedAt,
   });
 
   factory DPRStructure.fromJson(Map<String, dynamic> json) {
@@ -147,6 +159,13 @@ class DPRStructure {
       } catch (_) {}
     }
 
+    DateTime? updatedDate;
+    if (json['updatedAt'] != null) {
+      try {
+        updatedDate = DateTime.parse(json['updatedAt'].toString());
+      } catch (_) {}
+    }
+
     return DPRStructure(
       id: json['_id']?.toString() ?? '',
       dprName: json['dprName']?.toString() ?? '',
@@ -168,6 +187,12 @@ class DPRStructure {
       createdAt: createdDate,
       teamId: tId,
       teamName: tName,
+      plant: json['plant']?.toString(),
+      location: json['location']?.toString(),
+      moc: json['moc']?.toString(),
+      size: (json['size'] as num?)?.toDouble(),
+      unit: json['unit']?.toString(),
+      updatedAt: updatedDate,
     );
   }
 }

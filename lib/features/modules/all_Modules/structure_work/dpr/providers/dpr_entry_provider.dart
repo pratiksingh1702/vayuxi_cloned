@@ -214,6 +214,21 @@ class DprEntryNotifier extends StateNotifier<DprEntryState> {
     state = state.copyWith(activeCards: newList);
   }
 
+  void clearCards() {
+    state = state.copyWith(activeCards: []);
+  }
+
+  void addCard(AssemblyCardIsar card) {
+    state = state.copyWith(activeCards: [...state.activeCards, card]);
+  }
+
+  void updateCardRemark(int index, String remark) {
+    if (index < 0 || index >= state.activeCards.length) return;
+    final card = state.activeCards[index];
+    card.remarks = remark;
+    state = state.copyWith(activeCards: [...state.activeCards]);
+  }
+
   void clearError() => state = state.copyWith(error: null);
 
   BOQStructureItem? _findBoqItemByMark(String mark) {

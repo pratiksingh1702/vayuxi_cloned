@@ -1,0 +1,63 @@
+
+lib/features/modules/all_Modules/structure_work/boq/screens/boq_item_list.dart:36:72: Error: Can't find '}' to match
+'{'.
+class _BoqItemListScreenState extends ConsumerState<BoqItemListScreen> {
+                                                                       ^
+lib/features/modules/all_Modules/structure_work/boq/screens/boq_item_list.dart:644:1: Error: Classes can't be declared
+inside other classes.
+Try moving the class to the top-level.
+class _BoqItemCard extends StatelessWidget {
+^^^^^
+lib/features/modules/all_Modules/structure_work/boq/screens/boq_item_list.dart:644:20: Error: Expected a class member,
+but got 'extends'.
+class _BoqItemCard extends StatelessWidget {
+                   ^^^^^^^
+lib/features/modules/all_Modules/structure_work/boq/screens/boq_item_list.dart:644:28: Error: A method declaration needs
+an explicit list of parameters.
+Try adding a parameter list to the method declaration.
+class _BoqItemCard extends StatelessWidget {
+                           ^^^^^^^^^^^^^^^
+lib/features/modules/all_Modules/structure_work/boq/screens/boq_item_list.dart:282:28: Error: The method '_BoqItemCard'
+isn't defined for the type '_BoqItemListScreenState'.
+ - '_BoqItemListScreenState' is from
+ 'package:untitled2/features/modules/all_Modules/structure_work/boq/screens/boq_item_list.dart'
+ ('lib/features/modules/all_Modules/structure_work/boq/screens/boq_item_list.dart').
+Try correcting the name to the name of an existing method, or defining a method named '_BoqItemCard'.
+                    return _BoqItemCard(
+                           ^^^^^^^^^^^^
+lib/features/modules/all_Modules/structure_work/boq/screens/boq_item_list.dart:648:32: Error: Expected ',' before this.
+  const _BoqItemCard({required this.item, required this.onTap});
+                               ^^^^
+lib/features/modules/all_Modules/structure_work/boq/screens/boq_item_list.dart:648:52: Error: Expected ',' before this.
+  const _BoqItemCard({required this.item, required this.onTap});
+                                                   ^^^^
+lib/features/modules/all_Modules/structure_work/boq/screens/boq_item_list.dart:648:9: Error: Not a constant expression.
+  const _BoqItemCard({required this.item, required this.onTap});
+        ^^^^^^^^^^^^
+lib/features/modules/all_Modules/structure_work/boq/screens/boq_item_list.dart:674:18: Error: Final variable 'onTap'
+must be assigned before it can be used.
+          onTap: onTap,
+                 ^^^^^
+lib/features/modules/all_Modules/structure_work/boq/screens/boq_item_list.dart:689:23: Error: Final variable 'item' must
+be assigned before it can be used.
+                      item.assemblyMark.isNotEmpty
+                      ^^^^
+lib/features/modules/all_Modules/structure_work/boq/screens/boq_item_list.dart:690:29: Error: Final variable 'item' must
+be assigned before it can be used.
+                          ? item.assemblyMark.substring(0, 1).toUpperCase()
+                            ^^^^
+lib/features/modules/all_Modules/structure_work/boq/screens/boq_item_list.dart:708:25: Error: Final variable 'item' must
+be assigned before it can be used.
+                        item.typeDescription.isNotEmpty
+                        ^^^^
+lib/features/modules/all_Modules/structure_work/boq/screens/boq_item_list.dart:709:31: Error: Final variable 'item' must
+be assigned before it can be used.
+                            ? item.typeDescription
+                              ^^^^
+lib/features/modules/all_Modules/structure_work/boq/screens/boq_item_list.dart:721:37: Error: Final variable 'item' must
+be assigned before it can be used.
+                        "Mark No: ${item.assemblyMark}",
+                                    ^^^^
+lib/features/modules/all_Modules/structure_work/boq/screens/boq_item_list.dart:739:27: Error: Final variable 'item' must
+be assigned before it can be used.
+                      '${(item.totalNetWeight ?? 0).toStringAsFixed(2)}',

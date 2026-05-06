@@ -94,6 +94,11 @@ class DPRStructureNotifier extends StateNotifier<DPRStructureState> {
     DateTime? date,
     String? remarks,
     String? teamId,
+    String? plant,
+    String? location,
+    String? moc,
+    double? size,
+    String? unit,
   }) async {
     state = state.copyWith(isSaving: true, clearError: true);
     try {
@@ -105,6 +110,11 @@ class DPRStructureNotifier extends StateNotifier<DPRStructureState> {
         date: date,
         remarks: remarks,
         teamId: teamId,
+        plant: plant,
+        location: location,
+        moc: moc,
+        size: size,
+        unit: unit,
       );
       state = state.copyWith(
         dprs: [dpr, ...state.dprs],
@@ -124,6 +134,11 @@ class DPRStructureNotifier extends StateNotifier<DPRStructureState> {
     String? remarks,
     String? status,
     bool replaceMode = false,
+    String? plant,
+    String? location,
+    String? moc,
+    double? size,
+    String? unit,
   }) async {
     state = state.copyWith(isSaving: true, clearError: true);
     try {
@@ -134,6 +149,11 @@ class DPRStructureNotifier extends StateNotifier<DPRStructureState> {
         remarks: remarks,
         status: status,
         replaceMode: replaceMode,
+        plant: plant,
+        location: location,
+        moc: moc,
+        size: size,
+        unit: unit,
       );
       final List<DPRStructure> updatedList =
           state.dprs.map<DPRStructure>((d) => d.id == dprId ? updatedDpr : d).toList();
@@ -159,6 +179,22 @@ class DPRStructureNotifier extends StateNotifier<DPRStructureState> {
     } catch (e) {
       state = state.copyWith(isSaving: false, error: _extractError(e));
       return false;
+    }
+  }
+
+  Future<List<DPRStructure>> fetchDPRsForDate(String siteId, DateTime date) async {
+    state = state.copyWith(isLoading: true, clearError: true);
+    try {
+      final dprs = await _repo.getDPRList(
+        siteId,
+        startDate: DateTime(date.year, date.month, date.day),
+        endDate: DateTime(date.year, date.month, date.day, 23, 59, 59),
+      );
+      state = state.copyWith(isLoading: false);
+      return dprs;
+    } catch (e) {
+      state = state.copyWith(isLoading: false, error: _extractError(e));
+      return [];
     }
   }
 
