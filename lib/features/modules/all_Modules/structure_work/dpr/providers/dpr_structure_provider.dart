@@ -13,7 +13,6 @@ class DPRStructureState {
   final String? error;
   final DateTime? filterStartDate;
   final DateTime? filterEndDate;
-  final String? filterBoqId;
 
   const DPRStructureState({
     this.dprs = const [],
@@ -23,7 +22,6 @@ class DPRStructureState {
     this.error,
     this.filterStartDate,
     this.filterEndDate,
-    this.filterBoqId,
   });
 
   DPRStructureState copyWith({
@@ -34,7 +32,6 @@ class DPRStructureState {
     String? error,
     DateTime? filterStartDate,
     DateTime? filterEndDate,
-    String? filterBoqId,
     bool clearError = false,
     bool clearSelected = false,
     bool clearFilter = false,
@@ -50,8 +47,6 @@ class DPRStructureState {
           clearFilter ? null : (filterStartDate ?? this.filterStartDate),
       filterEndDate:
           clearFilter ? null : (filterEndDate ?? this.filterEndDate),
-      filterBoqId:
-          clearFilter ? null : (filterBoqId ?? this.filterBoqId),
     );
   }
 }
@@ -68,7 +63,6 @@ class DPRStructureNotifier extends StateNotifier<DPRStructureState> {
         siteId,
         startDate: state.filterStartDate,
         endDate: state.filterEndDate,
-        boqId: state.filterBoqId,
       );
       state = state.copyWith(dprs: dprs, isLoading: false);
     } catch (e) {
@@ -88,7 +82,6 @@ class DPRStructureNotifier extends StateNotifier<DPRStructureState> {
 
   Future<bool> createDPR(
     String siteId, {
-    required String boqId,
     required List<Map<String, dynamic>> items,
     String? dprName,
     DateTime? date,
@@ -104,7 +97,6 @@ class DPRStructureNotifier extends StateNotifier<DPRStructureState> {
     try {
       final dpr = await _repo.createDPR(
         siteId,
-        boqId: boqId,
         items: items,
         dprName: dprName,
         date: date,
@@ -131,6 +123,7 @@ class DPRStructureNotifier extends StateNotifier<DPRStructureState> {
     String siteId,
     String dprId, {
     List<Map<String, dynamic>>? items,
+    String? dprName,
     String? remarks,
     String? status,
     bool replaceMode = false,
@@ -146,6 +139,7 @@ class DPRStructureNotifier extends StateNotifier<DPRStructureState> {
         siteId,
         dprId,
         items: items,
+        dprName: dprName,
         remarks: remarks,
         status: status,
         replaceMode: replaceMode,
@@ -201,7 +195,6 @@ class DPRStructureNotifier extends StateNotifier<DPRStructureState> {
   void setFilters({
     DateTime? startDate,
     DateTime? endDate,
-    String? boqId,
     bool clear = false,
   }) {
     if (clear) {
@@ -210,7 +203,6 @@ class DPRStructureNotifier extends StateNotifier<DPRStructureState> {
       state = state.copyWith(
         filterStartDate: startDate,
         filterEndDate: endDate,
-        filterBoqId: boqId,
       );
     }
   }

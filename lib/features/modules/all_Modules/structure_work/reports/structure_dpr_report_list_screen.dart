@@ -92,7 +92,8 @@ class _StructureDprReportListScreenState
       setState(() {
         if (isStartDate) {
           _selectedStartDate = selected;
-          if (_selectedEndDate != null && _selectedEndDate!.isBefore(selected)) {
+          if (_selectedEndDate != null &&
+              _selectedEndDate!.isBefore(selected)) {
             _selectedEndDate = null;
           }
         } else {
@@ -119,7 +120,9 @@ class _StructureDprReportListScreenState
     }
 
     // Selection Guard: If teams exist and none selected, show team picker
-    if (teamState.teams.isNotEmpty && _selectedTeamId == null && _selectedTeamIds.isEmpty) {
+    if (teamState.teams.isNotEmpty &&
+        _selectedTeamId == null &&
+        _selectedTeamIds.isEmpty) {
       return _buildTeamSelectionScreen(teamState, cs, isDark);
     }
 
@@ -174,7 +177,8 @@ class _StructureDprReportListScreenState
     );
   }
 
-  Widget _buildTeamSelectionScreen(TeamState teamState, ColorScheme cs, bool isDark) {
+  Widget _buildTeamSelectionScreen(
+      TeamState teamState, ColorScheme cs, bool isDark) {
     return Scaffold(
       backgroundColor: isDark ? cs.surface : const Color(0xFFF8F9FA),
       appBar: PremiumAppBar(
@@ -218,12 +222,14 @@ class _StructureDprReportListScreenState
                       color: const Color(0xFF7B3F00).withOpacity(0.1),
                       shape: BoxShape.circle,
                     ),
-                    child: const Icon(Icons.groups_rounded, color: Color(0xFF7B3F00), size: 32),
+                    child: const Icon(Icons.groups_rounded,
+                        color: Color(0xFF7B3F00), size: 32),
                   ),
                   const SizedBox(height: 12),
                   Text(
                     team.teamName,
-                    style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 14),
+                    style: const TextStyle(
+                        fontWeight: FontWeight.bold, fontSize: 14),
                     textAlign: TextAlign.center,
                   ),
                 ],
@@ -255,7 +261,10 @@ class _StructureDprReportListScreenState
               onTap: () => _showDatePicker(isStartDate: false),
             ),
           ),
-          if (_selectedStartDate != null || _selectedEndDate != null || _selectedTeamIds.isNotEmpty || _selectedTeamId != null)
+          if (_selectedStartDate != null ||
+              _selectedEndDate != null ||
+              _selectedTeamIds.isNotEmpty ||
+              _selectedTeamId != null)
             IconButton(
               onPressed: _clearFilters,
               icon: Icon(Icons.close_rounded, color: cs.error),
@@ -275,7 +284,8 @@ class _StructureDprReportListScreenState
         itemCount: teamState.teams.length,
         itemBuilder: (context, index) {
           final team = teamState.teams[index];
-          final isSelected = _selectedTeamIds.contains(team.id) || _selectedTeamId == team.id;
+          final isSelected =
+              _selectedTeamIds.contains(team.id) || _selectedTeamId == team.id;
           return Padding(
             padding: const EdgeInsets.only(right: 8),
             child: FilterChip(
@@ -333,7 +343,8 @@ class _DateButton extends StatelessWidget {
             Icon(
               Icons.calendar_today_rounded,
               size: 16,
-              color: date != null ? const Color(0xFF7B3F00) : cs.onSurfaceVariant,
+              color:
+                  date != null ? const Color(0xFF7B3F00) : cs.onSurfaceVariant,
             ),
             const SizedBox(width: 8),
             Expanded(
@@ -345,10 +356,13 @@ class _DateButton extends StatelessWidget {
                     style: TextStyle(fontSize: 10, color: cs.onSurfaceVariant),
                   ),
                   Text(
-                    date != null ? DateFormat('dd MMM yyyy').format(date!) : 'Select Date',
+                    date != null
+                        ? DateFormat('dd MMM yyyy').format(date!)
+                        : 'Select Date',
                     style: TextStyle(
                       fontSize: 13,
-                      fontWeight: date != null ? FontWeight.bold : FontWeight.normal,
+                      fontWeight:
+                          date != null ? FontWeight.bold : FontWeight.normal,
                       color: date != null ? cs.onSurface : cs.onSurfaceVariant,
                     ),
                   ),
@@ -402,29 +416,37 @@ class _DPRReportCard extends StatelessWidget {
                     Expanded(
                       child: Text(
                         dpr.dprName,
-                        style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 16),
+                        style: const TextStyle(
+                            fontWeight: FontWeight.bold, fontSize: 16),
                         overflow: TextOverflow.ellipsis,
                       ),
                     ),
                     Text(
                       DateFormat('dd MMM').format(dpr.date ?? DateTime.now()),
-                      style: TextStyle(color: cs.primary, fontWeight: FontWeight.bold),
+                      style: TextStyle(
+                          color: cs.primary, fontWeight: FontWeight.bold),
                     ),
                   ],
                 ),
                 const SizedBox(height: 4),
                 Text(
-                  'BOQ: ${dpr.boqName ?? 'N/A'}',
+                  'DPR No: ${dpr.dprNumber}',
                   style: TextStyle(fontSize: 12, color: cs.onSurfaceVariant),
                 ),
                 const SizedBox(height: 12),
                 Row(
                   mainAxisAlignment: MainAxisAlignment.spaceBetween,
                   children: [
-                    _Stat(label: 'Qty', value: dpr.totalQtyUsed.toStringAsFixed(0)),
-                    _Stat(label: 'Weight', value: '${(dpr.totalNetWeight / 1000).toStringAsFixed(2)} MT'),
+                    _Stat(
+                        label: 'Qty',
+                        value: dpr.totalQtyUsed.toStringAsFixed(0)),
+                    _Stat(
+                        label: 'Weight',
+                        value:
+                            '${(dpr.totalNetWeight / 1000).toStringAsFixed(2)} MT'),
                     Container(
-                      padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                      padding: const EdgeInsets.symmetric(
+                          horizontal: 8, vertical: 4),
                       decoration: BoxDecoration(
                         color: _getStatusColor(dpr.status).withOpacity(0.1),
                         borderRadius: BorderRadius.circular(8),
@@ -450,9 +472,12 @@ class _DPRReportCard extends StatelessWidget {
 
   Color _getStatusColor(String status) {
     switch (status.toLowerCase()) {
-      case 'approved': return Colors.green;
-      case 'rejected': return Colors.red;
-      default: return Colors.orange;
+      case 'approved':
+        return Colors.green;
+      case 'rejected':
+        return Colors.red;
+      default:
+        return Colors.orange;
     }
   }
 }
@@ -468,7 +493,8 @@ class _Stat extends StatelessWidget {
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
         Text(label, style: TextStyle(fontSize: 10, color: cs.onSurfaceVariant)),
-        Text(value, style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 13)),
+        Text(value,
+            style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 13)),
       ],
     );
   }
@@ -484,7 +510,8 @@ class _EmptyState extends StatelessWidget {
       child: Column(
         mainAxisAlignment: MainAxisAlignment.center,
         children: [
-          Icon(Icons.assignment_late_outlined, size: 64, color: cs.outlineVariant),
+          Icon(Icons.assignment_late_outlined,
+              size: 64, color: cs.outlineVariant),
           const SizedBox(height: 16),
           Text(
             'No DPRs found for this period',

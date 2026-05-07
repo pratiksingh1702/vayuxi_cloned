@@ -61,4 +61,8 @@ class Routes {
   static const String createAssemblyCard = '/create-assembly-card';
   static const String structureDprReportList = '/structure-dpr-report';
   static const String structureDprCreate = '/structure-dpr-create';
+  static const String pebDpr = '/peb-dpr';
+  static const String pebDprGa = '/peb-dpr-ga';
+  static const String pebDprFabrication = '/peb-dpr-fabrication';
+  static const String pebDprProcurement = '/peb-dpr-procurement';
 }

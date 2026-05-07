@@ -1,7 +1,8 @@
 enum WorkType {
   mechanical,
   insulation,
-  structure;
+  structure,
+  peb;
 
   String get apiValue {
     switch (this) {
@@ -11,6 +12,8 @@ enum WorkType {
         return 'insulation_work';
       case WorkType.structure:
         return 'structure_work';
+      case WorkType.peb:
+        return 'peb_work';
     }
   }
 
@@ -22,6 +25,8 @@ enum WorkType {
         return 'Insulation Work';
       case WorkType.structure:
         return 'Structure Work';
+      case WorkType.peb:
+        return 'PEB Work';
     }
   }
 
@@ -37,6 +42,8 @@ enum WorkType {
         return WorkType.insulation;
       case 'structure_work':
         return WorkType.structure;
+      case 'peb_work':
+        return WorkType.peb;
       default:
         return null;
     }

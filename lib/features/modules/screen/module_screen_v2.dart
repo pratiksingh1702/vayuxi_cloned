@@ -336,6 +336,18 @@ class _ModuleScreenV2State extends ConsumerState<ModuleScreenV2>
       ];
     }
 
+    if (type == 'peb_work' || type == WorkType.peb.apiValue) {
+      return [
+        ...base,
+        ModuleItem(
+          labelKey: 'PEB DPR',
+          icon: Icons.assignment_rounded,
+          iconColor: const Color(0xFF35547A),
+          routeName: Routes.pebDpr,
+        ),
+      ];
+    }
+
     return [
       ...base,
       ModuleItem(
@@ -767,7 +779,9 @@ class _ModuleScreenV2State extends ConsumerState<ModuleScreenV2>
     String eyebrow = "";
     if (type == 'mechanical_work')
       eyebrow = "MECHANICAL WORK";
-    else if (type == 'insulation_work') eyebrow = "INSULATION WORK";
+    else if (type == 'insulation_work')
+      eyebrow = "INSULATION WORK";
+    else if (type == 'peb_work') eyebrow = "PEB WORK";
 
     String title = "";
     switch (_currentIndex) {

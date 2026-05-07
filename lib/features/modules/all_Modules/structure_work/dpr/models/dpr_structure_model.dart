@@ -4,7 +4,6 @@ class DPRStructureItem {
   final double qtyUsed;
   final double? netWeightPerUnit;
   final double? totalNetWeight;
-  final String? boqItemId;
   final double? length;
   final double? width;
   final double? height;
@@ -17,7 +16,6 @@ class DPRStructureItem {
     required this.qtyUsed,
     this.netWeightPerUnit,
     this.totalNetWeight,
-    this.boqItemId,
     this.length,
     this.width,
     this.height,
@@ -32,7 +30,6 @@ class DPRStructureItem {
       qtyUsed: (json['qtyUsed'] as num?)?.toDouble() ?? 0,
       netWeightPerUnit: (json['netWeightPerUnit'] as num?)?.toDouble(),
       totalNetWeight: (json['totalNetWeight'] as num?)?.toDouble(),
-      boqItemId: json['boqItemId']?.toString(),
       length: (json['length'] as num?)?.toDouble(),
       width: (json['width'] as num?)?.toDouble(),
       height: (json['height'] as num?)?.toDouble(),
@@ -49,9 +46,6 @@ class DPRStructure {
   final String? siteId;
   final String? siteName;
   final String? company;
-  final String? boqId;
-  final String? boqName;
-  final String? boqNumber;
   final String? type;
   final List<DPRStructureItem> items;
   final double totalQtyUsed;
@@ -77,9 +71,6 @@ class DPRStructure {
     this.siteId,
     this.siteName,
     this.company,
-    this.boqId,
-    this.boqName,
-    this.boqNumber,
     this.type,
     required this.items,
     required this.totalQtyUsed,
@@ -173,9 +164,6 @@ class DPRStructure {
       siteId: sId,
       siteName: sName,
       company: json['company']?.toString(),
-      boqId: bId,
-      boqName: bName,
-      boqNumber: bNumber,
       type: json['type']?.toString(),
       items: itemsList,
       totalQtyUsed: (json['totalQtyUsed'] as num?)?.toDouble() ?? 0,

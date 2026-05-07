@@ -101,6 +101,10 @@ import '../../features/modules/all_Modules/team/screens/editTeam.dart';
 import '../../features/modules/all_Modules/team/screens/teamsList.dart';
 import '../../features/modules/all_Modules/team/screens/view_add.dart';
 import '../../features/modules/screen/device_id.dart';
+import '../../features/peb_work/dpr/screens/peb_dpr_fabrication_screen.dart';
+import '../../features/peb_work/dpr/screens/peb_dpr_ga_screen.dart';
+import '../../features/peb_work/dpr/screens/peb_dpr_home_screen.dart';
+import '../../features/peb_work/dpr/screens/peb_dpr_procurement_screen.dart';
 import '../../features/pricing/Screens/subsciption_screen.dart';
 import '../../features/pricing/providers/razorpay_provider.dart';
 import '../../features/profile_page/screens/profilePage.dart';
@@ -332,32 +336,36 @@ final appRouterProvider = Provider<GoRouter>((ref) {
                 screen = TeamSelectCardGrid();
                 break;
               case 'dpr':
-                screen = (type == 'structure_work')
-                    ? DprFlowGate(site: site)
-                    : site.counts.teams == 0
-                        ? (type == 'mechanical_work'
-                            ? MechanichalStepperScreen(
-                                siteId: site.id,
-                                teamId: '',
-                                teamName: null,
-                              )
-                            : type == 'insulation_work'
-                                ? StepInsulationScreen(
-                                    siteId: site.id,
-                                    teamId: '',
-                                    name: site.siteName,
-                                    teamName: null,
-                                  )
-                                : const SizedBox.shrink())
-                        : DprFlowGate(site: site);
+                if (type == 'structure_work') {
+                  screen = DprFlowGate(site: site);
+                } else if (type == 'peb_work') {
+                  screen = const PebDprHomeScreen();
+                } else if (site.counts.teams == 0) {
+                  screen = type == 'mechanical_work'
+                      ? MechanichalStepperScreen(
+                          siteId: site.id,
+                          teamId: '',
+                          teamName: null,
+                        )
+                      : type == 'insulation_work'
+                          ? StepInsulationScreen(
+                              siteId: site.id,
+                              teamId: '',
+                              name: site.siteName,
+                              teamName: null,
+                            )
+                          : const SizedBox.shrink();
+                } else {
+                  screen = DprFlowGate(site: site);
+                }
                 break;
               case 'boq':
                 screen = BoqDashboardScreen(
                     siteId: site.id, siteName: site.siteName);
                 break;
               case 'structure-boq':
-                screen = ViewAddBoqScreen(
-                    siteId: site.id, siteName: site.siteName);
+                screen =
+                    ViewAddBoqScreen(siteId: site.id, siteName: site.siteName);
                 break;
               case 'structure-dpr-setup':
                 screen = DPRSetupListScreen(site: site);
@@ -858,6 +866,34 @@ final appRouterProvider = Provider<GoRouter>((ref) {
             work: work,
             fromDraft: isDraftWork,
           );
+        },
+      ),
+      GoRoute(
+        path: Routes.pebDpr,
+        builder: (context, state) {
+          _logRoute('PebDprHomeScreen', path: state.uri.toString());
+          return const PebDprHomeScreen();
+        },
+      ),
+      GoRoute(
+        path: Routes.pebDprGa,
+        builder: (context, state) {
+          _logRoute('PebDprGaScreen', path: state.uri.toString());
+          return const PebDprGaScreen();
+        },
+      ),
+      GoRoute(
+        path: Routes.pebDprFabrication,
+        builder: (context, state) {
+          _logRoute('PebDprFabricationScreen', path: state.uri.toString());
+          return const PebDprFabricationScreen();
+        },
+      ),
+      GoRoute(
+        path: Routes.pebDprProcurement,
+        builder: (context, state) {
+          _logRoute('PebDprProcurementScreen', path: state.uri.toString());
+          return const PebDprProcurementScreen();
         },
       ),
       GoRoute(

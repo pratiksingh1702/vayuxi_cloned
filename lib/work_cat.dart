@@ -191,6 +191,8 @@ class _WorkCategoryScreenState extends ConsumerState<WorkCategoryScreen> {
         typeNotifier.setType("insulation_work");
       } else if (id == "structure") {
         typeNotifier.setType(WorkType.structure.apiValue);
+      } else if (id == "peb") {
+        typeNotifier.setType(WorkType.peb.apiValue);
       }
       ref.read(siteProvider.notifier).fetchSites();
 
@@ -423,6 +425,12 @@ class _WorkCategoryScreenState extends ConsumerState<WorkCategoryScreen> {
                             title: 'Structure Work',
                             imagePath:
                                 'https://images.unsplash.com/photo-1587293852726-70cdb56c2866?w=600',
+                          ),
+                          onSelectPeb: () => handlePress(
+                            id: 'peb',
+                            title: 'PEB Work',
+                            imagePath:
+                                'https://images.unsplash.com/photo-1503387762-592deb58ef4e?w=600',
                           ),
                         ),
                         const SizedBox(height: 24),
@@ -1127,6 +1135,7 @@ class _CategorySpotlightCard extends StatelessWidget {
     required this.onSelectMechanical,
     required this.onSelectInsulation,
     required this.onSelectStructure,
+    required this.onSelectPeb,
   });
 
   final String? selectedImage;
@@ -1134,6 +1143,7 @@ class _CategorySpotlightCard extends StatelessWidget {
   final VoidCallback onSelectMechanical;
   final VoidCallback onSelectInsulation;
   final VoidCallback onSelectStructure;
+  final VoidCallback onSelectPeb;
 
   @override
   Widget build(BuildContext context) {
@@ -1186,6 +1196,16 @@ class _CategorySpotlightCard extends StatelessWidget {
                 elevationColor: elevationColor,
                 isSelected: selectedImage == 'structure',
                 onTap: onSelectStructure,
+              ),
+              CompanyCard(
+                imagePath: 'assets/images/peb.png',
+                companyName: 'PEB Work',
+                subtitle:
+                    'Pre-engineered building flow and DPR tracking updates.',
+                accentColor: const Color(0xFF35547A),
+                elevationColor: elevationColor,
+                isSelected: selectedImage == 'peb',
+                onTap: onSelectPeb,
               ),
             ],
           ),

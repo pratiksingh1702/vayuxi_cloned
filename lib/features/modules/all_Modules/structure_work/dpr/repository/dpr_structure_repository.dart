@@ -7,7 +7,6 @@ class DPRStructureRepository {
   // POST /api/v1/site/{siteId}/dpr-structure
   Future<DPRStructure> createDPR(
     String siteId, {
-    required String boqId,
     required List<Map<String, dynamic>> items,
     String? dprName,
     DateTime? date,
@@ -21,11 +20,9 @@ class DPRStructureRepository {
   }) async {
     // items should be list of {"assemblyMark": "...", "qtyUsed": ..., "boqItemId": "..."}
     final body = <String, dynamic>{
-      'boqId': boqId,
       'items': items.map((e) => {
         'assemblyMark': e['assemblyMark'] ?? e['assembly_mark'],
         'qtyUsed': e['qtyUsed'] ?? e['qty_used'],
-        'boqItemId': e['boqItemId'] ?? e['boq_item_id'],
       }).toList(),
     };
     if (dprName != null && dprName.isNotEmpty) body['dprName'] = dprName;
@@ -48,7 +45,6 @@ class DPRStructureRepository {
     String siteId, {
     DateTime? startDate,
     DateTime? endDate,
-    String? boqId,
   }) async {
     final params = <String, dynamic>{};
     if (startDate != null) {
@@ -56,9 +52,6 @@ class DPRStructureRepository {
     }
     if (endDate != null) {
       params['endDate'] = endDate.toIso8601String();
-    }
-    if (boqId != null && boqId.isNotEmpty) {
-      params['boqId'] = boqId;
     }
 
     final res = await DioClient.dio.get(
@@ -91,6 +84,7 @@ class DPRStructureRepository {
     String siteId,
     String dprId, {
     List<Map<String, dynamic>>? items,
+    String? dprName,
     String? remarks,
     String? status,
     bool replaceMode = false,
@@ -107,9 +101,9 @@ class DPRStructureRepository {
       body['items'] = items.map((e) => {
             'assemblyMark': e['assemblyMark'] ?? e['assembly_mark'],
             'qtyUsed': e['qtyUsed'] ?? e['qty_used'],
-            'boqItemId': e['boqItemId'] ?? e['boq_item_id'],
           }).toList();
     }
+    if (dprName != null && dprName.isNotEmpty) body['dprName'] = dprName;
     if (remarks != null && remarks.isNotEmpty) body['remarks'] = remarks;
     if (status != null && status.isNotEmpty) body['status'] = status;
     if (plant != null && plant.isNotEmpty) body['plant'] = plant;

@@ -95,12 +95,14 @@ class DprEntryNotifier extends StateNotifier<DprEntryState> {
     // 2. Search in BOQ (via savedBOQProvider which is synced offline)
     final boqState = ref.read(savedBOQProvider);
     BOQStructureItem? foundItem;
+    String? matchedBoqId;
 
     // Search through all loaded BOQs for this site
     for (var boq in boqState.boqs) {
       for (var item in boq.items) {
         if (item.assemblyMark.toLowerCase() == mark.toLowerCase()) {
           foundItem = item;
+          matchedBoqId = boq.id;
           break;
         }
       }
@@ -114,6 +116,7 @@ class DprEntryNotifier extends StateNotifier<DprEntryState> {
     // 3. Create a temporary AssemblyCardIsar object
     final newCard = AssemblyCardIsar()
       ..siteId = siteId
+      ..boqId = matchedBoqId ?? ''
       ..boqItemId = foundItem.id
       ..assemblyMark = foundItem.assemblyMark
       ..description = foundItem.typeDescription
@@ -137,6 +140,7 @@ class DprEntryNotifier extends StateNotifier<DprEntryState> {
   void addEmptyCard(String siteId) {
     final newCard = AssemblyCardIsar()
       ..siteId = siteId
+      ..boqId = ''
       ..boqItemId = ''
       ..assemblyMark = ''
       ..description = ''
@@ -166,7 +170,7 @@ class DprEntryNotifier extends StateNotifier<DprEntryState> {
     final newList = List<AssemblyCardIsar>.from(state.activeCards);
     final card = newList[index];
 
-    final lookedUp = _findBoqItemByMark(mark);
+    final (lookedUp, boqId) = _findBoqItemWithIdByMark(mark);
 
     // Create a NEW instance to trigger UI update
     final updatedCard = lookedUp != null
@@ -175,6 +179,7 @@ class DprEntryNotifier extends StateNotifier<DprEntryState> {
             assemblyMark: mark,
             description: lookedUp.typeDescription,
             quantity: qty,
+            boqId: boqId,
             boqItemId: lookedUp.id,
             availableQty: lookedUp.availableQty,
             usedQty: lookedUp.usedQty,
@@ -189,8 +194,9 @@ class DprEntryNotifier extends StateNotifier<DprEntryState> {
         : _copyCard(
             card,
             assemblyMark: mark,
-            description: '',
+            description: 'Description',
             quantity: qty,
+            boqId: '',
             boqItemId: '',
             availableQty: 0,
             usedQty: 0,
@@ -231,39 +237,47 @@ class DprEntryNotifier extends StateNotifier<DprEntryState> {
 
   void clearError() => state = state.copyWith(error: null);
 
-  BOQStructureItem? _findBoqItemByMark(String mark) {
+  (BOQStructureItem?, String?) _findBoqItemWithIdByMark(String mark) {
     final normalized = mark.trim().toLowerCase();
-    if (normalized.isEmpty) return null;
+    if (normalized.isEmpty) return (null, null);
 
     final boqState = ref.read(savedBOQProvider);
     for (final boq in boqState.boqs) {
       for (final item in boq.items) {
         if (item.assemblyMark.trim().toLowerCase() == normalized) {
-          return item;
+          return (item, boq.id);
         }
       }
     }
-    return null;
+    return (null, null);
+  }
+
+  BOQStructureItem? _findBoqItemByMark(String mark) {
+    return _findBoqItemWithIdByMark(mark).$1;
   }
 
   /// Load active cards from an existing DPR model
   void loadFromExistingDpr(DPRStructure dpr) {
     final newCards = dpr.items.map((item) {
+      final (lookedUp, boqId) = _findBoqItemWithIdByMark(item.assemblyMark);
       return AssemblyCardIsar()
         ..siteId = dpr.siteId ?? ''
-        ..boqItemId = item.boqItemId ?? ''
+        ..boqId = boqId ?? ''
+        ..boqItemId = lookedUp?.id ?? ''
         ..assemblyMark = item.assemblyMark
-        ..description = '' // We might need to look this up if not in item
+        ..description = lookedUp?.typeDescription ?? 'Description'
         ..quantity = item.qtyUsed
-        ..availableQty = item.availableQty ?? 0
-        ..usedQty = 0 // Not strictly needed for the card UI but good to have
-        ..remainingQty = item.remainingQty ?? 0
-        ..length = item.length
-        ..width = item.width
-        ..height = item.height
-        ..netWeightPerUnit = item.netWeightPerUnit
-        ..totalNetWeight = item.totalNetWeight
-        ..progressPercentage = 0 // Not calculated here
+        ..availableQty = lookedUp?.availableQty ?? item.availableQty ?? 0
+        ..usedQty = 0
+        ..remainingQty = lookedUp?.remainingQty ?? item.remainingQty ?? 0
+        ..length = lookedUp?.length ?? item.length
+        ..width = lookedUp?.width ?? item.width
+        ..height = lookedUp?.height ?? item.height
+        ..netWeightPerUnit = lookedUp?.netWeightPerUnit ?? item.netWeightPerUnit
+        ..totalNetWeight =
+            (lookedUp?.netWeightPerUnit ?? item.netWeightPerUnit ?? 0) *
+                item.qtyUsed
+        ..progressPercentage = 0
         ..createdAt = dpr.date ?? DateTime.now()
         ..isSynced = true;
     }).toList();
@@ -274,6 +288,7 @@ class DprEntryNotifier extends StateNotifier<DprEntryState> {
   AssemblyCardIsar _copyCard(
     AssemblyCardIsar card, {
     String? siteId,
+    String? boqId,
     String? boqItemId,
     String? assemblyMark,
     String? description,
@@ -292,6 +307,7 @@ class DprEntryNotifier extends StateNotifier<DprEntryState> {
     final updated = AssemblyCardIsar()
       ..isarId = card.isarId
       ..siteId = siteId ?? card.siteId
+      ..boqId = boqId ?? card.boqId
       ..boqItemId = boqItemId ?? card.boqItemId
       ..assemblyMark = assemblyMark ?? card.assemblyMark
       ..description = description ?? card.description

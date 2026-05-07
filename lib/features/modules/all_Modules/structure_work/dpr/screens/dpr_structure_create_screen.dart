@@ -50,33 +50,35 @@ enum StructureModuleSortOption {
 
 class _DprStructureCreateScreenState
     extends ConsumerState<DprStructureCreateScreen> {
-  DateTime _selectedDate = DateTime(
-      DateTime.now().year, DateTime.now().month, DateTime.now().day);
+  DateTime _selectedDate =
+      DateTime(DateTime.now().year, DateTime.now().month, DateTime.now().day);
   final TextEditingController _workNameController =
       TextEditingController(text: 'Structure Work');
   List<DPRStructure> _existingDprs = [];
   bool _isLoadingDprs = false;
   String? _selectedDprId;
-  String? _selectedBoqId;
   DPRStructure? _latestDpr;
   List<AssemblyCardIsar>? _localSetupCards;
   bool _editMode = false;
-  
+
   // New controllers for UI consistency with Insulation DPR
   late final TextEditingController _plantController;
   late final TextEditingController _floorController;
   late final TextEditingController _sizeController;
   late final TextEditingController _mocController;
-  late final TextEditingController _boqNameController;
   final TextEditingController _searchController = TextEditingController();
   String _searchQuery = '';
-  
+
   // Filter and Sort state
-  StructureModuleSortOption _currentSort = StructureModuleSortOption.createdAtDesc;
+  StructureModuleSortOption _currentSort =
+      StructureModuleSortOption.createdAtDesc;
   Set<String> _filterCategories = {}; // e.g. "Setup", "New", "Existing"
-  Set<String> _filterStatuses = {};   // e.g. "Draft", "Submitted"
-  
-  bool get hasActiveFilters => _filterCategories.isNotEmpty || _filterStatuses.isNotEmpty || _currentSort != StructureModuleSortOption.createdAtDesc;
+  Set<String> _filterStatuses = {}; // e.g. "Draft", "Submitted"
+
+  bool get hasActiveFilters =>
+      _filterCategories.isNotEmpty ||
+      _filterStatuses.isNotEmpty ||
+      _currentSort != StructureModuleSortOption.createdAtDesc;
   String _selectedUnit = 'mm';
 
   String? get selectedDprId => _selectedDprId;
@@ -91,15 +93,15 @@ class _DprStructureCreateScreenState
       _workNameController.text = widget.initialDpr!.dprName;
       _selectedDprId = widget.initialDpr!.id;
       _latestDpr = widget.initialDpr;
-      _selectedBoqId = widget.initialDpr!.boqId;
     }
 
+    _mocController = TextEditingController();
+
+    // Initialize controllers that were previously left uninitialized
     _plantController = TextEditingController();
     _floorController = TextEditingController();
     _sizeController = TextEditingController();
-    _mocController = TextEditingController();
-    _boqNameController = TextEditingController(text: 'Select BOQ');
-    
+
     _searchController.addListener(() {
       setState(() {
         _searchQuery = _searchController.text.trim().toLowerCase();
@@ -108,28 +110,23 @@ class _DprStructureCreateScreenState
 
     WidgetsBinding.instance.addPostFrameCallback((_) {
       ref.read(dprEntryProvider.notifier).initialize(widget.siteId);
-      ref.read(savedBOQProvider.notifier).fetchAndSync(widget.siteId).then((_) {
-        final boqs = ref.read(savedBOQProvider).boqs;
-        if (widget.initialDpr != null) {
-          setState(() => _selectedBoqId = widget.initialDpr!.boqId);
-        } else if (boqs.length == 1) {
-          setState(() {
-            _selectedBoqId = boqs.first.id;
-          });
-        }
-      });
-      _fetchDprsForDate(_selectedDate, preserveInitial: widget.initialDpr != null);
+      ref.read(savedBOQProvider.notifier).fetchAndSync(widget.siteId);
+      _fetchDprsForDate(_selectedDate,
+          preserveInitial: widget.initialDpr != null);
     });
   }
 
-  Future<void> _fetchDprsForDate(DateTime date, {bool preserveInitial = false}) async {
+  Future<void> _fetchDprsForDate(DateTime date,
+      {bool preserveInitial = false}) async {
     setState(() => _isLoadingDprs = true);
     try {
-      final dprs = await ref.read(dprStructureProvider.notifier).fetchDPRsForDate(widget.siteId, date);
+      final dprs = await ref
+          .read(dprStructureProvider.notifier)
+          .fetchDPRsForDate(widget.siteId, date);
       setState(() {
         _existingDprs = dprs;
         _isLoadingDprs = false;
-        
+
         // Auto-load latest if available and not currently in manual edit mode
         if (dprs.isNotEmpty && !preserveInitial && _selectedDprId == null) {
           // Sort by updatedAt descending, then createdAt descending
@@ -139,7 +136,7 @@ class _DprStructureCreateScreenState
               final bTime = b.updatedAt ?? b.createdAt ?? DateTime(2000);
               return bTime.compareTo(aTime);
             });
-          
+
           final latest = sortedDprs.first;
           _selectedDprId = latest.id;
           _latestDpr = latest;
@@ -161,9 +158,8 @@ class _DprStructureCreateScreenState
     _mocController.text = dpr.moc ?? '';
     _sizeController.text = dpr.size?.toString() ?? '';
     _selectedUnit = dpr.unit ?? 'mm';
-    _selectedBoqId = dpr.boqId;
-    _boqNameController.text = dpr.boqName ?? 'Select BOQ';
-    
+    _selectedUnit = dpr.unit ?? 'mm';
+
     // Clear active cards to show existing items from _latestDpr
     ref.read(dprEntryProvider.notifier).clearCards();
   }
@@ -177,9 +173,8 @@ class _DprStructureCreateScreenState
       _floorController.clear();
       _mocController.clear();
       _sizeController.clear();
-      _boqNameController.text = 'Select BOQ';
-      _selectedBoqId = null;
-      
+      _selectedDprId = null;
+
       // Clear active cards for fresh entry
       ref.read(dprEntryProvider.notifier).clearCards();
     });
@@ -192,7 +187,6 @@ class _DprStructureCreateScreenState
     _floorController.dispose();
     _sizeController.dispose();
     _mocController.dispose();
-    _boqNameController.dispose();
     _searchController.dispose();
     super.dispose();
   }
@@ -221,18 +215,19 @@ class _DprStructureCreateScreenState
     return Scaffold(
       drawer: const CustomDrawer(),
       backgroundColor: cs.surface,
+      floatingActionButtonLocation: FloatingActionButtonLocation.endFloat,
       floatingActionButton: Padding(
-        padding: const EdgeInsets.only(bottom: 70.0),
-        child: FloatingActionButton.extended(
-          onPressed: _resetForFreshEntry,
-          label: const Text(
-            'New Entry',
-            style: TextStyle(fontWeight: FontWeight.w700, letterSpacing: 0.5),
-          ),
-          icon: const Icon(Icons.add_rounded, size: 24),
-          backgroundColor: cs.primaryContainer,
-          foregroundColor: cs.onPrimaryContainer,
+        padding: const EdgeInsets.only(bottom: 72),
+        child: FloatingActionButton(
+          onPressed: () {
+            ref.read(dprEntryProvider.notifier).addEmptyCard(widget.siteId);
+          },
+          backgroundColor: cs.primary,
+          foregroundColor: cs.onPrimary,
+          shape:
+              RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
           elevation: 4,
+          child: const Icon(Icons.add_rounded, size: 28),
         ),
       ),
       body: NestedScrollView(
@@ -248,15 +243,23 @@ class _DprStructureCreateScreenState
           customButtons: [
             CustomButton(
               button: RoundedButton(
-                text: structureState.isSaving ? 'Submitting...' : 'Submit DPR Entry',
+                text: structureState.isSaving
+                    ? 'Submitting...'
+                    : 'Submit DPR Entry',
                 isLoading: structureState.isSaving,
-                color: (entryState.activeCards.isEmpty && (_localSetupCards?.isEmpty ?? true))
+                color: (entryState.activeCards.isEmpty &&
+                        (_localSetupCards?.isEmpty ?? true))
                     ? cs.surfaceContainerHighest
                     : cs.primary,
-                textColor: (entryState.activeCards.isEmpty && (_localSetupCards?.isEmpty ?? true))
+                textColor: (entryState.activeCards.isEmpty &&
+                        (_localSetupCards?.isEmpty ?? true))
                     ? cs.onSurfaceVariant
                     : cs.onPrimary,
-                onPressed: ((entryState.activeCards.isEmpty && (_localSetupCards?.isEmpty ?? true)) || structureState.isSaving) ? () {} : _submitDPR,
+                onPressed: ((entryState.activeCards.isEmpty &&
+                            (_localSetupCards?.isEmpty ?? true)) ||
+                        structureState.isSaving)
+                    ? () {}
+                    : _submitDPR,
                 isOutlined: false,
               ),
             ),
@@ -277,6 +280,7 @@ class _DprStructureCreateScreenState
                     children: [
                       // Site Header
                       Row(
+                        crossAxisAlignment: CrossAxisAlignment.start,
                         mainAxisAlignment: MainAxisAlignment.spaceBetween,
                         children: [
                           Expanded(
@@ -284,7 +288,9 @@ class _DprStructureCreateScreenState
                               crossAxisAlignment: CrossAxisAlignment.start,
                               children: [
                                 Text(
-                                  widget.siteName.isNotEmpty ? widget.siteName : "DPR Entry",
+                                  widget.siteName.isNotEmpty
+                                      ? widget.siteName
+                                      : "DPR Entry",
                                   style: TextStyle(
                                     fontSize: 14,
                                     fontWeight: FontWeight.bold,
@@ -304,6 +310,30 @@ class _DprStructureCreateScreenState
                                   overflow: TextOverflow.ellipsis,
                                 ),
                               ],
+                            ),
+                          ),
+                          const SizedBox(width: 12),
+                          ElevatedButton.icon(
+                            onPressed: _resetForFreshEntry,
+                            icon: const Icon(Icons.add_rounded, size: 18),
+                            label: const Text(
+                              'New Entry',
+                              style: TextStyle(
+                                fontWeight: FontWeight.w700,
+                                letterSpacing: 0.2,
+                              ),
+                            ),
+                            style: ElevatedButton.styleFrom(
+                              backgroundColor: cs.primaryContainer,
+                              foregroundColor: cs.onPrimaryContainer,
+                              elevation: 0,
+                              padding: const EdgeInsets.symmetric(
+                                horizontal: 14,
+                                vertical: 12,
+                              ),
+                              shape: RoundedRectangleBorder(
+                                borderRadius: BorderRadius.circular(12),
+                              ),
                             ),
                           ),
                         ],
@@ -389,7 +419,8 @@ class _DprStructureCreateScreenState
     );
   }
 
-  Widget _buildDprInfoCard(ColorScheme cs, DprEntryState state, SavedBOQState boqState) {
+  Widget _buildDprInfoCard(
+      ColorScheme cs, DprEntryState state, SavedBOQState boqState) {
     return Container(
       decoration: BoxDecoration(
         color: cs.surface,
@@ -420,28 +451,37 @@ class _DprStructureCreateScreenState
       children: [
         Expanded(
           child: _editMode
-              ? TextField(
-                  controller: _workNameController,
-                  style: const TextStyle(fontSize: 16, fontWeight: FontWeight.w600),
-                  onChanged: (val) {
-                    ref.read(dprEntryProvider.notifier).setWorkName(val);
-                  },
-                  decoration: InputDecoration(
-                    border: OutlineInputBorder(
-                      borderRadius: BorderRadius.circular(10),
-                      borderSide: BorderSide(color: cs.outlineVariant),
+              ? SizedBox(
+                  height: 44,
+                  child: TextField(
+                    controller: _workNameController,
+                    style: const TextStyle(
+                        fontSize: 14, fontWeight: FontWeight.w600),
+                    onChanged: (val) {
+                      ref.read(dprEntryProvider.notifier).setWorkName(val);
+                    },
+                    decoration: InputDecoration(
+                      isDense: true,
+                      border: OutlineInputBorder(
+                        borderRadius: BorderRadius.circular(10),
+                        borderSide: BorderSide(color: cs.outlineVariant),
+                      ),
+                      focusedBorder: OutlineInputBorder(
+                        borderRadius: BorderRadius.circular(10),
+                        borderSide: BorderSide(color: cs.primary, width: 2),
+                      ),
+                      contentPadding: const EdgeInsets.symmetric(
+                          horizontal: 16, vertical: 10),
+                      hintText: 'Enter DPR Name',
+                      prefixIcon: Icon(Icons.edit_document,
+                          size: 18, color: cs.primary),
                     ),
-                    focusedBorder: OutlineInputBorder(
-                      borderRadius: BorderRadius.circular(10),
-                      borderSide: BorderSide(color: cs.primary, width: 2),
-                    ),
-                    contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
-                    hintText: 'Enter DPR Name',
-                    prefixIcon: Icon(Icons.edit_document, size: 20, color: cs.primary),
                   ),
                 )
               : Container(
-                  padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
+                  height: 44,
+                  padding:
+                      const EdgeInsets.symmetric(horizontal: 16, vertical: 0),
                   decoration: BoxDecoration(
                     color: cs.surface,
                     borderRadius: BorderRadius.circular(10),
@@ -449,17 +489,24 @@ class _DprStructureCreateScreenState
                   ),
                   child: Row(
                     children: [
-                      Icon(Icons.description, color: cs.onSurfaceVariant, size: 20),
+                      Icon(Icons.description,
+                          color: cs.onSurfaceVariant, size: 18),
                       const SizedBox(width: 12),
                       Expanded(
                         child: Text(
                           _workNameController.text,
-                          style: const TextStyle(fontSize: 16, fontWeight: FontWeight.w600),
+                          style: const TextStyle(
+                              fontSize: 14, fontWeight: FontWeight.w600),
+                          maxLines: 1,
+                          overflow: TextOverflow.ellipsis,
                         ),
                       ),
                       if (_existingDprs.isNotEmpty)
                         IconButton(
-                          icon: Icon(Icons.keyboard_arrow_down_rounded, size: 28, color: cs.primary),
+                          padding: EdgeInsets.zero,
+                          constraints: const BoxConstraints(),
+                          icon: Icon(Icons.keyboard_arrow_down_rounded,
+                              size: 24, color: cs.primary),
                           onPressed: () => _showDprSelector(context),
                           tooltip: 'Select Existing DPR',
                         ),
@@ -469,11 +516,14 @@ class _DprStructureCreateScreenState
         ),
         const SizedBox(width: 12),
         Container(
+          height: 44,
+          width: 44,
           decoration: BoxDecoration(
             color: cs.tertiaryContainer,
             borderRadius: BorderRadius.circular(10),
           ),
           child: IconButton(
+            padding: EdgeInsets.zero,
             onPressed: () {
               if (_editMode && _workNameController.text.trim().isEmpty) {
                 AppToast.error('Please enter DPR name');
@@ -484,7 +534,7 @@ class _DprStructureCreateScreenState
             icon: Icon(
               _editMode ? Icons.check_circle : Icons.edit_rounded,
               color: _editMode ? cs.tertiary : cs.primary,
-              size: 24,
+              size: 22,
             ),
           ),
         ),
@@ -493,11 +543,6 @@ class _DprStructureCreateScreenState
   }
 
   Widget _buildInputFields(ColorScheme cs, SavedBOQState boqState) {
-    if (_selectedBoqId != null && _boqNameController.text == 'Select BOQ') {
-      final boq = boqState.boqs.firstWhere((b) => b.id == _selectedBoqId, orElse: () => boqState.boqs.first);
-      _boqNameController.text = boq.boqName;
-    }
-
     return Column(
       children: [
         Row(
@@ -516,17 +561,6 @@ class _DprStructureCreateScreenState
                 'Location',
                 _floorController,
                 Icons.location_on,
-              ),
-            ),
-            const SizedBox(width: 12),
-            Expanded(
-              child: _buildCompactInputField(
-                'BOQ',
-                _boqNameController,
-                Icons.folder_zip_rounded,
-                readOnly: true,
-                onTap: () => _showBoqSelector(context, boqState.boqs),
-                suffixIcon: Icon(Icons.keyboard_arrow_down_rounded, size: 15, color: cs.primary),
               ),
             ),
             const SizedBox(width: 12),
@@ -578,11 +612,13 @@ class _DprStructureCreateScreenState
             style: const TextStyle(fontSize: 14, fontWeight: FontWeight.w500),
             decoration: InputDecoration(
               isDense: true,
-              contentPadding: const EdgeInsets.symmetric(vertical: 2, horizontal: 2),
+              contentPadding:
+                  const EdgeInsets.symmetric(vertical: 2, horizontal: 2),
               filled: true,
               fillColor: cs.surfaceContainerHigh,
               suffixIcon: suffixIcon,
-              suffixIconConstraints: const BoxConstraints(minWidth: 5, minHeight: 10),
+              suffixIconConstraints:
+                  const BoxConstraints(minWidth: 5, minHeight: 10),
               border: OutlineInputBorder(
                 borderRadius: BorderRadius.circular(10),
                 borderSide: BorderSide.none,
@@ -598,8 +634,6 @@ class _DprStructureCreateScreenState
     );
   }
 
-
-
   Widget _buildSearchAndFilterRow(ColorScheme cs) {
     return Row(
       children: [
@@ -613,10 +647,12 @@ class _DprStructureCreateScreenState
             ),
             child: TextField(
               controller: _searchController,
-              onChanged: (val) => setState(() => _searchQuery = val.toLowerCase()),
+              onChanged: (val) =>
+                  setState(() => _searchQuery = val.toLowerCase()),
               decoration: InputDecoration(
                 hintText: 'Search assembly item...',
-                hintStyle: TextStyle(color: cs.onSurfaceVariant.withOpacity(0.6)),
+                hintStyle:
+                    TextStyle(color: cs.onSurfaceVariant.withOpacity(0.6)),
                 prefixIcon: Icon(Icons.search, color: cs.primary, size: 20),
                 suffixIcon: _searchQuery.isNotEmpty
                     ? IconButton(
@@ -697,7 +733,8 @@ class _DprStructureCreateScreenState
           return Container(
             decoration: BoxDecoration(
               color: cs.surface,
-              borderRadius: const BorderRadius.vertical(top: Radius.circular(24)),
+              borderRadius:
+                  const BorderRadius.vertical(top: Radius.circular(24)),
             ),
             padding: const EdgeInsets.fromLTRB(20, 12, 20, 32),
             child: Column(
@@ -720,12 +757,16 @@ class _DprStructureCreateScreenState
                   children: [
                     Text(
                       'Filter & Sort',
-                      style: TextStyle(fontSize: 20, fontWeight: FontWeight.w700, color: cs.onSurface),
+                      style: TextStyle(
+                          fontSize: 20,
+                          fontWeight: FontWeight.w700,
+                          color: cs.onSurface),
                     ),
                     TextButton(
                       onPressed: () {
                         setSheetState(() {
-                          _currentSort = StructureModuleSortOption.createdAtDesc;
+                          _currentSort =
+                              StructureModuleSortOption.createdAtDesc;
                           _filterCategories = {};
                           _filterStatuses = {};
                         });
@@ -743,45 +784,55 @@ class _DprStructureCreateScreenState
                     _buildFilterChip(
                       cs: cs,
                       label: 'Name (A-Z)',
-                      selected: _currentSort == StructureModuleSortOption.nameAsc,
+                      selected:
+                          _currentSort == StructureModuleSortOption.nameAsc,
                       onSelected: (val) {
-                        setSheetState(() => _currentSort = StructureModuleSortOption.nameAsc);
+                        setSheetState(() =>
+                            _currentSort = StructureModuleSortOption.nameAsc);
                         setState(() {});
                       },
                     ),
                     _buildFilterChip(
                       cs: cs,
                       label: 'Name (Z-A)',
-                      selected: _currentSort == StructureModuleSortOption.nameDesc,
+                      selected:
+                          _currentSort == StructureModuleSortOption.nameDesc,
                       onSelected: (val) {
-                        setSheetState(() => _currentSort = StructureModuleSortOption.nameDesc);
+                        setSheetState(() =>
+                            _currentSort = StructureModuleSortOption.nameDesc);
                         setState(() {});
                       },
                     ),
                     _buildFilterChip(
                       cs: cs,
                       label: 'Mark (A-Z)',
-                      selected: _currentSort == StructureModuleSortOption.markAsc,
+                      selected:
+                          _currentSort == StructureModuleSortOption.markAsc,
                       onSelected: (val) {
-                        setSheetState(() => _currentSort = StructureModuleSortOption.markAsc);
+                        setSheetState(() =>
+                            _currentSort = StructureModuleSortOption.markAsc);
                         setState(() {});
                       },
                     ),
                     _buildFilterChip(
                       cs: cs,
                       label: 'Weight',
-                      selected: _currentSort == StructureModuleSortOption.weightDesc,
+                      selected:
+                          _currentSort == StructureModuleSortOption.weightDesc,
                       onSelected: (val) {
-                        setSheetState(() => _currentSort = StructureModuleSortOption.weightDesc);
+                        setSheetState(() => _currentSort =
+                            StructureModuleSortOption.weightDesc);
                         setState(() {});
                       },
                     ),
                     _buildFilterChip(
                       cs: cs,
                       label: 'Latest',
-                      selected: _currentSort == StructureModuleSortOption.createdAtDesc,
+                      selected: _currentSort ==
+                          StructureModuleSortOption.createdAtDesc,
                       onSelected: (val) {
-                        setSheetState(() => _currentSort = StructureModuleSortOption.createdAtDesc);
+                        setSheetState(() => _currentSort =
+                            StructureModuleSortOption.createdAtDesc);
                         setState(() {});
                       },
                     ),
@@ -798,8 +849,10 @@ class _DprStructureCreateScreenState
                       selected: _filterCategories.contains('Setup'),
                       onSelected: (val) {
                         setSheetState(() {
-                          if (val) _filterCategories.add('Setup');
-                          else _filterCategories.remove('Setup');
+                          if (val)
+                            _filterCategories.add('Setup');
+                          else
+                            _filterCategories.remove('Setup');
                         });
                         setState(() {});
                       },
@@ -810,8 +863,10 @@ class _DprStructureCreateScreenState
                       selected: _filterCategories.contains('New'),
                       onSelected: (val) {
                         setSheetState(() {
-                          if (val) _filterCategories.add('New');
-                          else _filterCategories.remove('New');
+                          if (val)
+                            _filterCategories.add('New');
+                          else
+                            _filterCategories.remove('New');
                         });
                         setState(() {});
                       },
@@ -822,8 +877,10 @@ class _DprStructureCreateScreenState
                       selected: _filterCategories.contains('Existing'),
                       onSelected: (val) {
                         setSheetState(() {
-                          if (val) _filterCategories.add('Existing');
-                          else _filterCategories.remove('Existing');
+                          if (val)
+                            _filterCategories.add('Existing');
+                          else
+                            _filterCategories.remove('Existing');
                         });
                         setState(() {});
                       },
@@ -839,9 +896,12 @@ class _DprStructureCreateScreenState
                       backgroundColor: cs.primary,
                       foregroundColor: cs.onPrimary,
                       padding: const EdgeInsets.symmetric(vertical: 16),
-                      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                      shape: RoundedRectangleBorder(
+                          borderRadius: BorderRadius.circular(12)),
                     ),
-                    child: const Text('Apply Filters', style: TextStyle(fontWeight: FontWeight.w700, fontSize: 16)),
+                    child: const Text('Apply Filters',
+                        style: TextStyle(
+                            fontWeight: FontWeight.w700, fontSize: 16)),
                   ),
                 ),
               ],
@@ -857,7 +917,10 @@ class _DprStructureCreateScreenState
       padding: const EdgeInsets.only(bottom: 12),
       child: Text(
         label,
-        style: TextStyle(fontSize: 14, fontWeight: FontWeight.w600, color: cs.onSurfaceVariant),
+        style: TextStyle(
+            fontSize: 14,
+            fontWeight: FontWeight.w600,
+            color: cs.onSurfaceVariant),
       ),
     );
   }
@@ -906,103 +969,6 @@ class _DprStructureCreateScreenState
         ),
       ],
     );
-  }
-
-
-  void _showBoqSelector(BuildContext context, List<BOQStructure> boqs) {
-    showModalBottomSheet(
-      context: context,
-      backgroundColor: Colors.transparent,
-      builder: (context) => Container(
-        decoration: BoxDecoration(
-          color: Theme.of(context).colorScheme.surface,
-          borderRadius: const BorderRadius.vertical(top: Radius.circular(24)),
-        ),
-        child: Column(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            const SizedBox(height: 12),
-            Container(
-              width: 40,
-              height: 4,
-              decoration: BoxDecoration(
-                color: Theme.of(context).colorScheme.outlineVariant,
-                borderRadius: BorderRadius.circular(2),
-              ),
-            ),
-            const Padding(
-              padding: EdgeInsets.all(20),
-              child: Text('Select BOQ File',
-                  style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold)),
-            ),
-            Flexible(
-              child: ListView.builder(
-                shrinkWrap: true,
-                itemCount: boqs.length,
-                itemBuilder: (context, index) {
-                  final boq = boqs[index];
-                  return ListTile(
-                    leading: const Icon(Icons.folder_open_rounded),
-                    title: Text(boq.boqName),
-                    subtitle: Text(boq.boqNumber),
-                    onTap: () {
-                      _validateAndSelectBoq(boq);
-                      Navigator.pop(context);
-                    },
-                  );
-                },
-              ),
-            ),
-            const SizedBox(height: 20),
-          ],
-        ),
-      ),
-    );
-  }
-
-  void _validateAndSelectBoq(BOQStructure boq) async {
-    final entryState = ref.read(dprEntryProvider);
-    final unmatchedItems = <String>[];
-
-    for (final card in entryState.activeCards) {
-      final exists = boq.items.any((item) =>
-          item.assemblyMark == card.assemblyMark ||
-          item.id == card.boqItemId);
-      if (!exists && card.assemblyMark.isNotEmpty) {
-        unmatchedItems.add(card.assemblyMark);
-      }
-    }
-
-    if (unmatchedItems.isNotEmpty) {
-      final proceed = await showDialog<bool>(
-        context: context,
-        builder: (context) => AlertDialog(
-          title: const Text('Unmatched Items'),
-          content: Text(
-            'The following items are not found in the selected BOQ (${boq.boqName}):\n\n'
-            '${unmatchedItems.join(", ")}\n\n'
-            'Do you still want to continue?',
-          ),
-          actions: [
-            TextButton(
-              onPressed: () => Navigator.pop(context, false),
-              child: const Text('Cancel'),
-            ),
-            ElevatedButton(
-              onPressed: () => Navigator.pop(context, true),
-              child: const Text('Continue'),
-            ),
-          ],
-        ),
-      );
-
-      if (proceed != true) return;
-    }
-
-    setState(() {
-      _selectedBoqId = boq.id;
-      _boqNameController.text = boq.boqName;
-    });
   }
 
   void _showDprSelector(BuildContext context) {
@@ -1062,23 +1028,22 @@ class _DprStructureCreateScreenState
     );
   }
 
-
-  Widget _buildCardList(ColorScheme cs, DprEntryState state, SavedBOQState boqState) {
+  Widget _buildCardList(
+      ColorScheme cs, DprEntryState state, SavedBOQState boqState) {
     final displaySetupCards = _localSetupCards ?? [];
-    final boqStructureState = ref.watch(boqStructureProvider);
     final existingItems = _latestDpr?.items ?? [];
-    
+
     // 1. Search Filter
     List<AssemblyCardIsar> filteredSetup = displaySetupCards.where((c) {
       if (_searchQuery.isEmpty) return true;
       return c.assemblyMark.toLowerCase().contains(_searchQuery) ||
-             c.description.toLowerCase().contains(_searchQuery);
+          c.description.toLowerCase().contains(_searchQuery);
     }).toList();
 
     List<AssemblyCardIsar> filteredActive = state.activeCards.where((c) {
       if (_searchQuery.isEmpty) return true;
       return c.assemblyMark.toLowerCase().contains(_searchQuery) ||
-             c.description.toLowerCase().contains(_searchQuery);
+          c.description.toLowerCase().contains(_searchQuery);
     }).toList();
 
     List<DPRStructureItem> filteredExisting = existingItems.where((item) {
@@ -1093,20 +1058,29 @@ class _DprStructureCreateScreenState
       if (!_filterCategories.contains('Existing')) filteredExisting = [];
     }
 
-    final totalItemsCount = filteredSetup.length + filteredActive.length + filteredExisting.length;
+    final totalItemsCount =
+        filteredSetup.length + filteredActive.length + filteredExisting.length;
 
     // 3. Sorting
     void sortIsar(List<AssemblyCardIsar> list) {
       list.sort((a, b) {
         switch (_currentSort) {
           case StructureModuleSortOption.nameAsc:
-            return a.description.toLowerCase().compareTo(b.description.toLowerCase());
+            return a.description
+                .toLowerCase()
+                .compareTo(b.description.toLowerCase());
           case StructureModuleSortOption.nameDesc:
-            return b.description.toLowerCase().compareTo(a.description.toLowerCase());
+            return b.description
+                .toLowerCase()
+                .compareTo(a.description.toLowerCase());
           case StructureModuleSortOption.markAsc:
-            return a.assemblyMark.toLowerCase().compareTo(b.assemblyMark.toLowerCase());
+            return a.assemblyMark
+                .toLowerCase()
+                .compareTo(b.assemblyMark.toLowerCase());
           case StructureModuleSortOption.markDesc:
-            return b.assemblyMark.toLowerCase().compareTo(a.assemblyMark.toLowerCase());
+            return b.assemblyMark
+                .toLowerCase()
+                .compareTo(a.assemblyMark.toLowerCase());
           case StructureModuleSortOption.weightDesc:
             return (b.totalNetWeight ?? 0).compareTo(a.totalNetWeight ?? 0);
           case StructureModuleSortOption.createdAtDesc:
@@ -1121,18 +1095,22 @@ class _DprStructureCreateScreenState
 
     sortIsar(filteredSetup);
     sortIsar(filteredActive);
-    
+
     filteredExisting.sort((a, b) {
-       switch (_currentSort) {
-          case StructureModuleSortOption.markAsc:
-            return a.assemblyMark.toLowerCase().compareTo(b.assemblyMark.toLowerCase());
-          case StructureModuleSortOption.markDesc:
-            return b.assemblyMark.toLowerCase().compareTo(a.assemblyMark.toLowerCase());
-          case StructureModuleSortOption.weightDesc:
-            return (b.totalNetWeight ?? 0).compareTo(a.totalNetWeight ?? 0);
-          default:
-            return 0;
-        }
+      switch (_currentSort) {
+        case StructureModuleSortOption.markAsc:
+          return a.assemblyMark
+              .toLowerCase()
+              .compareTo(b.assemblyMark.toLowerCase());
+        case StructureModuleSortOption.markDesc:
+          return b.assemblyMark
+              .toLowerCase()
+              .compareTo(a.assemblyMark.toLowerCase());
+        case StructureModuleSortOption.weightDesc:
+          return (b.totalNetWeight ?? 0).compareTo(a.totalNetWeight ?? 0);
+        default:
+          return 0;
+      }
     });
 
     if (totalItemsCount == 0) {
@@ -1145,7 +1123,10 @@ class _DprStructureCreateScreenState
               Icon(Icons.inventory_2_outlined,
                   size: 48, color: cs.onSurfaceVariant.withOpacity(0.2)),
               const SizedBox(height: 16),
-              Text(_searchQuery.isEmpty && !hasActiveFilters ? "No entries added yet" : "No matches found",
+              Text(
+                  _searchQuery.isEmpty && !hasActiveFilters
+                      ? "No entries added yet"
+                      : "No matches found",
                   style: TextStyle(
                       color: cs.onSurfaceVariant, fontWeight: FontWeight.w600)),
             ],
@@ -1167,13 +1148,13 @@ class _DprStructureCreateScreenState
             card: card,
             onUpdate: (mark, qty) {
               setState(() {
-                _syncCardWithBOQ(card, mark, qty, boqStructureState);
+                _syncCardWithBOQ(card, mark, qty, boqState);
               });
             },
             onDelete: () {
-               setState(() {
-                 _localSetupCards?.remove(card);
-               });
+              setState(() {
+                _localSetupCards?.remove(card);
+              });
             },
             onCopy: () {
               setState(() {
@@ -1192,10 +1173,12 @@ class _DprStructureCreateScreenState
             card: card,
             onUpdate: (mark, qty) {
               setState(() {
-                _syncCardWithBOQ(card, mark, qty, boqStructureState);
+                _syncCardWithBOQ(card, mark, qty, boqState);
               });
               final originalIndex = state.activeCards.indexOf(card);
-              ref.read(dprEntryProvider.notifier).updateCard(originalIndex, mark, qty);
+              ref
+                  .read(dprEntryProvider.notifier)
+                  .updateCard(originalIndex, mark, qty);
             },
             onDelete: () {
               final originalIndex = state.activeCards.indexOf(card);
@@ -1208,34 +1191,43 @@ class _DprStructureCreateScreenState
           );
         } else {
           // 3. EXISTING ITEMS
-          final existingItemIndex = index - filteredSetup.length - filteredActive.length;
+          final existingItemIndex =
+              index - filteredSetup.length - filteredActive.length;
           final item = filteredExisting[existingItemIndex];
-          
-          // Look up description from BOQ provider
+
+          // Look up description and other details from BOQ provider
           String lookedUpDesc = '';
+          BOQStructureItem? foundBOQItem;
           for (var b in boqState.boqs) {
-            final found = b.items.where((i) => i.assemblyMark == item.assemblyMark);
+            final found =
+                b.items.where((i) => i.assemblyMark == item.assemblyMark);
             if (found.isNotEmpty) {
-              lookedUpDesc = found.first.typeDescription;
+              foundBOQItem = found.first;
+              lookedUpDesc = foundBOQItem.typeDescription;
               break;
             }
           }
 
           final AssemblyCardIsar card = AssemblyCardIsar()
             ..siteId = widget.siteId
-            ..boqItemId = item.boqItemId ?? ''
-            ..boqId = '' // Default
             ..assemblyMark = item.assemblyMark
-            ..description = lookedUpDesc
+            ..description =
+                lookedUpDesc.isNotEmpty ? lookedUpDesc : 'Description'
             ..quantity = item.qtyUsed
-            ..availableQty = item.availableQty ?? 0
+            ..availableQty = foundBOQItem?.availableQty ?? item.availableQty ?? 0
             ..usedQty = 0
-            ..remainingQty = item.remainingQty ?? 0
+            ..remainingQty = foundBOQItem?.remainingQty ?? item.remainingQty ?? 0
             ..progressPercentage = 0
             ..createdAt = DateTime.now()
             ..isSynced = true
-            ..netWeightPerUnit = item.netWeightPerUnit
-            ..totalNetWeight = item.totalNetWeight;
+            ..netWeightPerUnit =
+                foundBOQItem?.netWeightPerUnit ?? item.netWeightPerUnit
+            ..totalNetWeight =
+                (foundBOQItem?.netWeightPerUnit ?? item.netWeightPerUnit ?? 0) *
+                    item.qtyUsed
+            ..length = foundBOQItem?.length ?? item.length
+            ..width = foundBOQItem?.width ?? item.width
+            ..height = foundBOQItem?.height ?? item.height;
 
           return AssemblyCardWidget(
             card: card,
@@ -1244,28 +1236,27 @@ class _DprStructureCreateScreenState
             allowQtyEdit: true,
             onUpdate: (mark, qty) async {
               if (_latestDpr == null) return;
-              
+
               final updatedItems = _latestDpr!.items.map((i) {
                 if (i.assemblyMark == mark) {
                   return {
                     'assemblyMark': mark,
                     'qtyUsed': qty,
-                    'boqItemId': i.boqItemId,
                   };
                 }
                 return {
                   'assemblyMark': i.assemblyMark,
                   'qtyUsed': i.qtyUsed,
-                  'boqItemId': i.boqItemId,
                 };
               }).toList();
 
-              final success = await ref.read(dprStructureProvider.notifier).updateDPR(
-                widget.siteId,
-                _latestDpr!.id,
-                items: updatedItems,
-                replaceMode: true,
-              );
+              final success =
+                  await ref.read(dprStructureProvider.notifier).updateDPR(
+                        widget.siteId,
+                        _latestDpr!.id,
+                        items: updatedItems,
+                        replaceMode: true,
+                      );
 
               if (success) {
                 _fetchDprsForDate(_selectedDate);
@@ -1288,63 +1279,40 @@ class _DprStructureCreateScreenState
     final boqState = ref.read(savedBOQProvider);
 
     // Collect all items to submit (Setup cards + Active cards)
-    final List<AssemblyCardIsar> allCards = [...setupCards, ...entryState.activeCards];
+    final List<AssemblyCardIsar> allCards = [
+      ...setupCards,
+      ...entryState.activeCards
+    ];
 
     if (allCards.isEmpty) return;
 
-    final invalidMarks = allCards
-        .where((c) => c.assemblyMark.trim().isEmpty)
-        .toList();
+    final invalidMarks =
+        allCards.where((c) => c.assemblyMark.trim().isEmpty).toList();
     if (invalidMarks.isNotEmpty) {
       AppToast.error('Please enter an assembly mark for all entries.');
       return;
     }
 
-    final boqId =
-        _selectedBoqId ?? _resolveBoqId(allCards, boqState.boqs);
-    if (boqId == null) {
-      AppToast.error('Please select a BOQ file for this DPR.');
-      return;
-    }
-
-    final selectedBoq =
-        boqState.boqs.where((b) => b.id == boqId).firstOrNull;
-
     final items = allCards.map((c) {
-      String? itemId = c.boqItemId;
-      
-      // Auto-resolve itemId if missing using the selected BOQ
-      if ((itemId == null || itemId.isEmpty) && selectedBoq != null) {
-        final matchedItem = selectedBoq.items
-            .where((item) => item.assemblyMark == c.assemblyMark)
-            .firstOrNull;
-        itemId = matchedItem?.id;
-      }
-
       return {
         'assemblyMark': c.assemblyMark,
         'qtyUsed': c.quantity,
-        'boqItemId': itemId ?? "",
       };
     }).toList();
 
-    // Final validation: ensure no boqItemId is empty
-    if (items.any((item) => (item['boqItemId'] as String).isEmpty)) {
-      AppToast.error('Some items could not be matched with the selected BOQ.');
-      return;
-    }
     final dprName = _workNameController.text.trim();
     final plant = _plantController.text.trim();
     final location = _floorController.text.trim();
     final moc = _mocController.text.trim();
     final size = double.tryParse(_sizeController.text);
-    
+
     final bool success;
     if (_isUpdate) {
       success = await ref.read(dprStructureProvider.notifier).updateDPR(
             widget.siteId,
             _selectedDprId!,
             items: items,
+            dprName: dprName.isNotEmpty ? dprName : null,
             remarks: dprName.isNotEmpty ? dprName : null,
             plant: plant.isNotEmpty ? plant : null,
             location: location.isNotEmpty ? location : null,
@@ -1355,7 +1323,6 @@ class _DprStructureCreateScreenState
     } else {
       success = await ref.read(dprStructureProvider.notifier).createDPR(
             widget.siteId,
-            boqId: boqId,
             items: items,
             dprName: dprName.isNotEmpty ? dprName : null,
             date: _selectedDate,
@@ -1370,7 +1337,9 @@ class _DprStructureCreateScreenState
 
     if (success && mounted) {
       HapticFeedback.heavyImpact();
-      AppToast.success(_isUpdate ? "DPR Updated Successfully!" : "DPR Submitted Successfully!");
+      AppToast.success(_isUpdate
+          ? "DPR Updated Successfully!"
+          : "DPR Submitted Successfully!");
       widget.onSuccess?.call();
       context.pop();
     } else if (mounted) {
@@ -1379,37 +1348,6 @@ class _DprStructureCreateScreenState
         AppToast.error(error);
       }
     }
-  }
-
-  String? _resolveBoqId(List<AssemblyCardIsar> cards, List<BOQStructure> boqs) {
-    String? foundBoqId;
-    for (final card in cards) {
-      final itemId = card.boqItemId.trim();
-      if (itemId.isEmpty) {
-        AppToast.error('Please select a valid BOQ mark for all entries.');
-        return null;
-      }
-      String? parentId;
-      for (final boq in boqs) {
-        if (boq.items.any((i) => i.id == itemId)) {
-          parentId = boq.id;
-          break;
-        }
-      }
-
-      if (parentId == null || parentId.isEmpty) {
-        AppToast.error('BOQ item not found for mark ${card.assemblyMark}.');
-        return null;
-      }
-
-      if (foundBoqId == null) {
-        foundBoqId = parentId;
-      } else if (foundBoqId != parentId) {
-        AppToast.error('All entries must belong to the same BOQ.');
-        return null;
-      }
-    }
-    return foundBoqId;
   }
 
   Future<void> _selectDate() async {
@@ -1428,7 +1366,8 @@ class _DprStructureCreateScreenState
     }
   }
 
-  void _syncCardWithBOQ(AssemblyCardIsar card, String mark, double qty, BOQStructureState boqState) {
+  void _syncCardWithBOQ(AssemblyCardIsar card, String mark, double qty,
+      SavedBOQState boqState) {
     if (mark.isEmpty) {
       card.assemblyMark = "";
       card.description = "Description";
@@ -1469,7 +1408,8 @@ class _DprStructureCreateScreenState
       card.description = matchedItem.typeDescription;
       card.quantity = qty > 0 ? qty : matchedItem.quantity;
       card.netWeightPerUnit = matchedItem.netWeightPerUnit;
-      card.totalNetWeight = (matchedItem.netWeightPerUnit ?? 0) * (qty > 0 ? qty : matchedItem.quantity);
+      card.totalNetWeight = (matchedItem.netWeightPerUnit ?? 0) *
+          (qty > 0 ? qty : matchedItem.quantity);
       card.length = matchedItem.length;
       card.width = matchedItem.width;
       card.height = matchedItem.height;
@@ -1480,8 +1420,6 @@ class _DprStructureCreateScreenState
       card.isSynced = false;
     } else {
       // Manual entry mode: Just update Mark and Qty
-      card.boqId = "";
-      card.boqItemId = "";
       card.description = "Description";
       card.assemblyMark = mark;
       card.quantity = qty;
@@ -1490,6 +1428,8 @@ class _DprStructureCreateScreenState
       card.usedQty = 0;
       card.netWeightPerUnit = 0;
       card.totalNetWeight = 0;
+      card.boqItemId = "";
+      card.boqId = "";
     }
   }
 
@@ -1499,7 +1439,8 @@ class _DprStructureCreateScreenState
     showDialog(
       context: context,
       builder: (context) => AlertDialog(
-        title: Text('Remarks for ${card.assemblyMark.isNotEmpty ? card.assemblyMark : "Item"}'),
+        title: Text(
+            'Remarks for ${card.assemblyMark.isNotEmpty ? card.assemblyMark : "Item"}'),
         content: TextField(
           controller: remarksController,
           maxLines: 5,
@@ -1531,13 +1472,29 @@ class _DprStructureCreateScreenState
     final clone = AssemblyCardIsar();
     clone.isarId = card.isarId;
     clone.siteId = card.siteId;
-    
+
     // Safely copy late fields with defaults
-    try { clone.boqId = card.boqId; } catch (_) { clone.boqId = ""; }
-    try { clone.boqItemId = card.boqItemId; } catch (_) { clone.boqItemId = ""; }
-    try { clone.assemblyMark = card.assemblyMark; } catch (_) { clone.assemblyMark = ""; }
-    try { clone.description = card.description; } catch (_) { clone.description = "Description"; }
-    
+    try {
+      clone.boqId = card.boqId;
+    } catch (_) {
+      clone.boqId = "";
+    }
+    try {
+      clone.boqItemId = card.boqItemId;
+    } catch (_) {
+      clone.boqItemId = "";
+    }
+    try {
+      clone.assemblyMark = card.assemblyMark;
+    } catch (_) {
+      clone.assemblyMark = "";
+    }
+    try {
+      clone.description = card.description;
+    } catch (_) {
+      clone.description = "Description";
+    }
+
     clone.quantity = card.quantity;
     clone.availableQty = card.availableQty;
     clone.usedQty = card.usedQty;
@@ -1551,7 +1508,7 @@ class _DprStructureCreateScreenState
     clone.createdAt = card.createdAt;
     clone.isSynced = card.isSynced;
     clone.remarks = card.remarks; // Copy remarks
-    
+
     return clone;
   }
 }

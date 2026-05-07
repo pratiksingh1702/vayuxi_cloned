@@ -23,8 +23,7 @@ class DprStructureListScreen extends ConsumerStatefulWidget {
       _DprStructureListScreenState();
 }
 
-class _DprStructureListScreenState
-    extends ConsumerState<DprStructureListScreen>
+class _DprStructureListScreenState extends ConsumerState<DprStructureListScreen>
     with TickerProviderStateMixin {
   late AnimationController _pulseCtrl;
   int _filterIndex = 0; // 0=All,1=Today,2=Week,3=Month
@@ -111,7 +110,8 @@ class _DprStructureListScreenState
                                 .read(dprStructureProvider.notifier)
                                 .fetchDPRList(widget.siteId),
                             child: ListView.builder(
-                              padding: const EdgeInsets.fromLTRB(16, 8, 16, 120),
+                              padding:
+                                  const EdgeInsets.fromLTRB(16, 8, 16, 120),
                               itemCount: state.dprs.length,
                               itemBuilder: (ctx, i) {
                                 final dpr = state.dprs[i];
@@ -121,7 +121,8 @@ class _DprStructureListScreenState
                                     HapticFeedback.lightImpact();
                                     Navigator.of(context).push(
                                       MaterialPageRoute(
-                                        builder: (_) => DprStructureDetailScreen(
+                                        builder: (_) =>
+                                            DprStructureDetailScreen(
                                           dprId: dpr.id,
                                           siteId: widget.siteId,
                                           dpr: dpr,
@@ -164,7 +165,8 @@ class _DprStructureListScreenState
 
   Widget _buildHeaderDashboard(
       DPRStructureState state, ColorScheme cs, bool isDark) {
-    final totalWeight = state.dprs.fold<double>(0, (p, c) => p + c.totalNetWeight);
+    final totalWeight =
+        state.dprs.fold<double>(0, (p, c) => p + c.totalNetWeight);
     final totalQty = state.dprs.fold<double>(0, (p, c) => p + c.totalQtyUsed);
 
     return Container(
@@ -313,8 +315,8 @@ class _DprStructureListScreenState
               decoration: BoxDecoration(
                   color: cs.errorContainer.withOpacity(0.4),
                   shape: BoxShape.circle),
-              child: Icon(Icons.delete_sweep_rounded,
-                  color: cs.error, size: 32),
+              child:
+                  Icon(Icons.delete_sweep_rounded, color: cs.error, size: 32),
             ),
             const SizedBox(height: 16),
             const Text('Delete DPR Entry',
@@ -477,8 +479,8 @@ class _DPRCard extends StatelessWidget {
                                     fontSize: 15, fontWeight: FontWeight.w800),
                                 maxLines: 1,
                                 overflow: TextOverflow.ellipsis),
-                            if (dpr.boqName != null)
-                              Text(dpr.boqName!,
+                            if (dpr.dprNumber.isNotEmpty)
+                              Text('DPR No: ${dpr.dprNumber}',
                                   style: TextStyle(
                                       fontSize: 11,
                                       color: cs.onSurfaceVariant,
@@ -510,7 +512,8 @@ class _DPRCard extends StatelessWidget {
                     children: [
                       _DPRStatItem(
                         label: 'Weight',
-                        value: '${(dpr.totalNetWeight / 1000).toStringAsFixed(2)}',
+                        value:
+                            '${(dpr.totalNetWeight / 1000).toStringAsFixed(2)}',
                         unit: 'MT',
                         icon: Icons.scale_outlined,
                       ),
@@ -522,8 +525,10 @@ class _DPRCard extends StatelessWidget {
                       ),
                       _DPRStatItem(
                         label: 'Date',
-                        value: DateFormat('dd MMM').format(dpr.date ?? DateTime.now()),
-                        unit: DateFormat('yyyy').format(dpr.date ?? DateTime.now()),
+                        value: DateFormat('dd MMM')
+                            .format(dpr.date ?? DateTime.now()),
+                        unit: DateFormat('yyyy')
+                            .format(dpr.date ?? DateTime.now()),
                         icon: Icons.calendar_today_outlined,
                       ),
                     ],
@@ -624,7 +629,8 @@ class _EmptyDPRState extends StatelessWidget {
               color: _kBrown.withOpacity(0.08),
               shape: BoxShape.circle,
             ),
-            child: const Icon(Icons.note_add_outlined, size: 48, color: _kBrown),
+            child:
+                const Icon(Icons.note_add_outlined, size: 48, color: _kBrown),
           ),
           const SizedBox(height: 24),
           const Text('No DPR Entries Yet',
@@ -661,7 +667,8 @@ class _ErrorView extends StatelessWidget {
             const SizedBox(height: 24),
             Text(message,
                 textAlign: TextAlign.center,
-                style: const TextStyle(fontSize: 14, fontWeight: FontWeight.w500)),
+                style:
+                    const TextStyle(fontSize: 14, fontWeight: FontWeight.w500)),
             const SizedBox(height: 32),
             SizedBox(
               width: double.infinity,

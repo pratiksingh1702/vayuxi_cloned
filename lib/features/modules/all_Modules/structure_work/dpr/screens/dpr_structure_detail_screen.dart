@@ -44,7 +44,11 @@ class _DprStructureDetailScreenState
     try {
       final repo = ref.read(dprStructureRepositoryProvider);
       final d = await repo.getDPRDetail(widget.siteId, widget.dprId);
-      if (mounted) setState(() { _dpr = d; _loading = false; });
+      if (mounted)
+        setState(() {
+          _dpr = d;
+          _loading = false;
+        });
     } catch (e) {
       if (mounted) setState(() => _loading = false);
     }
@@ -159,7 +163,8 @@ class _DetailedHeader extends StatelessWidget {
             mainAxisAlignment: MainAxisAlignment.spaceBetween,
             children: [
               Container(
-                padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+                padding:
+                    const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
                 decoration: BoxDecoration(
                   color: Colors.white.withOpacity(0.2),
                   borderRadius: BorderRadius.circular(10),
@@ -219,7 +224,8 @@ class _DetailedHeader extends StatelessWidget {
 
 class _HeaderStat extends StatelessWidget {
   final String label, value, unit;
-  const _HeaderStat({required this.label, required this.value, required this.unit});
+  const _HeaderStat(
+      {required this.label, required this.value, required this.unit});
 
   @override
   Widget build(BuildContext context) {
@@ -227,7 +233,9 @@ class _HeaderStat extends StatelessWidget {
       children: [
         Text(value,
             style: const TextStyle(
-                color: Colors.white, fontSize: 20, fontWeight: FontWeight.w900)),
+                color: Colors.white,
+                fontSize: 20,
+                fontWeight: FontWeight.w900)),
         const SizedBox(height: 2),
         Text(label.toUpperCase(),
             style: TextStyle(
@@ -258,9 +266,9 @@ class _ContextCard extends StatelessWidget {
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           _ContextRow(
-            icon: Icons.table_chart_outlined,
-            label: 'Reference BOQ',
-            value: dpr.boqName ?? '—',
+            icon: Icons.confirmation_number_outlined,
+            label: 'DPR No',
+            value: dpr.dprNumber.isNotEmpty ? dpr.dprNumber : '—',
             cs: cs,
           ),
           if (dpr.remarks != null && dpr.remarks!.isNotEmpty) ...[
@@ -360,7 +368,8 @@ class _MaterialBreakdownTable extends StatelessWidget {
           child: Column(
             children: [
               Container(
-                padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 14),
+                padding:
+                    const EdgeInsets.symmetric(horizontal: 20, vertical: 14),
                 color: cs.surfaceContainerHigh,
                 child: Row(
                   children: [
@@ -397,7 +406,8 @@ class _MaterialBreakdownTable extends StatelessWidget {
                 decoration: BoxDecoration(
                   color: _kBrown.withOpacity(0.06),
                   border: Border(
-                      top: BorderSide(color: cs.outlineVariant.withOpacity(0.5))),
+                      top: BorderSide(
+                          color: cs.outlineVariant.withOpacity(0.5))),
                 ),
                 child: Row(
                   mainAxisAlignment: MainAxisAlignment.spaceBetween,
@@ -441,7 +451,8 @@ class _BreakdownRow extends StatelessWidget {
           Expanded(
             flex: 3,
             child: Text(item.assemblyMark,
-                style: const TextStyle(fontWeight: FontWeight.w800, fontSize: 14)),
+                style:
+                    const TextStyle(fontWeight: FontWeight.w800, fontSize: 14)),
           ),
           Expanded(
             child: Text(item.qtyUsed.toStringAsFixed(0),
@@ -487,7 +498,8 @@ class _DeleteConfirmSheet extends StatelessWidget {
             width: 40,
             height: 4,
             decoration: BoxDecoration(
-                color: cs.outlineVariant, borderRadius: BorderRadius.circular(2)),
+                color: cs.outlineVariant,
+                borderRadius: BorderRadius.circular(2)),
           ),
           const SizedBox(height: 32),
           Container(
@@ -579,14 +591,15 @@ class _ErrorState extends StatelessWidget {
             style: ElevatedButton.styleFrom(
               backgroundColor: _kBrown,
               padding: const EdgeInsets.symmetric(horizontal: 32, vertical: 16),
-              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+              shape: RoundedRectangleBorder(
+                  borderRadius: BorderRadius.circular(16)),
             ),
             child: const Text('Retry Fetching',
-                style: TextStyle(color: Colors.white, fontWeight: FontWeight.w800)),
+                style: TextStyle(
+                    color: Colors.white, fontWeight: FontWeight.w800)),
           ),
         ],
       ),
     );
   }
 }
-

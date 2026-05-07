@@ -47,6 +47,17 @@ class _AssemblyCardWidgetState extends State<AssemblyCardWidget> {
   }
 
   @override
+  void didUpdateWidget(covariant AssemblyCardWidget oldWidget) {
+    super.didUpdateWidget(oldWidget);
+    if (oldWidget.card.assemblyMark != widget.card.assemblyMark) {
+      _markController.text = widget.card.assemblyMark;
+    }
+    if (oldWidget.card.quantity != widget.card.quantity) {
+      _qtyController.text = widget.card.quantity.toStringAsFixed(0);
+    }
+  }
+
+  @override
   void dispose() {
     _markController.dispose();
     _qtyController.dispose();
@@ -226,9 +237,11 @@ class _AssemblyCardWidgetState extends State<AssemblyCardWidget> {
       decoration: BoxDecoration(
         color: cs.surfaceContainerHighest,
         borderRadius: BorderRadius.circular(8),
+        image: const DecorationImage(
+          image: AssetImage('assets/images/structure_default.jpeg'),
+          fit: BoxFit.cover,
+        ),
       ),
-      child:
-          Icon(Icons.image_not_supported, color: cs.onSurfaceVariant, size: 32),
     );
   }
 
