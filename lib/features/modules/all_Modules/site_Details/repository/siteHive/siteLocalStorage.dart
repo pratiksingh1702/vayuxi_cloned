@@ -63,6 +63,9 @@ class SiteModelHive {
   @HiveField(18)
   final int totalDprCount;
 
+  @HiveField(19)
+  final List<String> workTypes;
+
   SiteModelHive({
     required this.id,
     required this.siteName,
@@ -83,6 +86,7 @@ class SiteModelHive {
     this.dprInsulationCount = 0,
     this.manpowerCount = 0,
     this.totalDprCount = 0,
+    this.workTypes = const [],
   });
 
   // Convert from your original SiteModel to Hive model
@@ -107,6 +111,7 @@ class SiteModelHive {
       dprInsulationCount: site.counts.dprInsulation,
       manpowerCount: site.counts.manpower,
       totalDprCount: site.counts.totalDpr,
+      workTypes: site.workTypes,
     );
   }
 
@@ -128,6 +133,7 @@ class SiteModelHive {
       createdAt: createdAt,
       updatedAt: updatedAt,
       shippingAddress: '',
+      workTypes: workTypes,
       counts: SiteCounts(
         teams: teamsCount,
         dprMechanical: dprMechanicalCount,
@@ -163,6 +169,7 @@ class SiteModelHive {
       dprInsulationCount: counts.dprInsulation,
       manpowerCount: counts.manpower,
       totalDprCount: counts.totalDpr,
+      workTypes: List<String>.from(json['workTypes'] ?? []),
     );
   }
 
@@ -183,6 +190,7 @@ class SiteModelHive {
       'type': type,
       'createdAt': createdAt,
       'updatedAt': updatedAt,
+      'workTypes': workTypes,
       'counts': {
         'teams': teamsCount,
         'dprMechanical': dprMechanicalCount,

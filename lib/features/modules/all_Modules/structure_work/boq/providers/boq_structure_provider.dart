@@ -75,10 +75,10 @@ class BOQStructureNotifier extends StateNotifier<BOQStructureState> {
     }
   }
 
-  Future<bool> uploadBOQ(String siteId, PlatformFile file) async {
+  Future<bool> uploadBOQ(String siteId, PlatformFile file, {String workType = 'fabrication'}) async {
     state = state.copyWith(isUploading: true, clearError: true);
     try {
-      final newBOQ = await _repo.uploadBOQExcel(siteId, file);
+      final newBOQ = await _repo.uploadBOQExcel(siteId, file, workType: workType);
       _cache = null;
       final updated = [newBOQ, ...state.boqs];
       state = state.copyWith(boqs: updated, isUploading: false);

@@ -62,6 +62,98 @@ class SiteNotifier extends BaseNotifier<SiteState> {
     return sorted;
   }
 
+  List<SiteModel> _getDummySites(String type) {
+    final now = DateTime.now().toIso8601String();
+    switch (type) {
+      case 'civil_work':
+        return [
+          SiteModel(
+            id: 'dummy_civil_1',
+            siteName: 'Dummy Civil Site (Test)',
+            address: '123 Civil Ave, Infrastructure City',
+            shippingAddress: '123 Civil Ave, Infrastructure City',
+            contactPerson: 'John Builder',
+            gstNo: 'DUMMYGSTCIVIL',
+            phoneNumber: '9876543210',
+            emailId: 'civil@dummy.com',
+            documentDate: now,
+            documentNumber: 'DOC-CIVIL-001',
+            isDeleted: false,
+            company: 'Dummy Corp',
+            type: 'civil_work',
+            createdAt: now,
+            updatedAt: now,
+            siteImage: 'https://images.unsplash.com/photo-1541913080-214307cc393a?w=500',
+          )
+        ];
+      case 'erection_work':
+        return [
+          SiteModel(
+            id: 'dummy_erection_1',
+            siteName: 'Dummy Erection Site (Test)',
+            address: '456 Steel St, Sky High',
+            shippingAddress: '456 Steel St, Sky High',
+            contactPerson: 'Steve Crane',
+            gstNo: 'DUMMYGSTERECTION',
+            phoneNumber: '9876543211',
+            emailId: 'erection@dummy.com',
+            documentDate: now,
+            documentNumber: 'DOC-ERECT-001',
+            isDeleted: false,
+            company: 'Dummy Corp',
+            type: 'erection_work',
+            createdAt: now,
+            updatedAt: now,
+            siteImage: 'https://images.unsplash.com/photo-1504307651254-35680f356dfd?w=500',
+          )
+        ];
+      case 'roofing_work':
+        return [
+          SiteModel(
+            id: 'dummy_roofing_1',
+            siteName: 'Dummy Roofing Site (Test)',
+            address: '789 Shelter Rd, Peak Heights',
+            shippingAddress: '789 Shelter Rd, Peak Heights',
+            contactPerson: 'Ron Sheet',
+            gstNo: 'DUMMYGSTROOF',
+            phoneNumber: '9876543212',
+            emailId: 'roofing@dummy.com',
+            documentDate: now,
+            documentNumber: 'DOC-ROOF-001',
+            isDeleted: false,
+            company: 'Dummy Corp',
+            type: 'roofing_work',
+            createdAt: now,
+            updatedAt: now,
+            siteImage: 'https://images.unsplash.com/photo-1635424710928-0544e8512eae?w=500',
+          )
+        ];
+      case 'fabrication_work':
+        return [
+          SiteModel(
+            id: 'dummy_fab_1',
+            siteName: 'Dummy Fab Workshop (Test)',
+            address: '321 Workshop Way, Industrial Zone',
+            shippingAddress: '321 Workshop Way, Industrial Zone',
+            contactPerson: 'Fred Weld',
+            gstNo: 'DUMMYGSTFAB',
+            phoneNumber: '9876543213',
+            emailId: 'fab@dummy.com',
+            documentDate: now,
+            documentNumber: 'DOC-FAB-001',
+            isDeleted: false,
+            company: 'Dummy Corp',
+            type: 'fabrication_work',
+            createdAt: now,
+            updatedAt: now,
+            siteImage: 'https://images.unsplash.com/photo-1504917595217-d4dc5ebe6122?w=500',
+          )
+        ];
+      default:
+        return [];
+    }
+  }
+
   @override
   Future<void> onSync() async {
     await fetchSites();
@@ -131,9 +223,14 @@ class SiteNotifier extends BaseNotifier<SiteState> {
       }
 
       // Update state with fresh data
+      var finalSites = siteList;
+      if (finalSites.isEmpty) {
+        finalSites = _getDummySites(type);
+      }
+
       state = state.copyWith(
-          isLoading: false, sites: siteList, hasData: true, error: null);
-      print("[SYNC DONE] Synced ${siteList.length} sites");
+          isLoading: false, sites: finalSites, hasData: finalSites.isNotEmpty, error: null);
+      print("[SYNC DONE] Synced ${finalSites.length} sites");
     } catch (e) {
       print("[ERROR] API fetch failed: $e");
 
@@ -152,9 +249,20 @@ class SiteNotifier extends BaseNotifier<SiteState> {
             error: 'Using cached data - ${e.toString()}');
         print("[FALLBACK] Showing ${sortedCachedSites.length} cached sites");
       } else {
-        state = state.copyWith(
-            isLoading: false, sites: [], hasData: false, error: e.toString());
-        print("[FALLBACK] No cache available → showing error");
+        // FINAL FALLBACK: Dummy data for testing
+        final dummySites = _getDummySites(type);
+        if (dummySites.isNotEmpty) {
+          state = state.copyWith(
+              isLoading: false,
+              sites: dummySites,
+              hasData: true,
+              error: 'TESTING MODE: Using dummy data');
+          print("[FALLBACK] Showing dummy sites for testing");
+        } else {
+          state = state.copyWith(
+              isLoading: false, sites: [], hasData: false, error: e.toString());
+          print("[FALLBACK] No cache or dummy available → showing error");
+        }
       }
     }
   }

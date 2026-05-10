@@ -1,0 +1,315 @@
+
+PEB CRM + PROJECT MANAGEMENT SYSTEM
+COMPLETE FLOW RESTRUCTURE DOCUMENT
+
+Prepared For:
+CEO Review & System Architecture Planning
+
+========================================================
+
+1. INTRODUCTION
+
+This document defines the complete restructuring plan of the current PEB Work System.
+
+The system will now work as a complete:
+- CRM System
+- Sales Management System
+- Procurement System
+- Inventory Management System
+- DPR Management System
+- Fabrication Tracking System
+- Dispatch & Handover System
+
+========================================================
+
+2. FULL FLOW
+
+CRM
+↓
+Cold Calling
+↓
+Quotation
+↓
+Site Creation
+↓
+Procurement
+↓
+Inventory / Material Purchase / Rate Upload
+↓
+BOQ Upload
+↓
+DPR Setup / DPR Entry
+↓
+Dispatch
+↓
+Handover
+
+========================================================
+
+3. WEB FLOW
+
+Site Creation
+↓
+Rate Upload
+↓
+Procurement
+↓
+Inventory / Material Purchase
+↓
+BOQ Upload
+↓
+DPR Setup
+↓
+DPR Entry
+↓
+Dispatch
+↓
+Handover
+
+========================================================
+
+4. APP FLOW
+
+Site Creation
+↓
+Rate Upload
+↓
+Procurement
+↓
+BOQ Upload
+↓
+Inventory / Material Purchase
+↓
+DPR Setup
+↓
+DPR Entry
+
+========================================================
+
+5. CRM MODULE
+
+Features:
+- Client Management
+- Lead Management
+- Customer Database
+- Requirement Tracking
+- Follow-up Management
+
+Cold Calling Features:
+- Call History
+- Follow-up Reminder
+- Notes Management
+- Call Activity Tracking
+- Lead Conversion Tracking
+
+========================================================
+
+6. QUOTATION MODULE
+
+Features:
+- Quotation Generation
+- Rate Calculation
+- Tax Calculation
+- Margin Calculation
+- PDF Generation
+- Revision History
+- WhatsApp & Email Sharing
+
+========================================================
+
+7. SITE CREATION MODULE
+
+Site Creation becomes:
+Project Master + Site Master
+
+Features:
+- Project Details
+- Site Details
+- Timeline Setup
+- Contractor Details
+- Work Type Setup
+- Site Configuration
+
+========================================================
+
+8. PROCUREMENT MODULE
+
+Features:
+- Material Requests
+- Vendor Management
+- Purchase Workflow
+- Procurement Tracking
+- Approval Flow
+
+========================================================
+
+9. INVENTORY / MATERIAL PURCHASE / RATE UPLOAD
+
+Features:
+- Inventory Tracking
+- Material Inward
+- Stock Monitoring
+- Consumption Tracking
+- Site-wise Rate Upload
+- Purchase Management
+
+========================================================
+
+10. WORK TYPE STRUCTURE
+
+Work Types:
+- Civil
+- Erection
+- Roofing
+- Fabrication
+
+Each Work Type Contains:
+- Separate DPR Setup
+- Separate DPR Entry
+- Separate Validation
+- Separate Reports
+- Separate Workflow
+
+========================================================
+
+11. BOQ UPLOAD MODULE
+
+BOQ Structure:
+- Assembly Mark
+- Type / Description
+- Qty
+- Length
+- Width
+- Height
+- Net Weight
+- Total Weight
+
+Purpose:
+- Fabrication Tracking
+- Quantity Validation
+- Assembly Mark Management
+
+========================================================
+
+12. FABRICATION FLOW
+
+BOQ Upload
+↓
+Dispatch
+↓
+Unloading
+↓
+Shifting
+↓
+Erection
+↓
+Alignment
+↓
+Inspection
+
+========================================================
+
+13. FABRICATION VALIDATIONS
+
+Rules:
+- Cannot shift more than unloaded quantity
+- Cannot erect more than shifted quantity
+- Cannot dispatch more than fabricated quantity
+- Duplicate assembly mark not allowed
+
+========================================================
+
+14. DPR SYSTEM
+
+DPR Setup:
+- Work Item Setup
+- Unit Setup
+- Activity Setup
+- Target Quantity Setup
+
+DPR Entry:
+- Daily Quantity Entry
+- Progress Photos
+- Remarks
+- Work Progress Tracking
+
+========================================================
+
+15. DISPATCH MODULE
+
+Features:
+- Vehicle Tracking
+- Dispatch Quantity
+- Material Tracking
+- Delivery Status
+- Dispatch Validation
+
+========================================================
+
+16. HANDOVER MODULE
+
+Features:
+- Final Checklist
+- Client Approval
+- Completion Tracking
+- Final Documentation
+- Pending Work Tracking
+
+========================================================
+
+17. IMPLEMENTATION PHASES
+
+PHASE 1
+- CRM
+- Cold Calling
+- Quotation
+
+PHASE 2
+- Site Creation
+- Procurement
+- Inventory
+- Material Purchase
+
+PHASE 3
+- DPR Setup
+- DPR Entry
+- Work Type Separation
+
+PHASE 4
+- BOQ Upload
+- Fabrication Validation Engine
+- Dependency Tracking
+
+PHASE 5
+- Dispatch
+- Handover
+- Reports
+
+========================================================
+
+18. FINAL RECOMMENDATION
+
+Recommended Build Order:
+
+CRM
+↓
+Site Creation
+↓
+Inventory
+↓
+DPR Core
+↓
+BOQ Dependency Engine
+↓
+Dispatch
+↓
+Handover
+
+The most important module is:
+BOQ + Fabrication Dependency Engine
+
+This architecture is scalable, modular, and suitable for long-term industrial workflow management.
+
+========================================================
+
+END OF DOCUMENT

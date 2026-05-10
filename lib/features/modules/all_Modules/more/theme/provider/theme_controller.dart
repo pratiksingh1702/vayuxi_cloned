@@ -28,17 +28,14 @@ class ThemeState {
             useMaterial3: true,
           );
 
-    final primary = base.colorScheme.primaryFixedDim;
-    print(primary);
-    print("😅😅😅😅 light color at controller");
-
     return base.copyWith(
-      scaffoldBackgroundColor: primary,
+      scaffoldBackgroundColor: const Color(0xFFF8FAFC),
       cardTheme: CardThemeData(
         color: Colors.white,
-        elevation: 2,
+        elevation: 0,
         shape: RoundedRectangleBorder(
-          borderRadius: BorderRadius.circular(12),
+          borderRadius: BorderRadius.circular(16),
+          side: BorderSide(color: Colors.grey.shade200),
         ),
       ),
       pageTransitionsTheme: const PageTransitionsTheme(
@@ -100,7 +97,7 @@ class ThemeNotifier extends StateNotifier<ThemeState> {
   ThemeNotifier()
       : super(ThemeState(
           themeMode: ThemeMode.system,
-          scheme: FlexScheme.blue,
+          scheme: FlexScheme.material,
         )) {
     _load();
   }
@@ -149,7 +146,7 @@ class ThemeNotifier extends StateNotifier<ThemeState> {
     final safeSchemeIndex =
         (scheme != null && scheme >= 0 && scheme < FlexScheme.values.length)
             ? scheme
-            : FlexScheme.blue.index;
+        : FlexScheme.material.index;
 
     state = ThemeState(
       themeMode: ThemeMode.values[safeModeIndex],

@@ -12,7 +12,9 @@ class SiteModel {
   final bool isDeleted;
   final String company;
   final String type;
+  final String? projectId; // NEW
 
+  final List<String> workTypes;
   final String createdAt;
   final String updatedAt;
   final String? siteImage; // ✅ OPTIONAL FIELD
@@ -32,6 +34,8 @@ class SiteModel {
     required this.isDeleted,
     required this.company,
     required this.type,
+    this.projectId, // NEW
+    this.workTypes = const [], // NEW
     required this.createdAt,
     required this.updatedAt,
     this.siteImage, // ✅ optional
@@ -53,6 +57,8 @@ class SiteModel {
       isDeleted: json['isDeleted'] ?? false,
       company: json['company'] ?? '',
       type: json['type'] ?? '',
+      projectId: json['projectId'], // NEW
+      workTypes: List<String>.from(json['workTypes'] ?? []), // NEW
       createdAt: json['createdAt'] ?? '',
       updatedAt: json['updatedAt'] ?? '',
       siteImage: (json['siteImage'] != null &&
@@ -77,6 +83,8 @@ class SiteModel {
       'isDeleted': isDeleted,
       'company': company,
       'type': type,
+      'projectId': projectId, // NEW
+      'workTypes': workTypes, // NEW
       'createdAt': createdAt,
       'updatedAt': updatedAt,
       'siteImage': siteImage, // ✅ included

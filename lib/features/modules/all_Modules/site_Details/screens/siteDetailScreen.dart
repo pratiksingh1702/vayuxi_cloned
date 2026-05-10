@@ -7,6 +7,7 @@ import 'package:image_picker/image_picker.dart';
 import 'package:untitled2/core/utlis/widgets/Button_wrapper.dart';
 import 'package:untitled2/core/utlis/widgets/custom_appBar.dart';
 import 'package:untitled2/typeProvider/type_provider.dart';
+import 'package:untitled2/typeProvider/work_type.dart';
 
 import '../../../../../core/utlis/app_toasts.dart';
 import '../../../../../core/utlis/common_functions.dart';
@@ -49,6 +50,16 @@ class _SiteDetailScreenState extends ConsumerState<SiteDetailScreen> {
   bool isLoading = false;
   DateTime selectedDate = DateTime.now();
 
+  final List<String> availableWorkTypes = [
+    'civil_work',
+    'structure_work',
+    'roofing_work',
+    'fabrication_work',
+    'mechanical_work',
+    'insulation_work',
+  ];
+  List<String> selectedWorkTypes = [];
+
   @override
   void initState() {
     super.initState();
@@ -72,6 +83,7 @@ class _SiteDetailScreenState extends ConsumerState<SiteDetailScreen> {
     );
     shippingAddressController =
         TextEditingController(text: site?.shippingAddress ?? "");
+    selectedWorkTypes = List<String>.from(site?.workTypes ?? []);
   }
 
   String _formatDocumentDate(String? documentDate) {
@@ -150,6 +162,7 @@ class _SiteDetailScreenState extends ConsumerState<SiteDetailScreen> {
         "selectedDate": dateController.text,
         "company": widget.site?.company ?? "",
         "type": widget.site?.type ?? type,
+        "workTypes": selectedWorkTypes, // Correctly passing the list
       });
 
       // Handle image based on three scenarios:
@@ -517,6 +530,61 @@ isRequired: true,
                     label: "AMC/WO/PO/ARC",
                     controller: documentNumberController,
                     TextSize: 18,
+                  ),
+
+                  const SizedBox(height: 24),
+
+                  // Work Types Selection
+                  Align(
+                    alignment: Alignment.centerLeft,
+                    child: Text(
+                      "Associated Work Types",
+                      style: TextStyle(
+                        fontSize: 18,
+                        fontWeight: FontWeight.w500,
+                        color: cs.onSurface,
+                      ),
+                    ),
+                  ),
+                  const SizedBox(height: 12),
+                  Wrap(
+                    spacing: 8,
+                    runSpacing: 8,
+                    children: availableWorkTypes.map((type) {
+                      final isSelected = selectedWorkTypes.contains(type);
+                      return FilterChip(
+                        label: Text(
+                          WorkType.fromApiValue(type)?.displayName ?? type.toUpperCase(),
+                          style: TextStyle(
+                            color: isSelected ? cs.onPrimary : cs.onSurface,
+                            fontWeight: isSelected ? FontWeight.bold : null,
+                          ),
+                        ),
+                        selected: isSelected,
+                        onSelected: (selected) {
+                          setState(() {
+                            if (selected) {
+                              selectedWorkTypes.add(type);
+                            } else {
+                              selectedWorkTypes.remove(type);
+                            }
+                          });
+                        },
+                        selectedColor: cs.primary,
+                        checkmarkColor: cs.onPrimary,
+                        backgroundColor: cs.surfaceContainerHigh,
+                        padding: const EdgeInsets.symmetric(
+                            horizontal: 12, vertical: 8),
+                        shape: RoundedRectangleBorder(
+                          borderRadius: BorderRadius.circular(20),
+                          side: BorderSide(
+                            color: isSelected
+                                ? cs.primary
+                                : cs.outline.withOpacity(0.2),
+                          ),
+                        ),
+                      );
+                    }).toList(),
                   ),
 
                   const SizedBox(height: 28),

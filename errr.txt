@@ -1,0 +1,23 @@
+lib/features/procurement/screens/procurement_list_screen.dart:14:25: Error: Required named parameter 'requestNumber'
+must be provided.
+      ProcurementRequest(
+                        ^
+lib/features/procurement/models/procurement_model.dart:19:3: Context: Found this candidate, but the arguments don't
+match.
+  ProcurementRequest({
+  ^^^^^^^^^^^^^^^^^^
+lib/features/procurement/screens/procurement_list_screen.dart:24:25: Error: Required named parameter 'requestNumber'
+must be provided.
+      ProcurementRequest(
+                        ^
+lib/features/procurement/models/procurement_model.dart:19:3: Context: Found this candidate, but the arguments don't
+match.
+  ProcurementRequest({
+  ^^^^^^^^^^^^^^^^^^
+lib/features/quotation/providers/quotation_provider.dart:55:17: Error: The argument type 'String' can't be assigned to
+the parameter type 'QuotationStatus'.
+ - 'QuotationStatus' is from 'package:untitled2/features/quotation/models/quotation_model.dart'
+ ('lib/features/quotation/models/quotation_model.dart').
+        status: 'sent', // Using string for status as in model but UI expects enum?
+                ^
+Performing hot restart...

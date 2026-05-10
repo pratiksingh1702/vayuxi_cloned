@@ -35,6 +35,7 @@ import '../../features/modules/all_Modules/Manpower Details/screens/addManpower.
 import '../../features/modules/all_Modules/Manpower Details/screens/editManpower.dart';
 import '../../features/modules/all_Modules/Manpower Details/screens/man_import.dart';
 import '../../features/modules/all_Modules/Manpower Details/screens/manpowerList.dart';
+import '../../features/modules/screen/module_detail.dart';
 
 import '../../features/modules/all_Modules/dpr/models/dprModel.dart';
 import '../../features/modules/all_Modules/dpr/dpr_insu/model/dpr_model_insu.dart';
@@ -92,6 +93,8 @@ import '../../features/modules/all_Modules/salary/screens/salarycat.dart';
 import '../../features/modules/all_Modules/salary/screens/download_all.dart';
 import '../../features/modules/all_Modules/salary/screens/site.dart';
 import '../../features/modules/all_Modules/site_Details/providers/site_current_provider.dart';
+import '../../features/inventory/screens/inventory_management_screen.dart';
+import '../../features/modules/all_Modules/site_Details/screens/project_list_screen.dart';
 import '../../features/modules/all_Modules/site_Details/screens/siteDetailScreen.dart';
 import '../../features/modules/all_Modules/site_Details/screens/view_add_site.dart';
 import '../../features/modules/all_Modules/site_Details/screens/site_entry_select_page.dart';
@@ -109,9 +112,17 @@ import '../../features/pricing/Screens/subsciption_screen.dart';
 import '../../features/pricing/providers/razorpay_provider.dart';
 import '../../features/profile_page/screens/profilePage.dart';
 import '../../features/noti_system/updates/presentation/navigation/updates_routes.dart';
+import '../../features/quotation/screens/quotation_list_screen.dart';
+import '../../features/quotation/screens/quotation_create_screen.dart';
+import '../../features/procurement/screens/procurement_list_screen.dart';
+import '../../features/peb_work/screens/peb_dpr_setup_screen.dart';
+import '../../features/peb_work/screens/dpr_entry_screen.dart';
+import '../../features/fabrication/screens/fabrication_dpr_screen.dart';
+import '../../features/modules/all_Modules/site_Details/screens/dispatch_handover_screens.dart';
 import '../../features/modules/screen/module_screen_v2.dart';
-import '../../features/modules/screen/module_screen.dart';
-import '../../features/modules/screen/module_detail.dart';
+import '../../features/crm/screens/crm_lead_list_screen.dart';
+import '../../features/crm/screens/crm_lead_detail_screen.dart';
+import '../../features/crm/models/crm_model.dart';
 import '../../typeProvider/type_provider.dart';
 import '../../work_cat.dart';
 import '../../core/router/routes.dart';
@@ -120,6 +131,7 @@ import 'app_access.dart';
 import 'go_router_refresh.dart';
 import 'not_found_screen.dart';
 import 'package:bot_toast/bot_toast.dart';
+import 'placeholders.dart';
 import '../screens/network_settings_screen.dart';
 import '../screens/settings_screen.dart';
 import 'route_tracker.dart';
@@ -417,6 +429,97 @@ final appRouterProvider = Provider<GoRouter>((ref) {
                   ),
                 );
                 break;
+
+              // NEW PEB CRM & ADVANCED MODULES
+              case 'dispatch':
+                screen = const DispatchListScreen();
+                break;
+              case 'handover':
+                screen = const HandoverChecklistScreen();
+                break;
+              case 'procurement':
+                screen = ProcurementListScreen(siteId: site.id);
+                break;
+              case 'crm-setup':
+                screen = const CrmLeadListScreen();
+                break;
+              case 'civil-dpr':
+                screen = DprEntryScreen(siteId: site.id, title: 'Civil DPR');
+                break;
+              case 'erection-dpr':
+                screen = DprEntryScreen(siteId: site.id, title: 'Erection DPR');
+                break;
+              case 'roofing-dpr':
+                screen = DprEntryScreen(siteId: site.id, title: 'Roofing DPR');
+                break;
+              case 'fabrication-dpr':
+                screen = FabricationDprScreen(siteId: site.id);
+                break;
+              case 'fabrication-setup':
+                screen = PebDprSetupScreen(siteId: site.id, workType: 'fabrication');
+                break;
+              case 'civil-setup':
+                screen = PebDprSetupScreen(siteId: site.id, workType: 'civil');
+                break;
+              case 'erection-setup':
+                screen = PebDprSetupScreen(siteId: site.id, workType: 'erection');
+                break;
+              case 'roofing-setup':
+                screen = PebDprSetupScreen(siteId: site.id, workType: 'roofing');
+                break;
+              case 'mechanical-setup':
+                screen = PebDprSetupScreen(siteId: site.id, workType: 'mechanical');
+                break;
+              case 'insulation-setup':
+                screen = PebDprSetupScreen(siteId: site.id, workType: 'insulation');
+                break;
+              case 'structure-setup':
+                screen = PebDprSetupScreen(siteId: site.id, workType: 'structure');
+                break;
+              case 'peb-setup':
+                screen = PebDprSetupScreen(siteId: site.id, workType: 'peb');
+                break;
+              case 'boq-upload':
+                screen =
+                    ViewAddBoqScreen(siteId: site.id, siteName: site.siteName);
+                break;
+              case 'cold-call':
+                screen = const PlaceholderScreen(title: 'Cold Call');
+                break;
+              case 'follow-up':
+                screen = const PlaceholderScreen(title: 'Follow Up');
+                break;
+              case 'inv-setup':
+                screen = InventoryManagementScreen(siteId: site.id);
+                break;
+              case 'inv-entry':
+                screen = InventoryManagementScreen(siteId: site.id);
+                break;
+              case 'inventory-list':
+                screen = InventoryManagementScreen(siteId: site.id);
+                break;
+              case 'edit-inventory':
+                screen = InventoryManagementScreen(siteId: site.id);
+                break;
+              case 'boq-upload':
+                screen = const PlaceholderScreen(title: 'BOQ Upload');
+                break;
+              case 'dispatch-tracking':
+                screen = const PlaceholderScreen(title: 'Dispatch Tracking');
+                break;
+              case 'fab-report':
+                screen = const ReportPlaceholder(reportName: 'Fabrication');
+                break;
+              case 'dispatch-report':
+                screen = const ReportPlaceholder(reportName: 'Dispatch');
+                break;
+              case 'handover-report':
+                screen = const ReportPlaceholder(reportName: 'Handover');
+                break;
+              case 'crm-report':
+                screen = const ReportPlaceholder(reportName: 'CRM');
+                break;
+
               default:
                 screen = SiteDetailScreen(site: site);
             }
@@ -1010,6 +1113,41 @@ final appRouterProvider = Provider<GoRouter>((ref) {
         builder: (context, state) {
           _logRoute('DeviceOtpScreen', path: state.uri.toString());
           return const DeviceOtpScreen();
+        },
+      ),
+      GoRoute(
+        path: Routes.quotationList,
+        builder: (context, state) {
+          _logRoute('QuotationList', path: state.uri.toString());
+          return const QuotationListScreen();
+        },
+      ),
+      GoRoute(
+        path: Routes.quotationCreate,
+        builder: (context, state) {
+          _logRoute('QuotationCreate', path: state.uri.toString());
+          return const QuotationCreateScreen();
+        },
+      ),
+      GoRoute(
+        path: Routes.projectList,
+        builder: (context, state) {
+          _logRoute('ProjectList', path: state.uri.toString());
+          return const ProjectListScreen();
+        },
+      ),
+      GoRoute(
+        path: '${Routes.crmSetup}/:id',
+        builder: (context, state) {
+          final id = state.pathParameters['id']!;
+          return CrmLeadDetailScreen(leadId: id);
+        },
+      ),
+      GoRoute(
+        path: Routes.coldCall,
+        builder: (context, state) {
+          final lead = state.extra as CrmLead;
+          return ColdCallScreen(lead: lead);
         },
       ),
       ...UpdatesRoutes.routes,

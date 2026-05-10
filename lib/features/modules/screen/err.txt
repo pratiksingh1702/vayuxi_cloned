@@ -1,0 +1,13 @@
+Launching lib\main.dart on RMX5250 (wireless) in debug mode...
+lib/features/modules/screen/module_screen_v2.dart:22:8: Error: Error when reading 'lib/features/tour/domain/tour_persistence.dart': The system cannot find the file specified
+import 'package:untitled2/features/tour/domain/tour_persistence.dart';
+       ^
+lib/features/modules/screen/module_screen_v2.dart:593:20: Error: The getter 'TourEvents' isn't defined for the type '_ModuleScreenV2State'.
+ - '_ModuleScreenV2State' is from 'package:untitled2/features/modules/screen/module_screen_v2.dart' ('lib/features/modules/screen/module_screen_v2.dart').
+Try correcting the name to the name of an existing getter, or defining a getter or field named 'TourEvents'.
+          .onEvent(TourEvents.siteModuleTapped);
+                   ^^^^^^^^^^
+Target kernel_snapshot_program failed: Exception
+
+
+FAILURE: Build failed with an exception.

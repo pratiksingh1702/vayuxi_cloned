@@ -18,11 +18,12 @@ import 'package:untitled2/features/modules/all_Modules/team/model/teamModel.dart
 import 'package:untitled2/features/modules/all_Modules/team/provider/teamProvider.dart';
 import 'package:untitled2/features/tour/domain/tour_controller.dart';
 import 'package:untitled2/features/tour/domain/tour_events.dart';
+import 'package:untitled2/typeProvider/work_type.dart';
+import 'package:untitled2/typeProvider/type_provider.dart';
+import 'package:untitled2/core/router/placeholders.dart';
 import 'package:untitled2/features/tour/domain/tour_presistent.dart';
 import 'package:untitled2/features/tour/domain/tour_registery.dart';
 import 'package:untitled2/features/tour/registry/site_registry.dart';
-import 'package:untitled2/typeProvider/type_provider.dart';
-import 'package:untitled2/typeProvider/work_type.dart';
 import 'widgets/access_overlay.dart';
 import 'module_preferences.dart';
 
@@ -269,28 +270,78 @@ class _ModuleScreenV2State extends ConsumerState<ModuleScreenV2>
   }
 
   // ── Module Data ────────────────────────────────────────────────────────────
-  final List<ModuleItem> _dailyEntryModules = [
-    ModuleItem(
-        labelKey: 'attendance_card',
-        icon: Icons.how_to_reg_rounded,
-        iconColor: Colors.green,
-        routeName: "/site-list/attendance"),
-    ModuleItem(
+  List<ModuleItem> get _dailyEntryModules {
+    final type = ref.watch(typeProvider);
+    final base = [
+      ModuleItem(
+          labelKey: 'attendance_card',
+          icon: Icons.how_to_reg_rounded,
+          iconColor: Colors.green,
+          routeName: "/site-list/attendance"),
+      ModuleItem(
+          labelKey: 'expense_card',
+          icon: Icons.receipt_long_rounded,
+          iconColor: Colors.orange,
+          routeName: "/site-list/add-exp"),
+      ModuleItem(
+          labelKey: 'inventory_entry_card',
+          icon: Icons.inventory_2_rounded,
+          iconColor: Colors.teal,
+          routeName: "/site-list/inv-entry"),
+    ];
+
+    final dprModule = _getDprModule(type);
+    return [
+      base[0],
+      dprModule,
+      ...base.sublist(1),
+    ];
+  }
+
+  ModuleItem _getDprModule(String? type) {
+    if (type == 'mechanical_work' || type == WorkType.mechanical.apiValue) {
+      return ModuleItem(
+          labelKey: 'daily_progress_card',
+          icon: Icons.description_rounded,
+          iconColor: Colors.indigo,
+          routeName: "/site-list/dpr");
+    } else if (type == 'insulation_work' || type == WorkType.insulation.apiValue) {
+      return ModuleItem(
+          labelKey: 'Insulation DPR',
+          icon: Icons.layers_rounded,
+          iconColor: Colors.indigo,
+          routeName: "/site-list/dpr");
+    } else if (type == 'structure_work' || type == WorkType.structure.apiValue) {
+      return ModuleItem(
+          labelKey: 'Structure Erection DPR',
+          icon: Icons.construction_rounded,
+          iconColor: Colors.indigo,
+          routeName: "/site-list/dpr");
+    } else if (type == 'civil_work' || type == WorkType.civil.apiValue) {
+      return ModuleItem(
+          labelKey: 'Civil DPR',
+          icon: Icons.foundation_rounded,
+          iconColor: Colors.indigo,
+          routeName: Routes.civilDpr);
+    } else if (type == 'roofing_work' || type == WorkType.roofing.apiValue) {
+      return ModuleItem(
+          labelKey: 'Roofing DPR',
+          icon: Icons.roofing_rounded,
+          iconColor: Colors.indigo,
+          routeName: Routes.roofingDpr);
+    } else if (type == 'fabrication_work' || type == WorkType.fabrication.apiValue) {
+      return ModuleItem(
+          labelKey: 'Structure Fabrication DPR',
+          icon: Icons.factory_rounded,
+          iconColor: Colors.indigo,
+          routeName: Routes.fabricationDpr);
+    }
+    return ModuleItem(
         labelKey: 'daily_progress_card',
         icon: Icons.description_rounded,
         iconColor: Colors.indigo,
-        routeName: "/site-list/dpr"),
-    ModuleItem(
-        labelKey: 'expense_card',
-        icon: Icons.receipt_long_rounded,
-        iconColor: Colors.orange,
-        routeName: "/site-list/add-exp"),
-    ModuleItem(
-        labelKey: 'inventory_entry_card',
-        icon: Icons.inventory_2_rounded,
-        iconColor: Colors.teal,
-        routeName: "/site-list/inv-entry"),
-  ];
+        routeName: "/site-list/dpr");
+  }
 
   List<ModuleItem> get _setupModules {
     final type = ref.watch(typeProvider);
@@ -318,83 +369,117 @@ class _ModuleScreenV2State extends ConsumerState<ModuleScreenV2>
           routeName: "/site-list/inv-setup"),
     ];
 
-    if (type == 'structure_work' || type == WorkType.structure.apiValue) {
-      return [
-        ...base,
-        ModuleItem(
-          labelKey: 'BOQ',
-          icon: Icons.table_rows_rounded,
-          iconColor: const Color(0xFF7B3F00),
-          routeName: "/site-list/structure-boq",
-        ),
-        ModuleItem(
-          labelKey: 'Dpr Setup',
-          icon: Icons.architecture_rounded,
-          iconColor: Colors.blueAccent,
-          routeName: "/site-list/structure-dpr-setup",
-        ),
-      ];
-    }
-
-    if (type == 'peb_work' || type == WorkType.peb.apiValue) {
-      return [
-        ...base,
-        ModuleItem(
-          labelKey: 'PEB DPR',
-          icon: Icons.assignment_rounded,
-          iconColor: const Color(0xFF35547A),
-          routeName: Routes.pebDpr,
-        ),
-      ];
-    }
+    final dprSetupModule = _getDprSetupModule(type);
+    final secondaryModule = _getSecondaryModule(type);
 
     return [
       ...base,
-      ModuleItem(
-          labelKey: 'rate_card',
-          icon: Icons.currency_rupee_rounded,
-          iconColor: Colors.amber,
-          routeName: "/site-list/rate"),
-      ModuleItem(
-          labelKey: 'dpr_setup_card',
-          icon: Icons.settings_suggest_rounded,
-          iconColor: Colors.blueGrey,
-          routeName: "/site-list/addMoc"),
+      if (secondaryModule != null) secondaryModule,
+      dprSetupModule,
     ];
   }
 
-  final List<ModuleItem> _reportModules = [
-    ModuleItem(
-        labelKey: 'summary_analysis_card',
-        icon: Icons.analytics_rounded,
-        iconColor: Colors.blue,
-        routeName: "/summary"),
-    ModuleItem(
-        labelKey: 'salary_slip_card',
-        icon: Icons.payments_rounded,
-        iconColor: Colors.lightGreen,
-        routeName: "/salary"),
-    ModuleItem(
-        labelKey: 'dpr_sheets_card',
-        icon: Icons.table_chart_rounded,
-        iconColor: Colors.deepPurple,
-        routeName: "/site-list/dprReport"),
-    ModuleItem(
-        labelKey: 'expense_sheet_card',
-        icon: Icons.request_quote_rounded,
-        iconColor: Colors.redAccent,
-        routeName: "/site-list/expense"),
-    ModuleItem(
-        labelKey: 'attendance_sheet_card',
-        icon: Icons.fact_check_rounded,
-        iconColor: Colors.lime,
-        routeName: "/site-list/att-sheet"),
-    ModuleItem(
-        labelKey: 'inventory_summary_card',
-        icon: Icons.assessment_rounded,
-        iconColor: Colors.pink,
-        routeName: "/site-list/inv-Report"),
-  ];
+  ModuleItem _getDprSetupModule(String? type) {
+    if (type == 'mechanical_work' || type == WorkType.mechanical.apiValue) {
+      return ModuleItem(
+          labelKey: 'DPR Setup',
+          icon: Icons.settings_suggest_rounded,
+          iconColor: Colors.blueGrey,
+          routeName: "/site-list/addMoc");
+    } else if (type == 'insulation_work' || type == WorkType.insulation.apiValue) {
+      return ModuleItem(
+          labelKey: 'Insulation DPR Setup',
+          icon: Icons.settings_suggest_rounded,
+          iconColor: Colors.blueGrey,
+          routeName: "/site-list/addMoc");
+    } else if (type == 'structure_work' || type == WorkType.structure.apiValue) {
+      return ModuleItem(
+          labelKey: 'Structure Erection Setup',
+          icon: Icons.architecture_rounded,
+          iconColor: Colors.blueAccent,
+          routeName: "/site-list/structure-dpr-setup");
+    } else if (type == 'civil_work' || type == WorkType.civil.apiValue) {
+      return ModuleItem(
+          labelKey: 'Civil DPR Setup',
+          icon: Icons.foundation_rounded,
+          iconColor: Colors.blueAccent,
+          routeName: Routes.civilSetup);
+    } else if (type == 'roofing_work' || type == WorkType.roofing.apiValue) {
+      return ModuleItem(
+          labelKey: 'Roofing DPR Setup',
+          icon: Icons.roofing_rounded,
+          iconColor: Colors.blueGrey,
+          routeName: Routes.roofingSetup);
+    } else if (type == 'fabrication_work' || type == WorkType.fabrication.apiValue) {
+      return ModuleItem(
+          labelKey: 'Structure Fabrication Setup',
+          icon: Icons.factory_rounded,
+          iconColor: Colors.blueAccent,
+          routeName: Routes.fabricationSetup);
+    }
+    return ModuleItem(
+        labelKey: 'DPR Setup',
+        icon: Icons.settings_suggest_rounded,
+        iconColor: Colors.blueGrey,
+        routeName: "/site-list/addMoc");
+  }
+
+  ModuleItem? _getSecondaryModule(String? type) {
+    if (type == 'mechanical_work' || type == WorkType.mechanical.apiValue ||
+        type == 'insulation_work' || type == WorkType.insulation.apiValue ||
+        type == 'roofing_work' || type == WorkType.roofing.apiValue) {
+      return ModuleItem(
+          labelKey: 'rate_card',
+          icon: Icons.currency_rupee_rounded,
+          iconColor: Colors.amber,
+          routeName: "/site-list/rate");
+    } else if (type == 'structure_work' || type == WorkType.structure.apiValue ||
+               type == 'civil_work' || type == WorkType.civil.apiValue ||
+               type == 'fabrication_work' || type == WorkType.fabrication.apiValue) {
+      return ModuleItem(
+          labelKey: 'BOQ',
+          icon: Icons.table_rows_rounded,
+          iconColor: const Color(0xFF7B3F00),
+          routeName: Routes.boqUpload);
+    }
+    return null;
+  }
+
+  List<ModuleItem> get _reportModules {
+    return [
+      ModuleItem(
+          labelKey: 'summary_analysis_card',
+          icon: Icons.analytics_rounded,
+          iconColor: Colors.blue,
+          routeName: "/summary"),
+      ModuleItem(
+          labelKey: 'salary_slip_card',
+          icon: Icons.payments_rounded,
+          iconColor: Colors.lightGreen,
+          routeName: "/salary"),
+      ModuleItem(
+          labelKey: 'dpr_sheets_card',
+          icon: Icons.table_chart_rounded,
+          iconColor: Colors.deepPurple,
+          routeName: "/site-list/dprReport"),
+      ModuleItem(
+          labelKey: 'expense_sheet_card',
+          icon: Icons.request_quote_rounded,
+          iconColor: Colors.redAccent,
+          routeName: "/site-list/expense"),
+      ModuleItem(
+          labelKey: 'attendance_sheet_card',
+          icon: Icons.fact_check_rounded,
+          iconColor: Colors.lime,
+          routeName: "/site-list/att-sheet"),
+      ModuleItem(
+          labelKey: 'inventory_summary_card',
+          icon: Icons.assessment_rounded,
+          iconColor: Colors.pink,
+          routeName: "/site-list/inv-Report"),
+    ];
+  }
+
 
   final List<ModuleItem> _moreModules = [
     ModuleItem(
@@ -781,7 +866,18 @@ class _ModuleScreenV2State extends ConsumerState<ModuleScreenV2>
       eyebrow = "MECHANICAL WORK";
     else if (type == 'insulation_work')
       eyebrow = "INSULATION WORK";
-    else if (type == 'peb_work') eyebrow = "PEB WORK";
+    else if (type == 'structure_work')
+      eyebrow = "STRUCTURE WORK";
+    else if (type == 'peb_work')
+      eyebrow = "PEB WORK";
+    else if (type == 'civil_work')
+      eyebrow = "CIVIL WORK";
+    else if (type == 'erection_work')
+      eyebrow = "ERECTION WORK";
+    else if (type == 'roofing_work')
+      eyebrow = "ROOFING WORK";
+    else if (type == 'fabrication_work')
+      eyebrow = "FABRICATION WORK";
 
     String title = "";
     switch (_currentIndex) {

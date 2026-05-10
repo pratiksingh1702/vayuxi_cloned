@@ -38,11 +38,13 @@ extension _RouteTrailEntryBreadcrumbIcon on RouteTrailEntry {
 class CustomAppBar extends ConsumerWidget implements PreferredSizeWidget {
   final String title;
   final bool showDrawer;
+  final List<Widget> actions;
 
   const CustomAppBar({
     super.key,
     required this.title,
     this.showDrawer = true,
+    this.actions = const [],
   });
 
   @override
@@ -68,13 +70,8 @@ class CustomAppBar extends ConsumerWidget implements PreferredSizeWidget {
     );
 
     return DecoratedBox(
-      decoration: const BoxDecoration(
-        image: DecorationImage(
-          image: AssetImage(
-            'assets/images/Firefly_A seamless pattern on a white background, featuring various simple, breathable, blue  303856.webp',
-          ),
-          fit: BoxFit.cover,
-        ),
+      decoration: BoxDecoration(
+        color: cs.surface,
       ),
       child: DecoratedBox(
         decoration: BoxDecoration(
@@ -113,10 +110,17 @@ class CustomAppBar extends ConsumerWidget implements PreferredSizeWidget {
                         ),
                       Align(
                         alignment: Alignment.centerRight,
-                        child: _NotificationButton(
-                          unreadCount: unreadCount,
-                          isSyncing: isSyncing,
-                          onPressed: () => context.push(UpdatesRoutes.list),
+                        child: Row(
+                          mainAxisSize: MainAxisSize.min,
+                          children: [
+                            ...actions,
+                            if (actions.isNotEmpty) const SizedBox(width: 8),
+                            _NotificationButton(
+                              unreadCount: unreadCount,
+                              isSyncing: isSyncing,
+                              onPressed: () => context.push(UpdatesRoutes.list),
+                            ),
+                          ],
                         ),
                       ),
                       Align(

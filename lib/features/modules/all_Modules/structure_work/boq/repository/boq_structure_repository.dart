@@ -31,7 +31,7 @@ class BOQStructureRepository {
   }
 
   // POST /api/v1/site/{siteId}/boq-structure/upload (multipart)
-  Future<BOQStructure> uploadBOQExcel(String siteId, PlatformFile file) async {
+  Future<BOQStructure> uploadBOQExcel(String siteId, PlatformFile file, {String workType = 'fabrication'}) async {
     final formData = FormData.fromMap({
       'file': MultipartFile.fromBytes(
         file.bytes!,
@@ -39,6 +39,7 @@ class BOQStructureRepository {
         contentType: DioMediaType('application',
             'vnd.openxmlformats-officedocument.spreadsheetml.sheet'),
       ),
+      'workType': workType,
     });
 
     final res = await DioClient.dio.post(

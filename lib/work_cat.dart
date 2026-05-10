@@ -156,44 +156,12 @@ class _WorkCategoryScreenState extends ConsumerState<WorkCategoryScreen> {
 
       final typeNotifier = ref.read(typeProvider.notifier);
 
-      // Send instant notification
-      // await ref
-      //     .read(notificationsStateProvider.notifier)
-      //     .sendInstantNotification(
-      //   title: 'Hello!',
-      //   body: '${id} as a type has been set for further progress in app. Enjoy 😊',
-      // );
+      final workType = WorkType.values.firstWhere(
+        (e) => e.name == id,
+        orElse: () => WorkType.mechanical,
+      );
+      typeNotifier.setType(workType.apiValue);
 
-// Morning notification at 07:30
-      await ref
-          .read(notificationsStateProvider.notifier)
-          .scheduleDailyNotification(
-            title: '🌅 Morning Reminder',
-            body: 'Takes 1 min — update today\'s attendance.',
-            hour: 7,
-            minute: 30,
-          );
-
-// Evening notification at 19:30
-      await ref
-          .read(notificationsStateProvider.notifier)
-          .scheduleDailyNotification(
-            title: '🌇 Evening Reminder',
-            body: 'Quick close: attendance, expenses, inventory & work update.',
-            hour: 19,
-            minute: 30,
-          );
-      print("notification sent");
-
-      if (id == "mechanical") {
-        typeNotifier.setType("mechanical_work");
-      } else if (id == "insulation") {
-        typeNotifier.setType("insulation_work");
-      } else if (id == "structure") {
-        typeNotifier.setType(WorkType.structure.apiValue);
-      } else if (id == "peb") {
-        typeNotifier.setType(WorkType.peb.apiValue);
-      }
       ref.read(siteProvider.notifier).fetchSites();
 
       await context.push(
@@ -379,10 +347,13 @@ class _WorkCategoryScreenState extends ConsumerState<WorkCategoryScreen> {
                 color: colorScheme.surface,
                 child: SafeArea(
                   top: true,
-                  child: Padding(
-                    padding: const EdgeInsets.fromLTRB(18, 14, 18, 14),
+                  child: SingleChildScrollView(
+                    keyboardDismissBehavior:
+                        ScrollViewKeyboardDismissBehavior.onDrag,
+                    padding: const EdgeInsets.fromLTRB(18, 14, 18, 24),
                     child: Column(
                       crossAxisAlignment: CrossAxisAlignment.start,
+                      mainAxisSize: MainAxisSize.min,
                       children: [
                         _LandingHeaderRow(
                           photoUrl: profilePhoto,
@@ -408,29 +379,10 @@ class _WorkCategoryScreenState extends ConsumerState<WorkCategoryScreen> {
                             lightOpacity: 0.06,
                             darkOpacity: 0.14,
                           ),
-                          onSelectMechanical: () => handlePress(
-                            id: 'mechanical',
-                            title: 'Mechanical Work',
-                            imagePath:
-                                'https://images.unsplash.com/photo-1503387762-592deb58ef4e?w=600',
-                          ),
-                          onSelectInsulation: () => handlePress(
-                            id: 'insulation',
-                            title: 'Insulation Work',
-                            imagePath:
-                                'https://images.unsplash.com/photo-1581092795360-fd1ca04f0952?w=600',
-                          ),
-                          onSelectStructure: () => handlePress(
-                            id: 'structure',
-                            title: 'Structure Work',
-                            imagePath:
-                                'https://images.unsplash.com/photo-1587293852726-70cdb56c2866?w=600',
-                          ),
-                          onSelectPeb: () => handlePress(
-                            id: 'peb',
-                            title: 'PEB Work',
-                            imagePath:
-                                'https://images.unsplash.com/photo-1503387762-592deb58ef4e?w=600',
+                          onSelect: (workType) => handlePress(
+                            id: workType.name,
+                            title: workType.displayName,
+                            imagePath: workType.imagePath,
                           ),
                         ),
                         const SizedBox(height: 24),
@@ -439,7 +391,6 @@ class _WorkCategoryScreenState extends ConsumerState<WorkCategoryScreen> {
                               'Tip: choose one category first, then update progress continuously in short steps.',
                           elevationColor: null,
                         ),
-                        const Spacer(),
                       ],
                     ),
                   ),
@@ -1132,18 +1083,12 @@ class _CategorySpotlightCard extends StatelessWidget {
   const _CategorySpotlightCard({
     required this.selectedImage,
     required this.elevationColor,
-    required this.onSelectMechanical,
-    required this.onSelectInsulation,
-    required this.onSelectStructure,
-    required this.onSelectPeb,
+    required this.onSelect,
   });
 
   final String? selectedImage;
   final Color elevationColor;
-  final VoidCallback onSelectMechanical;
-  final VoidCallback onSelectInsulation;
-  final VoidCallback onSelectStructure;
-  final VoidCallback onSelectPeb;
+  final Function(WorkType) onSelect;
 
   @override
   Widget build(BuildContext context) {
@@ -1153,61 +1098,38 @@ class _CategorySpotlightCard extends StatelessWidget {
         final targetHeight = (tileWidth / 0.88).clamp(190.0, 248.0);
         final aspectRatio = (tileWidth / targetHeight).clamp(0.72, 0.96);
 
-        // Adjust height to accommodate two rows now that we have 3 items
         return SizedBox(
-          height: (targetHeight * 2) + 12,
-          child: GridView.count(
+          height: (targetHeight * 4) + 36,
+          child: GridView.builder(
             physics: const NeverScrollableScrollPhysics(),
-            crossAxisCount: 2,
-            crossAxisSpacing: 12,
-            mainAxisSpacing: 12,
-            childAspectRatio: aspectRatio,
-            children: [
-              Showcase(
-                key: TourRegistry.workCategoryKey,
-                description: 'Select any Work Type to continue 🚀',
-                child: CompanyCard(
-                  imagePath: 'assets/images/mech.webp',
-                  companyName: 'Mechanical Work',
-                  subtitle:
-                      'Piping, fabrication, maintenance and execution tracking.',
-                  accentColor: const Color(0xFF0B4AA5),
-                  elevationColor: elevationColor,
-                  isSelected: selectedImage == 'mechanical',
-                  onTap: onSelectMechanical,
-                ),
-              ),
-              CompanyCard(
-                imagePath: 'assets/images/insu.webp',
-                companyName: 'Insulation Work',
-                subtitle:
-                    'Thermal systems, protection layers and insulation progress.',
-                accentColor: const Color(0xFF0F6A5E),
+            gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
+              crossAxisCount: 2,
+              crossAxisSpacing: 12,
+              mainAxisSpacing: 12,
+              childAspectRatio: aspectRatio,
+            ),
+            itemCount: WorkType.values.length,
+            itemBuilder: (context, index) {
+              final type = WorkType.values[index];
+              final card = CompanyCard(
+                imagePath: type.imagePath,
+                companyName: type.displayName,
+                subtitle: type.subtitle,
+                accentColor: type.accentColor,
                 elevationColor: elevationColor,
-                isSelected: selectedImage == 'insulation',
-                onTap: onSelectInsulation,
-              ),
-              CompanyCard(
-                imagePath: 'assets/images/struc.png',
-                companyName: 'Structure Work',
-                subtitle:
-                    'BOQ tracking, DPR entry and structural progress management.',
-                accentColor: const Color(0xFF7B3F00),
-                elevationColor: elevationColor,
-                isSelected: selectedImage == 'structure',
-                onTap: onSelectStructure,
-              ),
-              CompanyCard(
-                imagePath: 'assets/images/peb.png',
-                companyName: 'PEB Work',
-                subtitle:
-                    'Pre-engineered building flow and DPR tracking updates.',
-                accentColor: const Color(0xFF35547A),
-                elevationColor: elevationColor,
-                isSelected: selectedImage == 'peb',
-                onTap: onSelectPeb,
-              ),
-            ],
+                isSelected: selectedImage == type.name,
+                onTap: () => onSelect(type),
+              );
+
+              if (index == 0) {
+                return Showcase(
+                  key: TourRegistry.workCategoryKey,
+                  description: 'Select any Work Type to continue 🚀',
+                  child: card,
+                );
+              }
+              return card;
+            },
           ),
         );
       },

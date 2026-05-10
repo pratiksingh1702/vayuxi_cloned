@@ -65,4 +65,36 @@ class Routes {
   static const String pebDprGa = '/peb-dpr-ga';
   static const String pebDprFabrication = '/peb-dpr-fabrication';
   static const String pebDprProcurement = '/peb-dpr-procurement';
+
+  // PEB CRM & Advanced Project Management Routes
+  static const String dispatch = '/site-list/dispatch';
+  static const String handover = '/site-list/handover';
+  static const String procurement = '/site-list/procurement';
+  static const String crmSetup = '/site-list/crm-setup';
+  static const String civilDpr = '/site-list/civil-dpr';
+  static const String erectionDpr = '/site-list/erection-dpr';
+  static const String roofingDpr = '/site-list/roofing-dpr';
+  static const String fabricationDpr = '/site-list/fabrication-dpr';
+  static const String fabricationSetup = '/site-list/fabrication-setup';
+  static const String civilSetup = '/site-list/civil-setup';
+  static const String erectionSetup = '/site-list/erection-setup';
+  static const String roofingSetup = '/site-list/roofing-setup';
+  static const String mechanicalSetup = '/site-list/mechanical-setup';
+  static const String insulationSetup = '/site-list/insulation-setup';
+  static const String structureSetup = '/site-list/structure-setup';
+  static const String pebSetup = '/site-list/peb-setup';
+  
+  static const String quotationList = '/quotation';
+  static const String quotationCreate = '/quotation/create';
+  static const String projectList = '/projects';
+  static const String coldCall = '/site-list/cold-call';
+  static const String followUp = '/site-list/follow-up';
+  static const String boqUpload = '/site-list/boq-upload';
+  static const String dispatchTracking = '/site-list/dispatch-tracking';
+  
+  static const String fabricationReport = '/site-list/fab-report';
+  static const String dispatchReport = '/site-list/dispatch-report';
+  static const String handoverReport = '/site-list/handover-report';
+  static const String crmReport = '/site-list/crm-report';
 }
+

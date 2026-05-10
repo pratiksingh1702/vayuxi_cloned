@@ -116,9 +116,7 @@ class SiteAPI {
 
 
   static Future<Map<String, dynamic>> createSite(
-      FormData formData,
-      String type
-      ) async {
+      FormData formData, String type) async {
     try {
       final res = await dio.post(
         "/site?type=$type",
@@ -140,8 +138,22 @@ class SiteAPI {
 
       return res.data;
     } on DioException catch (e) {
-      // Re-throw to be handled in saveSite method
       rethrow;
     }
+  }
+
+  static Future<Map<String, dynamic>> getSite(String siteId) async {
+    final res = await dio.get("/site/$siteId");
+    return res.data;
+  }
+
+  static Future<Map<String, dynamic>> getWorkTypeConfig(String siteId) async {
+    final res = await dio.get("/site/$siteId/work-type-config");
+    return res.data;
+  }
+
+  static Future<void> updateWorkTypeConfig(
+      String siteId, Map<String, dynamic> config) async {
+    await dio.put("/site/$siteId/work-type-config", data: config);
   }
 }

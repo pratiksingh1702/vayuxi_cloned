@@ -10,6 +10,7 @@ import 'package:untitled2/core/utlis/widgets/image_clipped.dart';
 import 'package:untitled2/features/modules/all_Modules/structure_work/boq/providers/boq_structure_provider.dart';
 import 'package:untitled2/features/modules/all_Modules/structure_work/boq/screens/boq_item_list.dart';
 import 'package:untitled2/core/utlis/widgets/sidebar.dart';
+import 'package:untitled2/typeProvider/type_provider.dart';
 
 class BoqImportSheetScreen extends ConsumerStatefulWidget {
   final String siteId;
@@ -62,9 +63,10 @@ class _BoqImportSheetScreenState extends ConsumerState<BoqImportSheetScreen> {
     });
 
     try {
+      final workType = ref.read(typeProvider) ?? 'fabrication';
       final success = await ref
           .read(boqStructureProvider.notifier)
-          .uploadBOQ(widget.siteId, _selectedFile!);
+          .uploadBOQ(widget.siteId, _selectedFile!, workType: workType);
 
       if (!mounted) return;
 
