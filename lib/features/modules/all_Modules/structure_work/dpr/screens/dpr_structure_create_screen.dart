@@ -1293,6 +1293,18 @@ class _DprStructureCreateScreenState
       return;
     }
 
+    // Validate quantity does not exceed available/remaining BOQ quantity
+    for (final card in allCards) {
+      final maxAllowed = card.remainingQty > 0
+          ? card.remainingQty
+          : (card.availableQty > 0 ? card.availableQty : 0);
+      if (maxAllowed > 0 && card.quantity > maxAllowed) {
+        AppToast.error(
+            '${card.assemblyMark}: Qty ${card.quantity.toStringAsFixed(0)} exceeds available ${maxAllowed.toStringAsFixed(0)}');
+        return;
+      }
+    }
+
     final items = allCards.map((c) {
       return {
         'assemblyMark': c.assemblyMark,
@@ -1406,18 +1418,30 @@ class _DprStructureCreateScreenState
       card.boqItemId = matchedItem.id;
       card.assemblyMark = matchedItem.assemblyMark;
       card.description = matchedItem.typeDescription;
-      card.quantity = qty > 0 ? qty : matchedItem.quantity;
       card.netWeightPerUnit = matchedItem.netWeightPerUnit;
-      card.totalNetWeight = (matchedItem.netWeightPerUnit ?? 0) *
-          (qty > 0 ? qty : matchedItem.quantity);
       card.length = matchedItem.length;
       card.width = matchedItem.width;
       card.height = matchedItem.height;
-      card.availableQty = qty > 0 ? qty : matchedItem.quantity;
-      card.remainingQty = qty > 0 ? qty : matchedItem.quantity;
-      card.usedQty = 0;
+      card.availableQty = matchedItem.quantity;
+      card.remainingQty = matchedItem.remainingQty;
+      card.usedQty = matchedItem.usedQty;
       card.progressPercentage = 0;
       card.isSynced = false;
+
+      // Validate qty against remaining quantity from BOQ
+      final maxAllowed = matchedItem.remainingQty > 0
+          ? matchedItem.remainingQty
+          : matchedItem.quantity;
+      if (qty > maxAllowed) {
+        AppToast.error(
+            'Qty cannot exceed ${maxAllowed.toStringAsFixed(0)} for ${matchedItem.assemblyMark}');
+        card.quantity = maxAllowed;
+        card.totalNetWeight = (matchedItem.netWeightPerUnit ?? 0) * maxAllowed;
+      } else {
+        card.quantity = qty > 0 ? qty : matchedItem.quantity;
+        card.totalNetWeight = (matchedItem.netWeightPerUnit ?? 0) *
+            (qty > 0 ? qty : matchedItem.quantity);
+      }
     } else {
       // Manual entry mode: Just update Mark and Qty
       card.description = "Description";

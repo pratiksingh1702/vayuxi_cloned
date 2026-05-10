@@ -172,16 +172,27 @@ class DprEntryNotifier extends StateNotifier<DprEntryState> {
 
     final (lookedUp, boqId) = _findBoqItemWithIdByMark(mark);
 
+    // Validate qty against BOQ remaining/available quantity
+    double validatedQty = qty;
+    if (lookedUp != null) {
+      final double maxAllowed = lookedUp.remainingQty > 0
+          ? lookedUp.remainingQty
+          : (lookedUp.quantity > 0 ? lookedUp.quantity : 0.0);
+      if (maxAllowed > 0 && qty > maxAllowed) {
+        validatedQty = maxAllowed;
+      }
+    }
+
     // Create a NEW instance to trigger UI update
     final updatedCard = lookedUp != null
         ? _copyCard(
             card,
             assemblyMark: mark,
             description: lookedUp.typeDescription,
-            quantity: qty,
+            quantity: validatedQty,
             boqId: boqId,
             boqItemId: lookedUp.id,
-            availableQty: lookedUp.availableQty,
+            availableQty: lookedUp.quantity,
             usedQty: lookedUp.usedQty,
             remainingQty: lookedUp.remainingQty,
             length: lookedUp.length,
@@ -195,7 +206,7 @@ class DprEntryNotifier extends StateNotifier<DprEntryState> {
             card,
             assemblyMark: mark,
             description: 'Description',
-            quantity: qty,
+            quantity: validatedQty,
             boqId: '',
             boqItemId: '',
             availableQty: 0,
