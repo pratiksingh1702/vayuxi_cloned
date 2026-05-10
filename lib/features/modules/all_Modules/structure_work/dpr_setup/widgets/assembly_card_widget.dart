@@ -223,9 +223,34 @@ class _AssemblyCardWidgetState extends State<AssemblyCardWidget> {
 
   void _triggerUpdate() {
     if (widget.onUpdate != null) {
+      double enteredQty = double.tryParse(_qtyController.text) ?? 0;
+
+      // Validate quantity against BOQ available/remaining quantity
+      final double maxAllowed = widget.card.remainingQty > 0
+          ? widget.card.remainingQty
+          : (widget.card.availableQty > 0 ? widget.card.availableQty : 0.0);
+
+      if (maxAllowed > 0 && enteredQty > maxAllowed) {
+        // Show error and clamp to max allowed
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text(
+              'Qty cannot exceed ${maxAllowed.toStringAsFixed(0)} for ${widget.card.assemblyMark}',
+            ),
+            backgroundColor: Colors.red,
+            duration: const Duration(seconds: 2),
+          ),
+        );
+        enteredQty = maxAllowed;
+        _qtyController.text = enteredQty.toStringAsFixed(0);
+        _qtyController.selection = TextSelection.fromPosition(
+          TextPosition(offset: _qtyController.text.length),
+        );
+      }
+
       widget.onUpdate!(
         _markController.text,
-        double.tryParse(_qtyController.text) ?? 0,
+        enteredQty,
       );
     }
   }
