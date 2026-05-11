@@ -223,6 +223,9 @@ class _AssemblyCardWidgetState extends State<AssemblyCardWidget> {
 
   void _triggerUpdate() {
     if (widget.onUpdate != null) {
+      // Use normalized mark for the lookup/update callback
+      final String markForLookup = _markController.text.trim().toLowerCase();
+      
       double enteredQty = double.tryParse(_qtyController.text) ?? 0;
 
       // Validate quantity against BOQ available/remaining quantity
@@ -249,7 +252,7 @@ class _AssemblyCardWidgetState extends State<AssemblyCardWidget> {
       }
 
       widget.onUpdate!(
-        _markController.text,
+        markForLookup,
         enteredQty,
       );
     }

@@ -187,7 +187,7 @@ class DprEntryNotifier extends StateNotifier<DprEntryState> {
     final updatedCard = lookedUp != null
         ? _copyCard(
             card,
-            assemblyMark: mark,
+            assemblyMark: lookedUp.assemblyMark,
             description: lookedUp.typeDescription,
             quantity: validatedQty,
             boqId: boqId,

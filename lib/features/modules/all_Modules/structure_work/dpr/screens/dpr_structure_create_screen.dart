@@ -1195,12 +1195,13 @@ class _DprStructureCreateScreenState
               index - filteredSetup.length - filteredActive.length;
           final item = filteredExisting[existingItemIndex];
 
-          // Look up description and other details from BOQ provider
+          // Look up description and other details from BOQ provider (case-insensitive)
+          final String itemMarkLower = item.assemblyMark.trim().toLowerCase();
           String lookedUpDesc = '';
           BOQStructureItem? foundBOQItem;
           for (var b in boqState.boqs) {
-            final found =
-                b.items.where((i) => i.assemblyMark == item.assemblyMark);
+            final found = b.items.where(
+                (i) => i.assemblyMark.trim().toLowerCase() == itemMarkLower);
             if (found.isNotEmpty) {
               foundBOQItem = found.first;
               lookedUpDesc = foundBOQItem.typeDescription;
@@ -1237,10 +1238,12 @@ class _DprStructureCreateScreenState
             onUpdate: (mark, qty) async {
               if (_latestDpr == null) return;
 
+              // Normalize mark to lowercase for comparison
+              final String markLower = mark.trim().toLowerCase();
               final updatedItems = _latestDpr!.items.map((i) {
-                if (i.assemblyMark == mark) {
+                if (i.assemblyMark.trim().toLowerCase() == markLower) {
                   return {
-                    'assemblyMark': mark,
+                    'assemblyMark': i.assemblyMark, // preserve original server casing
                     'qtyUsed': qty,
                   };
                 }
