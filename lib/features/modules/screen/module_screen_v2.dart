@@ -291,9 +291,17 @@ class _ModuleScreenV2State extends ConsumerState<ModuleScreenV2>
     ];
 
     final dprModule = _getDprModule(type);
+    final pmModule = (type == 'structure_work' || type == WorkType.structure.apiValue)
+        ? ModuleItem(
+            labelKey: 'P&M Database Entry',
+            icon: Icons.precision_manufacturing_rounded,
+            iconColor: const Color(0xFF7B3F00),
+            routeName: "/site-list/structure-pm-entry")
+        : null;
     return [
       base[0],
       dprModule,
+      if (pmModule != null) pmModule,
       ...base.sublist(1),
     ];
   }
