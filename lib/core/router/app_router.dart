@@ -19,6 +19,7 @@ import '../../features/modules/all_Modules/structure_work/dpr_setup/isar/assembl
 import '../../features/modules/all_Modules/structure_work/reports/structure_dpr_report_list_screen.dart';
 import '../../features/modules/all_Modules/structure_work/dpr/models/dpr_structure_model.dart';
 import '../../features/modules/all_Modules/structure_work/dpr/screens/dpr_structure_create_screen.dart';
+import '../../features/modules/all_Modules/structure_work/pm/screens/structure_pm_entry_screen.dart';
 
 import '../../features/auth/onboarding/screens/onboarding_screen.dart';
 import '../../features/auth/onboarding/screens/pla_Select_Screen.dart';
@@ -381,6 +382,12 @@ final appRouterProvider = Provider<GoRouter>((ref) {
                 break;
               case 'structure-dpr-setup':
                 screen = DPRSetupListScreen(site: site);
+                break;
+              case 'structure-pm-entry':
+                screen = StructurePmEntryScreen(
+                  siteId: site.id,
+                  siteName: site.siteName,
+                );
                 break;
               case 'attendance':
                 screen = AttendanceScreen();
