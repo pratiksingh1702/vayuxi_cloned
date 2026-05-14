@@ -1,5 +1,5 @@
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import 'sync_job.dart';
+
 enum SyncJobStatus {
   queued,
   running,
@@ -35,7 +35,6 @@ class SyncJob {
   }
 }
 
-
 class SyncJobsNotifier extends StateNotifier<List<SyncJob>> {
   SyncJobsNotifier() : super([]);
 
@@ -51,8 +50,7 @@ class SyncJobsNotifier extends StateNotifier<List<SyncJob>> {
     ];
   }
 
-  void start(String id, String label)
-  {
+  void start(String id, String label) {
     state = [
       for (final j in state)
         if (j.id == id)
@@ -112,19 +110,9 @@ class SyncJobsNotifier extends StateNotifier<List<SyncJob>> {
       remove(id);
     });
   }
-  void allDone() {
-    state = [
-      const SyncJob(
-        id: "done",
-        label: "All changes synced",
-        status: SyncJobStatus.success,
-        message: "All changes synced",
-      )
-    ];
 
-    Future.delayed(const Duration(seconds: 2), () {
-      state = [];
-    });
+  void allDone() {
+    state = [];
   }
 
   void remove(String id) {
@@ -132,7 +120,6 @@ class SyncJobsNotifier extends StateNotifier<List<SyncJob>> {
   }
 }
 
-final syncJobsProvider =
-StateNotifierProvider<SyncJobsNotifier, List<SyncJob>>(
-      (ref) => SyncJobsNotifier(),
+final syncJobsProvider = StateNotifierProvider<SyncJobsNotifier, List<SyncJob>>(
+  (ref) => SyncJobsNotifier(),
 );

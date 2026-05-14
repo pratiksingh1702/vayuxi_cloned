@@ -17,23 +17,16 @@ class _GlobalSyncBannerState extends ConsumerState<GlobalSyncBanner> {
   Widget build(BuildContext context) {
     final jobs = ref.watch(syncJobsProvider);
 
-    /// ⭐ show ONLY when retry is happening
-    final visible = jobs.where((j) =>
-    j.status == SyncJobStatus.running ||
-        j.status == SyncJobStatus.success ||
-        j.status == SyncJobStatus.failed
-    ).toList();
+    /// Show only failures that need user attention.
+    final visible =
+        jobs.where((j) => j.status == SyncJobStatus.failed).toList();
 
     if (visible.isEmpty) return const SizedBox.shrink();
 
     final current = visible.first;
 
-
-
-
     /// queued for expanded list
-    final queued =
-    jobs.where((j) => j.status == SyncJobStatus.queued).toList();
+    final queued = jobs.where((j) => j.status == SyncJobStatus.queued).toList();
 
     Widget icon;
 
@@ -113,14 +106,12 @@ class _GlobalSyncBannerState extends ConsumerState<GlobalSyncBanner> {
               /// 🔹 UPCOMING QUEUE
               if (expanded && queued.isNotEmpty) ...[
                 const Divider(color: Colors.white24),
-
                 ...queued.map(
-                      (job) => Row(
+                  (job) => Row(
                     children: [
                       const Icon(Icons.schedule,
                           color: Colors.orange, size: 18),
                       const SizedBox(width: 8),
-
                       Expanded(
                         child: Text(
                           job.label,
@@ -130,15 +121,12 @@ class _GlobalSyncBannerState extends ConsumerState<GlobalSyncBanner> {
                           ),
                         ),
                       ),
-
                       IconButton(
-                        icon:
-                        const Icon(Icons.close, color: Colors.red, size: 18),
+                        icon: const Icon(Icons.close,
+                            color: Colors.red, size: 18),
                         onPressed: () async {
                           await RequestQueue.remove(job.id);
-                          ref
-                              .read(syncJobsProvider.notifier)
-                              .cancel(job.id);
+                          ref.read(syncJobsProvider.notifier).cancel(job.id);
                         },
                       )
                     ],

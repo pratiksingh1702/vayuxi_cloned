@@ -3,10 +3,10 @@ import 'package:flutter/material.dart';
 enum WorkType {
   mechanical,
   insulation,
+  fabrication,
   structure,
   civil,
-  roofing,
-  fabrication;
+  roofing;
 
   String get apiValue {
     switch (this) {
@@ -32,13 +32,13 @@ enum WorkType {
       case WorkType.insulation:
         return 'Insulation Work';
       case WorkType.structure:
-        return 'Structure Erection';
+        return 'Structural Erection';
       case WorkType.civil:
         return 'Civil Work';
       case WorkType.roofing:
         return 'Roofing Work';
       case WorkType.fabrication:
-        return 'Structure Fabrication';
+        return 'Structural Fabrication';
     }
   }
 
@@ -94,8 +94,14 @@ enum WorkType {
   }
 
   bool get hasDprSetup => true;
-  bool get hasRateCard => this == WorkType.mechanical || this == WorkType.insulation || this == WorkType.roofing;
-  bool get hasBOQ => this == WorkType.structure || this == WorkType.civil || this == WorkType.fabrication;
+  bool get hasRateCard =>
+      this == WorkType.mechanical ||
+      this == WorkType.insulation ||
+      this == WorkType.roofing;
+  bool get hasBOQ =>
+      this == WorkType.structure ||
+      this == WorkType.civil ||
+      this == WorkType.fabrication;
 
   static WorkType? fromApiValue(String? value) {
     switch (value) {
@@ -116,4 +122,3 @@ enum WorkType {
     }
   }
 }
-

@@ -42,49 +42,10 @@ class NotificationIngestionService {
   }
 
   static Future<void> persistSyncSuccess(QueuedRequest request) async {
-    final now = DateTime.now();
-    final context = _buildRequestContext(request);
-
-    final model = NotificationModel(
-      id: _syncNotificationId(request.id),
-      type: NotificationType.update,
-      title: 'Update sent',
-      description: 'Your ${context['taskLabel']} has been sent successfully.',
-      timestamp: now,
-      priority: NotificationPriority.low,
-      isRead: false,
-      metadata: {
-        ...context,
-        'source': _syncSource,
-        'syncStatus': 'success',
-        'syncedAt': now.toIso8601String(),
-      },
-    );
-
-    await _repository.addNotification(model);
+    await _repository.deleteNotification(_syncNotificationId(request.id));
   }
 
-  static Future<void> persistSyncRunning(QueuedRequest request) async {
-    final now = DateTime.now();
-    final context = _buildRequestContext(request);
-
-    final model = NotificationModel(
-      id: _syncNotificationId(request.id),
-      type: NotificationType.update,
-      title: 'Sending your saved update',
-      description: 'We are currently sending your ${context['taskLabel']}.',
-      timestamp: now,
-      priority: NotificationPriority.medium,
-      metadata: {
-        ...context,
-        'source': _syncSource,
-        'syncStatus': 'running',
-        'lastTriedAt': now.toIso8601String(),
-      },
-    );
-
-    await _repository.addNotification(model);
-  }
+  static Future<void> persistSyncRunning(QueuedRequest request) async {}
 
   static Future<void> persistSyncRetryFailed(
     QueuedRequest request,
