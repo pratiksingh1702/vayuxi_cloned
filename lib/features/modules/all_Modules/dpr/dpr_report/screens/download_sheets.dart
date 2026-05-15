@@ -807,6 +807,21 @@ class _SheetDownloadPageState extends ConsumerState<SheetDownloadPage> {
                             ),
                             defaultFileName: "structure_detailed_dpr",
                           ),
+                          sheetButton(
+                            label: "Detailed + P&M",
+                            icon: Icons.assignment_turned_in_rounded,
+                            sheetName: "Structure Detailed DPR With P&M",
+                            excelOnly: true,
+                            apiCall: (fromDate, toDate, format) =>
+                                DPRStructureRepository().downloadSheet(
+                              siteId,
+                              fromDate: fromDate,
+                              toDate: toDate,
+                              sheetType: 'detailed-with-pm',
+                              format: 'excel',
+                            ),
+                            defaultFileName: "structure_detailed_with_pm",
+                          ),
                           SelectCard(
                             icon: const Icon(Icons.assignment_rounded),
                             label: "DPR List",

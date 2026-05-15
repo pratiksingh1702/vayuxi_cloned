@@ -96,5 +96,6 @@ class Routes {
   static const String dispatchReport = '/site-list/dispatch-report';
   static const String handoverReport = '/site-list/handover-report';
   static const String crmReport = '/site-list/crm-report';
+  static const String structurePmEntry = '/site-list/structure-pm-entry';
 }
 
