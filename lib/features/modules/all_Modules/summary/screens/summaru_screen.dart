@@ -4,6 +4,7 @@ import 'package:shimmer/shimmer.dart';
 import 'package:untitled2/core/utlis/widgets/custom_appBar.dart';
 import 'package:untitled2/core/utlis/widgets/sidebar.dart';
 import 'package:untitled2/core/utlis/widgets/custom_scrollbar.dart';
+import 'package:untitled2/core/utlis/widgets/empty_module_state.dart';
 import 'package:untitled2/features/modules/all_Modules/summary/screens/profit_loss_fusion.dart';
 
 import '../data/model_enums.dart';
@@ -445,32 +446,17 @@ class _ShimmerList extends StatelessWidget {
   }
 }
 
-class _EmptyView extends StatelessWidget {
+class _EmptyView extends ConsumerWidget {
   const _EmptyView();
 
   @override
-  Widget build(BuildContext context) {
-    final colorScheme = Theme.of(context).colorScheme;
-    return Center(
-      child: Column(
-        mainAxisAlignment: MainAxisAlignment.center,
-        children: [
-          Icon(
-            Icons.business_outlined,
-            size: 64,
-            color: colorScheme.onSurfaceVariant,
-          ),
-          const SizedBox(height: 16),
-          Text("No Sites Available",
-              style: TextStyle(
-                  fontSize: 18,
-                  color: colorScheme.onSurfaceVariant,
-                  fontWeight: FontWeight.w500)),
-          const SizedBox(height: 8),
-          Text("Add sites to see P&L summary",
-              style: TextStyle(color: colorScheme.onSurfaceVariant)),
-        ],
-      ),
+  Widget build(BuildContext context, WidgetRef ref) {
+    return EmptyModuleState(
+      title: "No Sites Available",
+      subtitle: "Add sites to start tracking project profitability",
+      icon: Icons.business_center_rounded,
+      actionLabel: "Add Site",
+      onAction: () => ref.refresh(summaryDataProvider),
     );
   }
 }

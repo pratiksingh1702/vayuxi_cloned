@@ -3352,6 +3352,7 @@ class _AddDescriptionScreenState extends ConsumerState<AddDescriptionScreen>
   }
 
   Future<void> _autoSaveDraftOnExit() async {
+    print(" autosave started 000000000000000000000000000000000000000000000000000000");
     await _saveDraft();
   }
 

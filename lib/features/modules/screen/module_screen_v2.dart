@@ -26,6 +26,7 @@ import 'package:untitled2/features/tour/domain/tour_registery.dart';
 import 'package:untitled2/features/tour/registry/site_registry.dart';
 import 'widgets/access_overlay.dart';
 import 'module_preferences.dart';
+import 'module_dashboard_service.dart';
 
 class ModuleItem {
   final String labelKey;
@@ -382,7 +383,13 @@ class _ModuleScreenV2State extends ConsumerState<ModuleScreenV2>
 
     return [
       ...base,
-      if (secondaryModule != null) secondaryModule,
+      secondaryModule ??
+          ModuleItem(
+            labelKey: 'rate_card',
+            icon: Icons.currency_rupee_rounded,
+            iconColor: Colors.amber,
+            routeName: "/site-list/rate",
+          ),
       dprSetupModule,
     ];
   }
@@ -733,9 +740,10 @@ class _ModuleScreenV2State extends ConsumerState<ModuleScreenV2>
                 : _buildInlineModuleCard(t, cs, isDark),
           ),
           const SizedBox(height: 10),
-          _buildActivityCard(),
-          const SizedBox(height: 10),
-          _buildOverviewCard(cs, isDark),
+          if (_currentIndex == 0) ...[
+            _buildDailyStatsSection(cs, isDark),
+            const SizedBox(height: 10),
+          ],
           // bottom padding = dock height + 24
           AnimatedContainer(
             duration: const Duration(milliseconds: 450),
@@ -780,7 +788,7 @@ class _ModuleScreenV2State extends ConsumerState<ModuleScreenV2>
   double _getDockSpacerHeight(List<ModuleItem> currentModules) {
     double base = 62 + 16 + 24;
     if (_moduleCardAttached) {
-      int rows = (currentModules.where((m) => !m.isEmpty).length / 4).ceil();
+      int rows = (currentModules.length / 4).ceil();
       base += 58 + (rows * 78.0) + 30;
     }
     return base;
@@ -790,8 +798,13 @@ class _ModuleScreenV2State extends ConsumerState<ModuleScreenV2>
   Widget build(BuildContext context) {
     final cs = Theme.of(context).colorScheme;
     final isDark = Theme.of(context).brightness == Brightness.dark;
-    final siteState = ref.watch(siteProvider);
 
+    // Watch these to ensure the page rebuilds when any filter changes
+    ref.watch(typeProvider);
+    ref.watch(siteDropdownValueProvider);
+    ref.watch(teamDropdownValueProvider);
+
+    final siteState = ref.watch(siteProvider);
     final homeModuleAsync = ref.watch(languageModuleProvider('home'));
     return homeModuleAsync.when(
       loading: () => _buildLoadingState(),
@@ -976,7 +989,7 @@ class _ModuleScreenV2State extends ConsumerState<ModuleScreenV2>
               borderRadius: BorderRadius.circular(20),
             ),
             child: Text(
-              "${_currentModules.where((m) => !m.isEmpty).length} modules",
+              "${_currentModules.length} modules",
               style: TextStyle(
                   fontSize: 10,
                   fontWeight: FontWeight.w600,
@@ -1008,11 +1021,23 @@ class _ModuleScreenV2State extends ConsumerState<ModuleScreenV2>
   Widget _buildDropdownRow() {
     return Padding(
       padding: const EdgeInsets.symmetric(horizontal: 20),
-      child: Row(
+      child: Column(
         children: [
-          Expanded(child: _buildCustomDropdown(label: "SITE")),
-          const SizedBox(width: 10),
-          Expanded(child: _buildCustomDropdown(label: "TEAM")),
+          Row(
+            children: [
+              Expanded(child: _buildCustomDropdown(label: "SITE")),
+              const SizedBox(width: 10),
+              Expanded(child: _buildCustomDropdown(label: "TEAM")),
+            ],
+          ),
+          const SizedBox(height: 10),
+          Row(
+            children: [
+              Expanded(child: _buildCustomDropdown(label: "WORK TYPE")),
+              const SizedBox(width: 10),
+              Expanded(child: _buildCustomDropdown(label: "ENTRY MODE")),
+            ],
+          ),
         ],
       ),
     );
@@ -1020,11 +1045,133 @@ class _ModuleScreenV2State extends ConsumerState<ModuleScreenV2>
 
   Widget _buildCustomDropdown({required String label}) {
     final cs = Theme.of(context).colorScheme;
-    final isSite = label == "SITE";
-    final allSites = ref.watch(siteProvider).sites;
+
+    // Data for Site/Team
+    final siteState = ref.watch(siteProvider);
+    final allSites = siteState.sites;
     final selectedSite = ref.watch(siteDropdownValueProvider);
     final teamState = ref.watch(teamProvider);
     final selectedTeam = ref.watch(teamDropdownValueProvider);
+
+    // Data for Work Type
+    final currentTypeApi = ref.watch(typeProvider);
+    final currentWorkType = WorkType.fromApiValue(currentTypeApi);
+
+    Widget dropdown;
+
+    bool isLoading = false;
+    if (label == "SITE") isLoading = siteState.isLoading;
+    if (label == "TEAM") isLoading = teamState.isLoading;
+
+    if (isLoading) {
+      dropdown = Row(
+        children: [
+          SizedBox(
+            width: 12,
+            height: 12,
+            child: CircularProgressIndicator(
+                strokeWidth: 1.5, color: cs.primary.withOpacity(0.5)),
+          ),
+          const SizedBox(width: 8),
+          Text("Loading...",
+              style: TextStyle(
+                  fontSize: 12, color: cs.onSurfaceVariant.withOpacity(0.6))),
+        ],
+      );
+    } else if (label == "SITE") {
+      dropdown = DropdownButton<SiteModel?>(
+        value: selectedSite,
+        isExpanded: true,
+        hint: const Text("Select Site", style: TextStyle(fontSize: 13)),
+        items: [
+          const DropdownMenuItem<SiteModel?>(
+            value: null,
+            child: Text('None', style: TextStyle(fontSize: 13)),
+          ),
+          ...allSites.map((s) => DropdownMenuItem<SiteModel?>(
+                value: s,
+                child: Text(s.siteName, style: const TextStyle(fontSize: 13)),
+              )),
+        ],
+        onChanged: _onSiteChanged,
+      );
+    } else if (label == "TEAM") {
+      dropdown = DropdownButton<TeamModel?>(
+        value: selectedTeam,
+        isExpanded: true,
+        hint: const Text("Select Team", style: TextStyle(fontSize: 13)),
+        items: [
+          const DropdownMenuItem<TeamModel?>(
+            value: null,
+            child: Text('None', style: TextStyle(fontSize: 13)),
+          ),
+          ...(teamState.teams ?? []).map((t) => DropdownMenuItem<TeamModel?>(
+                value: t,
+                child: Text(t.teamName, style: const TextStyle(fontSize: 13)),
+              )),
+        ],
+        onChanged: _onTeamChanged,
+      );
+    } else if (label == "WORK TYPE") {
+      dropdown = DropdownButton<WorkType?>(
+        value: currentWorkType,
+        isExpanded: true,
+        hint: const Text("Select Type", style: TextStyle(fontSize: 13)),
+        items: WorkType.values
+            .map((wt) => DropdownMenuItem<WorkType?>(
+                  value: wt,
+                  child:
+                      Text(wt.displayName, style: const TextStyle(fontSize: 13)),
+                ))
+            .toList(),
+        onChanged: (wt) {
+          if (wt != null) {
+            ref.read(typeProvider.notifier).setType(wt.apiValue);
+
+            // 1. Clear current site/team selections
+            ref.read(siteDropdownValueProvider.notifier).state = null;
+            ref.read(selectedSiteProvider.notifier).clear();
+            ref.read(selectedSiteIdProvider.notifier).state = null;
+
+            ref.read(teamDropdownValueProvider.notifier).state = null;
+            ref.read(selectedTeamProvider.notifier).clear();
+            ref.read(selectedTeamIdProvider.notifier).state = "";
+
+            // 2. Clear current team list
+            final teamNotifier = ref.read(teamProvider.notifier);
+            teamNotifier.state = teamNotifier.state.copyWith(
+              teams: [],
+              hasData: false,
+            );
+
+            // 3. Re-trigger site fetch for the new type
+            ref.read(siteProvider.notifier).fetchSites();
+          }
+        },
+      );
+    } else {
+      // ENTRY MODE
+      dropdown = DropdownButton<bool>(
+        value: _multipleEntryMode,
+        isExpanded: true,
+        items: const [
+          DropdownMenuItem(
+            value: false,
+            child: Text("Single Entry", style: TextStyle(fontSize: 13)),
+          ),
+          DropdownMenuItem(
+            value: true,
+            child: Text("Multiple Entry", style: TextStyle(fontSize: 13)),
+          ),
+        ],
+        onChanged: (val) {
+          if (val != null) {
+            setState(() => _multipleEntryMode = val);
+            ModulePreferences.setMultipleEntry(val);
+          }
+        },
+      );
+    }
 
     return Container(
       height: 54,
@@ -1048,252 +1195,351 @@ class _ModuleScreenV2State extends ConsumerState<ModuleScreenV2>
           ),
           Padding(
             padding: const EdgeInsets.only(top: 18, left: 10, right: 4),
-            child: DropdownButtonHideUnderline(
-              child: isSite
-                  ? DropdownButton<SiteModel?>(
-                      value: selectedSite,
-                      isExpanded: true,
-                      hint: const Text("Select Site",
-                          style: TextStyle(fontSize: 13)),
-                      items: [
-                        const DropdownMenuItem<SiteModel?>(
-                          value: null,
-                          child: Text('None', style: TextStyle(fontSize: 13)),
-                        ),
-                        ...allSites.map(
-                          (s) => DropdownMenuItem<SiteModel?>(
-                            value: s,
-                            child: Text(
-                              s.siteName,
-                              style: const TextStyle(fontSize: 13),
-                            ),
-                          ),
-                        ),
-                      ],
-                      onChanged: _onSiteChanged,
-                    )
-                  : DropdownButton<TeamModel?>(
-                      value: selectedTeam,
-                      isExpanded: true,
-                      hint: const Text("Select Team",
-                          style: TextStyle(fontSize: 13)),
-                      items: [
-                        const DropdownMenuItem<TeamModel?>(
-                          value: null,
-                          child: Text('None', style: TextStyle(fontSize: 13)),
-                        ),
-                        ...teamState.teams.map(
-                          (t) => DropdownMenuItem<TeamModel?>(
-                            value: t,
-                            child: Text(
-                              t.teamName,
-                              style: const TextStyle(fontSize: 13),
-                            ),
-                          ),
-                        ),
-                      ],
-                      onChanged: _onTeamChanged,
-                    ),
-            ),
+            child: DropdownButtonHideUnderline(child: dropdown),
           )
         ],
       ),
     );
   }
 
-  // ── Part 4: Activity Card ──────────────────────────────────────────────────
-  Widget _buildActivityCard() {
-    final cs = Theme.of(context).colorScheme;
+  // ── Daily Entry Stats (Daily tab only) ─────────────────────────────────────
+
+  Widget _buildDailyStatsSection(ColorScheme cs, bool isDark) {
+    final type = ref.watch(typeProvider);
+    final selectedSite = ref.watch(siteDropdownValueProvider);
+    final selectedTeam = ref.watch(teamDropdownValueProvider);
+
+    final params = DashboardParams(
+      type: type,
+      siteId: selectedSite?.id,
+      teamId: selectedTeam?.id,
+    );
+
+    final asyncSummary = ref.watch(dashboardSummaryProvider(params));
+
     return Padding(
       padding: const EdgeInsets.symmetric(horizontal: 20),
-      child: Container(
-        padding: const EdgeInsets.all(12),
-        decoration: BoxDecoration(
-          color: cs.surfaceContainerLow,
-          borderRadius: BorderRadius.circular(16),
-          border: Border.all(
-              color: cs.outlineVariant.withOpacity(0.45), width: 0.8),
-        ),
-        child: Column(
+      child: asyncSummary.when(
+        loading: () => _buildStatsShimmer(cs),
+        // Silent fail — stats are supplemental; never distract user with an error
+        error: (_, __) => const SizedBox.shrink(),
+        data: (summary) => Column(
           children: [
-            Row(children: [
-              Container(
-                  width: 6,
-                  height: 6,
-                  decoration: BoxDecoration(
-                      color: Colors.greenAccent.withOpacity(0.9),
-                      shape: BoxShape.circle)),
-              const SizedBox(width: 6),
-              Text("Recent Activity",
-                  style: TextStyle(
-                      fontSize: 11,
-                      fontWeight: FontWeight.w700,
-                      letterSpacing: 0.4,
-                      color: cs.onSurfaceVariant)),
-              const Spacer(),
-              Container(
-                padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
-                decoration: BoxDecoration(
-                  color: Colors.green.withOpacity(0.10),
-                  borderRadius: BorderRadius.circular(20),
-                  border: Border.all(
-                      color: Colors.green.withOpacity(0.35), width: 0.8),
-                ),
-                child: const Text("● Live",
-                    style: TextStyle(
-                        fontSize: 10,
-                        fontWeight: FontWeight.w700,
-                        color: Colors.green)),
-              )
-            ]),
-            const SizedBox(height: 8),
-            _buildActivityRow(
-                icon: Icons.receipt_long_rounded,
-                title: 'Expense entry added',
-                time: '2 min ago',
-                isRecent: true),
-            const SizedBox(height: 6),
-            _buildActivityRow(
-                icon: Icons.how_to_reg_rounded,
-                title: 'Attendance submitted',
-                time: 'Today 9:30 AM',
-                isRecent: false),
+            _buildStatsGrid(summary, cs, isDark),
+            const SizedBox(height: 14),
+            _buildLastEntriesSection(summary, cs, isDark),
           ],
         ),
       ),
     );
   }
 
-  Widget _buildActivityRow(
-      {required IconData icon,
-      required String title,
-      required String time,
-      required bool isRecent}) {
-    final cs = Theme.of(context).colorScheme;
-    return Row(children: [
-      Container(
-        width: 26,
-        height: 26,
-        decoration: BoxDecoration(
-            color: cs.surfaceContainerHigh,
-            borderRadius: BorderRadius.circular(8)),
-        child: Icon(icon, size: 13, color: cs.onSurfaceVariant),
-      ),
-      const SizedBox(width: 8),
-      Expanded(
-          child:
-              Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-        Text(title,
-            style: TextStyle(
-                fontSize: 12,
-                fontWeight: FontWeight.w600,
-                color: cs.onSurface)),
-        Text(time,
-            style: TextStyle(
-                fontSize: 10,
-                fontWeight: FontWeight.w400,
-                color: cs.onSurfaceVariant)),
-      ])),
-      if (isRecent)
-        Container(
-            width: 6,
-            height: 6,
-            decoration: const BoxDecoration(
-                color: Colors.greenAccent, shape: BoxShape.circle)),
-    ]);
-  }
+  Widget _buildLastEntriesSection(
+      DashboardSummary s, ColorScheme cs, bool isDark) {
+    String _fmtTime(String? isoDate) {
+      if (isoDate == null) return '—';
+      try {
+        final dt = DateTime.parse(isoDate).toLocal();
+        final diff = DateTime.now().difference(dt);
+        if (diff.inMinutes < 60) return '${diff.inMinutes}m ago';
+        if (diff.inHours < 24) return '${diff.inHours}h ago';
+        return '${diff.inDays}d ago';
+      } catch (_) {
+        return '—';
+      }
+    }
 
-  Widget _buildOverviewCard(ColorScheme cs, bool isDark) {
-    return Padding(
-      padding: const EdgeInsets.symmetric(horizontal: 20),
-      child: Container(
-        padding: const EdgeInsets.all(12),
-        decoration: BoxDecoration(
-          color: cs.surfaceContainerLow,
-          borderRadius: BorderRadius.circular(16),
-          border: Border.all(
-              color: cs.outlineVariant.withOpacity(0.45), width: 0.8),
-        ),
-        child: Column(
-          children: [
-            Row(children: [
-              Icon(Icons.bar_chart_rounded,
-                  size: 13, color: cs.onSurfaceVariant),
-              const SizedBox(width: 6),
-              Text("Overview",
-                  style: TextStyle(
-                      fontSize: 11,
-                      fontWeight: FontWeight.w700,
-                      letterSpacing: 0.4,
-                      color: cs.onSurfaceVariant)),
-            ]),
-            const SizedBox(height: 8),
-            _buildOverviewRow(Icons.location_city_rounded, "Site Summary",
-                "3 active · 2 pending", "Active", cs.primary),
-            _buildOverviewRow(Icons.payments_rounded, "Today's Totals",
-                "₹12,400 · 24/30", "24/30", Colors.green),
-            _buildOverviewRow(Icons.description_rounded, "Pending Approvals",
-                "3 DPR awaiting review", "3 Pending", Colors.orange),
-            _buildOverviewRow(Icons.analytics_rounded, "Weekly Progress",
-                "78% completion", "78%", Colors.green,
-                last: true),
-          ],
-        ),
+    String entryText(String module, DashLastEntry? entry, [String? extra]) {
+      if (entry == null) return "No $module entries found yet.";
+      final site = entry.siteName ?? "unknown site";
+      final team = entry.teamName != null ? "by ${entry.teamName}" : "";
+      final time = _fmtTime(entry.createdAt);
+      final detail = extra != null ? " ($extra)" : "";
+      return "Last $module filed$detail at $site $team $time";
+    }
+
+    return Container(
+      width: double.infinity,
+      padding: const EdgeInsets.all(12),
+      decoration: BoxDecoration(
+        color: cs.surfaceContainerLow.withOpacity(0.4),
+        borderRadius: BorderRadius.circular(16),
+        border:
+            Border.all(color: cs.outlineVariant.withOpacity(0.2), width: 0.8),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          _buildLastEntryRow(
+              cs, Icons.history_rounded, entryText("Attendance", s.attendance.lastEntry)),
+          const SizedBox(height: 8),
+          _buildLastEntryRow(
+              cs,
+              Icons.history_rounded,
+              entryText("DPR", s.dpr.lastEntry,
+                  s.dpr.totalQty != null ? "${s.dpr.totalQty} units" : null)),
+          const SizedBox(height: 8),
+          _buildLastEntryRow(
+              cs,
+              Icons.history_rounded,
+              entryText(
+                  "Expense",
+                  s.expenses.lastEntry,
+                  s.expenses.category != null
+                      ? "${s.expenses.category} · ₹${s.expenses.lastAmount ?? 0}"
+                      : null)),
+          const SizedBox(height: 8),
+          _buildLastEntryRow(
+              cs,
+              Icons.history_rounded,
+              entryText(
+                  "Inventory",
+                  s.inventory.lastEntry,
+                  s.inventory.lastMaterial != null
+                      ? "${s.inventory.lastMaterial} · ${s.inventory.lastQty} ${s.inventory.uom ?? ''}"
+                      : null)),
+        ],
       ),
     );
   }
 
-  Widget _buildOverviewRow(IconData icon, String title, String subtitle,
-      String badge, Color badgeColor,
-      {bool last = false}) {
-    final cs = Theme.of(context).colorScheme;
-    return Column(
+  Widget _buildLastEntryRow(ColorScheme cs, IconData icon, String text) {
+    return Row(
       children: [
+        Container(
+          padding: const EdgeInsets.all(4),
+          decoration: BoxDecoration(
+            color: cs.primary.withOpacity(0.08),
+            shape: BoxShape.circle,
+          ),
+          child: Icon(icon, size: 10, color: cs.primary.withOpacity(0.6)),
+        ),
+        const SizedBox(width: 10),
+        Expanded(
+          child: Text(
+            text,
+            style: TextStyle(
+              fontSize: 10,
+              fontWeight: FontWeight.w500,
+              color: cs.onSurfaceVariant.withOpacity(0.8),
+              letterSpacing: 0.2,
+            ),
+          ),
+        ),
+      ],
+    );
+  }
+
+  Widget _buildStatsShimmer(ColorScheme cs) {
+// ...
+    return Row(
+      children: List.generate(4, (i) {
+        return Expanded(
+          child: Container(
+            margin: EdgeInsets.only(right: i < 3 ? 8 : 0),
+            height: 80,
+            decoration: BoxDecoration(
+              color: cs.surfaceContainerLow,
+              borderRadius: BorderRadius.circular(14),
+              border: Border.all(
+                  color: cs.outlineVariant.withOpacity(0.3), width: 0.8),
+            ),
+          ),
+        );
+      }),
+    );
+  }
+
+  Widget _buildStatsGrid(DashboardSummary s, ColorScheme cs, bool isDark) {
+    String fmtAmount(num v) {
+      if (v >= 100000) return '₹${(v / 100000).toStringAsFixed(1)}L';
+      if (v >= 1000) return '₹${(v / 1000).toStringAsFixed(1)}K';
+      return '₹${v.toStringAsFixed(0)}';
+    }
+
+    String fmtTime(String? isoDate) {
+      if (isoDate == null) return '—';
+      try {
+        final dt = DateTime.parse(isoDate).toLocal();
+        final diff = DateTime.now().difference(dt);
+        if (diff.inMinutes < 60) return '${diff.inMinutes}m ago';
+        if (diff.inHours < 24) return '${diff.inHours}h ago';
+        return '${diff.inDays}d ago';
+      } catch (_) {
+        return '—';
+      }
+    }
+
+    final hasLowStock = s.inventory.lowStockItems > 0;
+
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        // Eyebrow label
         Row(children: [
           Container(
-            width: 26,
-            height: 26,
-            decoration: BoxDecoration(
-                color: cs.surfaceContainerHigh,
-                borderRadius: BorderRadius.circular(8)),
-            child: Icon(icon, size: 13, color: cs.onSurfaceVariant),
+            width: 5,
+            height: 5,
+            decoration: const BoxDecoration(
+                color: Colors.greenAccent, shape: BoxShape.circle),
           ),
-          const SizedBox(width: 8),
-          Expanded(
-              child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                Text(title,
-                    style: TextStyle(
-                        fontSize: 12,
-                        fontWeight: FontWeight.w600,
-                        color: cs.onSurface)),
-                Text(subtitle,
-                    style: TextStyle(
-                        fontSize: 10,
-                        fontWeight: FontWeight.w400,
-                        color: cs.onSurfaceVariant)),
-              ])),
-          Container(
-            padding: const EdgeInsets.symmetric(horizontal: 7, vertical: 2),
-            decoration: BoxDecoration(
-              color: badgeColor.withOpacity(0.12),
-              borderRadius: BorderRadius.circular(10),
-            ),
-            child: Text(
-              badge,
-              style: TextStyle(
-                  fontSize: 9, fontWeight: FontWeight.w700, color: badgeColor),
+          const SizedBox(width: 6),
+          Text(
+            "Today's Snapshot",
+            style: TextStyle(
+              fontSize: 10,
+              fontWeight: FontWeight.w700,
+              letterSpacing: 0.5,
+              color: cs.onSurfaceVariant,
             ),
           ),
         ]),
-        if (!last)
-          Padding(
-            padding: const EdgeInsets.symmetric(vertical: 6),
-            child:
-                Divider(height: 1, color: cs.outlineVariant.withOpacity(0.2)),
+        const SizedBox(height: 8),
+
+        // 4 stat tiles — single row
+        Row(children: [
+          _buildStatTile(
+            cs: cs,
+            isDark: isDark,
+            icon: Icons.how_to_reg_rounded,
+            iconColor: Colors.green,
+            label: 'Attendance',
+            value: '${s.attendance.totalPresent}',
+            sub: '${s.attendance.totalAbsent} absent',
+            subColor: s.attendance.totalAbsent > 0
+                ? Colors.orange
+                : cs.onSurfaceVariant,
+            time: fmtTime(s.attendance.lastEntry?.createdAt),
           ),
+          const SizedBox(width: 8),
+          _buildStatTile(
+            cs: cs,
+            isDark: isDark,
+            icon: Icons.description_rounded,
+            iconColor: Colors.indigo,
+            label: 'DPR',
+            value: s.dpr.lastEntry != null ? 'Filed' : 'None',
+            sub: s.dpr.totalQty != null
+                ? 'Qty ${s.dpr.totalQty}'
+                : (s.dpr.remarks ?? '—'),
+            subColor: cs.onSurfaceVariant,
+            time: fmtTime(s.dpr.lastEntry?.createdAt),
+          ),
+          const SizedBox(width: 8),
+          _buildStatTile(
+            cs: cs,
+            isDark: isDark,
+            icon: Icons.receipt_long_rounded,
+            iconColor: Colors.orange,
+            label: 'Expenses',
+            value: fmtAmount(s.expenses.totalAmount),
+            sub: s.expenses.category ?? '—',
+            subColor: cs.onSurfaceVariant,
+            time: fmtTime(s.expenses.lastEntry?.createdAt),
+          ),
+          const SizedBox(width: 8),
+          _buildStatTile(
+            cs: cs,
+            isDark: isDark,
+            icon: Icons.inventory_2_rounded,
+            iconColor: hasLowStock ? Colors.redAccent : Colors.teal,
+            label: 'Inventory',
+            value: '${s.inventory.totalItems}',
+            sub: hasLowStock
+                ? '${s.inventory.lowStockItems} low'
+                : 'All stocked',
+            subColor: hasLowStock ? Colors.redAccent : Colors.teal,
+            time: null,
+            highlight: hasLowStock,
+          ),
+        ]),
       ],
+    );
+  }
+
+  Widget _buildStatTile({
+    required ColorScheme cs,
+    required bool isDark,
+    required IconData icon,
+    required Color iconColor,
+    required String label,
+    required String value,
+    required String sub,
+    required Color subColor,
+    String? time,
+    bool highlight = false,
+  }) {
+    return Expanded(
+      child: Container(
+        padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 10),
+        decoration: BoxDecoration(
+          color: isDark ? cs.surfaceContainerHigh : Colors.white,
+          borderRadius: BorderRadius.circular(14),
+          border: Border.all(
+            color: highlight
+                ? Colors.redAccent.withOpacity(0.4)
+                : cs.outlineVariant.withOpacity(0.4),
+            width: highlight ? 1.2 : 0.8,
+          ),
+          boxShadow: isDark
+              ? []
+              : [
+                  BoxShadow(
+                      color: Colors.black.withOpacity(0.04),
+                      blurRadius: 8,
+                      offset: const Offset(0, 2))
+                ],
+        ),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Icon(icon, size: 14, color: iconColor),
+            const SizedBox(height: 6),
+            Text(
+              value,
+              style: TextStyle(
+                fontSize: 14,
+                fontWeight: FontWeight.w800,
+                color: cs.onSurface,
+                height: 1.0,
+              ),
+            ),
+            const SizedBox(height: 2),
+            Text(
+              sub,
+              maxLines: 1,
+              overflow: TextOverflow.ellipsis,
+              style: TextStyle(
+                fontSize: 9,
+                fontWeight: FontWeight.w500,
+                color: subColor,
+              ),
+            ),
+            if (time != null) ...[
+              const SizedBox(height: 3),
+              Text(
+                time,
+                style: TextStyle(
+                  fontSize: 8,
+                  fontWeight: FontWeight.w400,
+                  color: cs.onSurfaceVariant.withOpacity(0.5),
+                ),
+              ),
+            ],
+            const SizedBox(height: 4),
+            Text(
+              label,
+              style: TextStyle(
+                fontSize: 9,
+                fontWeight: FontWeight.w700,
+                letterSpacing: 0.3,
+                color: cs.onSurfaceVariant.withOpacity(0.55),
+              ),
+            ),
+          ],
+        ),
+      ),
     );
   }
 
@@ -1623,7 +1869,6 @@ class _ModuleScreenV2State extends ConsumerState<ModuleScreenV2>
         runSpacing: 24,
         alignment: WrapAlignment.start,
         children: _currentModules
-            .where((m) => !m.isEmpty)
             .map((item) => _buildModuleIconItem(item, itemWidth, t))
             .toList(),
       );

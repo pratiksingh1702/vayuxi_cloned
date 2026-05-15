@@ -26,6 +26,8 @@ import '../domain/rateModel.dart';
 import 'addRate.dart';
 import 'editRate.dart';
 import 'import_sheet.dart';
+import '../../../../../core/router/routes.dart';
+import '../../../../../core/utlis/widgets/empty_module_state.dart';
 
 enum RateSortOption {
   latestFirst,
@@ -603,68 +605,26 @@ class _RateScreenState extends ConsumerState<RateScreen> {
                         itemCount: 8,
                       )
                     : state.error != null
-                        ? Center(
-                            child: Column(
-                              mainAxisAlignment: MainAxisAlignment.center,
-                              children: [
-                                Icon(
-                                  Icons.error_outline,
-                                  size: 56,
-                                  color: colorScheme.error,
-                                ),
-                                const SizedBox(height: 12),
-                                Text(
-                                  'Rate data is empty',
-                                  style: TextStyle(
-                                    fontSize: 18,
-                                    fontWeight: FontWeight.w600,
-                                    color: colorScheme.onSurface,
-                                  ),
-                                ),
-                                const SizedBox(height: 6),
-                                Padding(
-                                  padding: const EdgeInsets.symmetric(
-                                      horizontal: 20),
-                                  child: Text(
-                                    'Could not load rate records right now. Please try again.',
-                                    textAlign: TextAlign.center,
-                                    style: TextStyle(
-                                      color: colorScheme.onSurfaceVariant,
-                                    ),
-                                  ),
-                                ),
-                              ],
-                            ),
+                        ? EmptyModuleState(
+                            title: "Connection Error",
+                            subtitle: "Could not load rate records right now. Please try again.",
+                            icon: Icons.error_outline_rounded,
+                            actionLabel: "Retry",
+                            onAction: () {
+                              final type = ref.read(typeProvider);
+                              final siteId = ref.read(selectedSiteIdProvider);
+                              if (type != null && siteId != null) {
+                                ref.read(rateNotifierProvider.notifier).fetchRate(type, siteId);
+                              }
+                            },
                           )
                         : state.data == null || state.data!.isEmpty
-                            ? Center(
-                                child: Column(
-                                  mainAxisAlignment: MainAxisAlignment.center,
-                                  children: [
-                                    Icon(
-                                      Icons.receipt_long_outlined,
-                                      size: 64,
-                                      color: colorScheme.onSurfaceVariant,
-                                    ),
-                                    const SizedBox(height: 16),
-                                    Text(
-                                      'Rate data is empty',
-                                      style: TextStyle(
-                                        fontSize: 18,
-                                        fontWeight: FontWeight.w600,
-                                        color: colorScheme.onSurface,
-                                      ),
-                                    ),
-                                    const SizedBox(height: 6),
-                                    Text(
-                                      'No rate records found. Please add a rate.',
-                                      textAlign: TextAlign.center,
-                                      style: TextStyle(
-                                        color: colorScheme.onSurfaceVariant,
-                                      ),
-                                    ),
-                                  ],
-                                ),
+                            ? EmptyModuleState(
+                                title: "No Rates Added",
+                                subtitle: "Add your first rate to get started",
+                                icon: Icons.currency_rupee_rounded,
+                                actionLabel: "Add Rate",
+                                onAction: () => context.push(Routes.addRate),
                               )
                             : () {
                                 // Apply Filtering

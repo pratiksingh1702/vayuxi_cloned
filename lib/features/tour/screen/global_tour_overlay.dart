@@ -37,7 +37,7 @@ class _GlobalTourOverlayState extends ConsumerState<GlobalTourOverlay> {
       children: [
         child,
         const Positioned.fill(child: GlobalUploadBanner()),
-        const Positioned(top: 0, left: 0, right: 0, child: GlobalSyncBanner()),
+        // const Positioned(top: 0, left: 0, right: 0, child: GlobalSyncBanner()),
       ],
     );
   }
@@ -76,7 +76,7 @@ class _GlobalTourOverlayState extends ConsumerState<GlobalTourOverlay> {
 
         // Upload + sync banners — always on top of content
         const Positioned.fill(child: GlobalUploadBanner()),
-        const Positioned(top: 0, left: 0, right: 0, child: GlobalSyncBanner()),
+        // const Positioned(top: 0, left: 0, right: 0, child: GlobalSyncBanner()),
 
         // ── Buddy Overlay ────────────────────────────────────────────────────
         if (showBuddy)

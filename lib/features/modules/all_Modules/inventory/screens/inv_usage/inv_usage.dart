@@ -15,6 +15,7 @@ import '../../models/inventory_model.dart';
 import '../../offline/repo/inventory_sync.dart';
 import '../../provider/inventory_provider.dart';
 import '../../../../screen/module_preferences.dart';
+import '../../../../../../core/utlis/widgets/empty_module_state.dart';
 
 // BeautifulDatePicker Widget
 class BeautifulDatePicker extends StatefulWidget {
@@ -567,35 +568,13 @@ class _InventorySelectionPageState
                           .toList();
 
                       if (consumableItems.isEmpty) {
-                        return Center(
-                          child: Column(
-                            mainAxisAlignment: MainAxisAlignment.center,
-                            children: [
-                              Icon(Icons.inventory_2_outlined,
-                                  size: 60,
-                                  color: colorScheme.onSurfaceVariant),
-                              const SizedBox(height: 12),
-                              Text(
-                                "No inventory available",
-                                style: TextStyle(
-                                    fontSize: 18,
-                                    fontWeight: FontWeight.bold,
-                                    color: colorScheme.onSurfaceVariant),
-                              ),
-                              const SizedBox(height: 6),
-                              Text(
-                                "Complete inventory setup first",
-                                style: TextStyle(
-                                    color: colorScheme.onSurfaceVariant),
-                              ),
-                              const SizedBox(height: 24),
-                              ElevatedButton(
-                                onPressed: () =>
-                                    ref.invalidate(inventoryProvider(siteId)),
-                                child: const Text("Refresh"),
-                              ),
-                            ],
-                          ),
+                        return EmptyModuleState(
+                          title: "No Inventory Available",
+                          subtitle: "Complete inventory setup first to start recording usage",
+                          icon: Icons.inventory_2_outlined,
+                          actionLabel: "Refresh",
+                          onAction: () =>
+                              ref.invalidate(inventoryProvider(siteId)),
                         );
                       }
 

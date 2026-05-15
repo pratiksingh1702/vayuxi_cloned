@@ -18,6 +18,7 @@ import '../provider/teamService.dart';
 
 import 'addTeam.dart';
 import 'editTeam.dart';
+import '../../../../../core/utlis/widgets/empty_module_state.dart';
 
 class TeamListPage extends ConsumerStatefulWidget {
   const TeamListPage({super.key});
@@ -263,34 +264,12 @@ class _TeamListPageState extends ConsumerState<TeamListPage> {
                   child: Padding(
                     padding: const EdgeInsets.all(16),
                     child: teams.isEmpty
-                        ? Center(
-                            child: Column(
-                              mainAxisAlignment: MainAxisAlignment.center,
-                              children: [
-                                Icon(
-                                  Icons.group_off,
-                                  size: 64,
-                                  color: colorScheme.onSurfaceVariant,
-                                ),
-                                const SizedBox(height: 16),
-                                Text(
-                                  "Team data is empty",
-                                  style: TextStyle(
-                                    fontSize: 18,
-                                    fontWeight: FontWeight.w600,
-                                    color: colorScheme.onSurface,
-                                  ),
-                                ),
-                                const SizedBox(height: 6),
-                                Text(
-                                  "No team records found. Please add a team.",
-                                  textAlign: TextAlign.center,
-                                  style: TextStyle(
-                                    color: colorScheme.onSurfaceVariant,
-                                  ),
-                                ),
-                              ],
-                            ),
+                        ? EmptyModuleState(
+                            title: "No Teams Created",
+                            subtitle: "Create your first team to organize manpower",
+                            icon: Icons.groups_rounded,
+                            actionLabel: "Add Team",
+                            onAction: () => context.push(Routes.addTeam),
                           )
                         : LiquidPullToRefresh(
                             onRefresh: _refreshTeams,

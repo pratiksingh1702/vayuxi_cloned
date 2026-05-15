@@ -9,6 +9,7 @@ import 'package:untitled2/core/utlis/widgets/shimmer.dart';
 import 'package:untitled2/core/utlis/widgets/sidebar.dart';
 import 'package:untitled2/features/modules/all_Modules/dpr/screens/work_type.dart';
 import 'package:untitled2/features/modules/all_Modules/team/provider/teamProvider.dart';
+import '../../../../../core/utlis/widgets/empty_module_state.dart';
 
 // Mechanical imports
 import '../../../../../core/router/routes.dart';
@@ -789,51 +790,23 @@ class _DprWorkScreenState extends ConsumerState<DprWorkScreen> {
                   return _buildListSectionShimmer(workType);
                 }
 
-                // if (error != null) {
-                //   return Center(
-                //     child: Column(
-                //       mainAxisAlignment: MainAxisAlignment.center,
-                //       children: [
-                //         const Icon(Icons.error_outline, color: Colors.red, size: 48),
-                //         const SizedBox(height: 16),
-                //         Text(
-                //           'Error: $error',
-                //           style: const TextStyle(color: Colors.red),
-                //           textAlign: TextAlign.center,
-                //         ),
-                //         const SizedBox(height: 16),
-                //         ElevatedButton(
-                //           onPressed: _fetchDataBasedOnType,
-                //           child: const Text('Retry'),
-                //         ),
-                //       ],
-                //     ),
-                //   );
-                // }
+                if (error != null) {
+                  return EmptyModuleState(
+                    title: "Failed to load DPR",
+                    subtitle: error,
+                    icon: Icons.error_outline_rounded,
+                    actionLabel: "Retry",
+                    onAction: _fetchDataBasedOnType,
+                  );
+                }
 
                 if (filteredList.isEmpty) {
-                  return Center(
-                    child: Column(
-                      mainAxisAlignment: MainAxisAlignment.center,
-                      children: [
-                        const Icon(Icons.list_alt_outlined,
-                            size: 64, color: Colors.grey),
-                        const SizedBox(height: 16),
-                        Text(
-                          'No ${workType == WorkType.mechanical ? 'mechanical' : 'insulation'} works found',
-                          style:
-                              const TextStyle(fontSize: 16, color: Colors.grey),
-                        ),
-                        const SizedBox(height: 8),
-                        if (selectedDate != null ||
-                            (_selectedStartDate != null &&
-                                _selectedEndDate != null))
-                          OutlinedButton(
-                            onPressed: clearDateFilter,
-                            child: const Text('Clear Date Filter'),
-                          ),
-                      ],
-                    ),
+                  return EmptyModuleState(
+                    title: "No DPR Entries Found",
+                    subtitle: "Record daily progress to track project completion",
+                    icon: Icons.description_outlined,
+                    actionLabel: "Refresh",
+                    onAction: _fetchDataBasedOnType,
                   );
                 }
 

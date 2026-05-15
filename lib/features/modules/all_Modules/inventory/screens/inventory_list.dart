@@ -9,6 +9,7 @@ import '../../../../../core/utlis/widgets/custom_appBar.dart';
 import '../../../../../core/utlis/widgets/shimmer.dart';
 import '../../../../../core/utlis/widgets/sidebar.dart';
 import '../../../../../core/utlis/widgets/custom_scrollbar.dart';
+import '../../../../../core/utlis/widgets/empty_module_state.dart';
 import '../../site_Details/providers/site_current_provider.dart';
 import '../models/inventory_model.dart';
 import '../provider/inventory_provider.dart';
@@ -101,11 +102,12 @@ class _InventoryListScreenState extends ConsumerState<InventoryListScreen> {
                   type: ShimmerListType.tile,
                   itemCount: 8,
                 ),
-                error: (e, _) => Center(
-                  child: Text(
-                    "Failed to load inventory",
-                    style: TextStyle(color: colorScheme.error),
-                  ),
+                error: (e, _) => EmptyModuleState(
+                  title: "Failed to load inventory",
+                  subtitle: "An error occurred while fetching your data.",
+                  icon: Icons.error_outline_rounded,
+                  actionLabel: "Retry",
+                  onAction: () => ref.refresh(inventoryProvider(siteId)),
                 ),
                 data: (inventoryList) {
                   final filtered = inventoryList.where((item) {
@@ -113,11 +115,18 @@ class _InventoryListScreenState extends ConsumerState<InventoryListScreen> {
                   }).toList();
 
                   if (filtered.isEmpty) {
-                    return Center(
-                      child: Text(
-                        "No inventory found",
-                        style: TextStyle(color: colorScheme.onSurfaceVariant),
-                      ),
+                    return EmptyModuleState(
+                      title: "No Inventory Items",
+                      subtitle: "Add materials to start tracking inventory",
+                      icon: Icons.inventory_2_rounded,
+                      actionLabel: "Add Item",
+                      onAction: () {
+                        Navigator.push(
+                          context,
+                          MaterialPageRoute(
+                              builder: (context) => CreateInventoryScreen()),
+                        );
+                      },
                     );
                   }
 

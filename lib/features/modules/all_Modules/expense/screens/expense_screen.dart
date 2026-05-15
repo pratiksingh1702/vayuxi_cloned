@@ -14,6 +14,7 @@ import '../../../../../core/utlis/widgets/custom_scrollbar.dart';
 import '../model/expense_model.dart';
 import '../service/expense_service.dart';
 import 'genericFormScreen.dart';
+import '../../../../../core/utlis/widgets/empty_module_state.dart';
 
 class ExpenseListScreen extends ConsumerStatefulWidget {
   final String siteId;
@@ -344,30 +345,12 @@ class _ExpenseListScreenState extends ConsumerState<ExpenseListScreen> {
                   child: isLoading
                       ? _buildExpenseSkeletonList()
                       : expenseList.isEmpty
-                          ? Center(
-                              child: Column(
-                                mainAxisAlignment: MainAxisAlignment.center,
-                                children: [
-                                  Icon(
-                                    Icons.receipt_long,
-                                    size: 100,
-                                    color: colorScheme.outlineVariant,
-                                  ),
-                                  const SizedBox(height: 16),
-                                  Text(
-                                    "No expenses found",
-                                    style: TextStyle(
-                                      fontSize: 16,
-                                      color: colorScheme.onSurfaceVariant,
-                                    ),
-                                  ),
-                                  const SizedBox(height: 8),
-                                  TextButton(
-                                    onPressed: _showCategoryModal,
-                                    child: const Text("Add your first expense"),
-                                  ),
-                                ],
-                              ),
+                          ? EmptyModuleState(
+                              title: "No Expenses Recorded",
+                              subtitle: "Log your first expense to track project spending",
+                              icon: Icons.receipt_long_rounded,
+                              actionLabel: "Add Expense",
+                              onAction: _showCategoryModal,
                             )
                           : CustomScrollbar(
                               controller: _scrollController,

@@ -119,7 +119,7 @@ class SiteAPI {
       FormData formData, String type) async {
     try {
       final res = await dio.post(
-        "/site?type=$type",
+        "/sit?type=$type",
         data: formData,
         options: Options(
           validateStatus: (status) {

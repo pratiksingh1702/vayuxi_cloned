@@ -91,6 +91,14 @@ class SiteModel {
       'counts': counts.toJson(),
     };
   }
+
+  @override
+  bool operator ==(Object other) =>
+      identical(this, other) ||
+      other is SiteModel && runtimeType == other.runtimeType && id == other.id;
+
+  @override
+  int get hashCode => id.hashCode;
 }
 
 class SiteCounts {

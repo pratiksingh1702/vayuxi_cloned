@@ -792,23 +792,9 @@ class _SheetDownloadPageState extends ConsumerState<SheetDownloadPage> {
                             ),
                             defaultFileName: "structure_summary",
                           ),
+                         
                           sheetButton(
-                            label: "Detailed DPR",
-                            icon: Icons.table_rows,
-                            sheetName: "Structure Detailed DPR",
-                            excelOnly: true,
-                            apiCall: (fromDate, toDate, format) =>
-                                DPRStructureRepository().downloadSheet(
-                              siteId,
-                              fromDate: fromDate,
-                              toDate: toDate,
-                              sheetType: 'detailed',
-                              format: format,
-                            ),
-                            defaultFileName: "structure_detailed_dpr",
-                          ),
-                          sheetButton(
-                            label: "Detailed + P&M",
+                            label: "Detailed",
                             icon: Icons.assignment_turned_in_rounded,
                             sheetName: "Structure Detailed DPR With P&M",
                             excelOnly: true,
