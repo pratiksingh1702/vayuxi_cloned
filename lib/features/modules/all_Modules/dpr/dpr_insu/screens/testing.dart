@@ -1,6 +1,7 @@
 import 'dart:convert';
 import 'dart:math';
 import 'dart:io';
+import 'package:untitled2/features/modules/screen/workflow/domain/workflow_controller.dart';
 import '../../../../screen/module_preferences.dart';
 import '../model/base_material.dart';
 import '../model/piping_insu.dart';
@@ -12,6 +13,8 @@ import 'package:go_router/go_router.dart';
 import 'package:intl/intl.dart';
 import 'package:cached_network_image/cached_network_image.dart';
 import 'package:untitled2/core/router/routes.dart';
+import '../../../../../../core/utlis/widgets/timeline_date_picker.dart';
+import '../../../../../../core/utlis/widgets/timeline_calendar_dialog.dart';
 import 'package:untitled2/core/upload/upload_exports.dart';
 import 'package:untitled2/core/utlis/app_toasts.dart';
 import 'package:untitled2/core/utlis/widgets/Button_wrapper.dart';
@@ -53,6 +56,7 @@ import '../widgets/piping_card.dart';
 import '../../../../../../core/utlis/widgets/shimmer.dart';
 import 'all_insulation_material.dart';
 import '../model/field_config.dart' as fc;
+import 'package:untitled2/features/modules/screen/module_dashboard_service.dart';
 
 enum InsuModuleSortOption {
   nameAsc,
@@ -141,6 +145,8 @@ class _AddInsulationDescriptionScreenState
   List<InsulationDprModel> _dprListForSelectedDate = [];
   bool _isLoadingDprList = false;
   bool _isDateOverrideMode = false;
+  bool _isMultipleEntry = false;
+  Set<DateTime> _completedDates = {};
 
   // Insulation layer state
   LayerType _selectedLayerType = LayerType.single;
@@ -190,6 +196,7 @@ class _AddInsulationDescriptionScreenState
         _loadMaterialSetups(siteId);
         setState(() => _loadLayersFromProvider());
       }
+      _initMultiMode();
     });
   }
 
@@ -1026,6 +1033,28 @@ class _AddInsulationDescriptionScreenState
     _sizeController.text = ref.read(selectedSizeProvider) ?? '';
   }
 
+  Future<void> _initMultiMode() async {
+    final multi = await ModulePreferences.isMultipleEntry();
+    if (mounted) {
+      setState(() => _isMultipleEntry = multi);
+      if (multi) {
+        _fetchCompletedDates();
+      }
+    }
+  }
+
+  Future<void> _fetchCompletedDates() async {
+    final dates = await _draftRepo.getDraftDates(
+      siteId: siteId,
+      teamId: teamId,
+    );
+    if (mounted) {
+      setState(() {
+        _completedDates = dates.map((d) => DateTime(d.year, d.month, d.day)).toSet();
+      });
+    }
+  }
+
   Future<void> loadScreenState() async {
     setState(() => _isLoadingMaterials = true);
     try {
@@ -1375,12 +1404,47 @@ class _AddInsulationDescriptionScreenState
     await loadScreenState();
   }
 
+  void _onTimelineDateSelected(DateTime date) {
+    if (_isSameDay(date, _selectedDate)) return;
+
+    setState(() {
+      _selectedDate = DateTime(date.year, date.month, date.day);
+      _isDateOverrideMode = !_isToday(date);
+    });
+
+    _fetchDprListForDate(date);
+    _initializeDprForNewDate();
+  }
+
+  Future<void> _initializeDprForNewDate() async {
+    if (_dprListForSelectedDate.isNotEmpty) {
+      _insulationId = _dprListForSelectedDate.first.id;
+      _selectedDprId = _insulationId;
+    } else {
+      _insulationId = null;
+      _selectedDprId = null;
+      _dprNameController.text = '';
+    }
+
+    await loadScreenState();
+  }
+
+  bool _isSameDay(DateTime d1, DateTime d2) {
+    return d1.year == d2.year && d1.month == d2.month && d1.day == d2.day;
+  }
+
+  bool _isToday(DateTime date) {
+    final now = DateTime.now();
+    return date.year == now.year &&
+        date.month == now.month &&
+        date.day == now.day;
+  }
+
   Future<void> _handleDateOverride(BuildContext context) async {
-    final picked = await showDatePicker(
+    final picked = await TimelineCalendarDialog.show(
       context: context,
       initialDate: _selectedDate,
-      firstDate: DateTime(2020),
-      lastDate: DateTime.now(),
+      completedDates: _completedDates,
     );
 
     if (picked == null || picked == _selectedDate) return;
@@ -1623,13 +1687,6 @@ class _AddInsulationDescriptionScreenState
         margin: const EdgeInsets.all(16),
       ),
     );
-  }
-
-  bool _isToday(DateTime date) {
-    final now = DateTime.now();
-    return date.year == now.year &&
-        date.month == now.month &&
-        date.day == now.day;
   }
 
   bool get _isEditable =>
@@ -2439,6 +2496,14 @@ class _AddInsulationDescriptionScreenState
                     child: Column(
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
+                        if (_isMultipleEntry) ...[
+                          TimelineDatePicker(
+                            selectedDate: _selectedDate,
+                            onDateSelected: _onTimelineDateSelected,
+                            completedDates: _completedDates,
+                          ),
+                          const SizedBox(height: 16),
+                        ],
                         Row(
                           mainAxisAlignment: MainAxisAlignment.end,
                           children: [
@@ -4228,10 +4293,43 @@ class _AddInsulationDescriptionScreenState
     if (showSuccessToast) {
       AppToast.success('Draft "$draftName" saved. Check Updates for details.');
     }
+    ref.invalidate(dashboardDraftsProvider);
+  }
+
+  bool _hasUnsavedChanges() {
+    // 1. Check description
+    final desc = _dprNameController.text.trim();
+    if (desc.isNotEmpty && desc != 'Insulation DPR') return true;
+
+    // 2. Check materials from providers
+    final piping = ref.read(insulationPipingMaterialsProvider);
+    final equipment = ref.read(insulationEquipmentMaterialsProvider);
+
+    for (final m in piping) {
+      if (_hasMeaningfulValues(m.cardFormState)) return true;
+    }
+    for (final m in equipment) {
+      if (_hasMeaningfulValues(m.cardFormState)) return true;
+    }
+
+    return false;
+  }
+
+  bool _hasMeaningfulValues(CardFormState? state) {
+    if (state == null) return false;
+    return state.fieldEntries.values.any((e) =>
+        e.value != null &&
+        e.value.toString().trim().isNotEmpty &&
+        e.value.toString() != '0');
   }
 
   Future<void> _autoSaveDraft() async {
-    await _saveDraft();
+    if (_hasUnsavedChanges()) {
+      print("insu autosave: changes detected");
+      await _saveDraft();
+    } else {
+      print("insu autosave: skipping (no changes)");
+    }
   }
 
   Future<void> _handleSubmitFields() async {
@@ -4408,9 +4506,18 @@ $currentTeamId
 
       WidgetsBinding.instance.addPostFrameCallback((_) {
         if (mounted && !_isDisposed) {
-          if (!isMultiple) {
-            context.pop(true);
+          // 🔄 Workflow Integration
+          final wf = ref.read(workflowControllerProvider);
+          if (wf.isActive) {
+            ref.read(workflowControllerProvider.notifier).advance(context);
+          } else {
+            if (isMultiple) {
+              _fetchCompletedDates();
+            } else {
+              context.pop(true);
+            }
           }
+
           _showSnackBar("Successfully Saved");
         }
       });

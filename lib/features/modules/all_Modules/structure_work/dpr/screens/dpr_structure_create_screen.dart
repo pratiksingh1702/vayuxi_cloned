@@ -8,6 +8,9 @@ import '../../../../../../core/utlis/widgets/Button_wrapper.dart';
 import '../../../../../../core/utlis/widgets/buttons.dart';
 import '../../../../../../core/utlis/widgets/custom.dart';
 import '../../../../../../core/utlis/widgets/sidebar.dart';
+import '../../../../../../core/utlis/widgets/timeline_date_picker.dart';
+import '../../../../../../core/utlis/widgets/timeline_calendar_dialog.dart';
+import '../../../../screen/module_preferences.dart';
 import '../../dpr_setup/widgets/assembly_card_widget.dart';
 import '../../dpr_setup/isar/assembly_card_isar.dart';
 import '../providers/dpr_entry_provider.dart';
@@ -17,6 +20,7 @@ import '../../boq/models/boq_structure_model.dart';
 import '../../boq/providers/saved_boq_provider.dart';
 import '../../dpr_setup/providers/dpr_setup_providers.dart';
 import '../../boq/providers/boq_structure_provider.dart';
+import 'package:untitled2/features/modules/screen/workflow/domain/workflow_controller.dart';
 
 class DprStructureCreateScreen extends ConsumerStatefulWidget {
   final String siteId;
@@ -60,6 +64,8 @@ class _DprStructureCreateScreenState
   DPRStructure? _latestDpr;
   List<AssemblyCardIsar>? _localSetupCards;
   bool _editMode = false;
+  bool _isMultipleEntry = false;
+  Set<DateTime> _completedDates = {};
 
   // New controllers for UI consistency with Insulation DPR
   late final TextEditingController _plantController;
@@ -113,6 +119,7 @@ class _DprStructureCreateScreenState
       ref.read(savedBOQProvider.notifier).fetchAndSync(widget.siteId);
       _fetchDprsForDate(_selectedDate,
           preserveInitial: widget.initialDpr != null);
+      _initMultiMode();
     });
   }
 
@@ -148,6 +155,41 @@ class _DprStructureCreateScreenState
     } catch (e) {
       setState(() => _isLoadingDprs = false);
       debugPrint('Error fetching DPRs: $e');
+    }
+  }
+
+  Future<void> _initMultiMode() async {
+    final multi = await ModulePreferences.isMultipleEntry();
+    if (mounted) {
+      setState(() => _isMultipleEntry = multi);
+      if (multi) {
+        _fetchCompletedDates();
+      }
+    }
+  }
+
+  Future<void> _fetchCompletedDates() async {
+    try {
+      final now = DateTime.now();
+      final startDate = now.subtract(const Duration(days: 15));
+      final endDate = now.add(const Duration(days: 15));
+
+      final dprs = await ref.read(dprStructureRepositoryProvider).getDPRList(
+            widget.siteId,
+            startDate: startDate,
+            endDate: endDate,
+          );
+
+      if (mounted) {
+        setState(() {
+          _completedDates = dprs.map((e) {
+            final d = e.date ?? e.createdAt ?? DateTime.now();
+            return DateTime(d.year, d.month, d.day);
+          }).toSet();
+        });
+      }
+    } catch (e) {
+      debugPrint('Error fetching completed dates: $e');
     }
   }
 
@@ -278,6 +320,14 @@ class _DprStructureCreateScreenState
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
+                      if (_isMultipleEntry) ...[
+                        TimelineDatePicker(
+                          selectedDate: _selectedDate,
+                          onDateSelected: _onTimelineDateSelected,
+                          completedDates: _completedDates,
+                        ),
+                        const SizedBox(height: 16),
+                      ],
                       // Site Header
                       Row(
                         crossAxisAlignment: CrossAxisAlignment.start,
@@ -417,6 +467,21 @@ class _DprStructureCreateScreenState
         ],
       ),
     );
+  }
+
+  void _onTimelineDateSelected(DateTime date) {
+    if (_isSameDay(date, _selectedDate)) return;
+
+    setState(() {
+      _selectedDate = DateTime(date.year, date.month, date.day);
+      _selectedDprId = null;
+    });
+
+    _fetchDprsForDate(date);
+  }
+
+  bool _isSameDay(DateTime d1, DateTime d2) {
+    return d1.year == d2.year && d1.month == d2.month && d1.day == d2.day;
   }
 
   Widget _buildDprInfoCard(
@@ -1356,7 +1421,18 @@ class _DprStructureCreateScreenState
           ? "DPR Updated Successfully!"
           : "DPR Submitted Successfully!");
       widget.onSuccess?.call();
-      context.pop();
+
+      // 🔄 Workflow Integration
+      final wf = ref.read(workflowControllerProvider);
+      if (wf.isActive) {
+        ref.read(workflowControllerProvider.notifier).advance(context);
+      } else {
+        if (_isMultipleEntry) {
+          _fetchCompletedDates();
+        } else {
+          context.pop();
+        }
+      }
     } else if (mounted) {
       final error = ref.read(dprStructureProvider).error;
       if (error != null && error.isNotEmpty) {
@@ -1366,11 +1442,10 @@ class _DprStructureCreateScreenState
   }
 
   Future<void> _selectDate() async {
-    final picked = await showDatePicker(
+    final picked = await TimelineCalendarDialog.show(
       context: context,
       initialDate: _selectedDate,
-      firstDate: DateTime(2020),
-      lastDate: DateTime.now(),
+      completedDates: _completedDates,
     );
     if (picked != null) {
       setState(() {

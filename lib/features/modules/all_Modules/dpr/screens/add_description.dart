@@ -1,6 +1,7 @@
 import 'dart:convert';
 import 'dart:io';
 import 'dart:math';
+import 'package:untitled2/features/modules/screen/workflow/domain/workflow_controller.dart';
 import '../../../screen/module_preferences.dart';
 
 import 'package:dio/dio.dart';
@@ -10,6 +11,8 @@ import 'package:go_router/go_router.dart';
 import 'package:intl/intl.dart';
 import 'package:cached_network_image/cached_network_image.dart';
 import 'package:untitled2/core/router/routes.dart';
+import '../../../../../core/utlis/widgets/timeline_date_picker.dart';
+import '../../../../../core/utlis/widgets/timeline_calendar_dialog.dart';
 import 'package:untitled2/core/upload/upload_exports.dart';
 import 'package:untitled2/core/utlis/app_toasts.dart';
 import 'package:untitled2/core/utlis/widgets/Button_wrapper.dart';
@@ -50,6 +53,7 @@ import '../providers/selection_provider.dart';
 import 'controllers/dpr_session_provider.dart';
 import 'material_sync_util.dart';
 import 'widgets/material_overlay_edit.dart';
+import 'package:untitled2/features/modules/screen/module_dashboard_service.dart';
 
 enum MechModuleSortOption {
   nameAsc,
@@ -121,6 +125,8 @@ class _AddDescriptionScreenState extends ConsumerState<AddDescriptionScreen>
   Set<String> _filterTypes = {};
   Set<String> _filterStatuses = {};
   MechModuleSortOption _currentSort = MechModuleSortOption.displayOrderAsc;
+  bool _isMultipleEntry = false;
+  Set<DateTime> _completedDates = {};
 
   // @override
   // void initState() {
@@ -160,6 +166,7 @@ class _AddDescriptionScreenState extends ConsumerState<AddDescriptionScreen>
       }
 
       if (widget.work == null) _applyHeaderValuesToMaterials();
+      _initMultiMode();
     });
 
     _floorController.addListener(_applyHeaderValuesToMaterials);
@@ -538,6 +545,28 @@ class _AddDescriptionScreenState extends ConsumerState<AddDescriptionScreen>
             ? (ref.read(selectedUnitProvider) ?? '')
             : widget.work?.size) ??
         "";
+  }
+
+  Future<void> _initMultiMode() async {
+    final multi = await ModulePreferences.isMultipleEntry();
+    if (mounted) {
+      setState(() => _isMultipleEntry = multi);
+      if (multi) {
+        _fetchCompletedDates();
+      }
+    }
+  }
+
+  Future<void> _fetchCompletedDates() async {
+    final dates = await _draftRepo.getDraftDates(
+      siteId: siteId,
+      teamId: teamId,
+    );
+    if (mounted) {
+      setState(() {
+        _completedDates = dates.map((d) => DateTime(d.year, d.month, d.day)).toSet();
+      });
+    }
   }
 
   // Future<void> _loadInitialData() async {
@@ -932,11 +961,10 @@ class _AddDescriptionScreenState extends ConsumerState<AddDescriptionScreen>
       _isToday(_selectedDate) || _globalEditMode || widget.work != null;
 
   Future<void> _selectDate(BuildContext context) async {
-    final picked = await showDatePicker(
+    final picked = await TimelineCalendarDialog.show(
       context: context,
       initialDate: _selectedDate,
-      firstDate: DateTime(2020),
-      lastDate: DateTime.now(),
+      completedDates: _completedDates,
     );
 
     if (picked == null || picked == _selectedDate) return;
@@ -1609,6 +1637,14 @@ class _AddDescriptionScreenState extends ConsumerState<AddDescriptionScreen>
                     child: Column(
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
+                        if (_isMultipleEntry) ...[
+                          TimelineDatePicker(
+                            selectedDate: _selectedDate,
+                            onDateSelected: _onTimelineDateSelected,
+                            completedDates: _completedDates,
+                          ),
+                          const SizedBox(height: 16),
+                        ],
                         Row(
                           mainAxisAlignment: MainAxisAlignment.spaceBetween,
                           children: [
@@ -1925,19 +1961,55 @@ class _AddDescriptionScreenState extends ConsumerState<AddDescriptionScreen>
   }
 
   Future<void> _handleDateOverride(BuildContext context) async {
-    final picked = await showDatePicker(
+    final picked = await TimelineCalendarDialog.show(
       context: context,
       initialDate: _selectedDate,
-      firstDate: DateTime(2020),
-      lastDate: DateTime.now(),
+      completedDates: _completedDates,
     );
+    if (picked != null) {
+      setState(() {
+        _selectedDate = picked;
+        _isDateOverrideMode = true;
+      });
+      _fetchDprListForDate(picked);
+    }
+  }
 
-    if (picked == null || picked == _selectedDate) return;
+  void _onTimelineDateSelected(DateTime date) {
+    if (_isSameDay(date, _selectedDate)) return;
 
     setState(() {
-      _selectedDate = picked;
-      _isDateOverrideMode = true;
+      _selectedDate = DateTime(date.year, date.month, date.day);
+      _isDateOverrideMode = !_isToday(date);
     });
+
+    _fetchDprListForDate(date);
+    _initializeDprForNewDate();
+  }
+
+  Future<void> _initializeDprForNewDate() async {
+    /// ALWAYS initialize new DPR
+    _mechanicalId = null;
+    _selectedDprId = null;
+
+    /// reset header
+    _dprNameController.text = '';
+
+    /// clear providers
+    ref.read(pipingMaterialsProvider.notifier).clear();
+    ref.read(equipmentMaterialsProvider.notifier).clear();
+
+    /// load default materials
+    await _loadDefaultMaterials();
+    _applyHeaderValuesToMaterials();
+
+    if (mounted) {
+      setState(() {});
+    }
+  }
+
+  bool _isSameDay(DateTime d1, DateTime d2) {
+    return d1.year == d2.year && d1.month == d2.month && d1.day == d2.day;
   }
 
   Widget _buildEditModeButton() {
@@ -2640,7 +2712,7 @@ class _AddDescriptionScreenState extends ConsumerState<AddDescriptionScreen>
         f.value != null &&
         f.value.toString().trim().isNotEmpty &&
         f.value.toString() != '0' &&
-        !['floor', 'moc', 'size', 'qty'].contains(f.key.toLowerCase()));
+        !['floor', 'moc', 'size'].contains(f.key.toLowerCase()));
   }
 
   List<Widget> _buildPipingMaterials(List<PipingItem> materials) {
@@ -3349,11 +3421,35 @@ class _AddDescriptionScreenState extends ConsumerState<AddDescriptionScreen>
     if (showSuccessToast) {
       AppToast.success('Draft "$draftName" saved. Check Updates for details.');
     }
+    ref.invalidate(dashboardDraftsProvider);
+  }
+
+  bool _hasUnsavedChanges() {
+    // Check if name is edited and not just the default
+    final name = _dprNameController.text.trim();
+    if (name.isNotEmpty && name != 'New DPR Entry' && name != 'DPR') return true;
+
+    // Check if any materials have meaningful values
+    final piping = ref.read(pipingMaterialsProvider);
+    final equipment = ref.read(equipmentMaterialsProvider);
+
+    for (final m in piping) {
+      if (_hasMeaningfulMaterialValues(m.dynamicFields)) return true;
+    }
+    for (final m in equipment) {
+      if (_hasMeaningfulMaterialValues(m.dynamicFields)) return true;
+    }
+
+    return false;
   }
 
   Future<void> _autoSaveDraftOnExit() async {
-    print(" autosave started 000000000000000000000000000000000000000000000000000000");
-    await _saveDraft();
+    if (_hasUnsavedChanges()) {
+      print("autosave triggered: meaningful changes detected");
+      await _saveDraft();
+    } else {
+      print("autosave skipped: no meaningful changes");
+    }
   }
 
   Future<void> _handleSubmitFields() async {
@@ -3729,11 +3825,19 @@ class _AddDescriptionScreenState extends ConsumerState<AddDescriptionScreen>
 
       WidgetsBinding.instance.addPostFrameCallback((_) {
         if (mounted && !_isDisposed) {
-          if (!isMultiple) {
-            context.pop(true);
-          }
-
           _showSnackBar("Saved locally. Syncing in background");
+
+          // 🔄 Workflow Integration
+          final wf = ref.read(workflowControllerProvider);
+          if (wf.isActive) {
+            ref.read(workflowControllerProvider.notifier).advance(context);
+          } else {
+            if (isMultiple) {
+              _fetchCompletedDates();
+            } else {
+              context.pop(true);
+            }
+          }
 
           // ❌ DO NOT auto-disable edit mode for past dates
         }

@@ -20,6 +20,9 @@ import '../model/expense_model.dart';
 import '../service/expense_service.dart';
 import 'package:dropdown_search/dropdown_search.dart';
 import '../../../screen/module_preferences.dart';
+import 'package:untitled2/features/modules/screen/workflow/domain/workflow_controller.dart';
+import '../../../../../core/utlis/widgets/timeline_date_picker.dart';
+import '../../../../../core/utlis/widgets/timeline_calendar_dialog.dart';
 
 class ExpenseFormScreen extends ConsumerStatefulWidget {
   final String siteId;
@@ -60,8 +63,9 @@ class _ExpenseFormScreenState extends ConsumerState<ExpenseFormScreen> {
 
   // Advance specific
   ManpowerModel? _selectedManpower;
-
   DateTime? _selectedDate;
+  Set<DateTime> _completedDates = {};
+  bool _isMultipleEntry = false;
   bool _isLoading = false;
   bool get _isEditing => widget.expenseId != null;
 
@@ -114,6 +118,7 @@ class _ExpenseFormScreenState extends ConsumerState<ExpenseFormScreen> {
       if (widget.expenseType == 'material_tools') {
         _fetchUOM();
       }
+      _initMultiMode();
     });
   }
 
@@ -213,16 +218,51 @@ class _ExpenseFormScreenState extends ConsumerState<ExpenseFormScreen> {
   }
 
   Future<void> _selectDate() async {
-    final DateTime? picked = await showDatePicker(
+    final DateTime? picked = await TimelineCalendarDialog.show(
       context: context,
       initialDate: _selectedDate ?? DateTime.now(),
-      firstDate: DateTime(2000),
-      lastDate: DateTime.now(),
+      completedDates: _completedDates,
     );
     if (picked != null && picked != _selectedDate) {
       setState(() {
         _selectedDate = picked;
       });
+    }
+  }
+
+  Future<void> _initMultiMode() async {
+    final multi = await ModulePreferences.isMultipleEntry();
+    if (mounted) {
+      setState(() => _isMultipleEntry = multi);
+      if (multi) {
+        _fetchCompletedDates();
+      }
+    }
+  }
+
+  Future<void> _fetchCompletedDates() async {
+    try {
+      final now = DateTime.now();
+      final start = now.subtract(const Duration(days: 15));
+      final end = now.add(const Duration(days: 15));
+
+      final expenses = await ExpenseAPI.fetchExpenses(
+        type: widget.expenseType,
+        siteId: widget.siteId,
+        startDate: start,
+        endDate: end,
+      );
+
+      if (mounted) {
+        setState(() {
+          _completedDates = (expenses as List).map((e) {
+            final d = DateTime.parse(e['date'].toString());
+            return DateTime(d.year, d.month, d.day);
+          }).toSet();
+        });
+      }
+    } catch (e) {
+      print("Error fetching completed dates for expense: $e");
     }
   }
 
@@ -330,14 +370,26 @@ class _ExpenseFormScreenState extends ConsumerState<ExpenseFormScreen> {
         AppToast.success("Expense created successfully");
       }
 
-      final isMultiple = await ModulePreferences.isMultipleEntry();
-      if (!isMultiple) {
-        context.pop();
+      // 🔄 Workflow Integration
+      final wf = ref.read(workflowControllerProvider);
+      if (wf.isActive) {
+        ref.read(workflowControllerProvider.notifier).advance(context);
       } else {
-        // Clear main fields for next entry
-        _amountController.clear();
-        _descriptionController.clear();
-        _remarksController.clear();
+        if (!_isMultipleEntry) {
+          context.pop();
+        } else {
+          // Refresh checkmarks
+          _fetchCompletedDates();
+          // Clear main fields for next entry
+          _amountController.clear();
+          _descriptionController.clear();
+          _remarksController.clear();
+          _invoiceNumberController.clear();
+          _hardwareShopController.clear();
+          _rateController.clear();
+          _balanceController.clear();
+          _placeController.clear();
+        }
       }
     } catch (e) {
       AppToast.error("Failed to save expense: $e");
@@ -898,6 +950,18 @@ class _ExpenseFormScreenState extends ConsumerState<ExpenseFormScreen> {
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
+                    if (_isMultipleEntry) ...[
+                      TimelineDatePicker(
+                        selectedDate: _selectedDate ?? DateTime.now(),
+                        completedDates: _completedDates,
+                        onDateSelected: (date) {
+                          setState(() {
+                            _selectedDate = date;
+                          });
+                        },
+                      ),
+                      const SizedBox(height: 16),
+                    ],
                     Text(
                       '${lang.dateLabel}',
                       style: const TextStyle(

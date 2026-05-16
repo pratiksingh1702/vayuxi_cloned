@@ -838,4 +838,31 @@ class AttendanceRepository {
     required List<String> teamMemberIds, // ignored
   }) =>
       ensureAttendanceForSite(siteId: siteId, type: type, dateKey: dateKey);
+
+  Future<Set<String>> getCompletedDateKeys({
+    required String siteId,
+    required String type,
+    required List<String> dateKeys,
+  }) async {
+    final rows = await isar.attendanceIsars
+        .filter()
+        .siteIdEqualTo(siteId)
+        .typeEqualTo(type)
+        .anyOf(dateKeys, (q, dk) => q.dateKeyEqualTo(dk))
+        .findAll();
+
+    // A date is "completed" if it has any record that is NOT just the default 0-hour absent state
+    // or if it was explicitly marked as dirty (user interacted with it).
+    final completed = rows
+        .where((r) =>
+            r.status != 'absent' ||
+            r.totalHours > 0 ||
+            r.ot > 0 ||
+            r.isDirty ||
+            r.attendanceId != "${r.siteId}_${r.manpowerId}_${r.dateKey}")
+        .map((r) => r.dateKey)
+        .toSet();
+
+    return completed;
+  }
 }

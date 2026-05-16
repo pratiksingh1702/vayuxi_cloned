@@ -18,11 +18,15 @@ import '../../../../../core/utlis/widgets/custom_scrollbar.dart';
 
 import '../../../../../typeProvider/type_provider.dart';
 import '../../../screen/module_preferences.dart';
+import '../../../../../core/utlis/widgets/timeline_date_picker.dart';
+import '../../../../../core/utlis/widgets/timeline_calendar_dialog.dart';
 import '../../../screen/device_id.dart';
 import '../model/attModel.dart';
 import '../offline/repo/att_offline_provider.dart';
 import '../offline/repo/att_sync.dart';
 import '../provider/AttendanceProvider.dart';
+import 'package:untitled2/features/modules/screen/workflow/domain/workflow_controller.dart';
+import '../../../../../core/utlis/widgets/timeline_date_picker.dart';
 
 enum AttendanceSortOption {
   nameAsc,
@@ -52,6 +56,8 @@ class _AttendanceScreenState extends ConsumerState<AttendanceScreen> {
   DateTime? _draftLoadedForDate;
 
   bool isLoading = false;
+  bool _isMultipleEntry = false;
+  Set<DateTime> _completedDates = {};
 
   // ✅ Always normalize to midnight to avoid provider cache misses
   DateTime _selectedDate = DateTime(
@@ -93,19 +99,63 @@ class _AttendanceScreenState extends ConsumerState<AttendanceScreen> {
   void initState() {
     super.initState();
     WidgetsBinding.instance.addPostFrameCallback((_) async {
-      final type = ref.read(typeProvider)!;
-      final siteId = ref.read(selectedSiteIdProvider)!;
-      // Fetch teams first, then load manpower
-      await ref
-          .read(teamProvider.notifier)
-          .fetchTeams(type: type, siteId: siteId);
-      _loadManpower();
+      final type = ref.read(typeProvider);
+      final siteId = ref.read(selectedSiteIdProvider);
+      
+      if (type != null && siteId != null) {
+        // Fetch teams first, then load manpower
+        await ref
+            .read(teamProvider.notifier)
+            .fetchTeams(type: type, siteId: siteId);
+        _loadManpower();
+      }
+      
+      _initMultiMode();
     });
     _searchController.addListener(() {
       setState(() {
         _searchQuery = _searchController.text;
       });
     });
+  }
+
+  Future<void> _initMultiMode() async {
+    final multi = await ModulePreferences.isMultipleEntry();
+    if (mounted) {
+      setState(() => _isMultipleEntry = multi);
+      if (multi) {
+        _fetchCompletedDates();
+      }
+    }
+  }
+
+  Future<void> _fetchCompletedDates() async {
+    final siteId = ref.read(selectedSiteIdProvider);
+    final type = ref.read(typeProvider);
+    if (siteId == null || type == null) return;
+
+    final today = DateTime.now();
+    final start = today.subtract(const Duration(days: 15));
+    final dateKeys = List.generate(31, (i) {
+      final date = start.add(Duration(days: i));
+      return ref.read(attendanceRepositoryProvider).formatDateKey(date);
+    });
+
+    final repo = ref.read(attendanceRepositoryProvider);
+    final completedKeys = await repo.getCompletedDateKeys(
+      siteId: siteId,
+      type: type,
+      dateKeys: dateKeys,
+    );
+
+    if (mounted) {
+      setState(() {
+        _completedDates = completedKeys.map((k) {
+          final d = DateTime.parse(k);
+          return DateTime(d.year, d.month, d.day);
+        }).toSet();
+      });
+    }
   }
 
   @override
@@ -524,11 +574,10 @@ class _AttendanceScreenState extends ConsumerState<AttendanceScreen> {
       return;
     }
 
-    final picked = await showDatePicker(
+    final picked = await TimelineCalendarDialog.show(
       context: context,
       initialDate: _selectedDate,
-      firstDate: DateTime(2020),
-      lastDate: DateTime.now(),
+      completedDates: _completedDates,
     );
 
     if (picked != null && picked != _selectedDate) {
@@ -541,6 +590,21 @@ class _AttendanceScreenState extends ConsumerState<AttendanceScreen> {
       ref.read(attendanceDraftProvider.notifier).state = [];
       _loadManpower();
     }
+  }
+
+  void _onTimelineDateSelected(DateTime date) {
+    if (_isSameDay(date, _selectedDate)) return;
+
+    setState(() {
+      _selectedDate = DateTime(date.year, date.month, date.day);
+      _draftLoadedForDate = null;
+    });
+    ref.read(attendanceDraftProvider.notifier).state = [];
+    _loadManpower();
+  }
+
+  bool _isSameDay(DateTime d1, DateTime d2) {
+    return d1.year == d2.year && d1.month == d2.month && d1.day == d2.day;
   }
 
   Future<void> _toggleAllPresent(List<AttendanceModel> listToUpdate) async {
@@ -897,12 +961,21 @@ class _AttendanceScreenState extends ConsumerState<AttendanceScreen> {
           behavior: SnackBarBehavior.floating,
         ),
       );
-      final isMultiple = await ModulePreferences.isMultipleEntry();
-      if (mounted && !isMultiple) {
-        context.pop();
-      }
+
       _isFirstOTEntry = true;
       _firstOTValue = null;
+
+      if (mounted) {
+        final wf = ref.read(workflowControllerProvider);
+        if (wf.isActive) {
+          await ref.read(workflowControllerProvider.notifier).advance(context);
+        } else {
+          final isMultiple = await ModulePreferences.isMultipleEntry();
+          if (!isMultiple) {
+            context.pop();
+          }
+        }
+      }
 
       // ✅ Sync confirmed data from API back into Isar
       final repo = ref.read(attendanceRepositoryProvider);
@@ -915,6 +988,12 @@ class _AttendanceScreenState extends ConsumerState<AttendanceScreen> {
           type: type!,
           dateKey: dateKey,
         );
+
+        // ✅ After sync, refresh completed dates to show tick
+        final isMultiple = await ModulePreferences.isMultipleEntry();
+        if (isMultiple) {
+          _fetchCompletedDates();
+        }
 
         // ✅ Read fresh confirmed data from Isar and rebuild draft — no flash
         final fresh = await repo
@@ -1111,6 +1190,15 @@ class _AttendanceScreenState extends ConsumerState<AttendanceScreen> {
                     child: Column(
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
+                        if (_isMultipleEntry) ...[
+                          TimelineDatePicker(
+                            selectedDate: _selectedDate,
+                            onDateSelected: _onTimelineDateSelected,
+                            completedDates: _completedDates,
+                          ),
+                          const SizedBox(height: 8),
+                        ],
+
                         // Site Name and Date Row
                         Row(
                           mainAxisAlignment: MainAxisAlignment.spaceBetween,
@@ -1179,6 +1267,7 @@ class _AttendanceScreenState extends ConsumerState<AttendanceScreen> {
                         ),
 
                         const SizedBox(height: 8),
+
 
                         // Search and Filter Row
                         Padding(

@@ -97,5 +97,6 @@ class Routes {
   static const String handoverReport = '/site-list/handover-report';
   static const String crmReport = '/site-list/crm-report';
   static const String structurePmEntry = '/site-list/structure-pm-entry';
+  static const String workflowGate = '/workflow-gate';
 }
 

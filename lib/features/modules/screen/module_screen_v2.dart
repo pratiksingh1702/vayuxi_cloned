@@ -27,6 +27,12 @@ import 'package:untitled2/features/tour/registry/site_registry.dart';
 import 'widgets/access_overlay.dart';
 import 'module_preferences.dart';
 import 'module_dashboard_service.dart';
+import 'package:untitled2/features/modules/screen/workflow/domain/workflow_controller.dart';
+import 'package:untitled2/features/modules/screen/workflow/domain/workflow_state.dart';
+import 'package:untitled2/features/modules/screen/workflow/registry/workflow_registry.dart';
+import 'package:untitled2/features/profile_page/provider/userProvider.dart';
+import 'package:untitled2/features/modules/all_Modules/dpr/offline/mech/repo/dpr_draft_repo.dart';
+import 'package:untitled2/features/modules/all_Modules/dpr/dpr_insu/offline/repo/insu_dpr_draft_repo.dart';
 
 class ModuleItem {
   final String labelKey;
@@ -75,10 +81,14 @@ class _ModuleScreenV2State extends ConsumerState<ModuleScreenV2>
       CurvedAnimation(parent: _pulseController, curve: Curves.easeInOut),
     );
     _loadPreferences();
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      ref.read(workflowControllerProvider.notifier).tryRestoreSession();
+    });
   }
 
   Future<void> _loadPreferences() async {
-    final isAttached = await ModulePreferences.isCardAttached();
+    // We ignore the saved attachment preference to always start in "deattach" mode
+    const isAttached = false;
     final isMultiple = await ModulePreferences.isMultipleEntry();
     if (mounted) {
       setState(() {
@@ -722,11 +732,13 @@ class _ModuleScreenV2State extends ConsumerState<ModuleScreenV2>
   }
 
   Widget _buildScrollBody(Translator t, ColorScheme cs, bool isDark) {
+    final wf = ref.watch(workflowControllerProvider);
     return SingleChildScrollView(
       controller: _scrollController,
       physics: const AlwaysScrollableScrollPhysics(),
       child: Column(
         children: [
+          if (wf.isActive) _buildWorkflowBanner(wf, cs, isDark),
           _buildContextualHeader(t),
           const SizedBox(height: 12),
           _buildDropdownRow(),
@@ -785,6 +797,94 @@ class _ModuleScreenV2State extends ConsumerState<ModuleScreenV2>
     );
   }
 
+  Widget _buildWorkflowBanner(WorkflowState wf, ColorScheme cs, bool isDark) {
+    return Container(
+      width: double.infinity,
+      margin: const EdgeInsets.fromLTRB(20, 16, 20, 4),
+      padding: const EdgeInsets.all(16),
+      decoration: BoxDecoration(
+        color: cs.primary.withOpacity(0.1),
+        borderRadius: BorderRadius.circular(20),
+        border: Border.all(color: cs.primary.withOpacity(0.2)),
+      ),
+      child: Column(
+        children: [
+          Row(
+            children: [
+              Container(
+                padding: const EdgeInsets.all(8),
+                decoration: BoxDecoration(
+                  color: cs.primary.withOpacity(0.1),
+                  shape: BoxShape.circle,
+                ),
+                child: Icon(Icons.auto_awesome_rounded, size: 18, color: cs.primary),
+              ),
+              const SizedBox(width: 12),
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      "Workflow in Progress",
+                      style: TextStyle(
+                        fontSize: 14,
+                        fontWeight: FontWeight.w800,
+                        color: cs.onSurface,
+                      ),
+                    ),
+                    Text(
+                      wf.stepLabel,
+                      style: TextStyle(
+                        fontSize: 11,
+                        color: cs.onSurfaceVariant,
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+              IconButton(
+                icon: const Icon(Icons.close_rounded, size: 20),
+                onPressed: () => ref.read(workflowControllerProvider.notifier).cancelWorkflow(context),
+              ),
+            ],
+          ),
+          const SizedBox(height: 12),
+          ClipRRect(
+            borderRadius: BorderRadius.circular(4),
+            child: LinearProgressIndicator(
+              value: wf.progressFraction,
+              backgroundColor: cs.primary.withOpacity(0.1),
+              valueColor: AlwaysStoppedAnimation<Color>(cs.primary),
+              minHeight: 6,
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildWorkflowFab(ColorScheme cs, bool isDark) {
+    return Positioned(
+      bottom: 100 + MediaQuery.of(context).padding.bottom,
+      right: 20,
+      child: FloatingActionButton.extended(
+        onPressed: _navigateToWorkflowGate,
+        backgroundColor: cs.primary,
+        foregroundColor: Colors.white,
+        elevation: 4,
+        icon: const Icon(Icons.add_rounded),
+        label: const Text(
+          "Add Entry",
+          style: TextStyle(fontWeight: FontWeight.w700),
+        ),
+      ),
+    );
+  }
+
+  void _navigateToWorkflowGate() {
+    context.push(Routes.workflowGate, extra: {'workflowId': WorkflowRegistry.dailyEntryId});
+  }
+
   double _getDockSpacerHeight(List<ModuleItem> currentModules) {
     double base = 62 + 16 + 24;
     if (_moduleCardAttached) {
@@ -803,6 +903,7 @@ class _ModuleScreenV2State extends ConsumerState<ModuleScreenV2>
     ref.watch(typeProvider);
     ref.watch(siteDropdownValueProvider);
     ref.watch(teamDropdownValueProvider);
+    final wf = ref.watch(workflowControllerProvider);
 
     final siteState = ref.watch(siteProvider);
     final homeModuleAsync = ref.watch(languageModuleProvider('home'));
@@ -867,6 +968,10 @@ class _ModuleScreenV2State extends ConsumerState<ModuleScreenV2>
                           onDismiss: _hideOverlay,
                         ),
                       ),
+
+                    // Layer 7: Workflow FAB
+                    if (_currentIndex == 0 && !wf.isActive)
+                      _buildWorkflowFab(cs, isDark),
                   ],
                 ),
               );
@@ -881,40 +986,20 @@ class _ModuleScreenV2State extends ConsumerState<ModuleScreenV2>
   Widget _buildContextualHeader(Translator t) {
     final cs = Theme.of(context).colorScheme;
     final type = ref.watch(typeProvider);
+    final user = ref.watch(currentUserProvider);
 
-    String eyebrow = "";
-    if (type == 'mechanical_work')
-      eyebrow = "MECHANICAL WORK";
-    else if (type == 'insulation_work')
-      eyebrow = "INSULATION WORK";
-    else if (type == 'structure_work')
-      eyebrow = "STRUCTURE WORK";
-    else if (type == 'peb_work')
-      eyebrow = "PEB WORK";
-    else if (type == 'civil_work')
-      eyebrow = "CIVIL WORK";
-    else if (type == 'erection_work')
-      eyebrow = "ERECTION WORK";
-    else if (type == 'roofing_work')
-      eyebrow = "ROOFING WORK";
-    else if (type == 'fabrication_work')
-      eyebrow = "FABRICATION WORK";
+    // 1. Personalized Greeting
+    final hour = DateTime.now().hour;
+    String greeting = "Good Morning";
+    if (hour >= 12 && hour < 17)
+      greeting = "Good Afternoon";
+    else if (hour >= 17) greeting = "Good Evening";
 
-    String title = "";
-    switch (_currentIndex) {
-      case 0:
-        title = t.t('daily_entry_title');
-        break;
-      case 1:
-        title = t.t('setup_title');
-        break;
-      case 2:
-        title = t.t('report_title');
-        break;
-      case 3:
-        title = t.t('more_title');
-        break;
-    }
+    final userName = (user?.fullName ?? "Guest").split(' ').first;
+
+    // 2. Work Stream Info
+    final workType = WorkType.fromApiValue(type);
+    final typeName = workType?.displayName ?? "Work";
 
     final now = DateTime.now();
     final days = ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun'];
@@ -961,39 +1046,49 @@ class _ModuleScreenV2State extends ConsumerState<ModuleScreenV2>
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                if (eyebrow.isNotEmpty)
-                  Text(eyebrow,
-                      style: TextStyle(
-                          fontSize: 10,
-                          fontWeight: FontWeight.w700,
-                          letterSpacing: 1.4,
-                          color: cs.primary)),
-                Text(title,
+                Text("$greeting, $userName",
                     style: TextStyle(
-                        fontSize: 22,
+                        fontSize: 19,
                         fontWeight: FontWeight.w800,
                         color: cs.onSurface,
                         height: 1.1)),
-                Text(dateStr,
+                const SizedBox(height: 1),
+                Text("$typeName Hub",
                     style: TextStyle(
                         fontSize: 11,
+                        fontWeight: FontWeight.w700,
+                        letterSpacing: 0.5,
+                        color: cs.primary)),
+                Text(dateStr,
+                    style: TextStyle(
+                        fontSize: 10,
                         fontWeight: FontWeight.w400,
                         color: cs.onSurfaceVariant)),
               ],
             ),
           ),
-          Container(
-            padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
-            decoration: BoxDecoration(
-              color: cs.primaryContainer.withOpacity(0.45),
-              borderRadius: BorderRadius.circular(20),
-            ),
-            child: Text(
-              "${_currentModules.length} modules",
-              style: TextStyle(
-                  fontSize: 10,
-                  fontWeight: FontWeight.w600,
-                  color: cs.onPrimaryContainer),
+          GestureDetector(
+            onTap: () => context.push('/profile'),
+            child: Container(
+              width: 36,
+              height: 36,
+              decoration: BoxDecoration(
+                shape: BoxShape.circle,
+                color: cs.surfaceContainerLow,
+                border: Border.all(
+                    color: cs.outlineVariant.withOpacity(0.4), width: 1.0),
+              ),
+              child: ClipOval(
+                child: (user?.profilePhoto != null &&
+                        user!.profilePhoto!.isNotEmpty)
+                    ? Image.network(
+                        user.profilePhoto!,
+                        fit: BoxFit.cover,
+                        errorBuilder: (context, error, stackTrace) =>
+                            Icon(Icons.person_rounded, size: 18, color: cs.primary),
+                      )
+                    : Icon(Icons.person_rounded, size: 18, color: cs.primary),
+              ),
             ),
           ),
           const SizedBox(width: 8),
@@ -1020,24 +1115,16 @@ class _ModuleScreenV2State extends ConsumerState<ModuleScreenV2>
   // ── Part 3: Dropdowns ──────────────────────────────────────────────────────
   Widget _buildDropdownRow() {
     return Padding(
-      padding: const EdgeInsets.symmetric(horizontal: 20),
-      child: Column(
+      padding: const EdgeInsets.symmetric(horizontal: 16),
+      child: Row(
         children: [
-          Row(
-            children: [
-              Expanded(child: _buildCustomDropdown(label: "SITE")),
-              const SizedBox(width: 10),
-              Expanded(child: _buildCustomDropdown(label: "TEAM")),
-            ],
-          ),
-          const SizedBox(height: 10),
-          Row(
-            children: [
-              Expanded(child: _buildCustomDropdown(label: "WORK TYPE")),
-              const SizedBox(width: 10),
-              Expanded(child: _buildCustomDropdown(label: "ENTRY MODE")),
-            ],
-          ),
+          Expanded(child: _buildCustomDropdown(label: "TYPE")),
+          const SizedBox(width: 8),
+          Expanded(child: _buildCustomDropdown(label: "MODE")),
+         const SizedBox(width: 8),
+          Expanded(child: _buildCustomDropdown(label: "SITE")),
+          const SizedBox(width: 8),
+          Expanded(child: _buildCustomDropdown(label: "TEAM")),
         ],
       ),
     );
@@ -1057,40 +1144,34 @@ class _ModuleScreenV2State extends ConsumerState<ModuleScreenV2>
     final currentTypeApi = ref.watch(typeProvider);
     final currentWorkType = WorkType.fromApiValue(currentTypeApi);
 
+    final bool isLoading = (label == "SITE" && siteState.isLoading) || (label == "TEAM" && teamState.isLoading);
     Widget dropdown;
 
-    bool isLoading = false;
-    if (label == "SITE") isLoading = siteState.isLoading;
-    if (label == "TEAM") isLoading = teamState.isLoading;
-
     if (isLoading) {
-      dropdown = Row(
-        children: [
-          SizedBox(
-            width: 12,
-            height: 12,
-            child: CircularProgressIndicator(
-                strokeWidth: 1.5, color: cs.primary.withOpacity(0.5)),
-          ),
-          const SizedBox(width: 8),
-          Text("Loading...",
-              style: TextStyle(
-                  fontSize: 12, color: cs.onSurfaceVariant.withOpacity(0.6))),
-        ],
+      dropdown = Center(
+        child: SizedBox(
+          width: 14,
+          height: 14,
+          child: CircularProgressIndicator(
+              strokeWidth: 2, color: cs.primary.withOpacity(0.5)),
+        ),
       );
     } else if (label == "SITE") {
       dropdown = DropdownButton<SiteModel?>(
         value: selectedSite,
         isExpanded: true,
-        hint: const Text("Select Site", style: TextStyle(fontSize: 13)),
+        hint: const Text("Site",
+            style: TextStyle(fontSize: 10, fontWeight: FontWeight.w600)),
         items: [
           const DropdownMenuItem<SiteModel?>(
             value: null,
-            child: Text('None', style: TextStyle(fontSize: 13)),
+            child: Text('None', style: TextStyle(fontSize: 10)),
           ),
           ...allSites.map((s) => DropdownMenuItem<SiteModel?>(
                 value: s,
-                child: Text(s.siteName, style: const TextStyle(fontSize: 13)),
+                child: Text(s.siteName,
+                    style: const TextStyle(fontSize: 10),
+                    overflow: TextOverflow.ellipsis),
               )),
         ],
         onChanged: _onSiteChanged,
@@ -1099,69 +1180,67 @@ class _ModuleScreenV2State extends ConsumerState<ModuleScreenV2>
       dropdown = DropdownButton<TeamModel?>(
         value: selectedTeam,
         isExpanded: true,
-        hint: const Text("Select Team", style: TextStyle(fontSize: 13)),
+        hint: const Text("Team",
+            style: TextStyle(fontSize: 10, fontWeight: FontWeight.w600)),
         items: [
           const DropdownMenuItem<TeamModel?>(
             value: null,
-            child: Text('None', style: TextStyle(fontSize: 13)),
+            child: Text('None', style: TextStyle(fontSize: 10)),
           ),
           ...(teamState.teams ?? []).map((t) => DropdownMenuItem<TeamModel?>(
                 value: t,
-                child: Text(t.teamName, style: const TextStyle(fontSize: 13)),
+                child: Text(t.teamName,
+                    style: const TextStyle(fontSize: 10),
+                    overflow: TextOverflow.ellipsis),
               )),
         ],
         onChanged: _onTeamChanged,
       );
-    } else if (label == "WORK TYPE") {
+    } else if (label == "TYPE") {
       dropdown = DropdownButton<WorkType?>(
         value: currentWorkType,
         isExpanded: true,
-        hint: const Text("Select Type", style: TextStyle(fontSize: 13)),
+        hint: const Text("Type",
+            style: TextStyle(fontSize: 10, fontWeight: FontWeight.w600)),
         items: WorkType.values
             .map((wt) => DropdownMenuItem<WorkType?>(
                   value: wt,
-                  child:
-                      Text(wt.displayName, style: const TextStyle(fontSize: 13)),
+                  child: Text(wt.displayName,
+                      style: const TextStyle(fontSize: 10),
+                      overflow: TextOverflow.ellipsis),
                 ))
             .toList(),
         onChanged: (wt) {
           if (wt != null) {
             ref.read(typeProvider.notifier).setType(wt.apiValue);
-
-            // 1. Clear current site/team selections
             ref.read(siteDropdownValueProvider.notifier).state = null;
             ref.read(selectedSiteProvider.notifier).clear();
             ref.read(selectedSiteIdProvider.notifier).state = null;
-
             ref.read(teamDropdownValueProvider.notifier).state = null;
             ref.read(selectedTeamProvider.notifier).clear();
             ref.read(selectedTeamIdProvider.notifier).state = "";
-
-            // 2. Clear current team list
             final teamNotifier = ref.read(teamProvider.notifier);
             teamNotifier.state = teamNotifier.state.copyWith(
               teams: [],
               hasData: false,
             );
-
-            // 3. Re-trigger site fetch for the new type
             ref.read(siteProvider.notifier).fetchSites();
           }
         },
       );
     } else {
-      // ENTRY MODE
+      // MODE
       dropdown = DropdownButton<bool>(
         value: _multipleEntryMode,
         isExpanded: true,
         items: const [
           DropdownMenuItem(
             value: false,
-            child: Text("Single Entry", style: TextStyle(fontSize: 13)),
+            child: Text("Single", style: TextStyle(fontSize: 10)),
           ),
           DropdownMenuItem(
             value: true,
-            child: Text("Multiple Entry", style: TextStyle(fontSize: 13)),
+            child: Text("Multi", style: TextStyle(fontSize: 10)),
           ),
         ],
         onChanged: (val) {
@@ -1174,28 +1253,33 @@ class _ModuleScreenV2State extends ConsumerState<ModuleScreenV2>
     }
 
     return Container(
-      height: 54,
+      height: 40,
       decoration: BoxDecoration(
         color: cs.surfaceContainerLow,
-        borderRadius: BorderRadius.circular(14),
+        borderRadius: BorderRadius.circular(10),
         border:
-            Border.all(color: cs.outlineVariant.withOpacity(0.5), width: 0.8),
+            Border.all(color: cs.outlineVariant.withOpacity(0.4), width: 0.8),
       ),
       child: Stack(
         children: [
           Positioned(
-            top: 6,
-            left: 14,
+            top: 4,
+            left: 6,
             child: Text(label,
                 style: TextStyle(
-                    fontSize: 10,
-                    fontWeight: FontWeight.w700,
-                    letterSpacing: 0.6,
-                    color: cs.primary)),
+                    fontSize: 7.5,
+                    fontWeight: FontWeight.w800,
+                    letterSpacing: 0.4,
+                    color: cs.primary.withOpacity(0.8))),
           ),
           Padding(
-            padding: const EdgeInsets.only(top: 18, left: 10, right: 4),
-            child: DropdownButtonHideUnderline(child: dropdown),
+            padding: const EdgeInsets.only(top: 11, left: 4, right: 0),
+            child: DropdownButtonHideUnderline(
+              child: ButtonTheme(
+                alignedDropdown: true,
+                child: dropdown,
+              ),
+            ),
           )
         ],
       ),
@@ -1216,20 +1300,29 @@ class _ModuleScreenV2State extends ConsumerState<ModuleScreenV2>
     );
 
     final asyncSummary = ref.watch(dashboardSummaryProvider(params));
+    final asyncDrafts = ref.watch(dashboardDraftsProvider);
 
     return Padding(
       padding: const EdgeInsets.symmetric(horizontal: 20),
-      child: asyncSummary.when(
-        loading: () => _buildStatsShimmer(cs),
-        // Silent fail — stats are supplemental; never distract user with an error
-        error: (_, __) => const SizedBox.shrink(),
-        data: (summary) => Column(
-          children: [
-            _buildStatsGrid(summary, cs, isDark),
-            const SizedBox(height: 14),
-            _buildLastEntriesSection(summary, cs, isDark),
-          ],
-        ),
+      child: Column(
+        children: [
+          asyncSummary.when(
+            loading: () => _buildStatsShimmer(cs),
+            error: (_, __) => const SizedBox.shrink(),
+            data: (summary) => Column(
+              children: [
+                _buildStatsGrid(summary, cs, isDark),
+                const SizedBox(height: 14),
+                _buildLastEntriesSection(summary, cs, isDark),
+              ],
+            ),
+          ),
+          asyncDrafts.when(
+            loading: () => const SizedBox.shrink(),
+            error: (_, __) => const SizedBox.shrink(),
+            data: (drafts) => _buildDraftsSection(drafts, cs, isDark),
+          ),
+        ],
       ),
     );
   }
@@ -1600,32 +1693,32 @@ class _ModuleScreenV2State extends ConsumerState<ModuleScreenV2>
                           ),
                         ),
                       ),
-                      GestureDetector(
-                        onTap: () => _attachModuleCard(t),
-                        child: Container(
-                          padding: const EdgeInsets.symmetric(
-                              horizontal: 10, vertical: 5),
-                          decoration: BoxDecoration(
-                            color: cs.primary.withOpacity(0.09),
-                            borderRadius: BorderRadius.circular(20),
-                            border:
-                                Border.all(color: cs.primary.withOpacity(0.2)),
-                          ),
-                          child: Row(
-                            mainAxisSize: MainAxisSize.min,
-                            children: [
-                              Icon(Icons.south_rounded,
-                                  size: 11, color: cs.primary),
-                              const SizedBox(width: 4),
-                              Text("Attach to nav",
-                                  style: TextStyle(
-                                      fontSize: 10,
-                                      fontWeight: FontWeight.w700,
-                                      color: cs.primary)),
-                            ],
-                          ),
-                        ),
-                      ),
+                      // GestureDetector(
+                      //   onTap: () => _attachModuleCard(t),
+                      //   child: Container(
+                      //     padding: const EdgeInsets.symmetric(
+                      //         horizontal: 10, vertical: 5),
+                      //     decoration: BoxDecoration(
+                      //       color: cs.primary.withOpacity(0.09),
+                      //       borderRadius: BorderRadius.circular(20),
+                      //       border:
+                      //           Border.all(color: cs.primary.withOpacity(0.2)),
+                      //     ),
+                      //     child: Row(
+                      //       mainAxisSize: MainAxisSize.min,
+                      //       children: [
+                      //         Icon(Icons.south_rounded,
+                      //             size: 11, color: cs.primary),
+                      //         const SizedBox(width: 4),
+                      //         Text("Attach to nav",
+                      //             style: TextStyle(
+                      //                 fontSize: 10,
+                      //                 fontWeight: FontWeight.w700,
+                      //                 color: cs.primary)),
+                      //       ],
+                      //     ),
+                      //   ),
+                      // ),
                     ],
                   ),
                   const SizedBox(height: 10),
@@ -1816,49 +1909,45 @@ class _ModuleScreenV2State extends ConsumerState<ModuleScreenV2>
 
   Widget _buildCardTabLabel(Translator t) {
     final cs = Theme.of(context).colorScheme;
-    String currentTabName = "";
-    switch (_currentIndex) {
-      case 0:
-        currentTabName = t.t('daily_entry_title');
-        break;
-      case 1:
-        currentTabName = t.t('setup_title');
-        break;
-      case 2:
-        currentTabName = t.t('report_title');
-        break;
-      case 3:
-        currentTabName = t.t('more_title');
-        break;
-    }
+    const currentTabName = "Quick Access";
 
-    return Row(children: [
-      Container(
-          width: 4,
-          height: 18,
-          decoration: BoxDecoration(
-              color: cs.primary, borderRadius: BorderRadius.circular(2))),
-      const SizedBox(width: 8),
-      Text(currentTabName,
+    return Stack(
+      alignment: Alignment.center,
+      children: [
+        // Centered Title
+        Text(
+          currentTabName,
           style: TextStyle(
-              fontSize: 13, fontWeight: FontWeight.w700, color: cs.onSurface)),
-      const Spacer(),
-      Row(
-          children: List.generate(
+            fontSize: 14,
+            fontWeight: FontWeight.w800,
+            color: cs.onSurface,
+            letterSpacing: 0.2,
+          ),
+        ),
+        // Dots on the right
+        Align(
+          alignment: Alignment.centerRight,
+          child: Row(
+            mainAxisSize: MainAxisSize.min,
+            children: List.generate(
               4,
               (i) => AnimatedContainer(
-                    duration: const Duration(milliseconds: 250),
-                    margin: const EdgeInsets.only(left: 4),
-                    width: i == _currentIndex ? 16 : 6,
-                    height: 6,
-                    decoration: BoxDecoration(
-                      color: i == _currentIndex
-                          ? cs.primary
-                          : cs.outlineVariant.withOpacity(0.5),
-                      borderRadius: BorderRadius.circular(3),
-                    ),
-                  ))),
-    ]);
+                duration: const Duration(milliseconds: 250),
+                margin: const EdgeInsets.only(left: 4),
+                width: i == _currentIndex ? 16 : 6,
+                height: 6,
+                decoration: BoxDecoration(
+                  color: i == _currentIndex
+                      ? cs.primary
+                      : cs.outlineVariant.withOpacity(0.5),
+                  borderRadius: BorderRadius.circular(3),
+                ),
+              ),
+            ),
+          ),
+        ),
+      ],
+    );
   }
 
   Widget _buildIconGrid(Translator t) {
@@ -2385,5 +2474,128 @@ class _ModuleScreenV2State extends ConsumerState<ModuleScreenV2>
             ShimmerImage(height: 9, width: 80, borderRadius: 4),
           ])),
     ]);
+  }
+
+  Widget _buildDraftsSection(
+      List<DashDraft> drafts, ColorScheme cs, bool isDark) {
+    if (drafts.isEmpty) return const SizedBox.shrink();
+
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        const SizedBox(height: 18),
+        Row(
+          children: [
+            Icon(Icons.edit_note_rounded, size: 18, color: cs.primary),
+            const SizedBox(width: 8),
+            Text(
+              "Unsaved Drafts",
+              style: TextStyle(
+                fontSize: 14,
+                fontWeight: FontWeight.w800,
+                color: cs.onSurface,
+              ),
+            ),
+            const Spacer(),
+            TextButton(
+              onPressed: () async {
+                await DprDraftRepo().clearAllDrafts();
+                await InsuDprDraftRepo().clearAllDrafts();
+                ref.invalidate(dashboardDraftsProvider);
+              },
+              style: TextButton.styleFrom(
+                padding: const EdgeInsets.symmetric(horizontal: 8),
+                minimumSize: Size.zero,
+                tapTargetSize: MaterialTapTargetSize.shrinkWrap,
+              ),
+              child: Text(
+                "Clear All",
+                style: TextStyle(
+                  fontSize: 11,
+                  fontWeight: FontWeight.w700,
+                  color: cs.error.withOpacity(0.8),
+                ),
+              ),
+            ),
+          ],
+        ),
+        const SizedBox(height: 10),
+        ...drafts.map((d) => _buildDraftItem(d, cs, isDark)),
+      ],
+    );
+  }
+
+  Widget _buildDraftItem(DashDraft d, ColorScheme cs, bool isDark) {
+    return GestureDetector(
+      onTap: () {
+        if (d.type == 'mech') {
+          context.push(Routes.dprDescription, extra: {'draftWork': d.data});
+        } else {
+          context.push(Routes.dprInsuDescription, extra: {'draftWork': d.data});
+        }
+      },
+      child: Container(
+        margin: const EdgeInsets.only(bottom: 6),
+        padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 8),
+        decoration: BoxDecoration(
+          color: cs.errorContainer.withOpacity(isDark ? 0.08 : 0.04),
+          borderRadius: BorderRadius.circular(10),
+        ),
+        child: Row(
+          children: [
+            Icon(Icons.edit_document,
+                size: 14, color: cs.error.withOpacity(0.7)),
+            const SizedBox(width: 10),
+            Expanded(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(
+                    d.title,
+                    maxLines: 1,
+                    overflow: TextOverflow.ellipsis,
+                    style: TextStyle(
+                      fontSize: 12,
+                      fontWeight: FontWeight.w700,
+                      color: cs.onSurface,
+                    ),
+                  ),
+                  Text(
+                    "You have an unsaved draft in ${d.module.split('(').first.trim()}",
+                    style: TextStyle(
+                      fontSize: 9.5,
+                      fontWeight: FontWeight.w500,
+                      color: cs.onSurfaceVariant.withOpacity(0.8),
+                    ),
+                  ),
+                ],
+              ),
+            ),
+            GestureDetector(
+              onTap: () async {
+                if (d.type == 'mech') {
+                  await DprDraftRepo().removeDraft(d.id);
+                } else {
+                  await InsuDprDraftRepo().removeDraft(d.id);
+                }
+                ref.invalidate(dashboardDraftsProvider);
+              },
+              child: Icon(Icons.close_rounded,
+                  size: 16, color: cs.error.withOpacity(0.5)),
+            ),
+            const SizedBox(width: 10),
+            Text(
+              "RESUME",
+              style: TextStyle(
+                fontSize: 9,
+                fontWeight: FontWeight.w900,
+                color: cs.error,
+                letterSpacing: 0.5,
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
   }
 }

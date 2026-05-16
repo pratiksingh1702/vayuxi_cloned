@@ -11,7 +11,7 @@ class ModulePreferences {
 
   static Future<bool> isCardAttached() async {
     final prefs = await SharedPreferences.getInstance();
-    return prefs.getBool(_keyCardAttached) ?? true;
+    return prefs.getBool(_keyCardAttached) ?? false;
   }
 
   static Future<void> setMultipleEntry(bool isMultiple) async {

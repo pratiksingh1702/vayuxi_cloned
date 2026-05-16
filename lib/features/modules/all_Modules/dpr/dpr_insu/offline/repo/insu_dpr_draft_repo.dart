@@ -93,4 +93,57 @@ class InsuDprDraftRepo {
     final prefs = await SharedPreferences.getInstance();
     await prefs.remove(_key(draftId));
   }
+
+  Future<Set<DateTime>> getDraftDates({
+    required String siteId,
+    required String teamId,
+  }) async {
+    final prefs = await SharedPreferences.getInstance();
+    final keys = prefs.getKeys().where((k) => k.startsWith(_keyPrefix));
+    final Set<DateTime> dates = {};
+
+    for (final key in keys) {
+      final raw = prefs.getString(key);
+      if (raw == null || raw.isEmpty) continue;
+      try {
+        final decoded = jsonDecode(raw);
+        final record = InsuDprDraftRecord.fromJson(decoded);
+        if (record.siteId == siteId &&
+            record.teamId == teamId &&
+            !record.isExpired) {
+          final d = record.draft.date;
+          dates.add(DateTime(d.year, d.month, d.day));
+        }
+      } catch (_) {}
+    }
+    return dates;
+  }
+
+  Future<List<InsuDprDraftRecord>> getAllDrafts() async {
+    final prefs = await SharedPreferences.getInstance();
+    final keys = prefs.getKeys().where((k) => k.startsWith(_keyPrefix));
+    final List<InsuDprDraftRecord> drafts = [];
+
+    for (final key in keys) {
+      final raw = prefs.getString(key);
+      if (raw == null || raw.isEmpty) continue;
+      try {
+        final decoded = jsonDecode(raw);
+        final record = InsuDprDraftRecord.fromJson(decoded);
+        if (!record.isExpired) {
+          drafts.add(record);
+        }
+      } catch (_) {}
+    }
+    drafts.sort((a, b) => b.savedAt.compareTo(a.savedAt));
+    return drafts;
+  }
+
+  Future<void> clearAllDrafts() async {
+    final prefs = await SharedPreferences.getInstance();
+    final keys = prefs.getKeys().where((k) => k.startsWith(_keyPrefix));
+    for (final key in keys) {
+      await prefs.remove(key);
+    }
+  }
 }

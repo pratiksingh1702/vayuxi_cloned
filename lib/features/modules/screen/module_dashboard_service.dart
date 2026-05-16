@@ -1,9 +1,29 @@
-// module_dashboard_service.dart
-
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:untitled2/core/api/dio.dart';
+import 'package:untitled2/features/modules/all_Modules/dpr/offline/mech/repo/dpr_draft_repo.dart';
+import 'package:untitled2/features/modules/all_Modules/dpr/dpr_insu/offline/repo/insu_dpr_draft_repo.dart';
 
 // ── Models ─────────────────────────────────────────────────────────────────
+
+class DashDraft {
+  final String id;
+  final String title;
+  final String subtitle;
+  final String module;
+  final String type; // 'mech' | 'insu'
+  final dynamic data;
+  final DateTime savedAt;
+
+  DashDraft({
+    required this.id,
+    required this.title,
+    required this.subtitle,
+    required this.module,
+    required this.type,
+    required this.data,
+    required this.savedAt,
+  });
+}
 
 class DashLastEntry {
   final String? id;
@@ -255,4 +275,43 @@ final dashboardSummaryProvider =
     siteId: params.siteId,
     teamId: params.teamId,
   );
+});
+
+final dashboardDraftsProvider = FutureProvider<List<DashDraft>>((ref) async {
+  final mechRepo = DprDraftRepo();
+  final insuRepo = InsuDprDraftRepo();
+
+  final mechDrafts = await mechRepo.getAllDrafts();
+  final insuDrafts = await insuRepo.getAllDrafts();
+
+  final List<DashDraft> all = [];
+
+  for (final d in mechDrafts) {
+    all.add(DashDraft(
+      id: d.draftId,
+      title: d.draft.dprName.isNotEmpty ? d.draft.dprName : "Draft Entry",
+      subtitle: "Site: ${d.siteId} · Team: ${d.teamId}",
+      module: "DPR (Mechanical)",
+      type: 'mech',
+      data: d.draft,
+      savedAt: d.savedAt,
+    ));
+  }
+
+  for (final d in insuDrafts) {
+    all.add(DashDraft(
+      id: d.draftId,
+      title: d.draft.workDescription.isNotEmpty
+          ? d.draft.workDescription
+          : "Draft Entry",
+      subtitle: "Site: ${d.siteId} · Team: ${d.teamId}",
+      module: "DPR (Insulation)",
+      type: 'insu',
+      data: d.draft,
+      savedAt: d.savedAt,
+    ));
+  }
+
+  all.sort((a, b) => b.savedAt.compareTo(a.savedAt));
+  return all;
 });

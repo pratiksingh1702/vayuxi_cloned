@@ -15,7 +15,10 @@ import '../../models/inventory_model.dart';
 import '../../offline/repo/inventory_sync.dart';
 import '../../provider/inventory_provider.dart';
 import '../../../../screen/module_preferences.dart';
+import 'package:untitled2/features/modules/screen/workflow/domain/workflow_controller.dart';
 import '../../../../../../core/utlis/widgets/empty_module_state.dart';
+import '../../../../../../core/utlis/widgets/timeline_date_picker.dart';
+import '../../../../../../core/utlis/widgets/timeline_calendar_dialog.dart';
 
 // BeautifulDatePicker Widget
 class BeautifulDatePicker extends StatefulWidget {
@@ -322,6 +325,8 @@ class _InventorySelectionPageState
   final TextEditingController _quantityController = TextEditingController();
   final GlobalKey<FormState> _formKey = GlobalKey<FormState>();
   DateTime _selectedDate = DateTime.now();
+  Set<DateTime> _completedDates = {};
+  bool _isMultipleEntry = false;
   final ScrollController _scrollController = ScrollController();
 
   @override
@@ -333,7 +338,8 @@ class _InventorySelectionPageState
       // SINGLE sync trigger in screen init ONLY
       ref.read(inventorySyncControllerProvider(siteId));
     }
-  } /**/
+    _initMultiMode();
+  }
 
   @override
   void dispose() {
@@ -357,22 +363,43 @@ class _InventorySelectionPageState
 
   // Function to show BeautifulDatePicker
   Future<void> _pickDate() async {
-    final DateTime? picked = await showDialog<DateTime>(
+    final DateTime? picked = await TimelineCalendarDialog.show(
       context: context,
-      builder: (context) => BeautifulDatePicker(
-        initialDate: _selectedDate,
-        firstDate: DateTime(2000),
-        lastDate: DateTime(2100),
-        title: "Select Usage Date",
-        primaryColor: Theme.of(context).primaryColor,
-        accentColor: Theme.of(context).colorScheme.secondary,
-      ),
+      initialDate: _selectedDate,
+      completedDates: _completedDates,
     );
 
     if (picked != null && picked != _selectedDate) {
       setState(() {
         _selectedDate = picked;
       });
+    }
+  }
+
+  Future<void> _initMultiMode() async {
+    final multi = await ModulePreferences.isMultipleEntry();
+    if (mounted) {
+      setState(() => _isMultipleEntry = multi);
+      if (multi) {
+        _fetchCompletedDates();
+      }
+    }
+  }
+
+  Future<void> _fetchCompletedDates() async {
+    final siteId = ref.read(selectedSiteIdProvider);
+    if (siteId == null) return;
+
+    try {
+      // We can watch usageProvider or just fetch via repo
+      final usage = await ref.read(repositoryProvider).watchUsage(siteId).first;
+      if (mounted) {
+        setState(() {
+          _completedDates = usage.map((u) => DateTime(u.usageDate.year, u.usageDate.month, u.usageDate.day)).toSet();
+        });
+      }
+    } catch (e) {
+      print("Error fetching inventory usage dates: $e");
     }
   }
 
@@ -462,15 +489,23 @@ class _InventorySelectionPageState
 
       final isMultiple = await ModulePreferences.isMultipleEntry();
 
-      if (!isMultiple) {
-        context.pop();
+      // 🔄 Workflow Integration
+      final wf = ref.read(workflowControllerProvider);
+      if (wf.isActive) {
+        ref.read(workflowControllerProvider.notifier).advance(context);
       } else {
-        // Clear form
-        setState(() {
-          _selectedInventoryId = null;
-          _quantityController.clear();
-          _uomController.clear();
-        });
+        if (!_isMultipleEntry) {
+          context.pop();
+        } else {
+          // Refresh checkmarks
+          _fetchCompletedDates();
+          // Clear form
+          setState(() {
+            _selectedInventoryId = null;
+            _quantityController.clear();
+            _uomController.clear();
+          });
+        }
       }
 
       // Show success message
@@ -581,6 +616,18 @@ class _InventorySelectionPageState
                       return Column(
                         crossAxisAlignment: CrossAxisAlignment.start,
                         children: [
+                          if (_isMultipleEntry) ...[
+                            TimelineDatePicker(
+                              selectedDate: _selectedDate,
+                              completedDates: _completedDates,
+                              onDateSelected: (date) {
+                                setState(() {
+                                  _selectedDate = date;
+                                });
+                              },
+                            ),
+                            const SizedBox(height: 16),
+                          ],
                           // Date Picker Container with BeautifulDatePicker
                           GestureDetector(
                             onTap: _pickDate,

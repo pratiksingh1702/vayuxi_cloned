@@ -137,6 +137,9 @@ import '../screens/network_settings_screen.dart';
 import '../screens/settings_screen.dart';
 import 'route_tracker.dart';
 
+import '../../features/modules/screen/workflow/screens/workflow_gate_screen.dart';
+import '../../features/modules/screen/workflow/registry/workflow_registry.dart';
+
 // ─────────────────────────────────────────────────────────────
 //  Tiny helper – keeps every log consistent and easy to grep
 // ─────────────────────────────────────────────────────────────
@@ -738,6 +741,15 @@ final appRouterProvider = Provider<GoRouter>((ref) {
         builder: (context, state) {
           _logRoute('SettingsScreen', path: state.uri.toString());
           return const SettingsScreen();
+        },
+      ),
+      GoRoute(
+        path: Routes.workflowGate,
+        name: 'workflow-gate',
+        builder: (context, state) {
+          final workflowId = (state.extra as Map<String, dynamic>?)?['workflowId'] as String? ?? WorkflowRegistry.dailyEntryId;
+          _logRoute('WorkflowGateScreen', path: state.uri.toString(), extra: {'workflowId': workflowId});
+          return WorkflowGateScreen(workflowId: workflowId);
         },
       ),
       GoRoute(
