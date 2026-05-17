@@ -66,8 +66,6 @@ class _ModuleScreenV2State extends ConsumerState<ModuleScreenV2>
   final Map<String, bool> _pressedMap = {};
 
   bool _showQuickSettings = false;
-  bool _dummyToggle1 = true;
-  bool _dummyToggle2 = false;
 
   @override
   void initState() {
@@ -302,14 +300,13 @@ class _ModuleScreenV2State extends ConsumerState<ModuleScreenV2>
     ];
 
     final dprModule = _getDprModule(type);
-    final pmModule =
-        (type == 'structure_work' || type == WorkType.structure.apiValue)
-            ? ModuleItem(
-                labelKey: 'P&M Database Entry',
-                icon: Icons.precision_manufacturing_rounded,
-                iconColor: const Color(0xFF7B3F00),
-                routeName: "/site-list/structure-pm-entry")
-            : null;
+    final pmModule = (type == 'structure_work' || type == WorkType.structure.apiValue)
+        ? ModuleItem(
+            labelKey: 'P&M Database Entry',
+            icon: Icons.precision_manufacturing_rounded,
+            iconColor: const Color(0xFF7B3F00),
+            routeName: "/site-list/structure-pm-entry")
+        : null;
     return [
       base[0],
       dprModule,
@@ -325,20 +322,18 @@ class _ModuleScreenV2State extends ConsumerState<ModuleScreenV2>
           icon: Icons.description_rounded,
           iconColor: Colors.indigo,
           routeName: "/site-list/dpr");
-    } else if (type == 'insulation_work' ||
-        type == WorkType.insulation.apiValue) {
+    } else if (type == 'insulation_work' || type == WorkType.insulation.apiValue) {
       return ModuleItem(
           labelKey: 'Insulation DPR',
           icon: Icons.layers_rounded,
           iconColor: Colors.indigo,
           routeName: "/site-list/dpr");
-    } else if (type == 'structure_work' ||
-        type == WorkType.structure.apiValue) {
+    } else if (type == 'structure_work' || type == WorkType.structure.apiValue) {
       return ModuleItem(
           labelKey: 'Structure Erection DPR',
           icon: Icons.construction_rounded,
           iconColor: Colors.indigo,
-          routeName: Routes.erectionDpr);
+          routeName: "/site-list/dpr");
     } else if (type == 'civil_work' || type == WorkType.civil.apiValue) {
       return ModuleItem(
           labelKey: 'Civil DPR',
@@ -351,8 +346,7 @@ class _ModuleScreenV2State extends ConsumerState<ModuleScreenV2>
           icon: Icons.roofing_rounded,
           iconColor: Colors.indigo,
           routeName: Routes.roofingDpr);
-    } else if (type == 'fabrication_work' ||
-        type == WorkType.fabrication.apiValue) {
+    } else if (type == 'fabrication_work' || type == WorkType.fabrication.apiValue) {
       return ModuleItem(
           labelKey: 'Structure Fabrication DPR',
           icon: Icons.factory_rounded,
@@ -393,14 +387,18 @@ class _ModuleScreenV2State extends ConsumerState<ModuleScreenV2>
     ];
 
     final dprSetupModule = _getDprSetupModule(type);
-    final secondaryModules = _getSecondaryModules(type);
-    final workAssignmentModule = _getWorkAssignmentModule(type);
+    final secondaryModule = _getSecondaryModule(type);
 
     return [
       ...base,
-      ...secondaryModules,
+      secondaryModule ??
+          ModuleItem(
+            labelKey: 'rate_card',
+            icon: Icons.currency_rupee_rounded,
+            iconColor: Colors.amber,
+            routeName: "/site-list/rate",
+          ),
       dprSetupModule,
-      if (workAssignmentModule != null) workAssignmentModule,
     ];
   }
 
@@ -411,20 +409,18 @@ class _ModuleScreenV2State extends ConsumerState<ModuleScreenV2>
           icon: Icons.settings_suggest_rounded,
           iconColor: Colors.blueGrey,
           routeName: "/site-list/addMoc");
-    } else if (type == 'insulation_work' ||
-        type == WorkType.insulation.apiValue) {
+    } else if (type == 'insulation_work' || type == WorkType.insulation.apiValue) {
       return ModuleItem(
           labelKey: 'Insulation DPR Setup',
           icon: Icons.settings_suggest_rounded,
           iconColor: Colors.blueGrey,
           routeName: "/site-list/addMoc");
-    } else if (type == 'structure_work' ||
-        type == WorkType.structure.apiValue) {
+    } else if (type == 'structure_work' || type == WorkType.structure.apiValue) {
       return ModuleItem(
           labelKey: 'Structure Erection Setup',
           icon: Icons.architecture_rounded,
           iconColor: Colors.blueAccent,
-          routeName: Routes.erectionSetup);
+          routeName: "/site-list/structure-dpr-setup");
     } else if (type == 'civil_work' || type == WorkType.civil.apiValue) {
       return ModuleItem(
           labelKey: 'Civil DPR Setup',
@@ -437,8 +433,7 @@ class _ModuleScreenV2State extends ConsumerState<ModuleScreenV2>
           icon: Icons.roofing_rounded,
           iconColor: Colors.blueGrey,
           routeName: Routes.roofingSetup);
-    } else if (type == 'fabrication_work' ||
-        type == WorkType.fabrication.apiValue) {
+    } else if (type == 'fabrication_work' || type == WorkType.fabrication.apiValue) {
       return ModuleItem(
           labelKey: 'Structure Fabrication Setup',
           icon: Icons.factory_rounded,
@@ -452,49 +447,25 @@ class _ModuleScreenV2State extends ConsumerState<ModuleScreenV2>
         routeName: "/site-list/addMoc");
   }
 
-  ModuleItem? _getWorkAssignmentModule(String? type) {
-    if (type == 'structure_work' ||
-        type == WorkType.structure.apiValue ||
-        type == 'fabrication_work' ||
-        type == WorkType.fabrication.apiValue) {
+  ModuleItem? _getSecondaryModule(String? type) {
+    if (type == 'mechanical_work' || type == WorkType.mechanical.apiValue ||
+        type == 'insulation_work' || type == WorkType.insulation.apiValue ||
+        type == 'roofing_work' || type == WorkType.roofing.apiValue) {
       return ModuleItem(
-          labelKey: 'Work Assignment',
-          icon: Icons.assignment_ind_rounded,
-          iconColor: Colors.deepPurple,
-          routeName: "/site-list/work-assignment");
+          labelKey: 'rate_card',
+          icon: Icons.currency_rupee_rounded,
+          iconColor: Colors.amber,
+          routeName: "/site-list/rate");
+    } else if (type == 'structure_work' || type == WorkType.structure.apiValue ||
+               type == 'civil_work' || type == WorkType.civil.apiValue ||
+               type == 'fabrication_work' || type == WorkType.fabrication.apiValue) {
+      return ModuleItem(
+          labelKey: 'BOQ',
+          icon: Icons.table_rows_rounded,
+          iconColor: const Color(0xFF7B3F00),
+          routeName: Routes.boqUpload);
     }
     return null;
-  }
-
-  List<ModuleItem> _getSecondaryModules(String? type) {
-    final rateModule = ModuleItem(
-        labelKey: 'rate_card',
-        icon: Icons.currency_rupee_rounded,
-        iconColor: Colors.amber,
-        routeName: "/site-list/rate");
-    final boqModule = ModuleItem(
-        labelKey: 'BOQ',
-        icon: Icons.table_rows_rounded,
-        iconColor: const Color(0xFF7B3F00),
-        routeName: Routes.boqUpload);
-
-    if (type == 'mechanical_work' ||
-        type == WorkType.mechanical.apiValue ||
-        type == 'insulation_work' ||
-        type == WorkType.insulation.apiValue ||
-        type == 'roofing_work' ||
-        type == WorkType.roofing.apiValue) {
-      return [rateModule];
-    } else if (type == 'structure_work' ||
-        type == WorkType.structure.apiValue) {
-      return [rateModule, boqModule];
-    } else if (type == 'fabrication_work' ||
-        type == WorkType.fabrication.apiValue) {
-      return [rateModule, boqModule];
-    } else if (type == 'civil_work' || type == WorkType.civil.apiValue) {
-      return [boqModule];
-    }
-    return [rateModule];
   }
 
   List<ModuleItem> get _reportModules {
@@ -531,6 +502,7 @@ class _ModuleScreenV2State extends ConsumerState<ModuleScreenV2>
           routeName: "/site-list/inv-Report"),
     ];
   }
+
 
   final List<ModuleItem> _moreModules = [
     ModuleItem(
@@ -764,11 +736,10 @@ class _ModuleScreenV2State extends ConsumerState<ModuleScreenV2>
       physics: const AlwaysScrollableScrollPhysics(),
       child: Column(
         children: [
-          if (wf.isActive) _buildWorkflowBanner(wf, cs, isDark),
           _buildContextualHeader(t),
-          const SizedBox(height: 12),
+          const SizedBox(height: 24),
           _buildDropdownRow(),
-          const SizedBox(height: 10),
+          const SizedBox(height: 20),
           // CONDITIONAL: inline module card (detached state)
           AnimatedSize(
             duration: const Duration(milliseconds: 400),
@@ -777,7 +748,7 @@ class _ModuleScreenV2State extends ConsumerState<ModuleScreenV2>
                 ? const SizedBox.shrink()
                 : _buildInlineModuleCard(t, cs, isDark),
           ),
-          const SizedBox(height: 10),
+          const SizedBox(height: 16),
           if (_currentIndex == 0) ...[
             _buildDailyStatsSection(cs, isDark),
             const SizedBox(height: 10),
@@ -823,75 +794,6 @@ class _ModuleScreenV2State extends ConsumerState<ModuleScreenV2>
     );
   }
 
-  Widget _buildWorkflowBanner(WorkflowState wf, ColorScheme cs, bool isDark) {
-    return Container(
-      width: double.infinity,
-      margin: const EdgeInsets.fromLTRB(20, 16, 20, 4),
-      padding: const EdgeInsets.all(16),
-      decoration: BoxDecoration(
-        color: cs.primary.withOpacity(0.1),
-        borderRadius: BorderRadius.circular(20),
-        border: Border.all(color: cs.primary.withOpacity(0.2)),
-      ),
-      child: Column(
-        children: [
-          Row(
-            children: [
-              Container(
-                padding: const EdgeInsets.all(8),
-                decoration: BoxDecoration(
-                  color: cs.primary.withOpacity(0.1),
-                  shape: BoxShape.circle,
-                ),
-                child: Icon(Icons.auto_awesome_rounded,
-                    size: 18, color: cs.primary),
-              ),
-              const SizedBox(width: 12),
-              Expanded(
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Text(
-                      "Workflow in Progress",
-                      style: TextStyle(
-                        fontSize: 14,
-                        fontWeight: FontWeight.w800,
-                        color: cs.onSurface,
-                      ),
-                    ),
-                    Text(
-                      wf.stepLabel,
-                      style: TextStyle(
-                        fontSize: 11,
-                        color: cs.onSurfaceVariant,
-                      ),
-                    ),
-                  ],
-                ),
-              ),
-              IconButton(
-                icon: const Icon(Icons.close_rounded, size: 20),
-                onPressed: () => ref
-                    .read(workflowControllerProvider.notifier)
-                    .cancelWorkflow(context),
-              ),
-            ],
-          ),
-          const SizedBox(height: 12),
-          ClipRRect(
-            borderRadius: BorderRadius.circular(4),
-            child: LinearProgressIndicator(
-              value: wf.progressFraction,
-              backgroundColor: cs.primary.withOpacity(0.1),
-              valueColor: AlwaysStoppedAnimation<Color>(cs.primary),
-              minHeight: 6,
-            ),
-          ),
-        ],
-      ),
-    );
-  }
-
   Widget _buildWorkflowFab(ColorScheme cs, bool isDark) {
     return Positioned(
       bottom: 100 + MediaQuery.of(context).padding.bottom,
@@ -911,8 +813,7 @@ class _ModuleScreenV2State extends ConsumerState<ModuleScreenV2>
   }
 
   void _navigateToWorkflowGate() {
-    context.push(Routes.workflowGate,
-        extra: {'workflowId': WorkflowRegistry.dailyEntryId});
+    context.push(Routes.workflowGate, extra: {'workflowId': WorkflowRegistry.dailyEntryId});
   }
 
   double _getDockSpacerHeight(List<ModuleItem> currentModules) {
@@ -1000,7 +901,7 @@ class _ModuleScreenV2State extends ConsumerState<ModuleScreenV2>
                       ),
 
                     // Layer 7: Workflow FAB
-                    if (_currentIndex == 0 && !wf.isActive)
+                    if (_currentIndex == 0)
                       _buildWorkflowFab(cs, isDark),
                   ],
                 ),
@@ -1026,10 +927,6 @@ class _ModuleScreenV2State extends ConsumerState<ModuleScreenV2>
     else if (hour >= 17) greeting = "Good Evening";
 
     final userName = (user?.fullName ?? "Guest").split(' ').first;
-
-    // 2. Work Stream Info
-    final workType = WorkType.fromApiValue(type);
-    final typeName = workType?.displayName ?? "Work";
 
     final now = DateTime.now();
     final days = ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun'];
@@ -1076,24 +973,25 @@ class _ModuleScreenV2State extends ConsumerState<ModuleScreenV2>
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                Text("$greeting, $userName",
+                Text(greeting,
                     style: TextStyle(
-                        fontSize: 19,
-                        fontWeight: FontWeight.w800,
+                        fontSize: 13,
+                        fontWeight: FontWeight.w600,
+                        color: cs.onSurfaceVariant)),
+                const SizedBox(height: 2),
+                Text(userName,
+                    style: TextStyle(
+                        fontSize: 24,
+                        fontWeight: FontWeight.w900,
                         color: cs.onSurface,
+                        letterSpacing: -0.5,
                         height: 1.1)),
-                const SizedBox(height: 1),
-                Text("$typeName Hub",
-                    style: TextStyle(
-                        fontSize: 11,
-                        fontWeight: FontWeight.w700,
-                        letterSpacing: 0.5,
-                        color: cs.primary)),
+                const SizedBox(height: 4),
                 Text(dateStr,
                     style: TextStyle(
-                        fontSize: 10,
-                        fontWeight: FontWeight.w400,
-                        color: cs.onSurfaceVariant)),
+                        fontSize: 11,
+                        fontWeight: FontWeight.w500,
+                        color: cs.primary)),
               ],
             ),
           ),
@@ -1114,10 +1012,8 @@ class _ModuleScreenV2State extends ConsumerState<ModuleScreenV2>
                     ? Image.network(
                         user.profilePhoto!,
                         fit: BoxFit.cover,
-                        errorBuilder: (context, error, stackTrace) => Icon(
-                            Icons.person_rounded,
-                            size: 18,
-                            color: cs.primary),
+                        errorBuilder: (context, error, stackTrace) =>
+                            Icon(Icons.person_rounded, size: 18, color: cs.primary),
                       )
                     : Icon(Icons.person_rounded, size: 18, color: cs.primary),
               ),
@@ -1146,60 +1042,23 @@ class _ModuleScreenV2State extends ConsumerState<ModuleScreenV2>
 
   // ── Part 3: Dropdowns ──────────────────────────────────────────────────────
   Widget _buildDropdownRow() {
-    return LayoutBuilder(
-      builder: (context, constraints) {
-        final itemWidth = (constraints.maxWidth - 32 - 12) / 2;
-        return Padding(
-          padding: const EdgeInsets.symmetric(horizontal: 16),
-          child: Wrap(
-            spacing: 12,
-            runSpacing: 10,
-            children: [
-              SizedBox(
-                width: itemWidth,
-                child: _buildCustomDropdown(
-                  label: "TYPE",
-                  icon: Icons.category_rounded,
-                ),
-              ),
-              SizedBox(
-                width: itemWidth,
-                child: _buildCustomDropdown(
-                  label: "MODE",
-                  icon: Icons.layers_rounded,
-                ),
-              ),
-              SizedBox(
-                width: itemWidth,
-                child: _buildCustomDropdown(
-                  label: "SITE",
-                  icon: Icons.location_city_rounded,
-                ),
-              ),
-              SizedBox(
-                width: itemWidth,
-                child: _buildCustomDropdown(
-                  label: "TEAM",
-                  icon: Icons.groups_rounded,
-                ),
-              ),
-            ],
-          ),
-        );
-      },
+    return Padding(
+      padding: const EdgeInsets.symmetric(horizontal: 16),
+      child: Row(
+        children: [
+          Expanded(child: _buildCustomDropdown(label: "TYPE")),
+          const SizedBox(width: 8),
+          Expanded(child: _buildCustomDropdown(label: "MODE")),
+         const SizedBox(width: 8),
+          Expanded(child: _buildCustomDropdown(label: "SITE")),
+          const SizedBox(width: 8),
+          Expanded(child: _buildCustomDropdown(label: "TEAM")),
+        ],
+      ),
     );
   }
 
-  TextStyle _dropdownTextStyle(ColorScheme cs) {
-    return TextStyle(
-      fontSize: 12.5,
-      fontWeight: FontWeight.w700,
-      color: cs.onSurface,
-      overflow: TextOverflow.ellipsis,
-    );
-  }
-
-  Widget _buildCustomDropdown({required String label, required IconData icon}) {
+  Widget _buildCustomDropdown({required String label}) {
     final cs = Theme.of(context).colorScheme;
 
     // Data for Site/Team
@@ -1213,8 +1072,7 @@ class _ModuleScreenV2State extends ConsumerState<ModuleScreenV2>
     final currentTypeApi = ref.watch(typeProvider);
     final currentWorkType = WorkType.fromApiValue(currentTypeApi);
 
-    final bool isLoading = (label == "SITE" && siteState.isLoading) ||
-        (label == "TEAM" && teamState.isLoading);
+    final bool isLoading = (label == "SITE" && siteState.isLoading) || (label == "TEAM" && teamState.isLoading);
     Widget dropdown;
 
     if (isLoading) {
@@ -1230,19 +1088,17 @@ class _ModuleScreenV2State extends ConsumerState<ModuleScreenV2>
       dropdown = DropdownButton<SiteModel?>(
         value: selectedSite,
         isExpanded: true,
-        icon: Icon(Icons.keyboard_arrow_down_rounded,
-            size: 20, color: cs.onSurfaceVariant),
-        style: _dropdownTextStyle(cs),
-        hint: Text("Select site", style: _dropdownTextStyle(cs)),
+        hint: const Text("Site",
+            style: TextStyle(fontSize: 10, fontWeight: FontWeight.w600)),
         items: [
-          DropdownMenuItem<SiteModel?>(
+          const DropdownMenuItem<SiteModel?>(
             value: null,
-            child: Text('No site selected', style: _dropdownTextStyle(cs)),
+            child: Text('None', style: TextStyle(fontSize: 10)),
           ),
           ...allSites.map((s) => DropdownMenuItem<SiteModel?>(
                 value: s,
                 child: Text(s.siteName,
-                    style: _dropdownTextStyle(cs),
+                    style: const TextStyle(fontSize: 10),
                     overflow: TextOverflow.ellipsis),
               )),
         ],
@@ -1252,19 +1108,17 @@ class _ModuleScreenV2State extends ConsumerState<ModuleScreenV2>
       dropdown = DropdownButton<TeamModel?>(
         value: selectedTeam,
         isExpanded: true,
-        icon: Icon(Icons.keyboard_arrow_down_rounded,
-            size: 20, color: cs.onSurfaceVariant),
-        style: _dropdownTextStyle(cs),
-        hint: Text("Select team", style: _dropdownTextStyle(cs)),
+        hint: const Text("Team",
+            style: TextStyle(fontSize: 10, fontWeight: FontWeight.w600)),
         items: [
-          DropdownMenuItem<TeamModel?>(
+          const DropdownMenuItem<TeamModel?>(
             value: null,
-            child: Text('No team selected', style: _dropdownTextStyle(cs)),
+            child: Text('None', style: TextStyle(fontSize: 10)),
           ),
           ...(teamState.teams ?? []).map((t) => DropdownMenuItem<TeamModel?>(
                 value: t,
                 child: Text(t.teamName,
-                    style: _dropdownTextStyle(cs),
+                    style: const TextStyle(fontSize: 10),
                     overflow: TextOverflow.ellipsis),
               )),
         ],
@@ -1274,15 +1128,13 @@ class _ModuleScreenV2State extends ConsumerState<ModuleScreenV2>
       dropdown = DropdownButton<WorkType?>(
         value: currentWorkType,
         isExpanded: true,
-        icon: Icon(Icons.keyboard_arrow_down_rounded,
-            size: 20, color: cs.onSurfaceVariant),
-        style: _dropdownTextStyle(cs),
-        hint: Text("Select type", style: _dropdownTextStyle(cs)),
+        hint: const Text("Type",
+            style: TextStyle(fontSize: 10, fontWeight: FontWeight.w600)),
         items: WorkType.values
             .map((wt) => DropdownMenuItem<WorkType?>(
                   value: wt,
                   child: Text(wt.displayName,
-                      style: _dropdownTextStyle(cs),
+                      style: const TextStyle(fontSize: 10),
                       overflow: TextOverflow.ellipsis),
                 ))
             .toList(),
@@ -1309,17 +1161,14 @@ class _ModuleScreenV2State extends ConsumerState<ModuleScreenV2>
       dropdown = DropdownButton<bool>(
         value: _multipleEntryMode,
         isExpanded: true,
-        icon: Icon(Icons.keyboard_arrow_down_rounded,
-            size: 20, color: cs.onSurfaceVariant),
-        style: _dropdownTextStyle(cs),
-        items: [
+        items: const [
           DropdownMenuItem(
             value: false,
-            child: Text("Single entry", style: _dropdownTextStyle(cs)),
+            child: Text("Single", style: TextStyle(fontSize: 10)),
           ),
           DropdownMenuItem(
             value: true,
-            child: Text("Multi entry", style: _dropdownTextStyle(cs)),
+            child: Text("Multi", style: TextStyle(fontSize: 10)),
           ),
         ],
         onChanged: (val) {
@@ -1332,48 +1181,34 @@ class _ModuleScreenV2State extends ConsumerState<ModuleScreenV2>
     }
 
     return Container(
-      height: 64,
-      padding: const EdgeInsets.fromLTRB(10, 7, 8, 7),
+      height: 40,
       decoration: BoxDecoration(
         color: cs.surfaceContainerLow,
-        borderRadius: BorderRadius.circular(14),
+        borderRadius: BorderRadius.circular(10),
         border:
             Border.all(color: cs.outlineVariant.withOpacity(0.4), width: 0.8),
       ),
-      child: Row(
+      child: Stack(
         children: [
-          Container(
-            width: 34,
-            height: 34,
-            decoration: BoxDecoration(
-              color: cs.primary.withOpacity(0.09),
-              borderRadius: BorderRadius.circular(10),
-            ),
-            child: Icon(icon, size: 18, color: cs.primary),
+          Positioned(
+            top: 4,
+            left: 6,
+            child: Text(label,
+                style: TextStyle(
+                    fontSize: 7.5,
+                    fontWeight: FontWeight.w800,
+                    letterSpacing: 0.4,
+                    color: cs.primary.withOpacity(0.8))),
           ),
-          const SizedBox(width: 8),
-          Expanded(
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Text(label,
-                    style: TextStyle(
-                        fontSize: 9,
-                        fontWeight: FontWeight.w900,
-                        letterSpacing: 0.4,
-                        color: cs.primary.withOpacity(0.82))),
-                const SizedBox(height: 1),
-                Expanded(
-                  child: DropdownButtonHideUnderline(
-                    child: ButtonTheme(
-                      alignedDropdown: false,
-                      child: dropdown,
-                    ),
-                  ),
-                ),
-              ],
+          Padding(
+            padding: const EdgeInsets.only(top: 11, left: 4, right: 0),
+            child: DropdownButtonHideUnderline(
+              child: ButtonTheme(
+                alignedDropdown: true,
+                child: dropdown,
+              ),
             ),
-          ),
+          )
         ],
       ),
     );
@@ -1456,8 +1291,8 @@ class _ModuleScreenV2State extends ConsumerState<ModuleScreenV2>
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          _buildLastEntryRow(cs, Icons.history_rounded,
-              entryText("Attendance", s.attendance.lastEntry)),
+          _buildLastEntryRow(
+              cs, Icons.history_rounded, entryText("Attendance", s.attendance.lastEntry)),
           const SizedBox(height: 8),
           _buildLastEntryRow(
               cs,
@@ -1558,103 +1393,96 @@ class _ModuleScreenV2State extends ConsumerState<ModuleScreenV2>
 
     final hasLowStock = s.inventory.lowStockItems > 0;
 
-    return LayoutBuilder(
-      builder: (context, constraints) {
-        final tileWidth = (constraints.maxWidth - 10) / 2;
-
-        return Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            // Eyebrow label
-            Row(children: [
-              Container(
-                width: 5,
-                height: 5,
-                decoration: const BoxDecoration(
-                    color: Colors.greenAccent, shape: BoxShape.circle),
-              ),
-              const SizedBox(width: 6),
-              Text(
-                "Today's Snapshot",
-                style: TextStyle(
-                  fontSize: 11,
-                  fontWeight: FontWeight.w800,
-                  letterSpacing: 0.4,
-                  color: cs.onSurfaceVariant,
-                ),
-              ),
-            ]),
-            const SizedBox(height: 10),
-
-            Wrap(
-              spacing: 10,
-              runSpacing: 10,
-              children: [
-                _buildStatTile(
-                  width: tileWidth,
-                  cs: cs,
-                  isDark: isDark,
-                  icon: Icons.how_to_reg_rounded,
-                  iconColor: Colors.green,
-                  label: 'Attendance',
-                  value: '${s.attendance.totalPresent}',
-                  sub: '${s.attendance.totalAbsent} absent',
-                  subColor: s.attendance.totalAbsent > 0
-                      ? Colors.orange
-                      : cs.onSurfaceVariant,
-                  time: fmtTime(s.attendance.lastEntry?.createdAt),
-                ),
-                _buildStatTile(
-                  width: tileWidth,
-                  cs: cs,
-                  isDark: isDark,
-                  icon: Icons.description_rounded,
-                  iconColor: Colors.indigo,
-                  label: 'DPR',
-                  value: s.dpr.lastEntry != null ? 'Filed' : 'None',
-                  sub: s.dpr.totalQty != null
-                      ? 'Qty ${s.dpr.totalQty}'
-                      : (s.dpr.remarks ?? '—'),
-                  subColor: cs.onSurfaceVariant,
-                  time: fmtTime(s.dpr.lastEntry?.createdAt),
-                ),
-                _buildStatTile(
-                  width: tileWidth,
-                  cs: cs,
-                  isDark: isDark,
-                  icon: Icons.receipt_long_rounded,
-                  iconColor: Colors.orange,
-                  label: 'Expenses',
-                  value: fmtAmount(s.expenses.totalAmount),
-                  sub: s.expenses.category ?? '—',
-                  subColor: cs.onSurfaceVariant,
-                  time: fmtTime(s.expenses.lastEntry?.createdAt),
-                ),
-                _buildStatTile(
-                  width: tileWidth,
-                  cs: cs,
-                  isDark: isDark,
-                  icon: Icons.inventory_2_rounded,
-                  iconColor: hasLowStock ? Colors.redAccent : Colors.teal,
-                  label: 'Inventory',
-                  value: '${s.inventory.totalItems}',
-                  sub: hasLowStock
-                      ? '${s.inventory.lowStockItems} low'
-                      : 'All stocked',
-                  subColor: hasLowStock ? Colors.redAccent : Colors.teal,
-                  time: null,
-                  highlight: hasLowStock,
-                ),
-              ],
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        // Eyebrow label
+        Row(children: [
+          Container(
+            width: 5,
+            height: 5,
+            decoration: const BoxDecoration(
+                color: Colors.greenAccent, shape: BoxShape.circle),
+          ),
+          const SizedBox(width: 6),
+          Text(
+            "Today's Work Update",
+            style: TextStyle(
+              fontSize: 10,
+              fontWeight: FontWeight.w700,
+              letterSpacing: 0.5,
+              color: cs.onSurfaceVariant,
             ),
-          ],
-        );
-      },
+          ),
+        ]),
+        const SizedBox(height: 8),
+
+        // 4 stat tiles — single row
+        IntrinsicHeight(
+          child: Row(
+            crossAxisAlignment: CrossAxisAlignment.stretch,
+            children: [
+              _buildStatTile(
+            cs: cs,
+            isDark: isDark,
+            icon: Icons.how_to_reg_rounded,
+            iconColor: Colors.green,
+            label: 'Attendance',
+            value: '${s.attendance.totalPresent}',
+            sub: '${s.attendance.totalAbsent} absent',
+            subColor: s.attendance.totalAbsent > 0
+                ? Colors.orange
+                : cs.onSurfaceVariant,
+            time: fmtTime(s.attendance.lastEntry?.createdAt),
+          ),
+          const SizedBox(width: 8),
+          _buildStatTile(
+            cs: cs,
+            isDark: isDark,
+            icon: Icons.description_rounded,
+            iconColor: Colors.indigo,
+            label: 'DPR',
+            value: s.dpr.lastEntry != null ? 'DPR Update' : 'None',
+            sub: s.dpr.totalQty != null
+                ? 'Qty ${s.dpr.totalQty}'
+                : (s.dpr.remarks ?? '—'),
+            subColor: cs.onSurfaceVariant,
+            time: fmtTime(s.dpr.lastEntry?.createdAt),
+          ),
+          const SizedBox(width: 8),
+          _buildStatTile(
+            cs: cs,
+            isDark: isDark,
+            icon: Icons.receipt_long_rounded,
+            iconColor: Colors.orange,
+            label: 'Expenses',
+            value: fmtAmount(s.expenses.totalAmount),
+            sub: s.expenses.category ?? '—',
+            subColor: cs.onSurfaceVariant,
+            time: fmtTime(s.expenses.lastEntry?.createdAt),
+          ),
+          const SizedBox(width: 8),
+          _buildStatTile(
+            cs: cs,
+            isDark: isDark,
+            icon: Icons.inventory_2_rounded,
+            iconColor: hasLowStock ? Colors.redAccent : Colors.teal,
+            label: 'Inventory',
+            value: '${s.inventory.totalItems}',
+            sub: hasLowStock
+                ? '${s.inventory.lowStockItems} low'
+                : 'All stocked',
+            subColor: hasLowStock ? Colors.redAccent : Colors.teal,
+            time: null,
+            highlight: hasLowStock,
+          ),
+        ]),
+        ),
+      ],
     );
   }
 
   Widget _buildStatTile({
-    required double width,
     required ColorScheme cs,
     required bool isDark,
     required IconData icon,
@@ -1666,11 +1494,9 @@ class _ModuleScreenV2State extends ConsumerState<ModuleScreenV2>
     String? time,
     bool highlight = false,
   }) {
-    return SizedBox(
-      width: width,
+    return Expanded(
       child: Container(
-        constraints: const BoxConstraints(minHeight: 96),
-        padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 11),
+        padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 10),
         decoration: BoxDecoration(
           color: isDark ? cs.surfaceContainerHigh : Colors.white,
           borderRadius: BorderRadius.circular(14),
@@ -1697,10 +1523,8 @@ class _ModuleScreenV2State extends ConsumerState<ModuleScreenV2>
             const SizedBox(height: 6),
             Text(
               value,
-              maxLines: 1,
-              overflow: TextOverflow.ellipsis,
               style: TextStyle(
-                fontSize: 17,
+                fontSize: 14,
                 fontWeight: FontWeight.w800,
                 color: cs.onSurface,
                 height: 1.0,
@@ -1709,24 +1533,21 @@ class _ModuleScreenV2State extends ConsumerState<ModuleScreenV2>
             const SizedBox(height: 2),
             Text(
               sub,
-              maxLines: 2,
+              maxLines: 1,
               overflow: TextOverflow.ellipsis,
               style: TextStyle(
-                fontSize: 11,
-                fontWeight: FontWeight.w600,
+                fontSize: 9,
+                fontWeight: FontWeight.w500,
                 color: subColor,
-                height: 1.15,
               ),
             ),
             if (time != null) ...[
               const SizedBox(height: 3),
               Text(
                 time,
-                maxLines: 1,
-                overflow: TextOverflow.ellipsis,
                 style: TextStyle(
-                  fontSize: 9.5,
-                  fontWeight: FontWeight.w500,
+                  fontSize: 8,
+                  fontWeight: FontWeight.w400,
                   color: cs.onSurfaceVariant.withOpacity(0.5),
                 ),
               ),
@@ -1734,10 +1555,8 @@ class _ModuleScreenV2State extends ConsumerState<ModuleScreenV2>
             const SizedBox(height: 4),
             Text(
               label,
-              maxLines: 1,
-              overflow: TextOverflow.ellipsis,
               style: TextStyle(
-                fontSize: 10.5,
+                fontSize: 9,
                 fontWeight: FontWeight.w700,
                 letterSpacing: 0.3,
                 color: cs.onSurfaceVariant.withOpacity(0.55),
@@ -2218,39 +2037,11 @@ class _ModuleScreenV2State extends ConsumerState<ModuleScreenV2>
             child: Column(
               mainAxisSize: MainAxisSize.min,
               children: [
-                _buildQuickSettingRow("Attach to Nav", _moduleCardAttached,
-                    (val) {
-                  if (val) {
-                    _attachModuleCard(t);
-                  } else {
-                    _detachModuleCard();
-                  }
-                }),
-                const Divider(height: 16, thickness: 0.5),
                 _buildQuickSettingRow("Multiple Entry Mode", _multipleEntryMode,
                     (val) {
                   setState(() => _multipleEntryMode = val);
                   ModulePreferences.setMultipleEntry(val);
                 }),
-                const Divider(height: 16, thickness: 0.5),
-                _buildQuickSettingRow("Compact Mode", _dummyToggle1,
-                    (val) => setState(() => _dummyToggle1 = val)),
-                const Divider(height: 16, thickness: 0.5),
-                _buildQuickSettingRow("Show Labels", _dummyToggle2,
-                    (val) => setState(() => _dummyToggle2 = val)),
-                const Divider(height: 16, thickness: 0.5),
-                ListTile(
-                  dense: true,
-                  contentPadding: EdgeInsets.zero,
-                  leading:
-                      Icon(Icons.logout_rounded, size: 18, color: cs.error),
-                  title: Text("Log Out",
-                      style: TextStyle(
-                          fontSize: 13,
-                          color: cs.error,
-                          fontWeight: FontWeight.w600)),
-                  onTap: () => context.go('/workCategory'),
-                ),
               ],
             ),
           ),

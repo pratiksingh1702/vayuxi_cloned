@@ -148,27 +148,37 @@ class _NotificationListScreenState
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          const SizedBox(height: 10),
-          // Actions Row at Top Right
-          Align(
-            alignment: Alignment.centerRight,
-            child: Row(
-              mainAxisSize: MainAxisSize.min,
-              children: [
-                IconButton(
-                  icon: const Icon(Icons.filter_list_rounded, color: Colors.black54),
-                  tooltip: 'Management Options',
-                  onPressed: _showSettingsSheet,
+          const SizedBox(height: 16),
+          Row(
+            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+            children: [
+              const Text(
+                "Updates",
+                style: TextStyle(
+                  fontSize: 28,
+                  fontWeight: FontWeight.w900,
+                  color: Color(0xFF1F2937),
+                  letterSpacing: -0.5,
                 ),
-                IconButton(
-                  icon: const Icon(Icons.settings_outlined, color: Colors.black54),
-                  tooltip: 'Notification Settings',
-                  onPressed: () => UpdatesRoutes.goSettings(context),
-                ),
-              ],
-            ),
+              ),
+              Row(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  IconButton(
+                    icon: const Icon(Icons.filter_list_rounded, color: Colors.black54),
+                    tooltip: 'Management Options',
+                    onPressed: _showSettingsSheet,
+                  ),
+                  IconButton(
+                    icon: const Icon(Icons.settings_outlined, color: Colors.black54),
+                    tooltip: 'Notification Settings',
+                    onPressed: () => UpdatesRoutes.goSettings(context),
+                  ),
+                ],
+              ),
+            ],
           ),
-          const SizedBox(height: 10),
+          const SizedBox(height: 24),
 
           // 1. Hero Card (Commented out as requested)
           // _buildHeroCard(context, runningSyncs, queuedSyncs),
@@ -180,14 +190,13 @@ class _NotificationListScreenState
           // _buildMinimalSummaryTile(...)
 
           if (draftNotifications.isNotEmpty) ...[
-            _buildMinimalSummaryTile(
+            _buildStatusTile(
               context,
-              icon: Icons.bookmark_added_rounded,
-              iconBg: const Color(0xFFE0E7FF),
-              iconColor: const Color(0xFF6366F1),
-              title: "Saved Drafts",
-              subtitle: "${draftNotifications.length} items ready for final review",
-              onTap: () => setState(() => _currentCategory = NotificationCategory.drafts),
+              icon: Icons.edit_note_rounded,
+              iconBg: const Color(0xFFEEF2FF),
+              iconColor: const Color(0xFF4F46E5),
+              text: "You have ${draftNotifications.length} unsaved draft(s). Please find them in the Daily Entry section.",
+              textColor: const Color(0xFF3730A3),
             ),
             const SizedBox(height: 12),
           ],
@@ -452,14 +461,6 @@ class _NotificationListScreenState
             const SizedBox(height: 24),
             ListTile(
               onTap: () {
-                _injectPreviewData();
-                Navigator.pop(context);
-              },
-              leading: const Icon(Icons.bug_report_rounded, color: Color(0xFF6366F1)),
-              title: const Text("Inject Preview Data", style: TextStyle(fontWeight: FontWeight.w700)),
-            ),
-            ListTile(
-              onTap: () {
                 ref.read(notificationListProvider.notifier).clearAllNotifications();
                 Navigator.pop(context);
               },
@@ -481,57 +482,6 @@ class _NotificationListScreenState
     );
   }
 
-  void _injectPreviewData() async {
-    final repo = ref.read(notificationRepositoryProvider);
-    final now = DateTime.now();
-
-    // 1. Inject General Activity Notifications
-    final generalItems = [
-      ("Security Alert", "New login detected from Site ID: 402"),
-      ("Team Update", "Manager shared a new resource link"),
-      ("Maintenance", "Server will be down for 2 mins at midnight"),
-      ("Broadcast", "Monthly performance reports are now available"),
-      ("Alert", "Critical equipment failure reported at block B"),
-    ];
-
-    for (var item in generalItems) {
-      await repo.addNotification(NotificationModel(
-        id: "gen_${now.millisecondsSinceEpoch}_${item.$1.hashCode}",
-        title: item.$1,
-        description: item.$2,
-        timestamp: now,
-        priority: NotificationPriority.medium,
-        type: NotificationType.update,
-        metadata: {"source": "general"},
-      ));
-    }
-
-    // 2. Inject Network Sync Items
-    for (int i = 1; i <= 3; i++) {
-      final dummyReq = QueuedRequest(
-        method: "POST",
-        path: "/api/sync/test_$i",
-        data: {"batch": i},
-      );
-      await RequestQueue.add(dummyReq);
-      await NotificationIngestionService.persistQueuedRequest(dummyReq);
-      ref.read(syncJobsProvider.notifier).addQueued(dummyReq.id, "Sync Batch #$i Data");
-    }
-
-    // 3. Inject Saved Drafts
-    final draftTitles = ["Site Log #203", "Safety Audit - South", "Material Req #88"];
-    for (var title in draftTitles) {
-      await repo.addNotification(NotificationModel(
-        id: "draft_${now.millisecondsSinceEpoch}_${title.hashCode}",
-        title: title,
-        description: "Unsaved local progress detected. Review to finalize.",
-        timestamp: now,
-        priority: NotificationPriority.high,
-        type: NotificationType.update,
-        metadata: {"source": "dpr_upload", "draft_id": "draft_${title.hashCode}"},
-      ));
-    }
-  }
 }
 
 class _EmptyState extends StatelessWidget {

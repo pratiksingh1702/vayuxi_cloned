@@ -128,7 +128,7 @@ class WorkflowGateScreen extends ConsumerWidget {
                                 shadowColor: cs.primary.withOpacity(0.4),
                               ),
                               child: Text(
-                                wfState.isActive ? "Start ${currentStep.title}" : "Start Session",
+                                "Add ${currentStep.title}",
                                 style: const TextStyle(fontSize: 18, fontWeight: FontWeight.w800),
                               ),
                             ),
@@ -185,7 +185,7 @@ class WorkflowGateScreen extends ConsumerWidget {
               ),
               const SizedBox(height: 32),
               const Text(
-                "Session Complete",
+                "Work Update Completed",
                 style: TextStyle(fontSize: 28, fontWeight: FontWeight.w900),
               ),
               const SizedBox(height: 12),
@@ -299,10 +299,16 @@ class _TimelineNode extends StatelessWidget {
       // Or the icon color?
       // In module_screen_v2, the cards have colored icons.
       iconColor = Colors.white;
-      overlay = const Positioned(
+      overlay = Positioned(
         bottom: -2,
         right: -2,
-        child: Icon(Icons.check_circle_rounded, size: 16, color: Colors.green),
+        child: Container(
+          decoration: const BoxDecoration(
+            color: Colors.white,
+            shape: BoxShape.circle,
+          ),
+          child: const Icon(Icons.check_circle_rounded, size: 16, color: Colors.green),
+        ),
       );
     } else if (isSkipped) {
       bgColor = cs.outlineVariant;
