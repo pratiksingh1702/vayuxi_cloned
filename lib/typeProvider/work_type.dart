@@ -15,7 +15,7 @@ enum WorkType {
       case WorkType.insulation:
         return 'insulation_work';
       case WorkType.structure:
-        return 'structure_work';
+        return 'erection_work';
       case WorkType.civil:
         return 'civil_work';
       case WorkType.roofing:
@@ -110,6 +110,7 @@ enum WorkType {
       case 'insulation_work':
         return WorkType.insulation;
       case 'structure_work':
+      case 'erection_work':
         return WorkType.structure;
       case 'civil_work':
         return WorkType.civil;

@@ -5,27 +5,23 @@ import 'package:dio/dio.dart';
 import '../../../../../core/api/dio.dart';
 import '../repository/siteModel.dart';
 
-
 class SiteAPI {
   static final dio = DioClient.dio;
 
   static Future<List<Map<String, dynamic>>> fetchSites(String type) async {
-    final res = await dio.get("/site", queryParameters: {"type": type}
-    );
+    final res = await dio.get("/site", queryParameters: {"type": type});
     print("Raw Response: ${res.data}");
 
     if (res.statusCode == 200) {
-      return List<Map<String, dynamic>>.from(res.data); // assuming your API returns a list of sites
+      return List<Map<String, dynamic>>.from(
+          res.data); // assuming your API returns a list of sites
     } else {
       throw Exception("Failed to fetch sites: ${res.statusCode}");
     }
   }
 
-
   static Future<void> updateSite(String siteId, FormData data) async {
     try {
-
-
       final response = await dio.put(
         '/site/$siteId',
         data: data,
@@ -43,10 +39,9 @@ class SiteAPI {
       rethrow;
     }
   }
+
   static Future<void> delete(String siteId) async {
     try {
-
-
       final response = await dio.delete(
         '/site/$siteId',
         options: Options(
@@ -63,6 +58,7 @@ class SiteAPI {
       rethrow;
     }
   }
+
   static Future<void> bulkDeleteSites(List<String> siteIds) async {
     if (siteIds.isEmpty) {
       throw Exception("Bulk delete called with empty ID list");
@@ -90,10 +86,10 @@ class SiteAPI {
   }
 
   static Future<Map<String, dynamic>> uploadFile(
-      File file,
-      String type, {
-        String? siteId,
-      }) async {
+    File file,
+    String type, {
+    String? siteId,
+  }) async {
     final formData = FormData.fromMap({
       'file': await MultipartFile.fromFile(
         file.path,
@@ -113,13 +109,12 @@ class SiteAPI {
     return response.data as Map<String, dynamic>;
   }
 
-
-
   static Future<Map<String, dynamic>> createSite(
       FormData formData, String type) async {
     try {
       final res = await dio.post(
-        "/sit?type=$type",
+        "/site",
+        queryParameters: {"type": type},
         data: formData,
         options: Options(
           validateStatus: (status) {

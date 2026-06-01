@@ -302,13 +302,14 @@ class _ModuleScreenV2State extends ConsumerState<ModuleScreenV2>
     ];
 
     final dprModule = _getDprModule(type);
-    final pmModule = (type == 'structure_work' || type == WorkType.structure.apiValue)
-        ? ModuleItem(
-            labelKey: 'P&M Database Entry',
-            icon: Icons.precision_manufacturing_rounded,
-            iconColor: const Color(0xFF7B3F00),
-            routeName: "/site-list/structure-pm-entry")
-        : null;
+    final pmModule =
+        (type == 'structure_work' || type == WorkType.structure.apiValue)
+            ? ModuleItem(
+                labelKey: 'P&M Database Entry',
+                icon: Icons.precision_manufacturing_rounded,
+                iconColor: const Color(0xFF7B3F00),
+                routeName: "/site-list/structure-pm-entry")
+            : null;
     return [
       base[0],
       dprModule,
@@ -324,18 +325,20 @@ class _ModuleScreenV2State extends ConsumerState<ModuleScreenV2>
           icon: Icons.description_rounded,
           iconColor: Colors.indigo,
           routeName: "/site-list/dpr");
-    } else if (type == 'insulation_work' || type == WorkType.insulation.apiValue) {
+    } else if (type == 'insulation_work' ||
+        type == WorkType.insulation.apiValue) {
       return ModuleItem(
           labelKey: 'Insulation DPR',
           icon: Icons.layers_rounded,
           iconColor: Colors.indigo,
           routeName: "/site-list/dpr");
-    } else if (type == 'structure_work' || type == WorkType.structure.apiValue) {
+    } else if (type == 'structure_work' ||
+        type == WorkType.structure.apiValue) {
       return ModuleItem(
           labelKey: 'Structure Erection DPR',
           icon: Icons.construction_rounded,
           iconColor: Colors.indigo,
-          routeName: "/site-list/dpr");
+          routeName: Routes.erectionDpr);
     } else if (type == 'civil_work' || type == WorkType.civil.apiValue) {
       return ModuleItem(
           labelKey: 'Civil DPR',
@@ -348,7 +351,8 @@ class _ModuleScreenV2State extends ConsumerState<ModuleScreenV2>
           icon: Icons.roofing_rounded,
           iconColor: Colors.indigo,
           routeName: Routes.roofingDpr);
-    } else if (type == 'fabrication_work' || type == WorkType.fabrication.apiValue) {
+    } else if (type == 'fabrication_work' ||
+        type == WorkType.fabrication.apiValue) {
       return ModuleItem(
           labelKey: 'Structure Fabrication DPR',
           icon: Icons.factory_rounded,
@@ -390,6 +394,7 @@ class _ModuleScreenV2State extends ConsumerState<ModuleScreenV2>
 
     final dprSetupModule = _getDprSetupModule(type);
     final secondaryModule = _getSecondaryModule(type);
+    final workAssignmentModule = _getWorkAssignmentModule(type);
 
     return [
       ...base,
@@ -401,6 +406,7 @@ class _ModuleScreenV2State extends ConsumerState<ModuleScreenV2>
             routeName: "/site-list/rate",
           ),
       dprSetupModule,
+      if (workAssignmentModule != null) workAssignmentModule,
     ];
   }
 
@@ -411,18 +417,20 @@ class _ModuleScreenV2State extends ConsumerState<ModuleScreenV2>
           icon: Icons.settings_suggest_rounded,
           iconColor: Colors.blueGrey,
           routeName: "/site-list/addMoc");
-    } else if (type == 'insulation_work' || type == WorkType.insulation.apiValue) {
+    } else if (type == 'insulation_work' ||
+        type == WorkType.insulation.apiValue) {
       return ModuleItem(
           labelKey: 'Insulation DPR Setup',
           icon: Icons.settings_suggest_rounded,
           iconColor: Colors.blueGrey,
           routeName: "/site-list/addMoc");
-    } else if (type == 'structure_work' || type == WorkType.structure.apiValue) {
+    } else if (type == 'structure_work' ||
+        type == WorkType.structure.apiValue) {
       return ModuleItem(
           labelKey: 'Structure Erection Setup',
           icon: Icons.architecture_rounded,
           iconColor: Colors.blueAccent,
-          routeName: "/site-list/structure-dpr-setup");
+          routeName: Routes.erectionSetup);
     } else if (type == 'civil_work' || type == WorkType.civil.apiValue) {
       return ModuleItem(
           labelKey: 'Civil DPR Setup',
@@ -435,7 +443,8 @@ class _ModuleScreenV2State extends ConsumerState<ModuleScreenV2>
           icon: Icons.roofing_rounded,
           iconColor: Colors.blueGrey,
           routeName: Routes.roofingSetup);
-    } else if (type == 'fabrication_work' || type == WorkType.fabrication.apiValue) {
+    } else if (type == 'fabrication_work' ||
+        type == WorkType.fabrication.apiValue) {
       return ModuleItem(
           labelKey: 'Structure Fabrication Setup',
           icon: Icons.factory_rounded,
@@ -449,18 +458,38 @@ class _ModuleScreenV2State extends ConsumerState<ModuleScreenV2>
         routeName: "/site-list/addMoc");
   }
 
+  ModuleItem? _getWorkAssignmentModule(String? type) {
+    if (type == 'structure_work' ||
+        type == WorkType.structure.apiValue ||
+        type == 'fabrication_work' ||
+        type == WorkType.fabrication.apiValue) {
+      return ModuleItem(
+          labelKey: 'Work Assignment',
+          icon: Icons.assignment_ind_rounded,
+          iconColor: Colors.deepPurple,
+          routeName: "/site-list/work-assignment");
+    }
+    return null;
+  }
+
   ModuleItem? _getSecondaryModule(String? type) {
-    if (type == 'mechanical_work' || type == WorkType.mechanical.apiValue ||
-        type == 'insulation_work' || type == WorkType.insulation.apiValue ||
-        type == 'roofing_work' || type == WorkType.roofing.apiValue) {
+    if (type == 'mechanical_work' ||
+        type == WorkType.mechanical.apiValue ||
+        type == 'insulation_work' ||
+        type == WorkType.insulation.apiValue ||
+        type == 'roofing_work' ||
+        type == WorkType.roofing.apiValue) {
       return ModuleItem(
           labelKey: 'rate_card',
           icon: Icons.currency_rupee_rounded,
           iconColor: Colors.amber,
           routeName: "/site-list/rate");
-    } else if (type == 'structure_work' || type == WorkType.structure.apiValue ||
-               type == 'civil_work' || type == WorkType.civil.apiValue ||
-               type == 'fabrication_work' || type == WorkType.fabrication.apiValue) {
+    } else if (type == 'structure_work' ||
+        type == WorkType.structure.apiValue ||
+        type == 'civil_work' ||
+        type == WorkType.civil.apiValue ||
+        type == 'fabrication_work' ||
+        type == WorkType.fabrication.apiValue) {
       return ModuleItem(
           labelKey: 'BOQ',
           icon: Icons.table_rows_rounded,
@@ -504,7 +533,6 @@ class _ModuleScreenV2State extends ConsumerState<ModuleScreenV2>
           routeName: "/site-list/inv-Report"),
     ];
   }
-
 
   final List<ModuleItem> _moreModules = [
     ModuleItem(
@@ -817,7 +845,8 @@ class _ModuleScreenV2State extends ConsumerState<ModuleScreenV2>
                   color: cs.primary.withOpacity(0.1),
                   shape: BoxShape.circle,
                 ),
-                child: Icon(Icons.auto_awesome_rounded, size: 18, color: cs.primary),
+                child: Icon(Icons.auto_awesome_rounded,
+                    size: 18, color: cs.primary),
               ),
               const SizedBox(width: 12),
               Expanded(
@@ -844,7 +873,9 @@ class _ModuleScreenV2State extends ConsumerState<ModuleScreenV2>
               ),
               IconButton(
                 icon: const Icon(Icons.close_rounded, size: 20),
-                onPressed: () => ref.read(workflowControllerProvider.notifier).cancelWorkflow(context),
+                onPressed: () => ref
+                    .read(workflowControllerProvider.notifier)
+                    .cancelWorkflow(context),
               ),
             ],
           ),
@@ -882,7 +913,8 @@ class _ModuleScreenV2State extends ConsumerState<ModuleScreenV2>
   }
 
   void _navigateToWorkflowGate() {
-    context.push(Routes.workflowGate, extra: {'workflowId': WorkflowRegistry.dailyEntryId});
+    context.push(Routes.workflowGate,
+        extra: {'workflowId': WorkflowRegistry.dailyEntryId});
   }
 
   double _getDockSpacerHeight(List<ModuleItem> currentModules) {
@@ -1084,8 +1116,10 @@ class _ModuleScreenV2State extends ConsumerState<ModuleScreenV2>
                     ? Image.network(
                         user.profilePhoto!,
                         fit: BoxFit.cover,
-                        errorBuilder: (context, error, stackTrace) =>
-                            Icon(Icons.person_rounded, size: 18, color: cs.primary),
+                        errorBuilder: (context, error, stackTrace) => Icon(
+                            Icons.person_rounded,
+                            size: 18,
+                            color: cs.primary),
                       )
                     : Icon(Icons.person_rounded, size: 18, color: cs.primary),
               ),
@@ -1121,7 +1155,7 @@ class _ModuleScreenV2State extends ConsumerState<ModuleScreenV2>
           Expanded(child: _buildCustomDropdown(label: "TYPE")),
           const SizedBox(width: 8),
           Expanded(child: _buildCustomDropdown(label: "MODE")),
-         const SizedBox(width: 8),
+          const SizedBox(width: 8),
           Expanded(child: _buildCustomDropdown(label: "SITE")),
           const SizedBox(width: 8),
           Expanded(child: _buildCustomDropdown(label: "TEAM")),
@@ -1144,7 +1178,8 @@ class _ModuleScreenV2State extends ConsumerState<ModuleScreenV2>
     final currentTypeApi = ref.watch(typeProvider);
     final currentWorkType = WorkType.fromApiValue(currentTypeApi);
 
-    final bool isLoading = (label == "SITE" && siteState.isLoading) || (label == "TEAM" && teamState.isLoading);
+    final bool isLoading = (label == "SITE" && siteState.isLoading) ||
+        (label == "TEAM" && teamState.isLoading);
     Widget dropdown;
 
     if (isLoading) {
@@ -1363,8 +1398,8 @@ class _ModuleScreenV2State extends ConsumerState<ModuleScreenV2>
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          _buildLastEntryRow(
-              cs, Icons.history_rounded, entryText("Attendance", s.attendance.lastEntry)),
+          _buildLastEntryRow(cs, Icons.history_rounded,
+              entryText("Attendance", s.attendance.lastEntry)),
           const SizedBox(height: 8),
           _buildLastEntryRow(
               cs,

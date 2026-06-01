@@ -118,6 +118,11 @@ import '../../features/quotation/screens/quotation_create_screen.dart';
 import '../../features/procurement/screens/procurement_list_screen.dart';
 import '../../features/peb_work/screens/peb_dpr_setup_screen.dart';
 import '../../features/peb_work/screens/dpr_entry_screen.dart';
+import '../../features/peb_execution/models/peb_execution_models.dart';
+import '../../features/peb_execution/screens/peb_boq_upload_screen.dart';
+import '../../features/peb_execution/screens/peb_dpr_entry_screen.dart';
+import '../../features/peb_execution/screens/peb_setup_screen.dart';
+import '../../features/peb_execution/screens/peb_work_assignment_screen.dart';
 import '../../features/fabrication/screens/fabrication_dpr_screen.dart';
 import '../../features/modules/all_Modules/site_Details/screens/dispatch_handover_screens.dart';
 import '../../features/modules/screen/module_screen_v2.dart';
@@ -457,41 +462,85 @@ final appRouterProvider = Provider<GoRouter>((ref) {
                 screen = DprEntryScreen(siteId: site.id, title: 'Civil DPR');
                 break;
               case 'erection-dpr':
-                screen = DprEntryScreen(siteId: site.id, title: 'Erection DPR');
+                screen = PebDprEntryScreen(
+                  siteId: site.id,
+                  siteName: site.siteName,
+                  executionType: PebExecutionType.erection,
+                );
                 break;
               case 'roofing-dpr':
                 screen = DprEntryScreen(siteId: site.id, title: 'Roofing DPR');
                 break;
               case 'fabrication-dpr':
-                screen = FabricationDprScreen(siteId: site.id);
+                screen = PebDprEntryScreen(
+                  siteId: site.id,
+                  siteName: site.siteName,
+                  executionType: PebExecutionType.fabrication,
+                );
                 break;
               case 'fabrication-setup':
-                screen = PebDprSetupScreen(siteId: site.id, workType: 'fabrication');
+                screen = PebSetupScreen(
+                  siteId: site.id,
+                  siteName: site.siteName,
+                  executionType: PebExecutionType.fabrication,
+                );
                 break;
               case 'civil-setup':
                 screen = PebDprSetupScreen(siteId: site.id, workType: 'civil');
                 break;
               case 'erection-setup':
-                screen = PebDprSetupScreen(siteId: site.id, workType: 'erection');
+                screen = PebSetupScreen(
+                  siteId: site.id,
+                  siteName: site.siteName,
+                  executionType: PebExecutionType.erection,
+                );
                 break;
               case 'roofing-setup':
-                screen = PebDprSetupScreen(siteId: site.id, workType: 'roofing');
+                screen =
+                    PebDprSetupScreen(siteId: site.id, workType: 'roofing');
                 break;
               case 'mechanical-setup':
-                screen = PebDprSetupScreen(siteId: site.id, workType: 'mechanical');
+                screen =
+                    PebDprSetupScreen(siteId: site.id, workType: 'mechanical');
                 break;
               case 'insulation-setup':
-                screen = PebDprSetupScreen(siteId: site.id, workType: 'insulation');
+                screen =
+                    PebDprSetupScreen(siteId: site.id, workType: 'insulation');
                 break;
               case 'structure-setup':
-                screen = PebDprSetupScreen(siteId: site.id, workType: 'structure');
+                screen =
+                    PebDprSetupScreen(siteId: site.id, workType: 'structure');
                 break;
               case 'peb-setup':
                 screen = PebDprSetupScreen(siteId: site.id, workType: 'peb');
                 break;
               case 'boq-upload':
-                screen =
-                    ViewAddBoqScreen(siteId: site.id, siteName: site.siteName);
+                if (type == 'fabrication_work') {
+                  screen = PebBoqUploadScreen(
+                    siteId: site.id,
+                    siteName: site.siteName,
+                    executionType: PebExecutionType.fabrication,
+                  );
+                } else if (type == 'erection_work' ||
+                    type == 'structure_work') {
+                  screen = PebBoqUploadScreen(
+                    siteId: site.id,
+                    siteName: site.siteName,
+                    executionType: PebExecutionType.erection,
+                  );
+                } else {
+                  screen = ViewAddBoqScreen(
+                      siteId: site.id, siteName: site.siteName);
+                }
+                break;
+              case 'work-assignment':
+                screen = PebWorkAssignmentScreen(
+                  siteId: site.id,
+                  siteName: site.siteName,
+                  executionType: type == 'fabrication_work'
+                      ? PebExecutionType.fabrication
+                      : PebExecutionType.erection,
+                );
                 break;
               case 'cold-call':
                 screen = const PlaceholderScreen(title: 'Cold Call');
@@ -747,8 +796,11 @@ final appRouterProvider = Provider<GoRouter>((ref) {
         path: Routes.workflowGate,
         name: 'workflow-gate',
         builder: (context, state) {
-          final workflowId = (state.extra as Map<String, dynamic>?)?['workflowId'] as String? ?? WorkflowRegistry.dailyEntryId;
-          _logRoute('WorkflowGateScreen', path: state.uri.toString(), extra: {'workflowId': workflowId});
+          final workflowId = (state.extra
+                  as Map<String, dynamic>?)?['workflowId'] as String? ??
+              WorkflowRegistry.dailyEntryId;
+          _logRoute('WorkflowGateScreen',
+              path: state.uri.toString(), extra: {'workflowId': workflowId});
           return WorkflowGateScreen(workflowId: workflowId);
         },
       ),
