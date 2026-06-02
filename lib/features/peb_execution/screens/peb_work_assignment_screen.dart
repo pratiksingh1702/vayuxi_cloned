@@ -333,7 +333,9 @@ class _PebWorkAssignmentScreenState extends State<PebWorkAssignmentScreen> {
     final titleSuffix = switch (_mode) {
       _WorkAssignmentMode.home => 'Assignment',
       _WorkAssignmentMode.view => 'Assignment View',
-      _WorkAssignmentMode.add => 'Assignment Add',
+      _WorkAssignmentMode.add => _showForm
+          ? (_findSetupItem(_setupItemId)?.name ?? 'Assignment Add')
+          : 'Assignment Add',
     };
     return Scaffold(
       drawer: const CustomDrawer(),
@@ -366,6 +368,7 @@ class _PebWorkAssignmentScreenState extends State<PebWorkAssignmentScreen> {
                           fontWeight: FontWeight.w700)),
                   const SizedBox(height: 16),
                   ..._bodyByMode(cs),
+                  const SizedBox(height: 80),
                 ],
               ),
             ),
@@ -377,14 +380,9 @@ class _PebWorkAssignmentScreenState extends State<PebWorkAssignmentScreen> {
       case _WorkAssignmentMode.home:
         return [_homeOptions(cs)];
       case _WorkAssignmentMode.view:
-        return [_buildAssignmentList(cs), const SizedBox(height: 80)];
+        return [_buildAssignmentList(cs)];
       case _WorkAssignmentMode.add:
-        return [
-          _buildTopControls(cs),
-          const SizedBox(height: 16),
-          if (_showForm) _buildForm(cs) else _buildStageGrid(cs),
-          const SizedBox(height: 80),
-        ];
+        return _showForm ? [_buildForm(cs)] : [_buildStageGrid(cs)];
     }
   }
 
@@ -458,12 +456,12 @@ class _PebWorkAssignmentScreenState extends State<PebWorkAssignmentScreen> {
       decoration: BoxDecoration(
         color: cs.surface,
         borderRadius: BorderRadius.circular(18),
-        border: Border.all(color: cs.outlineVariant.withOpacity(0.45)),
+        border: Border.all(color: cs.outlineVariant.withValues(alpha: 0.45)),
         boxShadow: [
           BoxShadow(
             color: isDark
-                ? cs.shadow.withOpacity(0.12)
-                : cs.shadow.withOpacity(0.06),
+                ? cs.shadow.withValues(alpha: 0.12)
+                : cs.shadow.withValues(alpha: 0.06),
             blurRadius: 12,
             offset: const Offset(0, 6),
           ),
@@ -484,16 +482,41 @@ class _PebWorkAssignmentScreenState extends State<PebWorkAssignmentScreen> {
     );
   }
 
-  Widget _buildTopControls(ColorScheme cs) {
-    return Card(
-      child: SwitchListTile(
-        value: _allowFallback,
-        onChanged: _toggleFallback,
-        title:
-            const Text('Show incomplete materials when no assignment exists'),
-        subtitle: const Text(
-            'Teams with no assignment history can enter DPR for pending BOQ members.'),
-      ),
+  void _showFallbackInfo() {
+    showModalBottomSheet<void>(
+      context: context,
+      showDragHandle: true,
+      builder: (context) {
+        final cs = Theme.of(context).colorScheme;
+        return Padding(
+          padding: const EdgeInsets.fromLTRB(20, 8, 20, 28),
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              const Text(
+                'Incomplete material fallback',
+                style: TextStyle(fontSize: 18, fontWeight: FontWeight.w800),
+              ),
+              const SizedBox(height: 8),
+              Text(
+                'When this is enabled, teams with no assignment history can enter DPR for pending BOQ members.',
+                style: TextStyle(color: cs.onSurfaceVariant, height: 1.4),
+              ),
+              const SizedBox(height: 12),
+              SwitchListTile.adaptive(
+                contentPadding: EdgeInsets.zero,
+                value: _allowFallback,
+                onChanged: (value) {
+                  context.pop();
+                  _toggleFallback(value);
+                },
+                title: const Text('Show incomplete material'),
+              ),
+            ],
+          ),
+        );
+      },
     );
   }
 
@@ -509,26 +532,81 @@ class _PebWorkAssignmentScreenState extends State<PebWorkAssignmentScreen> {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        const Text('Select Stage',
-            style: TextStyle(fontSize: 18, fontWeight: FontWeight.w800)),
-        const SizedBox(height: 12),
-        ..._setupItems.map((item) {
-          final count = _assignments
-              .where((assignment) => assignment.assignments
-                  .any((work) => work.setupItemId == item.id))
-              .length;
-          return Card(
-            child: ListTile(
-              title: Text(item.name,
-                  style: const TextStyle(fontWeight: FontWeight.w700)),
-              subtitle: Text(count == 0
-                  ? 'No assignment created'
-                  : '$count assignment${count == 1 ? '' : 's'} created'),
-              trailing: const Icon(Icons.chevron_right),
-              onTap: () => _openNew(item),
+        Row(
+          children: [
+            const Expanded(
+              child: Text('Select Work Item',
+                  style: TextStyle(fontSize: 18, fontWeight: FontWeight.w800)),
             ),
-          );
-        }),
+            IconButton(
+              onPressed: _showFallbackInfo,
+              icon: const Icon(Icons.info_outline, size: 20),
+              tooltip: 'DPR fallback setting',
+              visualDensity: VisualDensity.compact,
+              padding: EdgeInsets.zero,
+              constraints: const BoxConstraints.tightFor(
+                width: 36,
+                height: 36,
+              ),
+              color: cs.primary,
+            ),
+          ],
+        ),
+        const SizedBox(height: 12),
+        GridView.builder(
+          physics: const NeverScrollableScrollPhysics(),
+          shrinkWrap: true,
+          itemCount: _setupItems.length,
+          gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
+            crossAxisCount: 2,
+            mainAxisSpacing: 12,
+            crossAxisSpacing: 12,
+            childAspectRatio: 1.15,
+          ),
+          itemBuilder: (context, index) {
+            final item = _setupItems[index];
+            final count = _assignments
+                .where((assignment) => assignment.assignments
+                    .any((work) => work.setupItemId == item.id))
+                .length;
+            return InkWell(
+              onTap: () => _openNew(item),
+              borderRadius: BorderRadius.circular(14),
+              child: Container(
+                padding: const EdgeInsets.all(14),
+                decoration: BoxDecoration(
+                  color: cs.surface,
+                  borderRadius: BorderRadius.circular(14),
+                  border: Border.all(color: cs.outlineVariant),
+                ),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Icon(Icons.assignment_ind_outlined, color: cs.primary),
+                    const Spacer(),
+                    Text(
+                      item.name,
+                      maxLines: 2,
+                      overflow: TextOverflow.ellipsis,
+                      style: const TextStyle(
+                        fontSize: 16,
+                        fontWeight: FontWeight.w800,
+                      ),
+                    ),
+                    const SizedBox(height: 6),
+                    Text(
+                      count == 0
+                          ? 'No assignment'
+                          : '$count assignment${count == 1 ? '' : 's'}',
+                      style:
+                          TextStyle(fontSize: 12, color: cs.onSurfaceVariant),
+                    ),
+                  ],
+                ),
+              ),
+            );
+          },
+        ),
       ],
     );
   }
@@ -647,7 +725,7 @@ class _PebWorkAssignmentScreenState extends State<PebWorkAssignmentScreen> {
     required ValueChanged<String?> onChanged,
   }) {
     return DropdownButtonFormField<String>(
-      value: value.isEmpty ? null : value,
+      initialValue: value.isEmpty ? null : value,
       items: items,
       onChanged: onChanged,
       decoration:
@@ -681,88 +759,119 @@ class _PebWorkAssignmentScreenState extends State<PebWorkAssignmentScreen> {
             return mark.assemblyMark.toLowerCase().contains(search) ||
                 mark.typeDescription.toLowerCase().contains(search);
           }).toList();
-    return Container(
-      constraints: const BoxConstraints(maxHeight: 300),
-      decoration: BoxDecoration(
-          border: Border.all(color: cs.outlineVariant),
-          borderRadius: BorderRadius.circular(12)),
-      child: Column(
-        children: [
-          Padding(
-            padding: const EdgeInsets.all(10),
-            child: TextField(
-              controller: _markSearchController,
-              decoration: InputDecoration(
-                prefixIcon: const Icon(Icons.search),
-                suffixIcon: _markSearchController.text.isEmpty
-                    ? null
-                    : IconButton(
-                        icon: const Icon(Icons.close),
-                        onPressed: () {
-                          _markSearchDebounce?.cancel();
-                          setState(() {
-                            _markSearchController.clear();
-                            _markSearchText = '';
-                          });
-                        },
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        TextField(
+          controller: _markSearchController,
+          decoration: InputDecoration(
+            prefixIcon: const Icon(Icons.search),
+            suffixIcon: _markSearchController.text.isEmpty
+                ? null
+                : IconButton(
+                    icon: const Icon(Icons.close),
+                    onPressed: () {
+                      _markSearchDebounce?.cancel();
+                      setState(() {
+                        _markSearchController.clear();
+                        _markSearchText = '';
+                      });
+                    },
+                  ),
+            labelText: 'Search mark number',
+            hintText: 'Search by mark or description',
+            border: const OutlineInputBorder(),
+          ),
+          onChanged: (value) {
+            _markSearchDebounce?.cancel();
+            _markSearchDebounce = Timer(const Duration(milliseconds: 300), () {
+              if (!mounted) return;
+              setState(() => _markSearchText = value);
+            });
+          },
+        ),
+        const SizedBox(height: 10),
+        Row(
+          children: [
+            Text('${visibleMarks.length} of ${_allMarks.length} marks',
+                style: TextStyle(
+                    color: cs.onSurfaceVariant,
+                    fontSize: 12,
+                    fontWeight: FontWeight.w600)),
+            const Spacer(),
+            Text('${_selectedMarks.length} selected',
+                style: TextStyle(
+                    color: cs.primary,
+                    fontSize: 12,
+                    fontWeight: FontWeight.w700)),
+          ],
+        ),
+        const SizedBox(height: 10),
+        if (visibleMarks.isEmpty)
+          Container(
+            width: double.infinity,
+            padding: const EdgeInsets.all(20),
+            decoration: BoxDecoration(
+              color: cs.surfaceContainerLow,
+              borderRadius: BorderRadius.circular(12),
+            ),
+            child: Text('No marks found',
+                textAlign: TextAlign.center,
+                style: TextStyle(color: cs.onSurfaceVariant)),
+          )
+        else
+          GridView.builder(
+            physics: const NeverScrollableScrollPhysics(),
+            shrinkWrap: true,
+            itemCount: visibleMarks.length,
+            gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
+              crossAxisCount: 2,
+              mainAxisSpacing: 8,
+              crossAxisSpacing: 8,
+              childAspectRatio: 2.35,
+            ),
+            itemBuilder: (context, index) {
+              final mark = visibleMarks[index];
+              final isCompleted = completedForStage.contains(mark.assemblyMark);
+              final isAssigned = assignedForStage.contains(mark.assemblyMark);
+              final selected = _selectedMarks.contains(mark.assemblyMark);
+              final disabled = isCompleted || isAssigned;
+              final qty =
+                  mark.remainingQty > 0 ? mark.remainingQty : mark.quantity;
+              final statusText = isCompleted
+                  ? 'Completed'
+                  : isAssigned
+                      ? 'Assigned'
+                      : '${_prettyNumber(qty)} qty';
+              return Opacity(
+                opacity: disabled ? 0.45 : 1,
+                child: InkWell(
+                  onTap: disabled
+                      ? null
+                      : () => setState(() {
+                            if (selected) {
+                              _selectedMarks.remove(mark.assemblyMark);
+                            } else {
+                              _selectedMarks.add(mark.assemblyMark);
+                            }
+                          }),
+                  borderRadius: BorderRadius.circular(10),
+                  child: Container(
+                    padding:
+                        const EdgeInsets.symmetric(horizontal: 10, vertical: 8),
+                    decoration: BoxDecoration(
+                      color: selected
+                          ? cs.primaryContainer
+                          : cs.surfaceContainerLow,
+                      borderRadius: BorderRadius.circular(10),
+                      border: Border.all(
+                        color: selected ? cs.primary : cs.outlineVariant,
                       ),
-                labelText: 'Search mark number',
-                hintText: 'Search by mark or description',
-                border: const OutlineInputBorder(),
-              ),
-              onChanged: (value) {
-                _markSearchDebounce?.cancel();
-                _markSearchDebounce =
-                    Timer(const Duration(milliseconds: 300), () {
-                  if (!mounted) return;
-                  setState(() => _markSearchText = value);
-                });
-              },
-            ),
-          ),
-          Padding(
-            padding: const EdgeInsets.fromLTRB(12, 0, 12, 8),
-            child: Row(
-              children: [
-                Text('${visibleMarks.length} of ${_allMarks.length} marks',
-                    style: TextStyle(
-                        color: cs.onSurfaceVariant,
-                        fontSize: 12,
-                        fontWeight: FontWeight.w600)),
-                const Spacer(),
-                Text('${_selectedMarks.length} selected',
-                    style: TextStyle(
-                        color: cs.primary,
-                        fontSize: 12,
-                        fontWeight: FontWeight.w700)),
-              ],
-            ),
-          ),
-          const Divider(height: 1),
-          Expanded(
-            child: visibleMarks.isEmpty
-                ? Center(
-                    child: Text('No marks found',
-                        style: TextStyle(color: cs.onSurfaceVariant)),
-                  )
-                : ListView(
-                    children: visibleMarks.map((mark) {
-                      final isCompleted =
-                          completedForStage.contains(mark.assemblyMark);
-                      final isAssigned =
-                          assignedForStage.contains(mark.assemblyMark);
-                      final disabled = isCompleted || isAssigned;
-                      final statusText = isCompleted
-                          ? ' · completed'
-                          : isAssigned
-                              ? ' · already assigned'
-                              : '';
-                      return Opacity(
-                        opacity: disabled ? 0.45 : 1,
-                        child: CheckboxListTile(
-                          value: isCompleted ||
-                              isAssigned ||
-                              _selectedMarks.contains(mark.assemblyMark),
+                    ),
+                    child: Row(
+                      children: [
+                        Checkbox(
+                          value: disabled || selected,
                           onChanged: disabled
                               ? null
                               : (checked) => setState(() {
@@ -772,16 +881,42 @@ class _PebWorkAssignmentScreenState extends State<PebWorkAssignmentScreen> {
                                       _selectedMarks.remove(mark.assemblyMark);
                                     }
                                   }),
-                          title: Text(mark.assemblyMark),
-                          subtitle: Text(
-                              '${mark.typeDescription} (${mark.remainingQty > 0 ? mark.remainingQty : mark.quantity})$statusText'),
+                          visualDensity: VisualDensity.compact,
                         ),
-                      );
-                    }).toList(),
+                        Expanded(
+                          child: Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            mainAxisAlignment: MainAxisAlignment.center,
+                            children: [
+                              Text(
+                                mark.assemblyMark,
+                                maxLines: 1,
+                                overflow: TextOverflow.ellipsis,
+                                style: const TextStyle(
+                                    fontWeight: FontWeight.w800),
+                              ),
+                              Text(
+                                statusText,
+                                maxLines: 1,
+                                overflow: TextOverflow.ellipsis,
+                                style: TextStyle(
+                                  fontSize: 11,
+                                  color: selected
+                                      ? cs.onPrimaryContainer
+                                      : cs.onSurfaceVariant,
+                                ),
+                              ),
+                            ],
+                          ),
+                        ),
+                      ],
+                    ),
                   ),
+                ),
+              );
+            },
           ),
-        ],
-      ),
+      ],
     );
   }
 
@@ -812,7 +947,7 @@ class _PebWorkAssignmentScreenState extends State<PebWorkAssignmentScreen> {
               onTap: () => _showAssignmentDetails(assignment),
               leading: Icon(Icons.assignment_ind_outlined, color: cs.primary),
               title: Text(
-                assignment.team?.name ?? 'Team',
+                item?.stageName ?? 'Work',
                 style: TextStyle(
                   fontWeight: FontWeight.bold,
                   fontSize: 16,
@@ -820,7 +955,7 @@ class _PebWorkAssignmentScreenState extends State<PebWorkAssignmentScreen> {
                 ),
               ),
               subtitle: Text(
-                '${item?.stageName ?? 'Stage'} · ${item?.assignedQty ?? 0} ${item?.uom ?? ''}\n'
+                '${assignment.team?.name ?? 'Team'} · ${item?.assignedQty ?? 0} ${item?.uom ?? ''}\n'
                 'Start: ${_formatDate(assignment.assignmentDate)} · Expected: ${_formatDate(assignment.expectedCompletionDate)}',
                 style: TextStyle(color: cs.onSurfaceVariant),
               ),
@@ -853,18 +988,29 @@ class _PebWorkAssignmentScreenState extends State<PebWorkAssignmentScreen> {
       date == null ? '-' : DateFormat('dd/MM/yyyy').format(date);
 
   void _showAssignmentDetails(PebWorkAssignment assignment) {
+    final firstItem =
+        assignment.assignments.isNotEmpty ? assignment.assignments.first : null;
     showModalBottomSheet<void>(
       context: context,
       showDragHandle: true,
       builder: (context) {
+        final cs = Theme.of(context).colorScheme;
         return Padding(
           padding: const EdgeInsets.all(20),
           child: ListView(
             children: [
-              Text(assignment.team?.name ?? 'Team',
+              Text(firstItem?.stageName ?? 'Work Assignment',
                   style: const TextStyle(
                       fontSize: 20, fontWeight: FontWeight.w800)),
-              const SizedBox(height: 8),
+              const SizedBox(height: 4),
+              Text(
+                assignment.team?.name ?? 'Team',
+                style: TextStyle(
+                  color: cs.onSurfaceVariant,
+                  fontWeight: FontWeight.w700,
+                ),
+              ),
+              const SizedBox(height: 10),
               Text('Status: ${assignment.status}'),
               Text('Start: ${_formatDate(assignment.assignmentDate)}'),
               Text(
@@ -888,6 +1034,11 @@ class _PebWorkAssignmentScreenState extends State<PebWorkAssignmentScreen> {
       if (item.id == id) return item;
     }
     return null;
+  }
+
+  String _prettyNumber(double value) {
+    if (value == value.roundToDouble()) return value.toStringAsFixed(0);
+    return value.toStringAsFixed(2);
   }
 }
 

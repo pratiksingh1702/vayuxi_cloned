@@ -585,15 +585,18 @@ class _PebBoqUploadScreenState extends State<PebBoqUploadScreen> {
               child: Text('BOQ Mark Numbers',
                   style: TextStyle(fontSize: 18, fontWeight: FontWeight.w800)),
             ),
-            SizedBox(
-              width: 112,
-              child: RoundedButton(
-                text: 'Add',
-                color: cs.primary,
-                textColor: cs.onPrimary,
-                isLoading: _saving,
-                onPressed: () =>
-                    setState(() => _mode = _BoqScreenMode.addChoice),
+            FilledButton.icon(
+              onPressed: _saving
+                  ? null
+                  : () => setState(() => _mode = _BoqScreenMode.addChoice),
+              icon: const Icon(Icons.add, size: 18),
+              label: const Text('Add BOQ'),
+              style: FilledButton.styleFrom(
+                minimumSize: const Size(0, 40),
+                padding: const EdgeInsets.symmetric(horizontal: 14),
+                shape: RoundedRectangleBorder(
+                  borderRadius: BorderRadius.circular(8),
+                ),
               ),
             ),
           ],
@@ -668,47 +671,27 @@ class _PebBoqUploadScreenState extends State<PebBoqUploadScreen> {
                             ],
                           ),
                         ),
-                        Column(
+                        Row(
+                          mainAxisSize: MainAxisSize.min,
                           children: [
-                            Row(
-                              mainAxisSize: MainAxisSize.min,
-                              children: [
-                                IconButton(
-                                  icon: Icon(Icons.visibility_outlined,
-                                      color: cs.tertiary),
-                                  onPressed: () => _viewMark(record),
-                                ),
-                                IconButton(
-                                  icon: Icon(Icons.edit_outlined,
-                                      color: cs.primary),
-                                  onPressed:
-                                      _saving ? null : () => _editMark(record),
-                                ),
-                                IconButton(
-                                  icon: Icon(Icons.delete_outline,
-                                      color: cs.error),
-                                  onPressed: _saving
-                                      ? null
-                                      : () => _deleteMark(record),
-                                ),
-                              ],
+                            IconButton(
+                              tooltip: 'View',
+                              icon: Icon(Icons.visibility_outlined,
+                                  color: cs.tertiary),
+                              onPressed: () => _viewMark(record),
                             ),
-                            Container(
-                              padding: const EdgeInsets.symmetric(
-                                horizontal: 12,
-                                vertical: 6,
-                              ),
-                              decoration: BoxDecoration(
-                                color: cs.surfaceContainerHigh,
-                                borderRadius: BorderRadius.circular(20),
-                              ),
-                              child: Text(
-                                'Qty ${_prettyNumber(record.mark.quantity)}',
-                                style: TextStyle(
-                                  fontWeight: FontWeight.bold,
-                                  color: cs.onSurface,
-                                ),
-                              ),
+                            IconButton(
+                              tooltip: 'Edit',
+                              icon:
+                                  Icon(Icons.edit_outlined, color: cs.primary),
+                              onPressed:
+                                  _saving ? null : () => _editMark(record),
+                            ),
+                            IconButton(
+                              tooltip: 'Delete',
+                              icon: Icon(Icons.delete_outline, color: cs.error),
+                              onPressed:
+                                  _saving ? null : () => _deleteMark(record),
                             ),
                           ],
                         ),
