@@ -265,7 +265,7 @@ class _PebDprEntryScreenState extends State<PebDprEntryScreen> {
     return items[index - 1];
   }
 
-  List<String> _assignedMarksForWork(_VisibleWork work) {
+  List<String> _unlockedMarksForWork(_VisibleWork work) {
     final prev = _previousSetupItem(work);
     if (prev == null || work.assignedMarks.isEmpty) return work.assignedMarks;
     final previousCompleted = _status.completedByKey[prev.id] ?? <String>{};
@@ -287,7 +287,7 @@ class _PebDprEntryScreenState extends State<PebDprEntryScreen> {
   }
 
   _WorkCounts _counts(_VisibleWork work) {
-    final marks = _assignedMarksForWork(work);
+    final marks = work.assignedMarks;
     final completed = _completedForWork(work);
     final inProgress = _inProgressForWork(work);
     final total = marks.isNotEmpty ? marks.length : work.assignedQty.round();
@@ -313,7 +313,7 @@ class _PebDprEntryScreenState extends State<PebDprEntryScreen> {
 
   bool _hasUnlockedScope(_VisibleWork work) {
     if (work.assignedMarks.isEmpty) return work.assignedQty > 0;
-    return _assignedMarksForWork(work).isNotEmpty;
+    return _unlockedMarksForWork(work).isNotEmpty;
   }
 
   bool _isWorkActionable(_VisibleWork work) {
@@ -337,7 +337,7 @@ class _PebDprEntryScreenState extends State<PebDprEntryScreen> {
       return;
     }
     final rawMarks = work.assignedMarks;
-    final unlocked = _assignedMarksForWork(work);
+    final unlocked = _unlockedMarksForWork(work);
     if (rawMarks.isNotEmpty &&
         unlocked.isEmpty &&
         _previousSetupItem(work) != null) {
@@ -353,7 +353,8 @@ class _PebDprEntryScreenState extends State<PebDprEntryScreen> {
         title: completedAction
             ? 'Select Completed Work'
             : 'Select In Progress Work',
-        marks: unlocked,
+        marks: rawMarks.isNotEmpty ? rawMarks : unlocked,
+        enabledMarks: rawMarks.isNotEmpty ? unlocked.toSet() : unlocked.toSet(),
         completedMarks: _completedForWork(work),
         inProgressMarks: _inProgressForWork(work),
         completedAction: completedAction,
@@ -442,7 +443,7 @@ class _PebDprEntryScreenState extends State<PebDprEntryScreen> {
             Positioned.fill(
               child: AbsorbPointer(
                 child: Container(
-                  color: Colors.white.withOpacity(0.62),
+                  color: Colors.white.withValues(alpha: 0.62),
                   child: const Center(
                     child: Card(
                       child: Padding(
@@ -481,7 +482,7 @@ class _PebDprEntryScreenState extends State<PebDprEntryScreen> {
               children: [
                 Expanded(
                   child: DropdownButtonFormField<String>(
-                    value: _teamId.isEmpty ? null : _teamId,
+                    initialValue: _teamId.isEmpty ? null : _teamId,
                     decoration: const InputDecoration(
                         labelText: 'Team', border: OutlineInputBorder()),
                     items: _teams
@@ -521,6 +522,7 @@ class _PebDprEntryScreenState extends State<PebDprEntryScreen> {
   Widget _buildWorkCard(_VisibleWork work) {
     final counts = _counts(work);
     final isActionable = _isWorkActionable(work);
+    final isCompleted = _isWorkFullyCompleted(work);
     final inactiveMessage = _inactiveMessage(work);
     final deadline = work.expectedCompletionDate == null
         ? '-'
@@ -529,12 +531,16 @@ class _PebDprEntryScreenState extends State<PebDprEntryScreen> {
         ? '-'
         : DateFormat('dd MMM yyyy').format(work.assignmentDate!);
     return Opacity(
-      opacity: isActionable ? 1 : 0.38,
+      opacity: isActionable || isCompleted ? 1 : 0.38,
       child: Card(
         margin: const EdgeInsets.only(bottom: 14),
         shape: RoundedRectangleBorder(
           borderRadius: BorderRadius.circular(28),
-          side: const BorderSide(color: Color(0xFF11264B), width: 1.3),
+          side: BorderSide(
+            color:
+                isCompleted ? Colors.green.shade600 : const Color(0xFF11264B),
+            width: isCompleted ? 1.8 : 1.3,
+          ),
         ),
         child: Padding(
           padding: const EdgeInsets.all(16),
@@ -577,6 +583,30 @@ class _PebDprEntryScreenState extends State<PebDprEntryScreen> {
                         ),
                         Text('Assign on $start'),
                         Text('TCD is $deadline'),
+                        if (isCompleted)
+                          Padding(
+                            padding: const EdgeInsets.only(top: 6),
+                            child: DecoratedBox(
+                              decoration: BoxDecoration(
+                                color: Colors.green.shade50,
+                                borderRadius: BorderRadius.circular(999),
+                                border:
+                                    Border.all(color: Colors.green.shade300),
+                              ),
+                              child: Padding(
+                                padding: const EdgeInsets.symmetric(
+                                    horizontal: 10, vertical: 4),
+                                child: Text(
+                                  'Completed',
+                                  style: TextStyle(
+                                    color: Colors.green.shade800,
+                                    fontSize: 12,
+                                    fontWeight: FontWeight.w800,
+                                  ),
+                                ),
+                              ),
+                            ),
+                          ),
                       ],
                     ),
                   ),
@@ -650,6 +680,7 @@ class _PebDprEntryScreenState extends State<PebDprEntryScreen> {
 class _MarkActionSheet extends StatefulWidget {
   final String title;
   final List<String> marks;
+  final Set<String> enabledMarks;
   final Set<String> completedMarks;
   final Set<String> inProgressMarks;
   final bool completedAction;
@@ -657,6 +688,7 @@ class _MarkActionSheet extends StatefulWidget {
   const _MarkActionSheet({
     required this.title,
     required this.marks,
+    required this.enabledMarks,
     required this.completedMarks,
     required this.inProgressMarks,
     required this.completedAction,
@@ -672,7 +704,9 @@ class _MarkActionSheetState extends State<_MarkActionSheet> {
   @override
   Widget build(BuildContext context) {
     final actionable = widget.marks
-        .where((mark) => !widget.completedMarks.contains(mark))
+        .where((mark) =>
+            widget.enabledMarks.contains(mark) &&
+            !widget.completedMarks.contains(mark))
         .toList();
     final allSelected =
         actionable.isNotEmpty && actionable.every(_selected.contains);
@@ -705,23 +739,26 @@ class _MarkActionSheetState extends State<_MarkActionSheet> {
                 children: widget.marks.map((mark) {
                   final completed = widget.completedMarks.contains(mark);
                   final inProgress = widget.inProgressMarks.contains(mark);
+                  final enabled = widget.enabledMarks.contains(mark);
                   final selected = _selected.contains(mark);
                   final color = completed
                       ? Colors.green.shade100
-                      : selected
-                          ? widget.completedAction
-                              ? Colors.green.shade100
-                              : Colors.orange.shade100
-                          : inProgress
-                              ? Colors.orange.shade100
-                              : null;
+                      : inProgress
+                          ? Colors.orange.shade100
+                          : selected
+                              ? widget.completedAction
+                                  ? Colors.green.shade50
+                                  : Colors.orange.shade50
+                              : !enabled
+                                  ? Colors.grey.shade100
+                                  : null;
                   return Container(
                     color: color,
                     child: CheckboxListTile(
                       value: completed ||
                           selected ||
                           (!widget.completedAction && inProgress),
-                      onChanged: completed
+                      onChanged: completed || !enabled
                           ? null
                           : (checked) => setState(() {
                                 if (checked == true) {
@@ -731,6 +768,12 @@ class _MarkActionSheetState extends State<_MarkActionSheet> {
                                 }
                               }),
                       title: Text(mark),
+                      subtitle: !enabled && !completed
+                          ? const Text(
+                              'Previous activity pending',
+                              style: TextStyle(fontSize: 12),
+                            )
+                          : null,
                     ),
                   );
                 }).toList(),
