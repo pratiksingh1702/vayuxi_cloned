@@ -52,7 +52,7 @@ class _PebDprEntryScreenState extends State<PebDprEntryScreen> {
     super.dispose();
   }
 
-  Future<void> _load({bool showLoader = true, bool autoScroll = false}) async {
+  Future<void> _load({bool showLoader = true, bool autoScroll = true}) async {
     if (showLoader) setState(() => _loading = true);
     try {
       final teams =
@@ -113,7 +113,7 @@ class _PebDprEntryScreenState extends State<PebDprEntryScreen> {
     );
     if (picked == null) return;
     setState(() => _selectedDate = picked);
-    await _load();
+    await _load(autoScroll: true);
   }
 
   List<_VisibleWork> _visibleWorks() {
@@ -232,10 +232,13 @@ class _PebDprEntryScreenState extends State<PebDprEntryScreen> {
   void _scrollToFirstActiveWork() {
     WidgetsBinding.instance.addPostFrameCallback((_) {
       if (!mounted) return;
-      final activeWork = _visibleWorks()
-          .where((work) => work.isActive)
-          .cast<_VisibleWork?>()
-          .firstWhere((work) => work != null, orElse: () => null);
+      _VisibleWork? activeWork;
+      for (final work in _visibleWorks()) {
+        if (_isWorkActionable(work)) {
+          activeWork = work;
+          break;
+        }
+      }
       if (activeWork == null) return;
       final context = _workCardKeys[activeWork.key]?.currentContext;
       if (context == null) return;
@@ -298,10 +301,39 @@ class _PebDprEntryScreenState extends State<PebDprEntryScreen> {
     );
   }
 
+  bool _isWorkFullyCompleted(_VisibleWork work) {
+    if (!work.isActive) return false;
+    final completed = _completedForWork(work);
+    if (work.assignedMarks.isNotEmpty) {
+      return work.assignedMarks.every(completed.contains);
+    }
+    final counts = _counts(work);
+    return counts.total > 0 && counts.completed >= counts.total;
+  }
+
+  bool _hasUnlockedScope(_VisibleWork work) {
+    if (work.assignedMarks.isEmpty) return work.assignedQty > 0;
+    return _assignedMarksForWork(work).isNotEmpty;
+  }
+
+  bool _isWorkActionable(_VisibleWork work) {
+    return work.isActive &&
+        !_isWorkFullyCompleted(work) &&
+        _hasUnlockedScope(work);
+  }
+
+  String? _inactiveMessage(_VisibleWork work) {
+    if (_isWorkFullyCompleted(work)) return 'Completed';
+    if (work.isActive && !_hasUnlockedScope(work)) {
+      return 'Previous activity must be completed first';
+    }
+    return work.inactiveReason;
+  }
+
   Future<void> _openAction(_VisibleWork work, bool completedAction) async {
-    if (!work.isActive) {
-      AppToast.info(
-          work.inactiveReason ?? 'This work is not active for selected team');
+    if (!_isWorkActionable(work)) {
+      AppToast.info(_inactiveMessage(work) ??
+          'This work is not active for selected team');
       return;
     }
     final rawMarks = work.assignedMarks;
@@ -355,7 +387,7 @@ class _PebDprEntryScreenState extends State<PebDprEntryScreen> {
         progressPercentage: progress,
       );
       AppToast.success('DPR updated successfully');
-      await _load(showLoader: false);
+      await _load(showLoader: false, autoScroll: true);
     } on DioException catch (error) {
       AppToast.error(extractBackendError(error));
     } catch (error) {
@@ -488,6 +520,8 @@ class _PebDprEntryScreenState extends State<PebDprEntryScreen> {
 
   Widget _buildWorkCard(_VisibleWork work) {
     final counts = _counts(work);
+    final isActionable = _isWorkActionable(work);
+    final inactiveMessage = _inactiveMessage(work);
     final deadline = work.expectedCompletionDate == null
         ? '-'
         : DateFormat('dd MMM yyyy').format(work.expectedCompletionDate!);
@@ -495,7 +529,7 @@ class _PebDprEntryScreenState extends State<PebDprEntryScreen> {
         ? '-'
         : DateFormat('dd MMM yyyy').format(work.assignmentDate!);
     return Opacity(
-      opacity: work.isActive ? 1 : 0.38,
+      opacity: isActionable ? 1 : 0.38,
       child: Card(
         margin: const EdgeInsets.only(bottom: 14),
         shape: RoundedRectangleBorder(
@@ -555,7 +589,7 @@ class _PebDprEntryScreenState extends State<PebDprEntryScreen> {
                     child: Column(
                       children: [
                         OutlinedButton(
-                          onPressed: work.isActive
+                          onPressed: isActionable
                               ? () => _openAction(work, false)
                               : null,
                           style: OutlinedButton.styleFrom(
@@ -578,7 +612,7 @@ class _PebDprEntryScreenState extends State<PebDprEntryScreen> {
                     child: Column(
                       children: [
                         OutlinedButton(
-                          onPressed: work.isActive
+                          onPressed: isActionable
                               ? () => _openAction(work, true)
                               : null,
                           style: OutlinedButton.styleFrom(
@@ -598,10 +632,10 @@ class _PebDprEntryScreenState extends State<PebDprEntryScreen> {
                   ),
                 ],
               ),
-              if (!work.isActive && work.inactiveReason != null)
+              if (!isActionable && inactiveMessage != null)
                 Padding(
                   padding: const EdgeInsets.only(top: 10),
-                  child: Text(work.inactiveReason!,
+                  child: Text(inactiveMessage,
                       style: const TextStyle(
                           fontSize: 12, fontWeight: FontWeight.w600)),
                 ),

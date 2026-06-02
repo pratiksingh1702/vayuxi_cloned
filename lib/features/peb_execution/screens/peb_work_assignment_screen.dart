@@ -8,6 +8,7 @@ import 'package:untitled2/core/utlis/app_toasts.dart';
 import 'package:untitled2/core/utlis/common_functions.dart';
 import 'package:untitled2/core/utlis/widgets/custom_appBar.dart';
 import 'package:untitled2/core/utlis/widgets/sidebar.dart';
+import 'package:untitled2/features/modules/all_Modules/dpr/screens/widgets/select_card.dart';
 import '../models/peb_execution_models.dart';
 import '../services/peb_execution_service.dart';
 
@@ -390,82 +391,95 @@ class _PebWorkAssignmentScreenState extends State<PebWorkAssignmentScreen> {
   Widget _homeOptions(ColorScheme cs) {
     return Column(
       children: [
-        Row(
-          children: [
-            Expanded(
-              child: _optionCard(
-                cs,
-                icon: Icons.visibility_outlined,
-                title: 'View',
-                subtitle: 'View, edit and delete assigned work records',
-                onTap: () => setState(() => _mode = _WorkAssignmentMode.view),
-              ),
-            ),
-            const SizedBox(width: 12),
-            Expanded(
-              child: _optionCard(
-                cs,
-                icon: Icons.add_circle_outline,
-                title: 'Add',
-                subtitle: 'Assign stage work to teams',
-                onTap: () => setState(() {
-                  _mode = _WorkAssignmentMode.add;
-                  _showForm = false;
-                }),
-              ),
-            ),
-          ],
+        _selectCardGrid(
+          firstIcon: Icons.visibility_rounded,
+          firstColor: Colors.blue,
+          firstLabel: 'View',
+          firstTap: () => setState(() => _mode = _WorkAssignmentMode.view),
+          secondIcon: Icons.add_circle_outline_rounded,
+          secondColor: Colors.green,
+          secondLabel: 'add',
+          secondTap: () => setState(() {
+            _mode = _WorkAssignmentMode.add;
+            _showForm = false;
+          }),
         ),
         const SizedBox(height: 16),
-        Card(
-          child: ListTile(
-            leading: const Icon(Icons.assignment_ind_outlined),
-            title: Text(
-              '${_assignments.length} assigned work record${_assignments.length == 1 ? '' : 's'}',
-              style: const TextStyle(fontWeight: FontWeight.w800),
-            ),
-            subtitle:
-                const Text('Select View to inspect existing assignments.'),
-          ),
+        _infoCard(
+          cs,
+          'Choose an option',
+          '• View: You can view, edit and delete assigned work records.\n'
+              '• Add: You can assign stage work to teams.',
         ),
       ],
     );
   }
 
-  Widget _optionCard(
-    ColorScheme cs, {
-    required IconData icon,
-    required String title,
-    required String subtitle,
-    required VoidCallback onTap,
+  Widget _selectCardGrid({
+    required IconData firstIcon,
+    required Color firstColor,
+    required String firstLabel,
+    required VoidCallback firstTap,
+    required IconData secondIcon,
+    required Color secondColor,
+    required String secondLabel,
+    required VoidCallback secondTap,
   }) {
-    return InkWell(
-      onTap: onTap,
-      borderRadius: BorderRadius.circular(16),
-      child: Container(
-        constraints: const BoxConstraints(minHeight: 150),
-        padding: const EdgeInsets.all(16),
-        decoration: BoxDecoration(
-          color: cs.surface,
-          borderRadius: BorderRadius.circular(16),
-          border: Border.all(color: cs.outlineVariant),
-        ),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            CircleAvatar(
-              backgroundColor: cs.primaryContainer,
-              child: Icon(icon, color: cs.onPrimaryContainer),
-            ),
-            const SizedBox(height: 16),
-            Text(title,
-                style:
-                    const TextStyle(fontSize: 18, fontWeight: FontWeight.w900)),
-            const SizedBox(height: 6),
-            Text(subtitle,
-                style: TextStyle(fontSize: 12, color: cs.onSurfaceVariant)),
-          ],
-        ),
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 16),
+      child: GridView.count(
+        physics: const NeverScrollableScrollPhysics(),
+        shrinkWrap: true,
+        crossAxisCount: 2,
+        mainAxisSpacing: 12,
+        crossAxisSpacing: 10,
+        childAspectRatio: 1,
+        children: [
+          SelectCard(
+            icon: SelectCardIcon(icon: firstIcon, color: firstColor),
+            label: firstLabel,
+            onTap: firstTap,
+          ),
+          SelectCard(
+            icon: SelectCardIcon(icon: secondIcon, color: secondColor),
+            label: secondLabel,
+            onTap: secondTap,
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _infoCard(ColorScheme cs, String title, String body) {
+    final isDark = Theme.of(context).brightness == Brightness.dark;
+    return Container(
+      width: double.infinity,
+      padding: const EdgeInsets.all(16),
+      decoration: BoxDecoration(
+        color: cs.surface,
+        borderRadius: BorderRadius.circular(18),
+        border: Border.all(color: cs.outlineVariant.withOpacity(0.45)),
+        boxShadow: [
+          BoxShadow(
+            color: isDark
+                ? cs.shadow.withOpacity(0.12)
+                : cs.shadow.withOpacity(0.06),
+            blurRadius: 12,
+            offset: const Offset(0, 6),
+          ),
+        ],
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Text(title,
+              style:
+                  const TextStyle(fontSize: 16, fontWeight: FontWeight.w700)),
+          const SizedBox(height: 8),
+          Text(body,
+              style: TextStyle(
+                  fontSize: 13, height: 1.5, color: cs.onSurfaceVariant)),
+        ],
       ),
     );
   }
@@ -787,26 +801,45 @@ class _PebWorkAssignmentScreenState extends State<PebWorkAssignmentScreen> {
           final item = assignment.assignments.isNotEmpty
               ? assignment.assignments.first
               : null;
-          return Card(
+          return Container(
+            margin: const EdgeInsets.symmetric(vertical: 2),
+            decoration: BoxDecoration(
+              color: cs.surface,
+              border: Border.all(color: cs.outlineVariant),
+              borderRadius: BorderRadius.circular(8),
+            ),
             child: ListTile(
               onTap: () => _showAssignmentDetails(assignment),
-              title: Text(assignment.team?.name ?? 'Team',
-                  style: const TextStyle(fontWeight: FontWeight.w700)),
+              leading: Icon(Icons.assignment_ind_outlined, color: cs.primary),
+              title: Text(
+                assignment.team?.name ?? 'Team',
+                style: TextStyle(
+                  fontWeight: FontWeight.bold,
+                  fontSize: 16,
+                  color: cs.onSurface,
+                ),
+              ),
               subtitle: Text(
                 '${item?.stageName ?? 'Stage'} · ${item?.assignedQty ?? 0} ${item?.uom ?? ''}\n'
                 'Start: ${_formatDate(assignment.assignmentDate)} · Expected: ${_formatDate(assignment.expectedCompletionDate)}',
+                style: TextStyle(color: cs.onSurfaceVariant),
               ),
               isThreeLine: true,
-              trailing: PopupMenuButton<String>(
-                onSelected: (value) {
-                  if (value == 'view') _showAssignmentDetails(assignment);
-                  if (value == 'edit') _openEdit(assignment);
-                  if (value == 'delete') _delete(assignment);
-                },
-                itemBuilder: (context) => const [
-                  PopupMenuItem(value: 'view', child: Text('View')),
-                  PopupMenuItem(value: 'edit', child: Text('Edit')),
-                  PopupMenuItem(value: 'delete', child: Text('Delete')),
+              trailing: Row(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  IconButton(
+                    icon: Icon(Icons.visibility_outlined, color: cs.tertiary),
+                    onPressed: () => _showAssignmentDetails(assignment),
+                  ),
+                  IconButton(
+                    icon: Icon(Icons.edit, color: cs.primary),
+                    onPressed: () => _openEdit(assignment),
+                  ),
+                  IconButton(
+                    icon: Icon(Icons.delete_outline, color: cs.error),
+                    onPressed: () => _delete(assignment),
+                  ),
                 ],
               ),
             ),

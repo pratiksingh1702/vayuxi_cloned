@@ -4,6 +4,7 @@ import 'package:go_router/go_router.dart';
 import 'package:untitled2/core/utlis/app_toasts.dart';
 import 'package:untitled2/core/utlis/widgets/custom.dart';
 import 'package:untitled2/core/utlis/widgets/sidebar.dart';
+import 'package:untitled2/features/modules/all_Modules/dpr/screens/widgets/select_card.dart';
 
 import '../models/peb_execution_models.dart';
 import '../services/peb_execution_service.dart';
@@ -220,6 +221,43 @@ class _PebBoqUploadScreenState extends State<PebBoqUploadScreen> {
     }
   }
 
+  Future<void> _editBoq(PebBoq boq) async {
+    final controller = TextEditingController(text: boq.name);
+    final nextName = await showDialog<String>(
+      context: context,
+      builder: (context) => AlertDialog(
+        title: const Text('Edit BOQ'),
+        content: TextField(
+          controller: controller,
+          autofocus: true,
+          decoration: const InputDecoration(
+            labelText: 'BOQ Name',
+            border: OutlineInputBorder(),
+          ),
+        ),
+        actions: [
+          TextButton(
+              onPressed: () => context.pop(), child: const Text('Cancel')),
+          FilledButton(
+              onPressed: () => context.pop(controller.text.trim()),
+              child: const Text('Save')),
+        ],
+      ),
+    );
+    controller.dispose();
+    if (nextName == null || nextName.isEmpty || nextName == boq.name) return;
+    setState(() => _saving = true);
+    try {
+      await _service.updateBoq(widget.siteId, boq.id, boqName: nextName);
+      await _loadBoqs();
+      AppToast.success('BOQ updated');
+    } catch (_) {
+      AppToast.error('Failed to update BOQ');
+    } finally {
+      if (mounted) setState(() => _saving = false);
+    }
+  }
+
   Future<void> _viewBoq(PebBoq boq) async {
     showModalBottomSheet<void>(
       context: context,
@@ -333,150 +371,181 @@ class _PebBoqUploadScreenState extends State<PebBoqUploadScreen> {
   Widget _homeOptions(ColorScheme cs) {
     return Column(
       children: [
-        Row(
-          children: [
-            Expanded(
-              child: _optionCard(
-                cs,
-                icon: Icons.visibility_outlined,
-                title: 'View',
-                subtitle: 'Show all existing BOQs for this site',
-                onTap: () => setState(() => _mode = _BoqScreenMode.view),
-              ),
-            ),
-            const SizedBox(width: 12),
-            Expanded(
-              child: _optionCard(
-                cs,
-                icon: Icons.add_circle_outline,
-                title: 'Add',
-                subtitle: 'Create manually or upload Excel',
-                onTap: () => setState(() => _mode = _BoqScreenMode.addChoice),
-              ),
-            ),
-          ],
+        _selectCardGrid(
+          firstIcon: Icons.visibility_rounded,
+          firstColor: Colors.blue,
+          firstLabel: 'View',
+          firstTap: () => setState(() => _mode = _BoqScreenMode.view),
+          secondIcon: Icons.add_circle_outline_rounded,
+          secondColor: Colors.green,
+          secondLabel: 'add',
+          secondTap: () => setState(() => _mode = _BoqScreenMode.addChoice),
         ),
         const SizedBox(height: 16),
-        _card(
+        _infoCard(
           cs,
-          child: Row(
-            children: [
-              Icon(Icons.description_outlined, color: cs.primary),
-              const SizedBox(width: 12),
-              Expanded(
-                child: Text(
-                  '${_boqs.length} BOQ${_boqs.length == 1 ? '' : 's'} available for this site',
-                  style: const TextStyle(fontWeight: FontWeight.w700),
-                ),
-              ),
-            ],
-          ),
+          'Choose an option',
+          '• View: You can view, edit and delete existing BOQs.\n'
+              '• Add: You can create a BOQ manually or upload an Excel file.',
         ),
       ],
     );
   }
 
   Widget _addOptions(ColorScheme cs) {
-    return Row(
+    return Column(
       children: [
-        Expanded(
-          child: _optionCard(
-            cs,
-            icon: Icons.edit_note_outlined,
-            title: 'Manual',
-            subtitle: 'Create and add BOQ rows manually',
-            onTap: () => setState(() => _mode = _BoqScreenMode.manual),
-          ),
+        _selectCardGrid(
+          firstIcon: Icons.edit_note_rounded,
+          firstColor: Colors.blue,
+          firstLabel: 'Manual',
+          firstTap: () => setState(() => _mode = _BoqScreenMode.manual),
+          secondIcon: Icons.upload_file_rounded,
+          secondColor: Colors.green,
+          secondLabel: 'Upload',
+          secondTap: () => setState(() => _mode = _BoqScreenMode.upload),
         ),
-        const SizedBox(width: 12),
-        Expanded(
-          child: _optionCard(
-            cs,
-            icon: Icons.upload_file_outlined,
-            title: 'Upload',
-            subtitle: 'Upload BOQ Excel and map columns',
-            onTap: () => setState(() => _mode = _BoqScreenMode.upload),
-          ),
+        const SizedBox(height: 16),
+        _infoCard(
+          cs,
+          'Choose an option',
+          '• Manual: Add BOQ rows directly from the app.\n'
+              '• Upload: Upload an Excel file and map the columns.',
         ),
       ],
     );
   }
 
-  Widget _optionCard(
-    ColorScheme cs, {
-    required IconData icon,
-    required String title,
-    required String subtitle,
-    required VoidCallback onTap,
+  Widget _selectCardGrid({
+    required IconData firstIcon,
+    required Color firstColor,
+    required String firstLabel,
+    required VoidCallback firstTap,
+    required IconData secondIcon,
+    required Color secondColor,
+    required String secondLabel,
+    required VoidCallback secondTap,
   }) {
-    return InkWell(
-      onTap: onTap,
-      borderRadius: BorderRadius.circular(16),
-      child: Container(
-        constraints: const BoxConstraints(minHeight: 150),
-        padding: const EdgeInsets.all(16),
-        decoration: BoxDecoration(
-          color: cs.surface,
-          borderRadius: BorderRadius.circular(16),
-          border: Border.all(color: cs.outlineVariant),
-        ),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            CircleAvatar(
-              backgroundColor: cs.primaryContainer,
-              child: Icon(icon, color: cs.onPrimaryContainer),
-            ),
-            const SizedBox(height: 16),
-            Text(title,
-                style:
-                    const TextStyle(fontSize: 18, fontWeight: FontWeight.w900)),
-            const SizedBox(height: 6),
-            Text(subtitle,
-                style: TextStyle(fontSize: 12, color: cs.onSurfaceVariant)),
-          ],
-        ),
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 16),
+      child: GridView.count(
+        physics: const NeverScrollableScrollPhysics(),
+        shrinkWrap: true,
+        crossAxisCount: 2,
+        mainAxisSpacing: 12,
+        crossAxisSpacing: 10,
+        childAspectRatio: 1,
+        children: [
+          SelectCard(
+            icon: SelectCardIcon(icon: firstIcon, color: firstColor),
+            label: firstLabel,
+            onTap: firstTap,
+          ),
+          SelectCard(
+            icon: SelectCardIcon(icon: secondIcon, color: secondColor),
+            label: secondLabel,
+            onTap: secondTap,
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _infoCard(ColorScheme cs, String title, String body) {
+    final isDark = Theme.of(context).brightness == Brightness.dark;
+    return Container(
+      width: double.infinity,
+      padding: const EdgeInsets.all(16),
+      decoration: BoxDecoration(
+        color: cs.surface,
+        borderRadius: BorderRadius.circular(18),
+        border: Border.all(color: cs.outlineVariant.withOpacity(0.45)),
+        boxShadow: [
+          BoxShadow(
+            color: isDark
+                ? cs.shadow.withOpacity(0.12)
+                : cs.shadow.withOpacity(0.06),
+            blurRadius: 12,
+            offset: const Offset(0, 6),
+          ),
+        ],
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Text(title,
+              style:
+                  const TextStyle(fontSize: 16, fontWeight: FontWeight.w700)),
+          const SizedBox(height: 8),
+          Text(body,
+              style: TextStyle(
+                  fontSize: 13, height: 1.5, color: cs.onSurfaceVariant)),
+        ],
       ),
     );
   }
 
   Widget _existingBoqs(ColorScheme cs) {
-    return _card(
-      cs,
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          const Text('Existing BOQs',
-              style: TextStyle(fontSize: 16, fontWeight: FontWeight.w800)),
-          const SizedBox(height: 10),
-          if (_boqs.isEmpty)
-            Text('No BOQ uploaded yet',
-                style: TextStyle(color: cs.onSurfaceVariant))
-          else
-            ..._boqs.map((boq) => ListTile(
-                  contentPadding: EdgeInsets.zero,
-                  leading: const Icon(Icons.description_outlined),
-                  title: Text(boq.name),
-                  subtitle: Text(boq.number.isEmpty
-                      ? '${boq.items.length} items'
-                      : '${boq.items.length} items • ${boq.number}'),
-                  trailing: Wrap(
-                    spacing: 4,
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        const Text('Existing BOQs',
+            style: TextStyle(fontSize: 18, fontWeight: FontWeight.w800)),
+        const SizedBox(height: 10),
+        if (_boqs.isEmpty)
+          Card(
+            child: Padding(
+              padding: const EdgeInsets.all(20),
+              child: Text('No BOQ uploaded yet',
+                  style: TextStyle(color: cs.onSurfaceVariant)),
+            ),
+          )
+        else
+          ..._boqs.map((boq) => Container(
+                margin: const EdgeInsets.symmetric(vertical: 2),
+                decoration: BoxDecoration(
+                  color: cs.surface,
+                  border: Border.all(color: cs.outlineVariant),
+                  borderRadius: BorderRadius.circular(8),
+                ),
+                child: ListTile(
+                  onTap: () => _viewBoq(boq),
+                  leading: Icon(Icons.description_outlined, color: cs.primary),
+                  title: Text(
+                    boq.name,
+                    style: TextStyle(
+                      fontWeight: FontWeight.bold,
+                      fontSize: 16,
+                      color: cs.onSurface,
+                    ),
+                  ),
+                  subtitle: Text(
+                    boq.number.isEmpty
+                        ? '${boq.items.length} items'
+                        : '${boq.items.length} items • ${boq.number}',
+                    style: TextStyle(color: cs.onSurfaceVariant),
+                  ),
+                  trailing: Row(
+                    mainAxisSize: MainAxisSize.min,
                     children: [
                       IconButton(
+                        icon:
+                            Icon(Icons.visibility_outlined, color: cs.tertiary),
                         onPressed: () => _viewBoq(boq),
-                        icon: const Icon(Icons.visibility_outlined),
                       ),
                       IconButton(
+                        icon: Icon(Icons.edit, color: cs.primary),
+                        onPressed: _saving ? null : () => _editBoq(boq),
+                      ),
+                      IconButton(
+                        icon: Icon(Icons.delete_outline, color: cs.error),
                         onPressed: _saving ? null : () => _deleteBoq(boq),
-                        icon:
-                            const Icon(Icons.delete_outline, color: Colors.red),
                       ),
                     ],
                   ),
-                )),
-        ],
-      ),
+                ),
+              )),
+      ],
     );
   }
 
