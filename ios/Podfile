@@ -1,5 +1,7 @@
 platform :ios, '15.0'
 
+$FirebaseSDKVersion = '12.14.0'
+
 ENV['COCOAPODS_DISABLE_STATS'] = 'true'
 
 project 'Runner', {
@@ -42,6 +44,12 @@ post_install do |installer|
       config.build_settings['GCC_WARN_DEPRECATED_FUNCTIONS'] = 'NO'
       config.build_settings['CLANG_WARN_DEPRECATED_OBJC_IMPLEMENTATIONS'] = 'NO'
       config.build_settings['WARNING_CFLAGS'] = '-Wno-deprecated-declarations'
+
+      if ['FirebaseInstallations', 'FirebaseSessions', 'FirebaseCrashlytics'].include?(target.name)
+        config.build_settings['FRAMEWORK_SEARCH_PATHS'] ||= ['$(inherited)']
+        config.build_settings['FRAMEWORK_SEARCH_PATHS'] = Array(config.build_settings['FRAMEWORK_SEARCH_PATHS'])
+        config.build_settings['FRAMEWORK_SEARCH_PATHS'] << '${PODS_CONFIGURATION_BUILD_DIR}/FirebaseCore'
+      end
       
       # Completely disable code signing for simulator builds
       config.build_settings['CODE_SIGN_STYLE'] = ''

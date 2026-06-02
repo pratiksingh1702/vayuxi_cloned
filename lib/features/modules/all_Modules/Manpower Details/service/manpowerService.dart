@@ -24,8 +24,8 @@ class ManpowerAPI {
   }
 
   static Future<Map<String, dynamic>> bulkDeleteManpower(
-      List<String> manpowerIds,
-      ) async {
+    List<String> manpowerIds,
+  ) async {
     if (manpowerIds.isEmpty) {
       return {"success": false, "message": "Manpower IDs list cannot be empty"};
     }
@@ -56,7 +56,8 @@ class ManpowerAPI {
       );
       return {"success": true, "data": res.data};
     } on DioException catch (e, st) {
-      debugPrint("❌ fetchManpower DIO ERROR\n${e.requestOptions.uri}\n${e.response?.data}\n$st");
+      debugPrint(
+          "❌ fetchManpower DIO ERROR\n${e.requestOptions.uri}\n${e.response?.data}\n$st");
       return {
         "success": false,
         "data": null,
@@ -70,7 +71,11 @@ class ManpowerAPI {
       };
     } catch (e, st) {
       debugPrint("❌ fetchManpower UNKNOWN ERROR\n$e\n$st");
-      return {"success": false, "data": null, "error": {"type": "Unknown", "message": e.toString()}};
+      return {
+        "success": false,
+        "data": null,
+        "error": {"type": "Unknown", "message": e.toString()}
+      };
     }
   }
 
@@ -107,9 +112,9 @@ class ManpowerAPI {
   // ─────────────────────────────────────────────
 
   static Future<Map<String, dynamic>> postManpower(
-      String type,
-      dynamic data,
-      ) async {
+    String type,
+    dynamic data,
+  ) async {
     try {
       final res = await dio.post(
         "/manpower",
@@ -123,9 +128,9 @@ class ManpowerAPI {
   }
 
   static Future<Map<String, dynamic>> updateManpower(
-      String id,
-      dynamic data,
-      ) async {
+    String id,
+    dynamic data,
+  ) async {
     try {
       final res = await dio.put("/manpower/$id", data: data);
       return {"success": true, "data": res.data};
@@ -142,7 +147,7 @@ class ManpowerAPI {
   /// Manage sites for a manpower: action = "add" | "remove" | "set"
   static Future<Map<String, dynamic>> manageManpowerSites({
     required String manpowerId,
-    required String action,        // "add" | "remove" | "set"
+    required String action, // "add" | "remove" | "set"
     required List<String> siteIds,
   }) async {
     try {
@@ -166,9 +171,9 @@ class ManpowerAPI {
   // ─────────────────────────────────────────────
 
   static Future<Map<String, dynamic>> leftManpower(
-      String id,
-      dynamic data,
-      ) async {
+    String id,
+    dynamic data,
+  ) async {
     try {
       final res = await dio.post("/manpower/$id/left", data: data);
       return {"success": true, "data": res.data};
@@ -215,7 +220,10 @@ class ManpowerAPI {
         queryParameters: queryParams,
         data: formData,
         options: Options(
-          headers: {"Accept": "application/json", "Content-Type": "multipart/form-data"},
+          headers: {
+            "Accept": "application/json",
+            "Content-Type": "multipart/form-data"
+          },
         ),
       );
       return {"success": true, "data": res.data, "statusCode": res.statusCode};
@@ -238,6 +246,7 @@ class ManpowerAPI {
       return _unexpectedError(e);
     }
   }
+
   static Future<Map<String, dynamic>> flexibleUploadExcel({
     required File file,
     required String type,
@@ -281,19 +290,21 @@ class ManpowerAPI {
     required File file,
     required String type,
     String? siteId, // Added optional siteId parameter
-  }) => flexibleUploadExcel(
-    file: file,
-    type: type,
-    analyze: false,
-    siteId: siteId, // Pass siteId through
-  );
-  static Future<Map<String, dynamic>> analyzeExcel({required File file, required String type}) =>
+  }) =>
+      flexibleUploadExcel(
+        file: file,
+        type: type,
+        analyze: false,
+        siteId: siteId, // Pass siteId through
+      );
+  static Future<Map<String, dynamic>> analyzeExcel(
+          {required File file, required String type}) =>
       flexibleUploadExcel(file: file, type: type, analyze: true);
 
   static Future<Map<String, dynamic>> uploadManpowerBulk(
-      FormData formData,
-      String type,
-      ) async {
+    FormData formData,
+    String type,
+  ) async {
     try {
       final mappedType = mapManpowerType(type);
       final response = await DioClient.dio.post(
@@ -353,15 +364,14 @@ class ManpowerAPI {
   static Future<Map<String, dynamic>> getLeftManpower({String? type}) async {
     try {
       final res = await dio.get(
-          "/left-manpower",
+        "/left-manpower",
         queryParameters: {
           if (type != null) "type": type,
-        }
-      ,
-    );
-    return {"success": true, "data": res.data};
+        },
+      );
+      return {"success": true, "data": res.data};
     } catch (e) {
-    return {"success": false, "data": null, "error": e.toString()};
+      return {"success": false, "data": null, "error": e.toString()};
     }
   }
 
@@ -387,7 +397,11 @@ class ManpowerAPI {
   }
 
   static Map<String, dynamic> _unexpectedError(Object e) {
-    return {"success": false, "error": "Unexpected Error", "message": e.toString()};
+    return {
+      "success": false,
+      "error": "Unexpected Error",
+      "message": e.toString()
+    };
   }
 }
 
@@ -399,9 +413,27 @@ String mapManpowerType(String rawType) {
     case 'insulation':
     case 'insulation_work':
       return 'insulation_work';
+    case 'civil':
+    case 'civil_work':
+      return 'civil_work';
+    case 'erection':
+    case 'erection_work':
+      return 'erection_work';
+    case 'roofing':
+    case 'roofing_work':
+      return 'roofing_work';
+    case 'fabrication':
+    case 'fabrication_work':
+      return 'fabrication_work';
+    case 'structure':
+    case 'structure_work':
+      return 'structure_work';
+    case 'peb':
+    case 'peb_work':
+      return 'peb_work';
     default:
       throw Exception(
-        "Invalid manpower type: $rawType. Allowed: mechanical_work, insulation_work",
+        "Invalid manpower type: $rawType. Please select a valid service type.",
       );
   }
 }

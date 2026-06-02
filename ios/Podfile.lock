@@ -43,61 +43,61 @@ PODS:
     - Flutter
   - file_selector_ios (0.0.1):
     - Flutter
-  - Firebase/CoreOnly (12.9.0):
-    - FirebaseCore (~> 12.9.0)
-  - Firebase/Crashlytics (12.9.0):
+  - Firebase/CoreOnly (12.14.0):
+    - FirebaseCore (~> 12.14.0)
+  - Firebase/Crashlytics (12.14.0):
     - Firebase/CoreOnly
-    - FirebaseCrashlytics (~> 12.9.0)
-  - Firebase/Messaging (12.9.0):
+    - FirebaseCrashlytics (~> 12.14.0)
+  - Firebase/Messaging (12.14.0):
     - Firebase/CoreOnly
-    - FirebaseMessaging (~> 12.9.0)
+    - FirebaseMessaging (~> 12.14.0)
   - firebase_core (4.6.0):
-    - Firebase/CoreOnly (= 12.9.0)
+    - Firebase/CoreOnly (= 12.14.0)
     - Flutter
   - firebase_crashlytics (5.1.0):
-    - Firebase/Crashlytics (= 12.9.0)
+    - Firebase/Crashlytics (= 12.14.0)
     - firebase_core
     - Flutter
   - firebase_messaging (16.1.3):
-    - Firebase/Messaging (= 12.9.0)
+    - Firebase/Messaging (= 12.14.0)
     - firebase_core
     - Flutter
-  - FirebaseCore (12.9.0):
-    - FirebaseCoreInternal (~> 12.9.0)
+  - FirebaseCore (12.14.0):
+    - FirebaseCoreInternal (~> 12.14.0)
     - GoogleUtilities/Environment (~> 8.1)
     - GoogleUtilities/Logger (~> 8.1)
-  - FirebaseCoreExtension (12.9.0):
-    - FirebaseCore (~> 12.9.0)
-  - FirebaseCoreInternal (12.9.0):
+  - FirebaseCoreExtension (12.14.0):
+    - FirebaseCore (~> 12.14.0)
+  - FirebaseCoreInternal (12.14.0):
     - "GoogleUtilities/NSData+zlib (~> 8.1)"
-  - FirebaseCrashlytics (12.9.0):
-    - FirebaseCore (~> 12.9.0)
-    - FirebaseInstallations (~> 12.9.0)
-    - FirebaseRemoteConfigInterop (~> 12.9.0)
-    - FirebaseSessions (~> 12.9.0)
+  - FirebaseCrashlytics (12.14.0):
+    - FirebaseCore (~> 12.14.0)
+    - FirebaseInstallations (~> 12.14.0)
+    - FirebaseRemoteConfigInterop (~> 12.14.0)
+    - FirebaseSessions (~> 12.14.0)
     - GoogleDataTransport (~> 10.1)
     - GoogleUtilities/Environment (~> 8.1)
     - nanopb (~> 3.30910.0)
     - PromisesObjC (~> 2.4)
-  - FirebaseInstallations (12.9.0):
-    - FirebaseCore (~> 12.9.0)
+  - FirebaseInstallations (12.14.0):
+    - FirebaseCore (~> 12.14.0)
     - GoogleUtilities/Environment (~> 8.1)
     - GoogleUtilities/UserDefaults (~> 8.1)
     - PromisesObjC (~> 2.4)
-  - FirebaseMessaging (12.9.0):
-    - FirebaseCore (~> 12.9.0)
-    - FirebaseInstallations (~> 12.9.0)
+  - FirebaseMessaging (12.14.0):
+    - FirebaseCore (~> 12.14.0)
+    - FirebaseInstallations (~> 12.14.0)
     - GoogleDataTransport (~> 10.1)
     - GoogleUtilities/AppDelegateSwizzler (~> 8.1)
     - GoogleUtilities/Environment (~> 8.1)
     - GoogleUtilities/Reachability (~> 8.1)
     - GoogleUtilities/UserDefaults (~> 8.1)
     - nanopb (~> 3.30910.0)
-  - FirebaseRemoteConfigInterop (12.9.0)
-  - FirebaseSessions (12.9.0):
-    - FirebaseCore (~> 12.9.0)
-    - FirebaseCoreExtension (~> 12.9.0)
-    - FirebaseInstallations (~> 12.9.0)
+  - FirebaseRemoteConfigInterop (12.14.0)
+  - FirebaseSessions (12.14.0):
+    - FirebaseCore (~> 12.14.0)
+    - FirebaseCoreExtension (~> 12.14.0)
+    - FirebaseInstallations (~> 12.14.0)
     - GoogleDataTransport (~> 10.1)
     - GoogleUtilities/Environment (~> 8.1)
     - GoogleUtilities/UserDefaults (~> 8.1)
@@ -144,7 +144,7 @@ PODS:
     - TOCropViewController (~> 2.8.0)
   - image_picker_ios (0.0.1):
     - Flutter
-  - isar_flutter_libs (1.0.0):
+  - isar_community_flutter_libs (1.0.0):
     - Flutter
   - nanopb (3.30910.0):
     - nanopb/decode (= 3.30910.0)
@@ -203,7 +203,7 @@ DEPENDENCIES:
   - flutter_tts (from `.symlinks/plugins/flutter_tts/ios`)
   - image_cropper (from `.symlinks/plugins/image_cropper/ios`)
   - image_picker_ios (from `.symlinks/plugins/image_picker_ios/ios`)
-  - isar_flutter_libs (from `.symlinks/plugins/isar_flutter_libs/ios`)
+  - isar_community_flutter_libs (from `.symlinks/plugins/isar_community_flutter_libs/ios`)
   - open_file_ios (from `.symlinks/plugins/open_file_ios/ios`)
   - permission_handler_apple (from `.symlinks/plugins/permission_handler_apple/ios`)
   - printing (from `.symlinks/plugins/printing/ios`)
@@ -272,8 +272,8 @@ EXTERNAL SOURCES:
     :path: ".symlinks/plugins/image_cropper/ios"
   image_picker_ios:
     :path: ".symlinks/plugins/image_picker_ios/ios"
-  isar_flutter_libs:
-    :path: ".symlinks/plugins/isar_flutter_libs/ios"
+  isar_community_flutter_libs:
+    :path: ".symlinks/plugins/isar_community_flutter_libs/ios"
   open_file_ios:
     :path: ".symlinks/plugins/open_file_ios/ios"
   permission_handler_apple:
@@ -304,18 +304,18 @@ SPEC CHECKSUMS:
   file_picker: a0560bc09d61de87f12d246fc47d2119e6ef37be
   file_saver: 6cdbcddd690cb02b0c1a0c225b37cd805c2bf8b6
   file_selector_ios: ec57ec07954363dd730b642e765e58f199bb621a
-  Firebase: 065f2bb395062046623036d8e6dc857bc2521d56
-  firebase_core: 8e6f58412ca227827c366b92e7cee047a2148c60
-  firebase_crashlytics: c399f9682c474beb06a89c11dfab04db537f3cd2
-  firebase_messaging: c3aa897e0d40109cfb7927c40dc0dea799863f3b
-  FirebaseCore: 428912f751178b06bef0a1793effeb4a5e09a9b8
-  FirebaseCoreExtension: e911052d59cd0da237a45d706fc0f81654f035c1
-  FirebaseCoreInternal: b321eafae5362113bc182956fafc9922cfc77b72
-  FirebaseCrashlytics: 43913d587ef07beaf5db703baa61eacf9554658c
-  FirebaseInstallations: 7b64ffd006032b2b019a59b803858df5112d9eaa
-  FirebaseMessaging: 7d6cdbff969127c4151c824fe432f0e301210f15
-  FirebaseRemoteConfigInterop: 765ee19cd2bfa8e54937c8dae901eb634ad6787d
-  FirebaseSessions: a2d06fd980431fda934c7a543901aca05fc4edcc
+  Firebase: 7cc10425300768ec86292688af5cb228f0604bde
+  firebase_core: 76d6e6f9ca7be73e1c33fd965a0c923eedbd7951
+  firebase_crashlytics: dea65d8ee354cd2f9ce774e1c78bfdadf3773ec4
+  firebase_messaging: fe8191ff6007ad4c36f7c6cdf47f7e5cbbb3a54a
+  FirebaseCore: 4939b340b9c598dc1f965d68f8fe57e630b65407
+  FirebaseCoreExtension: ee3e3697acea1062288b1900bcdcab4d59ab93b4
+  FirebaseCoreInternal: 090369a5fffd7423cf88006ab4d2ccc2173a8db9
+  FirebaseCrashlytics: 1fabfdca902d0706cb51bf839edb58b45db421ff
+  FirebaseInstallations: 7cdc919e29dc54306edeffdbdc1eed1a40d7d1e7
+  FirebaseMessaging: 4803888ce3002188f24e19faa8d2326261538426
+  FirebaseRemoteConfigInterop: 40ecdce5a4feee7643b81342f32f1cded905bb07
+  FirebaseSessions: c9e7b7829265454f08cb68f7f8a6650c9b221bd4
   Flutter: cabc95a1d2626b1b06e7179b784ebcf0c0cde467
   flutter_file_dialog: ca8d7fbd1772d4f0c2777b4ab20a7787ef4e7dd8
   flutter_keyboard_visibility: 4625131e43015dbbe759d9b20daaf77e0e3f6619
@@ -325,7 +325,7 @@ SPEC CHECKSUMS:
   GoogleUtilities: 00c88b9a86066ef77f0da2fab05f65d7768ed8e1
   image_cropper: 64567491beea6cd1bc4b11948e2babb590de5826
   image_picker_ios: e0ece4aa2a75771a7de3fa735d26d90817041326
-  isar_flutter_libs: 9fc2cfb928c539e1b76c481ba5d143d556d94920
+  isar_community_flutter_libs: bede843185a61a05ff364a05c9b23209523f7e0d
   nanopb: fad817b59e0457d11a5dfbde799381cd727c1275
   open_file_ios: 46184d802ee7959203f6392abcfa0dd49fdb5be0
   permission_handler_apple: 4ed2196e43d0651e8ff7ca3483a069d469701f2d
@@ -345,6 +345,6 @@ SPEC CHECKSUMS:
   url_launcher_ios: 7a95fa5b60cc718a708b8f2966718e93db0cef1b
   vibration: ca8104a8875b9c493e15b21b04e456befd0ff6eb
 
-PODFILE CHECKSUM: 3281aa0c969882f9cb3cf50a24fbb95efdc9b309
+PODFILE CHECKSUM: cc609e78e97a6e49ca4d95f8295ae8a3b6422421
 
 COCOAPODS: 1.16.2
