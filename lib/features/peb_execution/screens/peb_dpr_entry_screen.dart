@@ -27,6 +27,8 @@ class PebDprEntryScreen extends StatefulWidget {
 
 class _PebDprEntryScreenState extends State<PebDprEntryScreen> {
   final _service = PebExecutionService();
+  final _scrollController = ScrollController();
+  final Map<String, GlobalKey> _workCardKeys = {};
   bool _loading = true;
   bool _submitting = false;
   DateTime _selectedDate = DateTime.now();
@@ -44,7 +46,13 @@ class _PebDprEntryScreenState extends State<PebDprEntryScreen> {
     _load();
   }
 
-  Future<void> _load({bool showLoader = true}) async {
+  @override
+  void dispose() {
+    _scrollController.dispose();
+    super.dispose();
+  }
+
+  Future<void> _load({bool showLoader = true, bool autoScroll = false}) async {
     if (showLoader) setState(() => _loading = true);
     try {
       final teams =
@@ -77,6 +85,7 @@ class _PebDprEntryScreenState extends State<PebDprEntryScreen> {
             .toList();
         _status = results[3] as PebMarkStatus;
       });
+      if (autoScroll) _scrollToFirstActiveWork();
     } catch (error) {
       AppToast.error(extractBackendError(error));
     } finally {
@@ -145,15 +154,18 @@ class _PebDprEntryScreenState extends State<PebDprEntryScreen> {
       }).toList();
     }
 
-    final active = teamAssignments.expand((assignment) {
-      return assignment.assignments.map((item) {
+    final activeBySetupId = <String, List<_VisibleWork>>{};
+    final orphanActiveWorks = <_VisibleWork>[];
+
+    for (final assignment in teamAssignments) {
+      for (final item in assignment.assignments) {
         final setupItem = _findSetupItem(item.setupItemId) ??
             PebSetupItem(
                 id: item.setupItemId,
                 name: item.stageName,
                 uom: item.uom,
                 targetQty: item.assignedQty);
-        return _VisibleWork(
+        final work = _VisibleWork(
           key: '${assignment.id}:${item.setupItemId}',
           setupItem: setupItem,
           assignmentId: assignment.id,
@@ -167,31 +179,42 @@ class _PebDprEntryScreenState extends State<PebDprEntryScreen> {
           isActive: true,
           isFallback: false,
         );
-      });
-    }).toList();
+        if (_findSetupItem(item.setupItemId) == null) {
+          orphanActiveWorks.add(work);
+        } else {
+          activeBySetupId.putIfAbsent(item.setupItemId, () => []).add(work);
+        }
+      }
+    }
 
-    final activeSetupIds = active.map((work) => work.setupItem.id).toSet();
-    final inactive = setup.items
-        .where((item) => !activeSetupIds.contains(item.id))
-        .map((item) => _VisibleWork(
-              key: item.id,
-              setupItem: item,
-              assignmentId: '',
-              sourceType: 'boq_upload',
-              stageName: item.name,
-              assignedMarks: const [],
-              assignedQty: 0,
-              assignmentDate: null,
-              expectedCompletionDate: null,
-              isActive: false,
-              isFallback: false,
-              inactiveReason: _teamId.isEmpty
-                  ? 'Select team to activate work'
-                  : 'Not assigned to selected team',
-            ));
+    final orderedWorks = <_VisibleWork>[];
+    for (final setupItem in setup.items) {
+      final activeForStage = activeBySetupId[setupItem.id] ?? const [];
+      if (activeForStage.isNotEmpty) {
+        orderedWorks.addAll(activeForStage);
+      } else {
+        orderedWorks.add(_VisibleWork(
+          key: setupItem.id,
+          setupItem: setupItem,
+          assignmentId: '',
+          sourceType: 'boq_upload',
+          stageName: setupItem.name,
+          assignedMarks: const [],
+          assignedQty: 0,
+          assignmentDate: null,
+          expectedCompletionDate: null,
+          isActive: false,
+          isFallback: false,
+          inactiveReason: _teamId.isEmpty
+              ? 'Select team to activate work'
+              : 'Not assigned to selected team',
+        ));
+      }
+    }
+    orderedWorks.addAll(orphanActiveWorks);
 
     final counts = <String, int>{};
-    return [...active, ...inactive].map((work) {
+    return orderedWorks.map((work) {
       if (!work.isActive) return work;
       counts[work.stageName] = (counts[work.stageName] ?? 0) + 1;
       return work.copyWith(
@@ -200,6 +223,29 @@ class _PebDprEntryScreenState extends State<PebDprEntryScreen> {
             : work.stageName,
       );
     }).toList();
+  }
+
+  GlobalKey _keyForWork(_VisibleWork work) {
+    return _workCardKeys.putIfAbsent(work.key, GlobalKey.new);
+  }
+
+  void _scrollToFirstActiveWork() {
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (!mounted) return;
+      final activeWork = _visibleWorks()
+          .where((work) => work.isActive)
+          .cast<_VisibleWork?>()
+          .firstWhere((work) => work != null, orElse: () => null);
+      if (activeWork == null) return;
+      final context = _workCardKeys[activeWork.key]?.currentContext;
+      if (context == null) return;
+      Scrollable.ensureVisible(
+        context,
+        duration: const Duration(milliseconds: 450),
+        curve: Curves.easeOutCubic,
+        alignment: 0.08,
+      );
+    });
   }
 
   PebSetupItem? _findSetupItem(String id) {
@@ -332,6 +378,7 @@ class _PebDprEntryScreenState extends State<PebDprEntryScreen> {
               : RefreshIndicator(
                   onRefresh: _load,
                   child: ListView(
+                    controller: _scrollController,
                     padding: const EdgeInsets.all(16),
                     children: [
                       _buildFilters(),
@@ -351,7 +398,10 @@ class _PebDprEntryScreenState extends State<PebDprEntryScreen> {
                                 padding: EdgeInsets.all(20),
                                 child: Text('No work found.')))
                       else
-                        ...works.map(_buildWorkCard),
+                        ...works.map((work) => KeyedSubtree(
+                              key: _keyForWork(work),
+                              child: _buildWorkCard(work),
+                            )),
                       const SizedBox(height: 80),
                     ],
                   ),
@@ -408,7 +458,7 @@ class _PebDprEntryScreenState extends State<PebDprEntryScreen> {
                         .toList(),
                     onChanged: (value) async {
                       setState(() => _teamId = value ?? '');
-                      await _load();
+                      await _load(autoScroll: true);
                     },
                   ),
                 ),
