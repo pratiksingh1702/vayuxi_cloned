@@ -221,77 +221,187 @@ class _PebBoqUploadScreenState extends State<PebBoqUploadScreen> {
     }
   }
 
-  Future<void> _editBoq(PebBoq boq) async {
-    final controller = TextEditingController(text: boq.name);
-    final nextName = await showDialog<String>(
-      context: context,
-      builder: (context) => AlertDialog(
-        title: const Text('Edit BOQ'),
-        content: TextField(
-          controller: controller,
-          autofocus: true,
-          decoration: const InputDecoration(
-            labelText: 'BOQ Name',
-            border: OutlineInputBorder(),
-          ),
-        ),
-        actions: [
-          TextButton(
-              onPressed: () => context.pop(), child: const Text('Cancel')),
-          FilledButton(
-              onPressed: () => context.pop(controller.text.trim()),
-              child: const Text('Save')),
-        ],
-      ),
-    );
-    controller.dispose();
-    if (nextName == null || nextName.isEmpty || nextName == boq.name) return;
-    setState(() => _saving = true);
-    try {
-      await _service.updateBoq(widget.siteId, boq.id, boqName: nextName);
-      await _loadBoqs();
-      AppToast.success('BOQ updated');
-    } catch (_) {
-      AppToast.error('Failed to update BOQ');
-    } finally {
-      if (mounted) setState(() => _saving = false);
-    }
-  }
-
   Future<void> _viewBoq(PebBoq boq) async {
     showModalBottomSheet<void>(
       context: context,
       isScrollControlled: true,
+      showDragHandle: true,
       builder: (context) => FutureBuilder<List<dynamic>>(
         future: _service.getBoqItems(widget.siteId, boq.id),
         builder: (context, snapshot) {
           final items = snapshot.data ?? const [];
+          final cs = Theme.of(context).colorScheme;
+          final totalQty = items.fold<double>(0, (sum, raw) {
+            final item = raw is Map ? raw : {};
+            final value = item['quantity'];
+            return sum + (value is num ? value.toDouble() : 0);
+          });
+          final totalWeight = items.fold<double>(0, (sum, raw) {
+            final item = raw is Map ? raw : {};
+            final value = item['totalNetWeight'];
+            return sum + (value is num ? value.toDouble() : 0);
+          });
           return DraggableScrollableSheet(
             expand: false,
-            initialChildSize: 0.75,
+            initialChildSize: 0.86,
+            maxChildSize: 0.95,
+            minChildSize: 0.55,
             builder: (context, controller) => ListView(
               controller: controller,
               padding: const EdgeInsets.all(16),
               children: [
-                Text(boq.name,
-                    style: const TextStyle(
-                        fontSize: 18, fontWeight: FontWeight.w800)),
-                const SizedBox(height: 12),
+                Row(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Container(
+                      width: 46,
+                      height: 46,
+                      decoration: BoxDecoration(
+                        color: cs.primaryContainer,
+                        borderRadius: BorderRadius.circular(12),
+                      ),
+                      child: Icon(Icons.description_outlined,
+                          color: cs.onPrimaryContainer),
+                    ),
+                    const SizedBox(width: 12),
+                    Expanded(
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Text(
+                            boq.name,
+                            style: TextStyle(
+                              fontSize: 20,
+                              fontWeight: FontWeight.w900,
+                              color: cs.onSurface,
+                            ),
+                          ),
+                          const SizedBox(height: 4),
+                          Text(
+                            boq.number.isEmpty
+                                ? widget.siteName
+                                : '${widget.siteName} • ${boq.number}',
+                            style: TextStyle(color: cs.onSurfaceVariant),
+                          ),
+                        ],
+                      ),
+                    ),
+                    IconButton(
+                      onPressed: () => context.pop(),
+                      icon: const Icon(Icons.close),
+                    ),
+                  ],
+                ),
+                const SizedBox(height: 16),
                 if (snapshot.connectionState == ConnectionState.waiting)
-                  const Center(child: CircularProgressIndicator())
+                  const Padding(
+                    padding: EdgeInsets.all(32),
+                    child: Center(child: CircularProgressIndicator()),
+                  )
                 else if (items.isEmpty)
-                  const Center(child: Text('No BOQ items found'))
-                else
-                  ...items.take(150).map((raw) {
+                  Card(
+                    child: Padding(
+                      padding: const EdgeInsets.all(20),
+                      child: Center(
+                        child: Text('No BOQ items found',
+                            style: TextStyle(color: cs.onSurfaceVariant)),
+                      ),
+                    ),
+                  )
+                else ...[
+                  Row(
+                    children: [
+                      Expanded(
+                        child:
+                            _summaryTile(cs, 'Items', items.length.toString()),
+                      ),
+                      const SizedBox(width: 10),
+                      Expanded(
+                        child: _summaryTile(
+                            cs, 'Quantity', _prettyNumber(totalQty)),
+                      ),
+                      const SizedBox(width: 10),
+                      Expanded(
+                        child: _summaryTile(
+                            cs, 'Weight', _prettyNumber(totalWeight)),
+                      ),
+                    ],
+                  ),
+                  const SizedBox(height: 16),
+                  Text(
+                    'BOQ Items',
+                    style: TextStyle(
+                      fontSize: 16,
+                      fontWeight: FontWeight.w800,
+                      color: cs.onSurface,
+                    ),
+                  ),
+                  const SizedBox(height: 8),
+                  ...items.take(200).map((raw) {
                     final item = raw is Map ? raw : {};
-                    return ListTile(
-                      dense: true,
-                      title: Text(item['assemblyMark']?.toString() ?? '-'),
-                      subtitle:
-                          Text(item['typeDescription']?.toString() ?? '-'),
-                      trailing: Text('Qty ${item['quantity'] ?? '-'}'),
+                    final assemblyMark =
+                        item['assemblyMark']?.toString() ?? '-';
+                    final description =
+                        item['typeDescription']?.toString() ?? '-';
+                    final detailedMark = item['detailedMark']?.toString() ?? '';
+                    final qty = item['quantity'];
+                    final weight = item['totalNetWeight'];
+                    return Container(
+                      margin: const EdgeInsets.symmetric(vertical: 3),
+                      decoration: BoxDecoration(
+                        color: cs.surface,
+                        border: Border.all(color: cs.outlineVariant),
+                        borderRadius: BorderRadius.circular(8),
+                      ),
+                      child: ListTile(
+                        leading: Icon(Icons.account_tree_outlined,
+                            color: cs.primary),
+                        title: Text(
+                          assemblyMark,
+                          style: TextStyle(
+                            fontWeight: FontWeight.bold,
+                            color: cs.onSurface,
+                          ),
+                        ),
+                        subtitle: Text(
+                          detailedMark.isEmpty
+                              ? description
+                              : '$description\n$detailedMark',
+                          style: TextStyle(color: cs.onSurfaceVariant),
+                        ),
+                        isThreeLine: detailedMark.isNotEmpty,
+                        trailing: Column(
+                          mainAxisAlignment: MainAxisAlignment.center,
+                          crossAxisAlignment: CrossAxisAlignment.end,
+                          children: [
+                            Text(
+                              'Qty ${qty ?? '-'}',
+                              style:
+                                  const TextStyle(fontWeight: FontWeight.w800),
+                            ),
+                            if (weight is num && weight > 0)
+                              Text(
+                                _prettyNumber(weight.toDouble()),
+                                style: TextStyle(
+                                  fontSize: 12,
+                                  color: cs.onSurfaceVariant,
+                                ),
+                              ),
+                          ],
+                        ),
+                      ),
                     );
                   }),
+                  if (items.length > 200)
+                    Padding(
+                      padding: const EdgeInsets.only(top: 12),
+                      child: Text(
+                        'Showing first 200 items',
+                        textAlign: TextAlign.center,
+                        style: TextStyle(color: cs.onSurfaceVariant),
+                      ),
+                    ),
+                ],
               ],
             ),
           );
@@ -534,10 +644,6 @@ class _PebBoqUploadScreenState extends State<PebBoqUploadScreen> {
                         onPressed: () => _viewBoq(boq),
                       ),
                       IconButton(
-                        icon: Icon(Icons.edit, color: cs.primary),
-                        onPressed: _saving ? null : () => _editBoq(boq),
-                      ),
-                      IconButton(
                         icon: Icon(Icons.delete_outline, color: cs.error),
                         onPressed: _saving ? null : () => _deleteBoq(boq),
                       ),
@@ -547,6 +653,34 @@ class _PebBoqUploadScreenState extends State<PebBoqUploadScreen> {
               )),
       ],
     );
+  }
+
+  Widget _summaryTile(ColorScheme cs, String label, String value) {
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
+      decoration: BoxDecoration(
+        color: cs.surfaceContainerHigh,
+        borderRadius: BorderRadius.circular(12),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Text(label,
+              style: TextStyle(fontSize: 12, color: cs.onSurfaceVariant)),
+          const SizedBox(height: 3),
+          Text(value,
+              maxLines: 1,
+              overflow: TextOverflow.ellipsis,
+              style:
+                  const TextStyle(fontSize: 15, fontWeight: FontWeight.w800)),
+        ],
+      ),
+    );
+  }
+
+  String _prettyNumber(double value) {
+    if (value == value.roundToDouble()) return value.toStringAsFixed(0);
+    return value.toStringAsFixed(2);
   }
 
   Widget _uploadCard(ColorScheme cs) {

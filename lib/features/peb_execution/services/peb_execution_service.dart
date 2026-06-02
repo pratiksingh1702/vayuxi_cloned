@@ -183,16 +183,6 @@ class PebExecutionService {
     await _dio.delete('/site/$siteId/boq-structure/$boqId');
   }
 
-  Future<void> updateBoq(
-    String siteId,
-    String boqId, {
-    required String boqName,
-  }) async {
-    await _dio.put('/site/$siteId/boq-structure/$boqId', data: {
-      'boqName': boqName,
-    });
-  }
-
   Future<void> createManualBoq(
     String siteId,
     PebExecutionType type, {
