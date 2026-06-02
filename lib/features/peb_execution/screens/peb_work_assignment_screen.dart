@@ -39,6 +39,7 @@ class _PebWorkAssignmentScreenState extends State<PebWorkAssignmentScreen> {
   bool _saving = false;
   bool _showForm = false;
   bool _allowFallback = true;
+  _WorkAssignmentMode _mode = _WorkAssignmentMode.home;
   String _teamId = '';
   String _setupItemId = '';
   String _sourceType = 'boq_upload';
@@ -151,6 +152,7 @@ class _PebWorkAssignmentScreenState extends State<PebWorkAssignmentScreen> {
 
   void _openNew(PebSetupItem item) {
     setState(() {
+      _mode = _WorkAssignmentMode.add;
       _showForm = true;
       _editingAssignmentId = '';
       _setupItemId = item.id;
@@ -171,6 +173,7 @@ class _PebWorkAssignmentScreenState extends State<PebWorkAssignmentScreen> {
     if (assignment.assignments.isEmpty) return;
     final item = assignment.assignments.first;
     setState(() {
+      _mode = _WorkAssignmentMode.add;
       _showForm = true;
       _editingAssignmentId = assignment.id;
       _setupItemId = item.setupItemId;
@@ -237,7 +240,10 @@ class _PebWorkAssignmentScreenState extends State<PebWorkAssignmentScreen> {
       AppToast.success(_editingAssignmentId.isEmpty
           ? 'Work assignment saved'
           : 'Work assignment updated');
-      setState(() => _showForm = false);
+      setState(() {
+        _showForm = false;
+        _mode = _WorkAssignmentMode.view;
+      });
       await _load();
     } on PebExecutionConflict catch (conflict) {
       _showConflictDialog(conflict.conflicts);
@@ -323,9 +329,14 @@ class _PebWorkAssignmentScreenState extends State<PebWorkAssignmentScreen> {
   @override
   Widget build(BuildContext context) {
     final cs = Theme.of(context).colorScheme;
+    final titleSuffix = switch (_mode) {
+      _WorkAssignmentMode.home => 'Assignment',
+      _WorkAssignmentMode.view => 'Assignment View',
+      _WorkAssignmentMode.add => 'Assignment Add',
+    };
     return Scaffold(
       drawer: const CustomDrawer(),
-      appBar: CustomAppBar(title: '${widget.executionType.title} Assignment'),
+      appBar: CustomAppBar(title: '${widget.executionType.title} $titleSuffix'),
       body: _loading
           ? const Center(child: CircularProgressIndicator())
           : RefreshIndicator(
@@ -333,14 +344,129 @@ class _PebWorkAssignmentScreenState extends State<PebWorkAssignmentScreen> {
               child: ListView(
                 padding: const EdgeInsets.all(16),
                 children: [
-                  _buildTopControls(cs),
+                  if (_mode != _WorkAssignmentMode.home)
+                    Align(
+                      alignment: Alignment.centerLeft,
+                      child: TextButton.icon(
+                        onPressed: () => setState(() {
+                          if (_mode == _WorkAssignmentMode.add && _showForm) {
+                            _showForm = false;
+                          } else {
+                            _mode = _WorkAssignmentMode.home;
+                          }
+                        }),
+                        icon: const Icon(Icons.arrow_back),
+                        label: const Text('Back'),
+                      ),
+                    ),
+                  Text(widget.siteName,
+                      style: TextStyle(
+                          color: cs.onSurfaceVariant,
+                          fontWeight: FontWeight.w700)),
                   const SizedBox(height: 16),
-                  if (_showForm) _buildForm(cs) else _buildStageGrid(cs),
-                  const SizedBox(height: 16),
-                  _buildAssignmentList(cs),
+                  ..._bodyByMode(cs),
                 ],
               ),
             ),
+    );
+  }
+
+  List<Widget> _bodyByMode(ColorScheme cs) {
+    switch (_mode) {
+      case _WorkAssignmentMode.home:
+        return [_homeOptions(cs)];
+      case _WorkAssignmentMode.view:
+        return [_buildAssignmentList(cs), const SizedBox(height: 80)];
+      case _WorkAssignmentMode.add:
+        return [
+          _buildTopControls(cs),
+          const SizedBox(height: 16),
+          if (_showForm) _buildForm(cs) else _buildStageGrid(cs),
+          const SizedBox(height: 80),
+        ];
+    }
+  }
+
+  Widget _homeOptions(ColorScheme cs) {
+    return Column(
+      children: [
+        Row(
+          children: [
+            Expanded(
+              child: _optionCard(
+                cs,
+                icon: Icons.visibility_outlined,
+                title: 'View',
+                subtitle: 'View, edit and delete assigned work records',
+                onTap: () => setState(() => _mode = _WorkAssignmentMode.view),
+              ),
+            ),
+            const SizedBox(width: 12),
+            Expanded(
+              child: _optionCard(
+                cs,
+                icon: Icons.add_circle_outline,
+                title: 'Add',
+                subtitle: 'Assign stage work to teams',
+                onTap: () => setState(() {
+                  _mode = _WorkAssignmentMode.add;
+                  _showForm = false;
+                }),
+              ),
+            ),
+          ],
+        ),
+        const SizedBox(height: 16),
+        Card(
+          child: ListTile(
+            leading: const Icon(Icons.assignment_ind_outlined),
+            title: Text(
+              '${_assignments.length} assigned work record${_assignments.length == 1 ? '' : 's'}',
+              style: const TextStyle(fontWeight: FontWeight.w800),
+            ),
+            subtitle:
+                const Text('Select View to inspect existing assignments.'),
+          ),
+        ),
+      ],
+    );
+  }
+
+  Widget _optionCard(
+    ColorScheme cs, {
+    required IconData icon,
+    required String title,
+    required String subtitle,
+    required VoidCallback onTap,
+  }) {
+    return InkWell(
+      onTap: onTap,
+      borderRadius: BorderRadius.circular(16),
+      child: Container(
+        constraints: const BoxConstraints(minHeight: 150),
+        padding: const EdgeInsets.all(16),
+        decoration: BoxDecoration(
+          color: cs.surface,
+          borderRadius: BorderRadius.circular(16),
+          border: Border.all(color: cs.outlineVariant),
+        ),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            CircleAvatar(
+              backgroundColor: cs.primaryContainer,
+              child: Icon(icon, color: cs.onPrimaryContainer),
+            ),
+            const SizedBox(height: 16),
+            Text(title,
+                style:
+                    const TextStyle(fontSize: 18, fontWeight: FontWeight.w900)),
+            const SizedBox(height: 6),
+            Text(subtitle,
+                style: TextStyle(fontSize: 12, color: cs.onSurfaceVariant)),
+          ],
+        ),
+      ),
     );
   }
 
@@ -663,6 +789,7 @@ class _PebWorkAssignmentScreenState extends State<PebWorkAssignmentScreen> {
               : null;
           return Card(
             child: ListTile(
+              onTap: () => _showAssignmentDetails(assignment),
               title: Text(assignment.team?.name ?? 'Team',
                   style: const TextStyle(fontWeight: FontWeight.w700)),
               subtitle: Text(
@@ -730,3 +857,5 @@ class _PebWorkAssignmentScreenState extends State<PebWorkAssignmentScreen> {
     return null;
   }
 }
+
+enum _WorkAssignmentMode { home, view, add }
