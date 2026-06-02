@@ -183,6 +183,40 @@ class PebExecutionService {
     await _dio.delete('/site/$siteId/boq-structure/$boqId');
   }
 
+  Future<void> updateBoqItem(
+    String siteId,
+    String boqId,
+    String itemId, {
+    required Map<String, dynamic> item,
+  }) async {
+    await _dio.put(
+      '/site/$siteId/boq-structure/$boqId/items/$itemId',
+      data: item,
+    );
+  }
+
+  Future<void> deleteBoqItem(
+    String siteId,
+    String boqId,
+    String itemId,
+  ) async {
+    await _dio.delete('/site/$siteId/boq-structure/$boqId/items/$itemId');
+  }
+
+  Future<void> updateBoq(
+    String siteId,
+    String boqId,
+    PebExecutionType type, {
+    required String boqName,
+    required List<Map<String, dynamic>> items,
+  }) async {
+    await _dio.put('/site/$siteId/boq-structure/$boqId', data: {
+      'boqName': boqName,
+      'type': type.apiType,
+      'items': items,
+    });
+  }
+
   Future<void> createManualBoq(
     String siteId,
     PebExecutionType type, {

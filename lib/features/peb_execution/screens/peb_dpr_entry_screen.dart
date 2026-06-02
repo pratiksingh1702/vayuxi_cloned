@@ -70,7 +70,6 @@ class _PebDprEntryScreenState extends State<PebDprEntryScreen> {
         _service.getDprMarkStatus(
           widget.siteId,
           widget.executionType,
-          teamId: firstTeam,
           date: _dateText,
         ),
       ]);
@@ -273,16 +272,17 @@ class _PebDprEntryScreenState extends State<PebDprEntryScreen> {
   }
 
   Set<String> _completedForWork(_VisibleWork work) {
-    return _status.completedByKey[work.key] ??
-        _status.completedByKey[work.setupItem.id] ??
-        <String>{};
+    if (work.assignmentId.isNotEmpty) {
+      return _status.completedByKey[work.key] ?? <String>{};
+    }
+    return _status.completedByKey[work.setupItem.id] ?? <String>{};
   }
 
   Set<String> _inProgressForWork(_VisibleWork work) {
     final completed = _completedForWork(work);
-    final raw = _status.inProgressByKey[work.key] ??
-        _status.inProgressByKey[work.setupItem.id] ??
-        <String>{};
+    final raw = work.assignmentId.isNotEmpty
+        ? _status.inProgressByKey[work.key] ?? <String>{}
+        : _status.inProgressByKey[work.setupItem.id] ?? <String>{};
     return raw.where((mark) => !completed.contains(mark)).toSet();
   }
 

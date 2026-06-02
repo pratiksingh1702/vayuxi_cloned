@@ -131,27 +131,66 @@ class PebSetup {
 }
 
 class PebBoqMark {
+  final String id;
   final String assemblyMark;
+  final String detailedMark;
   final String typeDescription;
   final double quantity;
   final double remainingQty;
+  final double length;
+  final double width;
+  final double height;
+  final double netWeightPerUnit;
+  final double totalNetWeight;
+  final String status;
 
   const PebBoqMark({
+    required this.id,
     required this.assemblyMark,
+    required this.detailedMark,
     required this.typeDescription,
     required this.quantity,
     required this.remainingQty,
+    required this.length,
+    required this.width,
+    required this.height,
+    required this.netWeightPerUnit,
+    required this.totalNetWeight,
+    required this.status,
   });
 
   factory PebBoqMark.fromJson(Map<String, dynamic> json) {
     final quantity = (json['quantity'] as num?)?.toDouble() ?? 0;
+    final netWeightPerUnit =
+        (json['netWeightPerUnit'] as num?)?.toDouble() ?? 0;
     return PebBoqMark(
+      id: json['_id']?.toString() ?? json['id']?.toString() ?? '',
       assemblyMark: json['assemblyMark']?.toString() ?? '',
+      detailedMark: json['detailedMark']?.toString() ?? '',
       typeDescription: json['typeDescription']?.toString() ?? '',
       quantity: quantity,
       remainingQty: (json['remainingQty'] as num?)?.toDouble() ?? quantity,
+      length: (json['length'] as num?)?.toDouble() ?? 0,
+      width: (json['width'] as num?)?.toDouble() ?? 0,
+      height: (json['height'] as num?)?.toDouble() ?? 0,
+      netWeightPerUnit: netWeightPerUnit,
+      totalNetWeight: (json['totalNetWeight'] as num?)?.toDouble() ??
+          quantity * netWeightPerUnit,
+      status: json['status']?.toString() ?? 'pending',
     );
   }
+
+  Map<String, dynamic> toJson() => {
+        if (id.isNotEmpty) '_id': id,
+        'assemblyMark': assemblyMark,
+        'detailedMark': detailedMark,
+        'typeDescription': typeDescription,
+        'quantity': quantity,
+        'length': length,
+        'width': width,
+        'height': height,
+        'netWeightPerUnit': netWeightPerUnit,
+      };
 }
 
 class PebBoq {

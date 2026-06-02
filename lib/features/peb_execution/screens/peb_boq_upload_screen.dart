@@ -2,7 +2,9 @@ import 'package:file_picker/file_picker.dart';
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
 import 'package:untitled2/core/utlis/app_toasts.dart';
+import 'package:untitled2/core/utlis/widgets/buttons.dart';
 import 'package:untitled2/core/utlis/widgets/custom.dart';
+import 'package:untitled2/core/utlis/widgets/fields/custom_textField.dart';
 import 'package:untitled2/core/utlis/widgets/sidebar.dart';
 import 'package:untitled2/features/modules/all_Modules/dpr/screens/widgets/select_card.dart';
 
@@ -39,7 +41,19 @@ class _PebBoqUploadScreenState extends State<PebBoqUploadScreen> {
   bool _loading = true;
   bool _saving = false;
   bool _isStandardTemplate = false;
-  _BoqScreenMode _mode = _BoqScreenMode.home;
+  PebBoq? _editingBoq;
+  _BoqMarkRecord? _editingMark;
+  _BoqScreenMode _mode = _BoqScreenMode.view;
+
+  List<_BoqMarkRecord> get _allMarks {
+    final records = <_BoqMarkRecord>[];
+    for (final boq in _boqs) {
+      for (final mark in boq.items) {
+        records.add(_BoqMarkRecord(boq: boq, mark: mark));
+      }
+    }
+    return records;
+  }
 
   @override
   void initState() {
@@ -175,15 +189,7 @@ class _PebBoqUploadScreenState extends State<PebBoqUploadScreen> {
         boqName: _manualName.text.trim(),
         items: items,
       );
-      _manualName.clear();
-      setState(() {
-        for (final row in _manualRows) {
-          row.dispose();
-        }
-        _manualRows
-          ..clear()
-          ..add(_ManualBoqRow());
-      });
+      setState(() => _resetManualForm());
       await _loadBoqs();
       if (mounted) setState(() => _mode = _BoqScreenMode.view);
       AppToast.success('Manual BOQ created');
@@ -194,12 +200,69 @@ class _PebBoqUploadScreenState extends State<PebBoqUploadScreen> {
     }
   }
 
-  Future<void> _deleteBoq(PebBoq boq) async {
+  Future<void> _saveEditedBoq() async {
+    final boq = _editingBoq;
+    final editingMark = _editingMark;
+    if (boq == null || editingMark == null) return;
+    final item = _manualRows.first.toJson();
+    if (_manualName.text.trim().isEmpty ||
+        item['assemblyMark'].toString().isEmpty ||
+        ((item['quantity'] as num?) ?? 0) <= 0) {
+      AppToast.error('BOQ name and mark details are required');
+      return;
+    }
+    setState(() => _saving = true);
+    try {
+      await _service.updateBoqItem(
+        widget.siteId,
+        boq.id,
+        editingMark.mark.id,
+        item: item,
+      );
+      _editingBoq = null;
+      _editingMark = null;
+      _resetManualForm();
+      await _loadBoqs();
+      if (mounted) setState(() => _mode = _BoqScreenMode.view);
+      AppToast.success('BOQ mark updated successfully');
+    } catch (_) {
+      AppToast.error('Failed to update BOQ mark');
+    } finally {
+      if (mounted) setState(() => _saving = false);
+    }
+  }
+
+  void _editMark(_BoqMarkRecord record) {
+    _resetManualForm(addBlank: false);
+    _manualName.text = record.boq.name;
+    _manualRows.add(_ManualBoqRow.fromMark(record.mark));
+    _editingBoq = record.boq;
+    _editingMark = record;
+    setState(() => _mode = _BoqScreenMode.edit);
+  }
+
+  void _startManualAdd() {
+    _editingBoq = null;
+    _editingMark = null;
+    _resetManualForm();
+    setState(() => _mode = _BoqScreenMode.manual);
+  }
+
+  void _resetManualForm({bool addBlank = true}) {
+    _manualName.clear();
+    for (final row in _manualRows) {
+      row.dispose();
+    }
+    _manualRows.clear();
+    if (addBlank) _manualRows.add(_ManualBoqRow());
+  }
+
+  Future<void> _deleteMark(_BoqMarkRecord record) async {
     final confirmed = await showDialog<bool>(
       context: context,
       builder: (context) => AlertDialog(
-        title: const Text('Delete BOQ?'),
-        content: Text('Delete ${boq.name}?'),
+        title: const Text('Delete BOQ mark?'),
+        content: Text('Delete ${record.mark.assemblyMark}?'),
         actions: [
           TextButton(
               onPressed: () => context.pop(false), child: const Text('Cancel')),
@@ -211,202 +274,140 @@ class _PebBoqUploadScreenState extends State<PebBoqUploadScreen> {
     if (confirmed != true) return;
     setState(() => _saving = true);
     try {
-      await _service.deleteBoq(widget.siteId, boq.id);
+      if (record.boq.items.length <= 1) {
+        await _service.deleteBoq(widget.siteId, record.boq.id);
+      } else {
+        await _service.deleteBoqItem(
+          widget.siteId,
+          record.boq.id,
+          record.mark.id,
+        );
+      }
       await _loadBoqs();
-      AppToast.success('BOQ deleted');
+      AppToast.success('BOQ mark deleted');
     } catch (_) {
-      AppToast.error('Failed to delete BOQ');
+      AppToast.error('Failed to delete BOQ mark');
     } finally {
       if (mounted) setState(() => _saving = false);
     }
   }
 
-  Future<void> _viewBoq(PebBoq boq) async {
+  Future<void> _viewMark(_BoqMarkRecord record) async {
     showModalBottomSheet<void>(
       context: context,
       isScrollControlled: true,
       showDragHandle: true,
-      builder: (context) => FutureBuilder<List<dynamic>>(
-        future: _service.getBoqItems(widget.siteId, boq.id),
-        builder: (context, snapshot) {
-          final items = snapshot.data ?? const [];
-          final cs = Theme.of(context).colorScheme;
-          final totalQty = items.fold<double>(0, (sum, raw) {
-            final item = raw is Map ? raw : {};
-            final value = item['quantity'];
-            return sum + (value is num ? value.toDouble() : 0);
-          });
-          final totalWeight = items.fold<double>(0, (sum, raw) {
-            final item = raw is Map ? raw : {};
-            final value = item['totalNetWeight'];
-            return sum + (value is num ? value.toDouble() : 0);
-          });
-          return DraggableScrollableSheet(
-            expand: false,
-            initialChildSize: 0.86,
-            maxChildSize: 0.95,
-            minChildSize: 0.55,
-            builder: (context, controller) => ListView(
-              controller: controller,
-              padding: const EdgeInsets.all(16),
-              children: [
-                Row(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Container(
-                      width: 46,
-                      height: 46,
-                      decoration: BoxDecoration(
-                        color: cs.primaryContainer,
-                        borderRadius: BorderRadius.circular(12),
-                      ),
-                      child: Icon(Icons.description_outlined,
-                          color: cs.onPrimaryContainer),
+      builder: (context) {
+        final mark = record.mark;
+        final cs = Theme.of(context).colorScheme;
+        return DraggableScrollableSheet(
+          expand: false,
+          initialChildSize: 0.62,
+          maxChildSize: 0.85,
+          minChildSize: 0.55,
+          builder: (context, controller) => ListView(
+            controller: controller,
+            padding: const EdgeInsets.all(16),
+            children: [
+              Row(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Container(
+                    width: 46,
+                    height: 46,
+                    decoration: BoxDecoration(
+                      color: cs.primaryContainer,
+                      borderRadius: BorderRadius.circular(12),
                     ),
-                    const SizedBox(width: 12),
-                    Expanded(
-                      child: Column(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        children: [
-                          Text(
-                            boq.name,
-                            style: TextStyle(
-                              fontSize: 20,
-                              fontWeight: FontWeight.w900,
-                              color: cs.onSurface,
-                            ),
-                          ),
-                          const SizedBox(height: 4),
-                          Text(
-                            boq.number.isEmpty
-                                ? widget.siteName
-                                : '${widget.siteName} • ${boq.number}',
-                            style: TextStyle(color: cs.onSurfaceVariant),
-                          ),
-                        ],
-                      ),
-                    ),
-                    IconButton(
-                      onPressed: () => context.pop(),
-                      icon: const Icon(Icons.close),
-                    ),
-                  ],
-                ),
-                const SizedBox(height: 16),
-                if (snapshot.connectionState == ConnectionState.waiting)
-                  const Padding(
-                    padding: EdgeInsets.all(32),
-                    child: Center(child: CircularProgressIndicator()),
-                  )
-                else if (items.isEmpty)
-                  Card(
-                    child: Padding(
-                      padding: const EdgeInsets.all(20),
-                      child: Center(
-                        child: Text('No BOQ items found',
-                            style: TextStyle(color: cs.onSurfaceVariant)),
-                      ),
-                    ),
-                  )
-                else ...[
-                  Row(
-                    children: [
-                      Expanded(
-                        child:
-                            _summaryTile(cs, 'Items', items.length.toString()),
-                      ),
-                      const SizedBox(width: 10),
-                      Expanded(
-                        child: _summaryTile(
-                            cs, 'Quantity', _prettyNumber(totalQty)),
-                      ),
-                      const SizedBox(width: 10),
-                      Expanded(
-                        child: _summaryTile(
-                            cs, 'Weight', _prettyNumber(totalWeight)),
-                      ),
-                    ],
+                    child: Icon(Icons.description_outlined,
+                        color: cs.onPrimaryContainer),
                   ),
-                  const SizedBox(height: 16),
-                  Text(
-                    'BOQ Items',
-                    style: TextStyle(
-                      fontSize: 16,
-                      fontWeight: FontWeight.w800,
-                      color: cs.onSurface,
-                    ),
-                  ),
-                  const SizedBox(height: 8),
-                  ...items.take(200).map((raw) {
-                    final item = raw is Map ? raw : {};
-                    final assemblyMark =
-                        item['assemblyMark']?.toString() ?? '-';
-                    final description =
-                        item['typeDescription']?.toString() ?? '-';
-                    final detailedMark = item['detailedMark']?.toString() ?? '';
-                    final qty = item['quantity'];
-                    final weight = item['totalNetWeight'];
-                    return Container(
-                      margin: const EdgeInsets.symmetric(vertical: 3),
-                      decoration: BoxDecoration(
-                        color: cs.surface,
-                        border: Border.all(color: cs.outlineVariant),
-                        borderRadius: BorderRadius.circular(8),
-                      ),
-                      child: ListTile(
-                        leading: Icon(Icons.account_tree_outlined,
-                            color: cs.primary),
-                        title: Text(
-                          assemblyMark,
+                  const SizedBox(width: 12),
+                  Expanded(
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Text(
+                          mark.assemblyMark,
                           style: TextStyle(
-                            fontWeight: FontWeight.bold,
+                            fontSize: 20,
+                            fontWeight: FontWeight.w900,
                             color: cs.onSurface,
                           ),
                         ),
-                        subtitle: Text(
-                          detailedMark.isEmpty
-                              ? description
-                              : '$description\n$detailedMark',
+                        const SizedBox(height: 4),
+                        Text(
+                          '${record.boq.name} • ${widget.siteName}',
                           style: TextStyle(color: cs.onSurfaceVariant),
                         ),
-                        isThreeLine: detailedMark.isNotEmpty,
-                        trailing: Column(
-                          mainAxisAlignment: MainAxisAlignment.center,
-                          crossAxisAlignment: CrossAxisAlignment.end,
-                          children: [
-                            Text(
-                              'Qty ${qty ?? '-'}',
-                              style:
-                                  const TextStyle(fontWeight: FontWeight.w800),
-                            ),
-                            if (weight is num && weight > 0)
-                              Text(
-                                _prettyNumber(weight.toDouble()),
-                                style: TextStyle(
-                                  fontSize: 12,
-                                  color: cs.onSurfaceVariant,
-                                ),
-                              ),
-                          ],
-                        ),
-                      ),
-                    );
-                  }),
-                  if (items.length > 200)
-                    Padding(
-                      padding: const EdgeInsets.only(top: 12),
-                      child: Text(
-                        'Showing first 200 items',
-                        textAlign: TextAlign.center,
-                        style: TextStyle(color: cs.onSurfaceVariant),
-                      ),
+                      ],
                     ),
+                  ),
+                  IconButton(
+                    onPressed: () => context.pop(),
+                    icon: const Icon(Icons.close),
+                  ),
                 ],
-              ],
-            ),
-          );
-        },
-      ),
+              ),
+              const SizedBox(height: 16),
+              Row(
+                children: [
+                  Expanded(
+                    child: _summaryTile(
+                        cs, 'Quantity', _prettyNumber(mark.quantity)),
+                  ),
+                  const SizedBox(width: 10),
+                  Expanded(
+                    child: _summaryTile(
+                        cs, 'Remaining', _prettyNumber(mark.remainingQty)),
+                  ),
+                  const SizedBox(width: 10),
+                  Expanded(
+                    child: _summaryTile(
+                        cs, 'Weight', _prettyNumber(mark.totalNetWeight)),
+                  ),
+                ],
+              ),
+              const SizedBox(height: 16),
+              _detailRow(cs, 'BOQ', record.boq.name),
+              _detailRow(cs, 'Description', mark.typeDescription),
+              _detailRow(cs, 'Detailed Mark', mark.detailedMark),
+              _detailRow(cs, 'Length', _prettyNumber(mark.length)),
+              _detailRow(cs, 'Width', _prettyNumber(mark.width)),
+              _detailRow(cs, 'Height', _prettyNumber(mark.height)),
+              _detailRow(cs, 'Net Weight / Unit',
+                  _prettyNumber(mark.netWeightPerUnit)),
+              _detailRow(cs, 'Status', mark.status),
+              const SizedBox(height: 18),
+              Row(
+                children: [
+                  Expanded(
+                    child: OutlinedButton.icon(
+                      onPressed: () {
+                        context.pop();
+                        _editMark(record);
+                      },
+                      icon: const Icon(Icons.edit_outlined),
+                      label: const Text('Edit'),
+                    ),
+                  ),
+                  const SizedBox(width: 10),
+                  Expanded(
+                    child: OutlinedButton.icon(
+                      onPressed: () {
+                        context.pop();
+                        _deleteMark(record);
+                      },
+                      icon: const Icon(Icons.delete_outline),
+                      label: const Text('Delete'),
+                    ),
+                  ),
+                ],
+              ),
+            ],
+          ),
+        );
+      },
     );
   }
 
@@ -414,11 +415,11 @@ class _PebBoqUploadScreenState extends State<PebBoqUploadScreen> {
   Widget build(BuildContext context) {
     final cs = Theme.of(context).colorScheme;
     final titleSuffix = switch (_mode) {
-      _BoqScreenMode.home => 'BOQ Setup',
-      _BoqScreenMode.view => 'View BOQ',
+      _BoqScreenMode.view => 'BOQ Marks',
       _BoqScreenMode.addChoice => 'Add BOQ',
       _BoqScreenMode.manual => 'Manual BOQ',
       _BoqScreenMode.upload => 'Upload BOQ',
+      _BoqScreenMode.edit => 'Edit BOQ Mark',
     };
     return Scaffold(
       drawer: const CustomDrawer(),
@@ -435,15 +436,17 @@ class _PebBoqUploadScreenState extends State<PebBoqUploadScreen> {
                 child: ListView(
                   padding: const EdgeInsets.all(16),
                   children: [
-                    if (_mode != _BoqScreenMode.home)
+                    if (_mode != _BoqScreenMode.view)
                       Align(
                         alignment: Alignment.centerLeft,
                         child: TextButton.icon(
                           onPressed: () => setState(() {
-                            _mode = _mode == _BoqScreenMode.manual ||
-                                    _mode == _BoqScreenMode.upload
-                                ? _BoqScreenMode.addChoice
-                                : _BoqScreenMode.home;
+                            if (_mode == _BoqScreenMode.manual ||
+                                _mode == _BoqScreenMode.upload) {
+                              _mode = _BoqScreenMode.addChoice;
+                            } else {
+                              _mode = _BoqScreenMode.view;
+                            }
                           }),
                           icon: const Icon(Icons.arrow_back),
                           label: const Text('Back'),
@@ -465,8 +468,6 @@ class _PebBoqUploadScreenState extends State<PebBoqUploadScreen> {
 
   List<Widget> _bodyByMode(ColorScheme cs) {
     switch (_mode) {
-      case _BoqScreenMode.home:
-        return [_homeOptions(cs)];
       case _BoqScreenMode.view:
         return [_existingBoqs(cs)];
       case _BoqScreenMode.addChoice:
@@ -475,31 +476,9 @@ class _PebBoqUploadScreenState extends State<PebBoqUploadScreen> {
         return [_manualCard(cs)];
       case _BoqScreenMode.upload:
         return [_uploadCard(cs)];
+      case _BoqScreenMode.edit:
+        return [_manualCard(cs, editing: true)];
     }
-  }
-
-  Widget _homeOptions(ColorScheme cs) {
-    return Column(
-      children: [
-        _selectCardGrid(
-          firstIcon: Icons.visibility_rounded,
-          firstColor: Colors.blue,
-          firstLabel: 'View',
-          firstTap: () => setState(() => _mode = _BoqScreenMode.view),
-          secondIcon: Icons.add_circle_outline_rounded,
-          secondColor: Colors.green,
-          secondLabel: 'add',
-          secondTap: () => setState(() => _mode = _BoqScreenMode.addChoice),
-        ),
-        const SizedBox(height: 16),
-        _infoCard(
-          cs,
-          'Choose an option',
-          '• View: You can view, edit and delete existing BOQs.\n'
-              '• Add: You can create a BOQ manually or upload an Excel file.',
-        ),
-      ],
-    );
   }
 
   Widget _addOptions(ColorScheme cs) {
@@ -508,18 +487,18 @@ class _PebBoqUploadScreenState extends State<PebBoqUploadScreen> {
         _selectCardGrid(
           firstIcon: Icons.edit_note_rounded,
           firstColor: Colors.blue,
-          firstLabel: 'Manual',
-          firstTap: () => setState(() => _mode = _BoqScreenMode.manual),
+          firstLabel: 'Manual Entry',
+          firstTap: _startManualAdd,
           secondIcon: Icons.upload_file_rounded,
-          secondColor: Colors.green,
-          secondLabel: 'Upload',
+          secondColor: Colors.deepOrange,
+          secondLabel: 'Import Sheet',
           secondTap: () => setState(() => _mode = _BoqScreenMode.upload),
         ),
         const SizedBox(height: 16),
         _infoCard(
           cs,
           'Choose an option',
-          '• Manual: Add BOQ rows directly from the app.\n'
+          '• Manual: Add one BOQ mark directly from the app.\n'
               '• Upload: Upload an Excel file and map the columns.',
         ),
       ],
@@ -569,12 +548,12 @@ class _PebBoqUploadScreenState extends State<PebBoqUploadScreen> {
       decoration: BoxDecoration(
         color: cs.surface,
         borderRadius: BorderRadius.circular(18),
-        border: Border.all(color: cs.outlineVariant.withOpacity(0.45)),
+        border: Border.all(color: cs.outlineVariant.withValues(alpha: 0.45)),
         boxShadow: [
           BoxShadow(
             color: isDark
-                ? cs.shadow.withOpacity(0.12)
-                : cs.shadow.withOpacity(0.06),
+                ? cs.shadow.withValues(alpha: 0.12)
+                : cs.shadow.withValues(alpha: 0.06),
             blurRadius: 12,
             offset: const Offset(0, 6),
           ),
@@ -596,58 +575,145 @@ class _PebBoqUploadScreenState extends State<PebBoqUploadScreen> {
   }
 
   Widget _existingBoqs(ColorScheme cs) {
+    final marks = _allMarks;
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        const Text('Existing BOQs',
-            style: TextStyle(fontSize: 18, fontWeight: FontWeight.w800)),
+        Row(
+          children: [
+            const Expanded(
+              child: Text('BOQ Mark Numbers',
+                  style: TextStyle(fontSize: 18, fontWeight: FontWeight.w800)),
+            ),
+            SizedBox(
+              width: 112,
+              child: RoundedButton(
+                text: 'Add',
+                color: cs.primary,
+                textColor: cs.onPrimary,
+                isLoading: _saving,
+                onPressed: () =>
+                    setState(() => _mode = _BoqScreenMode.addChoice),
+              ),
+            ),
+          ],
+        ),
         const SizedBox(height: 10),
-        if (_boqs.isEmpty)
+        if (marks.isEmpty)
           Card(
             child: Padding(
               padding: const EdgeInsets.all(20),
-              child: Text('No BOQ uploaded yet',
-                  style: TextStyle(color: cs.onSurfaceVariant)),
+              child: Column(
+                children: [
+                  Text('No BOQ mark numbers found',
+                      style: TextStyle(color: cs.onSurfaceVariant)),
+                  const SizedBox(height: 12),
+                  OutlinedButton.icon(
+                    onPressed: () =>
+                        setState(() => _mode = _BoqScreenMode.addChoice),
+                    icon: const Icon(Icons.add),
+                    label: const Text('Add BOQ'),
+                  ),
+                ],
+              ),
             ),
           )
         else
-          ..._boqs.map((boq) => Container(
-                margin: const EdgeInsets.symmetric(vertical: 2),
-                decoration: BoxDecoration(
-                  color: cs.surface,
-                  border: Border.all(color: cs.outlineVariant),
-                  borderRadius: BorderRadius.circular(8),
+          ...marks.map((record) => Card(
+                elevation: 0,
+                color: cs.surface,
+                margin: const EdgeInsets.symmetric(vertical: 6),
+                shape: RoundedRectangleBorder(
+                  borderRadius: BorderRadius.circular(12),
+                  side: BorderSide(
+                      color: cs.outlineVariant.withValues(alpha: 0.4)),
                 ),
-                child: ListTile(
-                  onTap: () => _viewBoq(boq),
-                  leading: Icon(Icons.description_outlined, color: cs.primary),
-                  title: Text(
-                    boq.name,
-                    style: TextStyle(
-                      fontWeight: FontWeight.bold,
-                      fontSize: 16,
-                      color: cs.onSurface,
+                child: InkWell(
+                  borderRadius: BorderRadius.circular(12),
+                  onTap: () => _viewMark(record),
+                  child: Padding(
+                    padding: const EdgeInsets.symmetric(
+                        horizontal: 12, vertical: 12),
+                    child: Row(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Expanded(
+                          child: Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              Text(
+                                record.mark.assemblyMark,
+                                maxLines: 2,
+                                overflow: TextOverflow.ellipsis,
+                                style: TextStyle(
+                                  fontWeight: FontWeight.w600,
+                                  fontSize: 16,
+                                  color: cs.onSurface,
+                                ),
+                              ),
+                              const SizedBox(height: 6),
+                              Text(
+                                [
+                                  if (record.mark.typeDescription.isNotEmpty)
+                                    record.mark.typeDescription,
+                                  record.boq.name,
+                                ].join(' • '),
+                                maxLines: 2,
+                                overflow: TextOverflow.ellipsis,
+                                style: TextStyle(
+                                  fontSize: 13,
+                                  color: cs.onSurfaceVariant,
+                                ),
+                              ),
+                            ],
+                          ),
+                        ),
+                        Column(
+                          children: [
+                            Row(
+                              mainAxisSize: MainAxisSize.min,
+                              children: [
+                                IconButton(
+                                  icon: Icon(Icons.visibility_outlined,
+                                      color: cs.tertiary),
+                                  onPressed: () => _viewMark(record),
+                                ),
+                                IconButton(
+                                  icon: Icon(Icons.edit_outlined,
+                                      color: cs.primary),
+                                  onPressed:
+                                      _saving ? null : () => _editMark(record),
+                                ),
+                                IconButton(
+                                  icon: Icon(Icons.delete_outline,
+                                      color: cs.error),
+                                  onPressed: _saving
+                                      ? null
+                                      : () => _deleteMark(record),
+                                ),
+                              ],
+                            ),
+                            Container(
+                              padding: const EdgeInsets.symmetric(
+                                horizontal: 12,
+                                vertical: 6,
+                              ),
+                              decoration: BoxDecoration(
+                                color: cs.surfaceContainerHigh,
+                                borderRadius: BorderRadius.circular(20),
+                              ),
+                              child: Text(
+                                'Qty ${_prettyNumber(record.mark.quantity)}',
+                                style: TextStyle(
+                                  fontWeight: FontWeight.bold,
+                                  color: cs.onSurface,
+                                ),
+                              ),
+                            ),
+                          ],
+                        ),
+                      ],
                     ),
-                  ),
-                  subtitle: Text(
-                    boq.number.isEmpty
-                        ? '${boq.items.length} items'
-                        : '${boq.items.length} items • ${boq.number}',
-                    style: TextStyle(color: cs.onSurfaceVariant),
-                  ),
-                  trailing: Row(
-                    mainAxisSize: MainAxisSize.min,
-                    children: [
-                      IconButton(
-                        icon:
-                            Icon(Icons.visibility_outlined, color: cs.tertiary),
-                        onPressed: () => _viewBoq(boq),
-                      ),
-                      IconButton(
-                        icon: Icon(Icons.delete_outline, color: cs.error),
-                        onPressed: _saving ? null : () => _deleteBoq(boq),
-                      ),
-                    ],
                   ),
                 ),
               )),
@@ -681,6 +747,39 @@ class _PebBoqUploadScreenState extends State<PebBoqUploadScreen> {
   String _prettyNumber(double value) {
     if (value == value.roundToDouble()) return value.toStringAsFixed(0);
     return value.toStringAsFixed(2);
+  }
+
+  Widget _detailRow(ColorScheme cs, String label, String value) {
+    final displayValue = value.trim().isEmpty ? '-' : value.trim();
+    return Padding(
+      padding: const EdgeInsets.symmetric(vertical: 7),
+      child: Row(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          SizedBox(
+            width: 132,
+            child: Text(
+              label,
+              style: TextStyle(
+                fontSize: 13,
+                color: cs.onSurfaceVariant,
+                fontWeight: FontWeight.w700,
+              ),
+            ),
+          ),
+          Expanded(
+            child: Text(
+              displayValue,
+              style: TextStyle(
+                fontSize: 14,
+                color: cs.onSurface,
+                fontWeight: FontWeight.w600,
+              ),
+            ),
+          ),
+        ],
+      ),
+    );
   }
 
   Widget _uploadCard(ColorScheme cs) {
@@ -729,7 +828,7 @@ class _PebBoqUploadScreenState extends State<PebBoqUploadScreen> {
           return Padding(
             padding: const EdgeInsets.only(bottom: 10),
             child: DropdownButtonFormField<String>(
-              value:
+              initialValue:
                   _mappings[column]?.isEmpty == true ? null : _mappings[column],
               decoration: InputDecoration(labelText: column),
               items: [
@@ -775,37 +874,34 @@ class _PebBoqUploadScreenState extends State<PebBoqUploadScreen> {
     );
   }
 
-  Widget _manualCard(ColorScheme cs) {
+  Widget _manualCard(ColorScheme cs, {bool editing = false}) {
     return _card(
       cs,
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          const Text('Manual BOQ Entry',
-              style: TextStyle(fontSize: 16, fontWeight: FontWeight.w800)),
-          const SizedBox(height: 12),
-          TextField(
+          Text(editing ? 'Edit BOQ Mark' : 'Manual BOQ Mark Entry',
+              style:
+                  const TextStyle(fontSize: 16, fontWeight: FontWeight.w800)),
+          const SizedBox(height: 8),
+          CustomTextField(
+            label: 'BOQ Name',
             controller: _manualName,
-            decoration: const InputDecoration(labelText: 'BOQ Name'),
+            isRequired: true,
           ),
-          const SizedBox(height: 12),
           ..._manualRows.asMap().entries.map((entry) {
             return _manualRow(entry.key, entry.value, cs);
           }),
-          Row(
-            children: [
-              TextButton.icon(
-                onPressed: () =>
-                    setState(() => _manualRows.add(_ManualBoqRow())),
-                icon: const Icon(Icons.add),
-                label: const Text('Add Row'),
-              ),
-              const Spacer(),
-              FilledButton(
-                onPressed: _saving ? null : _createManualBoq,
-                child: const Text('Save Manual BOQ'),
-              ),
-            ],
+          const SizedBox(height: 12),
+          RoundedButton(
+            text: editing
+                ? (_saving ? 'Updating...' : 'Update Mark')
+                : (_saving ? 'Saving...' : 'Save BOQ Mark'),
+            color: cs.primary,
+            textColor: cs.onPrimary,
+            isLoading: _saving,
+            width: double.infinity,
+            onPressed: editing ? _saveEditedBoq : _createManualBoq,
           ),
         ],
       ),
@@ -813,57 +909,55 @@ class _PebBoqUploadScreenState extends State<PebBoqUploadScreen> {
   }
 
   Widget _manualRow(int index, _ManualBoqRow row, ColorScheme cs) {
-    return Container(
-      margin: const EdgeInsets.only(bottom: 12),
-      padding: const EdgeInsets.all(12),
-      decoration: BoxDecoration(
-        borderRadius: BorderRadius.circular(12),
-        border: Border.all(color: cs.outlineVariant),
-      ),
-      child: Column(
-        children: [
-          Row(
-            children: [
-              Expanded(
-                child: TextField(
-                  controller: row.mark,
-                  decoration: const InputDecoration(labelText: 'Assembly Mark'),
-                ),
+    return Column(
+      children: [
+        CustomTextField(
+          label: 'Assembly Mark',
+          controller: row.mark,
+          isRequired: true,
+        ),
+        CustomTextField(
+          label: 'Type / Description',
+          controller: row.description,
+        ),
+        Row(
+          children: [
+            Expanded(
+              child: CustomTextField(
+                label: 'Qty',
+                controller: row.qty,
+                keyboardType: TextInputType.number,
+                isRequired: true,
               ),
-              IconButton(
-                onPressed: _manualRows.length == 1
-                    ? null
-                    : () {
-                        row.dispose();
-                        setState(() => _manualRows.removeAt(index));
-                      },
-                icon: const Icon(Icons.close),
+            ),
+            const SizedBox(width: 8),
+            Expanded(
+              child: CustomTextField(
+                label: 'L(m)',
+                controller: row.length,
+                keyboardType: TextInputType.number,
               ),
-            ],
+            ),
+          ],
+        ),
+        CustomTextField(
+          label: 'Net Weight / Unit',
+          controller: row.weight,
+          keyboardType: TextInputType.number,
+        ),
+        if (_manualRows.length > 1)
+          Align(
+            alignment: Alignment.centerRight,
+            child: TextButton.icon(
+              onPressed: () {
+                row.dispose();
+                setState(() => _manualRows.removeAt(index));
+              },
+              icon: const Icon(Icons.close),
+              label: const Text('Remove'),
+            ),
           ),
-          TextField(
-            controller: row.description,
-            decoration: const InputDecoration(labelText: 'Type / Description'),
-          ),
-          Row(
-            children: [
-              Expanded(child: _smallField(row.qty, 'Qty')),
-              const SizedBox(width: 8),
-              Expanded(child: _smallField(row.length, 'L(m)')),
-              const SizedBox(width: 8),
-              Expanded(child: _smallField(row.weight, 'Net Wt/Unit')),
-            ],
-          ),
-        ],
-      ),
-    );
-  }
-
-  Widget _smallField(TextEditingController controller, String label) {
-    return TextField(
-      controller: controller,
-      keyboardType: TextInputType.number,
-      decoration: InputDecoration(labelText: label),
+      ],
     );
   }
 
@@ -912,16 +1006,47 @@ class _PebBoqUploadScreenState extends State<PebBoqUploadScreen> {
   }
 }
 
-enum _BoqScreenMode { home, view, addChoice, manual, upload }
+enum _BoqScreenMode { view, addChoice, manual, upload, edit }
+
+class _BoqMarkRecord {
+  final PebBoq boq;
+  final PebBoqMark mark;
+
+  const _BoqMarkRecord({
+    required this.boq,
+    required this.mark,
+  });
+}
 
 class _ManualBoqRow {
+  final String? itemId;
   final mark = TextEditingController();
   final description = TextEditingController();
   final qty = TextEditingController();
   final length = TextEditingController();
   final weight = TextEditingController();
 
+  _ManualBoqRow({this.itemId});
+
+  factory _ManualBoqRow.fromMark(PebBoqMark mark) {
+    final row = _ManualBoqRow(itemId: mark.id);
+    row.mark.text = mark.assemblyMark;
+    row.description.text = mark.typeDescription;
+    row.qty.text = mark.quantity == mark.quantity.roundToDouble()
+        ? mark.quantity.toStringAsFixed(0)
+        : mark.quantity.toString();
+    row.length.text = mark.length == mark.length.roundToDouble()
+        ? mark.length.toStringAsFixed(0)
+        : mark.length.toString();
+    row.weight.text =
+        mark.netWeightPerUnit == mark.netWeightPerUnit.roundToDouble()
+            ? mark.netWeightPerUnit.toStringAsFixed(0)
+            : mark.netWeightPerUnit.toString();
+    return row;
+  }
+
   Map<String, dynamic> toJson() => {
+        if (itemId != null && itemId!.isNotEmpty) '_id': itemId,
         'assemblyMark': mark.text.trim(),
         'typeDescription': description.text.trim(),
         'quantity': num.tryParse(qty.text.trim()) ?? 0,
