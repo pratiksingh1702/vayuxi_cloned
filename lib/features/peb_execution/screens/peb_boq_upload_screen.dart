@@ -38,6 +38,7 @@ class _PebBoqUploadScreenState extends State<PebBoqUploadScreen> {
   bool _loading = true;
   bool _saving = false;
   bool _isStandardTemplate = false;
+  _BoqScreenMode _mode = _BoqScreenMode.home;
 
   @override
   void initState() {
@@ -145,6 +146,7 @@ class _PebBoqUploadScreenState extends State<PebBoqUploadScreen> {
       );
       setState(() => _step = 3);
       await _loadBoqs();
+      if (mounted) setState(() => _mode = _BoqScreenMode.view);
       AppToast.success('BOQ imported successfully');
     } catch (_) {
       AppToast.error('Failed to import BOQ');
@@ -182,6 +184,7 @@ class _PebBoqUploadScreenState extends State<PebBoqUploadScreen> {
           ..add(_ManualBoqRow());
       });
       await _loadBoqs();
+      if (mounted) setState(() => _mode = _BoqScreenMode.view);
       AppToast.success('Manual BOQ created');
     } catch (_) {
       AppToast.error('Failed to create manual BOQ');
@@ -262,12 +265,20 @@ class _PebBoqUploadScreenState extends State<PebBoqUploadScreen> {
   @override
   Widget build(BuildContext context) {
     final cs = Theme.of(context).colorScheme;
+    final titleSuffix = switch (_mode) {
+      _BoqScreenMode.home => 'BOQ Setup',
+      _BoqScreenMode.view => 'View BOQ',
+      _BoqScreenMode.addChoice => 'Add BOQ',
+      _BoqScreenMode.manual => 'Manual BOQ',
+      _BoqScreenMode.upload => 'Upload BOQ',
+    };
     return Scaffold(
       drawer: const CustomDrawer(),
       backgroundColor: cs.surfaceContainerLowest,
       body: NestedScrollView(
         headerSliverBuilder: (_, __) => [
-          CustomSliverAppBar(title: '${widget.executionType.title} BOQ'),
+          CustomSliverAppBar(
+              title: '${widget.executionType.title} $titleSuffix'),
         ],
         body: _loading
             ? const Center(child: CircularProgressIndicator())
@@ -276,20 +287,155 @@ class _PebBoqUploadScreenState extends State<PebBoqUploadScreen> {
                 child: ListView(
                   padding: const EdgeInsets.all(16),
                   children: [
+                    if (_mode != _BoqScreenMode.home)
+                      Align(
+                        alignment: Alignment.centerLeft,
+                        child: TextButton.icon(
+                          onPressed: () => setState(() {
+                            _mode = _mode == _BoqScreenMode.manual ||
+                                    _mode == _BoqScreenMode.upload
+                                ? _BoqScreenMode.addChoice
+                                : _BoqScreenMode.home;
+                          }),
+                          icon: const Icon(Icons.arrow_back),
+                          label: const Text('Back'),
+                        ),
+                      ),
                     Text(widget.siteName,
                         style: TextStyle(
                             color: cs.onSurfaceVariant,
                             fontWeight: FontWeight.w700)),
                     const SizedBox(height: 16),
-                    _existingBoqs(cs),
-                    const SizedBox(height: 16),
-                    _uploadCard(cs),
-                    const SizedBox(height: 16),
-                    _manualCard(cs),
+                    ..._bodyByMode(cs),
                     const SizedBox(height: 96),
                   ],
                 ),
               ),
+      ),
+    );
+  }
+
+  List<Widget> _bodyByMode(ColorScheme cs) {
+    switch (_mode) {
+      case _BoqScreenMode.home:
+        return [_homeOptions(cs)];
+      case _BoqScreenMode.view:
+        return [_existingBoqs(cs)];
+      case _BoqScreenMode.addChoice:
+        return [_addOptions(cs)];
+      case _BoqScreenMode.manual:
+        return [_manualCard(cs)];
+      case _BoqScreenMode.upload:
+        return [_uploadCard(cs)];
+    }
+  }
+
+  Widget _homeOptions(ColorScheme cs) {
+    return Column(
+      children: [
+        Row(
+          children: [
+            Expanded(
+              child: _optionCard(
+                cs,
+                icon: Icons.visibility_outlined,
+                title: 'View',
+                subtitle: 'Show all existing BOQs for this site',
+                onTap: () => setState(() => _mode = _BoqScreenMode.view),
+              ),
+            ),
+            const SizedBox(width: 12),
+            Expanded(
+              child: _optionCard(
+                cs,
+                icon: Icons.add_circle_outline,
+                title: 'Add',
+                subtitle: 'Create manually or upload Excel',
+                onTap: () => setState(() => _mode = _BoqScreenMode.addChoice),
+              ),
+            ),
+          ],
+        ),
+        const SizedBox(height: 16),
+        _card(
+          cs,
+          child: Row(
+            children: [
+              Icon(Icons.description_outlined, color: cs.primary),
+              const SizedBox(width: 12),
+              Expanded(
+                child: Text(
+                  '${_boqs.length} BOQ${_boqs.length == 1 ? '' : 's'} available for this site',
+                  style: const TextStyle(fontWeight: FontWeight.w700),
+                ),
+              ),
+            ],
+          ),
+        ),
+      ],
+    );
+  }
+
+  Widget _addOptions(ColorScheme cs) {
+    return Row(
+      children: [
+        Expanded(
+          child: _optionCard(
+            cs,
+            icon: Icons.edit_note_outlined,
+            title: 'Manual',
+            subtitle: 'Create and add BOQ rows manually',
+            onTap: () => setState(() => _mode = _BoqScreenMode.manual),
+          ),
+        ),
+        const SizedBox(width: 12),
+        Expanded(
+          child: _optionCard(
+            cs,
+            icon: Icons.upload_file_outlined,
+            title: 'Upload',
+            subtitle: 'Upload BOQ Excel and map columns',
+            onTap: () => setState(() => _mode = _BoqScreenMode.upload),
+          ),
+        ),
+      ],
+    );
+  }
+
+  Widget _optionCard(
+    ColorScheme cs, {
+    required IconData icon,
+    required String title,
+    required String subtitle,
+    required VoidCallback onTap,
+  }) {
+    return InkWell(
+      onTap: onTap,
+      borderRadius: BorderRadius.circular(16),
+      child: Container(
+        constraints: const BoxConstraints(minHeight: 150),
+        padding: const EdgeInsets.all(16),
+        decoration: BoxDecoration(
+          color: cs.surface,
+          borderRadius: BorderRadius.circular(16),
+          border: Border.all(color: cs.outlineVariant),
+        ),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            CircleAvatar(
+              backgroundColor: cs.primaryContainer,
+              child: Icon(icon, color: cs.onPrimaryContainer),
+            ),
+            const SizedBox(height: 16),
+            Text(title,
+                style:
+                    const TextStyle(fontSize: 18, fontWeight: FontWeight.w900)),
+            const SizedBox(height: 6),
+            Text(subtitle,
+                style: TextStyle(fontSize: 12, color: cs.onSurfaceVariant)),
+          ],
+        ),
       ),
     );
   }
@@ -562,6 +708,8 @@ class _PebBoqUploadScreenState extends State<PebBoqUploadScreen> {
     );
   }
 }
+
+enum _BoqScreenMode { home, view, addChoice, manual, upload }
 
 class _ManualBoqRow {
   final mark = TextEditingController();
