@@ -1,4 +1,3 @@
-import 'dart:typed_data';
 import 'package:dio/dio.dart';
 import 'package:file_picker/file_picker.dart';
 import 'package:untitled2/core/api/dio.dart';
@@ -31,7 +30,8 @@ class BOQStructureRepository {
   }
 
   // POST /api/v1/site/{siteId}/boq-structure/upload (multipart)
-  Future<BOQStructure> uploadBOQExcel(String siteId, PlatformFile file, {String workType = 'fabrication'}) async {
+  Future<BOQStructure> uploadBOQExcel(String siteId, PlatformFile file,
+      {String workType = 'fabrication'}) async {
     final formData = FormData.fromMap({
       'file': MultipartFile.fromBytes(
         file.bytes!,
@@ -49,6 +49,38 @@ class BOQStructureRepository {
         headers: {'Content-Type': 'multipart/form-data'},
       ),
     );
+    return BOQStructure.fromJson(res.data['data'] as Map<String, dynamic>);
+  }
+
+  Future<BOQStructure> createManualBOQ(
+    String siteId, {
+    required String boqName,
+    String type = 'structure_work',
+    required List<Map<String, dynamic>> items,
+  }) async {
+    final res = await DioClient.dio.post(
+      '/site/$siteId/boq-structure',
+      data: {
+        'boqName': boqName,
+        'type': type,
+        'items': items,
+      },
+    );
+
+    return BOQStructure.fromJson(res.data['data'] as Map<String, dynamic>);
+  }
+
+  Future<BOQStructure> updateBOQItem(
+    String siteId,
+    String boqId,
+    String itemId,
+    Map<String, dynamic> data,
+  ) async {
+    final res = await DioClient.dio.put(
+      '/site/$siteId/boq-structure/$boqId/items/$itemId',
+      data: data,
+    );
+
     return BOQStructure.fromJson(res.data['data'] as Map<String, dynamic>);
   }
 }

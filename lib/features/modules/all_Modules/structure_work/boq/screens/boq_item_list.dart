@@ -1,13 +1,13 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import 'package:go_router/go_router.dart';
-import 'package:untitled2/core/utlis/app_toasts.dart';
+import 'package:untitled2/core/utlis/widgets/buttons.dart';
 import 'package:untitled2/core/utlis/widgets/custom.dart';
 import 'package:untitled2/core/utlis/widgets/shimmer.dart';
 import 'package:untitled2/core/utlis/widgets/Button_wrapper.dart';
 import 'package:untitled2/core/utlis/widgets/sidebar.dart';
 import '../models/boq_structure_model.dart';
 import '../providers/boq_structure_provider.dart';
+import 'boq_entry_select.dart';
 import 'boq_item_details.dart';
 
 enum BoqSortOption {
@@ -65,6 +65,26 @@ class _BoqItemListScreenState extends ConsumerState<BoqItemListScreen> {
           ];
         },
         body: BottomButtonWrapper(
+          customButtons: [
+            CustomButton(
+              button: RoundedButton(
+                text: "Add BOQ",
+                color: colorScheme.primary,
+                textColor: colorScheme.onPrimary,
+                onPressed: () {
+                  Navigator.push(
+                    context,
+                    MaterialPageRoute(
+                      builder: (context) => BoqEntrySelectScreen(
+                        siteId: widget.siteId,
+                        siteName: widget.siteName,
+                      ),
+                    ),
+                  );
+                },
+              ),
+            ),
+          ],
           child: state.isLoading
               ? const ShimmerList(
                   type: ShimmerListType.tile,
@@ -120,7 +140,8 @@ class _BoqItemListScreenState extends ConsumerState<BoqItemListScreen> {
           mainAxisAlignment: MainAxisAlignment.center,
           children: [
             Icon(Icons.inventory_2_outlined,
-                size: 64, color: colorScheme.onSurfaceVariant.withOpacity(0.5)),
+                size: 64,
+                color: colorScheme.onSurfaceVariant.withValues(alpha: 0.5)),
             const SizedBox(height: 16),
             Text(
               "No BOQ Items Found",
@@ -136,9 +157,12 @@ class _BoqItemListScreenState extends ConsumerState<BoqItemListScreen> {
       );
     }
 
-    // Flatten all items from all BOQs for this view
+    final Map<String, String> boqIdByItemId = {};
     List<BOQStructureItem> allItems = [];
     for (var boq in boqs) {
+      for (final item in boq.items) {
+        boqIdByItemId[item.id] = boq.id;
+      }
       allItems.addAll(boq.items);
     }
 
@@ -148,7 +172,8 @@ class _BoqItemListScreenState extends ConsumerState<BoqItemListScreen> {
           mainAxisAlignment: MainAxisAlignment.center,
           children: [
             Icon(Icons.list_alt_rounded,
-                size: 64, color: colorScheme.onSurfaceVariant.withOpacity(0.5)),
+                size: 64,
+                color: colorScheme.onSurfaceVariant.withValues(alpha: 0.5)),
             const SizedBox(height: 16),
             Text(
               "BOQs are empty",
@@ -175,12 +200,13 @@ class _BoqItemListScreenState extends ConsumerState<BoqItemListScreen> {
           return false;
         }
       }
-      
+
       // Description filter
-      if (_selectedDescription != null && item.typeDescription != _selectedDescription) {
+      if (_selectedDescription != null &&
+          item.typeDescription != _selectedDescription) {
         return false;
       }
-      
+
       // Weight range filter
       if (_minWeight != null && (item.totalNetWeight ?? 0) < _minWeight!) {
         return false;
@@ -188,7 +214,7 @@ class _BoqItemListScreenState extends ConsumerState<BoqItemListScreen> {
       if (_maxWeight != null && (item.totalNetWeight ?? 0) > _maxWeight!) {
         return false;
       }
-      
+
       return true;
     }).toList();
 
@@ -289,6 +315,7 @@ class _BoqItemListScreenState extends ConsumerState<BoqItemListScreen> {
                             builder: (context) => BoqItemDetailsScreen(
                               siteId: widget.siteId,
                               siteName: widget.siteName,
+                              boqId: boqIdByItemId[item.id],
                               item: item,
                             ),
                           ),
@@ -324,7 +351,7 @@ class _BoqItemListScreenState extends ConsumerState<BoqItemListScreen> {
           boxShadow: hasActiveFilters
               ? [
                   BoxShadow(
-                    color: colorScheme.primary.withOpacity(0.3),
+                    color: colorScheme.primary.withValues(alpha: 0.3),
                     blurRadius: 8,
                     offset: const Offset(0, 2),
                   ),
@@ -383,7 +410,7 @@ class _BoqItemListScreenState extends ConsumerState<BoqItemListScreen> {
                   width: 48,
                   height: 4,
                   decoration: BoxDecoration(
-                    color: colorScheme.outlineVariant.withOpacity(0.4),
+                    color: colorScheme.outlineVariant.withValues(alpha: 0.4),
                     borderRadius: BorderRadius.circular(2),
                   ),
                 ),
@@ -609,7 +636,7 @@ class _BoqItemListScreenState extends ConsumerState<BoqItemListScreen> {
           boxShadow: isSelected
               ? [
                   BoxShadow(
-                    color: colorScheme.primary.withOpacity(0.3),
+                    color: colorScheme.primary.withValues(alpha: 0.3),
                     blurRadius: 8,
                     offset: const Offset(0, 2),
                   ),
@@ -622,8 +649,7 @@ class _BoqItemListScreenState extends ConsumerState<BoqItemListScreen> {
             Icon(
               icon,
               size: 16,
-              color:
-                  isSelected ? colorScheme.onPrimary : colorScheme.onSurface,
+              color: isSelected ? colorScheme.onPrimary : colorScheme.onSurface,
             ),
             const SizedBox(width: 6),
             Text(
@@ -658,11 +684,11 @@ class _BoqItemCard extends StatelessWidget {
       decoration: BoxDecoration(
         color: isDark ? cs.surfaceContainerHigh : cs.surface,
         borderRadius: BorderRadius.circular(16),
-        border: Border.all(color: cs.outlineVariant.withOpacity(0.5)),
+        border: Border.all(color: cs.outlineVariant.withValues(alpha: 0.5)),
         boxShadow: [
           if (!isDark)
             BoxShadow(
-              color: Colors.black.withOpacity(0.03),
+              color: Colors.black.withValues(alpha: 0.03),
               blurRadius: 10,
               offset: const Offset(0, 4),
             ),
@@ -682,7 +708,7 @@ class _BoqItemCard extends StatelessWidget {
                   width: 48,
                   height: 48,
                   decoration: BoxDecoration(
-                    color: cs.primaryContainer.withOpacity(0.5),
+                    color: cs.primaryContainer.withValues(alpha: 0.5),
                     borderRadius: BorderRadius.circular(12),
                   ),
                   child: Center(
@@ -699,7 +725,7 @@ class _BoqItemCard extends StatelessWidget {
                   ),
                 ),
                 const SizedBox(width: 16),
-                
+
                 // Details
                 Expanded(
                   child: Column(
@@ -731,7 +757,7 @@ class _BoqItemCard extends StatelessWidget {
                     ],
                   ),
                 ),
-                
+
                 // Trailing Weight
                 Column(
                   crossAxisAlignment: CrossAxisAlignment.end,

@@ -75,13 +75,62 @@ class BOQStructureNotifier extends StateNotifier<BOQStructureState> {
     }
   }
 
-  Future<bool> uploadBOQ(String siteId, PlatformFile file, {String workType = 'fabrication'}) async {
+  Future<bool> uploadBOQ(String siteId, PlatformFile file,
+      {String workType = 'fabrication'}) async {
     state = state.copyWith(isUploading: true, clearError: true);
     try {
-      final newBOQ = await _repo.uploadBOQExcel(siteId, file, workType: workType);
+      final newBOQ =
+          await _repo.uploadBOQExcel(siteId, file, workType: workType);
       _cache = null;
       final updated = [newBOQ, ...state.boqs];
       state = state.copyWith(boqs: updated, isUploading: false);
+      return true;
+    } catch (e) {
+      state = state.copyWith(isUploading: false, error: _extractError(e));
+      return false;
+    }
+  }
+
+  Future<bool> createManualBOQ(
+    String siteId, {
+    required String boqName,
+    String type = 'structure_work',
+    required List<Map<String, dynamic>> items,
+  }) async {
+    state = state.copyWith(isUploading: true, clearError: true);
+    try {
+      final newBOQ = await _repo.createManualBOQ(
+        siteId,
+        boqName: boqName,
+        type: type,
+        items: items,
+      );
+      _cache = null;
+      state = state.copyWith(
+        boqs: [newBOQ, ...state.boqs],
+        isUploading: false,
+      );
+      return true;
+    } catch (e) {
+      state = state.copyWith(isUploading: false, error: _extractError(e));
+      return false;
+    }
+  }
+
+  Future<bool> updateBOQItem(
+    String siteId,
+    String boqId,
+    String itemId,
+    Map<String, dynamic> data,
+  ) async {
+    state = state.copyWith(isUploading: true, clearError: true);
+    try {
+      final updatedBOQ = await _repo.updateBOQItem(siteId, boqId, itemId, data);
+      _cache = null;
+      final updatedList = state.boqs
+          .map((boq) => boq.id == updatedBOQ.id ? updatedBOQ : boq)
+          .toList();
+      state = state.copyWith(boqs: updatedList, isUploading: false);
       return true;
     } catch (e) {
       state = state.copyWith(isUploading: false, error: _extractError(e));
@@ -112,8 +161,9 @@ final boqStructureProvider =
 );
 
 // Helper: fetch BOQ with items (for DPR create)
-final boqItemsProvider = FutureProvider.family<BOQStructure,
-    ({String siteId, String boqId})>(
-  (ref, args) =>
-      ref.read(boqStructureRepositoryProvider).getBOQItems(args.siteId, args.boqId),
+final boqItemsProvider =
+    FutureProvider.family<BOQStructure, ({String siteId, String boqId})>(
+  (ref, args) => ref
+      .read(boqStructureRepositoryProvider)
+      .getBOQItems(args.siteId, args.boqId),
 );
