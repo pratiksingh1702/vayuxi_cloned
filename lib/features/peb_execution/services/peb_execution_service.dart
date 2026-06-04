@@ -78,12 +78,16 @@ class PebExecutionService {
     required String uom,
     required String remarks,
     required num targetQty,
+    List<String>? images,
+    bool imageUserSpecific = false,
   }) async {
     final payload = {
       'name': name,
       'uom': uom,
       'remarks': remarks,
       'targetQty': targetQty,
+      if (images != null) 'image': images,
+      if (imageUserSpecific) 'imageUserSpecific': true,
       'section': type.section,
       'type': type.apiType,
     };
@@ -96,6 +100,38 @@ class PebExecutionService {
         data: payload,
       );
     }
+  }
+
+  Future<List<String>> uploadSetupImages(
+    String siteId,
+    List<PlatformFile> files,
+  ) async {
+    final multipartFiles = <MultipartFile>[];
+    for (final file in files) {
+      final path = file.path;
+      final bytes = file.bytes;
+      if (path != null && path.isNotEmpty) {
+        multipartFiles.add(
+          await MultipartFile.fromFile(path, filename: file.name),
+        );
+      } else if (bytes != null && bytes.isNotEmpty) {
+        multipartFiles.add(
+          MultipartFile.fromBytes(bytes, filename: file.name),
+        );
+      }
+    }
+    if (multipartFiles.isEmpty) return const [];
+
+    final response = await _dio.post(
+      '/site/$siteId/peb-setup/upload-image',
+      data: FormData.fromMap({'file': multipartFiles}),
+      options: Options(headers: {'Content-Type': 'multipart/form-data'}),
+    );
+    final data = response.data is Map ? response.data as Map : const {};
+    return (data['urls'] as List? ?? [])
+        .map((url) => url.toString())
+        .where((url) => url.trim().isNotEmpty)
+        .toList();
   }
 
   Future<void> deleteSetupItem(

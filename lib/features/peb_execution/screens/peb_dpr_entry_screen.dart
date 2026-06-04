@@ -8,6 +8,7 @@ import 'package:untitled2/core/utlis/widgets/custom_appBar.dart';
 import 'package:untitled2/core/utlis/widgets/sidebar.dart';
 import '../models/peb_execution_models.dart';
 import '../services/peb_execution_service.dart';
+import '../utils/peb_work_images.dart';
 
 class PebDprEntryScreen extends StatefulWidget {
   final String siteId;
@@ -530,6 +531,7 @@ class _PebDprEntryScreenState extends State<PebDprEntryScreen> {
     final start = work.assignmentDate == null
         ? '-'
         : DateFormat('dd MMM yyyy').format(work.assignmentDate!);
+    final hasCustomImage = pebWorkImageIsCustom(work.setupItem);
     return Opacity(
       opacity: isActionable || isCompleted ? 1 : 0.38,
       child: Card(
@@ -558,11 +560,22 @@ class _PebDprEntryScreenState extends State<PebDprEntryScreen> {
                 children: [
                   ClipRRect(
                     borderRadius: BorderRadius.circular(16),
-                    child: Container(
+                    child: SizedBox(
                       width: 92,
                       height: 92,
-                      color: Colors.blueGrey.shade50,
-                      child: const Icon(Icons.construction, size: 42),
+                      child: Container(
+                        color: Colors.blueGrey.shade50,
+                        padding: EdgeInsets.all(hasCustomImage ? 0 : 10),
+                        child: Image(
+                          image: pebWorkImageProvider(
+                              work.setupItem, widget.executionType),
+                          fit: hasCustomImage ? BoxFit.cover : BoxFit.contain,
+                          errorBuilder: (_, __, ___) => Container(
+                            color: Colors.blueGrey.shade50,
+                            child: const Icon(Icons.construction, size: 42),
+                          ),
+                        ),
+                      ),
                     ),
                   ),
                   const SizedBox(width: 14),

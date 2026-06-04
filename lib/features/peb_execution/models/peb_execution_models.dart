@@ -79,6 +79,7 @@ class PebSetupItem {
   final String uom;
   final double targetQty;
   final String remarks;
+  final List<String> images;
 
   const PebSetupItem({
     required this.id,
@@ -86,6 +87,7 @@ class PebSetupItem {
     required this.uom,
     required this.targetQty,
     this.remarks = '',
+    this.images = const [],
   });
 
   factory PebSetupItem.fromJson(Map<String, dynamic> json) {
@@ -100,6 +102,10 @@ class PebSetupItem {
           (json['targetQuantity'] as num?)?.toDouble() ??
           0,
       remarks: json['remarks']?.toString() ?? '',
+      images: ((json['image'] as List?) ?? (json['images'] as List?) ?? [])
+          .map((image) => image.toString())
+          .where((image) => image.trim().isNotEmpty)
+          .toList(),
     );
   }
 }
