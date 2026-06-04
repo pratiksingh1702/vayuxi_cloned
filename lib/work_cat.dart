@@ -347,52 +347,63 @@ class _WorkCategoryScreenState extends ConsumerState<WorkCategoryScreen> {
                 color: colorScheme.surface,
                 child: SafeArea(
                   top: true,
-                  child: SingleChildScrollView(
-                    keyboardDismissBehavior:
-                        ScrollViewKeyboardDismissBehavior.onDrag,
-                    padding: const EdgeInsets.fromLTRB(18, 14, 18, 24),
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      mainAxisSize: MainAxisSize.min,
-                      children: [
-                        _LandingHeaderRow(
-                          photoUrl: profilePhoto,
-                          userName: profileName,
-                          title: appBarTitle,
-                          subtitle: appBarSubtitle,
-                          onAvatarTap: _openProfileWithHeroTransition,
-                          onNotificationsTap: () =>
-                              context.push(UpdatesRoutes.list),
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Padding(
+                        padding: const EdgeInsets.fromLTRB(18, 14, 18, 0),
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          mainAxisSize: MainAxisSize.min,
+                          children: [
+                            _LandingHeaderRow(
+                              photoUrl: profilePhoto,
+                              userName: profileName,
+                              title: appBarTitle,
+                              subtitle: appBarSubtitle,
+                              onAvatarTap: _openProfileWithHeroTransition,
+                              onNotificationsTap: () =>
+                                  context.push(UpdatesRoutes.list),
+                            ),
+                            if (showCompleteProfileRecommendation) ...[
+                              const SizedBox(height: 12),
+                              _ProfileCompletionRecommendationCard(
+                                onCompleteProfile:
+                                    _openProfileWithHeroTransition,
+                              ),
+                            ],
+                          ],
                         ),
-                        if (showCompleteProfileRecommendation) ...[
-                          const SizedBox(height: 12),
-                          _ProfileCompletionRecommendationCard(
-                            onCompleteProfile: _openProfileWithHeroTransition,
-                          ),
-                        ],
-                        const SizedBox(height: 24),
-                        _CategorySpotlightCard(
-                          selectedImage: selectedImage,
-                          elevationColor: _adaptiveElevationColor(
-                            colorScheme,
-                            Theme.of(context).brightness,
-                            lightOpacity: 0.06,
-                            darkOpacity: 0.14,
-                          ),
-                          onSelect: (workType) => handlePress(
-                            id: workType.name,
-                            title: workType.displayName,
-                            imagePath: workType.imagePath,
+                      ),
+                      const SizedBox(height: 18),
+                      Expanded(
+                        child: Padding(
+                          padding: const EdgeInsets.symmetric(horizontal: 18),
+                          child: _CategorySpotlightCard(
+                            selectedImage: selectedImage,
+                            elevationColor: _adaptiveElevationColor(
+                              colorScheme,
+                              Theme.of(context).brightness,
+                              lightOpacity: 0.06,
+                              darkOpacity: 0.14,
+                            ),
+                            onSelect: (workType) => handlePress(
+                              id: workType.name,
+                              title: workType.displayName,
+                              imagePath: workType.imagePath,
+                            ),
                           ),
                         ),
-                        const SizedBox(height: 24),
-                        const _TipQuoteCard(
+                      ),
+                      const Padding(
+                        padding: EdgeInsets.fromLTRB(18, 12, 18, 16),
+                        child: _TipQuoteCard(
                           tip:
                               'Tip: choose one category first, then update progress continuously in short steps.',
                           elevationColor: null,
                         ),
-                      ],
-                    ),
+                      ),
+                    ],
                   ),
                 ),
               ),
@@ -1098,39 +1109,40 @@ class _CategorySpotlightCard extends StatelessWidget {
         final targetHeight = (tileWidth / 0.88).clamp(190.0, 248.0);
         final aspectRatio = (tileWidth / targetHeight).clamp(0.72, 0.96);
 
-        return SizedBox(
-          height: (targetHeight * 4) + 36,
-          child: GridView.builder(
-            physics: const NeverScrollableScrollPhysics(),
-            gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
-              crossAxisCount: 2,
-              crossAxisSpacing: 12,
-              mainAxisSpacing: 12,
-              childAspectRatio: aspectRatio,
-            ),
-            itemCount: WorkType.values.length,
-            itemBuilder: (context, index) {
-              final type = WorkType.values[index];
-              final card = CompanyCard(
-                imagePath: type.imagePath,
-                companyName: type.displayName,
-                subtitle: type.subtitle,
-                accentColor: type.accentColor,
-                elevationColor: elevationColor,
-                isSelected: selectedImage == type.name,
-                onTap: () => onSelect(type),
-              );
-
-              if (index == 0) {
-                return Showcase(
-                  key: TourRegistry.workCategoryKey,
-                  description: 'Select any Work Type to continue 🚀',
-                  child: card,
-                );
-              }
-              return card;
-            },
+        return GridView.builder(
+          keyboardDismissBehavior: ScrollViewKeyboardDismissBehavior.onDrag,
+          padding: const EdgeInsets.only(bottom: 6),
+          physics: const AlwaysScrollableScrollPhysics(
+            parent: BouncingScrollPhysics(),
           ),
+          gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
+            crossAxisCount: 2,
+            crossAxisSpacing: 12,
+            mainAxisSpacing: 12,
+            childAspectRatio: aspectRatio,
+          ),
+          itemCount: WorkType.values.length,
+          itemBuilder: (context, index) {
+            final type = WorkType.values[index];
+            final card = CompanyCard(
+              imagePath: type.imagePath,
+              companyName: type.displayName,
+              subtitle: type.subtitle,
+              accentColor: type.accentColor,
+              elevationColor: elevationColor,
+              isSelected: selectedImage == type.name,
+              onTap: () => onSelect(type),
+            );
+
+            if (index == 0) {
+              return Showcase(
+                key: TourRegistry.workCategoryKey,
+                description: 'Select any Work Type to continue 🚀',
+                child: card,
+              );
+            }
+            return card;
+          },
         );
       },
     );
