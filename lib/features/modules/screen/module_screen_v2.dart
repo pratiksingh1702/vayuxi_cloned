@@ -393,18 +393,12 @@ class _ModuleScreenV2State extends ConsumerState<ModuleScreenV2>
     ];
 
     final dprSetupModule = _getDprSetupModule(type);
-    final secondaryModule = _getSecondaryModule(type);
+    final secondaryModules = _getSecondaryModules(type);
     final workAssignmentModule = _getWorkAssignmentModule(type);
 
     return [
       ...base,
-      secondaryModule ??
-          ModuleItem(
-            labelKey: 'rate_card',
-            icon: Icons.currency_rupee_rounded,
-            iconColor: Colors.amber,
-            routeName: "/site-list/rate",
-          ),
+      ...secondaryModules,
       dprSetupModule,
       if (workAssignmentModule != null) workAssignmentModule,
     ];
@@ -472,31 +466,35 @@ class _ModuleScreenV2State extends ConsumerState<ModuleScreenV2>
     return null;
   }
 
-  ModuleItem? _getSecondaryModule(String? type) {
+  List<ModuleItem> _getSecondaryModules(String? type) {
+    final rateModule = ModuleItem(
+        labelKey: 'rate_card',
+        icon: Icons.currency_rupee_rounded,
+        iconColor: Colors.amber,
+        routeName: "/site-list/rate");
+    final boqModule = ModuleItem(
+        labelKey: 'BOQ',
+        icon: Icons.table_rows_rounded,
+        iconColor: const Color(0xFF7B3F00),
+        routeName: Routes.boqUpload);
+
     if (type == 'mechanical_work' ||
         type == WorkType.mechanical.apiValue ||
         type == 'insulation_work' ||
         type == WorkType.insulation.apiValue ||
         type == 'roofing_work' ||
         type == WorkType.roofing.apiValue) {
-      return ModuleItem(
-          labelKey: 'rate_card',
-          icon: Icons.currency_rupee_rounded,
-          iconColor: Colors.amber,
-          routeName: "/site-list/rate");
+      return [rateModule];
     } else if (type == 'structure_work' ||
-        type == WorkType.structure.apiValue ||
-        type == 'civil_work' ||
-        type == WorkType.civil.apiValue ||
-        type == 'fabrication_work' ||
+        type == WorkType.structure.apiValue) {
+      return [rateModule, boqModule];
+    } else if (type == 'fabrication_work' ||
         type == WorkType.fabrication.apiValue) {
-      return ModuleItem(
-          labelKey: 'BOQ',
-          icon: Icons.table_rows_rounded,
-          iconColor: const Color(0xFF7B3F00),
-          routeName: Routes.boqUpload);
+      return [rateModule, boqModule];
+    } else if (type == 'civil_work' || type == WorkType.civil.apiValue) {
+      return [boqModule];
     }
-    return null;
+    return [rateModule];
   }
 
   List<ModuleItem> get _reportModules {

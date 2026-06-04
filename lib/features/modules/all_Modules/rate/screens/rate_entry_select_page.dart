@@ -1,25 +1,25 @@
 // screens/add_floor_page.dart
 import 'package:flutter/material.dart';
-import 'package:go_router/go_router.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:untitled2/core/utlis/widgets/Button_wrapper.dart';
 import 'package:untitled2/core/utlis/widgets/custom_appBar.dart';
-import 'package:untitled2/features/modules/all_Modules/dpr/dpr-setup/screens/view/view_select_page.dart';
-import 'package:untitled2/features/modules/all_Modules/rate/screens/rate.dart';
-import 'package:untitled2/features/modules/all_Modules/site_Details/screens/siteDetailScreen.dart';
-import 'package:untitled2/features/modules/all_Modules/site_Details/screens/siteList.dart';
 
 import '../../../../../core/utlis/widgets/sidebar.dart';
+import '../../../../../typeProvider/type_provider.dart';
+import '../../site_Details/providers/site_current_provider.dart';
 import '../../dpr/screens/widgets/select_card.dart';
 import 'addRate.dart';
 import 'import_sheet.dart';
 
-class RateEntrySelectCardGrid extends StatelessWidget {
+class RateEntrySelectCardGrid extends ConsumerWidget {
   const RateEntrySelectCardGrid({super.key});
 
   @override
-  Widget build(BuildContext context) {
+  Widget build(BuildContext context, WidgetRef ref) {
     final colorScheme = Theme.of(context).colorScheme;
     final isDark = Theme.of(context).brightness == Brightness.dark;
+    final siteId = ref.watch(selectedSiteIdProvider);
+    final type = ref.watch(typeProvider);
     return Scaffold(
       drawer: const CustomDrawer(),
       backgroundColor: colorScheme.surfaceContainerLowest,
@@ -51,7 +51,11 @@ class RateEntrySelectCardGrid extends StatelessWidget {
                       Navigator.push(
                         context,
                         MaterialPageRoute(
-                            builder: (context) => AddRateScreen()),
+                          builder: (context) => AddRateScreen(
+                            initialSiteId: siteId,
+                            initialType: type,
+                          ),
+                        ),
                       );
                     },
                   ),

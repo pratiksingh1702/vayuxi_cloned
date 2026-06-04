@@ -83,10 +83,10 @@ class _RateScreenState extends ConsumerState<RateScreen> {
         builder: (context, setSheetState) {
           final colorScheme = Theme.of(context).colorScheme;
           final rates = ref.read(rateNotifierProvider).data ?? [];
-          
+
           final uoms = rates.map((e) => e.uom).toSet().toList()..sort();
           final types = rates.map((e) => e.type).toSet().toList()..sort();
-          
+
           double maxRate = 0;
           if (rates.isNotEmpty) {
             maxRate = rates.map((e) => e.rate).reduce((a, b) => a > b ? a : b);
@@ -96,7 +96,8 @@ class _RateScreenState extends ConsumerState<RateScreen> {
           return Container(
             decoration: BoxDecoration(
               color: colorScheme.surface,
-              borderRadius: const BorderRadius.vertical(top: Radius.circular(24)),
+              borderRadius:
+                  const BorderRadius.vertical(top: Radius.circular(24)),
             ),
             padding: EdgeInsets.fromLTRB(
                 20, 12, 20, MediaQuery.of(context).viewInsets.bottom + 32),
@@ -153,7 +154,8 @@ class _RateScreenState extends ConsumerState<RateScreen> {
                         label: 'Latest First',
                         selected: _currentSort == RateSortOption.latestFirst,
                         onSelected: (val) {
-                          setSheetState(() => _currentSort = RateSortOption.latestFirst);
+                          setSheetState(
+                              () => _currentSort = RateSortOption.latestFirst);
                           setState(() {});
                         },
                       ),
@@ -161,7 +163,8 @@ class _RateScreenState extends ConsumerState<RateScreen> {
                         label: 'Name (A-Z)',
                         selected: _currentSort == RateSortOption.nameAsc,
                         onSelected: (val) {
-                          setSheetState(() => _currentSort = RateSortOption.nameAsc);
+                          setSheetState(
+                              () => _currentSort = RateSortOption.nameAsc);
                           setState(() {});
                         },
                       ),
@@ -169,7 +172,8 @@ class _RateScreenState extends ConsumerState<RateScreen> {
                         label: 'Rate (High-Low)',
                         selected: _currentSort == RateSortOption.rateHighToLow,
                         onSelected: (val) {
-                          setSheetState(() => _currentSort = RateSortOption.rateHighToLow);
+                          setSheetState(() =>
+                              _currentSort = RateSortOption.rateHighToLow);
                           setState(() {});
                         },
                       ),
@@ -233,7 +237,8 @@ class _RateScreenState extends ConsumerState<RateScreen> {
                   _buildSliderRange(
                     min: 0,
                     max: maxRate,
-                    values: RangeValues(_filterRateMin ?? 0, _filterRateMax ?? maxRate),
+                    values: RangeValues(
+                        _filterRateMin ?? 0, _filterRateMax ?? maxRate),
                     onChanged: (values) {
                       setSheetState(() {
                         _filterRateMin = values.start;
@@ -257,7 +262,8 @@ class _RateScreenState extends ConsumerState<RateScreen> {
                         ),
                       ),
                       child: const Text('Apply Filters',
-                          style: TextStyle(fontWeight: FontWeight.bold, fontSize: 16)),
+                          style: TextStyle(
+                              fontWeight: FontWeight.bold, fontSize: 16)),
                     ),
                   ),
                 ],
@@ -491,7 +497,8 @@ class _RateScreenState extends ConsumerState<RateScreen> {
             children: [
               // Search and Filter Row
               Padding(
-                padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+                padding:
+                    const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
                 child: Row(
                   children: [
                     Expanded(
@@ -501,7 +508,8 @@ class _RateScreenState extends ConsumerState<RateScreen> {
                           color: colorScheme.surfaceContainerLow,
                           borderRadius: BorderRadius.circular(12),
                           border: Border.all(
-                              color: colorScheme.outlineVariant.withOpacity(0.5)),
+                              color:
+                                  colorScheme.outlineVariant.withOpacity(0.5)),
                         ),
                         child: TextField(
                           controller: _searchController,
@@ -599,139 +607,161 @@ class _RateScreenState extends ConsumerState<RateScreen> {
 
               // Rates list
               Expanded(
-                child: state.loading
-                    ? const ShimmerList(
-                        type: ShimmerListType.tile,
-                        itemCount: 8,
-                      )
-                    : state.error != null
-                        ? EmptyModuleState(
-                            title: "Connection Error",
-                            subtitle: "Could not load rate records right now. Please try again.",
-                            icon: Icons.error_outline_rounded,
-                            actionLabel: "Retry",
-                            onAction: () {
-                              final type = ref.read(typeProvider);
-                              final siteId = ref.read(selectedSiteIdProvider);
-                              if (type != null && siteId != null) {
-                                ref.read(rateNotifierProvider.notifier).fetchRate(type, siteId);
-                              }
-                            },
-                          )
-                        : state.data == null || state.data!.isEmpty
-                            ? EmptyModuleState(
-                                title: "No Rates Added",
-                                subtitle: "Add your first rate to get started",
-                                icon: Icons.currency_rupee_rounded,
-                                actionLabel: "Add Rate",
-                                onAction: () => context.push(Routes.addRate),
-                              )
-                            : () {
-                                // Apply Filtering
-                                var filteredList = rates.where((rate) {
-                                  // Search
-                                  if (_searchQuery.isNotEmpty &&
-                                      !rate.serviceName
-                                          .toLowerCase()
-                                          .contains(_searchQuery.toLowerCase()) &&
-                                      !rate.hsnSacCode
-                                          .toLowerCase()
-                                          .contains(_searchQuery.toLowerCase())) {
-                                    return false;
-                                  }
+                  child: state.loading
+                      ? const ShimmerList(
+                          type: ShimmerListType.tile,
+                          itemCount: 8,
+                        )
+                      : state.error != null
+                          ? EmptyModuleState(
+                              title: "Connection Error",
+                              subtitle:
+                                  "Could not load rate records right now. Please try again.",
+                              icon: Icons.error_outline_rounded,
+                              actionLabel: "Retry",
+                              onAction: () {
+                                final type = ref.read(typeProvider);
+                                final siteId = ref.read(selectedSiteIdProvider);
+                                if (type != null && siteId != null) {
+                                  ref
+                                      .read(rateNotifierProvider.notifier)
+                                      .fetchRate(type, siteId);
+                                }
+                              },
+                            )
+                          : state.data == null || state.data!.isEmpty
+                              ? EmptyModuleState(
+                                  title: "No Rates Added",
+                                  subtitle:
+                                      "Add your first rate to get started",
+                                  icon: Icons.currency_rupee_rounded,
+                                  actionLabel: "Add Rate",
+                                  onAction: () {
+                                    final siteId =
+                                        ref.read(selectedSiteIdProvider);
+                                    final type = ref.read(typeProvider);
+                                    context.push(
+                                      Routes.addRate,
+                                      extra: {
+                                        'siteId': siteId,
+                                        'type': type,
+                                      },
+                                    );
+                                  },
+                                )
+                              : () {
+                                  // Apply Filtering
+                                  var filteredList = rates.where((rate) {
+                                    // Search
+                                    if (_searchQuery.isNotEmpty &&
+                                        !rate.serviceName
+                                            .toLowerCase()
+                                            .contains(
+                                                _searchQuery.toLowerCase()) &&
+                                        !rate.hsnSacCode.toLowerCase().contains(
+                                            _searchQuery.toLowerCase())) {
+                                      return false;
+                                    }
 
-                                  // UOM
-                                  if (_filterUOM.isNotEmpty &&
-                                      !_filterUOM.contains(rate.uom)) {
-                                    return false;
-                                  }
+                                    // UOM
+                                    if (_filterUOM.isNotEmpty &&
+                                        !_filterUOM.contains(rate.uom)) {
+                                      return false;
+                                    }
 
-                                  // Type
-                                  if (_filterType.isNotEmpty &&
-                                      !_filterType.contains(rate.type)) {
-                                    return false;
-                                  }
+                                    // Type
+                                    if (_filterType.isNotEmpty &&
+                                        !_filterType.contains(rate.type)) {
+                                      return false;
+                                    }
 
-                                  // Rate Range
-                                  if (_filterRateMin != null &&
-                                      rate.rate < _filterRateMin!) return false;
-                                  if (_filterRateMax != null &&
-                                      rate.rate > _filterRateMax!) return false;
+                                    // Rate Range
+                                    if (_filterRateMin != null &&
+                                        rate.rate < _filterRateMin!)
+                                      return false;
+                                    if (_filterRateMax != null &&
+                                        rate.rate > _filterRateMax!)
+                                      return false;
 
-                                  return true;
-                                }).toList();
+                                    return true;
+                                  }).toList();
 
-                                // Apply Sorting
-                                filteredList.sort((a, b) {
-                                  switch (_currentSort) {
-                                    case RateSortOption.latestFirst:
-                                      return b.createdAt.compareTo(a.createdAt);
-                                    case RateSortOption.nameAsc:
-                                      return a.serviceName.compareTo(b.serviceName);
-                                    case RateSortOption.nameDesc:
-                                      return b.serviceName.compareTo(a.serviceName);
-                                    case RateSortOption.rateHighToLow:
-                                      return b.rate.compareTo(a.rate);
-                                    case RateSortOption.rateLowToHigh:
-                                      return a.rate.compareTo(b.rate);
-                                  }
-                                });
+                                  // Apply Sorting
+                                  filteredList.sort((a, b) {
+                                    switch (_currentSort) {
+                                      case RateSortOption.latestFirst:
+                                        return b.createdAt
+                                            .compareTo(a.createdAt);
+                                      case RateSortOption.nameAsc:
+                                        return a.serviceName
+                                            .compareTo(b.serviceName);
+                                      case RateSortOption.nameDesc:
+                                        return b.serviceName
+                                            .compareTo(a.serviceName);
+                                      case RateSortOption.rateHighToLow:
+                                        return b.rate.compareTo(a.rate);
+                                      case RateSortOption.rateLowToHigh:
+                                        return a.rate.compareTo(b.rate);
+                                    }
+                                  });
 
-                                if (filteredList.isEmpty) {
-                                  return Center(
-                                    child: Column(
-                                      mainAxisAlignment: MainAxisAlignment.center,
-                                      children: [
-                                        Icon(
-                                          Icons.search_off_outlined,
-                                          size: 64,
-                                          color: colorScheme.onSurfaceVariant,
-                                        ),
-                                        const SizedBox(height: 16),
-                                        Text(
-                                          'No results found',
-                                          style: TextStyle(
-                                            fontSize: 18,
-                                            fontWeight: FontWeight.w600,
-                                            color: colorScheme.onSurface,
-                                          ),
-                                        ),
-                                        const SizedBox(height: 6),
-                                        Text(
-                                          'Try adjusting your search or filters.',
-                                          textAlign: TextAlign.center,
-                                          style: TextStyle(
+                                  if (filteredList.isEmpty) {
+                                    return Center(
+                                      child: Column(
+                                        mainAxisAlignment:
+                                            MainAxisAlignment.center,
+                                        children: [
+                                          Icon(
+                                            Icons.search_off_outlined,
+                                            size: 64,
                                             color: colorScheme.onSurfaceVariant,
                                           ),
-                                        ),
-                                      ],
+                                          const SizedBox(height: 16),
+                                          Text(
+                                            'No results found',
+                                            style: TextStyle(
+                                              fontSize: 18,
+                                              fontWeight: FontWeight.w600,
+                                              color: colorScheme.onSurface,
+                                            ),
+                                          ),
+                                          const SizedBox(height: 6),
+                                          Text(
+                                            'Try adjusting your search or filters.',
+                                            textAlign: TextAlign.center,
+                                            style: TextStyle(
+                                              color:
+                                                  colorScheme.onSurfaceVariant,
+                                            ),
+                                          ),
+                                        ],
+                                      ),
+                                    );
+                                  }
+
+                                  return CustomScrollbar(
+                                    controller: _scrollController,
+                                    child: ListView.builder(
+                                      controller: _scrollController,
+                                      physics:
+                                          const AlwaysScrollableScrollPhysics(),
+                                      itemCount: filteredList.length,
+                                      itemBuilder: (context, index) {
+                                        final rate = filteredList[index];
+                                        final isSelected =
+                                            _selectedRateIds.contains(rate.id);
+
+                                        return _buildRateTile(
+                                          context,
+                                          rate,
+                                          site!,
+                                          ref,
+                                          isSelected,
+                                        );
+                                      },
                                     ),
                                   );
-                                }
-
-                                return CustomScrollbar(
-                                  controller: _scrollController,
-                                  child: ListView.builder(
-                                    controller: _scrollController,
-                                    physics: const AlwaysScrollableScrollPhysics(),
-                                    itemCount: filteredList.length,
-                                    itemBuilder: (context, index) {
-                                      final rate = filteredList[index];
-                                      final isSelected =
-                                          _selectedRateIds.contains(rate.id);
-
-                                      return _buildRateTile(
-                                        context,
-                                        rate,
-                                        site!,
-                                        ref,
-                                        isSelected,
-                                      );
-                                    },
-                                  ),
-                                );
-                              }() as Widget
-              )
+                                }() as Widget)
             ],
           ),
         ),

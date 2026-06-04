@@ -12,13 +12,14 @@ import '../../../../../core/utlis/widgets/fields/searchableDropdown.dart';
 import '../../../../../core/utlis/widgets/sidebar.dart';
 import '../../../../../typeProvider/type_provider.dart';
 import '../../../../tour/domain/tour_controller.dart';
-import '../../site_Details/repository/siteModel.dart';
 import '../data/rateApi.dart';
 import '../data/rate_provider.dart';
-import '../domain/rateModel.dart';
 
 class AddRateScreen extends ConsumerStatefulWidget {
-  const AddRateScreen({super.key});
+  final String? initialSiteId;
+  final String? initialType;
+
+  const AddRateScreen({super.key, this.initialSiteId, this.initialType});
 
   @override
   ConsumerState<AddRateScreen> createState() => _AddRateScreenState();
@@ -30,7 +31,6 @@ class _AddRateScreenState extends ConsumerState<AddRateScreen> {
   final TextEditingController rateController = TextEditingController();
   final TextEditingController remarkController = TextEditingController();
   final TextEditingController uomController = TextEditingController();
-  String? selectedWorkType;
 
   final FocusNode uomFocusNode = FocusNode();
   bool isCustomUOM = false;
@@ -140,23 +140,31 @@ class _AddRateScreenState extends ConsumerState<AddRateScreen> {
     };
 
     try {
-      final type = ref.read(typeProvider);
-      final siteId = ref.read(selectedSiteIdProvider);
-      final finalWorkType = selectedWorkType ?? type;
+      final type = widget.initialType ?? ref.read(typeProvider);
+      final siteId = widget.initialSiteId ?? ref.read(selectedSiteIdProvider);
 
-      if (type != null) {
-        await ref
-            .read(rateNotifierProvider.notifier)
-            .postRate(rateData, finalWorkType!, siteId!);
+      if (type == null || type.isEmpty) {
+        AppToast.error('Please select a work type first');
+        return;
+      }
+      if (siteId == null || siteId.isEmpty) {
+        AppToast.error('Please select a site first');
+        return;
+      }
 
-        AppToast.success('Rate saved successfully');
-        await ref.read(tourPersistenceProvider).markRateDone();
+      await ref.read(rateNotifierProvider.notifier).postRate(
+            rateData,
+            type,
+            siteId,
+          );
 
-        // Navigate back after successful save
-        if (mounted) {
-          context.pop();
-          context.push("/site-list/rate");
-        }
+      AppToast.success('Rate saved successfully');
+      await ref.read(tourPersistenceProvider).markRateDone();
+
+      // Navigate back after successful save
+      if (mounted) {
+        context.pop();
+        context.push("/site-list/rate");
       }
     } catch (e) {
       print("Error saving rate: $e");
@@ -191,52 +199,6 @@ class _AddRateScreenState extends ConsumerState<AddRateScreen> {
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              Text(
-                "Work Type",
-                style: TextStyle(
-                  fontSize: 14,
-                  fontWeight: FontWeight.w500,
-                  color: colorScheme.onSurface,
-                ),
-              ),
-              const SizedBox(height: 8),
-              SearchableDropdown(
-                data: const [
-                  'civil',
-                  'erection',
-                  'roofing',
-                  'fabrication',
-                  'mechanical',
-                  'insulation',
-                  'structure',
-                  'peb',
-                ],
-                value: selectedWorkType ?? "",
-                placeholder: "Select Work Type",
-                onSelect: (value) {
-                  setState(() {
-                    selectedWorkType = value;
-                  });
-                },
-                containerDecoration: BoxDecoration(
-                  color: colorScheme.surface,
-                  borderRadius: BorderRadius.circular(12),
-                  border: Border.all(
-                    color: colorScheme.outlineVariant,
-                    width: 1,
-                  ),
-                ),
-                inputDecoration: InputDecoration(
-                  hintText: "Select Work Type",
-                  hintStyle: TextStyle(color: colorScheme.onSurfaceVariant),
-                  contentPadding: const EdgeInsets.symmetric(
-                    horizontal: 16,
-                    vertical: 14,
-                  ),
-                  border: InputBorder.none,
-                ),
-              ),
-              const SizedBox(height: 16),
               CustomTextField(
                 label: "Product",
                 controller: siteNameController,

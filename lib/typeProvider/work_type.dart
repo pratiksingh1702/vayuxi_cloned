@@ -97,7 +97,9 @@ enum WorkType {
   bool get hasRateCard =>
       this == WorkType.mechanical ||
       this == WorkType.insulation ||
-      this == WorkType.roofing;
+      this == WorkType.roofing ||
+      this == WorkType.structure ||
+      this == WorkType.fabrication;
   bool get hasBOQ =>
       this == WorkType.structure ||
       this == WorkType.civil ||

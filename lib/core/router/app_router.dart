@@ -1107,10 +1107,18 @@ final appRouterProvider = Provider<GoRouter>((ref) {
       GoRoute(
         path: Routes.addRate,
         builder: (context, state) {
-          final siteId = state.extra as String;
+          final extra = state.extra;
+          final siteId = extra is String
+              ? extra
+              : extra is Map<String, dynamic>
+                  ? extra['siteId'] as String?
+                  : null;
+          final type =
+              extra is Map<String, dynamic> ? extra['type'] as String? : null;
           _logRoute('AddRateScreen',
-              path: state.uri.toString(), extra: {'siteId': siteId});
-          return AddRateScreen();
+              path: state.uri.toString(),
+              extra: {'siteId': siteId, 'type': type});
+          return AddRateScreen(initialSiteId: siteId, initialType: type);
         },
       ),
       GoRoute(
