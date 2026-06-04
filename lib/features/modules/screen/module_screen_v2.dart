@@ -1146,23 +1146,60 @@ class _ModuleScreenV2State extends ConsumerState<ModuleScreenV2>
 
   // ── Part 3: Dropdowns ──────────────────────────────────────────────────────
   Widget _buildDropdownRow() {
-    return Padding(
-      padding: const EdgeInsets.symmetric(horizontal: 16),
-      child: Row(
-        children: [
-          Expanded(child: _buildCustomDropdown(label: "TYPE")),
-          const SizedBox(width: 8),
-          Expanded(child: _buildCustomDropdown(label: "MODE")),
-          const SizedBox(width: 8),
-          Expanded(child: _buildCustomDropdown(label: "SITE")),
-          const SizedBox(width: 8),
-          Expanded(child: _buildCustomDropdown(label: "TEAM")),
-        ],
-      ),
+    return LayoutBuilder(
+      builder: (context, constraints) {
+        final itemWidth = (constraints.maxWidth - 32 - 12) / 2;
+        return Padding(
+          padding: const EdgeInsets.symmetric(horizontal: 16),
+          child: Wrap(
+            spacing: 12,
+            runSpacing: 10,
+            children: [
+              SizedBox(
+                width: itemWidth,
+                child: _buildCustomDropdown(
+                  label: "TYPE",
+                  icon: Icons.category_rounded,
+                ),
+              ),
+              SizedBox(
+                width: itemWidth,
+                child: _buildCustomDropdown(
+                  label: "MODE",
+                  icon: Icons.layers_rounded,
+                ),
+              ),
+              SizedBox(
+                width: itemWidth,
+                child: _buildCustomDropdown(
+                  label: "SITE",
+                  icon: Icons.location_city_rounded,
+                ),
+              ),
+              SizedBox(
+                width: itemWidth,
+                child: _buildCustomDropdown(
+                  label: "TEAM",
+                  icon: Icons.groups_rounded,
+                ),
+              ),
+            ],
+          ),
+        );
+      },
     );
   }
 
-  Widget _buildCustomDropdown({required String label}) {
+  TextStyle _dropdownTextStyle(ColorScheme cs) {
+    return TextStyle(
+      fontSize: 12.5,
+      fontWeight: FontWeight.w700,
+      color: cs.onSurface,
+      overflow: TextOverflow.ellipsis,
+    );
+  }
+
+  Widget _buildCustomDropdown({required String label, required IconData icon}) {
     final cs = Theme.of(context).colorScheme;
 
     // Data for Site/Team
@@ -1193,17 +1230,19 @@ class _ModuleScreenV2State extends ConsumerState<ModuleScreenV2>
       dropdown = DropdownButton<SiteModel?>(
         value: selectedSite,
         isExpanded: true,
-        hint: const Text("Site",
-            style: TextStyle(fontSize: 10, fontWeight: FontWeight.w600)),
+        icon: Icon(Icons.keyboard_arrow_down_rounded,
+            size: 20, color: cs.onSurfaceVariant),
+        style: _dropdownTextStyle(cs),
+        hint: Text("Select site", style: _dropdownTextStyle(cs)),
         items: [
-          const DropdownMenuItem<SiteModel?>(
+          DropdownMenuItem<SiteModel?>(
             value: null,
-            child: Text('None', style: TextStyle(fontSize: 10)),
+            child: Text('No site selected', style: _dropdownTextStyle(cs)),
           ),
           ...allSites.map((s) => DropdownMenuItem<SiteModel?>(
                 value: s,
                 child: Text(s.siteName,
-                    style: const TextStyle(fontSize: 10),
+                    style: _dropdownTextStyle(cs),
                     overflow: TextOverflow.ellipsis),
               )),
         ],
@@ -1213,17 +1252,19 @@ class _ModuleScreenV2State extends ConsumerState<ModuleScreenV2>
       dropdown = DropdownButton<TeamModel?>(
         value: selectedTeam,
         isExpanded: true,
-        hint: const Text("Team",
-            style: TextStyle(fontSize: 10, fontWeight: FontWeight.w600)),
+        icon: Icon(Icons.keyboard_arrow_down_rounded,
+            size: 20, color: cs.onSurfaceVariant),
+        style: _dropdownTextStyle(cs),
+        hint: Text("Select team", style: _dropdownTextStyle(cs)),
         items: [
-          const DropdownMenuItem<TeamModel?>(
+          DropdownMenuItem<TeamModel?>(
             value: null,
-            child: Text('None', style: TextStyle(fontSize: 10)),
+            child: Text('No team selected', style: _dropdownTextStyle(cs)),
           ),
           ...(teamState.teams ?? []).map((t) => DropdownMenuItem<TeamModel?>(
                 value: t,
                 child: Text(t.teamName,
-                    style: const TextStyle(fontSize: 10),
+                    style: _dropdownTextStyle(cs),
                     overflow: TextOverflow.ellipsis),
               )),
         ],
@@ -1233,13 +1274,15 @@ class _ModuleScreenV2State extends ConsumerState<ModuleScreenV2>
       dropdown = DropdownButton<WorkType?>(
         value: currentWorkType,
         isExpanded: true,
-        hint: const Text("Type",
-            style: TextStyle(fontSize: 10, fontWeight: FontWeight.w600)),
+        icon: Icon(Icons.keyboard_arrow_down_rounded,
+            size: 20, color: cs.onSurfaceVariant),
+        style: _dropdownTextStyle(cs),
+        hint: Text("Select type", style: _dropdownTextStyle(cs)),
         items: WorkType.values
             .map((wt) => DropdownMenuItem<WorkType?>(
                   value: wt,
                   child: Text(wt.displayName,
-                      style: const TextStyle(fontSize: 10),
+                      style: _dropdownTextStyle(cs),
                       overflow: TextOverflow.ellipsis),
                 ))
             .toList(),
@@ -1266,14 +1309,17 @@ class _ModuleScreenV2State extends ConsumerState<ModuleScreenV2>
       dropdown = DropdownButton<bool>(
         value: _multipleEntryMode,
         isExpanded: true,
-        items: const [
+        icon: Icon(Icons.keyboard_arrow_down_rounded,
+            size: 20, color: cs.onSurfaceVariant),
+        style: _dropdownTextStyle(cs),
+        items: [
           DropdownMenuItem(
             value: false,
-            child: Text("Single", style: TextStyle(fontSize: 10)),
+            child: Text("Single entry", style: _dropdownTextStyle(cs)),
           ),
           DropdownMenuItem(
             value: true,
-            child: Text("Multi", style: TextStyle(fontSize: 10)),
+            child: Text("Multi entry", style: _dropdownTextStyle(cs)),
           ),
         ],
         onChanged: (val) {
@@ -1286,34 +1332,48 @@ class _ModuleScreenV2State extends ConsumerState<ModuleScreenV2>
     }
 
     return Container(
-      height: 40,
+      height: 64,
+      padding: const EdgeInsets.fromLTRB(10, 7, 8, 7),
       decoration: BoxDecoration(
         color: cs.surfaceContainerLow,
-        borderRadius: BorderRadius.circular(10),
+        borderRadius: BorderRadius.circular(14),
         border:
             Border.all(color: cs.outlineVariant.withOpacity(0.4), width: 0.8),
       ),
-      child: Stack(
+      child: Row(
         children: [
-          Positioned(
-            top: 4,
-            left: 6,
-            child: Text(label,
-                style: TextStyle(
-                    fontSize: 7.5,
-                    fontWeight: FontWeight.w800,
-                    letterSpacing: 0.4,
-                    color: cs.primary.withOpacity(0.8))),
-          ),
-          Padding(
-            padding: const EdgeInsets.only(top: 11, left: 4, right: 0),
-            child: DropdownButtonHideUnderline(
-              child: ButtonTheme(
-                alignedDropdown: true,
-                child: dropdown,
-              ),
+          Container(
+            width: 34,
+            height: 34,
+            decoration: BoxDecoration(
+              color: cs.primary.withOpacity(0.09),
+              borderRadius: BorderRadius.circular(10),
             ),
-          )
+            child: Icon(icon, size: 18, color: cs.primary),
+          ),
+          const SizedBox(width: 8),
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(label,
+                    style: TextStyle(
+                        fontSize: 9,
+                        fontWeight: FontWeight.w900,
+                        letterSpacing: 0.4,
+                        color: cs.primary.withOpacity(0.82))),
+                const SizedBox(height: 1),
+                Expanded(
+                  child: DropdownButtonHideUnderline(
+                    child: ButtonTheme(
+                      alignedDropdown: false,
+                      child: dropdown,
+                    ),
+                  ),
+                ),
+              ],
+            ),
+          ),
         ],
       ),
     );
@@ -1498,92 +1558,103 @@ class _ModuleScreenV2State extends ConsumerState<ModuleScreenV2>
 
     final hasLowStock = s.inventory.lowStockItems > 0;
 
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        // Eyebrow label
-        Row(children: [
-          Container(
-            width: 5,
-            height: 5,
-            decoration: const BoxDecoration(
-                color: Colors.greenAccent, shape: BoxShape.circle),
-          ),
-          const SizedBox(width: 6),
-          Text(
-            "Today's Snapshot",
-            style: TextStyle(
-              fontSize: 10,
-              fontWeight: FontWeight.w700,
-              letterSpacing: 0.5,
-              color: cs.onSurfaceVariant,
-            ),
-          ),
-        ]),
-        const SizedBox(height: 8),
+    return LayoutBuilder(
+      builder: (context, constraints) {
+        final tileWidth = (constraints.maxWidth - 10) / 2;
 
-        // 4 stat tiles — single row
-        Row(children: [
-          _buildStatTile(
-            cs: cs,
-            isDark: isDark,
-            icon: Icons.how_to_reg_rounded,
-            iconColor: Colors.green,
-            label: 'Attendance',
-            value: '${s.attendance.totalPresent}',
-            sub: '${s.attendance.totalAbsent} absent',
-            subColor: s.attendance.totalAbsent > 0
-                ? Colors.orange
-                : cs.onSurfaceVariant,
-            time: fmtTime(s.attendance.lastEntry?.createdAt),
-          ),
-          const SizedBox(width: 8),
-          _buildStatTile(
-            cs: cs,
-            isDark: isDark,
-            icon: Icons.description_rounded,
-            iconColor: Colors.indigo,
-            label: 'DPR',
-            value: s.dpr.lastEntry != null ? 'Filed' : 'None',
-            sub: s.dpr.totalQty != null
-                ? 'Qty ${s.dpr.totalQty}'
-                : (s.dpr.remarks ?? '—'),
-            subColor: cs.onSurfaceVariant,
-            time: fmtTime(s.dpr.lastEntry?.createdAt),
-          ),
-          const SizedBox(width: 8),
-          _buildStatTile(
-            cs: cs,
-            isDark: isDark,
-            icon: Icons.receipt_long_rounded,
-            iconColor: Colors.orange,
-            label: 'Expenses',
-            value: fmtAmount(s.expenses.totalAmount),
-            sub: s.expenses.category ?? '—',
-            subColor: cs.onSurfaceVariant,
-            time: fmtTime(s.expenses.lastEntry?.createdAt),
-          ),
-          const SizedBox(width: 8),
-          _buildStatTile(
-            cs: cs,
-            isDark: isDark,
-            icon: Icons.inventory_2_rounded,
-            iconColor: hasLowStock ? Colors.redAccent : Colors.teal,
-            label: 'Inventory',
-            value: '${s.inventory.totalItems}',
-            sub: hasLowStock
-                ? '${s.inventory.lowStockItems} low'
-                : 'All stocked',
-            subColor: hasLowStock ? Colors.redAccent : Colors.teal,
-            time: null,
-            highlight: hasLowStock,
-          ),
-        ]),
-      ],
+        return Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            // Eyebrow label
+            Row(children: [
+              Container(
+                width: 5,
+                height: 5,
+                decoration: const BoxDecoration(
+                    color: Colors.greenAccent, shape: BoxShape.circle),
+              ),
+              const SizedBox(width: 6),
+              Text(
+                "Today's Snapshot",
+                style: TextStyle(
+                  fontSize: 11,
+                  fontWeight: FontWeight.w800,
+                  letterSpacing: 0.4,
+                  color: cs.onSurfaceVariant,
+                ),
+              ),
+            ]),
+            const SizedBox(height: 10),
+
+            Wrap(
+              spacing: 10,
+              runSpacing: 10,
+              children: [
+                _buildStatTile(
+                  width: tileWidth,
+                  cs: cs,
+                  isDark: isDark,
+                  icon: Icons.how_to_reg_rounded,
+                  iconColor: Colors.green,
+                  label: 'Attendance',
+                  value: '${s.attendance.totalPresent}',
+                  sub: '${s.attendance.totalAbsent} absent',
+                  subColor: s.attendance.totalAbsent > 0
+                      ? Colors.orange
+                      : cs.onSurfaceVariant,
+                  time: fmtTime(s.attendance.lastEntry?.createdAt),
+                ),
+                _buildStatTile(
+                  width: tileWidth,
+                  cs: cs,
+                  isDark: isDark,
+                  icon: Icons.description_rounded,
+                  iconColor: Colors.indigo,
+                  label: 'DPR',
+                  value: s.dpr.lastEntry != null ? 'Filed' : 'None',
+                  sub: s.dpr.totalQty != null
+                      ? 'Qty ${s.dpr.totalQty}'
+                      : (s.dpr.remarks ?? '—'),
+                  subColor: cs.onSurfaceVariant,
+                  time: fmtTime(s.dpr.lastEntry?.createdAt),
+                ),
+                _buildStatTile(
+                  width: tileWidth,
+                  cs: cs,
+                  isDark: isDark,
+                  icon: Icons.receipt_long_rounded,
+                  iconColor: Colors.orange,
+                  label: 'Expenses',
+                  value: fmtAmount(s.expenses.totalAmount),
+                  sub: s.expenses.category ?? '—',
+                  subColor: cs.onSurfaceVariant,
+                  time: fmtTime(s.expenses.lastEntry?.createdAt),
+                ),
+                _buildStatTile(
+                  width: tileWidth,
+                  cs: cs,
+                  isDark: isDark,
+                  icon: Icons.inventory_2_rounded,
+                  iconColor: hasLowStock ? Colors.redAccent : Colors.teal,
+                  label: 'Inventory',
+                  value: '${s.inventory.totalItems}',
+                  sub: hasLowStock
+                      ? '${s.inventory.lowStockItems} low'
+                      : 'All stocked',
+                  subColor: hasLowStock ? Colors.redAccent : Colors.teal,
+                  time: null,
+                  highlight: hasLowStock,
+                ),
+              ],
+            ),
+          ],
+        );
+      },
     );
   }
 
   Widget _buildStatTile({
+    required double width,
     required ColorScheme cs,
     required bool isDark,
     required IconData icon,
@@ -1595,9 +1666,11 @@ class _ModuleScreenV2State extends ConsumerState<ModuleScreenV2>
     String? time,
     bool highlight = false,
   }) {
-    return Expanded(
+    return SizedBox(
+      width: width,
       child: Container(
-        padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 10),
+        constraints: const BoxConstraints(minHeight: 96),
+        padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 11),
         decoration: BoxDecoration(
           color: isDark ? cs.surfaceContainerHigh : Colors.white,
           borderRadius: BorderRadius.circular(14),
@@ -1624,8 +1697,10 @@ class _ModuleScreenV2State extends ConsumerState<ModuleScreenV2>
             const SizedBox(height: 6),
             Text(
               value,
+              maxLines: 1,
+              overflow: TextOverflow.ellipsis,
               style: TextStyle(
-                fontSize: 14,
+                fontSize: 17,
                 fontWeight: FontWeight.w800,
                 color: cs.onSurface,
                 height: 1.0,
@@ -1634,21 +1709,24 @@ class _ModuleScreenV2State extends ConsumerState<ModuleScreenV2>
             const SizedBox(height: 2),
             Text(
               sub,
-              maxLines: 1,
+              maxLines: 2,
               overflow: TextOverflow.ellipsis,
               style: TextStyle(
-                fontSize: 9,
-                fontWeight: FontWeight.w500,
+                fontSize: 11,
+                fontWeight: FontWeight.w600,
                 color: subColor,
+                height: 1.15,
               ),
             ),
             if (time != null) ...[
               const SizedBox(height: 3),
               Text(
                 time,
+                maxLines: 1,
+                overflow: TextOverflow.ellipsis,
                 style: TextStyle(
-                  fontSize: 8,
-                  fontWeight: FontWeight.w400,
+                  fontSize: 9.5,
+                  fontWeight: FontWeight.w500,
                   color: cs.onSurfaceVariant.withOpacity(0.5),
                 ),
               ),
@@ -1656,8 +1734,10 @@ class _ModuleScreenV2State extends ConsumerState<ModuleScreenV2>
             const SizedBox(height: 4),
             Text(
               label,
+              maxLines: 1,
+              overflow: TextOverflow.ellipsis,
               style: TextStyle(
-                fontSize: 9,
+                fontSize: 10.5,
                 fontWeight: FontWeight.w700,
                 letterSpacing: 0.3,
                 color: cs.onSurfaceVariant.withOpacity(0.55),
