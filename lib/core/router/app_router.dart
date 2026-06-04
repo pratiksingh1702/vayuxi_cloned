@@ -119,7 +119,6 @@ import '../../features/procurement/screens/procurement_list_screen.dart';
 import '../../features/peb_work/screens/peb_dpr_setup_screen.dart';
 import '../../features/peb_work/screens/dpr_entry_screen.dart';
 import '../../features/peb_execution/models/peb_execution_models.dart';
-import '../../features/peb_execution/screens/peb_boq_upload_screen.dart';
 import '../../features/peb_execution/screens/peb_dpr_entry_screen.dart';
 import '../../features/peb_execution/screens/peb_setup_screen.dart';
 import '../../features/peb_execution/screens/peb_work_assignment_screen.dart';
@@ -515,23 +514,8 @@ final appRouterProvider = Provider<GoRouter>((ref) {
                 screen = PebDprSetupScreen(siteId: site.id, workType: 'peb');
                 break;
               case 'boq-upload':
-                if (type == 'fabrication_work') {
-                  screen = PebBoqUploadScreen(
-                    siteId: site.id,
-                    siteName: site.siteName,
-                    executionType: PebExecutionType.fabrication,
-                  );
-                } else if (type == 'erection_work' ||
-                    type == 'structure_work') {
-                  screen = PebBoqUploadScreen(
-                    siteId: site.id,
-                    siteName: site.siteName,
-                    executionType: PebExecutionType.erection,
-                  );
-                } else {
-                  screen = ViewAddBoqScreen(
-                      siteId: site.id, siteName: site.siteName);
-                }
+                screen =
+                    ViewAddBoqScreen(siteId: site.id, siteName: site.siteName);
                 break;
               case 'work-assignment':
                 screen = PebWorkAssignmentScreen(

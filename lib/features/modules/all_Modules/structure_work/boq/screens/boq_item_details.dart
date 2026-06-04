@@ -131,7 +131,7 @@ class _BoqItemDetailsScreenState extends ConsumerState<BoqItemDetailsScreen> {
       AppToast.success(isEdit
           ? "BOQ item updated successfully"
           : "BOQ created successfully");
-      Navigator.pop(context);
+      Navigator.pop(context, true);
     } else {
       final error = ref.read(boqStructureProvider).error;
       AppToast.error(error ?? "Failed to save BOQ item");

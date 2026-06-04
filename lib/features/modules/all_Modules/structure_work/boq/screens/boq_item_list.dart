@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:untitled2/core/utlis/app_toasts.dart';
 import 'package:untitled2/core/utlis/widgets/buttons.dart';
 import 'package:untitled2/core/utlis/widgets/custom.dart';
 import 'package:untitled2/core/utlis/widgets/shimmer.dart';
@@ -8,6 +9,7 @@ import 'package:untitled2/core/utlis/widgets/sidebar.dart';
 import '../models/boq_structure_model.dart';
 import '../providers/boq_structure_provider.dart';
 import 'boq_entry_select.dart';
+import 'boq_detail_screen.dart';
 import 'boq_item_details.dart';
 
 enum BoqSortOption {
@@ -158,10 +160,12 @@ class _BoqItemListScreenState extends ConsumerState<BoqItemListScreen> {
     }
 
     final Map<String, String> boqIdByItemId = {};
+    final Map<String, BOQStructure> boqByItemId = {};
     List<BOQStructureItem> allItems = [];
     for (var boq in boqs) {
       for (final item in boq.items) {
         boqIdByItemId[item.id] = boq.id;
+        boqByItemId[item.id] = boq;
       }
       allItems.addAll(boq.items);
     }
@@ -307,8 +311,43 @@ class _BoqItemListScreenState extends ConsumerState<BoqItemListScreen> {
                     final item = filteredList[index];
                     return _BoqItemCard(
                       item: item,
+                      onView: () {
+                        final boq = boqByItemId[item.id];
+                        if (boq == null) return;
+                        Navigator.push(
+                          context,
+                          MaterialPageRoute(
+                            builder: (context) => BOQDetailScreen(
+                              boq: boq,
+                              siteId: widget.siteId,
+                            ),
+                          ),
+                        );
+                      },
+                      onEdit: () async {
+                        final result = await Navigator.push(
+                          context,
+                          MaterialPageRoute(
+                            builder: (context) => BoqItemDetailsScreen(
+                              siteId: widget.siteId,
+                              siteName: widget.siteName,
+                              boqId: boqIdByItemId[item.id],
+                              item: item,
+                            ),
+                          ),
+                        );
+                        if (result == true && mounted) {
+                          ref
+                              .read(boqStructureProvider.notifier)
+                              .fetchBOQs(widget.siteId);
+                        }
+                      },
+                      onDelete: () {
+                        final boqId = boqIdByItemId[item.id];
+                        if (boqId == null) return;
+                        _confirmDeleteItem(item, boqId);
+                      },
                       onTap: () {
-                        // Open details
                         Navigator.push(
                           context,
                           MaterialPageRoute(
@@ -327,6 +366,52 @@ class _BoqItemListScreenState extends ConsumerState<BoqItemListScreen> {
         ),
       ],
     );
+  }
+
+  Future<void> _confirmDeleteItem(BOQStructureItem item, String boqId) async {
+    final confirm = await showDialog<bool>(
+      context: context,
+      builder: (dialogContext) {
+        final colorScheme = Theme.of(dialogContext).colorScheme;
+        return AlertDialog(
+          title: const Text("Delete BOQ Mark"),
+          content: Text(
+            "Are you sure you want to delete ${item.assemblyMark}?\n\n"
+            "This action cannot be undone.",
+          ),
+          actions: [
+            TextButton(
+              onPressed: () => Navigator.pop(dialogContext, false),
+              style: TextButton.styleFrom(foregroundColor: colorScheme.primary),
+              child: const Text("Cancel"),
+            ),
+            ElevatedButton(
+              style: ElevatedButton.styleFrom(
+                backgroundColor: colorScheme.error,
+                foregroundColor: colorScheme.onError,
+              ),
+              onPressed: () => Navigator.pop(dialogContext, true),
+              child: const Text("Delete"),
+            ),
+          ],
+        );
+      },
+    );
+
+    if (confirm != true) return;
+
+    final success = await ref
+        .read(boqStructureProvider.notifier)
+        .deleteBOQItem(widget.siteId, boqId, item.id);
+
+    if (!mounted) return;
+
+    if (success) {
+      AppToast.success("BOQ mark deleted");
+    } else {
+      final error = ref.read(boqStructureProvider).error;
+      AppToast.error(error ?? "Failed to delete BOQ mark");
+    }
   }
 
   Widget _buildFilterButton(ColorScheme colorScheme) {
@@ -671,8 +756,17 @@ class _BoqItemListScreenState extends ConsumerState<BoqItemListScreen> {
 class _BoqItemCard extends StatelessWidget {
   final BOQStructureItem item;
   final VoidCallback onTap;
+  final VoidCallback onView;
+  final VoidCallback onEdit;
+  final VoidCallback onDelete;
 
-  const _BoqItemCard({required this.item, required this.onTap});
+  const _BoqItemCard({
+    required this.item,
+    required this.onTap,
+    required this.onView,
+    required this.onEdit,
+    required this.onDelete,
+  });
 
   @override
   Widget build(BuildContext context) {
@@ -700,82 +794,109 @@ class _BoqItemCard extends StatelessWidget {
           borderRadius: BorderRadius.circular(16),
           onTap: onTap,
           child: Padding(
-            padding: const EdgeInsets.all(16),
-            child: Row(
+            padding: const EdgeInsets.all(14),
+            child: Column(
               children: [
-                // Avatar / Icon
-                Container(
-                  width: 48,
-                  height: 48,
-                  decoration: BoxDecoration(
-                    color: cs.primaryContainer.withValues(alpha: 0.5),
-                    borderRadius: BorderRadius.circular(12),
-                  ),
-                  child: Center(
-                    child: Text(
-                      item.assemblyMark.isNotEmpty
-                          ? item.assemblyMark.substring(0, 1).toUpperCase()
-                          : '?',
-                      style: TextStyle(
-                        color: cs.primary,
-                        fontWeight: FontWeight.bold,
-                        fontSize: 18,
-                      ),
-                    ),
-                  ),
-                ),
-                const SizedBox(width: 16),
-
-                // Details
-                Expanded(
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      Text(
-                        item.typeDescription.isNotEmpty
-                            ? item.typeDescription
-                            : "Unknown Type",
-                        style: TextStyle(
-                          fontSize: 15,
-                          fontWeight: FontWeight.w700,
-                          color: cs.onSurface,
-                        ),
-                        maxLines: 1,
-                        overflow: TextOverflow.ellipsis,
-                      ),
-                      const SizedBox(height: 4),
-                      Text(
-                        "Mark No: ${item.assemblyMark}",
-                        style: TextStyle(
-                          fontSize: 13,
-                          color: cs.onSurfaceVariant,
-                          fontWeight: FontWeight.w500,
-                        ),
-                        maxLines: 1,
-                        overflow: TextOverflow.ellipsis,
-                      ),
-                    ],
-                  ),
-                ),
-
-                // Trailing Weight
-                Column(
-                  crossAxisAlignment: CrossAxisAlignment.end,
+                Row(
                   children: [
-                    Text(
-                      '${(item.totalNetWeight ?? 0).toStringAsFixed(2)}',
-                      style: TextStyle(
-                        fontSize: 14,
-                        fontWeight: FontWeight.w800,
-                        color: cs.primary,
+                    Container(
+                      width: 48,
+                      height: 48,
+                      decoration: BoxDecoration(
+                        color: cs.primaryContainer.withValues(alpha: 0.5),
+                        borderRadius: BorderRadius.circular(12),
+                      ),
+                      child: Center(
+                        child: Text(
+                          item.assemblyMark.isNotEmpty
+                              ? item.assemblyMark.substring(0, 1).toUpperCase()
+                              : '?',
+                          style: TextStyle(
+                            color: cs.primary,
+                            fontWeight: FontWeight.bold,
+                            fontSize: 18,
+                          ),
+                        ),
                       ),
                     ),
-                    Text(
-                      'kg',
-                      style: TextStyle(
-                        fontSize: 11,
-                        color: cs.onSurfaceVariant,
+                    const SizedBox(width: 16),
+                    Expanded(
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Text(
+                            item.typeDescription.isNotEmpty
+                                ? item.typeDescription
+                                : "Unknown Type",
+                            style: TextStyle(
+                              fontSize: 15,
+                              fontWeight: FontWeight.w700,
+                              color: cs.onSurface,
+                            ),
+                            maxLines: 1,
+                            overflow: TextOverflow.ellipsis,
+                          ),
+                          const SizedBox(height: 4),
+                          Text(
+                            "Mark No: ${item.assemblyMark}",
+                            style: TextStyle(
+                              fontSize: 13,
+                              color: cs.onSurfaceVariant,
+                              fontWeight: FontWeight.w500,
+                            ),
+                            maxLines: 1,
+                            overflow: TextOverflow.ellipsis,
+                          ),
+                        ],
                       ),
+                    ),
+                    Column(
+                      crossAxisAlignment: CrossAxisAlignment.end,
+                      children: [
+                        Text(
+                          '${(item.totalNetWeight ?? 0).toStringAsFixed(2)}',
+                          style: TextStyle(
+                            fontSize: 14,
+                            fontWeight: FontWeight.w800,
+                            color: cs.primary,
+                          ),
+                        ),
+                        Text(
+                          'kg',
+                          style: TextStyle(
+                            fontSize: 11,
+                            color: cs.onSurfaceVariant,
+                          ),
+                        ),
+                      ],
+                    ),
+                  ],
+                ),
+                const SizedBox(height: 12),
+                Row(
+                  children: [
+                    TextButton.icon(
+                      onPressed: onView,
+                      icon: const Icon(Icons.visibility_rounded, size: 18),
+                      label: const Text("View BOQ"),
+                      style: TextButton.styleFrom(
+                        foregroundColor: cs.primary,
+                        padding: const EdgeInsets.symmetric(horizontal: 8),
+                        visualDensity: VisualDensity.compact,
+                      ),
+                    ),
+                    const Spacer(),
+                    IconButton(
+                      tooltip: "Edit",
+                      visualDensity: VisualDensity.compact,
+                      icon: Icon(Icons.edit_rounded, color: cs.primary),
+                      onPressed: onEdit,
+                    ),
+                    IconButton(
+                      tooltip: "Delete",
+                      visualDensity: VisualDensity.compact,
+                      icon: Icon(Icons.delete_outline_rounded, color: cs.error),
+                      onPressed: onDelete,
                     ),
                   ],
                 ),

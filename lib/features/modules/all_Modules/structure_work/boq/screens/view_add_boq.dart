@@ -21,7 +21,7 @@ class ViewAddBoqScreen extends StatelessWidget {
   Widget build(BuildContext context) {
     final colorScheme = Theme.of(context).colorScheme;
     final isDark = Theme.of(context).brightness == Brightness.dark;
-    
+
     return Scaffold(
       drawer: const CustomDrawer(),
       backgroundColor: colorScheme.surfaceContainerLowest,
@@ -91,12 +91,12 @@ class ViewAddBoqScreen extends StatelessWidget {
                 color: colorScheme.surface,
                 borderRadius: BorderRadius.circular(18),
                 border: Border.all(
-                    color: colorScheme.outlineVariant.withOpacity(0.45)),
+                    color: colorScheme.outlineVariant.withValues(alpha: 0.45)),
                 boxShadow: [
                   BoxShadow(
                     color: isDark
-                        ? colorScheme.shadow.withOpacity(0.12)
-                        : colorScheme.shadow.withOpacity(0.06),
+                        ? colorScheme.shadow.withValues(alpha: 0.12)
+                        : colorScheme.shadow.withValues(alpha: 0.06),
                     blurRadius: 12,
                     offset: const Offset(0, 6),
                   ),

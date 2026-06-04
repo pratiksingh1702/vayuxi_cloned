@@ -83,4 +83,14 @@ class BOQStructureRepository {
 
     return BOQStructure.fromJson(res.data['data'] as Map<String, dynamic>);
   }
+
+  Future<void> deleteBOQItem(
+    String siteId,
+    String boqId,
+    String itemId,
+  ) async {
+    await DioClient.dio.delete(
+      '/site/$siteId/boq-structure/$boqId/items/$itemId',
+    );
+  }
 }

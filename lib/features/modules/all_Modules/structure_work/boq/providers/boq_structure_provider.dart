@@ -138,6 +138,24 @@ class BOQStructureNotifier extends StateNotifier<BOQStructureState> {
     }
   }
 
+  Future<bool> deleteBOQItem(
+    String siteId,
+    String boqId,
+    String itemId,
+  ) async {
+    state = state.copyWith(isUploading: true, clearError: true);
+    try {
+      await _repo.deleteBOQItem(siteId, boqId, itemId);
+      _cache = null;
+      await fetchBOQs(siteId);
+      state = state.copyWith(isUploading: false);
+      return true;
+    } catch (e) {
+      state = state.copyWith(isUploading: false, error: _extractError(e));
+      return false;
+    }
+  }
+
   void clearError() => state = state.copyWith(clearError: true);
 
   String _extractError(Object e) {
