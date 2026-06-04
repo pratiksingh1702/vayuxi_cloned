@@ -45,6 +45,7 @@ class _PebWorkAssignmentScreenState extends State<PebWorkAssignmentScreen> {
   String _setupItemId = '';
   String _sourceType = 'boq_upload';
   String _editingAssignmentId = '';
+  int _assignmentStep = 0;
   DateTime _assignmentDate = DateTime.now();
   DateTime? _expectedDate;
   List<PebTeam> _teams = [];
@@ -157,6 +158,7 @@ class _PebWorkAssignmentScreenState extends State<PebWorkAssignmentScreen> {
       _showForm = true;
       _editingAssignmentId = '';
       _setupItemId = item.id;
+      _assignmentStep = 0;
       _teamId = _teams.isNotEmpty ? _teams.first.id : '';
       _sourceType = _allMarks.isNotEmpty ? 'boq_upload' : 'tonnage';
       _selectedMarks = {};
@@ -178,6 +180,7 @@ class _PebWorkAssignmentScreenState extends State<PebWorkAssignmentScreen> {
       _showForm = true;
       _editingAssignmentId = assignment.id;
       _setupItemId = item.setupItemId;
+      _assignmentStep = 0;
       _teamId = assignment.teamId;
       _sourceType = assignment.sourceType;
       _selectedMarks = item.assemblyMarks.toSet();
@@ -330,6 +333,9 @@ class _PebWorkAssignmentScreenState extends State<PebWorkAssignmentScreen> {
   @override
   Widget build(BuildContext context) {
     final cs = Theme.of(context).colorScheme;
+    final isMarkSelectionPage = _mode == _WorkAssignmentMode.add &&
+        _showForm &&
+        _assignmentStep == _assignmentStepLabels.length - 1;
     final titleSuffix = switch (_mode) {
       _WorkAssignmentMode.home => 'Assignment',
       _WorkAssignmentMode.view => 'Assignment View',
@@ -342,36 +348,120 @@ class _PebWorkAssignmentScreenState extends State<PebWorkAssignmentScreen> {
       appBar: CustomAppBar(title: '${widget.executionType.title} $titleSuffix'),
       body: _loading
           ? const Center(child: CircularProgressIndicator())
-          : RefreshIndicator(
-              onRefresh: _load,
-              child: ListView(
-                padding: const EdgeInsets.all(16),
-                children: [
-                  if (_mode != _WorkAssignmentMode.home)
-                    Align(
-                      alignment: Alignment.centerLeft,
-                      child: TextButton.icon(
-                        onPressed: () => setState(() {
-                          if (_mode == _WorkAssignmentMode.add && _showForm) {
-                            _showForm = false;
-                          } else {
-                            _mode = _WorkAssignmentMode.home;
-                          }
-                        }),
-                        icon: const Icon(Icons.arrow_back),
-                        label: const Text('Back'),
-                      ),
-                    ),
-                  Text(widget.siteName,
-                      style: TextStyle(
-                          color: cs.onSurfaceVariant,
-                          fontWeight: FontWeight.w700)),
-                  const SizedBox(height: 16),
-                  ..._bodyByMode(cs),
-                  const SizedBox(height: 80),
-                ],
-              ),
+          : isMarkSelectionPage
+              ? _buildMarkSelectionPage(cs)
+              : RefreshIndicator(
+                  onRefresh: _load,
+                  child: ListView(
+                    padding: const EdgeInsets.all(16),
+                    children: [
+                      if (_mode != _WorkAssignmentMode.home)
+                        Align(
+                          alignment: Alignment.centerLeft,
+                          child: TextButton.icon(
+                            onPressed: () => setState(() {
+                              if (_mode == _WorkAssignmentMode.add &&
+                                  _showForm) {
+                                _showForm = false;
+                              } else {
+                                _mode = _WorkAssignmentMode.home;
+                              }
+                            }),
+                            icon: const Icon(Icons.arrow_back),
+                            label: const Text('Back'),
+                          ),
+                        ),
+                      Text(widget.siteName,
+                          style: TextStyle(
+                              color: cs.onSurfaceVariant,
+                              fontWeight: FontWeight.w700)),
+                      const SizedBox(height: 16),
+                      ..._bodyByMode(cs),
+                      const SizedBox(height: 80),
+                    ],
+                  ),
+                ),
+    );
+  }
+
+  Widget _buildMarkSelectionPage(ColorScheme cs) {
+    return Column(
+      children: [
+        Expanded(
+          child: SingleChildScrollView(
+            padding: const EdgeInsets.fromLTRB(16, 12, 16, 24),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                TextButton.icon(
+                  onPressed: () => setState(() => _assignmentStep -= 1),
+                  icon: const Icon(Icons.arrow_back_rounded),
+                  label: const Text('Back'),
+                ),
+                const SizedBox(height: 4),
+                const Text(
+                  'Mark Number Selection',
+                  style: TextStyle(fontSize: 20, fontWeight: FontWeight.w800),
+                ),
+                const SizedBox(height: 4),
+                Text(
+                  'Select the mark numbers to assign for this work item.',
+                  style: TextStyle(color: cs.onSurfaceVariant, height: 1.35),
+                ),
+                const SizedBox(height: 16),
+                _buildMarkSelectionStep(cs),
+              ],
             ),
+          ),
+        ),
+        Container(
+          padding: const EdgeInsets.fromLTRB(16, 12, 16, 16),
+          decoration: BoxDecoration(
+            color: cs.surface,
+            border: Border(top: BorderSide(color: cs.outlineVariant)),
+            boxShadow: [
+              BoxShadow(
+                color: cs.shadow.withValues(alpha: 0.08),
+                blurRadius: 14,
+                offset: const Offset(0, -4),
+              ),
+            ],
+          ),
+          child: SafeArea(
+            top: false,
+            child: Row(
+              children: [
+                Expanded(
+                  child: OutlinedButton.icon(
+                    onPressed: _saving
+                        ? null
+                        : () => setState(() => _assignmentStep -= 1),
+                    icon: const Icon(Icons.arrow_back_rounded),
+                    label: const Text('Back'),
+                  ),
+                ),
+                const SizedBox(width: 12),
+                Expanded(
+                  flex: 2,
+                  child: FilledButton.icon(
+                    onPressed: _saving ? null : () => _save(),
+                    icon: _saving
+                        ? const SizedBox(
+                            width: 16,
+                            height: 16,
+                            child: CircularProgressIndicator(strokeWidth: 2),
+                          )
+                        : const Icon(Icons.save_rounded),
+                    label: Text(_editingAssignmentId.isEmpty
+                        ? 'Save Assignment'
+                        : 'Update Assignment'),
+                  ),
+                ),
+              ],
+            ),
+          ),
+        ),
+      ],
     );
   }
 
@@ -613,108 +703,289 @@ class _PebWorkAssignmentScreenState extends State<PebWorkAssignmentScreen> {
 
   Widget _buildForm(ColorScheme cs) {
     final setupItem = _findSetupItem(_setupItemId);
-    return Card(
-      child: Padding(
-        padding: const EdgeInsets.all(16),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
+    final stepTitle = _assignmentStepLabels[_assignmentStep];
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Row(
           children: [
-            Row(
-              children: [
-                Expanded(
-                  child: Text(
-                    setupItem?.name ?? 'Assignment',
-                    style: const TextStyle(
-                        fontSize: 20, fontWeight: FontWeight.w800),
-                  ),
-                ),
-                IconButton(
-                    onPressed: () => setState(() => _showForm = false),
-                    icon: const Icon(Icons.close)),
-              ],
-            ),
-            const SizedBox(height: 12),
-            _buildDropdown(
-              label: 'Team',
-              value: _teamId,
-              items: _teams
-                  .map((team) =>
-                      DropdownMenuItem(value: team.id, child: Text(team.name)))
-                  .toList(),
-              onChanged: (value) => setState(() => _teamId = value ?? ''),
-            ),
-            const SizedBox(height: 12),
-            Row(
-              children: [
-                Expanded(
-                    child: _buildDateTile('Assignment Date', _assignmentDate,
-                        () => _pickDate(expected: false))),
-                const SizedBox(width: 12),
-                Expanded(
-                    child: _buildDateTile('Expected Completion', _expectedDate,
-                        () => _pickDate(expected: true))),
-              ],
-            ),
-            const SizedBox(height: 12),
-            _buildDropdown(
-              label: 'Scope Method',
-              value: _sourceType,
-              items: const [
-                DropdownMenuItem(value: 'boq_upload', child: Text('BOQ Marks')),
-                DropdownMenuItem(
-                    value: 'manual_boq', child: Text('Manual Mark Numbers')),
-                DropdownMenuItem(
-                    value: 'tonnage', child: Text('Tonnage / Quantity')),
-              ],
-              onChanged: (value) => setState(() {
-                _sourceType = value ?? 'boq_upload';
-                _selectedMarks = {};
-                _markSearchText = '';
-                _markSearchController.clear();
-              }),
-            ),
-            const SizedBox(height: 12),
-            if (_sourceType == 'boq_upload') _buildMarkPicker(cs),
-            if (_sourceType == 'manual_boq')
-              TextField(
-                controller: _manualMarksController,
-                minLines: 3,
-                maxLines: 5,
-                decoration: const InputDecoration(
-                    labelText: 'Manual Marks', border: OutlineInputBorder()),
+            Expanded(
+              child: Text(
+                setupItem?.name ?? 'Assignment',
+                style:
+                    const TextStyle(fontSize: 20, fontWeight: FontWeight.w800),
               ),
-            if (_sourceType == 'tonnage')
-              TextField(
-                controller: _qtyController,
-                keyboardType: TextInputType.number,
-                decoration: const InputDecoration(
-                    labelText: 'Total Quantity', border: OutlineInputBorder()),
-              ),
-            const SizedBox(height: 12),
-            TextField(
-              controller: _remarksController,
-              decoration: const InputDecoration(
-                  labelText: 'Remarks', border: OutlineInputBorder()),
             ),
-            const SizedBox(height: 16),
-            SizedBox(
-              width: double.infinity,
-              child: FilledButton.icon(
-                onPressed: _saving ? null : () => _save(),
-                icon: _saving
-                    ? const SizedBox(
-                        width: 16,
-                        height: 16,
-                        child: CircularProgressIndicator(strokeWidth: 2))
-                    : const Icon(Icons.save),
-                label: Text(_editingAssignmentId.isEmpty
-                    ? 'Save Assignment'
-                    : 'Update Assignment'),
-              ),
+            IconButton(
+              onPressed: () => setState(() => _showForm = false),
+              icon: const Icon(Icons.close),
             ),
           ],
         ),
-      ),
+        const SizedBox(height: 12),
+        _AssignmentStepperHeader(
+          currentStep: _assignmentStep,
+          labels: _assignmentStepLabels,
+          onStepTap: (step) {
+            if (step <= _assignmentStep || _canMoveToAssignmentStep(step)) {
+              setState(() => _assignmentStep = step);
+            }
+          },
+        ),
+        const SizedBox(height: 16),
+        Card(
+          elevation: 0,
+          color: cs.surface,
+          shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(16),
+            side: BorderSide(color: cs.outlineVariant),
+          ),
+          child: Padding(
+            padding: const EdgeInsets.all(16),
+            child: AnimatedSwitcher(
+              duration: const Duration(milliseconds: 220),
+              child: Column(
+                key: ValueKey(_assignmentStep),
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(
+                    stepTitle,
+                    style: const TextStyle(
+                        fontSize: 18, fontWeight: FontWeight.w800),
+                  ),
+                  const SizedBox(height: 6),
+                  Text(
+                    _assignmentStepDescriptions[_assignmentStep],
+                    style: TextStyle(color: cs.onSurfaceVariant, height: 1.35),
+                  ),
+                  const SizedBox(height: 18),
+                  _buildAssignmentStepContent(cs),
+                ],
+              ),
+            ),
+          ),
+        ),
+        const SizedBox(height: 16),
+        _AssignmentStepperBottomBar(
+          currentStep: _assignmentStep,
+          totalSteps: _assignmentStepLabels.length,
+          isSaving: _saving,
+          canProceed: _canProceedFromAssignmentStep(_assignmentStep),
+          canSkip: _assignmentStep == 1 || _assignmentStep == 2,
+          onBack: _assignmentStep == 0
+              ? null
+              : () => setState(() => _assignmentStep -= 1),
+          onSkip: _skipAssignmentStep,
+          onNext: _nextAssignmentStep,
+          onSubmit: () => _save(),
+          submitLabel: _editingAssignmentId.isEmpty
+              ? 'Save Assignment'
+              : 'Update Assignment',
+        ),
+      ],
+    );
+  }
+
+  List<String> get _assignmentStepLabels => const [
+        'Team',
+        'Assign Date',
+        'Expected Date',
+        'Marks',
+      ];
+
+  List<String> get _assignmentStepDescriptions => const [
+        'Select the team that will perform this work.',
+        'Select the assignment date, or skip to keep today as the default.',
+        'Select the expected completion date, or skip if it is not needed.',
+        'Select the mark numbers or quantity to assign for this work item.',
+      ];
+
+  bool _canMoveToAssignmentStep(int step) {
+    if (step <= 0) return true;
+    if (_teamId.isEmpty) return false;
+    return true;
+  }
+
+  bool _canProceedFromAssignmentStep(int step) {
+    if (step == 0) return _teamId.isNotEmpty;
+    return true;
+  }
+
+  void _nextAssignmentStep() {
+    if (_assignmentStep >= _assignmentStepLabels.length - 1) return;
+    if (!_canProceedFromAssignmentStep(_assignmentStep)) {
+      AppToast.error('Select team');
+      return;
+    }
+    setState(() => _assignmentStep += 1);
+  }
+
+  void _skipAssignmentStep() {
+    if (_assignmentStep == 2) {
+      setState(() => _expectedDate = null);
+    }
+    _nextAssignmentStep();
+  }
+
+  Widget _buildAssignmentStepContent(ColorScheme cs) {
+    switch (_assignmentStep) {
+      case 0:
+        return _buildTeamSelectionStep(cs);
+      case 1:
+        return _buildAssignmentDateStep(cs);
+      case 2:
+        return _buildExpectedDateStep(cs);
+      case 3:
+        return _buildMarkSelectionStep(cs);
+      default:
+        return const SizedBox.shrink();
+    }
+  }
+
+  Widget _buildTeamSelectionStep(ColorScheme cs) {
+    if (_teams.isEmpty) {
+      return Container(
+        width: double.infinity,
+        padding: const EdgeInsets.all(16),
+        decoration: BoxDecoration(
+          color: cs.surfaceContainerLow,
+          borderRadius: BorderRadius.circular(12),
+        ),
+        child: Text(
+          'No teams found for this site.',
+          style: TextStyle(color: cs.onSurfaceVariant),
+        ),
+      );
+    }
+
+    return Column(
+      children: _teams.map((team) {
+        final selected = _teamId == team.id;
+        return Padding(
+          padding: const EdgeInsets.only(bottom: 10),
+          child: InkWell(
+            onTap: () => setState(() => _teamId = team.id),
+            borderRadius: BorderRadius.circular(12),
+            child: Container(
+              padding: const EdgeInsets.all(14),
+              decoration: BoxDecoration(
+                color: selected ? cs.primaryContainer : cs.surfaceContainerLow,
+                borderRadius: BorderRadius.circular(12),
+                border: Border.all(
+                  color: selected ? cs.primary : cs.outlineVariant,
+                ),
+              ),
+              child: Row(
+                children: [
+                  Icon(
+                    selected
+                        ? Icons.radio_button_checked_rounded
+                        : Icons.radio_button_unchecked_rounded,
+                    color: selected ? cs.primary : cs.onSurfaceVariant,
+                  ),
+                  const SizedBox(width: 12),
+                  Expanded(
+                    child: Text(
+                      team.name,
+                      style: TextStyle(
+                        fontWeight: FontWeight.w700,
+                        color: cs.onSurface,
+                      ),
+                    ),
+                  ),
+                ],
+              ),
+            ),
+          ),
+        );
+      }).toList(),
+    );
+  }
+
+  Widget _buildAssignmentDateStep(ColorScheme cs) {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        _buildDateTile(
+          'Assignment Date',
+          _assignmentDate,
+          () => _pickDate(expected: false),
+        ),
+        const SizedBox(height: 10),
+        Text(
+          'Skip keeps today as the assignment date.',
+          style: TextStyle(fontSize: 12, color: cs.onSurfaceVariant),
+        ),
+      ],
+    );
+  }
+
+  Widget _buildExpectedDateStep(ColorScheme cs) {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        _buildDateTile(
+          'Expected Completion',
+          _expectedDate,
+          () => _pickDate(expected: true),
+        ),
+        if (_expectedDate != null) ...[
+          const SizedBox(height: 8),
+          TextButton.icon(
+            onPressed: () => setState(() => _expectedDate = null),
+            icon: const Icon(Icons.close_rounded, size: 18),
+            label: const Text('Clear expected date'),
+          ),
+        ],
+      ],
+    );
+  }
+
+  Widget _buildMarkSelectionStep(ColorScheme cs) {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        _buildDropdown(
+          label: 'Scope Method',
+          value: _sourceType,
+          items: const [
+            DropdownMenuItem(value: 'boq_upload', child: Text('BOQ Marks')),
+            DropdownMenuItem(
+                value: 'manual_boq', child: Text('Manual Mark Numbers')),
+            DropdownMenuItem(
+                value: 'tonnage', child: Text('Tonnage / Quantity')),
+          ],
+          onChanged: (value) => setState(() {
+            _sourceType = value ?? 'boq_upload';
+            _selectedMarks = {};
+            _markSearchText = '';
+            _markSearchController.clear();
+          }),
+        ),
+        const SizedBox(height: 12),
+        if (_sourceType == 'boq_upload') _buildMarkPicker(cs),
+        if (_sourceType == 'manual_boq')
+          TextField(
+            controller: _manualMarksController,
+            minLines: 3,
+            maxLines: 5,
+            decoration: const InputDecoration(
+                labelText: 'Manual Marks', border: OutlineInputBorder()),
+          ),
+        if (_sourceType == 'tonnage')
+          TextField(
+            controller: _qtyController,
+            keyboardType: TextInputType.number,
+            decoration: const InputDecoration(
+                labelText: 'Total Quantity', border: OutlineInputBorder()),
+          ),
+        const SizedBox(height: 12),
+        TextField(
+          controller: _remarksController,
+          decoration: const InputDecoration(
+              labelText: 'Remarks', border: OutlineInputBorder()),
+        ),
+      ],
     );
   }
 
@@ -1039,6 +1310,202 @@ class _PebWorkAssignmentScreenState extends State<PebWorkAssignmentScreen> {
   String _prettyNumber(double value) {
     if (value == value.roundToDouble()) return value.toStringAsFixed(0);
     return value.toStringAsFixed(2);
+  }
+}
+
+class _AssignmentStepperHeader extends StatelessWidget {
+  final int currentStep;
+  final List<String> labels;
+  final ValueChanged<int> onStepTap;
+
+  const _AssignmentStepperHeader({
+    required this.currentStep,
+    required this.labels,
+    required this.onStepTap,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    final cs = Theme.of(context).colorScheme;
+    return Container(
+      padding: const EdgeInsets.all(14),
+      decoration: BoxDecoration(
+        color: cs.surface,
+        borderRadius: BorderRadius.circular(16),
+        border: Border.all(color: cs.outlineVariant),
+      ),
+      child: Row(
+        children: List.generate(labels.length, (index) {
+          final active = index == currentStep;
+          final complete = index < currentStep;
+          return Expanded(
+            child: InkWell(
+              onTap: () => onStepTap(index),
+              borderRadius: BorderRadius.circular(12),
+              child: Column(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  Row(
+                    children: [
+                      Expanded(
+                        child: Container(
+                          height: 3,
+                          decoration: BoxDecoration(
+                            color: index == 0
+                                ? Colors.transparent
+                                : complete || active
+                                    ? cs.primary
+                                    : cs.outlineVariant,
+                            borderRadius: BorderRadius.circular(99),
+                          ),
+                        ),
+                      ),
+                      Container(
+                        width: 30,
+                        height: 30,
+                        decoration: BoxDecoration(
+                          color: active || complete
+                              ? cs.primary
+                              : cs.surfaceContainerHighest,
+                          shape: BoxShape.circle,
+                        ),
+                        child: Icon(
+                          complete
+                              ? Icons.check_rounded
+                              : _stepIconForIndex(index),
+                          size: 16,
+                          color: active || complete
+                              ? cs.onPrimary
+                              : cs.onSurfaceVariant,
+                        ),
+                      ),
+                      Expanded(
+                        child: Container(
+                          height: 3,
+                          decoration: BoxDecoration(
+                            color: index == labels.length - 1
+                                ? Colors.transparent
+                                : complete
+                                    ? cs.primary
+                                    : cs.outlineVariant,
+                            borderRadius: BorderRadius.circular(99),
+                          ),
+                        ),
+                      ),
+                    ],
+                  ),
+                  const SizedBox(height: 8),
+                  Text(
+                    labels[index],
+                    maxLines: 1,
+                    overflow: TextOverflow.ellipsis,
+                    textAlign: TextAlign.center,
+                    style: TextStyle(
+                      fontSize: 11,
+                      fontWeight: active ? FontWeight.w800 : FontWeight.w600,
+                      color: active ? cs.primary : cs.onSurfaceVariant,
+                    ),
+                  ),
+                ],
+              ),
+            ),
+          );
+        }),
+      ),
+    );
+  }
+
+  static IconData _stepIconForIndex(int index) {
+    switch (index) {
+      case 0:
+        return Icons.groups_rounded;
+      case 1:
+        return Icons.event_available_rounded;
+      case 2:
+        return Icons.event_note_rounded;
+      default:
+        return Icons.tag_rounded;
+    }
+  }
+}
+
+class _AssignmentStepperBottomBar extends StatelessWidget {
+  final int currentStep;
+  final int totalSteps;
+  final bool isSaving;
+  final bool canProceed;
+  final bool canSkip;
+  final VoidCallback? onBack;
+  final VoidCallback onSkip;
+  final VoidCallback onNext;
+  final VoidCallback onSubmit;
+  final String submitLabel;
+
+  const _AssignmentStepperBottomBar({
+    required this.currentStep,
+    required this.totalSteps,
+    required this.isSaving,
+    required this.canProceed,
+    required this.canSkip,
+    required this.onBack,
+    required this.onSkip,
+    required this.onNext,
+    required this.onSubmit,
+    required this.submitLabel,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    final isLast = currentStep == totalSteps - 1;
+    return Row(
+      children: [
+        Flexible(
+          flex: 0,
+          child: SizedBox(
+            width: 112,
+            child: OutlinedButton.icon(
+              onPressed: onBack,
+              icon: const Icon(Icons.arrow_back_rounded),
+              label: const Text(
+                'Back',
+                maxLines: 1,
+                overflow: TextOverflow.visible,
+                softWrap: false,
+              ),
+            ),
+          ),
+        ),
+        if (canSkip) ...[
+          const SizedBox(width: 10),
+          Expanded(
+            child: TextButton(
+              onPressed: isSaving ? null : onSkip,
+              child: const Text('Skip'),
+            ),
+          ),
+        ],
+        const SizedBox(width: 10),
+        Expanded(
+          flex: 2,
+          child: FilledButton.icon(
+            onPressed: isSaving || (!canProceed && !isLast)
+                ? null
+                : isLast
+                    ? onSubmit
+                    : onNext,
+            icon: isSaving
+                ? const SizedBox(
+                    width: 16,
+                    height: 16,
+                    child: CircularProgressIndicator(strokeWidth: 2),
+                  )
+                : Icon(
+                    isLast ? Icons.save_rounded : Icons.arrow_forward_rounded),
+            label: Text(isLast ? submitLabel : 'Next'),
+          ),
+        ),
+      ],
+    );
   }
 }
 
