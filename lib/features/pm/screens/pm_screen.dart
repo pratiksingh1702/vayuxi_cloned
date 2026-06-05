@@ -6,11 +6,14 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import 'package:intl/intl.dart';
 import 'package:untitled2/core/utlis/widgets/premium_app_bar.dart';
+import 'package:untitled2/features/modules/all_Modules/dpr/screens/widgets/select_card.dart';
 
 import '../models/pm_models.dart';
 import '../providers/pm_provider.dart';
 
 const _pmColor = Color(0xFF7B3F00);
+
+enum _PmSetupMode { chooser, view }
 
 enum PmSection {
   setup,
@@ -151,7 +154,7 @@ class _PmScreenState extends ConsumerState<PmScreen> {
   }
 }
 
-class _SetupTab extends ConsumerWidget {
+class _SetupTab extends ConsumerStatefulWidget {
   final PmState state;
   final String siteId;
   final VoidCallback onSaved;
@@ -165,190 +168,482 @@ class _SetupTab extends ConsumerWidget {
   });
 
   @override
-  Widget build(BuildContext context, WidgetRef ref) {
+  ConsumerState<_SetupTab> createState() => _SetupTabState();
+}
+
+class _SetupTabState extends ConsumerState<_SetupTab> {
+  _PmSetupMode _mode = _PmSetupMode.chooser;
+  String? _categoryKey;
+
+  @override
+  Widget build(BuildContext context) {
+    final state = widget.state;
     if (state.isLoading && state.categories.isEmpty) {
       return const Center(child: CircularProgressIndicator(color: _pmColor));
     }
     if (state.categories.isEmpty) {
-      return const _EmptyState(title: 'No P&M equipment found');
+      return _SetupChooser(
+        onView: null,
+        onAdd: null,
+        emptyText: 'No P&M categories found',
+      );
     }
+
+    if (_mode == _PmSetupMode.chooser) {
+      return _SetupChooser(
+        onView: () => setState(() => _mode = _PmSetupMode.view),
+        onAdd: () => _openEquipmentSheet(null),
+      );
+    }
+
+    _categoryKey ??= state.categories.first.categoryKey;
+    final selectedCategory = state.categories.firstWhere(
+      (category) => category.categoryKey == _categoryKey,
+      orElse: () => state.categories.first,
+    );
 
     return ListView(
       padding: const EdgeInsets.all(14),
       children: [
         Row(
           children: [
-            const Expanded(
-              child: Text(
-                'P&M Setup',
-                style: TextStyle(fontSize: 18, fontWeight: FontWeight.w800),
-              ),
+            OutlinedButton.icon(
+              onPressed: () => setState(() => _mode = _PmSetupMode.chooser),
+              icon: const Icon(Icons.arrow_back_rounded, size: 18),
+              label: const Text('Options'),
             ),
-            FilledButton.icon(
-              onPressed: () => _openEquipmentSheet(context, ref, null),
-              icon: const Icon(Icons.add_rounded, size: 18),
-              label: const Text('Add'),
-              style: FilledButton.styleFrom(backgroundColor: _pmColor),
+            const SizedBox(width: 10),
+            Expanded(
+              child: FilledButton.icon(
+                onPressed: () => _openEquipmentSheet(null),
+                icon: const Icon(Icons.add_rounded, size: 18),
+                label: const Text('Add Work'),
+                style: FilledButton.styleFrom(backgroundColor: _pmColor),
+              ),
             ),
           ],
         ),
         const SizedBox(height: 12),
-        ...state.categories.map(
-          (category) => _CategorySection(
-            category: category,
-            onEdit: (equipment) => _openEquipmentSheet(context, ref, equipment),
-            onDelete: (equipment) async {
-              if (!equipment.isCustom) {
-                onError('Only custom P&M equipment can be deleted');
-                return;
-              }
-              final ok = await ref
-                  .read(pmProvider.notifier)
-                  .deleteEquipment(siteId, equipment);
-              ok
-                  ? onSaved()
-                  : onError(ref.read(pmProvider).error ?? 'Delete failed');
-            },
+        _CategorySelector(
+          categories: state.categories,
+          selectedKey: selectedCategory.categoryKey,
+          onSelected: (value) => setState(() => _categoryKey = value),
+        ),
+        const SizedBox(height: 12),
+        Text(
+          selectedCategory.categoryName,
+          style: const TextStyle(fontSize: 17, fontWeight: FontWeight.w900),
+        ),
+        const SizedBox(height: 10),
+        if (selectedCategory.equipment.isEmpty)
+          const _EmptyPanel(title: 'No works found in this category')
+        else
+          ...selectedCategory.equipment.map(
+            (equipment) => _EquipmentCard(
+              equipment: equipment,
+              onEdit: () => _openEquipmentSheet(equipment),
+              onDelete: () => _deleteEquipment(equipment),
+            ),
+          ),
+      ],
+    );
+  }
+
+  Future<void> _openEquipmentSheet(PmEquipment? equipment) async {
+    await showPmEquipmentSheet(
+      context: context,
+      ref: ref,
+      state: widget.state,
+      siteId: widget.siteId,
+      equipment: equipment,
+      onSaved: widget.onSaved,
+      onError: widget.onError,
+    );
+  }
+
+  Future<void> _deleteEquipment(PmEquipment equipment) async {
+    if (!equipment.isCustom) {
+      widget.onError('Only custom P&M works can be deleted');
+      return;
+    }
+    final ok = await ref
+        .read(pmProvider.notifier)
+        .deleteEquipment(widget.siteId, equipment);
+    ok
+        ? widget.onSaved()
+        : widget.onError(ref.read(pmProvider).error ?? 'Delete failed');
+  }
+}
+
+class _SetupChooser extends StatelessWidget {
+  final VoidCallback? onView;
+  final VoidCallback? onAdd;
+  final String? emptyText;
+
+  const _SetupChooser({
+    required this.onView,
+    required this.onAdd,
+    this.emptyText,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    final colorScheme = Theme.of(context).colorScheme;
+    final isDark = Theme.of(context).brightness == Brightness.dark;
+
+    return ListView(
+      padding: const EdgeInsets.all(16),
+      children: [
+        GridView.count(
+          physics: const NeverScrollableScrollPhysics(),
+          shrinkWrap: true,
+          crossAxisCount: 2,
+          mainAxisSpacing: 12,
+          crossAxisSpacing: 10,
+          childAspectRatio: 1,
+          children: [
+            SelectCard(
+              icon: const SelectCardIcon(
+                icon: Icons.visibility_rounded,
+                color: Colors.blue,
+              ),
+              label: 'View',
+              onTap: onView ?? () {},
+            ),
+            SelectCard(
+              icon: const SelectCardIcon(
+                icon: Icons.add_circle_outline_rounded,
+                color: Colors.green,
+              ),
+              label: 'Add',
+              onTap: onAdd ?? () {},
+            ),
+          ],
+        ),
+        const SizedBox(height: 18),
+        Container(
+          width: double.infinity,
+          padding: const EdgeInsets.all(16),
+          decoration: BoxDecoration(
+            color: colorScheme.surface,
+            borderRadius: BorderRadius.circular(18),
+            border: Border.all(
+              color: colorScheme.outlineVariant.withOpacity(0.45),
+            ),
+            boxShadow: [
+              BoxShadow(
+                color: isDark
+                    ? colorScheme.shadow.withOpacity(0.12)
+                    : colorScheme.shadow.withOpacity(0.06),
+                blurRadius: 12,
+                offset: const Offset(0, 6),
+              ),
+            ],
+          ),
+          child: Text(
+            emptyText ??
+                'View existing P&M works by category, or add a new work with an optional image.',
+            style: TextStyle(
+              fontSize: 13,
+              height: 1.45,
+              color: colorScheme.onSurfaceVariant,
+            ),
           ),
         ),
       ],
     );
   }
+}
 
-  Future<void> _openEquipmentSheet(
-    BuildContext context,
-    WidgetRef ref,
-    PmEquipment? equipment,
-  ) async {
-    final category = equipment == null && state.categories.isNotEmpty
-        ? state.categories.first
-        : null;
-    final name = TextEditingController(text: equipment?.equipmentName ?? '');
-    final capacity = TextEditingController(text: equipment?.capacity ?? '');
-    final unit = TextEditingController(text: equipment?.unit ?? 'Nos');
-    var image = equipment?.image ?? '';
-    var categoryKey = equipment?.categoryKey ?? category?.categoryKey ?? '';
-    var categoryName = equipment?.categoryName ?? category?.categoryName ?? '';
+class _CategorySelector extends StatelessWidget {
+  final List<PmCategory> categories;
+  final String selectedKey;
+  final ValueChanged<String> onSelected;
 
-    await showModalBottomSheet<void>(
-      context: context,
-      isScrollControlled: true,
-      useSafeArea: true,
-      builder: (sheetContext) {
-        return StatefulBuilder(
-          builder: (context, setModalState) {
-            Future<void> pickImage() async {
-              final result = await FilePicker.platform.pickFiles(
-                type: FileType.image,
-                allowMultiple: false,
-              );
-              final file = result?.files.single;
-              if (file == null) return;
-              final url =
-                  await ref.read(pmProvider.notifier).uploadImage(siteId, file);
-              if (url.isNotEmpty) setModalState(() => image = url);
-            }
+  const _CategorySelector({
+    required this.categories,
+    required this.selectedKey,
+    required this.onSelected,
+  });
 
-            Future<void> save() async {
-              if (name.text.trim().isEmpty) {
-                onError('Equipment name is required');
-                return;
-              }
-              final ok = await ref.read(pmProvider.notifier).saveEquipment(
-                    siteId,
-                    equipment: equipment,
-                    categoryKey: categoryKey,
-                    categoryName: categoryName,
-                    equipmentName: name.text.trim(),
-                    capacity: capacity.text.trim(),
-                    unit: unit.text.trim().isEmpty ? 'Nos' : unit.text.trim(),
-                    image: image,
-                  );
-              if (!context.mounted) return;
-              Navigator.of(context).pop();
-              ok
-                  ? onSaved()
-                  : onError(ref.read(pmProvider).error ?? 'Save failed');
-            }
+  @override
+  Widget build(BuildContext context) {
+    return SizedBox(
+      height: 44,
+      child: ListView.separated(
+        scrollDirection: Axis.horizontal,
+        itemCount: categories.length,
+        separatorBuilder: (_, __) => const SizedBox(width: 8),
+        itemBuilder: (context, index) {
+          final category = categories[index];
+          final selected = category.categoryKey == selectedKey;
+          return ChoiceChip(
+            selected: selected,
+            label: Text(category.categoryName),
+            onSelected: (_) => onSelected(category.categoryKey),
+            selectedColor: _pmColor.withOpacity(0.14),
+            checkmarkColor: _pmColor,
+            labelStyle: TextStyle(
+              color: selected ? _pmColor : null,
+              fontWeight: selected ? FontWeight.w800 : FontWeight.w600,
+            ),
+          );
+        },
+      ),
+    );
+  }
+}
 
-            return Padding(
-              padding: EdgeInsets.only(
-                left: 18,
-                right: 18,
-                top: 18,
-                bottom: MediaQuery.of(context).viewInsets.bottom + 18,
-              ),
-              child: SingleChildScrollView(
-                child: Column(
-                  mainAxisSize: MainAxisSize.min,
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Text(
-                      equipment == null
-                          ? 'Add P&M Equipment'
-                          : 'Edit P&M Equipment',
-                      style: const TextStyle(
-                          fontSize: 18, fontWeight: FontWeight.w800),
-                    ),
-                    const SizedBox(height: 14),
-                    if (equipment == null)
-                      DropdownButtonFormField<String>(
-                        value: categoryKey.isEmpty ? null : categoryKey,
-                        items: state.categories
-                            .map((cat) => DropdownMenuItem(
-                                  value: cat.categoryKey,
-                                  child: Text(cat.categoryName),
-                                ))
-                            .toList(),
-                        onChanged: (value) {
-                          final selected = state.categories.firstWhere(
-                            (cat) => cat.categoryKey == value,
-                            orElse: () => state.categories.first,
-                          );
-                          setModalState(() {
-                            categoryKey = selected.categoryKey;
-                            categoryName = selected.categoryName;
-                          });
-                        },
-                        decoration:
-                            const InputDecoration(labelText: 'Category'),
-                      ),
-                    const SizedBox(height: 10),
-                    _TextField(controller: name, label: 'Equipment Name'),
-                    _TextField(controller: capacity, label: 'Capacity'),
-                    _TextField(controller: unit, label: 'Unit'),
-                    const SizedBox(height: 10),
-                    _ImagePreview(imageUrl: image, height: 130),
-                    const SizedBox(height: 10),
-                    OutlinedButton.icon(
-                      onPressed: pickImage,
-                      icon: const Icon(Icons.image_rounded),
-                      label: const Text('Upload Image'),
-                    ),
-                    const SizedBox(height: 14),
-                    SizedBox(
-                      width: double.infinity,
-                      height: 48,
-                      child: FilledButton(
-                        onPressed: state.isSaving ? null : save,
-                        style:
-                            FilledButton.styleFrom(backgroundColor: _pmColor),
-                        child: const Text('Save Equipment'),
-                      ),
-                    ),
-                  ],
-                ),
-              ),
-            );
-          },
-        );
-      },
+class _WorkSelectionPage extends StatefulWidget {
+  final List<PmCategory> categories;
+  final ValueChanged<PmEquipment> onSelect;
+
+  const _WorkSelectionPage({
+    required this.categories,
+    required this.onSelect,
+  });
+
+  @override
+  State<_WorkSelectionPage> createState() => _WorkSelectionPageState();
+}
+
+class _WorkSelectionPageState extends State<_WorkSelectionPage> {
+  String? _categoryKey;
+
+  @override
+  Widget build(BuildContext context) {
+    _categoryKey ??= widget.categories.first.categoryKey;
+    final selectedCategory = widget.categories.firstWhere(
+      (category) => category.categoryKey == _categoryKey,
+      orElse: () => widget.categories.first,
     );
 
-    name.dispose();
-    capacity.dispose();
-    unit.dispose();
+    return ListView(
+      padding: const EdgeInsets.all(14),
+      children: [
+        const Text(
+          'Select P&M Work',
+          style: TextStyle(fontSize: 18, fontWeight: FontWeight.w900),
+        ),
+        const SizedBox(height: 10),
+        _CategorySelector(
+          categories: widget.categories,
+          selectedKey: selectedCategory.categoryKey,
+          onSelected: (value) => setState(() => _categoryKey = value),
+        ),
+        const SizedBox(height: 12),
+        if (selectedCategory.equipment.isEmpty)
+          const _EmptyPanel(title: 'No works found in this category')
+        else
+          ...selectedCategory.equipment.map(
+            (equipment) => _EquipmentCard(
+              equipment: equipment,
+              onTap: () => widget.onSelect(equipment),
+            ),
+          ),
+      ],
+    );
   }
+}
+
+class _SelectedWorkHeader extends StatelessWidget {
+  final PmEquipment equipment;
+  final VoidCallback onChange;
+  final VoidCallback onEdit;
+
+  const _SelectedWorkHeader({
+    required this.equipment,
+    required this.onChange,
+    required this.onEdit,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    final cs = Theme.of(context).colorScheme;
+    return Container(
+      padding: const EdgeInsets.all(10),
+      decoration: BoxDecoration(
+        color: _pmColor.withOpacity(0.06),
+        borderRadius: BorderRadius.circular(14),
+        border: Border.all(color: _pmColor.withOpacity(0.18)),
+      ),
+      child: Row(
+        children: [
+          _ImagePreview(imageUrl: equipment.image, height: 62, width: 72),
+          const SizedBox(width: 10),
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  equipment.equipmentName,
+                  style: const TextStyle(fontWeight: FontWeight.w900),
+                  maxLines: 2,
+                  overflow: TextOverflow.ellipsis,
+                ),
+                const SizedBox(height: 3),
+                Text(
+                  equipment.categoryName,
+                  style: TextStyle(fontSize: 12, color: cs.onSurfaceVariant),
+                ),
+              ],
+            ),
+          ),
+          IconButton(
+            tooltip: 'Edit Work',
+            onPressed: onEdit,
+            icon: const Icon(Icons.edit_rounded, color: _pmColor),
+          ),
+          TextButton(
+            onPressed: onChange,
+            child: const Text('Change'),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+Future<void> showPmEquipmentSheet({
+  required BuildContext context,
+  required WidgetRef ref,
+  required PmState state,
+  required String siteId,
+  required VoidCallback onSaved,
+  required ValueChanged<String> onError,
+  PmEquipment? equipment,
+}) async {
+  final defaultCategory =
+      state.categories.isNotEmpty ? state.categories.first : null;
+  final name = TextEditingController(text: equipment?.equipmentName ?? '');
+  final capacity = TextEditingController(text: equipment?.capacity ?? '');
+  final unit = TextEditingController(text: equipment?.unit ?? 'Nos');
+  var image = equipment?.image ?? '';
+  var categoryKey =
+      equipment?.categoryKey ?? defaultCategory?.categoryKey ?? '';
+  var categoryName =
+      equipment?.categoryName ?? defaultCategory?.categoryName ?? '';
+
+  await showModalBottomSheet<void>(
+    context: context,
+    isScrollControlled: true,
+    useSafeArea: true,
+    builder: (sheetContext) {
+      return StatefulBuilder(
+        builder: (context, setModalState) {
+          Future<void> pickImage() async {
+            final result = await FilePicker.platform.pickFiles(
+              type: FileType.image,
+              allowMultiple: false,
+            );
+            final file = result?.files.single;
+            if (file == null) return;
+            final url =
+                await ref.read(pmProvider.notifier).uploadImage(siteId, file);
+            if (url.isNotEmpty) setModalState(() => image = url);
+          }
+
+          Future<void> save() async {
+            if (categoryKey.trim().isEmpty || categoryName.trim().isEmpty) {
+              onError('Category is required');
+              return;
+            }
+            if (name.text.trim().isEmpty) {
+              onError('Work name is required');
+              return;
+            }
+            final ok = await ref.read(pmProvider.notifier).saveEquipment(
+                  siteId,
+                  equipment: equipment,
+                  categoryKey: categoryKey,
+                  categoryName: categoryName,
+                  equipmentName: name.text.trim(),
+                  capacity: capacity.text.trim(),
+                  unit: unit.text.trim().isEmpty ? 'Nos' : unit.text.trim(),
+                  image: image,
+                );
+            if (!context.mounted) return;
+            Navigator.of(context).pop();
+            ok
+                ? onSaved()
+                : onError(ref.read(pmProvider).error ?? 'Save failed');
+          }
+
+          return Padding(
+            padding: EdgeInsets.only(
+              left: 18,
+              right: 18,
+              top: 18,
+              bottom: MediaQuery.of(context).viewInsets.bottom + 18,
+            ),
+            child: SingleChildScrollView(
+              child: Column(
+                mainAxisSize: MainAxisSize.min,
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(
+                    equipment == null ? 'Add P&M Work' : 'Edit P&M Work',
+                    style: const TextStyle(
+                      fontSize: 18,
+                      fontWeight: FontWeight.w800,
+                    ),
+                  ),
+                  const SizedBox(height: 14),
+                  if (equipment == null)
+                    DropdownButtonFormField<String>(
+                      value: categoryKey.isEmpty ? null : categoryKey,
+                      items: state.categories
+                          .map((cat) => DropdownMenuItem(
+                                value: cat.categoryKey,
+                                child: Text(cat.categoryName),
+                              ))
+                          .toList(),
+                      onChanged: (value) {
+                        final selected = state.categories.firstWhere(
+                          (cat) => cat.categoryKey == value,
+                          orElse: () => state.categories.first,
+                        );
+                        setModalState(() {
+                          categoryKey = selected.categoryKey;
+                          categoryName = selected.categoryName;
+                        });
+                      },
+                      decoration: const InputDecoration(labelText: 'Category'),
+                    ),
+                  const SizedBox(height: 10),
+                  _TextField(controller: name, label: 'Work Name'),
+                  _TextField(controller: capacity, label: 'Capacity'),
+                  _TextField(controller: unit, label: 'Unit'),
+                  const SizedBox(height: 10),
+                  _ImagePreview(imageUrl: image, height: 150),
+                  const SizedBox(height: 10),
+                  OutlinedButton.icon(
+                    onPressed: pickImage,
+                    icon: const Icon(Icons.image_rounded),
+                    label: const Text('Upload / Replace Image'),
+                  ),
+                  const SizedBox(height: 14),
+                  SizedBox(
+                    width: double.infinity,
+                    height: 48,
+                    child: FilledButton(
+                      onPressed: state.isSaving ? null : save,
+                      style: FilledButton.styleFrom(backgroundColor: _pmColor),
+                      child: const Text('Save Work'),
+                    ),
+                  ),
+                ],
+              ),
+            ),
+          );
+        },
+      );
+    },
+  );
+
+  name.dispose();
+  capacity.dispose();
+  unit.dispose();
 }
 
 class _EntryTab extends ConsumerStatefulWidget {
@@ -373,7 +668,6 @@ class _EntryTab extends ConsumerStatefulWidget {
 }
 
 class _EntryTabState extends ConsumerState<_EntryTab> {
-  String? _categoryKey;
   PmEquipment? _equipment;
   final _equipmentNo = TextEditingController();
   final _capacity = TextEditingController();
@@ -431,14 +725,14 @@ class _EntryTabState extends ConsumerState<_EntryTab> {
       return const _EmptyState(title: 'Configure P&M setup first');
     }
 
-    _categoryKey ??= categories.first.categoryKey;
-    final selectedCategory = categories.firstWhere(
-      (cat) => cat.categoryKey == _categoryKey,
-      orElse: () => categories.first,
-    );
-    _equipment ??= selectedCategory.equipment.isNotEmpty
-        ? selectedCategory.equipment.first
-        : null;
+    final selectedEquipment = _findCurrentEquipment(categories);
+    if (selectedEquipment == null) {
+      return _WorkSelectionPage(
+        categories: categories,
+        onSelect: _selectEquipment,
+      );
+    }
+    _equipment = selectedEquipment;
 
     return ListView(
       padding: const EdgeInsets.all(14),
@@ -449,49 +743,11 @@ class _EntryTabState extends ConsumerState<_EntryTab> {
           onTap: widget.onDateTap,
         ),
         const SizedBox(height: 12),
-        DropdownButtonFormField<String>(
-          value: selectedCategory.categoryKey,
-          items: categories
-              .map((cat) => DropdownMenuItem(
-                    value: cat.categoryKey,
-                    child: Text(cat.categoryName),
-                  ))
-              .toList(),
-          onChanged: (value) {
-            setState(() {
-              _categoryKey = value;
-              final next = categories.firstWhere(
-                (cat) => cat.categoryKey == value,
-                orElse: () => categories.first,
-              );
-              _equipment =
-                  next.equipment.isNotEmpty ? next.equipment.first : null;
-            });
-          },
-          decoration: const InputDecoration(labelText: 'Category'),
+        _SelectedWorkHeader(
+          equipment: selectedEquipment,
+          onChange: () => setState(() => _equipment = null),
+          onEdit: () => _editSelectedWork(selectedEquipment),
         ),
-        const SizedBox(height: 10),
-        DropdownButtonFormField<PmEquipment>(
-          value: selectedCategory.equipment.contains(_equipment)
-              ? _equipment
-              : null,
-          items: selectedCategory.equipment
-              .map((item) => DropdownMenuItem(
-                    value: item,
-                    child: Text(item.equipmentName),
-                  ))
-              .toList(),
-          onChanged: (value) {
-            setState(() {
-              _equipment = value;
-              _capacity.text = value?.capacity ?? '';
-              _unit.text = value?.unit ?? '';
-            });
-          },
-          decoration: const InputDecoration(labelText: 'Equipment'),
-        ),
-        const SizedBox(height: 12),
-        if (_equipment != null) _EquipmentMiniCard(equipment: _equipment!),
         const SizedBox(height: 12),
         _TextField(controller: _equipmentNo, label: 'Equipment Number'),
         _TextField(controller: _capacity, label: 'Equipment Capacity'),
@@ -627,6 +883,37 @@ class _EntryTabState extends ConsumerState<_EntryTab> {
         : widget.onError(ref.read(pmProvider).error ?? 'Save failed');
   }
 
+  PmEquipment? _findCurrentEquipment(List<PmCategory> categories) {
+    final selected = _equipment;
+    if (selected == null) return null;
+    for (final equipment in _flattenEquipment(categories)) {
+      if (equipment.id == selected.id && equipment.source == selected.source) {
+        return equipment;
+      }
+    }
+    return null;
+  }
+
+  void _selectEquipment(PmEquipment equipment) {
+    setState(() {
+      _equipment = equipment;
+      _capacity.text = equipment.capacity;
+      _unit.text = equipment.unit;
+    });
+  }
+
+  Future<void> _editSelectedWork(PmEquipment equipment) async {
+    await showPmEquipmentSheet(
+      context: context,
+      ref: ref,
+      state: widget.state,
+      siteId: widget.siteId,
+      equipment: equipment,
+      onSaved: widget.onSaved,
+      onError: widget.onError,
+    );
+  }
+
   double _num(String value) => double.tryParse(value.trim()) ?? 0;
 }
 
@@ -675,50 +962,17 @@ class _ReportsTab extends StatelessWidget {
   }
 }
 
-class _CategorySection extends StatelessWidget {
-  final PmCategory category;
-  final ValueChanged<PmEquipment> onEdit;
-  final ValueChanged<PmEquipment> onDelete;
-
-  const _CategorySection({
-    required this.category,
-    required this.onEdit,
-    required this.onDelete,
-  });
-
-  @override
-  Widget build(BuildContext context) {
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        Padding(
-          padding: const EdgeInsets.only(top: 14, bottom: 8),
-          child: Text(
-            category.categoryName,
-            style: const TextStyle(fontSize: 15, fontWeight: FontWeight.w800),
-          ),
-        ),
-        ...category.equipment.map(
-          (equipment) => _EquipmentCard(
-            equipment: equipment,
-            onEdit: () => onEdit(equipment),
-            onDelete: () => onDelete(equipment),
-          ),
-        ),
-      ],
-    );
-  }
-}
-
 class _EquipmentCard extends StatelessWidget {
   final PmEquipment equipment;
-  final VoidCallback onEdit;
-  final VoidCallback onDelete;
+  final VoidCallback? onEdit;
+  final VoidCallback? onDelete;
+  final VoidCallback? onTap;
 
   const _EquipmentCard({
     required this.equipment,
-    required this.onEdit,
-    required this.onDelete,
+    this.onEdit,
+    this.onDelete,
+    this.onTap,
   });
 
   @override
@@ -731,75 +985,64 @@ class _EquipmentCard extends StatelessWidget {
         borderRadius: BorderRadius.circular(14),
         side: BorderSide(color: cs.outlineVariant),
       ),
-      child: Padding(
-        padding: const EdgeInsets.all(10),
-        child: Row(
-          children: [
-            _ImagePreview(imageUrl: equipment.image, height: 68, width: 76),
-            const SizedBox(width: 10),
-            Expanded(
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Text(
-                    equipment.equipmentName,
-                    style: const TextStyle(fontWeight: FontWeight.w800),
-                    maxLines: 2,
-                    overflow: TextOverflow.ellipsis,
-                  ),
-                  const SizedBox(height: 4),
-                  Text(
-                    [equipment.capacity, equipment.unit]
-                        .where((text) => text.trim().isNotEmpty)
-                        .join(' • '),
-                    style: TextStyle(fontSize: 12, color: cs.onSurfaceVariant),
-                  ),
-                ],
-              ),
-            ),
-            IconButton(
-              tooltip: 'Edit',
-              onPressed: onEdit,
-              icon: const Icon(Icons.edit_rounded, size: 20),
-            ),
-            if (equipment.isCustom)
-              IconButton(
-                tooltip: 'Delete',
-                onPressed: onDelete,
-                icon: Icon(Icons.delete_rounded, size: 20, color: cs.error),
-              ),
-          ],
-        ),
-      ),
-    );
-  }
-}
-
-class _EquipmentMiniCard extends StatelessWidget {
-  final PmEquipment equipment;
-
-  const _EquipmentMiniCard({required this.equipment});
-
-  @override
-  Widget build(BuildContext context) {
-    return Container(
-      padding: const EdgeInsets.all(10),
-      decoration: BoxDecoration(
-        color: _pmColor.withOpacity(0.06),
+      child: InkWell(
+        onTap: onTap,
         borderRadius: BorderRadius.circular(14),
-        border: Border.all(color: _pmColor.withOpacity(0.18)),
-      ),
-      child: Row(
-        children: [
-          _ImagePreview(imageUrl: equipment.image, height: 58, width: 68),
-          const SizedBox(width: 10),
-          Expanded(
-            child: Text(
-              equipment.equipmentName,
-              style: const TextStyle(fontWeight: FontWeight.w800),
-            ),
+        child: Padding(
+          padding: const EdgeInsets.all(10),
+          child: Row(
+            children: [
+              _ImagePreview(imageUrl: equipment.image, height: 68, width: 76),
+              const SizedBox(width: 10),
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      equipment.equipmentName,
+                      style: const TextStyle(fontWeight: FontWeight.w800),
+                      maxLines: 2,
+                      overflow: TextOverflow.ellipsis,
+                    ),
+                    const SizedBox(height: 4),
+                    Text(
+                      equipment.categoryName,
+                      style: TextStyle(
+                        fontSize: 12,
+                        fontWeight: FontWeight.w700,
+                        color: cs.onSurfaceVariant,
+                      ),
+                      maxLines: 1,
+                      overflow: TextOverflow.ellipsis,
+                    ),
+                    const SizedBox(height: 3),
+                    Text(
+                      [equipment.capacity, equipment.unit]
+                          .where((text) => text.trim().isNotEmpty)
+                          .join(' • '),
+                      style:
+                          TextStyle(fontSize: 12, color: cs.onSurfaceVariant),
+                    ),
+                  ],
+                ),
+              ),
+              if (onEdit != null)
+                IconButton(
+                  tooltip: 'Edit',
+                  onPressed: onEdit,
+                  icon: const Icon(Icons.edit_rounded, size: 20),
+                ),
+              if (equipment.isCustom && onDelete != null)
+                IconButton(
+                  tooltip: 'Delete',
+                  onPressed: onDelete,
+                  icon: Icon(Icons.delete_rounded, size: 20, color: cs.error),
+                ),
+              if (onTap != null)
+                const Icon(Icons.chevron_right_rounded, color: _pmColor),
+            ],
           ),
-        ],
+        ),
       ),
     );
   }
@@ -1082,6 +1325,34 @@ class _EmptyState extends StatelessWidget {
   }
 }
 
+class _EmptyPanel extends StatelessWidget {
+  final String title;
+
+  const _EmptyPanel({required this.title});
+
+  @override
+  Widget build(BuildContext context) {
+    final cs = Theme.of(context).colorScheme;
+    return Container(
+      width: double.infinity,
+      padding: const EdgeInsets.all(18),
+      decoration: BoxDecoration(
+        color: cs.surface,
+        borderRadius: BorderRadius.circular(14),
+        border: Border.all(color: cs.outlineVariant),
+      ),
+      child: Text(
+        title,
+        textAlign: TextAlign.center,
+        style: TextStyle(
+          color: cs.onSurfaceVariant,
+          fontWeight: FontWeight.w700,
+        ),
+      ),
+    );
+  }
+}
+
 class _ErrorState extends StatelessWidget {
   final String message;
   final VoidCallback onRetry;
@@ -1112,4 +1383,10 @@ class _ErrorState extends StatelessWidget {
 String _fmt(double value) {
   if (value == value.roundToDouble()) return value.toStringAsFixed(0);
   return value.toStringAsFixed(2);
+}
+
+List<PmEquipment> _flattenEquipment(List<PmCategory> categories) {
+  return [
+    for (final category in categories) ...category.equipment,
+  ];
 }

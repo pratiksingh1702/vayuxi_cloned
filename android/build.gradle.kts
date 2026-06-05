@@ -24,6 +24,36 @@ subprojects {
     project.evaluationDependsOn(":app")
 }
 
+val cleanDuplicateAndroidResourceCopies by tasks.registering {
+    doLast {
+        val buildRoot = rootProject.layout.buildDirectory.get().asFile
+        if (!buildRoot.exists()) return@doLast
+
+        val duplicateGeneratedFile = Regex(""".* \d+\.(xml|flat|arsc|png|webp|jpg|jpeg|json)$""")
+        buildRoot.listFiles()?.forEach { projectBuildDir ->
+            listOf(
+                projectBuildDir.resolve("intermediates/packaged_res"),
+                projectBuildDir.resolve("intermediates/merged_res"),
+                projectBuildDir.resolve("intermediates/merged-not-compiled-resources")
+            )
+                .filter { it.exists() }
+                .forEach { resourceDir ->
+                    resourceDir.walkTopDown()
+                        .filter { it.isFile && duplicateGeneratedFile.matches(it.name) }
+                        .forEach { it.delete() }
+                }
+        }
+    }
+}
+
+subprojects {
+    tasks.matching {
+        it.name.contains("Resources", ignoreCase = true)
+    }.configureEach {
+        dependsOn(cleanDuplicateAndroidResourceCopies)
+    }
+}
+
 tasks.register<Delete>("clean") {
     delete(rootProject.layout.buildDirectory)
 }
