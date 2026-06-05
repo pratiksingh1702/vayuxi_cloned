@@ -395,6 +395,23 @@ final appRouterProvider = Provider<GoRouter>((ref) {
                   siteId: site.id,
                   siteName: site.siteName,
                   workType: type ?? '',
+                  section: PmSection.entry,
+                );
+                break;
+              case 'structure-pm-setup':
+                screen = PmScreen(
+                  siteId: site.id,
+                  siteName: site.siteName,
+                  workType: type ?? '',
+                  section: PmSection.setup,
+                );
+                break;
+              case 'structure-pm-report':
+                screen = PmScreen(
+                  siteId: site.id,
+                  siteName: site.siteName,
+                  workType: type ?? '',
+                  section: PmSection.reports,
                 );
                 break;
               case 'attendance':

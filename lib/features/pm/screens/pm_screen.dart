@@ -12,39 +12,48 @@ import '../providers/pm_provider.dart';
 
 const _pmColor = Color(0xFF7B3F00);
 
+enum PmSection {
+  setup,
+  entry,
+  reports;
+
+  String get title {
+    switch (this) {
+      case PmSection.setup:
+        return 'P&M Setup';
+      case PmSection.entry:
+        return 'P&M Entry';
+      case PmSection.reports:
+        return 'P&M Reports';
+    }
+  }
+}
+
 class PmScreen extends ConsumerStatefulWidget {
   final String siteId;
   final String siteName;
   final String workType;
+  final PmSection section;
 
   const PmScreen({
     super.key,
     required this.siteId,
     required this.siteName,
     required this.workType,
+    required this.section,
   });
 
   @override
   ConsumerState<PmScreen> createState() => _PmScreenState();
 }
 
-class _PmScreenState extends ConsumerState<PmScreen>
-    with SingleTickerProviderStateMixin {
-  late final TabController _tabController;
-
+class _PmScreenState extends ConsumerState<PmScreen> {
   @override
   void initState() {
     super.initState();
-    _tabController = TabController(length: 3, vsync: this);
     WidgetsBinding.instance.addPostFrameCallback((_) {
       ref.read(pmProvider.notifier).load(widget.siteId);
     });
-  }
-
-  @override
-  void dispose() {
-    _tabController.dispose();
-    super.dispose();
   }
 
   Future<void> _pickDate() async {
@@ -79,7 +88,7 @@ class _PmScreenState extends ConsumerState<PmScreen>
     return Scaffold(
       backgroundColor: isDark ? cs.surface : cs.surfaceContainerLowest,
       appBar: PremiumAppBar(
-        title: 'P&M',
+        title: widget.section.title,
         subtitle: Text(widget.siteName),
         drawerIcon: Icons.arrow_back_ios_new_rounded,
         onDrawerPressed: () => context.pop(),
@@ -98,20 +107,6 @@ class _PmScreenState extends ConsumerState<PmScreen>
               color: _pmColor,
               backgroundColor: _pmColor.withOpacity(0.15),
             ),
-          Container(
-            color: Theme.of(context).scaffoldBackgroundColor,
-            child: TabBar(
-              controller: _tabController,
-              labelColor: _pmColor,
-              indicatorColor: _pmColor,
-              unselectedLabelColor: cs.onSurfaceVariant,
-              tabs: const [
-                Tab(text: 'Setup'),
-                Tab(text: 'Entry'),
-                Tab(text: 'Reports'),
-              ],
-            ),
-          ),
           Expanded(
             child: state.error != null && state.categories.isEmpty
                 ? _ErrorState(
@@ -119,36 +114,40 @@ class _PmScreenState extends ConsumerState<PmScreen>
                     onRetry: () =>
                         ref.read(pmProvider.notifier).load(widget.siteId),
                   )
-                : TabBarView(
-                    controller: _tabController,
-                    children: [
-                      _SetupTab(
-                        state: state,
-                        siteId: widget.siteId,
-                        onSaved: () => _snack('P&M setup saved successfully'),
-                        onError: (msg) => _snack(msg, isError: true),
-                      ),
-                      _EntryTab(
-                        state: state,
-                        siteId: widget.siteId,
-                        workType: widget.workType,
-                        onDateTap: _pickDate,
-                        onSaved: () {
-                          HapticFeedback.heavyImpact();
-                          _snack('P&M entry saved successfully');
-                        },
-                        onError: (msg) => _snack(msg, isError: true),
-                      ),
-                      _ReportsTab(
-                        state: state,
-                        onDateTap: _pickDate,
-                      ),
-                    ],
-                  ),
+                : _buildSection(state),
           ),
         ],
       ),
     );
+  }
+
+  Widget _buildSection(PmState state) {
+    switch (widget.section) {
+      case PmSection.setup:
+        return _SetupTab(
+          state: state,
+          siteId: widget.siteId,
+          onSaved: () => _snack('P&M setup saved successfully'),
+          onError: (msg) => _snack(msg, isError: true),
+        );
+      case PmSection.entry:
+        return _EntryTab(
+          state: state,
+          siteId: widget.siteId,
+          workType: widget.workType,
+          onDateTap: _pickDate,
+          onSaved: () {
+            HapticFeedback.heavyImpact();
+            _snack('P&M entry saved successfully');
+          },
+          onError: (msg) => _snack(msg, isError: true),
+        );
+      case PmSection.reports:
+        return _ReportsTab(
+          state: state,
+          onDateTap: _pickDate,
+        );
+    }
   }
 }
 

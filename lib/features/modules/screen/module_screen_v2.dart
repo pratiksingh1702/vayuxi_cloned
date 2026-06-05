@@ -307,7 +307,7 @@ class _ModuleScreenV2State extends ConsumerState<ModuleScreenV2>
             type == 'fabrication_work' ||
             type == WorkType.fabrication.apiValue)
         ? ModuleItem(
-            labelKey: 'P&M',
+            labelKey: 'P&M Entry',
             icon: Icons.precision_manufacturing_rounded,
             iconColor: const Color(0xFF7B3F00),
             routeName: "/site-list/structure-pm-entry")
@@ -397,12 +397,14 @@ class _ModuleScreenV2State extends ConsumerState<ModuleScreenV2>
     final dprSetupModule = _getDprSetupModule(type);
     final secondaryModules = _getSecondaryModules(type);
     final workAssignmentModule = _getWorkAssignmentModule(type);
+    final pmSetupModule = _getPmSetupModule(type);
 
     return [
       ...base,
       ...secondaryModules,
       dprSetupModule,
       if (workAssignmentModule != null) workAssignmentModule,
+      if (pmSetupModule != null) pmSetupModule,
     ];
   }
 
@@ -468,6 +470,20 @@ class _ModuleScreenV2State extends ConsumerState<ModuleScreenV2>
     return null;
   }
 
+  ModuleItem? _getPmSetupModule(String? type) {
+    if (type == 'structure_work' ||
+        type == WorkType.structure.apiValue ||
+        type == 'fabrication_work' ||
+        type == WorkType.fabrication.apiValue) {
+      return ModuleItem(
+          labelKey: 'P&M Setup',
+          icon: Icons.precision_manufacturing_rounded,
+          iconColor: const Color(0xFF7B3F00),
+          routeName: "/site-list/structure-pm-setup");
+    }
+    return null;
+  }
+
   List<ModuleItem> _getSecondaryModules(String? type) {
     final rateModule = ModuleItem(
         labelKey: 'rate_card',
@@ -500,6 +516,18 @@ class _ModuleScreenV2State extends ConsumerState<ModuleScreenV2>
   }
 
   List<ModuleItem> get _reportModules {
+    final type = ref.watch(typeProvider);
+    final pmReportModule = (type == 'structure_work' ||
+            type == WorkType.structure.apiValue ||
+            type == 'fabrication_work' ||
+            type == WorkType.fabrication.apiValue)
+        ? ModuleItem(
+            labelKey: 'P&M Reports',
+            icon: Icons.precision_manufacturing_rounded,
+            iconColor: const Color(0xFF7B3F00),
+            routeName: "/site-list/structure-pm-report")
+        : null;
+
     return [
       ModuleItem(
           labelKey: 'summary_analysis_card',
@@ -516,6 +544,7 @@ class _ModuleScreenV2State extends ConsumerState<ModuleScreenV2>
           icon: Icons.table_chart_rounded,
           iconColor: Colors.deepPurple,
           routeName: "/site-list/dprReport"),
+      if (pmReportModule != null) pmReportModule,
       ModuleItem(
           labelKey: 'expense_sheet_card',
           icon: Icons.request_quote_rounded,
