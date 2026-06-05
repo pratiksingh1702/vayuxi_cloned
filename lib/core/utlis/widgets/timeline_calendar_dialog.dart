@@ -1,6 +1,5 @@
 import 'package:flutter/material.dart';
 import 'package:table_calendar/table_calendar.dart';
-import 'package:intl/intl.dart';
 
 class TimelineCalendarDialog extends StatefulWidget {
   final DateTime initialDate;
@@ -37,8 +36,16 @@ class _TimelineCalendarDialogState extends State<TimelineCalendarDialog> {
   @override
   void initState() {
     super.initState();
-    _focusedDay = widget.initialDate;
-    _selectedDay = widget.initialDate;
+    final firstDay = DateTime(1970);
+    final lastDay = DateTime(2100);
+    DateTime initial = widget.initialDate;
+    if (initial.isBefore(firstDay)) {
+      initial = firstDay;
+    } else if (initial.isAfter(lastDay)) {
+      initial = lastDay;
+    }
+    _focusedDay = initial;
+    _selectedDay = initial;
   }
 
   bool _isCompleted(DateTime day) {
@@ -76,8 +83,8 @@ class _TimelineCalendarDialogState extends State<TimelineCalendarDialog> {
             ),
             const Divider(),
             TableCalendar(
-              firstDay: DateTime(2020),
-              lastDay: DateTime.now(),
+              firstDay: DateTime(1970),
+              lastDay: DateTime(2100),
               focusedDay: _focusedDay,
               selectedDayPredicate: (day) => isSameDay(_selectedDay, day),
               onDaySelected: (selectedDay, focusedDay) {
@@ -111,13 +118,15 @@ class _TimelineCalendarDialogState extends State<TimelineCalendarDialog> {
               calendarBuilders: CalendarBuilders(
                 markerBuilder: (context, day, events) {
                   if (_isCompleted(day)) {
-                    return Positioned(
-                      right: 1,
-                      top: 1,
-                      child: Icon(
-                        Icons.check_circle,
-                        size: 16,
-                        color: Colors.green.shade600,
+                    return Align(
+                      alignment: Alignment.topRight,
+                      child: Padding(
+                        padding: const EdgeInsets.only(top: 1, right: 1),
+                        child: Icon(
+                          Icons.check_circle,
+                          size: 16,
+                          color: Colors.green.shade600,
+                        ),
                       ),
                     );
                   }

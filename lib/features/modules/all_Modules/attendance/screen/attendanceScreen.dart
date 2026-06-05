@@ -135,8 +135,8 @@ class _AttendanceScreenState extends ConsumerState<AttendanceScreen> {
     if (siteId == null || type == null) return;
 
     final today = DateTime.now();
-    final start = today.subtract(const Duration(days: 15));
-    final dateKeys = List.generate(31, (i) {
+    final start = today.subtract(const Duration(days: 180));
+    final dateKeys = List.generate(365, (i) {
       final date = start.add(Duration(days: i));
       return ref.read(attendanceRepositoryProvider).formatDateKey(date);
     });
