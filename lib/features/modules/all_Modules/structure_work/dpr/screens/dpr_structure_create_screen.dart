@@ -171,8 +171,8 @@ class _DprStructureCreateScreenState
   Future<void> _fetchCompletedDates() async {
     try {
       final now = DateTime.now();
-      final startDate = now.subtract(const Duration(days: 15));
-      final endDate = now.add(const Duration(days: 15));
+      final startDate = now.subtract(const Duration(days: 180));
+      final endDate = now.add(const Duration(days: 180));
 
       final dprs = await ref.read(dprStructureRepositoryProvider).getDPRList(
             widget.siteId,

@@ -21,38 +21,58 @@ class TimelineDatePicker extends StatefulWidget {
 
 class _TimelineDatePickerState extends State<TimelineDatePicker> {
   late ScrollController _scrollController;
-  final List<DateTime> _dates = [];
   final double _itemWidth = 34.0; // Ultra compact
+  final int _itemCount = 20000; // Large enough for "infinite" feel
+  late final DateTime _baseDate;
+  late final int _centerIndex;
 
   @override
   void initState() {
     super.initState();
-    _generateDates();
+    _baseDate = DateTime(DateTime.now().year, DateTime.now().month, DateTime.now().day);
+    _centerIndex = _itemCount ~/ 2;
     _scrollController = ScrollController();
     
     // Auto-scroll to selected date after first frame
-    WidgetsBinding.instance.addPostFrameCallback((_) => _scrollToSelected());
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (mounted) {
+        _scrollToSelected(animate: false);
+      }
+    });
   }
 
-  void _generateDates() {
-    final today = DateTime.now();
-    // Show 31 days (15 back, 15 forward)
-    final start = today.subtract(const Duration(days: 15));
-    for (int i = 0; i <= 30; i++) {
-      _dates.add(start.add(Duration(days: i)));
-    }
+  DateTime _getDateForIndex(int index) {
+    return _baseDate.add(Duration(days: index - _centerIndex));
   }
 
-  void _scrollToSelected() {
-    final index = _dates.indexWhere((d) => _isSameDay(d, widget.selectedDate));
-    if (index != -1 && _scrollController.hasClients) {
+  int _getIndexForDate(DateTime date) {
+    final normalizedDate = DateTime(date.year, date.month, date.day);
+    return normalizedDate.difference(_baseDate).inDays + _centerIndex;
+  }
+
+  void _scrollToSelected({bool animate = true}) {
+    if (!mounted) return;
+    final index = _getIndexForDate(widget.selectedDate);
+    if (_scrollController.hasClients) {
       final screenWidth = MediaQuery.of(context).size.width;
-      final offset = (index * _itemWidth) - (screenWidth / 2) + (_itemWidth / 2);
-      _scrollController.animateTo(
-        offset.clamp(0, _scrollController.position.maxScrollExtent),
-        duration: const Duration(milliseconds: 500),
-        curve: Curves.easeOutCubic,
-      );
+      // List has a left padding of 10
+      final offset = (index * _itemWidth) + 10.0 - (screenWidth / 2) + (_itemWidth / 2);
+      
+      final maxScroll = _scrollController.position.hasContentDimensions
+          ? _scrollController.position.maxScrollExtent
+          : (_itemCount * _itemWidth) + 20.0 - screenWidth;
+          
+      final safeOffset = offset.clamp(0.0, maxScroll);
+      
+      if (animate) {
+        _scrollController.animateTo(
+          safeOffset,
+          duration: const Duration(milliseconds: 500),
+          curve: Curves.easeOutCubic,
+        );
+      } else {
+        _scrollController.jumpTo(safeOffset);
+      }
     }
   }
 
@@ -64,7 +84,11 @@ class _TimelineDatePickerState extends State<TimelineDatePicker> {
   void didUpdateWidget(TimelineDatePicker oldWidget) {
     super.didUpdateWidget(oldWidget);
     if (!_isSameDay(oldWidget.selectedDate, widget.selectedDate)) {
-      _scrollToSelected();
+      WidgetsBinding.instance.addPostFrameCallback((_) {
+        if (mounted) {
+          _scrollToSelected();
+        }
+      });
     }
   }
 
@@ -94,13 +118,17 @@ class _TimelineDatePickerState extends State<TimelineDatePicker> {
             child: ListView.builder(
               controller: _scrollController,
               scrollDirection: Axis.horizontal,
-              itemCount: _dates.length,
+              itemExtent: _itemWidth,
+              itemCount: _itemCount,
               padding: const EdgeInsets.symmetric(horizontal: 10),
               itemBuilder: (context, index) {
-                final date = _dates[index];
+                final date = _getDateForIndex(index);
                 final isSelected = _isSameDay(date, widget.selectedDate);
                 final isToday = _isSameDay(date, DateTime.now());
                 final isCompleted = widget.completedDates.any((d) => _isSameDay(d, date));
+                
+                final dayName = DateFormat('E').format(date);
+                final shortDay = dayName.length >= 2 ? dayName.substring(0, 2) : dayName;
 
                 return GestureDetector(
                   onTap: () => widget.onDateSelected(date),
@@ -123,7 +151,7 @@ class _TimelineDatePickerState extends State<TimelineDatePicker> {
                           mainAxisAlignment: MainAxisAlignment.center,
                           children: [
                             Text(
-                              DateFormat('E').format(date).substring(0, 2).toUpperCase(),
+                              shortDay.toUpperCase(),
                               style: TextStyle(
                                 fontSize: 7,
                                 fontWeight: FontWeight.w700,

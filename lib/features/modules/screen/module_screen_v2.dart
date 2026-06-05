@@ -4,12 +4,17 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import 'package:showcaseview/showcaseview.dart';
+import 'package:untitled2/core/screens/theme_switcher.dart';
+import 'package:untitled2/features/noti_system/updates/presentation/navigation/updates_routes.dart';
+import 'package:untitled2/features/noti_system/updates/application/providers/notification_providers.dart';
+
 import 'package:untitled2/core/router/access_control_provider.dart';
 import 'package:untitled2/core/router/routes.dart';
 import 'package:untitled2/core/utlis/widgets/shimmer.dart';
 import 'package:untitled2/core/utlis/widgets/sidebar.dart';
 import 'package:untitled2/features/language/service/lang_providers.dart';
 import 'package:untitled2/features/language/service/translator.dart';
+// ignore: unused_import // reserved for locale-switch rebuild
 import 'package:untitled2/features/language/service/providers.dart';
 import 'package:untitled2/features/modules/all_Modules/site_Details/providers/siteProvider.dart';
 import 'package:untitled2/features/modules/all_Modules/site_Details/providers/site_current_provider.dart';
@@ -20,6 +25,7 @@ import 'package:untitled2/features/tour/domain/tour_controller.dart';
 import 'package:untitled2/features/tour/domain/tour_events.dart';
 import 'package:untitled2/typeProvider/work_type.dart';
 import 'package:untitled2/typeProvider/type_provider.dart';
+// ignore: unused_import // reserved for placeholder routes
 import 'package:untitled2/core/router/placeholders.dart';
 import 'package:untitled2/features/tour/domain/tour_presistent.dart';
 import 'package:untitled2/features/tour/domain/tour_registery.dart';
@@ -28,11 +34,31 @@ import 'widgets/access_overlay.dart';
 import 'module_preferences.dart';
 import 'module_dashboard_service.dart';
 import 'package:untitled2/features/modules/screen/workflow/domain/workflow_controller.dart';
+// ignore: unused_import // reserved for workflow state types
 import 'package:untitled2/features/modules/screen/workflow/domain/workflow_state.dart';
 import 'package:untitled2/features/modules/screen/workflow/registry/workflow_registry.dart';
 import 'package:untitled2/features/profile_page/provider/userProvider.dart';
 import 'package:untitled2/features/modules/all_Modules/dpr/offline/mech/repo/dpr_draft_repo.dart';
 import 'package:untitled2/features/modules/all_Modules/dpr/dpr_insu/offline/repo/insu_dpr_draft_repo.dart';
+
+extension WorkTypeExtension on WorkType {
+  String get displayNameShort {
+    switch (this) {
+      case WorkType.mechanical:
+        return 'Mechanical';
+      case WorkType.insulation:
+        return 'Insulation';
+      case WorkType.structure:
+        return 'Structure';
+      case WorkType.civil:
+        return 'Civil';
+      case WorkType.roofing:
+        return 'Roofing';
+      case WorkType.fabrication:
+        return 'Fabrication';
+    }
+  }
+}
 
 class ModuleItem {
   final String labelKey;
@@ -66,8 +92,6 @@ class _ModuleScreenV2State extends ConsumerState<ModuleScreenV2>
   final Map<String, bool> _pressedMap = {};
 
   bool _showQuickSettings = false;
-  bool _dummyToggle1 = true;
-  bool _dummyToggle2 = false;
 
   @override
   void initState() {
@@ -115,6 +139,7 @@ class _ModuleScreenV2State extends ConsumerState<ModuleScreenV2>
   bool _tourChecked = false;
   bool _tourStartPending = false;
   TourCheckpoint? _checkpoint;
+  // ignore: unused_field
   BuildContext? _showcaseContext;
 
   // NEW — module card attach/detach
@@ -122,6 +147,14 @@ class _ModuleScreenV2State extends ConsumerState<ModuleScreenV2>
   bool _moduleCardVisible = true;
   bool _multipleEntryMode = false;
   final ScrollController _scrollController = ScrollController();
+  // ignore: unused_field
+  DateTime _selectedDate = DateTime(
+    DateTime.now().year,
+    DateTime.now().month,
+    DateTime.now().day,
+  );
+  // ignore: unused_field
+  Set<DateTime> _completedDates = {};
 
   // NEW — toast system
   String _toastMessage = '';
@@ -237,7 +270,7 @@ class _ModuleScreenV2State extends ConsumerState<ModuleScreenV2>
     await Future.delayed(const Duration(milliseconds: 90));
 
     final sc = ShowCaseWidget.of(showcaseContext);
-    if (sc == null || !mounted) {
+    if (!mounted) {
       _tourStartPending = false;
       return;
     }
@@ -340,7 +373,7 @@ class _ModuleScreenV2State extends ConsumerState<ModuleScreenV2>
           labelKey: 'Structure Erection DPR',
           icon: Icons.construction_rounded,
           iconColor: Colors.indigo,
-          routeName: Routes.erectionDpr);
+          routeName: "/site-list/dpr");
     } else if (type == 'civil_work' || type == WorkType.civil.apiValue) {
       return ModuleItem(
           labelKey: 'Civil DPR',
@@ -428,7 +461,7 @@ class _ModuleScreenV2State extends ConsumerState<ModuleScreenV2>
           labelKey: 'Structure Erection Setup',
           icon: Icons.architecture_rounded,
           iconColor: Colors.blueAccent,
-          routeName: Routes.erectionSetup);
+          routeName: "/site-list/structure-dpr-setup");
     } else if (type == 'civil_work' || type == WorkType.civil.apiValue) {
       return ModuleItem(
           labelKey: 'Civil DPR Setup',
@@ -622,6 +655,7 @@ class _ModuleScreenV2State extends ConsumerState<ModuleScreenV2>
       ref.read(selectedTeamIdProvider.notifier).state = "";
 
       final notifier = ref.read(teamProvider.notifier);
+      // ignore: invalid_use_of_protected_member, invalid_use_of_visible_for_testing_member
       notifier.state = notifier.state.copyWith(
         teams: [],
         hasData: false,
@@ -717,15 +751,6 @@ class _ModuleScreenV2State extends ConsumerState<ModuleScreenV2>
       ? cs.outline.withOpacity(0.35)
       : cs.outlineVariant.withOpacity(0.5);
 
-  List<BoxShadow> _cardShadow(bool isDark) => isDark
-      ? []
-      : [
-          BoxShadow(
-              color: Colors.black.withOpacity(0.06),
-              blurRadius: 16,
-              offset: const Offset(0, 4))
-        ];
-
   List<BoxShadow> _dockShadow() => [
         BoxShadow(
             color: Colors.black.withOpacity(0.13),
@@ -789,17 +814,16 @@ class _ModuleScreenV2State extends ConsumerState<ModuleScreenV2>
   }
 
   Widget _buildScrollBody(Translator t, ColorScheme cs, bool isDark) {
-    final wf = ref.watch(workflowControllerProvider);
+    ref.watch(workflowControllerProvider);
     return SingleChildScrollView(
       controller: _scrollController,
       physics: const AlwaysScrollableScrollPhysics(),
       child: Column(
         children: [
-          if (wf.isActive) _buildWorkflowBanner(wf, cs, isDark),
           _buildContextualHeader(t),
-          const SizedBox(height: 12),
+          const SizedBox(height: 24),
           _buildDropdownRow(),
-          const SizedBox(height: 10),
+          const SizedBox(height: 20),
           // CONDITIONAL: inline module card (detached state)
           AnimatedSize(
             duration: const Duration(milliseconds: 400),
@@ -808,7 +832,7 @@ class _ModuleScreenV2State extends ConsumerState<ModuleScreenV2>
                 ? const SizedBox.shrink()
                 : _buildInlineModuleCard(t, cs, isDark),
           ),
-          const SizedBox(height: 10),
+          const SizedBox(height: 16),
           if (_currentIndex == 0) ...[
             _buildDailyStatsSection(cs, isDark),
             const SizedBox(height: 10),
@@ -854,75 +878,6 @@ class _ModuleScreenV2State extends ConsumerState<ModuleScreenV2>
     );
   }
 
-  Widget _buildWorkflowBanner(WorkflowState wf, ColorScheme cs, bool isDark) {
-    return Container(
-      width: double.infinity,
-      margin: const EdgeInsets.fromLTRB(20, 16, 20, 4),
-      padding: const EdgeInsets.all(16),
-      decoration: BoxDecoration(
-        color: cs.primary.withOpacity(0.1),
-        borderRadius: BorderRadius.circular(20),
-        border: Border.all(color: cs.primary.withOpacity(0.2)),
-      ),
-      child: Column(
-        children: [
-          Row(
-            children: [
-              Container(
-                padding: const EdgeInsets.all(8),
-                decoration: BoxDecoration(
-                  color: cs.primary.withOpacity(0.1),
-                  shape: BoxShape.circle,
-                ),
-                child: Icon(Icons.auto_awesome_rounded,
-                    size: 18, color: cs.primary),
-              ),
-              const SizedBox(width: 12),
-              Expanded(
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Text(
-                      "Workflow in Progress",
-                      style: TextStyle(
-                        fontSize: 14,
-                        fontWeight: FontWeight.w800,
-                        color: cs.onSurface,
-                      ),
-                    ),
-                    Text(
-                      wf.stepLabel,
-                      style: TextStyle(
-                        fontSize: 11,
-                        color: cs.onSurfaceVariant,
-                      ),
-                    ),
-                  ],
-                ),
-              ),
-              IconButton(
-                icon: const Icon(Icons.close_rounded, size: 20),
-                onPressed: () => ref
-                    .read(workflowControllerProvider.notifier)
-                    .cancelWorkflow(context),
-              ),
-            ],
-          ),
-          const SizedBox(height: 12),
-          ClipRRect(
-            borderRadius: BorderRadius.circular(4),
-            child: LinearProgressIndicator(
-              value: wf.progressFraction,
-              backgroundColor: cs.primary.withOpacity(0.1),
-              valueColor: AlwaysStoppedAnimation<Color>(cs.primary),
-              minHeight: 6,
-            ),
-          ),
-        ],
-      ),
-    );
-  }
-
   Widget _buildWorkflowFab(ColorScheme cs, bool isDark) {
     return Positioned(
       bottom: 100 + MediaQuery.of(context).padding.bottom,
@@ -964,9 +919,9 @@ class _ModuleScreenV2State extends ConsumerState<ModuleScreenV2>
     ref.watch(typeProvider);
     ref.watch(siteDropdownValueProvider);
     ref.watch(teamDropdownValueProvider);
-    final wf = ref.watch(workflowControllerProvider);
+    ref.watch(workflowControllerProvider);
 
-    final siteState = ref.watch(siteProvider);
+    ref.watch(siteProvider);
     final homeModuleAsync = ref.watch(languageModuleProvider('home'));
     return homeModuleAsync.when(
       loading: () => _buildLoadingState(),
@@ -1031,8 +986,7 @@ class _ModuleScreenV2State extends ConsumerState<ModuleScreenV2>
                       ),
 
                     // Layer 7: Workflow FAB
-                    if (_currentIndex == 0 && !wf.isActive)
-                      _buildWorkflowFab(cs, isDark),
+                    if (_currentIndex == 0) _buildWorkflowFab(cs, isDark),
                   ],
                 ),
               );
@@ -1046,93 +1000,18 @@ class _ModuleScreenV2State extends ConsumerState<ModuleScreenV2>
   // ── Part 2: Contextual Header ──────────────────────────────────────────────
   Widget _buildContextualHeader(Translator t) {
     final cs = Theme.of(context).colorScheme;
-    final type = ref.watch(typeProvider);
     final user = ref.watch(currentUserProvider);
-
-    // 1. Personalized Greeting
-    final hour = DateTime.now().hour;
-    String greeting = "Good Morning";
-    if (hour >= 12 && hour < 17)
-      greeting = "Good Afternoon";
-    else if (hour >= 17) greeting = "Good Evening";
-
-    final userName = (user?.fullName ?? "Guest").split(' ').first;
-
-    // 2. Work Stream Info
-    final workType = WorkType.fromApiValue(type);
-    final typeName = workType?.displayName ?? "Work";
-
-    final now = DateTime.now();
-    final days = ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun'];
-    final months = [
-      'Jan',
-      'Feb',
-      'Mar',
-      'Apr',
-      'May',
-      'Jun',
-      'Jul',
-      'Aug',
-      'Sep',
-      'Oct',
-      'Nov',
-      'Dec'
-    ];
-    final dateStr =
-        "${days[now.weekday - 1]}, ${now.day} ${months[now.month - 1]}";
+    final unreadCount = ref.watch(unreadCountProvider);
 
     return Padding(
       padding: const EdgeInsets.fromLTRB(20, 16, 20, 0),
       child: Row(
         children: [
-          Builder(builder: (innerContext) {
-            return GestureDetector(
-              onTap: () => Scaffold.of(innerContext).openDrawer(),
-              child: Container(
-                width: 44,
-                height: 44,
-                decoration: BoxDecoration(
-                  color: cs.surfaceContainerLow,
-                  borderRadius: BorderRadius.circular(12),
-                  border: Border.all(
-                      color: cs.outlineVariant.withOpacity(0.4), width: 0.8),
-                ),
-                child: Icon(Icons.menu_rounded,
-                    size: 22, color: cs.onSurfaceVariant),
-              ),
-            );
-          }),
-          const SizedBox(width: 14),
-          Expanded(
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Text("$greeting, $userName",
-                    style: TextStyle(
-                        fontSize: 19,
-                        fontWeight: FontWeight.w800,
-                        color: cs.onSurface,
-                        height: 1.1)),
-                const SizedBox(height: 1),
-                Text("$typeName Hub",
-                    style: TextStyle(
-                        fontSize: 11,
-                        fontWeight: FontWeight.w700,
-                        letterSpacing: 0.5,
-                        color: cs.primary)),
-                Text(dateStr,
-                    style: TextStyle(
-                        fontSize: 10,
-                        fontWeight: FontWeight.w400,
-                        color: cs.onSurfaceVariant)),
-              ],
-            ),
-          ),
           GestureDetector(
             onTap: () => context.push('/profile'),
             child: Container(
-              width: 36,
-              height: 36,
+              width: 40,
+              height: 40,
               decoration: BoxDecoration(
                 shape: BoxShape.circle,
                 color: cs.surfaceContainerLow,
@@ -1147,27 +1026,90 @@ class _ModuleScreenV2State extends ConsumerState<ModuleScreenV2>
                         fit: BoxFit.cover,
                         errorBuilder: (context, error, stackTrace) => Icon(
                             Icons.person_rounded,
-                            size: 18,
+                            size: 20,
                             color: cs.primary),
                       )
-                    : Icon(Icons.person_rounded, size: 18, color: cs.primary),
+                    : Icon(Icons.person_rounded, size: 20, color: cs.primary),
               ),
             ),
           ),
-          const SizedBox(width: 8),
+          const SizedBox(width: 12),
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                Builder(builder: (context) {
+                  final hour = DateTime.now().hour;
+                  final String greeting;
+                  if (hour < 12) {
+                    greeting = "Good Morning";
+                  } else if (hour < 17) {
+                    greeting = "Good Afternoon";
+                  } else {
+                    greeting = "Good Evening";
+                  }
+                  return Text(
+                    greeting.toUpperCase(),
+                    style: TextStyle(
+                      fontSize: 14,
+                      fontWeight: FontWeight.w900,
+                      letterSpacing: 1.2,
+                      color: cs.primary,
+                    ),
+                  );
+                }),
+                const SizedBox(height: 2),
+                FittedBox(
+                  fit: BoxFit.scaleDown,
+                  alignment: Alignment.centerLeft,
+                  child: Text(
+                    user?.fullName?.toUpperCase() ?? 'GUEST',
+                    style: TextStyle(
+                      fontSize: 16,
+                      fontWeight: FontWeight.w900,
+                      color: cs.onSurface,
+                      letterSpacing: -0.2,
+                    ),
+                  ),
+                ),
+              ],
+            ),
+          ),
+          const SizedBox(width: 12),
+          const BeautifulThemeSwitcher(compact: true),
+          const SizedBox(width: 12),
           GestureDetector(
-            onTap: () => context.push(Routes.settings),
+            onTap: () => context.push(UpdatesRoutes.list),
             child: Container(
-              width: 44,
-              height: 44,
+              width: 40,
+              height: 40,
               decoration: BoxDecoration(
                 color: cs.surfaceContainerLow,
                 borderRadius: BorderRadius.circular(12),
                 border: Border.all(
                     color: cs.outlineVariant.withOpacity(0.4), width: 0.8),
               ),
-              child: Icon(Icons.settings_suggest_rounded,
-                  size: 22, color: cs.onSurfaceVariant),
+              child: Stack(
+                alignment: Alignment.center,
+                children: [
+                  Icon(Icons.notifications_rounded,
+                      size: 22, color: cs.onSurfaceVariant),
+                  if (unreadCount > 0)
+                    Positioned(
+                      top: 8,
+                      right: 8,
+                      child: Container(
+                        width: 8,
+                        height: 8,
+                        decoration: const BoxDecoration(
+                          color: Colors.redAccent,
+                          shape: BoxShape.circle,
+                        ),
+                      ),
+                    ),
+                ],
+              ),
             ),
           ),
         ],
@@ -1177,60 +1119,23 @@ class _ModuleScreenV2State extends ConsumerState<ModuleScreenV2>
 
   // ── Part 3: Dropdowns ──────────────────────────────────────────────────────
   Widget _buildDropdownRow() {
-    return LayoutBuilder(
-      builder: (context, constraints) {
-        final itemWidth = (constraints.maxWidth - 32 - 12) / 2;
-        return Padding(
-          padding: const EdgeInsets.symmetric(horizontal: 16),
-          child: Wrap(
-            spacing: 12,
-            runSpacing: 10,
-            children: [
-              SizedBox(
-                width: itemWidth,
-                child: _buildCustomDropdown(
-                  label: "TYPE",
-                  icon: Icons.category_rounded,
-                ),
-              ),
-              SizedBox(
-                width: itemWidth,
-                child: _buildCustomDropdown(
-                  label: "MODE",
-                  icon: Icons.layers_rounded,
-                ),
-              ),
-              SizedBox(
-                width: itemWidth,
-                child: _buildCustomDropdown(
-                  label: "SITE",
-                  icon: Icons.location_city_rounded,
-                ),
-              ),
-              SizedBox(
-                width: itemWidth,
-                child: _buildCustomDropdown(
-                  label: "TEAM",
-                  icon: Icons.groups_rounded,
-                ),
-              ),
-            ],
-          ),
-        );
-      },
+    return Padding(
+      padding: const EdgeInsets.symmetric(horizontal: 16),
+      child: Row(
+        children: [
+          Expanded(child: _buildCustomDropdown(label: "TYPE")),
+          const SizedBox(width: 8),
+          Expanded(child: _buildCustomDropdown(label: "MODE")),
+          const SizedBox(width: 8),
+          Expanded(child: _buildCustomDropdown(label: "SITE")),
+          const SizedBox(width: 8),
+          Expanded(child: _buildCustomDropdown(label: "TEAM")),
+        ],
+      ),
     );
   }
 
-  TextStyle _dropdownTextStyle(ColorScheme cs) {
-    return TextStyle(
-      fontSize: 12.5,
-      fontWeight: FontWeight.w700,
-      color: cs.onSurface,
-      overflow: TextOverflow.ellipsis,
-    );
-  }
-
-  Widget _buildCustomDropdown({required String label, required IconData icon}) {
+  Widget _buildCustomDropdown({required String label}) {
     final cs = Theme.of(context).colorScheme;
 
     // Data for Site/Team
@@ -1261,19 +1166,19 @@ class _ModuleScreenV2State extends ConsumerState<ModuleScreenV2>
       dropdown = DropdownButton<SiteModel?>(
         value: selectedSite,
         isExpanded: true,
-        icon: Icon(Icons.keyboard_arrow_down_rounded,
-            size: 20, color: cs.onSurfaceVariant),
-        style: _dropdownTextStyle(cs),
-        hint: Text("Select site", style: _dropdownTextStyle(cs)),
+        isDense: true,
+        icon: Icon(Icons.arrow_drop_down_rounded, size: 16, color: cs.primary),
+        hint: const Text("Site",
+            style: TextStyle(fontSize: 8.5, fontWeight: FontWeight.w600)),
         items: [
-          DropdownMenuItem<SiteModel?>(
+          const DropdownMenuItem<SiteModel?>(
             value: null,
-            child: Text('No site selected', style: _dropdownTextStyle(cs)),
+            child: Text('None', style: TextStyle(fontSize: 8.5)),
           ),
           ...allSites.map((s) => DropdownMenuItem<SiteModel?>(
                 value: s,
                 child: Text(s.siteName,
-                    style: _dropdownTextStyle(cs),
+                    style: const TextStyle(fontSize: 8.5),
                     overflow: TextOverflow.ellipsis),
               )),
         ],
@@ -1283,19 +1188,19 @@ class _ModuleScreenV2State extends ConsumerState<ModuleScreenV2>
       dropdown = DropdownButton<TeamModel?>(
         value: selectedTeam,
         isExpanded: true,
-        icon: Icon(Icons.keyboard_arrow_down_rounded,
-            size: 20, color: cs.onSurfaceVariant),
-        style: _dropdownTextStyle(cs),
-        hint: Text("Select team", style: _dropdownTextStyle(cs)),
+        isDense: true,
+        icon: Icon(Icons.arrow_drop_down_rounded, size: 16, color: cs.primary),
+        hint: const Text("Team",
+            style: TextStyle(fontSize: 8.5, fontWeight: FontWeight.w600)),
         items: [
-          DropdownMenuItem<TeamModel?>(
+          const DropdownMenuItem<TeamModel?>(
             value: null,
-            child: Text('No team selected', style: _dropdownTextStyle(cs)),
+            child: Text('None', style: TextStyle(fontSize: 8.5)),
           ),
-          ...(teamState.teams ?? []).map((t) => DropdownMenuItem<TeamModel?>(
+          ...teamState.teams.map((t) => DropdownMenuItem<TeamModel?>(
                 value: t,
                 child: Text(t.teamName,
-                    style: _dropdownTextStyle(cs),
+                    style: const TextStyle(fontSize: 8.5),
                     overflow: TextOverflow.ellipsis),
               )),
         ],
@@ -1305,15 +1210,15 @@ class _ModuleScreenV2State extends ConsumerState<ModuleScreenV2>
       dropdown = DropdownButton<WorkType?>(
         value: currentWorkType,
         isExpanded: true,
-        icon: Icon(Icons.keyboard_arrow_down_rounded,
-            size: 20, color: cs.onSurfaceVariant),
-        style: _dropdownTextStyle(cs),
-        hint: Text("Select type", style: _dropdownTextStyle(cs)),
+        isDense: true,
+        icon: Icon(Icons.arrow_drop_down_rounded, size: 16, color: cs.primary),
+        hint: const Text("Type",
+            style: TextStyle(fontSize: 8.5, fontWeight: FontWeight.w600)),
         items: WorkType.values
             .map((wt) => DropdownMenuItem<WorkType?>(
                   value: wt,
-                  child: Text(wt.displayName,
-                      style: _dropdownTextStyle(cs),
+                  child: Text(wt.displayNameShort,
+                      style: const TextStyle(fontSize: 8.5),
                       overflow: TextOverflow.ellipsis),
                 ))
             .toList(),
@@ -1327,6 +1232,7 @@ class _ModuleScreenV2State extends ConsumerState<ModuleScreenV2>
             ref.read(selectedTeamProvider.notifier).clear();
             ref.read(selectedTeamIdProvider.notifier).state = "";
             final teamNotifier = ref.read(teamProvider.notifier);
+            // ignore: invalid_use_of_protected_member, invalid_use_of_visible_for_testing_member
             teamNotifier.state = teamNotifier.state.copyWith(
               teams: [],
               hasData: false,
@@ -1340,17 +1246,16 @@ class _ModuleScreenV2State extends ConsumerState<ModuleScreenV2>
       dropdown = DropdownButton<bool>(
         value: _multipleEntryMode,
         isExpanded: true,
-        icon: Icon(Icons.keyboard_arrow_down_rounded,
-            size: 20, color: cs.onSurfaceVariant),
-        style: _dropdownTextStyle(cs),
-        items: [
+        isDense: true,
+        icon: Icon(Icons.arrow_drop_down_rounded, size: 16, color: cs.primary),
+        items: const [
           DropdownMenuItem(
             value: false,
-            child: Text("Single entry", style: _dropdownTextStyle(cs)),
+            child: Text("Single", style: TextStyle(fontSize: 8.5)),
           ),
           DropdownMenuItem(
             value: true,
-            child: Text("Multi entry", style: _dropdownTextStyle(cs)),
+            child: Text("Multi", style: TextStyle(fontSize: 8.5)),
           ),
         ],
         onChanged: (val) {
@@ -1363,48 +1268,37 @@ class _ModuleScreenV2State extends ConsumerState<ModuleScreenV2>
     }
 
     return Container(
-      height: 64,
-      padding: const EdgeInsets.fromLTRB(10, 7, 8, 7),
+      height: 42,
       decoration: BoxDecoration(
         color: cs.surfaceContainerLow,
-        borderRadius: BorderRadius.circular(14),
+        borderRadius: BorderRadius.circular(10),
         border:
             Border.all(color: cs.outlineVariant.withOpacity(0.4), width: 0.8),
       ),
-      child: Row(
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        mainAxisAlignment: MainAxisAlignment.center,
         children: [
-          Container(
-            width: 34,
-            height: 34,
-            decoration: BoxDecoration(
-              color: cs.primary.withOpacity(0.09),
-              borderRadius: BorderRadius.circular(10),
+          Padding(
+            padding: const EdgeInsets.only(left: 6, top: 4),
+            child: Text(
+              label,
+              style: TextStyle(
+                fontSize: 7.5,
+                fontWeight: FontWeight.w800,
+                letterSpacing: 0.4,
+                color: cs.primary.withOpacity(0.8),
+              ),
             ),
-            child: Icon(icon, size: 18, color: cs.primary),
           ),
-          const SizedBox(width: 8),
           Expanded(
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Text(label,
-                    style: TextStyle(
-                        fontSize: 9,
-                        fontWeight: FontWeight.w900,
-                        letterSpacing: 0.4,
-                        color: cs.primary.withOpacity(0.82))),
-                const SizedBox(height: 1),
-                Expanded(
-                  child: DropdownButtonHideUnderline(
-                    child: ButtonTheme(
-                      alignedDropdown: false,
-                      child: dropdown,
-                    ),
-                  ),
-                ),
-              ],
+            child: Padding(
+              padding: const EdgeInsets.only(left: 6, right: 2, bottom: 2),
+              child: DropdownButtonHideUnderline(
+                child: dropdown,
+              ),
             ),
-          ),
+          )
         ],
       ),
     );
@@ -1589,103 +1483,94 @@ class _ModuleScreenV2State extends ConsumerState<ModuleScreenV2>
 
     final hasLowStock = s.inventory.lowStockItems > 0;
 
-    return LayoutBuilder(
-      builder: (context, constraints) {
-        final tileWidth = (constraints.maxWidth - 10) / 2;
-
-        return Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            // Eyebrow label
-            Row(children: [
-              Container(
-                width: 5,
-                height: 5,
-                decoration: const BoxDecoration(
-                    color: Colors.greenAccent, shape: BoxShape.circle),
-              ),
-              const SizedBox(width: 6),
-              Text(
-                "Today's Snapshot",
-                style: TextStyle(
-                  fontSize: 11,
-                  fontWeight: FontWeight.w800,
-                  letterSpacing: 0.4,
-                  color: cs.onSurfaceVariant,
-                ),
-              ),
-            ]),
-            const SizedBox(height: 10),
-
-            Wrap(
-              spacing: 10,
-              runSpacing: 10,
-              children: [
-                _buildStatTile(
-                  width: tileWidth,
-                  cs: cs,
-                  isDark: isDark,
-                  icon: Icons.how_to_reg_rounded,
-                  iconColor: Colors.green,
-                  label: 'Attendance',
-                  value: '${s.attendance.totalPresent}',
-                  sub: '${s.attendance.totalAbsent} absent',
-                  subColor: s.attendance.totalAbsent > 0
-                      ? Colors.orange
-                      : cs.onSurfaceVariant,
-                  time: fmtTime(s.attendance.lastEntry?.createdAt),
-                ),
-                _buildStatTile(
-                  width: tileWidth,
-                  cs: cs,
-                  isDark: isDark,
-                  icon: Icons.description_rounded,
-                  iconColor: Colors.indigo,
-                  label: 'DPR',
-                  value: s.dpr.lastEntry != null ? 'Filed' : 'None',
-                  sub: s.dpr.totalQty != null
-                      ? 'Qty ${s.dpr.totalQty}'
-                      : (s.dpr.remarks ?? '—'),
-                  subColor: cs.onSurfaceVariant,
-                  time: fmtTime(s.dpr.lastEntry?.createdAt),
-                ),
-                _buildStatTile(
-                  width: tileWidth,
-                  cs: cs,
-                  isDark: isDark,
-                  icon: Icons.receipt_long_rounded,
-                  iconColor: Colors.orange,
-                  label: 'Expenses',
-                  value: fmtAmount(s.expenses.totalAmount),
-                  sub: s.expenses.category ?? '—',
-                  subColor: cs.onSurfaceVariant,
-                  time: fmtTime(s.expenses.lastEntry?.createdAt),
-                ),
-                _buildStatTile(
-                  width: tileWidth,
-                  cs: cs,
-                  isDark: isDark,
-                  icon: Icons.inventory_2_rounded,
-                  iconColor: hasLowStock ? Colors.redAccent : Colors.teal,
-                  label: 'Inventory',
-                  value: '${s.inventory.totalItems}',
-                  sub: hasLowStock
-                      ? '${s.inventory.lowStockItems} low'
-                      : 'All stocked',
-                  subColor: hasLowStock ? Colors.redAccent : Colors.teal,
-                  time: null,
-                  highlight: hasLowStock,
-                ),
-              ],
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        // Eyebrow label
+        Row(children: [
+          Container(
+            width: 5,
+            height: 5,
+            decoration: const BoxDecoration(
+                color: Colors.greenAccent, shape: BoxShape.circle),
+          ),
+          const SizedBox(width: 6),
+          Text(
+            "Today's Work Update",
+            style: TextStyle(
+              fontSize: 10,
+              fontWeight: FontWeight.w700,
+              letterSpacing: 0.5,
+              color: cs.onSurfaceVariant,
             ),
-          ],
-        );
-      },
+          ),
+        ]),
+        const SizedBox(height: 8),
+
+        // 4 stat tiles — single row
+        IntrinsicHeight(
+          child: Row(crossAxisAlignment: CrossAxisAlignment.stretch, children: [
+            _buildStatTile(
+              cs: cs,
+              isDark: isDark,
+              icon: Icons.how_to_reg_rounded,
+              iconColor: Colors.green,
+              label: 'Attendance',
+              value: '${s.attendance.totalPresent}',
+              sub: '${s.attendance.totalAbsent} absent',
+              subColor: s.attendance.totalAbsent > 0
+                  ? Colors.orange
+                  : cs.onSurfaceVariant,
+              time: fmtTime(s.attendance.lastEntry?.createdAt),
+            ),
+            const SizedBox(width: 8),
+            _buildStatTile(
+              cs: cs,
+              isDark: isDark,
+              icon: Icons.description_rounded,
+              iconColor: Colors.indigo,
+              label: 'DPR',
+              value: s.dpr.lastEntry != null ? 'DPR Update' : 'None',
+              sub: s.dpr.totalQty != null
+                  ? 'Qty ${s.dpr.totalQty}'
+                  : (s.dpr.remarks ?? '—'),
+              subColor: cs.onSurfaceVariant,
+              time: fmtTime(s.dpr.lastEntry?.createdAt),
+            ),
+            const SizedBox(width: 8),
+            _buildStatTile(
+              cs: cs,
+              isDark: isDark,
+              icon: Icons.receipt_long_rounded,
+              iconColor: Colors.orange,
+              label: 'Expenses',
+              value: fmtAmount(s.expenses.totalAmount),
+              sub: s.expenses.category ?? '—',
+              subColor: cs.onSurfaceVariant,
+              time: fmtTime(s.expenses.lastEntry?.createdAt),
+            ),
+            const SizedBox(width: 8),
+            _buildStatTile(
+              cs: cs,
+              isDark: isDark,
+              icon: Icons.inventory_2_rounded,
+              iconColor: hasLowStock ? Colors.redAccent : Colors.teal,
+              label: 'Inventory',
+              value: '${s.inventory.totalItems}',
+              sub: hasLowStock
+                  ? '${s.inventory.lowStockItems} low'
+                  : 'All stocked',
+              subColor: hasLowStock ? Colors.redAccent : Colors.teal,
+              time: null,
+              highlight: hasLowStock,
+            ),
+          ]),
+        ),
+      ],
     );
   }
 
   Widget _buildStatTile({
-    required double width,
     required ColorScheme cs,
     required bool isDark,
     required IconData icon,
@@ -1697,11 +1582,9 @@ class _ModuleScreenV2State extends ConsumerState<ModuleScreenV2>
     String? time,
     bool highlight = false,
   }) {
-    return SizedBox(
-      width: width,
+    return Expanded(
       child: Container(
-        constraints: const BoxConstraints(minHeight: 96),
-        padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 11),
+        padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 10),
         decoration: BoxDecoration(
           color: isDark ? cs.surfaceContainerHigh : Colors.white,
           borderRadius: BorderRadius.circular(14),
@@ -1728,10 +1611,8 @@ class _ModuleScreenV2State extends ConsumerState<ModuleScreenV2>
             const SizedBox(height: 6),
             Text(
               value,
-              maxLines: 1,
-              overflow: TextOverflow.ellipsis,
               style: TextStyle(
-                fontSize: 17,
+                fontSize: 14,
                 fontWeight: FontWeight.w800,
                 color: cs.onSurface,
                 height: 1.0,
@@ -1740,24 +1621,21 @@ class _ModuleScreenV2State extends ConsumerState<ModuleScreenV2>
             const SizedBox(height: 2),
             Text(
               sub,
-              maxLines: 2,
+              maxLines: 1,
               overflow: TextOverflow.ellipsis,
               style: TextStyle(
-                fontSize: 11,
-                fontWeight: FontWeight.w600,
+                fontSize: 9,
+                fontWeight: FontWeight.w500,
                 color: subColor,
-                height: 1.15,
               ),
             ),
             if (time != null) ...[
               const SizedBox(height: 3),
               Text(
                 time,
-                maxLines: 1,
-                overflow: TextOverflow.ellipsis,
                 style: TextStyle(
-                  fontSize: 9.5,
-                  fontWeight: FontWeight.w500,
+                  fontSize: 8,
+                  fontWeight: FontWeight.w400,
                   color: cs.onSurfaceVariant.withOpacity(0.5),
                 ),
               ),
@@ -1765,10 +1643,8 @@ class _ModuleScreenV2State extends ConsumerState<ModuleScreenV2>
             const SizedBox(height: 4),
             Text(
               label,
-              maxLines: 1,
-              overflow: TextOverflow.ellipsis,
               style: TextStyle(
-                fontSize: 10.5,
+                fontSize: 9,
                 fontWeight: FontWeight.w700,
                 letterSpacing: 0.3,
                 color: cs.onSurfaceVariant.withOpacity(0.55),
@@ -2249,39 +2125,11 @@ class _ModuleScreenV2State extends ConsumerState<ModuleScreenV2>
             child: Column(
               mainAxisSize: MainAxisSize.min,
               children: [
-                _buildQuickSettingRow("Attach to Nav", _moduleCardAttached,
-                    (val) {
-                  if (val) {
-                    _attachModuleCard(t);
-                  } else {
-                    _detachModuleCard();
-                  }
-                }),
-                const Divider(height: 16, thickness: 0.5),
                 _buildQuickSettingRow("Multiple Entry Mode", _multipleEntryMode,
                     (val) {
                   setState(() => _multipleEntryMode = val);
                   ModulePreferences.setMultipleEntry(val);
                 }),
-                const Divider(height: 16, thickness: 0.5),
-                _buildQuickSettingRow("Compact Mode", _dummyToggle1,
-                    (val) => setState(() => _dummyToggle1 = val)),
-                const Divider(height: 16, thickness: 0.5),
-                _buildQuickSettingRow("Show Labels", _dummyToggle2,
-                    (val) => setState(() => _dummyToggle2 = val)),
-                const Divider(height: 16, thickness: 0.5),
-                ListTile(
-                  dense: true,
-                  contentPadding: EdgeInsets.zero,
-                  leading:
-                      Icon(Icons.logout_rounded, size: 18, color: cs.error),
-                  title: Text("Log Out",
-                      style: TextStyle(
-                          fontSize: 13,
-                          color: cs.error,
-                          fontWeight: FontWeight.w600)),
-                  onTap: () => context.go('/workCategory'),
-                ),
               ],
             ),
           ),
@@ -2309,16 +2157,6 @@ class _ModuleScreenV2State extends ConsumerState<ModuleScreenV2>
         ),
       ],
     );
-  }
-
-  Widget _navLine(double width) {
-    final cs = Theme.of(context).colorScheme;
-    return Container(
-        width: width,
-        height: 1.8,
-        decoration: BoxDecoration(
-            color: cs.onSurfaceVariant.withOpacity(0.7),
-            borderRadius: BorderRadius.circular(1)));
   }
 
   Widget _buildTabPills(BuildContext showcaseContext) {
