@@ -403,6 +403,7 @@ class _ModuleScreenV2State extends ConsumerState<ModuleScreenV2>
 
   List<ModuleItem> get _setupModules {
     final type = ref.watch(typeProvider);
+    final historyUploadModule = _getSatmaxHistoryUploadModule(type);
 
     final base = [
       ModuleItem(
@@ -435,10 +436,28 @@ class _ModuleScreenV2State extends ConsumerState<ModuleScreenV2>
     return [
       ...base,
       ...secondaryModules,
+      if (historyUploadModule != null) historyUploadModule,
       dprSetupModule,
       if (workAssignmentModule != null) workAssignmentModule,
       if (pmSetupModule != null) pmSetupModule,
     ];
+  }
+
+  bool get _isSatmaxUser {
+    final phone = ref.watch(currentUserProvider)?.phoneNumber;
+    return phone?.replaceAll(RegExp(r'\D'), '') == '9509852652';
+  }
+
+  ModuleItem? _getSatmaxHistoryUploadModule(String? type) {
+    if (!_isSatmaxUser) return null;
+    if (type == 'structure_work' || type == WorkType.structure.apiValue) {
+      return ModuleItem(
+          labelKey: 'History Upload',
+          icon: Icons.history_edu_rounded,
+          iconColor: const Color(0xFF7B3F00),
+          routeName: "/site-list/structure-history-upload");
+    }
+    return null;
   }
 
   ModuleItem _getDprSetupModule(String? type) {
@@ -1064,7 +1083,7 @@ class _ModuleScreenV2State extends ConsumerState<ModuleScreenV2>
                   fit: BoxFit.scaleDown,
                   alignment: Alignment.centerLeft,
                   child: Text(
-                    user?.fullName?.toUpperCase() ?? 'GUEST',
+                    user?.fullName.toUpperCase() ?? 'GUEST',
                     style: TextStyle(
                       fontSize: 16,
                       fontWeight: FontWeight.w900,

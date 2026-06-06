@@ -13,6 +13,7 @@ import 'package:untitled2/core/utlis/widgets/custom_appBar.dart';
 import 'package:untitled2/features/modules/all_Modules/dpr/screens/widgets/select_card.dart';
 import 'package:untitled2/features/modules/all_Modules/site_Details/providers/site_current_provider.dart';
 import 'package:untitled2/features/modules/all_Modules/team/provider/teamProvider.dart';
+import 'package:untitled2/features/profile_page/provider/userProvider.dart';
 import 'package:untitled2/typeProvider/type_provider.dart';
 import '../../../../../../core/utlis/widgets/date_picker.dart';
 import '../../providers/dpr.dart';
@@ -576,6 +577,8 @@ class _SheetDownloadPageState extends ConsumerState<SheetDownloadPage> {
   Widget build(BuildContext context) {
     final siteId = ref.watch(selectedSiteIdProvider);
     final type = ref.read(typeProvider)!;
+    final phone = ref.watch(currentUserProvider)?.phoneNumber;
+    final isSatmaxUser = phone?.replaceAll(RegExp(r'\D'), '') == '9509852652';
     final scheme = Theme.of(context).colorScheme;
     final textTheme = Theme.of(context).textTheme;
 
@@ -792,22 +795,38 @@ class _SheetDownloadPageState extends ConsumerState<SheetDownloadPage> {
                             ),
                             defaultFileName: "structure_summary",
                           ),
-                         
-                          sheetButton(
-                            label: "Detailed",
-                            icon: Icons.assignment_turned_in_rounded,
-                            sheetName: "Structure Detailed DPR With P&M",
-                            excelOnly: true,
-                            apiCall: (fromDate, toDate, format) =>
-                                DPRStructureRepository().downloadSheet(
-                              siteId,
-                              fromDate: fromDate,
-                              toDate: toDate,
-                              sheetType: 'detailed-with-pm',
-                              format: 'excel',
+                          if (isSatmaxUser)
+                            sheetButton(
+                              label: "Detailed DPR",
+                              icon: Icons.assignment_rounded,
+                              sheetName: "Structure Detailed DPR",
+                              excelOnly: true,
+                              apiCall: (fromDate, toDate, format) =>
+                                  DPRStructureRepository().downloadSheet(
+                                siteId,
+                                fromDate: fromDate,
+                                toDate: toDate,
+                                sheetType: 'detailed',
+                                format: 'excel',
+                              ),
+                              defaultFileName: "structure_detailed_dpr",
                             ),
-                            defaultFileName: "structure_detailed_with_pm",
-                          ),
+                          if (isSatmaxUser)
+                            sheetButton(
+                              label: "Detailed + P&M",
+                              icon: Icons.assignment_turned_in_rounded,
+                              sheetName: "Structure Detailed DPR With P&M",
+                              excelOnly: true,
+                              apiCall: (fromDate, toDate, format) =>
+                                  DPRStructureRepository().downloadSheet(
+                                siteId,
+                                fromDate: fromDate,
+                                toDate: toDate,
+                                sheetType: 'detailed-with-pm',
+                                format: 'excel',
+                              ),
+                              defaultFileName: "structure_detailed_with_pm",
+                            ),
                           SelectCard(
                             icon: const Icon(Icons.assignment_rounded),
                             label: "DPR List",
