@@ -327,9 +327,11 @@ class PebWorkAssignment {
 class PebMarkStatus {
   final Map<String, Set<String>> completedByKey;
   final Map<String, Set<String>> inProgressByKey;
+  final Map<String, Map<String, DateTime>> completedDateByKey;
 
   const PebMarkStatus({
     required this.completedByKey,
     required this.inProgressByKey,
+    this.completedDateByKey = const {},
   });
 }

@@ -7,6 +7,23 @@ String pebWorkImageFor(PebSetupItem item, PebExecutionType type) {
 
   final name = item.name.trim().toLowerCase();
   final asset = switch (name) {
+    'unloading' when type == PebExecutionType.erection =>
+      'e-images/unloading work.png',
+    'shifting' when type == PebExecutionType.erection =>
+      'e-images/shifting work.png',
+    'erection' when type == PebExecutionType.erection =>
+      'e-images/ERECTION.png',
+    'alignment' when type == PebExecutionType.erection =>
+      'e-images/ALIGNMENT.png',
+    'bolt tightening' when type == PebExecutionType.erection =>
+      'e-images/BOLT TIGHTENING.png',
+    'patch-up & finishing' ||
+    'patch up & finishing' ||
+    'patchup' ||
+    'touch up and finishing' when type == PebExecutionType.erection =>
+      'e-images/TOUCH UP AND FINISHING.png',
+    'qc clearance' when type == PebExecutionType.erection =>
+      'e-images/QC CLEARANCE.png',
     'unloading' => 'assets/images/Unloading.png',
     'shifting' => 'assets/images/Shfiting.png',
     'cutting' => 'assets/images/Cutting.png',

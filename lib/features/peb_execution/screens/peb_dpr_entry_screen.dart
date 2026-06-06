@@ -68,11 +68,7 @@ class _PebDprEntryScreenState extends State<PebDprEntryScreen> {
         _service.getBoqs(widget.siteId),
         _service.getAssignments(widget.siteId, widget.executionType,
             teamId: firstTeam, status: 'all'),
-        _service.getDprMarkStatus(
-          widget.siteId,
-          widget.executionType,
-          date: _dateText,
-        ),
+        _service.getDprMarkStatus(widget.siteId, widget.executionType),
       ]);
 
       setState(() {
@@ -273,18 +269,36 @@ class _PebDprEntryScreenState extends State<PebDprEntryScreen> {
   }
 
   Set<String> _completedForWork(_VisibleWork work) {
-    if (work.assignmentId.isNotEmpty) {
-      return _status.completedByKey[work.key] ?? <String>{};
-    }
-    return _status.completedByKey[work.setupItem.id] ?? <String>{};
+    return {
+      ...?_status.completedByKey[work.setupItem.id],
+      if (work.assignmentId.isNotEmpty) ...?_status.completedByKey[work.key],
+    };
   }
 
   Set<String> _inProgressForWork(_VisibleWork work) {
     final completed = _completedForWork(work);
-    final raw = work.assignmentId.isNotEmpty
-        ? _status.inProgressByKey[work.key] ?? <String>{}
-        : _status.inProgressByKey[work.setupItem.id] ?? <String>{};
+    final raw = {
+      ...?_status.inProgressByKey[work.setupItem.id],
+      if (work.assignmentId.isNotEmpty) ...?_status.inProgressByKey[work.key],
+    };
     return raw.where((mark) => !completed.contains(mark)).toSet();
+  }
+
+  DateTime? _completedDateForWork(_VisibleWork work) {
+    DateTime? latest;
+    for (final mark in work.assignedMarks) {
+      final dates = <DateTime?>[
+        _status.completedDateByKey[work.setupItem.id]?[mark],
+        if (work.assignmentId.isNotEmpty)
+          _status.completedDateByKey[work.key]?[mark],
+      ];
+      for (final date in dates) {
+        if (date != null && (latest == null || date.isAfter(latest))) {
+          latest = date;
+        }
+      }
+    }
+    return latest;
   }
 
   _WorkCounts _counts(_VisibleWork work) {
@@ -362,6 +376,29 @@ class _PebDprEntryScreenState extends State<PebDprEntryScreen> {
       ),
     );
     if (selected == null || selected.isEmpty) return;
+    if (completedAction) {
+      final confirmed = await showDialog<bool>(
+        context: context,
+        builder: (context) => AlertDialog(
+          title: const Text('Complete selected work?'),
+          content: Text(
+            'Mark ${selected.length} member${selected.length == 1 ? '' : 's'} '
+            'as completed on ${DateFormat('dd MMM yyyy').format(_selectedDate)}?',
+          ),
+          actions: [
+            TextButton(
+              onPressed: () => context.pop(false),
+              child: const Text('Cancel'),
+            ),
+            FilledButton(
+              onPressed: () => context.pop(true),
+              child: const Text('Complete'),
+            ),
+          ],
+        ),
+      );
+      if (confirmed != true) return;
+    }
     await _submitProgress(work, selected, completedAction ? 100 : 50);
   }
 
@@ -531,6 +568,7 @@ class _PebDprEntryScreenState extends State<PebDprEntryScreen> {
     final start = work.assignmentDate == null
         ? '-'
         : DateFormat('dd MMM yyyy').format(work.assignmentDate!);
+    final completedDate = _completedDateForWork(work);
     final hasCustomImage = pebWorkImageIsCustom(work.setupItem);
     return Opacity(
       opacity: isActionable || isCompleted ? 1 : 0.38,
@@ -596,6 +634,14 @@ class _PebDprEntryScreenState extends State<PebDprEntryScreen> {
                         ),
                         Text('Assign on $start'),
                         Text('TCD is $deadline'),
+                        if (isCompleted && completedDate != null)
+                          Text(
+                            'Completed on ${DateFormat('dd MMM yyyy').format(completedDate)}',
+                            style: TextStyle(
+                              color: Colors.green.shade800,
+                              fontWeight: FontWeight.w700,
+                            ),
+                          ),
                         if (isCompleted)
                           Padding(
                             padding: const EdgeInsets.only(top: 6),
