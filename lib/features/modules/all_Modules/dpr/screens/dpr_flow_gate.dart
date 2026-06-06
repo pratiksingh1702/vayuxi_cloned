@@ -5,6 +5,8 @@ import 'package:untitled2/features/modules/all_Modules/dpr/screens/widgets/mecha
 import 'package:untitled2/features/modules/all_Modules/dpr/dpr_insu/screens/step_insulation_screen.dart';
 import 'package:untitled2/features/modules/all_Modules/site_Details/repository/siteModel.dart';
 import 'package:untitled2/features/modules/all_Modules/structure_work/dpr/screens/dpr_structure_flow_gate.dart';
+import 'package:untitled2/features/peb_execution/models/peb_execution_models.dart';
+import 'package:untitled2/features/peb_execution/screens/peb_dpr_entry_screen.dart';
 import 'package:untitled2/typeProvider/type_provider.dart';
 
 class DprFlowGate extends ConsumerWidget {
@@ -49,8 +51,25 @@ class DprFlowGate extends ConsumerWidget {
       );
     }
 
-    return const Scaffold(
-      body: SizedBox.shrink(),
+    if (type == 'erection_work') {
+      return PebDprEntryScreen(
+        siteId: site.id,
+        siteName: site.siteName,
+        executionType: PebExecutionType.erection,
+      );
+    }
+
+    if (type == 'fabrication_work') {
+      return PebDprEntryScreen(
+        siteId: site.id,
+        siteName: site.siteName,
+        executionType: PebExecutionType.fabrication,
+      );
+    }
+
+    return Scaffold(
+      appBar: AppBar(title: const Text('DPR Entry')),
+      body: const Center(child: Text('DPR Entry is not available.')),
     );
   }
 }

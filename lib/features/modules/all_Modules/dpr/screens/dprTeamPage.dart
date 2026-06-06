@@ -2,8 +2,9 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import 'package:liquid_pull_to_refresh/liquid_pull_to_refresh.dart';
-import 'package:untitled2/core/utlis/widgets/custom_appBar.dart';
 import 'package:untitled2/features/modules/all_Modules/dpr/screens/widgets/mechanichal_stepper.dart';
+import 'package:untitled2/features/peb_execution/models/peb_execution_models.dart';
+import 'package:untitled2/features/peb_execution/screens/peb_dpr_entry_screen.dart';
 import '../../../../../core/utlis/widgets/buttons.dart';
 import '../../../../../core/utlis/widgets/custom.dart';
 import '../../../../../core/utlis/widgets/image_clipped.dart';
@@ -12,10 +13,7 @@ import '../../../../../typeProvider/type_provider.dart';
 import '../../site_Details/repository/siteModel.dart';
 
 import '../../team/provider/teamProvider.dart';
-import '../../team/screens/teamsList.dart';
 import '../dpr_insu/screens/step_insulation_screen.dart';
-import '../providers/dpr.dart';
-import 'add_description.dart';
 
 class DprTeamScreen extends ConsumerStatefulWidget {
   final SiteModel site;
@@ -60,7 +58,6 @@ class _DprTeamScreenState extends ConsumerState<DprTeamScreen> {
     if (teamState.isLoading) return;
     if (teamState.teams.isNotEmpty) return;
 
-    _isNavigatingAway = true;
     final type = ref.read(typeProvider);
 
     // Clear team selection when bypassing team screen.
@@ -68,6 +65,7 @@ class _DprTeamScreenState extends ConsumerState<DprTeamScreen> {
     ref.read(selectedTeamProvider.notifier).clear();
 
     if (type == "mechanical_work") {
+      _isNavigatingAway = true;
       Navigator.pushReplacement(
         context,
         MaterialPageRoute(
@@ -79,6 +77,7 @@ class _DprTeamScreenState extends ConsumerState<DprTeamScreen> {
         ),
       );
     } else if (type == "insulation_work") {
+      _isNavigatingAway = true;
       Navigator.pushReplacement(
         context,
         MaterialPageRoute(
@@ -90,6 +89,30 @@ class _DprTeamScreenState extends ConsumerState<DprTeamScreen> {
           ),
         ),
       );
+    } else if (type == 'erection_work') {
+      _isNavigatingAway = true;
+      Navigator.pushReplacement(
+        context,
+        MaterialPageRoute(
+          builder: (_) => PebDprEntryScreen(
+            siteId: widget.site.id,
+            siteName: widget.site.siteName,
+            executionType: PebExecutionType.erection,
+          ),
+        ),
+      );
+    } else if (type == 'fabrication_work') {
+      _isNavigatingAway = true;
+      Navigator.pushReplacement(
+        context,
+        MaterialPageRoute(
+          builder: (_) => PebDprEntryScreen(
+            siteId: widget.site.id,
+            siteName: widget.site.siteName,
+            executionType: PebExecutionType.fabrication,
+          ),
+        ),
+      );
     }
   }
 
@@ -98,7 +121,15 @@ class _DprTeamScreenState extends ConsumerState<DprTeamScreen> {
     final teamState = ref.watch(teamProvider);
     final cs = Theme.of(context).colorScheme;
 
-    if (!_isNavigatingAway && !teamState.isLoading && teamState.teams.isEmpty) {
+    final type = ref.watch(typeProvider);
+    final canBypassEmptyTeams = type == 'mechanical_work' ||
+        type == 'insulation_work' ||
+        type == 'erection_work' ||
+        type == 'fabrication_work';
+    if (canBypassEmptyTeams &&
+        !_isNavigatingAway &&
+        !teamState.isLoading &&
+        teamState.teams.isEmpty) {
       WidgetsBinding.instance.addPostFrameCallback((_) {
         _tryAutoSkipWhenTeamsEmpty();
       });
@@ -246,8 +277,33 @@ class _DprTeamScreenState extends ConsumerState<DprTeamScreen> {
                                     builder: (_) => StepInsulationScreen(
                                       siteId: widget.site.id,
                                       teamId: effectiveTeamId,
-                                      name: widget.site.siteName ?? "",
+                                      name: widget.site.siteName,
                                       teamName: team.teamName,
+                                    ),
+                                  ),
+                                );
+                              } else if (type == 'erection_work') {
+                                Navigator.push(
+                                  context,
+                                  MaterialPageRoute(
+                                    builder: (_) => PebDprEntryScreen(
+                                      siteId: widget.site.id,
+                                      siteName: widget.site.siteName,
+                                      executionType: PebExecutionType.erection,
+                                      initialTeamId: effectiveTeamId,
+                                    ),
+                                  ),
+                                );
+                              } else if (type == 'fabrication_work') {
+                                Navigator.push(
+                                  context,
+                                  MaterialPageRoute(
+                                    builder: (_) => PebDprEntryScreen(
+                                      siteId: widget.site.id,
+                                      siteName: widget.site.siteName,
+                                      executionType:
+                                          PebExecutionType.fabrication,
+                                      initialTeamId: effectiveTeamId,
                                     ),
                                   ),
                                 );
@@ -258,11 +314,12 @@ class _DprTeamScreenState extends ConsumerState<DprTeamScreen> {
                                 color: cs.surfaceContainerLow,
                                 borderRadius: BorderRadius.circular(16),
                                 border: Border.all(
-                                  color: cs.outlineVariant.withOpacity(0.65),
+                                  color:
+                                      cs.outlineVariant.withValues(alpha: 0.65),
                                 ),
                                 boxShadow: [
                                   BoxShadow(
-                                    color: cs.shadow.withOpacity(0.08),
+                                    color: cs.shadow.withValues(alpha: 0.08),
                                     blurRadius: 8,
                                     offset: const Offset(0, 3),
                                   ),
@@ -290,7 +347,7 @@ class _DprTeamScreenState extends ConsumerState<DprTeamScreen> {
                                   Text(
                                     team.isDefaultTeam
                                         ? 'Default team'
-                                        : team.teamName ?? '',
+                                        : team.teamName,
                                     style: TextStyle(
                                       fontWeight: FontWeight.w600,
                                       fontSize: 15,

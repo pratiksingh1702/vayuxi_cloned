@@ -14,12 +14,14 @@ class PebDprEntryScreen extends StatefulWidget {
   final String siteId;
   final String siteName;
   final PebExecutionType executionType;
+  final String initialTeamId;
 
   const PebDprEntryScreen({
     super.key,
     required this.siteId,
     required this.siteName,
     required this.executionType,
+    this.initialTeamId = '',
   });
 
   @override
@@ -32,6 +34,7 @@ class _PebDprEntryScreenState extends State<PebDprEntryScreen> {
   final Map<String, GlobalKey> _workCardKeys = {};
   bool _loading = true;
   bool _submitting = false;
+  String? _loadError;
   DateTime _selectedDate = DateTime.now();
   String _teamId = '';
   PebSetup? _setup;
@@ -44,7 +47,23 @@ class _PebDprEntryScreenState extends State<PebDprEntryScreen> {
   @override
   void initState() {
     super.initState();
+    _teamId = widget.initialTeamId;
     _load();
+  }
+
+  @override
+  void didUpdateWidget(covariant PebDprEntryScreen oldWidget) {
+    super.didUpdateWidget(oldWidget);
+    if (oldWidget.siteId != widget.siteId ||
+        oldWidget.executionType != widget.executionType) {
+      _teamId = '';
+      _teams = [];
+      _setup = null;
+      _boqs = [];
+      _assignments = [];
+      _status = const PebMarkStatus(completedByKey: {}, inProgressByKey: {});
+      _load();
+    }
   }
 
   @override
@@ -54,11 +73,16 @@ class _PebDprEntryScreenState extends State<PebDprEntryScreen> {
   }
 
   Future<void> _load({bool showLoader = true, bool autoScroll = true}) async {
-    if (showLoader) setState(() => _loading = true);
+    if (showLoader && mounted) {
+      setState(() {
+        _loading = true;
+        _loadError = null;
+      });
+    }
     try {
       final teams =
           await _service.getTeams(widget.siteId, widget.executionType);
-      final firstTeam = _teamId.isNotEmpty
+      final selectedTeamId = teams.any((team) => team.id == _teamId)
           ? _teamId
           : teams.isNotEmpty
               ? teams.first.id
@@ -67,23 +91,27 @@ class _PebDprEntryScreenState extends State<PebDprEntryScreen> {
         _service.getSetup(widget.siteId, widget.executionType),
         _service.getBoqs(widget.siteId),
         _service.getAssignments(widget.siteId, widget.executionType,
-            teamId: firstTeam, status: 'all'),
+            teamId: selectedTeamId, status: 'all'),
         _service.getDprMarkStatus(widget.siteId, widget.executionType),
       ]);
 
+      if (!mounted) return;
       setState(() {
         _teams = teams;
-        _teamId = firstTeam;
+        _teamId = selectedTeamId;
         _setup = results[0] as PebSetup?;
         _boqs = results[1] as List<PebBoq>;
         _assignments = (results[2] as List<PebWorkAssignment>)
             .where((assignment) => assignment.status != 'cancelled')
             .toList();
         _status = results[3] as PebMarkStatus;
+        _loadError = null;
       });
       if (autoScroll) _scrollToFirstActiveWork();
     } catch (error) {
-      AppToast.error(extractBackendError(error));
+      final message = extractBackendError(error);
+      if (mounted) setState(() => _loadError = message);
+      AppToast.error(message);
     } finally {
       if (mounted && showLoader) setState(() => _loading = false);
     }
@@ -114,7 +142,7 @@ class _PebDprEntryScreenState extends State<PebDprEntryScreen> {
 
   List<_VisibleWork> _visibleWorks() {
     final setup = _setup;
-    if (setup == null) return [];
+    if (setup == null || _teamId.isEmpty) return [];
     final teamAssignments = _assignments
         .where((assignment) =>
             assignment.teamId == _teamId && assignment.status != 'cancelled')
@@ -442,69 +470,160 @@ class _PebDprEntryScreenState extends State<PebDprEntryScreen> {
     return Scaffold(
       drawer: const CustomDrawer(),
       appBar: CustomAppBar(title: '${widget.executionType.title} DPR'),
-      body: Stack(
-        children: [
-          _loading
-              ? const Center(child: CircularProgressIndicator())
-              : RefreshIndicator(
-                  onRefresh: _load,
-                  child: ListView(
-                    controller: _scrollController,
-                    padding: const EdgeInsets.all(16),
-                    children: [
-                      _buildFilters(),
-                      const SizedBox(height: 16),
-                      Text(
-                        '${widget.executionType.section[0].toUpperCase()}${widget.executionType.section.substring(1)} Items',
-                        style: const TextStyle(
-                            fontSize: 20, fontWeight: FontWeight.w900),
-                      ),
-                      const SizedBox(height: 4),
-                      const Text(
-                          'Add date-wise completed quantity for each selected work item'),
-                      const SizedBox(height: 16),
-                      if (works.isEmpty)
-                        const Card(
-                            child: Padding(
-                                padding: EdgeInsets.all(20),
-                                child: Text('No work found.')))
-                      else
-                        ...works.map((work) => KeyedSubtree(
-                              key: _keyForWork(work),
-                              child: _buildWorkCard(work),
-                            )),
-                      const SizedBox(height: 80),
-                    ],
-                  ),
-                ),
-          if (_submitting)
-            Positioned.fill(
-              child: AbsorbPointer(
-                child: Container(
-                  color: Colors.white.withValues(alpha: 0.62),
-                  child: const Center(
-                    child: Card(
-                      child: Padding(
-                        padding:
-                            EdgeInsets.symmetric(horizontal: 20, vertical: 16),
-                        child: Row(
-                          mainAxisSize: MainAxisSize.min,
-                          children: [
-                            SizedBox(
-                              width: 22,
-                              height: 22,
-                              child: CircularProgressIndicator(strokeWidth: 2),
-                            ),
-                            SizedBox(width: 14),
-                            Text('Updating DPR...'),
-                          ],
+      body: _loading
+          ? const Center(child: CircularProgressIndicator())
+          : _loadError != null
+              ? _buildLoadErrorState()
+              : _teams.isEmpty
+                  ? _buildNoTeamsState()
+                  : Stack(
+                      children: [
+                        RefreshIndicator(
+                          onRefresh: _load,
+                          child: ListView(
+                            controller: _scrollController,
+                            padding: const EdgeInsets.all(16),
+                            children: [
+                              _buildFilters(),
+                              const SizedBox(height: 16),
+                              Text(
+                                '${widget.executionType.section[0].toUpperCase()}${widget.executionType.section.substring(1)} Items',
+                                style: const TextStyle(
+                                    fontSize: 20, fontWeight: FontWeight.w900),
+                              ),
+                              const SizedBox(height: 4),
+                              const Text(
+                                  'Add date-wise completed quantity for each selected work item'),
+                              const SizedBox(height: 16),
+                              if (works.isEmpty)
+                                const Card(
+                                    child: Padding(
+                                        padding: EdgeInsets.all(20),
+                                        child: Text('No work found.')))
+                              else
+                                ...works.map((work) => KeyedSubtree(
+                                      key: _keyForWork(work),
+                                      child: _buildWorkCard(work),
+                                    )),
+                              const SizedBox(height: 80),
+                            ],
+                          ),
                         ),
-                      ),
+                        if (_submitting)
+                          Positioned.fill(
+                            child: AbsorbPointer(
+                              child: Container(
+                                color: Colors.white.withValues(alpha: 0.62),
+                                child: const Center(
+                                  child: Card(
+                                    child: Padding(
+                                      padding: EdgeInsets.symmetric(
+                                          horizontal: 20, vertical: 16),
+                                      child: Row(
+                                        mainAxisSize: MainAxisSize.min,
+                                        children: [
+                                          SizedBox(
+                                            width: 22,
+                                            height: 22,
+                                            child: CircularProgressIndicator(
+                                                strokeWidth: 2),
+                                          ),
+                                          SizedBox(width: 14),
+                                          Text('Updating DPR...'),
+                                        ],
+                                      ),
+                                    ),
+                                  ),
+                                ),
+                              ),
+                            ),
+                          ),
+                      ],
                     ),
-                  ),
-                ),
-              ),
+    );
+  }
+
+  Widget _buildLoadErrorState() {
+    final cs = Theme.of(context).colorScheme;
+    return RefreshIndicator(
+      onRefresh: _load,
+      child: ListView(
+        physics: const AlwaysScrollableScrollPhysics(),
+        padding: const EdgeInsets.all(24),
+        children: [
+          const SizedBox(height: 100),
+          Icon(Icons.cloud_off_rounded, size: 64, color: cs.error),
+          const SizedBox(height: 18),
+          Text(
+            'Unable to load DPR Entry',
+            textAlign: TextAlign.center,
+            style: TextStyle(
+              color: cs.onSurface,
+              fontSize: 20,
+              fontWeight: FontWeight.w800,
             ),
+          ),
+          const SizedBox(height: 8),
+          Text(
+            _loadError ?? 'Please try again.',
+            textAlign: TextAlign.center,
+            style: TextStyle(color: cs.onSurfaceVariant),
+          ),
+          const SizedBox(height: 20),
+          FilledButton.icon(
+            onPressed: _load,
+            icon: const Icon(Icons.refresh_rounded),
+            label: const Text('Try Again'),
+          ),
+          const SizedBox(height: 8),
+          TextButton.icon(
+            onPressed: () => context.pop(),
+            icon: const Icon(Icons.arrow_back_rounded),
+            label: const Text('Back to Sites'),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildNoTeamsState() {
+    final cs = Theme.of(context).colorScheme;
+    return RefreshIndicator(
+      onRefresh: _load,
+      child: ListView(
+        physics: const AlwaysScrollableScrollPhysics(),
+        padding: const EdgeInsets.all(24),
+        children: [
+          const SizedBox(height: 100),
+          Icon(Icons.groups_2_outlined, size: 68, color: cs.primary),
+          const SizedBox(height: 18),
+          Text(
+            'No team available',
+            textAlign: TextAlign.center,
+            style: TextStyle(
+              color: cs.onSurface,
+              fontSize: 20,
+              fontWeight: FontWeight.w800,
+            ),
+          ),
+          const SizedBox(height: 8),
+          Text(
+            'Create a ${widget.executionType.title} team in Setup > Team, then return here to enter DPR progress.',
+            textAlign: TextAlign.center,
+            style: TextStyle(color: cs.onSurfaceVariant, height: 1.45),
+          ),
+          const SizedBox(height: 20),
+          FilledButton.icon(
+            onPressed: _load,
+            icon: const Icon(Icons.refresh_rounded),
+            label: const Text('Refresh Teams'),
+          ),
+          const SizedBox(height: 8),
+          TextButton.icon(
+            onPressed: () => context.pop(),
+            icon: const Icon(Icons.arrow_back_rounded),
+            label: const Text('Back to Sites'),
+          ),
         ],
       ),
     );
@@ -520,6 +639,7 @@ class _PebDprEntryScreenState extends State<PebDprEntryScreen> {
               children: [
                 Expanded(
                   child: DropdownButtonFormField<String>(
+                    key: ValueKey('team-$_teamId-${_teams.length}'),
                     initialValue: _teamId.isEmpty ? null : _teamId,
                     decoration: const InputDecoration(
                         labelText: 'Team', border: OutlineInputBorder()),
@@ -528,8 +648,12 @@ class _PebDprEntryScreenState extends State<PebDprEntryScreen> {
                             value: team.id, child: Text(team.name)))
                         .toList(),
                     onChanged: (value) async {
-                      setState(() => _teamId = value ?? '');
-                      await _load(autoScroll: true);
+                      final selectedTeamId = value ?? '';
+                      if (selectedTeamId.isEmpty || selectedTeamId == _teamId) {
+                        return;
+                      }
+                      setState(() => _teamId = selectedTeamId);
+                      await _load(showLoader: false, autoScroll: true);
                     },
                   ),
                 ),
