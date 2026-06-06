@@ -39,7 +39,6 @@ enum PebExecutionType {
           'Alignment',
           'Bolt Tightening',
           'Patch-up & Finishing',
-          'Welding',
           'QC Clearance',
         ];
       case PebExecutionType.fabrication:
