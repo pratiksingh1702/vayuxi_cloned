@@ -172,11 +172,9 @@ class _PebSetupScreenState extends State<PebSetupScreen> {
                           fit: pebWorkImageIsCustom(previewItem)
                               ? BoxFit.cover
                               : BoxFit.contain,
-                          errorBuilder: (_, __, ___) => Container(
-                            color: Theme.of(context)
-                                .colorScheme
-                                .surfaceContainerHighest,
-                            child: const Icon(Icons.image_not_supported),
+                          errorBuilder: (_, __, ___) => pebWorkImageFallback(
+                            previewItem,
+                            widget.executionType,
                           ),
                         ),
                       ),
@@ -422,9 +420,9 @@ class _PebSetupScreenState extends State<PebSetupScreen> {
                   child: Image(
                     image: pebWorkImageProvider(item, widget.executionType),
                     fit: hasCustomImage ? BoxFit.cover : BoxFit.contain,
-                    errorBuilder: (_, __, ___) => Container(
-                      color: cs.surfaceContainerHighest,
-                      child: const Icon(Icons.image_not_supported),
+                    errorBuilder: (_, __, ___) => pebWorkImageFallback(
+                      item,
+                      widget.executionType,
                     ),
                   ),
                 ),

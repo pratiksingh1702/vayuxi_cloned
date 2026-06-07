@@ -2,11 +2,19 @@ import 'package:flutter/material.dart';
 
 import '../models/peb_execution_models.dart';
 
-String pebWorkImageFor(PebSetupItem item, PebExecutionType type) {
-  if (item.images.isNotEmpty) return item.images.first;
+String? pebCustomWorkImageFor(PebSetupItem item) {
+  for (final rawImage in item.images) {
+    final image = rawImage.trim();
+    if (image.startsWith('http://') || image.startsWith('https://')) {
+      return image;
+    }
+  }
+  return null;
+}
 
+String pebDefaultWorkImageFor(PebSetupItem item, PebExecutionType type) {
   final name = item.name.trim().toLowerCase();
-  final asset = switch (name) {
+  return switch (name) {
     'unloading' when type == PebExecutionType.erection =>
       'e-images/unloading work.png',
     'shifting' when type == PebExecutionType.erection =>
@@ -38,11 +46,14 @@ String pebWorkImageFor(PebSetupItem item, PebExecutionType type) {
         ? 'assets/images/peb.png'
         : 'assets/images/peb.png',
   };
-
-  return asset;
 }
 
-bool pebWorkImageIsCustom(PebSetupItem item) => item.images.isNotEmpty;
+String pebWorkImageFor(PebSetupItem item, PebExecutionType type) {
+  return pebCustomWorkImageFor(item) ?? pebDefaultWorkImageFor(item, type);
+}
+
+bool pebWorkImageIsCustom(PebSetupItem item) =>
+    pebCustomWorkImageFor(item) != null;
 
 ImageProvider pebWorkImageProvider(PebSetupItem item, PebExecutionType type) {
   final image = pebWorkImageFor(item, type);
@@ -50,4 +61,18 @@ ImageProvider pebWorkImageProvider(PebSetupItem item, PebExecutionType type) {
     return NetworkImage(image);
   }
   return AssetImage(image);
+}
+
+Widget pebWorkImageFallback(
+  PebSetupItem item,
+  PebExecutionType type, {
+  BoxFit fit = BoxFit.contain,
+}) {
+  return Image.asset(
+    pebDefaultWorkImageFor(item, type),
+    fit: fit,
+    errorBuilder: (_, __, ___) => const Center(
+      child: Icon(Icons.construction_rounded, size: 42),
+    ),
+  );
 }

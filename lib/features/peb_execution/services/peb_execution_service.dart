@@ -11,6 +11,12 @@ class PebExecutionConflict implements Exception {
   PebExecutionConflict(this.conflicts);
 }
 
+class PebBoqVariationRequired implements Exception {
+  final List<dynamic> variations;
+
+  PebBoqVariationRequired(this.variations);
+}
+
 class PebExecutionService {
   final Dio _dio = DioClient.dio;
 
@@ -465,48 +471,66 @@ class PebExecutionService {
     required double targetQty,
     required int progressPercentage,
     String trackingLevel = 'advanced',
+    String variationReason = '',
+    String variationRemarks = '',
   }) async {
-    await _dio.post(
-      '/site/$siteId/dpr-peb',
-      data: {
-        'date': date,
-        'section': type.section,
-        'type': type.apiType,
-        'teamId': teamId,
-        'trackingLevel': trackingLevel,
-        'assemblyMark':
-            type == PebExecutionType.fabrication ? marks.join(',') : '',
-        'boqIds': const [],
-        'status': 'submitted',
-        'remarks': '',
-        'items': [
-          {
-            'setupItemId': setupItemId,
-            'assignmentId': assignmentId,
-            'sourceType': sourceType,
-            'name': stageName,
-            'uom': uom,
-            'actualQty': actualQty,
-            'targetQty': targetQty,
-            'progressPercentage': progressPercentage,
-            'isCompleted': progressPercentage >= 100,
-            'completedDate': progressPercentage >= 100 ? date : null,
-            'assemblyMark': marks.join(','),
-            'trackingLevel': trackingLevel,
-            'memberType': stageName,
-            'weightMode': 'none',
-            'estimatedWeightPerUnitKg': 0,
-            'manualWeightKg': 0,
-            'totalWeightKg': 0,
-            'remarks': '',
-            'manpower': 0,
-            'assignedManpower': const [],
-            'manualManpower': const [],
-            'contractor': '',
-            'area': '',
-          }
-        ],
-      },
-    );
+    try {
+      await _dio.post(
+        '/site/$siteId/dpr-peb',
+        data: {
+          'date': date,
+          'section': type.section,
+          'type': type.apiType,
+          'teamId': teamId,
+          'trackingLevel': trackingLevel,
+          'assemblyMark':
+              type == PebExecutionType.fabrication ? marks.join(',') : '',
+          'boqIds': const [],
+          'status': 'submitted',
+          'remarks': '',
+          'items': [
+            {
+              'setupItemId': setupItemId,
+              'assignmentId': assignmentId,
+              'sourceType': sourceType,
+              'name': stageName,
+              'uom': uom,
+              'actualQty': actualQty,
+              'targetQty': targetQty,
+              'progressPercentage': progressPercentage,
+              'isCompleted': progressPercentage >= 100,
+              'completedDate': progressPercentage >= 100 ? date : null,
+              'assemblyMark': marks.join(','),
+              'trackingLevel': trackingLevel,
+              'memberType': stageName,
+              'weightMode': 'none',
+              'estimatedWeightPerUnitKg': 0,
+              'manualWeightKg': 0,
+              'totalWeightKg': 0,
+              'remarks': '',
+              'manpower': 0,
+              'assignedManpower': const [],
+              'manualManpower': const [],
+              'contractor': '',
+              'area': '',
+              if (variationReason.trim().isNotEmpty)
+                'variationReason': variationReason.trim(),
+              if (variationRemarks.trim().isNotEmpty)
+                'variationRemarks': variationRemarks.trim(),
+            }
+          ],
+        },
+      );
+    } on DioException catch (error) {
+      final data = error.response?.data;
+      if (error.response?.statusCode == 409 &&
+          data is Map &&
+          data['code'] == 'BOQ_VARIATION_REQUIRED') {
+        throw PebBoqVariationRequired(
+          data['variations'] is List ? data['variations'] : const [],
+        );
+      }
+      rethrow;
+    }
   }
 }

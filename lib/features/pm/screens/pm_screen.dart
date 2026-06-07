@@ -196,11 +196,12 @@ class _SetupTabState extends ConsumerState<_SetupTab> {
       );
     }
 
-    _categoryKey ??= state.categories.first.categoryKey;
-    final selectedCategory = state.categories.firstWhere(
-      (category) => category.categoryKey == _categoryKey,
-      orElse: () => state.categories.first,
-    );
+    final selectedCategory = _categoryKey == null
+        ? null
+        : state.categories.firstWhere(
+            (category) => category.categoryKey == _categoryKey,
+            orElse: () => state.categories.first,
+          );
 
     return ListView(
       padding: const EdgeInsets.all(14),
@@ -208,9 +209,15 @@ class _SetupTabState extends ConsumerState<_SetupTab> {
         Row(
           children: [
             OutlinedButton.icon(
-              onPressed: () => setState(() => _mode = _PmSetupMode.chooser),
+              onPressed: () => setState(() {
+                if (_categoryKey != null) {
+                  _categoryKey = null;
+                } else {
+                  _mode = _PmSetupMode.chooser;
+                }
+              }),
               icon: const Icon(Icons.arrow_back_rounded, size: 18),
-              label: const Text('Options'),
+              label: Text(_categoryKey == null ? 'Options' : 'Categories'),
             ),
             const SizedBox(width: 10),
             Expanded(
@@ -224,26 +231,17 @@ class _SetupTabState extends ConsumerState<_SetupTab> {
           ],
         ),
         const SizedBox(height: 12),
-        _CategorySelector(
-          categories: state.categories,
-          selectedKey: selectedCategory.categoryKey,
-          onSelected: (value) => setState(() => _categoryKey = value),
-        ),
-        const SizedBox(height: 12),
-        Text(
-          selectedCategory.categoryName,
-          style: const TextStyle(fontSize: 17, fontWeight: FontWeight.w900),
-        ),
-        const SizedBox(height: 10),
-        if (selectedCategory.equipment.isEmpty)
-          const _EmptyPanel(title: 'No works found in this category')
+        if (selectedCategory == null)
+          _PmCategoryGrid(
+            categories: state.categories,
+            onSelected: (category) =>
+                setState(() => _categoryKey = category.categoryKey),
+          )
         else
-          ...selectedCategory.equipment.map(
-            (equipment) => _EquipmentCard(
-              equipment: equipment,
-              onEdit: () => _openEquipmentSheet(equipment),
-              onDelete: () => _deleteEquipment(equipment),
-            ),
+          _PmEquipmentList(
+            category: selectedCategory,
+            onEdit: _openEquipmentSheet,
+            onDelete: _deleteEquipment,
           ),
       ],
     );
@@ -355,45 +353,6 @@ class _SetupChooser extends StatelessWidget {
   }
 }
 
-class _CategorySelector extends StatelessWidget {
-  final List<PmCategory> categories;
-  final String selectedKey;
-  final ValueChanged<String> onSelected;
-
-  const _CategorySelector({
-    required this.categories,
-    required this.selectedKey,
-    required this.onSelected,
-  });
-
-  @override
-  Widget build(BuildContext context) {
-    return SizedBox(
-      height: 44,
-      child: ListView.separated(
-        scrollDirection: Axis.horizontal,
-        itemCount: categories.length,
-        separatorBuilder: (_, __) => const SizedBox(width: 8),
-        itemBuilder: (context, index) {
-          final category = categories[index];
-          final selected = category.categoryKey == selectedKey;
-          return ChoiceChip(
-            selected: selected,
-            label: Text(category.categoryName),
-            onSelected: (_) => onSelected(category.categoryKey),
-            selectedColor: _pmColor.withOpacity(0.14),
-            checkmarkColor: _pmColor,
-            labelStyle: TextStyle(
-              color: selected ? _pmColor : null,
-              fontWeight: selected ? FontWeight.w800 : FontWeight.w600,
-            ),
-          );
-        },
-      ),
-    );
-  }
-}
-
 class _WorkSelectionPage extends StatefulWidget {
   final List<PmCategory> categories;
   final ValueChanged<PmEquipment> onSelect;
@@ -412,35 +371,158 @@ class _WorkSelectionPageState extends State<_WorkSelectionPage> {
 
   @override
   Widget build(BuildContext context) {
-    _categoryKey ??= widget.categories.first.categoryKey;
-    final selectedCategory = widget.categories.firstWhere(
-      (category) => category.categoryKey == _categoryKey,
-      orElse: () => widget.categories.first,
-    );
+    final selectedCategory = _categoryKey == null
+        ? null
+        : widget.categories.firstWhere(
+            (category) => category.categoryKey == _categoryKey,
+            orElse: () => widget.categories.first,
+          );
 
     return ListView(
       padding: const EdgeInsets.all(14),
       children: [
-        const Text(
-          'Select P&M Work',
-          style: TextStyle(fontSize: 18, fontWeight: FontWeight.w900),
-        ),
-        const SizedBox(height: 10),
-        _CategorySelector(
-          categories: widget.categories,
-          selectedKey: selectedCategory.categoryKey,
-          onSelected: (value) => setState(() => _categoryKey = value),
-        ),
-        const SizedBox(height: 12),
-        if (selectedCategory.equipment.isEmpty)
-          const _EmptyPanel(title: 'No works found in this category')
-        else
-          ...selectedCategory.equipment.map(
-            (equipment) => _EquipmentCard(
-              equipment: equipment,
-              onTap: () => widget.onSelect(equipment),
+        if (selectedCategory == null) ...[
+          const Text(
+            'Select P&M Category',
+            style: TextStyle(fontSize: 18, fontWeight: FontWeight.w900),
+          ),
+          const SizedBox(height: 12),
+          _PmCategoryGrid(
+            categories: widget.categories,
+            onSelected: (category) =>
+                setState(() => _categoryKey = category.categoryKey),
+          ),
+        ] else ...[
+          OutlinedButton.icon(
+            onPressed: () => setState(() => _categoryKey = null),
+            icon: const Icon(Icons.arrow_back_rounded),
+            label: const Text('Categories'),
+          ),
+          const SizedBox(height: 12),
+          _PmEquipmentList(
+            category: selectedCategory,
+            onTap: widget.onSelect,
+          ),
+        ],
+      ],
+    );
+  }
+}
+
+class _PmCategoryGrid extends StatelessWidget {
+  final List<PmCategory> categories;
+  final ValueChanged<PmCategory> onSelected;
+
+  const _PmCategoryGrid({
+    required this.categories,
+    required this.onSelected,
+  });
+
+  IconData _iconFor(String value) {
+    final key = value.toLowerCase();
+    if (key.contains('earth')) return Icons.landscape_rounded;
+    if (key.contains('concrete')) return Icons.foundation_rounded;
+    if (key.contains('transport')) return Icons.local_shipping_rounded;
+    if (key.contains('crane') || key.contains('lifting')) {
+      return Icons.precision_manufacturing_rounded;
+    }
+    if (key.contains('dg') || key.contains('generator')) {
+      return Icons.electrical_services_rounded;
+    }
+    return Icons.construction_rounded;
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final cs = Theme.of(context).colorScheme;
+    return GridView.builder(
+      physics: const NeverScrollableScrollPhysics(),
+      shrinkWrap: true,
+      itemCount: categories.length,
+      gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
+        crossAxisCount: 2,
+        mainAxisSpacing: 12,
+        crossAxisSpacing: 12,
+        childAspectRatio: 1.08,
+      ),
+      itemBuilder: (context, index) {
+        final category = categories[index];
+        return InkWell(
+          onTap: () => onSelected(category),
+          borderRadius: BorderRadius.circular(8),
+          child: Container(
+            padding: const EdgeInsets.all(14),
+            decoration: BoxDecoration(
+              color: cs.surface,
+              borderRadius: BorderRadius.circular(8),
+              border: Border.all(color: cs.outlineVariant),
+            ),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Icon(_iconFor(category.categoryName),
+                    color: _pmColor, size: 30),
+                const Spacer(),
+                Text(
+                  category.categoryName,
+                  maxLines: 3,
+                  overflow: TextOverflow.ellipsis,
+                  style: const TextStyle(
+                    fontSize: 15,
+                    fontWeight: FontWeight.w800,
+                  ),
+                ),
+                const SizedBox(height: 6),
+                Text(
+                  '${category.equipment.length} equipment',
+                  style: TextStyle(
+                    fontSize: 12,
+                    color: cs.onSurfaceVariant,
+                  ),
+                ),
+              ],
             ),
           ),
+        );
+      },
+    );
+  }
+}
+
+class _PmEquipmentList extends StatelessWidget {
+  final PmCategory category;
+  final ValueChanged<PmEquipment>? onTap;
+  final ValueChanged<PmEquipment>? onEdit;
+  final ValueChanged<PmEquipment>? onDelete;
+
+  const _PmEquipmentList({
+    required this.category,
+    this.onTap,
+    this.onEdit,
+    this.onDelete,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    if (category.equipment.isEmpty) {
+      return const _EmptyPanel(title: 'No works found in this category');
+    }
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Text(
+          category.categoryName,
+          style: const TextStyle(fontSize: 18, fontWeight: FontWeight.w900),
+        ),
+        const SizedBox(height: 10),
+        ...category.equipment.map(
+          (equipment) => _EquipmentCard(
+            equipment: equipment,
+            onTap: onTap == null ? null : () => onTap!(equipment),
+            onEdit: onEdit == null ? null : () => onEdit!(equipment),
+            onDelete: onDelete == null ? null : () => onDelete!(equipment),
+          ),
+        ),
       ],
     );
   }

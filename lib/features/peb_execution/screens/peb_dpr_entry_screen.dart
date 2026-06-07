@@ -381,6 +381,10 @@ class _PebDprEntryScreenState extends State<PebDprEntryScreen> {
     }
     final rawMarks = work.assignedMarks;
     final unlocked = _unlockedMarksForWork(work);
+    if (rawMarks.isEmpty) {
+      await _openQuantityAction(work);
+      return;
+    }
     if (rawMarks.isNotEmpty &&
         unlocked.isEmpty &&
         _previousSetupItem(work) != null) {
@@ -430,14 +434,82 @@ class _PebDprEntryScreenState extends State<PebDprEntryScreen> {
     await _submitProgress(work, selected, completedAction ? 100 : 50);
   }
 
+  Future<void> _openQuantityAction(_VisibleWork work) async {
+    final quantity = TextEditingController();
+    final entered = await showDialog<double>(
+      context: context,
+      builder: (context) => AlertDialog(
+        title: Text(work.stageName),
+        content: Column(
+          mainAxisSize: MainAxisSize.min,
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Text(
+              'Approved quantity: ${work.assignedQty.toStringAsFixed(2)} ${work.setupItem.uom}',
+            ),
+            const SizedBox(height: 14),
+            TextField(
+              controller: quantity,
+              autofocus: true,
+              keyboardType:
+                  const TextInputType.numberWithOptions(decimal: true),
+              decoration: InputDecoration(
+                labelText: 'Actual Progress Quantity',
+                suffixText: work.setupItem.uom,
+                border: const OutlineInputBorder(),
+              ),
+            ),
+          ],
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => context.pop(),
+            child: const Text('Cancel'),
+          ),
+          FilledButton(
+            onPressed: () {
+              final value = double.tryParse(quantity.text.trim()) ?? 0;
+              if (value <= 0) {
+                AppToast.error('Enter a valid progress quantity');
+                return;
+              }
+              context.pop(value);
+            },
+            child: const Text('Continue'),
+          ),
+        ],
+      ),
+    );
+    quantity.dispose();
+    if (entered == null) return;
+
+    final progress = work.assignedQty > 0
+        ? ((entered / work.assignedQty) * 100).clamp(0, 100).round()
+        : 0;
+    await _submitProgress(
+      work,
+      const [],
+      progress,
+      actualQtyOverride: entered,
+      trackingLevel: 'semi_structured',
+    );
+  }
+
   Future<void> _submitProgress(
-      _VisibleWork work, List<String> marks, int progress) async {
+    _VisibleWork work,
+    List<String> marks,
+    int progress, {
+    double? actualQtyOverride,
+    String trackingLevel = 'advanced',
+    String variationReason = '',
+    String variationRemarks = '',
+  }) async {
     setState(() => _submitting = true);
     try {
       final targetQty = marks.isEmpty
           ? work.assignedQty
           : marks.fold<double>(0, (sum, mark) => sum + _markQuantity(mark));
-      final actualQty = targetQty * progress / 100;
+      final actualQty = actualQtyOverride ?? targetQty * progress / 100;
       await _service.submitDprProgress(
         widget.siteId,
         widget.executionType,
@@ -452,9 +524,27 @@ class _PebDprEntryScreenState extends State<PebDprEntryScreen> {
         actualQty: actualQty,
         targetQty: targetQty,
         progressPercentage: progress,
+        trackingLevel: trackingLevel,
+        variationReason: variationReason,
+        variationRemarks: variationRemarks,
       );
       AppToast.success('DPR updated successfully');
       await _load(showLoader: false, autoScroll: true);
+    } on PebBoqVariationRequired catch (variation) {
+      if (mounted) {
+        final response = await _showVariationDialog(variation.variations);
+        if (response != null) {
+          await _submitProgress(
+            work,
+            marks,
+            progress,
+            actualQtyOverride: actualQtyOverride,
+            trackingLevel: trackingLevel,
+            variationReason: response.reason,
+            variationRemarks: response.remarks,
+          );
+        }
+      }
     } on DioException catch (error) {
       AppToast.error(extractBackendError(error));
     } catch (error) {
@@ -462,6 +552,87 @@ class _PebDprEntryScreenState extends State<PebDprEntryScreen> {
     } finally {
       if (mounted) setState(() => _submitting = false);
     }
+  }
+
+  Future<_VariationResponse?> _showVariationDialog(
+      List<dynamic> variations) async {
+    final reason = TextEditingController();
+    final remarks = TextEditingController();
+    final variation = variations.isNotEmpty && variations.first is Map
+        ? variations.first as Map
+        : const {};
+    final approved =
+        NumberFormat('0.##').format((variation['approvedBoqQty'] as num?) ?? 0);
+    final executed =
+        NumberFormat('0.##').format((variation['executedQty'] as num?) ?? 0);
+    final difference =
+        NumberFormat('0.##').format((variation['variationQty'] as num?) ?? 0);
+    final uom = variation['uom']?.toString() ?? '';
+
+    final result = await showDialog<_VariationResponse>(
+      context: context,
+      barrierDismissible: false,
+      builder: (context) => AlertDialog(
+        title: const Text('BOQ Variation Detected'),
+        content: SingleChildScrollView(
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              const Text(
+                  'The executed quantity exceeds the approved BOQ quantity.'),
+              const SizedBox(height: 14),
+              Text('BOQ Quantity: $approved $uom'),
+              Text('Executed Quantity: $executed $uom'),
+              Text(
+                'Variation Quantity: +$difference $uom',
+                style: const TextStyle(fontWeight: FontWeight.w800),
+              ),
+              const SizedBox(height: 16),
+              TextField(
+                controller: reason,
+                decoration: const InputDecoration(
+                  labelText: 'Variation Reason',
+                  border: OutlineInputBorder(),
+                ),
+                maxLines: 2,
+              ),
+              const SizedBox(height: 12),
+              TextField(
+                controller: remarks,
+                decoration: const InputDecoration(
+                  labelText: 'Remarks',
+                  border: OutlineInputBorder(),
+                ),
+                maxLines: 2,
+              ),
+            ],
+          ),
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => context.pop(),
+            child: const Text('Cancel'),
+          ),
+          FilledButton(
+            onPressed: () {
+              if (reason.text.trim().isEmpty) {
+                AppToast.error('Variation reason is required');
+                return;
+              }
+              context.pop(_VariationResponse(
+                reason: reason.text.trim(),
+                remarks: remarks.text.trim(),
+              ));
+            },
+            child: const Text('Save DPR'),
+          ),
+        ],
+      ),
+    );
+    reason.dispose();
+    remarks.dispose();
+    return result;
   }
 
   @override
@@ -732,9 +903,9 @@ class _PebDprEntryScreenState extends State<PebDprEntryScreen> {
                           image: pebWorkImageProvider(
                               work.setupItem, widget.executionType),
                           fit: hasCustomImage ? BoxFit.cover : BoxFit.contain,
-                          errorBuilder: (_, __, ___) => Container(
-                            color: Colors.blueGrey.shade50,
-                            child: const Icon(Icons.construction, size: 42),
+                          errorBuilder: (_, __, ___) => pebWorkImageFallback(
+                            work.setupItem,
+                            widget.executionType,
                           ),
                         ),
                       ),
@@ -1036,6 +1207,16 @@ class _VisibleWork {
       displayName: displayName ?? this.displayName,
     );
   }
+}
+
+class _VariationResponse {
+  final String reason;
+  final String remarks;
+
+  const _VariationResponse({
+    required this.reason,
+    required this.remarks,
+  });
 }
 
 class _WorkCounts {
