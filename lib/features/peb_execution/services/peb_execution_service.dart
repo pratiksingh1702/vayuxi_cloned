@@ -196,11 +196,12 @@ class PebExecutionService {
     List<Map<String, String>> mappings = const [],
     bool skipMapping = false,
     bool isStandardTemplate = false,
+    String quantityType = 'exact',
   }) async {
     final formData = FormData.fromMap({
       'file': await MultipartFile.fromFile(file.path!, filename: file.name),
     });
-    final query = <String, dynamic>{};
+    final query = <String, dynamic>{'quantityType': quantityType};
     if (!skipMapping && !isStandardTemplate && mappings.isNotEmpty) {
       query['mappings'] = jsonEncode(mappings);
     }
@@ -251,10 +252,12 @@ class PebExecutionService {
     PebExecutionType type, {
     required String boqName,
     required List<Map<String, dynamic>> items,
+    String quantityType = 'exact',
   }) async {
     await _dio.put('/site/$siteId/boq-structure/$boqId', data: {
       'boqName': boqName,
       'type': type.apiType,
+      'quantityType': quantityType,
       'items': items,
     });
   }
@@ -264,10 +267,12 @@ class PebExecutionService {
     PebExecutionType type, {
     required String boqName,
     required List<Map<String, dynamic>> items,
+    String quantityType = 'exact',
   }) async {
     await _dio.post('/site/$siteId/boq-structure', data: {
       'boqName': boqName,
       'type': type.apiType,
+      'quantityType': quantityType,
       'items': items,
     });
   }

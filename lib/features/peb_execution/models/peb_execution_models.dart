@@ -202,12 +202,14 @@ class PebBoq {
   final String id;
   final String name;
   final String number;
+  final String quantityType;
   final List<PebBoqMark> items;
 
   const PebBoq({
     required this.id,
     required this.name,
     required this.number,
+    required this.quantityType,
     required this.items,
   });
 
@@ -218,6 +220,7 @@ class PebBoq {
           json['projectName']?.toString() ??
           'BOQ',
       number: json['boqNumber']?.toString() ?? '',
+      quantityType: json['quantityType']?.toString() ?? 'exact',
       items: (json['items'] as List? ?? [])
           .whereType<Map>()
           .map((item) => PebBoqMark.fromJson(Map<String, dynamic>.from(item)))

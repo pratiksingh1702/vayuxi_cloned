@@ -41,6 +41,7 @@ class _PebBoqUploadScreenState extends State<PebBoqUploadScreen> {
   bool _loading = true;
   bool _saving = false;
   bool _isStandardTemplate = false;
+  String _quantityType = 'exact';
   PebBoq? _editingBoq;
   _BoqMarkRecord? _editingMark;
   _BoqScreenMode _mode = _BoqScreenMode.view;
@@ -158,6 +159,7 @@ class _PebBoqUploadScreenState extends State<PebBoqUploadScreen> {
         mappings: mappings,
         skipMapping: skipMapping,
         isStandardTemplate: _isStandardTemplate,
+        quantityType: _quantityType,
       );
       setState(() => _step = 3);
       await _loadBoqs();
@@ -188,6 +190,7 @@ class _PebBoqUploadScreenState extends State<PebBoqUploadScreen> {
         widget.executionType,
         boqName: _manualName.text.trim(),
         items: items,
+        quantityType: _quantityType,
       );
       setState(() => _resetManualForm());
       await _loadBoqs();
@@ -235,6 +238,7 @@ class _PebBoqUploadScreenState extends State<PebBoqUploadScreen> {
   void _editMark(_BoqMarkRecord record) {
     _resetManualForm(addBlank: false);
     _manualName.text = record.boq.name;
+    _quantityType = record.boq.quantityType;
     _manualRows.add(_ManualBoqRow.fromMark(record.mark));
     _editingBoq = record.boq;
     _editingMark = record;
@@ -245,6 +249,7 @@ class _PebBoqUploadScreenState extends State<PebBoqUploadScreen> {
     _editingBoq = null;
     _editingMark = null;
     _resetManualForm();
+    _quantityType = 'exact';
     setState(() => _mode = _BoqScreenMode.manual);
   }
 
@@ -660,6 +665,9 @@ class _PebBoqUploadScreenState extends State<PebBoqUploadScreen> {
                                   if (record.mark.typeDescription.isNotEmpty)
                                     record.mark.typeDescription,
                                   record.boq.name,
+                                  record.boq.quantityType == 'approximate'
+                                      ? 'Approximate BOQ'
+                                      : 'Exact BOQ',
                                 ].join(' • '),
                                 maxLines: 2,
                                 overflow: TextOverflow.ellipsis,
@@ -774,6 +782,8 @@ class _PebBoqUploadScreenState extends State<PebBoqUploadScreen> {
           const Text('Upload BOQ File With Mapping',
               style: TextStyle(fontSize: 16, fontWeight: FontWeight.w800)),
           const SizedBox(height: 12),
+          _quantityTypeSelector(cs),
+          const SizedBox(height: 16),
           _stepper(cs),
           const SizedBox(height: 16),
           OutlinedButton.icon(
@@ -872,6 +882,11 @@ class _PebBoqUploadScreenState extends State<PebBoqUploadScreen> {
             controller: _manualName,
             isRequired: true,
           ),
+          if (!editing) ...[
+            const SizedBox(height: 4),
+            _quantityTypeSelector(cs),
+            const SizedBox(height: 8),
+          ],
           ..._manualRows.asMap().entries.map((entry) {
             return _manualRow(entry.key, entry.value, cs);
           }),
@@ -888,6 +903,48 @@ class _PebBoqUploadScreenState extends State<PebBoqUploadScreen> {
           ),
         ],
       ),
+    );
+  }
+
+  Widget _quantityTypeSelector(ColorScheme cs) {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        const Text(
+          'BOQ Quantity Type',
+          style: TextStyle(fontSize: 13, fontWeight: FontWeight.w700),
+        ),
+        const SizedBox(height: 8),
+        SizedBox(
+          width: double.infinity,
+          child: SegmentedButton<String>(
+            segments: const [
+              ButtonSegment(
+                value: 'exact',
+                icon: Icon(Icons.lock_outline),
+                label: Text('Exact'),
+              ),
+              ButtonSegment(
+                value: 'approximate',
+                icon: Icon(Icons.swap_vert_circle_outlined),
+                label: Text('Approximate'),
+              ),
+            ],
+            selected: {_quantityType},
+            onSelectionChanged: _saving
+                ? null
+                : (selection) =>
+                    setState(() => _quantityType = selection.first),
+          ),
+        ),
+        const SizedBox(height: 6),
+        Text(
+          _quantityType == 'approximate'
+              ? 'Execution may exceed this BOQ after a variation reason is provided.'
+              : 'Execution cannot exceed the approved BOQ quantity.',
+          style: TextStyle(fontSize: 12, color: cs.onSurfaceVariant),
+        ),
+      ],
     );
   }
 
