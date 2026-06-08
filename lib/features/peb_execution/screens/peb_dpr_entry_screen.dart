@@ -42,8 +42,8 @@ class _PebDprEntryScreenState extends State<PebDprEntryScreen> {
   List<PebBoq> _boqs = [];
   List<PebWorkAssignment> _assignments = [];
   final Map<String, String> _markQuantityInputs = {};
+  final Map<String, String> _markRemarks = {};
   final Map<String, String> _variationReasons = {};
-  final Map<String, String> _variationRemarks = {};
   String? _activeWorkKey;
   _DprMarkActionMode _markActionMode = _DprMarkActionMode.none;
   final Set<String> _selectedDetailMarks = {};
@@ -148,6 +148,10 @@ class _PebDprEntryScreenState extends State<PebDprEntryScreen> {
   }
 
   void _openWorkDetail(_VisibleWork work) {
+    if (work.isActive && !_hasUnlockedScope(work)) {
+      AppToast.info('Please complete the previous task before proceeding.');
+      return;
+    }
     if (!work.isActive) {
       AppToast.info(work.inactiveReason ?? 'This work is not assigned');
       return;
@@ -483,7 +487,7 @@ class _PebDprEntryScreenState extends State<PebDprEntryScreen> {
   String? _inactiveMessage(_VisibleWork work) {
     if (_isWorkFullyCompleted(work)) return 'Completed';
     if (work.isActive && !_hasUnlockedScope(work)) {
-      return 'Previous activity must be completed first';
+      return 'Please complete the previous task before proceeding.';
     }
     return work.inactiveReason;
   }
@@ -592,10 +596,11 @@ class _PebDprEntryScreenState extends State<PebDprEntryScreen> {
           weightMode: weightChanged ? 'manual' : 'actual',
           manualWeightKg: weightChanged ? enteredWeightKg : 0.0,
           totalWeightKg: enteredWeightKg,
+          remarks: (_markRemarks[key] ?? '').trim(),
           variationReason:
               weightChanged ? (_variationReasons[key] ?? '').trim() : '',
           variationRemarks:
-              weightChanged ? (_variationRemarks[key] ?? '').trim() : '',
+              weightChanged ? (_markRemarks[key] ?? '').trim() : '',
           reloadAfter: false,
           showToast: false,
         );
@@ -679,6 +684,7 @@ class _PebDprEntryScreenState extends State<PebDprEntryScreen> {
     double? actualQtyOverride,
     double? targetQtyOverride,
     String trackingLevel = 'advanced',
+    String remarks = '',
     String variationReason = '',
     String variationRemarks = '',
     String weightMode = 'none',
@@ -712,6 +718,7 @@ class _PebDprEntryScreenState extends State<PebDprEntryScreen> {
         targetQty: targetQty,
         progressPercentage: progress,
         trackingLevel: trackingLevel,
+        remarks: remarks,
         variationReason: variationReason,
         variationRemarks: variationRemarks,
         weightMode: weightMode,
@@ -732,6 +739,7 @@ class _PebDprEntryScreenState extends State<PebDprEntryScreen> {
             actualQtyOverride: actualQtyOverride,
             targetQtyOverride: targetQtyOverride,
             trackingLevel: trackingLevel,
+            remarks: remarks,
             variationReason: response.reason,
             variationRemarks: response.remarks,
             weightMode: weightMode,
@@ -861,13 +869,15 @@ class _PebDprEntryScreenState extends State<PebDprEntryScreen> {
                                     _buildAssignedWorkHeader(assignedWorks),
                                     const SizedBox(height: 16),
                                     if (assignedWorks.isEmpty)
-                                      const Card(
-                                        child: Padding(
-                                          padding: EdgeInsets.all(20),
-                                          child: Text(
-                                              'No assigned work found for this team.'),
-                                        ),
-                                      )
+                                      _boqs.isEmpty
+                                          ? _buildNoBoqState()
+                                          : const Card(
+                                              child: Padding(
+                                                padding: EdgeInsets.all(20),
+                                                child: Text(
+                                                    'No assigned work found for this team.'),
+                                              ),
+                                            )
                                     else
                                       ...assignedWorks.asMap().entries.map(
                                             (entry) => KeyedSubtree(
@@ -881,7 +891,9 @@ class _PebDprEntryScreenState extends State<PebDprEntryScreen> {
                                   ]
                                 : [
                                     _buildWorkDetailHeader(activeWork),
-                                    const SizedBox(height: 14),
+                                    const SizedBox(height: 10),
+                                    _buildDetailActionPanel(activeWork),
+                                    const SizedBox(height: 12),
                                     ...activeWork.assignedMarks.map(
                                       (mark) => _buildMarkEntryCard(
                                         activeWork,
@@ -1073,6 +1085,37 @@ class _PebDprEntryScreenState extends State<PebDprEntryScreen> {
     );
   }
 
+  Widget _buildNoBoqState() {
+    final cs = Theme.of(context).colorScheme;
+    return Card(
+      child: Padding(
+        padding: const EdgeInsets.all(18),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Icon(Icons.playlist_add_rounded, color: cs.primary, size: 34),
+            const SizedBox(height: 12),
+            const Text(
+              'No BOQ marks available',
+              style: TextStyle(fontSize: 18, fontWeight: FontWeight.w900),
+            ),
+            const SizedBox(height: 6),
+            Text(
+              'Add BOQ items manually or upload BOQ first, then return here for DPR entry.',
+              style: TextStyle(color: cs.onSurfaceVariant, height: 1.35),
+            ),
+            const SizedBox(height: 14),
+            FilledButton.icon(
+              onPressed: () => context.push('/site-list/boq-upload'),
+              icon: const Icon(Icons.add_rounded),
+              label: const Text('Add BOQ Items'),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
   Widget _buildFilters() {
     return Card(
       child: Padding(
@@ -1127,19 +1170,34 @@ class _PebDprEntryScreenState extends State<PebDprEntryScreen> {
 
   Widget _buildAssignedWorkHeader(List<_VisibleWork> assignedWorks) {
     final cs = Theme.of(context).colorScheme;
+    String selectedTeam = '';
+    for (final team in _teams) {
+      if (team.id == _teamId) {
+        selectedTeam = team.name;
+        break;
+      }
+    }
     return Row(
       crossAxisAlignment: CrossAxisAlignment.center,
       children: [
-        const Expanded(
+        Expanded(
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              Text(
+              const Text(
                 "Today's Assigned Work",
                 style: TextStyle(fontSize: 21, fontWeight: FontWeight.w900),
               ),
-              SizedBox(height: 2),
-              Text('Open a work item to update progress'),
+              const SizedBox(height: 2),
+              Text(
+                selectedTeam.isEmpty
+                    ? 'Open a work item to update progress'
+                    : '$selectedTeam • Open a work item to update progress',
+                style: TextStyle(
+                  color: cs.onSurfaceVariant.withValues(alpha: 0.62),
+                  fontWeight: FontWeight.w600,
+                ),
+              ),
             ],
           ),
         ),
@@ -1181,12 +1239,17 @@ class _PebDprEntryScreenState extends State<PebDprEntryScreen> {
     final completedDate = _completedDateForWork(work);
     final accent =
         isCompleted ? Colors.green.shade700 : const Color(0xFF4B16B7);
+    final completion = counts.total > 0
+        ? (counts.completed / counts.total).clamp(0.0, 1.0)
+        : 0.0;
     return Opacity(
       opacity: isActionable || isCompleted ? 1 : 0.38,
       child: Container(
         margin: const EdgeInsets.only(bottom: 10),
         decoration: BoxDecoration(
-          color: Theme.of(context).colorScheme.surface,
+          color: isCompleted
+              ? Colors.green.shade50
+              : Theme.of(context).colorScheme.surface,
           borderRadius: BorderRadius.circular(16),
           border: Border.all(
             color: isCompleted
@@ -1207,10 +1270,12 @@ class _PebDprEntryScreenState extends State<PebDprEntryScreen> {
           child: Row(
             children: [
               Container(
-                width: 86,
-                height: 112,
+                width: 82,
+                height: 118,
                 decoration: BoxDecoration(
-                  color: accent.withValues(alpha: 0.16),
+                  color: isCompleted
+                      ? Colors.green.shade100
+                      : accent.withValues(alpha: 0.14),
                   borderRadius:
                       const BorderRadius.horizontal(left: Radius.circular(16)),
                 ),
@@ -1221,6 +1286,7 @@ class _PebDprEntryScreenState extends State<PebDprEntryScreen> {
                     image: pebWorkImageProvider(
                         work.setupItem, widget.executionType),
                     fit: BoxFit.contain,
+                    alignment: Alignment.center,
                     errorBuilder: (_, __, ___) => pebWorkImageFallback(
                         work.setupItem, widget.executionType),
                   ),
@@ -1240,6 +1306,14 @@ class _PebDprEntryScreenState extends State<PebDprEntryScreen> {
                           fontWeight: FontWeight.w900,
                         ),
                       ),
+                      if (isCompleted) ...[
+                        const SizedBox(height: 6),
+                        _statusBadge(
+                          label: 'Completed',
+                          color: Colors.green.shade700,
+                          icon: Icons.check_circle_rounded,
+                        ),
+                      ],
                       const SizedBox(height: 10),
                       Row(
                         children: [
@@ -1257,6 +1331,14 @@ class _PebDprEntryScreenState extends State<PebDprEntryScreen> {
                         ],
                       ),
                       const SizedBox(height: 9),
+                      _completionBar(
+                        value: completion,
+                        color: Colors.green.shade700,
+                        backgroundColor: Theme.of(context)
+                            .colorScheme
+                            .surfaceContainerHighest,
+                      ),
+                      const SizedBox(height: 8),
                       _deadlineBanner(work, completedDate, deadline),
                     ],
                   ),
@@ -1266,6 +1348,68 @@ class _PebDprEntryScreenState extends State<PebDprEntryScreen> {
           ),
         ),
       ),
+    );
+  }
+
+  Widget _statusBadge({
+    required String label,
+    required Color color,
+    required IconData icon,
+  }) {
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 9, vertical: 5),
+      decoration: BoxDecoration(
+        color: color.withValues(alpha: 0.1),
+        borderRadius: BorderRadius.circular(999),
+        border: Border.all(color: color.withValues(alpha: 0.22)),
+      ),
+      child: Row(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          Icon(icon, size: 15, color: color),
+          const SizedBox(width: 5),
+          Text(
+            label,
+            style: TextStyle(
+              color: color,
+              fontSize: 12,
+              fontWeight: FontWeight.w900,
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _completionBar({
+    required double value,
+    required Color color,
+    required Color backgroundColor,
+  }) {
+    final percent = (value.clamp(0.0, 1.0) * 100).round();
+    return Row(
+      children: [
+        Expanded(
+          child: ClipRRect(
+            borderRadius: BorderRadius.circular(999),
+            child: LinearProgressIndicator(
+              value: value.clamp(0.0, 1.0),
+              minHeight: 8,
+              color: color,
+              backgroundColor: backgroundColor,
+            ),
+          ),
+        ),
+        const SizedBox(width: 8),
+        Text(
+          '$percent%',
+          style: TextStyle(
+            color: color,
+            fontSize: 12,
+            fontWeight: FontWeight.w900,
+          ),
+        ),
+      ],
     );
   }
 
@@ -1362,6 +1506,92 @@ class _PebDprEntryScreenState extends State<PebDprEntryScreen> {
     );
   }
 
+  Widget _buildDetailActionPanel(_VisibleWork work) {
+    final cs = Theme.of(context).colorScheme;
+    final counts = _counts(work);
+    final inProgressColor = const Color(0xFFE56F00);
+    final completedColor = Colors.green.shade700;
+    final progress = counts.total > 0 ? counts.completed / counts.total : 0.0;
+    final selecting = _markActionMode != _DprMarkActionMode.none;
+    return Container(
+      padding: const EdgeInsets.all(12),
+      decoration: BoxDecoration(
+        color: cs.surface,
+        borderRadius: BorderRadius.circular(16),
+        border: Border.all(color: cs.outlineVariant),
+      ),
+      child: Column(
+        children: [
+          Row(
+            children: [
+              Expanded(
+                child: Text(
+                  'Completion',
+                  style: TextStyle(
+                    color: cs.onSurface,
+                    fontWeight: FontWeight.w900,
+                  ),
+                ),
+              ),
+              Text(
+                '${counts.completed}/${counts.total} completed',
+                style: TextStyle(
+                  color: completedColor,
+                  fontWeight: FontWeight.w900,
+                ),
+              ),
+            ],
+          ),
+          const SizedBox(height: 10),
+          _completionBar(
+            value: progress,
+            color: completedColor,
+            backgroundColor: cs.surfaceContainerHighest,
+          ),
+          const SizedBox(height: 12),
+          Row(
+            children: [
+              Expanded(
+                child: OutlinedButton.icon(
+                  onPressed: _submitting || selecting
+                      ? null
+                      : () => _startMarkAction(_DprMarkActionMode.inProgress),
+                  icon: const Icon(Icons.pending_actions_rounded),
+                  label: Text('In Progress (${counts.inProgress})'),
+                  style: OutlinedButton.styleFrom(
+                    foregroundColor: inProgressColor,
+                    side: BorderSide(color: inProgressColor),
+                    minimumSize: const Size.fromHeight(46),
+                    shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(12),
+                    ),
+                  ),
+                ),
+              ),
+              const SizedBox(width: 10),
+              Expanded(
+                child: FilledButton.icon(
+                  onPressed: _submitting || selecting
+                      ? null
+                      : () => _startMarkAction(_DprMarkActionMode.completed),
+                  icon: const Icon(Icons.check_circle_rounded),
+                  label: Text('Completed (${counts.completed})'),
+                  style: FilledButton.styleFrom(
+                    backgroundColor: completedColor,
+                    minimumSize: const Size.fromHeight(46),
+                    shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(12),
+                    ),
+                  ),
+                ),
+              ),
+            ],
+          ),
+        ],
+      ),
+    );
+  }
+
   Widget _buildDetailBottomBar(_VisibleWork work) {
     final cs = Theme.of(context).colorScheme;
     final counts = _counts(work);
@@ -1397,7 +1627,7 @@ class _PebDprEntryScreenState extends State<PebDprEntryScreen> {
               Row(
                 children: [
                   Text(
-                    'Progress',
+                    'Completion',
                     style: TextStyle(
                       color: cs.onSurfaceVariant,
                       fontSize: 12,
@@ -1471,39 +1701,18 @@ class _PebDprEntryScreenState extends State<PebDprEntryScreen> {
                   : Row(
                       children: [
                         Expanded(
-                          child: OutlinedButton.icon(
-                            onPressed: _submitting
-                                ? null
-                                : () => _startMarkAction(
-                                    _DprMarkActionMode.inProgress),
-                            icon: const Icon(Icons.pending_actions_rounded),
-                            label: Text('In Progress (${counts.inProgress})'),
-                            style: OutlinedButton.styleFrom(
-                              foregroundColor: inProgressColor,
-                              side: BorderSide(color: inProgressColor),
-                              minimumSize: const Size.fromHeight(46),
-                              shape: RoundedRectangleBorder(
-                                borderRadius: BorderRadius.circular(12),
-                              ),
-                            ),
+                          child: _statusBadge(
+                            label: 'In Progress ${counts.inProgress}',
+                            color: const Color(0xFFE56F00),
+                            icon: Icons.pending_actions_rounded,
                           ),
                         ),
                         const SizedBox(width: 12),
                         Expanded(
-                          child: FilledButton.icon(
-                            onPressed: _submitting
-                                ? null
-                                : () => _startMarkAction(
-                                    _DprMarkActionMode.completed),
-                            style: FilledButton.styleFrom(
-                              backgroundColor: completedColor,
-                              minimumSize: const Size.fromHeight(46),
-                              shape: RoundedRectangleBorder(
-                                borderRadius: BorderRadius.circular(12),
-                              ),
-                            ),
-                            icon: const Icon(Icons.check_circle_rounded),
-                            label: Text('Completed (${counts.completed})'),
+                          child: _statusBadge(
+                            label: 'Completed ${counts.completed}',
+                            color: completedColor,
+                            icon: Icons.check_circle_rounded,
                           ),
                         ),
                       ],
@@ -1533,14 +1742,25 @@ class _PebDprEntryScreenState extends State<PebDprEntryScreen> {
     final isVariationOpen = _isWeightChanged(work, markNumber);
 
     return InkWell(
-      onTap: selecting && selectable
-          ? () => _toggleDetailMark(work, markNumber)
+      onTap: selecting
+          ? selectable
+              ? () => _toggleDetailMark(work, markNumber)
+              : () {
+                  if (!enabled) {
+                    AppToast.info(
+                        'Please complete the previous task before proceeding.');
+                  }
+                }
           : null,
       borderRadius: BorderRadius.circular(18),
       child: Container(
         margin: const EdgeInsets.only(bottom: 10),
         decoration: BoxDecoration(
-          color: selected ? const Color(0xFFF3ECFF) : cs.surface,
+          color: completed
+              ? Colors.green.shade50
+              : selected
+                  ? const Color(0xFFF3ECFF)
+                  : cs.surface,
           borderRadius: BorderRadius.circular(16),
           border: Border.all(
             width: selected ? 2 : 1,
@@ -1572,7 +1792,9 @@ class _PebDprEntryScreenState extends State<PebDprEntryScreen> {
                     width: 82,
                     height: 82,
                     decoration: BoxDecoration(
-                      color: Colors.blueGrey.shade50,
+                      color: completed
+                          ? Colors.green.shade100
+                          : Colors.blueGrey.shade50,
                       borderRadius: BorderRadius.circular(12),
                       border: Border.all(color: cs.outlineVariant),
                     ),
@@ -1586,6 +1808,7 @@ class _PebDprEntryScreenState extends State<PebDprEntryScreen> {
                             widget.executionType,
                           ),
                           fit: BoxFit.contain,
+                          alignment: Alignment.center,
                           width: double.infinity,
                           height: double.infinity,
                           errorBuilder: (_, __, ___) => Center(
@@ -1621,6 +1844,21 @@ class _PebDprEntryScreenState extends State<PebDprEntryScreen> {
                             fontWeight: FontWeight.w900,
                           ),
                         ),
+                        if (completed) ...[
+                          const SizedBox(height: 6),
+                          _statusBadge(
+                            label: 'Completed',
+                            color: Colors.green.shade700,
+                            icon: Icons.check_circle_rounded,
+                          ),
+                        ] else if (inProgress) ...[
+                          const SizedBox(height: 6),
+                          _statusBadge(
+                            label: 'In Progress',
+                            color: Colors.deepOrange.shade700,
+                            icon: Icons.pending_actions_rounded,
+                          ),
+                        ],
                         const SizedBox(height: 8),
                         Text(
                           'Weight (Kg)',
@@ -1674,6 +1912,22 @@ class _PebDprEntryScreenState extends State<PebDprEntryScreen> {
                   ],
                 ],
               ),
+              const SizedBox(height: 12),
+              TextFormField(
+                initialValue: _markRemarks[key] ?? '',
+                enabled: enabled && !completed,
+                decoration: InputDecoration(
+                  labelText: 'Remarks',
+                  prefixIcon: const Icon(Icons.notes_rounded),
+                  border: OutlineInputBorder(
+                    borderRadius: BorderRadius.circular(12),
+                  ),
+                  isDense: true,
+                ),
+                minLines: 1,
+                maxLines: 2,
+                onChanged: (value) => _markRemarks[key] = value,
+              ),
               if (isVariationOpen) ...[
                 const SizedBox(height: 12),
                 _pillBanner(
@@ -1691,17 +1945,6 @@ class _PebDprEntryScreenState extends State<PebDprEntryScreen> {
                   minLines: 1,
                   maxLines: 2,
                   onChanged: (value) => _variationReasons[key] = value,
-                ),
-                const SizedBox(height: 8),
-                TextFormField(
-                  initialValue: _variationRemarks[key] ?? '',
-                  decoration: const InputDecoration(
-                    labelText: 'Remarks',
-                    border: OutlineInputBorder(),
-                  ),
-                  minLines: 1,
-                  maxLines: 2,
-                  onChanged: (value) => _variationRemarks[key] = value,
                 ),
                 const SizedBox(height: 8),
               ],

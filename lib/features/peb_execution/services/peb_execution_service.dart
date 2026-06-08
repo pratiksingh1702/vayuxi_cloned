@@ -476,6 +476,7 @@ class PebExecutionService {
     required double targetQty,
     required int progressPercentage,
     String trackingLevel = 'advanced',
+    String remarks = '',
     String variationReason = '',
     String variationRemarks = '',
     String weightMode = 'none',
@@ -496,7 +497,7 @@ class PebExecutionService {
               type == PebExecutionType.fabrication ? marks.join(',') : '',
           'boqIds': const [],
           'status': 'submitted',
-          'remarks': '',
+          'remarks': remarks.trim(),
           'items': [
             {
               'setupItemId': setupItemId,
@@ -516,7 +517,7 @@ class PebExecutionService {
               'estimatedWeightPerUnitKg': estimatedWeightPerUnitKg,
               'manualWeightKg': manualWeightKg,
               'totalWeightKg': totalWeightKg,
-              'remarks': '',
+              'remarks': remarks.trim(),
               'manpower': 0,
               'assignedManpower': const [],
               'manualManpower': const [],
