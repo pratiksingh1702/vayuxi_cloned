@@ -1267,34 +1267,33 @@ class _PebDprEntryScreenState extends State<PebDprEntryScreen> {
         child: InkWell(
           borderRadius: BorderRadius.circular(16),
           onTap: () => _openWorkDetail(work),
-          child: Row(
-            children: [
-              Container(
-                width: 82,
-                height: 118,
-                decoration: BoxDecoration(
-                  color: isCompleted
-                      ? Colors.green.shade100
-                      : accent.withValues(alpha: 0.14),
-                  borderRadius:
-                      const BorderRadius.horizontal(left: Radius.circular(16)),
-                ),
-                clipBehavior: Clip.antiAlias,
-                child: Padding(
-                  padding: const EdgeInsets.all(10),
-                  child: Image(
-                    image: pebWorkImageProvider(
-                        work.setupItem, widget.executionType),
-                    fit: BoxFit.contain,
-                    alignment: Alignment.center,
-                    errorBuilder: (_, __, ___) => pebWorkImageFallback(
-                        work.setupItem, widget.executionType),
+          child: Padding(
+            padding: const EdgeInsets.all(12),
+            child: Row(
+              crossAxisAlignment: CrossAxisAlignment.center,
+              children: [
+                Container(
+                  width: 76,
+                  height: 76,
+                  decoration: BoxDecoration(
+                    color: isCompleted
+                        ? Colors.green.shade100
+                        : accent.withValues(alpha: 0.12),
+                    borderRadius: BorderRadius.circular(14),
+                    border: Border.all(
+                      color: isCompleted
+                          ? Colors.green.shade200
+                          : accent.withValues(alpha: 0.14),
+                    ),
+                  ),
+                  clipBehavior: Clip.antiAlias,
+                  child: Padding(
+                    padding: const EdgeInsets.all(9),
+                    child: _workCardImage(work),
                   ),
                 ),
-              ),
-              Expanded(
-                child: Padding(
-                  padding: const EdgeInsets.fromLTRB(12, 10, 8, 10),
+                const SizedBox(width: 12),
+                Expanded(
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
@@ -1343,8 +1342,27 @@ class _PebDprEntryScreenState extends State<PebDprEntryScreen> {
                     ],
                   ),
                 ),
-              ),
-            ],
+              ],
+            ),
+          ),
+        ),
+      ),
+    );
+  }
+
+  Widget _workCardImage(_VisibleWork work) {
+    return Center(
+      child: SizedBox.square(
+        dimension: 58,
+        child: Image(
+          image: pebWorkImageProvider(work.setupItem, widget.executionType),
+          fit: BoxFit.contain,
+          alignment: Alignment.center,
+          filterQuality: FilterQuality.medium,
+          errorBuilder: (_, __, ___) => pebWorkImageFallback(
+            work.setupItem,
+            widget.executionType,
+            fit: BoxFit.contain,
           ),
         ),
       ),
@@ -1594,10 +1612,9 @@ class _PebDprEntryScreenState extends State<PebDprEntryScreen> {
 
   Widget _buildDetailBottomBar(_VisibleWork work) {
     final cs = Theme.of(context).colorScheme;
-    final counts = _counts(work);
     final selecting = _markActionMode != _DprMarkActionMode.none;
+    if (!selecting) return const SizedBox.shrink();
     final isCompletedMode = _markActionMode == _DprMarkActionMode.completed;
-    final progress = counts.total > 0 ? counts.completed / counts.total : 0.0;
     final inProgressColor = const Color(0xFFE56F00);
     final completedColor = Colors.green.shade700;
     return Positioned(
@@ -1621,102 +1638,42 @@ class _PebDprEntryScreenState extends State<PebDprEntryScreen> {
               ),
             ],
           ),
-          child: Column(
-            mainAxisSize: MainAxisSize.min,
+          child: Row(
             children: [
-              Row(
-                children: [
-                  Text(
-                    'Completion',
-                    style: TextStyle(
-                      color: cs.onSurfaceVariant,
-                      fontSize: 12,
-                      fontWeight: FontWeight.w800,
+              Expanded(
+                child: OutlinedButton(
+                  onPressed: () => setState(() {
+                    _markActionMode = _DprMarkActionMode.none;
+                    _selectedDetailMarks.clear();
+                  }),
+                  style: OutlinedButton.styleFrom(
+                    minimumSize: const Size.fromHeight(46),
+                    shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(12),
                     ),
                   ),
-                  const SizedBox(width: 10),
-                  Expanded(
-                    child: ClipRRect(
-                      borderRadius: BorderRadius.circular(999),
-                      child: LinearProgressIndicator(
-                        value: progress.clamp(0.0, 1.0),
-                        minHeight: 7,
-                        color: completedColor,
-                        backgroundColor: cs.surfaceContainerHighest,
-                      ),
-                    ),
-                  ),
-                  const SizedBox(width: 12),
-                  Text(
-                    '${(progress * 100).round()}%',
-                    style: TextStyle(
-                      color: completedColor,
-                      fontWeight: FontWeight.w900,
-                    ),
-                  ),
-                ],
+                  child: const Text('Cancel'),
+                ),
               ),
-              const SizedBox(height: 12),
-              selecting
-                  ? Row(
-                      children: [
-                        Expanded(
-                          child: OutlinedButton(
-                            onPressed: () => setState(() {
-                              _markActionMode = _DprMarkActionMode.none;
-                              _selectedDetailMarks.clear();
-                            }),
-                            style: OutlinedButton.styleFrom(
-                              minimumSize: const Size.fromHeight(46),
-                              shape: RoundedRectangleBorder(
-                                borderRadius: BorderRadius.circular(12),
-                              ),
-                            ),
-                            child: const Text('Cancel'),
-                          ),
-                        ),
-                        const SizedBox(width: 12),
-                        Expanded(
-                          child: FilledButton(
-                            onPressed:
-                                _selectedDetailMarks.isEmpty || _submitting
-                                    ? null
-                                    : () => _submitSelectedDetailMarks(work),
-                            style: FilledButton.styleFrom(
-                              backgroundColor: isCompletedMode
-                                  ? completedColor
-                                  : inProgressColor,
-                              minimumSize: const Size.fromHeight(46),
-                              shape: RoundedRectangleBorder(
-                                borderRadius: BorderRadius.circular(12),
-                              ),
-                            ),
-                            child: Text(
-                              '${isCompletedMode ? 'Complete' : 'In Progress'} (${_selectedDetailMarks.length})',
-                            ),
-                          ),
-                        ),
-                      ],
-                    )
-                  : Row(
-                      children: [
-                        Expanded(
-                          child: _statusBadge(
-                            label: 'In Progress ${counts.inProgress}',
-                            color: const Color(0xFFE56F00),
-                            icon: Icons.pending_actions_rounded,
-                          ),
-                        ),
-                        const SizedBox(width: 12),
-                        Expanded(
-                          child: _statusBadge(
-                            label: 'Completed ${counts.completed}',
-                            color: completedColor,
-                            icon: Icons.check_circle_rounded,
-                          ),
-                        ),
-                      ],
+              const SizedBox(width: 12),
+              Expanded(
+                child: FilledButton(
+                  onPressed: _selectedDetailMarks.isEmpty || _submitting
+                      ? null
+                      : () => _submitSelectedDetailMarks(work),
+                  style: FilledButton.styleFrom(
+                    backgroundColor:
+                        isCompletedMode ? completedColor : inProgressColor,
+                    minimumSize: const Size.fromHeight(46),
+                    shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(12),
                     ),
+                  ),
+                  child: Text(
+                    '${isCompletedMode ? 'Complete' : 'In Progress'} (${_selectedDetailMarks.length})',
+                  ),
+                ),
+              ),
             ],
           ),
         ),
@@ -1740,6 +1697,19 @@ class _PebDprEntryScreenState extends State<PebDprEntryScreen> {
         !completed &&
         !(_markActionMode == _DprMarkActionMode.inProgress && inProgress);
     final isVariationOpen = _isWeightChanged(work, markNumber);
+    final Widget? statusBadge = completed
+        ? _statusBadge(
+            label: 'Completed',
+            color: Colors.green.shade700,
+            icon: Icons.check_circle_rounded,
+          )
+        : inProgress
+            ? _statusBadge(
+                label: 'In Progress',
+                color: Colors.deepOrange.shade700,
+                icon: Icons.pending_actions_rounded,
+              )
+            : null;
 
     return InkWell(
       onTap: selecting
@@ -1785,6 +1755,13 @@ class _PebDprEntryScreenState extends State<PebDprEntryScreen> {
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.stretch,
             children: [
+              if (statusBadge != null) ...[
+                Align(
+                  alignment: Alignment.centerRight,
+                  child: statusBadge,
+                ),
+                const SizedBox(height: 8),
+              ],
               Row(
                 crossAxisAlignment: CrossAxisAlignment.center,
                 children: [
@@ -1844,21 +1821,6 @@ class _PebDprEntryScreenState extends State<PebDprEntryScreen> {
                             fontWeight: FontWeight.w900,
                           ),
                         ),
-                        if (completed) ...[
-                          const SizedBox(height: 6),
-                          _statusBadge(
-                            label: 'Completed',
-                            color: Colors.green.shade700,
-                            icon: Icons.check_circle_rounded,
-                          ),
-                        ] else if (inProgress) ...[
-                          const SizedBox(height: 6),
-                          _statusBadge(
-                            label: 'In Progress',
-                            color: Colors.deepOrange.shade700,
-                            icon: Icons.pending_actions_rounded,
-                          ),
-                        ],
                         const SizedBox(height: 8),
                         Text(
                           'Weight (Kg)',
