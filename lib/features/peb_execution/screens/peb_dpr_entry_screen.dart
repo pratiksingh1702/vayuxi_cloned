@@ -41,6 +41,12 @@ class _PebDprEntryScreenState extends State<PebDprEntryScreen> {
   List<PebTeam> _teams = [];
   List<PebBoq> _boqs = [];
   List<PebWorkAssignment> _assignments = [];
+  final Map<String, String> _markQuantityInputs = {};
+  final Map<String, String> _variationReasons = {};
+  final Map<String, String> _variationRemarks = {};
+  String? _activeWorkKey;
+  _DprMarkActionMode _markActionMode = _DprMarkActionMode.none;
+  final Set<String> _selectedDetailMarks = {};
   PebMarkStatus _status =
       const PebMarkStatus(completedByKey: {}, inProgressByKey: {});
 
@@ -61,6 +67,9 @@ class _PebDprEntryScreenState extends State<PebDprEntryScreen> {
       _setup = null;
       _boqs = [];
       _assignments = [];
+      _activeWorkKey = null;
+      _markActionMode = _DprMarkActionMode.none;
+      _selectedDetailMarks.clear();
       _status = const PebMarkStatus(completedByKey: {}, inProgressByKey: {});
       _load();
     }
@@ -105,9 +114,15 @@ class _PebDprEntryScreenState extends State<PebDprEntryScreen> {
             .where((assignment) => assignment.status != 'cancelled')
             .toList();
         _status = results[3] as PebMarkStatus;
+        if (_activeWorkKey != null &&
+            !_visibleWorks().any((work) => work.key == _activeWorkKey)) {
+          _activeWorkKey = null;
+          _markActionMode = _DprMarkActionMode.none;
+          _selectedDetailMarks.clear();
+        }
         _loadError = null;
       });
-      if (autoScroll) _scrollToFirstActiveWork();
+      if (autoScroll && _activeWorkKey == null) _scrollToFirstActiveWork();
     } catch (error) {
       final message = extractBackendError(error);
       if (mounted) setState(() => _loadError = message);
@@ -121,11 +136,106 @@ class _PebDprEntryScreenState extends State<PebDprEntryScreen> {
 
   List<PebBoqMark> get _allMarks => _boqs.expand((boq) => boq.items).toList();
 
+  String _markInputKey(_VisibleWork work, String mark) => '${work.key}::$mark';
+
+  _VisibleWork? _activeWork(List<_VisibleWork> works) {
+    final key = _activeWorkKey;
+    if (key == null) return null;
+    for (final work in works) {
+      if (work.key == key) return work;
+    }
+    return null;
+  }
+
+  void _openWorkDetail(_VisibleWork work) {
+    if (!work.isActive) {
+      AppToast.info(work.inactiveReason ?? 'This work is not assigned');
+      return;
+    }
+    setState(() {
+      _activeWorkKey = work.key;
+      _markActionMode = _DprMarkActionMode.none;
+      _selectedDetailMarks.clear();
+    });
+  }
+
+  void _closeWorkDetail() {
+    setState(() {
+      _activeWorkKey = null;
+      _markActionMode = _DprMarkActionMode.none;
+      _selectedDetailMarks.clear();
+    });
+  }
+
   double _markQuantity(String mark) {
     return _allMarks.where((item) => item.assemblyMark == mark).fold<double>(
         0,
         (sum, item) =>
             sum + (item.remainingQty > 0 ? item.remainingQty : item.quantity));
+  }
+
+  double _markWeightKg(String mark) {
+    final matches =
+        _allMarks.where((item) => item.assemblyMark == mark).toList();
+    if (matches.isEmpty) return _markQuantity(mark);
+    final totalWeight = matches.fold<double>(
+        0,
+        (sum, item) =>
+            sum + (item.totalNetWeight > 0 ? item.totalNetWeight : 0));
+    if (totalWeight > 0) return totalWeight;
+    final perUnitWeight = matches.fold<double>(
+      0,
+      (sum, item) =>
+          sum +
+          ((item.remainingQty > 0 ? item.remainingQty : item.quantity) *
+              item.netWeightPerUnit),
+    );
+    return perUnitWeight > 0 ? perUnitWeight : _markQuantity(mark);
+  }
+
+  String _prettyNumber(double value) {
+    if (value == value.roundToDouble()) return value.toStringAsFixed(0);
+    return value.toStringAsFixed(2);
+  }
+
+  double _enteredWeightKgForMark(_VisibleWork work, String mark) {
+    final key = _markInputKey(work, mark);
+    return double.tryParse(_markQuantityInputs[key] ?? '') ??
+        _markWeightKg(mark);
+  }
+
+  bool _isWeightChanged(_VisibleWork work, String mark) {
+    final key = _markInputKey(work, mark);
+    if (!_markQuantityInputs.containsKey(key)) return false;
+    final entered = double.tryParse(_markQuantityInputs[key] ?? '');
+    if (entered == null) return false;
+    return (entered - _markWeightKg(mark)).abs() > 0.0001;
+  }
+
+  void _startMarkAction(_DprMarkActionMode mode) {
+    setState(() {
+      _markActionMode = mode;
+      _selectedDetailMarks.clear();
+    });
+  }
+
+  void _toggleDetailMark(_VisibleWork work, String mark) {
+    if (_markActionMode == _DprMarkActionMode.none) return;
+    final completed = _completedForWork(work).contains(mark);
+    final inProgress = _inProgressForWork(work).contains(mark);
+    final unlocked = _unlockedMarksForWork(work).contains(mark);
+    if (completed ||
+        !unlocked ||
+        (_markActionMode == _DprMarkActionMode.inProgress && inProgress)) {
+      return;
+    }
+    setState(() {
+      if (_selectedDetailMarks.contains(mark)) {
+        _selectedDetailMarks.remove(mark);
+      } else {
+        _selectedDetailMarks.add(mark);
+      }
+    });
   }
 
   Future<void> _pickDate() async {
@@ -434,6 +544,67 @@ class _PebDprEntryScreenState extends State<PebDprEntryScreen> {
     await _submitProgress(work, selected, completedAction ? 100 : 50);
   }
 
+  Future<void> _submitSelectedDetailMarks(_VisibleWork work) async {
+    if (_markActionMode == _DprMarkActionMode.none) return;
+    if (_selectedDetailMarks.isEmpty) {
+      AppToast.error('Select at least one mark number');
+      return;
+    }
+
+    final completedAction = _markActionMode == _DprMarkActionMode.completed;
+    for (final mark in _selectedDetailMarks) {
+      if (_isWeightChanged(work, mark)) {
+        final key = _markInputKey(work, mark);
+        if ((_variationReasons[key] ?? '').trim().isEmpty) {
+          AppToast.error('Variation reason is required for $mark');
+          return;
+        }
+      }
+    }
+
+    setState(() => _submitting = true);
+    try {
+      final marksToSubmit = _selectedDetailMarks.toList();
+      for (final mark in marksToSubmit) {
+        final rawTargetQty = _markQuantity(mark);
+        final targetQty = rawTargetQty > 0 ? rawTargetQty : 1.0;
+        final enteredWeightKg = _enteredWeightKgForMark(work, mark);
+        if (enteredWeightKg <= 0) {
+          AppToast.error('Enter a valid weight for $mark');
+          return;
+        }
+        final progress = completedAction ? 100 : 50;
+        final actualQty = completedAction ? targetQty : targetQty * 0.5;
+        final key = _markInputKey(work, mark);
+        final weightChanged = _isWeightChanged(work, mark);
+        await _submitProgress(
+          work,
+          [mark],
+          progress,
+          actualQtyOverride: actualQty,
+          targetQtyOverride: targetQty,
+          weightMode: weightChanged ? 'manual' : 'actual',
+          manualWeightKg: weightChanged ? enteredWeightKg : 0.0,
+          totalWeightKg: enteredWeightKg,
+          variationReason:
+              weightChanged ? (_variationReasons[key] ?? '').trim() : '',
+          variationRemarks:
+              weightChanged ? (_variationRemarks[key] ?? '').trim() : '',
+          reloadAfter: false,
+          showToast: false,
+        );
+      }
+      AppToast.success('DPR updated successfully');
+      setState(() {
+        _markActionMode = _DprMarkActionMode.none;
+        _selectedDetailMarks.clear();
+      });
+      await _load(showLoader: false, autoScroll: false);
+    } finally {
+      if (mounted) setState(() => _submitting = false);
+    }
+  }
+
   Future<void> _openQuantityAction(_VisibleWork work) async {
     final quantity = TextEditingController();
     final entered = await showDialog<double>(
@@ -500,15 +671,24 @@ class _PebDprEntryScreenState extends State<PebDprEntryScreen> {
     List<String> marks,
     int progress, {
     double? actualQtyOverride,
+    double? targetQtyOverride,
     String trackingLevel = 'advanced',
     String variationReason = '',
     String variationRemarks = '',
+    String weightMode = 'none',
+    double estimatedWeightPerUnitKg = 0,
+    double manualWeightKg = 0,
+    double totalWeightKg = 0,
+    bool reloadAfter = true,
+    bool showToast = true,
   }) async {
     setState(() => _submitting = true);
     try {
-      final targetQty = marks.isEmpty
-          ? work.assignedQty
-          : marks.fold<double>(0, (sum, mark) => sum + _markQuantity(mark));
+      final targetQty = targetQtyOverride ??
+          (marks.isEmpty
+              ? work.assignedQty
+              : marks.fold<double>(
+                  0, (sum, mark) => sum + _markQuantity(mark)));
       final actualQty = actualQtyOverride ?? targetQty * progress / 100;
       await _service.submitDprProgress(
         widget.siteId,
@@ -527,9 +707,13 @@ class _PebDprEntryScreenState extends State<PebDprEntryScreen> {
         trackingLevel: trackingLevel,
         variationReason: variationReason,
         variationRemarks: variationRemarks,
+        weightMode: weightMode,
+        estimatedWeightPerUnitKg: estimatedWeightPerUnitKg,
+        manualWeightKg: manualWeightKg,
+        totalWeightKg: totalWeightKg,
       );
-      AppToast.success('DPR updated successfully');
-      await _load(showLoader: false, autoScroll: true);
+      if (showToast) AppToast.success('DPR updated successfully');
+      if (reloadAfter) await _load(showLoader: false, autoScroll: true);
     } on PebBoqVariationRequired catch (variation) {
       if (mounted) {
         final response = await _showVariationDialog(variation.variations);
@@ -539,9 +723,16 @@ class _PebDprEntryScreenState extends State<PebDprEntryScreen> {
             marks,
             progress,
             actualQtyOverride: actualQtyOverride,
+            targetQtyOverride: targetQtyOverride,
             trackingLevel: trackingLevel,
             variationReason: response.reason,
             variationRemarks: response.remarks,
+            weightMode: weightMode,
+            estimatedWeightPerUnitKg: estimatedWeightPerUnitKg,
+            manualWeightKg: manualWeightKg,
+            totalWeightKg: totalWeightKg,
+            reloadAfter: reloadAfter,
+            showToast: showToast,
           );
         }
       }
@@ -638,6 +829,8 @@ class _PebDprEntryScreenState extends State<PebDprEntryScreen> {
   @override
   Widget build(BuildContext context) {
     final works = _visibleWorks();
+    final activeWork = _activeWork(works);
+    final assignedWorks = works.where((work) => work.isActive).toList();
     return Scaffold(
       drawer: const CustomDrawer(),
       appBar: CustomAppBar(title: '${widget.executionType.title} DPR'),
@@ -654,32 +847,103 @@ class _PebDprEntryScreenState extends State<PebDprEntryScreen> {
                           child: ListView(
                             controller: _scrollController,
                             padding: const EdgeInsets.all(16),
-                            children: [
-                              _buildFilters(),
-                              const SizedBox(height: 16),
-                              Text(
-                                '${widget.executionType.section[0].toUpperCase()}${widget.executionType.section.substring(1)} Items',
-                                style: const TextStyle(
-                                    fontSize: 20, fontWeight: FontWeight.w900),
-                              ),
-                              const SizedBox(height: 4),
-                              const Text(
-                                  'Add date-wise completed quantity for each selected work item'),
-                              const SizedBox(height: 16),
-                              if (works.isEmpty)
-                                const Card(
-                                    child: Padding(
-                                        padding: EdgeInsets.all(20),
-                                        child: Text('No work found.')))
-                              else
-                                ...works.map((work) => KeyedSubtree(
-                                      key: _keyForWork(work),
-                                      child: _buildWorkCard(work),
-                                    )),
-                              const SizedBox(height: 80),
-                            ],
+                            children: activeWork == null
+                                ? [
+                                    _buildFilters(),
+                                    const SizedBox(height: 18),
+                                    _buildAssignedWorkHeader(assignedWorks),
+                                    const SizedBox(height: 16),
+                                    if (assignedWorks.isEmpty)
+                                      const Card(
+                                        child: Padding(
+                                          padding: EdgeInsets.all(20),
+                                          child: Text(
+                                              'No assigned work found for this team.'),
+                                        ),
+                                      )
+                                    else
+                                      ...assignedWorks.map(
+                                        (work) => KeyedSubtree(
+                                          key: _keyForWork(work),
+                                          child: _buildWorkCard(work),
+                                        ),
+                                      ),
+                                    const SizedBox(height: 90),
+                                  ]
+                                : [
+                                    _buildWorkDetailHeader(activeWork),
+                                    const SizedBox(height: 14),
+                                    ...activeWork.assignedMarks.map(
+                                      (mark) => _buildMarkEntryCard(
+                                        activeWork,
+                                        mark,
+                                        enabled:
+                                            _unlockedMarksForWork(activeWork)
+                                                .contains(mark),
+                                      ),
+                                    ),
+                                    if (activeWork.assignedMarks.isEmpty)
+                                      Card(
+                                        child: Padding(
+                                          padding: const EdgeInsets.all(20),
+                                          child: Column(
+                                            crossAxisAlignment:
+                                                CrossAxisAlignment.stretch,
+                                            children: [
+                                              Text(
+                                                'Quantity based work',
+                                                style: TextStyle(
+                                                  color: Theme.of(context)
+                                                      .colorScheme
+                                                      .onSurface,
+                                                  fontWeight: FontWeight.w800,
+                                                ),
+                                              ),
+                                              const SizedBox(height: 12),
+                                              Row(
+                                                children: [
+                                                  Expanded(
+                                                    child: OutlinedButton(
+                                                      onPressed:
+                                                          _isWorkActionable(
+                                                                  activeWork)
+                                                              ? () =>
+                                                                  _openAction(
+                                                                      activeWork,
+                                                                      false)
+                                                              : null,
+                                                      child: const Text(
+                                                          'In Progress'),
+                                                    ),
+                                                  ),
+                                                  const SizedBox(width: 10),
+                                                  Expanded(
+                                                    child: FilledButton(
+                                                      onPressed:
+                                                          _isWorkActionable(
+                                                                  activeWork)
+                                                              ? () =>
+                                                                  _openAction(
+                                                                      activeWork,
+                                                                      true)
+                                                              : null,
+                                                      child: const Text(
+                                                          'Completed'),
+                                                    ),
+                                                  ),
+                                                ],
+                                              ),
+                                            ],
+                                          ),
+                                        ),
+                                      ),
+                                    const SizedBox(height: 190),
+                                  ],
                           ),
                         ),
+                        if (activeWork != null &&
+                            activeWork.assignedMarks.isNotEmpty)
+                          _buildDetailBottomBar(activeWork),
                         if (_submitting)
                           Positioned.fill(
                             child: AbsorbPointer(
@@ -852,60 +1116,478 @@ class _PebDprEntryScreenState extends State<PebDprEntryScreen> {
     );
   }
 
+  Widget _buildAssignedWorkHeader(List<_VisibleWork> assignedWorks) {
+    return Row(
+      crossAxisAlignment: CrossAxisAlignment.end,
+      children: [
+        const Expanded(
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Text(
+                "Today's Assigned Work",
+                style: TextStyle(fontSize: 24, fontWeight: FontWeight.w900),
+              ),
+              SizedBox(height: 4),
+              Text('Select any work to add today\'s progress'),
+            ],
+          ),
+        ),
+        Container(
+          padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+          decoration: BoxDecoration(
+            color: const Color(0xFFF5EDFF),
+            borderRadius: BorderRadius.circular(16),
+            border: Border.all(color: const Color(0xFFE1C8FF)),
+          ),
+          child: Column(
+            children: [
+              const Text('Total Assigned',
+                  style: TextStyle(fontSize: 12, fontWeight: FontWeight.w800)),
+              Text('${assignedWorks.length}',
+                  style: const TextStyle(
+                      color: Color(0xFF3F148F),
+                      fontSize: 26,
+                      fontWeight: FontWeight.w900)),
+              const Text('Works',
+                  style: TextStyle(fontSize: 12, fontWeight: FontWeight.w700)),
+            ],
+          ),
+        ),
+      ],
+    );
+  }
+
   Widget _buildWorkCard(_VisibleWork work) {
     final counts = _counts(work);
     final isActionable = _isWorkActionable(work);
     final isCompleted = _isWorkFullyCompleted(work);
-    final inactiveMessage = _inactiveMessage(work);
     final deadline = work.expectedCompletionDate == null
         ? '-'
         : DateFormat('dd MMM yyyy').format(work.expectedCompletionDate!);
-    final start = work.assignmentDate == null
-        ? '-'
-        : DateFormat('dd MMM yyyy').format(work.assignmentDate!);
     final completedDate = _completedDateForWork(work);
     final hasCustomImage = pebWorkImageIsCustom(work.setupItem);
+    final accent =
+        isCompleted ? Colors.green.shade700 : const Color(0xFF4B16B7);
     return Opacity(
       opacity: isActionable || isCompleted ? 1 : 0.38,
       child: Card(
         margin: const EdgeInsets.only(bottom: 14),
         shape: RoundedRectangleBorder(
-          borderRadius: BorderRadius.circular(28),
+          borderRadius: BorderRadius.circular(24),
           side: BorderSide(
-            color:
-                isCompleted ? Colors.green.shade600 : const Color(0xFF11264B),
-            width: isCompleted ? 1.8 : 1.3,
+            color: isCompleted ? Colors.green.shade300 : Colors.grey.shade200,
           ),
         ),
+        child: InkWell(
+          borderRadius: BorderRadius.circular(24),
+          onTap: () => _openWorkDetail(work),
+          child: Row(
+            children: [
+              Container(
+                width: 118,
+                height: 168,
+                decoration: BoxDecoration(
+                  color: accent.withValues(alpha: 0.16),
+                  borderRadius: const BorderRadius.horizontal(
+                    left: Radius.circular(24),
+                  ),
+                ),
+                padding: EdgeInsets.all(hasCustomImage ? 0 : 18),
+                child: Image(
+                  image: pebWorkImageProvider(
+                      work.setupItem, widget.executionType),
+                  fit: hasCustomImage ? BoxFit.cover : BoxFit.contain,
+                  errorBuilder: (_, __, ___) => pebWorkImageFallback(
+                      work.setupItem, widget.executionType),
+                ),
+              ),
+              Expanded(
+                child: Padding(
+                  padding: const EdgeInsets.all(14),
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text(
+                        work.displayName ?? work.stageName,
+                        style: TextStyle(
+                          color: accent,
+                          fontSize: 22,
+                          fontWeight: FontWeight.w900,
+                        ),
+                      ),
+                      const SizedBox(height: 12),
+                      Row(
+                        children: [
+                          Expanded(
+                              child: _workCountBlock(
+                                  'Assigned', counts.total, Colors.black87)),
+                          Expanded(
+                              child: _workCountBlock('In Progress',
+                                  counts.inProgress, Colors.orange)),
+                          Expanded(
+                              child: _workCountBlock('Completed',
+                                  counts.completed, Colors.green.shade700)),
+                          Icon(Icons.chevron_right_rounded,
+                              size: 42, color: accent),
+                        ],
+                      ),
+                      const SizedBox(height: 12),
+                      _deadlineBanner(work, completedDate, deadline),
+                    ],
+                  ),
+                ),
+              ),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+
+  Widget _workCountBlock(String label, int count, Color color) {
+    return Column(
+      children: [
+        Text(label,
+            textAlign: TextAlign.center,
+            style: const TextStyle(fontSize: 11, fontWeight: FontWeight.w700)),
+        const SizedBox(height: 2),
+        Text('$count',
+            style: TextStyle(
+                color: color, fontSize: 21, fontWeight: FontWeight.w900)),
+        const Text('Mark Nos.',
+            textAlign: TextAlign.center, style: TextStyle(fontSize: 10)),
+      ],
+    );
+  }
+
+  Widget _deadlineBanner(
+      _VisibleWork work, DateTime? completedDate, String deadline) {
+    if (_isWorkFullyCompleted(work) && completedDate != null) {
+      return _pillBanner(
+        icon: Icons.check_circle,
+        color: Colors.green.shade700,
+        text: 'Completed on ${DateFormat('dd MMM yyyy').format(completedDate)}',
+      );
+    }
+    if (work.expectedCompletionDate == null) {
+      return _pillBanner(
+        icon: Icons.schedule,
+        color: Colors.blueGrey,
+        text: 'TCD not set',
+      );
+    }
+    final today =
+        DateTime(_selectedDate.year, _selectedDate.month, _selectedDate.day);
+    final tcd = DateTime(work.expectedCompletionDate!.year,
+        work.expectedCompletionDate!.month, work.expectedCompletionDate!.day);
+    final days = tcd.difference(today).inDays;
+    final missed = days < 0;
+    return _pillBanner(
+      icon: Icons.schedule,
+      color: missed ? Colors.red.shade700 : const Color(0xFF174EA6),
+      text: missed
+          ? 'TCD was $deadline (${days.abs()} Days Missed)'
+          : 'TCD is $deadline ($days Days Left)',
+    );
+  }
+
+  Widget _pillBanner({
+    required IconData icon,
+    required Color color,
+    required String text,
+  }) {
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 8),
+      decoration: BoxDecoration(
+        color: color.withValues(alpha: 0.1),
+        borderRadius: BorderRadius.circular(999),
+      ),
+      child: Row(
+        children: [
+          Icon(icon, size: 18, color: color),
+          const SizedBox(width: 8),
+          Expanded(
+            child: Text(
+              text,
+              style: TextStyle(color: color, fontWeight: FontWeight.w800),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildWorkDetailHeader(_VisibleWork work) {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        TextButton.icon(
+          onPressed: _closeWorkDetail,
+          icon: const Icon(Icons.arrow_back_rounded),
+          label: const Text('Back'),
+        ),
+        Text(
+          work.displayName ?? work.stageName,
+          style: const TextStyle(fontSize: 26, fontWeight: FontWeight.w900),
+        ),
+      ],
+    );
+  }
+
+  Widget _buildDetailBottomBar(_VisibleWork work) {
+    final cs = Theme.of(context).colorScheme;
+    final counts = _counts(work);
+    final selecting = _markActionMode != _DprMarkActionMode.none;
+    final isCompletedMode = _markActionMode == _DprMarkActionMode.completed;
+    final progress = counts.total > 0 ? counts.completed / counts.total : 0.0;
+    return Positioned(
+      left: 0,
+      right: 0,
+      bottom: 0,
+      child: SafeArea(
+        top: false,
+        child: Container(
+          padding: const EdgeInsets.fromLTRB(16, 12, 16, 12),
+          decoration: BoxDecoration(
+            color: cs.surface,
+            boxShadow: [
+              BoxShadow(
+                color: Colors.black.withValues(alpha: 0.08),
+                blurRadius: 18,
+                offset: const Offset(0, -6),
+              ),
+            ],
+          ),
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              Row(
+                children: [
+                  Expanded(
+                    child: ClipRRect(
+                      borderRadius: BorderRadius.circular(999),
+                      child: LinearProgressIndicator(
+                        value: progress.clamp(0.0, 1.0),
+                        minHeight: 8,
+                        color: Colors.green.shade700,
+                        backgroundColor: cs.surfaceContainerHighest,
+                      ),
+                    ),
+                  ),
+                  const SizedBox(width: 12),
+                  Text(
+                    '${(progress * 100).round()}%',
+                    style: TextStyle(
+                      color: Colors.green.shade700,
+                      fontWeight: FontWeight.w900,
+                    ),
+                  ),
+                ],
+              ),
+              const SizedBox(height: 8),
+              Row(
+                children: [
+                  Expanded(
+                    child: _bottomCountChip(
+                      label: 'In Progress',
+                      value: counts.inProgress,
+                      color: Colors.deepOrange,
+                    ),
+                  ),
+                  const SizedBox(width: 10),
+                  Expanded(
+                    child: _bottomCountChip(
+                      label: 'Completed',
+                      value: counts.completed,
+                      color: Colors.green.shade700,
+                    ),
+                  ),
+                ],
+              ),
+              const SizedBox(height: 10),
+              selecting
+                  ? Row(
+                      children: [
+                        Expanded(
+                          child: OutlinedButton(
+                            onPressed: () => setState(() {
+                              _markActionMode = _DprMarkActionMode.none;
+                              _selectedDetailMarks.clear();
+                            }),
+                            child: const Text('Cancel'),
+                          ),
+                        ),
+                        const SizedBox(width: 12),
+                        Expanded(
+                          child: FilledButton(
+                            onPressed:
+                                _selectedDetailMarks.isEmpty || _submitting
+                                    ? null
+                                    : () => _submitSelectedDetailMarks(work),
+                            style: FilledButton.styleFrom(
+                              backgroundColor: isCompletedMode
+                                  ? Colors.green.shade700
+                                  : Colors.deepOrange,
+                            ),
+                            child: Text(
+                              '${isCompletedMode ? 'Complete' : 'In Progress'} (${_selectedDetailMarks.length})',
+                            ),
+                          ),
+                        ),
+                      ],
+                    )
+                  : Row(
+                      children: [
+                        Expanded(
+                          child: FilledButton(
+                            onPressed: _submitting
+                                ? null
+                                : () => _startMarkAction(
+                                    _DprMarkActionMode.inProgress),
+                            style: FilledButton.styleFrom(
+                                backgroundColor: Colors.deepOrange),
+                            child: const Text('In Progress'),
+                          ),
+                        ),
+                        const SizedBox(width: 12),
+                        Expanded(
+                          child: FilledButton(
+                            onPressed: _submitting
+                                ? null
+                                : () => _startMarkAction(
+                                    _DprMarkActionMode.completed),
+                            style: FilledButton.styleFrom(
+                                backgroundColor: Colors.green.shade700),
+                            child: const Text('Completed'),
+                          ),
+                        ),
+                      ],
+                    ),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+
+  Widget _bottomCountChip({
+    required String label,
+    required int value,
+    required Color color,
+  }) {
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+      decoration: BoxDecoration(
+        color: color.withValues(alpha: 0.08),
+        borderRadius: BorderRadius.circular(10),
+      ),
+      child: Row(
+        mainAxisAlignment: MainAxisAlignment.center,
+        children: [
+          Text(
+            '$value',
+            style: TextStyle(
+              color: color,
+              fontSize: 17,
+              fontWeight: FontWeight.w900,
+            ),
+          ),
+          const SizedBox(width: 6),
+          Flexible(
+            child: Text(
+              label,
+              overflow: TextOverflow.ellipsis,
+              style: TextStyle(
+                color: color,
+                fontSize: 12,
+                fontWeight: FontWeight.w800,
+              ),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildMarkEntryCard(
+    _VisibleWork work,
+    String markNumber, {
+    required bool enabled,
+  }) {
+    final cs = Theme.of(context).colorScheme;
+    final key = _markInputKey(work, markNumber);
+    final completed = _completedForWork(work).contains(markNumber);
+    final inProgress = _inProgressForWork(work).contains(markNumber);
+    final weightKg = _markWeightKg(markNumber);
+    final selecting = _markActionMode != _DprMarkActionMode.none;
+    final selected = _selectedDetailMarks.contains(markNumber);
+    final selectable = enabled &&
+        !completed &&
+        !(_markActionMode == _DprMarkActionMode.inProgress && inProgress);
+    final isVariationOpen = _isWeightChanged(work, markNumber);
+
+    return InkWell(
+      onTap: selecting && selectable
+          ? () => _toggleDetailMark(work, markNumber)
+          : null,
+      borderRadius: BorderRadius.circular(18),
+      child: Container(
+        margin: const EdgeInsets.only(bottom: 12),
+        decoration: BoxDecoration(
+          color: selected ? const Color(0xFFF3ECFF) : cs.surface,
+          borderRadius: BorderRadius.circular(18),
+          border: Border.all(
+            width: selected ? 2 : 1,
+            color: selected
+                ? const Color(0xFF6A00F4)
+                : completed
+                    ? Colors.green.shade500
+                    : inProgress
+                        ? Colors.deepOrange.shade300
+                        : cs.outlineVariant,
+          ),
+          boxShadow: [
+            BoxShadow(
+              color: Colors.black.withValues(alpha: 0.05),
+              blurRadius: 10,
+              offset: const Offset(0, 4),
+            ),
+          ],
+        ),
         child: Padding(
-          padding: const EdgeInsets.all(16),
+          padding: const EdgeInsets.all(14),
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.stretch,
             children: [
-              Text(
-                work.displayName ?? work.stageName,
-                textAlign: TextAlign.center,
-                style:
-                    const TextStyle(fontSize: 20, fontWeight: FontWeight.w900),
-              ),
-              const SizedBox(height: 14),
               Row(
+                crossAxisAlignment: CrossAxisAlignment.center,
                 children: [
-                  ClipRRect(
-                    borderRadius: BorderRadius.circular(16),
-                    child: SizedBox(
-                      width: 92,
-                      height: 92,
-                      child: Container(
-                        color: Colors.blueGrey.shade50,
-                        padding: EdgeInsets.all(hasCustomImage ? 0 : 10),
+                  Container(
+                    width: 104,
+                    height: 104,
+                    decoration: BoxDecoration(
+                      color: Colors.blueGrey.shade50,
+                      borderRadius: BorderRadius.circular(14),
+                      border: Border.all(color: cs.outlineVariant),
+                    ),
+                    clipBehavior: Clip.antiAlias,
+                    child: Padding(
+                      padding: const EdgeInsets.all(8),
+                      child: Center(
                         child: Image(
                           image: pebWorkImageProvider(
-                              work.setupItem, widget.executionType),
-                          fit: hasCustomImage ? BoxFit.cover : BoxFit.contain,
-                          errorBuilder: (_, __, ___) => pebWorkImageFallback(
                             work.setupItem,
                             widget.executionType,
+                          ),
+                          fit: BoxFit.contain,
+                          width: double.infinity,
+                          height: double.infinity,
+                          errorBuilder: (_, __, ___) => Center(
+                            child: pebWorkImageFallback(
+                              work.setupItem,
+                              widget.executionType,
+                            ),
                           ),
                         ),
                       ),
@@ -914,115 +1596,101 @@ class _PebDprEntryScreenState extends State<PebDprEntryScreen> {
                   const SizedBox(width: 14),
                   Expanded(
                     child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
+                      crossAxisAlignment: CrossAxisAlignment.stretch,
                       children: [
-                        Row(
-                          children: [
-                            const Text('Work detail'),
-                            const SizedBox(width: 8),
-                            OutlinedButton(
-                              onPressed: () => AppToast.info(
-                                  'Members: ${counts.total} | Pending: ${counts.pending} | Deadline: $deadline'),
-                              child: const Text('VIEW'),
-                            ),
-                          ],
+                        Text(
+                          'Mark no',
+                          style: TextStyle(
+                            color: cs.onSurfaceVariant,
+                            fontSize: 12,
+                            fontWeight: FontWeight.w800,
+                          ),
                         ),
-                        Text('Assign on $start'),
-                        Text('TCD is $deadline'),
-                        if (isCompleted && completedDate != null)
-                          Text(
-                            'Completed on ${DateFormat('dd MMM yyyy').format(completedDate)}',
-                            style: TextStyle(
-                              color: Colors.green.shade800,
-                              fontWeight: FontWeight.w700,
+                        const SizedBox(height: 5),
+                        Text(
+                          markNumber,
+                          maxLines: 1,
+                          overflow: TextOverflow.ellipsis,
+                          style: const TextStyle(
+                            fontSize: 18,
+                            fontWeight: FontWeight.w900,
+                          ),
+                        ),
+                        const SizedBox(height: 10),
+                        Text(
+                          'Weight (Kg)',
+                          style: TextStyle(
+                            color: cs.onSurfaceVariant,
+                            fontSize: 12,
+                            fontWeight: FontWeight.w800,
+                          ),
+                        ),
+                        const SizedBox(height: 8),
+                        TextFormField(
+                          initialValue: _markQuantityInputs[key] ??
+                              _prettyNumber(weightKg),
+                          enabled: enabled && !completed,
+                          keyboardType: const TextInputType.numberWithOptions(
+                              decimal: true),
+                          textAlign: TextAlign.center,
+                          style: const TextStyle(
+                              fontSize: 24, fontWeight: FontWeight.w900),
+                          decoration: InputDecoration(
+                            isDense: true,
+                            contentPadding: const EdgeInsets.symmetric(
+                                horizontal: 12, vertical: 12),
+                            border: OutlineInputBorder(
+                              borderRadius: BorderRadius.circular(12),
                             ),
                           ),
-                        if (isCompleted)
-                          Padding(
-                            padding: const EdgeInsets.only(top: 6),
-                            child: DecoratedBox(
-                              decoration: BoxDecoration(
-                                color: Colors.green.shade50,
-                                borderRadius: BorderRadius.circular(999),
-                                border:
-                                    Border.all(color: Colors.green.shade300),
-                              ),
-                              child: Padding(
-                                padding: const EdgeInsets.symmetric(
-                                    horizontal: 10, vertical: 4),
-                                child: Text(
-                                  'Completed',
-                                  style: TextStyle(
-                                    color: Colors.green.shade800,
-                                    fontSize: 12,
-                                    fontWeight: FontWeight.w800,
-                                  ),
-                                ),
-                              ),
-                            ),
-                          ),
+                          onChanged: (value) =>
+                              setState(() => _markQuantityInputs[key] = value),
+                        ),
                       ],
                     ),
                   ),
+                  if (selecting) ...[
+                    const SizedBox(width: 8),
+                    Checkbox(
+                      value: selected,
+                      onChanged: selectable
+                          ? (_) => _toggleDetailMark(work, markNumber)
+                          : null,
+                    ),
+                  ],
                 ],
               ),
-              const SizedBox(height: 16),
-              Row(
-                children: [
-                  Expanded(
-                    child: Column(
-                      children: [
-                        OutlinedButton(
-                          onPressed: isActionable
-                              ? () => _openAction(work, false)
-                              : null,
-                          style: OutlinedButton.styleFrom(
-                              foregroundColor: Colors.deepOrange,
-                              side: const BorderSide(color: Colors.deepOrange)),
-                          child: const Text('+ In Progress'),
-                        ),
-                        Text(
-                            '${counts.inProgress} out of ${counts.total} in\nProgress',
-                            textAlign: TextAlign.center,
-                            style: const TextStyle(
-                                fontSize: 11,
-                                color: Colors.deepOrange,
-                                fontWeight: FontWeight.w700)),
-                      ],
-                    ),
-                  ),
-                  const SizedBox(width: 18),
-                  Expanded(
-                    child: Column(
-                      children: [
-                        OutlinedButton(
-                          onPressed: isActionable
-                              ? () => _openAction(work, true)
-                              : null,
-                          style: OutlinedButton.styleFrom(
-                              foregroundColor: Colors.green.shade700,
-                              side: BorderSide(color: Colors.green.shade700)),
-                          child: const Text('+ Completed'),
-                        ),
-                        Text(
-                            '${counts.completed} out of ${counts.total}\nCompleted',
-                            textAlign: TextAlign.center,
-                            style: TextStyle(
-                                fontSize: 11,
-                                color: Colors.green.shade700,
-                                fontWeight: FontWeight.w700)),
-                      ],
-                    ),
-                  ),
-                ],
-              ),
-              if (!isActionable && inactiveMessage != null)
-                Padding(
-                  padding: const EdgeInsets.only(top: 10),
-                  child: Text(inactiveMessage,
-                      style: const TextStyle(
-                          fontSize: 12, fontWeight: FontWeight.w600)),
+              if (isVariationOpen) ...[
+                const SizedBox(height: 12),
+                _pillBanner(
+                  icon: Icons.add_chart_rounded,
+                  color: Colors.deepPurple,
+                  text: 'Variation detected from edited weight',
                 ),
+                const SizedBox(height: 8),
+                TextFormField(
+                  initialValue: _variationReasons[key] ?? '',
+                  decoration: const InputDecoration(
+                    labelText: 'Variation Reason',
+                    border: OutlineInputBorder(),
+                  ),
+                  minLines: 1,
+                  maxLines: 2,
+                  onChanged: (value) => _variationReasons[key] = value,
+                ),
+                const SizedBox(height: 8),
+                TextFormField(
+                  initialValue: _variationRemarks[key] ?? '',
+                  decoration: const InputDecoration(
+                    labelText: 'Remarks',
+                    border: OutlineInputBorder(),
+                  ),
+                  minLines: 1,
+                  maxLines: 2,
+                  onChanged: (value) => _variationRemarks[key] = value,
+                ),
+                const SizedBox(height: 8),
+              ],
             ],
           ),
         ),
@@ -1030,6 +1698,8 @@ class _PebDprEntryScreenState extends State<PebDprEntryScreen> {
     );
   }
 }
+
+enum _DprMarkActionMode { none, inProgress, completed }
 
 class _MarkActionSheet extends StatefulWidget {
   final String title;
@@ -1060,7 +1730,8 @@ class _MarkActionSheetState extends State<_MarkActionSheet> {
     final actionable = widget.marks
         .where((mark) =>
             widget.enabledMarks.contains(mark) &&
-            !widget.completedMarks.contains(mark))
+            !widget.completedMarks.contains(mark) &&
+            (widget.completedAction || !widget.inProgressMarks.contains(mark)))
         .toList();
     final allSelected =
         actionable.isNotEmpty && actionable.every(_selected.contains);
@@ -1106,13 +1777,16 @@ class _MarkActionSheetState extends State<_MarkActionSheet> {
                               : !enabled
                                   ? Colors.grey.shade100
                                   : null;
+                  final selectable = enabled &&
+                      !completed &&
+                      (widget.completedAction || !inProgress);
                   return Container(
                     color: color,
                     child: CheckboxListTile(
                       value: completed ||
                           selected ||
                           (!widget.completedAction && inProgress),
-                      onChanged: completed || !enabled
+                      onChanged: !selectable
                           ? null
                           : (checked) => setState(() {
                                 if (checked == true) {

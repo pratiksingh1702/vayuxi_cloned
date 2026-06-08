@@ -126,6 +126,84 @@ class _PebWorkAssignmentScreenState extends State<PebWorkAssignmentScreen> {
                 (mark.remainingQty > 0 ? mark.remainingQty : mark.quantity));
   }
 
+  _BoqMarkRecord? _findBoqRecord(String assemblyMark) {
+    for (final boq in _boqs) {
+      for (final mark in boq.items) {
+        if (mark.assemblyMark == assemblyMark) {
+          return _BoqMarkRecord(boq: boq, mark: mark);
+        }
+      }
+    }
+    return null;
+  }
+
+  Future<void> _bulkUpdateSelectedWeight() async {
+    if (_selectedMarks.isEmpty) {
+      AppToast.error('Select marks first');
+      return;
+    }
+    final controller = TextEditingController();
+    final weight = await showDialog<double>(
+      context: context,
+      builder: (context) => AlertDialog(
+        title: const Text('Bulk update weight'),
+        content: TextField(
+          controller: controller,
+          autofocus: true,
+          keyboardType: const TextInputType.numberWithOptions(decimal: true),
+          decoration: const InputDecoration(
+            labelText: 'Net weight per unit',
+            border: OutlineInputBorder(),
+          ),
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => context.pop(),
+            child: const Text('Cancel'),
+          ),
+          FilledButton(
+            onPressed: () {
+              final value = double.tryParse(controller.text.trim()) ?? 0;
+              if (value <= 0) {
+                AppToast.error('Enter a valid weight');
+                return;
+              }
+              context.pop(value);
+            },
+            child: const Text('Update'),
+          ),
+        ],
+      ),
+    );
+    controller.dispose();
+    if (weight == null) return;
+
+    setState(() => _saving = true);
+    try {
+      for (final markNumber in _selectedMarks) {
+        final record = _findBoqRecord(markNumber);
+        if (record == null) continue;
+        await _service.updateBoqItem(
+          widget.siteId,
+          record.boq.id,
+          record.mark.id,
+          item: {
+            ...record.mark.toJson(),
+            'netWeightPerUnit': weight,
+          },
+        );
+      }
+      AppToast.success('Weight updated for selected marks');
+      await _load();
+    } on DioException catch (error) {
+      AppToast.error(extractBackendError(error));
+    } catch (error) {
+      AppToast.error(extractBackendError(error));
+    } finally {
+      if (mounted) setState(() => _saving = false);
+    }
+  }
+
   List<String> _parseManualMarks() {
     return _manualMarksController.text
         .split(RegExp(r'[\n,]'))
@@ -1030,6 +1108,14 @@ class _PebWorkAssignmentScreenState extends State<PebWorkAssignmentScreen> {
             return mark.assemblyMark.toLowerCase().contains(search) ||
                 mark.typeDescription.toLowerCase().contains(search);
           }).toList();
+    final selectableVisibleMarks = visibleMarks
+        .where((mark) =>
+            !completedForStage.contains(mark.assemblyMark) &&
+            !assignedForStage.contains(mark.assemblyMark))
+        .map((mark) => mark.assemblyMark)
+        .toList();
+    final allVisibleSelected = selectableVisibleMarks.isNotEmpty &&
+        selectableVisibleMarks.every(_selectedMarks.contains);
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
@@ -1075,6 +1161,37 @@ class _PebWorkAssignmentScreenState extends State<PebWorkAssignmentScreen> {
                     color: cs.primary,
                     fontSize: 12,
                     fontWeight: FontWeight.w700)),
+          ],
+        ),
+        const SizedBox(height: 10),
+        Wrap(
+          spacing: 8,
+          runSpacing: 8,
+          children: [
+            OutlinedButton.icon(
+              onPressed: selectableVisibleMarks.isEmpty
+                  ? null
+                  : () => setState(() {
+                        if (allVisibleSelected) {
+                          _selectedMarks.removeAll(selectableVisibleMarks);
+                        } else {
+                          _selectedMarks.addAll(selectableVisibleMarks);
+                        }
+                      }),
+              icon: Icon(allVisibleSelected
+                  ? Icons.check_box_rounded
+                  : Icons.check_box_outline_blank_rounded),
+              label: Text(allVisibleSelected
+                  ? 'Clear Filtered'
+                  : 'Select All Filtered'),
+            ),
+            OutlinedButton.icon(
+              onPressed: _selectedMarks.isEmpty || _saving
+                  ? null
+                  : _bulkUpdateSelectedWeight,
+              icon: const Icon(Icons.scale_rounded),
+              label: const Text('Bulk Edit Weight'),
+            ),
           ],
         ),
         const SizedBox(height: 10),
@@ -1427,6 +1544,16 @@ class _AssignmentStepperHeader extends StatelessWidget {
         return Icons.tag_rounded;
     }
   }
+}
+
+class _BoqMarkRecord {
+  final PebBoq boq;
+  final PebBoqMark mark;
+
+  const _BoqMarkRecord({
+    required this.boq,
+    required this.mark,
+  });
 }
 
 class _AssignmentStepperBottomBar extends StatelessWidget {

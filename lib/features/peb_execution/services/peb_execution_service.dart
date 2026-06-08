@@ -478,6 +478,10 @@ class PebExecutionService {
     String trackingLevel = 'advanced',
     String variationReason = '',
     String variationRemarks = '',
+    String weightMode = 'none',
+    double estimatedWeightPerUnitKg = 0,
+    double manualWeightKg = 0,
+    double totalWeightKg = 0,
   }) async {
     try {
       await _dio.post(
@@ -508,10 +512,10 @@ class PebExecutionService {
               'assemblyMark': marks.join(','),
               'trackingLevel': trackingLevel,
               'memberType': stageName,
-              'weightMode': 'none',
-              'estimatedWeightPerUnitKg': 0,
-              'manualWeightKg': 0,
-              'totalWeightKg': 0,
+              'weightMode': weightMode,
+              'estimatedWeightPerUnitKg': estimatedWeightPerUnitKg,
+              'manualWeightKg': manualWeightKg,
+              'totalWeightKg': totalWeightKg,
               'remarks': '',
               'manpower': 0,
               'assignedManpower': const [],
