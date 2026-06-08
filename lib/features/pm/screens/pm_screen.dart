@@ -55,7 +55,7 @@ class _PmScreenState extends ConsumerState<PmScreen> {
   void initState() {
     super.initState();
     WidgetsBinding.instance.addPostFrameCallback((_) {
-      ref.read(pmProvider.notifier).load(widget.siteId);
+      ref.read(pmProvider.notifier).load(widget.siteId, widget.workType);
     });
   }
 
@@ -68,7 +68,9 @@ class _PmScreenState extends ConsumerState<PmScreen> {
       lastDate: DateTime.now(),
     );
     if (picked != null) {
-      await ref.read(pmProvider.notifier).setDate(widget.siteId, picked);
+      await ref
+          .read(pmProvider.notifier)
+          .setDate(widget.siteId, widget.workType, picked);
     }
   }
 
@@ -98,7 +100,9 @@ class _PmScreenState extends ConsumerState<PmScreen> {
         actions: [
           PremiumActionIcon(
             icon: Icons.refresh_rounded,
-            onPressed: () => ref.read(pmProvider.notifier).load(widget.siteId),
+            onPressed: () => ref
+                .read(pmProvider.notifier)
+                .load(widget.siteId, widget.workType),
             tooltip: 'Refresh',
           ),
         ],
@@ -114,8 +118,9 @@ class _PmScreenState extends ConsumerState<PmScreen> {
             child: state.error != null && state.categories.isEmpty
                 ? _ErrorState(
                     message: state.error!,
-                    onRetry: () =>
-                        ref.read(pmProvider.notifier).load(widget.siteId),
+                    onRetry: () => ref
+                        .read(pmProvider.notifier)
+                        .load(widget.siteId, widget.workType),
                   )
                 : _buildSection(state),
           ),
@@ -130,6 +135,7 @@ class _PmScreenState extends ConsumerState<PmScreen> {
         return _SetupTab(
           state: state,
           siteId: widget.siteId,
+          workType: widget.workType,
           onSaved: () => _snack('P&M setup saved successfully'),
           onError: (msg) => _snack(msg, isError: true),
         );
@@ -157,12 +163,14 @@ class _PmScreenState extends ConsumerState<PmScreen> {
 class _SetupTab extends ConsumerStatefulWidget {
   final PmState state;
   final String siteId;
+  final String workType;
   final VoidCallback onSaved;
   final ValueChanged<String> onError;
 
   const _SetupTab({
     required this.state,
     required this.siteId,
+    required this.workType,
     required this.onSaved,
     required this.onError,
   });
@@ -253,6 +261,7 @@ class _SetupTabState extends ConsumerState<_SetupTab> {
       ref: ref,
       state: widget.state,
       siteId: widget.siteId,
+      workType: widget.workType,
       equipment: equipment,
       onSaved: widget.onSaved,
       onError: widget.onError,
@@ -266,7 +275,7 @@ class _SetupTabState extends ConsumerState<_SetupTab> {
     }
     final ok = await ref
         .read(pmProvider.notifier)
-        .deleteEquipment(widget.siteId, equipment);
+        .deleteEquipment(widget.siteId, widget.workType, equipment);
     ok
         ? widget.onSaved()
         : widget.onError(ref.read(pmProvider).error ?? 'Delete failed');
@@ -591,6 +600,7 @@ Future<void> showPmEquipmentSheet({
   required WidgetRef ref,
   required PmState state,
   required String siteId,
+  required String workType,
   required VoidCallback onSaved,
   required ValueChanged<String> onError,
   PmEquipment? equipment,
@@ -643,6 +653,7 @@ Future<void> showPmEquipmentSheet({
                   capacity: capacity.text.trim(),
                   unit: unit.text.trim().isEmpty ? 'Nos' : unit.text.trim(),
                   image: image,
+                  workType: workType,
                 );
             if (!context.mounted) return;
             Navigator.of(context).pop();
@@ -990,6 +1001,7 @@ class _EntryTabState extends ConsumerState<_EntryTab> {
       ref: ref,
       state: widget.state,
       siteId: widget.siteId,
+      workType: widget.workType,
       equipment: equipment,
       onSaved: widget.onSaved,
       onError: widget.onError,

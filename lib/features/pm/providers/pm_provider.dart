@@ -54,14 +54,14 @@ class PmNotifier extends StateNotifier<PmState> {
 
   PmNotifier(this._repo) : super(PmState(selectedDate: DateTime.now()));
 
-  Future<void> load(String siteId) async {
+  Future<void> load(String siteId, String workType) async {
     state = state.copyWith(isLoading: true, clearError: true);
     try {
       final date = formatPmDate(state.selectedDate);
       final results = await Future.wait([
-        _repo.getSetup(siteId),
-        _repo.getEntries(siteId, date: date),
-        _repo.getDashboard(siteId, date: date),
+        _repo.getSetup(siteId, workType),
+        _repo.getEntries(siteId, workType, date: date),
+        _repo.getDashboard(siteId, workType, date: date),
       ]);
       state = state.copyWith(
         categories: results[0] as List<PmCategory>,
@@ -74,9 +74,9 @@ class PmNotifier extends StateNotifier<PmState> {
     }
   }
 
-  Future<void> setDate(String siteId, DateTime date) async {
+  Future<void> setDate(String siteId, String workType, DateTime date) async {
     state = state.copyWith(selectedDate: date);
-    await load(siteId);
+    await load(siteId, workType);
   }
 
   Future<String> uploadImage(String siteId, PlatformFile file) {
@@ -92,6 +92,7 @@ class PmNotifier extends StateNotifier<PmState> {
     required String capacity,
     required String unit,
     required String image,
+    required String workType,
   }) async {
     state = state.copyWith(isSaving: true, clearError: true);
     try {
@@ -104,6 +105,7 @@ class PmNotifier extends StateNotifier<PmState> {
           capacity: capacity,
           unit: unit,
           image: image,
+          workType: workType,
         );
       } else {
         await _repo.updateEquipment(
@@ -113,10 +115,11 @@ class PmNotifier extends StateNotifier<PmState> {
           capacity: capacity,
           unit: unit,
           image: image,
+          workType: workType,
         );
       }
       state = state.copyWith(isSaving: false);
-      await load(siteId);
+      await load(siteId, workType);
       return true;
     } catch (e) {
       state = state.copyWith(isSaving: false, error: _message(e));
@@ -124,12 +127,13 @@ class PmNotifier extends StateNotifier<PmState> {
     }
   }
 
-  Future<bool> deleteEquipment(String siteId, PmEquipment equipment) async {
+  Future<bool> deleteEquipment(
+      String siteId, String workType, PmEquipment equipment) async {
     state = state.copyWith(isSaving: true, clearError: true);
     try {
-      await _repo.deleteEquipment(siteId, equipment);
+      await _repo.deleteEquipment(siteId, workType, equipment);
       state = state.copyWith(isSaving: false);
-      await load(siteId);
+      await load(siteId, workType);
       return true;
     } catch (e) {
       state = state.copyWith(isSaving: false, error: _message(e));
@@ -153,7 +157,7 @@ class PmNotifier extends StateNotifier<PmState> {
         data: data,
       );
       state = state.copyWith(isSaving: false);
-      await load(siteId);
+      await load(siteId, workType);
       return true;
     } catch (e) {
       state = state.copyWith(isSaving: false, error: _message(e));
