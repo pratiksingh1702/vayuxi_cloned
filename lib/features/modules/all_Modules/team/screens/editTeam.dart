@@ -131,7 +131,7 @@ class _EditTeamScreenState extends ConsumerState<EditTeamScreen> {
             showCropGrid: true,
             cropGridRowCount: 3,
             cropGridColumnCount: 3,
-            cropGridColor: colorScheme.onSurface.withOpacity(0.35),
+            cropGridColor: colorScheme.onSurface.withValues(alpha: 0.35),
             cropFrameColor: colorScheme.primary,
             cropGridStrokeWidth: 1,
             cropFrameStrokeWidth: 2,
@@ -271,7 +271,7 @@ class _EditTeamScreenState extends ConsumerState<EditTeamScreen> {
       }
 
       print("=====================");
-      final type = ref.read(typeProvider);
+      final type = ref.read(typeProvider)!;
       final colorScheme = Theme.of(context).colorScheme;
 
       try {
@@ -279,9 +279,9 @@ class _EditTeamScreenState extends ConsumerState<EditTeamScreen> {
               siteId: widget.site.id,
               teamId: widget.team.id,
               data: formData,
-              type: type!,
+              type: type,
             );
-        ref.invalidate(manpowerSyncControllerProvider((type: type!)));
+        ref.invalidate(manpowerSyncControllerProvider((type: type)));
 
         if (!mounted) return;
 
@@ -320,9 +320,225 @@ class _EditTeamScreenState extends ConsumerState<EditTeamScreen> {
     super.dispose();
   }
 
+  String _memberName(ManpowerModel member) {
+    return (member.fullName ?? '').trim().isNotEmpty
+        ? member.fullName!.trim()
+        : 'Unnamed member';
+  }
+
+  void _setTeamLead(ManpowerModel? selected) {
+    setState(() {
+      _selectedLead = selected;
+      if (selected != null &&
+          !_selectedMembers.any((member) => member.id == selected.id)) {
+        _selectedMembers = [selected, ..._selectedMembers];
+      }
+    });
+  }
+
+  Future<void> _openMemberPicker(
+    List<ManpowerModel> manpowerList,
+    FormFieldState<List<ManpowerModel>> field,
+  ) async {
+    final colorScheme = Theme.of(context).colorScheme;
+    final search = TextEditingController();
+    var draft = List<ManpowerModel>.from(_selectedMembers);
+
+    await showModalBottomSheet<void>(
+      context: context,
+      isScrollControlled: true,
+      backgroundColor: colorScheme.surface,
+      shape: const RoundedRectangleBorder(
+        borderRadius: BorderRadius.vertical(top: Radius.circular(18)),
+      ),
+      builder: (context) {
+        return StatefulBuilder(
+          builder: (context, setModalState) {
+            final query = search.text.trim().toLowerCase();
+            final filtered = manpowerList.where((member) {
+              return _memberName(member).toLowerCase().contains(query);
+            }).toList();
+
+            return SafeArea(
+              child: Padding(
+                padding: EdgeInsets.only(
+                  left: 16,
+                  right: 16,
+                  top: 14,
+                  bottom: MediaQuery.of(context).viewInsets.bottom + 16,
+                ),
+                child: SizedBox(
+                  height: MediaQuery.of(context).size.height * 0.72,
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.stretch,
+                    children: [
+                      Row(
+                        children: [
+                          const Expanded(
+                            child: Text(
+                              'Select Team Members',
+                              style: TextStyle(
+                                fontSize: 18,
+                                fontWeight: FontWeight.w800,
+                              ),
+                            ),
+                          ),
+                          TextButton(
+                            onPressed: () => context.pop(),
+                            child: const Text('Done'),
+                          ),
+                        ],
+                      ),
+                      const SizedBox(height: 10),
+                      TextField(
+                        controller: search,
+                        decoration: InputDecoration(
+                          hintText: 'Search members',
+                          prefixIcon: const Icon(Icons.search_rounded),
+                          filled: true,
+                          fillColor: colorScheme.surfaceContainerHighest,
+                          border: OutlineInputBorder(
+                            borderRadius: BorderRadius.circular(12),
+                            borderSide: BorderSide.none,
+                          ),
+                        ),
+                        onChanged: (_) => setModalState(() {}),
+                      ),
+                      const SizedBox(height: 10),
+                      Expanded(
+                        child: filtered.isEmpty
+                            ? const Center(child: Text('No members found'))
+                            : ListView.separated(
+                                itemCount: filtered.length,
+                                separatorBuilder: (_, __) =>
+                                    const Divider(height: 1),
+                                itemBuilder: (context, index) {
+                                  final member = filtered[index];
+                                  final selected =
+                                      draft.any((item) => item.id == member.id);
+                                  void toggle() {
+                                    setModalState(() {
+                                      if (selected) {
+                                        draft = draft
+                                            .where(
+                                                (item) => item.id != member.id)
+                                            .toList();
+                                      } else {
+                                        draft = [...draft, member];
+                                      }
+                                    });
+                                    setState(() {
+                                      _selectedMembers = draft;
+                                    });
+                                    field.didChange(_selectedMembers);
+                                  }
+
+                                  return ListTile(
+                                    contentPadding: EdgeInsets.zero,
+                                    title: Text(_memberName(member)),
+                                    trailing: Checkbox(
+                                      value: selected,
+                                      onChanged: (_) => toggle(),
+                                    ),
+                                    onTap: toggle,
+                                  );
+                                },
+                              ),
+                      ),
+                    ],
+                  ),
+                ),
+              ),
+            );
+          },
+        );
+      },
+    );
+
+    search.dispose();
+  }
+
+  Widget _buildMemberSelector(
+    List<ManpowerModel> manpowerList,
+    ColorScheme colorScheme,
+  ) {
+    return FormField<List<ManpowerModel>>(
+      initialValue: _selectedMembers,
+      validator: (_) =>
+          _selectedMembers.isEmpty ? 'Select at least one member' : null,
+      builder: (field) {
+        return Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            InkWell(
+              borderRadius: BorderRadius.circular(10),
+              onTap: () => _openMemberPicker(manpowerList, field),
+              child: InputDecorator(
+                decoration: InputDecoration(
+                  hintText: 'Select Team Members',
+                  errorText: field.errorText,
+                  filled: true,
+                  fillColor: colorScheme.surface,
+                  contentPadding:
+                      const EdgeInsets.symmetric(horizontal: 12, vertical: 14),
+                  border: OutlineInputBorder(
+                    borderRadius: BorderRadius.circular(10),
+                    borderSide: BorderSide(color: colorScheme.outlineVariant),
+                  ),
+                  enabledBorder: OutlineInputBorder(
+                    borderRadius: BorderRadius.circular(10),
+                    borderSide: BorderSide(color: colorScheme.outlineVariant),
+                  ),
+                ),
+                child: Row(
+                  children: [
+                    Expanded(
+                      child: Text(
+                        _selectedMembers.isEmpty
+                            ? 'Select Team Members'
+                            : '${_selectedMembers.length} member${_selectedMembers.length == 1 ? '' : 's'} selected',
+                        style: TextStyle(
+                          color: _selectedMembers.isEmpty
+                              ? colorScheme.onSurfaceVariant
+                              : colorScheme.onSurface,
+                          fontWeight: FontWeight.w600,
+                        ),
+                      ),
+                    ),
+                    Icon(Icons.keyboard_arrow_down_rounded,
+                        color: colorScheme.onSurfaceVariant),
+                  ],
+                ),
+              ),
+            ),
+            if (_selectedMembers.isNotEmpty) ...[
+              const SizedBox(height: 10),
+              Wrap(
+                spacing: 8,
+                runSpacing: 8,
+                children: _selectedMembers.map((member) {
+                  return InputChip(
+                    label: Text(_memberName(member)),
+                    onDeleted: () {
+                      setState(() {
+                        _selectedMembers = _selectedMembers
+                            .where((item) => item.id != member.id)
+                            .toList();
+                      });
+                      field.didChange(_selectedMembers);
+                    },
+                  );
+                }).toList(),
+              ),
+            ],
+          ],
+        );
+      },
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
-    final type = ref.watch(typeProvider);
     final manpowerState = ref.watch(manpowerProvider);
     final colorScheme = Theme.of(context).colorScheme;
 
@@ -516,9 +732,7 @@ class _EditTeamScreenState extends ConsumerState<EditTeamScreen> {
                           },
                           compareFn: (a, b) => a.id == b.id,
                           onChanged: (selected) {
-                            setState(() {
-                              _selectedLead = selected;
-                            });
+                            _setTeamLead(selected);
                           },
                           popupProps: PopupProps.modalBottomSheet(
                             showSearchBox: true,
@@ -587,7 +801,7 @@ class _EditTeamScreenState extends ConsumerState<EditTeamScreen> {
                                     const BorderRadius.all(Radius.circular(8)),
                                 borderSide: BorderSide(
                                     color: colorScheme.outlineVariant
-                                        .withOpacity(0)),
+                                        .withValues(alpha: 0)),
                               ),
                               enabledBorder: OutlineInputBorder(
                                 borderRadius:
@@ -621,141 +835,9 @@ class _EditTeamScreenState extends ConsumerState<EditTeamScreen> {
                           ),
                         ),
                         const SizedBox(height: 10),
-                        DropdownSearch<ManpowerModel>.multiSelection(
-                          items: (String filter, LoadProps? props) {
-                            return manpowerState.manpowerList
-                                .where((m) =>
-                                    m.fullName
-                                        ?.toLowerCase()
-                                        .contains(filter.toLowerCase()) ??
-                                    false)
-                                .toList();
-                          },
-                          selectedItems: _selectedMembers,
-                          itemAsString: (m) => m.fullName ?? 'Unknown',
-                          compareFn: (a, b) => a.id == b.id,
-                          popupProps: PopupPropsMultiSelection.modalBottomSheet(
-                            showSearchBox: true,
-                            modalBottomSheetProps: ModalBottomSheetProps(
-                              backgroundColor: colorScheme.surface,
-                            ),
-                            searchFieldProps: TextFieldProps(
-                              decoration: InputDecoration(
-                                hintText: 'Search Members',
-                                hintStyle: TextStyle(
-                                    color: colorScheme.onSurfaceVariant),
-                                contentPadding: const EdgeInsets.symmetric(
-                                    horizontal: 12, vertical: 10),
-                                border: OutlineInputBorder(
-                                  borderRadius: BorderRadius.circular(8),
-                                  borderSide: BorderSide.none,
-                                ),
-                                filled: true,
-                                fillColor: colorScheme.surfaceContainerHighest,
-                              ),
-                            ),
-                            itemBuilder:
-                                (context, item, isDisabled, isSelected) {
-                              return ListTile(
-                                dense: true,
-                                leading: Icon(
-                                  isSelected
-                                      ? Icons.check_box
-                                      : Icons.check_box_outline_blank,
-                                  color: isSelected
-                                      ? colorScheme.primary
-                                      : colorScheme.onSurfaceVariant,
-                                ),
-                                title: Text(
-                                  item.fullName ?? '',
-                                  style: TextStyle(
-                                    color: colorScheme.onSurface,
-                                    fontWeight: isSelected
-                                        ? FontWeight.w600
-                                        : FontWeight.w400,
-                                  ),
-                                ),
-                              );
-                            },
-                            title: Padding(
-                              padding: EdgeInsets.all(8.0),
-                              child: Text(
-                                "Select Team Members",
-                                style: TextStyle(
-                                  fontWeight: FontWeight.bold,
-                                  color: colorScheme.onSurface,
-                                ),
-                              ),
-                            ),
-                          ),
-                          onChanged: (values) {
-                            setState(() {
-                              _selectedMembers = values;
-                            });
-                          },
-                          dropdownBuilder: (context, selectedItems) {
-                            return Wrap(
-                              spacing: 6,
-                              runSpacing: 4,
-                              children: selectedItems.map((member) {
-                                return Chip(
-                                  label: Text(
-                                    member.fullName ?? '',
-                                    style: TextStyle(
-                                      fontSize: 12,
-                                      color: colorScheme.onPrimary,
-                                    ),
-                                  ),
-                                  backgroundColor: colorScheme.primary,
-                                  deleteIconColor: colorScheme.onPrimary,
-                                  onDeleted: () {
-                                    setState(() {
-                                      _selectedMembers = _selectedMembers
-                                          .where((m) => m.id != member.id)
-                                          .toList();
-                                    });
-                                  },
-                                  materialTapTargetSize:
-                                      MaterialTapTargetSize.shrinkWrap,
-                                  visualDensity: VisualDensity.compact,
-                                );
-                              }).toList(),
-                            );
-                          },
-                          decoratorProps: DropDownDecoratorProps(
-                            decoration: InputDecoration(
-                              hintText: "Select Team Members",
-                              filled: true,
-                              fillColor: colorScheme.surface,
-                              contentPadding: EdgeInsets.symmetric(
-                                  horizontal: 12, vertical: 14),
-                              border: OutlineInputBorder(
-                                borderRadius:
-                                    const BorderRadius.all(Radius.circular(8)),
-                                borderSide: BorderSide(
-                                    color: colorScheme.outlineVariant
-                                        .withOpacity(0)),
-                              ),
-                              enabledBorder: OutlineInputBorder(
-                                borderRadius:
-                                    const BorderRadius.all(Radius.circular(8)),
-                                borderSide: BorderSide(
-                                    color: colorScheme.outlineVariant),
-                              ),
-                              focusedBorder: OutlineInputBorder(
-                                borderRadius:
-                                    const BorderRadius.all(Radius.circular(8)),
-                                borderSide:
-                                    BorderSide(color: colorScheme.primary),
-                              ),
-                            ),
-                          ),
-                          validator: (values) {
-                            if (values == null || values.isEmpty) {
-                              return "Select at least one member";
-                            }
-                            return null;
-                          },
+                        _buildMemberSelector(
+                          manpowerState.manpowerList,
+                          colorScheme,
                         ),
                       ],
                     ),
