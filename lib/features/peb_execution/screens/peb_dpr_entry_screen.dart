@@ -283,8 +283,11 @@ class _PebDprEntryScreenState extends State<PebDprEntryScreen> {
     final work = _activeWork(_visibleWorks());
     final hasSelectableMarks =
         work != null && _hasSelectableMarksForMode(work, mode);
+    final hasCompletedMarks = work != null &&
+        mode == _DprMarkActionMode.completed &&
+        work.assignedMarks.any(_completedForWork(work).contains);
 
-    if (!hasSelectableMarks) {
+    if (!hasSelectableMarks && !hasCompletedMarks) {
       AppToast.info(mode == _DprMarkActionMode.completed
           ? 'No pending marks available to complete'
           : 'No pending marks available for in progress');
