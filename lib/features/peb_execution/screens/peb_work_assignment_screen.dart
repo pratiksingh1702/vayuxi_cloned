@@ -142,40 +142,10 @@ class _PebWorkAssignmentScreenState extends State<PebWorkAssignmentScreen> {
       AppToast.error('Select marks first');
       return;
     }
-    final controller = TextEditingController();
     final weight = await showDialog<double>(
       context: context,
-      builder: (context) => AlertDialog(
-        title: const Text('Bulk update weight'),
-        content: TextField(
-          controller: controller,
-          autofocus: true,
-          keyboardType: const TextInputType.numberWithOptions(decimal: true),
-          decoration: const InputDecoration(
-            labelText: 'Net weight per unit',
-            border: OutlineInputBorder(),
-          ),
-        ),
-        actions: [
-          TextButton(
-            onPressed: () => context.pop(),
-            child: const Text('Cancel'),
-          ),
-          FilledButton(
-            onPressed: () {
-              final value = double.tryParse(controller.text.trim()) ?? 0;
-              if (value <= 0) {
-                AppToast.error('Enter a valid weight');
-                return;
-              }
-              context.pop(value);
-            },
-            child: const Text('Update'),
-          ),
-        ],
-      ),
+      builder: (_) => const _BulkWeightDialog(),
     );
-    controller.dispose();
     if (weight == null) return;
 
     setState(() => _saving = true);
@@ -190,6 +160,9 @@ class _PebWorkAssignmentScreenState extends State<PebWorkAssignmentScreen> {
           item: {
             ...record.mark.toJson(),
             'netWeightPerUnit': weight,
+            'totalNetWeight': record.mark.quantity * weight,
+            'remainingQty': record.mark.remainingQty,
+            'status': record.mark.status,
           },
         );
       }
@@ -810,40 +783,67 @@ class _PebWorkAssignmentScreenState extends State<PebWorkAssignmentScreen> {
             }
           },
         ),
-        const SizedBox(height: 16),
-        Card(
-          elevation: 0,
-          color: cs.surface,
-          shape: RoundedRectangleBorder(
-            borderRadius: BorderRadius.circular(16),
-            side: BorderSide(color: cs.outlineVariant),
+        const SizedBox(height: 12),
+        Container(
+          width: double.infinity,
+          padding: const EdgeInsets.all(14),
+          decoration: BoxDecoration(
+            color: cs.surface,
+            borderRadius: BorderRadius.circular(14),
+            border: Border.all(color: cs.outlineVariant),
           ),
-          child: Padding(
-            padding: const EdgeInsets.all(16),
-            child: AnimatedSwitcher(
-              duration: const Duration(milliseconds: 220),
-              child: Column(
-                key: ValueKey(_assignmentStep),
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Text(
-                    stepTitle,
-                    style: const TextStyle(
-                        fontSize: 18, fontWeight: FontWeight.w800),
-                  ),
-                  const SizedBox(height: 6),
-                  Text(
-                    _assignmentStepDescriptions[_assignmentStep],
-                    style: TextStyle(color: cs.onSurfaceVariant, height: 1.35),
-                  ),
-                  const SizedBox(height: 18),
-                  _buildAssignmentStepContent(cs),
-                ],
-              ),
+          child: AnimatedSwitcher(
+            duration: const Duration(milliseconds: 220),
+            child: Column(
+              key: ValueKey(_assignmentStep),
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Row(
+                  children: [
+                    Container(
+                      width: 32,
+                      height: 32,
+                      decoration: BoxDecoration(
+                        color: cs.primaryContainer,
+                        borderRadius: BorderRadius.circular(10),
+                      ),
+                      child: Icon(
+                        _AssignmentStepperHeader.iconForIndex(_assignmentStep),
+                        size: 18,
+                        color: cs.primary,
+                      ),
+                    ),
+                    const SizedBox(width: 10),
+                    Expanded(
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Text(
+                            stepTitle,
+                            style: const TextStyle(
+                                fontSize: 16, fontWeight: FontWeight.w900),
+                          ),
+                          const SizedBox(height: 2),
+                          Text(
+                            _assignmentStepDescriptions[_assignmentStep],
+                            style: TextStyle(
+                              color: cs.onSurfaceVariant,
+                              fontSize: 12,
+                              height: 1.25,
+                            ),
+                          ),
+                        ],
+                      ),
+                    ),
+                  ],
+                ),
+                const SizedBox(height: 16),
+                _buildAssignmentStepContent(cs),
+              ],
             ),
           ),
         ),
-        const SizedBox(height: 16),
+        const SizedBox(height: 14),
         _AssignmentStepperBottomBar(
           currentStep: _assignmentStep,
           totalSteps: _assignmentStepLabels.length,
@@ -1119,82 +1119,107 @@ class _PebWorkAssignmentScreenState extends State<PebWorkAssignmentScreen> {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        TextField(
-          controller: _markSearchController,
-          decoration: InputDecoration(
-            prefixIcon: const Icon(Icons.search),
-            suffixIcon: _markSearchController.text.isEmpty
-                ? null
-                : IconButton(
-                    icon: const Icon(Icons.close),
-                    onPressed: () {
-                      _markSearchDebounce?.cancel();
-                      setState(() {
-                        _markSearchController.clear();
-                        _markSearchText = '';
-                      });
-                    },
-                  ),
-            labelText: 'Search mark number',
-            hintText: 'Search by mark or description',
-            border: const OutlineInputBorder(),
+        Container(
+          padding: const EdgeInsets.all(10),
+          decoration: BoxDecoration(
+            color: cs.surfaceContainerLow,
+            borderRadius: BorderRadius.circular(14),
+            border: Border.all(color: cs.outlineVariant),
           ),
-          onChanged: (value) {
-            _markSearchDebounce?.cancel();
-            _markSearchDebounce = Timer(const Duration(milliseconds: 300), () {
-              if (!mounted) return;
-              setState(() => _markSearchText = value);
-            });
-          },
+          child: Column(
+            children: [
+              TextField(
+                controller: _markSearchController,
+                decoration: InputDecoration(
+                  prefixIcon: const Icon(Icons.search_rounded),
+                  suffixIcon: _markSearchController.text.isEmpty
+                      ? null
+                      : IconButton(
+                          icon: const Icon(Icons.close_rounded),
+                          onPressed: () {
+                            _markSearchDebounce?.cancel();
+                            setState(() {
+                              _markSearchController.clear();
+                              _markSearchText = '';
+                            });
+                          },
+                        ),
+                  hintText: 'Search mark number',
+                  filled: true,
+                  fillColor: cs.surface,
+                  border: OutlineInputBorder(
+                    borderRadius: BorderRadius.circular(12),
+                    borderSide: BorderSide.none,
+                  ),
+                ),
+                onChanged: (value) {
+                  _markSearchDebounce?.cancel();
+                  _markSearchDebounce =
+                      Timer(const Duration(milliseconds: 300), () {
+                    if (!mounted) return;
+                    setState(() => _markSearchText = value);
+                  });
+                },
+              ),
+              const SizedBox(height: 10),
+              Row(
+                children: [
+                  _markCounterChip(
+                    '${visibleMarks.length}/${_allMarks.length}',
+                    'visible',
+                    cs.onSurfaceVariant,
+                  ),
+                  const SizedBox(width: 8),
+                  _markCounterChip(
+                    '${_selectedMarks.length}',
+                    'selected',
+                    cs.primary,
+                  ),
+                  const Spacer(),
+                  IconButton.filledTonal(
+                    tooltip: allVisibleSelected
+                        ? 'Clear filtered'
+                        : 'Select all filtered',
+                    onPressed: selectableVisibleMarks.isEmpty
+                        ? null
+                        : () => setState(() {
+                              if (allVisibleSelected) {
+                                _selectedMarks
+                                    .removeAll(selectableVisibleMarks);
+                              } else {
+                                _selectedMarks.addAll(selectableVisibleMarks);
+                              }
+                            }),
+                    icon: Icon(allVisibleSelected
+                        ? Icons.check_box_rounded
+                        : Icons.check_box_outline_blank_rounded),
+                  ),
+                  const SizedBox(width: 6),
+                  IconButton.filledTonal(
+                    tooltip: 'Bulk edit weight',
+                    onPressed: _selectedMarks.isEmpty || _saving
+                        ? null
+                        : _bulkUpdateSelectedWeight,
+                    icon: const Icon(Icons.scale_rounded),
+                  ),
+                ],
+              ),
+            ],
+          ),
         ),
-        const SizedBox(height: 10),
-        Row(
-          children: [
-            Text('${visibleMarks.length} of ${_allMarks.length} marks',
-                style: TextStyle(
-                    color: cs.onSurfaceVariant,
-                    fontSize: 12,
-                    fontWeight: FontWeight.w600)),
-            const Spacer(),
-            Text('${_selectedMarks.length} selected',
-                style: TextStyle(
-                    color: cs.primary,
-                    fontSize: 12,
-                    fontWeight: FontWeight.w700)),
-          ],
-        ),
-        const SizedBox(height: 10),
-        Wrap(
-          spacing: 8,
-          runSpacing: 8,
-          children: [
-            OutlinedButton.icon(
-              onPressed: selectableVisibleMarks.isEmpty
-                  ? null
-                  : () => setState(() {
-                        if (allVisibleSelected) {
-                          _selectedMarks.removeAll(selectableVisibleMarks);
-                        } else {
-                          _selectedMarks.addAll(selectableVisibleMarks);
-                        }
-                      }),
-              icon: Icon(allVisibleSelected
-                  ? Icons.check_box_rounded
-                  : Icons.check_box_outline_blank_rounded),
-              label: Text(allVisibleSelected
-                  ? 'Clear Filtered'
-                  : 'Select All Filtered'),
+        const SizedBox(height: 12),
+        if (_selectedMarks.isNotEmpty)
+          Padding(
+            padding: const EdgeInsets.only(bottom: 10),
+            child: Text(
+              '${_selectedMarks.length} mark${_selectedMarks.length == 1 ? '' : 's'} ready to assign',
+              style: TextStyle(
+                color: cs.primary,
+                fontWeight: FontWeight.w800,
+                fontSize: 12,
+              ),
             ),
-            OutlinedButton.icon(
-              onPressed: _selectedMarks.isEmpty || _saving
-                  ? null
-                  : _bulkUpdateSelectedWeight,
-              icon: const Icon(Icons.scale_rounded),
-              label: const Text('Bulk Edit Weight'),
-            ),
-          ],
-        ),
-        const SizedBox(height: 10),
+          ),
         if (visibleMarks.isEmpty)
           Container(
             width: double.infinity,
@@ -1214,9 +1239,9 @@ class _PebWorkAssignmentScreenState extends State<PebWorkAssignmentScreen> {
             itemCount: visibleMarks.length,
             gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
               crossAxisCount: 2,
-              mainAxisSpacing: 8,
-              crossAxisSpacing: 8,
-              childAspectRatio: 2.35,
+              mainAxisSpacing: 10,
+              crossAxisSpacing: 10,
+              childAspectRatio: 2.7,
             ),
             itemBuilder: (context, index) {
               final mark = visibleMarks[index];
@@ -1248,29 +1273,39 @@ class _PebWorkAssignmentScreenState extends State<PebWorkAssignmentScreen> {
                     padding:
                         const EdgeInsets.symmetric(horizontal: 10, vertical: 8),
                     decoration: BoxDecoration(
-                      color: selected
-                          ? cs.primaryContainer
-                          : cs.surfaceContainerLow,
-                      borderRadius: BorderRadius.circular(10),
+                      color: selected ? cs.primaryContainer : cs.surface,
+                      borderRadius: BorderRadius.circular(12),
                       border: Border.all(
                         color: selected ? cs.primary : cs.outlineVariant,
                       ),
                     ),
                     child: Row(
                       children: [
-                        Checkbox(
-                          value: disabled || selected,
-                          onChanged: disabled
-                              ? null
-                              : (checked) => setState(() {
-                                    if (checked == true) {
-                                      _selectedMarks.add(mark.assemblyMark);
-                                    } else {
-                                      _selectedMarks.remove(mark.assemblyMark);
-                                    }
-                                  }),
-                          visualDensity: VisualDensity.compact,
+                        Container(
+                          width: 24,
+                          height: 24,
+                          decoration: BoxDecoration(
+                            color: selected ? cs.primary : Colors.transparent,
+                            shape: BoxShape.circle,
+                            border: Border.all(
+                              color: selected
+                                  ? cs.primary
+                                  : cs.onSurfaceVariant.withValues(alpha: 0.45),
+                            ),
+                          ),
+                          child: selected || disabled
+                              ? Icon(
+                                  disabled
+                                      ? Icons.lock_rounded
+                                      : Icons.check_rounded,
+                                  size: 15,
+                                  color: selected
+                                      ? cs.onPrimary
+                                      : cs.onSurfaceVariant,
+                                )
+                              : null,
                         ),
+                        const SizedBox(width: 8),
                         Expanded(
                           child: Column(
                             crossAxisAlignment: CrossAxisAlignment.start,
@@ -1305,6 +1340,28 @@ class _PebWorkAssignmentScreenState extends State<PebWorkAssignmentScreen> {
             },
           ),
       ],
+    );
+  }
+
+  Widget _markCounterChip(
+    String value,
+    String label,
+    Color color,
+  ) {
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
+      decoration: BoxDecoration(
+        color: color.withValues(alpha: 0.08),
+        borderRadius: BorderRadius.circular(999),
+      ),
+      child: Text(
+        '$value $label',
+        style: TextStyle(
+          color: color,
+          fontSize: 12,
+          fontWeight: FontWeight.w800,
+        ),
+      ),
     );
   }
 
@@ -1445,85 +1502,65 @@ class _AssignmentStepperHeader extends StatelessWidget {
   Widget build(BuildContext context) {
     final cs = Theme.of(context).colorScheme;
     return Container(
-      padding: const EdgeInsets.all(14),
+      padding: const EdgeInsets.all(8),
       decoration: BoxDecoration(
         color: cs.surface,
-        borderRadius: BorderRadius.circular(16),
+        borderRadius: BorderRadius.circular(14),
         border: Border.all(color: cs.outlineVariant),
       ),
       child: Row(
         children: List.generate(labels.length, (index) {
           final active = index == currentStep;
           final complete = index < currentStep;
+          final color = active || complete ? cs.primary : cs.onSurfaceVariant;
           return Expanded(
             child: InkWell(
               onTap: () => onStepTap(index),
-              borderRadius: BorderRadius.circular(12),
-              child: Column(
-                mainAxisSize: MainAxisSize.min,
-                children: [
-                  Row(
-                    children: [
-                      Expanded(
-                        child: Container(
-                          height: 3,
-                          decoration: BoxDecoration(
-                            color: index == 0
-                                ? Colors.transparent
-                                : complete || active
-                                    ? cs.primary
-                                    : cs.outlineVariant,
-                            borderRadius: BorderRadius.circular(99),
-                          ),
-                        ),
+              borderRadius: BorderRadius.circular(10),
+              child: AnimatedContainer(
+                duration: const Duration(milliseconds: 180),
+                padding:
+                    const EdgeInsets.symmetric(horizontal: 6, vertical: 10),
+                decoration: BoxDecoration(
+                  color: active ? cs.primaryContainer : Colors.transparent,
+                  borderRadius: BorderRadius.circular(10),
+                ),
+                child: Column(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    Container(
+                      width: 28,
+                      height: 28,
+                      decoration: BoxDecoration(
+                        color: complete
+                            ? cs.primary
+                            : active
+                                ? cs.primary
+                                : cs.surfaceContainerHighest,
+                        shape: BoxShape.circle,
                       ),
-                      Container(
-                        width: 30,
-                        height: 30,
-                        decoration: BoxDecoration(
-                          color: active || complete
-                              ? cs.primary
-                              : cs.surfaceContainerHighest,
-                          shape: BoxShape.circle,
-                        ),
-                        child: Icon(
-                          complete
-                              ? Icons.check_rounded
-                              : _stepIconForIndex(index),
-                          size: 16,
-                          color: active || complete
-                              ? cs.onPrimary
-                              : cs.onSurfaceVariant,
-                        ),
+                      child: Icon(
+                        complete ? Icons.check_rounded : iconForIndex(index),
+                        size: 15,
+                        color: complete || active
+                            ? cs.onPrimary
+                            : cs.onSurfaceVariant,
                       ),
-                      Expanded(
-                        child: Container(
-                          height: 3,
-                          decoration: BoxDecoration(
-                            color: index == labels.length - 1
-                                ? Colors.transparent
-                                : complete
-                                    ? cs.primary
-                                    : cs.outlineVariant,
-                            borderRadius: BorderRadius.circular(99),
-                          ),
-                        ),
-                      ),
-                    ],
-                  ),
-                  const SizedBox(height: 8),
-                  Text(
-                    labels[index],
-                    maxLines: 1,
-                    overflow: TextOverflow.ellipsis,
-                    textAlign: TextAlign.center,
-                    style: TextStyle(
-                      fontSize: 11,
-                      fontWeight: active ? FontWeight.w800 : FontWeight.w600,
-                      color: active ? cs.primary : cs.onSurfaceVariant,
                     ),
-                  ),
-                ],
+                    const SizedBox(height: 6),
+                    Text(
+                      labels[index],
+                      maxLines: 1,
+                      overflow: TextOverflow.ellipsis,
+                      textAlign: TextAlign.center,
+                      style: TextStyle(
+                        fontSize: 10,
+                        fontWeight: active ? FontWeight.w900 : FontWeight.w700,
+                        color: color,
+                      ),
+                    ),
+                  ],
+                ),
               ),
             ),
           );
@@ -1532,7 +1569,7 @@ class _AssignmentStepperHeader extends StatelessWidget {
     );
   }
 
-  static IconData _stepIconForIndex(int index) {
+  static IconData iconForIndex(int index) {
     switch (index) {
       case 0:
         return Icons.groups_rounded;
@@ -1583,57 +1620,162 @@ class _AssignmentStepperBottomBar extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final cs = Theme.of(context).colorScheme;
     final isLast = currentStep == totalSteps - 1;
-    return Row(
-      children: [
-        Flexible(
-          flex: 0,
-          child: SizedBox(
-            width: 112,
-            child: OutlinedButton.icon(
-              onPressed: onBack,
-              icon: const Icon(Icons.arrow_back_rounded),
-              label: const Text(
-                'Back',
-                maxLines: 1,
-                overflow: TextOverflow.visible,
-                softWrap: false,
-              ),
-            ),
-          ),
-        ),
-        if (canSkip) ...[
-          const SizedBox(width: 10),
-          Expanded(
-            child: TextButton(
-              onPressed: isSaving ? null : onSkip,
-              child: const Text('Skip'),
-            ),
+    return Container(
+      padding: const EdgeInsets.all(12),
+      decoration: BoxDecoration(
+        color: cs.surface,
+        borderRadius: BorderRadius.circular(16),
+        border: Border.all(color: cs.outlineVariant),
+        boxShadow: [
+          BoxShadow(
+            color: Colors.black.withValues(alpha: 0.035),
+            blurRadius: 10,
+            offset: const Offset(0, 4),
           ),
         ],
-        const SizedBox(width: 10),
-        Expanded(
-          flex: 2,
-          child: FilledButton.icon(
-            onPressed: isSaving || (!canProceed && !isLast)
-                ? null
-                : isLast
-                    ? onSubmit
-                    : onNext,
-            icon: isSaving
-                ? const SizedBox(
-                    width: 16,
-                    height: 16,
-                    child: CircularProgressIndicator(strokeWidth: 2),
-                  )
-                : Icon(
-                    isLast ? Icons.save_rounded : Icons.arrow_forward_rounded),
-            label: Text(isLast ? submitLabel : 'Next'),
+      ),
+      child: Column(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          Row(
+            children: List.generate(totalSteps, (index) {
+              final active = index <= currentStep;
+              return Expanded(
+                child: Container(
+                  height: 4,
+                  margin: EdgeInsets.only(
+                    right: index == totalSteps - 1 ? 0 : 6,
+                  ),
+                  decoration: BoxDecoration(
+                    color: active ? cs.primary : cs.surfaceContainerHighest,
+                    borderRadius: BorderRadius.circular(999),
+                  ),
+                ),
+              );
+            }),
           ),
-        ),
-      ],
+          const SizedBox(height: 12),
+          Row(
+            children: [
+              SizedBox(
+                width: 96,
+                child: OutlinedButton.icon(
+                  onPressed: onBack,
+                  icon: const Icon(Icons.arrow_back_rounded, size: 18),
+                  label: const Text(
+                    'Back',
+                    maxLines: 1,
+                    overflow: TextOverflow.visible,
+                    softWrap: false,
+                  ),
+                  style: OutlinedButton.styleFrom(
+                    minimumSize: const Size.fromHeight(46),
+                    shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(12),
+                    ),
+                  ),
+                ),
+              ),
+              if (canSkip) ...[
+                const SizedBox(width: 8),
+                SizedBox(
+                  width: 78,
+                  child: TextButton(
+                    onPressed: isSaving ? null : onSkip,
+                    style: TextButton.styleFrom(
+                      minimumSize: const Size.fromHeight(46),
+                      shape: RoundedRectangleBorder(
+                        borderRadius: BorderRadius.circular(12),
+                      ),
+                    ),
+                    child: const Text('Skip'),
+                  ),
+                ),
+              ],
+              const SizedBox(width: 8),
+              Expanded(
+                child: FilledButton.icon(
+                  onPressed: isSaving || (!canProceed && !isLast)
+                      ? null
+                      : isLast
+                          ? onSubmit
+                          : onNext,
+                  style: FilledButton.styleFrom(
+                    minimumSize: const Size.fromHeight(46),
+                    shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(12),
+                    ),
+                  ),
+                  icon: isSaving
+                      ? const SizedBox(
+                          width: 16,
+                          height: 16,
+                          child: CircularProgressIndicator(strokeWidth: 2),
+                        )
+                      : Icon(isLast
+                          ? Icons.save_rounded
+                          : Icons.arrow_forward_rounded),
+                  label: Text(isLast ? submitLabel : 'Next'),
+                ),
+              ),
+            ],
+          ),
+        ],
+      ),
     );
   }
 }
 
 enum _WorkAssignmentMode { home, view, add }
+
+class _BulkWeightDialog extends StatefulWidget {
+  const _BulkWeightDialog();
+
+  @override
+  State<_BulkWeightDialog> createState() => _BulkWeightDialogState();
+}
+
+class _BulkWeightDialogState extends State<_BulkWeightDialog> {
+  final _controller = TextEditingController();
+
+  @override
+  void dispose() {
+    _controller.dispose();
+    super.dispose();
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return AlertDialog(
+      title: const Text('Bulk update weight'),
+      content: TextField(
+        controller: _controller,
+        autofocus: true,
+        keyboardType: const TextInputType.numberWithOptions(decimal: true),
+        decoration: const InputDecoration(
+          labelText: 'Net weight per unit',
+          border: OutlineInputBorder(),
+        ),
+      ),
+      actions: [
+        TextButton(
+          onPressed: () => Navigator.of(context).pop(),
+          child: const Text('Cancel'),
+        ),
+        FilledButton(
+          onPressed: () {
+            final value = double.tryParse(_controller.text.trim()) ?? 0;
+            if (value <= 0) {
+              AppToast.error('Enter a valid weight');
+              return;
+            }
+            Navigator.of(context).pop(value);
+          },
+          child: const Text('Update'),
+        ),
+      ],
+    );
+  }
+}

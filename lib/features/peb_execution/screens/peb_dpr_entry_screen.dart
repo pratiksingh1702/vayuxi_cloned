@@ -359,22 +359,27 @@ class _PebDprEntryScreenState extends State<PebDprEntryScreen> {
     }).toList();
   }
 
-  GlobalKey _keyForWork(_VisibleWork work) {
-    return _workCardKeys.putIfAbsent(work.key, GlobalKey.new);
+  GlobalKey _keyForWork(_VisibleWork work, int index) {
+    return _workCardKeys.putIfAbsent('${work.key}::$index', GlobalKey.new);
   }
 
   void _scrollToFirstActiveWork() {
     WidgetsBinding.instance.addPostFrameCallback((_) {
       if (!mounted) return;
       _VisibleWork? activeWork;
-      for (final work in _visibleWorks()) {
+      final works = _visibleWorks().where((work) => work.isActive).toList();
+      for (var index = 0; index < works.length; index++) {
+        final work = works[index];
         if (_isWorkActionable(work)) {
           activeWork = work;
           break;
         }
       }
       if (activeWork == null) return;
-      final context = _workCardKeys[activeWork.key]?.currentContext;
+      final activeIndex =
+          works.indexWhere((work) => work.key == activeWork!.key);
+      final context =
+          _workCardKeys['${activeWork.key}::$activeIndex']?.currentContext;
       if (context == null) return;
       Scrollable.ensureVisible(
         context,
@@ -563,6 +568,7 @@ class _PebDprEntryScreenState extends State<PebDprEntryScreen> {
     }
 
     setState(() => _submitting = true);
+    await Future<void>.delayed(const Duration(milliseconds: 16));
     try {
       final marksToSubmit = _selectedDetailMarks.toList();
       for (final mark in marksToSubmit) {
@@ -683,6 +689,7 @@ class _PebDprEntryScreenState extends State<PebDprEntryScreen> {
     bool showToast = true,
   }) async {
     setState(() => _submitting = true);
+    await Future<void>.delayed(const Duration(milliseconds: 16));
     try {
       final targetQty = targetQtyOverride ??
           (marks.isEmpty
@@ -862,12 +869,14 @@ class _PebDprEntryScreenState extends State<PebDprEntryScreen> {
                                         ),
                                       )
                                     else
-                                      ...assignedWorks.map(
-                                        (work) => KeyedSubtree(
-                                          key: _keyForWork(work),
-                                          child: _buildWorkCard(work),
-                                        ),
-                                      ),
+                                      ...assignedWorks.asMap().entries.map(
+                                            (entry) => KeyedSubtree(
+                                              key: _keyForWork(
+                                                  entry.value, entry.key),
+                                              child:
+                                                  _buildWorkCard(entry.value),
+                                            ),
+                                          ),
                                     const SizedBox(height: 90),
                                   ]
                                 : [
@@ -1117,8 +1126,9 @@ class _PebDprEntryScreenState extends State<PebDprEntryScreen> {
   }
 
   Widget _buildAssignedWorkHeader(List<_VisibleWork> assignedWorks) {
+    final cs = Theme.of(context).colorScheme;
     return Row(
-      crossAxisAlignment: CrossAxisAlignment.end,
+      crossAxisAlignment: CrossAxisAlignment.center,
       children: [
         const Expanded(
           child: Column(
@@ -1126,31 +1136,34 @@ class _PebDprEntryScreenState extends State<PebDprEntryScreen> {
             children: [
               Text(
                 "Today's Assigned Work",
-                style: TextStyle(fontSize: 24, fontWeight: FontWeight.w900),
+                style: TextStyle(fontSize: 21, fontWeight: FontWeight.w900),
               ),
-              SizedBox(height: 4),
-              Text('Select any work to add today\'s progress'),
+              SizedBox(height: 2),
+              Text('Open a work item to update progress'),
             ],
           ),
         ),
         Container(
-          padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+          padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 9),
           decoration: BoxDecoration(
-            color: const Color(0xFFF5EDFF),
-            borderRadius: BorderRadius.circular(16),
-            border: Border.all(color: const Color(0xFFE1C8FF)),
+            color: cs.primaryContainer.withValues(alpha: 0.55),
+            borderRadius: BorderRadius.circular(12),
+            border: Border.all(color: cs.primary.withValues(alpha: 0.16)),
           ),
-          child: Column(
+          child: Row(
+            mainAxisSize: MainAxisSize.min,
             children: [
-              const Text('Total Assigned',
-                  style: TextStyle(fontSize: 12, fontWeight: FontWeight.w800)),
               Text('${assignedWorks.length}',
-                  style: const TextStyle(
-                      color: Color(0xFF3F148F),
-                      fontSize: 26,
+                  style: TextStyle(
+                      color: cs.primary,
+                      fontSize: 20,
                       fontWeight: FontWeight.w900)),
-              const Text('Works',
-                  style: TextStyle(fontSize: 12, fontWeight: FontWeight.w700)),
+              const SizedBox(width: 5),
+              Text('works',
+                  style: TextStyle(
+                      color: cs.primary,
+                      fontSize: 12,
+                      fontWeight: FontWeight.w800)),
             ],
           ),
         ),
@@ -1166,45 +1179,56 @@ class _PebDprEntryScreenState extends State<PebDprEntryScreen> {
         ? '-'
         : DateFormat('dd MMM yyyy').format(work.expectedCompletionDate!);
     final completedDate = _completedDateForWork(work);
-    final hasCustomImage = pebWorkImageIsCustom(work.setupItem);
     final accent =
         isCompleted ? Colors.green.shade700 : const Color(0xFF4B16B7);
     return Opacity(
       opacity: isActionable || isCompleted ? 1 : 0.38,
-      child: Card(
-        margin: const EdgeInsets.only(bottom: 14),
-        shape: RoundedRectangleBorder(
-          borderRadius: BorderRadius.circular(24),
-          side: BorderSide(
-            color: isCompleted ? Colors.green.shade300 : Colors.grey.shade200,
+      child: Container(
+        margin: const EdgeInsets.only(bottom: 10),
+        decoration: BoxDecoration(
+          color: Theme.of(context).colorScheme.surface,
+          borderRadius: BorderRadius.circular(16),
+          border: Border.all(
+            color: isCompleted
+                ? Colors.green.shade300
+                : Theme.of(context).colorScheme.outlineVariant,
           ),
+          boxShadow: [
+            BoxShadow(
+              color: Colors.black.withValues(alpha: 0.035),
+              blurRadius: 10,
+              offset: const Offset(0, 4),
+            ),
+          ],
         ),
         child: InkWell(
-          borderRadius: BorderRadius.circular(24),
+          borderRadius: BorderRadius.circular(16),
           onTap: () => _openWorkDetail(work),
           child: Row(
             children: [
               Container(
-                width: 118,
-                height: 168,
+                width: 86,
+                height: 112,
                 decoration: BoxDecoration(
                   color: accent.withValues(alpha: 0.16),
-                  borderRadius: const BorderRadius.horizontal(
-                    left: Radius.circular(24),
-                  ),
+                  borderRadius:
+                      const BorderRadius.horizontal(left: Radius.circular(16)),
                 ),
-                padding: EdgeInsets.all(hasCustomImage ? 0 : 18),
-                child: Image(
-                  image: pebWorkImageProvider(
-                      work.setupItem, widget.executionType),
-                  fit: hasCustomImage ? BoxFit.cover : BoxFit.contain,
-                  errorBuilder: (_, __, ___) => pebWorkImageFallback(
-                      work.setupItem, widget.executionType),
+                clipBehavior: Clip.antiAlias,
+                child: Padding(
+                  padding: const EdgeInsets.all(10),
+                  child: Image(
+                    image: pebWorkImageProvider(
+                        work.setupItem, widget.executionType),
+                    fit: BoxFit.contain,
+                    errorBuilder: (_, __, ___) => pebWorkImageFallback(
+                        work.setupItem, widget.executionType),
+                  ),
                 ),
               ),
               Expanded(
                 child: Padding(
-                  padding: const EdgeInsets.all(14),
+                  padding: const EdgeInsets.fromLTRB(12, 10, 8, 10),
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
@@ -1212,11 +1236,11 @@ class _PebDprEntryScreenState extends State<PebDprEntryScreen> {
                         work.displayName ?? work.stageName,
                         style: TextStyle(
                           color: accent,
-                          fontSize: 22,
+                          fontSize: 18,
                           fontWeight: FontWeight.w900,
                         ),
                       ),
-                      const SizedBox(height: 12),
+                      const SizedBox(height: 10),
                       Row(
                         children: [
                           Expanded(
@@ -1229,10 +1253,10 @@ class _PebDprEntryScreenState extends State<PebDprEntryScreen> {
                               child: _workCountBlock('Completed',
                                   counts.completed, Colors.green.shade700)),
                           Icon(Icons.chevron_right_rounded,
-                              size: 42, color: accent),
+                              size: 32, color: accent),
                         ],
                       ),
-                      const SizedBox(height: 12),
+                      const SizedBox(height: 9),
                       _deadlineBanner(work, completedDate, deadline),
                     ],
                   ),
@@ -1250,13 +1274,13 @@ class _PebDprEntryScreenState extends State<PebDprEntryScreen> {
       children: [
         Text(label,
             textAlign: TextAlign.center,
-            style: const TextStyle(fontSize: 11, fontWeight: FontWeight.w700)),
+            style: const TextStyle(fontSize: 10, fontWeight: FontWeight.w700)),
         const SizedBox(height: 2),
         Text('$count',
             style: TextStyle(
-                color: color, fontSize: 21, fontWeight: FontWeight.w900)),
+                color: color, fontSize: 18, fontWeight: FontWeight.w900)),
         const Text('Mark Nos.',
-            textAlign: TextAlign.center, style: TextStyle(fontSize: 10)),
+            textAlign: TextAlign.center, style: TextStyle(fontSize: 9)),
       ],
     );
   }
@@ -1298,7 +1322,7 @@ class _PebDprEntryScreenState extends State<PebDprEntryScreen> {
     required String text,
   }) {
     return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 8),
+      padding: const EdgeInsets.symmetric(horizontal: 9, vertical: 6),
       decoration: BoxDecoration(
         color: color.withValues(alpha: 0.1),
         borderRadius: BorderRadius.circular(999),
@@ -1310,7 +1334,10 @@ class _PebDprEntryScreenState extends State<PebDprEntryScreen> {
           Expanded(
             child: Text(
               text,
-              style: TextStyle(color: color, fontWeight: FontWeight.w800),
+              maxLines: 1,
+              overflow: TextOverflow.ellipsis,
+              style: TextStyle(
+                  color: color, fontWeight: FontWeight.w800, fontSize: 12),
             ),
           ),
         ],
@@ -1341,6 +1368,8 @@ class _PebDprEntryScreenState extends State<PebDprEntryScreen> {
     final selecting = _markActionMode != _DprMarkActionMode.none;
     final isCompletedMode = _markActionMode == _DprMarkActionMode.completed;
     final progress = counts.total > 0 ? counts.completed / counts.total : 0.0;
+    final inProgressColor = const Color(0xFFE56F00);
+    final completedColor = Colors.green.shade700;
     return Positioned(
       left: 0,
       right: 0,
@@ -1348,14 +1377,17 @@ class _PebDprEntryScreenState extends State<PebDprEntryScreen> {
       child: SafeArea(
         top: false,
         child: Container(
-          padding: const EdgeInsets.fromLTRB(16, 12, 16, 12),
+          margin: const EdgeInsets.fromLTRB(12, 0, 12, 8),
+          padding: const EdgeInsets.fromLTRB(14, 12, 14, 12),
           decoration: BoxDecoration(
             color: cs.surface,
+            borderRadius: BorderRadius.circular(18),
+            border: Border.all(color: cs.outlineVariant),
             boxShadow: [
               BoxShadow(
-                color: Colors.black.withValues(alpha: 0.08),
-                blurRadius: 18,
-                offset: const Offset(0, -6),
+                color: Colors.black.withValues(alpha: 0.10),
+                blurRadius: 22,
+                offset: const Offset(0, 8),
               ),
             ],
           ),
@@ -1364,13 +1396,22 @@ class _PebDprEntryScreenState extends State<PebDprEntryScreen> {
             children: [
               Row(
                 children: [
+                  Text(
+                    'Progress',
+                    style: TextStyle(
+                      color: cs.onSurfaceVariant,
+                      fontSize: 12,
+                      fontWeight: FontWeight.w800,
+                    ),
+                  ),
+                  const SizedBox(width: 10),
                   Expanded(
                     child: ClipRRect(
                       borderRadius: BorderRadius.circular(999),
                       child: LinearProgressIndicator(
                         value: progress.clamp(0.0, 1.0),
-                        minHeight: 8,
-                        color: Colors.green.shade700,
+                        minHeight: 7,
+                        color: completedColor,
                         backgroundColor: cs.surfaceContainerHighest,
                       ),
                     ),
@@ -1379,33 +1420,13 @@ class _PebDprEntryScreenState extends State<PebDprEntryScreen> {
                   Text(
                     '${(progress * 100).round()}%',
                     style: TextStyle(
-                      color: Colors.green.shade700,
+                      color: completedColor,
                       fontWeight: FontWeight.w900,
                     ),
                   ),
                 ],
               ),
-              const SizedBox(height: 8),
-              Row(
-                children: [
-                  Expanded(
-                    child: _bottomCountChip(
-                      label: 'In Progress',
-                      value: counts.inProgress,
-                      color: Colors.deepOrange,
-                    ),
-                  ),
-                  const SizedBox(width: 10),
-                  Expanded(
-                    child: _bottomCountChip(
-                      label: 'Completed',
-                      value: counts.completed,
-                      color: Colors.green.shade700,
-                    ),
-                  ),
-                ],
-              ),
-              const SizedBox(height: 10),
+              const SizedBox(height: 12),
               selecting
                   ? Row(
                       children: [
@@ -1415,6 +1436,12 @@ class _PebDprEntryScreenState extends State<PebDprEntryScreen> {
                               _markActionMode = _DprMarkActionMode.none;
                               _selectedDetailMarks.clear();
                             }),
+                            style: OutlinedButton.styleFrom(
+                              minimumSize: const Size.fromHeight(46),
+                              shape: RoundedRectangleBorder(
+                                borderRadius: BorderRadius.circular(12),
+                              ),
+                            ),
                             child: const Text('Cancel'),
                           ),
                         ),
@@ -1427,8 +1454,12 @@ class _PebDprEntryScreenState extends State<PebDprEntryScreen> {
                                     : () => _submitSelectedDetailMarks(work),
                             style: FilledButton.styleFrom(
                               backgroundColor: isCompletedMode
-                                  ? Colors.green.shade700
-                                  : Colors.deepOrange,
+                                  ? completedColor
+                                  : inProgressColor,
+                              minimumSize: const Size.fromHeight(46),
+                              shape: RoundedRectangleBorder(
+                                borderRadius: BorderRadius.circular(12),
+                              ),
                             ),
                             child: Text(
                               '${isCompletedMode ? 'Complete' : 'In Progress'} (${_selectedDetailMarks.length})',
@@ -1440,26 +1471,39 @@ class _PebDprEntryScreenState extends State<PebDprEntryScreen> {
                   : Row(
                       children: [
                         Expanded(
-                          child: FilledButton(
+                          child: OutlinedButton.icon(
                             onPressed: _submitting
                                 ? null
                                 : () => _startMarkAction(
                                     _DprMarkActionMode.inProgress),
-                            style: FilledButton.styleFrom(
-                                backgroundColor: Colors.deepOrange),
-                            child: const Text('In Progress'),
+                            icon: const Icon(Icons.pending_actions_rounded),
+                            label: Text('In Progress (${counts.inProgress})'),
+                            style: OutlinedButton.styleFrom(
+                              foregroundColor: inProgressColor,
+                              side: BorderSide(color: inProgressColor),
+                              minimumSize: const Size.fromHeight(46),
+                              shape: RoundedRectangleBorder(
+                                borderRadius: BorderRadius.circular(12),
+                              ),
+                            ),
                           ),
                         ),
                         const SizedBox(width: 12),
                         Expanded(
-                          child: FilledButton(
+                          child: FilledButton.icon(
                             onPressed: _submitting
                                 ? null
                                 : () => _startMarkAction(
                                     _DprMarkActionMode.completed),
                             style: FilledButton.styleFrom(
-                                backgroundColor: Colors.green.shade700),
-                            child: const Text('Completed'),
+                              backgroundColor: completedColor,
+                              minimumSize: const Size.fromHeight(46),
+                              shape: RoundedRectangleBorder(
+                                borderRadius: BorderRadius.circular(12),
+                              ),
+                            ),
+                            icon: const Icon(Icons.check_circle_rounded),
+                            label: Text('Completed (${counts.completed})'),
                           ),
                         ),
                       ],
@@ -1467,45 +1511,6 @@ class _PebDprEntryScreenState extends State<PebDprEntryScreen> {
             ],
           ),
         ),
-      ),
-    );
-  }
-
-  Widget _bottomCountChip({
-    required String label,
-    required int value,
-    required Color color,
-  }) {
-    return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
-      decoration: BoxDecoration(
-        color: color.withValues(alpha: 0.08),
-        borderRadius: BorderRadius.circular(10),
-      ),
-      child: Row(
-        mainAxisAlignment: MainAxisAlignment.center,
-        children: [
-          Text(
-            '$value',
-            style: TextStyle(
-              color: color,
-              fontSize: 17,
-              fontWeight: FontWeight.w900,
-            ),
-          ),
-          const SizedBox(width: 6),
-          Flexible(
-            child: Text(
-              label,
-              overflow: TextOverflow.ellipsis,
-              style: TextStyle(
-                color: color,
-                fontSize: 12,
-                fontWeight: FontWeight.w800,
-              ),
-            ),
-          ),
-        ],
       ),
     );
   }
@@ -1533,10 +1538,10 @@ class _PebDprEntryScreenState extends State<PebDprEntryScreen> {
           : null,
       borderRadius: BorderRadius.circular(18),
       child: Container(
-        margin: const EdgeInsets.only(bottom: 12),
+        margin: const EdgeInsets.only(bottom: 10),
         decoration: BoxDecoration(
           color: selected ? const Color(0xFFF3ECFF) : cs.surface,
-          borderRadius: BorderRadius.circular(18),
+          borderRadius: BorderRadius.circular(16),
           border: Border.all(
             width: selected ? 2 : 1,
             color: selected
@@ -1549,14 +1554,14 @@ class _PebDprEntryScreenState extends State<PebDprEntryScreen> {
           ),
           boxShadow: [
             BoxShadow(
-              color: Colors.black.withValues(alpha: 0.05),
-              blurRadius: 10,
-              offset: const Offset(0, 4),
+              color: Colors.black.withValues(alpha: 0.035),
+              blurRadius: 8,
+              offset: const Offset(0, 3),
             ),
           ],
         ),
         child: Padding(
-          padding: const EdgeInsets.all(14),
+          padding: const EdgeInsets.all(12),
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.stretch,
             children: [
@@ -1564,16 +1569,16 @@ class _PebDprEntryScreenState extends State<PebDprEntryScreen> {
                 crossAxisAlignment: CrossAxisAlignment.center,
                 children: [
                   Container(
-                    width: 104,
-                    height: 104,
+                    width: 82,
+                    height: 82,
                     decoration: BoxDecoration(
                       color: Colors.blueGrey.shade50,
-                      borderRadius: BorderRadius.circular(14),
+                      borderRadius: BorderRadius.circular(12),
                       border: Border.all(color: cs.outlineVariant),
                     ),
                     clipBehavior: Clip.antiAlias,
                     child: Padding(
-                      padding: const EdgeInsets.all(8),
+                      padding: const EdgeInsets.all(7),
                       child: Center(
                         child: Image(
                           image: pebWorkImageProvider(
@@ -1593,7 +1598,7 @@ class _PebDprEntryScreenState extends State<PebDprEntryScreen> {
                       ),
                     ),
                   ),
-                  const SizedBox(width: 14),
+                  const SizedBox(width: 12),
                   Expanded(
                     child: Column(
                       crossAxisAlignment: CrossAxisAlignment.stretch,
@@ -1606,17 +1611,17 @@ class _PebDprEntryScreenState extends State<PebDprEntryScreen> {
                             fontWeight: FontWeight.w800,
                           ),
                         ),
-                        const SizedBox(height: 5),
+                        const SizedBox(height: 3),
                         Text(
                           markNumber,
                           maxLines: 1,
                           overflow: TextOverflow.ellipsis,
                           style: const TextStyle(
-                            fontSize: 18,
+                            fontSize: 17,
                             fontWeight: FontWeight.w900,
                           ),
                         ),
-                        const SizedBox(height: 10),
+                        const SizedBox(height: 8),
                         Text(
                           'Weight (Kg)',
                           style: TextStyle(
@@ -1634,11 +1639,11 @@ class _PebDprEntryScreenState extends State<PebDprEntryScreen> {
                               decimal: true),
                           textAlign: TextAlign.center,
                           style: const TextStyle(
-                              fontSize: 24, fontWeight: FontWeight.w900),
+                              fontSize: 20, fontWeight: FontWeight.w900),
                           decoration: InputDecoration(
                             isDense: true,
                             contentPadding: const EdgeInsets.symmetric(
-                                horizontal: 12, vertical: 12),
+                                horizontal: 10, vertical: 10),
                             border: OutlineInputBorder(
                               borderRadius: BorderRadius.circular(12),
                             ),
@@ -1650,12 +1655,21 @@ class _PebDprEntryScreenState extends State<PebDprEntryScreen> {
                     ),
                   ),
                   if (selecting) ...[
-                    const SizedBox(width: 8),
-                    Checkbox(
-                      value: selected,
-                      onChanged: selectable
-                          ? (_) => _toggleDetailMark(work, markNumber)
-                          : null,
+                    const SizedBox(width: 6),
+                    Container(
+                      decoration: BoxDecoration(
+                        color: selected
+                            ? cs.primary.withValues(alpha: 0.1)
+                            : Colors.transparent,
+                        shape: BoxShape.circle,
+                      ),
+                      child: Checkbox(
+                        value: selected,
+                        onChanged: selectable
+                            ? (_) => _toggleDetailMark(work, markNumber)
+                            : null,
+                        visualDensity: VisualDensity.compact,
+                      ),
                     ),
                   ],
                 ],
