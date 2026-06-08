@@ -138,6 +138,13 @@ class _PebDprEntryScreenState extends State<PebDprEntryScreen> {
 
   String _markInputKey(_VisibleWork work, String mark) => '${work.key}::$mark';
 
+  PebBoqMark? _boqMarkFor(String mark) {
+    for (final item in _allMarks) {
+      if (item.assemblyMark == mark) return item;
+    }
+    return null;
+  }
+
   _VisibleWork? _activeWork(List<_VisibleWork> works) {
     final key = _activeWorkKey;
     if (key == null) return null;
@@ -147,11 +154,7 @@ class _PebDprEntryScreenState extends State<PebDprEntryScreen> {
     return null;
   }
 
-  void _openWorkDetail(_VisibleWork work) {
-    if (work.isActive && !_hasUnlockedScope(work)) {
-      AppToast.info('Please complete the previous task before proceeding.');
-      return;
-    }
+  Future<void> _openWorkDetail(_VisibleWork work) async {
     if (!work.isActive) {
       AppToast.info(work.inactiveReason ?? 'This work is not assigned');
       return;
@@ -161,6 +164,15 @@ class _PebDprEntryScreenState extends State<PebDprEntryScreen> {
       _markActionMode = _DprMarkActionMode.none;
       _selectedDetailMarks.clear();
     });
+
+    if (work.assignedMarks.isEmpty) return;
+
+    await Future<void>.delayed(Duration.zero);
+    if (!mounted || _activeWorkKey != work.key) return;
+
+    final mode = await _showWorkStatusChoice(work);
+    if (!mounted || mode == null || _activeWorkKey != work.key) return;
+    _startMarkAction(mode);
   }
 
   void _closeWorkDetail() {
@@ -168,6 +180,129 @@ class _PebDprEntryScreenState extends State<PebDprEntryScreen> {
       _activeWorkKey = null;
       _markActionMode = _DprMarkActionMode.none;
       _selectedDetailMarks.clear();
+    });
+  }
+
+  Future<_DprMarkActionMode?> _showWorkStatusChoice(_VisibleWork work) {
+    final canMarkInProgress =
+        _hasSelectableMarksForMode(work, _DprMarkActionMode.inProgress);
+    final canMarkCompleted =
+        _hasSelectableMarksForMode(work, _DprMarkActionMode.completed);
+    if (!canMarkInProgress && !canMarkCompleted) {
+      return Future.value(null);
+    }
+
+    final inProgressColor = const Color(0xFFE56F00);
+    final completedColor = Colors.green.shade700;
+    return showModalBottomSheet<_DprMarkActionMode>(
+      context: context,
+      showDragHandle: true,
+      builder: (context) {
+        final cs = Theme.of(context).colorScheme;
+        return SafeArea(
+          child: Padding(
+            padding: const EdgeInsets.fromLTRB(16, 4, 16, 18),
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              crossAxisAlignment: CrossAxisAlignment.stretch,
+              children: [
+                Text(
+                  work.displayName ?? work.stageName,
+                  style: TextStyle(
+                    color: cs.onSurface,
+                    fontSize: 20,
+                    fontWeight: FontWeight.w900,
+                  ),
+                ),
+                const SizedBox(height: 4),
+                Text(
+                  'Choose how you want to update these mark numbers.',
+                  style: TextStyle(
+                    color: cs.onSurfaceVariant,
+                    fontWeight: FontWeight.w600,
+                  ),
+                ),
+                const SizedBox(height: 14),
+                Row(
+                  children: [
+                    if (canMarkInProgress)
+                      Expanded(
+                        child: _statusChoiceButton(
+                          label: 'In Progress',
+                          icon: Icons.pending_actions_rounded,
+                          color: inProgressColor,
+                          onTap: () =>
+                              context.pop(_DprMarkActionMode.inProgress),
+                        ),
+                      ),
+                    if (canMarkInProgress && canMarkCompleted)
+                      const SizedBox(width: 12),
+                    if (canMarkCompleted)
+                      Expanded(
+                        child: _statusChoiceButton(
+                          label: 'Completed',
+                          icon: Icons.check_circle_rounded,
+                          color: completedColor,
+                          onTap: () =>
+                              context.pop(_DprMarkActionMode.completed),
+                        ),
+                      ),
+                  ],
+                ),
+              ],
+            ),
+          ),
+        );
+      },
+    );
+  }
+
+  Widget _statusChoiceButton({
+    required String label,
+    required IconData icon,
+    required Color color,
+    required VoidCallback onTap,
+  }) {
+    return InkWell(
+      onTap: onTap,
+      borderRadius: BorderRadius.circular(14),
+      child: Container(
+        padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 14),
+        decoration: BoxDecoration(
+          color: color.withValues(alpha: 0.09),
+          borderRadius: BorderRadius.circular(14),
+          border: Border.all(color: color.withValues(alpha: 0.42)),
+        ),
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Icon(icon, color: color, size: 26),
+            const SizedBox(height: 8),
+            Text(
+              label,
+              textAlign: TextAlign.center,
+              style: TextStyle(
+                color: color,
+                fontWeight: FontWeight.w900,
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  bool _hasSelectableMarksForMode(
+    _VisibleWork work,
+    _DprMarkActionMode mode,
+  ) {
+    final unlockedMarks = _unlockedMarksForWork(work).toSet();
+    return work.assignedMarks.any((mark) {
+      final completed = _completedForWork(work).contains(mark);
+      final inProgress = _inProgressForWork(work).contains(mark);
+      if (!unlockedMarks.contains(mark) || completed) return false;
+      if (mode == _DprMarkActionMode.inProgress && inProgress) return false;
+      return true;
     });
   }
 
@@ -217,6 +352,17 @@ class _PebDprEntryScreenState extends State<PebDprEntryScreen> {
   }
 
   void _startMarkAction(_DprMarkActionMode mode) {
+    final work = _activeWork(_visibleWorks());
+    final hasSelectableMarks =
+        work != null && _hasSelectableMarksForMode(work, mode);
+
+    if (!hasSelectableMarks) {
+      AppToast.info(mode == _DprMarkActionMode.completed
+          ? 'No pending marks available to complete'
+          : 'No pending marks available for in progress');
+      return;
+    }
+
     setState(() {
       _markActionMode = mode;
       _selectedDetailMarks.clear();
@@ -250,8 +396,13 @@ class _PebDprEntryScreenState extends State<PebDprEntryScreen> {
       initialDate: _selectedDate,
     );
     if (picked == null) return;
-    setState(() => _selectedDate = picked);
-    await _load(autoScroll: true);
+    setState(() {
+      _selectedDate = picked;
+      _activeWorkKey = null;
+      _markActionMode = _DprMarkActionMode.none;
+      _selectedDetailMarks.clear();
+    });
+    await _load(showLoader: true, autoScroll: true);
   }
 
   List<_VisibleWork> _visibleWorks() {
@@ -846,156 +997,162 @@ class _PebDprEntryScreenState extends State<PebDprEntryScreen> {
     final works = _visibleWorks();
     final activeWork = _activeWork(works);
     final assignedWorks = works.where((work) => work.isActive).toList();
-    return Scaffold(
-      drawer: const CustomDrawer(),
-      appBar: CustomAppBar(title: '${widget.executionType.title} DPR'),
-      body: _loading
-          ? const Center(child: CircularProgressIndicator())
-          : _loadError != null
-              ? _buildLoadErrorState()
-              : _teams.isEmpty
-                  ? _buildNoTeamsState()
-                  : Stack(
-                      children: [
-                        RefreshIndicator(
-                          onRefresh: _load,
-                          child: ListView(
-                            controller: _scrollController,
-                            padding: const EdgeInsets.all(16),
-                            children: activeWork == null
-                                ? [
-                                    _buildFilters(),
-                                    const SizedBox(height: 18),
-                                    _buildAssignedWorkHeader(assignedWorks),
-                                    const SizedBox(height: 16),
-                                    if (assignedWorks.isEmpty)
-                                      _boqs.isEmpty
-                                          ? _buildNoBoqState()
-                                          : const Card(
-                                              child: Padding(
-                                                padding: EdgeInsets.all(20),
-                                                child: Text(
-                                                    'No assigned work found for this team.'),
-                                              ),
-                                            )
-                                    else
-                                      ...assignedWorks.asMap().entries.map(
-                                            (entry) => KeyedSubtree(
-                                              key: _keyForWork(
-                                                  entry.value, entry.key),
-                                              child:
-                                                  _buildWorkCard(entry.value),
-                                            ),
-                                          ),
-                                    const SizedBox(height: 90),
-                                  ]
-                                : [
-                                    _buildWorkDetailHeader(activeWork),
-                                    const SizedBox(height: 10),
-                                    _buildDetailActionPanel(activeWork),
-                                    const SizedBox(height: 12),
-                                    ...activeWork.assignedMarks.map(
-                                      (mark) => _buildMarkEntryCard(
-                                        activeWork,
-                                        mark,
-                                        enabled:
-                                            _unlockedMarksForWork(activeWork)
-                                                .contains(mark),
-                                      ),
-                                    ),
-                                    if (activeWork.assignedMarks.isEmpty)
-                                      Card(
-                                        child: Padding(
-                                          padding: const EdgeInsets.all(20),
-                                          child: Column(
-                                            crossAxisAlignment:
-                                                CrossAxisAlignment.stretch,
-                                            children: [
-                                              Text(
-                                                'Quantity based work',
-                                                style: TextStyle(
-                                                  color: Theme.of(context)
-                                                      .colorScheme
-                                                      .onSurface,
-                                                  fontWeight: FontWeight.w800,
+    return PopScope(
+      canPop: _activeWorkKey == null,
+      onPopInvokedWithResult: (didPop, _) {
+        if (!didPop && _activeWorkKey != null) {
+          _closeWorkDetail();
+        }
+      },
+      child: Scaffold(
+        drawer: const CustomDrawer(),
+        appBar: CustomAppBar(title: '${widget.executionType.title} DPR'),
+        body: _loading
+            ? const Center(child: CircularProgressIndicator())
+            : _loadError != null
+                ? _buildLoadErrorState()
+                : _teams.isEmpty
+                    ? _buildNoTeamsState()
+                    : Stack(
+                        children: [
+                          RefreshIndicator(
+                            onRefresh: _load,
+                            child: ListView(
+                              controller: _scrollController,
+                              padding: const EdgeInsets.all(16),
+                              children: activeWork == null
+                                  ? [
+                                      _buildFilters(),
+                                      const SizedBox(height: 18),
+                                      _buildAssignedWorkHeader(assignedWorks),
+                                      const SizedBox(height: 16),
+                                      if (assignedWorks.isEmpty)
+                                        _boqs.isEmpty
+                                            ? _buildNoBoqState()
+                                            : const Card(
+                                                child: Padding(
+                                                  padding: EdgeInsets.all(20),
+                                                  child: Text(
+                                                      'No assigned work found for this team.'),
                                                 ),
+                                              )
+                                      else
+                                        ...assignedWorks.asMap().entries.map(
+                                              (entry) => KeyedSubtree(
+                                                key: _keyForWork(
+                                                    entry.value, entry.key),
+                                                child:
+                                                    _buildWorkCard(entry.value),
                                               ),
-                                              const SizedBox(height: 12),
-                                              Row(
-                                                children: [
-                                                  Expanded(
-                                                    child: OutlinedButton(
-                                                      onPressed:
-                                                          _isWorkActionable(
-                                                                  activeWork)
-                                                              ? () =>
-                                                                  _openAction(
-                                                                      activeWork,
-                                                                      false)
-                                                              : null,
-                                                      child: const Text(
-                                                          'In Progress'),
-                                                    ),
-                                                  ),
-                                                  const SizedBox(width: 10),
-                                                  Expanded(
-                                                    child: FilledButton(
-                                                      onPressed:
-                                                          _isWorkActionable(
-                                                                  activeWork)
-                                                              ? () =>
-                                                                  _openAction(
-                                                                      activeWork,
-                                                                      true)
-                                                              : null,
-                                                      child: const Text(
-                                                          'Completed'),
-                                                    ),
-                                                  ),
-                                                ],
-                                              ),
-                                            ],
-                                          ),
+                                            ),
+                                      const SizedBox(height: 90),
+                                    ]
+                                  : [
+                                      _buildWorkDetailHeader(activeWork),
+                                      const SizedBox(height: 12),
+                                      ...activeWork.assignedMarks.map(
+                                        (mark) => _buildMarkEntryCardV2(
+                                          activeWork,
+                                          mark,
+                                          enabled:
+                                              _unlockedMarksForWork(activeWork)
+                                                  .contains(mark),
                                         ),
                                       ),
-                                    const SizedBox(height: 190),
-                                  ],
-                          ),
-                        ),
-                        if (activeWork != null &&
-                            activeWork.assignedMarks.isNotEmpty)
-                          _buildDetailBottomBar(activeWork),
-                        if (_submitting)
-                          Positioned.fill(
-                            child: AbsorbPointer(
-                              child: Container(
-                                color: Colors.white.withValues(alpha: 0.62),
-                                child: const Center(
-                                  child: Card(
-                                    child: Padding(
-                                      padding: EdgeInsets.symmetric(
-                                          horizontal: 20, vertical: 16),
-                                      child: Row(
-                                        mainAxisSize: MainAxisSize.min,
-                                        children: [
-                                          SizedBox(
-                                            width: 22,
-                                            height: 22,
-                                            child: CircularProgressIndicator(
-                                                strokeWidth: 2),
+                                      if (activeWork.assignedMarks.isEmpty)
+                                        Card(
+                                          child: Padding(
+                                            padding: const EdgeInsets.all(20),
+                                            child: Column(
+                                              crossAxisAlignment:
+                                                  CrossAxisAlignment.stretch,
+                                              children: [
+                                                Text(
+                                                  'Quantity based work',
+                                                  style: TextStyle(
+                                                    color: Theme.of(context)
+                                                        .colorScheme
+                                                        .onSurface,
+                                                    fontWeight: FontWeight.w800,
+                                                  ),
+                                                ),
+                                                const SizedBox(height: 12),
+                                                Row(
+                                                  children: [
+                                                    Expanded(
+                                                      child: OutlinedButton(
+                                                        onPressed:
+                                                            _isWorkActionable(
+                                                                    activeWork)
+                                                                ? () =>
+                                                                    _openAction(
+                                                                        activeWork,
+                                                                        false)
+                                                                : null,
+                                                        child: const Text(
+                                                            'In Progress'),
+                                                      ),
+                                                    ),
+                                                    const SizedBox(width: 10),
+                                                    Expanded(
+                                                      child: FilledButton(
+                                                        onPressed:
+                                                            _isWorkActionable(
+                                                                    activeWork)
+                                                                ? () =>
+                                                                    _openAction(
+                                                                        activeWork,
+                                                                        true)
+                                                                : null,
+                                                        child: const Text(
+                                                            'Completed'),
+                                                      ),
+                                                    ),
+                                                  ],
+                                                ),
+                                              ],
+                                            ),
                                           ),
-                                          SizedBox(width: 14),
-                                          Text('Updating DPR...'),
-                                        ],
+                                        ),
+                                      const SizedBox(height: 190),
+                                    ],
+                            ),
+                          ),
+                          if (activeWork != null &&
+                              activeWork.assignedMarks.isNotEmpty)
+                            _buildDetailBottomBar(activeWork),
+                          if (_submitting)
+                            Positioned.fill(
+                              child: AbsorbPointer(
+                                child: Container(
+                                  color: Colors.white.withValues(alpha: 0.62),
+                                  child: const Center(
+                                    child: Card(
+                                      child: Padding(
+                                        padding: EdgeInsets.symmetric(
+                                            horizontal: 20, vertical: 16),
+                                        child: Row(
+                                          mainAxisSize: MainAxisSize.min,
+                                          children: [
+                                            SizedBox(
+                                              width: 22,
+                                              height: 22,
+                                              child: CircularProgressIndicator(
+                                                  strokeWidth: 2),
+                                            ),
+                                            SizedBox(width: 14),
+                                            Text('Updating DPR...'),
+                                          ],
+                                        ),
                                       ),
                                     ),
                                   ),
                                 ),
                               ),
                             ),
-                          ),
-                      ],
-                    ),
+                        ],
+                      ),
+      ),
     );
   }
 
@@ -1139,8 +1296,13 @@ class _PebDprEntryScreenState extends State<PebDprEntryScreen> {
                       if (selectedTeamId.isEmpty || selectedTeamId == _teamId) {
                         return;
                       }
-                      setState(() => _teamId = selectedTeamId);
-                      await _load(showLoader: false, autoScroll: true);
+                      setState(() {
+                        _teamId = selectedTeamId;
+                        _activeWorkKey = null;
+                        _markActionMode = _DprMarkActionMode.none;
+                        _selectedDetailMarks.clear();
+                      });
+                      await _load(showLoader: true, autoScroll: true);
                     },
                   ),
                 ),
@@ -1231,7 +1393,6 @@ class _PebDprEntryScreenState extends State<PebDprEntryScreen> {
 
   Widget _buildWorkCard(_VisibleWork work) {
     final counts = _counts(work);
-    final isActionable = _isWorkActionable(work);
     final isCompleted = _isWorkFullyCompleted(work);
     final deadline = work.expectedCompletionDate == null
         ? '-'
@@ -1242,111 +1403,111 @@ class _PebDprEntryScreenState extends State<PebDprEntryScreen> {
     final completion = counts.total > 0
         ? (counts.completed / counts.total).clamp(0.0, 1.0)
         : 0.0;
-    return Opacity(
-      opacity: isActionable || isCompleted ? 1 : 0.38,
-      child: Container(
-        margin: const EdgeInsets.only(bottom: 10),
-        decoration: BoxDecoration(
+    final card = Container(
+      margin: const EdgeInsets.only(bottom: 10),
+      decoration: BoxDecoration(
+        color: isCompleted
+            ? Colors.green.shade50
+            : Theme.of(context).colorScheme.surface,
+        borderRadius: BorderRadius.circular(16),
+        border: Border.all(
           color: isCompleted
-              ? Colors.green.shade50
-              : Theme.of(context).colorScheme.surface,
-          borderRadius: BorderRadius.circular(16),
-          border: Border.all(
-            color: isCompleted
-                ? Colors.green.shade300
-                : Theme.of(context).colorScheme.outlineVariant,
-          ),
-          boxShadow: [
-            BoxShadow(
-              color: Colors.black.withValues(alpha: 0.035),
-              blurRadius: 10,
-              offset: const Offset(0, 4),
-            ),
-          ],
+              ? Colors.green.shade300
+              : Theme.of(context).colorScheme.outlineVariant,
         ),
-        child: InkWell(
-          borderRadius: BorderRadius.circular(16),
-          onTap: () => _openWorkDetail(work),
-          child: Padding(
-            padding: const EdgeInsets.all(12),
-            child: Row(
-              crossAxisAlignment: CrossAxisAlignment.center,
-              children: [
-                Container(
-                  width: 76,
-                  height: 76,
-                  decoration: BoxDecoration(
+        boxShadow: [
+          BoxShadow(
+            color: Colors.black.withValues(alpha: 0.035),
+            blurRadius: 10,
+            offset: const Offset(0, 4),
+          ),
+        ],
+      ),
+      child: InkWell(
+        borderRadius: BorderRadius.circular(16),
+        onTap: () => _openWorkDetail(work),
+        child: Padding(
+          padding: const EdgeInsets.all(12),
+          child: Row(
+            crossAxisAlignment: CrossAxisAlignment.center,
+            children: [
+              Container(
+                width: 76,
+                height: 76,
+                decoration: BoxDecoration(
+                  color: isCompleted
+                      ? Colors.green.shade100
+                      : accent.withValues(alpha: 0.12),
+                  borderRadius: BorderRadius.circular(14),
+                  border: Border.all(
                     color: isCompleted
-                        ? Colors.green.shade100
-                        : accent.withValues(alpha: 0.12),
-                    borderRadius: BorderRadius.circular(14),
-                    border: Border.all(
-                      color: isCompleted
-                          ? Colors.green.shade200
-                          : accent.withValues(alpha: 0.14),
+                        ? Colors.green.shade200
+                        : accent.withValues(alpha: 0.14),
+                  ),
+                ),
+                clipBehavior: Clip.antiAlias,
+                child: Padding(
+                  padding: const EdgeInsets.all(9),
+                  child: _workCardImage(work),
+                ),
+              ),
+              const SizedBox(width: 12),
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      work.displayName ?? work.stageName,
+                      style: TextStyle(
+                        color: accent,
+                        fontSize: 18,
+                        fontWeight: FontWeight.w900,
+                      ),
                     ),
-                  ),
-                  clipBehavior: Clip.antiAlias,
-                  child: Padding(
-                    padding: const EdgeInsets.all(9),
-                    child: _workCardImage(work),
-                  ),
-                ),
-                const SizedBox(width: 12),
-                Expanded(
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      Text(
-                        work.displayName ?? work.stageName,
-                        style: TextStyle(
-                          color: accent,
-                          fontSize: 18,
-                          fontWeight: FontWeight.w900,
-                        ),
-                      ),
-                      if (isCompleted) ...[
-                        const SizedBox(height: 6),
-                        _statusBadge(
-                          label: 'Completed',
-                          color: Colors.green.shade700,
-                          icon: Icons.check_circle_rounded,
-                        ),
-                      ],
-                      const SizedBox(height: 10),
-                      Row(
-                        children: [
-                          Expanded(
-                              child: _workCountBlock(
-                                  'Assigned', counts.total, Colors.black87)),
-                          Expanded(
-                              child: _workCountBlock('In Progress',
-                                  counts.inProgress, Colors.orange)),
-                          Expanded(
-                              child: _workCountBlock('Completed',
-                                  counts.completed, Colors.green.shade700)),
-                          Icon(Icons.chevron_right_rounded,
-                              size: 32, color: accent),
-                        ],
-                      ),
-                      const SizedBox(height: 9),
-                      _completionBar(
-                        value: completion,
+                    if (isCompleted) ...[
+                      const SizedBox(height: 6),
+                      _statusBadge(
+                        label: 'Completed',
                         color: Colors.green.shade700,
-                        backgroundColor: Theme.of(context)
-                            .colorScheme
-                            .surfaceContainerHighest,
+                        icon: Icons.check_circle_rounded,
                       ),
-                      const SizedBox(height: 8),
-                      _deadlineBanner(work, completedDate, deadline),
                     ],
-                  ),
+                    const SizedBox(height: 10),
+                    Row(
+                      children: [
+                        Expanded(
+                            child: _workCountBlock(
+                                'Assigned', counts.total, Colors.black87)),
+                        Expanded(
+                            child: _workCountBlock('In Progress',
+                                counts.inProgress, Colors.orange)),
+                        Expanded(
+                            child: _workCountBlock('Completed',
+                                counts.completed, Colors.green.shade700)),
+                        Icon(Icons.chevron_right_rounded,
+                            size: 32, color: accent),
+                      ],
+                    ),
+                    const SizedBox(height: 9),
+                    _completionBar(
+                      value: completion,
+                      color: Colors.green.shade700,
+                      backgroundColor:
+                          Theme.of(context).colorScheme.surfaceContainerHighest,
+                    ),
+                    const SizedBox(height: 8),
+                    _deadlineBanner(work, completedDate, deadline),
+                  ],
                 ),
-              ],
-            ),
+              ),
+            ],
           ),
         ),
       ),
+    );
+    return Opacity(
+      opacity: work.isActive || isCompleted ? 1 : 0.46,
+      child: card,
     );
   }
 
@@ -1524,92 +1685,6 @@ class _PebDprEntryScreenState extends State<PebDprEntryScreen> {
     );
   }
 
-  Widget _buildDetailActionPanel(_VisibleWork work) {
-    final cs = Theme.of(context).colorScheme;
-    final counts = _counts(work);
-    final inProgressColor = const Color(0xFFE56F00);
-    final completedColor = Colors.green.shade700;
-    final progress = counts.total > 0 ? counts.completed / counts.total : 0.0;
-    final selecting = _markActionMode != _DprMarkActionMode.none;
-    return Container(
-      padding: const EdgeInsets.all(12),
-      decoration: BoxDecoration(
-        color: cs.surface,
-        borderRadius: BorderRadius.circular(16),
-        border: Border.all(color: cs.outlineVariant),
-      ),
-      child: Column(
-        children: [
-          Row(
-            children: [
-              Expanded(
-                child: Text(
-                  'Completion',
-                  style: TextStyle(
-                    color: cs.onSurface,
-                    fontWeight: FontWeight.w900,
-                  ),
-                ),
-              ),
-              Text(
-                '${counts.completed}/${counts.total} completed',
-                style: TextStyle(
-                  color: completedColor,
-                  fontWeight: FontWeight.w900,
-                ),
-              ),
-            ],
-          ),
-          const SizedBox(height: 10),
-          _completionBar(
-            value: progress,
-            color: completedColor,
-            backgroundColor: cs.surfaceContainerHighest,
-          ),
-          const SizedBox(height: 12),
-          Row(
-            children: [
-              Expanded(
-                child: OutlinedButton.icon(
-                  onPressed: _submitting || selecting
-                      ? null
-                      : () => _startMarkAction(_DprMarkActionMode.inProgress),
-                  icon: const Icon(Icons.pending_actions_rounded),
-                  label: Text('In Progress (${counts.inProgress})'),
-                  style: OutlinedButton.styleFrom(
-                    foregroundColor: inProgressColor,
-                    side: BorderSide(color: inProgressColor),
-                    minimumSize: const Size.fromHeight(46),
-                    shape: RoundedRectangleBorder(
-                      borderRadius: BorderRadius.circular(12),
-                    ),
-                  ),
-                ),
-              ),
-              const SizedBox(width: 10),
-              Expanded(
-                child: FilledButton.icon(
-                  onPressed: _submitting || selecting
-                      ? null
-                      : () => _startMarkAction(_DprMarkActionMode.completed),
-                  icon: const Icon(Icons.check_circle_rounded),
-                  label: Text('Completed (${counts.completed})'),
-                  style: FilledButton.styleFrom(
-                    backgroundColor: completedColor,
-                    minimumSize: const Size.fromHeight(46),
-                    shape: RoundedRectangleBorder(
-                      borderRadius: BorderRadius.circular(12),
-                    ),
-                  ),
-                ),
-              ),
-            ],
-          ),
-        ],
-      ),
-    );
-  }
-
   Widget _buildDetailBottomBar(_VisibleWork work) {
     final cs = Theme.of(context).colorScheme;
     final selecting = _markActionMode != _DprMarkActionMode.none;
@@ -1669,9 +1744,7 @@ class _PebDprEntryScreenState extends State<PebDprEntryScreen> {
                       borderRadius: BorderRadius.circular(12),
                     ),
                   ),
-                  child: Text(
-                    '${isCompletedMode ? 'Complete' : 'In Progress'} (${_selectedDetailMarks.length})',
-                  ),
+                  child: Text('Save (${_selectedDetailMarks.length})'),
                 ),
               ),
             ],
@@ -1681,6 +1754,348 @@ class _PebDprEntryScreenState extends State<PebDprEntryScreen> {
     );
   }
 
+  Widget _buildMarkEntryCardV2(
+    _VisibleWork work,
+    String markNumber, {
+    required bool enabled,
+  }) {
+    final cs = Theme.of(context).colorScheme;
+    final key = _markInputKey(work, markNumber);
+    final boqMark = _boqMarkFor(markNumber);
+    final boqDescription = (boqMark?.typeDescription ?? '').trim();
+    final title = boqDescription.isNotEmpty
+        ? boqDescription
+        : work.displayName ?? work.stageName;
+    final completed = _completedForWork(work).contains(markNumber);
+    final inProgress = _inProgressForWork(work).contains(markNumber);
+    final selecting = _markActionMode != _DprMarkActionMode.none;
+    final selected = _selectedDetailMarks.contains(markNumber);
+    final selectable = selecting &&
+        enabled &&
+        !completed &&
+        !(_markActionMode == _DprMarkActionMode.inProgress && inProgress);
+    final actionComplete = selecting &&
+        selected &&
+        _markActionMode == _DprMarkActionMode.completed;
+    final actionProgress = selecting &&
+        selected &&
+        _markActionMode == _DprMarkActionMode.inProgress;
+    final effectiveCompleted = completed || actionComplete;
+    final effectiveInProgress =
+        !effectiveCompleted && (inProgress || actionProgress);
+    final locked = !enabled && !completed && !inProgress;
+    final editable = enabled || completed || inProgress;
+    final weightKg = _markWeightKg(markNumber);
+    final isVariationOpen = _isWeightChanged(work, markNumber);
+    final inProgressColor = const Color(0xFFE56F00);
+    final statusColor = effectiveCompleted
+        ? Colors.green.shade700
+        : effectiveInProgress
+            ? inProgressColor
+            : cs.onSurfaceVariant;
+    final cardColor = effectiveCompleted
+        ? Colors.green.shade50
+        : effectiveInProgress
+            ? Colors.orange.shade50
+            : cs.surface;
+    final borderColor = effectiveCompleted
+        ? Colors.green.shade500
+        : effectiveInProgress
+            ? Colors.orange.shade500
+            : cs.outlineVariant;
+    final imageBg = effectiveCompleted
+        ? Colors.green.shade100
+        : effectiveInProgress
+            ? Colors.orange.shade100
+            : Colors.blueGrey.shade50;
+    final statusBadge = effectiveCompleted
+        ? _statusBadge(
+            label: 'Completed',
+            color: Colors.green.shade700,
+            icon: Icons.check_circle_rounded,
+          )
+        : effectiveInProgress
+            ? _statusBadge(
+                label: 'In Progress',
+                color: inProgressColor,
+                icon: Icons.pending_actions_rounded,
+              )
+            : _statusBadge(
+                label: 'Pending',
+                color: cs.onSurfaceVariant,
+                icon: Icons.radio_button_unchecked_rounded,
+              );
+
+    final card = Container(
+      margin: const EdgeInsets.only(bottom: 10),
+      decoration: BoxDecoration(
+        color: cardColor,
+        borderRadius: BorderRadius.circular(16),
+        border: Border.all(color: borderColor, width: selected ? 1.6 : 1),
+        boxShadow: [
+          BoxShadow(
+            color: Colors.black.withValues(alpha: 0.035),
+            blurRadius: 8,
+            offset: const Offset(0, 3),
+          ),
+        ],
+      ),
+      child: Padding(
+        padding: const EdgeInsets.all(12),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.stretch,
+          children: [
+            Row(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                if (selecting) ...[
+                  SizedBox(
+                    width: 32,
+                    height: 32,
+                    child: Checkbox(
+                      value: selected,
+                      onChanged: selectable
+                          ? (_) => _toggleDetailMark(work, markNumber)
+                          : null,
+                      activeColor:
+                          _markActionMode == _DprMarkActionMode.completed
+                              ? Colors.green.shade700
+                              : inProgressColor,
+                      shape: RoundedRectangleBorder(
+                        borderRadius: BorderRadius.circular(5),
+                      ),
+                    ),
+                  ),
+                  const SizedBox(width: 8),
+                ],
+                Expanded(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text(
+                        title,
+                        maxLines: 2,
+                        overflow: TextOverflow.ellipsis,
+                        style: TextStyle(
+                          color: cs.onSurface,
+                          fontSize: 17,
+                          height: 1.15,
+                          fontWeight: FontWeight.w900,
+                        ),
+                      ),
+                      const SizedBox(height: 6),
+                      RichText(
+                        maxLines: 1,
+                        overflow: TextOverflow.ellipsis,
+                        text: TextSpan(
+                          style: TextStyle(
+                            color: cs.onSurfaceVariant,
+                            fontSize: 12,
+                            fontWeight: FontWeight.w800,
+                          ),
+                          children: [
+                            const TextSpan(text: 'Mark Number: '),
+                            TextSpan(
+                              text: markNumber,
+                              style: TextStyle(
+                                color: cs.onSurface,
+                                fontSize: 15,
+                                fontWeight: FontWeight.w900,
+                              ),
+                            ),
+                          ],
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+                const SizedBox(width: 10),
+                SizedBox(
+                  width: 132,
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.stretch,
+                    children: [
+                      Align(
+                        alignment: Alignment.centerRight,
+                        child: statusBadge,
+                      ),
+                      const SizedBox(height: 8),
+                      TextFormField(
+                        initialValue: _markRemarks[key] ?? '',
+                        enabled: editable,
+                        decoration: InputDecoration(
+                          labelText: 'Remarks',
+                          isDense: true,
+                          contentPadding: const EdgeInsets.symmetric(
+                              horizontal: 10, vertical: 8),
+                          border: OutlineInputBorder(
+                            borderRadius: BorderRadius.circular(10),
+                          ),
+                        ),
+                        minLines: 1,
+                        maxLines: 1,
+                        onChanged: (value) => _markRemarks[key] = value,
+                      ),
+                    ],
+                  ),
+                ),
+              ],
+            ),
+            if (locked) ...[
+              const SizedBox(height: 10),
+              Container(
+                padding:
+                    const EdgeInsets.symmetric(horizontal: 10, vertical: 8),
+                decoration: BoxDecoration(
+                  color: Colors.orange.shade100,
+                  borderRadius: BorderRadius.circular(10),
+                  border: Border.all(color: Colors.orange.shade300),
+                ),
+                child: Row(
+                  children: [
+                    Icon(Icons.info_rounded,
+                        color: Colors.orange.shade900, size: 18),
+                    const SizedBox(width: 8),
+                    Expanded(
+                      child: Text(
+                        'Please complete the previous member\'s work before proceeding.',
+                        style: TextStyle(
+                          color: Colors.orange.shade900,
+                          fontSize: 12,
+                          fontWeight: FontWeight.w800,
+                        ),
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+            ],
+            const SizedBox(height: 12),
+            Row(
+              crossAxisAlignment: CrossAxisAlignment.center,
+              children: [
+                Container(
+                  width: 88,
+                  height: 88,
+                  decoration: BoxDecoration(
+                    color: imageBg,
+                    borderRadius: BorderRadius.circular(14),
+                    border:
+                        Border.all(color: borderColor.withValues(alpha: 0.28)),
+                  ),
+                  clipBehavior: Clip.antiAlias,
+                  child: Padding(
+                    padding: const EdgeInsets.all(8),
+                    child: Center(
+                      child: Image(
+                        image: pebWorkImageProvider(
+                          work.setupItem,
+                          widget.executionType,
+                        ),
+                        fit: BoxFit.contain,
+                        alignment: Alignment.center,
+                        width: double.infinity,
+                        height: double.infinity,
+                        errorBuilder: (_, __, ___) => Center(
+                          child: pebWorkImageFallback(
+                            work.setupItem,
+                            widget.executionType,
+                          ),
+                        ),
+                      ),
+                    ),
+                  ),
+                ),
+                const SizedBox(width: 12),
+                Expanded(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.stretch,
+                    children: [
+                      Text(
+                        'Weight (Kg)',
+                        style: TextStyle(
+                          color: statusColor,
+                          fontSize: 12,
+                          fontWeight: FontWeight.w900,
+                        ),
+                      ),
+                      const SizedBox(height: 7),
+                      TextFormField(
+                        initialValue:
+                            _markQuantityInputs[key] ?? _prettyNumber(weightKg),
+                        enabled: editable,
+                        keyboardType: const TextInputType.numberWithOptions(
+                            decimal: true),
+                        textAlign: TextAlign.center,
+                        style: const TextStyle(
+                            fontSize: 20, fontWeight: FontWeight.w900),
+                        decoration: InputDecoration(
+                          filled: true,
+                          fillColor: cs.surface,
+                          isDense: true,
+                          contentPadding: const EdgeInsets.symmetric(
+                              horizontal: 10, vertical: 10),
+                          border: OutlineInputBorder(
+                            borderRadius: BorderRadius.circular(12),
+                          ),
+                        ),
+                        onChanged: (value) =>
+                            setState(() => _markQuantityInputs[key] = value),
+                      ),
+                    ],
+                  ),
+                ),
+              ],
+            ),
+            if (isVariationOpen) ...[
+              const SizedBox(height: 12),
+              _pillBanner(
+                icon: Icons.add_chart_rounded,
+                color: statusColor,
+                text: 'Variation detected from edited weight',
+              ),
+              const SizedBox(height: 8),
+              TextFormField(
+                initialValue: _variationReasons[key] ?? '',
+                decoration: const InputDecoration(
+                  labelText: 'Variation Reason',
+                  border: OutlineInputBorder(),
+                ),
+                minLines: 1,
+                maxLines: 2,
+                onChanged: (value) => _variationReasons[key] = value,
+              ),
+            ],
+          ],
+        ),
+      ),
+    );
+
+    return InkWell(
+      onTap: selecting
+          ? selectable
+              ? () => _toggleDetailMark(work, markNumber)
+              : () {
+                  if (locked) {
+                    AppToast.info(
+                        'Please complete the previous task before proceeding.');
+                  } else if (completed) {
+                    AppToast.info('This mark number is already completed.');
+                  } else if (_markActionMode == _DprMarkActionMode.inProgress &&
+                      inProgress) {
+                    AppToast.info('This mark number is already in progress.');
+                  }
+                }
+          : locked
+              ? () => AppToast.info(
+                  'Please complete the previous task before proceeding.')
+              : null,
+      borderRadius: BorderRadius.circular(18),
+      child: card,
+    );
+  }
+
+  // ignore: unused_element
   Widget _buildMarkEntryCard(
     _VisibleWork work,
     String markNumber, {
