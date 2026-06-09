@@ -159,7 +159,7 @@ flutter:
     - assets/fonts/
     - assets/images/piping/
     - assets/images/equipment/
-    - e-images/
+    - erection-image/
     - shorebird.yaml
 
 
@@ -188,4 +188,3 @@ flutter:
   #
   # For details regarding fonts from package dependencies,
   # see https://flutter.dev/to/font-from-package
-
