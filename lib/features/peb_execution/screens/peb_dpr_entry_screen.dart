@@ -236,8 +236,6 @@ class _PebDprEntryScreenState extends State<PebDprEntryScreen> {
                 ),
               ),
             ),
-            const SizedBox(width: 6),
-            Icon(Icons.arrow_forward_rounded, color: color, size: 17),
           ],
         ),
       ),
@@ -1357,65 +1355,73 @@ class _PebDprEntryScreenState extends State<PebDprEntryScreen> {
         onTap: () => _openWorkDetail(work),
         child: Padding(
           padding: const EdgeInsets.all(12),
-          child: Row(
-            crossAxisAlignment: CrossAxisAlignment.center,
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              Container(
-                width: 76,
-                height: 76,
-                decoration: BoxDecoration(
-                  color: accent.withValues(alpha: 0.12),
-                  borderRadius: BorderRadius.circular(14),
-                  border: Border.all(
-                    color: accent.withValues(alpha: 0.14),
-                  ),
-                ),
-                clipBehavior: Clip.antiAlias,
-                child: Padding(
-                  padding: const EdgeInsets.all(9),
-                  child: _workCardImage(work),
+              Text(
+                work.displayName ?? work.stageName,
+                maxLines: 1,
+                overflow: TextOverflow.ellipsis,
+                style: TextStyle(
+                  color: accent,
+                  fontSize: 18,
+                  fontWeight: FontWeight.w900,
                 ),
               ),
-              const SizedBox(width: 12),
-              Expanded(
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Text(
-                      work.displayName ?? work.stageName,
-                      style: TextStyle(
-                        color: accent,
-                        fontSize: 18,
-                        fontWeight: FontWeight.w900,
+              const SizedBox(height: 10),
+              Row(
+                crossAxisAlignment: CrossAxisAlignment.center,
+                children: [
+                  Container(
+                    width: 76,
+                    height: 76,
+                    decoration: BoxDecoration(
+                      color: accent.withValues(alpha: 0.12),
+                      borderRadius: BorderRadius.circular(14),
+                      border: Border.all(
+                        color: accent.withValues(alpha: 0.14),
                       ),
                     ),
-                    const SizedBox(height: 10),
-                    Row(
+                    clipBehavior: Clip.antiAlias,
+                    child: Padding(
+                      padding: const EdgeInsets.all(9),
+                      child: _workCardImage(work),
+                    ),
+                  ),
+                  const SizedBox(width: 12),
+                  Expanded(
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
-                        Expanded(
-                            child: _workCountBlock(
-                                'Assigned', counts.total, Colors.black87)),
-                        Expanded(
-                            child: _workCountBlock('In Progress',
-                                counts.inProgress, Colors.orange)),
-                        Expanded(
-                            child: _workCountBlock('Completed',
-                                counts.completed, Colors.green.shade700)),
-                        Icon(Icons.chevron_right_rounded,
-                            size: 32, color: accent),
+                        Row(
+                          children: [
+                            Expanded(
+                                child: _workCountBlock(
+                                    'Assigned', counts.total, Colors.black87)),
+                            Expanded(
+                                child: _workCountBlock('In Progress',
+                                    counts.inProgress, Colors.orange)),
+                            Expanded(
+                                child: _workCountBlock('Completed',
+                                    counts.completed, Colors.green.shade700)),
+                            Icon(Icons.chevron_right_rounded,
+                                size: 32, color: accent),
+                          ],
+                        ),
+                        const SizedBox(height: 9),
+                        _completionBar(
+                          value: completion,
+                          color: Colors.green.shade700,
+                          backgroundColor: Theme.of(context)
+                              .colorScheme
+                              .surfaceContainerHighest,
+                        ),
+                        const SizedBox(height: 8),
+                        _deadlineBanner(work, completedDate, deadline),
                       ],
                     ),
-                    const SizedBox(height: 9),
-                    _completionBar(
-                      value: completion,
-                      color: Colors.green.shade700,
-                      backgroundColor:
-                          Theme.of(context).colorScheme.surfaceContainerHighest,
-                    ),
-                    const SizedBox(height: 8),
-                    _deadlineBanner(work, completedDate, deadline),
-                  ],
-                ),
+                  ),
+                ],
               ),
             ],
           ),
