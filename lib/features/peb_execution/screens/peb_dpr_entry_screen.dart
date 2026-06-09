@@ -966,6 +966,7 @@ class _PebDprEntryScreenState extends State<PebDprEntryScreen> {
 
   @override
   Widget build(BuildContext context) {
+    final cs = Theme.of(context).colorScheme;
     final works = _visibleWorks();
     final activeWork = _activeWork(works);
     final activeMarks = activeWork == null
@@ -1004,11 +1005,19 @@ class _PebDprEntryScreenState extends State<PebDprEntryScreen> {
                                       if (assignedWorks.isEmpty)
                                         _boqs.isEmpty
                                             ? _buildNoBoqState()
-                                            : const Card(
-                                                child: Padding(
-                                                  padding: EdgeInsets.all(20),
-                                                  child: Text(
-                                                      'No assigned work found for this team.'),
+                                            : Container(
+                                                decoration: BoxDecoration(
+                                                  color: cs.surfaceContainerLow,
+                                                  borderRadius: BorderRadius.circular(14),
+                                                  border: Border.all(color: cs.outlineVariant.withOpacity(0.5)),
+                                                ),
+                                                padding: const EdgeInsets.all(20),
+                                                child: Text(
+                                                  'No assigned work found for this team.',
+                                                  style: TextStyle(
+                                                    color: cs.onSurfaceVariant,
+                                                    fontWeight: FontWeight.w600,
+                                                  ),
                                                 ),
                                               )
                                       else
@@ -1171,101 +1180,169 @@ class _PebDprEntryScreenState extends State<PebDprEntryScreen> {
 
   Widget _buildNoBoqState() {
     final cs = Theme.of(context).colorScheme;
-    return Card(
-      child: Padding(
-        padding: const EdgeInsets.all(18),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Icon(Icons.playlist_add_rounded, color: cs.primary, size: 34),
-            const SizedBox(height: 12),
-            const Text(
-              'No BOQ marks available',
-              style: TextStyle(fontSize: 18, fontWeight: FontWeight.w900),
-            ),
-            const SizedBox(height: 6),
-            Text(
-              'Add BOQ items manually or upload BOQ first, then return here for DPR entry.',
-              style: TextStyle(color: cs.onSurfaceVariant, height: 1.35),
-            ),
-            const SizedBox(height: 14),
-            FilledButton.icon(
-              onPressed: () => context.push('/site-list/boq-upload'),
-              icon: const Icon(Icons.add_rounded),
-              label: const Text('Add BOQ Items'),
-            ),
-          ],
-        ),
+    return Container(
+      decoration: BoxDecoration(
+        color: cs.surfaceContainerLow,
+        borderRadius: BorderRadius.circular(14),
+        border: Border.all(color: cs.outlineVariant.withOpacity(0.5)),
+      ),
+      padding: const EdgeInsets.all(18),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Icon(Icons.playlist_add_rounded, color: cs.primary, size: 34),
+          const SizedBox(height: 12),
+          const Text(
+            'No BOQ marks available',
+            style: TextStyle(fontSize: 18, fontWeight: FontWeight.w900),
+          ),
+          const SizedBox(height: 6),
+          Text(
+            'Add BOQ items manually or upload BOQ first, then return here for DPR entry.',
+            style: TextStyle(color: cs.onSurfaceVariant, height: 1.35),
+          ),
+          const SizedBox(height: 14),
+          FilledButton.icon(
+            onPressed: () => context.push('/site-list/boq-upload'),
+            icon: const Icon(Icons.add_rounded),
+            label: const Text('Add BOQ Items'),
+          ),
+        ],
       ),
     );
   }
 
   Widget _buildFilters() {
-    return Card(
-      child: Padding(
-        padding: const EdgeInsets.all(12),
-        child: Column(
-          children: [
-            Row(
-              children: [
-                Expanded(
-                  child: DropdownButtonFormField<String>(
-                    key: ValueKey('team-$_teamId-${_teams.length}'),
-                    initialValue: _teamId.isEmpty ? null : _teamId,
-                    decoration: const InputDecoration(
-                        labelText: 'Team', border: OutlineInputBorder()),
-                    items: _teams
-                        .map((team) => DropdownMenuItem(
-                            value: team.id, child: Text(team.name)))
-                        .toList(),
-                    onChanged: (value) async {
-                      final selectedTeamId = value ?? '';
-                      if (selectedTeamId.isEmpty || selectedTeamId == _teamId) {
-                        return;
-                      }
-                      setState(() {
-                        _teamId = selectedTeamId;
-                        _activeWorkKey = null;
-                        _markActionMode = _DprMarkActionMode.none;
-                        _selectedDetailMarks.clear();
-                      });
-                      await _load(showLoader: true, autoScroll: true);
-                    },
-                  ),
-                ),
-                const SizedBox(width: 12),
-                Expanded(
-                  child: InkWell(
-                    onTap: _pickDate,
-                    child: InputDecorator(
-                      decoration: const InputDecoration(
-                          labelText: 'Date', border: OutlineInputBorder()),
-                      child:
-                          Text(DateFormat('dd/MM/yyyy').format(_selectedDate)),
-                    ),
-                  ),
-                ),
+    final cs = Theme.of(context).colorScheme;
+
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        // ── Site + Type Banner ──────────────────────────────────────────
+        Container(
+          padding: const EdgeInsets.fromLTRB(16, 14, 16, 14),
+          decoration: BoxDecoration(
+            gradient: LinearGradient(
+              colors: [
+                cs.primaryContainer.withOpacity(0.55),
+                cs.secondaryContainer.withOpacity(0.3),
               ],
+              begin: Alignment.topLeft,
+              end: Alignment.bottomRight,
             ),
-            if (_submitting)
-              const Padding(
-                  padding: EdgeInsets.only(top: 12),
-                  child: LinearProgressIndicator()),
-          ],
+            borderRadius: BorderRadius.circular(16),
+            border: Border.all(color: cs.outlineVariant.withOpacity(0.4)),
+          ),
+          child: Row(
+            crossAxisAlignment: CrossAxisAlignment.center,
+            children: [
+              // Site icon
+              Container(
+                width: 44,
+                height: 44,
+                decoration: BoxDecoration(
+                  color: cs.primary.withOpacity(0.12),
+                  borderRadius: BorderRadius.circular(12),
+                ),
+                child: Icon(Icons.location_city_rounded,
+                    color: cs.primary, size: 22),
+              ),
+              const SizedBox(width: 12),
+              // Site name + execution type + team
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      widget.siteName,
+                      style: TextStyle(
+                        fontSize: 15,
+                        fontWeight: FontWeight.w700,
+                        color: cs.onSurface,
+                      ),
+                      maxLines: 1,
+                      overflow: TextOverflow.ellipsis,
+                    ),
+                    const SizedBox(height: 2),
+                    Text(
+                      '${widget.executionType.title} DPR',
+                      style: TextStyle(
+                        fontSize: 11,
+                        fontWeight: FontWeight.w500,
+                        color: cs.onSurfaceVariant,
+                        fontStyle: FontStyle.italic,
+                      ),
+                    ),
+                    if (_teamId.isNotEmpty) ...[
+                      const SizedBox(height: 1),
+                      Text(
+                        _teams
+                            .firstWhere(
+                              (t) => t.id == _teamId,
+                              orElse: () => const PebTeam(id: '', name: ''),
+                            )
+                            .name,
+                        style: TextStyle(
+                          fontSize: 10,
+                          fontWeight: FontWeight.w400,
+                          color: cs.onSurfaceVariant.withOpacity(0.7),
+                          fontStyle: FontStyle.italic,
+                        ),
+                        maxLines: 1,
+                        overflow: TextOverflow.ellipsis,
+                      ),
+                    ],
+                  ],
+                ),
+              ),
+              // Date chip
+              GestureDetector(
+                onTap: _pickDate,
+                child: Container(
+                  padding:
+                      const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
+                  decoration: BoxDecoration(
+                    color: cs.surface,
+                    borderRadius: BorderRadius.circular(10),
+                    border: Border.all(
+                        color: cs.primary.withOpacity(0.25), width: 1.2),
+                  ),
+                  child: Row(
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      Icon(Icons.calendar_today_rounded,
+                          size: 13, color: cs.primary),
+                      const SizedBox(width: 5),
+                      Text(
+                        DateFormat('dd MMM yy').format(_selectedDate),
+                        style: TextStyle(
+                          fontSize: 12,
+                          fontWeight: FontWeight.w700,
+                          color: cs.primary,
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+              ),
+            ],
+          ),
         ),
-      ),
+        if (_submitting)
+          Padding(
+            padding: const EdgeInsets.only(top: 10),
+            child: ClipRRect(
+              borderRadius: BorderRadius.circular(999),
+              child: const LinearProgressIndicator(minHeight: 3),
+            ),
+          ),
+      ],
     );
   }
 
+
   Widget _buildAssignedWorkHeader(List<_VisibleWork> assignedWorks) {
     final cs = Theme.of(context).colorScheme;
-    String selectedTeam = '';
-    for (final team in _teams) {
-      if (team.id == _teamId) {
-        selectedTeam = team.name;
-        break;
-      }
-    }
     return Row(
       crossAxisAlignment: CrossAxisAlignment.center,
       children: [
@@ -1273,44 +1350,69 @@ class _PebDprEntryScreenState extends State<PebDprEntryScreen> {
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              const Text(
-                "Today's Assigned Work",
-                style: TextStyle(fontSize: 21, fontWeight: FontWeight.w900),
+              Text(
+                "Assigned Work",
+                style: TextStyle(
+                  fontSize: 18,
+                  fontWeight: FontWeight.w800,
+                  color: cs.onSurface,
+                ),
               ),
               const SizedBox(height: 2),
               Text(
-                selectedTeam.isEmpty
-                    ? 'Open a work item to update progress'
-                    : '$selectedTeam • Open a work item to update progress',
+                DateFormat('EEEE, dd MMMM yyyy').format(_selectedDate),
                 style: TextStyle(
-                  color: cs.onSurfaceVariant.withValues(alpha: 0.62),
-                  fontWeight: FontWeight.w600,
+                  fontSize: 11,
+                  fontWeight: FontWeight.w500,
+                  color: cs.onSurfaceVariant,
                 ),
               ),
             ],
           ),
         ),
         Container(
-          padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 9),
+          padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
           decoration: BoxDecoration(
-            color: cs.primaryContainer.withValues(alpha: 0.55),
-            borderRadius: BorderRadius.circular(12),
-            border: Border.all(color: cs.primary.withValues(alpha: 0.16)),
+            color: assignedWorks.isEmpty
+                ? cs.surfaceContainerHighest
+                : cs.primaryContainer.withOpacity(0.6),
+            borderRadius: BorderRadius.circular(10),
+            border: Border.all(
+              color: assignedWorks.isEmpty
+                  ? cs.outlineVariant
+                  : cs.primary.withOpacity(0.2),
+            ),
           ),
           child: Row(
             mainAxisSize: MainAxisSize.min,
             children: [
-              Text('${assignedWorks.length}',
-                  style: TextStyle(
-                      color: cs.primary,
-                      fontSize: 20,
-                      fontWeight: FontWeight.w900)),
+              Icon(
+                Icons.assignment_rounded,
+                size: 14,
+                color: assignedWorks.isEmpty ? cs.onSurfaceVariant : cs.primary,
+              ),
               const SizedBox(width: 5),
-              Text('works',
-                  style: TextStyle(
-                      color: cs.primary,
-                      fontSize: 12,
-                      fontWeight: FontWeight.w800)),
+              Text(
+                '${assignedWorks.length}',
+                style: TextStyle(
+                  color: assignedWorks.isEmpty
+                      ? cs.onSurfaceVariant
+                      : cs.primary,
+                  fontSize: 16,
+                  fontWeight: FontWeight.w800,
+                ),
+              ),
+              const SizedBox(width: 4),
+              Text(
+                'items',
+                style: TextStyle(
+                  color: assignedWorks.isEmpty
+                      ? cs.onSurfaceVariant
+                      : cs.primary,
+                  fontSize: 11,
+                  fontWeight: FontWeight.w600,
+                ),
+              ),
             ],
           ),
         ),
@@ -1319,122 +1421,273 @@ class _PebDprEntryScreenState extends State<PebDprEntryScreen> {
   }
 
   Widget _buildWorkCard(_VisibleWork work) {
+    final cs = Theme.of(context).colorScheme;
     final counts = _counts(work);
     final isCompleted = _isWorkFullyCompleted(work);
     final deadline = work.expectedCompletionDate == null
         ? '-'
         : DateFormat('dd MMM yyyy').format(work.expectedCompletionDate!);
     final completedDate = _completedDateForWork(work);
-    const accent = Color(0xFF4B16B7);
     final completion = counts.total > 0
         ? (counts.completed / counts.total).clamp(0.0, 1.0)
         : 0.0;
-    final card = Container(
-      margin: const EdgeInsets.only(bottom: 10),
-      decoration: BoxDecoration(
-        color: isCompleted
-            ? Theme.of(context)
-                .colorScheme
-                .surfaceContainerHighest
-                .withValues(alpha: 0.55)
-            : Theme.of(context).colorScheme.surface,
-        borderRadius: BorderRadius.circular(16),
-        border: Border.all(
-          color: Theme.of(context).colorScheme.outlineVariant,
+
+    final today =
+        DateTime(_selectedDate.year, _selectedDate.month, _selectedDate.day);
+    final tcd = work.expectedCompletionDate != null
+        ? DateTime(work.expectedCompletionDate!.year,
+            work.expectedCompletionDate!.month, work.expectedCompletionDate!.day)
+        : null;
+    final days = tcd != null ? tcd.difference(today).inDays : 0;
+    final missed = days < 0;
+
+    Widget headerBadge;
+    if (isCompleted && completedDate != null) {
+      headerBadge = Container(
+        padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+        decoration: BoxDecoration(
+          color: Colors.green.withOpacity(0.12),
+          borderRadius: BorderRadius.circular(4),
+          border: Border.all(color: Colors.green.withOpacity(0.3)),
         ),
-        boxShadow: [
-          BoxShadow(
-            color: Colors.black.withValues(alpha: 0.035),
-            blurRadius: 10,
-            offset: const Offset(0, 4),
-          ),
-        ],
+        child: Row(
+          mainAxisSize: MainAxisSize.min,
+          children: const [
+            Icon(Icons.check_circle, size: 12, color: Colors.green),
+            SizedBox(width: 4),
+            Text(
+              'Completed',
+              style: TextStyle(fontSize: 10, fontWeight: FontWeight.w700, color: Colors.green),
+            ),
+          ],
+        ),
+      );
+    } else if (work.expectedCompletionDate != null) {
+      final badgeColor = missed ? Colors.red : cs.primary;
+      headerBadge = Container(
+        padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+        decoration: BoxDecoration(
+          color: badgeColor.withOpacity(0.12),
+          borderRadius: BorderRadius.circular(4),
+          border: Border.all(color: badgeColor.withOpacity(0.3)),
+        ),
+        child: Text(
+          missed ? 'Overdue' : 'TCD: $deadline',
+          style: TextStyle(fontSize: 10, fontWeight: FontWeight.w700, color: badgeColor),
+        ),
+      );
+    } else {
+      headerBadge = Container(
+        padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+        decoration: BoxDecoration(
+          color: cs.onSurfaceVariant.withOpacity(0.12),
+          borderRadius: BorderRadius.circular(4),
+          border: Border.all(color: cs.onSurfaceVariant.withOpacity(0.3)),
+        ),
+        child: Text(
+          'TCD not set',
+          style: TextStyle(fontSize: 10, fontWeight: FontWeight.w700, color: cs.onSurfaceVariant),
+        ),
+      );
+    }
+
+    final card = Container(
+      decoration: BoxDecoration(
+        color: cs.surfaceContainerLow,
+        borderRadius: BorderRadius.circular(14),
+        border: Border.all(color: cs.outlineVariant.withOpacity(0.5)),
       ),
       child: InkWell(
-        borderRadius: BorderRadius.circular(16),
+        borderRadius: BorderRadius.circular(14),
         onTap: () => _openWorkDetail(work),
-        child: Padding(
-          padding: const EdgeInsets.all(12),
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              Text(
-                work.displayName ?? work.stageName,
-                maxLines: 1,
-                overflow: TextOverflow.ellipsis,
-                style: TextStyle(
-                  color: accent,
-                  fontSize: 18,
-                  fontWeight: FontWeight.w900,
-                ),
-              ),
-              const SizedBox(height: 10),
-              Row(
-                crossAxisAlignment: CrossAxisAlignment.center,
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            // Header Row: Title & Status badge on the right
+            Padding(
+              padding: const EdgeInsets.fromLTRB(14, 12, 14, 4),
+              child: Row(
                 children: [
-                  Container(
-                    width: 76,
-                    height: 76,
-                    decoration: BoxDecoration(
-                      color: accent.withValues(alpha: 0.12),
-                      borderRadius: BorderRadius.circular(14),
-                      border: Border.all(
-                        color: accent.withValues(alpha: 0.14),
-                      ),
-                    ),
-                    clipBehavior: Clip.antiAlias,
-                    child: Padding(
-                      padding: const EdgeInsets.all(9),
-                      child: _workCardImage(work),
-                    ),
-                  ),
-                  const SizedBox(width: 12),
                   Expanded(
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        Row(
-                          children: [
-                            Expanded(
-                                child: _workCountBlock(
-                                    'Assigned', counts.total, Colors.black87)),
-                            Expanded(
-                                child: _workCountBlock('In Progress',
-                                    counts.inProgress, Colors.orange)),
-                            Expanded(
-                                child: _workCountBlock('Completed',
-                                    counts.completed, Colors.green.shade700)),
-                            Icon(Icons.chevron_right_rounded,
-                                size: 32, color: accent),
-                          ],
-                        ),
-                        const SizedBox(height: 9),
-                        _completionBar(
-                          value: completion,
-                          color: Colors.green.shade700,
-                          backgroundColor: Theme.of(context)
-                              .colorScheme
-                              .surfaceContainerHighest,
-                        ),
-                        const SizedBox(height: 8),
-                        _deadlineBanner(work, completedDate, deadline),
-                      ],
+                    child: Text(
+                      work.displayName ?? work.stageName,
+                      style: const TextStyle(
+                        fontSize: 16,
+                        fontWeight: FontWeight.w600,
+                      ),
+                      maxLines: 2,
+                      overflow: TextOverflow.ellipsis,
                     ),
                   ),
+                  const SizedBox(width: 8),
+                  headerBadge,
                 ],
               ),
-            ],
-          ),
+            ),
+
+            Expanded(
+              child: IntrinsicHeight(
+                child: Row(
+                  children: [
+                    // LEFT COLUMN: Image & Update indicator
+                    Expanded(
+                      child: Container(
+                        padding: const EdgeInsets.fromLTRB(14, 4, 7, 14),
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            Expanded(
+                              child: ClipRRect(
+                                borderRadius: BorderRadius.circular(8),
+                                child: Container(
+                                  width: double.infinity,
+                                  decoration: BoxDecoration(
+                                    color: cs.surfaceContainerHighest,
+                                    borderRadius: BorderRadius.circular(8),
+                                  ),
+                                  child: Image(
+                                    image: pebWorkImageProvider(work.setupItem, widget.executionType),
+                                    fit: BoxFit.cover,
+                                    errorBuilder: (_, __, ___) => pebWorkImageFallback(
+                                      work.setupItem,
+                                      widget.executionType,
+                                    ),
+                                  ),
+                                ),
+                              ),
+                            ),
+                            const SizedBox(height: 12),
+                            Container(
+                              height: 32,
+                              decoration: BoxDecoration(
+                                border: Border.all(color: cs.primary, width: 1.5),
+                                borderRadius: BorderRadius.circular(6),
+                              ),
+                              child: Center(
+                                child: Row(
+                                  mainAxisAlignment: MainAxisAlignment.center,
+                                  children: [
+                                    Text(
+                                      'Update Progress',
+                                      style: TextStyle(
+                                        color: cs.primary,
+                                        fontSize: 11,
+                                        fontWeight: FontWeight.w700,
+                                      ),
+                                    ),
+                                    const SizedBox(width: 4),
+                                    Icon(
+                                      Icons.chevron_right_rounded,
+                                      size: 16,
+                                      color: cs.primary,
+                                    ),
+                                  ],
+                                ),
+                              ),
+                            ),
+                          ],
+                        ),
+                      ),
+                    ),
+
+                    // RIGHT COLUMN: Stats & Progress Bar
+                    Expanded(
+                      child: Container(
+                        padding: const EdgeInsets.fromLTRB(7, 4, 14, 14),
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            Container(
+                              padding: const EdgeInsets.symmetric(vertical: 8, horizontal: 4),
+                              decoration: BoxDecoration(
+                                color: cs.surfaceContainer.withOpacity(0.5),
+                                borderRadius: BorderRadius.circular(8),
+                                border: Border.all(color: cs.outlineVariant.withOpacity(0.3)),
+                              ),
+                              child: Row(
+                                children: [
+                                  Expanded(
+                                    child: _minimalWorkCountBlock('Assigned', counts.total, cs.onSurface, cs),
+                                  ),
+                                  Container(width: 1, height: 24, color: cs.outlineVariant.withOpacity(0.5)),
+                                  Expanded(
+                                    child: _minimalWorkCountBlock('Pending', counts.inProgress, Colors.orange, cs),
+                                  ),
+                                  Container(width: 1, height: 24, color: cs.outlineVariant.withOpacity(0.5)),
+                                  Expanded(
+                                    child: _minimalWorkCountBlock('Done', counts.completed, Colors.green, cs),
+                                  ),
+                                ],
+                              ),
+                            ),
+                            const Spacer(),
+                            _completionBar(
+                              value: completion,
+                              color: Colors.green.shade700,
+                              backgroundColor: cs.surfaceContainerHighest,
+                            ),
+                            if (work.expectedCompletionDate != null) ...[
+                              const SizedBox(height: 8),
+                              Text(
+                                missed
+                                    ? '${days.abs()} days overdue'
+                                    : '$days days remaining',
+                                style: TextStyle(
+                                  color: missed ? Colors.red.shade700 : cs.onSurfaceVariant,
+                                  fontSize: 10,
+                                  fontWeight: FontWeight.w600,
+                                ),
+                              ),
+                            ],
+                          ],
+                        ),
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+            ),
+          ],
         ),
       ),
     );
+
     return Opacity(
       opacity: isCompleted
           ? 0.72
           : work.isActive
               ? 1
               : 0.46,
-      child: card,
+      child: Container(
+        margin: const EdgeInsets.only(bottom: 10),
+        height: 240,
+        child: card,
+      ),
+    );
+  }
+
+  Widget _minimalWorkCountBlock(String label, int count, Color color, ColorScheme cs) {
+    return Column(
+      mainAxisSize: MainAxisSize.min,
+      children: [
+        Text(
+          label,
+          style: TextStyle(
+            fontSize: 9,
+            fontWeight: FontWeight.w600,
+            color: cs.onSurfaceVariant,
+          ),
+        ),
+        const SizedBox(height: 2),
+        Text(
+          '$count',
+          style: TextStyle(
+            fontSize: 14,
+            fontWeight: FontWeight.w700,
+            color: color,
+          ),
+        ),
+      ],
     );
   }
 
@@ -1736,33 +1989,37 @@ class _PebDprEntryScreenState extends State<PebDprEntryScreen> {
   }
 
   Widget _buildQuantityWorkEntryCard(_VisibleWork work) {
-    return Card(
-      child: Padding(
-        padding: const EdgeInsets.all(20),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.stretch,
-          children: [
-            Text(
-              'Quantity based work',
-              style: TextStyle(
-                color: Theme.of(context).colorScheme.onSurface,
-                fontWeight: FontWeight.w800,
-              ),
+    final cs = Theme.of(context).colorScheme;
+    return Container(
+      decoration: BoxDecoration(
+        color: cs.surfaceContainerLow,
+        borderRadius: BorderRadius.circular(14),
+        border: Border.all(color: cs.outlineVariant.withOpacity(0.5)),
+      ),
+      padding: const EdgeInsets.all(20),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.stretch,
+        children: [
+          Text(
+            'Quantity based work',
+            style: TextStyle(
+              color: cs.onSurface,
+              fontWeight: FontWeight.w800,
             ),
-            const SizedBox(height: 12),
-            FilledButton(
-              onPressed: _isWorkActionable(work)
-                  ? () => _openAction(
-                        work,
-                        _markActionMode == _DprMarkActionMode.completed,
-                      )
-                  : null,
-              child: Text(_markActionMode == _DprMarkActionMode.completed
-                  ? 'Enter Completed Quantity'
-                  : 'Enter In Progress Quantity'),
-            ),
-          ],
-        ),
+          ),
+          const SizedBox(height: 12),
+          FilledButton(
+            onPressed: _isWorkActionable(work)
+                ? () => _openAction(
+                      work,
+                      _markActionMode == _DprMarkActionMode.completed,
+                    )
+                : null,
+            child: Text(_markActionMode == _DprMarkActionMode.completed
+                ? 'Enter Completed Quantity'
+                : 'Enter In Progress Quantity'),
+          ),
+        ],
       ),
     );
   }
@@ -1887,11 +2144,6 @@ class _PebDprEntryScreenState extends State<PebDprEntryScreen> {
         : effectiveInProgress
             ? Colors.orange.shade500
             : cs.outlineVariant;
-    final imageBg = effectiveCompleted
-        ? Colors.green.shade100
-        : effectiveInProgress
-            ? Colors.orange.shade100
-            : Colors.blueGrey.shade50;
     final statusBadge = effectiveCompleted
         ? _statusBadge(
             label: 'Completed',
@@ -1911,274 +2163,374 @@ class _PebDprEntryScreenState extends State<PebDprEntryScreen> {
               );
 
     final card = Container(
-      margin: const EdgeInsets.only(bottom: 10),
       decoration: BoxDecoration(
         color: cardColor,
-        borderRadius: BorderRadius.circular(16),
-        border: Border.all(color: borderColor, width: selected ? 1.6 : 1),
-        boxShadow: [
-          BoxShadow(
-            color: Colors.black.withValues(alpha: 0.035),
-            blurRadius: 8,
-            offset: const Offset(0, 3),
-          ),
-        ],
+        borderRadius: BorderRadius.circular(14),
+        border: Border.all(color: borderColor, width: selected ? 1.8 : 1.0),
       ),
-      child: Padding(
-        padding: const EdgeInsets.all(12),
+      child: InkWell(
+        borderRadius: BorderRadius.circular(14),
+        onTap: selecting
+            ? selectable
+                ? () => _toggleDetailMark(work, markNumber)
+                : () {
+                    if (locked) {
+                      AppToast.info(_prerequisiteMessage(pendingPrerequisite));
+                    } else if (completed) {
+                      AppToast.info('This mark number is already completed.');
+                    } else if (_markActionMode == _DprMarkActionMode.inProgress &&
+                        inProgress) {
+                      AppToast.info('This mark number is already in progress.');
+                    }
+                  }
+            : locked
+                ? () => AppToast.info(_prerequisiteMessage(pendingPrerequisite))
+                : null,
         child: Column(
-          crossAxisAlignment: CrossAxisAlignment.stretch,
+          crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            Row(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                if (selecting || completed) ...[
-                  SizedBox(
-                    width: 32,
-                    height: 32,
-                    child: Checkbox(
-                      value: completed ? true : selected,
-                      onChanged: selectable
-                          ? (_) => _toggleDetailMark(work, markNumber)
-                          : null,
-                      activeColor:
-                          _markActionMode == _DprMarkActionMode.completed
-                              ? Colors.green.shade700
-                              : inProgressColor,
-                      shape: RoundedRectangleBorder(
-                        borderRadius: BorderRadius.circular(5),
-                      ),
-                    ),
-                  ),
-                  const SizedBox(width: 8),
-                ],
-                Expanded(
-                  child: Opacity(
-                    opacity: contentOpacity,
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        Text(
-                          title,
-                          maxLines: 1,
-                          overflow: TextOverflow.ellipsis,
-                          style: TextStyle(
-                            color: cs.onSurface,
-                            fontSize: 15,
-                            height: 1.15,
-                            fontWeight: FontWeight.w900,
-                          ),
-                        ),
-                        const SizedBox(height: 6),
-                        RichText(
-                          maxLines: 1,
-                          overflow: TextOverflow.ellipsis,
-                          text: TextSpan(
-                            style: TextStyle(
-                              color: cs.onSurfaceVariant,
-                              fontSize: 12,
-                              fontWeight: FontWeight.w800,
-                            ),
-                            children: [
-                              const TextSpan(text: 'Mark Number: '),
-                              TextSpan(
-                                text: markNumber,
-                                style: TextStyle(
-                                  color: cs.onSurface,
-                                  fontSize: 14,
-                                  fontWeight: FontWeight.w900,
-                                ),
-                              ),
-                            ],
-                          ),
-                        ),
-                      ],
-                    ),
-                  ),
-                ),
-                const SizedBox(width: 10),
-                SizedBox(
-                  width: 132,
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.stretch,
+            // Header Area: Title & Remark on top, Mark Number & Status Badge below
+            Padding(
+              padding: const EdgeInsets.fromLTRB(14, 12, 14, 8),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  // Row 1: Heading (Left) & Remark (Right)
+                  Row(
+                    crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
-                      Align(
-                        alignment: Alignment.centerRight,
-                        child: statusBadge,
+                      Expanded(
+                        child: Text(
+                          title,
+                          style: const TextStyle(
+                            fontSize: 16,
+                            fontWeight: FontWeight.w600,
+                          ),
+                          maxLines: 2,
+                          overflow: TextOverflow.ellipsis,
+                        ),
                       ),
-                      const SizedBox(height: 8),
-                      TextFormField(
-                        initialValue: _markRemarks[key] ?? '',
-                        enabled: editable,
-                        decoration: InputDecoration(
-                          labelText: 'Remarks',
-                          isDense: true,
-                          contentPadding: const EdgeInsets.symmetric(
-                              horizontal: 10, vertical: 8),
-                          border: OutlineInputBorder(
-                            borderRadius: BorderRadius.circular(10),
+                      const SizedBox(width: 8),
+                      // RIGHT: tappable remarks corner pill (matches assembly_card / piping_card)
+                      InkWell(
+                        onTap: editable
+                            ? () async {
+                                final ctrl = TextEditingController(
+                                  text: _markRemarks[key] ?? '',
+                                );
+                                await showModalBottomSheet<void>(
+                                  context: context,
+                                  isScrollControlled: true,
+                                  shape: const RoundedRectangleBorder(
+                                    borderRadius: BorderRadius.vertical(
+                                      top: Radius.circular(20),
+                                    ),
+                                  ),
+                                  builder: (_) => Padding(
+                                    padding: EdgeInsets.only(
+                                      left: 20,
+                                      right: 20,
+                                      top: 20,
+                                      bottom: MediaQuery.of(context).viewInsets.bottom + 24,
+                                    ),
+                                    child: Column(
+                                      mainAxisSize: MainAxisSize.min,
+                                      crossAxisAlignment: CrossAxisAlignment.start,
+                                      children: [
+                                        Text(
+                                          'Remarks — Mark $markNumber',
+                                          style: TextStyle(
+                                            fontSize: 14,
+                                            fontWeight: FontWeight.w700,
+                                            color: cs.onSurface,
+                                          ),
+                                        ),
+                                        const SizedBox(height: 12),
+                                        TextField(
+                                          controller: ctrl,
+                                          autofocus: true,
+                                          maxLines: 3,
+                                          decoration: InputDecoration(
+                                            hintText: 'Enter remark…',
+                                            filled: true,
+                                            fillColor: cs.surfaceContainerHighest,
+                                            border: OutlineInputBorder(
+                                              borderRadius: BorderRadius.circular(10),
+                                              borderSide: BorderSide.none,
+                                            ),
+                                            contentPadding: const EdgeInsets.all(12),
+                                          ),
+                                        ),
+                                        const SizedBox(height: 12),
+                                        Row(
+                                          children: [
+                                            Expanded(
+                                              child: OutlinedButton(
+                                                onPressed: () => Navigator.pop(context),
+                                                child: const Text('Cancel'),
+                                              ),
+                                            ),
+                                            const SizedBox(width: 12),
+                                            Expanded(
+                                              child: ElevatedButton(
+                                                onPressed: () {
+                                                  setState(() => _markRemarks[key] = ctrl.text.trim());
+                                                  Navigator.pop(context);
+                                                },
+                                                child: const Text('Save'),
+                                              ),
+                                            ),
+                                          ],
+                                        ),
+                                      ],
+                                    ),
+                                  ),
+                                );
+                                ctrl.dispose();
+                              }
+                            : null,
+                        borderRadius: BorderRadius.circular(4),
+                        child: Container(
+                          constraints: const BoxConstraints(
+                            minWidth: 78,
+                            maxWidth: 110,
+                          ),
+                          padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 5),
+                          decoration: BoxDecoration(
+                            color: cs.secondaryContainer.withValues(alpha: 0.7),
+                            border: Border.all(color: cs.outline.withValues(alpha: 0.3)),
+                            borderRadius: BorderRadius.circular(4),
+                          ),
+                          child: Text(
+                            (_markRemarks[key] ?? '').trim().isNotEmpty
+                                ? _markRemarks[key]!
+                                : 'Remark',
+                            style: TextStyle(
+                              fontSize: 10,
+                              fontWeight: FontWeight.w700,
+                              color: cs.onSecondaryContainer,
+                            ),
+                            overflow: TextOverflow.ellipsis,
+                            maxLines: 1,
                           ),
                         ),
-                        minLines: 1,
-                        maxLines: 1,
-                        onChanged: (value) => _markRemarks[key] = value,
                       ),
                     ],
                   ),
-                ),
-              ],
-            ),
-            const SizedBox(height: 12),
-            Opacity(
-              opacity: contentOpacity,
-              child: Row(
-                crossAxisAlignment: CrossAxisAlignment.center,
-                children: [
-                  Container(
-                    width: 88,
-                    height: 88,
-                    decoration: BoxDecoration(
-                      color: imageBg,
-                      borderRadius: BorderRadius.circular(14),
-                      border: Border.all(
-                          color: borderColor.withValues(alpha: 0.28)),
-                    ),
-                    clipBehavior: Clip.antiAlias,
-                    child: Padding(
-                      padding: const EdgeInsets.all(8),
-                      child: Center(
-                        child: Image(
-                          image: pebWorkImageProvider(
-                            work.setupItem,
-                            widget.executionType,
+                  const SizedBox(height: 6),
+                  // Row 2: Under Mark (Left) & Small Completed (Right)
+                  Row(
+                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                    children: [
+                      RichText(
+                        maxLines: 1,
+                        overflow: TextOverflow.ellipsis,
+                        text: TextSpan(
+                          style: TextStyle(
+                            color: cs.onSurfaceVariant,
+                            fontSize: 11,
+                            fontWeight: FontWeight.w600,
                           ),
-                          fit: BoxFit.contain,
-                          alignment: Alignment.center,
-                          width: double.infinity,
-                          height: double.infinity,
-                          errorBuilder: (_, __, ___) => Center(
-                            child: pebWorkImageFallback(
-                              work.setupItem,
-                              widget.executionType,
+                          children: [
+                            const TextSpan(text: 'Mark: '),
+                            TextSpan(
+                              text: markNumber,
+                              style: TextStyle(
+                                color: cs.onSurface,
+                                fontSize: 12,
+                                fontWeight: FontWeight.w800,
+                                fontFamily: 'monospace',
+                              ),
+                            ),
+                          ],
+                        ),
+                      ),
+                      statusBadge,
+                    ],
+                  ),
+                ],
+              ),
+            ),
+
+            // Body Area (2 Columns)
+            IntrinsicHeight(
+              child: Row(
+                children: [
+                  // LEFT COLUMN: Image & Checkbox
+                  Expanded(
+                    child: Container(
+                      padding: const EdgeInsets.fromLTRB(14, 4, 7, 14),
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          ClipRRect(
+                            borderRadius: BorderRadius.circular(8),
+                            child: Container(
+                              width: double.infinity,
+                              height: 80,
+                              decoration: BoxDecoration(
+                                color: cs.surfaceContainerHighest,
+                                borderRadius: BorderRadius.circular(8),
+                              ),
+                              child: Image(
+                                image: pebWorkImageProvider(work.setupItem, widget.executionType),
+                                fit: BoxFit.cover,
+                                errorBuilder: (_, __, ___) => pebWorkImageFallback(
+                                  work.setupItem,
+                                  widget.executionType,
+                                ),
+                              ),
                             ),
                           ),
-                        ),
+                          const SizedBox(height: 8),
+                          // Checkbox Selector
+                          if (selecting || completed)
+                            Row(
+                              mainAxisAlignment: MainAxisAlignment.center,
+                              children: [
+                                SizedBox(
+                                  width: 24,
+                                  height: 24,
+                                  child: Checkbox(
+                                    value: completed ? true : selected,
+                                    onChanged: selectable
+                                        ? (_) => _toggleDetailMark(work, markNumber)
+                                        : null,
+                                    activeColor: _markActionMode == _DprMarkActionMode.completed
+                                        ? Colors.green.shade700
+                                        : inProgressColor,
+                                    shape: RoundedRectangleBorder(
+                                      borderRadius: BorderRadius.circular(4),
+                                    ),
+                                  ),
+                                ),
+                                const SizedBox(width: 6),
+                                Text(
+                                  completed ? 'Completed' : 'Select',
+                                  style: TextStyle(
+                                    fontSize: 11,
+                                    fontWeight: FontWeight.w700,
+                                    color: cs.onSurfaceVariant,
+                                  ),
+                                ),
+                              ],
+                            ),
+                        ],
                       ),
                     ),
                   ),
-                  const SizedBox(width: 12),
+
+                  // RIGHT COLUMN: Inputs
                   Expanded(
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.stretch,
-                      children: [
-                        Text(
-                          'Weight (Kg)',
-                          style: TextStyle(
-                            color: statusColor,
-                            fontSize: 12,
-                            fontWeight: FontWeight.w900,
-                          ),
-                        ),
-                        const SizedBox(height: 7),
-                        TextFormField(
-                          initialValue: _markQuantityInputs[key] ??
-                              _prettyNumber(weightKg),
-                          enabled: editable,
-                          keyboardType: const TextInputType.numberWithOptions(
-                              decimal: true),
-                          textAlign: TextAlign.center,
-                          style: const TextStyle(
-                              fontSize: 20, fontWeight: FontWeight.w900),
-                          decoration: InputDecoration(
-                            filled: true,
-                            fillColor: cs.surface,
-                            isDense: true,
-                            contentPadding: const EdgeInsets.symmetric(
-                                horizontal: 10, vertical: 10),
-                            border: OutlineInputBorder(
-                              borderRadius: BorderRadius.circular(12),
+                    child: Container(
+                      padding: const EdgeInsets.fromLTRB(7, 4, 14, 14),
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        mainAxisAlignment: MainAxisAlignment.center,
+                        children: [
+                          Text(
+                            'Weight (Kg)',
+                            style: TextStyle(
+                              color: statusColor,
+                              fontSize: 11,
+                              fontWeight: FontWeight.w700,
                             ),
                           ),
-                          onChanged: (value) =>
-                              setState(() => _markQuantityInputs[key] = value),
-                        ),
-                      ],
+                          const SizedBox(height: 4),
+                          TextFormField(
+                            initialValue: _markQuantityInputs[key] ?? _prettyNumber(weightKg),
+                            enabled: editable,
+                            keyboardType: const TextInputType.numberWithOptions(decimal: true),
+                            textAlign: TextAlign.start,
+                            style: const TextStyle(fontSize: 16, fontWeight: FontWeight.w800),
+                            decoration: InputDecoration(
+                              filled: true,
+                              fillColor: cs.surface,
+                              isDense: true,
+                              contentPadding: const EdgeInsets.symmetric(horizontal: 10, vertical: 8),
+                              border: OutlineInputBorder(
+                                borderRadius: BorderRadius.circular(8),
+                              ),
+                            ),
+                            onChanged: (value) => setState(() => _markQuantityInputs[key] = value),
+                          ),
+                        ],
+                      ),
                     ),
                   ),
                 ],
               ),
             ),
-            if (isVariationOpen) ...[
-              const SizedBox(height: 12),
-              _pillBanner(
-                icon: Icons.add_chart_rounded,
-                color: statusColor,
-                text: 'Variation detected from edited weight',
-              ),
-              const SizedBox(height: 8),
-              TextFormField(
-                initialValue: _variationReasons[key] ?? '',
-                decoration: const InputDecoration(
-                  labelText: 'Variation Reason',
-                  border: OutlineInputBorder(),
-                ),
-                minLines: 1,
-                maxLines: 2,
-                onChanged: (value) => _variationReasons[key] = value,
-              ),
-            ],
-            if (locked) ...[
-              const SizedBox(height: 12),
-              Container(
-                padding:
-                    const EdgeInsets.symmetric(horizontal: 10, vertical: 8),
-                decoration: BoxDecoration(
-                  color: Colors.orange.shade100,
-                  borderRadius: BorderRadius.circular(10),
-                  border: Border.all(color: Colors.orange.shade300),
-                ),
-                child: Row(
+
+            if (isVariationOpen || locked)
+              Padding(
+                padding: const EdgeInsets.fromLTRB(14, 0, 14, 12),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.stretch,
                   children: [
-                    Icon(Icons.info_rounded,
-                        color: Colors.orange.shade900, size: 18),
-                    const SizedBox(width: 8),
-                    Expanded(
-                      child: Text(
-                        _prerequisiteMessage(pendingPrerequisite),
-                        style: TextStyle(
-                          color: Colors.orange.shade900,
-                          fontSize: 12,
-                          fontWeight: FontWeight.w800,
+                    if (isVariationOpen) ...[
+                      const SizedBox(height: 8),
+                      _pillBanner(
+                        icon: Icons.add_chart_rounded,
+                        color: statusColor,
+                        text: 'Variation detected from edited weight',
+                      ),
+                      const SizedBox(height: 8),
+                      TextFormField(
+                        initialValue: _variationReasons[key] ?? '',
+                        style: const TextStyle(fontSize: 12, fontWeight: FontWeight.w600),
+                        decoration: InputDecoration(
+                          labelText: 'Variation Reason',
+                          filled: true,
+                          fillColor: cs.surface,
+                          isDense: true,
+                          contentPadding: const EdgeInsets.symmetric(horizontal: 10, vertical: 8),
+                          border: OutlineInputBorder(
+                            borderRadius: BorderRadius.circular(8),
+                          ),
+                        ),
+                        minLines: 1,
+                        maxLines: 2,
+                        onChanged: (value) => _variationReasons[key] = value,
+                      ),
+                    ],
+                    if (locked) ...[
+                      const SizedBox(height: 8),
+                      Container(
+                        padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 8),
+                        decoration: BoxDecoration(
+                          color: Colors.orange.shade100,
+                          borderRadius: BorderRadius.circular(8),
+                          border: Border.all(color: Colors.orange.shade300),
+                        ),
+                        child: Row(
+                          children: [
+                            Icon(Icons.info_rounded, color: Colors.orange.shade900, size: 16),
+                            const SizedBox(width: 8),
+                            Expanded(
+                              child: Text(
+                                _prerequisiteMessage(pendingPrerequisite),
+                                style: TextStyle(
+                                  color: Colors.orange.shade900,
+                                  fontSize: 11,
+                                  fontWeight: FontWeight.w700,
+                                ),
+                              ),
+                            ),
+                          ],
                         ),
                       ),
-                    ),
+                    ],
                   ],
                 ),
               ),
-            ],
           ],
         ),
       ),
     );
 
-    return InkWell(
-      onTap: selecting
-          ? selectable
-              ? () => _toggleDetailMark(work, markNumber)
-              : () {
-                  if (locked) {
-                    AppToast.info(_prerequisiteMessage(pendingPrerequisite));
-                  } else if (completed) {
-                    AppToast.info('This mark number is already completed.');
-                  } else if (_markActionMode == _DprMarkActionMode.inProgress &&
-                      inProgress) {
-                    AppToast.info('This mark number is already in progress.');
-                  }
-                }
-          : locked
-              ? () => AppToast.info(_prerequisiteMessage(pendingPrerequisite))
-              : null,
-      borderRadius: BorderRadius.circular(18),
+    return Container(
+      margin: const EdgeInsets.only(bottom: 10),
       child: card,
     );
   }

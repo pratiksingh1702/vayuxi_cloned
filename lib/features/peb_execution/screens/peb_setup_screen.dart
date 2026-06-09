@@ -6,6 +6,7 @@ import 'package:go_router/go_router.dart';
 import 'package:image_cropper/image_cropper.dart';
 import 'package:untitled2/core/utlis/app_toasts.dart';
 import 'package:untitled2/core/utlis/widgets/custom.dart';
+import 'package:untitled2/core/utlis/widgets/custom_dropdown.dart';
 import 'package:untitled2/core/utlis/widgets/sidebar.dart';
 
 import '../models/peb_execution_models.dart';
@@ -279,14 +280,30 @@ class _PebSetupScreenState extends State<PebSetupScreen> {
                 child: ListView(
                   padding: const EdgeInsets.all(16),
                   children: [
-                    Text(widget.siteName,
-                        style: TextStyle(
-                            color: cs.onSurfaceVariant,
-                            fontWeight: FontWeight.w700)),
+                    Row(
+                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                      children: [
+                        Expanded(
+                          child: Text(
+                            widget.siteName,
+                            style: TextStyle(
+                              color: cs.onSurfaceVariant,
+                              fontWeight: FontWeight.w700,
+                              fontSize: 16,
+                            ),
+                          ),
+                        ),
+                        IconButton(
+                          onPressed: _saving ? null : _reset,
+                          icon: const Icon(Icons.restore_rounded),
+                          tooltip: 'Reset Default Setup',
+                          color: cs.primary,
+                        ),
+                      ],
+                    ),
                     const SizedBox(height: 12),
                     if (widget.executionType == PebExecutionType.erection)
                       _trackingLevelCard(cs),
-                    _actions(cs),
                     const SizedBox(height: 16),
                     _itemsGrid(cs),
                     if ((_setup?.items ?? []).isEmpty)
@@ -310,11 +327,11 @@ class _PebSetupScreenState extends State<PebSetupScreen> {
   Widget _trackingLevelCard(ColorScheme cs) {
     return Container(
       margin: const EdgeInsets.only(bottom: 12),
-      padding: const EdgeInsets.all(14),
+      padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 6),
       decoration: _boxDecoration(cs),
-      child: DropdownButtonFormField<String>(
-        initialValue: _trackingLevel,
-        decoration: const InputDecoration(labelText: 'Erection Tracking Level'),
+      child: CustomDropdownField<String>(
+        label: 'Erection Tracking Level',
+        value: _trackingLevel,
         items: const [
           DropdownMenuItem(value: 'basic', child: Text('Level 1 - Basic')),
           DropdownMenuItem(
@@ -326,20 +343,6 @@ class _PebSetupScreenState extends State<PebSetupScreen> {
         onChanged: (value) =>
             setState(() => _trackingLevel = value ?? 'advanced'),
       ),
-    );
-  }
-
-  Widget _actions(ColorScheme cs) {
-    return Row(
-      children: [
-        Expanded(
-          child: OutlinedButton.icon(
-            onPressed: _saving ? null : _reset,
-            icon: const Icon(Icons.refresh),
-            label: const Text('Reset Default Setup'),
-          ),
-        ),
-      ],
     );
   }
 
@@ -357,7 +360,7 @@ class _PebSetupScreenState extends State<PebSetupScreen> {
           crossAxisCount: crossAxisCount,
           crossAxisSpacing: 14,
           mainAxisSpacing: 14,
-          mainAxisExtent: crossAxisCount == 1 ? 214 : 206,
+          mainAxisExtent: crossAxisCount == 1 ? 240 : 230,
         ),
         itemBuilder: (context, index) => _itemCard(items[index], cs),
       );
@@ -473,180 +476,250 @@ class _PebSetupScreenState extends State<PebSetupScreen> {
   Widget _itemCard(PebSetupItem item, ColorScheme cs) {
     final isUploading = _uploadingItemId == item.id;
     final hasCustomImage = pebWorkImageIsCustom(item);
-    return LayoutBuilder(builder: (context, constraints) {
-      final imageWidth =
-          constraints.maxWidth < 390 ? constraints.maxWidth * 0.32 : 118.0;
-      return Container(
-        padding: const EdgeInsets.all(14),
-        decoration: _boxDecoration(cs),
-        clipBehavior: Clip.antiAlias,
-        child: Row(
-          crossAxisAlignment: CrossAxisAlignment.stretch,
-          children: [
-            Column(
+    final isDark = Theme.of(context).brightness == Brightness.dark;
+    const blueFill = Color(0xFFD0EAFD);
+    const darkBlueFill = Color(0xFF1E3A5F);
+
+    return Container(
+      decoration: BoxDecoration(
+        color: cs.surfaceContainerLow,
+        borderRadius: BorderRadius.circular(14),
+        border: Border.all(color: cs.outlineVariant.withOpacity(0.5)),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          // Header Row: Top space for name and corner blue box as remark
+          Padding(
+            padding: const EdgeInsets.fromLTRB(14, 12, 14, 4),
+            child: Row(
               children: [
                 Expanded(
-                  child: SizedBox(
-                    width: imageWidth.clamp(100.0, 122.0),
-                    child: _SetupImageTile(
-                      item: item,
-                      executionType: widget.executionType,
-                      hasCustomImage: hasCustomImage,
+                  child: Text(
+                    item.name,
+                    style: const TextStyle(
+                      fontSize: 16,
+                      fontWeight: FontWeight.w600,
                     ),
+                    maxLines: 2,
+                    overflow: TextOverflow.ellipsis,
                   ),
                 ),
-                const SizedBox(height: 8),
-                SizedBox(
-                  width: imageWidth.clamp(100.0, 122.0),
-                  height: 34,
-                  child: OutlinedButton.icon(
-                    onPressed: _saving || isUploading
-                        ? null
-                        : () => _replaceItemImage(item),
-                    icon: isUploading
-                        ? const SizedBox(
-                            width: 14,
-                            height: 14,
-                            child: CircularProgressIndicator(strokeWidth: 2),
-                          )
-                        : const Icon(Icons.photo_camera_outlined, size: 16),
-                    label: Text(
-                      item.images.isEmpty ? 'Upload' : 'Change',
-                      overflow: TextOverflow.ellipsis,
+                const SizedBox(width: 8),
+                InkWell(
+                  onTap: () => _openItemForm(item),
+                  borderRadius: BorderRadius.circular(4),
+                  child: Container(
+                    constraints: const BoxConstraints(
+                      minWidth: 78,
+                      maxWidth: 110,
                     ),
-                    style: OutlinedButton.styleFrom(
-                      padding: const EdgeInsets.symmetric(horizontal: 8),
-                      textStyle: const TextStyle(
-                        fontSize: 12,
+                    padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 5),
+                    decoration: BoxDecoration(
+                      color: cs.secondaryContainer.withOpacity(0.7),
+                      border: Border.all(color: cs.outline.withOpacity(0.3)),
+                      borderRadius: BorderRadius.circular(4),
+                    ),
+                    child: Text(
+                      item.remarks.trim().isNotEmpty
+                          ? item.remarks
+                          : 'Remark',
+                      style: TextStyle(
+                        fontSize: 10,
                         fontWeight: FontWeight.w700,
+                        color: cs.onSecondaryContainer,
                       ),
+                      overflow: TextOverflow.ellipsis,
+                      maxLines: 1,
                     ),
                   ),
                 ),
               ],
             ),
-            const SizedBox(width: 14),
-            Expanded(
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                mainAxisAlignment: MainAxisAlignment.spaceBetween,
+          ),
+
+          Expanded(
+            child: IntrinsicHeight(
+              child: Row(
                 children: [
-                  Row(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      Expanded(
-                        child: Column(
-                          crossAxisAlignment: CrossAxisAlignment.start,
-                          mainAxisSize: MainAxisSize.min,
-                          children: [
-                            Text(
-                              item.name,
-                              maxLines: 2,
-                              overflow: TextOverflow.ellipsis,
-                              style: TextStyle(
-                                color: cs.onSurface,
-                                fontSize: 17,
-                                fontWeight: FontWeight.w900,
-                                height: 1.15,
+                  // LEFT COLUMN: Image & Actions
+                  Expanded(
+                    child: Container(
+                      padding: const EdgeInsets.fromLTRB(14, 4, 7, 14),
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Expanded(
+                            child: ClipRRect(
+                              borderRadius: BorderRadius.circular(8),
+                              child: Container(
+                                width: double.infinity,
+                                decoration: BoxDecoration(
+                                  color: cs.surfaceContainerHighest,
+                                  borderRadius: BorderRadius.circular(8),
+                                ),
+                                child: Image(
+                                  image: pebWorkImageProvider(item, widget.executionType),
+                                  fit: BoxFit.cover,
+                                  errorBuilder: (_, __, ___) => pebWorkImageFallback(
+                                    item,
+                                    widget.executionType,
+                                  ),
+                                ),
                               ),
-                            ),
-                          ],
-                        ),
-                      ),
-                      const SizedBox(width: 8),
-                      PopupMenuButton<String>(
-                        tooltip: 'More actions',
-                        icon: Icon(
-                          Icons.more_vert_rounded,
-                          color: cs.onSurfaceVariant,
-                        ),
-                        onSelected: (value) {
-                          if (value == 'edit') _openItemForm(item);
-                          if (value == 'delete') _deleteItem(item);
-                        },
-                        itemBuilder: (context) => [
-                          const PopupMenuItem(
-                            value: 'edit',
-                            child: ListTile(
-                              dense: true,
-                              contentPadding: EdgeInsets.zero,
-                              leading: Icon(Icons.edit_outlined),
-                              title: Text('Edit details'),
                             ),
                           ),
-                          PopupMenuItem(
-                            value: 'delete',
-                            enabled: !_saving,
-                            child: ListTile(
-                              dense: true,
-                              contentPadding: EdgeInsets.zero,
-                              leading:
-                                  Icon(Icons.delete_outline, color: cs.error),
-                              title: Text(
-                                'Delete',
-                                style: TextStyle(color: cs.error),
+                          const SizedBox(height: 12),
+                          // Action row (Edit, Upload/Change Image, Delete)
+                          Row(
+                            children: [
+                              Expanded(
+                                child: _buildActionIcon(
+                                  Icons.edit_rounded,
+                                  cs.primary,
+                                  () => _openItemForm(item),
+                                ),
                               ),
-                            ),
+                              const SizedBox(width: 8),
+                              Expanded(
+                                child: _buildActionIcon(
+                                  isUploading ? null : Icons.photo_camera_outlined,
+                                  Colors.green,
+                                  _saving || isUploading ? () {} : () => _replaceItemImage(item),
+                                  isUploading: isUploading,
+                                ),
+                              ),
+                              const SizedBox(width: 8),
+                              Expanded(
+                                child: _buildActionIcon(
+                                  Icons.delete_outline_rounded,
+                                  cs.error,
+                                  () => _deleteItem(item),
+                                ),
+                              ),
+                            ],
                           ),
                         ],
                       ),
-                    ],
+                    ),
                   ),
-                  if (item.remarks.trim().isNotEmpty)
-                    Text(
-                      item.remarks,
-                      maxLines: 1,
-                      overflow: TextOverflow.ellipsis,
-                      style: TextStyle(
-                        color: cs.onSurfaceVariant,
-                        fontSize: 12,
-                      ),
-                    )
-                  else
-                    Text(
-                      'No remarks added',
-                      maxLines: 1,
-                      overflow: TextOverflow.ellipsis,
-                      style: TextStyle(
-                        color: cs.onSurfaceVariant.withValues(alpha: 0.72),
-                        fontSize: 12,
-                        fontStyle: FontStyle.italic,
+
+                  // RIGHT COLUMN: Fields
+                  Expanded(
+                    child: Container(
+                      padding: const EdgeInsets.fromLTRB(7, 4, 14, 14),
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        mainAxisAlignment: MainAxisAlignment.center,
+                        children: [
+                          Row(
+                            children: [
+                              Expanded(
+                                child: _blueBox(
+                                  label: "UOM",
+                                  value: item.uom,
+                                  cs: cs,
+                                  isDark: isDark,
+                                  blueFill: blueFill,
+                                  darkBlueFill: darkBlueFill,
+                                ),
+                              ),
+                              const SizedBox(width: 8),
+                              Expanded(
+                                child: _blueBox(
+                                  label: "Target Qty",
+                                  value: '${item.targetQty}',
+                                  cs: cs,
+                                  isDark: isDark,
+                                  blueFill: blueFill,
+                                  darkBlueFill: darkBlueFill,
+                                ),
+                              ),
+                            ],
+                          ),
+                        ],
                       ),
                     ),
-                  Wrap(
-                    spacing: 12,
-                    runSpacing: 6,
-                    children: [
-                      _SetupInlineMeta(
-                        label: 'UOM',
-                        value: item.uom,
-                        cs: cs,
-                      ),
-                      _SetupInlineMeta(
-                        label: 'Target',
-                        value: '${item.targetQty}',
-                        cs: cs,
-                      ),
-                    ],
-                  ),
-                  Row(
-                    children: [
-                      Expanded(
-                        child: FilledButton.icon(
-                          onPressed: _saving ? null : () => _openItemForm(item),
-                          icon: const Icon(Icons.edit_outlined, size: 18),
-                          label: const Text('Edit Details'),
-                        ),
-                      ),
-                    ],
                   ),
                 ],
               ),
             ),
-          ],
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildActionIcon(IconData? icon, Color color, VoidCallback onPressed, {bool isUploading = false}) {
+    return Container(
+      height: 32,
+      decoration: BoxDecoration(
+        border: Border.all(color: color, width: 1.5),
+        borderRadius: BorderRadius.circular(6),
+      ),
+      child: Material(
+        color: Colors.transparent,
+        child: InkWell(
+          onTap: onPressed,
+          borderRadius: BorderRadius.circular(6),
+          child: isUploading
+              ? Center(
+                  child: SizedBox(
+                    width: 14,
+                    height: 14,
+                    child: CircularProgressIndicator(
+                      strokeWidth: 2,
+                      color: color,
+                    ),
+                  ),
+                )
+              : Icon(icon, size: 18, color: color),
         ),
-      );
-    });
+      ),
+    );
+  }
+
+  Widget _blueBox({
+    required String label,
+    required String value,
+    required ColorScheme cs,
+    required bool isDark,
+    required Color blueFill,
+    required Color darkBlueFill,
+  }) {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Padding(
+          padding: const EdgeInsets.only(bottom: 4),
+          child: Text(
+            label,
+            style: TextStyle(
+              fontSize: 9,
+              fontWeight: FontWeight.w600,
+              color: cs.onSurface,
+            ),
+          ),
+        ),
+        Container(
+          height: 26,
+          width: double.infinity,
+          alignment: Alignment.center,
+          decoration: BoxDecoration(
+            color: isDark ? darkBlueFill : blueFill,
+            borderRadius: BorderRadius.circular(4),
+          ),
+          child: Text(
+            value,
+            style: TextStyle(
+              fontSize: 10,
+              fontWeight: FontWeight.w600,
+              color: cs.onSurface,
+            ),
+          ),
+        ),
+      ],
+    );
   }
 
   BoxDecoration _boxDecoration(ColorScheme cs) {
