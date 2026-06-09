@@ -412,6 +412,11 @@ class _ModuleScreenV2State extends ConsumerState<ModuleScreenV2>
           iconColor: Colors.cyan,
           routeName: "/site"),
       ModuleItem(
+          labelKey: 'rate_card',
+          icon: Icons.currency_rupee_rounded,
+          iconColor: Colors.amber,
+          routeName: "/site-list/rate"),
+      ModuleItem(
           labelKey: 'manpower_details_card',
           icon: Icons.engineering_rounded,
           iconColor: Colors.deepOrange,
@@ -537,11 +542,6 @@ class _ModuleScreenV2State extends ConsumerState<ModuleScreenV2>
   }
 
   List<ModuleItem> _getSecondaryModules(String? type) {
-    final rateModule = ModuleItem(
-        labelKey: 'rate_card',
-        icon: Icons.currency_rupee_rounded,
-        iconColor: Colors.amber,
-        routeName: "/site-list/rate");
     final boqModule = ModuleItem(
         labelKey: 'BOQ',
         icon: Icons.table_rows_rounded,
@@ -554,17 +554,17 @@ class _ModuleScreenV2State extends ConsumerState<ModuleScreenV2>
         type == WorkType.insulation.apiValue ||
         type == 'roofing_work' ||
         type == WorkType.roofing.apiValue) {
-      return [rateModule];
+      return [];
     } else if (type == 'structure_work' ||
         type == WorkType.structure.apiValue) {
-      return [rateModule, boqModule];
+      return [boqModule];
     } else if (type == 'fabrication_work' ||
         type == WorkType.fabrication.apiValue) {
-      return [rateModule, boqModule];
+      return [boqModule];
     } else if (type == 'civil_work' || type == WorkType.civil.apiValue) {
       return [boqModule];
     }
-    return [rateModule];
+    return [];
   }
 
   List<ModuleItem> get _reportModules {
