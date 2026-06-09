@@ -16,7 +16,6 @@ import 'package:untitled2/features/modules/all_Modules/team/provider/teamProvide
 import 'package:untitled2/features/profile_page/provider/userProvider.dart';
 import 'package:untitled2/typeProvider/type_provider.dart';
 import '../../../../../../core/utlis/widgets/date_picker.dart';
-import '../../providers/dpr.dart';
 import '../../providers/dprService.dart';
 import '../../../../all_Modules/structure_work/dpr/repository/dpr_structure_repository.dart';
 
@@ -800,23 +799,7 @@ class _SheetDownloadPageState extends ConsumerState<SheetDownloadPage> {
                           ),
                           if (isSatmaxUser)
                             sheetButton(
-                              label: "Detailed DPR",
-                              icon: Icons.assignment_rounded,
-                              sheetName: "Structure Detailed DPR",
-                              excelOnly: true,
-                              apiCall: (fromDate, toDate, format) =>
-                                  DPRStructureRepository().downloadSheet(
-                                siteId,
-                                fromDate: fromDate,
-                                toDate: toDate,
-                                sheetType: 'detailed',
-                                format: 'excel',
-                              ),
-                              defaultFileName: "structure_detailed_dpr",
-                            ),
-                          if (isSatmaxUser)
-                            sheetButton(
-                              label: "Detailed + P&M",
+                              label: "Detailed DPR + P&M",
                               icon: Icons.assignment_turned_in_rounded,
                               sheetName: "Structure Detailed DPR With P&M",
                               excelOnly: true,
