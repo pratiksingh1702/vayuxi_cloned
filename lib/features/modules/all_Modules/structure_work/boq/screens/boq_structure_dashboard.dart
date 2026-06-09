@@ -1,10 +1,7 @@
-import 'dart:io';
-import 'dart:typed_data';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:file_picker/file_picker.dart';
-import 'package:intl/intl.dart';
 import 'package:go_router/go_router.dart';
 import '../models/boq_structure_model.dart';
 import '../providers/boq_structure_provider.dart';
@@ -12,7 +9,6 @@ import 'boq_detail_screen.dart';
 import '../../../../../../core/utlis/widgets/premium_app_bar.dart';
 
 const _kBrown = Color(0xFF7B3F00);
-const _kGold = Color(0xFFD4891A);
 
 class BOQStructureDashboard extends ConsumerStatefulWidget {
   final String siteId;
@@ -71,7 +67,9 @@ class _BOQStructureDashboardState extends ConsumerState<BOQStructureDashboard>
         actions: [
           PremiumActionIcon(
             icon: Icons.refresh_rounded,
-            onPressed: () => ref.read(boqStructureProvider.notifier).fetchBOQs(widget.siteId),
+            onPressed: () => ref
+                .read(boqStructureProvider.notifier)
+                .fetchBOQs(widget.siteId),
             tooltip: "Refresh",
           ),
         ],
@@ -81,7 +79,9 @@ class _BOQStructureDashboardState extends ConsumerState<BOQStructureDashboard>
           : state.error != null && state.boqs.isEmpty
               ? _ErrorState(
                   message: state.error!,
-                  onRetry: () => ref.read(boqStructureProvider.notifier).fetchBOQs(widget.siteId),
+                  onRetry: () => ref
+                      .read(boqStructureProvider.notifier)
+                      .fetchBOQs(widget.siteId),
                 )
               : state.boqs.isEmpty
                   ? const _EmptyBOQState()
@@ -92,7 +92,8 @@ class _BOQStructureDashboardState extends ConsumerState<BOQStructureDashboard>
                         ListView.builder(
                           shrinkWrap: true,
                           physics: const NeverScrollableScrollPhysics(),
-                          padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+                          padding: const EdgeInsets.symmetric(
+                              horizontal: 16, vertical: 8),
                           itemCount: state.boqs.length,
                           itemBuilder: (ctx, i) {
                             final boq = state.boqs[i];
@@ -100,7 +101,8 @@ class _BOQStructureDashboardState extends ConsumerState<BOQStructureDashboard>
                             return AnimatedBuilder(
                               animation: _staggerCtrl,
                               builder: (_, child) {
-                                final t = (((_staggerCtrl.value - delay) / 0.5).clamp(0.0, 1.0));
+                                final t = (((_staggerCtrl.value - delay) / 0.5)
+                                    .clamp(0.0, 1.0));
                                 return Opacity(
                                   opacity: t,
                                   child: Transform.translate(
@@ -136,6 +138,7 @@ class _BOQStructureDashboardState extends ConsumerState<BOQStructureDashboard>
 
   void _showUploadSheet(BuildContext context) {
     PlatformFile? pickedFile;
+    int step = 0;
 
     showModalBottomSheet(
       context: context,
@@ -160,13 +163,15 @@ class _BOQStructureDashboardState extends ConsumerState<BOQStructureDashboard>
                       color: Colors.grey.shade300,
                       borderRadius: BorderRadius.circular(4))),
               const Text('Upload BOQ',
-                  style: TextStyle(
-                      fontSize: 18, fontWeight: FontWeight.w800)),
+                  style: TextStyle(fontSize: 18, fontWeight: FontWeight.w800)),
               const SizedBox(height: 4),
               Text('Excel files only (.xlsx, .xls)',
-                  style: TextStyle(
-                      fontSize: 12,
-                      color: Colors.grey.shade600)),
+                  style: TextStyle(fontSize: 12, color: Colors.grey.shade600)),
+              const SizedBox(height: 18),
+              _UploadJourneyHeader(
+                currentStep: step,
+                steps: const ['Select File', 'Review', 'Upload'],
+              ),
               const SizedBox(height: 20),
               GestureDetector(
                 onTap: () async {
@@ -176,7 +181,10 @@ class _BOQStructureDashboardState extends ConsumerState<BOQStructureDashboard>
                     withData: true,
                   );
                   if (result != null && result.files.isNotEmpty) {
-                    setLocal(() => pickedFile = result.files.first);
+                    setLocal(() {
+                      pickedFile = result.files.first;
+                      step = 1;
+                    });
                   }
                 },
                 child: AnimatedContainer(
@@ -188,9 +196,8 @@ class _BOQStructureDashboardState extends ConsumerState<BOQStructureDashboard>
                         : Colors.grey.shade100,
                     borderRadius: BorderRadius.circular(16),
                     border: Border.all(
-                      color: pickedFile != null
-                          ? _kBrown
-                          : Colors.grey.shade300,
+                      color:
+                          pickedFile != null ? _kBrown : Colors.grey.shade300,
                       width: pickedFile != null ? 2 : 1,
                     ),
                   ),
@@ -200,9 +207,8 @@ class _BOQStructureDashboardState extends ConsumerState<BOQStructureDashboard>
                         pickedFile != null
                             ? Icons.check_circle_rounded
                             : Icons.upload_file_rounded,
-                        color: pickedFile != null
-                            ? _kBrown
-                            : Colors.grey.shade500,
+                        color:
+                            pickedFile != null ? _kBrown : Colors.grey.shade500,
                         size: 32,
                       ),
                       const SizedBox(width: 14),
@@ -228,8 +234,7 @@ class _BOQStructureDashboardState extends ConsumerState<BOQStructureDashboard>
                               Text(
                                 '${((pickedFile!.size) / 1024).toStringAsFixed(1)} KB',
                                 style: TextStyle(
-                                    fontSize: 11,
-                                    color: Colors.grey.shade500),
+                                    fontSize: 11, color: Colors.grey.shade500),
                               ),
                           ],
                         ),
@@ -238,6 +243,22 @@ class _BOQStructureDashboardState extends ConsumerState<BOQStructureDashboard>
                   ),
                 ),
               ),
+              if (pickedFile != null) ...[
+                const SizedBox(height: 14),
+                _UploadReviewCard(
+                  title: 'Ready for BOQ validation',
+                  description:
+                      'The selected Excel file will be sent through the existing BOQ upload process. Quantity splitting and backend validation will run as usual.',
+                  rows: [
+                    ('File', pickedFile!.name),
+                    (
+                      'Size',
+                      '${(pickedFile!.size / 1024).toStringAsFixed(1)} KB'
+                    ),
+                    ('Format', pickedFile!.extension?.toUpperCase() ?? 'Excel'),
+                  ],
+                ),
+              ],
               const SizedBox(height: 20),
               SizedBox(
                 width: double.infinity,
@@ -253,6 +274,7 @@ class _BOQStructureDashboardState extends ConsumerState<BOQStructureDashboard>
                   onPressed: pickedFile == null
                       ? null
                       : () async {
+                          setLocal(() => step = 2);
                           Navigator.pop(sheetCtx);
                           final ok = await ref
                               .read(boqStructureProvider.notifier)
@@ -269,26 +291,177 @@ class _BOQStructureDashboardState extends ConsumerState<BOQStructureDashboard>
                                   const SizedBox(width: 10),
                                   Text(ok
                                       ? 'BOQ uploaded successfully!'
-                                      : (ref
-                                              .read(boqStructureProvider)
-                                              .error ??
+                                      : (ref.read(boqStructureProvider).error ??
                                           'Upload failed')),
                                 ]),
-                                backgroundColor:
-                                    ok ? Colors.green : Colors.red,
+                                backgroundColor: ok ? Colors.green : Colors.red,
                                 duration: const Duration(seconds: 3),
                               ),
                             );
                           }
                         },
-                  child: const Text('Upload BOQ',
-                      style: TextStyle(
-                          fontSize: 15, fontWeight: FontWeight.w700)),
+                  child: Text(
+                      pickedFile == null
+                          ? 'Select File First'
+                          : 'Confirm & Upload BOQ',
+                      style:
+                          TextStyle(fontSize: 15, fontWeight: FontWeight.w700)),
                 ),
               ),
             ],
           ),
         ),
+      ),
+    );
+  }
+}
+
+class _UploadJourneyHeader extends StatelessWidget {
+  final int currentStep;
+  final List<String> steps;
+
+  const _UploadJourneyHeader({
+    required this.currentStep,
+    required this.steps,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    final cs = Theme.of(context).colorScheme;
+    return Row(
+      children: List.generate(steps.length * 2 - 1, (index) {
+        if (index.isOdd) {
+          final lineIndex = index ~/ 2;
+          final isDone = lineIndex < currentStep;
+          return Expanded(
+            child: Container(
+              height: 2,
+              color: isDone ? _kBrown : cs.outlineVariant,
+            ),
+          );
+        }
+
+        final stepIndex = index ~/ 2;
+        final isDone = stepIndex < currentStep;
+        final isActive = stepIndex == currentStep;
+        return Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            AnimatedContainer(
+              duration: const Duration(milliseconds: 180),
+              width: 34,
+              height: 34,
+              decoration: BoxDecoration(
+                color:
+                    isDone || isActive ? _kBrown : cs.surfaceContainerHighest,
+                shape: BoxShape.circle,
+              ),
+              child: Icon(
+                isDone ? Icons.check_rounded : Icons.circle,
+                size: isDone ? 18 : 9,
+                color: isDone || isActive ? Colors.white : cs.onSurfaceVariant,
+              ),
+            ),
+            const SizedBox(height: 5),
+            SizedBox(
+              width: 72,
+              child: Text(
+                steps[stepIndex],
+                textAlign: TextAlign.center,
+                maxLines: 1,
+                overflow: TextOverflow.ellipsis,
+                style: TextStyle(
+                  fontSize: 11,
+                  fontWeight: isActive ? FontWeight.w800 : FontWeight.w500,
+                  color: isActive ? _kBrown : cs.onSurfaceVariant,
+                ),
+              ),
+            ),
+          ],
+        );
+      }),
+    );
+  }
+}
+
+class _UploadReviewCard extends StatelessWidget {
+  final String title;
+  final String description;
+  final List<(String, String)> rows;
+
+  const _UploadReviewCard({
+    required this.title,
+    required this.description,
+    required this.rows,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    final cs = Theme.of(context).colorScheme;
+    return Container(
+      width: double.infinity,
+      padding: const EdgeInsets.all(14),
+      decoration: BoxDecoration(
+        color: _kBrown.withOpacity(0.06),
+        borderRadius: BorderRadius.circular(14),
+        border: Border.all(color: _kBrown.withOpacity(0.18)),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
+            children: [
+              const Icon(Icons.fact_check_rounded, color: _kBrown, size: 20),
+              const SizedBox(width: 8),
+              Expanded(
+                child: Text(
+                  title,
+                  style: const TextStyle(fontWeight: FontWeight.w800),
+                ),
+              ),
+            ],
+          ),
+          const SizedBox(height: 8),
+          Text(
+            description,
+            style: TextStyle(
+              fontSize: 12,
+              height: 1.35,
+              color: cs.onSurfaceVariant,
+            ),
+          ),
+          const SizedBox(height: 10),
+          ...rows.map(
+            (row) => Padding(
+              padding: const EdgeInsets.only(top: 5),
+              child: Row(
+                children: [
+                  SizedBox(
+                    width: 62,
+                    child: Text(
+                      row.$1,
+                      style: TextStyle(
+                        fontSize: 12,
+                        color: cs.onSurfaceVariant,
+                      ),
+                    ),
+                  ),
+                  Expanded(
+                    child: Text(
+                      row.$2,
+                      maxLines: 1,
+                      overflow: TextOverflow.ellipsis,
+                      style: const TextStyle(
+                        fontSize: 12,
+                        fontWeight: FontWeight.w700,
+                      ),
+                    ),
+                  ),
+                ],
+              ),
+            ),
+          ),
+        ],
       ),
     );
   }
@@ -321,8 +494,8 @@ class _UploadFAB extends StatelessWidget {
             : const Icon(Icons.upload_rounded, color: Colors.white),
         label: Text(
           isUploading ? 'Uploading…' : 'Upload BOQ',
-          style: const TextStyle(
-              color: Colors.white, fontWeight: FontWeight.w700),
+          style:
+              const TextStyle(color: Colors.white, fontWeight: FontWeight.w700),
         ),
       ),
     );
@@ -336,10 +509,8 @@ class _StatsRow extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final totalItems =
-        boqs.fold<int>(0, (s, b) => s + b.totalItems);
-    final totalWeight =
-        boqs.fold<double>(0, (s, b) => s + b.totalNetWeight);
+    final totalItems = boqs.fold<int>(0, (s, b) => s + b.totalItems);
+    final totalWeight = boqs.fold<double>(0, (s, b) => s + b.totalNetWeight);
     final cs = Theme.of(context).colorScheme;
 
     return Padding(
@@ -364,8 +535,7 @@ class _StatChip extends StatelessWidget {
   final String label;
   final String value;
   final ColorScheme cs;
-  const _StatChip(
-      {required this.label, required this.value, required this.cs});
+  const _StatChip({required this.label, required this.value, required this.cs});
 
   @override
   Widget build(BuildContext context) {
@@ -381,9 +551,7 @@ class _StatChip extends StatelessWidget {
           children: [
             Text(value,
                 style: const TextStyle(
-                    fontSize: 18,
-                    fontWeight: FontWeight.w800,
-                    color: _kBrown)),
+                    fontSize: 18, fontWeight: FontWeight.w800, color: _kBrown)),
             const SizedBox(height: 2),
             Text(label,
                 style: TextStyle(
@@ -429,8 +597,7 @@ class _BOQCard extends StatelessWidget {
         decoration: BoxDecoration(
           color: isDark ? cs.surfaceContainerHigh : Colors.white,
           borderRadius: BorderRadius.circular(24),
-          border:
-              Border.all(color: cs.outlineVariant.withOpacity(0.5)),
+          border: Border.all(color: cs.outlineVariant.withOpacity(0.5)),
           boxShadow: [
             BoxShadow(
                 color: Colors.black.withOpacity(0.06),
@@ -450,8 +617,7 @@ class _BOQCard extends StatelessWidget {
                     children: [
                       Text(boq.boqName,
                           style: const TextStyle(
-                              fontSize: 15,
-                              fontWeight: FontWeight.w800),
+                              fontSize: 15, fontWeight: FontWeight.w800),
                           maxLines: 1,
                           overflow: TextOverflow.ellipsis),
                       const SizedBox(height: 2),
@@ -464,8 +630,8 @@ class _BOQCard extends StatelessWidget {
                   ),
                 ),
                 Container(
-                  padding: const EdgeInsets.symmetric(
-                      horizontal: 10, vertical: 4),
+                  padding:
+                      const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
                   decoration: BoxDecoration(
                     color: statusColor.withOpacity(0.12),
                     borderRadius: BorderRadius.circular(20),
@@ -496,8 +662,7 @@ class _BOQCard extends StatelessWidget {
                       children: [
                         CircularProgressIndicator(
                           value: v,
-                          backgroundColor:
-                              cs.outlineVariant.withOpacity(0.3),
+                          backgroundColor: cs.outlineVariant.withOpacity(0.3),
                           color: progressColor,
                           strokeWidth: 5,
                           strokeCap: StrokeCap.round,
@@ -519,8 +684,7 @@ class _BOQCard extends StatelessWidget {
                     children: [
                       _MiniStat(
                           label: 'Total Qty',
-                          value:
-                              boq.totalQuantity.toStringAsFixed(0),
+                          value: boq.totalQuantity.toStringAsFixed(0),
                           cs: cs),
                       const SizedBox(height: 6),
                       _MiniStat(
@@ -530,8 +694,7 @@ class _BOQCard extends StatelessWidget {
                       const SizedBox(height: 6),
                       _MiniStat(
                           label: 'Remaining',
-                          value: boq.remainingQuantity
-                              .toStringAsFixed(0),
+                          value: boq.remainingQuantity.toStringAsFixed(0),
                           cs: cs,
                           highlight: true),
                     ],
@@ -649,8 +812,7 @@ class _ShimmerPulseState extends State<_ShimmerPulse>
       builder: (_, __) => Container(
         decoration: BoxDecoration(
           borderRadius: BorderRadius.circular(24),
-          color: Colors.grey
-              .withOpacity(0.08 + _ctrl.value * 0.08),
+          color: Colors.grey.withOpacity(0.08 + _ctrl.value * 0.08),
         ),
       ),
     );
@@ -682,16 +844,13 @@ class _EmptyBOQState extends StatelessWidget {
             ),
             const SizedBox(height: 20),
             const Text('No BOQs Yet',
-                style: TextStyle(
-                    fontSize: 20, fontWeight: FontWeight.w800)),
+                style: TextStyle(fontSize: 20, fontWeight: FontWeight.w800)),
             const SizedBox(height: 8),
             Text(
               'Upload your first Bill of Quantities\nto start tracking structure progress.',
               textAlign: TextAlign.center,
               style: TextStyle(
-                  fontSize: 13,
-                  color: cs.onSurfaceVariant,
-                  height: 1.5),
+                  fontSize: 13, color: cs.onSurfaceVariant, height: 1.5),
             ),
           ],
         ),
@@ -715,8 +874,7 @@ class _ErrorState extends StatelessWidget {
         child: Column(
           mainAxisSize: MainAxisSize.min,
           children: [
-            Icon(Icons.cloud_off_rounded,
-                size: 52, color: cs.error),
+            Icon(Icons.cloud_off_rounded, size: 52, color: cs.error),
             const SizedBox(height: 16),
             Text('Something went wrong',
                 style: TextStyle(
@@ -726,16 +884,14 @@ class _ErrorState extends StatelessWidget {
             const SizedBox(height: 8),
             Text(message,
                 textAlign: TextAlign.center,
-                style: TextStyle(
-                    fontSize: 12, color: cs.onSurfaceVariant)),
+                style: TextStyle(fontSize: 12, color: cs.onSurfaceVariant)),
             const SizedBox(height: 20),
             ElevatedButton.icon(
               onPressed: onRetry,
               icon: const Icon(Icons.refresh_rounded),
               label: const Text('Retry'),
               style: ElevatedButton.styleFrom(
-                  backgroundColor: _kBrown,
-                  foregroundColor: Colors.white),
+                  backgroundColor: _kBrown, foregroundColor: Colors.white),
             ),
           ],
         ),

@@ -11,6 +11,12 @@ class PebExecutionConflict implements Exception {
   PebExecutionConflict(this.conflicts);
 }
 
+class PebBoqVariationRequired implements Exception {
+  final List<dynamic> variations;
+
+  PebBoqVariationRequired(this.variations);
+}
+
 class PebExecutionService {
   final Dio _dio = DioClient.dio;
 
@@ -190,11 +196,12 @@ class PebExecutionService {
     List<Map<String, String>> mappings = const [],
     bool skipMapping = false,
     bool isStandardTemplate = false,
+    String quantityType = 'exact',
   }) async {
     final formData = FormData.fromMap({
       'file': await MultipartFile.fromFile(file.path!, filename: file.name),
     });
-    final query = <String, dynamic>{};
+    final query = <String, dynamic>{'quantityType': quantityType};
     if (!skipMapping && !isStandardTemplate && mappings.isNotEmpty) {
       query['mappings'] = jsonEncode(mappings);
     }
@@ -245,10 +252,12 @@ class PebExecutionService {
     PebExecutionType type, {
     required String boqName,
     required List<Map<String, dynamic>> items,
+    String quantityType = 'exact',
   }) async {
     await _dio.put('/site/$siteId/boq-structure/$boqId', data: {
       'boqName': boqName,
       'type': type.apiType,
+      'quantityType': quantityType,
       'items': items,
     });
   }
@@ -258,10 +267,12 @@ class PebExecutionService {
     PebExecutionType type, {
     required String boqName,
     required List<Map<String, dynamic>> items,
+    String quantityType = 'exact',
   }) async {
     await _dio.post('/site/$siteId/boq-structure', data: {
       'boqName': boqName,
       'type': type.apiType,
+      'quantityType': quantityType,
       'items': items,
     });
   }
@@ -348,21 +359,24 @@ class PebExecutionService {
     final params = {
       'type': type.apiType,
       'section': type.section,
-      if (teamId != null && teamId.isNotEmpty) 'teamId': teamId,
-      if (date != null && date.isNotEmpty) 'endDate': date,
     };
-    final response =
-        await _dio.get('/site/$siteId/dpr-peb', queryParameters: params);
+    final results = await Future.wait([
+      _dio.get('/site/$siteId/dpr-peb', queryParameters: params),
+      getAssignments(siteId, type, status: 'all'),
+    ]);
+    final response = results[0] as Response<dynamic>;
+    final assignments = results[1] as List<PebWorkAssignment>;
+    final validAssignmentIds = assignments
+        .where((assignment) => assignment.status != 'cancelled')
+        .map((assignment) => assignment.id)
+        .toSet();
     final completedByKey = <String, Set<String>>{};
     final inProgressByKey = <String, Set<String>>{};
+    final completedDateByKey = <String, Map<String, DateTime>>{};
     final latest = <String, Map<String, dynamic>>{};
 
     for (final dpr in _asList(response.data).whereType<Map>()) {
-      final time = DateTime.tryParse(
-            (dpr['updatedAt'] ?? dpr['createdAt'] ?? dpr['date'] ?? '')
-                .toString(),
-          )?.millisecondsSinceEpoch ??
-          0;
+      final dprDate = DateTime.tryParse((dpr['date'] ?? '').toString());
       for (final rawItem in (dpr['items'] as List? ?? []).whereType<Map>()) {
         final setupItemId = rawItem['setupItemId'] is Map
             ? rawItem['setupItemId']['_id']?.toString() ?? ''
@@ -371,6 +385,10 @@ class PebExecutionService {
         final assignmentId = rawItem['assignmentId'] is Map
             ? rawItem['assignmentId']['_id']?.toString() ?? ''
             : rawItem['assignmentId']?.toString() ?? '';
+        if (assignmentId.isNotEmpty &&
+            !validAssignmentIds.contains(assignmentId)) {
+          continue;
+        }
         final key = assignmentId.isNotEmpty
             ? '$assignmentId:$setupItemId'
             : setupItemId;
@@ -380,6 +398,12 @@ class PebExecutionService {
             ((rawItem['progressPercentage'] as num?)?.toDouble() ?? 0) > 0 ||
             ((rawItem['actualQty'] as num?)?.toDouble() ?? 0) > 0;
         if (!hasProgress) continue;
+        final completedDate = DateTime.tryParse(
+              (rawItem['completedDate'] ?? '').toString(),
+            ) ??
+            dprDate;
+        final time =
+            (isComplete ? completedDate : dprDate)?.millisecondsSinceEpoch ?? 0;
         final marks = rawItem['assemblyMark']
             .toString()
             .split(',')
@@ -388,12 +412,18 @@ class PebExecutionService {
         for (final mark in marks) {
           void recordLatest(String statusKey) {
             final latestKey = '$statusKey::$mark';
-            if ((latest[latestKey]?['time'] as int? ?? -1) <= time) {
+            final existing = latest[latestKey];
+            final existingCompleted = existing?['status'] == 'completed';
+            if (existingCompleted && !isComplete) return;
+            if (existing == null ||
+                isComplete && !existingCompleted ||
+                (existing['time'] as int? ?? -1) <= time) {
               latest[latestKey] = {
                 'key': statusKey,
                 'mark': mark,
                 'status': isComplete ? 'completed' : 'in_progress',
                 'time': time,
+                'completedDate': isComplete ? completedDate : null,
               };
             }
           }
@@ -410,6 +440,11 @@ class PebExecutionService {
       final status = value['status'] as String;
       if (status == 'completed') {
         completedByKey.putIfAbsent(key, () => <String>{}).add(mark);
+        final completedDate = value['completedDate'] as DateTime?;
+        if (completedDate != null) {
+          completedDateByKey.putIfAbsent(
+              key, () => <String, DateTime>{})[mark] = completedDate;
+        }
       } else {
         inProgressByKey.putIfAbsent(key, () => <String>{}).add(mark);
       }
@@ -422,6 +457,7 @@ class PebExecutionService {
     return PebMarkStatus(
       completedByKey: completedByKey,
       inProgressByKey: inProgressByKey,
+      completedDateByKey: completedDateByKey,
     );
   }
 
@@ -440,48 +476,71 @@ class PebExecutionService {
     required double targetQty,
     required int progressPercentage,
     String trackingLevel = 'advanced',
+    String remarks = '',
+    String variationReason = '',
+    String variationRemarks = '',
+    String weightMode = 'none',
+    double estimatedWeightPerUnitKg = 0,
+    double manualWeightKg = 0,
+    double totalWeightKg = 0,
   }) async {
-    await _dio.post(
-      '/site/$siteId/dpr-peb',
-      data: {
-        'date': date,
-        'section': type.section,
-        'type': type.apiType,
-        'teamId': teamId,
-        'trackingLevel': trackingLevel,
-        'assemblyMark':
-            type == PebExecutionType.fabrication ? marks.join(',') : '',
-        'boqIds': const [],
-        'status': 'submitted',
-        'remarks': '',
-        'items': [
-          {
-            'setupItemId': setupItemId,
-            'assignmentId': assignmentId,
-            'sourceType': sourceType,
-            'name': stageName,
-            'uom': uom,
-            'actualQty': actualQty,
-            'targetQty': targetQty,
-            'progressPercentage': progressPercentage,
-            'isCompleted': progressPercentage >= 100,
-            'completedDate': progressPercentage >= 100 ? date : null,
-            'assemblyMark': marks.join(','),
-            'trackingLevel': trackingLevel,
-            'memberType': stageName,
-            'weightMode': 'none',
-            'estimatedWeightPerUnitKg': 0,
-            'manualWeightKg': 0,
-            'totalWeightKg': 0,
-            'remarks': '',
-            'manpower': 0,
-            'assignedManpower': const [],
-            'manualManpower': const [],
-            'contractor': '',
-            'area': '',
-          }
-        ],
-      },
-    );
+    try {
+      await _dio.post(
+        '/site/$siteId/dpr-peb',
+        data: {
+          'date': date,
+          'section': type.section,
+          'type': type.apiType,
+          'teamId': teamId,
+          'trackingLevel': trackingLevel,
+          'assemblyMark':
+              type == PebExecutionType.fabrication ? marks.join(',') : '',
+          'boqIds': const [],
+          'status': 'submitted',
+          'remarks': remarks.trim(),
+          'items': [
+            {
+              'setupItemId': setupItemId,
+              'assignmentId': assignmentId,
+              'sourceType': sourceType,
+              'name': stageName,
+              'uom': uom,
+              'actualQty': actualQty,
+              'targetQty': targetQty,
+              'progressPercentage': progressPercentage,
+              'isCompleted': progressPercentage >= 100,
+              'completedDate': progressPercentage >= 100 ? date : null,
+              'assemblyMark': marks.join(','),
+              'trackingLevel': trackingLevel,
+              'memberType': stageName,
+              'weightMode': weightMode,
+              'estimatedWeightPerUnitKg': estimatedWeightPerUnitKg,
+              'manualWeightKg': manualWeightKg,
+              'totalWeightKg': totalWeightKg,
+              'remarks': remarks.trim(),
+              'manpower': 0,
+              'assignedManpower': const [],
+              'manualManpower': const [],
+              'contractor': '',
+              'area': '',
+              if (variationReason.trim().isNotEmpty)
+                'variationReason': variationReason.trim(),
+              if (variationRemarks.trim().isNotEmpty)
+                'variationRemarks': variationRemarks.trim(),
+            }
+          ],
+        },
+      );
+    } on DioException catch (error) {
+      final data = error.response?.data;
+      if (error.response?.statusCode == 409 &&
+          data is Map &&
+          data['code'] == 'BOQ_VARIATION_REQUIRED') {
+        throw PebBoqVariationRequired(
+          data['variations'] is List ? data['variations'] : const [],
+        );
+      }
+      rethrow;
+    }
   }
 }

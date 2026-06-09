@@ -287,15 +287,9 @@ class _ManFieldMappingViewState extends ConsumerState<_ManFieldMappingView>
 
       if (!mounted) return;
       _showSnack('Upload queued ✅ — you\'ll be notified when done.');
-
-      // Navigate away after a short delay (same as original)
-      await Future.delayed(const Duration(milliseconds: 800));
-      if (mounted) {
-        Navigator.pushReplacement(
-          context,
-          MaterialPageRoute(builder: (_) => ManpowerListScreen()),
-        );
-      }
+      Navigator.of(context).pushReplacement(
+        MaterialPageRoute(builder: (_) => const ManpowerListScreen()),
+      );
     } catch (e) {
       notifier.setImporting(false);
       _showImportErrorDialog('Error: $e');
@@ -553,38 +547,52 @@ class _ManFieldMappingViewState extends ConsumerState<_ManFieldMappingView>
     final colorScheme = Theme.of(context).colorScheme;
     final isDark = Theme.of(context).brightness == Brightness.dark;
 
-    return Scaffold(
-      drawer: const CustomDrawer(),
-      backgroundColor: colorScheme.surfaceContainerLowest,
-      appBar: CustomAppBar(title: 'Import Manpower'),
-      body: Column(
-        children: [
-          // ── Progress header ──────────────────────────────
-          _StepProgressBar(currentStep: state.currentStep),
+    return PopScope(
+      canPop: state.currentStep == FieldMappingStep.upload,
+      onPopInvokedWithResult: (didPop, _) {
+        if (!didPop && state.currentStep != FieldMappingStep.upload) {
+          _prevStep();
+        }
+      },
+      child: Scaffold(
+        drawer: const CustomDrawer(),
+        backgroundColor: colorScheme.surfaceContainerLowest,
+        appBar: CustomAppBar(title: 'Import Manpower'),
+        body: Column(
+          children: [
+            const _UploadFlowIntro(
+              title: 'Guided Manpower Upload',
+              description:
+                  'Select the Excel file, review detected columns, map required fields, then validate before importing.',
+            ),
+            // ── Progress header ──────────────────────────────
+            _StepProgressBar(currentStep: state.currentStep),
 
-          // ── Step content (animated) ──────────────────────
-          Expanded(
-            child: FadeTransition(
-              opacity: _stepAnim,
-              child: SlideTransition(
-                position: Tween<Offset>(
-                  begin: const Offset(0.04, 0),
-                  end: Offset.zero,
-                ).animate(CurvedAnimation(
-                    parent: _stepAnim, curve: Curves.easeOutCubic)),
-                child: _buildCurrentStep(state, isDark),
+            // ── Step content (animated) ──────────────────────
+            Expanded(
+              child: FadeTransition(
+                opacity: _stepAnim,
+                child: SlideTransition(
+                  position: Tween<Offset>(
+                    begin: const Offset(0.04, 0),
+                    end: Offset.zero,
+                  ).animate(CurvedAnimation(
+                      parent: _stepAnim, curve: Curves.easeOutCubic)),
+                  child: _buildCurrentStep(state, isDark),
+                ),
               ),
             ),
-          ),
 
-          // ── Bottom navigation bar ────────────────────────
-          _BottomBar(
-            state: state,
-            onBack:
-                state.currentStep == FieldMappingStep.upload ? null : _prevStep,
-            onNext: _buildNextAction(state),
-          ),
-        ],
+            // ── Bottom navigation bar ────────────────────────
+            _BottomBar(
+              state: state,
+              onBack: state.currentStep == FieldMappingStep.upload
+                  ? null
+                  : _prevStep,
+              onNext: _buildNextAction(state),
+            ),
+          ],
+        ),
       ),
     );
   }
@@ -598,19 +606,6 @@ class _ManFieldMappingViewState extends ConsumerState<_ManFieldMappingView>
         return state.isFullNameMapped ? _nextStep : null;
       case FieldMappingStep.review:
         return _doImport;
-    }
-  }
-
-  String _nextLabel(FieldMappingState state) {
-    switch (state.currentStep) {
-      case FieldMappingStep.upload:
-        return 'Continue to Mapping';
-      case FieldMappingStep.mapping:
-        return 'Review & Import';
-      case FieldMappingStep.review:
-        return state.loadingPhase == LoadingPhase.importing
-            ? 'Importing...'
-            : 'Import Now';
     }
   }
 
@@ -635,19 +630,76 @@ class _ManFieldMappingViewState extends ConsumerState<_ManFieldMappingView>
         );
     }
   }
-
-  Widget _buildBottomBar(FieldMappingState state) {
-    return _BottomBar(
-      state: state,
-      onBack: state.currentStep == FieldMappingStep.upload ? null : _prevStep,
-      onNext: _buildNextAction(state),
-    );
-  }
 }
 
 // ─────────────────────────────────────────────────────────────
 // STEP PROGRESS BAR
 // ─────────────────────────────────────────────────────────────
+
+class _UploadFlowIntro extends StatelessWidget {
+  final String title;
+  final String description;
+
+  const _UploadFlowIntro({
+    required this.title,
+    required this.description,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    final colorScheme = Theme.of(context).colorScheme;
+    return Container(
+      width: double.infinity,
+      margin: const EdgeInsets.fromLTRB(14, 12, 14, 8),
+      padding: const EdgeInsets.all(14),
+      decoration: BoxDecoration(
+        color: colorScheme.primaryContainer.withOpacity(0.28),
+        borderRadius: BorderRadius.circular(14),
+        border: Border.all(color: colorScheme.primary.withOpacity(0.16)),
+      ),
+      child: Row(
+        children: [
+          Container(
+            width: 42,
+            height: 42,
+            decoration: BoxDecoration(
+              color: colorScheme.primary,
+              borderRadius: BorderRadius.circular(12),
+            ),
+            child: Icon(
+              Icons.rule_folder_rounded,
+              color: colorScheme.onPrimary,
+            ),
+          ),
+          const SizedBox(width: 12),
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  title,
+                  style: TextStyle(
+                    color: colorScheme.onSurface,
+                    fontWeight: FontWeight.w900,
+                  ),
+                ),
+                const SizedBox(height: 4),
+                Text(
+                  description,
+                  style: TextStyle(
+                    fontSize: 12,
+                    height: 1.35,
+                    color: colorScheme.onSurfaceVariant,
+                  ),
+                ),
+              ],
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+}
 
 class _StepProgressBar extends StatelessWidget {
   final FieldMappingStep currentStep;
@@ -657,13 +709,21 @@ class _StepProgressBar extends StatelessWidget {
   Widget build(BuildContext context) {
     final colorScheme = Theme.of(context).colorScheme;
     final steps = [
-      (label: 'Upload', step: FieldMappingStep.upload, icon: Icons.upload_file),
       (
-        label: 'Map Fields',
+        label: 'Select File',
+        step: FieldMappingStep.upload,
+        icon: Icons.upload_file
+      ),
+      (
+        label: 'Map Columns',
         step: FieldMappingStep.mapping,
         icon: Icons.account_tree_outlined
       ),
-      (label: 'Import', step: FieldMappingStep.review, icon: Icons.cloud_done),
+      (
+        label: 'Validate',
+        step: FieldMappingStep.review,
+        icon: Icons.fact_check_outlined
+      ),
     ];
 
     final idx = steps.indexWhere((s) => s.step == currentStep);
@@ -1548,13 +1608,13 @@ class _BottomBar extends StatelessWidget {
   String get _nextLabel {
     switch (state.currentStep) {
       case FieldMappingStep.upload:
-        return 'Continue to Mapping';
+        return 'Continue to Column Mapping';
       case FieldMappingStep.mapping:
-        return 'Review & Import';
+        return 'Review Validation';
       case FieldMappingStep.review:
         return state.loadingPhase == LoadingPhase.importing
-            ? 'Importing...'
-            : 'Import Now';
+            ? 'Validating...'
+            : 'Validate & Import';
     }
   }
 

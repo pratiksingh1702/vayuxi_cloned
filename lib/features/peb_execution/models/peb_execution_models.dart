@@ -39,7 +39,6 @@ enum PebExecutionType {
           'Alignment',
           'Bolt Tightening',
           'Patch-up & Finishing',
-          'Welding',
           'QC Clearance',
         ];
       case PebExecutionType.fabrication:
@@ -203,12 +202,14 @@ class PebBoq {
   final String id;
   final String name;
   final String number;
+  final String quantityType;
   final List<PebBoqMark> items;
 
   const PebBoq({
     required this.id,
     required this.name,
     required this.number,
+    required this.quantityType,
     required this.items,
   });
 
@@ -219,6 +220,7 @@ class PebBoq {
           json['projectName']?.toString() ??
           'BOQ',
       number: json['boqNumber']?.toString() ?? '',
+      quantityType: json['quantityType']?.toString() ?? 'exact',
       items: (json['items'] as List? ?? [])
           .whereType<Map>()
           .map((item) => PebBoqMark.fromJson(Map<String, dynamic>.from(item)))
@@ -328,9 +330,11 @@ class PebWorkAssignment {
 class PebMarkStatus {
   final Map<String, Set<String>> completedByKey;
   final Map<String, Set<String>> inProgressByKey;
+  final Map<String, Map<String, DateTime>> completedDateByKey;
 
   const PebMarkStatus({
     required this.completedByKey,
     required this.inProgressByKey,
+    this.completedDateByKey = const {},
   });
 }

@@ -403,6 +403,7 @@ class _ModuleScreenV2State extends ConsumerState<ModuleScreenV2>
 
   List<ModuleItem> get _setupModules {
     final type = ref.watch(typeProvider);
+    final historyUploadModule = _getSatmaxHistoryUploadModule(type);
 
     final base = [
       ModuleItem(
@@ -410,6 +411,11 @@ class _ModuleScreenV2State extends ConsumerState<ModuleScreenV2>
           icon: Icons.location_city_rounded,
           iconColor: Colors.cyan,
           routeName: "/site"),
+      ModuleItem(
+          labelKey: 'rate_card',
+          icon: Icons.currency_rupee_rounded,
+          iconColor: Colors.amber,
+          routeName: "/site-list/rate"),
       ModuleItem(
           labelKey: 'manpower_details_card',
           icon: Icons.engineering_rounded,
@@ -435,10 +441,28 @@ class _ModuleScreenV2State extends ConsumerState<ModuleScreenV2>
     return [
       ...base,
       ...secondaryModules,
+      if (historyUploadModule != null) historyUploadModule,
       dprSetupModule,
       if (workAssignmentModule != null) workAssignmentModule,
       if (pmSetupModule != null) pmSetupModule,
     ];
+  }
+
+  bool get _isSatmaxUser {
+    final phone = ref.watch(currentUserProvider)?.phoneNumber;
+    return phone?.replaceAll(RegExp(r'\D'), '') == '9509852652';
+  }
+
+  ModuleItem? _getSatmaxHistoryUploadModule(String? type) {
+    if (!_isSatmaxUser) return null;
+    if (type == 'structure_work' || type == WorkType.structure.apiValue) {
+      return ModuleItem(
+          labelKey: 'History Upload',
+          icon: Icons.history_edu_rounded,
+          iconColor: const Color(0xFF7B3F00),
+          routeName: "/site-list/structure-history-upload");
+    }
+    return null;
   }
 
   ModuleItem _getDprSetupModule(String? type) {
@@ -461,7 +485,7 @@ class _ModuleScreenV2State extends ConsumerState<ModuleScreenV2>
           labelKey: 'Structure Erection Setup',
           icon: Icons.architecture_rounded,
           iconColor: Colors.blueAccent,
-          routeName: "/site-list/structure-dpr-setup");
+          routeName: Routes.erectionSetup);
     } else if (type == 'civil_work' || type == WorkType.civil.apiValue) {
       return ModuleItem(
           labelKey: 'Civil DPR Setup',
@@ -518,11 +542,6 @@ class _ModuleScreenV2State extends ConsumerState<ModuleScreenV2>
   }
 
   List<ModuleItem> _getSecondaryModules(String? type) {
-    final rateModule = ModuleItem(
-        labelKey: 'rate_card',
-        icon: Icons.currency_rupee_rounded,
-        iconColor: Colors.amber,
-        routeName: "/site-list/rate");
     final boqModule = ModuleItem(
         labelKey: 'BOQ',
         icon: Icons.table_rows_rounded,
@@ -535,23 +554,24 @@ class _ModuleScreenV2State extends ConsumerState<ModuleScreenV2>
         type == WorkType.insulation.apiValue ||
         type == 'roofing_work' ||
         type == WorkType.roofing.apiValue) {
-      return [rateModule];
+      return [];
     } else if (type == 'structure_work' ||
         type == WorkType.structure.apiValue) {
-      return [rateModule, boqModule];
+      return [boqModule];
     } else if (type == 'fabrication_work' ||
         type == WorkType.fabrication.apiValue) {
-      return [rateModule, boqModule];
+      return [boqModule];
     } else if (type == 'civil_work' || type == WorkType.civil.apiValue) {
       return [boqModule];
     }
-    return [rateModule];
+    return [];
   }
 
   List<ModuleItem> get _reportModules {
     final type = ref.watch(typeProvider);
     final pmReportModule = (type == 'structure_work' ||
             type == WorkType.structure.apiValue ||
+            type == 'erection_work' ||
             type == 'fabrication_work' ||
             type == WorkType.fabrication.apiValue)
         ? ModuleItem(
@@ -1064,7 +1084,7 @@ class _ModuleScreenV2State extends ConsumerState<ModuleScreenV2>
                   fit: BoxFit.scaleDown,
                   alignment: Alignment.centerLeft,
                   child: Text(
-                    user?.fullName?.toUpperCase() ?? 'GUEST',
+                    user?.fullName.toUpperCase() ?? 'GUEST',
                     style: TextStyle(
                       fontSize: 16,
                       fontWeight: FontWeight.w900,

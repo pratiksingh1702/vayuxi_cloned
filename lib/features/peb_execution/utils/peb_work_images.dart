@@ -2,11 +2,36 @@ import 'package:flutter/material.dart';
 
 import '../models/peb_execution_models.dart';
 
-String pebWorkImageFor(PebSetupItem item, PebExecutionType type) {
-  if (item.images.isNotEmpty) return item.images.first;
+String? pebCustomWorkImageFor(PebSetupItem item) {
+  for (final rawImage in item.images) {
+    final image = rawImage.trim();
+    if (image.startsWith('http://') || image.startsWith('https://')) {
+      return image;
+    }
+  }
+  return null;
+}
 
+String pebDefaultWorkImageFor(PebSetupItem item, PebExecutionType type) {
   final name = item.name.trim().toLowerCase();
-  final asset = switch (name) {
+  return switch (name) {
+    'unloading' when type == PebExecutionType.erection =>
+      'e-images/unloading work.png',
+    'shifting' when type == PebExecutionType.erection =>
+      'e-images/shifting work.png',
+    'erection' when type == PebExecutionType.erection =>
+      'e-images/ERECTION.png',
+    'alignment' when type == PebExecutionType.erection =>
+      'e-images/ALIGNMENT.png',
+    'bolt tightening' when type == PebExecutionType.erection =>
+      'e-images/BOLT TIGHTENING.png',
+    'patch-up & finishing' ||
+    'patch up & finishing' ||
+    'patchup' ||
+    'touch up and finishing' when type == PebExecutionType.erection =>
+      'e-images/TOUCH UP AND FINISHING.png',
+    'qc clearance' when type == PebExecutionType.erection =>
+      'e-images/QC CLEARANCE.png',
     'unloading' => 'assets/images/Unloading.png',
     'shifting' => 'assets/images/Shfiting.png',
     'cutting' => 'assets/images/Cutting.png',
@@ -21,11 +46,14 @@ String pebWorkImageFor(PebSetupItem item, PebExecutionType type) {
         ? 'assets/images/peb.png'
         : 'assets/images/peb.png',
   };
-
-  return asset;
 }
 
-bool pebWorkImageIsCustom(PebSetupItem item) => item.images.isNotEmpty;
+String pebWorkImageFor(PebSetupItem item, PebExecutionType type) {
+  return pebCustomWorkImageFor(item) ?? pebDefaultWorkImageFor(item, type);
+}
+
+bool pebWorkImageIsCustom(PebSetupItem item) =>
+    pebCustomWorkImageFor(item) != null;
 
 ImageProvider pebWorkImageProvider(PebSetupItem item, PebExecutionType type) {
   final image = pebWorkImageFor(item, type);
@@ -33,4 +61,18 @@ ImageProvider pebWorkImageProvider(PebSetupItem item, PebExecutionType type) {
     return NetworkImage(image);
   }
   return AssetImage(image);
+}
+
+Widget pebWorkImageFallback(
+  PebSetupItem item,
+  PebExecutionType type, {
+  BoxFit fit = BoxFit.contain,
+}) {
+  return Image.asset(
+    pebDefaultWorkImageFor(item, type),
+    fit: fit,
+    errorBuilder: (_, __, ___) => const Center(
+      child: Icon(Icons.construction_rounded, size: 42),
+    ),
+  );
 }

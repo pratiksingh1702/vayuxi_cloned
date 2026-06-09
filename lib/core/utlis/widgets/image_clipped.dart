@@ -1,5 +1,3 @@
-import 'dart:ui';
-
 import 'package:flutter/material.dart';
 
 class CornerClippedScreenSimple extends StatelessWidget {
@@ -28,8 +26,9 @@ class CornerClippedScreenSimple extends StatelessWidget {
         // Background Image
         Positioned.fill(
           child: Image.asset(
-            "assets/images/Gemini_Generated_Image_pi2r7npi2r7npi2r.webp",
+            "assets/images/Firefly_A seamless pattern on a white background, featuring various simple, breathable, blue  303856.webp",
             fit: BoxFit.cover,
+            errorBuilder: (_, __, ___) => ColoredBox(color: resolvedColor),
           ),
         ),
 
@@ -42,10 +41,10 @@ class CornerClippedScreenSimple extends StatelessWidget {
                 end: Alignment.bottomCenter,
                 colors: [
                   (isDark ? cs.surfaceContainerHigh : cs.surface)
-                      .withOpacity(isDark ? 0.92 : 0.94),
-                  cs.surface.withOpacity(isDark ? 0.80 : 0.82),
+                      .withValues(alpha: isDark ? 0.92 : 0.94),
+                  cs.surface.withValues(alpha: isDark ? 0.80 : 0.82),
                   (isDark ? cs.surfaceContainer : cs.surfaceContainerLowest)
-                      .withOpacity(isDark ? 0.88 : 0.90),
+                      .withValues(alpha: isDark ? 0.88 : 0.90),
                 ],
               ),
             ),
