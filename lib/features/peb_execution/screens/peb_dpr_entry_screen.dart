@@ -191,26 +191,36 @@ class _PebDprEntryScreenState extends State<PebDprEntryScreen> {
     required Color color,
     required VoidCallback onTap,
   }) {
+    final cs = Theme.of(context).colorScheme;
     return InkWell(
       onTap: onTap,
       borderRadius: BorderRadius.circular(16),
       child: Container(
-        padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 16),
+        padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 14),
         decoration: BoxDecoration(
-          color: color,
+          color: cs.surface,
           borderRadius: BorderRadius.circular(16),
+          border: Border.all(color: color.withValues(alpha: 0.5), width: 1.3),
           boxShadow: [
             BoxShadow(
-              color: color.withValues(alpha: 0.24),
-              blurRadius: 14,
-              offset: const Offset(0, 7),
+              color: color.withValues(alpha: 0.13),
+              blurRadius: 12,
+              offset: const Offset(0, 5),
             ),
           ],
         ),
         child: Row(
           mainAxisAlignment: MainAxisAlignment.center,
           children: [
-            Icon(icon, color: Colors.white, size: 20),
+            Container(
+              width: 30,
+              height: 30,
+              decoration: BoxDecoration(
+                color: color.withValues(alpha: 0.12),
+                borderRadius: BorderRadius.circular(10),
+              ),
+              child: Icon(icon, color: color, size: 18),
+            ),
             const SizedBox(width: 8),
             Flexible(
               child: Text(
@@ -219,13 +229,15 @@ class _PebDprEntryScreenState extends State<PebDprEntryScreen> {
                 maxLines: 1,
                 softWrap: false,
                 overflow: TextOverflow.visible,
-                style: const TextStyle(
-                  color: Colors.white,
+                style: TextStyle(
+                  color: color,
                   fontWeight: FontWeight.w900,
                   fontSize: 14,
                 ),
               ),
             ),
+            const SizedBox(width: 6),
+            Icon(Icons.arrow_forward_rounded, color: color, size: 17),
           ],
         ),
       ),
@@ -1322,7 +1334,12 @@ class _PebDprEntryScreenState extends State<PebDprEntryScreen> {
     final card = Container(
       margin: const EdgeInsets.only(bottom: 10),
       decoration: BoxDecoration(
-        color: Theme.of(context).colorScheme.surface,
+        color: isCompleted
+            ? Theme.of(context)
+                .colorScheme
+                .surfaceContainerHighest
+                .withValues(alpha: 0.55)
+            : Theme.of(context).colorScheme.surface,
         borderRadius: BorderRadius.circular(16),
         border: Border.all(
           color: Theme.of(context).colorScheme.outlineVariant,
@@ -1406,7 +1423,11 @@ class _PebDprEntryScreenState extends State<PebDprEntryScreen> {
       ),
     );
     return Opacity(
-      opacity: work.isActive || isCompleted ? 1 : 0.46,
+      opacity: isCompleted
+          ? 0.72
+          : work.isActive
+              ? 1
+              : 0.46,
       child: card,
     );
   }
@@ -1511,10 +1532,14 @@ class _PebDprEntryScreenState extends State<PebDprEntryScreen> {
   Widget _deadlineBanner(
       _VisibleWork work, DateTime? completedDate, String deadline) {
     if (_isWorkFullyCompleted(work) && completedDate != null) {
-      return _pillBanner(
-        icon: Icons.check_circle,
-        color: Colors.green.shade700,
-        text: 'Completed on ${DateFormat('dd MMM yyyy').format(completedDate)}',
+      return Align(
+        alignment: Alignment.center,
+        child: _compactPillBanner(
+          icon: Icons.check_circle,
+          color: Colors.green.shade700,
+          text:
+              'Completed on ${DateFormat('dd MMM yyyy').format(completedDate)}',
+        ),
       );
     }
     if (work.expectedCompletionDate == null) {
@@ -1568,6 +1593,37 @@ class _PebDprEntryScreenState extends State<PebDprEntryScreen> {
     );
   }
 
+  Widget _compactPillBanner({
+    required IconData icon,
+    required Color color,
+    required String text,
+  }) {
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
+      decoration: BoxDecoration(
+        color: color.withValues(alpha: 0.1),
+        borderRadius: BorderRadius.circular(999),
+      ),
+      child: Row(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          Icon(icon, size: 17, color: color),
+          const SizedBox(width: 7),
+          Text(
+            text,
+            maxLines: 1,
+            overflow: TextOverflow.ellipsis,
+            style: TextStyle(
+              color: color,
+              fontWeight: FontWeight.w800,
+              fontSize: 12,
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
   Widget _buildWorkDetailHeader(_VisibleWork work) {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
@@ -1598,7 +1654,6 @@ class _PebDprEntryScreenState extends State<PebDprEntryScreen> {
 
   Widget _buildStatusStepperScreen(_VisibleWork work) {
     final cs = Theme.of(context).colorScheme;
-    final counts = _counts(work);
     final inProgressColor = const Color(0xFFE56F00);
     final completedColor = Colors.green.shade700;
     return Column(
@@ -1626,21 +1681,6 @@ class _PebDprEntryScreenState extends State<PebDprEntryScreen> {
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              Row(
-                children: [
-                  _stepCircle('1', true, cs.primary),
-                  Expanded(
-                      child: _stepLine(cs.primary.withValues(alpha: 0.35))),
-                  _stepCircle('2', true, cs.primary),
-                  Expanded(
-                      child: _stepLine(cs.primary.withValues(alpha: 0.35))),
-                  _stepCircle('3', true, cs.primary),
-                  Expanded(
-                      child: _stepLine(cs.primary.withValues(alpha: 0.35))),
-                  _stepCircle('4', true, cs.primary),
-                ],
-              ),
-              const SizedBox(height: 14),
               Text(
                 work.displayName ?? work.stageName,
                 style: TextStyle(
@@ -1657,23 +1697,6 @@ class _PebDprEntryScreenState extends State<PebDprEntryScreen> {
                   fontSize: 16,
                   fontWeight: FontWeight.w900,
                 ),
-              ),
-              const SizedBox(height: 14),
-              Row(
-                children: [
-                  Expanded(
-                    child:
-                        _workCountBlock('Assigned', counts.total, cs.onSurface),
-                  ),
-                  Expanded(
-                    child: _workCountBlock(
-                        'In Progress', counts.inProgress, inProgressColor),
-                  ),
-                  Expanded(
-                    child: _workCountBlock(
-                        'Completed', counts.completed, completedColor),
-                  ),
-                ],
               ),
               const SizedBox(height: 16),
               Row(
@@ -1703,35 +1726,6 @@ class _PebDprEntryScreenState extends State<PebDprEntryScreen> {
           ),
         ),
       ],
-    );
-  }
-
-  Widget _stepCircle(String label, bool active, Color color) {
-    return Container(
-      width: 30,
-      height: 30,
-      alignment: Alignment.center,
-      decoration: BoxDecoration(
-        color: active ? color : Colors.transparent,
-        border: Border.all(color: color.withValues(alpha: 0.65)),
-        shape: BoxShape.circle,
-      ),
-      child: Text(
-        label,
-        style: TextStyle(
-          color: active ? Colors.white : color,
-          fontSize: 12,
-          fontWeight: FontWeight.w900,
-        ),
-      ),
-    );
-  }
-
-  Widget _stepLine(Color color) {
-    return Container(
-      height: 2,
-      margin: const EdgeInsets.symmetric(horizontal: 5),
-      color: color,
     );
   }
 
@@ -2028,35 +2022,6 @@ class _PebDprEntryScreenState extends State<PebDprEntryScreen> {
                 ),
               ],
             ),
-            if (locked) ...[
-              const SizedBox(height: 10),
-              Container(
-                padding:
-                    const EdgeInsets.symmetric(horizontal: 10, vertical: 8),
-                decoration: BoxDecoration(
-                  color: Colors.orange.shade100,
-                  borderRadius: BorderRadius.circular(10),
-                  border: Border.all(color: Colors.orange.shade300),
-                ),
-                child: Row(
-                  children: [
-                    Icon(Icons.info_rounded,
-                        color: Colors.orange.shade900, size: 18),
-                    const SizedBox(width: 8),
-                    Expanded(
-                      child: Text(
-                        _prerequisiteMessage(pendingPrerequisite),
-                        style: TextStyle(
-                          color: Colors.orange.shade900,
-                          fontSize: 12,
-                          fontWeight: FontWeight.w800,
-                        ),
-                      ),
-                    ),
-                  ],
-                ),
-              ),
-            ],
             const SizedBox(height: 12),
             Opacity(
               opacity: contentOpacity,
@@ -2154,6 +2119,35 @@ class _PebDprEntryScreenState extends State<PebDprEntryScreen> {
                 minLines: 1,
                 maxLines: 2,
                 onChanged: (value) => _variationReasons[key] = value,
+              ),
+            ],
+            if (locked) ...[
+              const SizedBox(height: 12),
+              Container(
+                padding:
+                    const EdgeInsets.symmetric(horizontal: 10, vertical: 8),
+                decoration: BoxDecoration(
+                  color: Colors.orange.shade100,
+                  borderRadius: BorderRadius.circular(10),
+                  border: Border.all(color: Colors.orange.shade300),
+                ),
+                child: Row(
+                  children: [
+                    Icon(Icons.info_rounded,
+                        color: Colors.orange.shade900, size: 18),
+                    const SizedBox(width: 8),
+                    Expanded(
+                      child: Text(
+                        _prerequisiteMessage(pendingPrerequisite),
+                        style: TextStyle(
+                          color: Colors.orange.shade900,
+                          fontSize: 12,
+                          fontWeight: FontWeight.w800,
+                        ),
+                      ),
+                    ),
+                  ],
+                ),
               ),
             ],
           ],
