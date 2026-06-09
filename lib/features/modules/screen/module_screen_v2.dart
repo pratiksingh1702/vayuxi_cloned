@@ -485,7 +485,7 @@ class _ModuleScreenV2State extends ConsumerState<ModuleScreenV2>
           labelKey: 'Structure Erection Setup',
           icon: Icons.architecture_rounded,
           iconColor: Colors.blueAccent,
-          routeName: "/site-list/structure-dpr-setup");
+          routeName: Routes.erectionSetup);
     } else if (type == 'civil_work' || type == WorkType.civil.apiValue) {
       return ModuleItem(
           labelKey: 'Civil DPR Setup',
@@ -571,6 +571,7 @@ class _ModuleScreenV2State extends ConsumerState<ModuleScreenV2>
     final type = ref.watch(typeProvider);
     final pmReportModule = (type == 'structure_work' ||
             type == WorkType.structure.apiValue ||
+            type == 'erection_work' ||
             type == 'fabrication_work' ||
             type == WorkType.fabrication.apiValue)
         ? ModuleItem(

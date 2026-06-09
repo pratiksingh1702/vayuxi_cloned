@@ -6,7 +6,6 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import 'package:intl/intl.dart';
 import 'package:untitled2/core/utlis/widgets/premium_app_bar.dart';
-import 'package:untitled2/features/modules/all_Modules/dpr/screens/widgets/select_card.dart';
 
 import '../models/pm_models.dart';
 import '../providers/pm_provider.dart';
@@ -14,6 +13,8 @@ import '../providers/pm_provider.dart';
 const _pmColor = Color(0xFF7B3F00);
 
 enum _PmSetupMode { chooser, view }
+
+String _pmCategoryIdentity(PmCategory category) => category.categoryName;
 
 enum PmSection {
   setup,
@@ -181,7 +182,7 @@ class _SetupTab extends ConsumerStatefulWidget {
 
 class _SetupTabState extends ConsumerState<_SetupTab> {
   _PmSetupMode _mode = _PmSetupMode.chooser;
-  String? _categoryKey;
+  String? _categoryId;
 
   @override
   Widget build(BuildContext context) {
@@ -204,10 +205,10 @@ class _SetupTabState extends ConsumerState<_SetupTab> {
       );
     }
 
-    final selectedCategory = _categoryKey == null
+    final selectedCategory = _categoryId == null
         ? null
         : state.categories.firstWhere(
-            (category) => category.categoryKey == _categoryKey,
+            (category) => _pmCategoryIdentity(category) == _categoryId,
             orElse: () => state.categories.first,
           );
 
@@ -218,14 +219,14 @@ class _SetupTabState extends ConsumerState<_SetupTab> {
           children: [
             OutlinedButton.icon(
               onPressed: () => setState(() {
-                if (_categoryKey != null) {
-                  _categoryKey = null;
+                if (_categoryId != null) {
+                  _categoryId = null;
                 } else {
                   _mode = _PmSetupMode.chooser;
                 }
               }),
               icon: const Icon(Icons.arrow_back_rounded, size: 18),
-              label: Text(_categoryKey == null ? 'Options' : 'Categories'),
+              label: Text(_categoryId == null ? 'Options' : 'Categories'),
             ),
             const SizedBox(width: 10),
             Expanded(
@@ -243,7 +244,7 @@ class _SetupTabState extends ConsumerState<_SetupTab> {
           _PmCategoryGrid(
             categories: state.categories,
             onSelected: (category) =>
-                setState(() => _categoryKey = category.categoryKey),
+                setState(() => _categoryId = _pmCategoryIdentity(category)),
           )
         else
           _PmEquipmentList(
@@ -301,29 +302,24 @@ class _SetupChooser extends StatelessWidget {
     return ListView(
       padding: const EdgeInsets.all(16),
       children: [
-        GridView.count(
-          physics: const NeverScrollableScrollPhysics(),
-          shrinkWrap: true,
-          crossAxisCount: 2,
-          mainAxisSpacing: 12,
-          crossAxisSpacing: 10,
-          childAspectRatio: 1,
+        Row(
           children: [
-            SelectCard(
-              icon: const SelectCardIcon(
+            Expanded(
+              child: _SetupActionCard(
                 icon: Icons.visibility_rounded,
-                color: Colors.blue,
+                iconColor: Colors.blue,
+                label: 'View',
+                onTap: onView,
               ),
-              label: 'View',
-              onTap: onView ?? () {},
             ),
-            SelectCard(
-              icon: const SelectCardIcon(
+            const SizedBox(width: 12),
+            Expanded(
+              child: _SetupActionCard(
                 icon: Icons.add_circle_outline_rounded,
-                color: Colors.green,
+                iconColor: Colors.green,
+                label: 'Add',
+                onTap: onAdd,
               ),
-              label: 'Add',
-              onTap: onAdd ?? () {},
             ),
           ],
         ),
@@ -362,6 +358,70 @@ class _SetupChooser extends StatelessWidget {
   }
 }
 
+class _SetupActionCard extends StatelessWidget {
+  final IconData icon;
+  final Color iconColor;
+  final String label;
+  final VoidCallback? onTap;
+
+  const _SetupActionCard({
+    required this.icon,
+    required this.iconColor,
+    required this.label,
+    required this.onTap,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    final cs = Theme.of(context).colorScheme;
+    final isEnabled = onTap != null;
+    return Material(
+      color: cs.surface,
+      borderRadius: BorderRadius.circular(14),
+      child: InkWell(
+        onTap: onTap,
+        borderRadius: BorderRadius.circular(14),
+        child: Container(
+          height: 132,
+          padding: const EdgeInsets.all(14),
+          decoration: BoxDecoration(
+            borderRadius: BorderRadius.circular(14),
+            border: Border.all(color: cs.outlineVariant),
+          ),
+          child: Opacity(
+            opacity: isEnabled ? 1 : 0.45,
+            child: Column(
+              mainAxisAlignment: MainAxisAlignment.center,
+              children: [
+                Container(
+                  width: 54,
+                  height: 54,
+                  decoration: BoxDecoration(
+                    color: iconColor.withOpacity(0.12),
+                    borderRadius: BorderRadius.circular(14),
+                    border: Border.all(color: iconColor.withOpacity(0.25)),
+                  ),
+                  child: Icon(icon, color: iconColor, size: 30),
+                ),
+                const SizedBox(height: 12),
+                Text(
+                  label,
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
+                  style: const TextStyle(
+                    fontWeight: FontWeight.w800,
+                    fontSize: 15,
+                  ),
+                ),
+              ],
+            ),
+          ),
+        ),
+      ),
+    );
+  }
+}
+
 class _WorkSelectionPage extends StatefulWidget {
   final List<PmCategory> categories;
   final ValueChanged<PmEquipment> onSelect;
@@ -376,14 +436,14 @@ class _WorkSelectionPage extends StatefulWidget {
 }
 
 class _WorkSelectionPageState extends State<_WorkSelectionPage> {
-  String? _categoryKey;
+  String? _categoryId;
 
   @override
   Widget build(BuildContext context) {
-    final selectedCategory = _categoryKey == null
+    final selectedCategory = _categoryId == null
         ? null
         : widget.categories.firstWhere(
-            (category) => category.categoryKey == _categoryKey,
+            (category) => _pmCategoryIdentity(category) == _categoryId,
             orElse: () => widget.categories.first,
           );
 
@@ -399,11 +459,11 @@ class _WorkSelectionPageState extends State<_WorkSelectionPage> {
           _PmCategoryGrid(
             categories: widget.categories,
             onSelected: (category) =>
-                setState(() => _categoryKey = category.categoryKey),
+                setState(() => _categoryId = _pmCategoryIdentity(category)),
           ),
         ] else ...[
           OutlinedButton.icon(
-            onPressed: () => setState(() => _categoryKey = null),
+            onPressed: () => setState(() => _categoryId = null),
             icon: const Icon(Icons.arrow_back_rounded),
             label: const Text('Categories'),
           ),
@@ -615,8 +675,11 @@ Future<void> showPmEquipmentSheet({
       equipment?.categoryKey ?? defaultCategory?.categoryKey ?? '';
   var categoryName =
       equipment?.categoryName ?? defaultCategory?.categoryName ?? '';
+  var categoryId = equipment == null && defaultCategory != null
+      ? _pmCategoryIdentity(defaultCategory)
+      : '';
 
-  await showModalBottomSheet<void>(
+  final saved = await showModalBottomSheet<bool>(
     context: context,
     isScrollControlled: true,
     useSafeArea: true,
@@ -632,6 +695,7 @@ Future<void> showPmEquipmentSheet({
             if (file == null) return;
             final url =
                 await ref.read(pmProvider.notifier).uploadImage(siteId, file);
+            if (!sheetContext.mounted) return;
             if (url.isNotEmpty) setModalState(() => image = url);
           }
 
@@ -654,12 +718,10 @@ Future<void> showPmEquipmentSheet({
                   unit: unit.text.trim().isEmpty ? 'Nos' : unit.text.trim(),
                   image: image,
                   workType: workType,
+                  reloadAfterSave: false,
                 );
-            if (!context.mounted) return;
-            Navigator.of(context).pop();
-            ok
-                ? onSaved()
-                : onError(ref.read(pmProvider).error ?? 'Save failed');
+            if (!sheetContext.mounted) return;
+            Navigator.of(sheetContext).pop(ok);
           }
 
           return Padding(
@@ -684,19 +746,20 @@ Future<void> showPmEquipmentSheet({
                   const SizedBox(height: 14),
                   if (equipment == null)
                     DropdownButtonFormField<String>(
-                      value: categoryKey.isEmpty ? null : categoryKey,
+                      value: categoryId.isEmpty ? null : categoryId,
                       items: state.categories
                           .map((cat) => DropdownMenuItem(
-                                value: cat.categoryKey,
+                                value: _pmCategoryIdentity(cat),
                                 child: Text(cat.categoryName),
                               ))
                           .toList(),
                       onChanged: (value) {
                         final selected = state.categories.firstWhere(
-                          (cat) => cat.categoryKey == value,
+                          (cat) => _pmCategoryIdentity(cat) == value,
                           orElse: () => state.categories.first,
                         );
                         setModalState(() {
+                          categoryId = _pmCategoryIdentity(selected);
                           categoryKey = selected.categoryKey;
                           categoryName = selected.categoryName;
                         });
@@ -737,6 +800,13 @@ Future<void> showPmEquipmentSheet({
   name.dispose();
   capacity.dispose();
   unit.dispose();
+
+  if (saved == true) {
+    await ref.read(pmProvider.notifier).load(siteId, workType);
+    onSaved();
+  } else if (saved == false) {
+    onError(ref.read(pmProvider).error ?? 'Save failed');
+  }
 }
 
 class _EntryTab extends ConsumerStatefulWidget {

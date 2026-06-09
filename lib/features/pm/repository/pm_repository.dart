@@ -51,32 +51,54 @@ class PmRepository {
     return double.tryParse(value.toString()) ?? 0;
   }
 
+  String _normalizeDisplayKey(dynamic value) {
+    return value
+        .toString()
+        .toLowerCase()
+        .replaceAll('&', 'and')
+        .replaceAll(RegExp(r'[^a-z0-9]+'), ' ')
+        .trim()
+        .replaceAll(RegExp(r'\s+'), ' ');
+  }
+
   List<PmCategory> _structureResourcesToCategories(dynamic responseData) {
     final resources = _asList(responseData);
     final grouped = <String, List<PmEquipment>>{};
+    final seenEquipmentKeys = <String>{};
     for (final item in resources.whereType<Map>()) {
       final json = Map<String, dynamic>.from(item);
       final categoryName = (json['categoryName'] ?? 'P&M').toString();
       final categoryKey = (json['unitCode'] ?? categoryName).toString();
-      grouped.putIfAbsent('$categoryKey::$categoryName', () => []);
-      grouped['$categoryKey::$categoryName']!.add(PmEquipment.fromJson({
-        'id': json['_id'] ?? json['id'],
+      final equipmentId = (json['_id'] ?? json['id'] ?? '').toString();
+      final equipmentName =
+          (json['resourceName'] ?? json['equipmentName'] ?? '').toString();
+      final unit = (json['uom'] ?? json['unit'] ?? 'Nos.').toString();
+      final dedupeKey = [
+        _normalizeDisplayKey(categoryName),
+        _normalizeDisplayKey(equipmentName),
+        _normalizeDisplayKey(unit),
+      ].join('::');
+      if (seenEquipmentKeys.contains(dedupeKey)) continue;
+      seenEquipmentKeys.add(dedupeKey);
+      grouped.putIfAbsent(categoryName, () => []);
+      grouped[categoryName]!.add(PmEquipment.fromJson({
+        'id': equipmentId,
         'source': json['isDefault'] == true ? 'master' : 'custom',
         'categoryKey': categoryKey,
         'categoryName': categoryName,
-        'equipmentName': json['resourceName'] ?? json['equipmentName'],
+        'equipmentName': equipmentName,
         'image': json['image'] ?? '',
         'capacity': json['capacity'] ?? json['requiredQty'] ?? '',
-        'unit': json['uom'] ?? json['unit'] ?? 'Nos.',
+        'unit': unit,
         'isCustom': json['isDefault'] != true,
       }));
     }
 
     return grouped.entries.map((entry) {
-      final parts = entry.key.split('::');
       return PmCategory(
-        categoryKey: parts.first,
-        categoryName: parts.length > 1 ? parts[1] : parts.first,
+        categoryKey:
+            entry.value.isNotEmpty ? entry.value.first.categoryKey : entry.key,
+        categoryName: entry.key,
         equipment: entry.value,
       );
     }).toList();

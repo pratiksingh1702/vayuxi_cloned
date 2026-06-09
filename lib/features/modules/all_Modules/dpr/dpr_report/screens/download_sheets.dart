@@ -579,6 +579,9 @@ class _SheetDownloadPageState extends ConsumerState<SheetDownloadPage> {
     final type = ref.read(typeProvider)!;
     final phone = ref.watch(currentUserProvider)?.phoneNumber;
     final isSatmaxUser = phone?.replaceAll(RegExp(r'\D'), '') == '9509852652';
+    final isStructureSheetType = type == 'structure_work' ||
+        type == 'erection_work' ||
+        type == 'fabrication_work';
     final scheme = Theme.of(context).colorScheme;
     final textTheme = Theme.of(context).textTheme;
 
@@ -744,7 +747,7 @@ class _SheetDownloadPageState extends ConsumerState<SheetDownloadPage> {
               ),
               // Grid of report cards
               Expanded(
-                child: type == 'structure_work'
+                child: isStructureSheetType
                     ? GridView.count(
                         physics: const BouncingScrollPhysics(),
                         crossAxisCount: 2,

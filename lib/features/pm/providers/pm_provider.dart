@@ -93,6 +93,7 @@ class PmNotifier extends StateNotifier<PmState> {
     required String unit,
     required String image,
     required String workType,
+    bool reloadAfterSave = true,
   }) async {
     state = state.copyWith(isSaving: true, clearError: true);
     try {
@@ -119,7 +120,9 @@ class PmNotifier extends StateNotifier<PmState> {
         );
       }
       state = state.copyWith(isSaving: false);
-      await load(siteId, workType);
+      if (reloadAfterSave) {
+        await load(siteId, workType);
+      }
       return true;
     } catch (e) {
       state = state.copyWith(isSaving: false, error: _message(e));
