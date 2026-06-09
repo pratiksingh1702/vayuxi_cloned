@@ -18,6 +18,7 @@ import '../../attendance/offline/repo/att_sync.dart';
 import '../../site_Details/providers/site_current_provider.dart';
 import '../provider/teamProvider.dart';
 import '../../../../../core/utlis/widgets/fields/custom_textField.dart';
+import 'teamsList.dart';
 
 class AddTeamScreen extends ConsumerStatefulWidget {
   const AddTeamScreen({super.key});
@@ -779,7 +780,12 @@ class _AddTeamScreenState extends ConsumerState<AddTeamScreen> {
                                 .read(tourPersistenceProvider)
                                 .markTeamDone();
 
-                            context.pop();
+                            if (!mounted) return;
+                            Navigator.of(context).pushReplacement(
+                              MaterialPageRoute(
+                                builder: (_) => const TeamListPage(),
+                              ),
+                            );
                           }
                         },
                       ),

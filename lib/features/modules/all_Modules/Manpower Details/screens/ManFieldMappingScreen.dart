@@ -10,6 +10,7 @@ import 'package:file_picker/file_picker.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:untitled2/features/modules/all_Modules/Manpower%20Details/model/field_mapping_model.dart';
+import 'package:untitled2/features/modules/all_Modules/Manpower%20Details/screens/manpowerList.dart';
 import 'package:untitled2/features/modules/all_Modules/Manpower%20Details/service/field_mapping_provider.dart';
 
 import '../../../../../core/utlis/widgets/custom_appBar.dart';
@@ -286,7 +287,9 @@ class _ManFieldMappingViewState extends ConsumerState<_ManFieldMappingView>
 
       if (!mounted) return;
       _showSnack('Upload queued ✅ — you\'ll be notified when done.');
-      if (mounted) Navigator.of(context).maybePop();
+      Navigator.of(context).pushReplacement(
+        MaterialPageRoute(builder: (_) => const ManpowerListScreen()),
+      );
     } catch (e) {
       notifier.setImporting(false);
       _showImportErrorDialog('Error: $e');
