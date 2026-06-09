@@ -62,16 +62,7 @@ class _SatmaxHistoryUploadScreenState
     }
   }
 
-  Future<void> _pickAndUpload() async {
-    final result = await FilePicker.platform.pickFiles(
-      type: FileType.custom,
-      allowedExtensions: ['xlsx', 'xls'],
-      withData: true,
-    );
-
-    final file = result?.files.single;
-    if (file == null) return;
-
+  Future<void> _uploadPickedFile(PlatformFile file) async {
     setState(() {
       _isUploading = true;
       _error = null;
@@ -103,6 +94,166 @@ class _SatmaxHistoryUploadScreenState
     }
   }
 
+  Future<void> _showUploadSheet() async {
+    PlatformFile? pickedFile;
+    int step = 0;
+
+    final file = await showModalBottomSheet<PlatformFile>(
+      context: context,
+      isScrollControlled: true,
+      useSafeArea: true,
+      builder: (sheetContext) {
+        final scheme = Theme.of(sheetContext).colorScheme;
+        return StatefulBuilder(
+          builder: (context, setSheetState) {
+            Future<void> pickFile() async {
+              final result = await FilePicker.platform.pickFiles(
+                type: FileType.custom,
+                allowedExtensions: ['xlsx', 'xls'],
+                withData: true,
+              );
+              final file = result?.files.single;
+              if (file == null) return;
+              setSheetState(() {
+                pickedFile = file;
+                step = 1;
+              });
+            }
+
+            return Padding(
+              padding: EdgeInsets.only(
+                left: 18,
+                right: 18,
+                top: 16,
+                bottom: MediaQuery.of(context).viewInsets.bottom + 18,
+              ),
+              child: Column(
+                mainAxisSize: MainAxisSize.min,
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Center(
+                    child: Container(
+                      width: 40,
+                      height: 4,
+                      decoration: BoxDecoration(
+                        color: scheme.outlineVariant,
+                        borderRadius: BorderRadius.circular(999),
+                      ),
+                    ),
+                  ),
+                  const SizedBox(height: 16),
+                  Text(
+                    'Upload History',
+                    style: Theme.of(context)
+                        .textTheme
+                        .titleMedium
+                        ?.copyWith(fontWeight: FontWeight.w900),
+                  ),
+                  const SizedBox(height: 4),
+                  Text(
+                    'Select the Date & Mark No wise Excel file, review it, then confirm upload.',
+                    style: Theme.of(context).textTheme.bodySmall?.copyWith(
+                          color: scheme.onSurfaceVariant,
+                        ),
+                  ),
+                  const SizedBox(height: 18),
+                  _HistoryUploadSteps(currentStep: step),
+                  const SizedBox(height: 18),
+                  InkWell(
+                    onTap: pickFile,
+                    borderRadius: BorderRadius.circular(14),
+                    child: Container(
+                      width: double.infinity,
+                      padding: const EdgeInsets.all(16),
+                      decoration: BoxDecoration(
+                        color: pickedFile == null
+                            ? scheme.surfaceContainerHighest
+                            : scheme.primaryContainer.withValues(alpha: 0.35),
+                        borderRadius: BorderRadius.circular(14),
+                        border: Border.all(
+                          color: pickedFile == null
+                              ? scheme.outlineVariant
+                              : scheme.primary,
+                        ),
+                      ),
+                      child: Row(
+                        children: [
+                          Icon(
+                            pickedFile == null
+                                ? Icons.upload_file_rounded
+                                : Icons.check_circle_rounded,
+                            color: pickedFile == null
+                                ? scheme.onSurfaceVariant
+                                : scheme.primary,
+                          ),
+                          const SizedBox(width: 12),
+                          Expanded(
+                            child: Column(
+                              crossAxisAlignment: CrossAxisAlignment.start,
+                              children: [
+                                Text(
+                                  pickedFile?.name ?? 'Choose Excel file',
+                                  maxLines: 1,
+                                  overflow: TextOverflow.ellipsis,
+                                  style: const TextStyle(
+                                    fontWeight: FontWeight.w800,
+                                  ),
+                                ),
+                                const SizedBox(height: 3),
+                                Text(
+                                  pickedFile == null
+                                      ? 'Supported: .xlsx, .xls'
+                                      : '${(pickedFile!.size / 1024).toStringAsFixed(1)} KB',
+                                  style: Theme.of(context)
+                                      .textTheme
+                                      .bodySmall
+                                      ?.copyWith(
+                                        color: scheme.onSurfaceVariant,
+                                      ),
+                                ),
+                              ],
+                            ),
+                          ),
+                        ],
+                      ),
+                    ),
+                  ),
+                  if (pickedFile != null) ...[
+                    const SizedBox(height: 12),
+                    _HistoryReviewBox(file: pickedFile!),
+                  ],
+                  const SizedBox(height: 18),
+                  SizedBox(
+                    width: double.infinity,
+                    height: 48,
+                    child: FilledButton.icon(
+                      onPressed: pickedFile == null
+                          ? null
+                          : () {
+                              setSheetState(() => step = 2);
+                              Navigator.of(sheetContext).pop(pickedFile);
+                            },
+                      icon: const Icon(Icons.cloud_upload_rounded),
+                      label: Text(
+                        pickedFile == null
+                            ? 'Select File First'
+                            : 'Confirm & Upload History',
+                      ),
+                    ),
+                  ),
+                ],
+              ),
+            );
+          },
+        );
+      },
+    );
+
+    if (file != null) {
+      await _uploadPickedFile(file);
+    }
+  }
+
   @override
   Widget build(BuildContext context) {
     final scheme = Theme.of(context).colorScheme;
@@ -127,7 +278,7 @@ class _SatmaxHistoryUploadScreenState
       appBar: CustomAppBar(title: 'History Upload'),
       backgroundColor: scheme.surface,
       floatingActionButton: FloatingActionButton.extended(
-        onPressed: _isUploading ? null : _pickAndUpload,
+        onPressed: _isUploading ? null : _showUploadSheet,
         icon: _isUploading
             ? const SizedBox(
                 width: 18,
@@ -222,6 +373,172 @@ class _HeaderCard extends StatelessWidget {
                       ),
                 ),
               ],
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+class _HistoryUploadSteps extends StatelessWidget {
+  final int currentStep;
+
+  const _HistoryUploadSteps({required this.currentStep});
+
+  @override
+  Widget build(BuildContext context) {
+    final scheme = Theme.of(context).colorScheme;
+    const steps = ['Select File', 'Review', 'Upload'];
+    return Row(
+      children: List.generate(steps.length * 2 - 1, (index) {
+        if (index.isOdd) {
+          final lineIndex = index ~/ 2;
+          return Expanded(
+            child: Container(
+              height: 2,
+              color: lineIndex < currentStep
+                  ? scheme.primary
+                  : scheme.outlineVariant,
+            ),
+          );
+        }
+
+        final stepIndex = index ~/ 2;
+        final isDone = stepIndex < currentStep;
+        final isActive = stepIndex == currentStep;
+        return Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            AnimatedContainer(
+              duration: const Duration(milliseconds: 180),
+              width: 34,
+              height: 34,
+              decoration: BoxDecoration(
+                shape: BoxShape.circle,
+                color: isDone || isActive
+                    ? scheme.primary
+                    : scheme.surfaceContainerHighest,
+              ),
+              child: Icon(
+                isDone ? Icons.check_rounded : Icons.circle,
+                size: isDone ? 18 : 9,
+                color: isDone || isActive
+                    ? scheme.onPrimary
+                    : scheme.onSurfaceVariant,
+              ),
+            ),
+            const SizedBox(height: 5),
+            SizedBox(
+              width: 72,
+              child: Text(
+                steps[stepIndex],
+                textAlign: TextAlign.center,
+                maxLines: 1,
+                overflow: TextOverflow.ellipsis,
+                style: TextStyle(
+                  fontSize: 11,
+                  fontWeight: isActive ? FontWeight.w800 : FontWeight.w500,
+                  color: isActive ? scheme.primary : scheme.onSurfaceVariant,
+                ),
+              ),
+            ),
+          ],
+        );
+      }),
+    );
+  }
+}
+
+class _HistoryReviewBox extends StatelessWidget {
+  final PlatformFile file;
+
+  const _HistoryReviewBox({required this.file});
+
+  @override
+  Widget build(BuildContext context) {
+    final scheme = Theme.of(context).colorScheme;
+    return Container(
+      width: double.infinity,
+      padding: const EdgeInsets.all(14),
+      decoration: BoxDecoration(
+        color: scheme.primaryContainer.withValues(alpha: 0.22),
+        borderRadius: BorderRadius.circular(14),
+        border: Border.all(color: scheme.primary.withValues(alpha: 0.18)),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
+            children: [
+              Icon(Icons.fact_check_rounded, color: scheme.primary, size: 20),
+              const SizedBox(width: 8),
+              const Expanded(
+                child: Text(
+                  'Ready for history validation',
+                  style: TextStyle(fontWeight: FontWeight.w800),
+                ),
+              ),
+            ],
+          ),
+          const SizedBox(height: 8),
+          Text(
+            'The selected file will use the existing Satmax history upload process. Imported rows will be visible in history and linked reports as before.',
+            style: Theme.of(context).textTheme.bodySmall?.copyWith(
+                  color: scheme.onSurfaceVariant,
+                  height: 1.35,
+                ),
+          ),
+          const SizedBox(height: 10),
+          _HistoryReviewRow(label: 'File', value: file.name),
+          _HistoryReviewRow(
+            label: 'Size',
+            value: '${(file.size / 1024).toStringAsFixed(1)} KB',
+          ),
+          _HistoryReviewRow(
+            label: 'Format',
+            value: file.extension?.toUpperCase() ?? 'Excel',
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+class _HistoryReviewRow extends StatelessWidget {
+  final String label;
+  final String value;
+
+  const _HistoryReviewRow({
+    required this.label,
+    required this.value,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    final scheme = Theme.of(context).colorScheme;
+    return Padding(
+      padding: const EdgeInsets.only(top: 5),
+      child: Row(
+        children: [
+          SizedBox(
+            width: 58,
+            child: Text(
+              label,
+              style: Theme.of(context).textTheme.bodySmall?.copyWith(
+                    color: scheme.onSurfaceVariant,
+                  ),
+            ),
+          ),
+          Expanded(
+            child: Text(
+              value,
+              maxLines: 1,
+              overflow: TextOverflow.ellipsis,
+              style: const TextStyle(
+                fontSize: 12,
+                fontWeight: FontWeight.w700,
+              ),
             ),
           ),
         ],
