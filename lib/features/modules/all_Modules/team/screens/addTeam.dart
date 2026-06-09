@@ -172,9 +172,13 @@ class _AddTeamScreenState extends ConsumerState<AddTeamScreen> {
   @override
   void initState() {
     super.initState();
-    final type = ref.read(typeProvider);
     Future.microtask(() {
-      ref.read(manpowerProvider.notifier).fetchManpower(type!);
+      final type = ref.read(typeProvider);
+      final siteId = ref.read(selectedSiteIdProvider);
+      if (type == null || siteId == null || siteId.isEmpty) return;
+      ref
+          .read(manpowerProvider.notifier)
+          .fetchManpowerBySite(siteId: siteId, type: type);
     });
   }
 
@@ -222,6 +226,10 @@ class _AddTeamScreenState extends ConsumerState<AddTeamScreen> {
             final filtered = manpowerList.where((member) {
               return _memberName(member).toLowerCase().contains(query);
             }).toList();
+            final filteredIds = filtered.map((member) => member.id).toSet();
+            final allFilteredSelected = filtered.isNotEmpty &&
+                filtered.every(
+                    (member) => draft.any((item) => item.id == member.id));
 
             return SafeArea(
               child: Padding(
@@ -269,6 +277,53 @@ class _AddTeamScreenState extends ConsumerState<AddTeamScreen> {
                         onChanged: (_) => setModalState(() {}),
                       ),
                       const SizedBox(height: 10),
+                      Row(
+                        children: [
+                          Expanded(
+                            child: Text(
+                              '${filtered.length} available',
+                              style: TextStyle(
+                                color: colorScheme.onSurfaceVariant,
+                                fontWeight: FontWeight.w600,
+                              ),
+                            ),
+                          ),
+                          TextButton.icon(
+                            onPressed: filtered.isEmpty
+                                ? null
+                                : () {
+                                    setModalState(() {
+                                      if (allFilteredSelected) {
+                                        draft = draft
+                                            .where((member) => !filteredIds
+                                                .contains(member.id))
+                                            .toList();
+                                      } else {
+                                        final selectedIds = draft
+                                            .map((member) => member.id)
+                                            .toSet();
+                                        draft = [
+                                          ...draft,
+                                          ...filtered.where((member) =>
+                                              !selectedIds.contains(member.id)),
+                                        ];
+                                      }
+                                    });
+                                    setState(() {
+                                      _selectedMembers = draft;
+                                    });
+                                    field.didChange(_selectedMembers);
+                                  },
+                            icon: Icon(allFilteredSelected
+                                ? Icons.remove_done_rounded
+                                : Icons.done_all_rounded),
+                            label: Text(allFilteredSelected
+                                ? 'Clear Filtered'
+                                : 'Select All'),
+                          ),
+                        ],
+                      ),
+                      const SizedBox(height: 6),
                       Expanded(
                         child: filtered.isEmpty
                             ? const Center(child: Text('No members found'))
@@ -555,7 +610,7 @@ class _AddTeamScreenState extends ConsumerState<AddTeamScreen> {
                           itemAsString: (m) => m.fullName ?? '',
                           items: (String filter, LoadProps? props) {
                             return manpowerState.manpowerList
-                                .where((m) => m.fullName!
+                                .where((m) => _memberName(m)
                                     .toLowerCase()
                                     .contains(filter.toLowerCase()))
                                 .toList();

@@ -10,7 +10,6 @@ import 'package:file_picker/file_picker.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:untitled2/features/modules/all_Modules/Manpower%20Details/model/field_mapping_model.dart';
-import 'package:untitled2/features/modules/all_Modules/Manpower%20Details/screens/manpowerList.dart';
 import 'package:untitled2/features/modules/all_Modules/Manpower%20Details/service/field_mapping_provider.dart';
 
 import '../../../../../core/utlis/widgets/custom_appBar.dart';
@@ -287,15 +286,7 @@ class _ManFieldMappingViewState extends ConsumerState<_ManFieldMappingView>
 
       if (!mounted) return;
       _showSnack('Upload queued ✅ — you\'ll be notified when done.');
-
-      // Navigate away after a short delay (same as original)
-      await Future.delayed(const Duration(milliseconds: 800));
-      if (mounted) {
-        Navigator.pushReplacement(
-          context,
-          MaterialPageRoute(builder: (_) => ManpowerListScreen()),
-        );
-      }
+      if (mounted) Navigator.of(context).maybePop();
     } catch (e) {
       notifier.setImporting(false);
       _showImportErrorDialog('Error: $e');
@@ -553,38 +544,47 @@ class _ManFieldMappingViewState extends ConsumerState<_ManFieldMappingView>
     final colorScheme = Theme.of(context).colorScheme;
     final isDark = Theme.of(context).brightness == Brightness.dark;
 
-    return Scaffold(
-      drawer: const CustomDrawer(),
-      backgroundColor: colorScheme.surfaceContainerLowest,
-      appBar: CustomAppBar(title: 'Import Manpower'),
-      body: Column(
-        children: [
-          // ── Progress header ──────────────────────────────
-          _StepProgressBar(currentStep: state.currentStep),
+    return PopScope(
+      canPop: state.currentStep == FieldMappingStep.upload,
+      onPopInvokedWithResult: (didPop, _) {
+        if (!didPop && state.currentStep != FieldMappingStep.upload) {
+          _prevStep();
+        }
+      },
+      child: Scaffold(
+        drawer: const CustomDrawer(),
+        backgroundColor: colorScheme.surfaceContainerLowest,
+        appBar: CustomAppBar(title: 'Import Manpower'),
+        body: Column(
+          children: [
+            // ── Progress header ──────────────────────────────
+            _StepProgressBar(currentStep: state.currentStep),
 
-          // ── Step content (animated) ──────────────────────
-          Expanded(
-            child: FadeTransition(
-              opacity: _stepAnim,
-              child: SlideTransition(
-                position: Tween<Offset>(
-                  begin: const Offset(0.04, 0),
-                  end: Offset.zero,
-                ).animate(CurvedAnimation(
-                    parent: _stepAnim, curve: Curves.easeOutCubic)),
-                child: _buildCurrentStep(state, isDark),
+            // ── Step content (animated) ──────────────────────
+            Expanded(
+              child: FadeTransition(
+                opacity: _stepAnim,
+                child: SlideTransition(
+                  position: Tween<Offset>(
+                    begin: const Offset(0.04, 0),
+                    end: Offset.zero,
+                  ).animate(CurvedAnimation(
+                      parent: _stepAnim, curve: Curves.easeOutCubic)),
+                  child: _buildCurrentStep(state, isDark),
+                ),
               ),
             ),
-          ),
 
-          // ── Bottom navigation bar ────────────────────────
-          _BottomBar(
-            state: state,
-            onBack:
-                state.currentStep == FieldMappingStep.upload ? null : _prevStep,
-            onNext: _buildNextAction(state),
-          ),
-        ],
+            // ── Bottom navigation bar ────────────────────────
+            _BottomBar(
+              state: state,
+              onBack: state.currentStep == FieldMappingStep.upload
+                  ? null
+                  : _prevStep,
+              onNext: _buildNextAction(state),
+            ),
+          ],
+        ),
       ),
     );
   }

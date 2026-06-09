@@ -375,7 +375,7 @@ final appRouterProvider = Provider<GoRouter>((ref) {
                               name: site.siteName,
                               teamName: null,
                             )
-                          : const SizedBox.shrink();
+                          : DprFlowGate(site: site);
                 } else {
                   screen = DprFlowGate(site: site);
                 }
