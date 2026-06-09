@@ -196,26 +196,6 @@ class _PebSetupScreenState extends State<PebSetupScreen> {
                         const InputDecoration(labelText: 'Item / Stage name'),
                   ),
                   const SizedBox(height: 12),
-                  Row(
-                    children: [
-                      Expanded(
-                        child: TextField(
-                          controller: uom,
-                          decoration: const InputDecoration(labelText: 'UOM'),
-                        ),
-                      ),
-                      const SizedBox(width: 12),
-                      Expanded(
-                        child: TextField(
-                          controller: qty,
-                          keyboardType: TextInputType.number,
-                          decoration:
-                              const InputDecoration(labelText: 'Target Qty'),
-                        ),
-                      ),
-                    ],
-                  ),
-                  const SizedBox(height: 12),
                   TextField(
                     controller: remarks,
                     maxLines: 2,
@@ -248,9 +228,9 @@ class _PebSetupScreenState extends State<PebSetupScreen> {
         widget.executionType,
         itemId: item?.id,
         name: name.text.trim(),
-        uom: uom.text.trim().isEmpty ? 'MT' : uom.text.trim(),
+        uom: 'MT',
         remarks: remarks.text.trim(),
-        targetQty: num.tryParse(qty.text.trim()) ?? 0,
+        targetQty: 0,
         images: images.isEmpty ? null : images,
         imageUserSpecific: images.isNotEmpty,
       );
@@ -351,16 +331,18 @@ class _PebSetupScreenState extends State<PebSetupScreen> {
     if (items.isEmpty) return const SizedBox.shrink();
 
     return LayoutBuilder(builder: (context, constraints) {
-      final crossAxisCount = constraints.maxWidth >= 720 ? 2 : 1;
+      final crossAxisCount = constraints.maxWidth >= 1000
+          ? 4
+          : (constraints.maxWidth >= 600 ? 3 : 2);
       return GridView.builder(
         shrinkWrap: true,
         physics: const NeverScrollableScrollPhysics(),
         itemCount: items.length,
         gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
           crossAxisCount: crossAxisCount,
-          crossAxisSpacing: 14,
-          mainAxisSpacing: 14,
-          mainAxisExtent: crossAxisCount == 1 ? 240 : 230,
+          crossAxisSpacing: 10,
+          mainAxisSpacing: 10,
+          mainAxisExtent: 282,
         ),
         itemBuilder: (context, index) => _itemCard(items[index], cs),
       );
@@ -475,174 +457,150 @@ class _PebSetupScreenState extends State<PebSetupScreen> {
 
   Widget _itemCard(PebSetupItem item, ColorScheme cs) {
     final isUploading = _uploadingItemId == item.id;
-    final hasCustomImage = pebWorkImageIsCustom(item);
-    final isDark = Theme.of(context).brightness == Brightness.dark;
-    const blueFill = Color(0xFFD0EAFD);
-    const darkBlueFill = Color(0xFF1E3A5F);
 
     return Container(
       decoration: BoxDecoration(
         color: cs.surfaceContainerLow,
         borderRadius: BorderRadius.circular(14),
-        border: Border.all(color: cs.outlineVariant.withOpacity(0.5)),
+        border: Border.all(color: cs.outlineVariant.withValues(alpha: 0.4)),
+        boxShadow: [
+          BoxShadow(
+            color: cs.shadow.withValues(alpha: 0.06),
+            blurRadius: 10,
+            offset: const Offset(0, 3),
+          ),
+        ],
       ),
       child: Column(
+    
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          // Header Row: Top space for name and corner blue box as remark
-          Padding(
-            padding: const EdgeInsets.fromLTRB(14, 12, 14, 4),
-            child: Row(
-              children: [
-                Expanded(
-                  child: Text(
-                    item.name,
-                    style: const TextStyle(
-                      fontSize: 16,
-                      fontWeight: FontWeight.w600,
+          // ── Image header (full-width, 160px tall) ──────────────────────
+          Stack(
+            children: [
+              ClipRRect(
+                borderRadius:
+                    const BorderRadius.vertical(top: Radius.circular(13)),
+                child: SizedBox(
+                  width: double.infinity,
+                  height: 200,
+                  child: Image(
+                    image: pebWorkImageProvider(item, widget.executionType),
+                    fit: BoxFit.contain,
+                    alignment: Alignment.center,
+                    errorBuilder: (_, __, ___) => pebWorkImageFallback(
+                      item,
+                      widget.executionType,
                     ),
-                    maxLines: 2,
-                    overflow: TextOverflow.ellipsis,
                   ),
                 ),
-                const SizedBox(width: 8),
-                InkWell(
-                  onTap: () => _openItemForm(item),
-                  borderRadius: BorderRadius.circular(4),
+              ),
+              // Camera button — top-right corner
+              Positioned(
+                top: 8,
+                right: 8,
+                child: GestureDetector(
+                  onTap: _saving || isUploading
+                      ? null
+                      : () => _replaceItemImage(item),
                   child: Container(
-                    constraints: const BoxConstraints(
-                      minWidth: 78,
-                      maxWidth: 110,
-                    ),
-                    padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 5),
+                    width: 32,
+                    height: 32,
                     decoration: BoxDecoration(
-                      color: cs.secondaryContainer.withOpacity(0.7),
-                      border: Border.all(color: cs.outline.withOpacity(0.3)),
-                      borderRadius: BorderRadius.circular(4),
+                      color: Colors.black.withValues(alpha: 0.55),
+                      shape: BoxShape.circle,
+                      border: Border.all(
+                          color: Colors.white.withValues(alpha: 0.3), width: 1),
                     ),
-                    child: Text(
-                      item.remarks.trim().isNotEmpty
-                          ? item.remarks
-                          : 'Remark',
-                      style: TextStyle(
-                        fontSize: 10,
-                        fontWeight: FontWeight.w700,
-                        color: cs.onSecondaryContainer,
-                      ),
-                      overflow: TextOverflow.ellipsis,
-                      maxLines: 1,
+                    child: Center(
+                      child: isUploading
+                          ? const SizedBox(
+                              width: 14,
+                              height: 14,
+                              child: CircularProgressIndicator(
+                                strokeWidth: 1.5,
+                                color: Colors.white,
+                              ),
+                            )
+                          : const Icon(
+                              Icons.photo_camera_rounded,
+                              color: Colors.white,
+                              size: 15,
+                            ),
                     ),
                   ),
                 ),
-              ],
-            ),
+              ),
+            ],
           ),
 
-          Expanded(
-            child: IntrinsicHeight(
-              child: Row(
-                children: [
-                  // LEFT COLUMN: Image & Actions
-                  Expanded(
-                    child: Container(
-                      padding: const EdgeInsets.fromLTRB(14, 4, 7, 14),
-                      child: Column(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        children: [
-                          Expanded(
-                            child: ClipRRect(
-                              borderRadius: BorderRadius.circular(8),
-                              child: Container(
-                                width: double.infinity,
-                                decoration: BoxDecoration(
-                                  color: cs.surfaceContainerHighest,
-                                  borderRadius: BorderRadius.circular(8),
-                                ),
-                                child: Image(
-                                  image: pebWorkImageProvider(item, widget.executionType),
-                                  fit: BoxFit.cover,
-                                  errorBuilder: (_, __, ___) => pebWorkImageFallback(
-                                    item,
-                                    widget.executionType,
-                                  ),
-                                ),
-                              ),
-                            ),
+          // ── Data section ───────────────────────────────────────────────
+          Padding(
+            padding: const EdgeInsets.fromLTRB(10, 8, 10, 8),
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                // Stage name under the image
+                Text(
+                  item.name,
+                  style: const TextStyle(
+                    fontSize: 13,
+                    fontWeight: FontWeight.w700,
+                    height: 1.25,
+                  ),
+                  maxLines: 2,
+                  overflow: TextOverflow.ellipsis,
+                ),
+                const SizedBox(height: 6),
+                Row(
+                  children: [
+                    // Remark pill on the left
+                    GestureDetector(
+                      onTap: () => _openItemForm(item),
+                      child: Container(
+                        constraints: const BoxConstraints(maxWidth: 95),
+                        padding: const EdgeInsets.symmetric(
+                            horizontal: 6, vertical: 3),
+                        decoration: BoxDecoration(
+                          color: cs.secondaryContainer.withValues(alpha: 0.8),
+                          borderRadius: BorderRadius.circular(6),
+                          border: Border.all(
+                            color: cs.secondary.withValues(alpha: 0.25),
                           ),
-                          const SizedBox(height: 12),
-                          // Action row (Edit, Upload/Change Image, Delete)
-                          Row(
-                            children: [
-                              Expanded(
-                                child: _buildActionIcon(
-                                  Icons.edit_rounded,
-                                  cs.primary,
-                                  () => _openItemForm(item),
-                                ),
-                              ),
-                              const SizedBox(width: 8),
-                              Expanded(
-                                child: _buildActionIcon(
-                                  isUploading ? null : Icons.photo_camera_outlined,
-                                  Colors.green,
-                                  _saving || isUploading ? () {} : () => _replaceItemImage(item),
-                                  isUploading: isUploading,
-                                ),
-                              ),
-                              const SizedBox(width: 8),
-                              Expanded(
-                                child: _buildActionIcon(
-                                  Icons.delete_outline_rounded,
-                                  cs.error,
-                                  () => _deleteItem(item),
-                                ),
-                              ),
-                            ],
+                        ),
+                        child: Text(
+                          item.remarks.trim().isNotEmpty
+                              ? item.remarks
+                              : 'Add Remark',
+                          style: TextStyle(
+                            fontSize: 8,
+                            fontWeight: FontWeight.w600,
+                            color: cs.onSecondaryContainer,
                           ),
-                        ],
+                          maxLines: 1,
+                          overflow: TextOverflow.ellipsis,
+                        ),
                       ),
                     ),
-                  ),
-
-                  // RIGHT COLUMN: Fields
-                  Expanded(
-                    child: Container(
-                      padding: const EdgeInsets.fromLTRB(7, 4, 14, 14),
-                      child: Column(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        mainAxisAlignment: MainAxisAlignment.center,
-                        children: [
-                          Row(
-                            children: [
-                              Expanded(
-                                child: _blueBox(
-                                  label: "UOM",
-                                  value: item.uom,
-                                  cs: cs,
-                                  isDark: isDark,
-                                  blueFill: blueFill,
-                                  darkBlueFill: darkBlueFill,
-                                ),
-                              ),
-                              const SizedBox(width: 8),
-                              Expanded(
-                                child: _blueBox(
-                                  label: "Target Qty",
-                                  value: '${item.targetQty}',
-                                  cs: cs,
-                                  isDark: isDark,
-                                  blueFill: blueFill,
-                                  darkBlueFill: darkBlueFill,
-                                ),
-                              ),
-                            ],
-                          ),
-                        ],
-                      ),
+                    const Spacer(),
+                    // Actions (Edit/Delete) on the right
+                    _actionBtn(
+                      icon: Icons.edit_rounded,
+                      label: 'Edit',
+                      color: cs.primary,
+                      onTap: () => _openItemForm(item),
                     ),
-                  ),
-                ],
-              ),
+                    const SizedBox(width: 4),
+                    _actionBtn(
+                      icon: Icons.delete_outline_rounded,
+                      label: 'Delete',
+                      color: cs.error,
+                      onTap: () => _deleteItem(item),
+                    ),
+                  ],
+                ),
+              ],
             ),
           ),
         ],
@@ -650,75 +608,27 @@ class _PebSetupScreenState extends State<PebSetupScreen> {
     );
   }
 
-  Widget _buildActionIcon(IconData? icon, Color color, VoidCallback onPressed, {bool isUploading = false}) {
+  Widget _actionBtn({
+    required IconData icon,
+    required String label,
+    required Color color,
+    required VoidCallback onTap,
+  }) {
     return Container(
-      height: 32,
+      width: 28,
+      height: 28,
       decoration: BoxDecoration(
-        border: Border.all(color: color, width: 1.5),
+        color: color.withValues(alpha: 0.1),
         borderRadius: BorderRadius.circular(6),
       ),
       child: Material(
         color: Colors.transparent,
         child: InkWell(
-          onTap: onPressed,
+          onTap: onTap,
           borderRadius: BorderRadius.circular(6),
-          child: isUploading
-              ? Center(
-                  child: SizedBox(
-                    width: 14,
-                    height: 14,
-                    child: CircularProgressIndicator(
-                      strokeWidth: 2,
-                      color: color,
-                    ),
-                  ),
-                )
-              : Icon(icon, size: 18, color: color),
+          child: Icon(icon, size: 15, color: color),
         ),
       ),
-    );
-  }
-
-  Widget _blueBox({
-    required String label,
-    required String value,
-    required ColorScheme cs,
-    required bool isDark,
-    required Color blueFill,
-    required Color darkBlueFill,
-  }) {
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        Padding(
-          padding: const EdgeInsets.only(bottom: 4),
-          child: Text(
-            label,
-            style: TextStyle(
-              fontSize: 9,
-              fontWeight: FontWeight.w600,
-              color: cs.onSurface,
-            ),
-          ),
-        ),
-        Container(
-          height: 26,
-          width: double.infinity,
-          alignment: Alignment.center,
-          decoration: BoxDecoration(
-            color: isDark ? darkBlueFill : blueFill,
-            borderRadius: BorderRadius.circular(4),
-          ),
-          child: Text(
-            value,
-            style: TextStyle(
-              fontSize: 10,
-              fontWeight: FontWeight.w600,
-              color: cs.onSurface,
-            ),
-          ),
-        ),
-      ],
     );
   }
 
@@ -734,78 +644,6 @@ class _PebSetupScreenState extends State<PebSetupScreen> {
           offset: const Offset(0, 6),
         ),
       ],
-    );
-  }
-}
-
-class _SetupImageTile extends StatelessWidget {
-  final PebSetupItem item;
-  final PebExecutionType executionType;
-  final bool hasCustomImage;
-
-  const _SetupImageTile({
-    required this.item,
-    required this.executionType,
-    required this.hasCustomImage,
-  });
-
-  @override
-  Widget build(BuildContext context) {
-    return ClipRRect(
-      borderRadius: BorderRadius.circular(12),
-      child: Container(
-        decoration: BoxDecoration(
-          color: Colors.white,
-        ),
-        padding: EdgeInsets.all(hasCustomImage ? 8 : 14),
-        child: Center(
-          child: Image(
-            image: pebWorkImageProvider(item, executionType),
-            fit: BoxFit.contain,
-            errorBuilder: (_, __, ___) => pebWorkImageFallback(
-              item,
-              executionType,
-            ),
-          ),
-        ),
-      ),
-    );
-  }
-}
-
-class _SetupInlineMeta extends StatelessWidget {
-  final String label;
-  final String value;
-  final ColorScheme cs;
-
-  const _SetupInlineMeta({
-    required this.label,
-    required this.value,
-    required this.cs,
-  });
-
-  @override
-  Widget build(BuildContext context) {
-    return RichText(
-      maxLines: 1,
-      overflow: TextOverflow.ellipsis,
-      text: TextSpan(
-        style: TextStyle(
-          color: cs.onSurfaceVariant,
-          fontSize: 12,
-          height: 1.1,
-        ),
-        children: [
-          TextSpan(text: '$label: '),
-          TextSpan(
-            text: value,
-            style: TextStyle(
-              color: cs.onSurface,
-              fontWeight: FontWeight.w800,
-            ),
-          ),
-        ],
-      ),
     );
   }
 }
