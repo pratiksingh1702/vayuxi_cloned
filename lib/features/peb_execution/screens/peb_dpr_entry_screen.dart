@@ -225,7 +225,7 @@ class _PebDprEntryScreenState extends State<PebDprEntryScreen> {
     _DprMarkActionMode mode,
   ) {
     final unlockedMarks = _unlockedMarksForWork(work).toSet();
-    return work.assignedMarks.any((mark) {
+    return _displayMarksForWork(work).any((mark) {
       final completed = _completedForWork(work).contains(mark);
       final inProgress = _inProgressForWork(work).contains(mark);
       if (!unlockedMarks.contains(mark) || completed) return false;
@@ -285,7 +285,7 @@ class _PebDprEntryScreenState extends State<PebDprEntryScreen> {
         work != null && _hasSelectableMarksForMode(work, mode);
     final hasCompletedMarks = work != null &&
         mode == _DprMarkActionMode.completed &&
-        work.assignedMarks.any(_completedForWork(work).contains);
+        _displayMarksForWork(work).any(_completedForWork(work).contains);
 
     if (!hasSelectableMarks && !hasCompletedMarks) {
       AppToast.info(mode == _DprMarkActionMode.completed
@@ -353,10 +353,9 @@ class _PebDprEntryScreenState extends State<PebDprEntryScreen> {
 
     if (fallbackAllowed) {
       return setup.items.map((setupItem) {
-        final completed = _status.completedByKey[setupItem.id] ?? <String>{};
-        final pendingMarks = _allMarks
+        final marks = _allMarks
             .map((mark) => mark.assemblyMark)
-            .where((mark) => mark.isNotEmpty && !completed.contains(mark))
+            .where((mark) => mark.isNotEmpty)
             .toList();
         return _VisibleWork(
           key: setupItem.id,
@@ -364,8 +363,8 @@ class _PebDprEntryScreenState extends State<PebDprEntryScreen> {
           assignmentId: '',
           sourceType: 'boq_upload',
           stageName: setupItem.name,
-          assignedMarks: pendingMarks,
-          assignedQty: pendingMarks.length.toDouble(),
+          assignedMarks: marks,
+          assignedQty: marks.length.toDouble(),
           assignmentDate: _selectedDate,
           expectedCompletionDate: null,
           isActive: true,
@@ -511,10 +510,11 @@ class _PebDprEntryScreenState extends State<PebDprEntryScreen> {
   }
 
   List<String> _unlockedMarksForWork(_VisibleWork work) {
+    final marks = _displayMarksForWork(work);
     final prev = _previousSetupItem(work);
-    if (prev == null || work.assignedMarks.isEmpty) return work.assignedMarks;
+    if (prev == null || marks.isEmpty) return marks;
     final previousCompleted = _status.completedByKey[prev.id] ?? <String>{};
-    return work.assignedMarks.where(previousCompleted.contains).toList();
+    return marks.where(previousCompleted.contains).toList();
   }
 
   Set<String> _completedForWork(_VisibleWork work) {
@@ -535,7 +535,7 @@ class _PebDprEntryScreenState extends State<PebDprEntryScreen> {
 
   DateTime? _completedDateForWork(_VisibleWork work) {
     DateTime? latest;
-    for (final mark in work.assignedMarks) {
+    for (final mark in _displayMarksForWork(work)) {
       final dates = <DateTime?>[
         _status.completedDateByKey[work.setupItem.id]?[mark],
         if (work.assignmentId.isNotEmpty)
@@ -551,7 +551,7 @@ class _PebDprEntryScreenState extends State<PebDprEntryScreen> {
   }
 
   _WorkCounts _counts(_VisibleWork work) {
-    final marks = work.assignedMarks;
+    final marks = _displayMarksForWork(work);
     final completed = _completedForWork(work);
     final inProgress = _inProgressForWork(work);
     final total = marks.isNotEmpty ? marks.length : work.assignedQty.round();
@@ -565,18 +565,31 @@ class _PebDprEntryScreenState extends State<PebDprEntryScreen> {
     );
   }
 
+  List<String> _displayMarksForWork(_VisibleWork work) {
+    final seen = <String>{};
+    final marks = <String>[];
+    for (final mark in work.assignedMarks) {
+      final normalized = mark.trim();
+      if (normalized.isEmpty || seen.contains(normalized)) continue;
+      seen.add(normalized);
+      marks.add(normalized);
+    }
+    return marks;
+  }
+
   bool _isWorkFullyCompleted(_VisibleWork work) {
     if (!work.isActive) return false;
     final completed = _completedForWork(work);
-    if (work.assignedMarks.isNotEmpty) {
-      return work.assignedMarks.every(completed.contains);
+    final marks = _displayMarksForWork(work);
+    if (marks.isNotEmpty) {
+      return marks.every(completed.contains);
     }
     final counts = _counts(work);
     return counts.total > 0 && counts.completed >= counts.total;
   }
 
   bool _hasUnlockedScope(_VisibleWork work) {
-    if (work.assignedMarks.isEmpty) return work.assignedQty > 0;
+    if (_displayMarksForWork(work).isEmpty) return work.assignedQty > 0;
     return _unlockedMarksForWork(work).isNotEmpty;
   }
 
@@ -600,7 +613,7 @@ class _PebDprEntryScreenState extends State<PebDprEntryScreen> {
           'This work is not active for selected team');
       return;
     }
-    final rawMarks = work.assignedMarks;
+    final rawMarks = _displayMarksForWork(work);
     final unlocked = _unlockedMarksForWork(work);
     if (rawMarks.isEmpty) {
       await _openQuantityAction(work);
@@ -663,16 +676,6 @@ class _PebDprEntryScreenState extends State<PebDprEntryScreen> {
     }
 
     final completedAction = _markActionMode == _DprMarkActionMode.completed;
-    for (final mark in _selectedDetailMarks) {
-      if (_isWeightChanged(work, mark)) {
-        final key = _markInputKey(work, mark);
-        if ((_variationReasons[key] ?? '').trim().isEmpty) {
-          AppToast.error('Variation reason is required for $mark');
-          return;
-        }
-      }
-    }
-
     setState(() => _submitting = true);
     await Future<void>.delayed(const Duration(milliseconds: 16));
     try {
@@ -924,10 +927,6 @@ class _PebDprEntryScreenState extends State<PebDprEntryScreen> {
           ),
           FilledButton(
             onPressed: () {
-              if (reason.text.trim().isEmpty) {
-                AppToast.error('Variation reason is required');
-                return;
-              }
               context.pop(_VariationResponse(
                 reason: reason.text.trim(),
                 remarks: remarks.text.trim(),
@@ -947,6 +946,9 @@ class _PebDprEntryScreenState extends State<PebDprEntryScreen> {
   Widget build(BuildContext context) {
     final works = _visibleWorks();
     final activeWork = _activeWork(works);
+    final activeMarks = activeWork == null
+        ? const <String>[]
+        : _displayMarksForWork(activeWork);
     final assignedWorks = works.where((work) => work.isActive).toList();
     return PopScope(
       canPop: _activeWorkKey == null,
@@ -1006,7 +1008,7 @@ class _PebDprEntryScreenState extends State<PebDprEntryScreen> {
                                       : [
                                           _buildWorkDetailHeader(activeWork),
                                           const SizedBox(height: 12),
-                                          ...activeWork.assignedMarks.map(
+                                          ...activeMarks.map(
                                             (mark) => _buildMarkEntryCardV2(
                                               activeWork,
                                               mark,
@@ -1015,15 +1017,14 @@ class _PebDprEntryScreenState extends State<PebDprEntryScreen> {
                                                   .contains(mark),
                                             ),
                                           ),
-                                          if (activeWork.assignedMarks.isEmpty)
+                                          if (activeMarks.isEmpty)
                                             _buildQuantityWorkEntryCard(
                                                 activeWork),
                                           const SizedBox(height: 190),
                                         ],
                             ),
                           ),
-                          if (activeWork != null &&
-                              activeWork.assignedMarks.isNotEmpty)
+                          if (activeWork != null && activeMarks.isNotEmpty)
                             _buildDetailBottomBar(activeWork),
                           if (_submitting)
                             Positioned.fill(
