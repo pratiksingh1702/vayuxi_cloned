@@ -1,6 +1,9 @@
+import 'dart:io';
+
 import 'package:file_picker/file_picker.dart';
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
+import 'package:image_cropper/image_cropper.dart';
 import 'package:untitled2/core/utlis/app_toasts.dart';
 import 'package:untitled2/core/utlis/widgets/custom.dart';
 import 'package:untitled2/core/utlis/widgets/sidebar.dart';
@@ -108,16 +111,12 @@ class _PebSetupScreenState extends State<PebSetupScreen> {
       builder: (context) {
         return StatefulBuilder(builder: (context, setSheetState) {
           Future<void> pickImages() async {
-            final picked = await FilePicker.platform.pickFiles(
-              allowMultiple: false,
-              type: FileType.image,
-              withData: true,
-            );
-            if (picked == null || picked.files.isEmpty) return;
+            final file = await _pickAndCropSetupImage('Crop DPR Setup Image');
+            if (file == null) return;
             setSheetState(() => uploading = true);
             try {
               final urls =
-                  await _service.uploadSetupImages(widget.siteId, picked.files);
+                  await _service.uploadSetupImages(widget.siteId, [file]);
               if (urls.isNotEmpty) {
                 images
                   ..clear()
@@ -162,16 +161,12 @@ class _PebSetupScreenState extends State<PebSetupScreen> {
                     child: AspectRatio(
                       aspectRatio: 16 / 9,
                       child: Container(
-                        color:
-                            Theme.of(context).colorScheme.surfaceContainerLow,
-                        padding: EdgeInsets.all(
-                            pebWorkImageIsCustom(previewItem) ? 0 : 18),
+                        color: Colors.white,
+                        padding: const EdgeInsets.all(14),
                         child: Image(
                           image: pebWorkImageProvider(
                               previewItem, widget.executionType),
-                          fit: pebWorkImageIsCustom(previewItem)
-                              ? BoxFit.cover
-                              : BoxFit.contain,
+                          fit: BoxFit.contain,
                           errorBuilder: (_, __, ___) => pebWorkImageFallback(
                             previewItem,
                             widget.executionType,
@@ -362,7 +357,7 @@ class _PebSetupScreenState extends State<PebSetupScreen> {
           crossAxisCount: crossAxisCount,
           crossAxisSpacing: 14,
           mainAxisSpacing: 14,
-          childAspectRatio: crossAxisCount == 1 ? 1.18 : 1.02,
+          mainAxisExtent: crossAxisCount == 1 ? 214 : 206,
         ),
         itemBuilder: (context, index) => _itemCard(items[index], cs),
       );
@@ -370,16 +365,11 @@ class _PebSetupScreenState extends State<PebSetupScreen> {
   }
 
   Future<void> _replaceItemImage(PebSetupItem item) async {
-    final picked = await FilePicker.platform.pickFiles(
-      allowMultiple: false,
-      type: FileType.image,
-      withData: true,
-    );
-    if (picked == null || picked.files.isEmpty) return;
+    final file = await _pickAndCropSetupImage('Crop ${item.name} Image');
+    if (file == null) return;
     setState(() => _uploadingItemId = item.id);
     try {
-      final urls =
-          await _service.uploadSetupImages(widget.siteId, picked.files);
+      final urls = await _service.uploadSetupImages(widget.siteId, [file]);
       if (urls.isEmpty) return;
       await _service.saveSetupItem(
         widget.siteId,
@@ -401,174 +391,347 @@ class _PebSetupScreenState extends State<PebSetupScreen> {
     }
   }
 
+  Future<PlatformFile?> _pickAndCropSetupImage(String cropTitle) async {
+    final picked = await FilePicker.platform.pickFiles(
+      allowMultiple: false,
+      type: FileType.image,
+      withData: false,
+    );
+    if (picked == null || picked.files.isEmpty) return null;
+
+    final source = picked.files.first;
+    final sourcePath = source.path;
+    if (sourcePath == null || sourcePath.isEmpty) {
+      AppToast.error('Unable to read selected image');
+      return null;
+    }
+
+    try {
+      final cs = Theme.of(context).colorScheme;
+      final cropped = await ImageCropper().cropImage(
+        sourcePath: sourcePath,
+        compressFormat: ImageCompressFormat.jpg,
+        compressQuality: 92,
+        uiSettings: [
+          AndroidUiSettings(
+            toolbarTitle: cropTitle,
+            toolbarColor: cs.primary,
+            toolbarWidgetColor: cs.onPrimary,
+            initAspectRatio: CropAspectRatioPreset.original,
+            lockAspectRatio: false,
+            hideBottomControls: false,
+            showCropGrid: true,
+            cropGridRowCount: 3,
+            cropGridColumnCount: 3,
+            cropGridColor: cs.onPrimary.withValues(alpha: 0.45),
+            cropFrameColor: cs.primary,
+            cropGridStrokeWidth: 1,
+            cropFrameStrokeWidth: 2,
+            activeControlsWidgetColor: cs.primary,
+            aspectRatioPresets: const [
+              CropAspectRatioPreset.original,
+              CropAspectRatioPreset.square,
+              CropAspectRatioPreset.ratio4x3,
+              CropAspectRatioPreset.ratio16x9,
+            ],
+          ),
+          IOSUiSettings(
+            title: cropTitle,
+            minimumAspectRatio: 0.1,
+            aspectRatioPresets: const [
+              CropAspectRatioPreset.original,
+              CropAspectRatioPreset.square,
+              CropAspectRatioPreset.ratio4x3,
+              CropAspectRatioPreset.ratio16x9,
+            ],
+            resetAspectRatioEnabled: true,
+            aspectRatioLockEnabled: false,
+          ),
+          WebUiSettings(
+            context: context,
+            presentStyle: WebPresentStyle.dialog,
+            size: const CropperSize(width: 520, height: 520),
+            viewwMode: WebViewMode.mode_1,
+          ),
+        ],
+      );
+
+      if (cropped == null) return null;
+      final croppedFile = File(cropped.path);
+      final size = await croppedFile.length();
+      return PlatformFile(
+        name: cropped.path.split(Platform.pathSeparator).last,
+        size: size,
+        path: cropped.path,
+      );
+    } catch (_) {
+      AppToast.error('Failed to crop image');
+      return null;
+    }
+  }
+
   Widget _itemCard(PebSetupItem item, ColorScheme cs) {
     final isUploading = _uploadingItemId == item.id;
     final hasCustomImage = pebWorkImageIsCustom(item);
-    return Container(
-      decoration: _boxDecoration(cs),
-      clipBehavior: Clip.antiAlias,
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.stretch,
-        children: [
-          Expanded(
-            child: Stack(
-              fit: StackFit.expand,
+    return LayoutBuilder(builder: (context, constraints) {
+      final imageWidth =
+          constraints.maxWidth < 390 ? constraints.maxWidth * 0.32 : 118.0;
+      return Container(
+        padding: const EdgeInsets.all(14),
+        decoration: _boxDecoration(cs),
+        clipBehavior: Clip.antiAlias,
+        child: Row(
+          crossAxisAlignment: CrossAxisAlignment.stretch,
+          children: [
+            Column(
               children: [
-                Container(
-                  color: cs.surfaceContainerLow,
-                  padding: EdgeInsets.all(hasCustomImage ? 0 : 20),
-                  child: Image(
-                    image: pebWorkImageProvider(item, widget.executionType),
-                    fit: hasCustomImage ? BoxFit.cover : BoxFit.contain,
-                    errorBuilder: (_, __, ___) => pebWorkImageFallback(
-                      item,
-                      widget.executionType,
+                Expanded(
+                  child: SizedBox(
+                    width: imageWidth.clamp(100.0, 122.0),
+                    child: _SetupImageTile(
+                      item: item,
+                      executionType: widget.executionType,
+                      hasCustomImage: hasCustomImage,
                     ),
                   ),
                 ),
-                Positioned.fill(
-                  child: DecoratedBox(
-                    decoration: BoxDecoration(
-                      gradient: LinearGradient(
-                        begin: Alignment.topCenter,
-                        end: Alignment.bottomCenter,
-                        colors: [
-                          Colors.transparent,
-                          Colors.black
-                              .withValues(alpha: hasCustomImage ? 0.45 : 0.18),
-                        ],
-                      ),
-                    ),
-                  ),
-                ),
-                Positioned(
-                  right: 8,
-                  top: 8,
-                  child: FilledButton.tonalIcon(
+                const SizedBox(height: 8),
+                SizedBox(
+                  width: imageWidth.clamp(100.0, 122.0),
+                  height: 34,
+                  child: OutlinedButton.icon(
                     onPressed: _saving || isUploading
                         ? null
                         : () => _replaceItemImage(item),
                     icon: isUploading
                         ? const SizedBox(
-                            width: 16,
-                            height: 16,
+                            width: 14,
+                            height: 14,
                             child: CircularProgressIndicator(strokeWidth: 2),
                           )
-                        : const Icon(Icons.image_rounded, size: 18),
-                    label: Text(item.images.isEmpty ? 'Upload' : 'Edit'),
-                  ),
-                ),
-                Positioned(
-                  left: 12,
-                  right: 12,
-                  bottom: 12,
-                  child: Text(
-                    item.name,
-                    maxLines: 2,
-                    overflow: TextOverflow.ellipsis,
-                    style: const TextStyle(
-                      color: Colors.white,
-                      fontSize: 18,
-                      fontWeight: FontWeight.w900,
+                        : const Icon(Icons.photo_camera_outlined, size: 16),
+                    label: Text(
+                      item.images.isEmpty ? 'Upload' : 'Change',
+                      overflow: TextOverflow.ellipsis,
                     ),
-                  ),
-                ),
-              ],
-            ),
-          ),
-          Padding(
-            padding: const EdgeInsets.all(12),
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Row(
-                  children: [
-                    _InfoChip(label: 'UOM', value: item.uom),
-                    const SizedBox(width: 8),
-                    _InfoChip(label: 'Target', value: '${item.targetQty}'),
-                  ],
-                ),
-                if (item.remarks.trim().isNotEmpty) ...[
-                  const SizedBox(height: 8),
-                  Text(
-                    item.remarks,
-                    maxLines: 2,
-                    overflow: TextOverflow.ellipsis,
-                    style: TextStyle(color: cs.onSurfaceVariant, fontSize: 12),
-                  ),
-                ],
-                const SizedBox(height: 10),
-                Row(
-                  children: [
-                    Expanded(
-                      child: OutlinedButton.icon(
-                        onPressed: _saving ? null : () => _openItemForm(item),
-                        icon: const Icon(Icons.edit_outlined, size: 18),
-                        label: const Text('Edit'),
+                    style: OutlinedButton.styleFrom(
+                      padding: const EdgeInsets.symmetric(horizontal: 8),
+                      textStyle: const TextStyle(
+                        fontSize: 12,
+                        fontWeight: FontWeight.w700,
                       ),
                     ),
-                    const SizedBox(width: 8),
-                    IconButton.outlined(
-                      onPressed: _saving ? null : () => _deleteItem(item),
-                      icon: const Icon(Icons.delete_outline),
-                      color: Colors.red,
-                    ),
-                  ],
+                  ),
                 ),
               ],
             ),
-          ),
-        ],
-      ),
-    );
+            const SizedBox(width: 14),
+            Expanded(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                children: [
+                  Row(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Expanded(
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          mainAxisSize: MainAxisSize.min,
+                          children: [
+                            Text(
+                              item.name,
+                              maxLines: 2,
+                              overflow: TextOverflow.ellipsis,
+                              style: TextStyle(
+                                color: cs.onSurface,
+                                fontSize: 17,
+                                fontWeight: FontWeight.w900,
+                                height: 1.15,
+                              ),
+                            ),
+                          ],
+                        ),
+                      ),
+                      const SizedBox(width: 8),
+                      PopupMenuButton<String>(
+                        tooltip: 'More actions',
+                        icon: Icon(
+                          Icons.more_vert_rounded,
+                          color: cs.onSurfaceVariant,
+                        ),
+                        onSelected: (value) {
+                          if (value == 'edit') _openItemForm(item);
+                          if (value == 'delete') _deleteItem(item);
+                        },
+                        itemBuilder: (context) => [
+                          const PopupMenuItem(
+                            value: 'edit',
+                            child: ListTile(
+                              dense: true,
+                              contentPadding: EdgeInsets.zero,
+                              leading: Icon(Icons.edit_outlined),
+                              title: Text('Edit details'),
+                            ),
+                          ),
+                          PopupMenuItem(
+                            value: 'delete',
+                            enabled: !_saving,
+                            child: ListTile(
+                              dense: true,
+                              contentPadding: EdgeInsets.zero,
+                              leading:
+                                  Icon(Icons.delete_outline, color: cs.error),
+                              title: Text(
+                                'Delete',
+                                style: TextStyle(color: cs.error),
+                              ),
+                            ),
+                          ),
+                        ],
+                      ),
+                    ],
+                  ),
+                  if (item.remarks.trim().isNotEmpty)
+                    Text(
+                      item.remarks,
+                      maxLines: 1,
+                      overflow: TextOverflow.ellipsis,
+                      style: TextStyle(
+                        color: cs.onSurfaceVariant,
+                        fontSize: 12,
+                      ),
+                    )
+                  else
+                    Text(
+                      'No remarks added',
+                      maxLines: 1,
+                      overflow: TextOverflow.ellipsis,
+                      style: TextStyle(
+                        color: cs.onSurfaceVariant.withValues(alpha: 0.72),
+                        fontSize: 12,
+                        fontStyle: FontStyle.italic,
+                      ),
+                    ),
+                  Wrap(
+                    spacing: 12,
+                    runSpacing: 6,
+                    children: [
+                      _SetupInlineMeta(
+                        label: 'UOM',
+                        value: item.uom,
+                        cs: cs,
+                      ),
+                      _SetupInlineMeta(
+                        label: 'Target',
+                        value: '${item.targetQty}',
+                        cs: cs,
+                      ),
+                    ],
+                  ),
+                  Row(
+                    children: [
+                      Expanded(
+                        child: FilledButton.icon(
+                          onPressed: _saving ? null : () => _openItemForm(item),
+                          icon: const Icon(Icons.edit_outlined, size: 18),
+                          label: const Text('Edit Details'),
+                        ),
+                      ),
+                    ],
+                  ),
+                ],
+              ),
+            ),
+          ],
+        ),
+      );
+    });
   }
 
   BoxDecoration _boxDecoration(ColorScheme cs) {
     return BoxDecoration(
       color: cs.surface,
-      borderRadius: BorderRadius.circular(16),
+      borderRadius: BorderRadius.circular(14),
       border: Border.all(color: cs.outlineVariant),
       boxShadow: [
         BoxShadow(
-          color: cs.shadow.withValues(alpha: 0.06),
-          blurRadius: 16,
-          offset: const Offset(0, 8),
+          color: cs.shadow.withValues(alpha: 0.05),
+          blurRadius: 14,
+          offset: const Offset(0, 6),
         ),
       ],
     );
   }
 }
 
-class _InfoChip extends StatelessWidget {
-  final String label;
-  final String value;
+class _SetupImageTile extends StatelessWidget {
+  final PebSetupItem item;
+  final PebExecutionType executionType;
+  final bool hasCustomImage;
 
-  const _InfoChip({required this.label, required this.value});
+  const _SetupImageTile({
+    required this.item,
+    required this.executionType,
+    required this.hasCustomImage,
+  });
 
   @override
   Widget build(BuildContext context) {
-    final cs = Theme.of(context).colorScheme;
-    return Expanded(
+    return ClipRRect(
+      borderRadius: BorderRadius.circular(12),
       child: Container(
-        padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 8),
         decoration: BoxDecoration(
-          color: cs.surfaceContainerLow,
-          borderRadius: BorderRadius.circular(10),
+          color: Colors.white,
         ),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            Text(label,
-                style: TextStyle(fontSize: 10, color: cs.onSurfaceVariant)),
-            Text(
-              value,
-              maxLines: 1,
-              overflow: TextOverflow.ellipsis,
-              style: const TextStyle(fontWeight: FontWeight.w800),
+        padding: EdgeInsets.all(hasCustomImage ? 8 : 14),
+        child: Center(
+          child: Image(
+            image: pebWorkImageProvider(item, executionType),
+            fit: BoxFit.contain,
+            errorBuilder: (_, __, ___) => pebWorkImageFallback(
+              item,
+              executionType,
             ),
-          ],
+          ),
         ),
+      ),
+    );
+  }
+}
+
+class _SetupInlineMeta extends StatelessWidget {
+  final String label;
+  final String value;
+  final ColorScheme cs;
+
+  const _SetupInlineMeta({
+    required this.label,
+    required this.value,
+    required this.cs,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    return RichText(
+      maxLines: 1,
+      overflow: TextOverflow.ellipsis,
+      text: TextSpan(
+        style: TextStyle(
+          color: cs.onSurfaceVariant,
+          fontSize: 12,
+          height: 1.1,
+        ),
+        children: [
+          TextSpan(text: '$label: '),
+          TextSpan(
+            text: value,
+            style: TextStyle(
+              color: cs.onSurface,
+              fontWeight: FontWeight.w800,
+            ),
+          ),
+        ],
       ),
     );
   }

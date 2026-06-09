@@ -1,7 +1,6 @@
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:isar_community/isar.dart';
 import 'package:untitled2/features/modules/all_Modules/Manpower%20Details/offline/isar/manpower_isar.dart';
-import 'package:untitled2/features/modules/all_Modules/attendance/offline/repo/att_sync.dart';
 
 import '../../../../../../core/local/isar_db.dart';
 import '../../model/manpower_model.dart';
@@ -63,7 +62,8 @@ class ManpowerRepository {
     required String siteId,
     required String type,
   }) async {
-    final res = await ManpowerAPI.fetchManpowerBySite(siteId: siteId, type: type);
+    final res =
+        await ManpowerAPI.fetchManpowerBySite(siteId: siteId, type: type);
     if (res["success"] != true) return;
 
     final List list = res["data"];
@@ -73,8 +73,13 @@ class ManpowerRepository {
     );
   }
 
+  Future<void> upsertManpower(ManpowerModel manpower, String type) async {
+    await _upsertManpowerList([manpower], type);
+  }
+
   /// Shared upsert logic — writes a list of ManpowerModel into Isar
-  Future<void> _upsertManpowerList(List<ManpowerModel> models, String type) async {
+  Future<void> _upsertManpowerList(
+      List<ManpowerModel> models, String type) async {
     await isar.writeTxn(() async {
       for (final m in models) {
         // 🔥 Find existing record
@@ -132,7 +137,7 @@ final manpowerRepositoryProvider = Provider((ref) => ManpowerRepository());
 
 /// Company-wide manpower stream (unchanged behaviour — used in ManpowerListScreen)
 final manpowerOfflineProvider =
-StreamProvider.family<List<ManpowerModel>, String>((ref, type) {
+    StreamProvider.family<List<ManpowerModel>, String>((ref, type) {
   final repo = ref.read(manpowerRepositoryProvider);
   Future.microtask(() => repo.syncFromApi(type));
   return repo.watchManpower(type);
@@ -141,13 +146,13 @@ StreamProvider.family<List<ManpowerModel>, String>((ref, type) {
 /// ✅ NEW: Site-scoped manpower stream
 /// Usage: ref.watch(manpowerBySiteProvider((siteId: 'siteA', type: 'mechanical_work')))
 final manpowerBySiteProvider =
-StreamProvider.family<List<ManpowerModel>, ({String siteId, String type})>(
-      (ref, args) {
+    StreamProvider.family<List<ManpowerModel>, ({String siteId, String type})>(
+  (ref, args) {
     final repo = ref.read(manpowerRepositoryProvider);
 
     // Background sync for this site
     Future.microtask(
-          () => repo.syncFromApiForSite(siteId: args.siteId, type: args.type),
+      () => repo.syncFromApiForSite(siteId: args.siteId, type: args.type),
     );
 
     return repo.watchManpowerBySite(siteId: args.siteId, type: args.type);

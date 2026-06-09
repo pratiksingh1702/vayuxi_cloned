@@ -1,7 +1,6 @@
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:isar_community/isar.dart';
 import 'package:untitled2/features/modules/all_Modules/Manpower%20Details/offline/isar/manpower_isar.dart';
-import 'package:untitled2/features/modules/all_Modules/attendance/offline/repo/att_sync.dart';
 
 import '../model/manpower_model.dart';
 import '../offline/repo/manpower_repo.dart';
@@ -96,7 +95,8 @@ class ManpowerNotifier extends StateNotifier<ManpowerState> {
 
     try {
       // Sync site-specific manpower
-      final res = await ManpowerAPI.fetchManpowerBySite(siteId: siteId, type: type);
+      final res =
+          await ManpowerAPI.fetchManpowerBySite(siteId: siteId, type: type);
 
       if (res["success"] == true) {
         final List raw = res["data"];
@@ -160,10 +160,10 @@ class ManpowerNotifier extends StateNotifier<ManpowerState> {
   /// Create manpower. Optionally pass [siteId] to auto-assign the new
   /// employee to that site on creation (adds to [sites] array in payload).
   Future<ManpowerModel?> addManpower(
-      String type,
-      Map<String, dynamic> data, {
-        String? siteId,
-      }) async {
+    String type,
+    Map<String, dynamic> data, {
+    String? siteId,
+  }) async {
     try {
       // If a siteId is provided and not already in the payload, add it
       if (siteId != null && siteId.isNotEmpty) {
@@ -200,15 +200,16 @@ class ManpowerNotifier extends StateNotifier<ManpowerState> {
   // ─────────────────────────────────────────────────────────────
 
   Future<ManpowerModel?> updateManpower(
-      String id,
-      Map<String, dynamic> data,
-      String type,
-      ) async {
+    String id,
+    Map<String, dynamic> data,
+    String type,
+  ) async {
     try {
       final response = await ManpowerAPI.updateManpower(id, data);
 
       if (response["success"] == true && response["data"] != null) {
         final updatedManpower = ManpowerModel.fromJson(response["data"]);
+        await repo.upsertManpower(updatedManpower, type);
         await fetchManpower(type);
         return updatedManpower;
       }
@@ -274,10 +275,10 @@ class ManpowerNotifier extends StateNotifier<ManpowerState> {
   // ─────────────────────────────────────────────────────────────
 
   Future<void> leftManpower(
-      String id,
-      Map<String, dynamic> data,
-      String type,
-      ) async {
+    String id,
+    Map<String, dynamic> data,
+    String type,
+  ) async {
     try {
       final res = await ManpowerAPI.leftManpower(id, data);
       if (res["success"] == true) {
@@ -354,7 +355,7 @@ class ManpowerNotifier extends StateNotifier<ManpowerState> {
 }
 
 final manpowerProvider =
-StateNotifierProvider<ManpowerNotifier, ManpowerState>((ref) {
+    StateNotifierProvider<ManpowerNotifier, ManpowerState>((ref) {
   final repo = ref.read(manpowerRepositoryProvider);
   return ManpowerNotifier(repo);
 });
