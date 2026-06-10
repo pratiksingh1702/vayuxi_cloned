@@ -449,8 +449,7 @@ class _ModuleScreenV2State extends ConsumerState<ModuleScreenV2>
   }
 
   bool get _isSatmaxUser {
-    final phone = ref.watch(currentUserProvider)?.phoneNumber;
-    return phone?.replaceAll(RegExp(r'\D'), '') == '9509852652';
+    return ref.watch(currentUserProvider)?.hasSatmaxMainFrameAccess ?? false;
   }
 
   ModuleItem? _getSatmaxHistoryUploadModule(String? type) {
