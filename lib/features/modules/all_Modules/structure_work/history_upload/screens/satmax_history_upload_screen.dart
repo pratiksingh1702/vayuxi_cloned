@@ -32,8 +32,7 @@ class _SatmaxHistoryUploadScreenState
   List<SatmaxHistoryRecord> _history = [];
 
   bool get _isSatmaxUser {
-    final phone = ref.watch(currentUserProvider)?.phoneNumber;
-    return phone?.replaceAll(RegExp(r'\D'), '') == '9509852652';
+    return ref.watch(currentUserProvider)?.hasSatmaxMainFrameAccess ?? false;
   }
 
   @override
@@ -265,7 +264,7 @@ class _SatmaxHistoryUploadScreenState
           child: Padding(
             padding: const EdgeInsets.all(24),
             child: Text(
-              'History upload is available only for the Satmax user.',
+              'History upload is not enabled for this account.',
               textAlign: TextAlign.center,
               style: Theme.of(context).textTheme.titleMedium,
             ),

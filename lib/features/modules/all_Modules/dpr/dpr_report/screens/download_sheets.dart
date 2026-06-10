@@ -576,8 +576,8 @@ class _SheetDownloadPageState extends ConsumerState<SheetDownloadPage> {
   Widget build(BuildContext context) {
     final siteId = ref.watch(selectedSiteIdProvider);
     final type = ref.read(typeProvider)!;
-    final phone = ref.watch(currentUserProvider)?.phoneNumber;
-    final isSatmaxUser = phone?.replaceAll(RegExp(r'\D'), '') == '9509852652';
+    final isSatmaxUser =
+        ref.watch(currentUserProvider)?.hasSatmaxMainFrameAccess ?? false;
     final isStructureSheetType = type == 'structure_work' ||
         type == 'erection_work' ||
         type == 'fabrication_work';

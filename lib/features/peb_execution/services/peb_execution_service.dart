@@ -491,7 +491,7 @@ class PebExecutionService {
           'date': date,
           'section': type.section,
           'type': type.apiType,
-          'teamId': teamId,
+          if (teamId.trim().isNotEmpty) 'teamId': teamId,
           'trackingLevel': trackingLevel,
           'assemblyMark':
               type == PebExecutionType.fabrication ? marks.join(',') : '',

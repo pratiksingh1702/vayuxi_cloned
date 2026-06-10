@@ -10,6 +10,7 @@ class User {
   final String? address;
   final String? other;
   final List<String> selectedServices;
+  final List<String> enabledFeatures;
   final String? firstName;
   final String? lastName;
 
@@ -25,9 +26,13 @@ class User {
     this.address,
     this.other,
     required this.selectedServices,
+    this.enabledFeatures = const [],
     this.firstName,
     this.lastName,
   });
+
+  bool get hasSatmaxMainFrameAccess =>
+      enabledFeatures.contains('satmax_main_frame');
 
   /// 🔐 SAFE JSON PARSER (NO RUNTIME CRASHES)
   factory User.fromJson(Map<String, dynamic> json) {
@@ -43,6 +48,7 @@ class User {
       address: _parseNullableString(json['address']),
       other: _parseNullableString(json['other']),
       selectedServices: _parseStringList(json['selectedServices']),
+      enabledFeatures: _parseStringList(json['enabledFeatures']),
       firstName: _parseNullableString(json['firstName']),
       lastName: _parseNullableString(json['lastName']),
     );
@@ -61,6 +67,7 @@ class User {
       'address': address,
       'other': other,
       'selectedServices': selectedServices,
+      'enabledFeatures': enabledFeatures,
       'firstName': firstName,
       'lastName': lastName,
     };
@@ -78,6 +85,7 @@ class User {
     String? address,
     String? other,
     List<String>? selectedServices,
+    List<String>? enabledFeatures,
     String? firstName,
     String? lastName,
   }) {
@@ -93,6 +101,7 @@ class User {
       address: address ?? this.address,
       other: other ?? this.other,
       selectedServices: selectedServices ?? this.selectedServices,
+      enabledFeatures: enabledFeatures ?? this.enabledFeatures,
       firstName: firstName ?? this.firstName,
       lastName: lastName ?? this.lastName,
     );
@@ -105,7 +114,7 @@ class Company {
   final String? logo;
 
   final String? bankName;
-  final String? accountName;   // ✅ NEW FIELD
+  final String? accountName; // ✅ NEW FIELD
   final String? accountNumber;
   final String? ifscCode;
   final String? branch;
@@ -117,7 +126,7 @@ class Company {
     this.name,
     this.logo,
     this.bankName,
-    this.accountName,   // ✅
+    this.accountName, // ✅
     this.accountNumber,
     this.ifscCode,
     this.branch,
@@ -146,7 +155,7 @@ class Company {
       'name': name,
       'logo': logo,
       'bankName': bankName,
-      'accountName': accountName,   // ✅
+      'accountName': accountName, // ✅
       'accountNumber': accountNumber,
       'ifscCode': ifscCode,
       'branch': branch,
@@ -194,4 +203,3 @@ Company? _parseCompany(dynamic value) {
   // backend sometimes sends only company ID (string)
   return null;
 }
-
