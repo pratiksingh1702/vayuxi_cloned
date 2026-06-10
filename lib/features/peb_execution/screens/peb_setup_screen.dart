@@ -486,7 +486,7 @@ class _PebSetupScreenState extends State<PebSetupScreen> {
                   height: 200,
                   child: Image(
                     image: pebWorkImageProvider(item, widget.executionType),
-                    fit: BoxFit.contain,
+                    fit: BoxFit.cover,
                     alignment: Alignment.center,
                     errorBuilder: (_, __, ___) => pebWorkImageFallback(
                       item,

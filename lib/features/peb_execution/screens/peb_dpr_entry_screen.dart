@@ -1833,15 +1833,13 @@ class _PebDprEntryScreenState extends State<PebDprEntryScreen> {
                         child: ClipRRect(
                           borderRadius: BorderRadius.circular(8),
                           child: Container(
-                            width: double.infinity,
-                            color: cs.surfaceContainerHighest,
                             padding: EdgeInsets.all(layout.imageInset),
                             child: Image(
                               image: pebWorkImageProvider(
                                 work.setupItem,
                                 widget.executionType,
                               ),
-                              fit: BoxFit.contain,
+                              fit: BoxFit.cover,
                               alignment: Alignment.center,
                               filterQuality: FilterQuality.medium,
                               errorBuilder: (_, __, ___) =>
@@ -3057,37 +3055,58 @@ class _PebDprEntryScreenState extends State<PebDprEntryScreen> {
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
                       GestureDetector(
+                        behavior: HitTestBehavior.opaque,
                         onTap: selectable
                             ? () => _toggleDetailMark(work, markNumber)
                             : handleUnavailableSelection,
-                        child: Container(
-                          width: layout.compact ? 34 : 38,
-                          height: layout.compact ? 30 : 32,
-                          margin: EdgeInsets.only(top: layout.compact ? 1 : 0),
-                          decoration: BoxDecoration(
-                            borderRadius: BorderRadius.circular(8),
-                            color: selected ? Colors.green : cs.surface,
-                            border: Border.all(
-                              color: selectable || selected
-                                  ? Colors.green
-                                  : cs.outlineVariant,
-                              width: 2,
+                        child: Padding(
+                          padding: EdgeInsets.only(top: layout.compact ? 1 : 0),
+                          child: SizedBox(
+                            width: layout.compact ? 34 : 38,
+                            height: layout.compact ? 32 : 34,
+                            child: Center(
+                              child: AnimatedContainer(
+                                duration: const Duration(milliseconds: 140),
+                                curve: Curves.easeOut,
+                                width: layout.compact ? 23 : 25,
+                                height: layout.compact ? 23 : 25,
+                                decoration: BoxDecoration(
+                                  color: selected
+                                      ? Colors.green
+                                      : selectable
+                                          ? cs.surface
+                                          : cs.surfaceContainerHighest,
+                                  borderRadius: BorderRadius.circular(3),
+                                  border: Border.all(
+                                    color: selected
+                                        ? Colors.green.shade700
+                                        : selectable
+                                            ? cs.primary
+                                            : cs.outlineVariant,
+                                    width: selected ? 2.2 : 1.8,
+                                  ),
+                                  boxShadow: selected
+                                      ? [
+                                          BoxShadow(
+                                            color: Colors.green
+                                                .withValues(alpha: 0.22),
+                                            blurRadius: 5,
+                                            offset: const Offset(0, 2),
+                                          ),
+                                        ]
+                                      : null,
+                                ),
+                                child: selected
+                                    ? const Icon(
+                                        Icons.check_rounded,
+                                        color: Colors.white,
+                                        size: 18,
+                                        weight: 700,
+                                      )
+                                    : null,
+                              ),
                             ),
-                            boxShadow: selected
-                                ? [
-                                    BoxShadow(
-                                      color:
-                                          Colors.green.withValues(alpha: 0.2),
-                                      blurRadius: 4,
-                                      offset: const Offset(0, 2),
-                                    ),
-                                  ]
-                                : null,
                           ),
-                          child: selected
-                              ? const Icon(Icons.check,
-                                  color: Colors.white, size: 20)
-                              : null,
                         ),
                       ),
                       SizedBox(width: layout.smallGap),
@@ -3207,17 +3226,21 @@ class _PebDprEntryScreenState extends State<PebDprEntryScreen> {
                                 color: cs.outline.withValues(alpha: 0.3)),
                             borderRadius: BorderRadius.circular(4),
                           ),
-                          child: Text(
-                            (_markRemarks[key] ?? '').trim().isNotEmpty
-                                ? _markRemarks[key]!
-                                : 'Remark',
-                            style: TextStyle(
-                              fontSize: 10,
-                              fontWeight: FontWeight.w700,
-                              color: cs.onSecondaryContainer,
+                          child: Align(
+                            alignment: Alignment.center,
+                            child: Text(
+                              (_markRemarks[key] ?? '').trim().isNotEmpty
+                                  ? _markRemarks[key]!
+                                  : 'Remark',
+                              textAlign: TextAlign.center,
+                              style: TextStyle(
+                                fontSize: 10,
+                                fontWeight: FontWeight.w700,
+                                color: cs.onSecondaryContainer,
+                              ),
+                              overflow: TextOverflow.ellipsis,
+                              maxLines: 1,
                             ),
-                            overflow: TextOverflow.ellipsis,
-                            maxLines: 1,
                           ),
                         ),
                       ),
@@ -3243,13 +3266,11 @@ class _PebDprEntryScreenState extends State<PebDprEntryScreen> {
                             borderRadius: BorderRadius.circular(8),
                             child: Container(
                               height: layout.v2ImageHeight,
-                              width: double.infinity,
-                              color: cs.surfaceContainerHighest,
                               padding: EdgeInsets.all(layout.imageInset),
                               child: Image(
                                 image: pebWorkImageProvider(
                                     work.setupItem, widget.executionType),
-                                fit: BoxFit.contain,
+                                fit: BoxFit.cover,
                                 alignment: Alignment.center,
                                 filterQuality: FilterQuality.medium,
                                 errorBuilder: (_, __, ___) =>

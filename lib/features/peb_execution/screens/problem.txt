@@ -1,0 +1,152 @@
+
+lib/features/peb_execution/screens/peb_dpr_entry_screen.dart:3057:31: Error: Can't find ']' to match '['.
+                    children: [
+                              ^
+lib/features/peb_execution/screens/peb_dpr_entry_screen.dart:3042:21: Error: Can't find ']' to match '['.
+          children: [
+                    ^
+lib/features/peb_execution/screens/peb_dpr_entry_screen.dart:3066:27: Error: No named parameter with the name 'margin'.
+                          margin: EdgeInsets.only(top: layout.compact ? 1 : 0),
+                          ^^^^^^
+../../flutter_windows_3.35.3-stable/flutter/packages/flutter/lib/src/widgets/basic.dart:2736:9: Context: Found this
+candidate, but the arguments don't match.
+  const SizedBox({super.key, this.width, this.height, super.child});
+        ^^^^^^^^
+lib/features/peb_execution/screens/peb_dpr_entry_screen.dart:3113:33: Error: Expected ')' before this.
+                                : null,
+                                ^
+lib/features/peb_execution/screens/peb_dpr_entry_screen.dart:3252:21: Error: Expected an identifier, but got ']'.
+Try inserting an identifier before ']'.
+                    ],
+                    ^
+lib/features/peb_execution/screens/peb_dpr_entry_screen.dart:3252:21: Error: Expected ')' before this.
+                    ],
+                    ^
+lib/features/peb_execution/screens/peb_dpr_entry_screen.dart:3037:21: Error: Too many positional arguments: 0 allowed,
+but 5 found.
+Try removing the extra positional arguments.
+      child: InkWell(
+                    ^
+../../flutter_windows_3.35.3-stable/flutter/packages/flutter/lib/src/material/ink_well.dart:1513:9: Context: Found this
+candidate, but the arguments don't match.
+  const InkWell({
+        ^^^^^^^
+lib/features/peb_execution/screens/peb_dpr_entry_screen.dart:3254:17: Error: Expected an identifier, but got ']'.
+Try inserting an identifier before ']'.
+                ],
+                ^
+lib/features/peb_execution/screens/peb_dpr_entry_screen.dart:3254:17: Error: Expected ')' before this.
+                ],
+                ^
+lib/features/peb_execution/screens/peb_dpr_entry_screen.dart:3031:27: Error: Too many positional arguments: 0 allowed,
+but 1 found.
+Try removing the extra positional arguments.
+    final card = Container(
+                          ^
+../../flutter_windows_3.35.3-stable/flutter/packages/flutter/lib/src/widgets/container.dart:255:3: Context: Found this
+candidate, but the arguments don't match.
+  Container({
+  ^^^^^^^^^
+lib/features/peb_execution/screens/peb_dpr_entry_screen.dart:3256:13: Error: Expected an identifier, but got ')'.
+Try inserting an identifier before ')'.
+            ),
+            ^
+lib/features/peb_execution/screens/peb_dpr_entry_screen.dart:3259:13: Error: Expected ';' after this.
+            IntrinsicHeight(
+            ^^^^^^^^^^^^^^^
+lib/features/peb_execution/screens/peb_dpr_entry_screen.dart:3372:13: Error: Expected ';' after this.
+            ),
+            ^
+lib/features/peb_execution/screens/peb_dpr_entry_screen.dart:3372:14: Error: Expected an identifier, but got ','.
+Try inserting an identifier before ','.
+            ),
+             ^
+lib/features/peb_execution/screens/peb_dpr_entry_screen.dart:3372:14: Error: Unexpected token ';'.
+            ),
+             ^
+lib/features/peb_execution/screens/peb_dpr_entry_screen.dart:3447:15: Error: Expected ';' after this.
+              ),
+              ^
+lib/features/peb_execution/screens/peb_dpr_entry_screen.dart:3447:16: Error: Expected an identifier, but got ','.
+Try inserting an identifier before ','.
+              ),
+               ^
+lib/features/peb_execution/screens/peb_dpr_entry_screen.dart:3447:16: Error: Unexpected token ';'.
+              ),
+               ^
+lib/features/peb_execution/screens/peb_dpr_entry_screen.dart:3448:11: Error: Expected an identifier, but got ']'.
+Try inserting an identifier before ']'.
+          ],
+          ^
+lib/features/peb_execution/screens/peb_dpr_entry_screen.dart:3447:16: Error: Expected ';' after this.
+              ),
+               ^
+lib/features/peb_execution/screens/peb_dpr_entry_screen.dart:3448:11: Error: Unexpected token ';'.
+          ],
+          ^
+lib/features/peb_execution/screens/peb_dpr_entry_screen.dart:3448:12: Error: Expected an identifier, but got ','.
+Try inserting an identifier before ','.
+          ],
+           ^
+lib/features/peb_execution/screens/peb_dpr_entry_screen.dart:3448:11: Error: Expected ';' after this.
+          ],
+          ^
+lib/features/peb_execution/screens/peb_dpr_entry_screen.dart:3448:12: Error: Unexpected token ';'.
+          ],
+           ^
+lib/features/peb_execution/screens/peb_dpr_entry_screen.dart:3449:9: Error: Expected an identifier, but got ')'.
+Try inserting an identifier before ')'.
+        ),
+        ^
+lib/features/peb_execution/screens/peb_dpr_entry_screen.dart:3448:12: Error: Expected ';' after this.
+          ],
+           ^
+lib/features/peb_execution/screens/peb_dpr_entry_screen.dart:3449:9: Error: Unexpected token ';'.
+        ),
+        ^
+lib/features/peb_execution/screens/peb_dpr_entry_screen.dart:3449:10: Error: Expected an identifier, but got ','.
+Try inserting an identifier before ','.
+        ),
+         ^
+lib/features/peb_execution/screens/peb_dpr_entry_screen.dart:3449:9: Error: Expected ';' after this.
+        ),
+        ^
+lib/features/peb_execution/screens/peb_dpr_entry_screen.dart:3449:10: Error: Unexpected token ';'.
+        ),
+         ^
+lib/features/peb_execution/screens/peb_dpr_entry_screen.dart:3450:7: Error: Expected an identifier, but got ')'.
+Try inserting an identifier before ')'.
+      ),
+      ^
+lib/features/peb_execution/screens/peb_dpr_entry_screen.dart:3449:10: Error: Expected ';' after this.
+        ),
+         ^
+lib/features/peb_execution/screens/peb_dpr_entry_screen.dart:3450:7: Error: Unexpected token ';'.
+      ),
+      ^
+lib/features/peb_execution/screens/peb_dpr_entry_screen.dart:3450:8: Error: Expected an identifier, but got ','.
+Try inserting an identifier before ','.
+      ),
+       ^
+lib/features/peb_execution/screens/peb_dpr_entry_screen.dart:3450:7: Error: Expected ';' after this.
+      ),
+      ^
+lib/features/peb_execution/screens/peb_dpr_entry_screen.dart:3450:8: Error: Unexpected token ';'.
+      ),
+       ^
+lib/features/peb_execution/screens/peb_dpr_entry_screen.dart:3451:5: Error: Expected an identifier, but got ')'.
+Try inserting an identifier before ')'.
+    );
+    ^
+lib/features/peb_execution/screens/peb_dpr_entry_screen.dart:3450:8: Error: Expected ';' after this.
+      ),
+       ^
+lib/features/peb_execution/screens/peb_dpr_entry_screen.dart:3451:5: Error: Unexpected token ';'.
+    );
+    ^
+lib/features/peb_execution/screens/peb_dpr_entry_screen.dart:2972:10: Error: A non-null value must be returned since the
+return type 'Widget' doesn't allow null.
+ - 'Widget' is from 'package:flutter/src/widgets/framework.dart'
+ ('../../flutter_windows_3.35.3-stable/flutter/packages/flutter/lib/src/widgets/framework.dart').
+  Widget _buildMarkEntryCardV2(
+         ^
