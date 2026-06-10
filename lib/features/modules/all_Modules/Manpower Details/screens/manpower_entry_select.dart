@@ -1,20 +1,13 @@
 // screens/add_floor_page.dart
 import 'package:flutter/material.dart';
-import 'package:go_router/go_router.dart';
 
 import 'package:untitled2/core/utlis/widgets/Button_wrapper.dart';
 import 'package:untitled2/core/utlis/widgets/custom_appBar.dart';
 import 'package:untitled2/features/modules/all_Modules/Manpower%20Details/screens/ManFieldMappingScreen.dart';
-import 'package:untitled2/features/modules/all_Modules/dpr/dpr-setup/screens/view/view_select_page.dart';
-import 'package:untitled2/features/modules/all_Modules/rate/screens/rate.dart';
-import 'package:untitled2/features/modules/all_Modules/site_Details/screens/siteDetailScreen.dart';
-import 'package:untitled2/features/modules/all_Modules/site_Details/screens/siteList.dart';
 
 import '../../../../../core/utlis/widgets/sidebar.dart';
 import '../../dpr/screens/widgets/select_card.dart';
-import '../../rate/screens/import_sheet.dart';
 import 'addManpower.dart';
-import 'man_import.dart';
 
 class ManEntrySelectCardGrid extends StatelessWidget {
   const ManEntrySelectCardGrid({super.key});
@@ -51,7 +44,7 @@ class ManEntrySelectCardGrid extends StatelessWidget {
                     ),
                     label: "Manual Entry",
                     onTap: () {
-                      Navigator.push(
+                      Navigator.pushReplacement(
                         context,
                         MaterialPageRoute(
                             builder: (context) => NewManpowerScreen()),
@@ -65,10 +58,11 @@ class ManEntrySelectCardGrid extends StatelessWidget {
                     ),
                     label: "Import Sheet",
                     onTap: () {
-                      Navigator.push(
+                      Navigator.pushReplacement(
                         context,
                         MaterialPageRoute(
-                            builder: (context) => const ManFieldMappingScreen()),
+                            builder: (context) =>
+                                const ManFieldMappingScreen()),
                       );
                     },
                   ),

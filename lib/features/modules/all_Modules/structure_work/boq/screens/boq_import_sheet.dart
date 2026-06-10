@@ -1,14 +1,11 @@
-import 'dart:io';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:file_picker/file_picker.dart';
-import 'package:go_router/go_router.dart';
 import 'package:untitled2/core/utlis/app_toasts.dart';
 import 'package:untitled2/core/utlis/widgets/custom_appBar.dart';
 import 'package:untitled2/core/utlis/widgets/file_upload.dart';
 import 'package:untitled2/core/utlis/widgets/image_clipped.dart';
 import 'package:untitled2/features/modules/all_Modules/structure_work/boq/providers/boq_structure_provider.dart';
-import 'package:untitled2/features/modules/all_Modules/structure_work/boq/screens/boq_item_list.dart';
 import 'package:untitled2/core/utlis/widgets/sidebar.dart';
 import 'package:untitled2/typeProvider/type_provider.dart';
 
@@ -76,16 +73,7 @@ class _BoqImportSheetScreenState extends ConsumerState<BoqImportSheetScreen> {
 
       if (success) {
         AppToast.success("✅ BOQ uploaded successfully!");
-        // Navigate to the list screen to see the items
-        Navigator.pushReplacement(
-          context,
-          MaterialPageRoute(
-            builder: (context) => BoqItemListScreen(
-              siteId: widget.siteId,
-              siteName: widget.siteName,
-            ),
-          ),
-        );
+        Navigator.pop(context, true);
       } else {
         final error = ref.read(boqStructureProvider).error;
         AppToast.error('Upload failed: ${error ?? "Unknown error"}');
@@ -101,7 +89,7 @@ class _BoqImportSheetScreenState extends ConsumerState<BoqImportSheetScreen> {
   @override
   Widget build(BuildContext context) {
     final colorScheme = Theme.of(context).colorScheme;
-    
+
     return Scaffold(
       drawer: const CustomDrawer(),
       backgroundColor: colorScheme.surfaceContainerLowest,
@@ -141,9 +129,8 @@ class _BoqImportSheetScreenState extends ConsumerState<BoqImportSheetScreen> {
               UploadBox(
                 title: 'Upload your BOQ Excel file',
                 subtitle: _selectedFileName ?? 'No file selected',
-                buttonText: _selectedFileName == null
-                    ? 'Choose File'
-                    : 'Change File',
+                buttonText:
+                    _selectedFileName == null ? 'Choose File' : 'Change File',
                 onPressed: _pickExcelFile,
               ),
 
@@ -158,7 +145,8 @@ class _BoqImportSheetScreenState extends ConsumerState<BoqImportSheetScreen> {
                     backgroundColor: colorScheme.primary,
                     foregroundColor: colorScheme.onPrimary,
                     padding: const EdgeInsets.symmetric(vertical: 16),
-                    disabledBackgroundColor: colorScheme.primary.withOpacity(0.5),
+                    disabledBackgroundColor:
+                        colorScheme.primary.withOpacity(0.5),
                     elevation: 0,
                     shape: RoundedRectangleBorder(
                       borderRadius: BorderRadius.circular(12),

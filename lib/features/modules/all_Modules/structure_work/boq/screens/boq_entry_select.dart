@@ -1,5 +1,4 @@
 import 'package:flutter/material.dart';
-import 'package:go_router/go_router.dart';
 import 'package:untitled2/core/utlis/widgets/Button_wrapper.dart';
 import 'package:untitled2/core/utlis/widgets/custom_appBar.dart';
 import 'package:untitled2/core/utlis/widgets/sidebar.dart';
@@ -21,7 +20,7 @@ class BoqEntrySelectScreen extends StatelessWidget {
   Widget build(BuildContext context) {
     final colorScheme = Theme.of(context).colorScheme;
     final isDark = Theme.of(context).brightness == Brightness.dark;
-    
+
     return Scaffold(
       drawer: const CustomDrawer(),
       backgroundColor: colorScheme.surfaceContainerLowest,
@@ -48,8 +47,8 @@ class BoqEntrySelectScreen extends StatelessWidget {
                       color: Colors.blue,
                     ),
                     label: "Manual Entry",
-                    onTap: () {
-                      Navigator.push(
+                    onTap: () async {
+                      final saved = await Navigator.push<bool>(
                         context,
                         MaterialPageRoute(
                           builder: (context) => BoqItemDetailsScreen(
@@ -59,6 +58,9 @@ class BoqEntrySelectScreen extends StatelessWidget {
                           ),
                         ),
                       );
+                      if (saved == true && context.mounted) {
+                        Navigator.pop(context, true);
+                      }
                     },
                   ),
                   SelectCard(
@@ -67,8 +69,8 @@ class BoqEntrySelectScreen extends StatelessWidget {
                       color: Colors.deepOrange,
                     ),
                     label: "Import Sheet",
-                    onTap: () {
-                      Navigator.push(
+                    onTap: () async {
+                      final saved = await Navigator.push<bool>(
                         context,
                         MaterialPageRoute(
                           builder: (context) => BoqImportSheetScreen(
@@ -77,6 +79,9 @@ class BoqEntrySelectScreen extends StatelessWidget {
                           ),
                         ),
                       );
+                      if (saved == true && context.mounted) {
+                        Navigator.pop(context, true);
+                      }
                     },
                   ),
                 ],

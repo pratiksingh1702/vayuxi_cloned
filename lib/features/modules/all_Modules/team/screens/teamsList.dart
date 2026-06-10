@@ -17,7 +17,6 @@ import '../provider/teamProvider.dart';
 import '../provider/teamService.dart';
 
 import 'addTeam.dart';
-import 'editTeam.dart';
 import '../../../../../core/utlis/widgets/empty_module_state.dart';
 
 class TeamListPage extends ConsumerStatefulWidget {
@@ -180,8 +179,14 @@ class _TeamListPageState extends ConsumerState<TeamListPage> {
               text: "Add",
               color: colorScheme.primary,
               textColor: colorScheme.onPrimary,
-              onPressed: () {
-                context.push(Routes.addTeam);
+              onPressed: () async {
+                await Navigator.push(
+                  context,
+                  MaterialPageRoute(
+                      builder: (_) =>
+                          const AddTeamScreen(returnResultOnSave: true)),
+                );
+                if (mounted) _refreshTeams();
               },
             ),
           ),
@@ -266,10 +271,19 @@ class _TeamListPageState extends ConsumerState<TeamListPage> {
                     child: teams.isEmpty
                         ? EmptyModuleState(
                             title: "No Teams Created",
-                            subtitle: "Create your first team to organize manpower",
+                            subtitle:
+                                "Create your first team to organize manpower",
                             icon: Icons.groups_rounded,
                             actionLabel: "Add Team",
-                            onAction: () => context.push(Routes.addTeam),
+                            onAction: () async {
+                              await Navigator.push(
+                                context,
+                                MaterialPageRoute(
+                                    builder: (_) => const AddTeamScreen(
+                                        returnResultOnSave: true)),
+                              );
+                              if (mounted) _refreshTeams();
+                            },
                           )
                         : LiquidPullToRefresh(
                             onRefresh: _refreshTeams,

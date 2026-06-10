@@ -73,8 +73,8 @@ class _BoqItemListScreenState extends ConsumerState<BoqItemListScreen> {
                 text: "Add BOQ",
                 color: colorScheme.primary,
                 textColor: colorScheme.onPrimary,
-                onPressed: () {
-                  Navigator.push(
+                onPressed: () async {
+                  final saved = await Navigator.push<bool>(
                     context,
                     MaterialPageRoute(
                       builder: (context) => BoqEntrySelectScreen(
@@ -83,6 +83,11 @@ class _BoqItemListScreenState extends ConsumerState<BoqItemListScreen> {
                       ),
                     ),
                   );
+                  if (saved == true && mounted) {
+                    ref
+                        .read(boqStructureProvider.notifier)
+                        .fetchBOQs(widget.siteId);
+                  }
                 },
               ),
             ),

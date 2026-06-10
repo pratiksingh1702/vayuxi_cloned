@@ -21,6 +21,7 @@ import '../../site_Details/repository/siteModel.dart';
 import '../service/manPowerProvider.dart';
 
 import 'dart:math';
+import 'manpowerList.dart';
 
 class NewManpowerScreen extends ConsumerStatefulWidget {
   const NewManpowerScreen({super.key});
@@ -374,8 +375,9 @@ class _NewManpowerScreenState extends ConsumerState<NewManpowerScreen> {
         );
       }
 
-      context.pop();
-      context.push("/manpower");
+      Navigator.of(context).pushReplacement(
+        MaterialPageRoute(builder: (_) => const ManpowerListScreen()),
+      );
     } catch (e, s) {
       print(s);
       print("Error 😑😑😑😑😑😑😑: $e");

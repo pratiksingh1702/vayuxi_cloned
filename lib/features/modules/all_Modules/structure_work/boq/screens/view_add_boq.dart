@@ -66,8 +66,8 @@ class ViewAddBoqScreen extends StatelessWidget {
                       color: Colors.green,
                     ),
                     label: "Add",
-                    onTap: () {
-                      Navigator.push(
+                    onTap: () async {
+                      final saved = await Navigator.push<bool>(
                         context,
                         MaterialPageRoute(
                           builder: (context) => BoqEntrySelectScreen(
@@ -76,6 +76,17 @@ class ViewAddBoqScreen extends StatelessWidget {
                           ),
                         ),
                       );
+                      if (saved == true && context.mounted) {
+                        Navigator.push(
+                          context,
+                          MaterialPageRoute(
+                            builder: (context) => BoqItemListScreen(
+                              siteId: siteId,
+                              siteName: siteName,
+                            ),
+                          ),
+                        );
+                      }
                     },
                   ),
                 ],

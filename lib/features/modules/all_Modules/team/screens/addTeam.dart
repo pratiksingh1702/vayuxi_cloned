@@ -21,7 +21,9 @@ import '../../../../../core/utlis/widgets/fields/custom_textField.dart';
 import 'teamsList.dart';
 
 class AddTeamScreen extends ConsumerStatefulWidget {
-  const AddTeamScreen({super.key});
+  final bool returnResultOnSave;
+
+  const AddTeamScreen({super.key, this.returnResultOnSave = false});
 
   @override
   ConsumerState<AddTeamScreen> createState() => _AddTeamScreenState();
@@ -781,6 +783,10 @@ class _AddTeamScreenState extends ConsumerState<AddTeamScreen> {
                                 .markTeamDone();
 
                             if (!mounted) return;
+                            if (widget.returnResultOnSave) {
+                              Navigator.pop(context, true);
+                              return;
+                            }
                             Navigator.of(context).pushReplacement(
                               MaterialPageRoute(
                                 builder: (_) => const TeamListPage(),
