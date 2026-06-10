@@ -441,18 +441,7 @@ class _TourIntroBody extends StatelessWidget {
           ],
         ),
         const SizedBox(height: 4),
-        _ErpPreviewArt(cs: cs),
-        const SizedBox(height: 16),
-        Row(
-          mainAxisAlignment: MainAxisAlignment.center,
-          children: [
-            _IntroDot(active: true, color: cs.primary),
-            const SizedBox(width: 7),
-            _IntroDot(active: false, color: cs.primary),
-            const SizedBox(width: 7),
-            _IntroDot(active: false, color: cs.primary),
-          ],
-        ),
+        _TourIntroImageSlider(cs: cs),
         const SizedBox(height: 20),
         Text(
           'Welcome to Your',
@@ -570,14 +559,54 @@ class _TourIntroBody extends StatelessWidget {
   }
 }
 
-class _ErpPreviewArt extends StatelessWidget {
+class _TourIntroImageSlider extends StatefulWidget {
   final ColorScheme cs;
 
-  const _ErpPreviewArt({required this.cs});
+  const _TourIntroImageSlider({required this.cs});
+
+  @override
+  State<_TourIntroImageSlider> createState() => _TourIntroImageSliderState();
+}
+
+class _TourIntroImageSliderState extends State<_TourIntroImageSlider> {
+  static const _images = [
+    'assets/images/tour_intro/erp_intro_1.png',
+    'assets/images/tour_intro/erp_intro_2.png',
+    'assets/images/tour_intro/erp_intro_3.png',
+  ];
+
+  late final PageController _controller;
+  Timer? _timer;
+  int _activeIndex = 0;
+
+  @override
+  void initState() {
+    super.initState();
+    _controller = PageController(viewportFraction: 0.9);
+    _timer = Timer.periodic(const Duration(milliseconds: 2300), (_) {
+      if (!mounted || !_controller.hasClients) return;
+      final nextIndex = (_activeIndex + 1) % _images.length;
+      _controller.animateToPage(
+        nextIndex,
+        duration: const Duration(milliseconds: 620),
+        curve: Curves.easeInOutCubic,
+      );
+    });
+  }
+
+  @override
+  void dispose() {
+    _timer?.cancel();
+    _controller.dispose();
+    super.dispose();
+  }
 
   @override
   Widget build(BuildContext context) {
-    return TweenAnimationBuilder<double>(
+    final cs = widget.cs;
+    return Column(
+      children: [
+        TweenAnimationBuilder<double>(
       tween: Tween(begin: 0, end: 1),
       duration: const Duration(milliseconds: 850),
       curve: Curves.easeOutCubic,
@@ -587,121 +616,82 @@ class _ErpPreviewArt extends StatelessWidget {
           child: Opacity(opacity: value, child: child),
         );
       },
-      child: SizedBox(
-        height: 185,
-        child: Stack(
-          alignment: Alignment.center,
-          children: [
-            Container(
-              width: double.infinity,
-              height: 170,
-              decoration: BoxDecoration(
-                borderRadius: BorderRadius.circular(22),
-                gradient: LinearGradient(
-                  begin: Alignment.topLeft,
-                  end: Alignment.bottomRight,
-                  colors: [
-                    cs.primaryContainer.withOpacity(0.55),
-                    cs.surfaceContainerHighest.withOpacity(0.7),
-                  ],
-                ),
-              ),
-            ),
-            Positioned(
-              top: 18,
-              child: Container(
-                width: 190,
-                height: 106,
-                padding: const EdgeInsets.all(12),
-                decoration: BoxDecoration(
-                  color: cs.surface,
-                  borderRadius: BorderRadius.circular(16),
-                  border: Border.all(color: cs.primary.withOpacity(0.34)),
-                  boxShadow: [
-                    BoxShadow(
-                      color: cs.primary.withOpacity(0.16),
-                      blurRadius: 20,
-                      offset: const Offset(0, 10),
-                    ),
-                  ],
-                ),
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Row(
-                      children: [
-                        Text(
-                          'ERP',
-                          style: GoogleFonts.poppins(
-                            fontSize: 28,
-                            fontWeight: FontWeight.w900,
-                            color: cs.primary,
-                            decoration: TextDecoration.none,
+          child: SizedBox(
+            height: 190,
+            child: PageView.builder(
+              controller: _controller,
+              physics: const BouncingScrollPhysics(),
+              itemCount: _images.length,
+              onPageChanged: (index) => setState(() => _activeIndex = index),
+              itemBuilder: (context, index) {
+                return AnimatedBuilder(
+                  animation: _controller,
+                  builder: (context, child) {
+                    double distance = 0;
+                    if (_controller.hasClients &&
+                        _controller.position.haveDimensions) {
+                      distance = (_controller.page ?? _activeIndex.toDouble()) - index;
+                    } else {
+                      distance = (_activeIndex - index).toDouble();
+                    }
+                    final scale = (1 - distance.abs() * 0.08).clamp(0.9, 1.0);
+                    return Transform.scale(
+                      scale: scale,
+                      child: child,
+                    );
+                  },
+                  child: Padding(
+                    padding: const EdgeInsets.symmetric(horizontal: 4),
+                    child: DecoratedBox(
+                      decoration: BoxDecoration(
+                        borderRadius: BorderRadius.circular(22),
+                        boxShadow: [
+                          BoxShadow(
+                            color: cs.primary.withOpacity(0.16),
+                            blurRadius: 22,
+                            offset: const Offset(0, 12),
+                          ),
+                        ],
+                      ),
+                      child: ClipRRect(
+                        borderRadius: BorderRadius.circular(22),
+                        child: Image.asset(
+                          _images[index],
+                          fit: BoxFit.cover,
+                          alignment: Alignment.center,
+                          filterQuality: FilterQuality.medium,
+                          errorBuilder: (_, __, ___) => Container(
+                            color: cs.primaryContainer,
+                            child: Icon(
+                              Icons.dashboard_customize_rounded,
+                              size: 56,
+                              color: cs.primary,
+                            ),
                           ),
                         ),
-                        const Spacer(),
-                        Icon(Icons.pie_chart_rounded,
-                            color: cs.tertiary, size: 28),
-                      ],
+                      ),
                     ),
-                    const SizedBox(height: 8),
-                    _ArtLine(width: 90, color: cs.primary),
-                    const SizedBox(height: 7),
-                    _ArtLine(width: 140, color: cs.outlineVariant),
-                    const SizedBox(height: 7),
-                    Row(
-                      children: [
-                        _MiniBar(height: 20, color: cs.primary),
-                        _MiniBar(height: 32, color: cs.tertiary),
-                        _MiniBar(height: 25, color: cs.secondary),
-                        const Spacer(),
-                        Icon(Icons.trending_up_rounded,
-                            color: Colors.green.shade600, size: 26),
-                      ],
-                    ),
-                  ],
-                ),
-              ),
+                  ),
+                );
+              },
             ),
-            Positioned(
-              left: 22,
-              bottom: 30,
-              child: _FloatingPanel(
-                cs: cs,
-                icon: Icons.bar_chart_rounded,
-                color: cs.primary,
-              ),
-            ),
-            Positioned(
-              right: 18,
-              bottom: 24,
-              child: _FloatingPanel(
-                cs: cs,
-                icon: Icons.groups_rounded,
-                color: Colors.teal,
-              ),
-            ),
-            Positioned(
-              left: 58,
-              top: 12,
-              child: _FloatingIcon(
-                cs: cs,
-                icon: Icons.settings_rounded,
-                color: cs.primary,
-              ),
-            ),
-            Positioned(
-              right: 64,
-              top: 8,
-              child: _FloatingIcon(
-                cs: cs,
-                icon: Icons.analytics_rounded,
-                color: Colors.teal,
-              ),
-            ),
-          ],
+          ),
         ),
-      ),
+        const SizedBox(height: 14),
+        Row(
+          mainAxisAlignment: MainAxisAlignment.center,
+          children: List.generate(
+            _images.length,
+            (index) => Padding(
+              padding: const EdgeInsets.symmetric(horizontal: 4),
+              child: _IntroDot(
+                active: _activeIndex == index,
+                color: cs.primary,
+              ),
+            ),
+          ),
+        ),
+      ],
     );
   }
 }
@@ -768,110 +758,6 @@ class _IntroDot extends StatelessWidget {
         color: active ? color : color.withOpacity(0.2),
         borderRadius: BorderRadius.circular(99),
       ),
-    );
-  }
-}
-
-class _ArtLine extends StatelessWidget {
-  final double width;
-  final Color color;
-
-  const _ArtLine({required this.width, required this.color});
-
-  @override
-  Widget build(BuildContext context) {
-    return Container(
-      width: width,
-      height: 7,
-      decoration: BoxDecoration(
-        color: color.withOpacity(0.32),
-        borderRadius: BorderRadius.circular(99),
-      ),
-    );
-  }
-}
-
-class _MiniBar extends StatelessWidget {
-  final double height;
-  final Color color;
-
-  const _MiniBar({required this.height, required this.color});
-
-  @override
-  Widget build(BuildContext context) {
-    return Container(
-      width: 12,
-      height: height,
-      margin: const EdgeInsets.only(right: 5),
-      decoration: BoxDecoration(
-        color: color.withOpacity(0.75),
-        borderRadius: BorderRadius.circular(4),
-      ),
-    );
-  }
-}
-
-class _FloatingPanel extends StatelessWidget {
-  final ColorScheme cs;
-  final IconData icon;
-  final Color color;
-
-  const _FloatingPanel({
-    required this.cs,
-    required this.icon,
-    required this.color,
-  });
-
-  @override
-  Widget build(BuildContext context) {
-    return Container(
-      width: 74,
-      height: 58,
-      decoration: BoxDecoration(
-        color: cs.surface,
-        borderRadius: BorderRadius.circular(14),
-        border: Border.all(color: cs.outlineVariant),
-        boxShadow: [
-          BoxShadow(
-            color: cs.shadow.withOpacity(0.08),
-            blurRadius: 14,
-            offset: const Offset(0, 7),
-          ),
-        ],
-      ),
-      child: Icon(icon, color: color, size: 28),
-    );
-  }
-}
-
-class _FloatingIcon extends StatelessWidget {
-  final ColorScheme cs;
-  final IconData icon;
-  final Color color;
-
-  const _FloatingIcon({
-    required this.cs,
-    required this.icon,
-    required this.color,
-  });
-
-  @override
-  Widget build(BuildContext context) {
-    return Container(
-      width: 42,
-      height: 42,
-      decoration: BoxDecoration(
-        color: color,
-        borderRadius: BorderRadius.circular(14),
-        boxShadow: [
-          BoxShadow(
-            color: color.withOpacity(0.24),
-            blurRadius: 14,
-            offset: const Offset(0, 7),
-          ),
-        ],
-      ),
-      child: Icon(icon, color: cs.onPrimary, size: 22),
     );
   }
 }

@@ -153,6 +153,7 @@ flutter:
   assets:
     - assets/terms.md
     - assets/images/
+    - assets/images/tour_intro/
     - assets/stepper/
     - assets/floor/
     - assets/fonts/Roboto-Regular.ttf
