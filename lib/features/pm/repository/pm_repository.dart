@@ -204,6 +204,7 @@ class PmRepository {
         final json = Map<String, dynamic>.from(item);
         return PmEntry.fromJson({
           '_id': json['entryId'] ?? json['_id'],
+          'equipmentId': json['_id'] ?? json['resourceId'],
           'entryDate': date,
           'categoryName': json['categoryName'],
           'equipmentName': json['resourceName'],
@@ -268,21 +269,26 @@ class PmRepository {
       return;
     }
 
-    await _dio.post(
-      '/site/$siteId/pm/entry',
-      data: {
-        'type': workType,
-        'entryDate': date,
-        'categoryKey': equipment.categoryKey,
-        'categoryName': equipment.categoryName,
-        if (equipment.source == 'custom')
-          'equipmentOverrideId': equipment.id
-        else
-          'masterEquipmentId': equipment.id,
-        'equipmentName': equipment.equipmentName,
-        'equipmentImage': equipment.image,
-        ...data,
-      },
-    );
+    final entryId = data['entryId']?.toString() ?? '';
+    final payload = {
+      'type': workType,
+      'entryDate': date,
+      'categoryKey': equipment.categoryKey,
+      'categoryName': equipment.categoryName,
+      if (equipment.source == 'custom')
+        'equipmentOverrideId': equipment.id
+      else
+        'masterEquipmentId': equipment.id,
+      'equipmentName': equipment.equipmentName,
+      'equipmentImage': equipment.image,
+      ...data,
+    }..remove('entryId');
+
+    if (entryId.isNotEmpty) {
+      await _dio.put('/site/$siteId/pm/entry/$entryId', data: payload);
+      return;
+    }
+
+    await _dio.post('/site/$siteId/pm/entry', data: payload);
   }
 }

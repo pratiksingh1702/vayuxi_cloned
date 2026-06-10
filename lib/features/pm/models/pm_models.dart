@@ -92,6 +92,7 @@ class PmOptionalField {
 
 class PmEntry {
   final String id;
+  final String equipmentId;
   final DateTime entryDate;
   final String categoryName;
   final String equipmentName;
@@ -99,16 +100,27 @@ class PmEntry {
   final String equipmentNumber;
   final String equipmentCapacity;
   final String ownerType;
+  final String vendorName;
+  final String startTime;
+  final String endTime;
+  final double breakdownHours;
+  final double idleHours;
+  final String operatorName;
+  final String driverName;
+  final String fuelType;
   final String status;
   final double totalWorkingHours;
   final double fuelConsumed;
   final double quantityExecuted;
   final String unit;
   final String location;
+  final String activityPerformed;
   final String workDescription;
+  final bool maintenanceRequired;
 
   const PmEntry({
     required this.id,
+    required this.equipmentId,
     required this.entryDate,
     required this.categoryName,
     required this.equipmentName,
@@ -116,18 +128,34 @@ class PmEntry {
     required this.equipmentNumber,
     required this.equipmentCapacity,
     required this.ownerType,
+    required this.vendorName,
+    required this.startTime,
+    required this.endTime,
+    required this.breakdownHours,
+    required this.idleHours,
+    required this.operatorName,
+    required this.driverName,
+    required this.fuelType,
     required this.status,
     required this.totalWorkingHours,
     required this.fuelConsumed,
     required this.quantityExecuted,
     required this.unit,
     required this.location,
+    required this.activityPerformed,
     required this.workDescription,
+    required this.maintenanceRequired,
   });
 
   factory PmEntry.fromJson(Map<String, dynamic> json) {
     return PmEntry(
       id: (json['_id'] ?? json['id'] ?? '').toString(),
+      equipmentId: (json['equipmentId'] ??
+              json['resourceId'] ??
+              json['equipmentOverrideId'] ??
+              json['masterEquipmentId'] ??
+              '')
+          .toString(),
       entryDate: DateTime.tryParse(
               (json['entryDate'] ?? json['date'] ?? '').toString()) ??
           DateTime.now(),
@@ -137,13 +165,23 @@ class PmEntry {
       equipmentNumber: (json['equipmentNumber'] ?? '').toString(),
       equipmentCapacity: (json['equipmentCapacity'] ?? '').toString(),
       ownerType: (json['ownerType'] ?? '').toString(),
+      vendorName: (json['vendorName'] ?? '').toString(),
+      startTime: (json['startTime'] ?? '').toString(),
+      endTime: (json['endTime'] ?? '').toString(),
+      breakdownHours: _toDouble(json['breakdownHours']),
+      idleHours: _toDouble(json['idleHours']),
+      operatorName: (json['operatorName'] ?? '').toString(),
+      driverName: (json['driverName'] ?? '').toString(),
+      fuelType: (json['fuelType'] ?? '').toString(),
       status: (json['status'] ?? 'working').toString(),
       totalWorkingHours: _toDouble(json['totalWorkingHours']),
       fuelConsumed: _toDouble(json['fuelConsumed']),
       quantityExecuted: _toDouble(json['quantityExecuted']),
       unit: (json['unit'] ?? '').toString(),
       location: (json['location'] ?? '').toString(),
+      activityPerformed: (json['activityPerformed'] ?? '').toString(),
       workDescription: (json['workDescription'] ?? '').toString(),
+      maintenanceRequired: json['maintenanceRequired'] == true,
     );
   }
 }

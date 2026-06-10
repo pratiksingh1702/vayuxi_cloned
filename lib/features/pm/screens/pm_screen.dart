@@ -852,6 +852,7 @@ class _EntryTabState extends ConsumerState<_EntryTab> {
   String _fuelType = '';
   String _status = 'working';
   bool _maintenanceRequired = false;
+  String _entrySyncKey = '';
 
   @override
   void dispose() {
@@ -896,6 +897,7 @@ class _EntryTabState extends ConsumerState<_EntryTab> {
       );
     }
     _equipment = selectedEquipment;
+    _syncSelectedEntry(selectedEquipment);
 
     return ListView(
       padding: const EdgeInsets.all(14),
@@ -1014,11 +1016,13 @@ class _EntryTabState extends ConsumerState<_EntryTab> {
       widget.onError('Please select equipment');
       return;
     }
+    final existingEntry = _entryForEquipment(equipment);
     final ok = await ref.read(pmProvider.notifier).createEntry(
       widget.siteId,
       equipment: equipment,
       workType: widget.workType,
       data: {
+        if (existingEntry?.id.isNotEmpty == true) 'entryId': existingEntry!.id,
         'equipmentNumber': _equipmentNo.text.trim(),
         'equipmentCapacity': _capacity.text.trim(),
         'vendorName': _vendor.text.trim(),
@@ -1060,9 +1064,88 @@ class _EntryTabState extends ConsumerState<_EntryTab> {
   void _selectEquipment(PmEquipment equipment) {
     setState(() {
       _equipment = equipment;
-      _capacity.text = equipment.capacity;
-      _unit.text = equipment.unit;
+      _entrySyncKey = '';
+      _syncSelectedEntry(equipment);
     });
+  }
+
+  PmEntry? _entryForEquipment(PmEquipment equipment) {
+    for (final entry in widget.state.entries) {
+      if (entry.equipmentId == equipment.id) return entry;
+    }
+    for (final entry in widget.state.entries) {
+      final sameName = entry.equipmentName.trim().toLowerCase() ==
+          equipment.equipmentName.trim().toLowerCase();
+      final sameCategory = entry.categoryName.trim().toLowerCase() ==
+          equipment.categoryName.trim().toLowerCase();
+      if (sameName && sameCategory) return entry;
+    }
+    return null;
+  }
+
+  void _syncSelectedEntry(PmEquipment equipment) {
+    final dateKey = formatPmDate(widget.state.selectedDate);
+    final entry = _entryForEquipment(equipment);
+    final nextKey = '${equipment.id}:$dateKey:${entry?.id ?? 'new'}';
+    if (_entrySyncKey == nextKey) return;
+    _entrySyncKey = nextKey;
+
+    if (entry == null) {
+      _clearEntryFields(equipment);
+      return;
+    }
+
+    _equipmentNo.text = entry.equipmentNumber;
+    _capacity.text = entry.equipmentCapacity.isNotEmpty
+        ? entry.equipmentCapacity
+        : equipment.capacity;
+    _ownerType = entry.ownerType;
+    _vendor.text = entry.vendorName;
+    _start.text = entry.startTime;
+    _end.text = entry.endTime;
+    _working.text = _formatEntryNumber(entry.totalWorkingHours);
+    _breakdown.text = _formatEntryNumber(entry.breakdownHours);
+    _idle.text = _formatEntryNumber(entry.idleHours);
+    _operator.text = entry.operatorName;
+    _driver.text = entry.driverName;
+    _fuelType = entry.fuelType;
+    _fuel.text = _formatEntryNumber(entry.fuelConsumed);
+    _quantity.text = _formatEntryNumber(entry.quantityExecuted);
+    _unit.text = entry.unit.isNotEmpty ? entry.unit : equipment.unit;
+    _location.text = entry.location;
+    _activity.text = entry.activityPerformed;
+    _description.text = entry.workDescription;
+    _status = entry.status.isNotEmpty ? entry.status : 'working';
+    _maintenanceRequired = entry.maintenanceRequired;
+  }
+
+  void _clearEntryFields(PmEquipment equipment) {
+    _equipmentNo.clear();
+    _capacity.text = equipment.capacity;
+    _ownerType = '';
+    _vendor.clear();
+    _start.clear();
+    _end.clear();
+    _working.clear();
+    _breakdown.clear();
+    _idle.clear();
+    _operator.clear();
+    _driver.clear();
+    _fuelType = '';
+    _fuel.clear();
+    _quantity.clear();
+    _unit.text = equipment.unit;
+    _location.clear();
+    _activity.clear();
+    _description.clear();
+    _status = 'working';
+    _maintenanceRequired = false;
+  }
+
+  String _formatEntryNumber(double value) {
+    if (value == 0) return '';
+    if (value == value.roundToDouble()) return value.toStringAsFixed(0);
+    return value.toStringAsFixed(2);
   }
 
   Future<void> _editSelectedWork(PmEquipment equipment) async {
