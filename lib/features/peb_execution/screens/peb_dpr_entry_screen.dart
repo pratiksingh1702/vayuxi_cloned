@@ -5,6 +5,7 @@ import 'package:intl/intl.dart';
 import 'package:untitled2/core/utlis/app_toasts.dart';
 import 'package:untitled2/core/utlis/common_functions.dart';
 import 'package:untitled2/core/utlis/widgets/custom_appBar.dart';
+import 'package:untitled2/core/utlis/widgets/custom_scrollbar.dart';
 import 'package:untitled2/core/utlis/widgets/sidebar.dart';
 import '../models/peb_execution_models.dart';
 import '../services/peb_execution_service.dart';
@@ -50,6 +51,12 @@ class _PebDprEntryScreenState extends State<PebDprEntryScreen> {
   PebMarkStatus _status =
       const PebMarkStatus(completedByKey: {}, inProgressByKey: {});
 
+  // Mark search / sort / filter
+  String _markSearchQuery = '';
+  bool _markSortAz = true; // true = A→Z, false = Z→A
+  String? _markFilterStatus; // null = all, 'pending', 'inProgress', 'completed'
+  final TextEditingController _markSearchCtrl = TextEditingController();
+
   @override
   void initState() {
     super.initState();
@@ -78,6 +85,7 @@ class _PebDprEntryScreenState extends State<PebDprEntryScreen> {
   @override
   void dispose() {
     _scrollController.dispose();
+    _markSearchCtrl.dispose();
     super.dispose();
   }
 
@@ -302,20 +310,6 @@ class _PebDprEntryScreenState extends State<PebDprEntryScreen> {
   }
 
   void _startMarkAction(_DprMarkActionMode mode) {
-    final work = _activeWork(_visibleWorks());
-    final hasSelectableMarks =
-        work != null && _hasSelectableMarksForMode(work, mode);
-    final hasCompletedMarks = work != null &&
-        mode == _DprMarkActionMode.completed &&
-        _displayMarksForWork(work).any(_completedForWork(work).contains);
-
-    if (!hasSelectableMarks && !hasCompletedMarks) {
-      AppToast.info(mode == _DprMarkActionMode.completed
-          ? 'No pending marks available to complete'
-          : 'No pending marks available for in progress');
-      return;
-    }
-
     setState(() {
       _markActionMode = mode;
       _selectedDetailMarks.clear();
@@ -339,6 +333,83 @@ class _PebDprEntryScreenState extends State<PebDprEntryScreen> {
         _selectedDetailMarks.add(mark);
       }
     });
+  }
+
+  void _toggleSelectAll(_VisibleWork work) {
+    if (_markActionMode == _DprMarkActionMode.none) return;
+    final visibleMarks = _filteredSortedMarks(work);
+    final completedMarks = _completedForWork(work);
+    final inProgressMarks = _inProgressForWork(work);
+
+    final selectableMarks = visibleMarks.where((mark) {
+      final locked = _nextPendingPrerequisite(work, mark) != null;
+      final completed = completedMarks.contains(mark);
+      final inProgress = inProgressMarks.contains(mark);
+
+      return !locked &&
+          !completed &&
+          !(_markActionMode == _DprMarkActionMode.inProgress && inProgress);
+    }).toList();
+
+    if (selectableMarks.isEmpty) return;
+
+    final allSelected = selectableMarks.every(_selectedDetailMarks.contains);
+
+    setState(() {
+      if (allSelected) {
+        for (final mark in selectableMarks) {
+          _selectedDetailMarks.remove(mark);
+        }
+      } else {
+        _selectedDetailMarks.addAll(selectableMarks);
+      }
+    });
+  }
+
+  Widget _selectAllButton(_VisibleWork work) {
+    final visibleMarks = _filteredSortedMarks(work);
+    final completedMarks = _completedForWork(work);
+    final inProgressMarks = _inProgressForWork(work);
+
+    final selectableMarks = visibleMarks.where((mark) {
+      final locked = _nextPendingPrerequisite(work, mark) != null;
+      final completed = completedMarks.contains(mark);
+      final inProgress = inProgressMarks.contains(mark);
+      return !locked &&
+          !completed &&
+          !(_markActionMode == _DprMarkActionMode.inProgress && inProgress);
+    }).toList();
+
+    if (visibleMarks.isEmpty) return const SizedBox.shrink();
+
+    final allSelected = selectableMarks.isNotEmpty &&
+        selectableMarks.every(_selectedDetailMarks.contains);
+    final cs = Theme.of(context).colorScheme;
+
+    return TextButton.icon(
+      onPressed: () {
+        if (selectableMarks.isEmpty) {
+          if (visibleMarks.isNotEmpty) {
+            AppToast.info(
+                'No selectable marks available. Some might be locked or already completed.');
+          }
+          return;
+        }
+        _toggleSelectAll(work);
+      },
+      icon: Icon(
+        allSelected ? Icons.deselect_rounded : Icons.select_all_rounded,
+        size: 20,
+      ),
+      label: Text(
+        allSelected ? 'Deselect All' : 'Select All',
+        style: const TextStyle(fontWeight: FontWeight.w800),
+      ),
+      style: TextButton.styleFrom(
+        foregroundColor: allSelected ? cs.error : cs.primary,
+        padding: const EdgeInsets.symmetric(horizontal: 12),
+      ),
+    );
   }
 
   Future<void> _pickDate() async {
@@ -991,11 +1062,13 @@ class _PebDprEntryScreenState extends State<PebDprEntryScreen> {
                     ? _buildNoTeamsState()
                     : Stack(
                         children: [
-                          RefreshIndicator(
-                            onRefresh: _load,
-                            child: ListView(
-                              controller: _scrollController,
-                              padding: const EdgeInsets.all(16),
+                          CustomScrollbar(
+                            controller: _scrollController,
+                            child: RefreshIndicator(
+                              onRefresh: _load,
+                              child: ListView(
+                                controller: _scrollController,
+                                padding: const EdgeInsets.all(16),
                               children: activeWork == null
                                   ? [
                                       _buildFilters(),
@@ -1033,13 +1106,15 @@ class _PebDprEntryScreenState extends State<PebDprEntryScreen> {
                                     ]
                                   : _markActionMode == _DprMarkActionMode.none
                                       ? [
-                                          _buildStatusStepperScreen(activeWork),
+                                          _buildWorkDetailHeader(activeWork),
                                           const SizedBox(height: 90),
                                         ]
                                       : [
                                           _buildWorkDetailHeader(activeWork),
                                           const SizedBox(height: 12),
-                                          ...activeMarks.map(
+                                          _buildMarkSearchBar(activeWork),
+                                          const SizedBox(height: 8),
+                                          ..._filteredSortedMarks(activeWork).map(
                                             (mark) => _buildMarkEntryCardV2(
                                               activeWork,
                                               mark,
@@ -1048,11 +1123,25 @@ class _PebDprEntryScreenState extends State<PebDprEntryScreen> {
                                                   .contains(mark),
                                             ),
                                           ),
+                                          if (_filteredSortedMarks(activeWork).isEmpty && activeMarks.isNotEmpty)
+                                            Padding(
+                                              padding: const EdgeInsets.symmetric(vertical: 32),
+                                              child: Center(
+                                                child: Text(
+                                                  'No marks match "$_markSearchQuery"',
+                                                  style: TextStyle(
+                                                    color: Theme.of(context).colorScheme.onSurfaceVariant,
+                                                    fontWeight: FontWeight.w600,
+                                                  ),
+                                                ),
+                                              ),
+                                            ),
                                           if (activeMarks.isEmpty)
                                             _buildQuantityWorkEntryCard(
                                                 activeWork),
                                           const SizedBox(height: 190),
                                         ],
+                              ),
                             ),
                           ),
                           if (activeWork != null && activeMarks.isNotEmpty)
@@ -1094,86 +1183,90 @@ class _PebDprEntryScreenState extends State<PebDprEntryScreen> {
 
   Widget _buildLoadErrorState() {
     final cs = Theme.of(context).colorScheme;
-    return RefreshIndicator(
-      onRefresh: _load,
-      child: ListView(
-        physics: const AlwaysScrollableScrollPhysics(),
-        padding: const EdgeInsets.all(24),
-        children: [
-          const SizedBox(height: 100),
-          Icon(Icons.cloud_off_rounded, size: 64, color: cs.error),
-          const SizedBox(height: 18),
-          Text(
-            'Unable to load DPR Entry',
-            textAlign: TextAlign.center,
-            style: TextStyle(
-              color: cs.onSurface,
-              fontSize: 20,
-              fontWeight: FontWeight.w800,
+    return CustomScrollbar(
+      child: RefreshIndicator(
+        onRefresh: _load,
+        child: ListView(
+          physics: const AlwaysScrollableScrollPhysics(),
+          padding: const EdgeInsets.all(24),
+          children: [
+            const SizedBox(height: 100),
+            Icon(Icons.cloud_off_rounded, size: 64, color: cs.error),
+            const SizedBox(height: 18),
+            Text(
+              'Unable to load DPR Entry',
+              textAlign: TextAlign.center,
+              style: TextStyle(
+                color: cs.onSurface,
+                fontSize: 20,
+                fontWeight: FontWeight.w800,
+              ),
             ),
-          ),
-          const SizedBox(height: 8),
-          Text(
-            _loadError ?? 'Please try again.',
-            textAlign: TextAlign.center,
-            style: TextStyle(color: cs.onSurfaceVariant),
-          ),
-          const SizedBox(height: 20),
-          FilledButton.icon(
-            onPressed: _load,
-            icon: const Icon(Icons.refresh_rounded),
-            label: const Text('Try Again'),
-          ),
-          const SizedBox(height: 8),
-          TextButton.icon(
-            onPressed: () => context.pop(),
-            icon: const Icon(Icons.arrow_back_rounded),
-            label: const Text('Back to Sites'),
-          ),
-        ],
+            const SizedBox(height: 8),
+            Text(
+              _loadError ?? 'Please try again.',
+              textAlign: TextAlign.center,
+              style: TextStyle(color: cs.onSurfaceVariant),
+            ),
+            const SizedBox(height: 20),
+            FilledButton.icon(
+              onPressed: _load,
+              icon: const Icon(Icons.refresh_rounded),
+              label: const Text('Try Again'),
+            ),
+            const SizedBox(height: 8),
+            TextButton.icon(
+              onPressed: () => context.pop(),
+              icon: const Icon(Icons.arrow_back_rounded),
+              label: const Text('Back to Sites'),
+            ),
+          ],
+        ),
       ),
     );
   }
 
   Widget _buildNoTeamsState() {
     final cs = Theme.of(context).colorScheme;
-    return RefreshIndicator(
-      onRefresh: _load,
-      child: ListView(
-        physics: const AlwaysScrollableScrollPhysics(),
-        padding: const EdgeInsets.all(24),
-        children: [
-          const SizedBox(height: 100),
-          Icon(Icons.groups_2_outlined, size: 68, color: cs.primary),
-          const SizedBox(height: 18),
-          Text(
-            'No team available',
-            textAlign: TextAlign.center,
-            style: TextStyle(
-              color: cs.onSurface,
-              fontSize: 20,
-              fontWeight: FontWeight.w800,
+    return CustomScrollbar(
+      child: RefreshIndicator(
+        onRefresh: _load,
+        child: ListView(
+          physics: const AlwaysScrollableScrollPhysics(),
+          padding: const EdgeInsets.all(24),
+          children: [
+            const SizedBox(height: 100),
+            Icon(Icons.groups_2_outlined, size: 68, color: cs.primary),
+            const SizedBox(height: 18),
+            Text(
+              'No team available',
+              textAlign: TextAlign.center,
+              style: TextStyle(
+                color: cs.onSurface,
+                fontSize: 20,
+                fontWeight: FontWeight.w800,
+              ),
             ),
-          ),
-          const SizedBox(height: 8),
-          Text(
-            'Create a ${widget.executionType.title} team in Setup > Team, then return here to enter DPR progress.',
-            textAlign: TextAlign.center,
-            style: TextStyle(color: cs.onSurfaceVariant, height: 1.45),
-          ),
-          const SizedBox(height: 20),
-          FilledButton.icon(
-            onPressed: _load,
-            icon: const Icon(Icons.refresh_rounded),
-            label: const Text('Refresh Teams'),
-          ),
-          const SizedBox(height: 8),
-          TextButton.icon(
-            onPressed: () => context.pop(),
-            icon: const Icon(Icons.arrow_back_rounded),
-            label: const Text('Back to Sites'),
-          ),
-        ],
+            const SizedBox(height: 8),
+            Text(
+              'Create a ${widget.executionType.title} team in Setup > Team, then return here to enter DPR progress.',
+              textAlign: TextAlign.center,
+              style: TextStyle(color: cs.onSurfaceVariant, height: 1.45),
+            ),
+            const SizedBox(height: 20),
+            FilledButton.icon(
+              onPressed: _load,
+              icon: const Icon(Icons.refresh_rounded),
+              label: const Text('Refresh Teams'),
+            ),
+            const SizedBox(height: 8),
+            TextButton.icon(
+              onPressed: () => context.pop(),
+              icon: const Icon(Icons.arrow_back_rounded),
+              label: const Text('Back to Sites'),
+            ),
+          ],
+        ),
       ),
     );
   }
@@ -1431,6 +1524,9 @@ class _PebDprEntryScreenState extends State<PebDprEntryScreen> {
     final completion = counts.total > 0
         ? (counts.completed / counts.total).clamp(0.0, 1.0)
         : 0.0;
+    final workUom = work.setupItem.uom.trim().isEmpty
+        ? '-'
+        : work.setupItem.uom.trim();
 
     final today =
         DateTime(_selectedDate.year, _selectedDate.month, _selectedDate.day);
@@ -1529,34 +1625,85 @@ class _PebDprEntryScreenState extends State<PebDprEntryScreen> {
               child: IntrinsicHeight(
                 child: Row(
                   children: [
-                    // LEFT COLUMN: Image & Update indicator
+                    // LEFT COLUMN: Image
                     Expanded(
-                      child: Container(
+                      child: Padding(
                         padding: const EdgeInsets.fromLTRB(14, 4, 7, 14),
-                        child: Column(
-                          crossAxisAlignment: CrossAxisAlignment.start,
-                          children: [
-                            Expanded(
-                              child: ClipRRect(
-                                borderRadius: BorderRadius.circular(8),
-                                child: Container(
-                                  width: double.infinity,
-                                  decoration: BoxDecoration(
-                                    color: cs.surfaceContainerHighest,
-                                    borderRadius: BorderRadius.circular(8),
-                                  ),
-                                  child: Image(
-                                    image: pebWorkImageProvider(work.setupItem, widget.executionType),
-                                    fit: BoxFit.cover,
-                                    errorBuilder: (_, __, ___) => pebWorkImageFallback(
-                                      work.setupItem,
-                                      widget.executionType,
-                                    ),
-                                  ),
+                        child: SizedBox(
+                          height: 130,
+                          child: ClipRRect(
+                            borderRadius: BorderRadius.circular(8),
+                            child: Container(
+                              width: double.infinity,
+                              color: cs.surfaceContainerHighest,
+                              child: Image(
+                                image: pebWorkImageProvider(work.setupItem, widget.executionType),
+                                fit: BoxFit.cover,
+                                errorBuilder: (_, __, ___) => pebWorkImageFallback(
+                                  work.setupItem,
+                                  widget.executionType,
                                 ),
                               ),
                             ),
-                            const SizedBox(height: 12),
+                          ),
+                        ),
+                      ),
+                    ),
+
+                    // RIGHT COLUMN: Stats, Progress Bar, & Update indicator
+                    Expanded(
+                      child: Container(
+                        padding: const EdgeInsets.fromLTRB(7, 4, 14, 14),
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            Container(
+                              padding: const EdgeInsets.symmetric(vertical: 8, horizontal: 4),
+                              decoration: BoxDecoration(
+                                color: cs.surfaceContainer.withOpacity(0.5),
+                                borderRadius: BorderRadius.circular(8),
+                                border: Border.all(color: cs.outlineVariant.withOpacity(0.3)),
+                              ),
+                              child: Row(
+                                children: [
+                                  Expanded(
+                                    child: _minimalWorkCountBlock('Assigned', counts.total, cs.onSurface, cs),
+                                  ),
+                                  Container(width: 1, height: 24, color: cs.outlineVariant.withOpacity(0.5)),
+                                  Expanded(
+                                    child: _minimalWorkCountBlock('Pending', counts.inProgress, Colors.orange, cs),
+                                  ),
+                                  Container(width: 1, height: 24, color: cs.outlineVariant.withOpacity(0.5)),
+                                  Expanded(
+                                    child: _minimalWorkCountBlock('Done', counts.completed, Colors.green, cs),
+                                  ),
+                                  Container(width: 1, height: 24, color: cs.outlineVariant.withOpacity(0.5)),
+                                  Expanded(
+                                    child: _minimalWorkTextBlock('UOM', workUom, cs.primary, cs),
+                                  ),
+                                ],
+                              ),
+                            ),
+                            const SizedBox(height: 8),
+                            _completionBar(
+                              value: completion,
+                              color: Colors.green.shade700,
+                              backgroundColor: cs.surfaceContainerHighest,
+                            ),
+                            if (work.expectedCompletionDate != null) ...[
+                              const SizedBox(height: 3),
+                              Text(
+                                missed
+                                    ? '${days.abs()} days overdue'
+                                    : '$days days remaining',
+                                style: TextStyle(
+                                  color: missed ? Colors.red.shade700 : cs.onSurfaceVariant,
+                                  fontSize: 10,
+                                  fontWeight: FontWeight.w600,
+                                ),
+                              ),
+                            ],
+                            const SizedBox(height: 8),
                             Container(
                               height: 32,
                               decoration: BoxDecoration(
@@ -1589,60 +1736,6 @@ class _PebDprEntryScreenState extends State<PebDprEntryScreen> {
                         ),
                       ),
                     ),
-
-                    // RIGHT COLUMN: Stats & Progress Bar
-                    Expanded(
-                      child: Container(
-                        padding: const EdgeInsets.fromLTRB(7, 4, 14, 14),
-                        child: Column(
-                          crossAxisAlignment: CrossAxisAlignment.start,
-                          children: [
-                            Container(
-                              padding: const EdgeInsets.symmetric(vertical: 8, horizontal: 4),
-                              decoration: BoxDecoration(
-                                color: cs.surfaceContainer.withOpacity(0.5),
-                                borderRadius: BorderRadius.circular(8),
-                                border: Border.all(color: cs.outlineVariant.withOpacity(0.3)),
-                              ),
-                              child: Row(
-                                children: [
-                                  Expanded(
-                                    child: _minimalWorkCountBlock('Assigned', counts.total, cs.onSurface, cs),
-                                  ),
-                                  Container(width: 1, height: 24, color: cs.outlineVariant.withOpacity(0.5)),
-                                  Expanded(
-                                    child: _minimalWorkCountBlock('Pending', counts.inProgress, Colors.orange, cs),
-                                  ),
-                                  Container(width: 1, height: 24, color: cs.outlineVariant.withOpacity(0.5)),
-                                  Expanded(
-                                    child: _minimalWorkCountBlock('Done', counts.completed, Colors.green, cs),
-                                  ),
-                                ],
-                              ),
-                            ),
-                            const Spacer(),
-                            _completionBar(
-                              value: completion,
-                              color: Colors.green.shade700,
-                              backgroundColor: cs.surfaceContainerHighest,
-                            ),
-                            if (work.expectedCompletionDate != null) ...[
-                              const SizedBox(height: 8),
-                              Text(
-                                missed
-                                    ? '${days.abs()} days overdue'
-                                    : '$days days remaining',
-                                style: TextStyle(
-                                  color: missed ? Colors.red.shade700 : cs.onSurfaceVariant,
-                                  fontSize: 10,
-                                  fontWeight: FontWeight.w600,
-                                ),
-                              ),
-                            ],
-                          ],
-                        ),
-                      ),
-                    ),
                   ],
                 ),
               ),
@@ -1660,7 +1753,7 @@ class _PebDprEntryScreenState extends State<PebDprEntryScreen> {
               : 0.46,
       child: Container(
         margin: const EdgeInsets.only(bottom: 10),
-        height: 240,
+        height: 195,
         child: card,
       ),
     );
@@ -1670,14 +1763,7 @@ class _PebDprEntryScreenState extends State<PebDprEntryScreen> {
     return Column(
       mainAxisSize: MainAxisSize.min,
       children: [
-        Text(
-          label,
-          style: TextStyle(
-            fontSize: 9,
-            fontWeight: FontWeight.w600,
-            color: cs.onSurfaceVariant,
-          ),
-        ),
+        _minimalWorkBlockLabel(label, cs),
         const SizedBox(height: 2),
         Text(
           '$count',
@@ -1688,6 +1774,49 @@ class _PebDprEntryScreenState extends State<PebDprEntryScreen> {
           ),
         ),
       ],
+    );
+  }
+
+  Widget _minimalWorkTextBlock(String label, String value, Color color, ColorScheme cs) {
+    return Column(
+      mainAxisSize: MainAxisSize.min,
+      children: [
+        _minimalWorkBlockLabel(label, cs),
+        const SizedBox(height: 2),
+        Padding(
+          padding: const EdgeInsets.symmetric(horizontal: 2),
+          child: FittedBox(
+            fit: BoxFit.scaleDown,
+            child: Text(
+              value,
+              maxLines: 1,
+              style: TextStyle(
+                fontSize: 13,
+                fontWeight: FontWeight.w800,
+                color: color,
+              ),
+            ),
+          ),
+        ),
+      ],
+    );
+  }
+
+  Widget _minimalWorkBlockLabel(String label, ColorScheme cs) {
+    return Padding(
+      padding: const EdgeInsets.symmetric(horizontal: 2),
+      child: FittedBox(
+        fit: BoxFit.scaleDown,
+        child: Text(
+          label,
+          maxLines: 1,
+          style: TextStyle(
+            fontSize: 9,
+            fontWeight: FontWeight.w600,
+            color: cs.onSurfaceVariant,
+          ),
+        ),
+      ),
     );
   }
 
@@ -1852,6 +1981,52 @@ class _PebDprEntryScreenState extends State<PebDprEntryScreen> {
     );
   }
 
+  /// Read-only blue box matching AssemblyCardWidget._blueBox style.
+  Widget _assemblyBlueBox({
+    required String label,
+    required String value,
+    required ColorScheme cs,
+  }) {
+    const blueFill = Color.fromARGB(255, 255, 255, 255);
+    const darkBlueFill = Color(0xFF1E3A5F);
+    final isDark = Theme.of(context).brightness == Brightness.dark;
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Padding(
+          padding: const EdgeInsets.only(bottom: 4),
+          child: Text(
+            label,
+            style: TextStyle(
+              fontSize: 9,
+              fontWeight: FontWeight.w600,
+              color: cs.onSurface,
+            ),
+          ),
+        ),
+        Container(
+          height: 26,
+          width: double.infinity,
+          alignment: Alignment.center,
+          decoration: BoxDecoration(
+            color: isDark ? darkBlueFill : cs.surface,
+            borderRadius: BorderRadius.circular(8),
+            border: Border.all(color: cs.outlineVariant.withOpacity(0.5)),
+          ),
+          child: Text(
+            value,
+            textAlign: TextAlign.center,
+            style: TextStyle(
+              fontSize: 10,
+              fontWeight: FontWeight.w700,
+              color: cs.onSurface,
+            ),
+          ),
+        ),
+      ],
+    );
+  }
+
   Widget _compactPillBanner({
     required IconData icon,
     required Color color,
@@ -1884,106 +2059,69 @@ class _PebDprEntryScreenState extends State<PebDprEntryScreen> {
   }
 
   Widget _buildWorkDetailHeader(_VisibleWork work) {
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        TextButton.icon(
-          onPressed: _handleWorkBack,
-          icon: const Icon(Icons.arrow_back_rounded),
-          label: const Text('Status'),
-        ),
-        Text(
-          work.displayName ?? work.stageName,
-          style: const TextStyle(fontSize: 26, fontWeight: FontWeight.w900),
-        ),
-        const SizedBox(height: 6),
-        Text(
-          _markActionMode == _DprMarkActionMode.completed
-              ? 'Select mark numbers to complete.'
-              : 'Select mark numbers to mark as in progress.',
-          style: TextStyle(
-            color: Theme.of(context).colorScheme.onSurfaceVariant,
-            fontSize: 12,
-            fontWeight: FontWeight.w700,
-          ),
-        ),
-      ],
-    );
-  }
-
-  Widget _buildStatusStepperScreen(_VisibleWork work) {
     final cs = Theme.of(context).colorScheme;
     final inProgressColor = const Color(0xFFE56F00);
     final completedColor = Colors.green.shade700;
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        TextButton.icon(
-          onPressed: _closeWorkDetail,
-          icon: const Icon(Icons.arrow_back_rounded),
-          label: const Text('Assigned Work'),
-        ),
-        Container(
-          padding: const EdgeInsets.all(14),
-          decoration: BoxDecoration(
-            color: cs.surface,
-            borderRadius: BorderRadius.circular(18),
-            border: Border.all(color: cs.outlineVariant),
-            boxShadow: [
-              BoxShadow(
-                color: Colors.black.withValues(alpha: 0.035),
-                blurRadius: 12,
-                offset: const Offset(0, 4),
-              ),
-            ],
-          ),
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              Text(
+        Row(
+          mainAxisAlignment: MainAxisAlignment.spaceBetween,
+          children: [
+            Expanded(
+              child: Text(
                 work.displayName ?? work.stageName,
-                style: TextStyle(
-                  color: cs.onSurface,
-                  fontSize: 22,
-                  fontWeight: FontWeight.w900,
+                style:
+                    const TextStyle(fontSize: 26, fontWeight: FontWeight.w900),
+              ),
+            ),
+            if (_markActionMode != _DprMarkActionMode.none)
+              _selectAllButton(work),
+          ],
+        ),
+        const SizedBox(height: 6),
+        if (_markActionMode == _DprMarkActionMode.none) ...[
+          Text(
+            'Whether your work is?',
+            style: TextStyle(
+              color: cs.onSurface,
+              fontSize: 16,
+              fontWeight: FontWeight.w900,
+            ),
+          ),
+          const SizedBox(height: 12),
+          Row(
+            children: [
+              Expanded(
+                child: _statusChoiceButton(
+                  label: 'In Progress',
+                  icon: Icons.pending_actions_rounded,
+                  color: inProgressColor,
+                  onTap: () => _startMarkAction(_DprMarkActionMode.inProgress),
                 ),
               ),
-              const SizedBox(height: 4),
-              Text(
-                'Whether your work is?',
-                style: TextStyle(
-                  color: cs.onSurface,
-                  fontSize: 16,
-                  fontWeight: FontWeight.w900,
+              const SizedBox(width: 12),
+              Expanded(
+                child: _statusChoiceButton(
+                  label: 'Completed',
+                  icon: Icons.check_circle_rounded,
+                  color: completedColor,
+                  onTap: () => _startMarkAction(_DprMarkActionMode.completed),
                 ),
-              ),
-              const SizedBox(height: 16),
-              Row(
-                children: [
-                  Expanded(
-                    child: _statusChoiceButton(
-                      label: 'In Progress',
-                      icon: Icons.pending_actions_rounded,
-                      color: inProgressColor,
-                      onTap: () =>
-                          _startMarkAction(_DprMarkActionMode.inProgress),
-                    ),
-                  ),
-                  const SizedBox(width: 12),
-                  Expanded(
-                    child: _statusChoiceButton(
-                      label: 'Completed',
-                      icon: Icons.check_circle_rounded,
-                      color: completedColor,
-                      onTap: () =>
-                          _startMarkAction(_DprMarkActionMode.completed),
-                    ),
-                  ),
-                ],
               ),
             ],
           ),
-        ),
+        ] else
+          Text(
+            _markActionMode == _DprMarkActionMode.completed
+                ? 'Select mark numbers to complete.'
+                : 'Select mark numbers to mark as in progress.',
+            style: TextStyle(
+              color: Theme.of(context).colorScheme.onSurfaceVariant,
+              fontSize: 12,
+              fontWeight: FontWeight.w700,
+            ),
+          ),
       ],
     );
   }
@@ -2088,6 +2226,358 @@ class _PebDprEntryScreenState extends State<PebDprEntryScreen> {
               ),
             ],
           ),
+        ),
+      ),
+    );
+  }
+
+  // ─── Mark Search / Sort / Filter helpers ───────────────────────────────────
+
+  /// Fuzzy-filters and sorts the mark numbers for [work].
+  List<String> _filteredSortedMarks(_VisibleWork work) {
+    final allMarks = _displayMarksForWork(work);
+    final q = _markSearchQuery.trim().toLowerCase();
+
+    var result = allMarks.where((mark) {
+      // Status filter
+      if (_markFilterStatus != null) {
+        final completed = _completedForWork(work).contains(mark);
+        final inProgress = _inProgressForWork(work).contains(mark);
+        if (_markFilterStatus == 'completed' && !completed) return false;
+        if (_markFilterStatus == 'inProgress' && !inProgress) return false;
+        if (_markFilterStatus == 'pending' && (completed || inProgress)) return false;
+      }
+      // Fuzzy search — mark no OR description OR assembly mark
+      if (q.isEmpty) return true;
+      final boqMark = _boqMarkFor(mark);
+      final desc = (boqMark?.typeDescription ?? '').toLowerCase();
+      final assemblyMark = (boqMark?.assemblyMark ?? '').toLowerCase();
+      final markLower = mark.toLowerCase();
+      // Contains match (lenient — partial anywhere)
+      return markLower.contains(q) ||
+          desc.contains(q) ||
+          assemblyMark.contains(q);
+    }).toList();
+
+    // Sort
+    result.sort((a, b) => _markSortAz ? a.compareTo(b) : b.compareTo(a));
+    return result;
+  }
+
+  /// Search bar + filter button in manpowerList style.
+  Widget _buildMarkSearchBar(_VisibleWork work) {
+    final cs = Theme.of(context).colorScheme;
+    final hasFilters = _markFilterStatus != null || !_markSortAz;
+    return Padding(
+      padding: const EdgeInsets.symmetric(horizontal: 0),
+      child: Row(
+        children: [
+          Expanded(
+            child: TextField(
+              controller: _markSearchCtrl,
+              onChanged: (val) => setState(() => _markSearchQuery = val),
+              decoration: InputDecoration(
+                hintText: 'Search mark no. or description…',
+                prefixIcon: const Icon(Icons.search_rounded, size: 20),
+                suffixIcon: _markSearchQuery.isNotEmpty
+                    ? IconButton(
+                        icon: const Icon(Icons.close_rounded, size: 18),
+                        onPressed: () {
+                          _markSearchCtrl.clear();
+                          setState(() => _markSearchQuery = '');
+                        },
+                      )
+                    : null,
+                isDense: true,
+                filled: true,
+                fillColor: cs.surface,
+                contentPadding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
+                border: OutlineInputBorder(
+                  borderRadius: BorderRadius.circular(10),
+                  borderSide: BorderSide.none,
+                ),
+                enabledBorder: OutlineInputBorder(
+                  borderRadius: BorderRadius.circular(10),
+                  borderSide: BorderSide(color: cs.outlineVariant.withOpacity(0.4)),
+                ),
+              ),
+            ),
+          ),
+          const SizedBox(width: 8),
+          // Filter/Sort button — matches manpowerList _buildFilterButton
+          GestureDetector(
+            onTap: () => _showMarkFilterSheet(work),
+            child: Container(
+              height: 40,
+              width: 40,
+              decoration: BoxDecoration(
+                color: hasFilters ? cs.primary : cs.surface,
+                borderRadius: BorderRadius.circular(10),
+                border: Border.all(
+                  color: hasFilters ? cs.primary : cs.outlineVariant,
+                ),
+                boxShadow: hasFilters
+                    ? [BoxShadow(color: cs.primary.withOpacity(0.3), blurRadius: 8, offset: const Offset(0, 2))]
+                    : null,
+              ),
+              child: Stack(
+                alignment: Alignment.center,
+                children: [
+                  Icon(
+                    Icons.tune_rounded,
+                    size: 20,
+                    color: hasFilters ? cs.onPrimary : cs.primary,
+                  ),
+                  if (hasFilters)
+                    Positioned(
+                      top: 6,
+                      right: 6,
+                      child: Container(
+                        width: 8,
+                        height: 8,
+                        decoration: BoxDecoration(
+                          color: cs.error,
+                          shape: BoxShape.circle,
+                          border: Border.all(color: cs.primary, width: 1.5),
+                        ),
+                      ),
+                    ),
+                ],
+              ),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  void _showMarkFilterSheet(_VisibleWork work) {
+    final cs = Theme.of(context).colorScheme;
+    showModalBottomSheet<void>(
+      context: context,
+      isScrollControlled: true,
+      backgroundColor: Colors.transparent,
+      builder: (ctx) => StatefulBuilder(
+        builder: (ctx, setModal) => Container(
+          height: MediaQuery.of(context).size.height * 0.70,
+          decoration: BoxDecoration(
+            color: cs.surface,
+            borderRadius: const BorderRadius.vertical(top: Radius.circular(24)),
+          ),
+          child: Column(
+            children: [
+              // Handle
+              Container(
+                margin: const EdgeInsets.symmetric(vertical: 12),
+                width: 40,
+                height: 4,
+                decoration: BoxDecoration(
+                  color: cs.outlineVariant,
+                  borderRadius: BorderRadius.circular(2),
+                ),
+              ),
+              // Header
+              Padding(
+                padding: const EdgeInsets.symmetric(horizontal: 20),
+                child: Row(
+                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                  children: [
+                    Text('Sort & Filter',
+                        style: TextStyle(
+                            fontSize: 20,
+                            fontWeight: FontWeight.bold,
+                            color: cs.onSurface)),
+                    TextButton(
+                      onPressed: () {
+                        setModal(() {
+                          _markSortAz = true;
+                          _markFilterStatus = null;
+                        });
+                        setState(() {});
+                      },
+                      child: const Text('Reset All'),
+                    ),
+                  ],
+                ),
+              ),
+              const Divider(),
+              Expanded(
+                child: ListView(
+                  padding: const EdgeInsets.all(20),
+                  children: [
+                    // SORT SECTION
+                    _buildSectionTitle('Sort By'),
+                    const SizedBox(height: 12),
+                    Wrap(
+                      spacing: 8,
+                      runSpacing: 8,
+                      children: [
+                        _buildSortChip(
+                          setModal,
+                          'Mark A → Z',
+                          _markSortAz,
+                          Icons.sort_by_alpha_rounded,
+                          () {
+                            setModal(() => _markSortAz = true);
+                            setState(() {});
+                          },
+                        ),
+                        _buildSortChip(
+                          setModal,
+                          'Mark Z → A',
+                          !_markSortAz,
+                          Icons.sort_rounded,
+                          () {
+                            setModal(() => _markSortAz = false);
+                            setState(() {});
+                          },
+                        ),
+                      ],
+                    ),
+                    const SizedBox(height: 24),
+
+                    // FILTER BY STATUS
+                    _buildSectionTitle('Filter by Status'),
+                    const SizedBox(height: 12),
+                    Wrap(
+                      spacing: 8,
+                      runSpacing: 8,
+                      children: [
+                        _markFilterChip('All', _markFilterStatus == null, () {
+                          setModal(() => _markFilterStatus = null);
+                          setState(() {});
+                        }),
+                        _markFilterChip('Pending', _markFilterStatus == 'pending',
+                            () {
+                          setModal(() => _markFilterStatus = 'pending');
+                          setState(() {});
+                        }),
+                        _markFilterChip(
+                            'In Progress', _markFilterStatus == 'inProgress', () {
+                          setModal(() => _markFilterStatus = 'inProgress');
+                          setState(() {});
+                        }),
+                        _markFilterChip(
+                            'Completed', _markFilterStatus == 'completed', () {
+                          setModal(() => _markFilterStatus = 'completed');
+                          setState(() {});
+                        }),
+                      ],
+                    ),
+                  ],
+                ),
+              ),
+              // Apply Button
+              Padding(
+                padding: const EdgeInsets.all(20),
+                child: SizedBox(
+                  width: double.infinity,
+                  height: 54,
+                  child: ElevatedButton(
+                    onPressed: () => Navigator.pop(ctx),
+                    style: ElevatedButton.styleFrom(
+                      backgroundColor: cs.primary,
+                      foregroundColor: cs.onPrimary,
+                      shape: RoundedRectangleBorder(
+                        borderRadius: BorderRadius.circular(16),
+                      ),
+                      elevation: 0,
+                    ),
+                    child: const Text(
+                      'Apply Filters',
+                      style:
+                          TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
+                    ),
+                  ),
+                ),
+              ),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+
+  Widget _buildSectionTitle(String title) {
+    return Text(
+      title,
+      style: TextStyle(
+        fontSize: 16,
+        fontWeight: FontWeight.bold,
+        color: Theme.of(context).colorScheme.onSurface,
+      ),
+    );
+  }
+
+  Widget _buildSortChip(
+    StateSetter setModalState,
+    String label,
+    bool isSelected,
+    IconData icon,
+    VoidCallback onTap,
+  ) {
+    final cs = Theme.of(context).colorScheme;
+    return GestureDetector(
+      onTap: onTap,
+      child: Container(
+        padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+        decoration: BoxDecoration(
+          color: isSelected ? cs.primary : cs.surface,
+          borderRadius: BorderRadius.circular(10),
+          border: Border.all(
+            color: isSelected ? cs.primary : cs.outlineVariant,
+          ),
+          boxShadow: isSelected
+              ? [
+                  BoxShadow(
+                    color: cs.primary.withOpacity(0.2),
+                    blurRadius: 4,
+                    offset: const Offset(0, 2),
+                  )
+                ]
+              : null,
+        ),
+        child: Row(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Icon(
+              icon,
+              size: 16,
+              color: isSelected ? cs.onPrimary : cs.onSurface,
+            ),
+            const SizedBox(width: 8),
+            Text(
+              label,
+              style: TextStyle(
+                color: isSelected ? cs.onPrimary : cs.onSurface,
+                fontWeight: isSelected ? FontWeight.bold : FontWeight.normal,
+                fontSize: 13,
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  Widget _markFilterChip(String label, bool selected, VoidCallback onTap) {
+    final cs = Theme.of(context).colorScheme;
+    return FilterChip(
+      selected: selected,
+      label: Text(label),
+      onSelected: (_) => onTap(),
+      backgroundColor: cs.surface,
+      selectedColor: cs.primaryContainer,
+      checkmarkColor: cs.primary,
+      labelStyle: TextStyle(
+        color: selected ? cs.primary : cs.onSurface,
+        fontWeight: selected ? FontWeight.bold : FontWeight.normal,
+        fontSize: 13,
+      ),
+      shape: RoundedRectangleBorder(
+        borderRadius: BorderRadius.circular(8),
+        side: BorderSide(
+          color: selected ? cs.primary : cs.outlineVariant,
         ),
       ),
     );
@@ -2317,61 +2807,29 @@ class _PebDprEntryScreenState extends State<PebDprEntryScreen> {
                       ),
                     ],
                   ),
-                  const SizedBox(height: 6),
-                  // Row 2: Under Mark (Left) & Small Completed (Right)
-                  Row(
-                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                    children: [
-                      RichText(
-                        maxLines: 1,
-                        overflow: TextOverflow.ellipsis,
-                        text: TextSpan(
-                          style: TextStyle(
-                            color: cs.onSurfaceVariant,
-                            fontSize: 11,
-                            fontWeight: FontWeight.w600,
-                          ),
-                          children: [
-                            const TextSpan(text: 'Mark: '),
-                            TextSpan(
-                              text: markNumber,
-                              style: TextStyle(
-                                color: cs.onSurface,
-                                fontSize: 12,
-                                fontWeight: FontWeight.w800,
-                                fontFamily: 'monospace',
-                              ),
-                            ),
-                          ],
-                        ),
-                      ),
-                      statusBadge,
-                    ],
-                  ),
                 ],
               ),
             ),
 
-            // Body Area (2 Columns)
+            // Body Area (2 Columns) — AssemblyCardWidget design
             IntrinsicHeight(
               child: Row(
                 children: [
-                  // LEFT COLUMN: Image & Checkbox
+                  // LEFT COLUMN: Image & Checkbox action row
                   Expanded(
                     child: Container(
-                      padding: const EdgeInsets.fromLTRB(14, 4, 7, 14),
+                      padding: const EdgeInsets.all(13),
                       child: Column(
                         crossAxisAlignment: CrossAxisAlignment.start,
                         children: [
+                          const SizedBox(height: 4),
+                          // 120px image only
                           ClipRRect(
                             borderRadius: BorderRadius.circular(8),
                             child: Container(
+                              height: 150,
                               width: double.infinity,
-                              height: 80,
-                              decoration: BoxDecoration(
-                                color: cs.surfaceContainerHighest,
-                                borderRadius: BorderRadius.circular(8),
-                              ),
+                              color: cs.surfaceContainerHighest,
                               child: Image(
                                 image: pebWorkImageProvider(work.setupItem, widget.executionType),
                                 fit: BoxFit.cover,
@@ -2382,58 +2840,47 @@ class _PebDprEntryScreenState extends State<PebDprEntryScreen> {
                               ),
                             ),
                           ),
-                          const SizedBox(height: 8),
-                          // Checkbox Selector
-                          if (selecting || completed)
-                            Row(
-                              mainAxisAlignment: MainAxisAlignment.center,
-                              children: [
-                                SizedBox(
-                                  width: 24,
-                                  height: 24,
-                                  child: Checkbox(
-                                    value: completed ? true : selected,
-                                    onChanged: selectable
-                                        ? (_) => _toggleDetailMark(work, markNumber)
-                                        : null,
-                                    activeColor: _markActionMode == _DprMarkActionMode.completed
-                                        ? Colors.green.shade700
-                                        : inProgressColor,
-                                    shape: RoundedRectangleBorder(
-                                      borderRadius: BorderRadius.circular(4),
-                                    ),
-                                  ),
-                                ),
-                                const SizedBox(width: 6),
-                                Text(
-                                  completed ? 'Completed' : 'Select',
-                                  style: TextStyle(
-                                    fontSize: 11,
-                                    fontWeight: FontWeight.w700,
-                                    color: cs.onSurfaceVariant,
-                                  ),
-                                ),
-                              ],
-                            ),
                         ],
                       ),
                     ),
                   ),
 
-                  // RIGHT COLUMN: Inputs
+                  // RIGHT COLUMN: stretches to match image height via mainAxisSize.max + Spacers
                   Expanded(
                     child: Container(
-                      padding: const EdgeInsets.fromLTRB(7, 4, 14, 14),
+                      padding: const EdgeInsets.all(13),
                       child: Column(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        mainAxisAlignment: MainAxisAlignment.center,
+                        crossAxisAlignment: CrossAxisAlignment.stretch,
+                        mainAxisSize: MainAxisSize.max,
                         children: [
+                          // Mark No. + Qty blue boxes
+                          Row(
+                            children: [
+                              Expanded(
+                                child: _assemblyBlueBox(
+                                  label: 'Mark No.',
+                                  value: markNumber,
+                                  cs: cs,
+                                ),
+                              ),
+                              const SizedBox(width: 8),
+                              Expanded(
+                                child: _assemblyBlueBox(
+                                  label: 'Qty',
+                                  value: _prettyNumber(_markQuantity(markNumber)),
+                                  cs: cs,
+                                ),
+                              ),
+                            ],
+                          ),
+                          const Spacer(),
+                          // Weight field
                           Text(
                             'Weight (Kg)',
                             style: TextStyle(
-                              color: statusColor,
-                              fontSize: 11,
-                              fontWeight: FontWeight.w700,
+                              fontSize: 9,
+                              fontWeight: FontWeight.w600,
+                              color: cs.onSurface,
                             ),
                           ),
                           const SizedBox(height: 4),
@@ -2441,18 +2888,82 @@ class _PebDprEntryScreenState extends State<PebDprEntryScreen> {
                             initialValue: _markQuantityInputs[key] ?? _prettyNumber(weightKg),
                             enabled: editable,
                             keyboardType: const TextInputType.numberWithOptions(decimal: true),
-                            textAlign: TextAlign.start,
+                            textAlign: TextAlign.center,
                             style: const TextStyle(fontSize: 16, fontWeight: FontWeight.w800),
                             decoration: InputDecoration(
                               filled: true,
                               fillColor: cs.surface,
                               isDense: true,
-                              contentPadding: const EdgeInsets.symmetric(horizontal: 10, vertical: 8),
+                              contentPadding: const EdgeInsets.symmetric(horizontal: 10, vertical: 10),
                               border: OutlineInputBorder(
                                 borderRadius: BorderRadius.circular(8),
+                                borderSide: BorderSide(color: cs.outlineVariant.withOpacity(0.5)),
                               ),
                             ),
                             onChanged: (value) => setState(() => _markQuantityInputs[key] = value),
+                          ),
+                          // Checkbox selector — always shown at bottom, pushes down with Spacer
+                          const Spacer(),
+                          Container(
+                            height: 32,
+                            decoration: BoxDecoration(
+                              border: Border.all(
+                                color: completed
+                                    ? Colors.green.shade700
+                                    : _markActionMode == _DprMarkActionMode.completed
+                                        ? Colors.green.shade700
+                                        : (selecting ? inProgressColor : cs.outlineVariant),
+                                width: 1.5,
+                              ),
+                              borderRadius: BorderRadius.circular(6),
+                            ),
+                            child: Material(
+                              color: Colors.transparent,
+                              child: InkWell(
+                                onTap: (selecting && selectable)
+                                    ? () => _toggleDetailMark(work, markNumber)
+                                    : null,
+                                borderRadius: BorderRadius.circular(6),
+                                child: Row(
+                                  mainAxisAlignment: MainAxisAlignment.center,
+                                  children: [
+                                    SizedBox(
+                                      width: 20,
+                                      height: 20,
+                                      child: Checkbox(
+                                        value: completed ? true : selected,
+                                        onChanged: (selecting && selectable)
+                                            ? (_) => _toggleDetailMark(work, markNumber)
+                                            : null,
+                                        activeColor: _markActionMode == _DprMarkActionMode.completed
+                                            ? Colors.green.shade700
+                                            : inProgressColor,
+                                        shape: RoundedRectangleBorder(
+                                          borderRadius: BorderRadius.circular(4),
+                                        ),
+                                      ),
+                                    ),
+                                    const SizedBox(width: 5),
+                                    Text(
+                                      completed
+                                          ? 'Completed'
+                                          : selected
+                                              ? 'Selected'
+                                              : 'Select',
+                                      style: TextStyle(
+                                        fontSize: 11,
+                                        fontWeight: FontWeight.w700,
+                                        color: completed
+                                            ? Colors.green.shade700
+                                            : selected
+                                                ? inProgressColor
+                                                : cs.onSurfaceVariant,
+                                      ),
+                                    ),
+                                  ],
+                                ),
+                              ),
+                            ),
                           ),
                         ],
                       ),
@@ -2497,23 +3008,24 @@ class _PebDprEntryScreenState extends State<PebDprEntryScreen> {
                     if (locked) ...[
                       const SizedBox(height: 8),
                       Container(
-                        padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 8),
+                        padding: const EdgeInsets.symmetric(
+                            horizontal: 12, vertical: 10),
                         decoration: BoxDecoration(
-                          color: Colors.orange.shade100,
-                          borderRadius: BorderRadius.circular(8),
-                          border: Border.all(color: Colors.orange.shade300),
+                          color: const Color(0xFFFFE0B2),
+                          borderRadius: BorderRadius.circular(10),
                         ),
                         child: Row(
                           children: [
-                            Icon(Icons.info_rounded, color: Colors.orange.shade900, size: 16),
-                            const SizedBox(width: 8),
+                            const Icon(Icons.info,
+                                color: Color(0xFFE65100), size: 20),
+                            const SizedBox(width: 10),
                             Expanded(
                               child: Text(
                                 _prerequisiteMessage(pendingPrerequisite),
-                                style: TextStyle(
-                                  color: Colors.orange.shade900,
-                                  fontSize: 11,
-                                  fontWeight: FontWeight.w700,
+                                style: const TextStyle(
+                                  color: Color(0xFFE65100),
+                                  fontSize: 13,
+                                  fontWeight: FontWeight.w800,
                                 ),
                               ),
                             ),
