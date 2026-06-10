@@ -20,6 +20,7 @@ class Routes {
   static const String mocSelection = '/moc-selection';
   static const String mechanichalStepper = '/mechanichal-stepper';
   static const String manpower = '/manpower';
+  static const String manpowerList = '/manpower/list';
   static const String manpowerAddDetails = '/manpower/addDetails';
   static const String editManpower = '/edit-manpower';
   static const String dprWorkList = '/dpr-work-list';
@@ -83,7 +84,7 @@ class Routes {
   static const String insulationSetup = '/site-list/insulation-setup';
   static const String structureSetup = '/site-list/structure-setup';
   static const String pebSetup = '/site-list/peb-setup';
-  
+
   static const String quotationList = '/quotation';
   static const String quotationCreate = '/quotation/create';
   static const String projectList = '/projects';
@@ -91,7 +92,7 @@ class Routes {
   static const String followUp = '/site-list/follow-up';
   static const String boqUpload = '/site-list/boq-upload';
   static const String dispatchTracking = '/site-list/dispatch-tracking';
-  
+
   static const String fabricationReport = '/site-list/fab-report';
   static const String dispatchReport = '/site-list/dispatch-report';
   static const String handoverReport = '/site-list/handover-report';
@@ -99,4 +100,3 @@ class Routes {
   static const String structurePmEntry = '/site-list/structure-pm-entry';
   static const String workflowGate = '/workflow-gate';
 }
-

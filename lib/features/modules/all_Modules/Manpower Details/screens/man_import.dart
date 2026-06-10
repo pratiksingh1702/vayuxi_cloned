@@ -9,6 +9,7 @@ import 'package:untitled2/features/modules/all_Modules/rate/data/rateApi.dart';
 import 'package:untitled2/features/modules/all_Modules/site_Details/repository/siteModel.dart';
 import 'package:untitled2/typeProvider/type_provider.dart';
 
+import '../../../../../core/router/routes.dart';
 import '../../../../../core/upload/manager/upload_manager.dart';
 import '../../../../../core/upload/models/upload_job.dart';
 import '../../../../../core/utlis/app_toasts.dart';
@@ -294,8 +295,7 @@ class _ManImportCsvScreenState extends ConsumerState<ManImportCsvScreen> {
               moduleId: 'manpower',
               filePath: _selectedFile!.path!,
               metadata: metadata,
-              targetRoute:
-                  '/manpower', // "View" button navigates here on success
+              targetRoute: Routes.manpowerList,
               maxRetries: 2,
             ),
           );
@@ -308,7 +308,7 @@ class _ManImportCsvScreenState extends ConsumerState<ManImportCsvScreen> {
 
       AppToast.success("✅ File added to upload queue");
       if (!mounted) return;
-      context.push('/manpower');
+      context.push(Routes.manpowerList);
 
       // _dbg("✅ uploadRes runtimeType = ${uploadRes.runtimeType}");
       // _dbg("✅ uploadRes = ${_short(uploadRes, max: 2000)}");

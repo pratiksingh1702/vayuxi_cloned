@@ -710,6 +710,13 @@ final appRouterProvider = Provider<GoRouter>((ref) {
         },
       ),
       GoRoute(
+        path: Routes.manpowerList,
+        builder: (context, state) {
+          _logRoute('ManpowerListScreen', path: state.uri.toString());
+          return const ManpowerListScreen();
+        },
+      ),
+      GoRoute(
         path: Routes.manpowerAddDetails,
         builder: (context, state) {
           _logRoute('NewManpowerScreen', path: state.uri.toString());

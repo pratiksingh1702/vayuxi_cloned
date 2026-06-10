@@ -18,6 +18,7 @@ import '../../../../../core/utlis/widgets/sidebar.dart';
 import '../../site_Details/providers/site_current_provider.dart';
 
 import '../../../../../../typeProvider/type_provider.dart';
+import '../../../../../../core/router/routes.dart';
 
 // ─────────────────────────────────────────────────────────────
 // ENTRY POINT
@@ -278,7 +279,7 @@ class _ManFieldMappingViewState extends ConsumerState<_ManFieldMappingView>
                 // JSON-encoded List<{csvColumn, modelField}> — read by ManpowerUploadHandler
                 'mappings': mappingsJson,
               },
-              targetRoute: '/manpower',
+              targetRoute: Routes.manpowerList,
               maxRetries: 2,
             ),
           );
