@@ -125,6 +125,40 @@ class _PebWorkAssignmentScreenState extends State<PebWorkAssignmentScreen> {
         .toSet();
   }
 
+  PebSetupItem? _previousSetupItem(String setupItemId) {
+    final index = _setupItems.indexWhere((item) => item.id == setupItemId);
+    if (index <= 0) return null;
+    return _setupItems[index - 1];
+  }
+
+  Set<String> _assignedMarksForSetupItem(String setupItemId) {
+    return _assignments
+        .where((assignment) =>
+            assignment.id != _editingAssignmentId &&
+            assignment.status != 'cancelled')
+        .expand((assignment) => assignment.assignments)
+        .where((item) => item.setupItemId == setupItemId)
+        .expand((item) => item.assemblyMarks)
+        .toSet();
+  }
+
+  String? _previousStageMessageForMarks(Iterable<String> marks) {
+    final previous = _previousSetupItem(_setupItemId);
+    if (previous == null) return null;
+
+    final previousAssignedMarks = _assignedMarksForSetupItem(previous.id);
+    final missing = marks
+        .where((mark) => mark.trim().isNotEmpty)
+        .where((mark) => !previousAssignedMarks.contains(mark))
+        .toList()
+      ..sort((a, b) => a.compareTo(b));
+
+    if (missing.isEmpty) return null;
+    final sample = missing.take(5).join(', ');
+    final extra = missing.length > 5 ? ' +${missing.length - 5} more' : '';
+    return 'Please assign ${previous.name} first for $sample$extra.';
+  }
+
   double _markQuantity(String assemblyMark) {
     return _allMarks
         .where((mark) => mark.assemblyMark == assemblyMark)
@@ -277,6 +311,11 @@ class _PebWorkAssignmentScreenState extends State<PebWorkAssignmentScreen> {
       AppToast.error(_sourceType == 'tonnage'
           ? 'Enter quantity'
           : 'Select at least one mark');
+      return;
+    }
+    final previousStageMessage = _previousStageMessageForMarks(marks);
+    if (previousStageMessage != null) {
+      AppToast.error(previousStageMessage);
       return;
     }
 
@@ -1109,6 +1148,10 @@ class _PebWorkAssignmentScreenState extends State<PebWorkAssignmentScreen> {
   Widget _buildMarkPicker(ColorScheme cs) {
     final assignedForStage = _assignedMarksForStage;
     final completedForStage = _completedBySetupItem[_setupItemId] ?? <String>{};
+    final previousStage = _previousSetupItem(_setupItemId);
+    final previousStageAssignedMarks = previousStage == null
+        ? <String>{}
+        : _assignedMarksForSetupItem(previousStage.id);
     if (_allMarks.isEmpty) {
       return const Text('No BOQ marks found. Upload BOQ first.');
     }
@@ -1122,7 +1165,9 @@ class _PebWorkAssignmentScreenState extends State<PebWorkAssignmentScreen> {
     final selectableVisibleMarks = visibleMarks
         .where((mark) =>
             !completedForStage.contains(mark.assemblyMark) &&
-            !assignedForStage.contains(mark.assemblyMark))
+            !assignedForStage.contains(mark.assemblyMark) &&
+            (previousStage == null ||
+                previousStageAssignedMarks.contains(mark.assemblyMark)))
         .map((mark) => mark.assemblyMark)
         .toList();
     final allVisibleSelected = selectableVisibleMarks.isNotEmpty &&
@@ -1142,7 +1187,9 @@ class _PebWorkAssignmentScreenState extends State<PebWorkAssignmentScreen> {
       if (index < 0 || index >= visibleMarks.length) return;
       final mark = visibleMarks[index];
       final disabled = completedForStage.contains(mark.assemblyMark) ||
-          assignedForStage.contains(mark.assemblyMark);
+          assignedForStage.contains(mark.assemblyMark) ||
+          (previousStage != null &&
+              !previousStageAssignedMarks.contains(mark.assemblyMark));
       if (disabled || _selectedMarks.contains(mark.assemblyMark)) return;
       setState(() => _selectedMarks.add(mark.assemblyMark));
     }
@@ -1293,6 +1340,37 @@ class _PebWorkAssignmentScreenState extends State<PebWorkAssignmentScreen> {
               ),
             ),
           ),
+        if (previousStage != null)
+          Padding(
+            padding: const EdgeInsets.only(bottom: 10),
+            child: Container(
+              width: double.infinity,
+              padding: const EdgeInsets.all(12),
+              decoration: BoxDecoration(
+                color: cs.secondaryContainer.withValues(alpha: 0.55),
+                borderRadius: BorderRadius.circular(12),
+                border: Border.all(color: cs.secondary.withValues(alpha: 0.18)),
+              ),
+              child: Row(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Icon(Icons.info_outline_rounded,
+                      size: 18, color: cs.secondary),
+                  const SizedBox(width: 8),
+                  Expanded(
+                    child: Text(
+                      'Only marks already assigned in ${previousStage.name} can be selected here.',
+                      style: TextStyle(
+                        color: cs.onSecondaryContainer,
+                        fontSize: 12,
+                        fontWeight: FontWeight.w700,
+                      ),
+                    ),
+                  ),
+                ],
+              ),
+            ),
+          ),
         if (visibleMarks.isEmpty)
           Container(
             width: double.infinity,
@@ -1328,8 +1406,11 @@ class _PebWorkAssignmentScreenState extends State<PebWorkAssignmentScreen> {
                         completedForStage.contains(mark.assemblyMark);
                     final isAssigned =
                         assignedForStage.contains(mark.assemblyMark);
+                    final isPreviousStageMissing = previousStage != null &&
+                        !previousStageAssignedMarks.contains(mark.assemblyMark);
                     final selected = _selectedMarks.contains(mark.assemblyMark);
-                    final disabled = isCompleted || isAssigned;
+                    final disabled =
+                        isCompleted || isAssigned || isPreviousStageMissing;
                     final qty = mark.remainingQty > 0
                         ? mark.remainingQty
                         : mark.quantity;
@@ -1337,7 +1418,9 @@ class _PebWorkAssignmentScreenState extends State<PebWorkAssignmentScreen> {
                         ? 'Completed'
                         : isAssigned
                             ? 'Assigned'
-                            : '${_prettyNumber(qty)} qty';
+                            : isPreviousStageMissing
+                                ? 'Assign ${previousStage.name} first'
+                                : '${_prettyNumber(qty)} qty';
                     return Opacity(
                       opacity: disabled ? 0.45 : 1,
                       child: InkWell(

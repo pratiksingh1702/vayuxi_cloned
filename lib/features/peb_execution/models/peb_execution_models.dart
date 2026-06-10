@@ -79,6 +79,7 @@ class PebSetupItem {
   final double targetQty;
   final String remarks;
   final List<String> images;
+  final int displayOrder;
 
   const PebSetupItem({
     required this.id,
@@ -87,6 +88,7 @@ class PebSetupItem {
     required this.targetQty,
     this.remarks = '',
     this.images = const [],
+    this.displayOrder = 0,
   });
 
   factory PebSetupItem.fromJson(Map<String, dynamic> json) {
@@ -105,6 +107,7 @@ class PebSetupItem {
           .map((image) => image.toString())
           .where((image) => image.trim().isNotEmpty)
           .toList(),
+      displayOrder: (json['displayOrder'] as num?)?.toInt() ?? 0,
     );
   }
 }
@@ -123,14 +126,26 @@ class PebSetup {
   });
 
   factory PebSetup.fromJson(Map<String, dynamic> json) {
+    final rawItems = (json['items'] as List? ?? [])
+        .whereType<Map>()
+        .map((item) => PebSetupItem.fromJson(Map<String, dynamic>.from(item)))
+        .toList();
+    final indexedItems = rawItems.asMap().entries.toList()
+      ..sort((a, b) {
+        final aOrder =
+            a.value.displayOrder > 0 ? a.value.displayOrder : a.key + 1;
+        final bOrder =
+            b.value.displayOrder > 0 ? b.value.displayOrder : b.key + 1;
+        final orderCompare = aOrder.compareTo(bOrder);
+        if (orderCompare != 0) return orderCompare;
+        return a.key.compareTo(b.key);
+      });
+
     return PebSetup(
       id: json['_id']?.toString() ?? '',
       section: json['section']?.toString() ?? '',
       allowUnassignedDprFallback: json['allowUnassignedDprFallback'] != false,
-      items: (json['items'] as List? ?? [])
-          .whereType<Map>()
-          .map((item) => PebSetupItem.fromJson(Map<String, dynamic>.from(item)))
-          .toList(),
+      items: indexedItems.map((entry) => entry.value).toList(),
     );
   }
 }
