@@ -315,7 +315,7 @@ class PebExecutionService {
     final payload = {
       'type': type.apiType,
       'section': type.section,
-      'teamId': teamId,
+      if (teamId.trim().isNotEmpty) 'teamId': teamId,
       'sourceType': sourceType,
       'boqIds': boqIds,
       'assignmentDate': assignmentDate.toIso8601String().split('T').first,

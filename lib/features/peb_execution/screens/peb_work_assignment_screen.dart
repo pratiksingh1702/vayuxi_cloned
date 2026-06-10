@@ -30,6 +30,10 @@ class PebWorkAssignmentScreen extends StatefulWidget {
 }
 
 class _PebWorkAssignmentScreenState extends State<PebWorkAssignmentScreen> {
+  static const String _defaultTeamId = '__default_team__';
+  static const PebTeam _defaultTeam =
+      PebTeam(id: _defaultTeamId, name: 'Default Team');
+
   final _service = PebExecutionService();
   final _remarksController = TextEditingController();
   final _manualMarksController = TextEditingController();
@@ -55,6 +59,10 @@ class _PebWorkAssignmentScreenState extends State<PebWorkAssignmentScreen> {
   Set<String> _selectedMarks = {};
   Map<String, Set<String>> _completedBySetupItem = {};
   String _markSearchText = '';
+
+  bool get _isDefaultTeamSelected => _teamId == _defaultTeamId;
+
+  String get _submitTeamId => _isDefaultTeamSelected ? '' : _teamId;
 
   @override
   void initState() {
@@ -85,6 +93,7 @@ class _PebWorkAssignmentScreenState extends State<PebWorkAssignmentScreen> {
       final setup = results[1] as PebSetup?;
       setState(() {
         _teams = results[0] as List<PebTeam>;
+        if (_teams.isEmpty) _teams = const [_defaultTeam];
         _setupItems = setup?.items ?? [];
         _allowFallback = setup?.allowUnassignedDprFallback ?? true;
         _boqs = results[2] as List<PebBoq>;
@@ -210,7 +219,7 @@ class _PebWorkAssignmentScreenState extends State<PebWorkAssignmentScreen> {
       _editingAssignmentId = '';
       _setupItemId = item.id;
       _assignmentStep = 0;
-      _teamId = _teams.isNotEmpty ? _teams.first.id : '';
+      _teamId = _teams.isNotEmpty ? _teams.first.id : _defaultTeamId;
       _sourceType = _allMarks.isNotEmpty ? 'boq_upload' : 'tonnage';
       _selectedMarks = {};
       _markSearchText = '';
@@ -232,7 +241,9 @@ class _PebWorkAssignmentScreenState extends State<PebWorkAssignmentScreen> {
       _editingAssignmentId = assignment.id;
       _setupItemId = item.setupItemId;
       _assignmentStep = 0;
-      _teamId = assignment.teamId;
+      _teamId = _teams.any((team) => team.id == assignment.teamId)
+          ? assignment.teamId
+          : _defaultTeamId;
       _sourceType = assignment.sourceType;
       _selectedMarks = item.assemblyMarks.toSet();
       _markSearchText = '';
@@ -275,7 +286,7 @@ class _PebWorkAssignmentScreenState extends State<PebWorkAssignmentScreen> {
         widget.siteId,
         widget.executionType,
         assignmentId: _editingAssignmentId,
-        teamId: _teamId,
+        teamId: _submitTeamId,
         sourceType: _sourceType,
         assignmentDate: _assignmentDate,
         expectedCompletionDate: _expectedDate,
