@@ -8,6 +8,7 @@ import 'package:untitled2/core/utlis/widgets/custom_appBar.dart';
 import 'package:untitled2/core/utlis/widgets/custom_scrollbar.dart';
 import 'package:untitled2/core/utlis/widgets/sidebar.dart';
 import '../models/peb_execution_models.dart';
+import '../services/dpr_bulk_task_manager.dart';
 import '../services/peb_execution_service.dart';
 import '../utils/peb_work_images.dart';
 
@@ -35,8 +36,10 @@ class _PebDprEntryScreenState extends State<PebDprEntryScreen> {
       PebTeam(id: _defaultTeamId, name: 'Default Team');
 
   final _service = PebExecutionService();
+  final _bulkTaskManager = DprBulkTaskManager.instance;
   final _scrollController = ScrollController();
   final Map<String, GlobalKey> _workCardKeys = {};
+  final Set<String> _handledBulkTaskIds = {};
   bool _loading = true;
   bool _submitting = false;
   String? _loadError;
@@ -70,6 +73,7 @@ class _PebDprEntryScreenState extends State<PebDprEntryScreen> {
   void initState() {
     super.initState();
     _teamId = widget.initialTeamId;
+    _bulkTaskManager.addListener(_handleBulkTaskUpdate);
     _load();
   }
 
@@ -94,9 +98,32 @@ class _PebDprEntryScreenState extends State<PebDprEntryScreen> {
 
   @override
   void dispose() {
+    _bulkTaskManager.removeListener(_handleBulkTaskUpdate);
     _scrollController.dispose();
     _markSearchCtrl.dispose();
     super.dispose();
+  }
+
+  void _handleBulkTaskUpdate() {
+    final completed = _bulkTaskManager.lastCompletedTask;
+    if (completed == null ||
+        _handledBulkTaskIds.contains(completed.id) ||
+        completed.siteId != widget.siteId ||
+        completed.type != widget.executionType) {
+      if (mounted) setState(() {});
+      return;
+    }
+
+    _handledBulkTaskIds.add(completed.id);
+    if (completed.status == DprBulkTaskStatus.completed) {
+      AppToast.success(
+        '${completed.stageName} ${completed.actionLabel.toLowerCase()} updated: ${completed.processed - completed.failed}/${completed.total}',
+      );
+      _load(showLoader: false, autoScroll: false);
+    } else if (completed.status == DprBulkTaskStatus.failed) {
+      AppToast.error(completed.error ?? 'DPR bulk update failed');
+    }
+    if (mounted) setState(() {});
   }
 
   Future<void> _load({bool showLoader = true, bool autoScroll = true}) async {
@@ -890,50 +917,57 @@ class _PebDprEntryScreenState extends State<PebDprEntryScreen> {
     }
 
     final completedAction = _markActionMode == _DprMarkActionMode.completed;
-    setState(() => _submitting = true);
-    await Future<void>.delayed(const Duration(milliseconds: 16));
-    try {
-      final marksToSubmit = _selectedDetailMarks.toList();
-      for (final mark in marksToSubmit) {
-        final rawTargetQty = _markQuantity(mark);
-        final targetQty = rawTargetQty > 0 ? rawTargetQty : 1.0;
-        final enteredWeightKg = _enteredWeightKgForMark(work, mark);
-        if (enteredWeightKg <= 0) {
-          AppToast.error('Enter a valid weight for $mark');
-          return;
-        }
-        final progress = completedAction ? 100 : 50;
-        final actualQty = completedAction ? targetQty : targetQty * 0.5;
-        final key = _markInputKey(work, mark);
-        final weightChanged = _isWeightChanged(work, mark);
-        await _submitProgress(
-          work,
-          [mark],
-          progress,
-          actualQtyOverride: actualQty,
-          targetQtyOverride: targetQty,
-          weightMode: weightChanged ? 'manual' : 'actual',
-          manualWeightKg: weightChanged ? enteredWeightKg : 0.0,
-          totalWeightKg: enteredWeightKg,
-          remarks: (_markRemarks[key] ?? '').trim(),
-          variationReason:
-              weightChanged ? (_variationReasons[key] ?? '').trim() : '',
-          variationRemarks:
-              weightChanged ? (_markRemarks[key] ?? '').trim() : '',
-          reloadAfter: false,
-          showToast: false,
-        );
+    final progress = completedAction ? 100 : 50;
+    final items = <DprBulkTaskItem>[];
+    final marksToSubmit = _selectedDetailMarks.toList();
+    for (final mark in marksToSubmit) {
+      final rawTargetQty = _markQuantity(mark);
+      final targetQty = rawTargetQty > 0 ? rawTargetQty : 1.0;
+      final enteredWeightKg = _enteredWeightKgForMark(work, mark);
+      if (enteredWeightKg <= 0) {
+        AppToast.error('Enter a valid weight for $mark');
+        return;
       }
-      AppToast.success('DPR updated successfully');
-      setState(() {
-        _markActionMode = _DprMarkActionMode.none;
-        _isDprSelectionMode = false;
-        _selectedDetailMarks.clear();
-      });
-      await _load(showLoader: false, autoScroll: false);
-    } finally {
-      if (mounted) setState(() => _submitting = false);
+      final actualQty = completedAction ? targetQty : targetQty * 0.5;
+      final key = _markInputKey(work, mark);
+      final weightChanged = _isWeightChanged(work, mark);
+      items.add(DprBulkTaskItem(
+        mark: mark,
+        actualQty: actualQty,
+        targetQty: targetQty,
+        weightMode: weightChanged ? 'manual' : 'actual',
+        manualWeightKg: weightChanged ? enteredWeightKg : 0.0,
+        totalWeightKg: enteredWeightKg,
+        remarks: (_markRemarks[key] ?? '').trim(),
+        variationReason:
+            weightChanged ? (_variationReasons[key] ?? '').trim() : '',
+        variationRemarks: weightChanged ? (_markRemarks[key] ?? '').trim() : '',
+      ));
     }
+
+    final task = _bulkTaskManager.enqueue(
+      siteId: widget.siteId,
+      type: widget.executionType,
+      date: _dateText,
+      teamId: _submitTeamId,
+      setupItemId: work.setupItem.id,
+      assignmentId: work.assignmentId,
+      sourceType: work.sourceType,
+      stageName: work.stageName,
+      uom: 'Nos',
+      progressPercentage: progress,
+      items: items,
+    );
+
+    AppToast.success(
+      '${task.total} mark${task.total == 1 ? '' : 's'} queued. You can continue working.',
+    );
+    setState(() {
+      _markActionMode = _DprMarkActionMode.none;
+      _isDprSelectionMode = false;
+      _selectedDetailMarks.clear();
+      _activeWorkKey = null;
+    });
   }
 
   Future<void> _openQuantityAction(_VisibleWork work) async {
@@ -1206,6 +1240,7 @@ class _PebDprEntryScreenState extends State<PebDprEntryScreen> {
                                 children: activeWork == null
                                     ? [
                                         _buildFilters(),
+                                        _buildBulkTaskBanner(),
                                         SizedBox(height: layout.sectionGap),
                                         _buildAssignedWorkHeader(assignedWorks),
                                         SizedBox(height: layout.cardGap),
@@ -1253,6 +1288,7 @@ class _PebDprEntryScreenState extends State<PebDprEntryScreen> {
                                     : _markActionMode == _DprMarkActionMode.none
                                         ? [
                                             _buildWorkDetailHeader(activeWork),
+                                            _buildBulkTaskBanner(),
                                             SizedBox(
                                               height: 84 +
                                                   MediaQuery.paddingOf(context)
@@ -1261,6 +1297,7 @@ class _PebDprEntryScreenState extends State<PebDprEntryScreen> {
                                           ]
                                         : [
                                             _buildWorkDetailHeader(activeWork),
+                                            _buildBulkTaskBanner(),
                                             SizedBox(height: layout.cardGap),
                                             _buildMarkSearchBar(activeWork),
                                             SizedBox(height: layout.smallGap),
@@ -1472,6 +1509,85 @@ class _PebDprEntryScreenState extends State<PebDprEntryScreen> {
             label: const Text('Add BOQ Items'),
           ),
         ],
+      ),
+    );
+  }
+
+  Widget _buildBulkTaskBanner() {
+    final task = _bulkTaskManager.currentTask;
+    if (task == null ||
+        task.siteId != widget.siteId ||
+        task.type != widget.executionType) {
+      return const SizedBox.shrink();
+    }
+
+    final cs = Theme.of(context).colorScheme;
+    final layout = _PebDprResponsive.of(context);
+    final running = task.status == DprBulkTaskStatus.running;
+    final progress = task.progress.clamp(0.0, 1.0);
+    final failedText = task.failed > 0 ? ' - ${task.failed} failed' : '';
+
+    return Padding(
+      padding: EdgeInsets.only(bottom: layout.cardGap),
+      child: Container(
+        padding: EdgeInsets.all(layout.compact ? 12 : 14),
+        decoration: BoxDecoration(
+          color: cs.primaryContainer.withValues(alpha: 0.42),
+          borderRadius: BorderRadius.circular(14),
+          border: Border.all(color: cs.primary.withValues(alpha: 0.18)),
+        ),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Row(
+              children: [
+                SizedBox(
+                  width: 22,
+                  height: 22,
+                  child: running
+                      ? CircularProgressIndicator(
+                          strokeWidth: 2.4,
+                          valueColor: AlwaysStoppedAnimation<Color>(cs.primary),
+                        )
+                      : Icon(Icons.schedule_rounded,
+                          size: 22, color: cs.primary),
+                ),
+                const SizedBox(width: 10),
+                Expanded(
+                  child: Text(
+                    '${task.stageName} ${task.actionLabel} update ${running ? 'running' : 'queued'}',
+                    maxLines: 1,
+                    overflow: TextOverflow.ellipsis,
+                    style: TextStyle(
+                      color: cs.onSurface,
+                      fontSize: layout.compact ? 13 : 14,
+                      fontWeight: FontWeight.w800,
+                    ),
+                  ),
+                ),
+              ],
+            ),
+            const SizedBox(height: 10),
+            ClipRRect(
+              borderRadius: BorderRadius.circular(999),
+              child: LinearProgressIndicator(
+                minHeight: 7,
+                value: progress,
+                backgroundColor: cs.surface.withValues(alpha: 0.8),
+                valueColor: AlwaysStoppedAnimation<Color>(cs.primary),
+              ),
+            ),
+            const SizedBox(height: 8),
+            Text(
+              '${task.processed}/${task.total} marks processed$failedText. You can continue using the app.',
+              style: TextStyle(
+                color: cs.onSurfaceVariant,
+                fontSize: layout.compact ? 12 : 13,
+                fontWeight: FontWeight.w600,
+              ),
+            ),
+          ],
+        ),
       ),
     );
   }
