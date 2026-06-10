@@ -1952,26 +1952,10 @@ class _PebDprEntryScreenState extends State<PebDprEntryScreen> {
                       ),
                       child: SizedBox(
                         height: layout.workImageHeight,
-                        child: ClipRRect(
-                          borderRadius: BorderRadius.circular(8),
-                          child: Container(
-                            padding: EdgeInsets.all(layout.imageInset),
-                            child: Image(
-                              image: pebWorkImageProvider(
-                                work.setupItem,
-                                widget.executionType,
-                              ),
-                              fit: BoxFit.cover,
-                              alignment: Alignment.center,
-                              filterQuality: FilterQuality.medium,
-                              errorBuilder: (_, __, ___) =>
-                                  pebWorkImageFallback(
-                                work.setupItem,
-                                widget.executionType,
-                                fit: BoxFit.contain,
-                              ),
-                            ),
-                          ),
+                        child: _containedWorkImage(
+                          work.setupItem,
+                          height: layout.workImageHeight,
+                          padding: layout.imageInset + 2,
                         ),
                       ),
                     ),
@@ -2203,6 +2187,35 @@ class _PebDprEntryScreenState extends State<PebDprEntryScreen> {
             fontWeight: FontWeight.w600,
             color: cs.onSurfaceVariant,
           ),
+        ),
+      ),
+    );
+  }
+
+  Widget _containedWorkImage(
+    PebSetupItem item, {
+    required double height,
+    required double padding,
+  }) {
+    final cs = Theme.of(context).colorScheme;
+    return Container(
+      height: height,
+      width: double.infinity,
+      padding: EdgeInsets.all(padding),
+      decoration: BoxDecoration(
+        color: cs.surfaceContainerHighest.withValues(alpha: 0.42),
+        borderRadius: BorderRadius.circular(8),
+        border: Border.all(color: cs.outlineVariant.withValues(alpha: 0.4)),
+      ),
+      child: Image(
+        image: pebWorkImageProvider(item, widget.executionType),
+        fit: BoxFit.contain,
+        alignment: Alignment.center,
+        filterQuality: FilterQuality.medium,
+        errorBuilder: (_, __, ___) => pebWorkImageFallback(
+          item,
+          widget.executionType,
+          fit: BoxFit.contain,
         ),
       ),
     );
@@ -3412,22 +3425,10 @@ class _PebDprEntryScreenState extends State<PebDprEntryScreen> {
                             SizedBox(height: layout.compact ? 2 : 4),
                             ClipRRect(
                               borderRadius: BorderRadius.circular(8),
-                              child: Container(
+                              child: _containedWorkImage(
+                                work.setupItem,
                                 height: layout.v2ImageHeight,
-                                padding: EdgeInsets.all(layout.imageInset),
-                                child: Image(
-                                  image: pebWorkImageProvider(
-                                      work.setupItem, widget.executionType),
-                                  fit: BoxFit.cover,
-                                  alignment: Alignment.center,
-                                  filterQuality: FilterQuality.medium,
-                                  errorBuilder: (_, __, ___) =>
-                                      pebWorkImageFallback(
-                                    work.setupItem,
-                                    widget.executionType,
-                                    fit: BoxFit.contain,
-                                  ),
-                                ),
+                                padding: layout.imageInset + 2,
                               ),
                             ),
                           ],
