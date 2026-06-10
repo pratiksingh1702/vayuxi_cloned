@@ -348,6 +348,9 @@ class _DprTeamScreenState extends ConsumerState<DprTeamScreen> {
                                     team.isDefaultTeam
                                         ? 'Default team'
                                         : team.teamName,
+                                    textAlign: TextAlign.center,
+                                    maxLines: 2,
+                                    overflow: TextOverflow.ellipsis,
                                     style: TextStyle(
                                       fontWeight: FontWeight.w600,
                                       fontSize: 15,

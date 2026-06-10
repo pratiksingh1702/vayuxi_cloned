@@ -1167,6 +1167,9 @@ class _PebDprEntryScreenState extends State<PebDprEntryScreen> {
         ? const <String>[]
         : _displayMarksForWork(activeWork);
     final assignedWorks = works.where((work) => work.isActive).toList();
+    final screenTitle = activeWork == null
+        ? '${widget.executionType.title} DPR'
+        : activeWork.displayName ?? activeWork.stageName;
     return PopScope(
       canPop: _activeWorkKey == null,
       onPopInvokedWithResult: (didPop, _) {
@@ -1176,7 +1179,7 @@ class _PebDprEntryScreenState extends State<PebDprEntryScreen> {
       },
       child: Scaffold(
         drawer: const CustomDrawer(),
-        appBar: CustomAppBar(title: '${widget.executionType.title} DPR'),
+        appBar: CustomAppBar(title: screenTitle),
         body: _loading
             ? const Center(child: CircularProgressIndicator())
             : _loadError != null
@@ -1918,7 +1921,7 @@ class _PebDprEntryScreenState extends State<PebDprEntryScreen> {
                                   children: [
                                     Expanded(
                                       child: _minimalWorkCountBlock(
-                                        'Assigned',
+                                        'Assign',
                                         counts.total,
                                         cs.onSurface,
                                         cs,
@@ -1927,7 +1930,7 @@ class _PebDprEntryScreenState extends State<PebDprEntryScreen> {
                                     _workStatDivider(cs),
                                     Expanded(
                                       child: _minimalWorkCountBlock(
-                                        'Pending',
+                                        'In Progress',
                                         counts.inProgress,
                                         Colors.orange,
                                         cs,
@@ -1936,7 +1939,7 @@ class _PebDprEntryScreenState extends State<PebDprEntryScreen> {
                                     _workStatDivider(cs),
                                     Expanded(
                                       child: _minimalWorkCountBlock(
-                                        'Done',
+                                        'Complete',
                                         counts.completed,
                                         Colors.green,
                                         cs,
@@ -2440,6 +2443,15 @@ class _PebDprEntryScreenState extends State<PebDprEntryScreen> {
                       ),
               ),
           ],
+        ),
+        SizedBox(height: layout.smallGap),
+        Text(
+          'Entry date: ${DateFormat('EEEE, dd MMM yyyy').format(_selectedDate)}',
+          style: TextStyle(
+            color: cs.onSurfaceVariant,
+            fontSize: layout.compact ? 11 : 12,
+            fontWeight: FontWeight.w700,
+          ),
         ),
         SizedBox(height: layout.smallGap),
         if (_markActionMode == _DprMarkActionMode.none) ...[
@@ -3004,6 +3016,8 @@ class _PebDprEntryScreenState extends State<PebDprEntryScreen> {
     final weightKg = _markWeightKg(markNumber);
     final isVariationOpen = _isWeightChanged(work, markNumber);
     final inProgressColor = const Color(0xFFE56F00);
+    final selectedIndicatorColor =
+        completed || actionComplete ? Colors.green.shade700 : inProgressColor;
     final statusColor = effectiveCompleted
         ? Colors.green.shade700
         : effectiveInProgress
@@ -3038,7 +3052,11 @@ class _PebDprEntryScreenState extends State<PebDprEntryScreen> {
       ),
       child: InkWell(
         borderRadius: BorderRadius.circular(14),
-        onTap: locked ? handleUnavailableSelection : null,
+        onTap: selectable
+            ? () => _toggleDetailMark(work, markNumber)
+            : locked
+                ? handleUnavailableSelection
+                : null,
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
@@ -3075,14 +3093,14 @@ class _PebDprEntryScreenState extends State<PebDprEntryScreen> {
                                 height: layout.compact ? 23 : 25,
                                 decoration: BoxDecoration(
                                   color: checkboxChecked
-                                      ? Colors.green
+                                      ? selectedIndicatorColor
                                       : selectable
                                           ? cs.surface
                                           : cs.surfaceContainerHighest,
                                   borderRadius: BorderRadius.circular(3),
                                   border: Border.all(
                                     color: checkboxChecked
-                                        ? Colors.green.shade700
+                                        ? selectedIndicatorColor
                                         : selectable
                                             ? cs.primary
                                             : cs.outlineVariant,
@@ -3091,7 +3109,7 @@ class _PebDprEntryScreenState extends State<PebDprEntryScreen> {
                                   boxShadow: selected
                                       ? [
                                           BoxShadow(
-                                            color: Colors.green
+                                            color: selectedIndicatorColor
                                                 .withValues(alpha: 0.22),
                                             blurRadius: 5,
                                             offset: const Offset(0, 2),
