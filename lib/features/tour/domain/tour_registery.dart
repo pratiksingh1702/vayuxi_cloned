@@ -5,6 +5,7 @@
 // ─────────────────────────────────────────────────────────────────────────────
 
 import 'package:flutter/material.dart';
+import 'tour_module.dart';
 import 'tour_step_model.dart';
 import 'package:untitled2/core/router/routes.dart';
 
@@ -33,6 +34,26 @@ class TourRegistry {
 
   // ── Legacy flat step list (used by old TourController.steps getter) ────────
   // nextRoute removed — navigation is now handled by the event-driven engine.
+  static final TourModule workCategoryModule = TourModule(
+    id: 'work_category_entry',
+    name: 'Work Category',
+    description: 'Choose the work stream you want to manage.',
+    emoji: 'work',
+    steps: [
+      TourStep(
+        id: 'work_category',
+        route: AppRoutes.workCategory,
+        showcaseKey: workCategoryKey,
+        title: 'Welcome',
+        buddyMessage:
+            "Hey! I'm Buddy. Start by selecting your Work Category here.",
+        voiceMessage: 'Welcome. Start by selecting your work category here.',
+        hintMessage: 'Tap any work category card to continue.',
+        progressLabel: 'Choose work type',
+      ),
+    ],
+  );
+
   static final List<TourStep> onboarding = [
     TourStep(
       id: 'work_category',

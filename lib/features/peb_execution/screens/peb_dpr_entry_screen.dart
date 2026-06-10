@@ -47,6 +47,7 @@ class _PebDprEntryScreenState extends State<PebDprEntryScreen> {
   final Map<String, String> _variationReasons = {};
   String? _activeWorkKey;
   _DprMarkActionMode _markActionMode = _DprMarkActionMode.none;
+  bool _isDprSelectionMode = false;
   final Set<String> _selectedDetailMarks = {};
   PebMarkStatus _status =
       const PebMarkStatus(completedByKey: {}, inProgressByKey: {});
@@ -76,6 +77,7 @@ class _PebDprEntryScreenState extends State<PebDprEntryScreen> {
       _assignments = [];
       _activeWorkKey = null;
       _markActionMode = _DprMarkActionMode.none;
+      _isDprSelectionMode = false;
       _selectedDetailMarks.clear();
       _status = const PebMarkStatus(completedByKey: {}, inProgressByKey: {});
       _load();
@@ -126,6 +128,7 @@ class _PebDprEntryScreenState extends State<PebDprEntryScreen> {
             !_visibleWorks().any((work) => work.key == _activeWorkKey)) {
           _activeWorkKey = null;
           _markActionMode = _DprMarkActionMode.none;
+          _isDprSelectionMode = false;
           _selectedDetailMarks.clear();
         }
         _loadError = null;
@@ -170,6 +173,7 @@ class _PebDprEntryScreenState extends State<PebDprEntryScreen> {
     setState(() {
       _activeWorkKey = work.key;
       _markActionMode = _DprMarkActionMode.none;
+      _isDprSelectionMode = false;
       _selectedDetailMarks.clear();
     });
   }
@@ -178,6 +182,7 @@ class _PebDprEntryScreenState extends State<PebDprEntryScreen> {
     setState(() {
       _activeWorkKey = null;
       _markActionMode = _DprMarkActionMode.none;
+      _isDprSelectionMode = false;
       _selectedDetailMarks.clear();
     });
   }
@@ -186,6 +191,7 @@ class _PebDprEntryScreenState extends State<PebDprEntryScreen> {
     if (_markActionMode != _DprMarkActionMode.none) {
       setState(() {
         _markActionMode = _DprMarkActionMode.none;
+        _isDprSelectionMode = false;
         _selectedDetailMarks.clear();
       });
       return;
@@ -194,62 +200,61 @@ class _PebDprEntryScreenState extends State<PebDprEntryScreen> {
   }
 
   Widget _statusChoiceButton({
-    required String label,
-    required IconData icon,
-    required Color color,
-    required VoidCallback onTap,
-  }) {
-    final cs = Theme.of(context).colorScheme;
-    return InkWell(
-      onTap: onTap,
-      borderRadius: BorderRadius.circular(16),
-      child: Container(
-        padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 14),
-        decoration: BoxDecoration(
-          color: cs.surface,
-          borderRadius: BorderRadius.circular(16),
-          border: Border.all(color: color.withValues(alpha: 0.5), width: 1.3),
-          boxShadow: [
-            BoxShadow(
-              color: color.withValues(alpha: 0.13),
-              blurRadius: 12,
-              offset: const Offset(0, 5),
-            ),
-          ],
-        ),
-        child: Row(
-          mainAxisAlignment: MainAxisAlignment.center,
-          children: [
-            Container(
-              width: 30,
-              height: 30,
-              decoration: BoxDecoration(
-                color: color.withValues(alpha: 0.12),
-                borderRadius: BorderRadius.circular(10),
-              ),
-              child: Icon(icon, color: color, size: 18),
-            ),
-            const SizedBox(width: 8),
-            Flexible(
-              child: Text(
-                label,
-                textAlign: TextAlign.center,
-                maxLines: 1,
-                softWrap: false,
-                overflow: TextOverflow.visible,
-                style: TextStyle(
-                  color: color,
-                  fontWeight: FontWeight.w900,
-                  fontSize: 14,
-                ),
-              ),
-            ),
-          ],
-        ),
+  required String label,
+  required IconData icon,
+  required Color color,
+  required VoidCallback onTap,
+}) {
+  final cs = Theme.of(context).colorScheme;
+  return InkWell(
+    onTap: onTap,
+    borderRadius: BorderRadius.circular(10),
+    child: Container(
+      padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 8),
+      decoration: BoxDecoration(
+        color: cs.surface,
+        borderRadius: BorderRadius.circular(10),
+        border: Border.all(color: color.withValues(alpha: 0.5), width: 1.3),
+        boxShadow: [
+          BoxShadow(
+            color: color.withValues(alpha: 0.10),
+            blurRadius: 6,
+            offset: const Offset(0, 3),
+          ),
+        ],
       ),
-    );
+      child: Row(
+        mainAxisAlignment: MainAxisAlignment.center,
+        children: [
+          Container(
+            width: 22,
+            height: 22,
+            decoration: BoxDecoration(
+              color: color.withValues(alpha: 0.12),
+              borderRadius: BorderRadius.circular(6),
+            ),
+            child: Icon(icon, color: color, size: 13),
+          ),
+          const SizedBox(width: 6),
+          Flexible(
+            child: Text(
+              label,
+              textAlign: TextAlign.center,
+              maxLines: 1,
+              softWrap: false,
+              overflow: TextOverflow.visible,
+              style: TextStyle(
+                color: color,
+                fontWeight: FontWeight.w900,
+                fontSize: 10,
+              ),
+            ),
+          ),
+        ],
+      ),
+    ),
+  );
   }
-
   bool _hasSelectableMarksForMode(
     _VisibleWork work,
     _DprMarkActionMode mode,
@@ -312,12 +317,16 @@ class _PebDprEntryScreenState extends State<PebDprEntryScreen> {
   void _startMarkAction(_DprMarkActionMode mode) {
     setState(() {
       _markActionMode = mode;
+      _isDprSelectionMode = false;
       _selectedDetailMarks.clear();
     });
   }
 
   void _toggleDetailMark(_VisibleWork work, String mark) {
-    if (_markActionMode == _DprMarkActionMode.none) return;
+    if (!_isDprSelectionMode ||
+        _markActionMode == _DprMarkActionMode.none) {
+      return;
+    }
     final completed = _completedForWork(work).contains(mark);
     final inProgress = _inProgressForWork(work).contains(mark);
     final unlocked = _unlockedMarksForWork(work).contains(mark);
@@ -336,20 +345,11 @@ class _PebDprEntryScreenState extends State<PebDprEntryScreen> {
   }
 
   void _toggleSelectAll(_VisibleWork work) {
-    if (_markActionMode == _DprMarkActionMode.none) return;
-    final visibleMarks = _filteredSortedMarks(work);
-    final completedMarks = _completedForWork(work);
-    final inProgressMarks = _inProgressForWork(work);
-
-    final selectableMarks = visibleMarks.where((mark) {
-      final locked = _nextPendingPrerequisite(work, mark) != null;
-      final completed = completedMarks.contains(mark);
-      final inProgress = inProgressMarks.contains(mark);
-
-      return !locked &&
-          !completed &&
-          !(_markActionMode == _DprMarkActionMode.inProgress && inProgress);
-    }).toList();
+    if (!_isDprSelectionMode ||
+        _markActionMode == _DprMarkActionMode.none) {
+      return;
+    }
+    final selectableMarks = _selectableMarksForWork(work);
 
     if (selectableMarks.isEmpty) return;
 
@@ -366,48 +366,144 @@ class _PebDprEntryScreenState extends State<PebDprEntryScreen> {
     });
   }
 
-  Widget _selectAllButton(_VisibleWork work) {
+  List<String> _selectableMarksForWork(_VisibleWork work) {
     final visibleMarks = _filteredSortedMarks(work);
     final completedMarks = _completedForWork(work);
     final inProgressMarks = _inProgressForWork(work);
 
-    final selectableMarks = visibleMarks.where((mark) {
+    return visibleMarks.where((mark) {
       final locked = _nextPendingPrerequisite(work, mark) != null;
       final completed = completedMarks.contains(mark);
       final inProgress = inProgressMarks.contains(mark);
+
       return !locked &&
           !completed &&
           !(_markActionMode == _DprMarkActionMode.inProgress && inProgress);
     }).toList();
+  }
 
+  void _selectAllMarks(_VisibleWork work) {
+    final selectableMarks = _selectableMarksForWork(work);
+    if (selectableMarks.isEmpty) {
+      AppToast.info(
+          'No selectable marks available. Some might be locked or already completed.');
+      return;
+    }
+    setState(() => _selectedDetailMarks.addAll(selectableMarks));
+  }
+
+  void _deselectAllMarks(_VisibleWork work) {
+    final selectableMarks = _selectableMarksForWork(work);
+    setState(() {
+      for (final mark in selectableMarks) {
+        _selectedDetailMarks.remove(mark);
+      }
+    });
+  }
+
+  Widget _selectionOptionsRow(_VisibleWork work) {
+    final visibleMarks = _filteredSortedMarks(work);
     if (visibleMarks.isEmpty) return const SizedBox.shrink();
 
-    final allSelected = selectableMarks.isNotEmpty &&
-        selectableMarks.every(_selectedDetailMarks.contains);
     final cs = Theme.of(context).colorScheme;
+    return SingleChildScrollView(
+      scrollDirection: Axis.horizontal,
+      child: Row(
+        children: [
+          _dprHeaderActionButton(
+            label: 'Cancel',
+            icon: Icons.close,
+            textColor: cs.onSurfaceVariant,
+            bgColor: cs.surfaceContainerHigh,
+            onTap: () => setState(() {
+              _isDprSelectionMode = false;
+              _selectedDetailMarks.clear();
+            }),
+          ),
+          const SizedBox(width: 8),
+          _dprHeaderActionButton(
+            label: 'Select All',
+            icon: Icons.done_all,
+            textColor: cs.primary,
+            bgColor: cs.primaryContainer,
+            onTap: () => _selectAllMarks(work),
+          ),
+          const SizedBox(width: 8),
+          _dprHeaderActionButton(
+            label: 'Deselect All',
+            icon: Icons.remove_done,
+            textColor: cs.onError,
+            bgColor: cs.error,
+            onTap:
+                _selectedDetailMarks.isEmpty ? null : () => _deselectAllMarks(work),
+          ),
+        ],
+      ),
+    );
+  }
 
-    return TextButton.icon(
-      onPressed: () {
-        if (selectableMarks.isEmpty) {
-          if (visibleMarks.isNotEmpty) {
-            AppToast.info(
-                'No selectable marks available. Some might be locked or already completed.');
-          }
-          return;
-        }
-        _toggleSelectAll(work);
-      },
-      icon: Icon(
-        allSelected ? Icons.deselect_rounded : Icons.select_all_rounded,
-        size: 20,
+Widget _dprHeaderActionButton({
+  required String label,
+  required IconData icon,
+  required Color textColor,
+  required Color bgColor,
+  VoidCallback? onTap,
+}) {
+  return Material(
+    color: Colors.transparent,
+    child: InkWell(
+      onTap: onTap,
+      borderRadius: BorderRadius.circular(999),
+      child: Container(
+        padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 5),
+        decoration: BoxDecoration(
+          color: onTap == null ? bgColor.withValues(alpha: 0.45) : bgColor,
+          borderRadius: BorderRadius.circular(999),
+        ),
+        child: Row(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Icon(icon, size: 12, color: textColor),
+            const SizedBox(width: 4),
+            Text(
+              label,
+              style: TextStyle(
+                color: textColor,
+                fontWeight: FontWeight.w700,
+                fontSize: 10,
+              ),
+            ),
+          ],
+        ),
       ),
-      label: Text(
-        allSelected ? 'Deselect All' : 'Select All',
-        style: const TextStyle(fontWeight: FontWeight.w800),
-      ),
-      style: TextButton.styleFrom(
-        foregroundColor: allSelected ? cs.error : cs.primary,
-        padding: const EdgeInsets.symmetric(horizontal: 12),
+    ),
+  );
+}
+  Widget _dprHeaderIconButton({
+    required IconData icon,
+    required String tooltip,
+    required Color iconColor,
+    VoidCallback? onTap,
+  }) {
+    final cs = Theme.of(context).colorScheme;
+    return Tooltip(
+      message: tooltip,
+      child: Material(
+        color: Colors.transparent,
+        child: InkWell(
+          onTap: onTap,
+          borderRadius: BorderRadius.circular(12),
+          child: Container(
+            width: 38,
+            height: 38,
+            decoration: BoxDecoration(
+              color: cs.surface,
+              borderRadius: BorderRadius.circular(12),
+              border: Border.all(color: iconColor.withValues(alpha: 0.25)),
+            ),
+            child: Icon(icon, size: 19, color: iconColor),
+          ),
+        ),
       ),
     );
   }
@@ -424,6 +520,7 @@ class _PebDprEntryScreenState extends State<PebDprEntryScreen> {
       _selectedDate = picked;
       _activeWorkKey = null;
       _markActionMode = _DprMarkActionMode.none;
+      _isDprSelectionMode = false;
       _selectedDetailMarks.clear();
     });
     await _load(showLoader: true, autoScroll: true);
@@ -806,6 +903,7 @@ class _PebDprEntryScreenState extends State<PebDprEntryScreen> {
       AppToast.success('DPR updated successfully');
       setState(() {
         _markActionMode = _DprMarkActionMode.none;
+        _isDprSelectionMode = false;
         _selectedDetailMarks.clear();
       });
       await _load(showLoader: false, autoScroll: false);
@@ -2109,74 +2207,160 @@ class _PebDprEntryScreenState extends State<PebDprEntryScreen> {
     );
   }
 
-  Widget _buildWorkDetailHeader(_VisibleWork work) {
-    final cs = Theme.of(context).colorScheme;
-    final inProgressColor = const Color(0xFFE56F00);
-    final completedColor = Colors.green.shade700;
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
+Widget _buildWorkDetailHeader(_VisibleWork work) {
+  final cs = Theme.of(context).colorScheme;
+  final inProgressColor = const Color(0xFFE56F00);
+  final completedColor = Colors.green.shade700;
+  return Column(
+    crossAxisAlignment: CrossAxisAlignment.start,
+    children: [
+      Row(
+        crossAxisAlignment: CrossAxisAlignment.center,
+        children: [
+          Expanded(
+            child: Text(
+              work.displayName ?? work.stageName,
+              style: const TextStyle(fontSize: 26, fontWeight: FontWeight.w900),
+            ),
+          ),
+          if (_markActionMode != _DprMarkActionMode.none)
+            AnimatedSwitcher(
+              duration: const Duration(milliseconds: 380),
+              switchInCurve: Curves.easeOutQuart,
+              switchOutCurve: Curves.easeInQuart,
+              layoutBuilder: (currentChild, previousChildren) => Stack(
+                alignment: Alignment.centerRight,
+                children: [
+                  ...previousChildren,
+                  if (currentChild != null) currentChild,
+                ],
+              ),
+              transitionBuilder: (child, animation) {
+                final isIncoming =
+                    animation.status == AnimationStatus.forward ||
+                    animation.status == AnimationStatus.completed;
+                return FadeTransition(
+                  opacity: CurvedAnimation(
+                    parent: animation,
+                    curve: Curves.easeOutQuart,
+                  ),
+                  child: SlideTransition(
+                    position: Tween<Offset>(
+                      begin: Offset(isIncoming ? 0.2 : -0.2, 0),
+                      end: Offset.zero,
+                    ).animate(CurvedAnimation(
+                      parent: animation,
+                      curve: Curves.easeOutQuart,
+                    )),
+                    child: ScaleTransition(
+                      scale: Tween<double>(begin: 0.88, end: 1.0).animate(
+                        CurvedAnimation(
+                          parent: animation,
+                          curve: Curves.easeOutBack,
+                        ),
+                      ),
+                      alignment: Alignment.centerRight,
+                      child: child,
+                    ),
+                  ),
+                );
+              },
+              child: _isDprSelectionMode
+                  ? KeyedSubtree(
+                      key: const ValueKey('actions'),
+                      child: Row(
+                        mainAxisSize: MainAxisSize.min,
+                        children: [
+                          _dprHeaderActionButton(
+                            label: 'Cancel',
+                            icon: Icons.close,
+                            textColor: cs.onSurfaceVariant,
+                            bgColor: cs.surfaceContainerHigh,
+                            onTap: () => setState(() {
+                              _isDprSelectionMode = false;
+                              _selectedDetailMarks.clear();
+                            }),
+                          ),
+                          const SizedBox(width: 6),
+                          _dprHeaderActionButton(
+                            label: 'Select All',
+                            icon: Icons.done_all,
+                            textColor: cs.primary,
+                            bgColor: cs.primaryContainer,
+                            onTap: () => _selectAllMarks(work),
+                          ),
+                          const SizedBox(width: 6),
+                          _dprHeaderActionButton(
+                            label: 'Deselect All',
+                            icon: Icons.remove_done,
+                            textColor: cs.onError,
+                            bgColor: cs.error,
+                            onTap: _selectedDetailMarks.isEmpty
+                                ? null
+                                : () => _deselectAllMarks(work),
+                          ),
+                        ],
+                      ),
+                    )
+                  : KeyedSubtree(
+                      key: const ValueKey('icon'),
+                      child: _dprHeaderIconButton(
+                        icon: Icons.checklist_rounded,
+                        tooltip: 'Select Items',
+                        iconColor: cs.primary,
+                        onTap: () =>
+                            setState(() => _isDprSelectionMode = true),
+                      ),
+                    ),
+            ),
+        ],
+      ),
+      const SizedBox(height: 6),
+      if (_markActionMode == _DprMarkActionMode.none) ...[
+        Text(
+          'Whether your work is?',
+          style: TextStyle(
+            color: cs.onSurface,
+            fontSize: 16,
+            fontWeight: FontWeight.w900,
+          ),
+        ),
+        const SizedBox(height: 12),
         Row(
-          mainAxisAlignment: MainAxisAlignment.spaceBetween,
           children: [
             Expanded(
-              child: Text(
-                work.displayName ?? work.stageName,
-                style:
-                    const TextStyle(fontSize: 26, fontWeight: FontWeight.w900),
+              child: _statusChoiceButton(
+                label: 'In Progress',
+                icon: Icons.pending_actions_rounded,
+                color: inProgressColor,
+                onTap: () => _startMarkAction(_DprMarkActionMode.inProgress),
               ),
             ),
-            if (_markActionMode != _DprMarkActionMode.none)
-              _selectAllButton(work),
+            const SizedBox(width: 12),
+            Expanded(
+              child: _statusChoiceButton(
+                label: 'Completed',
+                icon: Icons.check_circle_rounded,
+                color: completedColor,
+                onTap: () => _startMarkAction(_DprMarkActionMode.completed),
+              ),
+            ),
           ],
         ),
-        const SizedBox(height: 6),
-        if (_markActionMode == _DprMarkActionMode.none) ...[
-          Text(
-            'Whether your work is?',
-            style: TextStyle(
-              color: cs.onSurface,
-              fontSize: 16,
-              fontWeight: FontWeight.w900,
-            ),
+      ] else
+        Text(
+          _markActionMode == _DprMarkActionMode.completed
+              ? 'Select mark numbers to complete.'
+              : 'Select mark numbers to mark as in progress.',
+          style: TextStyle(
+            color: cs.onSurfaceVariant,
+            fontSize: 12,
+            fontWeight: FontWeight.w700,
           ),
-          const SizedBox(height: 12),
-          Row(
-            children: [
-              Expanded(
-                child: _statusChoiceButton(
-                  label: 'In Progress',
-                  icon: Icons.pending_actions_rounded,
-                  color: inProgressColor,
-                  onTap: () => _startMarkAction(_DprMarkActionMode.inProgress),
-                ),
-              ),
-              const SizedBox(width: 12),
-              Expanded(
-                child: _statusChoiceButton(
-                  label: 'Completed',
-                  icon: Icons.check_circle_rounded,
-                  color: completedColor,
-                  onTap: () => _startMarkAction(_DprMarkActionMode.completed),
-                ),
-              ),
-            ],
-          ),
-        ] else
-          Text(
-            _markActionMode == _DprMarkActionMode.completed
-                ? 'Select mark numbers to complete.'
-                : 'Select mark numbers to mark as in progress.',
-            style: TextStyle(
-              color: Theme.of(context).colorScheme.onSurfaceVariant,
-              fontSize: 12,
-              fontWeight: FontWeight.w700,
-            ),
-          ),
-      ],
-    );
-  }
-
+        ),
+    ],
+  );
+}
   Widget _buildQuantityWorkEntryCard(_VisibleWork work) {
     final cs = Theme.of(context).colorScheme;
     return Container(
@@ -2215,7 +2399,7 @@ class _PebDprEntryScreenState extends State<PebDprEntryScreen> {
 
   Widget _buildDetailBottomBar(_VisibleWork work) {
     final cs = Theme.of(context).colorScheme;
-    final selecting = _markActionMode != _DprMarkActionMode.none;
+    final selecting = _isDprSelectionMode;
     if (!selecting) return const SizedBox.shrink();
     final isCompletedMode = _markActionMode == _DprMarkActionMode.completed;
     final inProgressColor = const Color(0xFFE56F00);
@@ -2246,7 +2430,7 @@ class _PebDprEntryScreenState extends State<PebDprEntryScreen> {
               Expanded(
                 child: OutlinedButton(
                   onPressed: () => setState(() {
-                    _markActionMode = _DprMarkActionMode.none;
+                    _isDprSelectionMode = false;
                     _selectedDetailMarks.clear();
                   }),
                   style: OutlinedButton.styleFrom(
@@ -2648,8 +2832,8 @@ class _PebDprEntryScreenState extends State<PebDprEntryScreen> {
         : work.displayName ?? work.stageName;
     final completed = _completedForWork(work).contains(markNumber);
     final inProgress = _inProgressForWork(work).contains(markNumber);
-    final selecting = _markActionMode != _DprMarkActionMode.none;
-    final selected = _selectedDetailMarks.contains(markNumber);
+    final selecting = _isDprSelectionMode;
+    final selected = selecting && _selectedDetailMarks.contains(markNumber);
     final pendingPrerequisite = _nextPendingPrerequisite(work, markNumber);
     final selectable = selecting &&
         pendingPrerequisite == null &&
@@ -2703,33 +2887,38 @@ class _PebDprEntryScreenState extends State<PebDprEntryScreen> {
                 icon: Icons.radio_button_unchecked_rounded,
               );
 
-    final card = Container(
-      decoration: BoxDecoration(
-        color: cardColor,
-        borderRadius: BorderRadius.circular(14),
-        border: Border.all(color: borderColor, width: selected ? 1.8 : 1.0),
-      ),
-      child: InkWell(
-        borderRadius: BorderRadius.circular(14),
-        onTap: selecting
-            ? selectable
-                ? () => _toggleDetailMark(work, markNumber)
-                : () {
-                    if (locked) {
-                      AppToast.info(_prerequisiteMessage(pendingPrerequisite));
-                    } else if (completed) {
-                      AppToast.info('This mark number is already completed.');
-                    } else if (_markActionMode == _DprMarkActionMode.inProgress &&
-                        inProgress) {
-                      AppToast.info('This mark number is already in progress.');
-                    }
-                  }
-            : locked
-                ? () => AppToast.info(_prerequisiteMessage(pendingPrerequisite))
-                : null,
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
+    final card = Stack(
+      children: [
+        Opacity(
+          opacity: selecting && !selected ? 0.5 : 1.0,
+          child: Container(
+            decoration: BoxDecoration(
+              color: cardColor,
+              borderRadius: BorderRadius.circular(14),
+              border:
+                  Border.all(color: borderColor, width: selected ? 1.8 : 1.0),
+            ),
+            child: InkWell(
+            borderRadius: BorderRadius.circular(14),
+            onTap: selecting
+                ? selectable
+                    ? () => _toggleDetailMark(work, markNumber)
+                    : () {
+                        if (locked) {
+                          AppToast.info(_prerequisiteMessage(pendingPrerequisite));
+                        } else if (completed) {
+                          AppToast.info('This mark number is already completed.');
+                        } else if (_markActionMode == _DprMarkActionMode.inProgress &&
+                            inProgress) {
+                          AppToast.info('This mark number is already in progress.');
+                        }
+                      }
+                : locked
+                    ? () => AppToast.info(_prerequisiteMessage(pendingPrerequisite))
+                    : null,
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
             // Header Area: Title & Remark on top, Mark Number & Status Badge below
             Padding(
               padding: const EdgeInsets.fromLTRB(14, 12, 14, 8),
@@ -2953,69 +3142,8 @@ class _PebDprEntryScreenState extends State<PebDprEntryScreen> {
                             ),
                             onChanged: (value) => setState(() => _markQuantityInputs[key] = value),
                           ),
-                          // Checkbox selector — always shown at bottom, pushes down with Spacer
                           const Spacer(),
-                          Container(
-                            height: 32,
-                            decoration: BoxDecoration(
-                              border: Border.all(
-                                color: completed
-                                    ? Colors.green.shade700
-                                    : _markActionMode == _DprMarkActionMode.completed
-                                        ? Colors.green.shade700
-                                        : (selecting ? inProgressColor : cs.outlineVariant),
-                                width: 1.5,
-                              ),
-                              borderRadius: BorderRadius.circular(6),
-                            ),
-                            child: Material(
-                              color: Colors.transparent,
-                              child: InkWell(
-                                onTap: (selecting && selectable)
-                                    ? () => _toggleDetailMark(work, markNumber)
-                                    : null,
-                                borderRadius: BorderRadius.circular(6),
-                                child: Row(
-                                  mainAxisAlignment: MainAxisAlignment.center,
-                                  children: [
-                                    SizedBox(
-                                      width: 20,
-                                      height: 20,
-                                      child: Checkbox(
-                                        value: completed ? true : selected,
-                                        onChanged: (selecting && selectable)
-                                            ? (_) => _toggleDetailMark(work, markNumber)
-                                            : null,
-                                        activeColor: _markActionMode == _DprMarkActionMode.completed
-                                            ? Colors.green.shade700
-                                            : inProgressColor,
-                                        shape: RoundedRectangleBorder(
-                                          borderRadius: BorderRadius.circular(4),
-                                        ),
-                                      ),
-                                    ),
-                                    const SizedBox(width: 5),
-                                    Text(
-                                      completed
-                                          ? 'Completed'
-                                          : selected
-                                              ? 'Selected'
-                                              : 'Select',
-                                      style: TextStyle(
-                                        fontSize: 11,
-                                        fontWeight: FontWeight.w700,
-                                        color: completed
-                                            ? Colors.green.shade700
-                                            : selected
-                                                ? inProgressColor
-                                                : cs.onSurfaceVariant,
-                                      ),
-                                    ),
-                                  ],
-                                ),
-                              ),
-                            ),
-                          ),
+                          const SizedBox(height: 32),
                         ],
                       ),
                     ),
@@ -3087,9 +3215,39 @@ class _PebDprEntryScreenState extends State<PebDprEntryScreen> {
                   ],
                 ),
               ),
-          ],
+              ],
+            ),
+            ),
+          ),
         ),
-      ),
+        if (selecting)
+          Positioned(
+            top: 8,
+            right: 8,
+            child: GestureDetector(
+              onTap: selectable ? () => _toggleDetailMark(work, markNumber) : null,
+              child: Container(
+                width: 32,
+                height: 32,
+                decoration: BoxDecoration(
+                  shape: BoxShape.circle,
+                  color: selected ? Colors.green : cs.surface,
+                  border: Border.all(color:Colors.green, width: 2),
+                  boxShadow: [
+                    BoxShadow(
+                      color:Colors.green.withValues(alpha: 0.2),
+                      blurRadius: 4,
+                      offset: const Offset(0, 2),
+                    ),
+                  ],
+                ),
+                child: selected
+                    ? Icon(Icons.check, color: Colors.white, size: 20)
+                    : null,
+              ),
+            ),
+          ),
+      ],
     );
 
     return Container(

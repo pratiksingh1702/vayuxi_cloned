@@ -1,9 +1,11 @@
+import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 
 import '../../../core/router/app_access.dart';
 import '../domain/tour_controller.dart';
-import '../registry/site_registry.dart';
+import 'tour_debug_config.dart';
 
 class TourScope extends ConsumerStatefulWidget {
   final Widget child;
@@ -15,9 +17,49 @@ class TourScope extends ConsumerStatefulWidget {
 
 class _TourScopeState extends ConsumerState<TourScope> {
   bool _tourInitialized = false;
+  bool _tourTestingResetComplete = !(kDebugMode &&
+      (TourDebugConfig.resetTourOnHotRestart ||
+          TourDebugConfig.resetLanguagePopupOnHotRestart));
+
+  @override
+  void initState() {
+    super.initState();
+    _resetTourForTestingIfEnabled();
+  }
+
+  Future<void> _resetTourForTestingIfEnabled() async {
+    final shouldResetTour =
+        kDebugMode && TourDebugConfig.resetTourOnHotRestart;
+    final shouldResetLanguagePopup =
+        kDebugMode && TourDebugConfig.resetLanguagePopupOnHotRestart;
+    if (!shouldResetTour && !shouldResetLanguagePopup) return;
+    try {
+      if (shouldResetTour) {
+        await ref.read(tourPersistenceProvider).reset();
+        debugPrint(
+            'Tour testing toggle enabled: tour progress reset on app boot');
+      }
+      if (shouldResetLanguagePopup) {
+        final prefs = await SharedPreferences.getInstance();
+        await prefs.remove('language_popup_seen');
+        debugPrint(
+            'Tour testing toggle enabled: language popup reset on app boot');
+      }
+    } catch (error) {
+      debugPrint('Tour testing reset failed: $error');
+    } finally {
+      if (mounted) {
+        setState(() => _tourTestingResetComplete = true);
+      }
+    }
+  }
 
   @override
   Widget build(BuildContext context) {
+    if (!_tourTestingResetComplete) {
+      return const SizedBox.shrink();
+    }
+
     // Watch appAccessProvider so we react whenever it changes
     final access = ref.watch(appAccessProvider);
 

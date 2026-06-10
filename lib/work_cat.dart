@@ -43,6 +43,7 @@ class _WorkCategoryScreenState extends ConsumerState<WorkCategoryScreen> {
   bool showLanguagePopup = false;
   bool languagePopupChecked = false; // avoid re-show loop
   bool _languageFlowDone = false; // <-- add this
+  bool _tourIntroSkipped = false;
   bool _showcaseStarted = false;
   bool _isNavigating = false;
   BuildContext? _showcaseContext;
@@ -163,6 +164,11 @@ class _WorkCategoryScreenState extends ConsumerState<WorkCategoryScreen> {
       typeNotifier.setType(workType.apiValue);
 
       ref.read(siteProvider.notifier).fetchSites();
+
+      final tourCtrl = ref.read(tourControllerProvider.notifier);
+      if (tourCtrl.currentStep?.id == 'work_category') {
+        await tourCtrl.next();
+      }
 
       await context.push(
         Routes.selectModule,
@@ -301,10 +307,15 @@ class _WorkCategoryScreenState extends ConsumerState<WorkCategoryScreen> {
       builder: (showcaseContext) {
         _showcaseContext = showcaseContext;
 
-        WidgetsBinding.instance.addPostFrameCallback((_) {
+        WidgetsBinding.instance.addPostFrameCallback((_) async {
           // ✅ Gate 1: Language flow must complete first
           if (!_languageFlowDone) {
             debugPrint('⏳ Showcase blocked: language flow not done');
+            return;
+          }
+
+          if (_tourIntroSkipped) {
+            debugPrint('⏳ Showcase blocked: tour intro skipped');
             return;
           }
 
@@ -315,6 +326,10 @@ class _WorkCategoryScreenState extends ConsumerState<WorkCategoryScreen> {
           }
 
           final ctrl = ref.read(tourControllerProvider.notifier);
+          if (ctrl.currentStep == null) {
+            await ctrl.startModuleIfNeeded(TourRegistry.workCategoryModule);
+            if (!mounted) return;
+          }
           ctrl.syncToRoute(AppRoutes.workCategory);
 
           final step = ctrl.currentStep;
@@ -426,24 +441,31 @@ class _WorkCategoryScreenState extends ConsumerState<WorkCategoryScreen> {
                   await LanguagePopupPrefs.markSeen(); // ⭐ add this
                   await _ensureEnglishDefault();
 
-                  setState(() => showLanguagePopup = false);
-
                   await Navigator.push(
                     context,
                     MaterialPageRoute(
                       builder: (_) => const LanguageSelectionScreen(),
                     ),
                   );
-
-                  if (!mounted) return;
-                  setState(() => _languageFlowDone = true);
                 },
                 onSkip: () async {
                   await LanguagePopupPrefs.markSeen(); // ⭐ add this
                   await _ensureEnglishDefault();
-
+                },
+                onStartTour: () {
+                  if (!mounted) return;
                   setState(() {
                     showLanguagePopup = false;
+                    _tourIntroSkipped = false;
+                    _showcaseStarted = false;
+                    _languageFlowDone = true;
+                  });
+                },
+                onSkipTour: () {
+                  if (!mounted) return;
+                  setState(() {
+                    showLanguagePopup = false;
+                    _tourIntroSkipped = true;
                     _languageFlowDone = true;
                   });
                 },

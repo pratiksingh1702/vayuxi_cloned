@@ -1,0 +1,645 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Tour Onboarding Mockups</title>
+  <style>
+    :root {
+      --ink: #17202f;
+      --muted: #667085;
+      --line: #d8dee8;
+      --soft: #f6f8fb;
+      --paper: #ffffff;
+      --blue: #2563eb;
+      --cyan: #0ea5e9;
+      --green: #10b981;
+      --amber: #f59e0b;
+      --navy: #15213a;
+      --shadow: 0 18px 44px rgba(18, 32, 57, .18);
+      font-family: Inter, ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+    }
+
+    * { box-sizing: border-box; }
+    body {
+      margin: 0;
+      background: #e8edf5;
+      color: var(--ink);
+    }
+
+    .sheet {
+      display: grid;
+      grid-template-columns: repeat(4, 390px);
+      gap: 28px;
+      padding: 28px;
+      width: max-content;
+    }
+
+    .phone {
+      width: 390px;
+      height: 844px;
+      border-radius: 34px;
+      overflow: hidden;
+      position: relative;
+      background: var(--soft);
+      box-shadow: 0 22px 60px rgba(16, 24, 40, .28);
+    }
+
+    .phone::before {
+      content: "";
+      position: absolute;
+      top: 10px;
+      left: 50%;
+      width: 108px;
+      height: 25px;
+      border-radius: 99px;
+      background: #101828;
+      transform: translateX(-50%);
+      z-index: 9;
+      opacity: .9;
+    }
+
+    .status {
+      height: 54px;
+      display: flex;
+      align-items: end;
+      justify-content: space-between;
+      padding: 0 24px 10px;
+      font-size: 12px;
+      font-weight: 700;
+      color: #101828;
+    }
+
+    .screen {
+      position: absolute;
+      inset: 0;
+      background:
+        linear-gradient(180deg, rgba(255,255,255,.95), rgba(246,248,251,.98)),
+        radial-gradient(circle at 16% 4%, rgba(14,165,233,.18), transparent 31%),
+        radial-gradient(circle at 95% 12%, rgba(37,99,235,.12), transparent 28%);
+    }
+
+    .content { padding: 70px 18px 18px; }
+    .app-head {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      margin-bottom: 14px;
+    }
+    .avatar {
+      width: 44px;
+      height: 44px;
+      border-radius: 15px;
+      background: linear-gradient(135deg, #d9f99d, #7dd3fc);
+      display: grid;
+      place-items: center;
+      font-weight: 800;
+      color: #0f172a;
+    }
+    .hello { line-height: 1.2; }
+    .hello b { font-size: 19px; }
+    .hello span { display: block; color: var(--muted); font-size: 12px; margin-top: 3px; }
+    .bell {
+      width: 40px;
+      height: 40px;
+      border: 1px solid var(--line);
+      border-radius: 14px;
+      display: grid;
+      place-items: center;
+      background: var(--paper);
+    }
+
+    .hero-card {
+      height: 484px;
+      padding: 18px;
+      border-radius: 24px;
+      background: var(--paper);
+      border: 1px solid rgba(216,222,232,.88);
+      box-shadow: 0 14px 30px rgba(16,24,40,.08);
+    }
+    .hero-card h1 {
+      margin: 0 0 5px;
+      font-size: 25px;
+      line-height: 1.08;
+    }
+    .hero-card p {
+      margin: 0 0 18px;
+      color: var(--muted);
+      font-size: 13px;
+      line-height: 1.4;
+    }
+    .work-grid {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 12px;
+    }
+    .work-tile {
+      height: 122px;
+      border-radius: 18px;
+      padding: 13px;
+      background: #f8fafc;
+      border: 1px solid #e2e8f0;
+    }
+    .work-tile strong { display: block; margin-top: 43px; font-size: 14px; }
+    .work-tile small { color: var(--muted); }
+    .tile-icon {
+      width: 34px;
+      height: 34px;
+      border-radius: 13px;
+      display: grid;
+      place-items: center;
+      color: white;
+      background: linear-gradient(135deg, var(--blue), var(--cyan));
+    }
+
+    .bottom-nav {
+      position: absolute;
+      left: 18px;
+      right: 18px;
+      bottom: 16px;
+      height: 62px;
+      border-radius: 24px;
+      background: rgba(255,255,255,.86);
+      border: 1px solid rgba(216,222,232,.9);
+      box-shadow: 0 14px 32px rgba(16,24,40,.12);
+      display: grid;
+      grid-template-columns: repeat(4, 1fr);
+      align-items: center;
+      text-align: center;
+      color: #64748b;
+      font-size: 11px;
+      font-weight: 700;
+    }
+    .bottom-nav .active { color: var(--blue); }
+
+    .scrim {
+      position: absolute;
+      inset: 0;
+      background: rgba(15, 23, 42, .42);
+      backdrop-filter: blur(9px);
+      z-index: 4;
+    }
+
+    .lang-card {
+      position: absolute;
+      left: 18px;
+      right: 18px;
+      top: 128px;
+      z-index: 5;
+      background: var(--paper);
+      border-radius: 28px;
+      padding: 20px;
+      border: 1px solid rgba(255,255,255,.7);
+      box-shadow: var(--shadow);
+    }
+    .tag {
+      display: inline-flex;
+      gap: 8px;
+      align-items: center;
+      padding: 8px 10px;
+      border-radius: 999px;
+      background: #ecfeff;
+      color: #0369a1;
+      font-size: 12px;
+      font-weight: 800;
+    }
+    .lang-card h2 {
+      margin: 18px 0 8px;
+      font-size: 28px;
+      line-height: 1.08;
+      letter-spacing: 0;
+    }
+    .lang-card p {
+      margin: 0;
+      color: var(--muted);
+      font-size: 14px;
+      line-height: 1.52;
+    }
+    .quick-langs {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 10px;
+      margin: 18px 0;
+    }
+    .quick-langs div {
+      border-radius: 16px;
+      border: 1px solid #dbeafe;
+      background: #f8fbff;
+      padding: 12px;
+      font-weight: 800;
+      font-size: 13px;
+    }
+    .quick-langs span { display: block; color: var(--muted); font-size: 11px; margin-top: 2px; }
+    .primary-btn, .ghost-btn {
+      height: 52px;
+      width: 100%;
+      border-radius: 16px;
+      border: 0;
+      font: inherit;
+      font-weight: 800;
+    }
+    .primary-btn {
+      color: white;
+      background: linear-gradient(135deg, #1d4ed8, #0ea5e9);
+      box-shadow: 0 12px 22px rgba(37, 99, 235, .28);
+    }
+    .ghost-btn {
+      margin-top: 10px;
+      color: #1e293b;
+      background: #f8fafc;
+      border: 1px solid #dbe3ef;
+    }
+    .fine-print {
+      margin-top: 12px;
+      text-align: center;
+      font-size: 11px;
+      color: #76839a;
+    }
+
+    .language-page {
+      padding: 74px 18px 88px;
+      height: 100%;
+    }
+    .topbar {
+      display: grid;
+      grid-template-columns: 40px 1fr 40px;
+      align-items: center;
+      margin-bottom: 18px;
+    }
+    .circle-btn {
+      width: 40px;
+      height: 40px;
+      border-radius: 14px;
+      background: #fff;
+      border: 1px solid var(--line);
+      display: grid;
+      place-items: center;
+      font-weight: 800;
+    }
+    .topbar h2 {
+      margin: 0;
+      text-align: center;
+      font-size: 18px;
+    }
+    .selected-card {
+      padding: 16px;
+      border-radius: 22px;
+      background: #10213f;
+      color: white;
+      box-shadow: var(--shadow);
+      margin-bottom: 16px;
+    }
+    .selected-card small {
+      color: #b7c5dc;
+      font-weight: 700;
+      font-size: 11px;
+    }
+    .selected-row {
+      margin-top: 10px;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+    }
+    .selected-row b { font-size: 21px; }
+    .pill {
+      padding: 6px 10px;
+      border-radius: 999px;
+      background: rgba(16,185,129,.15);
+      color: #86efac;
+      font-size: 11px;
+      font-weight: 800;
+    }
+    .search {
+      height: 48px;
+      border-radius: 16px;
+      border: 1px solid #dbe3ef;
+      background: white;
+      display: flex;
+      align-items: center;
+      gap: 9px;
+      padding: 0 14px;
+      color: #8a98aa;
+      margin-bottom: 14px;
+      font-weight: 650;
+    }
+    .lang-list { display: grid; gap: 10px; }
+    .lang-item {
+      height: 72px;
+      border-radius: 18px;
+      padding: 13px;
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      background: white;
+      border: 1px solid #e2e8f0;
+    }
+    .lang-item.active {
+      border-color: #3b82f6;
+      background: #eff6ff;
+    }
+    .lang-dot {
+      width: 38px;
+      height: 38px;
+      border-radius: 14px;
+      display: grid;
+      place-items: center;
+      color: white;
+      background: linear-gradient(135deg, #2563eb, #06b6d4);
+      font-weight: 900;
+    }
+    .lang-copy { flex: 1; }
+    .lang-copy b { display: block; }
+    .lang-copy span { color: var(--muted); font-size: 12px; }
+    .download { color: #64748b; font-weight: 800; }
+    .sticky-actions {
+      position: absolute;
+      left: 18px;
+      right: 18px;
+      bottom: 16px;
+      display: grid;
+      grid-template-columns: .82fr 1fr;
+      gap: 12px;
+    }
+    .sticky-actions button { height: 52px; border-radius: 17px; font-weight: 850; }
+
+    .highlight {
+      position: absolute;
+      left: 206px;
+      top: 230px;
+      width: 148px;
+      height: 122px;
+      border-radius: 20px;
+      background: white;
+      z-index: 6;
+      box-shadow: 0 0 0 999px rgba(10, 14, 24, .52), 0 0 0 5px rgba(14,165,233,.95), 0 18px 44px rgba(14,165,233,.36);
+      pointer-events: none;
+    }
+    .highlight .work-tile {
+      height: 122px;
+      background: #fff;
+      border-color: transparent;
+    }
+    .buddy {
+      position: absolute;
+      left: 16px;
+      right: 16px;
+      bottom: 96px;
+      z-index: 7;
+      border-radius: 24px;
+      background: rgba(21, 33, 58, .96);
+      color: white;
+      padding: 14px;
+      box-shadow: 0 20px 52px rgba(15, 23, 42, .42);
+      border: 1px solid rgba(125, 211, 252, .22);
+    }
+    .grab {
+      width: 38px;
+      height: 4px;
+      background: rgba(255,255,255,.28);
+      border-radius: 99px;
+      margin: 0 auto 11px;
+    }
+    .buddy-head {
+      display: flex;
+      gap: 10px;
+      align-items: center;
+    }
+    .spark {
+      width: 42px;
+      height: 42px;
+      border-radius: 16px;
+      background: linear-gradient(135deg, #2563eb, #22d3ee);
+      display: grid;
+      place-items: center;
+      font-weight: 900;
+      box-shadow: 0 10px 24px rgba(14,165,233,.3);
+    }
+    .buddy-title { flex: 1; }
+    .buddy-title b { display: block; font-size: 14px; }
+    .buddy-title span { color: #8bdcff; font-size: 11px; font-weight: 750; }
+    .buddy-icons { display: flex; gap: 7px; color: #b7c5dc; font-weight: 800; }
+    .progress {
+      margin: 12px 0 10px;
+      height: 5px;
+      border-radius: 99px;
+      background: rgba(255,255,255,.13);
+      overflow: hidden;
+    }
+    .progress div {
+      width: 20%;
+      height: 100%;
+      background: linear-gradient(90deg, #60a5fa, #22d3ee);
+    }
+    .buddy p {
+      margin: 0 0 12px;
+      font-size: 13px;
+      line-height: 1.45;
+      color: #eef7ff;
+    }
+    .buddy-actions {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      color: #9fb3d1;
+      font-size: 12px;
+      font-weight: 800;
+    }
+    .buddy-actions .next {
+      padding: 10px 14px;
+      border-radius: 999px;
+      color: white;
+      background: linear-gradient(135deg, #2563eb, #22d3ee);
+    }
+
+    .complete-modal {
+      position: absolute;
+      left: 24px;
+      right: 24px;
+      top: 206px;
+      z-index: 5;
+      padding: 24px;
+      border-radius: 30px;
+      background: white;
+      text-align: center;
+      box-shadow: var(--shadow);
+    }
+    .check-ring {
+      width: 82px;
+      height: 82px;
+      margin: 0 auto 16px;
+      border-radius: 28px;
+      display: grid;
+      place-items: center;
+      color: white;
+      font-size: 35px;
+      background: linear-gradient(135deg, #10b981, #0ea5e9);
+      box-shadow: 0 18px 30px rgba(16,185,129,.28);
+    }
+    .complete-modal h2 {
+      margin: 0 0 8px;
+      font-size: 25px;
+    }
+    .complete-modal p {
+      margin: 0 0 20px;
+      color: var(--muted);
+      line-height: 1.46;
+      font-size: 14px;
+    }
+    .summary {
+      display: grid;
+      grid-template-columns: repeat(3, 1fr);
+      gap: 8px;
+      margin-bottom: 20px;
+    }
+    .summary div {
+      border: 1px solid #e2e8f0;
+      background: #f8fafc;
+      border-radius: 16px;
+      padding: 10px 4px;
+    }
+    .summary b { display: block; color: #0f172a; }
+    .summary span { font-size: 10px; color: var(--muted); font-weight: 700; }
+  </style>
+</head>
+<body>
+  <main class="sheet">
+    <section class="phone" id="screen-language-popup">
+      <div class="screen">
+        <div class="status"><span>9:41</span><span>5G 100%</span></div>
+        <div class="content">
+          <div class="app-head">
+            <div class="avatar">AK</div>
+            <div class="hello"><b>Good morning</b><span>choose your work stream</span></div>
+            <div class="bell">!</div>
+          </div>
+          <div class="hero-card">
+            <h1>What are you working on today?</h1>
+            <p>Select your category once. The app will shape setup, daily entry, and reports around it.</p>
+            <div class="work-grid">
+              <div class="work-tile"><div class="tile-icon">M</div><strong>Mechanical</strong><small>Piping, insulation</small></div>
+              <div class="work-tile"><div class="tile-icon">C</div><strong>Civil</strong><small>Site works</small></div>
+              <div class="work-tile"><div class="tile-icon">E</div><strong>Electrical</strong><small>Panels, cable</small></div>
+              <div class="work-tile"><div class="tile-icon">F</div><strong>Fabrication</strong><small>Shop floor</small></div>
+            </div>
+          </div>
+        </div>
+        <div class="bottom-nav"><div class="active">Home</div><div>Setup</div><div>Reports</div><div>More</div></div>
+        <div class="scrim"></div>
+        <div class="lang-card">
+          <div class="tag">Aअ Language Setup</div>
+          <h2>Choose the language you work in</h2>
+          <p>Start in English instantly, or download another language pack for labels, prompts, and guided help.</p>
+          <div class="quick-langs">
+            <div>English<span>Ready offline</span></div>
+            <div>हिन्दी<span>Download pack</span></div>
+          </div>
+          <button class="primary-btn">Select Language</button>
+          <button class="ghost-btn">Continue with English</button>
+          <div class="fine-print">You can change this anytime in Settings.</div>
+        </div>
+      </div>
+    </section>
+
+    <section class="phone" id="screen-language-picker">
+      <div class="screen">
+        <div class="status"><span>9:42</span><span>5G 100%</span></div>
+        <div class="language-page">
+          <div class="topbar">
+            <div class="circle-btn">&lt;</div>
+            <h2>App Language</h2>
+            <div class="circle-btn">?</div>
+          </div>
+          <div class="selected-card">
+            <small>CURRENT SELECTION</small>
+            <div class="selected-row">
+              <b>English</b>
+              <span class="pill">Ready</span>
+            </div>
+          </div>
+          <div class="search">Search language</div>
+          <div class="lang-list">
+            <div class="lang-item active"><div class="lang-dot">EN</div><div class="lang-copy"><b>English</b><span>English · en-IN</span></div><div class="download">✓</div></div>
+            <div class="lang-item"><div class="lang-dot">हि</div><div class="lang-copy"><b>Hindi</b><span>हिन्दी · hi-IN</span></div><div class="download">↓</div></div>
+            <div class="lang-item"><div class="lang-dot">ম</div><div class="lang-copy"><b>Bengali</b><span>বাংলা · bn-IN</span></div><div class="download">↓</div></div>
+            <div class="lang-item"><div class="lang-dot">MR</div><div class="lang-copy"><b>Marathi</b><span>मराठी · mr-IN</span></div><div class="download">↓</div></div>
+            <div class="lang-item"><div class="lang-dot">TA</div><div class="lang-copy"><b>Tamil</b><span>தமிழ் · ta-IN</span></div><div class="download">↓</div></div>
+          </div>
+        </div>
+        <div class="sticky-actions"><button class="ghost-btn">Back</button><button class="primary-btn">Save & Continue</button></div>
+      </div>
+    </section>
+
+    <section class="phone" id="screen-tour-highlight">
+      <div class="screen">
+        <div class="status"><span>9:43</span><span>5G 100%</span></div>
+        <div class="content">
+          <div class="app-head">
+            <div class="avatar">AK</div>
+            <div class="hello"><b>Good morning</b><span>choose your work stream</span></div>
+            <div class="bell">!</div>
+          </div>
+          <div class="hero-card">
+            <h1>Setup your first site</h1>
+            <p>Choose a setup module and Buddy will guide the fastest path.</p>
+            <div class="work-grid">
+              <div class="work-tile"><div class="tile-icon">V</div><strong>View Sites</strong><small>Open list</small></div>
+              <div class="work-tile"><div class="tile-icon">+</div><strong>Add Site</strong><small>Create or import</small></div>
+              <div class="work-tile"><div class="tile-icon">R</div><strong>Rate</strong><small>Item pricing</small></div>
+              <div class="work-tile"><div class="tile-icon">T</div><strong>Team</strong><small>Members</small></div>
+            </div>
+          </div>
+        </div>
+        <div class="bottom-nav"><div>Daily</div><div class="active">Setup</div><div>Reports</div><div>More</div></div>
+        <div class="highlight"><div class="work-tile"><div class="tile-icon">+</div><strong>Add Site</strong><small>Create or import</small></div></div>
+        <div class="buddy">
+          <div class="grab"></div>
+          <div class="buddy-head">
+            <div class="spark">B</div>
+            <div class="buddy-title"><b>View or Add</b><span>Step 1 of 5 · Choose Add</span></div>
+            <div class="buddy-icons">↻ 🔊 ×</div>
+          </div>
+          <div class="progress"><div></div></div>
+          <p>You can view existing sites or add a new one. Tap the highlighted Add Site card to create your first site.</p>
+          <div class="buddy-actions"><span>Replay voice</span><span class="next">Got it</span></div>
+        </div>
+      </div>
+    </section>
+
+    <section class="phone" id="screen-tour-complete">
+      <div class="screen">
+        <div class="status"><span>9:48</span><span>5G 100%</span></div>
+        <div class="content">
+          <div class="app-head">
+            <div class="avatar">AK</div>
+            <div class="hello"><b>Site Setup</b><span>import complete</span></div>
+            <div class="bell">!</div>
+          </div>
+          <div class="hero-card">
+            <h1>Your setup is ready</h1>
+            <p>Imported site data is now available for daily progress, manpower, and reports.</p>
+            <div class="work-grid">
+              <div class="work-tile"><div class="tile-icon">S</div><strong>Sites</strong><small>1 active</small></div>
+              <div class="work-tile"><div class="tile-icon">D</div><strong>Daily Entry</strong><small>Ready</small></div>
+              <div class="work-tile"><div class="tile-icon">M</div><strong>Manpower</strong><small>Next setup</small></div>
+              <div class="work-tile"><div class="tile-icon">R</div><strong>Reports</strong><small>Available</small></div>
+            </div>
+          </div>
+        </div>
+        <div class="scrim"></div>
+        <div class="complete-modal">
+          <div class="check-ring">✓</div>
+          <h2>Site setup complete</h2>
+          <p>Your first site is ready. You can continue to daily entry or setup the next module.</p>
+          <div class="summary">
+            <div><b>5</b><span>steps</span></div>
+            <div><b>1</b><span>site</span></div>
+            <div><b>100%</b><span>done</span></div>
+          </div>
+          <button class="primary-btn">Continue to Setup</button>
+          <button class="ghost-btn">Replay Tour Later</button>
+        </div>
+      </div>
+    </section>
+  </main>
+</body>
+</html>

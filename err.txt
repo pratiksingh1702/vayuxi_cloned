@@ -1,17 +1,945 @@
-bd71.js" defer=""></script><script src="/_next/static/chunks/pages/_error-577d20cf4b946d58.js" defer=""></script><script src="/_next/static/Hyokkg_8nLS1fzyDATKzy/_buildManifest.js" defer=""></script><s
-I/flutter ( 6389): Requested resource not found.
-I/flutter ( 6389): ❌ Request failed: GET https://be-vayuxi-chi.vercel.app/api/v1/structure/boq/list?site_id=69f64bdfeac94795846e29c7
-I/flutter ( 6389):    Error type: DioExceptionType.badResponse
-I/flutter ( 6389):    Error: Requested resource not found.
-I/flutter ( 6389): 🚫 Not queued (server/client error)
-I/flutter ( 6389): 📌 Saved request to queue: GET /structure/boq/list
-I/flutter ( 6389): 😴 No pending requests → skip
-E/flutter ( 6389): [ERROR:flutter/lib/ui/window/platform_configuration.cc(436)] Reported frame time is older than the last one; clamping. 388826167258 < 388826167292 ~= 34
-E/IJankManager( 6389): slideSceneEnd unknown scene 1003 mScene:-1
-I/PowerHalMgrImpl( 6389): hdl:277793, pid:6389
-D/OplusViewDragTouchViewHelper( 6389): dispatchTouchView action = 1
-D/ViewRootImplExtImpl( 6389): the up motion event handled by client, just return
-I/PowerHalMgrImpl( 6389): hdl:277794, pid:6389
-I/TRuntime.CctTransportBackend( 6389): Making request to: https://crashlyticsreports-pa.googleapis.com/v1/firelog/legacy/batchlog
-I/TRuntime.CctTransportBackend( 6389): Status Code: 200
-I/flutter ( 6389): 😴 No pending requests → skip
+I/PowerHalMgrImpl(31088): hdl:16667, pid:31088
+I/flutter (31088): 😴 No pending requests → skip
+I/flutter (31088): 😴 No pending requests → skip
+I/flutter (31088): 😴 No pending requests → skip
+I/flutter (31088): 😴 No pending requests → skip
+I/flutter (31088): 😴 No pending requests → skip
+
+I/flutter (31088): 📍 [ROUTER] pageBuilder called | module=dpr | siteId=6a27f4e65b18dd49e575ed00
+I/flutter (31088): 🧭 [ROUTER] WorkCategoryScreen | path: /workCategory
+I/flutter (31088): 🧭 [ROUTER] SiteListScreen → module=dpr | path: /site-list/dpr
+I/flutter (31088): 🏗️ Building SiteListScreen
+I/flutter (31088): 👀 Watching site state
+I/flutter (31088): Instance of 'SiteState'
+I/flutter (31088): 🎯 Showing 6 sites in grid
+I/flutter (31088): null
+I/flutter (31088): 🏢 Building card for site: dhruvil shah site (index: 0)
+I/flutter (31088): null
+I/flutter (31088): 🏢 Building card for site: site p&m database testing (index: 1)
+I/flutter (31088): null
+I/flutter (31088): 🏢 Building card for site: testing (index: 2)
+I/flutter (31088): null
+I/flutter (31088): 🏢 Building card for site: satmax testing site 1 (index: 3)
+I/flutter (31088): null
+I/flutter (31088): 🏢 Building card for site: SATMAX ERECTION SITE (index: 4)
+I/flutter (31088): null
+I/flutter (31088): 🏢 Building card for site: erection site (index: 5)
+I/flutter (31088): 🧭 [ROUTER] ModuleScreen | path: /select-module | extra: {initialIndex: 0}
+I/flutter (31088): ⏳ Showcase blocked: no current step
+Performing hot reload...
+Reloaded 0 libraries in 865ms (compile: 35 ms, reload: 0 ms, reassemble: 651 ms).
+I/flutter (31088): 😴 No pending requests → skip
+I/flutter (31088): 😴 No pending requests → skip
+I/flutter (31088): 😴 No pending requests → skip
+I/flutter (31088): 😴 No pending requests → skip
+I/flutter (31088): 😴 No pending requests → skip
+I/flutter (31088): 😴 No pending requests → skip
+I/flutter (31088): 😴 No pending requests → skip
+
+I/flutter (31088): 📍 [ROUTER] pageBuilder called | module=dpr | siteId=6a27f4e65b18dd49e575ed00
+I/flutter (31088): 🧭 [ROUTER] WorkCategoryScreen | path: /workCategory
+I/flutter (31088): 🧭 [ROUTER] SiteListScreen → module=dpr | path: /site-list/dpr
+I/flutter (31088): 🏗️ Building SiteListScreen
+I/flutter (31088): 👀 Watching site state
+I/flutter (31088): Instance of 'SiteState'
+I/flutter (31088): 🎯 Showing 6 sites in grid
+I/flutter (31088): null
+I/flutter (31088): 🏢 Building card for site: dhruvil shah site (index: 0)
+I/flutter (31088): null
+I/flutter (31088): 🏢 Building card for site: site p&m database testing (index: 1)
+I/flutter (31088): null
+I/flutter (31088): 🏢 Building card for site: testing (index: 2)
+I/flutter (31088): null
+I/flutter (31088): 🏢 Building card for site: satmax testing site 1 (index: 3)
+I/flutter (31088): null
+I/flutter (31088): 🏢 Building card for site: SATMAX ERECTION SITE (index: 4)
+I/flutter (31088): null
+I/flutter (31088): 🏢 Building card for site: erection site (index: 5)
+I/flutter (31088): 🧭 [ROUTER] ModuleScreen | path: /select-module | extra: {initialIndex: 0}
+I/flutter (31088): ⏳ Showcase blocked: no current step
+Performing hot reload...
+Reloaded 1 of 3985 libraries in 3,166ms (compile: 290 ms, reload: 1069 ms, reassemble: 1411 ms).
+E/IJankManager(31088): slideSceneEnd unknown scene 1003 mScene:-1
+I/PowerHalMgrImpl(31088): hdl:16672, pid:31088
+I/PowerHalMgrImpl(31088): hdl:16674, pid:31088
+I/PowerHalMgrImpl(31088): hdl:16672, pid:31088
+I/PowerHalMgrImpl(31088): hdl:16676, pid:31088
+D/OplusViewDragTouchViewHelper(31088): dispatchTouchView action = 1
+I/ScrollIdentify(31088): on fling
+D/ViewRootImplExtImpl(31088): the up motion event handled by client, just return
+I/PowerHalMgrImpl(31088): hdl:16677, pid:31088
+I/flutter (31088): 😴 No pending requests → skip
+I/PowerHalMgrImpl(31088): hdl:16680, pid:31088
+
+I/flutter (31088): 📍 [ROUTER] pageBuilder called | module=dpr | siteId=6a27f4e65b18dd49e575ed00
+I/flutter (31088): 🧭 [ROUTER] ModuleScreen | path: /select-module | extra: {initialIndex: 0}
+I/flutter (31088): 🧭 [ROUTER] SiteListScreen → module=dpr | path: /site-list/dpr
+I/flutter (31088): 🏗️ Building SiteListScreen
+I/flutter (31088): 👀 Watching site state
+I/flutter (31088): Instance of 'SiteState'
+I/flutter (31088): 🎯 Showing 6 sites in grid
+I/flutter (31088): null
+I/flutter (31088): 🏢 Building card for site: dhruvil shah site (index: 0)
+I/flutter (31088): null
+I/flutter (31088): 🏢 Building card for site: site p&m database testing (index: 1)
+I/flutter (31088): null
+I/flutter (31088): 🏢 Building card for site: testing (index: 2)
+I/flutter (31088): null
+I/flutter (31088): 🏢 Building card for site: satmax testing site 1 (index: 3)
+I/flutter (31088): null
+I/flutter (31088): 🏢 Building card for site: SATMAX ERECTION SITE (index: 4)
+I/flutter (31088): null
+I/flutter (31088): 🏢 Building card for site: erection site (index: 5)
+I/flutter (31088): 🧭 [ROUTER] WorkCategoryScreen | path: /workCategory
+I/flutter (31088): ⏳ Showcase blocked: no current step
+Performing hot reload...
+Reloaded 1 of 3985 libraries in 2,853ms (compile: 152 ms, reload: 1019 ms, reassemble: 1303 ms).
+E/IJankManager(31088): slideSceneEnd unknown scene 1003 mScene:-1
+D/OplusViewDragTouchViewHelper(31088): dispatchTouchView action = 1
+D/ViewRootImplExtImpl(31088): the up motion event handled by client, just return
+E/IJankManager(31088): slideSceneEnd unknown scene 1003 mScene:-1
+I/PowerHalMgrImpl(31088): hdl:16690, pid:31088
+I/PowerHalMgrImpl(31088): hdl:16691, pid:31088
+D/OplusViewDragTouchViewHelper(31088): dispatchTouchView action = 1
+I/ScrollIdentify(31088): on fling
+D/ViewRootImplExtImpl(31088): the up motion event handled by client, just return
+I/PowerHalMgrImpl(31088): hdl:16692, pid:31088
+I/PowerHalMgrImpl(31088): hdl:16697, pid:31088
+I/PowerHalMgrImpl(31088): hdl:16698, pid:31088
+I/PowerHalMgrImpl(31088): hdl:16700, pid:31088
+I/PowerHalMgrImpl(31088): hdl:16697, pid:31088
+I/VelocityTracker(31088): LSQ2 speed rezero
+D/OplusViewDragTouchViewHelper(31088): dispatchTouchView action = 1
+I/VelocityTracker(31088): LSQ2 speed rezero
+I/ScrollIdentify(31088): on fling
+I/VelocityTracker(31088): LSQ2 speed rezero
+D/ViewRootImplExtImpl(31088): the up motion event handled by client, just return
+I/PowerHalMgrImpl(31088): hdl:16702, pid:31088
+I/PowerHalMgrImpl(31088): hdl:16704, pid:31088
+E/IJankManager(31088): slideSceneEnd unknown scene 1003 mScene:-1
+I/PowerHalMgrImpl(31088): hdl:16709, pid:31088
+I/PowerHalMgrImpl(31088): hdl:16711, pid:31088
+D/OplusViewDragTouchViewHelper(31088): dispatchTouchView action = 1
+I/ScrollIdentify(31088): on fling
+D/ViewRootImplExtImpl(31088): the up motion event handled by client, just return
+I/PowerHalMgrImpl(31088): hdl:16713, pid:31088
+I/PowerHalMgrImpl(31088): hdl:16717, pid:31088
+I/PowerHalMgrImpl(31088): hdl:16718, pid:31088
+I/PowerHalMgrImpl(31088): hdl:16720, pid:31088
+I/PowerHalMgrImpl(31088): hdl:16717, pid:31088
+D/OplusViewDragTouchViewHelper(31088): dispatchTouchView action = 1
+I/ScrollIdentify(31088): on fling
+D/ViewRootImplExtImpl(31088): the up motion event handled by client, just return
+I/PowerHalMgrImpl(31088): hdl:16722, pid:31088
+I/PowerHalMgrImpl(31088): hdl:16725, pid:31088
+I/PowerHalMgrImpl(31088): hdl:16727, pid:31088
+I/PowerHalMgrImpl(31088): hdl:16725, pid:31088
+I/PowerHalMgrImpl(31088): hdl:16729, pid:31088
+D/OplusViewDragTouchViewHelper(31088): dispatchTouchView action = 1
+D/ViewRootImplExtImpl(31088): the up motion event handled by client, just return
+I/PowerHalMgrImpl(31088): hdl:16730, pid:31088
+E/IJankManager(31088): slideSceneEnd unknown scene 1003 mScene:-1
+I/PowerHalMgrImpl(31088): hdl:16735, pid:31088
+I/PowerHalMgrImpl(31088): hdl:16737, pid:31088
+I/PowerHalMgrImpl(31088): hdl:16735, pid:31088
+I/PowerHalMgrImpl(31088): hdl:16739, pid:31088
+D/OplusViewDragTouchViewHelper(31088): dispatchTouchView action = 1
+I/ScrollIdentify(31088): on fling
+D/ViewRootImplExtImpl(31088): the up motion event handled by client, just return
+I/PowerHalMgrImpl(31088): hdl:16740, pid:31088
+E/IJankManager(31088): slideSceneEnd unknown scene 1003 mScene:-1
+I/PowerHalMgrImpl(31088): hdl:16745, pid:31088
+I/PowerHalMgrImpl(31088): hdl:16747, pid:31088
+D/OplusViewDragTouchViewHelper(31088): dispatchTouchView action = 1
+I/ScrollIdentify(31088): on fling
+D/ViewRootImplExtImpl(31088): the up motion event handled by client, just return
+I/PowerHalMgrImpl(31088): hdl:16748, pid:31088
+I/PowerHalMgrImpl(31088): hdl:16751, pid:31088
+I/flutter (31088): 😴 No pending requests → skip
+E/IJankManager(31088): slideSceneEnd unknown scene 1003 mScene:-1
+D/OplusSystemUINavigationGesture(31088): [GESTURE_SIDE_BAR] swipe from 1
+D/OplusSystemUINavigationGesture(31088): [GESTURE_SIDE_BAR] Hit Side Bar Region !
+I/PowerHalMgrImpl(31088): hdl:16756, pid:31088
+I/PowerHalMgrImpl(31088): hdl:16758, pid:31088
+D/OplusViewDragTouchViewHelper(31088): dispatchTouchView action = 1
+I/ScrollIdentify(31088): on fling
+D/ViewRootImplExtImpl(31088): the up motion event handled by client, just return
+I/PowerHalMgrImpl(31088): hdl:16760, pid:31088
+I/PowerHalMgrImpl(31088): hdl:16762, pid:31088
+I/flutter (31088): 😴 No pending requests → skip
+I/flutter (31088): 😴 No pending requests → skip
+I/flutter (31088): 😴 No pending requests → skip
+I/flutter (31088): 😴 No pending requests → skip
+I/flutter (31088): 😴 No pending requests → skip
+I/flutter (31088): 😴 No pending requests → skip
+I/flutter (31088): 😴 No pending requests → skip
+E/IJankManager(31088): slideSceneEnd unknown scene 1003 mScene:-1
+D/OplusViewDragTouchViewHelper(31088): dispatchTouchView action = 1
+D/ViewRootImplExtImpl(31088): the up motion event handled by client, just return
+I/flutter (31088): 😴 No pending requests → skip
+I/flutter (31088): 😴 No pending requests → skip
+
+lib/features/peb_execution/screens/peb_dpr_entry_screen.dart:1052:43: Error: The method '_buildMarkSearchBar' isn't
+defined for the type '_PebDprEntryScreenState'.
+ - '_PebDprEntryScreenState' is from 'package:untitled2/features/peb_execution/screens/peb_dpr_entry_screen.dart'
+ ('lib/features/peb_execution/screens/peb_dpr_entry_screen.dart').
+Try correcting the name to the name of an existing method, or defining a method named '_buildMarkSearchBar'.
+                                          _buildMarkSearchBar(activeWork),
+                                          ^^^^^^^^^^^^^^^^^^^
+lib/features/peb_execution/screens/peb_dpr_entry_screen.dart:1054:46: Error: The method '_filteredSortedMarks' isn't
+defined for the type '_PebDprEntryScreenState'.
+ - '_PebDprEntryScreenState' is from 'package:untitled2/features/peb_execution/screens/peb_dpr_entry_screen.dart'
+ ('lib/features/peb_execution/screens/peb_dpr_entry_screen.dart').
+Try correcting the name to the name of an existing method, or defining a method named '_filteredSortedMarks'.
+                                          ..._filteredSortedMarks(activeWork).map(
+                                             ^^^^^^^^^^^^^^^^^^^^
+lib/features/peb_execution/screens/peb_dpr_entry_screen.dart:1063:47: Error: The method '_filteredSortedMarks' isn't
+defined for the type '_PebDprEntryScreenState'.
+ - '_PebDprEntryScreenState' is from 'package:untitled2/features/peb_execution/screens/peb_dpr_entry_screen.dart'
+ ('lib/features/peb_execution/screens/peb_dpr_entry_screen.dart').
+Try correcting the name to the name of an existing method, or defining a method named '_filteredSortedMarks'.
+                                          if (_filteredSortedMarks(activeWork).isEmpty && activeMarks.isNotEmpty)
+                                              ^^^^^^^^^^^^^^^^^^^^
+Performing hot reload...
+Try again after fixing the above error(s).
+I/flutter (31088): 😴 No pending requests → skip
+
+lib/features/peb_execution/screens/peb_dpr_entry_screen.dart:3121:1: Error: Expected a declaration, but got '}'.
+}
+^
+lib/features/peb_execution/screens/peb_dpr_entry_screen.dart:2161:22: Error: Method not found: '_marksForWork'.
+    final allMarks = _marksForWork(work);
+                     ^^^^^^^^^^^^^
+lib/features/peb_execution/screens/peb_dpr_entry_screen.dart:2162:15: Error: Undefined name '_markSearchQuery'.
+    final q = _markSearchQuery.trim().toLowerCase();
+              ^^^^^^^^^^^^^^^^
+lib/features/peb_execution/screens/peb_dpr_entry_screen.dart:2166:11: Error: Undefined name '_markFilterStatus'.
+      if (_markFilterStatus != null) {
+          ^^^^^^^^^^^^^^^^^
+lib/features/peb_execution/screens/peb_dpr_entry_screen.dart:2167:27: Error: Method not found: '_completedForWork'.
+        final completed = _completedForWork(work).contains(mark);
+                          ^^^^^^^^^^^^^^^^^
+lib/features/peb_execution/screens/peb_dpr_entry_screen.dart:2168:28: Error: Method not found: '_inProgressForWork'.
+        final inProgress = _inProgressForWork(work).contains(mark);
+                           ^^^^^^^^^^^^^^^^^^
+lib/features/peb_execution/screens/peb_dpr_entry_screen.dart:2169:13: Error: Undefined name '_markFilterStatus'.
+        if (_markFilterStatus == 'completed' && !completed) return false;
+            ^^^^^^^^^^^^^^^^^
+lib/features/peb_execution/screens/peb_dpr_entry_screen.dart:2170:13: Error: Undefined name '_markFilterStatus'.
+        if (_markFilterStatus == 'inProgress' && !inProgress) return false;
+            ^^^^^^^^^^^^^^^^^
+lib/features/peb_execution/screens/peb_dpr_entry_screen.dart:2171:13: Error: Undefined name '_markFilterStatus'.
+        if (_markFilterStatus == 'pending' && (completed || inProgress)) return false;
+            ^^^^^^^^^^^^^^^^^
+lib/features/peb_execution/screens/peb_dpr_entry_screen.dart:2175:23: Error: Method not found: '_boqMarkFor'.
+      final boqMark = _boqMarkFor(mark);
+                      ^^^^^^^^^^^
+lib/features/peb_execution/screens/peb_dpr_entry_screen.dart:2183:27: Error: Undefined name '_markSortAz'.
+    result.sort((a, b) => _markSortAz ? a.compareTo(b) : b.compareTo(a));
+                          ^^^^^^^^^^^
+lib/features/peb_execution/screens/peb_dpr_entry_screen.dart:2189:25: Error: Undefined name 'context'.
+    final cs = Theme.of(context).colorScheme;
+                        ^^^^^^^
+lib/features/peb_execution/screens/peb_dpr_entry_screen.dart:2190:24: Error: Undefined name '_markFilterStatus'.
+    final hasFilters = _markFilterStatus != null || !_markSortAz;
+                       ^^^^^^^^^^^^^^^^^
+lib/features/peb_execution/screens/peb_dpr_entry_screen.dart:2190:54: Error: Undefined name '_markSortAz'.
+    final hasFilters = _markFilterStatus != null || !_markSortAz;
+                                                     ^^^^^^^^^^^
+lib/features/peb_execution/screens/peb_dpr_entry_screen.dart:2191:20: Error: Expected an identifier, but got '\'.
+Try inserting an identifier before '\'.
+    return Padding(\
+                   ^
+lib/features/peb_execution/screens/peb_dpr_entry_screen.dart:2192:7: Error: Expected ',' before this.
+      padding: const EdgeInsets.symmetric(horizontal: 0),
+      ^^^^^^^
+lib/features/peb_execution/screens/peb_dpr_entry_screen.dart:2197:27: Error: Undefined name '_markSearchCtrl'.
+              controller: _markSearchCtrl,
+                          ^^^^^^^^^^^^^^^
+lib/features/peb_execution/screens/peb_dpr_entry_screen.dart:2198:50: Error: Setter not found: '_markSearchQuery'.
+              onChanged: (val) => setState(() => _markSearchQuery = val),
+                                                 ^^^^^^^^^^^^^^^^
+lib/features/peb_execution/screens/peb_dpr_entry_screen.dart:2198:35: Error: Method not found: 'setState'.
+              onChanged: (val) => setState(() => _markSearchQuery = val),
+                                  ^^^^^^^^
+lib/features/peb_execution/screens/peb_dpr_entry_screen.dart:2202:29: Error: Undefined name '_markSearchQuery'.
+                suffixIcon: _markSearchQuery.isNotEmpty
+                            ^^^^^^^^^^^^^^^^
+lib/features/peb_execution/screens/peb_dpr_entry_screen.dart:2206:27: Error: Undefined name '_markSearchCtrl'.
+                          _markSearchCtrl.clear();
+                          ^^^^^^^^^^^^^^^
+lib/features/peb_execution/screens/peb_dpr_entry_screen.dart:2207:42: Error: Setter not found: '_markSearchQuery'.
+                          setState(() => _markSearchQuery = '');
+                                         ^^^^^^^^^^^^^^^^
+lib/features/peb_execution/screens/peb_dpr_entry_screen.dart:2207:27: Error: Method not found: 'setState'.
+                          setState(() => _markSearchQuery = '');
+                          ^^^^^^^^
+lib/features/peb_execution/screens/peb_dpr_entry_screen.dart:2191:19: Error: Too many positional arguments: 0 allowed,
+but 1 found.
+Try removing the extra positional arguments.
+    return Padding(\
+                  ^
+../../flutter_windows_3.35.3-stable/flutter/packages/flutter/lib/src/widgets/basic.dart:2302:9: Context: Found this
+candidate, but the arguments don't match.
+  const Padding({super.key, required this.padding, super.child});
+        ^^^^^^^
+lib/features/peb_execution/screens/peb_dpr_entry_screen.dart:2275:25: Error: Undefined name 'context'.
+    final cs = Theme.of(context).colorScheme;
+                        ^^^^^^^
+lib/features/peb_execution/screens/peb_dpr_entry_screen.dart:2277:16: Error: Undefined name 'context'.
+      context: context,
+               ^^^^^^^
+lib/features/peb_execution/screens/peb_dpr_entry_screen.dart:2282:33: Error: Undefined name 'context'.
+          height: MediaQuery.of(context).size.height * 0.55,
+                                ^^^^^^^
+lib/features/peb_execution/screens/peb_dpr_entry_screen.dart:2309:27: Error: Setter not found: '_markSortAz'.
+                          _markSortAz = true;
+                          ^^^^^^^^^^^
+lib/features/peb_execution/screens/peb_dpr_entry_screen.dart:2310:27: Error: Setter not found: '_markFilterStatus'.
+                          _markFilterStatus = null;
+                          ^^^^^^^^^^^^^^^^^
+lib/features/peb_execution/screens/peb_dpr_entry_screen.dart:2312:25: Error: Method not found: 'setState'.
+                        setState(() {});
+                        ^^^^^^^^
+lib/features/peb_execution/screens/peb_dpr_entry_screen.dart:2327:78: Error: Undefined name '_markSortAz'.
+                    _markSortChip('Mark A → Z', Icons.sort_by_alpha_rounded, _markSortAz, cs, () {
+                                                                             ^^^^^^^^^^^
+lib/features/peb_execution/screens/peb_dpr_entry_screen.dart:2328:38: Error: Setter not found: '_markSortAz'.
+                      setModal(() => _markSortAz = true);
+                                     ^^^^^^^^^^^
+lib/features/peb_execution/screens/peb_dpr_entry_screen.dart:2329:23: Error: Method not found: 'setState'.
+                      setState(() {});
+                      ^^^^^^^^
+lib/features/peb_execution/screens/peb_dpr_entry_screen.dart:2332:70: Error: Undefined name '_markSortAz'.
+                    _markSortChip('Mark Z → A', Icons.sort_rounded, !_markSortAz, cs, () {
+                                                                     ^^^^^^^^^^^
+lib/features/peb_execution/screens/peb_dpr_entry_screen.dart:2333:38: Error: Setter not found: '_markSortAz'.
+                      setModal(() => _markSortAz = false);
+                                     ^^^^^^^^^^^
+lib/features/peb_execution/screens/peb_dpr_entry_screen.dart:2334:23: Error: Method not found: 'setState'.
+                      setState(() {});
+                      ^^^^^^^^
+lib/features/peb_execution/screens/peb_dpr_entry_screen.dart:2343:54: Error: Undefined name '_markFilterStatus'.
+                        _markFilterChip('All', null, _markFilterStatus == null, cs, () {
+                                                     ^^^^^^^^^^^^^^^^^
+lib/features/peb_execution/screens/peb_dpr_entry_screen.dart:2344:42: Error: Setter not found: '_markFilterStatus'.
+                          setModal(() => _markFilterStatus = null);
+                                         ^^^^^^^^^^^^^^^^^
+lib/features/peb_execution/screens/peb_dpr_entry_screen.dart:2345:27: Error: Method not found: 'setState'.
+                          setState(() {});
+                          ^^^^^^^^
+lib/features/peb_execution/screens/peb_dpr_entry_screen.dart:2347:63: Error: Undefined name '_markFilterStatus'.
+                        _markFilterChip('Pending', 'pending', _markFilterStatus == 'pending', cs, () {
+                                                              ^^^^^^^^^^^^^^^^^
+lib/features/peb_execution/screens/peb_dpr_entry_screen.dart:2348:42: Error: Setter not found: '_markFilterStatus'.
+                          setModal(() => _markFilterStatus = 'pending');
+                                         ^^^^^^^^^^^^^^^^^
+lib/features/peb_execution/screens/peb_dpr_entry_screen.dart:2349:27: Error: Method not found: 'setState'.
+                          setState(() {});
+                          ^^^^^^^^
+lib/features/peb_execution/screens/peb_dpr_entry_screen.dart:2351:70: Error: Undefined name '_markFilterStatus'.
+                        _markFilterChip('In Progress', 'inProgress', _markFilterStatus == 'inProgress', cs, () {
+                                                                     ^^^^^^^^^^^^^^^^^
+lib/features/peb_execution/screens/peb_dpr_entry_screen.dart:2352:42: Error: Setter not found: '_markFilterStatus'.
+                          setModal(() => _markFilterStatus = 'inProgress');
+                                         ^^^^^^^^^^^^^^^^^
+lib/features/peb_execution/screens/peb_dpr_entry_screen.dart:2353:27: Error: Method not found: 'setState'.
+                          setState(() {});
+                          ^^^^^^^^
+lib/features/peb_execution/screens/peb_dpr_entry_screen.dart:2355:67: Error: Undefined name '_markFilterStatus'.
+                        _markFilterChip('Completed', 'completed', _markFilterStatus == 'completed', cs, () {
+                                                                  ^^^^^^^^^^^^^^^^^
+lib/features/peb_execution/screens/peb_dpr_entry_screen.dart:2356:42: Error: Setter not found: '_markFilterStatus'.
+                          setModal(() => _markFilterStatus = 'completed');
+                                         ^^^^^^^^^^^^^^^^^
+lib/features/peb_execution/screens/peb_dpr_entry_screen.dart:2357:27: Error: Method not found: 'setState'.
+                          setState(() {});
+                          ^^^^^^^^
+lib/features/peb_execution/screens/peb_dpr_entry_screen.dart:2427:25: Error: Undefined name 'context'.
+    final cs = Theme.of(context).colorScheme;
+                        ^^^^^^^
+lib/features/peb_execution/screens/peb_dpr_entry_screen.dart:2428:17: Error: Method not found: '_markInputKey'.
+    final key = _markInputKey(work, markNumber);
+                ^^^^^^^^^^^^^
+lib/features/peb_execution/screens/peb_dpr_entry_screen.dart:2429:21: Error: Method not found: '_boqMarkFor'.
+    final boqMark = _boqMarkFor(markNumber);
+                    ^^^^^^^^^^^
+lib/features/peb_execution/screens/peb_dpr_entry_screen.dart:2434:23: Error: Method not found: '_completedForWork'.
+    final completed = _completedForWork(work).contains(markNumber);
+                      ^^^^^^^^^^^^^^^^^
+lib/features/peb_execution/screens/peb_dpr_entry_screen.dart:2435:24: Error: Method not found: '_inProgressForWork'.
+    final inProgress = _inProgressForWork(work).contains(markNumber);
+                       ^^^^^^^^^^^^^^^^^^
+lib/features/peb_execution/screens/peb_dpr_entry_screen.dart:2436:23: Error: Undefined name '_markActionMode'.
+    final selecting = _markActionMode != _DprMarkActionMode.none;
+                      ^^^^^^^^^^^^^^^
+lib/features/peb_execution/screens/peb_dpr_entry_screen.dart:2437:22: Error: Undefined name '_selectedDetailMarks'.
+    final selected = _selectedDetailMarks.contains(markNumber);
+                     ^^^^^^^^^^^^^^^^^^^^
+lib/features/peb_execution/screens/peb_dpr_entry_screen.dart:2438:33: Error: Method not found:
+'_nextPendingPrerequisite'.
+    final pendingPrerequisite = _nextPendingPrerequisite(work, markNumber);
+                                ^^^^^^^^^^^^^^^^^^^^^^^^
+lib/features/peb_execution/screens/peb_dpr_entry_screen.dart:2442:11: Error: Undefined name '_markActionMode'.
+        !(_markActionMode == _DprMarkActionMode.inProgress && inProgress);
+          ^^^^^^^^^^^^^^^
+lib/features/peb_execution/screens/peb_dpr_entry_screen.dart:2445:9: Error: Undefined name '_markActionMode'.
+        _markActionMode == _DprMarkActionMode.completed;
+        ^^^^^^^^^^^^^^^
+lib/features/peb_execution/screens/peb_dpr_entry_screen.dart:2448:9: Error: Undefined name '_markActionMode'.
+        _markActionMode == _DprMarkActionMode.inProgress;
+        ^^^^^^^^^^^^^^^
+lib/features/peb_execution/screens/peb_dpr_entry_screen.dart:2455:22: Error: Method not found: '_markWeightKg'.
+    final weightKg = _markWeightKg(markNumber);
+                     ^^^^^^^^^^^^^
+lib/features/peb_execution/screens/peb_dpr_entry_screen.dart:2456:29: Error: Method not found: '_isWeightChanged'.
+    final isVariationOpen = _isWeightChanged(work, markNumber);
+                            ^^^^^^^^^^^^^^^^
+lib/features/peb_execution/screens/peb_dpr_entry_screen.dart:2474:11: Error: Method not found: '_statusBadge'.
+        ? _statusBadge(
+          ^^^^^^^^^^^^
+lib/features/peb_execution/screens/peb_dpr_entry_screen.dart:2480:15: Error: Method not found: '_statusBadge'.
+            ? _statusBadge(
+              ^^^^^^^^^^^^
+lib/features/peb_execution/screens/peb_dpr_entry_screen.dart:2485:15: Error: Method not found: '_statusBadge'.
+            : _statusBadge(
+              ^^^^^^^^^^^^
+lib/features/peb_execution/screens/peb_dpr_entry_screen.dart:2501:25: Error: Method not found: '_toggleDetailMark'.
+                ? () => _toggleDetailMark(work, markNumber)
+                        ^^^^^^^^^^^^^^^^^
+lib/features/peb_execution/screens/peb_dpr_entry_screen.dart:2504:37: Error: Method not found: '_prerequisiteMessage'.
+                      AppToast.info(_prerequisiteMessage(pendingPrerequisite));
+                                    ^^^^^^^^^^^^^^^^^^^^
+lib/features/peb_execution/screens/peb_dpr_entry_screen.dart:2507:32: Error: Undefined name '_markActionMode'.
+                    } else if (_markActionMode == _DprMarkActionMode.inProgress &&
+                               ^^^^^^^^^^^^^^^
+lib/features/peb_execution/screens/peb_dpr_entry_screen.dart:2513:39: Error: Method not found: '_prerequisiteMessage'.
+                ? () => AppToast.info(_prerequisiteMessage(pendingPrerequisite))
+                                      ^^^^^^^^^^^^^^^^^^^^
+lib/features/peb_execution/screens/peb_dpr_entry_screen.dart:2545:41: Error: Undefined name '_markRemarks'.
+                                  text: _markRemarks[key] ?? '',
+                                        ^^^^^^^^^^^^
+lib/features/peb_execution/screens/peb_dpr_entry_screen.dart:2548:44: Error: Undefined name 'context'.
+                                  context: context,
+                                           ^^^^^^^
+lib/features/peb_execution/screens/peb_dpr_entry_screen.dart:2560:61: Error: Undefined name 'context'.
+                                      bottom: MediaQuery.of(context).viewInsets.bottom + 24,
+                                                            ^^^^^^^
+lib/features/peb_execution/screens/peb_dpr_entry_screen.dart:2595:80: Error: Undefined name 'context'.
+                                                onPressed: () => Navigator.pop(context),
+                                                                               ^^^^^^^
+lib/features/peb_execution/screens/peb_dpr_entry_screen.dart:2603:66: Error: Undefined name '_markRemarks'.
+                                                  setState(() => _markRemarks[key] = ctrl.text.trim());
+                                                                 ^^^^^^^^^^^^
+lib/features/peb_execution/screens/peb_dpr_entry_screen.dart:2603:51: Error: Method not found: 'setState'.
+                                                  setState(() => _markRemarks[key] = ctrl.text.trim());
+                                                  ^^^^^^^^
+lib/features/peb_execution/screens/peb_dpr_entry_screen.dart:2604:65: Error: Undefined name 'context'.
+                                                  Navigator.pop(context);
+                                                                ^^^^^^^
+lib/features/peb_execution/screens/peb_dpr_entry_screen.dart:2631:30: Error: Undefined name '_markRemarks'.
+                            (_markRemarks[key] ?? '').trim().isNotEmpty
+                             ^^^^^^^^^^^^
+lib/features/peb_execution/screens/peb_dpr_entry_screen.dart:2632:35: Error: Undefined name '_markRemarks'.
+                                ? _markRemarks[key]!
+                                  ^^^^^^^^^^^^
+lib/features/peb_execution/screens/peb_dpr_entry_screen.dart:2670:77: Error: Undefined name 'widget'.
+                                image: pebWorkImageProvider(work.setupItem, widget.executionType),
+                                                                            ^^^^^^
+lib/features/peb_execution/screens/peb_dpr_entry_screen.dart:2674:35: Error: Undefined name 'widget'.
+                                  widget.executionType,
+                                  ^^^^^^
+lib/features/peb_execution/screens/peb_dpr_entry_screen.dart:2696:40: Error: Method not found: '_assemblyBlueBox'.
+                                child: _assemblyBlueBox(
+                                       ^^^^^^^^^^^^^^^^
+lib/features/peb_execution/screens/peb_dpr_entry_screen.dart:2706:56: Error: Method not found: '_markQuantity'.
+                                  value: _prettyNumber(_markQuantity(markNumber)),
+                                                       ^^^^^^^^^^^^^
+lib/features/peb_execution/screens/peb_dpr_entry_screen.dart:2706:42: Error: Method not found: '_prettyNumber'.
+                                  value: _prettyNumber(_markQuantity(markNumber)),
+                                         ^^^^^^^^^^^^^
+lib/features/peb_execution/screens/peb_dpr_entry_screen.dart:2704:40: Error: Method not found: '_assemblyBlueBox'.
+                                child: _assemblyBlueBox(
+                                       ^^^^^^^^^^^^^^^^
+lib/features/peb_execution/screens/peb_dpr_entry_screen.dart:2724:43: Error: Undefined name '_markQuantityInputs'.
+                            initialValue: _markQuantityInputs[key] ?? _prettyNumber(weightKg),
+                                          ^^^^^^^^^^^^^^^^^^^
+lib/features/peb_execution/screens/peb_dpr_entry_screen.dart:2724:71: Error: Method not found: '_prettyNumber'.
+                            initialValue: _markQuantityInputs[key] ?? _prettyNumber(weightKg),
+                                                                      ^^^^^^^^^^^^^
+lib/features/peb_execution/screens/peb_dpr_entry_screen.dart:2739:66: Error: Undefined name '_markQuantityInputs'.
+                            onChanged: (value) => setState(() => _markQuantityInputs[key] = value),
+                                                                 ^^^^^^^^^^^^^^^^^^^
+lib/features/peb_execution/screens/peb_dpr_entry_screen.dart:2739:51: Error: Method not found: 'setState'.
+                            onChanged: (value) => setState(() => _markQuantityInputs[key] = value),
+                                                  ^^^^^^^^
+lib/features/peb_execution/screens/peb_dpr_entry_screen.dart:2749:39: Error: Undefined name '_markActionMode'.
+                                    : _markActionMode == _DprMarkActionMode.completed
+                                      ^^^^^^^^^^^^^^^
+lib/features/peb_execution/screens/peb_dpr_entry_screen.dart:2760:45: Error: Method not found: '_toggleDetailMark'.
+                                    ? () => _toggleDetailMark(work, markNumber)
+                                            ^^^^^^^^^^^^^^^^^
+lib/features/peb_execution/screens/peb_dpr_entry_screen.dart:2772:54: Error: Method not found: '_toggleDetailMark'.
+                                            ? (_) => _toggleDetailMark(work, markNumber)
+                                                     ^^^^^^^^^^^^^^^^^
+lib/features/peb_execution/screens/peb_dpr_entry_screen.dart:2774:54: Error: Undefined name '_markActionMode'.
+                                        activeColor: _markActionMode == _DprMarkActionMode.completed
+                                                     ^^^^^^^^^^^^^^^
+lib/features/peb_execution/screens/peb_dpr_entry_screen.dart:2820:23: Error: Method not found: '_pillBanner'.
+                      _pillBanner(
+                      ^^^^^^^^^^^
+lib/features/peb_execution/screens/peb_dpr_entry_screen.dart:2827:39: Error: Undefined name '_variationReasons'.
+                        initialValue: _variationReasons[key] ?? '',
+                                      ^^^^^^^^^^^^^^^^^
+lib/features/peb_execution/screens/peb_dpr_entry_screen.dart:2841:47: Error: Undefined name '_variationReasons'.
+                        onChanged: (value) => _variationReasons[key] = value,
+                                              ^^^^^^^^^^^^^^^^^
+lib/features/peb_execution/screens/peb_dpr_entry_screen.dart:2859:33: Error: Method not found: '_prerequisiteMessage'.
+                                _prerequisiteMessage(pendingPrerequisite),
+                                ^^^^^^^^^^^^^^^^^^^^
+lib/features/peb_execution/screens/peb_dpr_entry_screen.dart:2891:25: Error: Undefined name 'context'.
+    final cs = Theme.of(context).colorScheme;
+                        ^^^^^^^
+lib/features/peb_execution/screens/peb_dpr_entry_screen.dart:2892:17: Error: Method not found: '_markInputKey'.
+    final key = _markInputKey(work, markNumber);
+                ^^^^^^^^^^^^^
+lib/features/peb_execution/screens/peb_dpr_entry_screen.dart:2893:23: Error: Method not found: '_completedForWork'.
+    final completed = _completedForWork(work).contains(markNumber);
+                      ^^^^^^^^^^^^^^^^^
+lib/features/peb_execution/screens/peb_dpr_entry_screen.dart:2894:24: Error: Method not found: '_inProgressForWork'.
+    final inProgress = _inProgressForWork(work).contains(markNumber);
+                       ^^^^^^^^^^^^^^^^^^
+lib/features/peb_execution/screens/peb_dpr_entry_screen.dart:2895:22: Error: Method not found: '_markWeightKg'.
+    final weightKg = _markWeightKg(markNumber);
+                     ^^^^^^^^^^^^^
+lib/features/peb_execution/screens/peb_dpr_entry_screen.dart:2896:23: Error: Undefined name '_markActionMode'.
+    final selecting = _markActionMode != _DprMarkActionMode.none;
+                      ^^^^^^^^^^^^^^^
+lib/features/peb_execution/screens/peb_dpr_entry_screen.dart:2897:22: Error: Undefined name '_selectedDetailMarks'.
+    final selected = _selectedDetailMarks.contains(markNumber);
+                     ^^^^^^^^^^^^^^^^^^^^
+lib/features/peb_execution/screens/peb_dpr_entry_screen.dart:2900:11: Error: Undefined name '_markActionMode'.
+        !(_markActionMode == _DprMarkActionMode.inProgress && inProgress);
+          ^^^^^^^^^^^^^^^
+lib/features/peb_execution/screens/peb_dpr_entry_screen.dart:2901:29: Error: Method not found: '_isWeightChanged'.
+    final isVariationOpen = _isWeightChanged(work, markNumber);
+                            ^^^^^^^^^^^^^^^^
+lib/features/peb_execution/screens/peb_dpr_entry_screen.dart:2903:11: Error: Method not found: '_statusBadge'.
+        ? _statusBadge(
+          ^^^^^^^^^^^^
+lib/features/peb_execution/screens/peb_dpr_entry_screen.dart:2909:15: Error: Method not found: '_statusBadge'.
+            ? _statusBadge(
+              ^^^^^^^^^^^^
+lib/features/peb_execution/screens/peb_dpr_entry_screen.dart:2919:23: Error: Method not found: '_toggleDetailMark'.
+              ? () => _toggleDetailMark(work, markNumber)
+                      ^^^^^^^^^^^^^^^^^
+lib/features/peb_execution/screens/peb_dpr_entry_screen.dart:2987:29: Error: Undefined name 'widget'.
+                            widget.executionType,
+                            ^^^^^^
+lib/features/peb_execution/screens/peb_dpr_entry_screen.dart:2996:31: Error: Undefined name 'widget'.
+                              widget.executionType,
+                              ^^^^^^
+lib/features/peb_execution/screens/peb_dpr_entry_screen.dart:3037:41: Error: Undefined name '_markQuantityInputs'.
+                          initialValue: _markQuantityInputs[key] ??
+                                        ^^^^^^^^^^^^^^^^^^^
+lib/features/peb_execution/screens/peb_dpr_entry_screen.dart:3038:31: Error: Method not found: '_prettyNumber'.
+                              _prettyNumber(weightKg),
+                              ^^^^^^^^^^^^^
+lib/features/peb_execution/screens/peb_dpr_entry_screen.dart:3054:46: Error: Undefined name '_markQuantityInputs'.
+                              setState(() => _markQuantityInputs[key] = value),
+                                             ^^^^^^^^^^^^^^^^^^^
+lib/features/peb_execution/screens/peb_dpr_entry_screen.dart:3054:31: Error: Method not found: 'setState'.
+                              setState(() => _markQuantityInputs[key] = value),
+                              ^^^^^^^^
+lib/features/peb_execution/screens/peb_dpr_entry_screen.dart:3071:38: Error: Method not found: '_toggleDetailMark'.
+                            ? (_) => _toggleDetailMark(work, markNumber)
+                                     ^^^^^^^^^^^^^^^^^
+lib/features/peb_execution/screens/peb_dpr_entry_screen.dart:3081:31: Error: Undefined name '_markRemarks'.
+                initialValue: _markRemarks[key] ?? '',
+                              ^^^^^^^^^^^^
+lib/features/peb_execution/screens/peb_dpr_entry_screen.dart:3093:39: Error: Undefined name '_markRemarks'.
+                onChanged: (value) => _markRemarks[key] = value,
+                                      ^^^^^^^^^^^^
+lib/features/peb_execution/screens/peb_dpr_entry_screen.dart:3097:17: Error: Method not found: '_pillBanner'.
+                _pillBanner(
+                ^^^^^^^^^^^
+lib/features/peb_execution/screens/peb_dpr_entry_screen.dart:3104:33: Error: Undefined name '_variationReasons'.
+                  initialValue: _variationReasons[key] ?? '',
+                                ^^^^^^^^^^^^^^^^^
+lib/features/peb_execution/screens/peb_dpr_entry_screen.dart:3111:41: Error: Undefined name '_variationReasons'.
+                  onChanged: (value) => _variationReasons[key] = value,
+                                        ^^^^^^^^^^^^^^^^^
+Performing hot reload...
+Try again after fixing the above error(s).
+I/flutter (31088): 😴 No pending requests → skip
+I/flutter (31088): 😴 No pending requests → skip
+
+lib/features/peb_execution/screens/peb_dpr_entry_screen.dart:3121:1: Error: Expected a declaration, but got '}'.
+}
+^
+lib/features/peb_execution/screens/peb_dpr_entry_screen.dart:2161:22: Error: Method not found: '_marksForWork'.
+    final allMarks = _marksForWork(work);
+                     ^^^^^^^^^^^^^
+lib/features/peb_execution/screens/peb_dpr_entry_screen.dart:2162:15: Error: Undefined name '_markSearchQuery'.
+    final q = _markSearchQuery.trim().toLowerCase();
+              ^^^^^^^^^^^^^^^^
+lib/features/peb_execution/screens/peb_dpr_entry_screen.dart:2166:11: Error: Undefined name '_markFilterStatus'.
+      if (_markFilterStatus != null) {
+          ^^^^^^^^^^^^^^^^^
+lib/features/peb_execution/screens/peb_dpr_entry_screen.dart:2167:27: Error: Method not found: '_completedForWork'.
+        final completed = _completedForWork(work).contains(mark);
+                          ^^^^^^^^^^^^^^^^^
+lib/features/peb_execution/screens/peb_dpr_entry_screen.dart:2168:28: Error: Method not found: '_inProgressForWork'.
+        final inProgress = _inProgressForWork(work).contains(mark);
+                           ^^^^^^^^^^^^^^^^^^
+lib/features/peb_execution/screens/peb_dpr_entry_screen.dart:2169:13: Error: Undefined name '_markFilterStatus'.
+        if (_markFilterStatus == 'completed' && !completed) return false;
+            ^^^^^^^^^^^^^^^^^
+lib/features/peb_execution/screens/peb_dpr_entry_screen.dart:2170:13: Error: Undefined name '_markFilterStatus'.
+        if (_markFilterStatus == 'inProgress' && !inProgress) return false;
+            ^^^^^^^^^^^^^^^^^
+lib/features/peb_execution/screens/peb_dpr_entry_screen.dart:2171:13: Error: Undefined name '_markFilterStatus'.
+        if (_markFilterStatus == 'pending' && (completed || inProgress)) return false;
+            ^^^^^^^^^^^^^^^^^
+lib/features/peb_execution/screens/peb_dpr_entry_screen.dart:2175:23: Error: Method not found: '_boqMarkFor'.
+      final boqMark = _boqMarkFor(mark);
+                      ^^^^^^^^^^^
+lib/features/peb_execution/screens/peb_dpr_entry_screen.dart:2183:27: Error: Undefined name '_markSortAz'.
+    result.sort((a, b) => _markSortAz ? a.compareTo(b) : b.compareTo(a));
+                          ^^^^^^^^^^^
+lib/features/peb_execution/screens/peb_dpr_entry_screen.dart:2189:25: Error: Undefined name 'context'.
+    final cs = Theme.of(context).colorScheme;
+                        ^^^^^^^
+lib/features/peb_execution/screens/peb_dpr_entry_screen.dart:2190:24: Error: Undefined name '_markFilterStatus'.
+    final hasFilters = _markFilterStatus != null || !_markSortAz;
+                       ^^^^^^^^^^^^^^^^^
+lib/features/peb_execution/screens/peb_dpr_entry_screen.dart:2190:54: Error: Undefined name '_markSortAz'.
+    final hasFilters = _markFilterStatus != null || !_markSortAz;
+                                                     ^^^^^^^^^^^
+lib/features/peb_execution/screens/peb_dpr_entry_screen.dart:2191:20: Error: Expected an identifier, but got '\'.
+Try inserting an identifier before '\'.
+    return Padding(\
+                   ^
+lib/features/peb_execution/screens/peb_dpr_entry_screen.dart:2192:7: Error: Expected ',' before this.
+      padding: const EdgeInsets.symmetric(horizontal: 0),
+      ^^^^^^^
+lib/features/peb_execution/screens/peb_dpr_entry_screen.dart:2197:27: Error: Undefined name '_markSearchCtrl'.
+              controller: _markSearchCtrl,
+                          ^^^^^^^^^^^^^^^
+lib/features/peb_execution/screens/peb_dpr_entry_screen.dart:2198:50: Error: Setter not found: '_markSearchQuery'.
+              onChanged: (val) => setState(() => _markSearchQuery = val),
+                                                 ^^^^^^^^^^^^^^^^
+lib/features/peb_execution/screens/peb_dpr_entry_screen.dart:2198:35: Error: Method not found: 'setState'.
+              onChanged: (val) => setState(() => _markSearchQuery = val),
+                                  ^^^^^^^^
+lib/features/peb_execution/screens/peb_dpr_entry_screen.dart:2202:29: Error: Undefined name '_markSearchQuery'.
+                suffixIcon: _markSearchQuery.isNotEmpty
+                            ^^^^^^^^^^^^^^^^
+lib/features/peb_execution/screens/peb_dpr_entry_screen.dart:2206:27: Error: Undefined name '_markSearchCtrl'.
+                          _markSearchCtrl.clear();
+                          ^^^^^^^^^^^^^^^
+lib/features/peb_execution/screens/peb_dpr_entry_screen.dart:2207:42: Error: Setter not found: '_markSearchQuery'.
+                          setState(() => _markSearchQuery = '');
+                                         ^^^^^^^^^^^^^^^^
+lib/features/peb_execution/screens/peb_dpr_entry_screen.dart:2207:27: Error: Method not found: 'setState'.
+                          setState(() => _markSearchQuery = '');
+                          ^^^^^^^^
+lib/features/peb_execution/screens/peb_dpr_entry_screen.dart:2191:19: Error: Too many positional arguments: 0 allowed,
+but 1 found.
+Try removing the extra positional arguments.
+    return Padding(\
+                  ^
+../../flutter_windows_3.35.3-stable/flutter/packages/flutter/lib/src/widgets/basic.dart:2302:9: Context: Found this
+candidate, but the arguments don't match.
+  const Padding({super.key, required this.padding, super.child});
+        ^^^^^^^
+lib/features/peb_execution/screens/peb_dpr_entry_screen.dart:2275:25: Error: Undefined name 'context'.
+    final cs = Theme.of(context).colorScheme;
+                        ^^^^^^^
+lib/features/peb_execution/screens/peb_dpr_entry_screen.dart:2277:16: Error: Undefined name 'context'.
+      context: context,
+               ^^^^^^^
+lib/features/peb_execution/screens/peb_dpr_entry_screen.dart:2282:33: Error: Undefined name 'context'.
+          height: MediaQuery.of(context).size.height * 0.55,
+                                ^^^^^^^
+lib/features/peb_execution/screens/peb_dpr_entry_screen.dart:2309:27: Error: Setter not found: '_markSortAz'.
+                          _markSortAz = true;
+                          ^^^^^^^^^^^
+lib/features/peb_execution/screens/peb_dpr_entry_screen.dart:2310:27: Error: Setter not found: '_markFilterStatus'.
+                          _markFilterStatus = null;
+                          ^^^^^^^^^^^^^^^^^
+lib/features/peb_execution/screens/peb_dpr_entry_screen.dart:2312:25: Error: Method not found: 'setState'.
+                        setState(() {});
+                        ^^^^^^^^
+lib/features/peb_execution/screens/peb_dpr_entry_screen.dart:2327:78: Error: Undefined name '_markSortAz'.
+                    _markSortChip('Mark A → Z', Icons.sort_by_alpha_rounded, _markSortAz, cs, () {
+                                                                             ^^^^^^^^^^^
+lib/features/peb_execution/screens/peb_dpr_entry_screen.dart:2328:38: Error: Setter not found: '_markSortAz'.
+                      setModal(() => _markSortAz = true);
+                                     ^^^^^^^^^^^
+lib/features/peb_execution/screens/peb_dpr_entry_screen.dart:2329:23: Error: Method not found: 'setState'.
+                      setState(() {});
+                      ^^^^^^^^
+lib/features/peb_execution/screens/peb_dpr_entry_screen.dart:2332:70: Error: Undefined name '_markSortAz'.
+                    _markSortChip('Mark Z → A', Icons.sort_rounded, !_markSortAz, cs, () {
+                                                                     ^^^^^^^^^^^
+lib/features/peb_execution/screens/peb_dpr_entry_screen.dart:2333:38: Error: Setter not found: '_markSortAz'.
+                      setModal(() => _markSortAz = false);
+                                     ^^^^^^^^^^^
+lib/features/peb_execution/screens/peb_dpr_entry_screen.dart:2334:23: Error: Method not found: 'setState'.
+                      setState(() {});
+                      ^^^^^^^^
+lib/features/peb_execution/screens/peb_dpr_entry_screen.dart:2343:54: Error: Undefined name '_markFilterStatus'.
+                        _markFilterChip('All', null, _markFilterStatus == null, cs, () {
+                                                     ^^^^^^^^^^^^^^^^^
+lib/features/peb_execution/screens/peb_dpr_entry_screen.dart:2344:42: Error: Setter not found: '_markFilterStatus'.
+                          setModal(() => _markFilterStatus = null);
+                                         ^^^^^^^^^^^^^^^^^
+lib/features/peb_execution/screens/peb_dpr_entry_screen.dart:2345:27: Error: Method not found: 'setState'.
+                          setState(() {});
+                          ^^^^^^^^
+lib/features/peb_execution/screens/peb_dpr_entry_screen.dart:2347:63: Error: Undefined name '_markFilterStatus'.
+                        _markFilterChip('Pending', 'pending', _markFilterStatus == 'pending', cs, () {
+                                                              ^^^^^^^^^^^^^^^^^
+lib/features/peb_execution/screens/peb_dpr_entry_screen.dart:2348:42: Error: Setter not found: '_markFilterStatus'.
+                          setModal(() => _markFilterStatus = 'pending');
+                                         ^^^^^^^^^^^^^^^^^
+lib/features/peb_execution/screens/peb_dpr_entry_screen.dart:2349:27: Error: Method not found: 'setState'.
+                          setState(() {});
+                          ^^^^^^^^
+lib/features/peb_execution/screens/peb_dpr_entry_screen.dart:2351:70: Error: Undefined name '_markFilterStatus'.
+                        _markFilterChip('In Progress', 'inProgress', _markFilterStatus == 'inProgress', cs, () {
+                                                                     ^^^^^^^^^^^^^^^^^
+lib/features/peb_execution/screens/peb_dpr_entry_screen.dart:2352:42: Error: Setter not found: '_markFilterStatus'.
+                          setModal(() => _markFilterStatus = 'inProgress');
+                                         ^^^^^^^^^^^^^^^^^
+lib/features/peb_execution/screens/peb_dpr_entry_screen.dart:2353:27: Error: Method not found: 'setState'.
+                          setState(() {});
+                          ^^^^^^^^
+lib/features/peb_execution/screens/peb_dpr_entry_screen.dart:2355:67: Error: Undefined name '_markFilterStatus'.
+                        _markFilterChip('Completed', 'completed', _markFilterStatus == 'completed', cs, () {
+                                                                  ^^^^^^^^^^^^^^^^^
+lib/features/peb_execution/screens/peb_dpr_entry_screen.dart:2356:42: Error: Setter not found: '_markFilterStatus'.
+                          setModal(() => _markFilterStatus = 'completed');
+                                         ^^^^^^^^^^^^^^^^^
+lib/features/peb_execution/screens/peb_dpr_entry_screen.dart:2357:27: Error: Method not found: 'setState'.
+                          setState(() {});
+                          ^^^^^^^^
+lib/features/peb_execution/screens/peb_dpr_entry_screen.dart:2427:25: Error: Undefined name 'context'.
+    final cs = Theme.of(context).colorScheme;
+                        ^^^^^^^
+lib/features/peb_execution/screens/peb_dpr_entry_screen.dart:2428:17: Error: Method not found: '_markInputKey'.
+    final key = _markInputKey(work, markNumber);
+                ^^^^^^^^^^^^^
+lib/features/peb_execution/screens/peb_dpr_entry_screen.dart:2429:21: Error: Method not found: '_boqMarkFor'.
+    final boqMark = _boqMarkFor(markNumber);
+                    ^^^^^^^^^^^
+lib/features/peb_execution/screens/peb_dpr_entry_screen.dart:2434:23: Error: Method not found: '_completedForWork'.
+    final completed = _completedForWork(work).contains(markNumber);
+                      ^^^^^^^^^^^^^^^^^
+lib/features/peb_execution/screens/peb_dpr_entry_screen.dart:2435:24: Error: Method not found: '_inProgressForWork'.
+    final inProgress = _inProgressForWork(work).contains(markNumber);
+                       ^^^^^^^^^^^^^^^^^^
+lib/features/peb_execution/screens/peb_dpr_entry_screen.dart:2436:23: Error: Undefined name '_markActionMode'.
+    final selecting = _markActionMode != _DprMarkActionMode.none;
+                      ^^^^^^^^^^^^^^^
+lib/features/peb_execution/screens/peb_dpr_entry_screen.dart:2437:22: Error: Undefined name '_selectedDetailMarks'.
+    final selected = _selectedDetailMarks.contains(markNumber);
+                     ^^^^^^^^^^^^^^^^^^^^
+lib/features/peb_execution/screens/peb_dpr_entry_screen.dart:2438:33: Error: Method not found:
+'_nextPendingPrerequisite'.
+    final pendingPrerequisite = _nextPendingPrerequisite(work, markNumber);
+                                ^^^^^^^^^^^^^^^^^^^^^^^^
+lib/features/peb_execution/screens/peb_dpr_entry_screen.dart:2442:11: Error: Undefined name '_markActionMode'.
+        !(_markActionMode == _DprMarkActionMode.inProgress && inProgress);
+          ^^^^^^^^^^^^^^^
+lib/features/peb_execution/screens/peb_dpr_entry_screen.dart:2445:9: Error: Undefined name '_markActionMode'.
+        _markActionMode == _DprMarkActionMode.completed;
+        ^^^^^^^^^^^^^^^
+lib/features/peb_execution/screens/peb_dpr_entry_screen.dart:2448:9: Error: Undefined name '_markActionMode'.
+        _markActionMode == _DprMarkActionMode.inProgress;
+        ^^^^^^^^^^^^^^^
+lib/features/peb_execution/screens/peb_dpr_entry_screen.dart:2455:22: Error: Method not found: '_markWeightKg'.
+    final weightKg = _markWeightKg(markNumber);
+                     ^^^^^^^^^^^^^
+lib/features/peb_execution/screens/peb_dpr_entry_screen.dart:2456:29: Error: Method not found: '_isWeightChanged'.
+    final isVariationOpen = _isWeightChanged(work, markNumber);
+                            ^^^^^^^^^^^^^^^^
+lib/features/peb_execution/screens/peb_dpr_entry_screen.dart:2474:11: Error: Method not found: '_statusBadge'.
+        ? _statusBadge(
+          ^^^^^^^^^^^^
+lib/features/peb_execution/screens/peb_dpr_entry_screen.dart:2480:15: Error: Method not found: '_statusBadge'.
+            ? _statusBadge(
+              ^^^^^^^^^^^^
+lib/features/peb_execution/screens/peb_dpr_entry_screen.dart:2485:15: Error: Method not found: '_statusBadge'.
+            : _statusBadge(
+              ^^^^^^^^^^^^
+lib/features/peb_execution/screens/peb_dpr_entry_screen.dart:2501:25: Error: Method not found: '_toggleDetailMark'.
+                ? () => _toggleDetailMark(work, markNumber)
+                        ^^^^^^^^^^^^^^^^^
+lib/features/peb_execution/screens/peb_dpr_entry_screen.dart:2504:37: Error: Method not found: '_prerequisiteMessage'.
+                      AppToast.info(_prerequisiteMessage(pendingPrerequisite));
+                                    ^^^^^^^^^^^^^^^^^^^^
+lib/features/peb_execution/screens/peb_dpr_entry_screen.dart:2507:32: Error: Undefined name '_markActionMode'.
+                    } else if (_markActionMode == _DprMarkActionMode.inProgress &&
+                               ^^^^^^^^^^^^^^^
+lib/features/peb_execution/screens/peb_dpr_entry_screen.dart:2513:39: Error: Method not found: '_prerequisiteMessage'.
+                ? () => AppToast.info(_prerequisiteMessage(pendingPrerequisite))
+                                      ^^^^^^^^^^^^^^^^^^^^
+lib/features/peb_execution/screens/peb_dpr_entry_screen.dart:2545:41: Error: Undefined name '_markRemarks'.
+                                  text: _markRemarks[key] ?? '',
+                                        ^^^^^^^^^^^^
+lib/features/peb_execution/screens/peb_dpr_entry_screen.dart:2548:44: Error: Undefined name 'context'.
+                                  context: context,
+                                           ^^^^^^^
+lib/features/peb_execution/screens/peb_dpr_entry_screen.dart:2560:61: Error: Undefined name 'context'.
+                                      bottom: MediaQuery.of(context).viewInsets.bottom + 24,
+                                                            ^^^^^^^
+lib/features/peb_execution/screens/peb_dpr_entry_screen.dart:2595:80: Error: Undefined name 'context'.
+                                                onPressed: () => Navigator.pop(context),
+                                                                               ^^^^^^^
+lib/features/peb_execution/screens/peb_dpr_entry_screen.dart:2603:66: Error: Undefined name '_markRemarks'.
+                                                  setState(() => _markRemarks[key] = ctrl.text.trim());
+                                                                 ^^^^^^^^^^^^
+lib/features/peb_execution/screens/peb_dpr_entry_screen.dart:2603:51: Error: Method not found: 'setState'.
+                                                  setState(() => _markRemarks[key] = ctrl.text.trim());
+                                                  ^^^^^^^^
+lib/features/peb_execution/screens/peb_dpr_entry_screen.dart:2604:65: Error: Undefined name 'context'.
+                                                  Navigator.pop(context);
+                                                                ^^^^^^^
+lib/features/peb_execution/screens/peb_dpr_entry_screen.dart:2631:30: Error: Undefined name '_markRemarks'.
+                            (_markRemarks[key] ?? '').trim().isNotEmpty
+                             ^^^^^^^^^^^^
+lib/features/peb_execution/screens/peb_dpr_entry_screen.dart:2632:35: Error: Undefined name '_markRemarks'.
+                                ? _markRemarks[key]!
+                                  ^^^^^^^^^^^^
+lib/features/peb_execution/screens/peb_dpr_entry_screen.dart:2670:77: Error: Undefined name 'widget'.
+                                image: pebWorkImageProvider(work.setupItem, widget.executionType),
+                                                                            ^^^^^^
+lib/features/peb_execution/screens/peb_dpr_entry_screen.dart:2674:35: Error: Undefined name 'widget'.
+                                  widget.executionType,
+                                  ^^^^^^
+lib/features/peb_execution/screens/peb_dpr_entry_screen.dart:2696:40: Error: Method not found: '_assemblyBlueBox'.
+                                child: _assemblyBlueBox(
+                                       ^^^^^^^^^^^^^^^^
+lib/features/peb_execution/screens/peb_dpr_entry_screen.dart:2706:56: Error: Method not found: '_markQuantity'.
+                                  value: _prettyNumber(_markQuantity(markNumber)),
+                                                       ^^^^^^^^^^^^^
+lib/features/peb_execution/screens/peb_dpr_entry_screen.dart:2706:42: Error: Method not found: '_prettyNumber'.
+                                  value: _prettyNumber(_markQuantity(markNumber)),
+                                         ^^^^^^^^^^^^^
+lib/features/peb_execution/screens/peb_dpr_entry_screen.dart:2704:40: Error: Method not found: '_assemblyBlueBox'.
+                                child: _assemblyBlueBox(
+                                       ^^^^^^^^^^^^^^^^
+lib/features/peb_execution/screens/peb_dpr_entry_screen.dart:2724:43: Error: Undefined name '_markQuantityInputs'.
+                            initialValue: _markQuantityInputs[key] ?? _prettyNumber(weightKg),
+                                          ^^^^^^^^^^^^^^^^^^^
+lib/features/peb_execution/screens/peb_dpr_entry_screen.dart:2724:71: Error: Method not found: '_prettyNumber'.
+                            initialValue: _markQuantityInputs[key] ?? _prettyNumber(weightKg),
+                                                                      ^^^^^^^^^^^^^
+lib/features/peb_execution/screens/peb_dpr_entry_screen.dart:2739:66: Error: Undefined name '_markQuantityInputs'.
+                            onChanged: (value) => setState(() => _markQuantityInputs[key] = value),
+                                                                 ^^^^^^^^^^^^^^^^^^^
+lib/features/peb_execution/screens/peb_dpr_entry_screen.dart:2739:51: Error: Method not found: 'setState'.
+                            onChanged: (value) => setState(() => _markQuantityInputs[key] = value),
+                                                  ^^^^^^^^
+lib/features/peb_execution/screens/peb_dpr_entry_screen.dart:2749:39: Error: Undefined name '_markActionMode'.
+                                    : _markActionMode == _DprMarkActionMode.completed
+                                      ^^^^^^^^^^^^^^^
+lib/features/peb_execution/screens/peb_dpr_entry_screen.dart:2760:45: Error: Method not found: '_toggleDetailMark'.
+                                    ? () => _toggleDetailMark(work, markNumber)
+                                            ^^^^^^^^^^^^^^^^^
+lib/features/peb_execution/screens/peb_dpr_entry_screen.dart:2772:54: Error: Method not found: '_toggleDetailMark'.
+                                            ? (_) => _toggleDetailMark(work, markNumber)
+                                                     ^^^^^^^^^^^^^^^^^
+lib/features/peb_execution/screens/peb_dpr_entry_screen.dart:2774:54: Error: Undefined name '_markActionMode'.
+                                        activeColor: _markActionMode == _DprMarkActionMode.completed
+                                                     ^^^^^^^^^^^^^^^
+lib/features/peb_execution/screens/peb_dpr_entry_screen.dart:2820:23: Error: Method not found: '_pillBanner'.
+                      _pillBanner(
+                      ^^^^^^^^^^^
+lib/features/peb_execution/screens/peb_dpr_entry_screen.dart:2827:39: Error: Undefined name '_variationReasons'.
+                        initialValue: _variationReasons[key] ?? '',
+                                      ^^^^^^^^^^^^^^^^^
+lib/features/peb_execution/screens/peb_dpr_entry_screen.dart:2841:47: Error: Undefined name '_variationReasons'.
+                        onChanged: (value) => _variationReasons[key] = value,
+                                              ^^^^^^^^^^^^^^^^^
+lib/features/peb_execution/screens/peb_dpr_entry_screen.dart:2859:33: Error: Method not found: '_prerequisiteMessage'.
+                                _prerequisiteMessage(pendingPrerequisite),
+                                ^^^^^^^^^^^^^^^^^^^^
+lib/features/peb_execution/screens/peb_dpr_entry_screen.dart:2891:25: Error: Undefined name 'context'.
+    final cs = Theme.of(context).colorScheme;
+                        ^^^^^^^
+lib/features/peb_execution/screens/peb_dpr_entry_screen.dart:2892:17: Error: Method not found: '_markInputKey'.
+    final key = _markInputKey(work, markNumber);
+                ^^^^^^^^^^^^^
+lib/features/peb_execution/screens/peb_dpr_entry_screen.dart:2893:23: Error: Method not found: '_completedForWork'.
+    final completed = _completedForWork(work).contains(markNumber);
+                      ^^^^^^^^^^^^^^^^^
+lib/features/peb_execution/screens/peb_dpr_entry_screen.dart:2894:24: Error: Method not found: '_inProgressForWork'.
+    final inProgress = _inProgressForWork(work).contains(markNumber);
+                       ^^^^^^^^^^^^^^^^^^
+lib/features/peb_execution/screens/peb_dpr_entry_screen.dart:2895:22: Error: Method not found: '_markWeightKg'.
+    final weightKg = _markWeightKg(markNumber);
+                     ^^^^^^^^^^^^^
+lib/features/peb_execution/screens/peb_dpr_entry_screen.dart:2896:23: Error: Undefined name '_markActionMode'.
+    final selecting = _markActionMode != _DprMarkActionMode.none;
+                      ^^^^^^^^^^^^^^^
+lib/features/peb_execution/screens/peb_dpr_entry_screen.dart:2897:22: Error: Undefined name '_selectedDetailMarks'.
+    final selected = _selectedDetailMarks.contains(markNumber);
+                     ^^^^^^^^^^^^^^^^^^^^
+lib/features/peb_execution/screens/peb_dpr_entry_screen.dart:2900:11: Error: Undefined name '_markActionMode'.
+        !(_markActionMode == _DprMarkActionMode.inProgress && inProgress);
+          ^^^^^^^^^^^^^^^
+lib/features/peb_execution/screens/peb_dpr_entry_screen.dart:2901:29: Error: Method not found: '_isWeightChanged'.
+    final isVariationOpen = _isWeightChanged(work, markNumber);
+                            ^^^^^^^^^^^^^^^^
+lib/features/peb_execution/screens/peb_dpr_entry_screen.dart:2903:11: Error: Method not found: '_statusBadge'.
+        ? _statusBadge(
+          ^^^^^^^^^^^^
+lib/features/peb_execution/screens/peb_dpr_entry_screen.dart:2909:15: Error: Method not found: '_statusBadge'.
+            ? _statusBadge(
+              ^^^^^^^^^^^^
+lib/features/peb_execution/screens/peb_dpr_entry_screen.dart:2919:23: Error: Method not found: '_toggleDetailMark'.
+              ? () => _toggleDetailMark(work, markNumber)
+                      ^^^^^^^^^^^^^^^^^
+lib/features/peb_execution/screens/peb_dpr_entry_screen.dart:2987:29: Error: Undefined name 'widget'.
+                            widget.executionType,
+                            ^^^^^^
+lib/features/peb_execution/screens/peb_dpr_entry_screen.dart:2996:31: Error: Undefined name 'widget'.
+                              widget.executionType,
+                              ^^^^^^
+lib/features/peb_execution/screens/peb_dpr_entry_screen.dart:3037:41: Error: Undefined name '_markQuantityInputs'.
+                          initialValue: _markQuantityInputs[key] ??
+                                        ^^^^^^^^^^^^^^^^^^^
+lib/features/peb_execution/screens/peb_dpr_entry_screen.dart:3038:31: Error: Method not found: '_prettyNumber'.
+                              _prettyNumber(weightKg),
+                              ^^^^^^^^^^^^^
+lib/features/peb_execution/screens/peb_dpr_entry_screen.dart:3054:46: Error: Undefined name '_markQuantityInputs'.
+                              setState(() => _markQuantityInputs[key] = value),
+                                             ^^^^^^^^^^^^^^^^^^^
+lib/features/peb_execution/screens/peb_dpr_entry_screen.dart:3054:31: Error: Method not found: 'setState'.
+                              setState(() => _markQuantityInputs[key] = value),
+                              ^^^^^^^^
+lib/features/peb_execution/screens/peb_dpr_entry_screen.dart:3071:38: Error: Method not found: '_toggleDetailMark'.
+                            ? (_) => _toggleDetailMark(work, markNumber)
+                                     ^^^^^^^^^^^^^^^^^
+lib/features/peb_execution/screens/peb_dpr_entry_screen.dart:3081:31: Error: Undefined name '_markRemarks'.
+                initialValue: _markRemarks[key] ?? '',
+                              ^^^^^^^^^^^^
+lib/features/peb_execution/screens/peb_dpr_entry_screen.dart:3093:39: Error: Undefined name '_markRemarks'.
+                onChanged: (value) => _markRemarks[key] = value,
+                                      ^^^^^^^^^^^^
+lib/features/peb_execution/screens/peb_dpr_entry_screen.dart:3097:17: Error: Method not found: '_pillBanner'.
+                _pillBanner(
+                ^^^^^^^^^^^
+lib/features/peb_execution/screens/peb_dpr_entry_screen.dart:3104:33: Error: Undefined name '_variationReasons'.
+                  initialValue: _variationReasons[key] ?? '',
+                                ^^^^^^^^^^^^^^^^^
+lib/features/peb_execution/screens/peb_dpr_entry_screen.dart:3111:41: Error: Undefined name '_variationReasons'.
+                  onChanged: (value) => _variationReasons[key] = value,
+                                        ^^^^^^^^^^^^^^^^^
+I/flutter (31088): 😴 No pending requests → skip
+Performing hot reload...
+Try again after fixing the above error(s).
+I/flutter (31088): 😴 No pending requests → skip
