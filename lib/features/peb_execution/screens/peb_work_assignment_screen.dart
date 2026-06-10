@@ -1127,6 +1127,45 @@ class _PebWorkAssignmentScreenState extends State<PebWorkAssignmentScreen> {
         .toList();
     final allVisibleSelected = selectableVisibleMarks.isNotEmpty &&
         selectableVisibleMarks.every(_selectedMarks.contains);
+    void toggleFilteredSelection() {
+      if (selectableVisibleMarks.isEmpty) return;
+      setState(() {
+        if (allVisibleSelected) {
+          _selectedMarks.removeAll(selectableVisibleMarks);
+        } else {
+          _selectedMarks.addAll(selectableVisibleMarks);
+        }
+      });
+    }
+
+    void selectMarkByIndex(int index) {
+      if (index < 0 || index >= visibleMarks.length) return;
+      final mark = visibleMarks[index];
+      final disabled = completedForStage.contains(mark.assemblyMark) ||
+          assignedForStage.contains(mark.assemblyMark);
+      if (disabled || _selectedMarks.contains(mark.assemblyMark)) return;
+      setState(() => _selectedMarks.add(mark.assemblyMark));
+    }
+
+    void selectMarkAtPosition(BoxConstraints constraints, Offset position) {
+      const crossAxisCount = 2;
+      const crossAxisSpacing = 10.0;
+      const mainAxisSpacing = 10.0;
+      const childAspectRatio = 2.7;
+      final tileWidth =
+          (constraints.maxWidth - crossAxisSpacing) / crossAxisCount;
+      final tileHeight = tileWidth / childAspectRatio;
+      final strideX = tileWidth + crossAxisSpacing;
+      final strideY = tileHeight + mainAxisSpacing;
+      final col = (position.dx / strideX).floor();
+      final row = (position.dy / strideY).floor();
+      if (col < 0 || col >= crossAxisCount || row < 0) return;
+      final localX = position.dx - (col * strideX);
+      final localY = position.dy - (row * strideY);
+      if (localX > tileWidth || localY > tileHeight) return;
+      selectMarkByIndex(row * crossAxisCount + col);
+    }
+
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
@@ -1186,32 +1225,55 @@ class _PebWorkAssignmentScreenState extends State<PebWorkAssignmentScreen> {
                     'selected',
                     cs.primary,
                   ),
-                  const Spacer(),
-                  IconButton.filledTonal(
-                    tooltip: allVisibleSelected
-                        ? 'Clear filtered'
-                        : 'Select all filtered',
-                    onPressed: selectableVisibleMarks.isEmpty
-                        ? null
-                        : () => setState(() {
-                              if (allVisibleSelected) {
-                                _selectedMarks
-                                    .removeAll(selectableVisibleMarks);
-                              } else {
-                                _selectedMarks.addAll(selectableVisibleMarks);
-                              }
-                            }),
-                    icon: Icon(allVisibleSelected
-                        ? Icons.check_box_rounded
-                        : Icons.check_box_outline_blank_rounded),
+                ],
+              ),
+              const SizedBox(height: 10),
+              Row(
+                children: [
+                  Expanded(
+                    child: OutlinedButton.icon(
+                      onPressed: selectableVisibleMarks.isEmpty
+                          ? null
+                          : toggleFilteredSelection,
+                      icon: Icon(
+                        allVisibleSelected
+                            ? Icons.check_box_rounded
+                            : Icons.done_all_rounded,
+                        size: 18,
+                      ),
+                      label: Text(
+                        allVisibleSelected
+                            ? 'Clear Filtered'
+                            : 'Select All Filtered',
+                        maxLines: 1,
+                        overflow: TextOverflow.ellipsis,
+                      ),
+                      style: OutlinedButton.styleFrom(
+                        foregroundColor:
+                            allVisibleSelected ? cs.error : cs.primary,
+                        side: BorderSide(
+                          color: allVisibleSelected ? cs.error : cs.primary,
+                        ),
+                        minimumSize: const Size.fromHeight(42),
+                        shape: RoundedRectangleBorder(
+                          borderRadius: BorderRadius.circular(12),
+                        ),
+                      ),
+                    ),
                   ),
                   const SizedBox(width: 6),
-                  IconButton.filledTonal(
-                    tooltip: 'Bulk edit weight',
+                  OutlinedButton.icon(
                     onPressed: _selectedMarks.isEmpty || _saving
                         ? null
                         : _bulkUpdateSelectedWeight,
-                    icon: const Icon(Icons.scale_rounded),
+                    icon: const Icon(Icons.scale_rounded, size: 18),
+                    label: const Text('Bulk Weight'),
+                    style: OutlinedButton.styleFrom(
+                      minimumSize: const Size.fromHeight(42),
+                      shape: RoundedRectangleBorder(
+                        borderRadius: BorderRadius.circular(12),
+                      ),
+                    ),
                   ),
                 ],
               ),
@@ -1244,108 +1306,123 @@ class _PebWorkAssignmentScreenState extends State<PebWorkAssignmentScreen> {
                 style: TextStyle(color: cs.onSurfaceVariant)),
           )
         else
-          GridView.builder(
-            physics: const NeverScrollableScrollPhysics(),
-            shrinkWrap: true,
-            itemCount: visibleMarks.length,
-            gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
-              crossAxisCount: 2,
-              mainAxisSpacing: 10,
-              crossAxisSpacing: 10,
-              childAspectRatio: 2.7,
-            ),
-            itemBuilder: (context, index) {
-              final mark = visibleMarks[index];
-              final isCompleted = completedForStage.contains(mark.assemblyMark);
-              final isAssigned = assignedForStage.contains(mark.assemblyMark);
-              final selected = _selectedMarks.contains(mark.assemblyMark);
-              final disabled = isCompleted || isAssigned;
-              final qty =
-                  mark.remainingQty > 0 ? mark.remainingQty : mark.quantity;
-              final statusText = isCompleted
-                  ? 'Completed'
-                  : isAssigned
-                      ? 'Assigned'
-                      : '${_prettyNumber(qty)} qty';
-              return Opacity(
-                opacity: disabled ? 0.45 : 1,
-                child: InkWell(
-                  onTap: disabled
-                      ? null
-                      : () => setState(() {
-                            if (selected) {
-                              _selectedMarks.remove(mark.assemblyMark);
-                            } else {
-                              _selectedMarks.add(mark.assemblyMark);
-                            }
-                          }),
-                  borderRadius: BorderRadius.circular(10),
-                  child: Container(
-                    padding:
-                        const EdgeInsets.symmetric(horizontal: 10, vertical: 8),
-                    decoration: BoxDecoration(
-                      color: selected ? cs.primaryContainer : cs.surface,
-                      borderRadius: BorderRadius.circular(12),
-                      border: Border.all(
-                        color: selected ? cs.primary : cs.outlineVariant,
-                      ),
-                    ),
-                    child: Row(
-                      children: [
-                        Container(
-                          width: 24,
-                          height: 24,
+          LayoutBuilder(
+            builder: (context, constraints) {
+              return Listener(
+                behavior: HitTestBehavior.translucent,
+                onPointerMove: (event) =>
+                    selectMarkAtPosition(constraints, event.localPosition),
+                child: GridView.builder(
+                  physics: const NeverScrollableScrollPhysics(),
+                  shrinkWrap: true,
+                  itemCount: visibleMarks.length,
+                  gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
+                    crossAxisCount: 2,
+                    mainAxisSpacing: 10,
+                    crossAxisSpacing: 10,
+                    childAspectRatio: 2.7,
+                  ),
+                  itemBuilder: (context, index) {
+                    final mark = visibleMarks[index];
+                    final isCompleted =
+                        completedForStage.contains(mark.assemblyMark);
+                    final isAssigned =
+                        assignedForStage.contains(mark.assemblyMark);
+                    final selected = _selectedMarks.contains(mark.assemblyMark);
+                    final disabled = isCompleted || isAssigned;
+                    final qty = mark.remainingQty > 0
+                        ? mark.remainingQty
+                        : mark.quantity;
+                    final statusText = isCompleted
+                        ? 'Completed'
+                        : isAssigned
+                            ? 'Assigned'
+                            : '${_prettyNumber(qty)} qty';
+                    return Opacity(
+                      opacity: disabled ? 0.45 : 1,
+                      child: InkWell(
+                        onTap: disabled
+                            ? null
+                            : () => setState(() {
+                                  if (selected) {
+                                    _selectedMarks.remove(mark.assemblyMark);
+                                  } else {
+                                    _selectedMarks.add(mark.assemblyMark);
+                                  }
+                                }),
+                        borderRadius: BorderRadius.circular(10),
+                        child: Container(
+                          padding: const EdgeInsets.symmetric(
+                              horizontal: 10, vertical: 8),
                           decoration: BoxDecoration(
-                            color: selected ? cs.primary : Colors.transparent,
-                            shape: BoxShape.circle,
+                            color: selected ? cs.primaryContainer : cs.surface,
+                            borderRadius: BorderRadius.circular(12),
                             border: Border.all(
-                              color: selected
-                                  ? cs.primary
-                                  : cs.onSurfaceVariant.withValues(alpha: 0.45),
+                              color: selected ? cs.primary : cs.outlineVariant,
                             ),
                           ),
-                          child: selected || disabled
-                              ? Icon(
-                                  disabled
-                                      ? Icons.lock_rounded
-                                      : Icons.check_rounded,
-                                  size: 15,
-                                  color: selected
-                                      ? cs.onPrimary
-                                      : cs.onSurfaceVariant,
-                                )
-                              : null,
-                        ),
-                        const SizedBox(width: 8),
-                        Expanded(
-                          child: Column(
-                            crossAxisAlignment: CrossAxisAlignment.start,
-                            mainAxisAlignment: MainAxisAlignment.center,
+                          child: Row(
                             children: [
-                              Text(
-                                mark.assemblyMark,
-                                maxLines: 1,
-                                overflow: TextOverflow.ellipsis,
-                                style: const TextStyle(
-                                    fontWeight: FontWeight.w800),
-                              ),
-                              Text(
-                                statusText,
-                                maxLines: 1,
-                                overflow: TextOverflow.ellipsis,
-                                style: TextStyle(
-                                  fontSize: 11,
+                              Container(
+                                width: 24,
+                                height: 24,
+                                decoration: BoxDecoration(
                                   color: selected
-                                      ? cs.onPrimaryContainer
-                                      : cs.onSurfaceVariant,
+                                      ? cs.primary
+                                      : Colors.transparent,
+                                  shape: BoxShape.circle,
+                                  border: Border.all(
+                                    color: selected
+                                        ? cs.primary
+                                        : cs.onSurfaceVariant
+                                            .withValues(alpha: 0.45),
+                                  ),
+                                ),
+                                child: selected || disabled
+                                    ? Icon(
+                                        disabled
+                                            ? Icons.lock_rounded
+                                            : Icons.check_rounded,
+                                        size: 15,
+                                        color: selected
+                                            ? cs.onPrimary
+                                            : cs.onSurfaceVariant,
+                                      )
+                                    : null,
+                              ),
+                              const SizedBox(width: 8),
+                              Expanded(
+                                child: Column(
+                                  crossAxisAlignment: CrossAxisAlignment.start,
+                                  mainAxisAlignment: MainAxisAlignment.center,
+                                  children: [
+                                    Text(
+                                      mark.assemblyMark,
+                                      maxLines: 1,
+                                      overflow: TextOverflow.ellipsis,
+                                      style: const TextStyle(
+                                          fontWeight: FontWeight.w800),
+                                    ),
+                                    Text(
+                                      statusText,
+                                      maxLines: 1,
+                                      overflow: TextOverflow.ellipsis,
+                                      style: TextStyle(
+                                        fontSize: 11,
+                                        color: selected
+                                            ? cs.onPrimaryContainer
+                                            : cs.onSurfaceVariant,
+                                      ),
+                                    ),
+                                  ],
                                 ),
                               ),
                             ],
                           ),
                         ),
-                      ],
-                    ),
-                  ),
+                      ),
+                    );
+                  },
                 ),
               );
             },
