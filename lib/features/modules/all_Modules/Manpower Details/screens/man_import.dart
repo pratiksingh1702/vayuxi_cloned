@@ -24,13 +24,9 @@ import '../../../../tour/domain/tour_controller.dart';
 import '../../site_Details/providers/site_current_provider.dart';
 import 'manpowerList.dart';
 
-
 class ManImportCsvScreen extends ConsumerStatefulWidget {
-
-
   const ManImportCsvScreen({
     super.key,
-
   });
 
   @override
@@ -51,7 +47,6 @@ class _ManImportCsvScreenState extends ConsumerState<ManImportCsvScreen> {
         allowMultiple: false,
         withData: false, // ✅ REQUIRED so path is real
       );
-
 
       if (result == null || result.files.isEmpty) {
         _showError("No file selected");
@@ -102,7 +97,6 @@ class _ManImportCsvScreenState extends ConsumerState<ManImportCsvScreen> {
     print(file.path);
     print(path);
 
-
     if (!file.existsSync()) {
       _showError("File not found on device.");
       return;
@@ -120,19 +114,21 @@ class _ManImportCsvScreenState extends ConsumerState<ManImportCsvScreen> {
           filename: _selectedFile!.name,
         ),
       });
-      final type =ref.read(typeProvider);
+      final type = ref.read(typeProvider);
 
-      final result = await ManpowerAPI.uploadManpowerBulk(formData,type!);
+      final result = await ManpowerAPI.uploadManpowerBulk(formData, type!);
 
       setState(() => _isLoading = false);
 
       if (result['success'] == true) {
         _uploadStatus = "Upload successful";
         Future.delayed(const Duration(seconds: 1), () {
-          if (mounted)   Navigator.push(
-            context,
-            MaterialPageRoute(builder: (context) =>ManpowerListScreen() ),
-          );
+          if (mounted)
+            Navigator.push(
+              context,
+              MaterialPageRoute(
+                  builder: (context) => const ManpowerListScreen()),
+            );
         });
 
         ScaffoldMessenger.of(context).showSnackBar(
@@ -141,8 +137,6 @@ class _ManImportCsvScreenState extends ConsumerState<ManImportCsvScreen> {
             backgroundColor: Colors.green,
           ),
         );
-
-
       } else {
         _showError(result['message'] ?? "Upload failed");
       }
@@ -151,6 +145,7 @@ class _ManImportCsvScreenState extends ConsumerState<ManImportCsvScreen> {
       _showError("Upload error");
     }
   }
+
   Future<void> _onUploadPressed() async {
     // 1) If no file selected -> pick file
     if (_selectedFile == null) {
@@ -239,23 +234,22 @@ class _ManImportCsvScreenState extends ConsumerState<ManImportCsvScreen> {
           ? resData["errorCount"]
           : int.tryParse("${resData["errorCount"]}") ?? errors.length;
 
-      _dbg("📊 totalRows=$totalRows | successCount=$successCount | errorCount=$errorCount");
+      _dbg(
+          "📊 totalRows=$totalRows | successCount=$successCount | errorCount=$errorCount");
       _dbg("🟩 suggestions count = ${suggestions.length}");
       _dbg("🟥 extracted errors count = ${errors.length}");
 
       // ✅ IMPORTANT DECISION:
       // show dialog if backend says there are errors OR extracted errors are there
-      final bool hasErrors =
-          errorCount > 0 || errors.isNotEmpty;
+      final bool hasErrors = errorCount > 0 || errors.isNotEmpty;
 
-      final bool hasSuggestions =
-          suggestions.isNotEmpty;
+      final bool hasSuggestions = suggestions.isNotEmpty;
 
       if (hasErrors) {
         setState(() {
           _isLoading = false;
           _uploadStatus =
-          "Errors found: $successCount success, $errorCount errors. Fix and re-upload.";
+              "Errors found: $successCount success, $errorCount errors. Fix and re-upload.";
         });
 
         _showAnalysisDialog(
@@ -269,7 +263,8 @@ class _ManImportCsvScreenState extends ConsumerState<ManImportCsvScreen> {
         return; // ❌ HARD STOP
       }
       if (hasSuggestions) {
-        _dbg("⚠️ Suggestions found, but no errors. Showing dialog & continuing upload.");
+        _dbg(
+            "⚠️ Suggestions found, but no errors. Showing dialog & continuing upload.");
 
         _showAnalysisDialog(
           suggestions: suggestions,
@@ -281,7 +276,6 @@ class _ManImportCsvScreenState extends ConsumerState<ManImportCsvScreen> {
 
         // ⚠️ DO NOT return
       }
-
 
       // 4) If clean -> Upload automatically
       setState(() {
@@ -296,14 +290,15 @@ class _ManImportCsvScreenState extends ConsumerState<ManImportCsvScreen> {
       }
 
       ref.read(uploadManagerProvider.notifier).enqueue(
-        UploadJob.create(
-          moduleId:    'manpower',
-          filePath:    _selectedFile!.path!,
-          metadata:    metadata,
-          targetRoute: '/manpower',   // "View" button navigates here on success
-          maxRetries:  2,
-        ),
-      );
+            UploadJob.create(
+              moduleId: 'manpower',
+              filePath: _selectedFile!.path!,
+              metadata: metadata,
+              targetRoute:
+                  '/manpower', // "View" button navigates here on success
+              maxRetries: 2,
+            ),
+          );
 
       await ref.read(tourPersistenceProvider).markManpowerDone();
       setState(() {
@@ -469,8 +464,6 @@ class _ManImportCsvScreenState extends ConsumerState<ManImportCsvScreen> {
     return issues;
   }
 
-
-
   void _showAnalysisDialog({
     required List<String> suggestions,
     required List<ExcelUploadIssue> errors,
@@ -538,7 +531,7 @@ class _ManImportCsvScreenState extends ConsumerState<ManImportCsvScreen> {
                     ),
                     const SizedBox(height: 8),
                     ...suggestions.map(
-                          (s) => Padding(
+                      (s) => Padding(
                         padding: const EdgeInsets.only(bottom: 6),
                         child: Row(
                           crossAxisAlignment: CrossAxisAlignment.start,
@@ -564,16 +557,16 @@ class _ManImportCsvScreenState extends ConsumerState<ManImportCsvScreen> {
                     const SizedBox(height: 8),
                     ...errors.take(20).map(
                           (e) => Padding(
-                        padding: const EdgeInsets.only(bottom: 6),
-                        child: Row(
-                          crossAxisAlignment: CrossAxisAlignment.start,
-                          children: [
-                            const Text("• "),
-                            Expanded(child: Text(e.toString())),
-                          ],
+                            padding: const EdgeInsets.only(bottom: 6),
+                            child: Row(
+                              crossAxisAlignment: CrossAxisAlignment.start,
+                              children: [
+                                const Text("• "),
+                                Expanded(child: Text(e.toString())),
+                              ],
+                            ),
+                          ),
                         ),
-                      ),
-                    ),
                     if (errors.length > 20)
                       Padding(
                         padding: const EdgeInsets.only(top: 6),
@@ -622,7 +615,6 @@ class _ManImportCsvScreenState extends ConsumerState<ManImportCsvScreen> {
       ),
     );
   }
-
 
   void _dbg(String msg) {
     debugPrint("🟦 [IMPORT_DEBUG] $msg");
@@ -690,7 +682,7 @@ class _ManImportCsvScreenState extends ConsumerState<ManImportCsvScreen> {
 
   @override
   Widget build(BuildContext context) {
-    final type=ref.read(typeProvider);
+    final type = ref.read(typeProvider);
     // final site=ref.read(currentSiteProvider);
     final downloadState = ref.watch(templateDownloadControllerProvider);
 
@@ -699,7 +691,6 @@ class _ManImportCsvScreenState extends ConsumerState<ManImportCsvScreen> {
       backgroundColor: Theme.of(context).colorScheme.surfaceContainerLowest,
       appBar: CustomAppBar(
         title: 'Import Manpower',
-
       ),
       body: Padding(
         padding: const EdgeInsets.all(16.0),
@@ -708,33 +699,35 @@ class _ManImportCsvScreenState extends ConsumerState<ManImportCsvScreen> {
           children: [
             RoundedButton(
               width: double.infinity,
-              text: downloadState.isLoading ? "Downloading..." : "Download Sample Template",
+              text: downloadState.isLoading
+                  ? "Downloading..."
+                  : "Download Sample Template",
               color: Colors.white,
               textColor: Colors.black45,
               onPressed: downloadState.isLoading
                   ? () {}
                   : () async {
-                Navigator.push(
-                  context,
-                  MaterialPageRoute(
-                    builder: (_) => TemplatePreviewScreen(
-                      title: "Sample Template Preview",
-                      imageAsset: "assets/images/man-temp.webp",
-                      onDownload: () async {
-                        final file = await ref
-                            .read(templateDownloadControllerProvider.notifier)
-                            .downloadAndSaveTemplate(TemplateModel.manpower);
+                      Navigator.push(
+                        context,
+                        MaterialPageRoute(
+                          builder: (_) => TemplatePreviewScreen(
+                            title: "Sample Template Preview",
+                            imageAsset: "assets/images/man-temp.webp",
+                            onDownload: () async {
+                              final file = await ref
+                                  .read(templateDownloadControllerProvider
+                                      .notifier)
+                                  .downloadAndSaveTemplate(
+                                      TemplateModel.manpower);
 
-                        if (!context.mounted) return;
-                        AppToast.success("✅ Saved: ${file}");
-                      },
-                    ),
-                  ),
-                );
-
-              },
+                              if (!context.mounted) return;
+                              AppToast.success("✅ Saved: ${file}");
+                            },
+                          ),
+                        ),
+                      );
+                    },
             ),
-
 
             const SizedBox(height: 8),
             Text(
@@ -749,12 +742,13 @@ class _ManImportCsvScreenState extends ConsumerState<ManImportCsvScreen> {
 
             const SizedBox(height: 24),
 
-
             // File Selection Section
             UploadBox(
               title: 'Upload your Manpower file',
               subtitle: _selectedFileName ?? 'No file selected',
-              buttonText: _selectedFileName == null ? 'Choose Manpower File' : 'Change File',
+              buttonText: _selectedFileName == null
+                  ? 'Choose Manpower File'
+                  : 'Change File',
               onPressed: _pickCsvFile,
             ),
 
@@ -770,37 +764,36 @@ class _ManImportCsvScreenState extends ConsumerState<ManImportCsvScreen> {
                     foregroundColor: Colors.white,
                     padding: const EdgeInsets.symmetric(vertical: 16),
                     disabledBackgroundColor: Colors.blue.withOpacity(0.5),
-                    elevation: 0
-                ),
+                    elevation: 0),
                 child: _isLoading
                     ? const Row(
-                  mainAxisAlignment: MainAxisAlignment.center,
-                  children: [
-                    SizedBox(
-                      width: 16,
-                      height: 16,
-                      child: CircularProgressIndicator(
-                        strokeWidth: 2,
-                        valueColor: AlwaysStoppedAnimation<Color>(Colors.white),
-                      ),
-                    ),
-                    SizedBox(width: 8),
-                    Text('Uploading...'),
-                  ],
-                )
+                        mainAxisAlignment: MainAxisAlignment.center,
+                        children: [
+                          SizedBox(
+                            width: 16,
+                            height: 16,
+                            child: CircularProgressIndicator(
+                              strokeWidth: 2,
+                              valueColor:
+                                  AlwaysStoppedAnimation<Color>(Colors.white),
+                            ),
+                          ),
+                          SizedBox(width: 8),
+                          Text('Uploading...'),
+                        ],
+                      )
                     : const Row(
-                  mainAxisAlignment: MainAxisAlignment.center,
-                  children: [
-                    Icon(Icons.cloud_upload),
-                    SizedBox(width: 8),
-                    Text('Upload Manpower'),
-                  ],
-                ),
+                        mainAxisAlignment: MainAxisAlignment.center,
+                        children: [
+                          Icon(Icons.cloud_upload),
+                          SizedBox(width: 8),
+                          Text('Upload Manpower'),
+                        ],
+                      ),
               ),
             ),
 
             const SizedBox(height: 16),
-
           ],
         ),
       ),

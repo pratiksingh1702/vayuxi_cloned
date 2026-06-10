@@ -959,15 +959,76 @@ class _PebDprEntryScreenState extends State<PebDprEntryScreen> {
       items: items,
     );
 
-    AppToast.success(
-      '${task.total} mark${task.total == 1 ? '' : 's'} queued. You can continue working.',
-    );
+    _showBulkTaskQueuedMessage(task);
     setState(() {
       _markActionMode = _DprMarkActionMode.none;
       _isDprSelectionMode = false;
       _selectedDetailMarks.clear();
       _activeWorkKey = null;
     });
+  }
+
+  void _showBulkTaskQueuedMessage(DprBulkTask task) {
+    final cs = Theme.of(context).colorScheme;
+    ScaffoldMessenger.of(context)
+      ..hideCurrentSnackBar()
+      ..showSnackBar(
+        SnackBar(
+          behavior: SnackBarBehavior.floating,
+          duration: const Duration(seconds: 5),
+          margin: const EdgeInsets.fromLTRB(16, 0, 16, 18),
+          elevation: 8,
+          backgroundColor: cs.inverseSurface,
+          shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(14),
+          ),
+          content: Row(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Container(
+                width: 34,
+                height: 34,
+                decoration: BoxDecoration(
+                  color: cs.primary.withValues(alpha: 0.18),
+                  borderRadius: BorderRadius.circular(10),
+                ),
+                child: Icon(
+                  Icons.sync_rounded,
+                  color: cs.primary,
+                  size: 20,
+                ),
+              ),
+              const SizedBox(width: 12),
+              Expanded(
+                child: Column(
+                  mainAxisSize: MainAxisSize.min,
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      'Update queued in background',
+                      style: TextStyle(
+                        color: cs.onInverseSurface,
+                        fontSize: 13,
+                        fontWeight: FontWeight.w900,
+                      ),
+                    ),
+                    const SizedBox(height: 3),
+                    Text(
+                      '${task.total} mark${task.total == 1 ? '' : 's'} will be marked ${task.actionLabel.toLowerCase()}. You can continue using the app.',
+                      style: TextStyle(
+                        color: cs.onInverseSurface.withValues(alpha: 0.82),
+                        fontSize: 12,
+                        height: 1.25,
+                        fontWeight: FontWeight.w600,
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+            ],
+          ),
+        ),
+      );
   }
 
   Future<void> _openQuantityAction(_VisibleWork work) async {
@@ -1823,9 +1884,6 @@ class _PebDprEntryScreenState extends State<PebDprEntryScreen> {
     final completion = counts.total > 0
         ? (counts.completed / counts.total).clamp(0.0, 1.0)
         : 0.0;
-    final workUom =
-        work.setupItem.uom.trim().isEmpty ? '-' : work.setupItem.uom.trim();
-
     final today =
         DateTime(_selectedDate.year, _selectedDate.month, _selectedDate.day);
     final tcd = work.expectedCompletionDate != null
@@ -1985,41 +2043,6 @@ class _PebDprEntryScreenState extends State<PebDprEntryScreen> {
                             ),
                             child: Column(
                               children: [
-                                Row(
-                                  children: [
-                                    Text(
-                                      'UOM',
-                                      style: TextStyle(
-                                        fontSize: layout.miniLabelSize,
-                                        fontWeight: FontWeight.w700,
-                                        color: cs.onSurfaceVariant,
-                                      ),
-                                    ),
-                                    const SizedBox(width: 6),
-                                    Expanded(
-                                      child: Align(
-                                        alignment: Alignment.centerRight,
-                                        child: Text(
-                                          workUom,
-                                          maxLines: 1,
-                                          overflow: TextOverflow.ellipsis,
-                                          style: TextStyle(
-                                            fontSize: layout.compact ? 12 : 13,
-                                            fontWeight: FontWeight.w800,
-                                            color: cs.primary,
-                                          ),
-                                        ),
-                                      ),
-                                    ),
-                                  ],
-                                ),
-                                SizedBox(height: layout.compact ? 6 : 7),
-                                Divider(
-                                  height: 1,
-                                  thickness: 1,
-                                  color: cs.outlineVariant.withOpacity(0.35),
-                                ),
-                                SizedBox(height: layout.compact ? 6 : 7),
                                 Row(
                                   children: [
                                     Expanded(

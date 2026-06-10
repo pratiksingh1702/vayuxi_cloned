@@ -37,6 +37,8 @@ class _PebBoqUploadScreenState extends State<PebBoqUploadScreen> {
   List<Map<String, dynamic>> _preview = [];
   final Map<String, String> _mappings = {};
   PlatformFile? _file;
+  final Set<String> _selectedBoqIds = {};
+  bool _boqSelectionInitialized = false;
   int _step = 1;
   bool _loading = true;
   bool _saving = false;
@@ -54,6 +56,13 @@ class _PebBoqUploadScreenState extends State<PebBoqUploadScreen> {
       }
     }
     return records;
+  }
+
+  List<_BoqMarkRecord> get _visibleMarks {
+    if (_selectedBoqIds.isEmpty) return [];
+    return _allMarks
+        .where((record) => _selectedBoqIds.contains(record.boq.id))
+        .toList();
   }
 
   @override
@@ -75,11 +84,47 @@ class _PebBoqUploadScreenState extends State<PebBoqUploadScreen> {
     setState(() => _loading = true);
     try {
       _boqs = await _service.getBoqs(widget.siteId);
+      _syncSelectedBoqs();
     } catch (_) {
       AppToast.error('Failed to load BOQ list');
     } finally {
       if (mounted) setState(() => _loading = false);
     }
+  }
+
+  void _syncSelectedBoqs() {
+    final availableIds = _boqs.map((boq) => boq.id).toSet();
+    _selectedBoqIds.removeWhere((id) => !availableIds.contains(id));
+    if (!_boqSelectionInitialized ||
+        (_selectedBoqIds.isEmpty && availableIds.isNotEmpty)) {
+      _selectedBoqIds
+        ..clear()
+        ..addAll(availableIds);
+      _boqSelectionInitialized = true;
+    }
+  }
+
+  void _toggleAllBoqs() {
+    setState(() {
+      final allIds = _boqs.map((boq) => boq.id).toSet();
+      if (_selectedBoqIds.length == allIds.length) {
+        _selectedBoqIds.clear();
+      } else {
+        _selectedBoqIds
+          ..clear()
+          ..addAll(allIds);
+      }
+    });
+  }
+
+  void _toggleBoqSelection(String boqId) {
+    setState(() {
+      if (_selectedBoqIds.contains(boqId)) {
+        _selectedBoqIds.remove(boqId);
+      } else {
+        _selectedBoqIds.add(boqId);
+      }
+    });
   }
 
   Future<void> _pickFile() async {
@@ -580,7 +625,7 @@ class _PebBoqUploadScreenState extends State<PebBoqUploadScreen> {
   }
 
   Widget _existingBoqs(ColorScheme cs) {
-    final marks = _allMarks;
+    final marks = _visibleMarks;
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
@@ -607,7 +652,11 @@ class _PebBoqUploadScreenState extends State<PebBoqUploadScreen> {
           ],
         ),
         const SizedBox(height: 10),
-        if (marks.isEmpty)
+        if (_boqs.isNotEmpty) ...[
+          _boqSelectionPanel(cs),
+          const SizedBox(height: 10),
+        ],
+        if (_allMarks.isEmpty)
           Card(
             child: Padding(
               padding: const EdgeInsets.all(20),
@@ -625,6 +674,12 @@ class _PebBoqUploadScreenState extends State<PebBoqUploadScreen> {
                 ],
               ),
             ),
+          )
+        else if (marks.isEmpty)
+          _infoCard(
+            cs,
+            'No BOQ selected',
+            'Select one or more BOQs above, or use Select All to display every uploaded BOQ mark.',
           )
         else
           ...marks.map((record) => Card(
@@ -709,6 +764,95 @@ class _PebBoqUploadScreenState extends State<PebBoqUploadScreen> {
                 ),
               )),
       ],
+    );
+  }
+
+  Widget _boqSelectionPanel(ColorScheme cs) {
+    final allSelected =
+        _boqs.isNotEmpty && _selectedBoqIds.length == _boqs.length;
+    return Container(
+      width: double.infinity,
+      padding: const EdgeInsets.all(12),
+      decoration: BoxDecoration(
+        color: cs.surface,
+        borderRadius: BorderRadius.circular(14),
+        border: Border.all(color: cs.outlineVariant.withValues(alpha: 0.45)),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
+            children: [
+              Expanded(
+                child: Text(
+                  'Select BOQ',
+                  style: TextStyle(
+                    color: cs.onSurface,
+                    fontSize: 14,
+                    fontWeight: FontWeight.w800,
+                  ),
+                ),
+              ),
+              Text(
+                '${_selectedBoqIds.length}/${_boqs.length} selected',
+                style: TextStyle(
+                  color: cs.onSurfaceVariant,
+                  fontSize: 12,
+                  fontWeight: FontWeight.w700,
+                ),
+              ),
+            ],
+          ),
+          const SizedBox(height: 10),
+          Wrap(
+            spacing: 8,
+            runSpacing: 8,
+            children: [
+              FilterChip(
+                selected: allSelected,
+                avatar: Icon(
+                  allSelected
+                      ? Icons.done_all_rounded
+                      : Icons.select_all_rounded,
+                  size: 18,
+                ),
+                label: Text(allSelected ? 'Deselect All' : 'Select All'),
+                onSelected: (_) => _toggleAllBoqs(),
+                showCheckmark: false,
+              ),
+              ..._boqs.map((boq) {
+                final selected = _selectedBoqIds.contains(boq.id);
+                return ConstrainedBox(
+                  constraints: const BoxConstraints(maxWidth: 220),
+                  child: FilterChip(
+                    selected: selected,
+                    showCheckmark: false,
+                    avatar: Icon(
+                      selected
+                          ? Icons.check_circle_rounded
+                          : Icons.radio_button_unchecked_rounded,
+                      size: 18,
+                      color: selected ? cs.primary : cs.onSurfaceVariant,
+                    ),
+                    label: Text(
+                      boq.name,
+                      maxLines: 1,
+                      overflow: TextOverflow.ellipsis,
+                    ),
+                    onSelected: (_) => _toggleBoqSelection(boq.id),
+                    selectedColor: cs.primaryContainer,
+                    backgroundColor: cs.surfaceContainerHigh,
+                    labelStyle: TextStyle(
+                      color: selected ? cs.onPrimaryContainer : cs.onSurface,
+                      fontWeight: selected ? FontWeight.w800 : FontWeight.w600,
+                    ),
+                  ),
+                );
+              }),
+            ],
+          ),
+        ],
+      ),
     );
   }
 
