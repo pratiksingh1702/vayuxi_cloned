@@ -307,6 +307,7 @@ class _PebWorkAssignmentScreenState extends State<PebWorkAssignmentScreen> {
         ? double.tryParse(_qtyController.text.trim()) ?? 0
         : marks.fold<double>(0, (sum, mark) => sum + _markQuantity(mark));
     final assignedQty = qty > 0 ? qty : marks.length.toDouble();
+    final assignmentUom = _sourceType == 'tonnage' ? setupItem.uom : 'Nos';
     if (assignedQty <= 0) {
       AppToast.error(_sourceType == 'tonnage'
           ? 'Enter quantity'
@@ -338,7 +339,7 @@ class _PebWorkAssignmentScreenState extends State<PebWorkAssignmentScreen> {
           stageName: setupItem.name,
           assemblyMarks: marks,
           assignedQty: assignedQty,
-          uom: setupItem.uom,
+          uom: assignmentUom,
           remarks: _remarksController.text.trim(),
         ),
       );

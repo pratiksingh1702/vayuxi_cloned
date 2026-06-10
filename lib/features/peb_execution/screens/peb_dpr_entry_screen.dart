@@ -1023,6 +1023,9 @@ class _PebDprEntryScreenState extends State<PebDprEntryScreen> {
               : marks.fold<double>(
                   0, (sum, mark) => sum + _markQuantity(mark)));
       final actualQty = actualQtyOverride ?? targetQty * progress / 100;
+      final progressUom = marks.isNotEmpty && work.sourceType != 'tonnage'
+          ? 'Nos'
+          : work.setupItem.uom;
       await _service.submitDprProgress(
         widget.siteId,
         widget.executionType,
@@ -1032,7 +1035,7 @@ class _PebDprEntryScreenState extends State<PebDprEntryScreen> {
         assignmentId: work.assignmentId,
         sourceType: work.sourceType,
         stageName: work.stageName,
-        uom: work.setupItem.uom,
+        uom: progressUom,
         marks: marks,
         actualQty: actualQty,
         targetQty: targetQty,
