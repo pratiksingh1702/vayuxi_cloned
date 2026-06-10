@@ -3,6 +3,7 @@ class ManpowerModel {
   final String? type;
   final String? fullName;
   final String? designation;
+  final String? manpowerType;
   final String? employeeCode;
   final String? phoneNumber;
   final String? aadharNumber;
@@ -45,6 +46,7 @@ class ManpowerModel {
     this.type,
     this.fullName,
     this.designation,
+    this.manpowerType,
     this.employeeCode,
     this.phoneNumber,
     this.aadharNumber,
@@ -85,7 +87,9 @@ class ManpowerModel {
       if (raw == null) return [];
       if (raw is List) {
         return raw
-            .map((e) => e is Map ? (e['_id'] ?? e['id'] ?? '').toString() : e.toString())
+            .map((e) => e is Map
+                ? (e['_id'] ?? e['id'] ?? '').toString()
+                : e.toString())
             .where((s) => s.isNotEmpty)
             .toList();
       }
@@ -97,6 +101,7 @@ class ManpowerModel {
       type: json['type'],
       fullName: json['fullName'],
       designation: json['designation'],
+      manpowerType: json['manpowerType']?.toString(),
       employeeCode: json['employeeCode'],
       phoneNumber: json['phoneNumber'],
       aadharNumber: json['aadharNumber'] ?? json['aaddharNumber'],
@@ -113,7 +118,8 @@ class ManpowerModel {
       salary: (json['salary'] as num?)?.toDouble(),
       basicSalary: (json['basicSalary'] as num?)?.toDouble(),
       hra: (json['hra'] as num?)?.toDouble(),
-      dearnessAllowance: (json['dearnessAllowance'] ?? json['da'] as num?)?.toDouble(),
+      dearnessAllowance:
+          (json['dearnessAllowance'] ?? json['da'] as num?)?.toDouble(),
       specialAllowance: (json['specialAllowance'] as num?)?.toDouble(),
       travelAllowance: (json['travelAllowance'] as num?)?.toDouble(),
       medicalAllowance: (json['medicalAllowance'] as num?)?.toDouble(),
@@ -135,41 +141,42 @@ class ManpowerModel {
   }
 
   Map<String, dynamic> toJson() => {
-    '_id': id,
-    'type': type,
-    'fullName': fullName,
-    'designation': designation,
-    'employeeCode': employeeCode,
-    'phoneNumber': phoneNumber,
-    'aadharNumber': aadharNumber,
-    'panNumber': panNumber,
-    'dateOfBirth': dateOfBirth,
-    'dateOfJoining': dateOfJoining,
-    'bankAccountNumber': bankAccountNumber,
-    'ifscCode': ifscCode,
-    'epfNumber': epfNumber,
-    'uanNumber': uanNumber,
-    'esicNumber': esicNumber,
-    'payBasics': payBasics,
-    'totalHour': totalHour,
-    'salary': salary,
-    'basicSalary': basicSalary,
-    'hra': hra,
-    'dearnessAllowance': dearnessAllowance,
-    'specialAllowance': specialAllowance,
-    'travelAllowance': travelAllowance,
-    'medicalAllowance': medicalAllowance,
-    'pfApplicable': pfApplicable,
-    'remarks': remarks,
-    'company': company,
-    'sites': sites,
-    'isDeleted': isDeleted,
-    'isLeft': isLeft,
-    'reason': reason,
-    'createdAt': createdAt,
-    'updatedAt': updatedAt,
-    'loginEmail': loginEmail,
-    'loginPassword': loginPassword,
-    'isLoginEnabled': isLoginEnabled,
-  };
+        '_id': id,
+        'type': type,
+        'fullName': fullName,
+        'designation': designation,
+        'manpowerType': manpowerType,
+        'employeeCode': employeeCode,
+        'phoneNumber': phoneNumber,
+        'aadharNumber': aadharNumber,
+        'panNumber': panNumber,
+        'dateOfBirth': dateOfBirth,
+        'dateOfJoining': dateOfJoining,
+        'bankAccountNumber': bankAccountNumber,
+        'ifscCode': ifscCode,
+        'epfNumber': epfNumber,
+        'uanNumber': uanNumber,
+        'esicNumber': esicNumber,
+        'payBasics': payBasics,
+        'totalHour': totalHour,
+        'salary': salary,
+        'basicSalary': basicSalary,
+        'hra': hra,
+        'dearnessAllowance': dearnessAllowance,
+        'specialAllowance': specialAllowance,
+        'travelAllowance': travelAllowance,
+        'medicalAllowance': medicalAllowance,
+        'pfApplicable': pfApplicable,
+        'remarks': remarks,
+        'company': company,
+        'sites': sites,
+        'isDeleted': isDeleted,
+        'isLeft': isLeft,
+        'reason': reason,
+        'createdAt': createdAt,
+        'updatedAt': updatedAt,
+        'loginEmail': loginEmail,
+        'loginPassword': loginPassword,
+        'isLoginEnabled': isLoginEnabled,
+      };
 }

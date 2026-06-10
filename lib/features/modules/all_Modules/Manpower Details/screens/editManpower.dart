@@ -60,6 +60,7 @@ class _EditManpowerScreenState extends ConsumerState<EditManpowerScreen> {
   bool _enableLoginCredentials = false;
   String _generatedOtp = "";
   String? _selectedTotalHour;
+  String _selectedManpowerCategory = "INDIRECT";
 
   // ✅ Pre-filled selected sites
   List<SiteModel> _selectedSites = [];
@@ -116,6 +117,57 @@ class _EditManpowerScreenState extends ConsumerState<EditManpowerScreen> {
     "Planning Engineers",
   ];
 
+  String _inferManpowerCategory(String? designation) {
+    final value = (designation ?? '').toLowerCase();
+    const directKeywords = [
+      'foreman',
+      'supervisor',
+      'safety steward',
+      'fitter',
+      'welder',
+      'fabricator',
+      'gas cutter',
+      'grinder',
+      'operator',
+      'rigger',
+      'helper',
+      'chipper',
+      'khalasi',
+      'labour',
+      'carpenter',
+      'bar bender',
+      'mason',
+      'millwright',
+      'driller',
+      'radiographer',
+      'p&m operator',
+    ];
+    const indirectKeywords = [
+      'site manager',
+      'site-incharge',
+      'construction manager',
+      'planning',
+      'qa/qc',
+      'field',
+      'safety personnel',
+      'log.',
+      'admn',
+      'time keeper',
+      'accts',
+      'document controller',
+      'stores',
+      'technician',
+      'surveyor',
+      'mechanic',
+      'electrician',
+      'driver',
+      'discipline',
+    ];
+    if (indirectKeywords.any(value.contains)) return 'INDIRECT';
+    if (directKeywords.any(value.contains)) return 'DIRECT';
+    return 'INDIRECT';
+  }
+
   @override
   void initState() {
     super.initState();
@@ -148,6 +200,10 @@ class _EditManpowerScreenState extends ConsumerState<EditManpowerScreen> {
     _payBasic = m.payBasics ?? "monthly";
     _selectedTotalHour = m.totalHour?.toString();
     _isPfApplicable = m.pfApplicable ?? true;
+    _selectedManpowerCategory =
+        m.manpowerType == "DIRECT" || m.manpowerType == "INDIRECT"
+            ? m.manpowerType!
+            : _inferManpowerCategory(m.designation);
 
     _emailController = TextEditingController(text: m.loginEmail ?? "");
     _otpController =
@@ -247,6 +303,7 @@ class _EditManpowerScreenState extends ConsumerState<EditManpowerScreen> {
     final data = <String, dynamic>{
       "fullName": _fullNameController.text,
       "designation": _designationController.text,
+      "manpowerType": _selectedManpowerCategory,
       "phoneNumber": _phoneController.text,
       "aadharNumber": _aadhaarController.text,
       "panNumber": _panController.text,
@@ -539,7 +596,44 @@ class _EditManpowerScreenState extends ConsumerState<EditManpowerScreen> {
                     data: _designationOptions,
                     value: _designationController.text,
                     onSelect: (value) {
-                      setState(() => _designationController.text = value);
+                      setState(() {
+                        _designationController.text = value;
+                        _selectedManpowerCategory =
+                            _inferManpowerCategory(value);
+                      });
+                    },
+                  ),
+                  const SizedBox(height: 14),
+                  DropdownButtonFormField<String>(
+                    initialValue: _selectedManpowerCategory,
+                    decoration: InputDecoration(
+                      labelText: "Manpower Category",
+                      filled: true,
+                      fillColor: colorScheme.surface,
+                      border: OutlineInputBorder(
+                        borderRadius: BorderRadius.circular(12),
+                        borderSide: BorderSide(
+                            color: colorScheme.outlineVariant, width: 1),
+                      ),
+                      enabledBorder: OutlineInputBorder(
+                        borderRadius: BorderRadius.circular(12),
+                        borderSide: BorderSide(
+                            color: colorScheme.outlineVariant, width: 1),
+                      ),
+                    ),
+                    items: const [
+                      DropdownMenuItem(
+                        value: "DIRECT",
+                        child: Text("Direct Manpower"),
+                      ),
+                      DropdownMenuItem(
+                        value: "INDIRECT",
+                        child: Text("Indirect Manpower"),
+                      ),
+                    ],
+                    onChanged: (value) {
+                      if (value == null) return;
+                      setState(() => _selectedManpowerCategory = value);
                     },
                   ),
 
