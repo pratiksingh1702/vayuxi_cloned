@@ -392,7 +392,7 @@ final appRouterProvider = Provider<GoRouter>((ref) {
                 screen = DPRSetupListScreen(site: site);
                 break;
               case 'structure-history-upload':
-                screen = SatmaxHistoryUploadScreen(
+                screen = ViewAddSatmaxHistoryScreen(
                   siteId: site.id,
                   siteName: site.siteName,
                 );

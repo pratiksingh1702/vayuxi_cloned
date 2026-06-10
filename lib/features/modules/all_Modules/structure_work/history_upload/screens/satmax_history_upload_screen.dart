@@ -2,18 +2,151 @@ import 'package:file_picker/file_picker.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:intl/intl.dart';
+import 'package:untitled2/core/utlis/widgets/Button_wrapper.dart';
 import 'package:untitled2/core/utlis/widgets/custom_appBar.dart';
+import 'package:untitled2/core/utlis/widgets/sidebar.dart';
+import 'package:untitled2/features/modules/all_Modules/dpr/screens/widgets/select_card.dart';
 import 'package:untitled2/features/modules/all_Modules/structure_work/history_upload/repository/satmax_history_repository.dart';
 import 'package:untitled2/features/profile_page/provider/userProvider.dart';
+
+enum SatmaxHistoryScreenMode { view, add }
+
+class ViewAddSatmaxHistoryScreen extends StatelessWidget {
+  final String siteId;
+  final String siteName;
+
+  const ViewAddSatmaxHistoryScreen({
+    super.key,
+    required this.siteId,
+    required this.siteName,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    final colorScheme = Theme.of(context).colorScheme;
+    final isDark = Theme.of(context).brightness == Brightness.dark;
+
+    return Scaffold(
+      drawer: const CustomDrawer(),
+      backgroundColor: colorScheme.surfaceContainerLowest,
+      appBar: CustomAppBar(title: 'History Upload'),
+      body: BottomButtonWrapper(
+        onBackPressed: () => Navigator.pop(context),
+        child: Column(
+          children: [
+            Container(
+              padding: const EdgeInsets.symmetric(horizontal: 16),
+              child: GridView.count(
+                physics: const NeverScrollableScrollPhysics(),
+                shrinkWrap: true,
+                crossAxisCount: 2,
+                mainAxisSpacing: 12,
+                crossAxisSpacing: 10,
+                childAspectRatio: 1,
+                children: [
+                  SelectCard(
+                    icon: const SelectCardIcon(
+                      icon: Icons.visibility_rounded,
+                      color: Colors.blue,
+                    ),
+                    label: 'View',
+                    onTap: () {
+                      Navigator.push(
+                        context,
+                        MaterialPageRoute(
+                          builder: (_) => SatmaxHistoryUploadScreen(
+                            siteId: siteId,
+                            siteName: siteName,
+                            mode: SatmaxHistoryScreenMode.view,
+                          ),
+                        ),
+                      );
+                    },
+                  ),
+                  SelectCard(
+                    icon: const SelectCardIcon(
+                      icon: Icons.add_circle_outline_rounded,
+                      color: Colors.green,
+                    ),
+                    label: 'Add',
+                    onTap: () {
+                      Navigator.push(
+                        context,
+                        MaterialPageRoute(
+                          builder: (_) => SatmaxHistoryUploadScreen(
+                            siteId: siteId,
+                            siteName: siteName,
+                            mode: SatmaxHistoryScreenMode.add,
+                          ),
+                        ),
+                      );
+                    },
+                  ),
+                ],
+              ),
+            ),
+            const SizedBox(height: 18),
+            Container(
+              width: double.infinity,
+              padding: const EdgeInsets.all(16),
+              decoration: BoxDecoration(
+                color: colorScheme.surface,
+                borderRadius: BorderRadius.circular(18),
+                border: Border.all(
+                  color: colorScheme.outlineVariant.withValues(alpha: 0.45),
+                ),
+                boxShadow: [
+                  BoxShadow(
+                    color: isDark
+                        ? colorScheme.shadow.withValues(alpha: 0.12)
+                        : colorScheme.shadow.withValues(alpha: 0.06),
+                    blurRadius: 12,
+                    offset: const Offset(0, 6),
+                  ),
+                ],
+              ),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(
+                    'Choose an option',
+                    style: TextStyle(
+                      fontSize: 16,
+                      fontWeight: FontWeight.w700,
+                      color: colorScheme.onSurface,
+                    ),
+                  ),
+                  const SizedBox(height: 8),
+                  Text(
+                    '• View: See uploaded history files and imported row counts.\n'
+                    '• Add: Upload Date & Mark No wise history Excel for $siteName.',
+                    style: TextStyle(
+                      fontSize: 13,
+                      height: 1.5,
+                      color: colorScheme.onSurfaceVariant,
+                    ),
+                  ),
+                ],
+              ),
+            ),
+            const SizedBox(height: 20),
+          ],
+        ),
+      ),
+    );
+  }
+}
 
 class SatmaxHistoryUploadScreen extends ConsumerStatefulWidget {
   final String siteId;
   final String siteName;
+  final SatmaxHistoryScreenMode mode;
 
   const SatmaxHistoryUploadScreen({
     super.key,
     required this.siteId,
     required this.siteName,
+    this.mode = SatmaxHistoryScreenMode.view,
   });
 
   @override
@@ -276,25 +409,40 @@ class _SatmaxHistoryUploadScreenState
     return Scaffold(
       appBar: CustomAppBar(title: 'History Upload'),
       backgroundColor: scheme.surface,
-      floatingActionButton: FloatingActionButton.extended(
-        onPressed: _isUploading ? null : _showUploadSheet,
-        icon: _isUploading
-            ? const SizedBox(
-                width: 18,
-                height: 18,
-                child: CircularProgressIndicator(strokeWidth: 2),
-              )
-            : const Icon(Icons.upload_file_rounded),
-        label: Text(_isUploading ? 'Uploading' : 'Upload Excel'),
-      ),
+      floatingActionButton: widget.mode == SatmaxHistoryScreenMode.view
+          ? null
+          : FloatingActionButton.extended(
+              onPressed: _isUploading ? null : _showUploadSheet,
+              icon: _isUploading
+                  ? const SizedBox(
+                      width: 18,
+                      height: 18,
+                      child: CircularProgressIndicator(strokeWidth: 2),
+                    )
+                  : const Icon(Icons.upload_file_rounded),
+              label: Text(_isUploading ? 'Uploading' : 'Upload Excel'),
+            ),
       body: RefreshIndicator(
         onRefresh: _loadHistory,
         child: ListView(
           physics: const AlwaysScrollableScrollPhysics(),
           padding: const EdgeInsets.fromLTRB(16, 16, 16, 96),
           children: [
-            _HeaderCard(siteName: widget.siteName),
+            _HeaderCard(
+              siteName: widget.siteName,
+              mode: widget.mode,
+              isUploading: _isUploading,
+              onUpload: null,
+            ),
             const SizedBox(height: 16),
+            if (widget.mode == SatmaxHistoryScreenMode.add) ...[
+              _AddHistoryCard(
+                siteName: widget.siteName,
+                isUploading: _isUploading,
+                onUpload: _isUploading ? null : _showUploadSheet,
+              ),
+              const SizedBox(height: 16),
+            ],
             if (_error != null) _ErrorCard(message: _error!),
             if (_error != null) const SizedBox(height: 16),
             if (_isLoading)
@@ -325,8 +473,16 @@ class _SatmaxHistoryUploadScreenState
 
 class _HeaderCard extends StatelessWidget {
   final String siteName;
+  final SatmaxHistoryScreenMode mode;
+  final bool isUploading;
+  final VoidCallback? onUpload;
 
-  const _HeaderCard({required this.siteName});
+  const _HeaderCard({
+    required this.siteName,
+    required this.mode,
+    required this.isUploading,
+    required this.onUpload,
+  });
 
   @override
   Widget build(BuildContext context) {
@@ -358,7 +514,9 @@ class _HeaderCard extends StatelessWidget {
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
                 Text(
-                  'Satmax History Upload',
+                  mode == SatmaxHistoryScreenMode.view
+                      ? 'History Upload View'
+                      : 'Add History Upload',
                   style: Theme.of(context)
                       .textTheme
                       .titleMedium
@@ -372,6 +530,87 @@ class _HeaderCard extends StatelessWidget {
                       ),
                 ),
               ],
+            ),
+          ),
+          if (mode == SatmaxHistoryScreenMode.view && onUpload != null) ...[
+            const SizedBox(width: 10),
+            IconButton.filledTonal(
+              tooltip: 'Upload History',
+              onPressed: onUpload,
+              icon: isUploading
+                  ? const SizedBox(
+                      width: 18,
+                      height: 18,
+                      child: CircularProgressIndicator(strokeWidth: 2),
+                    )
+                  : const Icon(Icons.upload_file_rounded),
+            ),
+          ],
+        ],
+      ),
+    );
+  }
+}
+
+class _AddHistoryCard extends StatelessWidget {
+  final String siteName;
+  final bool isUploading;
+  final VoidCallback? onUpload;
+
+  const _AddHistoryCard({
+    required this.siteName,
+    required this.isUploading,
+    required this.onUpload,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    final scheme = Theme.of(context).colorScheme;
+    return Container(
+      width: double.infinity,
+      padding: const EdgeInsets.all(16),
+      decoration: BoxDecoration(
+        color: scheme.surfaceContainerLow,
+        borderRadius: BorderRadius.circular(16),
+        border: Border.all(color: scheme.outlineVariant),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
+            children: [
+              Icon(Icons.cloud_upload_rounded, color: scheme.primary),
+              const SizedBox(width: 10),
+              Expanded(
+                child: Text(
+                  'Upload history for $siteName',
+                  style: const TextStyle(
+                    fontSize: 16,
+                    fontWeight: FontWeight.w900,
+                  ),
+                ),
+              ),
+            ],
+          ),
+          const SizedBox(height: 8),
+          Text(
+            'Select the Date & Mark No wise Excel file. After upload, records will appear in the View section and linked reports.',
+            style: TextStyle(color: scheme.onSurfaceVariant, height: 1.4),
+          ),
+          const SizedBox(height: 14),
+          SizedBox(
+            width: double.infinity,
+            height: 46,
+            child: FilledButton.icon(
+              onPressed: onUpload,
+              icon: isUploading
+                  ? const SizedBox(
+                      width: 18,
+                      height: 18,
+                      child: CircularProgressIndicator(strokeWidth: 2),
+                    )
+                  : const Icon(Icons.upload_file_rounded),
+              label: Text(isUploading ? 'Uploading' : 'Choose Excel File'),
             ),
           ),
         ],
