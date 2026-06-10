@@ -1,5 +1,6 @@
 import 'dart:async';
 
+import 'package:device_preview/device_preview.dart';
 import 'package:firebase_core/firebase_core.dart';
 import 'package:firebase_crashlytics/firebase_crashlytics.dart';
 import 'package:firebase_messaging/firebase_messaging.dart';
@@ -24,11 +25,8 @@ import 'core/upload/handlers/site_upload_handler.dart';
 import 'core/upload/upload_exports.dart';
 import 'features/language/model/download_language.dart';
 import 'features/language/model/language_model.dart';
-import 'features/modules/all_Modules/dpr/models/hive_storage_service.dart';
-import 'features/modules/all_Modules/dpr/offline/data/local/isar_db.dart';
 import 'features/modules/all_Modules/site_Details/repository/siteHive/siteHiveService.dart';
 import 'features/modules/all_Modules/site_Details/repository/siteHive/siteLocalStorage.dart';
-import 'features/modules/all_Modules/team/offline/state/isar_provider.dart';
 import 'features/noti_system/noti_services/bg_handler.dart';
 import 'features/noti_system/noti_services/fcm_service.dart';
 import 'features/noti_system/noti_services/noti_service.dart';
@@ -108,9 +106,12 @@ Future<void> main() async {
         await updatesRepository.deleteNotification(id);
       });
     runApp(
-      UncontrolledProviderScope(
-        container: container,
-        child: const MyApp(),
+      DevicePreview(
+        enabled: !kReleaseMode,
+        builder: (_) => UncontrolledProviderScope(
+          container: container,
+          child: const MyApp(),
+        ),
       ),
     );
   }, (error, stack) {

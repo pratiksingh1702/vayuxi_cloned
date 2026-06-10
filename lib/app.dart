@@ -1,15 +1,13 @@
+import 'package:device_preview/device_preview.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import 'core/api/syncManager.dart';
 import 'core/api/network_mode_banner.dart';
 import 'core/router/app_router.dart';
-import 'custom_slider.dart';
 import 'features/modules/all_Modules/more/theme/provider/theme_controller.dart';
-import 'features/modules/all_Modules/rate/screens/global_screen_banner.dart';
 import 'features/pricing/providers/razorpay_provider.dart';
 import 'features/tour/domain/tour_scrope.dart';
-import 'features/tour/screen/buddy_overlay.dart';
 import 'features/tour/screen/global_tour_overlay.dart';
 import 'package:bot_toast/bot_toast.dart';
 
@@ -38,9 +36,11 @@ class _MyAppState extends ConsumerState<MyApp> {
       routerConfig: router,
       debugShowCheckedModeBanner: false,
       useInheritedMediaQuery: true,
+      locale: DevicePreview.locale(context),
       builder: (context, child) {
         final appChild = child ?? const SizedBox.shrink();
-        final toasted = BotToastInit()(context, appChild);
+        final previewed = DevicePreview.appBuilder(context, appChild);
+        final toasted = BotToastInit()(context, previewed);
         return TourScope(
           child: GlobalTourOverlay(
             child: Stack(

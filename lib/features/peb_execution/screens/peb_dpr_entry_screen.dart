@@ -216,11 +216,15 @@ class _PebDprEntryScreenState extends State<PebDprEntryScreen> {
     required VoidCallback onTap,
   }) {
     final cs = Theme.of(context).colorScheme;
+    final layout = _PebDprResponsive.of(context);
     return InkWell(
       onTap: onTap,
       borderRadius: BorderRadius.circular(10),
       child: Container(
-        padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 8),
+        padding: EdgeInsets.symmetric(
+          horizontal: layout.compact ? 7 : 8,
+          vertical: layout.compact ? 7 : 8,
+        ),
         decoration: BoxDecoration(
           color: cs.surface,
           borderRadius: BorderRadius.circular(10),
@@ -237,26 +241,28 @@ class _PebDprEntryScreenState extends State<PebDprEntryScreen> {
           mainAxisAlignment: MainAxisAlignment.center,
           children: [
             Container(
-              width: 22,
-              height: 22,
+              width: layout.compact ? 20 : 22,
+              height: layout.compact ? 20 : 22,
               decoration: BoxDecoration(
                 color: color.withValues(alpha: 0.12),
                 borderRadius: BorderRadius.circular(6),
               ),
               child: Icon(icon, color: color, size: 13),
             ),
-            const SizedBox(width: 6),
+            SizedBox(width: layout.compact ? 4 : 6),
             Flexible(
-              child: Text(
-                label,
-                textAlign: TextAlign.center,
-                maxLines: 1,
-                softWrap: false,
-                overflow: TextOverflow.visible,
-                style: TextStyle(
-                  color: color,
-                  fontWeight: FontWeight.w900,
-                  fontSize: 10,
+              child: FittedBox(
+                fit: BoxFit.scaleDown,
+                child: Text(
+                  label,
+                  textAlign: TextAlign.center,
+                  maxLines: 1,
+                  softWrap: false,
+                  style: TextStyle(
+                    color: color,
+                    fontWeight: FontWeight.w900,
+                    fontSize: layout.compact ? 9.5 : 10,
+                  ),
                 ),
               ),
             ),
@@ -334,14 +340,13 @@ class _PebDprEntryScreenState extends State<PebDprEntryScreen> {
   }
 
   void _toggleDetailMark(_VisibleWork work, String mark) {
-    if (!_isDprSelectionMode || _markActionMode == _DprMarkActionMode.none) {
+    if (_markActionMode == _DprMarkActionMode.none) {
       return;
     }
     final completed = _completedForWork(work).contains(mark);
     final inProgress = _inProgressForWork(work).contains(mark);
     final unlocked = _unlockedMarksForWork(work).contains(mark);
-    if (completed ||
-        !unlocked ||
+    if ((!completed && !unlocked) ||
         (_markActionMode == _DprMarkActionMode.inProgress && inProgress)) {
       return;
     }
@@ -377,16 +382,13 @@ class _PebDprEntryScreenState extends State<PebDprEntryScreen> {
 
   List<String> _selectableMarksForWork(_VisibleWork work) {
     final visibleMarks = _filteredSortedMarks(work);
-    final completedMarks = _completedForWork(work);
     final inProgressMarks = _inProgressForWork(work);
 
     return visibleMarks.where((mark) {
       final locked = _nextPendingPrerequisite(work, mark) != null;
-      final completed = completedMarks.contains(mark);
       final inProgress = inProgressMarks.contains(mark);
 
       return !locked &&
-          !completed &&
           !(_markActionMode == _DprMarkActionMode.inProgress && inProgress);
     }).toList();
   }
@@ -395,7 +397,7 @@ class _PebDprEntryScreenState extends State<PebDprEntryScreen> {
     final selectableMarks = _selectableMarksForWork(work);
     if (selectableMarks.isEmpty) {
       AppToast.info(
-          'No selectable marks available. Some might be locked or already completed.');
+          'No selectable marks available. Some might be locked or already in progress.');
       return;
     }
     setState(() => _selectedDetailMarks.addAll(selectableMarks));
@@ -459,13 +461,17 @@ class _PebDprEntryScreenState extends State<PebDprEntryScreen> {
     required Color bgColor,
     VoidCallback? onTap,
   }) {
+    final layout = _PebDprResponsive.of(context);
     return Material(
       color: Colors.transparent,
       child: InkWell(
         onTap: onTap,
         borderRadius: BorderRadius.circular(999),
         child: Container(
-          padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 5),
+          padding: EdgeInsets.symmetric(
+            horizontal: layout.compact ? 7 : 8,
+            vertical: 5,
+          ),
           decoration: BoxDecoration(
             color: onTap == null ? bgColor.withValues(alpha: 0.45) : bgColor,
             borderRadius: BorderRadius.circular(999),
@@ -474,13 +480,13 @@ class _PebDprEntryScreenState extends State<PebDprEntryScreen> {
             mainAxisSize: MainAxisSize.min,
             children: [
               Icon(icon, size: 12, color: textColor),
-              const SizedBox(width: 4),
+              SizedBox(width: layout.compact ? 3 : 4),
               Text(
                 label,
                 style: TextStyle(
                   color: textColor,
                   fontWeight: FontWeight.w700,
-                  fontSize: 10,
+                  fontSize: layout.compact ? 9.5 : 10,
                 ),
               ),
             ],
@@ -497,6 +503,7 @@ class _PebDprEntryScreenState extends State<PebDprEntryScreen> {
     VoidCallback? onTap,
   }) {
     final cs = Theme.of(context).colorScheme;
+    final layout = _PebDprResponsive.of(context);
     return Tooltip(
       message: tooltip,
       child: Material(
@@ -505,8 +512,8 @@ class _PebDprEntryScreenState extends State<PebDprEntryScreen> {
           onTap: onTap,
           borderRadius: BorderRadius.circular(12),
           child: Container(
-            width: 38,
-            height: 38,
+            width: layout.compact ? 36 : 38,
+            height: layout.compact ? 36 : 38,
             decoration: BoxDecoration(
               color: cs.surface,
               borderRadius: BorderRadius.circular(12),
@@ -1153,6 +1160,7 @@ class _PebDprEntryScreenState extends State<PebDprEntryScreen> {
   @override
   Widget build(BuildContext context) {
     final cs = Theme.of(context).colorScheme;
+    final layout = _PebDprResponsive.of(context);
     final works = _visibleWorks();
     final activeWork = _activeWork(works);
     final activeMarks = activeWork == null
@@ -1183,13 +1191,18 @@ class _PebDprEntryScreenState extends State<PebDprEntryScreen> {
                               onRefresh: _load,
                               child: ListView(
                                 controller: _scrollController,
-                                padding: const EdgeInsets.all(16),
+                                padding: EdgeInsets.fromLTRB(
+                                  layout.pagePadding,
+                                  layout.pagePadding,
+                                  layout.pagePadding,
+                                  0,
+                                ),
                                 children: activeWork == null
                                     ? [
                                         _buildFilters(),
-                                        const SizedBox(height: 18),
+                                        SizedBox(height: layout.sectionGap),
                                         _buildAssignedWorkHeader(assignedWorks),
-                                        const SizedBox(height: 16),
+                                        SizedBox(height: layout.cardGap),
                                         if (assignedWorks.isEmpty)
                                           _boqs.isEmpty
                                               ? _buildNoBoqState()
@@ -1204,8 +1217,8 @@ class _PebDprEntryScreenState extends State<PebDprEntryScreen> {
                                                         color: cs.outlineVariant
                                                             .withOpacity(0.5)),
                                                   ),
-                                                  padding:
-                                                      const EdgeInsets.all(20),
+                                                  padding: EdgeInsets.all(
+                                                      layout.cardPadding),
                                                   child: Text(
                                                     'No assigned work found for this team.',
                                                     style: TextStyle(
@@ -1225,18 +1238,26 @@ class _PebDprEntryScreenState extends State<PebDprEntryScreen> {
                                                       entry.value),
                                                 ),
                                               ),
-                                        const SizedBox(height: 90),
+                                        SizedBox(
+                                          height: 84 +
+                                              MediaQuery.paddingOf(context)
+                                                  .bottom,
+                                        ),
                                       ]
                                     : _markActionMode == _DprMarkActionMode.none
                                         ? [
                                             _buildWorkDetailHeader(activeWork),
-                                            const SizedBox(height: 90),
+                                            SizedBox(
+                                              height: 84 +
+                                                  MediaQuery.paddingOf(context)
+                                                      .bottom,
+                                            ),
                                           ]
                                         : [
                                             _buildWorkDetailHeader(activeWork),
-                                            const SizedBox(height: 12),
+                                            SizedBox(height: layout.cardGap),
                                             _buildMarkSearchBar(activeWork),
-                                            const SizedBox(height: 8),
+                                            SizedBox(height: layout.smallGap),
                                             ..._filteredSortedMarks(activeWork)
                                                 .map(
                                               (mark) => _buildMarkEntryCardV2(
@@ -1251,9 +1272,9 @@ class _PebDprEntryScreenState extends State<PebDprEntryScreen> {
                                                     .isEmpty &&
                                                 activeMarks.isNotEmpty)
                                               Padding(
-                                                padding:
-                                                    const EdgeInsets.symmetric(
-                                                        vertical: 32),
+                                                padding: EdgeInsets.symmetric(
+                                                    vertical:
+                                                        layout.sectionGap * 2),
                                                 child: Center(
                                                   child: Text(
                                                     'No marks match "$_markSearchQuery"',
@@ -1270,7 +1291,11 @@ class _PebDprEntryScreenState extends State<PebDprEntryScreen> {
                                             if (activeMarks.isEmpty)
                                               _buildQuantityWorkEntryCard(
                                                   activeWork),
-                                            const SizedBox(height: 190),
+                                            SizedBox(
+                                              height: 150 +
+                                                  MediaQuery.paddingOf(context)
+                                                      .bottom,
+                                            ),
                                           ],
                               ),
                             ),
@@ -1314,32 +1339,34 @@ class _PebDprEntryScreenState extends State<PebDprEntryScreen> {
 
   Widget _buildLoadErrorState() {
     final cs = Theme.of(context).colorScheme;
+    final layout = _PebDprResponsive.of(context);
     return CustomScrollbar(
       child: RefreshIndicator(
         onRefresh: _load,
         child: ListView(
           physics: const AlwaysScrollableScrollPhysics(),
-          padding: const EdgeInsets.all(24),
+          padding: EdgeInsets.all(layout.emptyStatePadding),
           children: [
-            const SizedBox(height: 100),
-            Icon(Icons.cloud_off_rounded, size: 64, color: cs.error),
-            const SizedBox(height: 18),
+            SizedBox(height: layout.emptyStateTopGap),
+            Icon(Icons.cloud_off_rounded,
+                size: layout.emptyStateIconSize, color: cs.error),
+            SizedBox(height: layout.sectionGap),
             Text(
               'Unable to load DPR Entry',
               textAlign: TextAlign.center,
               style: TextStyle(
                 color: cs.onSurface,
-                fontSize: 20,
+                fontSize: layout.emptyStateTitleSize,
                 fontWeight: FontWeight.w800,
               ),
             ),
-            const SizedBox(height: 8),
+            SizedBox(height: layout.smallGap),
             Text(
               _loadError ?? 'Please try again.',
               textAlign: TextAlign.center,
               style: TextStyle(color: cs.onSurfaceVariant),
             ),
-            const SizedBox(height: 20),
+            SizedBox(height: layout.sectionGap),
             FilledButton.icon(
               onPressed: _load,
               icon: const Icon(Icons.refresh_rounded),
@@ -1359,32 +1386,34 @@ class _PebDprEntryScreenState extends State<PebDprEntryScreen> {
 
   Widget _buildNoTeamsState() {
     final cs = Theme.of(context).colorScheme;
+    final layout = _PebDprResponsive.of(context);
     return CustomScrollbar(
       child: RefreshIndicator(
         onRefresh: _load,
         child: ListView(
           physics: const AlwaysScrollableScrollPhysics(),
-          padding: const EdgeInsets.all(24),
+          padding: EdgeInsets.all(layout.emptyStatePadding),
           children: [
-            const SizedBox(height: 100),
-            Icon(Icons.groups_2_outlined, size: 68, color: cs.primary),
-            const SizedBox(height: 18),
+            SizedBox(height: layout.emptyStateTopGap),
+            Icon(Icons.groups_2_outlined,
+                size: layout.emptyStateIconSize + 4, color: cs.primary),
+            SizedBox(height: layout.sectionGap),
             Text(
               'No team available',
               textAlign: TextAlign.center,
               style: TextStyle(
                 color: cs.onSurface,
-                fontSize: 20,
+                fontSize: layout.emptyStateTitleSize,
                 fontWeight: FontWeight.w800,
               ),
             ),
-            const SizedBox(height: 8),
+            SizedBox(height: layout.smallGap),
             Text(
               'Create a ${widget.executionType.title} team in Setup > Team, then return here to enter DPR progress.',
               textAlign: TextAlign.center,
               style: TextStyle(color: cs.onSurfaceVariant, height: 1.45),
             ),
-            const SizedBox(height: 20),
+            SizedBox(height: layout.sectionGap),
             FilledButton.icon(
               onPressed: _load,
               icon: const Icon(Icons.refresh_rounded),
@@ -1404,28 +1433,33 @@ class _PebDprEntryScreenState extends State<PebDprEntryScreen> {
 
   Widget _buildNoBoqState() {
     final cs = Theme.of(context).colorScheme;
+    final layout = _PebDprResponsive.of(context);
     return Container(
       decoration: BoxDecoration(
         color: cs.surfaceContainerLow,
         borderRadius: BorderRadius.circular(14),
         border: Border.all(color: cs.outlineVariant.withOpacity(0.5)),
       ),
-      padding: const EdgeInsets.all(18),
+      padding: EdgeInsets.all(layout.cardPadding),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          Icon(Icons.playlist_add_rounded, color: cs.primary, size: 34),
-          const SizedBox(height: 12),
-          const Text(
+          Icon(Icons.playlist_add_rounded,
+              color: cs.primary, size: layout.compact ? 30 : 34),
+          SizedBox(height: layout.cardGap),
+          Text(
             'No BOQ marks available',
-            style: TextStyle(fontSize: 18, fontWeight: FontWeight.w900),
+            style: TextStyle(
+              fontSize: layout.compact ? 16 : 18,
+              fontWeight: FontWeight.w900,
+            ),
           ),
-          const SizedBox(height: 6),
+          SizedBox(height: layout.smallGap),
           Text(
             'Add BOQ items manually or upload BOQ first, then return here for DPR entry.',
             style: TextStyle(color: cs.onSurfaceVariant, height: 1.35),
           ),
-          const SizedBox(height: 14),
+          SizedBox(height: layout.cardGap),
           FilledButton.icon(
             onPressed: () => context.push('/site-list/boq-upload'),
             icon: const Icon(Icons.add_rounded),
@@ -1438,13 +1472,19 @@ class _PebDprEntryScreenState extends State<PebDprEntryScreen> {
 
   Widget _buildFilters() {
     final cs = Theme.of(context).colorScheme;
+    final layout = _PebDprResponsive.of(context);
 
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
         // ── Site + Type Banner ──────────────────────────────────────────
         Container(
-          padding: const EdgeInsets.fromLTRB(16, 14, 16, 14),
+          padding: EdgeInsets.fromLTRB(
+            layout.cardPadding,
+            layout.compact ? 12 : 14,
+            layout.cardPadding,
+            layout.compact ? 12 : 14,
+          ),
           decoration: BoxDecoration(
             gradient: LinearGradient(
               colors: [
@@ -1462,16 +1502,16 @@ class _PebDprEntryScreenState extends State<PebDprEntryScreen> {
             children: [
               // Site icon
               Container(
-                width: 44,
-                height: 44,
+                width: layout.filterIconSize,
+                height: layout.filterIconSize,
                 decoration: BoxDecoration(
                   color: cs.primary.withOpacity(0.12),
                   borderRadius: BorderRadius.circular(12),
                 ),
                 child: Icon(Icons.location_city_rounded,
-                    color: cs.primary, size: 22),
+                    color: cs.primary, size: layout.compact ? 20 : 22),
               ),
-              const SizedBox(width: 12),
+              SizedBox(width: layout.cardGap),
               // Site name + execution type + team
               Expanded(
                 child: Column(
@@ -1523,8 +1563,10 @@ class _PebDprEntryScreenState extends State<PebDprEntryScreen> {
               GestureDetector(
                 onTap: _pickDate,
                 child: Container(
-                  padding:
-                      const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
+                  padding: EdgeInsets.symmetric(
+                    horizontal: layout.compact ? 8 : 10,
+                    vertical: 6,
+                  ),
                   decoration: BoxDecoration(
                     color: cs.surface,
                     borderRadius: BorderRadius.circular(10),
@@ -1535,12 +1577,12 @@ class _PebDprEntryScreenState extends State<PebDprEntryScreen> {
                     mainAxisSize: MainAxisSize.min,
                     children: [
                       Icon(Icons.calendar_today_rounded,
-                          size: 13, color: cs.primary),
-                      const SizedBox(width: 5),
+                          size: layout.compact ? 12 : 13, color: cs.primary),
+                      SizedBox(width: layout.compact ? 4 : 5),
                       Text(
                         DateFormat('dd MMM yy').format(_selectedDate),
                         style: TextStyle(
-                          fontSize: 12,
+                          fontSize: layout.compact ? 11 : 12,
                           fontWeight: FontWeight.w700,
                           color: cs.primary,
                         ),
@@ -1554,7 +1596,7 @@ class _PebDprEntryScreenState extends State<PebDprEntryScreen> {
         ),
         if (_submitting)
           Padding(
-            padding: const EdgeInsets.only(top: 10),
+            padding: EdgeInsets.only(top: layout.smallGap),
             child: ClipRRect(
               borderRadius: BorderRadius.circular(999),
               child: const LinearProgressIndicator(minHeight: 3),
@@ -1566,6 +1608,7 @@ class _PebDprEntryScreenState extends State<PebDprEntryScreen> {
 
   Widget _buildAssignedWorkHeader(List<_VisibleWork> assignedWorks) {
     final cs = Theme.of(context).colorScheme;
+    final layout = _PebDprResponsive.of(context);
     return Row(
       crossAxisAlignment: CrossAxisAlignment.center,
       children: [
@@ -1584,8 +1627,10 @@ class _PebDprEntryScreenState extends State<PebDprEntryScreen> {
               const SizedBox(height: 2),
               Text(
                 DateFormat('EEEE, dd MMMM yyyy').format(_selectedDate),
+                maxLines: 1,
+                overflow: TextOverflow.ellipsis,
                 style: TextStyle(
-                  fontSize: 11,
+                  fontSize: layout.compact ? 10.5 : 11,
                   fontWeight: FontWeight.w500,
                   color: cs.onSurfaceVariant,
                 ),
@@ -1594,7 +1639,10 @@ class _PebDprEntryScreenState extends State<PebDprEntryScreen> {
           ),
         ),
         Container(
-          padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+          padding: EdgeInsets.symmetric(
+            horizontal: layout.compact ? 10 : 12,
+            vertical: layout.compact ? 7 : 8,
+          ),
           decoration: BoxDecoration(
             color: assignedWorks.isEmpty
                 ? cs.surfaceContainerHighest
@@ -1614,23 +1662,23 @@ class _PebDprEntryScreenState extends State<PebDprEntryScreen> {
                 size: 14,
                 color: assignedWorks.isEmpty ? cs.onSurfaceVariant : cs.primary,
               ),
-              const SizedBox(width: 5),
+              SizedBox(width: layout.compact ? 4 : 5),
               Text(
                 '${assignedWorks.length}',
                 style: TextStyle(
                   color:
                       assignedWorks.isEmpty ? cs.onSurfaceVariant : cs.primary,
-                  fontSize: 16,
+                  fontSize: layout.compact ? 15 : 16,
                   fontWeight: FontWeight.w800,
                 ),
               ),
-              const SizedBox(width: 4),
+              SizedBox(width: layout.compact ? 3 : 4),
               Text(
                 'items',
                 style: TextStyle(
                   color:
                       assignedWorks.isEmpty ? cs.onSurfaceVariant : cs.primary,
-                  fontSize: 11,
+                  fontSize: layout.compact ? 10 : 11,
                   fontWeight: FontWeight.w600,
                 ),
               ),
@@ -1643,6 +1691,7 @@ class _PebDprEntryScreenState extends State<PebDprEntryScreen> {
 
   Widget _buildWorkCard(_VisibleWork work) {
     final cs = Theme.of(context).colorScheme;
+    final layout = _PebDprResponsive.of(context);
     final counts = _counts(work);
     final isCompleted = _isWorkFullyCompleted(work);
     final deadline = work.expectedCompletionDate == null
@@ -1735,189 +1784,234 @@ class _PebDprEntryScreenState extends State<PebDprEntryScreen> {
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            // Header Row: Title & Status badge on the right
             Padding(
-              padding: const EdgeInsets.fromLTRB(14, 12, 14, 4),
+              padding: EdgeInsets.fromLTRB(
+                layout.cardPadding,
+                layout.cardPadding - 2,
+                layout.cardPadding,
+                layout.smallGap,
+              ),
               child: Row(
                 children: [
                   Expanded(
                     child: Text(
                       work.displayName ?? work.stageName,
-                      style: const TextStyle(
-                        fontSize: 16,
+                      style: TextStyle(
+                        fontSize: layout.compact ? 15 : 16,
                         fontWeight: FontWeight.w600,
                       ),
                       maxLines: 2,
                       overflow: TextOverflow.ellipsis,
                     ),
                   ),
-                  const SizedBox(width: 8),
-                  headerBadge,
+                  SizedBox(width: layout.smallGap),
+                  Flexible(
+                    child: Align(
+                      alignment: Alignment.centerRight,
+                      child: FittedBox(
+                        fit: BoxFit.scaleDown,
+                        child: headerBadge,
+                      ),
+                    ),
+                  ),
                 ],
               ),
             ),
-
-            Expanded(
-              child: IntrinsicHeight(
-                child: Row(
-                  children: [
-                    // LEFT COLUMN: Image
-                    Expanded(
-                      child: Padding(
-                        padding: const EdgeInsets.fromLTRB(14, 4, 7, 14),
-                        child: SizedBox(
-                          height: 130,
-                          child: ClipRRect(
-                            borderRadius: BorderRadius.circular(8),
-                            child: Container(
-                              width: double.infinity,
-                              color: cs.surfaceContainerHighest,
-                              child: Image(
-                                image: pebWorkImageProvider(
-                                  work.setupItem,
-                                  widget.executionType,
-                                ),
-                                fit: BoxFit.cover,
-                                errorBuilder: (_, __, ___) =>
-                                    pebWorkImageFallback(
-                                  work.setupItem,
-                                  widget.executionType,
-                                ),
+            IntrinsicHeight(
+              child: Row(
+                children: [
+                  Expanded(
+                    child: Padding(
+                      padding: EdgeInsets.fromLTRB(
+                        layout.cardPadding,
+                        0,
+                        layout.columnGap / 2,
+                        layout.cardPadding,
+                      ),
+                      child: SizedBox(
+                        height: layout.workImageHeight,
+                        child: ClipRRect(
+                          borderRadius: BorderRadius.circular(8),
+                          child: Container(
+                            width: double.infinity,
+                            color: cs.surfaceContainerHighest,
+                            padding: EdgeInsets.all(layout.imageInset),
+                            child: Image(
+                              image: pebWorkImageProvider(
+                                work.setupItem,
+                                widget.executionType,
+                              ),
+                              fit: BoxFit.contain,
+                              alignment: Alignment.center,
+                              filterQuality: FilterQuality.medium,
+                              errorBuilder: (_, __, ___) =>
+                                  pebWorkImageFallback(
+                                work.setupItem,
+                                widget.executionType,
+                                fit: BoxFit.contain,
                               ),
                             ),
                           ),
                         ),
                       ),
                     ),
-
-                    // RIGHT COLUMN: Stats, Progress Bar, & Update indicator
-                    Expanded(
-                      child: Container(
-                        padding: const EdgeInsets.fromLTRB(7, 4, 14, 14),
-                        child: Column(
-                          crossAxisAlignment: CrossAxisAlignment.start,
-                          children: [
-                            Container(
-                              padding: const EdgeInsets.symmetric(
-                                vertical: 8,
-                                horizontal: 4,
+                  ),
+                  Expanded(
+                    child: Padding(
+                      padding: EdgeInsets.fromLTRB(
+                        layout.columnGap / 2,
+                        0,
+                        layout.cardPadding,
+                        layout.cardPadding,
+                      ),
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Container(
+                            padding: EdgeInsets.symmetric(
+                              vertical: layout.compact ? 7 : 8,
+                              horizontal: layout.compact ? 6 : 8,
+                            ),
+                            decoration: BoxDecoration(
+                              color: cs.surfaceContainer.withOpacity(0.5),
+                              borderRadius: BorderRadius.circular(8),
+                              border: Border.all(
+                                color: cs.outlineVariant.withOpacity(0.3),
                               ),
-                              decoration: BoxDecoration(
-                                color: cs.surfaceContainer.withOpacity(0.5),
-                                borderRadius: BorderRadius.circular(8),
-                                border: Border.all(
-                                  color: cs.outlineVariant.withOpacity(0.3),
-                                ),
-                              ),
-                              child: Row(
-                                children: [
-                                  Expanded(
-                                    child: _minimalWorkCountBlock(
-                                      'Assigned',
-                                      counts.total,
-                                      cs.onSurface,
-                                      cs,
-                                    ),
-                                  ),
-                                  Container(
-                                    width: 1,
-                                    height: 24,
-                                    color: cs.outlineVariant.withOpacity(0.5),
-                                  ),
-                                  Expanded(
-                                    child: _minimalWorkCountBlock(
-                                      'Pending',
-                                      counts.inProgress,
-                                      Colors.orange,
-                                      cs,
-                                    ),
-                                  ),
-                                  Container(
-                                    width: 1,
-                                    height: 24,
-                                    color: cs.outlineVariant.withOpacity(0.5),
-                                  ),
-                                  Expanded(
-                                    child: _minimalWorkCountBlock(
-                                      'Done',
-                                      counts.completed,
-                                      Colors.green,
-                                      cs,
-                                    ),
-                                  ),
-                                  Container(
-                                    width: 1,
-                                    height: 24,
-                                    color: cs.outlineVariant.withOpacity(0.5),
-                                  ),
-                                  Expanded(
-                                    child: _minimalWorkTextBlock(
+                            ),
+                            child: Column(
+                              children: [
+                                Row(
+                                  children: [
+                                    Text(
                                       'UOM',
-                                      workUom,
-                                      cs.primary,
-                                      cs,
+                                      style: TextStyle(
+                                        fontSize: layout.miniLabelSize,
+                                        fontWeight: FontWeight.w700,
+                                        color: cs.onSurfaceVariant,
+                                      ),
                                     ),
+                                    const SizedBox(width: 6),
+                                    Expanded(
+                                      child: Align(
+                                        alignment: Alignment.centerRight,
+                                        child: Text(
+                                          workUom,
+                                          maxLines: 1,
+                                          overflow: TextOverflow.ellipsis,
+                                          style: TextStyle(
+                                            fontSize: layout.compact ? 12 : 13,
+                                            fontWeight: FontWeight.w800,
+                                            color: cs.primary,
+                                          ),
+                                        ),
+                                      ),
+                                    ),
+                                  ],
+                                ),
+                                SizedBox(height: layout.compact ? 6 : 7),
+                                Divider(
+                                  height: 1,
+                                  thickness: 1,
+                                  color: cs.outlineVariant.withOpacity(0.35),
+                                ),
+                                SizedBox(height: layout.compact ? 6 : 7),
+                                Row(
+                                  children: [
+                                    Expanded(
+                                      child: _minimalWorkCountBlock(
+                                        'Assigned',
+                                        counts.total,
+                                        cs.onSurface,
+                                        cs,
+                                      ),
+                                    ),
+                                    _workStatDivider(cs),
+                                    Expanded(
+                                      child: _minimalWorkCountBlock(
+                                        'Pending',
+                                        counts.inProgress,
+                                        Colors.orange,
+                                        cs,
+                                      ),
+                                    ),
+                                    _workStatDivider(cs),
+                                    Expanded(
+                                      child: _minimalWorkCountBlock(
+                                        'Done',
+                                        counts.completed,
+                                        Colors.green,
+                                        cs,
+                                      ),
+                                    ),
+                                  ],
+                                ),
+                              ],
+                            ),
+                          ),
+                          SizedBox(height: layout.smallGap),
+                          _completionBar(
+                            value: completion,
+                            color: Colors.green.shade700,
+                            backgroundColor: cs.surfaceContainerHighest,
+                          ),
+                          if (work.expectedCompletionDate != null) ...[
+                            const SizedBox(height: 3),
+                            Text(
+                              missed
+                                  ? '${days.abs()} days overdue'
+                                  : '$days days remaining',
+                              maxLines: 1,
+                              overflow: TextOverflow.ellipsis,
+                              style: TextStyle(
+                                color: missed
+                                    ? Colors.red.shade700
+                                    : cs.onSurfaceVariant,
+                                fontSize: layout.compact ? 9.5 : 10,
+                                fontWeight: FontWeight.w600,
+                              ),
+                            ),
+                          ],
+                          SizedBox(height: layout.smallGap),
+                          Container(
+                            height: layout.workButtonHeight,
+                            decoration: BoxDecoration(
+                              border: Border.all(color: cs.primary, width: 1.5),
+                              borderRadius: BorderRadius.circular(6),
+                            ),
+                            child: Center(
+                              child: Row(
+                                mainAxisAlignment: MainAxisAlignment.center,
+                                children: [
+                                  Flexible(
+                                    child: FittedBox(
+                                      fit: BoxFit.scaleDown,
+                                      child: Text(
+                                        'Update Progress',
+                                        maxLines: 1,
+                                        style: TextStyle(
+                                          color: cs.primary,
+                                          fontSize: layout.compact ? 10 : 11,
+                                          fontWeight: FontWeight.w700,
+                                        ),
+                                      ),
+                                    ),
+                                  ),
+                                  const SizedBox(width: 4),
+                                  Icon(
+                                    Icons.chevron_right_rounded,
+                                    size: layout.compact ? 15 : 16,
+                                    color: cs.primary,
                                   ),
                                 ],
                               ),
                             ),
-                            const SizedBox(height: 8),
-                            _completionBar(
-                              value: completion,
-                              color: Colors.green.shade700,
-                              backgroundColor: cs.surfaceContainerHighest,
-                            ),
-                            if (work.expectedCompletionDate != null) ...[
-                              const SizedBox(height: 3),
-                              Text(
-                                missed
-                                    ? '${days.abs()} days overdue'
-                                    : '$days days remaining',
-                                style: TextStyle(
-                                  color: missed
-                                      ? Colors.red.shade700
-                                      : cs.onSurfaceVariant,
-                                  fontSize: 10,
-                                  fontWeight: FontWeight.w600,
-                                ),
-                              ),
-                            ],
-                            const SizedBox(height: 8),
-                            Container(
-                              height: 32,
-                              decoration: BoxDecoration(
-                                border:
-                                    Border.all(color: cs.primary, width: 1.5),
-                                borderRadius: BorderRadius.circular(6),
-                              ),
-                              child: Center(
-                                child: Row(
-                                  mainAxisAlignment: MainAxisAlignment.center,
-                                  children: [
-                                    Text(
-                                      'Update Progress',
-                                      style: TextStyle(
-                                        color: cs.primary,
-                                        fontSize: 11,
-                                        fontWeight: FontWeight.w700,
-                                      ),
-                                    ),
-                                    const SizedBox(width: 4),
-                                    Icon(
-                                      Icons.chevron_right_rounded,
-                                      size: 16,
-                                      color: cs.primary,
-                                    ),
-                                  ],
-                                ),
-                              ),
-                            ),
-                          ],
-                        ),
+                          ),
+                        ],
                       ),
                     ),
-                  ],
-                ),
+                  ),
+                ],
               ),
             ),
           ],
@@ -1932,10 +2026,18 @@ class _PebDprEntryScreenState extends State<PebDprEntryScreen> {
               ? 1
               : 0.46,
       child: Container(
-        margin: const EdgeInsets.only(bottom: 10),
-        height: 195,
+        margin: EdgeInsets.only(bottom: layout.cardGap),
         child: card,
       ),
+    );
+  }
+
+  Widget _workStatDivider(ColorScheme cs) {
+    return Container(
+      width: 1,
+      height: 24,
+      margin: const EdgeInsets.symmetric(horizontal: 2),
+      color: cs.outlineVariant.withOpacity(0.5),
     );
   }
 
@@ -1945,46 +2047,21 @@ class _PebDprEntryScreenState extends State<PebDprEntryScreen> {
     Color color,
     ColorScheme cs,
   ) {
+    final layout = _PebDprResponsive.of(context);
     return Column(
       mainAxisSize: MainAxisSize.min,
       children: [
         _minimalWorkBlockLabel(label, cs),
         const SizedBox(height: 2),
-        Text(
-          '$count',
-          style: TextStyle(
-            fontSize: 14,
-            fontWeight: FontWeight.w700,
-            color: color,
-          ),
-        ),
-      ],
-    );
-  }
-
-  Widget _minimalWorkTextBlock(
-    String label,
-    String value,
-    Color color,
-    ColorScheme cs,
-  ) {
-    return Column(
-      mainAxisSize: MainAxisSize.min,
-      children: [
-        _minimalWorkBlockLabel(label, cs),
-        const SizedBox(height: 2),
-        Padding(
-          padding: const EdgeInsets.symmetric(horizontal: 2),
-          child: FittedBox(
-            fit: BoxFit.scaleDown,
-            child: Text(
-              value,
-              maxLines: 1,
-              style: TextStyle(
-                fontSize: 13,
-                fontWeight: FontWeight.w800,
-                color: color,
-              ),
+        FittedBox(
+          fit: BoxFit.scaleDown,
+          child: Text(
+            '$count',
+            maxLines: 1,
+            style: TextStyle(
+              fontSize: layout.compact ? 13 : 14,
+              fontWeight: FontWeight.w700,
+              color: color,
             ),
           ),
         ),
@@ -1993,6 +2070,7 @@ class _PebDprEntryScreenState extends State<PebDprEntryScreen> {
   }
 
   Widget _minimalWorkBlockLabel(String label, ColorScheme cs) {
+    final layout = _PebDprResponsive.of(context);
     return Padding(
       padding: const EdgeInsets.symmetric(horizontal: 2),
       child: FittedBox(
@@ -2001,7 +2079,7 @@ class _PebDprEntryScreenState extends State<PebDprEntryScreen> {
           label,
           maxLines: 1,
           style: TextStyle(
-            fontSize: 9,
+            fontSize: layout.miniLabelSize,
             fontWeight: FontWeight.w600,
             color: cs.onSurfaceVariant,
           ),
@@ -2250,6 +2328,7 @@ class _PebDprEntryScreenState extends State<PebDprEntryScreen> {
 
   Widget _buildWorkDetailHeader(_VisibleWork work) {
     final cs = Theme.of(context).colorScheme;
+    final layout = _PebDprResponsive.of(context);
     final inProgressColor = const Color(0xFFE56F00);
     final completedColor = Colors.green.shade700;
     return Column(
@@ -2261,8 +2340,12 @@ class _PebDprEntryScreenState extends State<PebDprEntryScreen> {
             Expanded(
               child: Text(
                 work.displayName ?? work.stageName,
-                style:
-                    const TextStyle(fontSize: 26, fontWeight: FontWeight.w900),
+                style: TextStyle(
+                  fontSize: layout.detailTitleSize,
+                  fontWeight: FontWeight.w900,
+                ),
+                maxLines: 2,
+                overflow: TextOverflow.ellipsis,
               ),
             ),
             if (_markActionMode != _DprMarkActionMode.none)
@@ -2310,38 +2393,41 @@ class _PebDprEntryScreenState extends State<PebDprEntryScreen> {
                 child: _isDprSelectionMode
                     ? KeyedSubtree(
                         key: const ValueKey('actions'),
-                        child: Row(
-                          mainAxisSize: MainAxisSize.min,
-                          children: [
-                            _dprHeaderActionButton(
-                              label: 'Cancel',
-                              icon: Icons.close,
-                              textColor: cs.onSurfaceVariant,
-                              bgColor: cs.surfaceContainerHigh,
-                              onTap: () => setState(() {
-                                _isDprSelectionMode = false;
-                                _selectedDetailMarks.clear();
-                              }),
-                            ),
-                            const SizedBox(width: 6),
-                            _dprHeaderActionButton(
-                              label: 'Select All',
-                              icon: Icons.done_all,
-                              textColor: cs.primary,
-                              bgColor: cs.primaryContainer,
-                              onTap: () => _selectAllMarks(work),
-                            ),
-                            const SizedBox(width: 6),
-                            _dprHeaderActionButton(
-                              label: 'Deselect All',
-                              icon: Icons.remove_done,
-                              textColor: cs.onError,
-                              bgColor: cs.error,
-                              onTap: _selectedDetailMarks.isEmpty
-                                  ? null
-                                  : () => _deselectAllMarks(work),
-                            ),
-                          ],
+                        child: SingleChildScrollView(
+                          scrollDirection: Axis.horizontal,
+                          child: Row(
+                            mainAxisSize: MainAxisSize.min,
+                            children: [
+                              _dprHeaderActionButton(
+                                label: 'Cancel',
+                                icon: Icons.close,
+                                textColor: cs.onSurfaceVariant,
+                                bgColor: cs.surfaceContainerHigh,
+                                onTap: () => setState(() {
+                                  _isDprSelectionMode = false;
+                                  _selectedDetailMarks.clear();
+                                }),
+                              ),
+                              SizedBox(width: layout.compact ? 4 : 6),
+                              _dprHeaderActionButton(
+                                label: 'Select All',
+                                icon: Icons.done_all,
+                                textColor: cs.primary,
+                                bgColor: cs.primaryContainer,
+                                onTap: () => _selectAllMarks(work),
+                              ),
+                              SizedBox(width: layout.compact ? 4 : 6),
+                              _dprHeaderActionButton(
+                                label: 'Deselect All',
+                                icon: Icons.remove_done,
+                                textColor: cs.onError,
+                                bgColor: cs.error,
+                                onTap: _selectedDetailMarks.isEmpty
+                                    ? null
+                                    : () => _deselectAllMarks(work),
+                              ),
+                            ],
+                          ),
                         ),
                       )
                     : KeyedSubtree(
@@ -2357,17 +2443,17 @@ class _PebDprEntryScreenState extends State<PebDprEntryScreen> {
               ),
           ],
         ),
-        const SizedBox(height: 6),
+        SizedBox(height: layout.smallGap),
         if (_markActionMode == _DprMarkActionMode.none) ...[
           Text(
             'Whether your work is?',
             style: TextStyle(
               color: cs.onSurface,
-              fontSize: 16,
+              fontSize: layout.compact ? 15 : 16,
               fontWeight: FontWeight.w900,
             ),
           ),
-          const SizedBox(height: 12),
+          SizedBox(height: layout.cardGap),
           Row(
             children: [
               Expanded(
@@ -2378,7 +2464,7 @@ class _PebDprEntryScreenState extends State<PebDprEntryScreen> {
                   onTap: () => _startMarkAction(_DprMarkActionMode.inProgress),
                 ),
               ),
-              const SizedBox(width: 12),
+              SizedBox(width: layout.cardGap),
               Expanded(
                 child: _statusChoiceButton(
                   label: 'Completed',
@@ -2406,13 +2492,14 @@ class _PebDprEntryScreenState extends State<PebDprEntryScreen> {
 
   Widget _buildQuantityWorkEntryCard(_VisibleWork work) {
     final cs = Theme.of(context).colorScheme;
+    final layout = _PebDprResponsive.of(context);
     return Container(
       decoration: BoxDecoration(
         color: cs.surfaceContainerLow,
         borderRadius: BorderRadius.circular(14),
         border: Border.all(color: cs.outlineVariant.withOpacity(0.5)),
       ),
-      padding: const EdgeInsets.all(20),
+      padding: EdgeInsets.all(layout.cardPadding),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.stretch,
         children: [
@@ -2423,7 +2510,7 @@ class _PebDprEntryScreenState extends State<PebDprEntryScreen> {
               fontWeight: FontWeight.w800,
             ),
           ),
-          const SizedBox(height: 12),
+          SizedBox(height: layout.cardGap),
           FilledButton(
             onPressed: _isWorkActionable(work)
                 ? () => _openAction(
@@ -2442,8 +2529,10 @@ class _PebDprEntryScreenState extends State<PebDprEntryScreen> {
 
   Widget _buildDetailBottomBar(_VisibleWork work) {
     final cs = Theme.of(context).colorScheme;
-    final selecting = _isDprSelectionMode;
-    if (!selecting) return const SizedBox.shrink();
+    final layout = _PebDprResponsive.of(context);
+    final canSave = _markActionMode != _DprMarkActionMode.none &&
+        _selectedDetailMarks.isNotEmpty;
+    if (!canSave) return const SizedBox.shrink();
     final isCompletedMode = _markActionMode == _DprMarkActionMode.completed;
     final inProgressColor = const Color(0xFFE56F00);
     final completedColor = Colors.green.shade700;
@@ -2455,7 +2544,12 @@ class _PebDprEntryScreenState extends State<PebDprEntryScreen> {
         top: false,
         child: Container(
           margin: const EdgeInsets.fromLTRB(12, 0, 12, 8),
-          padding: const EdgeInsets.fromLTRB(14, 12, 14, 12),
+          padding: EdgeInsets.fromLTRB(
+            layout.cardPadding,
+            layout.compact ? 10 : 12,
+            layout.cardPadding,
+            layout.compact ? 10 : 12,
+          ),
           decoration: BoxDecoration(
             color: cs.surface,
             borderRadius: BorderRadius.circular(18),
@@ -2485,7 +2579,7 @@ class _PebDprEntryScreenState extends State<PebDprEntryScreen> {
                   child: const Text('Cancel'),
                 ),
               ),
-              const SizedBox(width: 12),
+              SizedBox(width: layout.cardGap),
               Expanded(
                 child: FilledButton(
                   onPressed: _selectedDetailMarks.isEmpty || _submitting
@@ -2546,6 +2640,7 @@ class _PebDprEntryScreenState extends State<PebDprEntryScreen> {
   /// Search bar + filter button in manpowerList style.
   Widget _buildMarkSearchBar(_VisibleWork work) {
     final cs = Theme.of(context).colorScheme;
+    final layout = _PebDprResponsive.of(context);
     final hasFilters = _markFilterStatus != null || !_markSortAz;
     return Padding(
       padding: const EdgeInsets.symmetric(horizontal: 0),
@@ -2570,8 +2665,10 @@ class _PebDprEntryScreenState extends State<PebDprEntryScreen> {
                 isDense: true,
                 filled: true,
                 fillColor: cs.surface,
-                contentPadding:
-                    const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
+                contentPadding: EdgeInsets.symmetric(
+                  horizontal: layout.compact ? 10 : 12,
+                  vertical: layout.compact ? 9 : 10,
+                ),
                 border: OutlineInputBorder(
                   borderRadius: BorderRadius.circular(10),
                   borderSide: BorderSide.none,
@@ -2584,13 +2681,13 @@ class _PebDprEntryScreenState extends State<PebDprEntryScreen> {
               ),
             ),
           ),
-          const SizedBox(width: 8),
+          SizedBox(width: layout.smallGap),
           // Filter/Sort button — matches manpowerList _buildFilterButton
           GestureDetector(
             onTap: () => _showMarkFilterSheet(work),
             child: Container(
               height: 40,
-              width: 40,
+              width: layout.compact ? 38 : 40,
               decoration: BoxDecoration(
                 color: hasFilters ? cs.primary : cs.surface,
                 borderRadius: BorderRadius.circular(10),
@@ -2639,13 +2736,15 @@ class _PebDprEntryScreenState extends State<PebDprEntryScreen> {
 
   void _showMarkFilterSheet(_VisibleWork work) {
     final cs = Theme.of(context).colorScheme;
+    final layout = _PebDprResponsive.of(context);
     showModalBottomSheet<void>(
       context: context,
       isScrollControlled: true,
       backgroundColor: Colors.transparent,
       builder: (ctx) => StatefulBuilder(
         builder: (ctx, setModal) => Container(
-          height: MediaQuery.of(context).size.height * 0.70,
+          height: MediaQuery.of(context).size.height *
+              (layout.compact ? 0.76 : 0.70),
           decoration: BoxDecoration(
             color: cs.surface,
             borderRadius: const BorderRadius.vertical(top: Radius.circular(24)),
@@ -2664,7 +2763,8 @@ class _PebDprEntryScreenState extends State<PebDprEntryScreen> {
               ),
               // Header
               Padding(
-                padding: const EdgeInsets.symmetric(horizontal: 20),
+                padding:
+                    EdgeInsets.symmetric(horizontal: layout.compact ? 16 : 20),
                 child: Row(
                   mainAxisAlignment: MainAxisAlignment.spaceBetween,
                   children: [
@@ -2689,11 +2789,11 @@ class _PebDprEntryScreenState extends State<PebDprEntryScreen> {
               const Divider(),
               Expanded(
                 child: ListView(
-                  padding: const EdgeInsets.all(20),
+                  padding: EdgeInsets.all(layout.compact ? 16 : 20),
                   children: [
                     // SORT SECTION
                     _buildSectionTitle('Sort By'),
-                    const SizedBox(height: 12),
+                    SizedBox(height: layout.cardGap),
                     Wrap(
                       spacing: 8,
                       runSpacing: 8,
@@ -2720,11 +2820,11 @@ class _PebDprEntryScreenState extends State<PebDprEntryScreen> {
                         ),
                       ],
                     ),
-                    const SizedBox(height: 24),
+                    SizedBox(height: layout.sectionGap),
 
                     // FILTER BY STATUS
                     _buildSectionTitle('Filter by Status'),
-                    const SizedBox(height: 12),
+                    SizedBox(height: layout.cardGap),
                     Wrap(
                       spacing: 8,
                       runSpacing: 8,
@@ -2756,7 +2856,7 @@ class _PebDprEntryScreenState extends State<PebDprEntryScreen> {
               ),
               // Apply Button
               Padding(
-                padding: const EdgeInsets.all(20),
+                padding: EdgeInsets.all(layout.compact ? 16 : 20),
                 child: SizedBox(
                   width: double.infinity,
                   height: 54,
@@ -2876,6 +2976,7 @@ class _PebDprEntryScreenState extends State<PebDprEntryScreen> {
     required bool enabled,
   }) {
     final cs = Theme.of(context).colorScheme;
+    final layout = _PebDprResponsive.of(context);
     final key = _markInputKey(work, markNumber);
     final boqMark = _boqMarkFor(markNumber);
     final boqDescription = (boqMark?.typeDescription ?? '').trim();
@@ -2884,25 +2985,21 @@ class _PebDprEntryScreenState extends State<PebDprEntryScreen> {
         : work.displayName ?? work.stageName;
     final completed = _completedForWork(work).contains(markNumber);
     final inProgress = _inProgressForWork(work).contains(markNumber);
-    final selecting = _isDprSelectionMode;
-    final selected = selecting && _selectedDetailMarks.contains(markNumber);
+    final selected = _selectedDetailMarks.contains(markNumber);
     final pendingPrerequisite = _nextPendingPrerequisite(work, markNumber);
-    final selectable = selecting &&
+    final selectable = _markActionMode != _DprMarkActionMode.none &&
+        (enabled || completed) &&
         pendingPrerequisite == null &&
-        !completed &&
         !(_markActionMode == _DprMarkActionMode.inProgress && inProgress);
-    final actionComplete = selecting &&
-        selected &&
-        _markActionMode == _DprMarkActionMode.completed;
-    final actionProgress = selecting &&
-        selected &&
-        _markActionMode == _DprMarkActionMode.inProgress;
+    final actionComplete =
+        selected && _markActionMode == _DprMarkActionMode.completed;
+    final actionProgress =
+        selected && _markActionMode == _DprMarkActionMode.inProgress;
     final effectiveCompleted = completed || actionComplete;
     final effectiveInProgress =
         !effectiveCompleted && (inProgress || actionProgress);
     final locked = pendingPrerequisite != null && !completed && !inProgress;
     final editable = enabled || completed || inProgress;
-    final contentOpacity = completed ? 0.56 : 1.0;
     final weightKg = _markWeightKg(markNumber);
     final isVariationOpen = _isWeightChanged(work, markNumber);
     final inProgressColor = const Color(0xFFE56F00);
@@ -2921,427 +3018,413 @@ class _PebDprEntryScreenState extends State<PebDprEntryScreen> {
         : effectiveInProgress
             ? Colors.orange.shade500
             : cs.outlineVariant;
-    final statusBadge = effectiveCompleted
-        ? _statusBadge(
-            label: 'Completed',
-            color: Colors.green.shade700,
-            icon: Icons.check_circle_rounded,
-          )
-        : effectiveInProgress
-            ? _statusBadge(
-                label: 'In Progress',
-                color: inProgressColor,
-                icon: Icons.pending_actions_rounded,
-              )
-            : _statusBadge(
-                label: 'Pending',
-                color: cs.onSurfaceVariant,
-                icon: Icons.radio_button_unchecked_rounded,
-              );
+    void handleUnavailableSelection() {
+      if (locked) {
+        AppToast.info(_prerequisiteMessage(pendingPrerequisite));
+      } else if (_markActionMode == _DprMarkActionMode.inProgress &&
+          inProgress) {
+        AppToast.info('This mark number is already in progress.');
+      } else if (!enabled) {
+        AppToast.info('Please complete the previous task before proceeding.');
+      }
+    }
 
-    final card = Stack(
-      children: [
-        Opacity(
-          opacity: selecting && !selected ? 0.5 : 1.0,
-          child: Container(
-            decoration: BoxDecoration(
-              color: cardColor,
-              borderRadius: BorderRadius.circular(14),
-              border:
-                  Border.all(color: borderColor, width: selected ? 1.8 : 1.0),
-            ),
-            child: InkWell(
-              borderRadius: BorderRadius.circular(14),
-              onTap: selecting
-                  ? selectable
-                      ? () => _toggleDetailMark(work, markNumber)
-                      : () {
-                          if (locked) {
-                            AppToast.info(
-                                _prerequisiteMessage(pendingPrerequisite));
-                          } else if (completed) {
-                            AppToast.info(
-                                'This mark number is already completed.');
-                          } else if (_markActionMode ==
-                                  _DprMarkActionMode.inProgress &&
-                              inProgress) {
-                            AppToast.info(
-                                'This mark number is already in progress.');
-                          }
-                        }
-                  : locked
-                      ? () => AppToast.info(
-                          _prerequisiteMessage(pendingPrerequisite))
-                      : null,
+    final card = Container(
+      decoration: BoxDecoration(
+        color: cardColor,
+        borderRadius: BorderRadius.circular(14),
+        border: Border.all(color: borderColor, width: selected ? 1.8 : 1.0),
+      ),
+      child: InkWell(
+        borderRadius: BorderRadius.circular(14),
+        onTap: locked ? handleUnavailableSelection : null,
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            // Header Area: Title & Remark on top, Mark Number & Status Badge below
+            Padding(
+              padding: EdgeInsets.fromLTRB(
+                layout.cardPadding,
+                layout.cardPadding - 2,
+                layout.cardPadding,
+                layout.smallGap,
+              ),
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  // Header Area: Title & Remark on top, Mark Number & Status Badge below
-                  Padding(
-                    padding: const EdgeInsets.fromLTRB(14, 12, 14, 8),
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        // Row 1: Heading (Left) & Remark (Right)
-                        Row(
-                          crossAxisAlignment: CrossAxisAlignment.start,
-                          children: [
-                            Expanded(
-                              child: Text(
-                                title,
-                                style: const TextStyle(
-                                  fontSize: 16,
-                                  fontWeight: FontWeight.w600,
-                                ),
-                                maxLines: 2,
-                                overflow: TextOverflow.ellipsis,
-                              ),
+                  // Row 1: Heading (Left) & Remark (Right)
+                  Row(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      GestureDetector(
+                        onTap: selectable
+                            ? () => _toggleDetailMark(work, markNumber)
+                            : handleUnavailableSelection,
+                        child: Container(
+                          width: layout.compact ? 34 : 38,
+                          height: layout.compact ? 30 : 32,
+                          margin: EdgeInsets.only(top: layout.compact ? 1 : 0),
+                          decoration: BoxDecoration(
+                            borderRadius: BorderRadius.circular(8),
+                            color: selected ? Colors.green : cs.surface,
+                            border: Border.all(
+                              color: selectable || selected
+                                  ? Colors.green
+                                  : cs.outlineVariant,
+                              width: 2,
                             ),
-                            const SizedBox(width: 8),
-                            // RIGHT: tappable remarks corner pill (matches assembly_card / piping_card)
-                            InkWell(
-                              onTap: editable
-                                  ? () async {
-                                      final ctrl = TextEditingController(
-                                        text: _markRemarks[key] ?? '',
-                                      );
-                                      await showModalBottomSheet<void>(
-                                        context: context,
-                                        isScrollControlled: true,
-                                        shape: const RoundedRectangleBorder(
-                                          borderRadius: BorderRadius.vertical(
-                                            top: Radius.circular(20),
-                                          ),
-                                        ),
-                                        builder: (_) => Padding(
-                                          padding: EdgeInsets.only(
-                                            left: 20,
-                                            right: 20,
-                                            top: 20,
-                                            bottom: MediaQuery.of(context)
-                                                    .viewInsets
-                                                    .bottom +
-                                                24,
-                                          ),
-                                          child: Column(
-                                            mainAxisSize: MainAxisSize.min,
-                                            crossAxisAlignment:
-                                                CrossAxisAlignment.start,
-                                            children: [
-                                              Text(
-                                                'Remarks — Mark $markNumber',
-                                                style: TextStyle(
-                                                  fontSize: 14,
-                                                  fontWeight: FontWeight.w700,
-                                                  color: cs.onSurface,
-                                                ),
-                                              ),
-                                              const SizedBox(height: 12),
-                                              TextField(
-                                                controller: ctrl,
-                                                autofocus: true,
-                                                maxLines: 3,
-                                                decoration: InputDecoration(
-                                                  hintText: 'Enter remark…',
-                                                  filled: true,
-                                                  fillColor: cs
-                                                      .surfaceContainerHighest,
-                                                  border: OutlineInputBorder(
-                                                    borderRadius:
-                                                        BorderRadius.circular(
-                                                            10),
-                                                    borderSide: BorderSide.none,
-                                                  ),
-                                                  contentPadding:
-                                                      const EdgeInsets.all(12),
-                                                ),
-                                              ),
-                                              const SizedBox(height: 12),
-                                              Row(
-                                                children: [
-                                                  Expanded(
-                                                    child: OutlinedButton(
-                                                      onPressed: () =>
-                                                          Navigator.pop(
-                                                              context),
-                                                      child:
-                                                          const Text('Cancel'),
-                                                    ),
-                                                  ),
-                                                  const SizedBox(width: 12),
-                                                  Expanded(
-                                                    child: ElevatedButton(
-                                                      onPressed: () {
-                                                        setState(() =>
-                                                            _markRemarks[key] =
-                                                                ctrl.text
-                                                                    .trim());
-                                                        Navigator.pop(context);
-                                                      },
-                                                      child: const Text('Save'),
-                                                    ),
-                                                  ),
-                                                ],
-                                              ),
-                                            ],
-                                          ),
-                                        ),
-                                      );
-                                      ctrl.dispose();
-                                    }
-                                  : null,
-                              borderRadius: BorderRadius.circular(4),
-                              child: Container(
-                                constraints: const BoxConstraints(
-                                  minWidth: 78,
-                                  maxWidth: 110,
-                                ),
-                                padding: const EdgeInsets.symmetric(
-                                    horizontal: 8, vertical: 5),
-                                decoration: BoxDecoration(
-                                  color: cs.secondaryContainer
-                                      .withValues(alpha: 0.7),
-                                  border: Border.all(
-                                      color: cs.outline.withValues(alpha: 0.3)),
-                                  borderRadius: BorderRadius.circular(4),
-                                ),
-                                child: Text(
-                                  (_markRemarks[key] ?? '').trim().isNotEmpty
-                                      ? _markRemarks[key]!
-                                      : 'Remark',
-                                  style: TextStyle(
-                                    fontSize: 10,
-                                    fontWeight: FontWeight.w700,
-                                    color: cs.onSecondaryContainer,
-                                  ),
-                                  overflow: TextOverflow.ellipsis,
-                                  maxLines: 1,
-                                ),
-                              ),
-                            ),
-                          ],
-                        ),
-                      ],
-                    ),
-                  ),
-
-                  // Body Area (2 Columns) — AssemblyCardWidget design
-                  IntrinsicHeight(
-                    child: Row(
-                      children: [
-                        // LEFT COLUMN: Image & Checkbox action row
-                        Expanded(
-                          child: Container(
-                            padding: const EdgeInsets.all(13),
-                            child: Column(
-                              crossAxisAlignment: CrossAxisAlignment.start,
-                              children: [
-                                const SizedBox(height: 4),
-                                // 120px image only
-                                ClipRRect(
-                                  borderRadius: BorderRadius.circular(8),
-                                  child: Container(
-                                    height: 150,
-                                    width: double.infinity,
-                                    color: cs.surfaceContainerHighest,
-                                    child: Image(
-                                      image: pebWorkImageProvider(
-                                          work.setupItem, widget.executionType),
-                                      fit: BoxFit.cover,
-                                      errorBuilder: (_, __, ___) =>
-                                          pebWorkImageFallback(
-                                        work.setupItem,
-                                        widget.executionType,
-                                      ),
+                            boxShadow: selected
+                                ? [
+                                    BoxShadow(
+                                      color:
+                                          Colors.green.withValues(alpha: 0.2),
+                                      blurRadius: 4,
+                                      offset: const Offset(0, 2),
                                     ),
-                                  ),
-                                ),
-                              ],
-                            ),
+                                  ]
+                                : null,
                           ),
+                          child: selected
+                              ? const Icon(Icons.check,
+                                  color: Colors.white, size: 20)
+                              : null,
                         ),
-
-                        // RIGHT COLUMN: stretches to match image height via mainAxisSize.max + Spacers
-                        Expanded(
-                          child: Container(
-                            padding: const EdgeInsets.all(13),
-                            child: Column(
-                              crossAxisAlignment: CrossAxisAlignment.stretch,
-                              mainAxisSize: MainAxisSize.max,
-                              children: [
-                                // Mark No. + Qty blue boxes
-                                Row(
-                                  children: [
-                                    Expanded(
-                                      child: _assemblyBlueBox(
-                                        label: 'Mark No.',
-                                        value: markNumber,
-                                        cs: cs,
-                                      ),
-                                    ),
-                                    const SizedBox(width: 8),
-                                    Expanded(
-                                      child: _assemblyBlueBox(
-                                        label: 'Qty',
-                                        value: _prettyNumber(
-                                            _markQuantity(markNumber)),
-                                        cs: cs,
-                                      ),
-                                    ),
-                                  ],
-                                ),
-                                const Spacer(),
-                                // Weight field
-                                Text(
-                                  'Weight (Kg)',
-                                  style: TextStyle(
-                                    fontSize: 9,
-                                    fontWeight: FontWeight.w600,
-                                    color: cs.onSurface,
-                                  ),
-                                ),
-                                const SizedBox(height: 4),
-                                TextFormField(
-                                  initialValue: _markQuantityInputs[key] ??
-                                      _prettyNumber(weightKg),
-                                  enabled: editable,
-                                  keyboardType:
-                                      const TextInputType.numberWithOptions(
-                                          decimal: true),
-                                  textAlign: TextAlign.center,
-                                  style: const TextStyle(
-                                      fontSize: 16,
-                                      fontWeight: FontWeight.w800),
-                                  decoration: InputDecoration(
-                                    filled: true,
-                                    fillColor: cs.surface,
-                                    isDense: true,
-                                    contentPadding: const EdgeInsets.symmetric(
-                                        horizontal: 10, vertical: 10),
-                                    border: OutlineInputBorder(
-                                      borderRadius: BorderRadius.circular(8),
-                                      borderSide: BorderSide(
-                                          color: cs.outlineVariant
-                                              .withOpacity(0.5)),
-                                    ),
-                                  ),
-                                  onChanged: (value) => setState(
-                                      () => _markQuantityInputs[key] = value),
-                                ),
-                                const Spacer(),
-                                const SizedBox(height: 32),
-                              ],
-                            ),
-                          ),
-                        ),
-                      ],
-                    ),
-                  ),
-
-                  if (isVariationOpen || locked)
-                    Padding(
-                      padding: const EdgeInsets.fromLTRB(14, 0, 14, 12),
-                      child: Column(
-                        crossAxisAlignment: CrossAxisAlignment.stretch,
-                        children: [
-                          if (isVariationOpen) ...[
-                            const SizedBox(height: 8),
-                            _pillBanner(
-                              icon: Icons.add_chart_rounded,
-                              color: statusColor,
-                              text: 'Variation detected from edited weight',
-                            ),
-                            const SizedBox(height: 8),
-                            TextFormField(
-                              initialValue: _variationReasons[key] ?? '',
-                              style: const TextStyle(
-                                  fontSize: 12, fontWeight: FontWeight.w600),
-                              decoration: InputDecoration(
-                                labelText: 'Variation Reason',
-                                filled: true,
-                                fillColor: cs.surface,
-                                isDense: true,
-                                contentPadding: const EdgeInsets.symmetric(
-                                    horizontal: 10, vertical: 8),
-                                border: OutlineInputBorder(
-                                  borderRadius: BorderRadius.circular(8),
-                                ),
-                              ),
-                              minLines: 1,
-                              maxLines: 2,
-                              onChanged: (value) =>
-                                  _variationReasons[key] = value,
-                            ),
-                          ],
-                          if (locked) ...[
-                            const SizedBox(height: 8),
-                            Container(
-                              padding: const EdgeInsets.symmetric(
-                                  horizontal: 12, vertical: 10),
-                              decoration: BoxDecoration(
-                                color: const Color(0xFFFFE0B2),
-                                borderRadius: BorderRadius.circular(10),
-                              ),
-                              child: Row(
-                                children: [
-                                  const Icon(Icons.info,
-                                      color: Color(0xFFE65100), size: 20),
-                                  const SizedBox(width: 10),
-                                  Expanded(
-                                    child: Text(
-                                      _prerequisiteMessage(pendingPrerequisite),
-                                      style: const TextStyle(
-                                        color: Color(0xFFE65100),
-                                        fontSize: 13,
-                                        fontWeight: FontWeight.w800,
-                                      ),
-                                    ),
-                                  ),
-                                ],
-                              ),
-                            ),
-                          ],
-                        ],
                       ),
-                    ),
+                      SizedBox(width: layout.smallGap),
+                      Expanded(
+                        child: Text(
+                          title,
+                          style: TextStyle(
+                            fontSize: layout.compact ? 15 : 16,
+                            fontWeight: FontWeight.w600,
+                          ),
+                          maxLines: 2,
+                          overflow: TextOverflow.ellipsis,
+                        ),
+                      ),
+                      SizedBox(width: layout.smallGap),
+                      // RIGHT: tappable remarks corner pill (matches assembly_card / piping_card)
+                      InkWell(
+                        onTap: editable
+                            ? () async {
+                                final ctrl = TextEditingController(
+                                  text: _markRemarks[key] ?? '',
+                                );
+                                await showModalBottomSheet<void>(
+                                  context: context,
+                                  isScrollControlled: true,
+                                  shape: const RoundedRectangleBorder(
+                                    borderRadius: BorderRadius.vertical(
+                                      top: Radius.circular(20),
+                                    ),
+                                  ),
+                                  builder: (_) => Padding(
+                                    padding: EdgeInsets.only(
+                                      left: layout.cardPadding + 4,
+                                      right: layout.cardPadding + 4,
+                                      top: layout.cardPadding + 4,
+                                      bottom: MediaQuery.of(context)
+                                              .viewInsets
+                                              .bottom +
+                                          24,
+                                    ),
+                                    child: Column(
+                                      mainAxisSize: MainAxisSize.min,
+                                      crossAxisAlignment:
+                                          CrossAxisAlignment.start,
+                                      children: [
+                                        Text(
+                                          'Remarks — Mark $markNumber',
+                                          style: TextStyle(
+                                            fontSize: 14,
+                                            fontWeight: FontWeight.w700,
+                                            color: cs.onSurface,
+                                          ),
+                                        ),
+                                        const SizedBox(height: 12),
+                                        TextField(
+                                          controller: ctrl,
+                                          autofocus: true,
+                                          maxLines: 3,
+                                          decoration: InputDecoration(
+                                            hintText: 'Enter remark…',
+                                            filled: true,
+                                            fillColor:
+                                                cs.surfaceContainerHighest,
+                                            border: OutlineInputBorder(
+                                              borderRadius:
+                                                  BorderRadius.circular(10),
+                                              borderSide: BorderSide.none,
+                                            ),
+                                            contentPadding:
+                                                const EdgeInsets.all(12),
+                                          ),
+                                        ),
+                                        const SizedBox(height: 12),
+                                        Row(
+                                          children: [
+                                            Expanded(
+                                              child: OutlinedButton(
+                                                onPressed: () =>
+                                                    Navigator.pop(context),
+                                                child: const Text('Cancel'),
+                                              ),
+                                            ),
+                                            const SizedBox(width: 12),
+                                            Expanded(
+                                              child: ElevatedButton(
+                                                onPressed: () {
+                                                  setState(() =>
+                                                      _markRemarks[key] =
+                                                          ctrl.text.trim());
+                                                  Navigator.pop(context);
+                                                },
+                                                child: const Text('Save'),
+                                              ),
+                                            ),
+                                          ],
+                                        ),
+                                      ],
+                                    ),
+                                  ),
+                                );
+                                ctrl.dispose();
+                              }
+                            : null,
+                        borderRadius: BorderRadius.circular(4),
+                        child: Container(
+                          constraints: BoxConstraints(
+                            minWidth: layout.compact ? 68 : 78,
+                            maxWidth: layout.compact ? 92 : 110,
+                          ),
+                          padding: EdgeInsets.symmetric(
+                            horizontal: layout.compact ? 7 : 8,
+                            vertical: 5,
+                          ),
+                          decoration: BoxDecoration(
+                            color: cs.secondaryContainer.withValues(alpha: 0.7),
+                            border: Border.all(
+                                color: cs.outline.withValues(alpha: 0.3)),
+                            borderRadius: BorderRadius.circular(4),
+                          ),
+                          child: Text(
+                            (_markRemarks[key] ?? '').trim().isNotEmpty
+                                ? _markRemarks[key]!
+                                : 'Remark',
+                            style: TextStyle(
+                              fontSize: 10,
+                              fontWeight: FontWeight.w700,
+                              color: cs.onSecondaryContainer,
+                            ),
+                            overflow: TextOverflow.ellipsis,
+                            maxLines: 1,
+                          ),
+                        ),
+                      ),
+                    ],
+                  ),
                 ],
               ),
             ),
-          ),
-        ),
-        if (selecting)
-          Positioned(
-            top: 8,
-            right: 8,
-            child: GestureDetector(
-              onTap:
-                  selectable ? () => _toggleDetailMark(work, markNumber) : null,
-              child: Container(
-                width: 32,
-                height: 32,
-                decoration: BoxDecoration(
-                  shape: BoxShape.circle,
-                  color: selected ? Colors.green : cs.surface,
-                  border: Border.all(color: Colors.green, width: 2),
-                  boxShadow: [
-                    BoxShadow(
-                      color: Colors.green.withValues(alpha: 0.2),
-                      blurRadius: 4,
-                      offset: const Offset(0, 2),
+
+            // Body Area (2 Columns) — AssemblyCardWidget design
+            IntrinsicHeight(
+              child: Row(
+                children: [
+                  // LEFT COLUMN: Image & Checkbox action row
+                  Expanded(
+                    child: Container(
+                      padding: EdgeInsets.all(layout.cardPadding - 1),
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          SizedBox(height: layout.compact ? 2 : 4),
+                          ClipRRect(
+                            borderRadius: BorderRadius.circular(8),
+                            child: Container(
+                              height: layout.v2ImageHeight,
+                              width: double.infinity,
+                              color: cs.surfaceContainerHighest,
+                              padding: EdgeInsets.all(layout.imageInset),
+                              child: Image(
+                                image: pebWorkImageProvider(
+                                    work.setupItem, widget.executionType),
+                                fit: BoxFit.contain,
+                                alignment: Alignment.center,
+                                filterQuality: FilterQuality.medium,
+                                errorBuilder: (_, __, ___) =>
+                                    pebWorkImageFallback(
+                                  work.setupItem,
+                                  widget.executionType,
+                                  fit: BoxFit.contain,
+                                ),
+                              ),
+                            ),
+                          ),
+                        ],
+                      ),
                     ),
-                  ],
-                ),
-                child: selected
-                    ? Icon(Icons.check, color: Colors.white, size: 20)
-                    : null,
+                  ),
+
+                  // RIGHT COLUMN: stretches to match image height via mainAxisSize.max + Spacers
+                  Expanded(
+                    child: Container(
+                      padding: EdgeInsets.all(layout.cardPadding - 1),
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.stretch,
+                        mainAxisSize: MainAxisSize.max,
+                        children: [
+                          // Mark No. + Qty blue boxes
+                          Row(
+                            children: [
+                              Expanded(
+                                child: _assemblyBlueBox(
+                                  label: 'Mark No.',
+                                  value: markNumber,
+                                  cs: cs,
+                                ),
+                              ),
+                              SizedBox(width: layout.smallGap),
+                              Expanded(
+                                child: _assemblyBlueBox(
+                                  label: 'Qty',
+                                  value:
+                                      _prettyNumber(_markQuantity(markNumber)),
+                                  cs: cs,
+                                ),
+                              ),
+                            ],
+                          ),
+                          const Spacer(),
+                          // Weight field
+                          Text(
+                            'Weight (Kg)',
+                            style: TextStyle(
+                              fontSize: layout.miniLabelSize,
+                              fontWeight: FontWeight.w600,
+                              color: cs.onSurface,
+                            ),
+                          ),
+                          const SizedBox(height: 4),
+                          TextFormField(
+                            initialValue: _markQuantityInputs[key] ??
+                                _prettyNumber(weightKg),
+                            enabled: editable,
+                            keyboardType: const TextInputType.numberWithOptions(
+                                decimal: true),
+                            textAlign: TextAlign.center,
+                            style: TextStyle(
+                              fontSize: layout.compact ? 15 : 16,
+                              fontWeight: FontWeight.w800,
+                            ),
+                            decoration: InputDecoration(
+                              filled: true,
+                              fillColor: cs.surface,
+                              isDense: true,
+                              contentPadding: EdgeInsets.symmetric(
+                                horizontal: layout.compact ? 8 : 10,
+                                vertical: layout.compact ? 9 : 10,
+                              ),
+                              border: OutlineInputBorder(
+                                borderRadius: BorderRadius.circular(8),
+                                borderSide: BorderSide(
+                                    color: cs.outlineVariant.withOpacity(0.5)),
+                              ),
+                            ),
+                            onChanged: (value) => setState(
+                                () => _markQuantityInputs[key] = value),
+                          ),
+                          const Spacer(),
+                          SizedBox(height: layout.compact ? 24 : 32),
+                        ],
+                      ),
+                    ),
+                  ),
+                ],
               ),
             ),
-          ),
-      ],
+
+            if (isVariationOpen || locked)
+              Padding(
+                padding: EdgeInsets.fromLTRB(
+                  layout.cardPadding,
+                  0,
+                  layout.cardPadding,
+                  layout.cardPadding - 2,
+                ),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.stretch,
+                  children: [
+                    if (isVariationOpen) ...[
+                      SizedBox(height: layout.smallGap),
+                      _pillBanner(
+                        icon: Icons.add_chart_rounded,
+                        color: statusColor,
+                        text: 'Variation detected from edited weight',
+                      ),
+                      SizedBox(height: layout.smallGap),
+                      TextFormField(
+                        initialValue: _variationReasons[key] ?? '',
+                        style: const TextStyle(
+                            fontSize: 12, fontWeight: FontWeight.w600),
+                        decoration: InputDecoration(
+                          labelText: 'Variation Reason',
+                          filled: true,
+                          fillColor: cs.surface,
+                          isDense: true,
+                          contentPadding: EdgeInsets.symmetric(
+                            horizontal: layout.compact ? 8 : 10,
+                            vertical: 8,
+                          ),
+                          border: OutlineInputBorder(
+                            borderRadius: BorderRadius.circular(8),
+                          ),
+                        ),
+                        minLines: 1,
+                        maxLines: 2,
+                        onChanged: (value) => _variationReasons[key] = value,
+                      ),
+                    ],
+                    if (locked) ...[
+                      SizedBox(height: layout.smallGap),
+                      Container(
+                        padding: EdgeInsets.symmetric(
+                          horizontal: layout.compact ? 10 : 12,
+                          vertical: 10,
+                        ),
+                        decoration: BoxDecoration(
+                          color: const Color(0xFFFFE0B2),
+                          borderRadius: BorderRadius.circular(10),
+                        ),
+                        child: Row(
+                          children: [
+                            const Icon(Icons.info,
+                                color: Color(0xFFE65100), size: 20),
+                            SizedBox(width: layout.smallGap),
+                            Expanded(
+                              child: Text(
+                                _prerequisiteMessage(pendingPrerequisite),
+                                style: const TextStyle(
+                                  color: Color(0xFFE65100),
+                                  fontSize: 13,
+                                  fontWeight: FontWeight.w800,
+                                ),
+                              ),
+                            ),
+                          ],
+                        ),
+                      ),
+                    ],
+                  ],
+                ),
+              ),
+          ],
+        ),
+      ),
     );
 
     return Container(
-      margin: const EdgeInsets.only(bottom: 10),
+      margin: EdgeInsets.only(bottom: layout.cardGap),
       child: card,
     );
   }
@@ -3582,6 +3665,53 @@ class _PebDprEntryScreenState extends State<PebDprEntryScreen> {
       ),
     );
   }
+}
+
+class _PebDprResponsive {
+  final double width;
+
+  const _PebDprResponsive(this.width);
+
+  factory _PebDprResponsive.of(BuildContext context) {
+    return _PebDprResponsive(MediaQuery.sizeOf(context).width);
+  }
+
+  bool get compact => width <= 360;
+  bool get narrow => width < 390;
+
+  double get pagePadding => compact
+      ? 12
+      : narrow
+          ? 14
+          : 16;
+  double get cardPadding => compact ? 12 : 14;
+  double get emptyStatePadding => compact ? 20 : 24;
+  double get smallGap => compact ? 6 : 8;
+  double get cardGap => compact ? 10 : 12;
+  double get sectionGap => compact ? 14 : 18;
+  double get columnGap => compact ? 8 : 10;
+  double get imageInset => compact ? 6 : 8;
+  double get filterIconSize => compact ? 40 : 44;
+  double get workButtonHeight => compact ? 30 : 32;
+  double get miniLabelSize => compact ? 8.5 : 9;
+  double get detailTitleSize => compact
+      ? 21
+      : narrow
+          ? 23
+          : 26;
+  double get emptyStateTopGap => compact ? 72 : 100;
+  double get emptyStateIconSize => compact ? 56 : 64;
+  double get emptyStateTitleSize => compact ? 18 : 20;
+  double get workImageHeight => compact
+      ? 118
+      : narrow
+          ? 124
+          : 130;
+  double get v2ImageHeight => compact
+      ? 132
+      : narrow
+          ? 140
+          : 150;
 }
 
 enum _DprMarkActionMode { none, inProgress, completed }
