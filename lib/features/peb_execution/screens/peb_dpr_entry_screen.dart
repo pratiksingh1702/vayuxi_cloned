@@ -2984,6 +2984,9 @@ class _PebDprEntryScreenState extends State<PebDprEntryScreen> {
     final completed = _completedForWork(work).contains(markNumber);
     final inProgress = _inProgressForWork(work).contains(markNumber);
     final selected = _selectedDetailMarks.contains(markNumber);
+    final checkboxChecked = selected || completed;
+    final completedContentOpacity = completed ? 0.58 : 1.0;
+    final completedSecondaryOpacity = completed ? 0.68 : 1.0;
     final pendingPrerequisite = _nextPendingPrerequisite(work, markNumber);
     final selectable = _markActionMode != _DprMarkActionMode.none &&
         (enabled || completed) &&
@@ -3071,19 +3074,19 @@ class _PebDprEntryScreenState extends State<PebDprEntryScreen> {
                                 width: layout.compact ? 23 : 25,
                                 height: layout.compact ? 23 : 25,
                                 decoration: BoxDecoration(
-                                  color: selected
+                                  color: checkboxChecked
                                       ? Colors.green
                                       : selectable
                                           ? cs.surface
                                           : cs.surfaceContainerHighest,
                                   borderRadius: BorderRadius.circular(3),
                                   border: Border.all(
-                                    color: selected
+                                    color: checkboxChecked
                                         ? Colors.green.shade700
                                         : selectable
                                             ? cs.primary
                                             : cs.outlineVariant,
-                                    width: selected ? 2.2 : 1.8,
+                                    width: checkboxChecked ? 2.2 : 1.8,
                                   ),
                                   boxShadow: selected
                                       ? [
@@ -3096,7 +3099,7 @@ class _PebDprEntryScreenState extends State<PebDprEntryScreen> {
                                         ]
                                       : null,
                                 ),
-                                child: selected
+                                child: checkboxChecked
                                     ? const Icon(
                                         Icons.check_rounded,
                                         color: Colors.white,
@@ -3111,14 +3114,17 @@ class _PebDprEntryScreenState extends State<PebDprEntryScreen> {
                       ),
                       SizedBox(width: layout.smallGap),
                       Expanded(
-                        child: Text(
-                          title,
-                          style: TextStyle(
-                            fontSize: layout.compact ? 15 : 16,
-                            fontWeight: FontWeight.w600,
+                        child: Opacity(
+                          opacity: completedContentOpacity,
+                          child: Text(
+                            title,
+                            style: TextStyle(
+                              fontSize: layout.compact ? 15 : 16,
+                              fontWeight: FontWeight.w600,
+                            ),
+                            maxLines: 2,
+                            overflow: TextOverflow.ellipsis,
                           ),
-                          maxLines: 2,
-                          overflow: TextOverflow.ellipsis,
                         ),
                       ),
                       SizedBox(width: layout.smallGap),
@@ -3126,9 +3132,7 @@ class _PebDprEntryScreenState extends State<PebDprEntryScreen> {
                       InkWell(
                         onTap: editable
                             ? () async {
-                                final ctrl = TextEditingController(
-                                  text: _markRemarks[key] ?? '',
-                                );
+                                var draftRemark = _markRemarks[key] ?? '';
                                 await showModalBottomSheet<void>(
                                   context: context,
                                   isScrollControlled: true,
@@ -3161,8 +3165,8 @@ class _PebDprEntryScreenState extends State<PebDprEntryScreen> {
                                           ),
                                         ),
                                         const SizedBox(height: 12),
-                                        TextField(
-                                          controller: ctrl,
+                                        TextFormField(
+                                          initialValue: draftRemark,
                                           autofocus: true,
                                           maxLines: 3,
                                           decoration: InputDecoration(
@@ -3178,6 +3182,8 @@ class _PebDprEntryScreenState extends State<PebDprEntryScreen> {
                                             contentPadding:
                                                 const EdgeInsets.all(12),
                                           ),
+                                          onChanged: (value) =>
+                                              draftRemark = value,
                                         ),
                                         const SizedBox(height: 12),
                                         Row(
@@ -3195,7 +3201,7 @@ class _PebDprEntryScreenState extends State<PebDprEntryScreen> {
                                                 onPressed: () {
                                                   setState(() =>
                                                       _markRemarks[key] =
-                                                          ctrl.text.trim());
+                                                          draftRemark.trim());
                                                   Navigator.pop(context);
                                                 },
                                                 child: const Text('Save'),
@@ -3207,39 +3213,42 @@ class _PebDprEntryScreenState extends State<PebDprEntryScreen> {
                                     ),
                                   ),
                                 );
-                                ctrl.dispose();
                               }
                             : null,
                         borderRadius: BorderRadius.circular(4),
-                        child: Container(
-                          constraints: BoxConstraints(
-                            minWidth: layout.compact ? 68 : 78,
-                            maxWidth: layout.compact ? 92 : 110,
-                          ),
-                          padding: EdgeInsets.symmetric(
-                            horizontal: layout.compact ? 7 : 8,
-                            vertical: 5,
-                          ),
-                          decoration: BoxDecoration(
-                            color: cs.secondaryContainer.withValues(alpha: 0.7),
-                            border: Border.all(
-                                color: cs.outline.withValues(alpha: 0.3)),
-                            borderRadius: BorderRadius.circular(4),
-                          ),
-                          child: Align(
-                            alignment: Alignment.center,
-                            child: Text(
-                              (_markRemarks[key] ?? '').trim().isNotEmpty
-                                  ? _markRemarks[key]!
-                                  : 'Remark',
-                              textAlign: TextAlign.center,
-                              style: TextStyle(
-                                fontSize: 10,
-                                fontWeight: FontWeight.w700,
-                                color: cs.onSecondaryContainer,
+                        child: Opacity(
+                          opacity: completedContentOpacity,
+                          child: Container(
+                            constraints: BoxConstraints(
+                              minWidth: layout.compact ? 68 : 78,
+                              maxWidth: layout.compact ? 92 : 110,
+                            ),
+                            padding: EdgeInsets.symmetric(
+                              horizontal: layout.compact ? 7 : 8,
+                              vertical: 5,
+                            ),
+                            decoration: BoxDecoration(
+                              color:
+                                  cs.secondaryContainer.withValues(alpha: 0.7),
+                              border: Border.all(
+                                  color: cs.outline.withValues(alpha: 0.3)),
+                              borderRadius: BorderRadius.circular(4),
+                            ),
+                            child: Align(
+                              alignment: Alignment.center,
+                              child: Text(
+                                (_markRemarks[key] ?? '').trim().isNotEmpty
+                                    ? _markRemarks[key]!
+                                    : 'Remark',
+                                textAlign: TextAlign.center,
+                                style: TextStyle(
+                                  fontSize: 10,
+                                  fontWeight: FontWeight.w700,
+                                  color: cs.onSecondaryContainer,
+                                ),
+                                overflow: TextOverflow.ellipsis,
+                                maxLines: 1,
                               ),
-                              overflow: TextOverflow.ellipsis,
-                              maxLines: 1,
                             ),
                           ),
                         ),
@@ -3258,31 +3267,34 @@ class _PebDprEntryScreenState extends State<PebDprEntryScreen> {
                   Expanded(
                     child: Container(
                       padding: EdgeInsets.all(layout.cardPadding - 1),
-                      child: Column(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        children: [
-                          SizedBox(height: layout.compact ? 2 : 4),
-                          ClipRRect(
-                            borderRadius: BorderRadius.circular(8),
-                            child: Container(
-                              height: layout.v2ImageHeight,
-                              padding: EdgeInsets.all(layout.imageInset),
-                              child: Image(
-                                image: pebWorkImageProvider(
-                                    work.setupItem, widget.executionType),
-                                fit: BoxFit.cover,
-                                alignment: Alignment.center,
-                                filterQuality: FilterQuality.medium,
-                                errorBuilder: (_, __, ___) =>
-                                    pebWorkImageFallback(
-                                  work.setupItem,
-                                  widget.executionType,
-                                  fit: BoxFit.contain,
+                      child: Opacity(
+                        opacity: completedContentOpacity,
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            SizedBox(height: layout.compact ? 2 : 4),
+                            ClipRRect(
+                              borderRadius: BorderRadius.circular(8),
+                              child: Container(
+                                height: layout.v2ImageHeight,
+                                padding: EdgeInsets.all(layout.imageInset),
+                                child: Image(
+                                  image: pebWorkImageProvider(
+                                      work.setupItem, widget.executionType),
+                                  fit: BoxFit.cover,
+                                  alignment: Alignment.center,
+                                  filterQuality: FilterQuality.medium,
+                                  errorBuilder: (_, __, ___) =>
+                                      pebWorkImageFallback(
+                                    work.setupItem,
+                                    widget.executionType,
+                                    fit: BoxFit.contain,
+                                  ),
                                 ),
                               ),
                             ),
-                          ),
-                        ],
+                          ],
+                        ),
                       ),
                     ),
                   ),
@@ -3295,26 +3307,28 @@ class _PebDprEntryScreenState extends State<PebDprEntryScreen> {
                         crossAxisAlignment: CrossAxisAlignment.stretch,
                         mainAxisSize: MainAxisSize.max,
                         children: [
-                          // Mark No. + Qty blue boxes
-                          Row(
-                            children: [
-                              Expanded(
-                                child: _assemblyBlueBox(
-                                  label: 'Mark No.',
-                                  value: markNumber,
-                                  cs: cs,
+                          Opacity(
+                            opacity: completedSecondaryOpacity,
+                            child: Row(
+                              children: [
+                                Expanded(
+                                  child: _assemblyBlueBox(
+                                    label: 'Mark No.',
+                                    value: markNumber,
+                                    cs: cs,
+                                  ),
                                 ),
-                              ),
-                              SizedBox(width: layout.smallGap),
-                              Expanded(
-                                child: _assemblyBlueBox(
-                                  label: 'Qty',
-                                  value:
-                                      _prettyNumber(_markQuantity(markNumber)),
-                                  cs: cs,
+                                SizedBox(width: layout.smallGap),
+                                Expanded(
+                                  child: _assemblyBlueBox(
+                                    label: 'Qty',
+                                    value: _prettyNumber(
+                                        _markQuantity(markNumber)),
+                                    cs: cs,
+                                  ),
                                 ),
-                              ),
-                            ],
+                              ],
+                            ),
                           ),
                           const Spacer(),
                           // Weight field

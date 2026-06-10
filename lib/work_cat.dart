@@ -461,11 +461,14 @@ class _WorkCategoryScreenState extends ConsumerState<WorkCategoryScreen> {
                     _languageFlowDone = true;
                   });
                 },
-                onSkipTour: () {
+                onSkipTour: () async {
+                  await ref.read(tourPersistenceProvider).markAllCompleted();
+                  ShowCaseWidget.of(_showcaseContext ?? context)?.dismiss();
                   if (!mounted) return;
                   setState(() {
                     showLanguagePopup = false;
                     _tourIntroSkipped = true;
+                    _showcaseStarted = false;
                     _languageFlowDone = true;
                   });
                 },

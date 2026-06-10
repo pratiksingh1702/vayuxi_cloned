@@ -28,6 +28,26 @@ class TourPersistence {
     await sp.setBool(_kGlobalCompleted, true);
   }
 
+  Future<void> markAllCompleted() async {
+    final sp = await _sp;
+    const moduleIds = [
+      'work_category_entry',
+      'site',
+      'rate',
+      'manpower',
+      'team',
+      'dpr',
+    ];
+
+    await sp.setBool(_kGlobalCompleted, true);
+    await sp.setBool('tour_setup_clicked', true);
+
+    for (final moduleId in moduleIds) {
+      await sp.setBool(_moduleKey(moduleId), true);
+      await sp.remove(_moduleIndexKey(moduleId));
+    }
+  }
+
   // ── Per-module ─────────────────────────────────────────────────────────────
 
   /// Whether a specific module's tour is fully completed.
