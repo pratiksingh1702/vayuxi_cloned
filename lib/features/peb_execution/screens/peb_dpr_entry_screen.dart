@@ -1637,9 +1637,13 @@ class _PebDprEntryScreenState extends State<PebDprEntryScreen> {
                               width: double.infinity,
                               color: cs.surfaceContainerHighest,
                               child: Image(
-                                image: pebWorkImageProvider(work.setupItem, widget.executionType),
+                                image: pebWorkImageProvider(
+                                  work.setupItem,
+                                  widget.executionType,
+                                ),
                                 fit: BoxFit.cover,
-                                errorBuilder: (_, __, ___) => pebWorkImageFallback(
+                                errorBuilder: (_, __, ___) =>
+                                    pebWorkImageFallback(
                                   work.setupItem,
                                   widget.executionType,
                                 ),
@@ -1658,28 +1662,65 @@ class _PebDprEntryScreenState extends State<PebDprEntryScreen> {
                           crossAxisAlignment: CrossAxisAlignment.start,
                           children: [
                             Container(
-                              padding: const EdgeInsets.symmetric(vertical: 8, horizontal: 4),
+                              padding: const EdgeInsets.symmetric(
+                                vertical: 8,
+                                horizontal: 4,
+                              ),
                               decoration: BoxDecoration(
                                 color: cs.surfaceContainer.withOpacity(0.5),
                                 borderRadius: BorderRadius.circular(8),
-                                border: Border.all(color: cs.outlineVariant.withOpacity(0.3)),
+                                border: Border.all(
+                                  color: cs.outlineVariant.withOpacity(0.3),
+                                ),
                               ),
                               child: Row(
                                 children: [
                                   Expanded(
-                                    child: _minimalWorkCountBlock('Assigned', counts.total, cs.onSurface, cs),
+                                    child: _minimalWorkCountBlock(
+                                      'Assigned',
+                                      counts.total,
+                                      cs.onSurface,
+                                      cs,
+                                    ),
                                   ),
-                                  Container(width: 1, height: 24, color: cs.outlineVariant.withOpacity(0.5)),
-                                  Expanded(
-                                    child: _minimalWorkCountBlock('Pending', counts.inProgress, Colors.orange, cs),
+                                  Container(
+                                    width: 1,
+                                    height: 24,
+                                    color: cs.outlineVariant.withOpacity(0.5),
                                   ),
-                                  Container(width: 1, height: 24, color: cs.outlineVariant.withOpacity(0.5)),
                                   Expanded(
-                                    child: _minimalWorkCountBlock('Done', counts.completed, Colors.green, cs),
+                                    child: _minimalWorkCountBlock(
+                                      'Pending',
+                                      counts.inProgress,
+                                      Colors.orange,
+                                      cs,
+                                    ),
                                   ),
-                                  Container(width: 1, height: 24, color: cs.outlineVariant.withOpacity(0.5)),
+                                  Container(
+                                    width: 1,
+                                    height: 24,
+                                    color: cs.outlineVariant.withOpacity(0.5),
+                                  ),
                                   Expanded(
-                                    child: _minimalWorkTextBlock('UOM', workUom, cs.primary, cs),
+                                    child: _minimalWorkCountBlock(
+                                      'Done',
+                                      counts.completed,
+                                      Colors.green,
+                                      cs,
+                                    ),
+                                  ),
+                                  Container(
+                                    width: 1,
+                                    height: 24,
+                                    color: cs.outlineVariant.withOpacity(0.5),
+                                  ),
+                                  Expanded(
+                                    child: _minimalWorkTextBlock(
+                                      'UOM',
+                                      workUom,
+                                      cs.primary,
+                                      cs,
+                                    ),
                                   ),
                                 ],
                               ),
@@ -1759,7 +1800,12 @@ class _PebDprEntryScreenState extends State<PebDprEntryScreen> {
     );
   }
 
-  Widget _minimalWorkCountBlock(String label, int count, Color color, ColorScheme cs) {
+  Widget _minimalWorkCountBlock(
+    String label,
+    int count,
+    Color color,
+    ColorScheme cs,
+  ) {
     return Column(
       mainAxisSize: MainAxisSize.min,
       children: [
@@ -1777,7 +1823,12 @@ class _PebDprEntryScreenState extends State<PebDprEntryScreen> {
     );
   }
 
-  Widget _minimalWorkTextBlock(String label, String value, Color color, ColorScheme cs) {
+  Widget _minimalWorkTextBlock(
+    String label,
+    String value,
+    Color color,
+    ColorScheme cs,
+  ) {
     return Column(
       mainAxisSize: MainAxisSize.min,
       children: [
