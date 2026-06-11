@@ -62,9 +62,9 @@ enum WorkType {
   String get imagePath {
     switch (this) {
       case WorkType.mechanical:
-        return 'assets/images/mech.webp';
+        return 'assets/images/mechanical_work_card.png';
       case WorkType.insulation:
-        return 'assets/images/insu.webp';
+        return 'assets/images/insulation_work_card.png';
       case WorkType.structure:
         return 'assets/images/struc.png';
       case WorkType.civil:
