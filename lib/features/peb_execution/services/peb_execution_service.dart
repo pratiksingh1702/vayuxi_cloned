@@ -166,6 +166,35 @@ class PebExecutionService {
     );
   }
 
+  Future<PebSetup?> reorderSetupItems(
+    String siteId,
+    PebExecutionType type,
+    List<PebSetupItem> items,
+  ) async {
+    final response = await _dio.put(
+      '/site/$siteId/peb-setup/reorder',
+      data: {
+        'type': type.apiType,
+        'section': type.section,
+        'items': items
+            .asMap()
+            .entries
+            .map((entry) => {
+                  'itemId': entry.value.id,
+                  'sortOrder': entry.key + 1,
+                })
+            .toList(),
+      },
+    );
+    final data = response.data is Map
+        ? response.data['data'] ?? response.data
+        : response.data;
+    if (data is Map) {
+      return PebSetup.fromJson(Map<String, dynamic>.from(data));
+    }
+    return null;
+  }
+
   Future<List<PebBoq>> getBoqs(String siteId) async {
     final response = await _dio.get(
       '/site/$siteId/boq-structure',

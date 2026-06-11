@@ -34,6 +34,7 @@ class _PebSetupScreenState extends State<PebSetupScreen> {
   PebSetup? _setup;
   bool _loading = true;
   bool _saving = false;
+  bool _orderDirty = false;
   String _uploadingItemId = '';
   String _trackingLevel = 'advanced';
 
@@ -47,6 +48,7 @@ class _PebSetupScreenState extends State<PebSetupScreen> {
     setState(() => _loading = true);
     try {
       _setup = await _service.getSetup(widget.siteId, widget.executionType);
+      _orderDirty = false;
     } catch (error) {
       AppToast.error('Failed to load DPR setup');
     } finally {
@@ -62,6 +64,7 @@ class _PebSetupScreenState extends State<PebSetupScreen> {
         widget.executionType,
         trackingLevel: _trackingLevel,
       );
+      _orderDirty = false;
       AppToast.success('DPR setup reset successfully');
     } catch (error) {
       AppToast.error('Failed to reset setup');
@@ -93,6 +96,48 @@ class _PebSetupScreenState extends State<PebSetupScreen> {
       AppToast.success('Item deleted');
     } catch (error) {
       AppToast.error('Failed to delete item');
+    } finally {
+      if (mounted) setState(() => _saving = false);
+    }
+  }
+
+  void _reorderItems(int oldIndex, int newIndex) {
+    final setup = _setup;
+    if (setup == null) return;
+    final items = List<PebSetupItem>.from(setup.items);
+    if (newIndex > oldIndex) newIndex -= 1;
+    final moved = items.removeAt(oldIndex);
+    items.insert(newIndex, moved);
+    setState(() {
+      _setup = PebSetup(
+        id: setup.id,
+        section: setup.section,
+        allowUnassignedDprFallback: setup.allowUnassignedDprFallback,
+        items: items,
+      );
+      _orderDirty = true;
+    });
+  }
+
+  Future<void> _saveOrder() async {
+    final setup = _setup;
+    if (setup == null || setup.items.isEmpty || !_orderDirty) return;
+    setState(() => _saving = true);
+    try {
+      final updated = await _service.reorderSetupItems(
+        widget.siteId,
+        widget.executionType,
+        setup.items,
+      );
+      if (updated != null) {
+        _setup = updated;
+      } else {
+        await _load();
+      }
+      _orderDirty = false;
+      AppToast.success('Stage sequence saved');
+    } catch (error) {
+      AppToast.error('Failed to save stage sequence');
     } finally {
       if (mounted) setState(() => _saving = false);
     }
@@ -285,7 +330,9 @@ class _PebSetupScreenState extends State<PebSetupScreen> {
                     if (widget.executionType == PebExecutionType.erection)
                       _trackingLevelCard(cs),
                     const SizedBox(height: 16),
-                    _itemsGrid(cs),
+                    _sequenceToolbar(cs),
+                    const SizedBox(height: 10),
+                    _itemsReorderList(cs),
                     if ((_setup?.items ?? []).isEmpty)
                       const Padding(
                         padding: EdgeInsets.only(top: 80),
@@ -300,6 +347,65 @@ class _PebSetupScreenState extends State<PebSetupScreen> {
         onPressed: _saving ? null : () => _openItemForm(),
         icon: const Icon(Icons.add),
         label: const Text('Add Item'),
+      ),
+    );
+  }
+
+  Widget _sequenceToolbar(ColorScheme cs) {
+    final items = _setup?.items ?? const <PebSetupItem>[];
+    if (items.isEmpty) return const SizedBox.shrink();
+    return Container(
+      padding: const EdgeInsets.all(14),
+      decoration: _boxDecoration(cs),
+      child: Row(
+        children: [
+          Container(
+            width: 36,
+            height: 36,
+            decoration: BoxDecoration(
+              color: cs.primaryContainer,
+              borderRadius: BorderRadius.circular(10),
+            ),
+            child: Icon(Icons.swap_vert_rounded, color: cs.primary),
+          ),
+          const SizedBox(width: 12),
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  'Work Stage Sequence',
+                  style: TextStyle(
+                    color: cs.onSurface,
+                    fontSize: 15,
+                    fontWeight: FontWeight.w800,
+                  ),
+                ),
+                const SizedBox(height: 2),
+                Text(
+                  'Drag stages to set the DPR Entry and Work Assignment order.',
+                  style: TextStyle(
+                    color: cs.onSurfaceVariant,
+                    fontSize: 11,
+                    fontWeight: FontWeight.w600,
+                  ),
+                ),
+              ],
+            ),
+          ),
+          const SizedBox(width: 10),
+          FilledButton.icon(
+            onPressed: _saving || !_orderDirty ? null : _saveOrder,
+            icon: _saving
+                ? const SizedBox(
+                    width: 16,
+                    height: 16,
+                    child: CircularProgressIndicator(strokeWidth: 2),
+                  )
+                : const Icon(Icons.save_rounded, size: 18),
+            label: const Text('Save Order'),
+          ),
+        ],
       ),
     );
   }
@@ -326,27 +432,171 @@ class _PebSetupScreenState extends State<PebSetupScreen> {
     );
   }
 
-  Widget _itemsGrid(ColorScheme cs) {
+  Widget _itemsReorderList(ColorScheme cs) {
     final items = _setup?.items ?? const <PebSetupItem>[];
     if (items.isEmpty) return const SizedBox.shrink();
 
-    return LayoutBuilder(builder: (context, constraints) {
-      final crossAxisCount = constraints.maxWidth >= 1000
-          ? 4
-          : (constraints.maxWidth >= 600 ? 3 : 2);
-      return GridView.builder(
-        shrinkWrap: true,
-        physics: const NeverScrollableScrollPhysics(),
-        itemCount: items.length,
-        gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
-          crossAxisCount: crossAxisCount,
-          crossAxisSpacing: 10,
-          mainAxisSpacing: 10,
-          mainAxisExtent: 282,
+    return ReorderableListView.builder(
+      shrinkWrap: true,
+      physics: const NeverScrollableScrollPhysics(),
+      buildDefaultDragHandles: false,
+      itemCount: items.length,
+      onReorder: _saving ? (_, __) {} : _reorderItems,
+      proxyDecorator: (child, index, animation) => Material(
+        color: Colors.transparent,
+        child: ScaleTransition(
+          scale: Tween<double>(begin: 1, end: 1.02).animate(animation),
+          child: child,
         ),
-        itemBuilder: (context, index) => _itemCard(items[index], cs),
-      );
-    });
+      ),
+      itemBuilder: (context, index) => _orderedItemCard(
+        key: ValueKey(items[index].id),
+        item: items[index],
+        index: index,
+        cs: cs,
+      ),
+    );
+  }
+
+  Widget _orderedItemCard({
+    required Key key,
+    required PebSetupItem item,
+    required int index,
+    required ColorScheme cs,
+  }) {
+    final isUploading = _uploadingItemId == item.id;
+    return Container(
+      key: key,
+      margin: const EdgeInsets.only(bottom: 10),
+      decoration: BoxDecoration(
+        color: cs.surface,
+        borderRadius: BorderRadius.circular(12),
+        border: Border.all(
+          color: _orderDirty
+              ? cs.primary.withValues(alpha: 0.22)
+              : cs.outlineVariant.withValues(alpha: 0.55),
+        ),
+        boxShadow: [
+          BoxShadow(
+            color: cs.shadow.withValues(alpha: 0.04),
+            blurRadius: 12,
+            offset: const Offset(0, 4),
+          ),
+        ],
+      ),
+      child: Padding(
+        padding: const EdgeInsets.all(10),
+        child: Row(
+          children: [
+            ReorderableDragStartListener(
+              index: index,
+              child: Container(
+                width: 34,
+                height: 58,
+                decoration: BoxDecoration(
+                  color: cs.surfaceContainerHighest,
+                  borderRadius: BorderRadius.circular(9),
+                ),
+                child: Icon(Icons.drag_indicator_rounded,
+                    color: cs.onSurfaceVariant),
+              ),
+            ),
+            const SizedBox(width: 10),
+            Container(
+              width: 34,
+              height: 34,
+              decoration: BoxDecoration(
+                color: cs.primaryContainer,
+                borderRadius: BorderRadius.circular(10),
+              ),
+              child: Center(
+                child: Text(
+                  '${index + 1}',
+                  style: TextStyle(
+                    color: cs.primary,
+                    fontWeight: FontWeight.w900,
+                  ),
+                ),
+              ),
+            ),
+            const SizedBox(width: 10),
+            ClipRRect(
+              borderRadius: BorderRadius.circular(10),
+              child: SizedBox(
+                width: 66,
+                height: 58,
+                child: Container(
+                  color: cs.surfaceContainerLow,
+                  padding: const EdgeInsets.all(6),
+                  child: Image(
+                    image: pebWorkImageProvider(item, widget.executionType),
+                    fit: BoxFit.contain,
+                    errorBuilder: (_, __, ___) => pebWorkImageFallback(
+                      item,
+                      widget.executionType,
+                    ),
+                  ),
+                ),
+              ),
+            ),
+            const SizedBox(width: 12),
+            Expanded(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(
+                    item.name,
+                    maxLines: 1,
+                    overflow: TextOverflow.ellipsis,
+                    style: TextStyle(
+                      color: cs.onSurface,
+                      fontSize: 14,
+                      fontWeight: FontWeight.w800,
+                    ),
+                  ),
+                  const SizedBox(height: 4),
+                  Text(
+                    item.remarks.trim().isNotEmpty
+                        ? item.remarks
+                        : '${item.uom} • Target ${item.targetQty.toStringAsFixed(item.targetQty == item.targetQty.roundToDouble() ? 0 : 2)}',
+                    maxLines: 1,
+                    overflow: TextOverflow.ellipsis,
+                    style: TextStyle(
+                      color: cs.onSurfaceVariant,
+                      fontSize: 11,
+                      fontWeight: FontWeight.w600,
+                    ),
+                  ),
+                ],
+              ),
+            ),
+            const SizedBox(width: 8),
+            IconButton(
+              tooltip: 'Replace image',
+              onPressed:
+                  _saving || isUploading ? null : () => _replaceItemImage(item),
+              icon: isUploading
+                  ? const SizedBox(
+                      width: 18,
+                      height: 18,
+                      child: CircularProgressIndicator(strokeWidth: 2),
+                    )
+                  : Icon(Icons.photo_camera_rounded, color: cs.primary),
+            ),
+            IconButton(
+              tooltip: 'Edit stage',
+              onPressed: _saving ? null : () => _openItemForm(item),
+              icon: Icon(Icons.edit_rounded, color: cs.primary),
+            ),
+            IconButton(
+              tooltip: 'Delete stage',
+              onPressed: _saving ? null : () => _deleteItem(item),
+              icon: Icon(Icons.delete_outline_rounded, color: cs.error),
+            ),
+          ],
+        ),
+      ),
+    );
   }
 
   Future<void> _replaceItemImage(PebSetupItem item) async {
@@ -453,183 +703,6 @@ class _PebSetupScreenState extends State<PebSetupScreen> {
       AppToast.error('Failed to crop image');
       return null;
     }
-  }
-
-  Widget _itemCard(PebSetupItem item, ColorScheme cs) {
-    final isUploading = _uploadingItemId == item.id;
-
-    return Container(
-      decoration: BoxDecoration(
-        color: cs.surfaceContainerLow,
-        borderRadius: BorderRadius.circular(14),
-        border: Border.all(color: cs.outlineVariant.withValues(alpha: 0.4)),
-        boxShadow: [
-          BoxShadow(
-            color: cs.shadow.withValues(alpha: 0.06),
-            blurRadius: 10,
-            offset: const Offset(0, 3),
-          ),
-        ],
-      ),
-      child: Column(
-    
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          // ── Image header (full-width, 160px tall) ──────────────────────
-          Stack(
-            children: [
-              ClipRRect(
-                borderRadius:
-                    const BorderRadius.vertical(top: Radius.circular(13)),
-                child: SizedBox(
-                  width: double.infinity,
-                  height: 200,
-                  child: Image(
-                    image: pebWorkImageProvider(item, widget.executionType),
-                    fit: BoxFit.cover,
-                    alignment: Alignment.center,
-                    errorBuilder: (_, __, ___) => pebWorkImageFallback(
-                      item,
-                      widget.executionType,
-                    ),
-                  ),
-                ),
-              ),
-              // Camera button — top-right corner
-              Positioned(
-                top: 8,
-                right: 8,
-                child: GestureDetector(
-                  onTap: _saving || isUploading
-                      ? null
-                      : () => _replaceItemImage(item),
-                  child: Container(
-                    width: 32,
-                    height: 32,
-                    decoration: BoxDecoration(
-                      color: Colors.black.withValues(alpha: 0.55),
-                      shape: BoxShape.circle,
-                      border: Border.all(
-                          color: Colors.white.withValues(alpha: 0.3), width: 1),
-                    ),
-                    child: Center(
-                      child: isUploading
-                          ? const SizedBox(
-                              width: 14,
-                              height: 14,
-                              child: CircularProgressIndicator(
-                                strokeWidth: 1.5,
-                                color: Colors.white,
-                              ),
-                            )
-                          : const Icon(
-                              Icons.photo_camera_rounded,
-                              color: Colors.white,
-                              size: 15,
-                            ),
-                    ),
-                  ),
-                ),
-              ),
-            ],
-          ),
-
-          // ── Data section ───────────────────────────────────────────────
-          Padding(
-            padding: const EdgeInsets.fromLTRB(10, 8, 10, 8),
-            child: Column(
-              mainAxisSize: MainAxisSize.min,
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                // Stage name under the image
-                Text(
-                  item.name,
-                  style: const TextStyle(
-                    fontSize: 13,
-                    fontWeight: FontWeight.w700,
-                    height: 1.25,
-                  ),
-                  maxLines: 2,
-                  overflow: TextOverflow.ellipsis,
-                ),
-                const SizedBox(height: 6),
-                Row(
-                  children: [
-                    // Remark pill on the left
-                    GestureDetector(
-                      onTap: () => _openItemForm(item),
-                      child: Container(
-                        constraints: const BoxConstraints(maxWidth: 95),
-                        padding: const EdgeInsets.symmetric(
-                            horizontal: 6, vertical: 3),
-                        decoration: BoxDecoration(
-                          color: cs.secondaryContainer.withValues(alpha: 0.8),
-                          borderRadius: BorderRadius.circular(6),
-                          border: Border.all(
-                            color: cs.secondary.withValues(alpha: 0.25),
-                          ),
-                        ),
-                        child: Text(
-                          item.remarks.trim().isNotEmpty
-                              ? item.remarks
-                              : 'Add Remark',
-                          style: TextStyle(
-                            fontSize: 8,
-                            fontWeight: FontWeight.w600,
-                            color: cs.onSecondaryContainer,
-                          ),
-                          maxLines: 1,
-                          overflow: TextOverflow.ellipsis,
-                        ),
-                      ),
-                    ),
-                    const Spacer(),
-                    // Actions (Edit/Delete) on the right
-                    _actionBtn(
-                      icon: Icons.edit_rounded,
-                      label: 'Edit',
-                      color: cs.primary,
-                      onTap: () => _openItemForm(item),
-                    ),
-                    const SizedBox(width: 4),
-                    _actionBtn(
-                      icon: Icons.delete_outline_rounded,
-                      label: 'Delete',
-                      color: cs.error,
-                      onTap: () => _deleteItem(item),
-                    ),
-                  ],
-                ),
-              ],
-            ),
-          ),
-        ],
-      ),
-    );
-  }
-
-  Widget _actionBtn({
-    required IconData icon,
-    required String label,
-    required Color color,
-    required VoidCallback onTap,
-  }) {
-    return Container(
-      width: 28,
-      height: 28,
-      decoration: BoxDecoration(
-        color: color.withValues(alpha: 0.1),
-        borderRadius: BorderRadius.circular(6),
-      ),
-      child: Material(
-        color: Colors.transparent,
-        child: InkWell(
-          onTap: onTap,
-          borderRadius: BorderRadius.circular(6),
-          child: Icon(icon, size: 15, color: color),
-        ),
-      ),
-    );
   }
 
   BoxDecoration _boxDecoration(ColorScheme cs) {
