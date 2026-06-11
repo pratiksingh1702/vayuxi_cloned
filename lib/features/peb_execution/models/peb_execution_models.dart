@@ -353,3 +353,31 @@ class PebMarkStatus {
     this.completedDateByKey = const {},
   });
 }
+
+class PebLevel1DprEntry {
+  final String dprId;
+  final String setupItemId;
+  final String teamId;
+  final double actualQty;
+  final double targetQty;
+  final int progressPercentage;
+  final String uom;
+  final String remarks;
+  final double manualWeightKg;
+  final double totalWeightKg;
+  final bool isCompleted;
+
+  const PebLevel1DprEntry({
+    required this.dprId,
+    required this.setupItemId,
+    required this.teamId,
+    required this.actualQty,
+    required this.targetQty,
+    required this.progressPercentage,
+    required this.uom,
+    required this.remarks,
+    required this.manualWeightKg,
+    required this.totalWeightKg,
+    required this.isCompleted,
+  });
+}

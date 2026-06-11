@@ -388,6 +388,7 @@ class PebExecutionService {
     final params = {
       'type': type.apiType,
       'section': type.section,
+      if (teamId != null && teamId.trim().isNotEmpty) 'teamId': teamId.trim(),
     };
     final results = await Future.wait([
       _dio.get('/site/$siteId/dpr-peb', queryParameters: params),
@@ -504,9 +505,69 @@ class PebExecutionService {
     );
   }
 
+  Future<Map<String, PebLevel1DprEntry>> getLevel1DprEntries(
+    String siteId,
+    PebExecutionType type, {
+    required String date,
+    String teamId = '',
+  }) async {
+    final params = {
+      'type': type.apiType,
+      'section': type.section,
+      'startDate': date,
+      'endDate': date,
+      if (teamId.trim().isNotEmpty) 'teamId': teamId.trim(),
+    };
+    final response =
+        await _dio.get('/site/$siteId/dpr-peb', queryParameters: params);
+    final entries = <String, PebLevel1DprEntry>{};
+
+    for (final dpr in _asList(response.data).whereType<Map>()) {
+      final dprId = dpr['_id']?.toString() ?? dpr['id']?.toString() ?? '';
+      if (dprId.isEmpty) continue;
+      final rawTeam = dpr['teamId'];
+      final resolvedTeamId = rawTeam is Map
+          ? rawTeam['_id']?.toString() ?? ''
+          : rawTeam?.toString() ?? '';
+
+      for (final rawItem in (dpr['items'] as List? ?? []).whereType<Map>()) {
+        final setupItemId = rawItem['setupItemId'] is Map
+            ? rawItem['setupItemId']['_id']?.toString() ?? ''
+            : rawItem['setupItemId']?.toString() ?? '';
+        if (setupItemId.isEmpty) continue;
+
+        final sourceType = rawItem['sourceType']?.toString() ?? '';
+        final trackingLevel = rawItem['trackingLevel']?.toString() ?? '';
+        final assemblyMark = rawItem['assemblyMark']?.toString().trim() ?? '';
+        final isLevel1 = sourceType == 'level1_manual' ||
+            (trackingLevel == 'basic' && assemblyMark.isEmpty);
+        if (!isLevel1) continue;
+
+        entries[setupItemId] = PebLevel1DprEntry(
+          dprId: dprId,
+          setupItemId: setupItemId,
+          teamId: resolvedTeamId,
+          actualQty: (rawItem['actualQty'] as num?)?.toDouble() ?? 0,
+          targetQty: (rawItem['targetQty'] as num?)?.toDouble() ?? 0,
+          progressPercentage:
+              ((rawItem['progressPercentage'] as num?)?.toDouble() ?? 0)
+                  .round(),
+          uom: rawItem['uom']?.toString() ?? 'MT',
+          remarks: rawItem['remarks']?.toString() ?? '',
+          manualWeightKg: (rawItem['manualWeightKg'] as num?)?.toDouble() ?? 0,
+          totalWeightKg: (rawItem['totalWeightKg'] as num?)?.toDouble() ?? 0,
+          isCompleted: rawItem['isCompleted'] == true,
+        );
+      }
+    }
+
+    return entries;
+  }
+
   Future<void> submitDprProgress(
     String siteId,
     PebExecutionType type, {
+    String? dprId,
     required String date,
     required String teamId,
     required String setupItemId,
@@ -528,52 +589,54 @@ class PebExecutionService {
     double totalWeightKg = 0,
   }) async {
     try {
-      await _dio.post(
-        '/site/$siteId/dpr-peb',
-        data: {
-          'date': date,
-          'section': type.section,
-          'type': type.apiType,
-          if (teamId.trim().isNotEmpty) 'teamId': teamId,
-          'trackingLevel': trackingLevel,
-          'assemblyMark':
-              type == PebExecutionType.fabrication ? marks.join(',') : '',
-          'boqIds': const [],
-          'status': 'submitted',
-          'remarks': remarks.trim(),
-          'items': [
-            {
-              'setupItemId': setupItemId,
-              'assignmentId': assignmentId,
-              'sourceType': sourceType,
-              'name': stageName,
-              'uom': uom,
-              'actualQty': actualQty,
-              'targetQty': targetQty,
-              'progressPercentage': progressPercentage,
-              'isCompleted': progressPercentage >= 100,
-              'completedDate': progressPercentage >= 100 ? date : null,
-              'assemblyMark': marks.join(','),
-              'trackingLevel': trackingLevel,
-              'memberType': stageName,
-              'weightMode': weightMode,
-              'estimatedWeightPerUnitKg': estimatedWeightPerUnitKg,
-              'manualWeightKg': manualWeightKg,
-              'totalWeightKg': totalWeightKg,
-              'remarks': remarks.trim(),
-              'manpower': 0,
-              'assignedManpower': const [],
-              'manualManpower': const [],
-              'contractor': '',
-              'area': '',
-              if (variationReason.trim().isNotEmpty)
-                'variationReason': variationReason.trim(),
-              if (variationRemarks.trim().isNotEmpty)
-                'variationRemarks': variationRemarks.trim(),
-            }
-          ],
-        },
-      );
+      final payload = {
+        'date': date,
+        'section': type.section,
+        'type': type.apiType,
+        if (teamId.trim().isNotEmpty) 'teamId': teamId,
+        'trackingLevel': trackingLevel,
+        'assemblyMark':
+            type == PebExecutionType.fabrication ? marks.join(',') : '',
+        'boqIds': const [],
+        'status': 'submitted',
+        'remarks': remarks.trim(),
+        'items': [
+          {
+            'setupItemId': setupItemId,
+            'assignmentId': assignmentId,
+            'sourceType': sourceType,
+            'name': stageName,
+            'uom': uom,
+            'actualQty': actualQty,
+            'targetQty': targetQty,
+            'progressPercentage': progressPercentage,
+            'isCompleted': progressPercentage >= 100,
+            'completedDate': progressPercentage >= 100 ? date : null,
+            'assemblyMark': marks.join(','),
+            'trackingLevel': trackingLevel,
+            'memberType': stageName,
+            'weightMode': weightMode,
+            'estimatedWeightPerUnitKg': estimatedWeightPerUnitKg,
+            'manualWeightKg': manualWeightKg,
+            'totalWeightKg': totalWeightKg,
+            'remarks': remarks.trim(),
+            'manpower': 0,
+            'assignedManpower': const [],
+            'manualManpower': const [],
+            'contractor': '',
+            'area': '',
+            if (variationReason.trim().isNotEmpty)
+              'variationReason': variationReason.trim(),
+            if (variationRemarks.trim().isNotEmpty)
+              'variationRemarks': variationRemarks.trim(),
+          }
+        ],
+      };
+      if (dprId != null && dprId.trim().isNotEmpty) {
+        await _dio.put('/site/$siteId/dpr-peb/${dprId.trim()}', data: payload);
+      } else {
+        await _dio.post('/site/$siteId/dpr-peb', data: payload);
+      }
     } on DioException catch (error) {
       final data = error.response?.data;
       if (error.response?.statusCode == 409 &&

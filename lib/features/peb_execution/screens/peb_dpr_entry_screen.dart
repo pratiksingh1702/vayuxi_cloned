@@ -58,6 +58,7 @@ class _PebDprEntryScreenState extends State<PebDprEntryScreen> {
   final Set<String> _selectedDetailMarks = {};
   PebMarkStatus _status =
       const PebMarkStatus(completedByKey: {}, inProgressByKey: {});
+  Map<String, PebLevel1DprEntry> _level1Entries = const {};
 
   bool get _isDefaultTeamSelected => _teamId == _defaultTeamId;
 
@@ -152,6 +153,13 @@ class _PebDprEntryScreenState extends State<PebDprEntryScreen> {
           widget.siteId,
           widget.executionType,
           date: _dateText,
+          teamId: _isDefaultTeamId(selectedTeamId) ? null : selectedTeamId,
+        ),
+        _service.getLevel1DprEntries(
+          widget.siteId,
+          widget.executionType,
+          date: _dateText,
+          teamId: _isDefaultTeamId(selectedTeamId) ? '' : selectedTeamId,
         ),
       ]);
 
@@ -165,6 +173,7 @@ class _PebDprEntryScreenState extends State<PebDprEntryScreen> {
             .where((assignment) => assignment.status != 'cancelled')
             .toList();
         _status = results[3] as PebMarkStatus;
+        _level1Entries = results[4] as Map<String, PebLevel1DprEntry>;
         if (_activeWorkKey != null &&
             !_visibleWorks().any((work) => work.key == _activeWorkKey)) {
           _activeWorkKey = null;
@@ -206,6 +215,11 @@ class _PebDprEntryScreenState extends State<PebDprEntryScreen> {
       if (work.key == key) return work;
     }
     return null;
+  }
+
+  PebLevel1DprEntry? _level1EntryFor(_VisibleWork work) {
+    if (!work.isLevel1Manual) return null;
+    return _level1Entries[work.setupItem.id];
   }
 
   Future<void> _openWorkDetail(_VisibleWork work) async {
@@ -1062,7 +1076,11 @@ class _PebDprEntryScreenState extends State<PebDprEntryScreen> {
     _VisibleWork work, {
     required bool completedAction,
   }) async {
-    final quantity = TextEditingController();
+    final existingEntry = _level1EntryFor(work);
+    final existingQty = existingEntry?.actualQty ?? 0;
+    final quantity = TextEditingController(
+      text: existingQty > 0 ? _prettyNumber(existingQty) : '',
+    );
     final entered = await showDialog<double>(
       context: context,
       builder: (context) => AlertDialog(
@@ -1073,7 +1091,9 @@ class _PebDprEntryScreenState extends State<PebDprEntryScreen> {
           children: [
             Text(
               work.isLevel1Manual
-                  ? 'Enter actual ${work.setupItem.uom} for ${DateFormat('dd MMM yyyy').format(_selectedDate)}.'
+                  ? existingEntry == null
+                      ? 'Enter actual ${work.setupItem.uom} for ${DateFormat('dd MMM yyyy').format(_selectedDate)}.'
+                      : 'Edit actual ${work.setupItem.uom} for ${DateFormat('dd MMM yyyy').format(_selectedDate)}.'
                   : 'Approved quantity: ${work.assignedQty.toStringAsFixed(2)} ${work.setupItem.uom}',
             ),
             const SizedBox(height: 14),
@@ -1125,8 +1145,11 @@ class _PebDprEntryScreenState extends State<PebDprEntryScreen> {
       progress,
       actualQtyOverride: entered,
       targetQtyOverride: work.isLevel1Manual
-          ? (work.assignedQty > 0 ? work.assignedQty : entered)
+          ? (existingEntry?.targetQty ?? 0) > 0
+              ? existingEntry!.targetQty
+              : (work.assignedQty > 0 ? work.assignedQty : entered)
           : null,
+      dprId: existingEntry?.dprId,
       trackingLevel: work.isLevel1Manual ? 'basic' : 'semi_structured',
       weightMode: work.isLevel1Manual ? 'manual' : 'none',
       manualWeightKg: work.isLevel1Manual ? entered : 0,
@@ -1138,6 +1161,7 @@ class _PebDprEntryScreenState extends State<PebDprEntryScreen> {
     _VisibleWork work,
     List<String> marks,
     int progress, {
+    String? dprId,
     double? actualQtyOverride,
     double? targetQtyOverride,
     String trackingLevel = 'advanced',
@@ -1166,6 +1190,7 @@ class _PebDprEntryScreenState extends State<PebDprEntryScreen> {
       await _service.submitDprProgress(
         widget.siteId,
         widget.executionType,
+        dprId: dprId,
         date: _dateText,
         teamId: _submitTeamId,
         setupItemId: work.setupItem.id,
@@ -1199,6 +1224,7 @@ class _PebDprEntryScreenState extends State<PebDprEntryScreen> {
             actualQtyOverride: actualQtyOverride,
             targetQtyOverride: targetQtyOverride,
             trackingLevel: trackingLevel,
+            dprId: dprId,
             remarks: remarks,
             variationReason: response.reason,
             variationRemarks: response.remarks,
