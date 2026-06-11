@@ -56,6 +56,7 @@ class _PebWorkAssignmentScreenState extends State<PebWorkAssignmentScreen> {
   List<PebSetupItem> _setupItems = [];
   List<PebBoq> _boqs = [];
   List<PebWorkAssignment> _assignments = [];
+  Set<String> _selectedBoqIds = {};
   Set<String> _selectedMarks = {};
   Map<String, Set<String>> _completedBySetupItem = {};
   String _markSearchText = '';
@@ -101,6 +102,7 @@ class _PebWorkAssignmentScreenState extends State<PebWorkAssignmentScreen> {
             .where((assignment) => assignment.status != 'cancelled')
             .toList();
         _completedBySetupItem = (results[4] as PebMarkStatus).completedByKey;
+        _syncSelectedBoqs();
       });
     } catch (error) {
       AppToast.error(extractBackendError(error));
@@ -114,6 +116,22 @@ class _PebWorkAssignmentScreenState extends State<PebWorkAssignmentScreen> {
         .expand((boq) => boq.items)
         .where((mark) => mark.assemblyMark.isNotEmpty)
         .toList();
+  }
+
+  List<PebBoqMark> get _selectedBoqMarks {
+    if (_selectedBoqIds.isEmpty) return [];
+    return _boqs
+        .where((boq) => _selectedBoqIds.contains(boq.id))
+        .expand((boq) => boq.items)
+        .where((mark) => mark.assemblyMark.isNotEmpty)
+        .toList();
+  }
+
+  void _syncSelectedBoqs() {
+    final availableIds = _boqs.map((boq) => boq.id).toSet();
+    _selectedBoqIds.removeWhere((id) => !availableIds.contains(id));
+    _selectedMarks.removeWhere((mark) =>
+        !_selectedBoqMarks.any((boqMark) => boqMark.assemblyMark == mark));
   }
 
   Set<String> get _assignedMarksForStage {
@@ -178,6 +196,15 @@ class _PebWorkAssignmentScreenState extends State<PebWorkAssignmentScreen> {
       }
     }
     return null;
+  }
+
+  Set<String> _boqIdsForMarks(Iterable<String> marks) {
+    final markSet = marks.toSet();
+    return _boqs
+        .where((boq) =>
+            boq.items.any((mark) => markSet.contains(mark.assemblyMark)))
+        .map((boq) => boq.id)
+        .toSet();
   }
 
   Future<void> _bulkUpdateSelectedWeight() async {
@@ -255,6 +282,7 @@ class _PebWorkAssignmentScreenState extends State<PebWorkAssignmentScreen> {
       _assignmentStep = 0;
       _teamId = _teams.isNotEmpty ? _teams.first.id : _defaultTeamId;
       _sourceType = _allMarks.isNotEmpty ? 'boq_upload' : 'tonnage';
+      _selectedBoqIds = {};
       _selectedMarks = {};
       _markSearchText = '';
       _markSearchController.clear();
@@ -279,6 +307,7 @@ class _PebWorkAssignmentScreenState extends State<PebWorkAssignmentScreen> {
           ? assignment.teamId
           : _defaultTeamId;
       _sourceType = assignment.sourceType;
+      _selectedBoqIds = _boqIdsForMarks(item.assemblyMarks);
       _selectedMarks = item.assemblyMarks.toSet();
       _markSearchText = '';
       _markSearchController.clear();
@@ -330,9 +359,8 @@ class _PebWorkAssignmentScreenState extends State<PebWorkAssignmentScreen> {
         sourceType: _sourceType,
         assignmentDate: _assignmentDate,
         expectedCompletionDate: _expectedDate,
-        boqIds: _sourceType == 'boq_upload'
-            ? _boqs.map((boq) => boq.id).toList()
-            : const [],
+        boqIds:
+            _sourceType == 'boq_upload' ? _selectedBoqIds.toList() : const [],
         overrideConflict: overrideConflict,
         item: PebAssignmentItem(
           setupItemId: setupItem.id,
@@ -1086,6 +1114,7 @@ class _PebWorkAssignmentScreenState extends State<PebWorkAssignmentScreen> {
           ],
           onChanged: (value) => setState(() {
             _sourceType = value ?? 'boq_upload';
+            _selectedBoqIds = {};
             _selectedMarks = {};
             _markSearchText = '';
             _markSearchController.clear();
@@ -1156,67 +1185,72 @@ class _PebWorkAssignmentScreenState extends State<PebWorkAssignmentScreen> {
     if (_allMarks.isEmpty) {
       return const Text('No BOQ marks found. Upload BOQ first.');
     }
-    final search = _markSearchText.trim().toLowerCase();
-    final visibleMarks = search.isEmpty
-        ? _allMarks
-        : _allMarks.where((mark) {
-            return mark.assemblyMark.toLowerCase().contains(search) ||
-                mark.typeDescription.toLowerCase().contains(search);
-          }).toList();
-    final selectableVisibleMarks = visibleMarks
-        .where((mark) =>
-            !completedForStage.contains(mark.assemblyMark) &&
-            !assignedForStage.contains(mark.assemblyMark) &&
-            (previousStage == null ||
-                previousStageAssignedMarks.contains(mark.assemblyMark)))
-        .map((mark) => mark.assemblyMark)
-        .toList();
-    final allVisibleSelected = selectableVisibleMarks.isNotEmpty &&
-        selectableVisibleMarks.every(_selectedMarks.contains);
-    void toggleFilteredSelection() {
-      if (selectableVisibleMarks.isEmpty) return;
+
+    bool isSelectableMark(PebBoqMark mark) {
+      return !completedForStage.contains(mark.assemblyMark) &&
+          !assignedForStage.contains(mark.assemblyMark) &&
+          (previousStage == null ||
+              previousStageAssignedMarks.contains(mark.assemblyMark));
+    }
+
+    List<String> selectableMarksForBoq(PebBoq boq) {
+      return boq.items
+          .where((mark) => mark.assemblyMark.isNotEmpty)
+          .where(isSelectableMark)
+          .map((mark) => mark.assemblyMark)
+          .toList();
+    }
+
+    void toggleBoq(PebBoq boq) {
       setState(() {
-        if (allVisibleSelected) {
-          _selectedMarks.removeAll(selectableVisibleMarks);
+        final marks = selectableMarksForBoq(boq);
+        if (_selectedBoqIds.contains(boq.id)) {
+          _selectedBoqIds.remove(boq.id);
+          _selectedMarks.removeAll(marks);
         } else {
-          _selectedMarks.addAll(selectableVisibleMarks);
+          _selectedBoqIds.add(boq.id);
+          _selectedMarks.addAll(marks);
         }
       });
     }
 
-    void selectMarkByIndex(int index) {
-      if (index < 0 || index >= visibleMarks.length) return;
-      final mark = visibleMarks[index];
-      final disabled = completedForStage.contains(mark.assemblyMark) ||
-          assignedForStage.contains(mark.assemblyMark) ||
-          (previousStage != null &&
-              !previousStageAssignedMarks.contains(mark.assemblyMark));
-      if (disabled || _selectedMarks.contains(mark.assemblyMark)) return;
-      setState(() => _selectedMarks.add(mark.assemblyMark));
+    void toggleAllBoqs() {
+      final allSelected =
+          _boqs.isNotEmpty && _selectedBoqIds.length == _boqs.length;
+      setState(() {
+        _selectedBoqIds.clear();
+        _selectedMarks.clear();
+        if (!allSelected) {
+          for (final boq in _boqs) {
+            _selectedBoqIds.add(boq.id);
+            _selectedMarks.addAll(selectableMarksForBoq(boq));
+          }
+        }
+      });
     }
 
-    void selectMarkAtPosition(BoxConstraints constraints, Offset position) {
-      const crossAxisCount = 2;
-      const crossAxisSpacing = 10.0;
-      const mainAxisSpacing = 10.0;
-      const childAspectRatio = 2.7;
-      final tileWidth =
-          (constraints.maxWidth - crossAxisSpacing) / crossAxisCount;
-      final tileHeight = tileWidth / childAspectRatio;
-      final strideX = tileWidth + crossAxisSpacing;
-      final strideY = tileHeight + mainAxisSpacing;
-      final col = (position.dx / strideX).floor();
-      final row = (position.dy / strideY).floor();
-      if (col < 0 || col >= crossAxisCount || row < 0) return;
-      final localX = position.dx - (col * strideX);
-      final localY = position.dy - (row * strideY);
-      if (localX > tileWidth || localY > tileHeight) return;
-      selectMarkByIndex(row * crossAxisCount + col);
-    }
+    final search = _markSearchText.trim().toLowerCase();
+    final marksInSelectedBoqs = _selectedBoqMarks;
+    final visibleMarks = search.isEmpty
+        ? marksInSelectedBoqs
+        : marksInSelectedBoqs.where((mark) {
+            return mark.assemblyMark.toLowerCase().contains(search) ||
+                mark.typeDescription.toLowerCase().contains(search);
+          }).toList();
+    final allBoqsSelected =
+        _boqs.isNotEmpty && _selectedBoqIds.length == _boqs.length;
 
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
+        _buildBoqSelectionPanel(
+          cs,
+          allSelected: allBoqsSelected,
+          onToggleAll: toggleAllBoqs,
+          onToggleBoq: toggleBoq,
+          selectableMarksForBoq: selectableMarksForBoq,
+        ),
+        const SizedBox(height: 12),
         Container(
           padding: const EdgeInsets.all(10),
           decoration: BoxDecoration(
@@ -1263,7 +1297,7 @@ class _PebWorkAssignmentScreenState extends State<PebWorkAssignmentScreen> {
               Row(
                 children: [
                   _markCounterChip(
-                    '${visibleMarks.length}/${_allMarks.length}',
+                    '${visibleMarks.length}/${marksInSelectedBoqs.length}',
                     'visible',
                     cs.onSurfaceVariant,
                   ),
@@ -1280,27 +1314,23 @@ class _PebWorkAssignmentScreenState extends State<PebWorkAssignmentScreen> {
                 children: [
                   Expanded(
                     child: OutlinedButton.icon(
-                      onPressed: selectableVisibleMarks.isEmpty
-                          ? null
-                          : toggleFilteredSelection,
+                      onPressed: _boqs.isEmpty ? null : toggleAllBoqs,
                       icon: Icon(
-                        allVisibleSelected
+                        allBoqsSelected
                             ? Icons.check_box_rounded
                             : Icons.done_all_rounded,
                         size: 18,
                       ),
                       label: Text(
-                        allVisibleSelected
-                            ? 'Clear Filtered'
-                            : 'Select All Filtered',
+                        allBoqsSelected ? 'Deselect All BOQ' : 'Select All BOQ',
                         maxLines: 1,
                         overflow: TextOverflow.ellipsis,
                       ),
                       style: OutlinedButton.styleFrom(
                         foregroundColor:
-                            allVisibleSelected ? cs.error : cs.primary,
+                            allBoqsSelected ? cs.error : cs.primary,
                         side: BorderSide(
-                          color: allVisibleSelected ? cs.error : cs.primary,
+                          color: allBoqsSelected ? cs.error : cs.primary,
                         ),
                         minimumSize: const Size.fromHeight(42),
                         shape: RoundedRectangleBorder(
@@ -1372,7 +1402,19 @@ class _PebWorkAssignmentScreenState extends State<PebWorkAssignmentScreen> {
               ),
             ),
           ),
-        if (visibleMarks.isEmpty)
+        if (_selectedBoqIds.isEmpty)
+          Container(
+            width: double.infinity,
+            padding: const EdgeInsets.all(20),
+            decoration: BoxDecoration(
+              color: cs.surfaceContainerLow,
+              borderRadius: BorderRadius.circular(12),
+            ),
+            child: Text('Select one or more BOQs to view assignable marks',
+                textAlign: TextAlign.center,
+                style: TextStyle(color: cs.onSurfaceVariant)),
+          )
+        else if (visibleMarks.isEmpty)
           Container(
             width: double.infinity,
             padding: const EdgeInsets.all(20),
@@ -1385,133 +1427,200 @@ class _PebWorkAssignmentScreenState extends State<PebWorkAssignmentScreen> {
                 style: TextStyle(color: cs.onSurfaceVariant)),
           )
         else
-          LayoutBuilder(
-            builder: (context, constraints) {
-              return Listener(
-                behavior: HitTestBehavior.translucent,
-                onPointerMove: (event) =>
-                    selectMarkAtPosition(constraints, event.localPosition),
-                child: GridView.builder(
-                  physics: const NeverScrollableScrollPhysics(),
-                  shrinkWrap: true,
-                  itemCount: visibleMarks.length,
-                  gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
-                    crossAxisCount: 2,
-                    mainAxisSpacing: 10,
-                    crossAxisSpacing: 10,
-                    childAspectRatio: 2.7,
+          GridView.builder(
+            physics: const NeverScrollableScrollPhysics(),
+            shrinkWrap: true,
+            itemCount: visibleMarks.length,
+            gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
+              crossAxisCount: 2,
+              mainAxisSpacing: 10,
+              crossAxisSpacing: 10,
+              childAspectRatio: 2.7,
+            ),
+            itemBuilder: (context, index) {
+              final mark = visibleMarks[index];
+              final isCompleted = completedForStage.contains(mark.assemblyMark);
+              final isAssigned = assignedForStage.contains(mark.assemblyMark);
+              final isPreviousStageMissing = previousStage != null &&
+                  !previousStageAssignedMarks.contains(mark.assemblyMark);
+              final selected = _selectedMarks.contains(mark.assemblyMark);
+              final disabled =
+                  isCompleted || isAssigned || isPreviousStageMissing;
+              final qty =
+                  mark.remainingQty > 0 ? mark.remainingQty : mark.quantity;
+              final statusText = isCompleted
+                  ? 'Completed'
+                  : isAssigned
+                      ? 'Assigned'
+                      : isPreviousStageMissing
+                          ? 'Assign ${previousStage.name} first'
+                          : '${_prettyNumber(qty)} qty';
+              return Opacity(
+                opacity: disabled ? 0.45 : 1,
+                child: Container(
+                  padding:
+                      const EdgeInsets.symmetric(horizontal: 10, vertical: 8),
+                  decoration: BoxDecoration(
+                    color: selected ? cs.primaryContainer : cs.surface,
+                    borderRadius: BorderRadius.circular(12),
+                    border: Border.all(
+                      color: selected ? cs.primary : cs.outlineVariant,
+                    ),
                   ),
-                  itemBuilder: (context, index) {
-                    final mark = visibleMarks[index];
-                    final isCompleted =
-                        completedForStage.contains(mark.assemblyMark);
-                    final isAssigned =
-                        assignedForStage.contains(mark.assemblyMark);
-                    final isPreviousStageMissing = previousStage != null &&
-                        !previousStageAssignedMarks.contains(mark.assemblyMark);
-                    final selected = _selectedMarks.contains(mark.assemblyMark);
-                    final disabled =
-                        isCompleted || isAssigned || isPreviousStageMissing;
-                    final qty = mark.remainingQty > 0
-                        ? mark.remainingQty
-                        : mark.quantity;
-                    final statusText = isCompleted
-                        ? 'Completed'
-                        : isAssigned
-                            ? 'Assigned'
-                            : isPreviousStageMissing
-                                ? 'Assign ${previousStage.name} first'
-                                : '${_prettyNumber(qty)} qty';
-                    return Opacity(
-                      opacity: disabled ? 0.45 : 1,
-                      child: InkWell(
-                        onTap: disabled
-                            ? null
-                            : () => setState(() {
-                                  if (selected) {
-                                    _selectedMarks.remove(mark.assemblyMark);
-                                  } else {
-                                    _selectedMarks.add(mark.assemblyMark);
-                                  }
-                                }),
-                        borderRadius: BorderRadius.circular(10),
-                        child: Container(
-                          padding: const EdgeInsets.symmetric(
-                              horizontal: 10, vertical: 8),
-                          decoration: BoxDecoration(
-                            color: selected ? cs.primaryContainer : cs.surface,
-                            borderRadius: BorderRadius.circular(12),
-                            border: Border.all(
-                              color: selected ? cs.primary : cs.outlineVariant,
-                            ),
-                          ),
-                          child: Row(
-                            children: [
-                              Container(
-                                width: 24,
-                                height: 24,
-                                decoration: BoxDecoration(
-                                  color: selected
-                                      ? cs.primary
-                                      : Colors.transparent,
-                                  shape: BoxShape.circle,
-                                  border: Border.all(
-                                    color: selected
-                                        ? cs.primary
-                                        : cs.onSurfaceVariant
-                                            .withValues(alpha: 0.45),
-                                  ),
-                                ),
-                                child: selected || disabled
-                                    ? Icon(
-                                        disabled
-                                            ? Icons.lock_rounded
-                                            : Icons.check_rounded,
-                                        size: 15,
-                                        color: selected
-                                            ? cs.onPrimary
-                                            : cs.onSurfaceVariant,
-                                      )
-                                    : null,
-                              ),
-                              const SizedBox(width: 8),
-                              Expanded(
-                                child: Column(
-                                  crossAxisAlignment: CrossAxisAlignment.start,
-                                  mainAxisAlignment: MainAxisAlignment.center,
-                                  children: [
-                                    Text(
-                                      mark.assemblyMark,
-                                      maxLines: 1,
-                                      overflow: TextOverflow.ellipsis,
-                                      style: const TextStyle(
-                                          fontWeight: FontWeight.w800),
-                                    ),
-                                    Text(
-                                      statusText,
-                                      maxLines: 1,
-                                      overflow: TextOverflow.ellipsis,
-                                      style: TextStyle(
-                                        fontSize: 11,
-                                        color: selected
-                                            ? cs.onPrimaryContainer
-                                            : cs.onSurfaceVariant,
-                                      ),
-                                    ),
-                                  ],
-                                ),
-                              ),
-                            ],
+                  child: Row(
+                    children: [
+                      Container(
+                        width: 24,
+                        height: 24,
+                        decoration: BoxDecoration(
+                          color: selected ? cs.primary : Colors.transparent,
+                          shape: BoxShape.circle,
+                          border: Border.all(
+                            color: selected
+                                ? cs.primary
+                                : cs.onSurfaceVariant.withValues(alpha: 0.45),
                           ),
                         ),
+                        child: selected || disabled
+                            ? Icon(
+                                disabled
+                                    ? Icons.lock_rounded
+                                    : Icons.check_rounded,
+                                size: 15,
+                                color: selected
+                                    ? cs.onPrimary
+                                    : cs.onSurfaceVariant,
+                              )
+                            : null,
                       ),
-                    );
-                  },
+                      const SizedBox(width: 8),
+                      Expanded(
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          mainAxisAlignment: MainAxisAlignment.center,
+                          children: [
+                            Text(
+                              mark.assemblyMark,
+                              maxLines: 1,
+                              overflow: TextOverflow.ellipsis,
+                              style:
+                                  const TextStyle(fontWeight: FontWeight.w800),
+                            ),
+                            Text(
+                              statusText,
+                              maxLines: 1,
+                              overflow: TextOverflow.ellipsis,
+                              style: TextStyle(
+                                fontSize: 11,
+                                color: selected
+                                    ? cs.onPrimaryContainer
+                                    : cs.onSurfaceVariant,
+                              ),
+                            ),
+                          ],
+                        ),
+                      ),
+                    ],
+                  ),
                 ),
               );
             },
           ),
       ],
+    );
+  }
+
+  Widget _buildBoqSelectionPanel(
+    ColorScheme cs, {
+    required bool allSelected,
+    required VoidCallback onToggleAll,
+    required void Function(PebBoq boq) onToggleBoq,
+    required List<String> Function(PebBoq boq) selectableMarksForBoq,
+  }) {
+    return Container(
+      width: double.infinity,
+      padding: const EdgeInsets.all(12),
+      decoration: BoxDecoration(
+        color: cs.surface,
+        borderRadius: BorderRadius.circular(14),
+        border: Border.all(color: cs.outlineVariant.withValues(alpha: 0.45)),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
+            children: [
+              Expanded(
+                child: Text(
+                  'Select BOQ',
+                  style: TextStyle(
+                    color: cs.onSurface,
+                    fontSize: 14,
+                    fontWeight: FontWeight.w800,
+                  ),
+                ),
+              ),
+              Text(
+                '${_selectedBoqIds.length}/${_boqs.length} selected',
+                style: TextStyle(
+                  color: cs.onSurfaceVariant,
+                  fontSize: 12,
+                  fontWeight: FontWeight.w700,
+                ),
+              ),
+            ],
+          ),
+          const SizedBox(height: 10),
+          Wrap(
+            spacing: 8,
+            runSpacing: 8,
+            children: [
+              FilterChip(
+                selected: allSelected,
+                showCheckmark: false,
+                avatar: Icon(
+                  allSelected
+                      ? Icons.done_all_rounded
+                      : Icons.select_all_rounded,
+                  size: 18,
+                ),
+                label: Text(allSelected ? 'Deselect All' : 'Select All'),
+                onSelected: (_) => onToggleAll(),
+              ),
+              ..._boqs.map((boq) {
+                final selected = _selectedBoqIds.contains(boq.id);
+                final selectableCount = selectableMarksForBoq(boq).length;
+                return ConstrainedBox(
+                  constraints: const BoxConstraints(maxWidth: 240),
+                  child: FilterChip(
+                    selected: selected,
+                    showCheckmark: false,
+                    avatar: Icon(
+                      selected
+                          ? Icons.check_circle_rounded
+                          : Icons.radio_button_unchecked_rounded,
+                      size: 18,
+                      color: selected ? cs.primary : cs.onSurfaceVariant,
+                    ),
+                    label: Text(
+                      '${boq.name} ($selectableCount)',
+                      maxLines: 1,
+                      overflow: TextOverflow.ellipsis,
+                    ),
+                    onSelected: (_) => onToggleBoq(boq),
+                    selectedColor: cs.primaryContainer,
+                    backgroundColor: cs.surfaceContainerHigh,
+                    labelStyle: TextStyle(
+                      color: selected ? cs.onPrimaryContainer : cs.onSurface,
+                      fontWeight: selected ? FontWeight.w800 : FontWeight.w600,
+                    ),
+                  ),
+                );
+              }),
+            ],
+          ),
+        ],
+      ),
     );
   }
 
