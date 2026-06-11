@@ -63,6 +63,8 @@ class _PebDprEntryScreenState extends State<PebDprEntryScreen> {
 
   String get _submitTeamId => _isDefaultTeamSelected ? '' : _teamId;
 
+  static const String _level1StageMarker = '__level1_stage__';
+
   // Mark search / sort / filter
   String _markSearchQuery = '';
   bool _markSortAz = true; // true = A→Z, false = Z→A
@@ -146,7 +148,11 @@ class _PebDprEntryScreenState extends State<PebDprEntryScreen> {
         _service.getAssignments(widget.siteId, widget.executionType,
             teamId: _isDefaultTeamId(selectedTeamId) ? null : selectedTeamId,
             status: 'all'),
-        _service.getDprMarkStatus(widget.siteId, widget.executionType),
+        _service.getDprMarkStatus(
+          widget.siteId,
+          widget.executionType,
+          date: _dateText,
+        ),
       ]);
 
       if (!mounted) return;
@@ -583,27 +589,35 @@ class _PebDprEntryScreenState extends State<PebDprEntryScreen> {
     final allValidAssignments = _assignments
         .where((assignment) => assignment.status != 'cancelled')
         .toList();
-    final fallbackAllowed = setup.allowUnassignedDprFallback &&
-        (_isDefaultTeamSelected
-            ? true
-            : _teamId.isNotEmpty
-                ? teamAssignments.isEmpty
-                : allValidAssignments.isEmpty);
+    final noBoqMarks = _allMarks.every((mark) => mark.assemblyMark.isEmpty);
+    final noRelevantAssignment = _isDefaultTeamSelected
+        ? allValidAssignments.isEmpty
+        : _teamId.isNotEmpty
+            ? teamAssignments.isEmpty
+            : allValidAssignments.isEmpty;
+    final fallbackAllowed =
+        (setup.allowUnassignedDprFallback && noRelevantAssignment) ||
+            (noBoqMarks && noRelevantAssignment);
 
     if (fallbackAllowed) {
+      final hasBoqMarks = _allMarks.any((mark) => mark.assemblyMark.isNotEmpty);
       return setup.items.map((setupItem) {
-        final marks = _allMarks
-            .map((mark) => mark.assemblyMark)
-            .where((mark) => mark.isNotEmpty)
-            .toList();
+        final marks = hasBoqMarks
+            ? _allMarks
+                .map((mark) => mark.assemblyMark)
+                .where((mark) => mark.isNotEmpty)
+                .toList()
+            : const <String>[];
         return _VisibleWork(
           key: setupItem.id,
           setupItem: setupItem,
           assignmentId: '',
-          sourceType: 'boq_upload',
+          sourceType: hasBoqMarks ? 'boq_upload' : 'level1_manual',
           stageName: setupItem.name,
           assignedMarks: marks,
-          assignedQty: marks.length.toDouble(),
+          assignedQty: hasBoqMarks
+              ? marks.length.toDouble()
+              : (setupItem.targetQty > 0 ? setupItem.targetQty : 0),
           assignmentDate: _selectedDate,
           expectedCompletionDate: null,
           isActive: true,
@@ -792,6 +806,15 @@ class _PebDprEntryScreenState extends State<PebDprEntryScreen> {
   }
 
   _WorkCounts _counts(_VisibleWork work) {
+    if (work.isLevel1Manual) {
+      final completed = _completedForWork(work).contains(_level1StageMarker);
+      final inProgress = _inProgressForWork(work).contains(_level1StageMarker);
+      return _WorkCounts(
+        total: 1,
+        completed: completed ? 1 : 0,
+        inProgress: !completed && inProgress ? 1 : 0,
+      );
+    }
     final marks = _displayMarksForWork(work);
     final completed = _completedForWork(work);
     final inProgress = _inProgressForWork(work);
@@ -820,6 +843,9 @@ class _PebDprEntryScreenState extends State<PebDprEntryScreen> {
 
   bool _isWorkFullyCompleted(_VisibleWork work) {
     if (!work.isActive) return false;
+    if (work.isLevel1Manual) {
+      return _completedForWork(work).contains(_level1StageMarker);
+    }
     final completed = _completedForWork(work);
     final marks = _displayMarksForWork(work);
     if (marks.isNotEmpty) {
@@ -830,6 +856,7 @@ class _PebDprEntryScreenState extends State<PebDprEntryScreen> {
   }
 
   bool _hasUnlockedScope(_VisibleWork work) {
+    if (work.isLevel1Manual) return true;
     if (_displayMarksForWork(work).isEmpty) return work.assignedQty > 0;
     return _unlockedMarksForWork(work).isNotEmpty;
   }
@@ -857,7 +884,7 @@ class _PebDprEntryScreenState extends State<PebDprEntryScreen> {
     final rawMarks = _displayMarksForWork(work);
     final unlocked = _unlockedMarksForWork(work);
     if (rawMarks.isEmpty) {
-      await _openQuantityAction(work);
+      await _openQuantityAction(work, completedAction: completedAction);
       return;
     }
     if (rawMarks.isNotEmpty &&
@@ -1031,7 +1058,10 @@ class _PebDprEntryScreenState extends State<PebDprEntryScreen> {
       );
   }
 
-  Future<void> _openQuantityAction(_VisibleWork work) async {
+  Future<void> _openQuantityAction(
+    _VisibleWork work, {
+    required bool completedAction,
+  }) async {
     final quantity = TextEditingController();
     final entered = await showDialog<double>(
       context: context,
@@ -1042,7 +1072,9 @@ class _PebDprEntryScreenState extends State<PebDprEntryScreen> {
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
             Text(
-              'Approved quantity: ${work.assignedQty.toStringAsFixed(2)} ${work.setupItem.uom}',
+              work.isLevel1Manual
+                  ? 'Enter actual ${work.setupItem.uom} for ${DateFormat('dd MMM yyyy').format(_selectedDate)}.'
+                  : 'Approved quantity: ${work.assignedQty.toStringAsFixed(2)} ${work.setupItem.uom}',
             ),
             const SizedBox(height: 14),
             TextField(
@@ -1080,15 +1112,25 @@ class _PebDprEntryScreenState extends State<PebDprEntryScreen> {
     quantity.dispose();
     if (entered == null) return;
 
-    final progress = work.assignedQty > 0
-        ? ((entered / work.assignedQty) * 100).clamp(0, 100).round()
-        : 0;
+    final progress = completedAction
+        ? 100
+        : work.isLevel1Manual
+            ? 50
+            : work.assignedQty > 0
+                ? ((entered / work.assignedQty) * 100).clamp(0, 100).round()
+                : 50;
     await _submitProgress(
       work,
       const [],
       progress,
       actualQtyOverride: entered,
-      trackingLevel: 'semi_structured',
+      targetQtyOverride: work.isLevel1Manual
+          ? (work.assignedQty > 0 ? work.assignedQty : entered)
+          : null,
+      trackingLevel: work.isLevel1Manual ? 'basic' : 'semi_structured',
+      weightMode: work.isLevel1Manual ? 'manual' : 'none',
+      manualWeightKg: work.isLevel1Manual ? entered : 0,
+      totalWeightKg: work.isLevel1Manual ? entered : 0,
     );
   }
 
@@ -4092,6 +4134,8 @@ class _VisibleWork {
       displayName: displayName ?? this.displayName,
     );
   }
+
+  bool get isLevel1Manual => sourceType == 'level1_manual';
 }
 
 class _VariationResponse {

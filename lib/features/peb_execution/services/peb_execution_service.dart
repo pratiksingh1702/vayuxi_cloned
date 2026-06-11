@@ -374,6 +374,13 @@ class PebExecutionService {
     final inProgressByKey = <String, Set<String>>{};
     final completedDateByKey = <String, Map<String, DateTime>>{};
     final latest = <String, Map<String, dynamic>>{};
+    final selectedDate = date == null ? null : DateTime.tryParse(date);
+    bool isSameDay(DateTime? left, DateTime? right) {
+      if (left == null || right == null) return false;
+      return left.year == right.year &&
+          left.month == right.month &&
+          left.day == right.day;
+    }
 
     for (final dpr in _asList(response.data).whereType<Map>()) {
       final dprDate = DateTime.tryParse((dpr['date'] ?? '').toString());
@@ -409,7 +416,14 @@ class PebExecutionService {
             .split(',')
             .map((mark) => mark.trim())
             .where((mark) => mark.isNotEmpty);
-        for (final mark in marks) {
+        if (marks.isEmpty &&
+            selectedDate != null &&
+            !isSameDay(dprDate, selectedDate)) {
+          continue;
+        }
+        final marksToRecord =
+            marks.isEmpty ? const ['__level1_stage__'] : marks;
+        for (final mark in marksToRecord) {
           void recordLatest(String statusKey) {
             final latestKey = '$statusKey::$mark';
             final existing = latest[latestKey];
