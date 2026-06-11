@@ -5,6 +5,7 @@ import 'package:shared_preferences/shared_preferences.dart';
 
 import '../../../core/router/app_access.dart';
 import '../domain/tour_controller.dart';
+import '../providers/tour_providers.dart';
 import 'tour_debug_config.dart';
 
 class TourScope extends ConsumerStatefulWidget {
@@ -36,6 +37,7 @@ class _TourScopeState extends ConsumerState<TourScope> {
     try {
       if (shouldResetTour) {
         await ref.read(tourPersistenceProvider).reset();
+        await ref.read(appTourStorageProvider).resetAllPhase1();
         debugPrint(
             'Tour testing toggle enabled: tour progress reset on app boot');
       }

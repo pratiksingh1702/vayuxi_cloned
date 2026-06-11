@@ -15,6 +15,8 @@ import 'package:untitled2/features/tour/registry/site_registry.dart';
 import '../../../../../core/utlis/widgets/sidebar.dart';
 import '../../dpr/screens/widgets/select_card.dart';
 
+bool get _phase1DeepSiteTourEnabled => false;
+
 class SiteEntrySelectCardGrid extends ConsumerWidget {
   const SiteEntrySelectCardGrid({super.key});
 
@@ -26,6 +28,7 @@ class SiteEntrySelectCardGrid extends ConsumerWidget {
     return ShowCaseWidget(
       builder: (showcaseContext) {
         WidgetsBinding.instance.addPostFrameCallback((_) {
+          if (!_phase1DeepSiteTourEnabled) return;
           final ctrl = ref.read(tourControllerProvider.notifier);
           ctrl.syncToRoute(Routes.siteEntrySelect);
           final step = ctrl.currentStep;

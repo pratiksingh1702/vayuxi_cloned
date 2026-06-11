@@ -1,0 +1,456 @@
+# ERP Tour System Architecture (Phase 1 Foundation)
+
+## Objective
+
+Design and implement a scalable, maintainable, package-agnostic tour system for the ERP application.
+
+This is NOT a request to simply add ShowcaseView widgets.
+
+The goal is to build a reusable onboarding/tour platform that can support hundreds of screens and modules without becoming difficult to maintain.
+
+The architecture should be treated like a framework inside the application.
+
+Think of it as:
+
+* Weapons = Tour Infrastructure
+* Skills = Tour Definitions
+* Gameplay = Actual Tours
+
+We will build the weapons first.
+
+---
+
+# Current Problem
+
+The current onboarding approach is sequential and tightly coupled.
+
+Example:
+
+App Open
+→ Setup
+→ Site
+→ Rate
+→ Team
+→ DPR
+→ Continue
+
+Problems:
+
+* Forces every user through the same path
+* Does not respect user roles
+* Does not respect user intent
+* Not scalable
+* Difficult to maintain
+* Difficult to add new modules
+* Creates onboarding fatigue
+
+---
+
+# Target Vision
+
+Tours must be:
+
+* Contextual
+* Independent
+* Modular
+* Role-aware
+* Reusable
+* Lazy-loaded
+* Analytics-ready
+* Package-independent
+
+Users should only receive guidance for the screen they are currently using.
+
+---
+
+# Architecture Requirements
+
+Create a dedicated feature:
+
+features/tour/
+
+Suggested structure:
+
+features/
+└── tour/
+├── core/
+│   ├── tour_engine.dart
+│   ├── tour_manager.dart
+│   ├── tour_registry.dart
+│   ├── tour_storage.dart
+│   ├── tour_models.dart
+│   ├── tour_analytics.dart
+│   └── tour_package_adapter.dart
+│
+├── definitions/
+│   ├── daily_entry_tour.dart
+│   ├── setup_tour.dart
+│   ├── reports_tour.dart
+│   └── more_tour.dart
+│
+├── widgets/
+│   ├── tour_overlay.dart
+│   ├── tour_tooltip.dart
+│   ├── tour_welcome_card.dart
+│   └── tour_video_popup.dart
+│
+└── providers/
+
+---
+
+# Package Evaluation
+
+Research and evaluate:
+
+1. showcaseview
+2. tutorial_coach_mark
+3. feature_discovery
+4. flutter_onboarding_slider
+5. custom overlay implementation
+
+Do not blindly use ShowcaseView.
+
+Compare:
+
+* Stability
+* Performance
+* Nested navigation support
+* Dynamic content support
+* Lazy loading
+* Rebuild behavior
+* Riverpod compatibility
+* Long-term maintainability
+
+Choose the best solution.
+
+If needed:
+
+Use hybrid architecture:
+
+* Custom engine
+* Showcase only for spotlight rendering
+
+The application must not depend on a single package.
+
+Package should be replaceable later.
+
+---
+
+# Core Concepts
+
+## Tour Group
+
+Examples:
+
+Daily Entry Tour
+Setup Tour
+Reports Tour
+More Tour
+
+These are top-level tours.
+
+---
+
+## Module Tour
+
+Examples:
+
+Attendance Tour
+Expense Tour
+Inventory Tour
+DPR Tour
+
+Each module owns its own tour.
+
+No dependency on any other module.
+
+---
+
+## Tour Step
+
+Every tour consists of steps.
+
+Example:
+
+Daily Entry Tour
+
+Step 1
+Attendance Introduction
+
+Step 2
+Expense Introduction
+
+Step 3
+Inventory Introduction
+
+Step 4
+DPR Introduction
+
+Users can:
+
+* Next
+* Previous
+* Skip
+* Finish
+
+---
+
+# Independence Rules
+
+STRICT REQUIREMENT
+
+No global onboarding chain.
+
+Forbidden:
+
+Site Tour
+→ Rate Tour
+→ Team Tour
+→ DPR Tour
+
+Required:
+
+Daily Entry Tour
+
+Setup Tour
+
+Reports Tour
+
+More Tour
+
+All independent.
+
+---
+
+# Site Constraint
+
+Daily Entry depends on Site creation.
+
+New users may not have a site.
+
+Therefore:
+
+Provide a Sample Site mode.
+
+When Daily Entry Tour starts:
+
+Show:
+
+"You are currently viewing a sample site.
+
+To use your own project data, create a site from:
+
+Setup → Site Details"
+
+After this message:
+
+Continue Daily Entry Tour normally.
+
+Do not block users.
+
+Do not force navigation.
+
+---
+
+# User Role Awareness
+
+Architecture must support:
+
+Worker
+Supervisor
+Admin
+
+Worker:
+
+Daily Entry Tour
+
+Supervisor:
+
+Daily Entry Tour
+Reports Tour
+
+Admin:
+
+Setup Tour
+Daily Entry Tour
+Reports Tour
+
+Role logic must be configurable.
+
+Do not hardcode.
+
+---
+
+# Phase 1
+
+Implement only:
+
+1. Tour Engine
+2. Tour Registry
+3. Tour Persistence
+4. Tour Analytics Hooks
+5. Welcome Tour
+6. Daily Entry Tab Tour
+7. Setup Tab Tour
+8. Reports Tab Tour
+9. More Tab Tour
+
+No module tours yet.
+
+---
+
+# Phase 1 User Flow
+
+App Open
+
+Optional Welcome Card
+
+Message:
+
+Welcome to ERP
+
+This demo uses a sample site.
+
+To create your own projects:
+Setup → Site Details
+
+Continue
+
+---
+
+User opens Daily Entry
+
+Launch:
+
+Daily Entry Tour
+
+Explain:
+
+* Attendance
+* Expense Entry
+* Inventory Entry
+* DPR
+* P&M Entry
+
+Only introductions.
+
+No deep guidance.
+
+---
+
+User opens Setup
+
+Launch:
+
+Setup Tour
+
+Explain:
+
+* Site Details
+* Rate Setup
+* Manpower Setup
+* Team Setup
+* Inventory Setup
+* DPR Setup
+* BOQ
+* Work Assignment
+* P&M Setup
+
+Only introductions.
+
+---
+
+User opens Reports
+
+Launch:
+
+Reports Tour
+
+Explain available report modules.
+
+---
+
+User opens More
+
+Launch:
+
+More Tour
+
+Explain utility modules.
+
+---
+
+# Phase 2 (Future)
+
+After architecture is completed:
+
+Implement module-level tours.
+
+Examples:
+
+Attendance Tour
+Expense Tour
+Inventory Tour
+DPR Tour
+Site Details Tour
+Rate Setup Tour
+
+Each module tour becomes an independent asset registered in Tour Registry.
+
+Adding a new module tour should require:
+
+1. Creating a tour definition file
+2. Registering it
+
+No changes elsewhere.
+
+---
+
+# UX Requirements
+
+Extremely important.
+
+Avoid common ShowcaseView mistakes.
+
+Do NOT:
+
+* Cover entire screen with overlays
+* Block scrolling unnecessarily
+* Force long tours
+* Show large paragraphs
+* Trigger tours repeatedly
+* Break existing interactions
+
+Do:
+
+* Use concise text
+* Use progress indicators
+* Support Skip
+* Support Resume
+* Support Revisit
+* Support Dark Mode
+* Support Tablet layouts
+* Support Dynamic Module Lists
+
+Tour UI should feel premium and lightweight.
+
+Think Linear, Notion, Slack, and modern SaaS onboarding.
+
+Not 2018-style app tutorials.
+
+---
+
+# Deliverables
+
+1. Architecture design document
+2. Folder structure
+3. Tour engine implementation
+4. Registry system
+5. Persistence system
+6. Package comparison report
+7. Recommended package strategy
+8. Phase 1 implementation
+9. Migration plan from current TourCheckpoint system
+10. Extension guide for future module tours
+
+Prioritize architecture quality over feature completion.

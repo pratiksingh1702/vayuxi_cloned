@@ -21,15 +21,14 @@ import 'package:untitled2/features/modules/all_Modules/site_Details/providers/si
 import 'package:untitled2/features/modules/all_Modules/site_Details/repository/siteModel.dart';
 import 'package:untitled2/features/modules/all_Modules/team/model/teamModel.dart';
 import 'package:untitled2/features/modules/all_Modules/team/provider/teamProvider.dart';
-import 'package:untitled2/features/tour/domain/tour_controller.dart';
-import 'package:untitled2/features/tour/domain/tour_events.dart';
 import 'package:untitled2/typeProvider/work_type.dart';
 import 'package:untitled2/typeProvider/type_provider.dart';
 // ignore: unused_import // reserved for placeholder routes
 import 'package:untitled2/core/router/placeholders.dart';
-import 'package:untitled2/features/tour/domain/tour_presistent.dart';
-import 'package:untitled2/features/tour/domain/tour_registery.dart';
-import 'package:untitled2/features/tour/registry/site_registry.dart';
+import 'package:untitled2/features/tour/core/tour_models.dart';
+import 'package:untitled2/features/tour/core/tour_package_adapter.dart';
+import 'package:untitled2/features/tour/definitions/module_screen_tours.dart';
+import 'package:untitled2/features/tour/providers/tour_providers.dart';
 import 'widgets/access_overlay.dart';
 import 'module_preferences.dart';
 import 'module_dashboard_service.dart';
@@ -136,11 +135,8 @@ class _ModuleScreenV2State extends ConsumerState<ModuleScreenV2>
   bool _overlayLoading = false;
   bool _checkInProgress = false;
   VoidCallback? _pendingAction;
-  bool _tourChecked = false;
-  bool _tourStartPending = false;
-  TourCheckpoint? _checkpoint;
-  // ignore: unused_field
-  BuildContext? _showcaseContext;
+  String? _lastShowcasedTourStepId;
+  static const TourPackageAdapter _tourPackageAdapter = TourPackageAdapter();
 
   // NEW — module card attach/detach
   bool _moduleCardAttached = false;
@@ -164,7 +160,6 @@ class _ModuleScreenV2State extends ConsumerState<ModuleScreenV2>
   @override
   void didChangeDependencies() {
     super.didChangeDependencies();
-    _tourChecked = false;
   }
 
   // ── Business Logic (Kept unchanged from original) ─────────────────────────
@@ -231,7 +226,6 @@ class _ModuleScreenV2State extends ConsumerState<ModuleScreenV2>
         setState(() {
           _overlayType = null;
           _pendingAction = null;
-          _tourChecked = false;
         });
         action?.call();
       } else if (result.state == AccessState.noSubscription) {
@@ -249,68 +243,41 @@ class _ModuleScreenV2State extends ConsumerState<ModuleScreenV2>
     }
   }
 
-  Future<void> _maybeStartShowcase(BuildContext showcaseContext) async {
-    if (_tourChecked ||
-        _tourStartPending ||
-        !mounted ||
-        _overlayLoading ||
-        _overlayType != null) return;
-    final route = ModalRoute.of(context);
-    if (route != null && !route.isCurrent) return;
+  void _syncModuleTour(BuildContext showcaseContext) {
+    WidgetsBinding.instance.addPostFrameCallback((_) async {
+      if (!mounted || _overlayLoading || _overlayType != null) return;
+      final route = ModalRoute.of(context);
+      if (route != null && !route.isCurrent) return;
 
-    _tourStartPending = true;
-    _tourChecked = true;
-    final persistence = TourPersistence();
-    if (await persistence.isCompleted()) {
-      _tourStartPending = false;
-      return;
-    }
+      final tourState = ref.read(appTourControllerProvider);
+      final tourController = ref.read(appTourControllerProvider.notifier);
 
-    await WidgetsBinding.instance.endOfFrame;
-    await Future.delayed(const Duration(milliseconds: 90));
+      if (tourState.status != AppTourStatus.running) {
+        final startedWelcome = await tourController.maybeStartWelcome();
+        if (!mounted) return;
+        if (!startedWelcome) {
+          await tourController.maybeStartTabTour(_currentIndex);
+        }
+      }
 
-    final sc = ShowCaseWidget.of(showcaseContext);
-    if (!mounted) {
-      _tourStartPending = false;
-      return;
-    }
+      final step = tourController.currentStep;
+      final activeTour = tourController.activeTour;
+      final stepKey = activeTour == null || step == null
+          ? null
+          : '${activeTour.id}:${step.id}';
 
-    if (!await persistence.isSetupClicked()) {
-      setState(() => _checkpoint = null);
-      sc.startShowCase([TourRegistry.setupBottomNavKey]);
-      _tourStartPending = false;
-      return;
-    }
-    if (!await persistence.isSiteDone()) {
-      _tourStartPending = false;
-      return;
-    }
-    if (!await persistence.isRateDone()) {
-      setState(() => _checkpoint = TourCheckpoint.rate);
-      sc.startShowCase([TourRegistry.rateModuleKey]);
-      _tourStartPending = false;
-      return;
-    }
-    if (!await persistence.isManpowerDone()) {
-      setState(() => _checkpoint = TourCheckpoint.manpower);
-      sc.startShowCase([TourRegistry.manpowerModuleKey]);
-      _tourStartPending = false;
-      return;
-    }
-    if (!await persistence.isTeamDone()) {
-      setState(() => _checkpoint = TourCheckpoint.team);
-      sc.startShowCase([TourRegistry.teamModuleKey]);
-      _tourStartPending = false;
-      return;
-    }
-    if (!await persistence.isDprDone()) {
-      setState(() => _checkpoint = TourCheckpoint.dpr);
-      sc.startShowCase([TourRegistry.dprModuleKey]);
-      _tourStartPending = false;
-      return;
-    }
-    await persistence.markCompleted();
-    _tourStartPending = false;
+      if (step == null) {
+        if (_lastShowcasedTourStepId != null) {
+          _tourPackageAdapter.dismiss(showcaseContext);
+          _lastShowcasedTourStepId = null;
+        }
+        return;
+      }
+
+      if (_lastShowcasedTourStepId == stepKey) return;
+      _lastShowcasedTourStepId = stepKey;
+      _tourPackageAdapter.showStep(showcaseContext, step);
+    });
   }
 
   // ── Module Data ────────────────────────────────────────────────────────────
@@ -720,18 +687,12 @@ class _ModuleScreenV2State extends ConsumerState<ModuleScreenV2>
   }
 
   Future<void> _navigateToModule(ModuleItem item) async {
-    if (item.routeName == '/site') {
-      await ref
-          .read(tourControllerProvider.notifier)
-          .onEvent(TourEvents.siteModuleTapped);
-    }
     final selectedSite = ref.read(siteDropdownValueProvider);
     final selectedTeam = ref.read(teamDropdownValueProvider);
     await context.push(item.routeName, extra: {
       'selectedSite': selectedSite,
       'selectedTeam': selectedTeam,
     });
-    setState(() => _tourChecked = false);
   }
 
   Future<void> _handleAiAnalysisTap() async {
@@ -939,6 +900,7 @@ class _ModuleScreenV2State extends ConsumerState<ModuleScreenV2>
     ref.watch(siteDropdownValueProvider);
     ref.watch(teamDropdownValueProvider);
     ref.watch(workflowControllerProvider);
+    ref.watch(appTourControllerProvider);
 
     ref.watch(siteProvider);
     final homeModuleAsync = ref.watch(languageModuleProvider('home'));
@@ -953,60 +915,62 @@ class _ModuleScreenV2State extends ConsumerState<ModuleScreenV2>
           backgroundColor: _pageBackgroundColor(cs, isDark),
           body: ShowCaseWidget(
             builder: (showcaseContext) {
-              _showcaseContext = showcaseContext;
-              _maybeStartShowcase(showcaseContext);
-              return GestureDetector(
-                onTap: () {
-                  if (_showQuickSettings)
-                    setState(() => _showQuickSettings = false);
-                },
-                child: Stack(
-                  fit: StackFit.expand,
-                  children: [
-                    // Layer 1: Scrollable page content
-                    SafeArea(
-                      child: _buildScrollBody(t, cs, isDark),
-                    ),
-
-                    // Layer 2: Floating dock (nav + optional attached card)
-                    _buildFloatingDock(showcaseContext, t, cs, isDark),
-
-                    // Layer 3: Quick settings panel
+              _syncModuleTour(showcaseContext);
+              return KeyedSubtree(
+                key: ModuleScreenTourTargets.screenKey,
+                child: GestureDetector(
+                  onTap: () {
                     if (_showQuickSettings)
-                      Positioned(
-                        bottom: 84 + MediaQuery.of(context).padding.bottom,
-                        left: 20,
-                        child: _buildQuickSettingsMenu(t, cs, isDark),
+                      setState(() => _showQuickSettings = false);
+                  },
+                  child: Stack(
+                    fit: StackFit.expand,
+                    children: [
+                      // Layer 1: Scrollable page content
+                      SafeArea(
+                        child: _buildScrollBody(t, cs, isDark),
                       ),
 
-                    // Layer 4: Toast notification
-                    _buildToastOverlay(),
+                      // Layer 2: Floating dock (nav + optional attached card)
+                      _buildFloatingDock(t, cs, isDark),
 
-                    // Layer 5: Access overlay loading spinner
-                    if (_overlayLoading)
-                      Positioned.fill(
-                        child: Container(
-                          color: Colors.black26,
-                          child:
-                              const Center(child: CircularProgressIndicator()),
+                      // Layer 3: Quick settings panel
+                      if (_showQuickSettings)
+                        Positioned(
+                          bottom: 84 + MediaQuery.of(context).padding.bottom,
+                          left: 20,
+                          child: _buildQuickSettingsMenu(t, cs, isDark),
                         ),
-                      ),
 
-                    // Layer 6: Access overlay widget
-                    if (!_overlayLoading &&
-                        _overlayType != null &&
-                        _overlayType != AccessState.noSubscription)
-                      Positioned.fill(
-                        child: AccessOverlay(
-                          type: _overlayType!,
-                          onUnlocked: _onUnlocked,
-                          onDismiss: _hideOverlay,
+                      // Layer 4: Toast notification
+                      _buildToastOverlay(),
+
+                      // Layer 5: Access overlay loading spinner
+                      if (_overlayLoading)
+                        Positioned.fill(
+                          child: Container(
+                            color: Colors.black26,
+                            child:
+                                const Center(child: CircularProgressIndicator()),
+                          ),
                         ),
-                      ),
 
-                    // Layer 7: Workflow FAB
-                    if (_currentIndex == 0) _buildWorkflowFab(cs, isDark),
-                  ],
+                      // Layer 6: Access overlay widget
+                      if (!_overlayLoading &&
+                          _overlayType != null &&
+                          _overlayType != AccessState.noSubscription)
+                        Positioned.fill(
+                          child: AccessOverlay(
+                            type: _overlayType!,
+                            onUnlocked: _onUnlocked,
+                            onDismiss: _hideOverlay,
+                          ),
+                        ),
+
+                      // Layer 7: Workflow FAB
+                      if (_currentIndex == 0) _buildWorkflowFab(cs, isDark),
+                    ],
+                  ),
                 ),
               );
             },
@@ -1855,8 +1819,7 @@ class _ModuleScreenV2State extends ConsumerState<ModuleScreenV2>
     );
   }
 
-  Widget _buildFloatingDock(
-      BuildContext showcaseContext, Translator t, ColorScheme cs, bool isDark) {
+  Widget _buildFloatingDock(Translator t, ColorScheme cs, bool isDark) {
     return Positioned(
       bottom: 16 + MediaQuery.of(context).padding.bottom,
       left: 12,
@@ -1873,14 +1836,13 @@ class _ModuleScreenV2State extends ConsumerState<ModuleScreenV2>
                 : const SizedBox.shrink(),
           ),
           // Nav bar — always visible
-          _buildNavBar(showcaseContext, t, cs, isDark),
+          _buildNavBar(t, cs, isDark),
         ],
       ),
     );
   }
 
-  Widget _buildNavBar(
-      BuildContext showcaseContext, Translator t, ColorScheme cs, bool isDark) {
+  Widget _buildNavBar(Translator t, ColorScheme cs, bool isDark) {
     return AnimatedContainer(
       duration: const Duration(milliseconds: 400),
       curve: Curves.easeOutCubic,
@@ -1925,7 +1887,7 @@ class _ModuleScreenV2State extends ConsumerState<ModuleScreenV2>
               children: [
                 _buildMenuButton(),
                 const SizedBox(width: 8),
-                Expanded(child: _buildTabPills(showcaseContext)),
+                Expanded(child: _buildTabPills()),
                 const SizedBox(width: 8),
                 _buildAiButton(t),
               ],
@@ -1989,16 +1951,36 @@ class _ModuleScreenV2State extends ConsumerState<ModuleScreenV2>
     );
   }
 
+  Widget _buildTourTarget({
+    required GlobalKey key,
+    required Widget child,
+    EdgeInsets targetPadding = const EdgeInsets.all(6),
+  }) {
+    return Showcase.withWidget(
+      key: key,
+      container: const SizedBox.shrink(),
+      overlayOpacity: 0.08,
+      targetPadding: targetPadding,
+      targetBorderRadius: BorderRadius.circular(18),
+      disableDefaultTargetGestures: false,
+      child: child,
+    );
+  }
+
   Widget _buildIconGrid(Translator t) {
     return LayoutBuilder(builder: (context, constraints) {
       final itemWidth = constraints.maxWidth / 4;
-      return Wrap(
-        spacing: 0,
-        runSpacing: 24,
-        alignment: WrapAlignment.start,
-        children: _currentModules
-            .map((item) => _buildModuleIconItem(item, itemWidth, t))
-            .toList(),
+      return _buildTourTarget(
+        key: ModuleScreenTourTargets.moduleCardKey,
+        targetPadding: const EdgeInsets.all(10),
+        child: Wrap(
+          spacing: 0,
+          runSpacing: 24,
+          alignment: WrapAlignment.start,
+          children: _currentModules
+              .map((item) => _buildModuleIconItem(item, itemWidth, t))
+              .toList(),
+        ),
       );
     });
   }
@@ -2056,38 +2038,6 @@ class _ModuleScreenV2State extends ConsumerState<ModuleScreenV2>
         ),
       ),
     );
-
-    // Showcase wrapping
-    if (_currentIndex == 1 && item.routeName == '/site') {
-      content = Showcase(
-          key: SiteRegistry.siteModuleCardKey,
-          description: "Click to add site details",
-          child: content);
-    } else if (_checkpoint == TourCheckpoint.rate &&
-        item.routeName == '/site-list/rate') {
-      content = Showcase(
-          key: TourRegistry.rateModuleKey,
-          description: "Click to add rate details",
-          child: content);
-    } else if (_checkpoint == TourCheckpoint.manpower &&
-        item.routeName == '/manpower') {
-      content = Showcase(
-          key: TourRegistry.manpowerModuleKey,
-          description: "Click to add manpower details",
-          child: content);
-    } else if (_checkpoint == TourCheckpoint.team &&
-        item.routeName == '/site-list/team') {
-      content = Showcase(
-          key: TourRegistry.teamModuleKey,
-          description: "Click to add team details",
-          child: content);
-    } else if (_checkpoint == TourCheckpoint.dpr &&
-        item.routeName == '/site-list/addMoc') {
-      content = Showcase(
-          key: TourRegistry.dprModuleKey,
-          description: "Click to add DPR details",
-          child: content);
-    }
 
     return content;
   }
@@ -2178,7 +2128,7 @@ class _ModuleScreenV2State extends ConsumerState<ModuleScreenV2>
     );
   }
 
-  Widget _buildTabPills(BuildContext showcaseContext) {
+  Widget _buildTabPills() {
     final cs = Theme.of(context).colorScheme;
     return Container(
       height: 40,
@@ -2218,10 +2168,10 @@ class _ModuleScreenV2State extends ConsumerState<ModuleScreenV2>
             Row(
               mainAxisAlignment: MainAxisAlignment.spaceEvenly,
               children: [
-                _buildTabPill(label: 'Daily', index: 0, sc: null),
-                _buildTabPill(label: 'Setup', index: 1, sc: showcaseContext),
-                _buildTabPill(label: 'Reports', index: 2, sc: null),
-                _buildTabPill(label: 'More', index: 3, sc: null),
+                _buildTabPill(label: 'Daily', index: 0),
+                _buildTabPill(label: 'Setup', index: 1),
+                _buildTabPill(label: 'Reports', index: 2),
+                _buildTabPill(label: 'More', index: 3),
               ],
             ),
           ],
@@ -2230,39 +2180,45 @@ class _ModuleScreenV2State extends ConsumerState<ModuleScreenV2>
     );
   }
 
-  Widget _buildTabPill(
-      {required String label, required int index, BuildContext? sc}) {
+  Widget _buildTabPill({required String label, required int index}) {
     final cs = Theme.of(context).colorScheme;
     final isActive = _currentIndex == index;
-    Widget pill = Expanded(
-      child: GestureDetector(
-        onTap: () {
-          if (index == 0 || index == 3) {
-            _hideOverlay();
-            setState(() => _currentIndex = index);
-          } else {
-            if (_overlayType != null) return;
-            _handleBottomNavTap(index);
-          }
-        },
-        child: Container(
-          color: Colors.transparent,
-          child: Center(
-            child: AnimatedDefaultTextStyle(
-              duration: const Duration(milliseconds: 250),
-              style: TextStyle(
-                  fontSize: 11,
-                  fontWeight: isActive ? FontWeight.w700 : FontWeight.w600,
-                  color: isActive
-                      ? Colors.white
-                      : cs.onSurfaceVariant.withOpacity(0.65)),
-              child: Text(label),
-            ),
+    Widget pill = GestureDetector(
+      onTap: () {
+        if (index == 0 || index == 3) {
+          _hideOverlay();
+          setState(() => _currentIndex = index);
+        } else {
+          if (_overlayType != null) return;
+          _handleBottomNavTap(index);
+        }
+      },
+      child: Container(
+        color: Colors.transparent,
+        child: Center(
+          child: AnimatedDefaultTextStyle(
+            duration: const Duration(milliseconds: 250),
+            style: TextStyle(
+                fontSize: 11,
+                fontWeight: isActive ? FontWeight.w700 : FontWeight.w600,
+                color: isActive
+                    ? Colors.white
+                    : cs.onSurfaceVariant.withOpacity(0.65)),
+            child: Text(label),
           ),
         ),
       ),
     );
 
+    return Expanded(
+      child: _buildTourTarget(
+        key: _tabTourKey(index),
+        targetPadding: const EdgeInsets.symmetric(horizontal: 4, vertical: 6),
+        child: pill,
+      ),
+    );
+
+    /*
     if (index == 1 && sc != null) {
       pill = Showcase(
         key: TourRegistry.setupBottomNavKey,
@@ -2277,6 +2233,22 @@ class _ModuleScreenV2State extends ConsumerState<ModuleScreenV2>
       );
     }
     return pill;
+    */
+  }
+
+  GlobalKey _tabTourKey(int index) {
+    switch (index) {
+      case 0:
+        return ModuleScreenTourTargets.dailyTabKey;
+      case 1:
+        return ModuleScreenTourTargets.setupTabKey;
+      case 2:
+        return ModuleScreenTourTargets.reportsTabKey;
+      case 3:
+        return ModuleScreenTourTargets.moreTabKey;
+      default:
+        return ModuleScreenTourTargets.dailyTabKey;
+    }
   }
 
   Widget _buildAiButton(Translator t) {

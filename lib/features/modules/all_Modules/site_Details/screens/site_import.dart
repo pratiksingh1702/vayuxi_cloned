@@ -29,6 +29,8 @@ import '../../../../tour/registry/site_registry.dart';
 import '../../site_Details/providers/site_current_provider.dart';
 import '../providers/siteProvider.dart';
 
+bool get _phase1DeepSiteTourEnabled => false;
+
 class SiteImportCsvScreen extends ConsumerStatefulWidget {
   const SiteImportCsvScreen({
     super.key,
@@ -166,6 +168,7 @@ class _SiteImportCsvScreenState extends ConsumerState<SiteImportCsvScreen>
     return ShowCaseWidget(
       builder: (showcaseContext) {
         WidgetsBinding.instance.addPostFrameCallback((_) {
+          if (!_phase1DeepSiteTourEnabled) return;
           runTourForRoute(Routes.siteImport, showcaseContext);
         });
 
