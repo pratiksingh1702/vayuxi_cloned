@@ -6,6 +6,7 @@ import 'package:untitled2/core/router/app_router.dart';
 import 'package:untitled2/core/router/routes.dart';
 import 'package:untitled2/features/tour/domain/tour_controller.dart';
 import 'package:untitled2/features/tour/registry/site_registry.dart';
+import 'package:untitled2/features/tour/providers/tour_providers.dart';
 import '../../../features/auth/provider/auth_provider.dart';
 import '../../screens/theme_switcher.dart';
 import '../../../features/modules/screen/device_id.dart';
@@ -19,6 +20,8 @@ import 'custom_scrollbar.dart';
 import 'route_search_popup.dart';
 
 final drawerExpandedSectionProvider = StateProvider<String?>((ref) => 'MAIN');
+
+bool get _phase1TourDrawerEnabled => true;
 
 class CustomDrawer extends ConsumerWidget {
   const CustomDrawer({super.key});
@@ -114,6 +117,21 @@ class CustomDrawer extends ConsumerWidget {
 
   Future<void> _showTourRestartOptions(
       BuildContext context, WidgetRef ref) async {
+    if (_phase1TourDrawerEnabled) {
+      final phase1TourCtrl = ref.read(appTourControllerProvider.notifier);
+      final phase1Router = ref.read(appRouterProvider);
+
+      Navigator.pop(context);
+      await phase1TourCtrl.resetAllAndStart();
+      phase1Router.go(Routes.selectModule);
+      if (context.mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text('Phase 1 tour restarted')),
+        );
+      }
+      return;
+    }
+
     final ctrl = ref.read(tourControllerProvider.notifier);
     final router = ref.read(appRouterProvider);
 

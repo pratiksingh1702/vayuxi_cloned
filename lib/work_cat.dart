@@ -1247,6 +1247,13 @@ class _CategorySpotlightCard extends StatelessWidget {
   final Function(WorkType) onSelect;
   final Function(WorkType) onAddToWorkspace;
 
+  WorkType? _workTypeByName(String name) {
+    for (final type in WorkType.values) {
+      if (type.name == name) return type;
+    }
+    return null;
+  }
+
   @override
   Widget build(BuildContext context) {
     return LayoutBuilder(
@@ -1255,11 +1262,21 @@ class _CategorySpotlightCard extends StatelessWidget {
         final targetHeight = (tileWidth / 0.88).clamp(190.0, 248.0);
         final aspectRatio = (tileWidth / targetHeight).clamp(0.72, 0.96);
         final hasWorkspace = workspaceTypes.isNotEmpty;
-        final firstShowcaseIndex = hasWorkspace
-            ? WorkType.values.indexWhere(
-                (type) => workspaceTypes.contains(type.name),
-              )
-            : 0;
+        final selectedTypes = hasWorkspace
+            ? workspaceTypes
+                .map(_workTypeByName)
+                .whereType<WorkType>()
+                .toList()
+            : <WorkType>[];
+        final selectedTypeNames = selectedTypes.map((type) => type.name).toSet();
+        final visibleTypes = hasWorkspace
+            ? [
+                ...selectedTypes,
+                ...WorkType.values.where(
+                  (type) => !selectedTypeNames.contains(type.name),
+                ),
+              ]
+            : WorkType.values;
 
         return GridView.builder(
           keyboardDismissBehavior: ScrollViewKeyboardDismissBehavior.onDrag,
@@ -1273,9 +1290,9 @@ class _CategorySpotlightCard extends StatelessWidget {
             mainAxisSpacing: 12,
             childAspectRatio: aspectRatio,
           ),
-          itemCount: WorkType.values.length,
+          itemCount: visibleTypes.length,
           itemBuilder: (context, index) {
-            final type = WorkType.values[index];
+            final type = visibleTypes[index];
             final isInWorkspace =
                 !hasWorkspace || workspaceTypes.contains(type.name);
             final card = AnimatedSwitcher(
@@ -1315,7 +1332,7 @@ class _CategorySpotlightCard extends StatelessWidget {
                     ),
             );
 
-            if (index == firstShowcaseIndex && firstShowcaseIndex >= 0) {
+            if (index == 0) {
               return Showcase(
                 key: TourRegistry.workCategoryKey,
                 description: hasWorkspace

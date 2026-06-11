@@ -1,69 +1,456 @@
-Context: This is a Flutter ERP app. I have two files:
+# ERP Tour System Architecture (Phase 1 Foundation)
 
-language_first_time_popup.dart — a multi-step onboarding popup (Language → Tour Intro)
-work_cat.dart — the main landing screen with a WorkType grid, showcase tour, and the popup overlay
+## Objective
 
-I need you to implement a Domain Selection step inside the existing popup flow, and a personalized workspace experience on the home grid — all with production-quality UX. Here are the full requirements:
+Design and implement a scalable, maintainable, package-agnostic tour system for the ERP application.
 
-STEP 1 — Add a 3rd popup panel: Domain/Workspace Selection
-After the user taps "Let's Start" or "Explore with us" on the _TourIntroBody panel, do not dismiss the popup yet. Instead, animate in a new panel (_DomainSelectionBody) inside the same _PopupShell, using the existing AnimatedSwitcher slide transition pattern already in place.
-_DomainSelectionBody requirements:
+This is NOT a request to simply add ShowcaseView widgets.
 
-Title: "What's your work domain?", subtitle: "Select the work types you handle. You can always add more later."
-Display all WorkType.values as a multi-select chip grid (2 columns). Each chip shows workType.imagePath as a small thumbnail (ClipRRect, ~48×48), workType.displayName, and a checkmark overlay when selected. Use the existing CompanyCard accent colors as the chip border/highlight color when selected.
-A "Start My Workspace" primary button (disabled until ≥1 selected) and a "Skip, show everything" text button below it.
-Animate chip selection with AnimatedContainer scale + border color transition.
-Store the selected WorkType names in a List<String> via SharedPreferences key 'user_workspace_types'. If skipped, store an empty list (meaning "show all").
-After confirming, call widget.onStartTour (existing callback) and dismiss the popup — passing the selected list back through a new required callback: void Function(List<String> selectedTypes) onWorkspaceConfirmed.
+The goal is to build a reusable onboarding/tour platform that can support hundreds of screens and modules without becoming difficult to maintain.
 
-Panel routing inside _LanguageFirstTimePopupState:
+The architecture should be treated like a framework inside the application.
 
-_activePanel == 0 → _LanguageBody
-_activePanel == 1 → _TourIntroBody
-_activePanel == 2 → _DomainSelectionBody
+Think of it as:
 
-When "Let's Start" / "Explore with us" is tapped on panel 1, set _activePanel = 2. The existing AnimatedSwitcher with slide transition handles the animation automatically.
+* Weapons = Tour Infrastructure
+* Skills = Tour Definitions
+* Gameplay = Actual Tours
 
-STEP 2 — Workspace-aware grid in WorkCategoryScreen
-Add a List<String> _workspaceTypes = [] state variable. Populate it from SharedPreferences 'user_workspace_types' in initState (after the language popup check). An empty list means "user skipped" = show all normally.
-Grid rendering logic:
-Case A — User selected specific types (list not empty):
+We will build the weapons first.
 
-Selected cards render fully as today, in their grid positions.
-Non-selected cards render as a visually collapsed + frosted tile: blurred image (ImageFilter.blur), reduced opacity (0.38), a small lock/add icon, and a label "Tap to add to workspace". These tiles are still tappable — tapping one shows a bottom sheet or inline SnackBar: "Added [WorkType] to your workspace!" and updates _workspaceTypes + SharedPreferences. Animate the card from collapsed → full using AnimatedSwitcher or TweenAnimationBuilder.
-Show a small persistent "+ Add more" FAB or inline chip at the bottom of the grid: "Manage workspace" → navigates to a simple full-screen selector (reuse _DomainSelectionBody logic as a standalone screen or modal).
+---
 
-Case B — User skipped (empty list):
+# Current Problem
 
-All cards render fully as today (no change to existing behavior).
-First tap on any card → show a non-blocking SnackBar with "Tip: You can personalize your workspace from Settings → Workspace." (show only once, gate with a SharedPreferences bool 'workspace_tip_shown').
+The current onboarding approach is sequential and tightly coupled.
 
-Showcase/tour integration:
+Example:
 
-The existing TourRegistry.workCategoryKey showcase should only attach to workspace-visible cards (index 0 of the filtered list, not always the first WorkType).
-If user has a workspace, the tour description should say "These are your selected work domains" instead of the generic message.
+App Open
+→ Setup
+→ Site
+→ Rate
+→ Team
+→ DPR
+→ Continue
 
+Problems:
 
-STEP 3 — General UX polish rules (treat user as a first-time newcomer)
+* Forces every user through the same path
+* Does not respect user roles
+* Does not respect user intent
+* Not scalable
+* Difficult to maintain
+* Difficult to add new modules
+* Creates onboarding fatigue
 
-All state transitions must use AnimatedSwitcher, AnimatedContainer, or TweenAnimationBuilder. No abrupt layout jumps.
-Collapsed/blurred cards must maintain their grid slot size — do not reflow the grid when a card is added. Use AnimatedOpacity + AnimatedScale on the card content only, not the grid cell.
-The popup's back navigation (panel 2 → panel 1) should be supported: add a subtle back arrow in _DomainSelectionBody header that decrements _activePanel.
-Tapping "Skip, show everything" on the domain panel must feel intentional — add a brief 200ms delay + a ripple confirm before dismissing, so users don't accidentally skip.
-All SharedPreferences reads/writes must be wrapped in try/catch. On read failure, default to "show all" gracefully.
-Do not break the existing showcase/tour gating logic (_languageFlowDone, _tourIntroSkipped, _showcaseStarted flags). The domain selection panel is part of the language/onboarding flow — set _languageFlowDone = true only after the popup fully dismisses (panel 2 confirm or skip).
-Preserve all existing callbacks: onSelectLanguage, onSkip, onStartTour, onSkipTour. Add only onWorkspaceConfirmed as a new required callback on LanguageFirstTimePopup.
+---
 
+# Target Vision
 
-Files to modify:
+Tours must be:
 
-language_first_time_popup.dart — add _DomainSelectionBody, new panel routing, onWorkspaceConfirmed callback
-work_cat.dart — workspace-aware grid rendering, collapsed card widget, "add to workspace" interaction, FAB/chip for workspace management, updated showcase key targeting
+* Contextual
+* Independent
+* Modular
+* Role-aware
+* Reusable
+* Lazy-loaded
+* Analytics-ready
+* Package-independent
 
-Do NOT change:
+Users should only receive guidance for the screen they are currently using.
 
-Routing/navigation logic (go_router, Routes)
-Auth/provider logic
-TourRegistry, TourController
-Existing LanguagePopupPrefs, LanguageStorage, languageRepositoryProvider
+---
 
+# Architecture Requirements
+
+Create a dedicated feature:
+
+features/tour/
+
+Suggested structure:
+
+features/
+└── tour/
+├── core/
+│   ├── tour_engine.dart
+│   ├── tour_manager.dart
+│   ├── tour_registry.dart
+│   ├── tour_storage.dart
+│   ├── tour_models.dart
+│   ├── tour_analytics.dart
+│   └── tour_package_adapter.dart
+│
+├── definitions/
+│   ├── daily_entry_tour.dart
+│   ├── setup_tour.dart
+│   ├── reports_tour.dart
+│   └── more_tour.dart
+│
+├── widgets/
+│   ├── tour_overlay.dart
+│   ├── tour_tooltip.dart
+│   ├── tour_welcome_card.dart
+│   └── tour_video_popup.dart
+│
+└── providers/
+
+---
+
+# Package Evaluation
+
+Research and evaluate:
+
+1. showcaseview
+2. tutorial_coach_mark
+3. feature_discovery
+4. flutter_onboarding_slider
+5. custom overlay implementation
+
+Do not blindly use ShowcaseView.
+
+Compare:
+
+* Stability
+* Performance
+* Nested navigation support
+* Dynamic content support
+* Lazy loading
+* Rebuild behavior
+* Riverpod compatibility
+* Long-term maintainability
+
+Choose the best solution.
+
+If needed:
+
+Use hybrid architecture:
+
+* Custom engine
+* Showcase only for spotlight rendering
+
+The application must not depend on a single package.
+
+Package should be replaceable later.
+
+---
+
+# Core Concepts
+
+## Tour Group
+
+Examples:
+
+Daily Entry Tour
+Setup Tour
+Reports Tour
+More Tour
+
+These are top-level tours.
+
+---
+
+## Module Tour
+
+Examples:
+
+Attendance Tour
+Expense Tour
+Inventory Tour
+DPR Tour
+
+Each module owns its own tour.
+
+No dependency on any other module.
+
+---
+
+## Tour Step
+
+Every tour consists of steps.
+
+Example:
+
+Daily Entry Tour
+
+Step 1
+Attendance Introduction
+
+Step 2
+Expense Introduction
+
+Step 3
+Inventory Introduction
+
+Step 4
+DPR Introduction
+
+Users can:
+
+* Next
+* Previous
+* Skip
+* Finish
+
+---
+
+# Independence Rules
+
+STRICT REQUIREMENT
+
+No global onboarding chain.
+
+Forbidden:
+
+Site Tour
+→ Rate Tour
+→ Team Tour
+→ DPR Tour
+
+Required:
+
+Daily Entry Tour
+
+Setup Tour
+
+Reports Tour
+
+More Tour
+
+All independent.
+
+---
+
+# Site Constraint
+
+Daily Entry depends on Site creation.
+
+New users may not have a site.
+
+Therefore:
+
+Provide a Sample Site mode.
+
+When Daily Entry Tour starts:
+
+Show:
+
+"You are currently viewing a sample site.
+
+To use your own project data, create a site from:
+
+Setup → Site Details"
+
+After this message:
+
+Continue Daily Entry Tour normally.
+
+Do not block users.
+
+Do not force navigation.
+
+---
+
+# User Role Awareness
+
+Architecture must support:
+
+Worker
+Supervisor
+Admin
+
+Worker:
+
+Daily Entry Tour
+
+Supervisor:
+
+Daily Entry Tour
+Reports Tour
+
+Admin:
+
+Setup Tour
+Daily Entry Tour
+Reports Tour
+
+Role logic must be configurable.
+
+Do not hardcode.
+
+---
+
+# Phase 1
+
+Implement only:
+
+1. Tour Engine
+2. Tour Registry
+3. Tour Persistence
+4. Tour Analytics Hooks
+5. Welcome Tour
+6. Daily Entry Tab Tour
+7. Setup Tab Tour
+8. Reports Tab Tour
+9. More Tab Tour
+
+No module tours yet.
+
+---
+
+# Phase 1 User Flow
+
+App Open
+
+Optional Welcome Card
+
+Message:
+
+Welcome to ERP
+
+This demo uses a sample site.
+
+To create your own projects:
+Setup → Site Details
+
+Continue
+
+---
+
+User opens Daily Entry
+
+Launch:
+
+Daily Entry Tour
+
+Explain:
+
+* Attendance
+* Expense Entry
+* Inventory Entry
+* DPR
+* P&M Entry
+
+Only introductions.
+
+No deep guidance.
+
+---
+
+User opens Setup
+
+Launch:
+
+Setup Tour
+
+Explain:
+
+* Site Details
+* Rate Setup
+* Manpower Setup
+* Team Setup
+* Inventory Setup
+* DPR Setup
+* BOQ
+* Work Assignment
+* P&M Setup
+
+Only introductions.
+
+---
+
+User opens Reports
+
+Launch:
+
+Reports Tour
+
+Explain available report modules.
+
+---
+
+User opens More
+
+Launch:
+
+More Tour
+
+Explain utility modules.
+
+---
+
+# Phase 2 (Future)
+
+After architecture is completed:
+
+Implement module-level tours.
+
+Examples:
+
+Attendance Tour
+Expense Tour
+Inventory Tour
+DPR Tour
+Site Details Tour
+Rate Setup Tour
+
+Each module tour becomes an independent asset registered in Tour Registry.
+
+Adding a new module tour should require:
+
+1. Creating a tour definition file
+2. Registering it
+
+No changes elsewhere.
+
+---
+
+# UX Requirements
+
+Extremely important.
+
+Avoid common ShowcaseView mistakes.
+
+Do NOT:
+
+* Cover entire screen with overlays
+* Block scrolling unnecessarily
+* Force long tours
+* Show large paragraphs
+* Trigger tours repeatedly
+* Break existing interactions
+
+Do:
+
+* Use concise text
+* Use progress indicators
+* Support Skip
+* Support Resume
+* Support Revisit
+* Support Dark Mode
+* Support Tablet layouts
+* Support Dynamic Module Lists
+
+Tour UI should feel premium and lightweight.
+
+Think Linear, Notion, Slack, and modern SaaS onboarding.
+
+Not 2018-style app tutorials.
+
+---
+
+# Deliverables
+
+1. Architecture design document
+2. Folder structure
+3. Tour engine implementation
+4. Registry system
+5. Persistence system
+6. Package comparison report
+7. Recommended package strategy
+8. Phase 1 implementation
+9. Migration plan from current TourCheckpoint system
+10. Extension guide for future module tours
+
+Prioritize architecture quality over feature completion.
