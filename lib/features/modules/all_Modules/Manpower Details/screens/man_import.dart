@@ -308,7 +308,7 @@ class _ManImportCsvScreenState extends ConsumerState<ManImportCsvScreen> {
 
       AppToast.success("✅ File added to upload queue");
       if (!mounted) return;
-      context.push(Routes.manpowerList);
+      context.go(Routes.manpowerList);
 
       // _dbg("✅ uploadRes runtimeType = ${uploadRes.runtimeType}");
       // _dbg("✅ uploadRes = ${_short(uploadRes, max: 2000)}");

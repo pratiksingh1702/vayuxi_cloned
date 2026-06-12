@@ -66,9 +66,8 @@ class _PebDprEntryScreenState extends State<PebDprEntryScreen> {
 
   static const String _level1StageMarker = '__level1_stage__';
 
-  // Mark search / sort / filter
+  // Mark search / filter
   String _markSearchQuery = '';
-  bool _markSortAz = true; // true = A→Z, false = Z→A
   String? _markFilterStatus; // null = all, 'pending', 'inProgress', 'completed'
   final TextEditingController _markSearchCtrl = TextEditingController();
 
@@ -2838,12 +2837,12 @@ class _PebDprEntryScreenState extends State<PebDprEntryScreen> {
 
   // ─── Mark Search / Sort / Filter helpers ───────────────────────────────────
 
-  /// Fuzzy-filters and sorts the mark numbers for [work].
+  /// Fuzzy-filters the mark numbers for [work] while preserving upload order.
   List<String> _filteredSortedMarks(_VisibleWork work) {
     final allMarks = _displayMarksForWork(work);
     final q = _markSearchQuery.trim().toLowerCase();
 
-    var result = allMarks.where((mark) {
+    final result = allMarks.where((mark) {
       // Status filter
       if (_markFilterStatus != null) {
         final completed = _completedForWork(work).contains(mark);
@@ -2865,8 +2864,6 @@ class _PebDprEntryScreenState extends State<PebDprEntryScreen> {
           assemblyMark.contains(q);
     }).toList();
 
-    // Sort
-    result.sort((a, b) => _markSortAz ? a.compareTo(b) : b.compareTo(a));
     return result;
   }
 
@@ -2874,7 +2871,7 @@ class _PebDprEntryScreenState extends State<PebDprEntryScreen> {
   Widget _buildMarkSearchBar(_VisibleWork work) {
     final cs = Theme.of(context).colorScheme;
     final layout = _PebDprResponsive.of(context);
-    final hasFilters = _markFilterStatus != null || !_markSortAz;
+    final hasFilters = _markFilterStatus != null;
     return Padding(
       padding: const EdgeInsets.symmetric(horizontal: 0),
       child: Row(
@@ -3009,7 +3006,6 @@ class _PebDprEntryScreenState extends State<PebDprEntryScreen> {
                     TextButton(
                       onPressed: () {
                         setModal(() {
-                          _markSortAz = true;
                           _markFilterStatus = null;
                         });
                         setState(() {});
@@ -3024,37 +3020,6 @@ class _PebDprEntryScreenState extends State<PebDprEntryScreen> {
                 child: ListView(
                   padding: EdgeInsets.all(layout.compact ? 16 : 20),
                   children: [
-                    // SORT SECTION
-                    _buildSectionTitle('Sort By'),
-                    SizedBox(height: layout.cardGap),
-                    Wrap(
-                      spacing: 8,
-                      runSpacing: 8,
-                      children: [
-                        _buildSortChip(
-                          setModal,
-                          'Mark A → Z',
-                          _markSortAz,
-                          Icons.sort_by_alpha_rounded,
-                          () {
-                            setModal(() => _markSortAz = true);
-                            setState(() {});
-                          },
-                        ),
-                        _buildSortChip(
-                          setModal,
-                          'Mark Z → A',
-                          !_markSortAz,
-                          Icons.sort_rounded,
-                          () {
-                            setModal(() => _markSortAz = false);
-                            setState(() {});
-                          },
-                        ),
-                      ],
-                    ),
-                    SizedBox(height: layout.sectionGap),
-
                     // FILTER BY STATUS
                     _buildSectionTitle('Filter by Status'),
                     SizedBox(height: layout.cardGap),
@@ -3125,57 +3090,6 @@ class _PebDprEntryScreenState extends State<PebDprEntryScreen> {
         fontSize: 16,
         fontWeight: FontWeight.bold,
         color: Theme.of(context).colorScheme.onSurface,
-      ),
-    );
-  }
-
-  Widget _buildSortChip(
-    StateSetter setModalState,
-    String label,
-    bool isSelected,
-    IconData icon,
-    VoidCallback onTap,
-  ) {
-    final cs = Theme.of(context).colorScheme;
-    return GestureDetector(
-      onTap: onTap,
-      child: Container(
-        padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
-        decoration: BoxDecoration(
-          color: isSelected ? cs.primary : cs.surface,
-          borderRadius: BorderRadius.circular(10),
-          border: Border.all(
-            color: isSelected ? cs.primary : cs.outlineVariant,
-          ),
-          boxShadow: isSelected
-              ? [
-                  BoxShadow(
-                    color: cs.primary.withOpacity(0.2),
-                    blurRadius: 4,
-                    offset: const Offset(0, 2),
-                  )
-                ]
-              : null,
-        ),
-        child: Row(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            Icon(
-              icon,
-              size: 16,
-              color: isSelected ? cs.onPrimary : cs.onSurface,
-            ),
-            const SizedBox(width: 8),
-            Text(
-              label,
-              style: TextStyle(
-                color: isSelected ? cs.onPrimary : cs.onSurface,
-                fontWeight: isSelected ? FontWeight.bold : FontWeight.normal,
-                fontSize: 13,
-              ),
-            ),
-          ],
-        ),
       ),
     );
   }
