@@ -1,0 +1,346 @@
+Performing hot restart...
+Restarted application in 14,837ms.
+Try again after fixing the above error(s).
+I/flutter ( 5372): 😴 No pending requests → skip
+I/flutter ( 5372): 😴 No pending requests → skip
+I/flutter ( 5372): 😴 No pending requests → skip
+I/flutter ( 5372): 😴 No pending requests → skip
+I/flutter ( 5372): 😴 No pending requests → skip
+I/flutter ( 5372): 😴 No pending requests → skip
+I/flutter ( 5372): 😴 No pending requests → skip
+I/flutter ( 5372): 😴 No pending requests → skip
+I/flutter ( 5372): 😴 No pending requests → skip
+I/flutter ( 5372): 😴 No pending requests → skip
+I/flutter ( 5372): 😴 No pending requests → skip
+I/flutter ( 5372): 😴 No pending requests → skip
+I/flutter ( 5372): 😴 No pending requests → skip
+I/flutter ( 5372): 😴 No pending requests → skip
+
+lib/features/modules/all_Modules/summary/screens/summaru_screen.dart:731:9: Error: Type 'PebWorkSummaryModel' not found.
+  final PebWorkSummaryModel summary;
+        ^^^^^^^^^^^^^^^^^^^
+lib/features/modules/all_Modules/summary/screens/summaru_screen.dart:791:14: Error: Type 'PebTrendPoint' not found.
+  final List<PebTrendPoint> points;
+             ^^^^^^^^^^^^^
+lib/features/modules/all_Modules/summary/screens/summaru_screen.dart:852:14: Error: Type 'PebStageSummary' not found.
+  final List<PebStageSummary> stages;
+             ^^^^^^^^^^^^^^^
+lib/features/modules/all_Modules/summary/screens/summaru_screen.dart:888:14: Error: Type 'PebGanttRow' not found.
+  final List<PebGanttRow> rows;
+             ^^^^^^^^^^^
+lib/features/modules/all_Modules/summary/screens/summaru_screen.dart:921:14: Error: Type 'PebDelayRow' not found.
+  final List<PebDelayRow> rows;
+             ^^^^^^^^^^^
+lib/features/modules/all_Modules/summary/screens/summaru_screen.dart:950:14: Error: Type 'PebTeamSummary' not found.
+  final List<PebTeamSummary> teams;
+             ^^^^^^^^^^^^^^
+lib/features/modules/all_Modules/summary/screens/summaru_screen.dart:1069:9: Error: Type 'PebStageSummary' not found.
+  final PebStageSummary stage;
+        ^^^^^^^^^^^^^^^
+lib/features/modules/all_Modules/summary/screens/summaru_screen.dart:1124:14: Error: Type 'PebStageSummary' not found.
+  final List<PebStageSummary> stages;
+             ^^^^^^^^^^^^^^^
+lib/features/modules/all_Modules/summary/screens/summaru_screen.dart:1318:14: Error: Type 'PebGanttRow' not found.
+  final List<PebGanttRow> rows;
+             ^^^^^^^^^^^
+lib/features/modules/all_Modules/summary/screens/summaru_screen.dart:1463:9: Error: Type 'PebGanttRow' not found.
+  final PebGanttRow source;
+        ^^^^^^^^^^^
+lib/features/modules/all_Modules/summary/screens/summaru_screen.dart:1483:32: Error: Type 'PebGanttRow' not found.
+  factory _GanttVisualRow.from(PebGanttRow row) {
+                               ^^^^^^^^^^^
+lib/features/modules/all_Modules/summary/screens/summaru_screen.dart:1809:9: Error: Type 'PebDelayRow' not found.
+  final PebDelayRow row;
+        ^^^^^^^^^^^
+lib/features/modules/all_Modules/summary/screens/summaru_screen.dart:1856:9: Error: Type 'PebTeamSummary' not found.
+  final PebTeamSummary team;
+        ^^^^^^^^^^^^^^
+lib/features/peb_execution/screens/peb_dpr_entry_screen.dart:63:15: Error: Type 'PebLevel1DprEntry' not found.
+  Map<String, PebLevel1DprEntry> _level1Entries = const {};
+              ^^^^^^^^^^^^^^^^^
+lib/features/peb_execution/screens/peb_dpr_entry_screen.dart:221:3: Error: Type 'PebLevel1DprEntry' not found.
+  PebLevel1DprEntry? _level1EntryFor(_VisibleWork work) {
+  ^^^^^^^^^^^^^^^^^
+lib/features/modules/all_Modules/summary/screens/summaru_screen.dart:223:36: Error: The getter 'rangeFromDate' isn't
+defined for the type 'SummaryFilter'.
+ - 'SummaryFilter' is from 'package:untitled2/features/modules/all_Modules/summary/data/provider.dart'
+ ('lib/features/modules/all_Modules/summary/data/provider.dart').
+Try correcting the name to the name of an existing getter, or defining a getter or field named 'rangeFromDate'.
+                      date: filter.rangeFromDate,
+                                   ^^^^^^^^^^^^^
+lib/features/modules/all_Modules/summary/screens/summaru_screen.dart:224:42: Error: The getter 'setRangeFromDate' isn't
+defined for the type 'SummaryFilterNotifier'.
+ - 'SummaryFilterNotifier' is from 'package:untitled2/features/modules/all_Modules/summary/data/provider.dart'
+ ('lib/features/modules/all_Modules/summary/data/provider.dart').
+Try correcting the name to the name of an existing getter, or defining a getter or field named 'setRangeFromDate'.
+                      onPicked: notifier.setRangeFromDate,
+                                         ^^^^^^^^^^^^^^^^
+lib/features/modules/all_Modules/summary/screens/summaru_screen.dart:232:36: Error: The getter 'rangeToDate' isn't
+defined for the type 'SummaryFilter'.
+ - 'SummaryFilter' is from 'package:untitled2/features/modules/all_Modules/summary/data/provider.dart'
+ ('lib/features/modules/all_Modules/summary/data/provider.dart').
+Try correcting the name to the name of an existing getter, or defining a getter or field named 'rangeToDate'.
+                      date: filter.rangeToDate,
+                                   ^^^^^^^^^^^
+lib/features/modules/all_Modules/summary/screens/summaru_screen.dart:233:42: Error: The getter 'setRangeToDate' isn't
+defined for the type 'SummaryFilterNotifier'.
+ - 'SummaryFilterNotifier' is from 'package:untitled2/features/modules/all_Modules/summary/data/provider.dart'
+ ('lib/features/modules/all_Modules/summary/data/provider.dart').
+Try correcting the name to the name of an existing getter, or defining a getter or field named 'setRangeToDate'.
+                      onPicked: notifier.setRangeToDate,
+                                         ^^^^^^^^^^^^^^
+lib/features/modules/all_Modules/summary/screens/summaru_screen.dart:668:36: Error: The getter 'pebWorkSummaryProvider'
+isn't defined for the type '_PebWorkSummaryViewState'.
+ - '_PebWorkSummaryViewState' is from
+ 'package:untitled2/features/modules/all_Modules/summary/screens/summaru_screen.dart'
+ ('lib/features/modules/all_Modules/summary/screens/summaru_screen.dart').
+Try correcting the name to the name of an existing getter, or defining a getter or field named 'pebWorkSummaryProvider'.
+    final summaryAsync = ref.watch(pebWorkSummaryProvider);
+                                   ^^^^^^^^^^^^^^^^^^^^^^
+lib/features/modules/all_Modules/summary/screens/summaru_screen.dart:695:47: Error: The getter 'pebWorkSummaryProvider'
+isn't defined for the type '_PebWorkSummaryViewState'.
+ - '_PebWorkSummaryViewState' is from
+ 'package:untitled2/features/modules/all_Modules/summary/screens/summaru_screen.dart'
+ ('lib/features/modules/all_Modules/summary/screens/summaru_screen.dart').
+Try correcting the name to the name of an existing getter, or defining a getter or field named 'pebWorkSummaryProvider'.
+                onRetry: () => ref.invalidate(pebWorkSummaryProvider),
+                                              ^^^^^^^^^^^^^^^^^^^^^^
+lib/features/modules/all_Modules/summary/screens/summaru_screen.dart:699:33: Error: The getter 'pebWorkSummaryProvider'
+isn't defined for the type '_PebWorkSummaryViewState'.
+ - '_PebWorkSummaryViewState' is from
+ 'package:untitled2/features/modules/all_Modules/summary/screens/summaru_screen.dart'
+ ('lib/features/modules/all_Modules/summary/screens/summaru_screen.dart').
+Try correcting the name to the name of an existing getter, or defining a getter or field named 'pebWorkSummaryProvider'.
+                    ref.refresh(pebWorkSummaryProvider.future),
+                                ^^^^^^^^^^^^^^^^^^^^^^
+lib/features/modules/all_Modules/summary/screens/summaru_screen.dart:731:9: Error: 'PebWorkSummaryModel' isn't a type.
+  final PebWorkSummaryModel summary;
+        ^^^^^^^^^^^^^^^^^^^
+lib/features/modules/all_Modules/summary/screens/summaru_screen.dart:791:14: Error: 'PebTrendPoint' isn't a type.
+  final List<PebTrendPoint> points;
+             ^^^^^^^^^^^^^
+lib/features/modules/all_Modules/summary/screens/summaru_screen.dart:811:23: Error: The getter 'cumulativePlannedQty'
+isn't defined for the type 'Object?'.
+ - 'Object' is from 'dart:core'.
+Try correcting the name to the name of an existing getter, or defining a getter or field named 'cumulativePlannedQty'.
+                point.cumulativePlannedQty,
+                      ^^^^^^^^^^^^^^^^^^^^
+I/flutter ( 5372): 😴 No pending requests → skip
+lib/features/modules/all_Modules/summary/screens/summaru_screen.dart:812:23: Error: The getter 'cumulativeActualQty'
+isn't defined for the type 'Object?'.
+ - 'Object' is from 'dart:core'.
+Try correcting the name to the name of an existing getter, or defining a getter or field named 'cumulativeActualQty'.
+                point.cumulativeActualQty,
+                      ^^^^^^^^^^^^^^^^^^^
+lib/features/modules/all_Modules/summary/screens/summaru_screen.dart:823:36: Error: The getter 'period' isn't defined
+for the type 'Object?'.
+ - 'Object' is from 'dart:core'.
+Try correcting the name to the name of an existing getter, or defining a getter or field named 'period'.
+                        Text(point.period,
+                                   ^^^^^^
+lib/features/modules/all_Modules/summary/screens/summaru_screen.dart:827:43: Error: The getter 'actualQty' isn't defined
+for the type 'Object?'.
+ - 'Object' is from 'dart:core'.
+Try correcting the name to the name of an existing getter, or defining a getter or field named 'actualQty'.
+                          'A ${_fmt(point.actualQty)} / P ${_fmt(point.plannedQty)}',
+                                          ^^^^^^^^^
+lib/features/modules/all_Modules/summary/screens/summaru_screen.dart:827:72: Error: The getter 'plannedQty' isn't
+defined for the type 'Object?'.
+ - 'Object' is from 'dart:core'.
+Try correcting the name to the name of an existing getter, or defining a getter or field named 'plannedQty'.
+                          'A ${_fmt(point.actualQty)} / P ${_fmt(point.plannedQty)}',
+                                                                       ^^^^^^^^^^
+lib/features/modules/all_Modules/summary/screens/summaru_screen.dart:838:38: Error: The getter 'cumulativePlannedQty'
+isn't defined for the type 'Object?'.
+ - 'Object' is from 'dart:core'.
+Try correcting the name to the name of an existing getter, or defining a getter or field named 'cumulativePlannedQty'.
+                      planned: point.cumulativePlannedQty / maxQty,
+                                     ^^^^^^^^^^^^^^^^^^^^
+lib/features/modules/all_Modules/summary/screens/summaru_screen.dart:839:37: Error: The getter 'cumulativeActualQty'
+isn't defined for the type 'Object?'.
+ - 'Object' is from 'dart:core'.
+Try correcting the name to the name of an existing getter, or defining a getter or field named 'cumulativeActualQty'.
+                      actual: point.cumulativeActualQty / maxQty,
+                                    ^^^^^^^^^^^^^^^^^^^
+lib/features/modules/all_Modules/summary/screens/summaru_screen.dart:852:14: Error: 'PebStageSummary' isn't a type.
+  final List<PebStageSummary> stages;
+             ^^^^^^^^^^^^^^^
+lib/features/modules/all_Modules/summary/screens/summaru_screen.dart:860:19: Error: The getter 'assigned' isn't defined
+for the type 'Object?'.
+ - 'Object' is from 'dart:core'.
+Try correcting the name to the name of an existing getter, or defining a getter or field named 'assigned'.
+            stage.assigned > 0 ||
+                  ^^^^^^^^
+lib/features/modules/all_Modules/summary/screens/summaru_screen.dart:861:19: Error: The getter 'inProgress' isn't
+defined for the type 'Object?'.
+ - 'Object' is from 'dart:core'.
+Try correcting the name to the name of an existing getter, or defining a getter or field named 'inProgress'.
+            stage.inProgress > 0 ||
+                  ^^^^^^^^^^
+lib/features/modules/all_Modules/summary/screens/summaru_screen.dart:862:19: Error: The getter 'completed' isn't defined
+for the type 'Object?'.
+ - 'Object' is from 'dart:core'.
+Try correcting the name to the name of an existing getter, or defining a getter or field named 'completed'.
+            stage.completed > 0 ||
+                  ^^^^^^^^^
+lib/features/modules/all_Modules/summary/screens/summaru_screen.dart:863:19: Error: The getter 'pending' isn't defined
+for the type 'Object?'.
+ - 'Object' is from 'dart:core'.
+Try correcting the name to the name of an existing getter, or defining a getter or field named 'pending'.
+            stage.pending > 0)
+                  ^^^^^^^
+lib/features/modules/all_Modules/summary/screens/summaru_screen.dart:888:14: Error: 'PebGanttRow' isn't a type.
+  final List<PebGanttRow> rows;
+             ^^^^^^^^^^^
+lib/features/modules/all_Modules/summary/screens/summaru_screen.dart:896:17: Error: The getter 'plannedStartDate' isn't
+defined for the type 'Object?'.
+ - 'Object' is from 'dart:core'.
+Try correcting the name to the name of an existing getter, or defining a getter or field named 'plannedStartDate'.
+            row.plannedStartDate.isNotEmpty ||
+                ^^^^^^^^^^^^^^^^
+lib/features/modules/all_Modules/summary/screens/summaru_screen.dart:897:17: Error: The getter 'plannedEndDate' isn't
+defined for the type 'Object?'.
+ - 'Object' is from 'dart:core'.
+Try correcting the name to the name of an existing getter, or defining a getter or field named 'plannedEndDate'.
+            row.plannedEndDate.isNotEmpty ||
+                ^^^^^^^^^^^^^^
+lib/features/modules/all_Modules/summary/screens/summaru_screen.dart:898:17: Error: The getter 'actualStartDate' isn't
+defined for the type 'Object?'.
+ - 'Object' is from 'dart:core'.
+Try correcting the name to the name of an existing getter, or defining a getter or field named 'actualStartDate'.
+            row.actualStartDate.isNotEmpty ||
+                ^^^^^^^^^^^^^^^
+lib/features/modules/all_Modules/summary/screens/summaru_screen.dart:899:17: Error: The getter 'actualEndDate' isn't
+defined for the type 'Object?'.
+ - 'Object' is from 'dart:core'.
+Try correcting the name to the name of an existing getter, or defining a getter or field named 'actualEndDate'.
+            row.actualEndDate.isNotEmpty)
+                ^^^^^^^^^^^^^
+lib/features/modules/all_Modules/summary/screens/summaru_screen.dart:921:14: Error: 'PebDelayRow' isn't a type.
+  final List<PebDelayRow> rows;
+             ^^^^^^^^^^^
+lib/features/modules/all_Modules/summary/screens/summaru_screen.dart:927:45: Error: The getter 'delayDays' isn't defined
+for the type 'Object?'.
+ - 'Object' is from 'dart:core'.
+Try correcting the name to the name of an existing getter, or defining a getter or field named 'delayDays'.
+    final delayed = rows.where((row) => row.delayDays > 0).toList();
+                                            ^^^^^^^^^
+lib/features/modules/all_Modules/summary/screens/summaru_screen.dart:950:14: Error: 'PebTeamSummary' isn't a type.
+  final List<PebTeamSummary> teams;
+             ^^^^^^^^^^^^^^
+lib/features/modules/all_Modules/summary/screens/summaru_screen.dart:1069:9: Error: 'PebStageSummary' isn't a type.
+  final PebStageSummary stage;
+        ^^^^^^^^^^^^^^^
+lib/features/modules/all_Modules/summary/screens/summaru_screen.dart:1124:14: Error: 'PebStageSummary' isn't a type.
+  final List<PebStageSummary> stages;
+             ^^^^^^^^^^^^^^^
+lib/features/modules/all_Modules/summary/screens/summaru_screen.dart:1131:70: Error: The getter 'assigned' isn't defined
+for the type 'Object?'.
+ - 'Object' is from 'dart:core'.
+Try correcting the name to the name of an existing getter, or defining a getter or field named 'assigned'.
+    final assigned = stages.fold<int>(0, (sum, stage) => sum + stage.assigned);
+                                                                     ^^^^^^^^
+lib/features/modules/all_Modules/summary/screens/summaru_screen.dart:1131:62: Error: A value of type 'num' can't be
+returned from a function with return type 'int'.
+    final assigned = stages.fold<int>(0, (sum, stage) => sum + stage.assigned);
+                                                             ^
+lib/features/modules/all_Modules/summary/screens/summaru_screen.dart:1133:57: Error: The getter 'completed' isn't
+defined for the type 'Object?'.
+ - 'Object' is from 'dart:core'.
+Try correcting the name to the name of an existing getter, or defining a getter or field named 'completed'.
+        stages.fold<int>(0, (sum, stage) => sum + stage.completed);
+                                                        ^^^^^^^^^
+lib/features/modules/all_Modules/summary/screens/summaru_screen.dart:1133:49: Error: A value of type 'num' can't be
+returned from a function with return type 'int'.
+        stages.fold<int>(0, (sum, stage) => sum + stage.completed);
+                                                ^
+lib/features/modules/all_Modules/summary/screens/summaru_screen.dart:1135:57: Error: The getter 'inProgress' isn't
+defined for the type 'Object?'.
+ - 'Object' is from 'dart:core'.
+Try correcting the name to the name of an existing getter, or defining a getter or field named 'inProgress'.
+        stages.fold<int>(0, (sum, stage) => sum + stage.inProgress);
+                                                        ^^^^^^^^^^
+lib/features/modules/all_Modules/summary/screens/summaru_screen.dart:1135:49: Error: A value of type 'num' can't be
+returned from a function with return type 'int'.
+        stages.fold<int>(0, (sum, stage) => sum + stage.inProgress);
+                                                ^
+lib/features/modules/all_Modules/summary/screens/summaru_screen.dart:1138:55: Error: The getter 'pending' isn't defined
+for the type 'Object?'.
+ - 'Object' is from 'dart:core'.
+Try correcting the name to the name of an existing getter, or defining a getter or field named 'pending'.
+      stages.fold<int>(0, (sum, stage) => sum + stage.pending),
+                                                      ^^^^^^^
+lib/features/modules/all_Modules/summary/screens/summaru_screen.dart:1138:47: Error: A value of type 'num' can't be
+returned from a function with return type 'int'.
+      stages.fold<int>(0, (sum, stage) => sum + stage.pending),
+                                              ^
+lib/features/modules/all_Modules/summary/screens/summaru_screen.dart:1318:14: Error: 'PebGanttRow' isn't a type.
+  final List<PebGanttRow> rows;
+             ^^^^^^^^^^^
+lib/features/modules/all_Modules/summary/screens/summaru_screen.dart:1463:9: Error: 'PebGanttRow' isn't a type.
+  final PebGanttRow source;
+        ^^^^^^^^^^^
+lib/features/modules/all_Modules/summary/screens/summaru_screen.dart:1483:32: Error: 'PebGanttRow' isn't a type.
+  factory _GanttVisualRow.from(PebGanttRow row) {
+                               ^^^^^^^^^^^
+lib/features/modules/all_Modules/summary/screens/summaru_screen.dart:1809:9: Error: 'PebDelayRow' isn't a type.
+  final PebDelayRow row;
+        ^^^^^^^^^^^
+lib/features/modules/all_Modules/summary/screens/summaru_screen.dart:1856:9: Error: 'PebTeamSummary' isn't a type.
+  final PebTeamSummary team;
+        ^^^^^^^^^^^^^^
+lib/features/modules/all_Modules/dpr/dpr_report/screens/download_sheets.dart:769:31: Error: No named parameter with the
+name 'type'.
+                              type: type,
+                              ^^^^
+lib/features/modules/all_Modules/dpr/dpr_report/screens/download_sheets.dart:784:31: Error: No named parameter with the
+name 'type'.
+                              type: type,
+                              ^^^^
+lib/features/modules/all_Modules/dpr/dpr_report/screens/download_sheets.dart:799:31: Error: No named parameter with the
+name 'type'.
+                              type: type,
+                              ^^^^
+lib/features/modules/all_Modules/dpr/dpr_report/screens/download_sheets.dart:814:31: Error: No named parameter with the
+name 'type'.
+                              type: type,
+                              ^^^^
+lib/features/modules/all_Modules/dpr/dpr_report/screens/download_sheets.dart:831:33: Error: No named parameter with the
+name 'type'.
+                                type: type,
+                                ^^^^
+lib/features/peb_execution/screens/peb_dpr_entry_screen.dart:63:15: Error: 'PebLevel1DprEntry' isn't a type.
+  Map<String, PebLevel1DprEntry> _level1Entries = const {};
+              ^^^^^^^^^^^^^^^^^
+lib/features/peb_execution/screens/peb_dpr_entry_screen.dart:63:51: Error: A value of type 'Map<dynamic, dynamic>' can't
+be assigned to a variable of type 'Map<String, invalid-type>'.
+ - 'Map' is from 'dart:core'.
+  Map<String, PebLevel1DprEntry> _level1Entries = const {};
+                                                  ^
+lib/features/peb_execution/screens/peb_dpr_entry_screen.dart:177:52: Error: 'PebLevel1DprEntry' isn't a type.
+        _level1Entries = results[4] as Map<String, PebLevel1DprEntry>;
+                                                   ^^^^^^^^^^^^^^^^^
+lib/features/peb_execution/screens/peb_dpr_entry_screen.dart:159:18: Error: The method 'getLevel1DprEntries' isn't
+defined for the type 'PebExecutionService'.
+ - 'PebExecutionService' is from 'package:untitled2/features/peb_execution/services/peb_execution_service.dart'
+ ('lib/features/peb_execution/services/peb_execution_service.dart').
+Try correcting the name to the name of an existing method, or defining a method named 'getLevel1DprEntries'.
+        _service.getLevel1DprEntries(
+                 ^^^^^^^^^^^^^^^^^^^
+lib/features/peb_execution/screens/peb_dpr_entry_screen.dart:147:41: Error: The argument type 'List<dynamic>' can't be
+assigned to the parameter type 'Iterable<Future<dynamic>>'.
+ - 'List' is from 'dart:core'.
+ - 'Iterable' is from 'dart:core'.
+ - 'Future' is from 'dart:async'.
+      final results = await Future.wait([
+                                        ^
+lib/features/peb_execution/screens/peb_dpr_entry_screen.dart:1222:9: Error: No named parameter with the name 'dprId'.
+        dprId: dprId,
+        ^^^^^
+lib/features/peb_execution/screens/peb_setup_screen.dart:248:38: Error: The method 'reorderSetupItems' isn't defined for
+the type 'PebExecutionService'.
+ - 'PebExecutionService' is from 'package:untitled2/features/peb_execution/services/peb_execution_service.dart'
+ ('lib/features/peb_execution/services/peb_execution_service.dart').
+Try correcting the name to the name of an existing method, or defining a method named 'reorderSetupItems'.
+      final updated = await _service.reorderSetupItems(
+                                     ^^^^^^^^^^^^^^^^^

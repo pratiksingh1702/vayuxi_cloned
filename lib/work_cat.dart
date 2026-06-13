@@ -602,6 +602,7 @@ class _CompactCardBody extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final colorScheme = Theme.of(context).colorScheme;
+    final imageScale = _workCardImageScale(imagePath);
     return LayoutBuilder(
       builder: (context, constraints) {
         final tight = constraints.maxHeight <= 186;
@@ -624,10 +625,13 @@ class _CompactCardBody extends StatelessWidget {
                   child: Stack(
                     fit: StackFit.expand,
                     children: [
-                      Image.asset(
-                        imagePath,
-                        fit: BoxFit.cover,
-                        filterQuality: FilterQuality.medium,
+                      Transform.scale(
+                        scale: imageScale,
+                        child: Image.asset(
+                          imagePath,
+                          fit: BoxFit.cover,
+                          filterQuality: FilterQuality.medium,
+                        ),
                       ),
                       DecoratedBox(
                         decoration: BoxDecoration(
@@ -719,6 +723,7 @@ class _WideCardBody extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final colorScheme = Theme.of(context).colorScheme;
+    final imageScale = _workCardImageScale(imagePath);
     return Padding(
       padding: const EdgeInsets.all(12),
       child: Row(
@@ -737,10 +742,13 @@ class _WideCardBody extends StatelessWidget {
             child: Stack(
               fit: StackFit.expand,
               children: [
-                Image.asset(
-                  imagePath,
-                  fit: BoxFit.cover,
-                  filterQuality: FilterQuality.medium,
+                Transform.scale(
+                  scale: imageScale,
+                  child: Image.asset(
+                    imagePath,
+                    fit: BoxFit.cover,
+                    filterQuality: FilterQuality.medium,
+                  ),
                 ),
                 Positioned.fill(
                   child: DecoratedBox(
@@ -823,6 +831,10 @@ class _WideCardBody extends StatelessWidget {
       ),
     );
   }
+}
+
+double _workCardImageScale(String imagePath) {
+  return imagePath.endsWith('mech.webp') ? 1.28 : 1;
 }
 
 // ignore: unused_element

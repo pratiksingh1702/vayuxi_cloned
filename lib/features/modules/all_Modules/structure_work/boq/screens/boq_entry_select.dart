@@ -68,7 +68,7 @@ class _BoqEntrySelectScreenState extends ConsumerState<BoqEntrySelectScreen> {
       }
       final tour = controller.activeTour;
       final step = controller.currentStep;
-      if (tour == null || !tour.id.startsWith(SetupModuleTours.boqUploadId)) {
+      if (tour == null || tour.id != definition.id) {
         if (_lastStep != null) _adapter.dismiss(showcaseContext);
         _lastStep = null;
         return;

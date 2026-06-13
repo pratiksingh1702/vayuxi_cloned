@@ -40,7 +40,8 @@ class _BoqImportSheetScreenState extends ConsumerState<BoqImportSheetScreen> {
 
   void _syncTour(BuildContext showcaseContext) {
     final definition = AppTourDefinition(
-      id: '${SetupModuleTours.boqUploadId}_${widget.siteId}_excel',
+      id:
+          '${SetupModuleTours.boqUploadId}_${widget.siteId}_structure_excel_import',
       title: 'Import BOQ Sheet',
       description: 'Select and upload a BOQ Excel file.',
       icon: Icons.upload_file_rounded,
@@ -72,7 +73,7 @@ class _BoqImportSheetScreenState extends ConsumerState<BoqImportSheetScreen> {
       }
       final tour = controller.activeTour;
       final step = controller.currentStep;
-      if (tour == null || !tour.id.startsWith(SetupModuleTours.boqUploadId)) {
+      if (tour == null || tour.id != definition.id) {
         if (_lastStep != null) _adapter.dismiss(showcaseContext);
         _lastStep = null;
         return;
@@ -153,14 +154,18 @@ class _BoqImportSheetScreenState extends ConsumerState<BoqImportSheetScreen> {
   @override
   Widget build(BuildContext context) {
     final colorScheme = Theme.of(context).colorScheme;
+    ref.watch(appTourControllerProvider);
 
-    return Scaffold(
+    return ShowCaseWidget(
+      builder: (showcaseContext) {
+        _syncTour(showcaseContext);
+        return Scaffold(
       drawer: const CustomDrawer(),
       backgroundColor: colorScheme.surfaceContainerLowest,
       appBar: CustomAppBar(
         title: 'Import BOQ Sheet',
       ),
-      body: CornerClippedScreenSimple(
+          body: CornerClippedScreenSimple(
         child: Padding(
           padding: const EdgeInsets.all(16.0),
           child: Column(
@@ -190,18 +195,23 @@ class _BoqImportSheetScreenState extends ConsumerState<BoqImportSheetScreen> {
               const SizedBox(height: 24),
 
               // File Selection Section
-              UploadBox(
+              _target(
+                _fileKey,
+                UploadBox(
                 title: 'Upload your BOQ Excel file',
                 subtitle: _selectedFileName ?? 'No file selected',
                 buttonText:
                     _selectedFileName == null ? 'Choose File' : 'Change File',
                 onPressed: _pickExcelFile,
+                ),
               ),
 
               const SizedBox(height: 24),
 
               // Upload Button
-              SizedBox(
+              _target(
+                _uploadKey,
+                SizedBox(
                 width: double.infinity,
                 child: ElevatedButton(
                   onPressed: _isLoading ? null : _uploadExcel,
@@ -245,11 +255,14 @@ class _BoqImportSheetScreenState extends ConsumerState<BoqImportSheetScreen> {
                           ],
                         ),
                 ),
+                ),
               ),
             ],
           ),
         ),
-      ),
+          ),
+        );
+      },
     );
   }
 }

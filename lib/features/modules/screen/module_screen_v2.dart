@@ -48,13 +48,13 @@ extension WorkTypeExtension on WorkType {
       case WorkType.insulation:
         return 'Insulation';
       case WorkType.structure:
-        return 'Structure';
+        return 'Structural Erection';
       case WorkType.civil:
         return 'Civil';
       case WorkType.roofing:
         return 'Roofing';
       case WorkType.fabrication:
-        return 'Fabrication';
+        return 'Structural Fabrication';
     }
   }
 }
