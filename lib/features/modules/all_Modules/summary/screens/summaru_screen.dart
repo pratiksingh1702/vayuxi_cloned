@@ -5,6 +5,9 @@ import 'package:untitled2/core/utlis/widgets/custom_appBar.dart';
 import 'package:untitled2/core/utlis/widgets/sidebar.dart';
 import 'package:untitled2/core/utlis/widgets/custom_scrollbar.dart';
 import 'package:untitled2/core/utlis/widgets/empty_module_state.dart';
+import 'package:untitled2/features/modules/all_Modules/site_Details/providers/siteProvider.dart';
+import 'package:untitled2/features/modules/all_Modules/site_Details/providers/site_current_provider.dart';
+import 'package:untitled2/features/modules/all_Modules/site_Details/repository/siteModel.dart';
 import 'package:untitled2/features/modules/all_Modules/summary/screens/profit_loss_fusion.dart';
 import 'package:untitled2/typeProvider/type_provider.dart';
 
@@ -57,7 +60,7 @@ class _SummaryScreenState extends ConsumerState<SummaryScreen> {
   Widget build(BuildContext context) {
     final currentType = ref.watch(typeProvider);
     if (_isPebSummaryType(currentType)) {
-      return _PebWorkSummaryView(
+      return _PebSiteSelectionView(
         monthMap: _monthMap,
         yearOptions: _yearOptions,
       );
@@ -388,6 +391,194 @@ class _SiteTile extends StatelessWidget {
 }
 
 // ─── Erection / Fabrication Summary Analysis ────────────────────────────────
+
+class _PebSiteSelectionView extends ConsumerStatefulWidget {
+  final Map<String, int> monthMap;
+  final List<String> yearOptions;
+
+  const _PebSiteSelectionView({
+    required this.monthMap,
+    required this.yearOptions,
+  });
+
+  @override
+  ConsumerState<_PebSiteSelectionView> createState() =>
+      _PebSiteSelectionViewState();
+}
+
+class _PebSiteSelectionViewState extends ConsumerState<_PebSiteSelectionView> {
+  final ScrollController _controller = ScrollController();
+
+  @override
+  void initState() {
+    super.initState();
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      ref.read(siteProvider.notifier).fetchSites();
+    });
+  }
+
+  @override
+  void dispose() {
+    _controller.dispose();
+    super.dispose();
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final type = ref.watch(typeProvider);
+    final siteState = ref.watch(siteProvider);
+    final title = type == 'fabrication_work'
+        ? 'Fabrication Summary & Analysis'
+        : 'Erection Summary & Analysis';
+
+    return Scaffold(
+      drawer: const CustomDrawer(),
+      backgroundColor: Theme.of(context).colorScheme.surfaceContainerLowest,
+      appBar: CustomAppBar(title: title),
+      body: RefreshIndicator(
+        onRefresh: () => ref.read(siteProvider.notifier).fetchSites(),
+        child: Builder(
+          builder: (context) {
+            if (siteState.isLoading && siteState.sites.isEmpty) {
+              return const _ShimmerList();
+            }
+
+            if (siteState.sites.isEmpty) {
+              return ListView(
+                physics: const AlwaysScrollableScrollPhysics(),
+                children: [
+                  SizedBox(height: MediaQuery.of(context).size.height * 0.18),
+                  EmptyModuleState(
+                    title: "No Sites Available",
+                    subtitle:
+                        "Add a site first to view summary and analysis reports",
+                    icon: Icons.business_center_rounded,
+                    actionLabel: "Refresh",
+                    onAction: () =>
+                        ref.read(siteProvider.notifier).fetchSites(),
+                  ),
+                ],
+              );
+            }
+
+            return CustomScrollbar(
+              controller: _controller,
+              child: ListView.builder(
+                controller: _controller,
+                physics: const AlwaysScrollableScrollPhysics(),
+                padding: const EdgeInsets.fromLTRB(12, 12, 12, 24),
+                itemCount: siteState.sites.length + 1,
+                itemBuilder: (context, index) {
+                  if (index == 0) {
+                    return Padding(
+                      padding: const EdgeInsets.fromLTRB(4, 0, 4, 12),
+                      child: _SectionHeader(
+                        title: 'Select Site',
+                        subtitle:
+                            'Choose a site to view planned vs actual progress',
+                      ),
+                    );
+                  }
+                  final site = siteState.sites[index - 1];
+                  return _PebSiteTile(
+                    site: site,
+                    onTap: () {
+                      ref.read(selectedSiteProvider.notifier).select(site);
+                      Navigator.push(
+                        context,
+                        MaterialPageRoute(
+                          builder: (_) => _PebWorkSummaryView(
+                            monthMap: widget.monthMap,
+                            yearOptions: widget.yearOptions,
+                          ),
+                        ),
+                      );
+                    },
+                  );
+                },
+              ),
+            );
+          },
+        ),
+      ),
+    );
+  }
+}
+
+class _PebSiteTile extends StatelessWidget {
+  final SiteModel site;
+  final VoidCallback onTap;
+
+  const _PebSiteTile({
+    required this.site,
+    required this.onTap,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    final cs = Theme.of(context).colorScheme;
+    return Container(
+      margin: const EdgeInsets.only(bottom: 10),
+      decoration: BoxDecoration(
+        color: cs.surface,
+        borderRadius: BorderRadius.circular(16),
+        border: Border.all(color: cs.outlineVariant.withOpacity(0.65)),
+        boxShadow: [
+          BoxShadow(
+            color: Colors.black.withOpacity(0.035),
+            blurRadius: 12,
+            offset: const Offset(0, 6),
+          ),
+        ],
+      ),
+      child: ListTile(
+        contentPadding: const EdgeInsets.symmetric(horizontal: 14, vertical: 8),
+        leading: Container(
+          width: 44,
+          height: 44,
+          decoration: BoxDecoration(
+            color: cs.primaryContainer,
+            borderRadius: BorderRadius.circular(12),
+          ),
+          child: Icon(
+            Icons.business_rounded,
+            color: cs.onPrimaryContainer,
+          ),
+        ),
+        title: Text(
+          site.siteName,
+          maxLines: 1,
+          overflow: TextOverflow.ellipsis,
+          style: TextStyle(
+            color: cs.onSurface,
+            fontWeight: FontWeight.w800,
+            fontSize: 15,
+          ),
+        ),
+        subtitle: Padding(
+          padding: const EdgeInsets.only(top: 4),
+          child: Text(
+            site.address.isNotEmpty
+                ? site.address
+                : 'Open operational summary and analysis',
+            maxLines: 2,
+            overflow: TextOverflow.ellipsis,
+            style: TextStyle(
+              color: cs.onSurfaceVariant,
+              fontSize: 12,
+              height: 1.25,
+            ),
+          ),
+        ),
+        trailing: Icon(
+          Icons.chevron_right_rounded,
+          color: cs.onSurfaceVariant,
+        ),
+        onTap: onTap,
+      ),
+    );
+  }
+}
 
 class _PebWorkSummaryView extends ConsumerStatefulWidget {
   final Map<String, int> monthMap;
