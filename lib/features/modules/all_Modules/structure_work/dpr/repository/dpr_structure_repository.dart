@@ -20,10 +20,12 @@ class DPRStructureRepository {
   }) async {
     // items should be list of {"assemblyMark": "...", "qtyUsed": ..., "boqItemId": "..."}
     final body = <String, dynamic>{
-      'items': items.map((e) => {
-        'assemblyMark': e['assemblyMark'] ?? e['assembly_mark'],
-        'qtyUsed': e['qtyUsed'] ?? e['qty_used'],
-      }).toList(),
+      'items': items
+          .map((e) => {
+                'assemblyMark': e['assemblyMark'] ?? e['assembly_mark'],
+                'qtyUsed': e['qtyUsed'] ?? e['qty_used'],
+              })
+          .toList(),
     };
     if (dprName != null && dprName.isNotEmpty) body['dprName'] = dprName;
     if (date != null) body['date'] = date.toIso8601String();
@@ -75,7 +77,8 @@ class DPRStructureRepository {
 
   // DELETE /api/v1/site/{siteId}/dpr-structure/{dprId}
   Future<bool> deleteDPR(String siteId, String dprId) async {
-    final res = await DioClient.dio.delete('/site/$siteId/dpr-structure/$dprId');
+    final res =
+        await DioClient.dio.delete('/site/$siteId/dpr-structure/$dprId');
     return res.statusCode == 200;
   }
 
@@ -98,10 +101,12 @@ class DPRStructureRepository {
       'replaceMode': replaceMode,
     };
     if (items != null) {
-      body['items'] = items.map((e) => {
-            'assemblyMark': e['assemblyMark'] ?? e['assembly_mark'],
-            'qtyUsed': e['qtyUsed'] ?? e['qty_used'],
-          }).toList();
+      body['items'] = items
+          .map((e) => {
+                'assemblyMark': e['assemblyMark'] ?? e['assembly_mark'],
+                'qtyUsed': e['qtyUsed'] ?? e['qty_used'],
+              })
+          .toList();
     }
     if (dprName != null && dprName.isNotEmpty) body['dprName'] = dprName;
     if (remarks != null && remarks.isNotEmpty) body['remarks'] = remarks;
@@ -124,6 +129,7 @@ class DPRStructureRepository {
     required String toDate,
     required String sheetType,
     required String format,
+    String? type,
   }) async {
     final res = await DioClient.dio.get(
       '/site/$siteId/structure-work/sheets',
@@ -132,6 +138,7 @@ class DPRStructureRepository {
         'toDate': toDate,
         'sheetType': sheetType,
         'format': format,
+        if (type != null && type.isNotEmpty) 'type': type,
       },
       options: Options(responseType: ResponseType.bytes),
     );

@@ -766,6 +766,7 @@ class _SheetDownloadPageState extends ConsumerState<SheetDownloadPage> {
                               toDate: toDate,
                               sheetType: 'measurement',
                               format: format,
+                              type: type,
                             ),
                             defaultFileName: "structure_measurement",
                           ),
@@ -780,6 +781,7 @@ class _SheetDownloadPageState extends ConsumerState<SheetDownloadPage> {
                               toDate: toDate,
                               sheetType: 'abstract',
                               format: format,
+                              type: type,
                             ),
                             defaultFileName: "structure_abstract",
                           ),
@@ -794,8 +796,24 @@ class _SheetDownloadPageState extends ConsumerState<SheetDownloadPage> {
                               toDate: toDate,
                               sheetType: 'summary',
                               format: format,
+                              type: type,
                             ),
                             defaultFileName: "structure_summary",
+                          ),
+                          sheetButton(
+                            label: "Invoice Sheet",
+                            icon: Icons.receipt_long,
+                            sheetName: "Structure Invoice",
+                            apiCall: (fromDate, toDate, format) =>
+                                DPRStructureRepository().downloadSheet(
+                              siteId,
+                              fromDate: fromDate,
+                              toDate: toDate,
+                              sheetType: 'invoice-v2',
+                              format: format,
+                              type: type,
+                            ),
+                            defaultFileName: "structure_invoice",
                           ),
                           if (isSatmaxUser)
                             sheetButton(
@@ -810,6 +828,7 @@ class _SheetDownloadPageState extends ConsumerState<SheetDownloadPage> {
                                 toDate: toDate,
                                 sheetType: 'detailed-with-pm',
                                 format: 'excel',
+                                type: type,
                               ),
                               defaultFileName: "structure_detailed_with_pm",
                             ),
