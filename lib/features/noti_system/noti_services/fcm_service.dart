@@ -24,18 +24,29 @@ class FCMService {
     print("Sender ID: ${app.options.messagingSenderId}");
     print("API Key: ${app.options.apiKey}");
 
-    final token = await FirebaseMessaging.instance.getToken();
+    String? token;
+    try {
+      token = await FirebaseMessaging.instance.getToken();
 
-    if (token != null) {
-      await NotiApi().saveTokenIfNeeded(token);
+      if (token != null) {
+        await NotiApi().saveTokenIfNeeded(token);
+      }
+    } catch (e, st) {
+      print("⚠️ Failed to fetch/save FCM token: $e");
+      print(st);
     }
 
-    print("🔥 FCM Token: $token");
+    print("🔥 FCM Token: ${token ?? 'Unavailable'}");
 
     FirebaseMessaging.onMessage.listen(_onForeground);
     FirebaseMessaging.onMessageOpenedApp.listen(_onBackground);
     FirebaseMessaging.instance.onTokenRefresh.listen((newToken) async {
-      await NotiApi().saveTokenIfNeeded(newToken);
+      try {
+        await NotiApi().saveTokenIfNeeded(newToken);
+      } catch (e, st) {
+        print("⚠️ Failed to save refreshed FCM token: $e");
+        print(st);
+      }
     });
 
     _fcm.getInitialMessage().then(_onTerminated);
