@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import 'package:liquid_pull_to_refresh/liquid_pull_to_refresh.dart';
+import 'package:showcaseview/showcaseview.dart';
 import 'package:untitled2/core/router/routes.dart';
 import 'package:untitled2/core/utlis/widgets/Button_wrapper.dart';
 import 'package:untitled2/core/utlis/widgets/buttons.dart';
@@ -12,6 +13,10 @@ import '../../../../../core/utlis/widgets/sidebar.dart';
 import '../../../../../core/utlis/widgets/custom_scrollbar.dart';
 import '../../../../../typeProvider/type_provider.dart';
 import '../../site_Details/providers/site_current_provider.dart';
+import '../../../../tour/core/tour_models.dart';
+import '../../../../tour/core/tour_package_adapter.dart';
+import '../../../../tour/definitions/manpower_team_module_tours.dart';
+import '../../../../tour/providers/tour_providers.dart';
 import '../model/teamModel.dart';
 import '../provider/teamProvider.dart';
 import '../provider/teamService.dart';
@@ -31,6 +36,14 @@ class _TeamListPageState extends ConsumerState<TeamListPage> {
   bool _isSelectionMode = false;
   Set<String> _selectedTeamIds = {};
   final ScrollController _scrollController = ScrollController();
+  static const TourPackageAdapter _tourPackageAdapter = TourPackageAdapter();
+  String? _lastShowcasedTourStepId;
+  final GlobalKey _addTourKey = GlobalKey(debugLabel: 'team_list_add');
+  final GlobalKey _deleteModeTourKey =
+      GlobalKey(debugLabel: 'team_list_delete_mode');
+  final GlobalKey _firstTeamTourKey =
+      GlobalKey(debugLabel: 'team_list_first_team');
+  final GlobalKey _emptyTourKey = GlobalKey(debugLabel: 'team_list_empty');
 
   @override
   void dispose() {
@@ -158,13 +171,111 @@ class _TeamListPageState extends ConsumerState<TeamListPage> {
     }
   }
 
+  void _syncTeamListTour(
+    BuildContext showcaseContext, {
+    required bool hasTeams,
+  }) {
+    final definition = AppTourDefinition(
+      id: '${ManpowerTeamModuleTours.teamId}_list_${hasTeams ? 'records' : 'empty'}',
+      title: 'Team List',
+      description: 'Learn how to manage teams.',
+      icon: Icons.groups_rounded,
+      steps: [
+        const AppTourStep(
+          id: 'team_list_intro',
+          title: 'Team List',
+          body: 'This screen shows the teams created for the selected site.',
+          progressLabel: 'Team list',
+          useSpotlight: false,
+        ),
+        AppTourStep(
+          id: 'team_list_add',
+          title: 'Add Team',
+          body: 'Use this button to create a new team.',
+          targetKey: _addTourKey,
+          progressLabel: 'Add',
+          tooltipBottomOffset: 96,
+          autoScrollToTarget: true,
+        ),
+        if (hasTeams) ...[
+          AppTourStep(
+            id: 'team_list_delete_mode',
+            title: 'Delete Teams',
+            body: 'Use this button to select teams and delete them in bulk.',
+            targetKey: _deleteModeTourKey,
+            progressLabel: 'Delete',
+          ),
+          AppTourStep(
+            id: 'team_list_first_team',
+            title: 'Team Card',
+            body: 'Each card is one team. Tap it to open and update team details.',
+            targetKey: _firstTeamTourKey,
+            progressLabel: 'Card',
+            autoScrollToTarget: true,
+          ),
+        ] else
+          AppTourStep(
+            id: 'team_list_empty',
+            title: 'No Teams Yet',
+            body: 'When no team is created, this area tells you to add the first team.',
+            targetKey: _emptyTourKey,
+            progressLabel: 'Empty',
+          ),
+      ],
+    );
+
+    WidgetsBinding.instance.addPostFrameCallback((_) async {
+      if (!mounted) return;
+      final route = ModalRoute.of(context);
+      if (route != null && !route.isCurrent) return;
+      final state = ref.read(appTourControllerProvider);
+      final controller = ref.read(appTourControllerProvider.notifier);
+      if (state.status != AppTourStatus.running) {
+        await controller.maybeStartRuntimeTour(
+          definition,
+          policyTourId: ManpowerTeamModuleTours.teamId,
+        );
+      }
+      final step = controller.currentStep;
+      final activeTour = controller.activeTour;
+      if (activeTour == null ||
+          !activeTour.id.startsWith(ManpowerTeamModuleTours.teamId)) {
+        if (_lastShowcasedTourStepId != null) {
+          _tourPackageAdapter.dismiss(showcaseContext);
+          _lastShowcasedTourStepId = null;
+        }
+        return;
+      }
+      final stepKey = step == null ? null : '${activeTour.id}:${step.id}';
+      if (step == null) return;
+      if (_lastShowcasedTourStepId == stepKey) return;
+      _lastShowcasedTourStepId = stepKey;
+      await _tourPackageAdapter.showStep(showcaseContext, step);
+    });
+  }
+
+  Widget _tourTarget(GlobalKey key, Widget child) {
+    return Showcase.withWidget(
+      key: key,
+      container: const SizedBox.shrink(),
+      overlayOpacity: 0.72,
+      targetPadding: const EdgeInsets.all(8),
+      targetBorderRadius: BorderRadius.circular(14),
+      disableDefaultTargetGestures: false,
+      child: child,
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
     final teamState = ref.watch(teamProvider);
     final site = ref.read(currentSiteProvider);
     final colorScheme = Theme.of(context).colorScheme;
 
-    return Scaffold(
+    ref.watch(appTourControllerProvider);
+    return ShowCaseWidget(
+      builder: (showcaseContext) {
+        return Scaffold(
       drawer: const CustomDrawer(),
       backgroundColor: colorScheme.surfaceContainerLowest,
       appBar: CustomAppBar(
@@ -175,19 +286,22 @@ class _TeamListPageState extends ConsumerState<TeamListPage> {
       body: BottomButtonWrapper(
         customButtons: [
           CustomButton(
-            button: RoundedButton(
-              text: "Add",
-              color: colorScheme.primary,
-              textColor: colorScheme.onPrimary,
-              onPressed: () async {
-                await Navigator.push(
-                  context,
-                  MaterialPageRoute(
-                      builder: (_) =>
-                          const AddTeamScreen(returnResultOnSave: true)),
-                );
-                if (mounted) _refreshTeams();
-              },
+            button: _tourTarget(
+              _addTourKey,
+              RoundedButton(
+                text: "Add",
+                color: colorScheme.primary,
+                textColor: colorScheme.onPrimary,
+                onPressed: () async {
+                  await Navigator.push(
+                    context,
+                    MaterialPageRoute(
+                        builder: (_) =>
+                            const AddTeamScreen(returnResultOnSave: true)),
+                  );
+                  if (mounted) _refreshTeams();
+                },
+              ),
             ),
           ),
         ],
@@ -217,6 +331,7 @@ class _TeamListPageState extends ConsumerState<TeamListPage> {
             }
 
             final teams = teamState.teams;
+            _syncTeamListTour(showcaseContext, hasTeams: teams.isNotEmpty);
 
             return Column(
               children: [
@@ -250,14 +365,17 @@ class _TeamListPageState extends ConsumerState<TeamListPage> {
                               ),
                             ),
                           ] else ...[
-                            IconButton(
-                              icon: Icon(
-                                Icons.delete_sweep,
-                                color: colorScheme.error,
+                            _tourTarget(
+                              _deleteModeTourKey,
+                              IconButton(
+                                icon: Icon(
+                                  Icons.delete_sweep,
+                                  color: colorScheme.error,
+                                ),
+                                onPressed:
+                                    teams.isEmpty ? null : _toggleSelectionMode,
+                                tooltip: 'Select Teams to Delete',
                               ),
-                              onPressed:
-                                  teams.isEmpty ? null : _toggleSelectionMode,
-                              tooltip: 'Select Teams to Delete',
                             ),
                           ],
                         ],
@@ -269,7 +387,9 @@ class _TeamListPageState extends ConsumerState<TeamListPage> {
                   child: Padding(
                     padding: const EdgeInsets.all(16),
                     child: teams.isEmpty
-                        ? EmptyModuleState(
+                        ? _tourTarget(
+                            _emptyTourKey,
+                            EmptyModuleState(
                             title: "No Teams Created",
                             subtitle:
                                 "Create your first team to organize manpower",
@@ -284,6 +404,7 @@ class _TeamListPageState extends ConsumerState<TeamListPage> {
                               );
                               if (mounted) _refreshTeams();
                             },
+                            ),
                           )
                         : LiquidPullToRefresh(
                             onRefresh: _refreshTeams,
@@ -304,7 +425,13 @@ class _TeamListPageState extends ConsumerState<TeamListPage> {
                                   final team = teams[index];
                                   final isSelected =
                                       _selectedTeamIds.contains(team.id);
-                                  return _buildTeamCard(team, isSelected, site);
+                                  return _buildTeamCard(
+                                    team,
+                                    isSelected,
+                                    site,
+                                    cardTourKey:
+                                        index == 0 ? _firstTeamTourKey : null,
+                                  );
                                 },
                               ),
                             ),
@@ -316,10 +443,17 @@ class _TeamListPageState extends ConsumerState<TeamListPage> {
           },
         ),
       ),
+        );
+      },
     );
   }
 
-  Widget _buildTeamCard(team, bool isSelected, site) {
+  Widget _buildTeamCard(
+    team,
+    bool isSelected,
+    site, {
+    GlobalKey? cardTourKey,
+  }) {
     final cs = Theme.of(context).colorScheme;
 
     Widget teamIconAvatar() {
@@ -338,7 +472,7 @@ class _TeamListPageState extends ConsumerState<TeamListPage> {
       );
     }
 
-    return Stack(
+    final card = Stack(
       children: [
         Opacity(
           opacity: _isSelectionMode && !isSelected ? 0.5 : 1.0,
@@ -476,6 +610,7 @@ class _TeamListPageState extends ConsumerState<TeamListPage> {
           ),
       ],
     );
+    return cardTourKey == null ? card : _tourTarget(cardTourKey, card);
   }
 
   Future<void> _confirmDeleteTeam(BuildContext context, String teamId) async {

@@ -5,7 +5,7 @@ import 'package:isar_community/isar.dart';
 import 'package:untitled2/core/local/isar_db.dart';
 
 import '../../../dpr_insu/model/card_form_State.dart';
-import '../../../dpr_insu/model/field_config.dart';
+import '../../../dpr_insu/model/field_config.dart' hide FieldEntry;
 import '../../../dpr_insu/model/material_setup.dart';
 import '../../../dpr_insu/model/eqip_insu.dart';
 import '../../../dpr_insu/model/piping_insu.dart';

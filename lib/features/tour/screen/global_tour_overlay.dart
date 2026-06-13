@@ -41,23 +41,33 @@ class GlobalTourOverlay extends ConsumerWidget {
         child,
         const Positioned.fill(child: GlobalUploadBanner()),
         // const Positioned(top: 0, left: 0, right: 0, child: GlobalSyncBanner()),
-        if (showTour)
+        if (showTour && !step.useSpotlight)
+          Positioned.fill(
+            child: IgnorePointer(
+              ignoring: true,
+              child: ColoredBox(
+                color: Colors.black.withOpacity(0.68),
+              ),
+            ),
+          ),
+        if (showTour && step.showTooltip)
           Positioned(
             left: 12,
             right: 12,
-            bottom: MediaQuery.of(context).padding.bottom + 14,
+            bottom: MediaQuery.of(context).padding.bottom +
+                (step.tooltipBottomOffset ?? 14),
             child: TourTooltipCard(
               tour: tour!,
               step: step!,
               stepIndex: tourState.stepIndex,
-              onBack: () {
-                controller.back();
+              onBack: () async {
+                await controller.back();
               },
-              onNext: () {
-                controller.next();
+              onNext: () async {
+                await controller.next();
               },
-              onSkip: () {
-                controller.skip();
+              onSkip: () async {
+                await controller.skip();
               },
             ),
           ),

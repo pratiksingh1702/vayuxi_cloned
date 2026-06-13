@@ -4,6 +4,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import 'package:image_picker/image_picker.dart';
+import 'package:showcaseview/showcaseview.dart';
 import 'package:untitled2/core/utlis/widgets/Button_wrapper.dart';
 import 'package:untitled2/core/utlis/widgets/custom_appBar.dart';
 import 'package:untitled2/typeProvider/type_provider.dart';
@@ -18,6 +19,10 @@ import '../../../../../core/utlis/widgets/fields/phone_number_field.dart';
 import '../../../../../core/utlis/widgets/file_upload.dart';
 import '../../../../../core/utlis/widgets/sidebar.dart';
 import '../../../../tour/domain/tour_controller.dart';
+import '../../../../tour/core/tour_models.dart';
+import '../../../../tour/core/tour_package_adapter.dart';
+import '../../../../tour/definitions/site_rate_module_tours.dart';
+import '../../../../tour/providers/tour_providers.dart';
 import '../providers/siteProvider.dart';
 import '../repository/siteModel.dart';
 import '../providers/site_service.dart';
@@ -33,6 +38,17 @@ class SiteDetailScreen extends ConsumerStatefulWidget {
 
 class _SiteDetailScreenState extends ConsumerState<SiteDetailScreen> {
   final _formKey = GlobalKey<FormState>();
+  static const TourPackageAdapter _tourPackageAdapter = TourPackageAdapter();
+  String? _lastShowcasedTourStepId;
+  final GlobalKey _deleteTourKey = GlobalKey(debugLabel: 'site_form_delete');
+  final GlobalKey _imageTourKey = GlobalKey(debugLabel: 'site_form_image');
+  final GlobalKey _siteNameTourKey = GlobalKey(debugLabel: 'site_form_name');
+  final GlobalKey _addressTourKey = GlobalKey(debugLabel: 'site_form_address');
+  final GlobalKey _contactTourKey = GlobalKey(debugLabel: 'site_form_contact');
+  final GlobalKey _documentTourKey = GlobalKey(debugLabel: 'site_form_document');
+  final GlobalKey _workTypesTourKey =
+      GlobalKey(debugLabel: 'site_form_work_types');
+  final GlobalKey _saveTourKey = GlobalKey(debugLabel: 'site_form_save');
 
   late TextEditingController siteNameController;
   late TextEditingController addressController;
@@ -365,27 +381,180 @@ class _SiteDetailScreenState extends ConsumerState<SiteDetailScreen> {
     }
   }
 
+  void _syncSiteFormTour(BuildContext showcaseContext) {
+    final isEdit = widget.site != null;
+    final definition = AppTourDefinition(
+      id:
+          '${SiteRateModuleTours.siteDetailsId}_form_${isEdit ? 'edit' : 'add'}',
+      title: isEdit ? 'Edit Site' : 'Add Site',
+      description: 'Learn the main fields used for site details.',
+      icon: Icons.location_city_rounded,
+      steps: [
+        AppTourStep(
+          id: 'site_form_intro',
+          title: isEdit ? 'Edit Site' : 'Add Site',
+          body: isEdit
+              ? 'Use this screen to update project site details.'
+              : 'Use this screen to create a project site for future entries.',
+          progressLabel: 'Site form',
+          useSpotlight: false,
+        ),
+        if (isEdit)
+          AppTourStep(
+            id: 'site_form_delete',
+            title: 'Delete Site',
+            body: 'Use this only when you want to permanently remove this site.',
+            targetKey: _deleteTourKey,
+            progressLabel: 'Delete',
+            autoScrollToTarget: true,
+          ),
+        AppTourStep(
+          id: 'site_form_image',
+          title: 'Site Image',
+          body: 'Add an optional image so this site is easier to recognize.',
+          targetKey: _imageTourKey,
+          progressLabel: 'Image',
+          autoScrollToTarget: true,
+        ),
+        AppTourStep(
+          id: 'site_form_name',
+          title: 'Site Name',
+          body: 'Enter the main project or site name. This field is required.',
+          targetKey: _siteNameTourKey,
+          progressLabel: 'Name',
+          autoScrollToTarget: true,
+        ),
+        AppTourStep(
+          id: 'site_form_address',
+          title: 'Address Details',
+          body: 'Add GST, site address, and shipping address when available.',
+          targetKey: _addressTourKey,
+          progressLabel: 'Address',
+          autoScrollToTarget: true,
+        ),
+        AppTourStep(
+          id: 'site_form_contact',
+          title: 'Contact Details',
+          body: 'Add the contact person, phone number, and email for this site.',
+          targetKey: _contactTourKey,
+          progressLabel: 'Contact',
+          autoScrollToTarget: true,
+        ),
+        AppTourStep(
+          id: 'site_form_document',
+          title: 'Document Details',
+          body: 'Add the document date and AMC, WO, PO, or ARC number here.',
+          targetKey: _documentTourKey,
+          progressLabel: 'Document',
+          autoScrollToTarget: true,
+        ),
+        AppTourStep(
+          id: 'site_form_work_types',
+          title: 'Work Types',
+          body: 'Choose which work types are connected with this site.',
+          targetKey: _workTypesTourKey,
+          progressLabel: 'Work types',
+          autoScrollToTarget: true,
+        ),
+        AppTourStep(
+          id: 'site_form_save',
+          title: 'Save Site',
+          body: 'Tap Save when the site details are ready.',
+          targetKey: _saveTourKey,
+          progressLabel: 'Save',
+          tooltipBottomOffset: 96,
+          autoScrollToTarget: true,
+        ),
+      ],
+    );
+
+    WidgetsBinding.instance.addPostFrameCallback((_) async {
+      if (!mounted || isLoading) return;
+      final route = ModalRoute.of(context);
+      if (route != null && !route.isCurrent) return;
+      final tourState = ref.read(appTourControllerProvider);
+      final tourController = ref.read(appTourControllerProvider.notifier);
+      if (tourState.status != AppTourStatus.running) {
+        await tourController.maybeStartRuntimeTour(
+          definition,
+          policyTourId: SiteRateModuleTours.siteDetailsId,
+        );
+      }
+      final step = tourController.currentStep;
+      final activeTour = tourController.activeTour;
+      if (activeTour == null ||
+          !activeTour.id.startsWith(SiteRateModuleTours.siteDetailsId)) {
+        if (_lastShowcasedTourStepId != null) {
+          _tourPackageAdapter.dismiss(showcaseContext);
+          _lastShowcasedTourStepId = null;
+        }
+        return;
+      }
+      final stepKey = step == null ? null : '${activeTour.id}:${step.id}';
+      if (step == null) {
+        if (_lastShowcasedTourStepId != null) {
+          _tourPackageAdapter.dismiss(showcaseContext);
+          _lastShowcasedTourStepId = null;
+        }
+        return;
+      }
+      if (_lastShowcasedTourStepId == stepKey) return;
+      _lastShowcasedTourStepId = stepKey;
+      _tourPackageAdapter.showStep(showcaseContext, step);
+    });
+  }
+
+  Widget _tourTarget(
+    GlobalKey key,
+    Widget child, {
+    EdgeInsets targetPadding = const EdgeInsets.all(6),
+    bool advanceOnTap = false,
+  }) {
+    return Showcase.withWidget(
+      key: key,
+      container: const SizedBox.shrink(),
+      overlayOpacity: 0.72,
+      targetPadding: targetPadding,
+      targetBorderRadius: BorderRadius.circular(14),
+      disableDefaultTargetGestures: false,
+      disposeOnTap: advanceOnTap ? true : null,
+      onTargetClick: advanceOnTap
+          ? () => ref.read(appTourControllerProvider.notifier).next()
+          : null,
+      child: child,
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
     final site = widget.site;
     final cs = Theme.of(context).colorScheme;
     final isDark = Theme.of(context).brightness == Brightness.dark;
+    ref.watch(appTourControllerProvider);
 
     return Scaffold(
       drawer: const CustomDrawer(),
       backgroundColor: isDark ? cs.surface : cs.surfaceContainerLowest,
-      body: NestedScrollView(
+      body: ShowCaseWidget(
+        builder: (showcaseContext) {
+          _syncSiteFormTour(showcaseContext);
+          return NestedScrollView(
         headerSliverBuilder: (context, innerBoxIsScrolled) {
           return [CustomSliverAppBar(title: site?.siteName ?? "New Site")];
         },
         body: BottomButtonWrapper(
           customButtons: [
             CustomButton(
-              button: RoundedButton(
-                text: isLoading ? "Saving..." : "Save",
-                color: cs.primary,
-                textColor: cs.onPrimary,
-                onPressed: saveSite,
+              button: _tourTarget(
+                _saveTourKey,
+                RoundedButton(
+                  text: isLoading ? "Saving..." : "Save",
+                  color: cs.primary,
+                  textColor: cs.onPrimary,
+                  onPressed: saveSite,
+                ),
+                targetPadding:
+                    const EdgeInsets.symmetric(horizontal: 10, vertical: 8),
               ),
             ),
           ],
@@ -397,7 +566,9 @@ class _SiteDetailScreenState extends ConsumerState<SiteDetailScreen> {
               child: Column(
                 children: [
                   if (widget.site != null) ...[
-                    Container(
+                    _tourTarget(
+                      _deleteTourKey,
+                      Container(
                       width: double.infinity,
                       margin: const EdgeInsets.only(bottom: 16),
                       child: OutlinedButton.icon(
@@ -415,11 +586,224 @@ class _SiteDetailScreenState extends ConsumerState<SiteDetailScreen> {
                         ),
                         onPressed: _confirmDeleteSite,
                       ),
+                      ),
                     ),
                   ],
 
                   // Image Upload
 
+                  _tourTarget(
+                    _imageTourKey,
+                    Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Align(
+                          alignment: Alignment.topLeft,
+                          child: Text(
+                            "Upload Image",
+                            style: TextStyle(
+                              fontSize: 22,
+                              fontWeight: FontWeight.w500,
+                              color: cs.onSurface,
+                            ),
+                          ),
+                        ),
+                        UploadBox(
+                          title: "Select Site Image",
+                          subtitle: "Tap to select and crop image",
+                          buttonText: "Choose File",
+                          onPressed: pickImage,
+                          selectedFile: selectedImage,
+                          previewWidget: _buildPreviewWidget(),
+                        ),
+                      ],
+                    ),
+                  ),
+
+                  const SizedBox(height: 24),
+
+                  const SizedBox(height: 12),
+
+                  _tourTarget(
+                    _siteNameTourKey,
+                    CustomTextField(
+                      label: "Site Name", // Label is handled by Row above
+                      controller: siteNameController,
+                      isRequired: true,
+                      TextSize: 18,
+                      validator: (value) {
+                        if (value == null || value.trim().isEmpty) {
+                          return 'Site name is required';
+                        }
+                        return null;
+                      }
+                    ),
+                  ),
+                  const SizedBox(height: 16),
+                  _tourTarget(
+                    _addressTourKey,
+                    Column(
+                      children: [
+                        CustomTextField(
+                          label: "GST Number",
+                          controller: gstNoController,
+                          TextSize: 18,
+                        ),
+                        const SizedBox(height: 16),
+                        CustomTextField(
+                          label: "Address",
+                          controller: addressController,
+                          TextSize: 18,
+                          maxLines: 3,
+                        ),
+                        const SizedBox(height: 16),
+                        CustomTextField(
+                          label: "Shipping Address",
+                          controller: shippingAddressController,
+                          TextSize: 18,
+                          maxLines: 3,
+                        ),
+                      ],
+                    ),
+                  ),
+
+                  const SizedBox(height: 24),
+
+                  _tourTarget(
+                    _contactTourKey,
+                    Column(
+                      children: [
+                        CustomTextField(
+                          label: "Contact Person",
+                          controller: contactPersonController,
+                          TextSize: 18,
+                        ),
+                        const SizedBox(height: 16),
+                        Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            Text(
+                              "Phone Number",
+                              style: TextStyle(
+                                fontSize: 18,
+                                fontWeight: FontWeight.w500,
+                                color: cs.onSurface,
+                              ),
+                            ),
+                            const SizedBox(height: 8),
+                            PhoneInputField(controller: phoneController),
+                          ],
+                        ),
+                        const SizedBox(height: 16),
+                        CustomTextField(
+                          label: "Email ID",
+                          controller: emailController,
+                          keyboardType: TextInputType.emailAddress,
+                          TextSize: 18,
+                        ),
+                      ],
+                    ),
+                  ),
+
+                  const SizedBox(height: 16),
+
+                  _tourTarget(
+                    _documentTourKey,
+                    Column(
+                      children: [
+                        GestureDetector(
+                          onTap: _selectDate,
+                          child: AbsorbPointer(
+                            child: CustomTextField(
+                              label: "Select Date / AMC/WO/PO/ARC",
+                              controller: dateController,
+                              TextSize: 18,
+                              prefixIcon: Icon(Icons.calendar_today,
+                                  color: cs.onSurfaceVariant),
+                              hint: "DD/MM/YYYY",
+                            ),
+                          ),
+                        ),
+                        const SizedBox(height: 16),
+                        CustomTextField(
+                          label: "AMC/WO/PO/ARC",
+                          controller: documentNumberController,
+                          TextSize: 18,
+                        ),
+                      ],
+                    ),
+                  ),
+
+                  const SizedBox(height: 24),
+
+                  // Work Types Selection
+                  _tourTarget(
+                    _workTypesTourKey,
+                    Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Align(
+                          alignment: Alignment.centerLeft,
+                          child: Text(
+                            "Associated Work Types",
+                            style: TextStyle(
+                              fontSize: 18,
+                              fontWeight: FontWeight.w500,
+                              color: cs.onSurface,
+                            ),
+                          ),
+                        ),
+                        const SizedBox(height: 12),
+                        Wrap(
+                          spacing: 8,
+                          runSpacing: 8,
+                          children: availableWorkTypes.map((type) {
+                            final isSelected = selectedWorkTypes.contains(type);
+                            return FilterChip(
+                              label: Text(
+                                WorkType.fromApiValue(type)?.displayName ?? type.toUpperCase(),
+                                style: TextStyle(
+                                  color: isSelected ? cs.onPrimary : cs.onSurface,
+                                  fontWeight: isSelected ? FontWeight.bold : null,
+                                ),
+                              ),
+                              selected: isSelected,
+                              onSelected: (selected) {
+                                setState(() {
+                                  if (selected) {
+                                    selectedWorkTypes.add(type);
+                                  } else {
+                                    selectedWorkTypes.remove(type);
+                                  }
+                                });
+                              },
+                              selectedColor: cs.primary,
+                              checkmarkColor: cs.onPrimary,
+                              backgroundColor: cs.surfaceContainerHigh,
+                              padding: const EdgeInsets.symmetric(
+                                  horizontal: 12, vertical: 8),
+                              shape: RoundedRectangleBorder(
+                                borderRadius: BorderRadius.circular(20),
+                                side: BorderSide(
+                                  color: isSelected
+                                      ? cs.primary
+                                      : cs.outline.withOpacity(0.2),
+                                ),
+                              ),
+                            );
+                          }).toList(),
+                        ),
+                      ],
+                    ),
+                  ),
+
+                  const SizedBox(height: 28),
+
+                  /*
+                  Legacy duplicated site form kept below for context before this tour rebuild.
+                  The active widgets are the grouped tour targets above.
+                  */
+                  /*
                   Align(
                     alignment: Alignment.topLeft,
                     child: Text(
@@ -588,11 +972,14 @@ isRequired: true,
                   ),
 
                   const SizedBox(height: 28),
+                  */
                 ],
               ),
             ),
           ),
         ),
+      );
+        },
       ),
     );
   }

@@ -6,11 +6,16 @@ import 'package:go_router/go_router.dart';
 import 'package:image_picker/image_picker.dart';
 import 'package:image_cropper/image_cropper.dart';
 import 'package:dropdown_search/dropdown_search.dart';
+import 'package:showcaseview/showcaseview.dart';
 import 'package:untitled2/core/utlis/widgets/buttons.dart';
 
 import '../../../../../core/utlis/widgets/custom_appBar.dart';
 import '../../../../../core/utlis/widgets/sidebar.dart';
 import '../../../../../typeProvider/type_provider.dart';
+import '../../../../tour/core/tour_models.dart';
+import '../../../../tour/core/tour_package_adapter.dart';
+import '../../../../tour/definitions/manpower_team_module_tours.dart';
+import '../../../../tour/providers/tour_providers.dart';
 import '../../Manpower Details/model/manpower_model.dart';
 import '../../Manpower Details/service/manPowerProvider.dart';
 import '../../attendance/offline/repo/att_sync.dart';
@@ -38,6 +43,13 @@ class _EditTeamScreenState extends ConsumerState<EditTeamScreen> {
   File? _selectedImage;
   String? _currentImageUrl;
   bool _isDataInitialized = false;
+  static const TourPackageAdapter _tourPackageAdapter = TourPackageAdapter();
+  String? _lastShowcasedTourStepId;
+  final GlobalKey _nameTourKey = GlobalKey(debugLabel: 'team_edit_name');
+  final GlobalKey _imageTourKey = GlobalKey(debugLabel: 'team_edit_image');
+  final GlobalKey _leadTourKey = GlobalKey(debugLabel: 'team_edit_lead');
+  final GlobalKey _membersTourKey = GlobalKey(debugLabel: 'team_edit_members');
+  final GlobalKey _submitTourKey = GlobalKey(debugLabel: 'team_edit_submit');
 
   final ImagePicker _picker = ImagePicker();
 
@@ -537,6 +549,105 @@ class _EditTeamScreenState extends ConsumerState<EditTeamScreen> {
     );
   }
 
+  void _syncTeamEditTour(BuildContext showcaseContext) {
+    final definition = AppTourDefinition(
+      id: '${ManpowerTeamModuleTours.teamId}_form_edit',
+      title: 'Edit Team',
+      description: 'Learn how to update a team.',
+      icon: Icons.groups_rounded,
+      steps: [
+        const AppTourStep(
+          id: 'team_edit_intro',
+          title: 'Edit Team',
+          body: 'Use this form to update a saved team.',
+          progressLabel: 'Edit team',
+          useSpotlight: false,
+        ),
+        AppTourStep(
+          id: 'team_edit_name',
+          title: 'Team Name',
+          body: 'Update the team name here.',
+          targetKey: _nameTourKey,
+          progressLabel: 'Name',
+          autoScrollToTarget: true,
+        ),
+        AppTourStep(
+          id: 'team_edit_image',
+          title: 'Team Photo',
+          body: 'Change or remove the team photo here.',
+          targetKey: _imageTourKey,
+          progressLabel: 'Photo',
+          autoScrollToTarget: true,
+        ),
+        AppTourStep(
+          id: 'team_edit_lead',
+          title: 'Team Lead',
+          body: 'Update the person responsible for this team.',
+          targetKey: _leadTourKey,
+          progressLabel: 'Lead',
+          autoScrollToTarget: true,
+        ),
+        AppTourStep(
+          id: 'team_edit_members',
+          title: 'Team Members',
+          body: 'Update the manpower members included in this team.',
+          targetKey: _membersTourKey,
+          progressLabel: 'Members',
+          autoScrollToTarget: true,
+        ),
+        AppTourStep(
+          id: 'team_edit_submit',
+          title: 'Update Team',
+          body: 'Tap Update Team when changes are ready.',
+          targetKey: _submitTourKey,
+          progressLabel: 'Update',
+          tooltipBottomOffset: 96,
+          autoScrollToTarget: true,
+        ),
+      ],
+    );
+    WidgetsBinding.instance.addPostFrameCallback((_) async {
+      if (!mounted) return;
+      final route = ModalRoute.of(context);
+      if (route != null && !route.isCurrent) return;
+      final state = ref.read(appTourControllerProvider);
+      final controller = ref.read(appTourControllerProvider.notifier);
+      if (state.status != AppTourStatus.running) {
+        await controller.maybeStartRuntimeTour(
+          definition,
+          policyTourId: ManpowerTeamModuleTours.teamId,
+        );
+      }
+      final step = controller.currentStep;
+      final activeTour = controller.activeTour;
+      if (activeTour == null ||
+          !activeTour.id.startsWith(ManpowerTeamModuleTours.teamId)) {
+        if (_lastShowcasedTourStepId != null) {
+          _tourPackageAdapter.dismiss(showcaseContext);
+          _lastShowcasedTourStepId = null;
+        }
+        return;
+      }
+      final stepKey = step == null ? null : '${activeTour.id}:${step.id}';
+      if (step == null) return;
+      if (_lastShowcasedTourStepId == stepKey) return;
+      _lastShowcasedTourStepId = stepKey;
+      await _tourPackageAdapter.showStep(showcaseContext, step);
+    });
+  }
+
+  Widget _tourTarget(GlobalKey key, Widget child) {
+    return Showcase.withWidget(
+      key: key,
+      container: const SizedBox.shrink(),
+      overlayOpacity: 0.72,
+      targetPadding: const EdgeInsets.all(8),
+      targetBorderRadius: BorderRadius.circular(14),
+      disableDefaultTargetGestures: false,
+      child: child,
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
     final manpowerState = ref.watch(manpowerProvider);
@@ -561,7 +672,11 @@ class _EditTeamScreenState extends ConsumerState<EditTeamScreen> {
       );
     }
 
-    return Scaffold(
+    ref.watch(appTourControllerProvider);
+    return ShowCaseWidget(
+      builder: (showcaseContext) {
+        _syncTeamEditTour(showcaseContext);
+        return Scaffold(
       drawer: const CustomDrawer(),
       backgroundColor: Theme.of(context).colorScheme.surfaceContainerLowest,
       appBar: CustomAppBar(title: 'Edit Team'),
@@ -575,16 +690,21 @@ class _EditTeamScreenState extends ConsumerState<EditTeamScreen> {
                 child: ListView(
                   children: [
                     // --- Team Name Field ---
-                    CustomTextField(
-                      label: "Team Name",
-                      isRequired: true,
-                      controller: _teamNameController,
-                      hint: "Enter team name",
+                    _tourTarget(
+                      _nameTourKey,
+                      CustomTextField(
+                        label: "Team Name",
+                        isRequired: true,
+                        controller: _teamNameController,
+                        hint: "Enter team name",
+                      ),
                     ),
                     const SizedBox(height: 20),
 
                     // --- Upload Profile Section ---
-                    Column(
+                    _tourTarget(
+                      _imageTourKey,
+                      Column(
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
                         Text(
@@ -702,12 +822,15 @@ class _EditTeamScreenState extends ConsumerState<EditTeamScreen> {
                           ),
                         ),
                       ],
+                      ),
                     ),
 
                     const SizedBox(height: 30),
 
                     // --- Team Lead Card ---
-                    Column(
+                    _tourTarget(
+                      _leadTourKey,
+                      Column(
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
                         const Text(
@@ -819,12 +942,15 @@ class _EditTeamScreenState extends ConsumerState<EditTeamScreen> {
                           ),
                         ),
                       ],
+                      ),
                     ),
 
                     const SizedBox(height: 20),
 
                     // --- Team Members Card ---
-                    Column(
+                    _tourTarget(
+                      _membersTourKey,
+                      Column(
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
                         const Text(
@@ -840,6 +966,7 @@ class _EditTeamScreenState extends ConsumerState<EditTeamScreen> {
                           colorScheme,
                         ),
                       ],
+                      ),
                     ),
 
                     const SizedBox(height: 40),
@@ -863,11 +990,14 @@ class _EditTeamScreenState extends ConsumerState<EditTeamScreen> {
                     ),
                     const SizedBox(width: 10),
                     Expanded(
-                      child: RoundedButton(
-                        text: "Update Team",
-                        color: colorScheme.primary,
-                        textColor: colorScheme.onPrimary,
-                        onPressed: _submitForm,
+                      child: _tourTarget(
+                        _submitTourKey,
+                        RoundedButton(
+                          text: "Update Team",
+                          color: colorScheme.primary,
+                          textColor: colorScheme.onPrimary,
+                          onPressed: _submitForm,
+                        ),
                       ),
                     ),
                   ],
@@ -877,6 +1007,8 @@ class _EditTeamScreenState extends ConsumerState<EditTeamScreen> {
           ),
         ),
       ),
+    );
+      },
     );
   }
 

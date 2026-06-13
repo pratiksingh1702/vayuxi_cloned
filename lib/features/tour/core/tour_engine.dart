@@ -4,11 +4,13 @@ import 'tour_analytics.dart';
 import 'tour_models.dart';
 import 'tour_storage.dart';
 import '../definitions/module_screen_tours.dart';
+
 class AppTourController extends StateNotifier<AppTourState> {
   final List<AppTourDefinition> _definitions;
   final Set<String> _allowedTourIds;
   final AppTourStorage _storage;
   final AppTourAnalytics _analytics;
+  AppTourDefinition? _runtimeTour;
 
   AppTourController({
     required List<AppTourDefinition> definitions,
@@ -24,6 +26,7 @@ class AppTourController extends StateNotifier<AppTourState> {
   AppTourDefinition? get activeTour {
     final activeId = state.activeTourId;
     if (activeId == null) return null;
+    if (_runtimeTour?.id == activeId) return _runtimeTour;
     for (final tour in _definitions) {
       if (tour.id == activeId) return tour;
     }
@@ -45,6 +48,18 @@ class AppTourController extends StateNotifier<AppTourState> {
 
   Future<bool> maybeStartTabTour(int tabIndex) {
     return maybeStartTour(ModuleScreenTours.tabTourId(tabIndex));
+  }
+
+  Future<bool> maybeStartRuntimeTour(
+    AppTourDefinition definition, {
+    required String policyTourId,
+  }) async {
+    if (state.status == AppTourStatus.running) return false;
+    if (!_allowedTourIds.contains(policyTourId)) return false;
+    if (await _storage.isDone(definition.id)) return false;
+    _runtimeTour = definition;
+    await _startDefinition(definition, AppTourTrigger.automatic);
+    return true;
   }
 
   Future<bool> maybeStartTour(String tourId) async {
@@ -69,18 +84,26 @@ class AppTourController extends StateNotifier<AppTourState> {
 
   Future<void> _startTour(String tourId, AppTourTrigger trigger) async {
     final definition = _definitions.firstWhere((tour) => tour.id == tourId);
-    final savedIndex = await _storage.stepIndex(tourId);
+    _runtimeTour = null;
+    await _startDefinition(definition, trigger);
+  }
+
+  Future<void> _startDefinition(
+    AppTourDefinition definition,
+    AppTourTrigger trigger,
+  ) async {
+    final savedIndex = await _storage.stepIndex(definition.id);
     final index = savedIndex >= definition.steps.length ? 0 : savedIndex;
     state = AppTourState(
       status: AppTourStatus.running,
-      activeTourId: tourId,
+      activeTourId: definition.id,
       stepIndex: index,
       trigger: trigger,
     );
-    _analytics.started(tourId);
+    _analytics.started(definition.id);
     final step = currentStep;
     if (step != null) {
-      _analytics.stepped(tourId, step.id, index);
+      _analytics.stepped(definition.id, step.id, index);
     }
   }
 

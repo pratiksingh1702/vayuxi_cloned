@@ -6,6 +6,7 @@ import 'package:go_router/go_router.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:file_picker/file_picker.dart';
 import 'package:path_provider/path_provider.dart';
+import 'package:showcaseview/showcaseview.dart';
 import 'package:untitled2/core/utlis/widgets/Button_wrapper.dart';
 import 'package:untitled2/core/utlis/widgets/buttons.dart';
 import 'package:untitled2/core/utlis/widgets/image_clipped.dart';
@@ -21,6 +22,10 @@ import '../../../../../core/utlis/widgets/shimmer.dart';
 import '../../../../../core/utlis/widgets/sidebar.dart';
 import '../../../../../core/utlis/widgets/custom_scrollbar.dart';
 import '../../../../../typeProvider/type_provider.dart';
+import '../../../../tour/core/tour_models.dart';
+import '../../../../tour/core/tour_package_adapter.dart';
+import '../../../../tour/definitions/site_rate_module_tours.dart';
+import '../../../../tour/providers/tour_providers.dart';
 import '../data/rate_provider.dart';
 import '../domain/rateModel.dart';
 import 'addRate.dart';
@@ -58,6 +63,21 @@ class _RateScreenState extends ConsumerState<RateScreen> {
   Set<String> _filterType = {};
   double? _filterRateMin;
   double? _filterRateMax;
+  static const TourPackageAdapter _tourPackageAdapter = TourPackageAdapter();
+  String? _lastShowcasedTourStepId;
+  final GlobalKey _searchFilterTourKey =
+      GlobalKey(debugLabel: 'rate_list_search_filter');
+  final GlobalKey _deleteModeTourKey =
+      GlobalKey(debugLabel: 'rate_list_delete_mode');
+  final GlobalKey _firstRateTourKey =
+      GlobalKey(debugLabel: 'rate_list_first_rate');
+  final GlobalKey _firstRateActionsTourKey =
+      GlobalKey(debugLabel: 'rate_list_first_rate_actions');
+  final GlobalKey _firstRateBadgeTourKey =
+      GlobalKey(debugLabel: 'rate_list_first_rate_badge');
+  final GlobalKey _viewSheetTourKey =
+      GlobalKey(debugLabel: 'rate_list_view_sheet');
+  final GlobalKey _emptyTourKey = GlobalKey(debugLabel: 'rate_list_empty');
 
   @override
   void dispose() {
@@ -457,14 +477,163 @@ class _RateScreenState extends ConsumerState<RateScreen> {
     }
   }
 
+  void _syncRateListTour(
+    BuildContext showcaseContext, {
+    required bool hasRates,
+    required bool hasVisibleRates,
+  }) {
+    final steps = <AppTourStep>[
+      const AppTourStep(
+        id: 'rate_list_intro',
+        title: 'Rate List',
+        body: 'Use this screen to check, search, edit, delete, and download saved rates.',
+        progressLabel: 'Rate list',
+        useSpotlight: false,
+      ),
+      AppTourStep(
+        id: 'rate_list_search_filter',
+        title: 'Search and Filter',
+        body: 'Use this area to quickly find a rate or filter the list.',
+        targetKey: _searchFilterTourKey,
+        progressLabel: 'Search',
+      ),
+    ];
+
+    if (hasRates) {
+      steps.add(
+        AppTourStep(
+          id: 'rate_list_delete_mode',
+          title: 'Select for Delete',
+          body: 'Tap this button when you want to select and delete multiple rates.',
+          targetKey: _deleteModeTourKey,
+          progressLabel: 'Delete mode',
+        ),
+      );
+    }
+
+    if (hasVisibleRates) {
+      steps
+        ..add(
+          AppTourStep(
+            id: 'rate_list_first_rate',
+            title: 'Rate Item',
+            body: 'Each row shows one saved item or work rate.',
+            targetKey: _firstRateTourKey,
+            progressLabel: 'Rate item',
+          ),
+        )
+        ..add(
+          AppTourStep(
+            id: 'rate_list_first_rate_actions',
+            title: 'Edit or Delete',
+            body: 'Use these buttons to update this rate or remove it.',
+            targetKey: _firstRateActionsTourKey,
+            progressLabel: 'Actions',
+          ),
+        )
+        ..add(
+          AppTourStep(
+            id: 'rate_list_first_rate_badge',
+            title: 'Rate Amount',
+            body: 'This shows the saved amount and its unit, such as Rs per Meter or Nos.',
+            targetKey: _firstRateBadgeTourKey,
+            progressLabel: 'Amount',
+          ),
+        );
+    } else {
+      steps.add(
+        AppTourStep(
+          id: 'rate_list_empty',
+          title: 'No Rates Yet',
+          body: 'When there are no matching rates, this area tells you what to do next.',
+          targetKey: _emptyTourKey,
+          progressLabel: 'Empty list',
+        ),
+      );
+    }
+
+    steps.add(
+      AppTourStep(
+        id: 'rate_list_view_sheet',
+        title: 'View Sheet',
+        body: 'Tap this to download or view the rate sheet for this site.',
+        targetKey: _viewSheetTourKey,
+        progressLabel: 'View sheet',
+        tooltipBottomOffset: 96,
+      ),
+    );
+
+    final definition = AppTourDefinition(
+      id: '${SiteRateModuleTours.rateId}_list_${hasVisibleRates ? 'with_rates' : 'empty'}',
+      title: 'View Rates',
+      description: 'Learn how to manage saved rates.',
+      icon: Icons.list_alt_rounded,
+      steps: steps,
+    );
+
+    WidgetsBinding.instance.addPostFrameCallback((_) async {
+      if (!mounted) return;
+      final route = ModalRoute.of(context);
+      if (route != null && !route.isCurrent) return;
+      final tourState = ref.read(appTourControllerProvider);
+      final tourController = ref.read(appTourControllerProvider.notifier);
+      if (tourState.status != AppTourStatus.running) {
+        await tourController.maybeStartRuntimeTour(
+          definition,
+          policyTourId: SiteRateModuleTours.rateId,
+        );
+      }
+      final step = tourController.currentStep;
+      final activeTour = tourController.activeTour;
+      if (activeTour == null ||
+          !activeTour.id.startsWith(SiteRateModuleTours.rateId)) {
+        if (_lastShowcasedTourStepId != null) {
+          _tourPackageAdapter.dismiss(showcaseContext);
+          _lastShowcasedTourStepId = null;
+        }
+        return;
+      }
+      final stepKey = step == null ? null : '${activeTour.id}:${step.id}';
+      if (step == null) {
+        if (_lastShowcasedTourStepId != null) {
+          _tourPackageAdapter.dismiss(showcaseContext);
+          _lastShowcasedTourStepId = null;
+        }
+        return;
+      }
+      if (_lastShowcasedTourStepId == stepKey) return;
+      _lastShowcasedTourStepId = stepKey;
+      _tourPackageAdapter.showStep(showcaseContext, step);
+    });
+  }
+
+  Widget _tourTarget(GlobalKey key, Widget child) {
+    return Showcase.withWidget(
+      key: key,
+      container: const SizedBox.shrink(),
+      overlayOpacity: 0.72,
+      targetPadding: const EdgeInsets.all(8),
+      targetBorderRadius: BorderRadius.circular(14),
+      disableDefaultTargetGestures: false,
+      child: child,
+    );
+  }
+
+  Widget _maybeTourTarget(GlobalKey? key, Widget child) {
+    return key == null ? child : _tourTarget(key, child);
+  }
+
   @override
   Widget build(BuildContext context) {
     final state = ref.watch(rateNotifierProvider);
     final site = ref.read(currentSiteProvider);
     final rates = state.data ?? [];
     final colorScheme = Theme.of(context).colorScheme;
+    ref.watch(appTourControllerProvider);
 
-    return Scaffold(
+    return ShowCaseWidget(
+      builder: (showcaseContext) {
+        return Scaffold(
       drawer: const CustomDrawer(),
       backgroundColor: colorScheme.surfaceContainerLowest,
       body: NestedScrollView(
@@ -480,29 +649,34 @@ class _RateScreenState extends ConsumerState<RateScreen> {
         body: BottomButtonWrapper(
           customButtons: [
             CustomButton(
-              button: RoundedButton(
-                text: "View Sheet",
-                color: colorScheme.primary,
-                textColor: colorScheme.onPrimary,
-                onPressed: () {
-                  final type = ref.read(typeProvider);
-                  if (type != null) {
-                    saveCsvWithDialog(context, type, site!.id);
-                  }
-                },
+              button: _tourTarget(
+                _viewSheetTourKey,
+                RoundedButton(
+                  text: "View Sheet",
+                  color: colorScheme.primary,
+                  textColor: colorScheme.onPrimary,
+                  onPressed: () {
+                    final type = ref.read(typeProvider);
+                    if (type != null) {
+                      saveCsvWithDialog(context, type, site!.id);
+                    }
+                  },
+                ),
               ),
             ),
           ],
           child: Column(
             children: [
               // Search and Filter Row
-              Padding(
-                padding:
-                    const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
-                child: Row(
-                  children: [
-                    Expanded(
-                      child: Container(
+              _tourTarget(
+                _searchFilterTourKey,
+                Padding(
+                  padding:
+                      const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+                  child: Row(
+                    children: [
+                      Expanded(
+                        child: Container(
                         height: 48,
                         decoration: BoxDecoration(
                           color: colorScheme.surfaceContainerLow,
@@ -531,11 +705,11 @@ class _RateScreenState extends ConsumerState<RateScreen> {
                         ),
                       ),
                     ),
-                    const SizedBox(width: 8),
-                    InkWell(
-                      onTap: _showFilterSortBottomSheet,
-                      borderRadius: BorderRadius.circular(12),
-                      child: Container(
+                      const SizedBox(width: 8),
+                      InkWell(
+                        onTap: _showFilterSortBottomSheet,
+                        borderRadius: BorderRadius.circular(12),
+                        child: Container(
                         width: 48,
                         height: 48,
                         decoration: BoxDecoration(
@@ -557,8 +731,9 @@ class _RateScreenState extends ConsumerState<RateScreen> {
                           size: 22,
                         ),
                       ),
-                    ),
-                  ],
+                      ),
+                    ],
+                  ),
                 ),
               ),
 
@@ -592,12 +767,15 @@ class _RateScreenState extends ConsumerState<RateScreen> {
                             ),
                           ),
                         ] else ...[
-                          IconButton(
-                            icon: Icon(Icons.delete_sweep,
-                                color: colorScheme.error),
-                            onPressed:
-                                rates.isEmpty ? null : _toggleSelectionMode,
-                            tooltip: 'Select Rates to Delete',
+                          _tourTarget(
+                            _deleteModeTourKey,
+                            IconButton(
+                              icon: Icon(Icons.delete_sweep,
+                                  color: colorScheme.error),
+                              onPressed:
+                                  rates.isEmpty ? null : _toggleSelectionMode,
+                              tooltip: 'Select Rates to Delete',
+                            ),
                           ),
                         ],
                       ],
@@ -630,7 +808,15 @@ class _RateScreenState extends ConsumerState<RateScreen> {
                               },
                             )
                           : state.data == null || state.data!.isEmpty
-                              ? EmptyModuleState(
+                              ? () {
+                                  _syncRateListTour(
+                                    showcaseContext,
+                                    hasRates: false,
+                                    hasVisibleRates: false,
+                                  );
+                                  return _tourTarget(
+                                    _emptyTourKey,
+                                    EmptyModuleState(
                                   title: "No Rates Added",
                                   subtitle:
                                       "Add your first rate to get started",
@@ -648,7 +834,9 @@ class _RateScreenState extends ConsumerState<RateScreen> {
                                       },
                                     );
                                   },
-                                )
+                                    ),
+                                  );
+                                }()
                               : () {
                                   // Apply Filtering
                                   var filteredList = rates.where((rate) {
@@ -706,8 +894,15 @@ class _RateScreenState extends ConsumerState<RateScreen> {
                                   });
 
                                   if (filteredList.isEmpty) {
-                                    return Center(
-                                      child: Column(
+                                    _syncRateListTour(
+                                      showcaseContext,
+                                      hasRates: rates.isNotEmpty,
+                                      hasVisibleRates: false,
+                                    );
+                                    return _tourTarget(
+                                      _emptyTourKey,
+                                      Center(
+                                        child: Column(
                                         mainAxisAlignment:
                                             MainAxisAlignment.center,
                                         children: [
@@ -735,9 +930,16 @@ class _RateScreenState extends ConsumerState<RateScreen> {
                                             ),
                                           ),
                                         ],
+                                        ),
                                       ),
                                     );
                                   }
+
+                                  _syncRateListTour(
+                                    showcaseContext,
+                                    hasRates: true,
+                                    hasVisibleRates: true,
+                                  );
 
                                   return CustomScrollbar(
                                     controller: _scrollController,
@@ -757,6 +959,15 @@ class _RateScreenState extends ConsumerState<RateScreen> {
                                           site!,
                                           ref,
                                           isSelected,
+                                          cardTourKey: index == 0
+                                              ? _firstRateTourKey
+                                              : null,
+                                          actionsTourKey: index == 0
+                                              ? _firstRateActionsTourKey
+                                              : null,
+                                          badgeTourKey: index == 0
+                                              ? _firstRateBadgeTourKey
+                                              : null,
                                         );
                                       },
                                     ),
@@ -766,6 +977,8 @@ class _RateScreenState extends ConsumerState<RateScreen> {
           ),
         ),
       ),
+        );
+      },
     );
   }
 
@@ -775,12 +988,16 @@ class _RateScreenState extends ConsumerState<RateScreen> {
     SiteModel site,
     WidgetRef ref,
     bool isSelected,
-  ) {
+    {
+    GlobalKey? cardTourKey,
+    GlobalKey? actionsTourKey,
+    GlobalKey? badgeTourKey,
+  }) {
     final type = ref.read(typeProvider);
     final notifier = ref.read(rateNotifierProvider.notifier);
     final colorScheme = Theme.of(context).colorScheme;
 
-    return Stack(
+    final tile = Stack(
       children: [
         Opacity(
           opacity: _isSelectionMode && !isSelected ? 0.5 : 1.0,
@@ -831,7 +1048,9 @@ class _RateScreenState extends ConsumerState<RateScreen> {
                     if (!_isSelectionMode)
                       Column(
                         children: [
-                          Row(
+                          _maybeTourTarget(
+                            actionsTourKey,
+                            Row(
                             mainAxisSize: MainAxisSize.min,
                             children: [
                               // ✏️ Edit
@@ -874,12 +1093,15 @@ class _RateScreenState extends ConsumerState<RateScreen> {
                                 },
                               ),
                             ],
+                            ),
                           ),
 
                           const SizedBox(height: 6),
 
                           // 💰 Rate badge
-                          Container(
+                          _maybeTourTarget(
+                            badgeTourKey,
+                            Container(
                             padding: const EdgeInsets.symmetric(
                               horizontal: 12,
                               vertical: 6,
@@ -894,6 +1116,7 @@ class _RateScreenState extends ConsumerState<RateScreen> {
                                 fontWeight: FontWeight.bold,
                                 color: colorScheme.onSurface,
                               ),
+                            ),
                             ),
                           ),
                         ],
@@ -942,6 +1165,7 @@ class _RateScreenState extends ConsumerState<RateScreen> {
           ),
       ],
     );
+    return cardTourKey == null ? tile : _tourTarget(cardTourKey, tile);
   }
 
   Future<void> saveCsvWithDialog(

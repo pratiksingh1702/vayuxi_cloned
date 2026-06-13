@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
+import 'package:showcaseview/showcaseview.dart';
 import 'package:untitled2/core/utlis/app_toasts.dart';
 import 'package:untitled2/core/utlis/widgets/Button_wrapper.dart';
 import 'package:untitled2/features/modules/all_Modules/site_Details/providers/site_current_provider.dart';
@@ -12,6 +13,10 @@ import '../../../../../core/utlis/widgets/fields/searchableDropdown.dart';
 import '../../../../../core/utlis/widgets/sidebar.dart';
 import '../../../../../typeProvider/type_provider.dart';
 import '../../../../tour/domain/tour_controller.dart';
+import '../../../../tour/core/tour_models.dart';
+import '../../../../tour/core/tour_package_adapter.dart';
+import '../../../../tour/definitions/site_rate_module_tours.dart';
+import '../../../../tour/providers/tour_providers.dart';
 import '../data/rateApi.dart';
 import '../data/rate_provider.dart';
 
@@ -36,6 +41,14 @@ class _AddRateScreenState extends ConsumerState<AddRateScreen> {
   bool isCustomUOM = false;
   bool isloading = false;
   List<String> uomList = [];
+  static const TourPackageAdapter _tourPackageAdapter = TourPackageAdapter();
+  String? _lastShowcasedTourStepId;
+  final GlobalKey _productTourKey = GlobalKey(debugLabel: 'rate_form_product');
+  final GlobalKey _hsnTourKey = GlobalKey(debugLabel: 'rate_form_hsn');
+  final GlobalKey _rateTourKey = GlobalKey(debugLabel: 'rate_form_rate');
+  final GlobalKey _uomTourKey = GlobalKey(debugLabel: 'rate_form_uom');
+  final GlobalKey _remarkTourKey = GlobalKey(debugLabel: 'rate_form_remark');
+  final GlobalKey _saveTourKey = GlobalKey(debugLabel: 'rate_form_save');
 
   @override
   void initState() {
@@ -177,21 +190,149 @@ class _AddRateScreenState extends ConsumerState<AddRateScreen> {
     }
   }
 
+  void _syncRateFormTour(BuildContext showcaseContext) {
+    final definition = AppTourDefinition(
+      id: '${SiteRateModuleTours.rateId}_form_add',
+      title: 'Add Rate',
+      description: 'Learn how to enter a new rate.',
+      icon: Icons.currency_rupee_rounded,
+      steps: [
+        const AppTourStep(
+          id: 'rate_form_intro',
+          title: 'Add Rate',
+          body: 'Use this form to create a work, service, or item rate.',
+          progressLabel: 'Add rate',
+          useSpotlight: false,
+        ),
+        AppTourStep(
+          id: 'rate_form_product',
+          title: 'Product or Service',
+          body: 'Enter the item, service, or work name for this rate.',
+          targetKey: _productTourKey,
+          progressLabel: 'Product',
+          autoScrollToTarget: true,
+        ),
+        AppTourStep(
+          id: 'rate_form_hsn',
+          title: 'HSN/SAC Code',
+          body: 'Add the HSN or SAC code if it is available for this rate.',
+          targetKey: _hsnTourKey,
+          progressLabel: 'HSN/SAC',
+          autoScrollToTarget: true,
+        ),
+        AppTourStep(
+          id: 'rate_form_rate',
+          title: 'Rate Amount',
+          body: 'Enter the amount for this item or work.',
+          targetKey: _rateTourKey,
+          progressLabel: 'Rate',
+          autoScrollToTarget: true,
+        ),
+        AppTourStep(
+          id: 'rate_form_uom',
+          title: 'Unit of Measurement',
+          body: 'Choose or type the unit, such as Nos, Meter, Kg, or Sqm.',
+          targetKey: _uomTourKey,
+          progressLabel: 'UOM',
+          autoScrollToTarget: true,
+        ),
+        AppTourStep(
+          id: 'rate_form_remark',
+          title: 'Remarks',
+          body: 'Add any extra note if this rate needs more detail.',
+          targetKey: _remarkTourKey,
+          progressLabel: 'Remarks',
+          autoScrollToTarget: true,
+        ),
+        AppTourStep(
+          id: 'rate_form_save',
+          title: 'Save Rate',
+          body: 'Tap Save when the rate details are ready.',
+          targetKey: _saveTourKey,
+          progressLabel: 'Save',
+          tooltipBottomOffset: 96,
+          autoScrollToTarget: true,
+        ),
+      ],
+    );
+    WidgetsBinding.instance.addPostFrameCallback((_) async {
+      if (!mounted || isloading) return;
+      final route = ModalRoute.of(context);
+      if (route != null && !route.isCurrent) return;
+      final tourState = ref.read(appTourControllerProvider);
+      final tourController = ref.read(appTourControllerProvider.notifier);
+      if (tourState.status != AppTourStatus.running) {
+        await tourController.maybeStartRuntimeTour(
+          definition,
+          policyTourId: SiteRateModuleTours.rateId,
+        );
+      }
+      final step = tourController.currentStep;
+      final activeTour = tourController.activeTour;
+      if (activeTour == null ||
+          !activeTour.id.startsWith(SiteRateModuleTours.rateId)) {
+        if (_lastShowcasedTourStepId != null) {
+          _tourPackageAdapter.dismiss(showcaseContext);
+          _lastShowcasedTourStepId = null;
+        }
+        return;
+      }
+      final stepKey = step == null ? null : '${activeTour.id}:${step.id}';
+      if (step == null) {
+        if (_lastShowcasedTourStepId != null) {
+          _tourPackageAdapter.dismiss(showcaseContext);
+          _lastShowcasedTourStepId = null;
+        }
+        return;
+      }
+      if (_lastShowcasedTourStepId == stepKey) return;
+      _lastShowcasedTourStepId = stepKey;
+      _tourPackageAdapter.showStep(showcaseContext, step);
+    });
+  }
+
+  Widget _tourTarget(
+    GlobalKey key,
+    Widget child, {
+    bool advanceOnTap = false,
+  }) {
+    return Showcase.withWidget(
+      key: key,
+      container: const SizedBox.shrink(),
+      overlayOpacity: 0.72,
+      targetPadding: const EdgeInsets.all(8),
+      targetBorderRadius: BorderRadius.circular(14),
+      disableDefaultTargetGestures: false,
+      disposeOnTap: advanceOnTap ? true : null,
+      onTargetClick: advanceOnTap
+          ? () => ref.read(appTourControllerProvider.notifier).next()
+          : null,
+      child: child,
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
     final colorScheme = Theme.of(context).colorScheme;
-    return Scaffold(
+    ref.watch(appTourControllerProvider);
+    return ShowCaseWidget(
+      builder: (showcaseContext) {
+        _syncRateFormTour(showcaseContext);
+        return Scaffold(
       drawer: const CustomDrawer(),
       backgroundColor: Theme.of(context).colorScheme.surfaceContainerLowest,
       appBar: CustomAppBar(title: "Add Rate"),
       body: BottomButtonWrapper(
         customButtons: [
           CustomButton(
-              button: RoundedButton(
-            text: isloading ? "Saving..." : "Save",
-            color: colorScheme.primary,
-            textColor: colorScheme.onPrimary,
-            onPressed: _saveRate,
+              button: _tourTarget(
+            _saveTourKey,
+            RoundedButton(
+              text: isloading ? "Saving..." : "Save",
+              color: colorScheme.primary,
+              textColor: colorScheme.onPrimary,
+              onPressed: _saveRate,
+            ),
           ))
         ],
         child: SingleChildScrollView(
@@ -199,21 +340,30 @@ class _AddRateScreenState extends ConsumerState<AddRateScreen> {
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              CustomTextField(
-                label: "Product",
-                controller: siteNameController,
-                isRequired: true,
+              _tourTarget(
+                _productTourKey,
+                CustomTextField(
+                  label: "Product",
+                  controller: siteNameController,
+                  isRequired: true,
+                ),
               ),
-              CustomTextField(
-                label: "HSN/SAC Code",
-                controller: hsnCodeController,
-                isRequired: false,
+              _tourTarget(
+                _hsnTourKey,
+                CustomTextField(
+                  label: "HSN/SAC Code",
+                  controller: hsnCodeController,
+                  isRequired: false,
+                ),
               ),
-              CustomTextField(
-                label: "Rate in RS.",
-                controller: rateController,
-                keyboardType: TextInputType.number,
-                isRequired: true,
+              _tourTarget(
+                _rateTourKey,
+                CustomTextField(
+                  label: "Rate in RS.",
+                  controller: rateController,
+                  keyboardType: TextInputType.number,
+                  isRequired: true,
+                ),
               ),
 
               // UOM Section with Label
@@ -242,33 +392,36 @@ class _AddRateScreenState extends ConsumerState<AddRateScreen> {
               ),
               const SizedBox(height: 4),
 
-              SearchableDropdown(
-                data: uomList,
-                value: uomController.text,
-                placeholder: "Search or type Unit of Measurement",
-                onSelect: (value) {
-                  setState(() {
-                    uomController.text = value;
-                  });
-                },
-                containerDecoration: BoxDecoration(
-                  color: colorScheme.surface,
-                  borderRadius: BorderRadius.circular(12),
-                  border: Border.all(
-                    color: colorScheme.outlineVariant,
-                    width: 1,
+              _tourTarget(
+                _uomTourKey,
+                SearchableDropdown(
+                  data: uomList,
+                  value: uomController.text,
+                  placeholder: "Search or type Unit of Measurement",
+                  onSelect: (value) {
+                    setState(() {
+                      uomController.text = value;
+                    });
+                  },
+                  containerDecoration: BoxDecoration(
+                    color: colorScheme.surface,
+                    borderRadius: BorderRadius.circular(12),
+                    border: Border.all(
+                      color: colorScheme.outlineVariant,
+                      width: 1,
+                    ),
                   ),
-                ),
-                inputDecoration: InputDecoration(
-                  hintText: "Search or type Unit of Measurement",
-                  hintStyle: TextStyle(color: colorScheme.onSurfaceVariant),
-                  contentPadding: const EdgeInsets.symmetric(
-                    horizontal: 16,
-                    vertical: 14,
+                  inputDecoration: InputDecoration(
+                    hintText: "Search or type Unit of Measurement",
+                    hintStyle: TextStyle(color: colorScheme.onSurfaceVariant),
+                    contentPadding: const EdgeInsets.symmetric(
+                      horizontal: 16,
+                      vertical: 14,
+                    ),
+                    border: InputBorder.none,
+                    focusedBorder: InputBorder.none,
+                    enabledBorder: InputBorder.none,
                   ),
-                  border: InputBorder.none,
-                  focusedBorder: InputBorder.none,
-                  enabledBorder: InputBorder.none,
                 ),
               ),
 
@@ -323,16 +476,21 @@ class _AddRateScreenState extends ConsumerState<AddRateScreen> {
                   ),
                 ),
 
-              CustomTextField(
-                label: "Remark (if any)",
-                controller: remarkController,
-                maxLines: 3,
+              _tourTarget(
+                _remarkTourKey,
+                CustomTextField(
+                  label: "Remark (if any)",
+                  controller: remarkController,
+                  maxLines: 3,
+                ),
               ),
               const SizedBox(height: 20),
             ],
           ),
         ),
       ),
+    );
+      },
     );
   }
 }

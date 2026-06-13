@@ -57,7 +57,8 @@ class PersistDPRScreen extends ConsumerStatefulWidget {
     this.siteId,
     this.teamId,
     this.isRateUploadMaterial = true,
-    this.rateUploadId,  bool this.isMaterialStore=false,
+    this.rateUploadId,
+    this.isMaterialStore=false,
   });
 
   @override

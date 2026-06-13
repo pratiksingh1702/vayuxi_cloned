@@ -1,8 +1,13 @@
 // screens/add_floor_page.dart
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:showcaseview/showcaseview.dart';
 import 'package:untitled2/core/utlis/widgets/Button_wrapper.dart';
 import 'package:untitled2/core/utlis/widgets/custom_appBar.dart';
+import 'package:untitled2/features/tour/core/tour_models.dart';
+import 'package:untitled2/features/tour/core/tour_package_adapter.dart';
+import 'package:untitled2/features/tour/definitions/site_rate_module_tours.dart';
+import 'package:untitled2/features/tour/providers/tour_providers.dart';
 
 import '../../../../../core/utlis/widgets/sidebar.dart';
 import '../../../../../typeProvider/type_provider.dart';
@@ -11,20 +16,116 @@ import '../../dpr/screens/widgets/select_card.dart';
 import 'addRate.dart';
 import 'import_sheet.dart';
 
-class RateEntrySelectCardGrid extends ConsumerWidget {
+class RateEntrySelectCardGrid extends ConsumerStatefulWidget {
   const RateEntrySelectCardGrid({super.key});
 
   @override
-  Widget build(BuildContext context, WidgetRef ref) {
+  ConsumerState<RateEntrySelectCardGrid> createState() =>
+      _RateEntrySelectCardGridState();
+}
+
+class _RateEntrySelectCardGridState
+    extends ConsumerState<RateEntrySelectCardGrid> {
+  static const TourPackageAdapter _tourPackageAdapter = TourPackageAdapter();
+  String? _lastShowcasedTourStepId;
+  final GlobalKey _manualTourKey =
+      GlobalKey(debugLabel: 'rate_entry_manual');
+  final GlobalKey _importTourKey =
+      GlobalKey(debugLabel: 'rate_entry_import');
+
+  void _syncRateEntryTour(BuildContext showcaseContext) {
+    final definition = AppTourDefinition(
+      id: '${SiteRateModuleTours.rateId}_entry_method',
+      title: 'Add Rate',
+      description: 'Choose how to add rate details.',
+      icon: Icons.add_card_rounded,
+      steps: [
+        const AppTourStep(
+          id: 'rate_entry_intro',
+          title: 'Add Rate',
+          body: 'Choose whether to type one rate or upload many rates from a sheet.',
+          progressLabel: 'Entry method',
+          useSpotlight: false,
+        ),
+        AppTourStep(
+          id: 'rate_entry_manual',
+          title: 'Manual Entry',
+          body: 'Use this to add one product, service, or work rate manually.',
+          targetKey: _manualTourKey,
+          progressLabel: 'Manual',
+        ),
+        AppTourStep(
+          id: 'rate_entry_import',
+          title: 'Import Sheet',
+          body: 'Use this to upload many rates at once from a file.',
+          targetKey: _importTourKey,
+          progressLabel: 'Import',
+        ),
+      ],
+    );
+    WidgetsBinding.instance.addPostFrameCallback((_) async {
+      if (!mounted) return;
+      final route = ModalRoute.of(context);
+      if (route != null && !route.isCurrent) return;
+      final tourState = ref.read(appTourControllerProvider);
+      final tourController = ref.read(appTourControllerProvider.notifier);
+      if (tourState.status != AppTourStatus.running) {
+        await tourController.maybeStartRuntimeTour(
+          definition,
+          policyTourId: SiteRateModuleTours.rateId,
+        );
+      }
+      final step = tourController.currentStep;
+      final activeTour = tourController.activeTour;
+      if (activeTour == null ||
+          !activeTour.id.startsWith(SiteRateModuleTours.rateId)) {
+        if (_lastShowcasedTourStepId != null) {
+          _tourPackageAdapter.dismiss(showcaseContext);
+          _lastShowcasedTourStepId = null;
+        }
+        return;
+      }
+      final stepKey = step == null ? null : '${activeTour.id}:${step.id}';
+      if (step == null) {
+        if (_lastShowcasedTourStepId != null) {
+          _tourPackageAdapter.dismiss(showcaseContext);
+          _lastShowcasedTourStepId = null;
+        }
+        return;
+      }
+      if (_lastShowcasedTourStepId == stepKey) return;
+      _lastShowcasedTourStepId = stepKey;
+      _tourPackageAdapter.showStep(showcaseContext, step);
+    });
+  }
+
+  Widget _tourTarget(GlobalKey key, Widget child) {
+    return Showcase.withWidget(
+      key: key,
+      container: const SizedBox.shrink(),
+      overlayOpacity: 0.72,
+      targetPadding: const EdgeInsets.all(8),
+      targetBorderRadius: BorderRadius.circular(16),
+      disableDefaultTargetGestures: false,
+      child: child,
+    );
+  }
+
+  @override
+  Widget build(BuildContext context) {
     final colorScheme = Theme.of(context).colorScheme;
     final isDark = Theme.of(context).brightness == Brightness.dark;
     final siteId = ref.watch(selectedSiteIdProvider);
     final type = ref.watch(typeProvider);
-    return Scaffold(
-      drawer: const CustomDrawer(),
-      backgroundColor: colorScheme.surfaceContainerLowest,
-      appBar: CustomAppBar(title: "Select Rate Entry"),
-      body: BottomButtonWrapper(
+    ref.watch(appTourControllerProvider);
+    return ShowCaseWidget(
+      builder: (showcaseContext) {
+        _syncRateEntryTour(showcaseContext);
+        return Scaffold(
+          drawer: const CustomDrawer(),
+          backgroundColor: colorScheme.surfaceContainerLowest,
+          appBar: CustomAppBar(title: "Select Rate Entry"),
+          body: BottomButtonWrapper(
         onBackPressed: () {
           Navigator.pop(context);
         },
@@ -41,37 +142,43 @@ class RateEntrySelectCardGrid extends ConsumerWidget {
                 crossAxisSpacing: 10, // Reduced horizontal space between cards
                 childAspectRatio: 1,
                 children: [
-                  SelectCard(
-                    icon: const SelectCardIcon(
-                      icon: Icons.edit_note_rounded,
-                      color: Colors.blue,
-                    ),
-                    label: "Manual Entry",
-                    onTap: () {
-                      Navigator.push(
-                        context,
-                        MaterialPageRoute(
-                          builder: (context) => AddRateScreen(
-                            initialSiteId: siteId,
-                            initialType: type,
+                  _tourTarget(
+                    _manualTourKey,
+                    SelectCard(
+                      icon: const SelectCardIcon(
+                        icon: Icons.edit_note_rounded,
+                        color: Colors.blue,
+                      ),
+                      label: "Manual Entry",
+                      onTap: () {
+                        Navigator.push(
+                          context,
+                          MaterialPageRoute(
+                            builder: (context) => AddRateScreen(
+                              initialSiteId: siteId,
+                              initialType: type,
+                            ),
                           ),
-                        ),
-                      );
-                    },
-                  ),
-                  SelectCard(
-                    icon: const SelectCardIcon(
-                      icon: Icons.upload_file_rounded,
-                      color: Colors.deepOrange,
+                        );
+                      },
                     ),
-                    label: "Import Sheet",
-                    onTap: () {
-                      Navigator.push(
-                        context,
-                        MaterialPageRoute(
-                            builder: (context) => ImportCsvScreen()),
-                      );
-                    },
+                  ),
+                  _tourTarget(
+                    _importTourKey,
+                    SelectCard(
+                      icon: const SelectCardIcon(
+                        icon: Icons.upload_file_rounded,
+                        color: Colors.deepOrange,
+                      ),
+                      label: "Import Sheet",
+                      onTap: () {
+                        Navigator.push(
+                          context,
+                          MaterialPageRoute(
+                              builder: (context) => ImportCsvScreen()),
+                        );
+                      },
+                    ),
                   ),
                 ],
               ),
@@ -126,7 +233,9 @@ class RateEntrySelectCardGrid extends ConsumerWidget {
             const SizedBox(height: 20),
           ],
         ),
-      ),
+          ),
+        );
+      },
     );
   }
 }

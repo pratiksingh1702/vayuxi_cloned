@@ -3,16 +3,12 @@ import 'dart:ui';
 
 import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
-import 'package:shared_preferences/shared_preferences.dart';
-import 'package:untitled2/typeProvider/work_type.dart';
 
 class LanguageFirstTimePopup extends StatefulWidget {
   final FutureOr<void> Function() onSelectLanguage;
   final FutureOr<void> Function() onSkip;
   final FutureOr<void> Function() onStartTour;
   final FutureOr<void> Function() onSkipPopup;
-  final FutureOr<void> Function(List<String> selectedTypes)
-      onWorkspaceConfirmed;
 
   const LanguageFirstTimePopup({
     super.key,
@@ -20,7 +16,6 @@ class LanguageFirstTimePopup extends StatefulWidget {
     required this.onSkip,
     required this.onStartTour,
     required this.onSkipPopup,
-    required this.onWorkspaceConfirmed,
   });
 
   @override
@@ -62,39 +57,21 @@ class _LanguageFirstTimePopupState extends State<LanguageFirstTimePopup> {
     }
   }
 
-  void _showDomainSelection() {
-    if (_busy) return;
-    setState(() => _activePanel = 2);
-  }
-
-  Future<void> _saveWorkspaceTypes(List<String> selectedTypes) async {
-    try {
-      final prefs = await SharedPreferences.getInstance();
-      await prefs.setStringList('user_workspace_types', selectedTypes);
-    } catch (_) {
-      // Workspace personalization is helpful, but onboarding should not block.
-    }
-  }
-
-  Future<void> _finishWorkspace(List<String> selectedTypes) async {
+  Future<void> _startTour() async {
     if (_busy) return;
     setState(() => _busy = true);
     try {
-      await _saveWorkspaceTypes(selectedTypes);
-      await widget.onWorkspaceConfirmed(selectedTypes);
       await widget.onStartTour();
     } finally {
       if (mounted) setState(() => _busy = false);
     }
   }
 
-  Future<void> _skipWorkspace() async {
+  Future<void> _skipPopup() async {
     if (_busy) return;
     setState(() => _busy = true);
     try {
       await Future<void>.delayed(const Duration(milliseconds: 200));
-      await _saveWorkspaceTypes(const []);
-      await widget.onWorkspaceConfirmed(const []);
       await widget.onSkipPopup();
     } finally {
       if (mounted) setState(() => _busy = false);
@@ -102,18 +79,6 @@ class _LanguageFirstTimePopupState extends State<LanguageFirstTimePopup> {
   }
 
   Widget _activeBody(ColorScheme cs, bool isSmall) {
-    if (_activePanel == 2) {
-      return _DomainSelectionBody(
-        key: const ValueKey('domain-selection'),
-        cs: cs,
-        isSmall: isSmall,
-        busy: _busy,
-        font: _font,
-        onConfirm: _finishWorkspace,
-        onSkip: _skipWorkspace,
-      );
-    }
-
     if (_activePanel == 1) {
       return _TourIntroBody(
         key: const ValueKey('tour-intro'),
@@ -121,8 +86,8 @@ class _LanguageFirstTimePopupState extends State<LanguageFirstTimePopup> {
         isSmall: isSmall,
         busy: _busy,
         font: _font,
-        onStart: _showDomainSelection,
-        onSkip: _skipWorkspace,
+        onStart: _startTour,
+        onSkip: _skipPopup,
       );
     }
 
@@ -183,10 +148,8 @@ class _LanguageFirstTimePopupState extends State<LanguageFirstTimePopup> {
                 transitionBuilder: (child, animation) {
                   final keyText = child.key.toString();
                   final isIntro = keyText.contains('tour-intro');
-                  final isDomain = keyText.contains('domain-selection');
-                  final incomingOffset = isIntro || isDomain
-                      ? const Offset(1, 0)
-                      : const Offset(-1, 0);
+                  final incomingOffset =
+                      isIntro ? const Offset(1, 0) : const Offset(-1, 0);
                   final curved = CurvedAnimation(
                     parent: animation,
                     curve: Curves.easeOutCubic,
@@ -210,291 +173,6 @@ class _LanguageFirstTimePopupState extends State<LanguageFirstTimePopup> {
           ),
         ),
       ],
-    );
-  }
-}
-
-class _DomainSelectionBody extends StatefulWidget {
-  final ColorScheme cs;
-  final bool isSmall;
-  final bool busy;
-  final TextStyle Function({
-    double? size,
-    FontWeight? weight,
-    Color? color,
-    double? height,
-  }) font;
-  final FutureOr<void> Function(List<String> selectedTypes) onConfirm;
-  final FutureOr<void> Function() onSkip;
-
-  const _DomainSelectionBody({
-    super.key,
-    required this.cs,
-    required this.isSmall,
-    required this.busy,
-    required this.font,
-    required this.onConfirm,
-    required this.onSkip,
-  });
-
-  @override
-  State<_DomainSelectionBody> createState() => _DomainSelectionBodyState();
-}
-
-class _DomainSelectionBodyState extends State<_DomainSelectionBody> {
-  final Set<String> _selectedTypes = {};
-
-  void _toggle(WorkType type) {
-    if (widget.busy) return;
-    setState(() {
-      if (!_selectedTypes.add(type.name)) {
-        _selectedTypes.remove(type.name);
-      }
-    });
-  }
-
-  @override
-  Widget build(BuildContext context) {
-    final cs = widget.cs;
-    final font = widget.font;
-    final canStart = _selectedTypes.isNotEmpty && !widget.busy;
-
-    return TweenAnimationBuilder<double>(
-      tween: Tween(begin: 0, end: 1),
-      duration: const Duration(milliseconds: 460),
-      curve: Curves.easeOutCubic,
-      builder: (context, value, child) {
-        return Transform.translate(
-          offset: Offset((1 - value) * 36, 0),
-          child: Opacity(opacity: value, child: child),
-        );
-      },
-      child: Column(
-        mainAxisSize: MainAxisSize.min,
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Row(
-            children: [
-              IconButton.filledTonal(
-                onPressed: widget.busy ? null : widget.onSkip,
-                icon: const Icon(Icons.close_rounded, size: 18),
-                tooltip: 'Skip popup',
-                style: IconButton.styleFrom(
-                  backgroundColor: cs.primary.withOpacity(0.1),
-                  foregroundColor: cs.primary,
-                  minimumSize: const Size(36, 36),
-                  fixedSize: const Size(36, 36),
-                  padding: EdgeInsets.zero,
-                ),
-              ),
-              const SizedBox(width: 10),
-              Expanded(
-                child: Text(
-                  'Workspace Setup',
-                  style: font(
-                    size: 14,
-                    weight: FontWeight.w700,
-                    color: cs.onSurfaceVariant,
-                  ),
-                ),
-              ),
-            ],
-          ),
-          const SizedBox(height: 16),
-          Text(
-            "What's your work domain?",
-            style: font(
-              size: widget.isSmall ? 21 : 24,
-              height: 1.2,
-              weight: FontWeight.w800,
-              color: cs.onSurface,
-            ),
-          ),
-          const SizedBox(height: 10),
-          Text(
-            'Select the work types you handle. You can always add more later.',
-            style: font(
-              size: 14,
-              height: 1.45,
-              weight: FontWeight.w400,
-              color: cs.onSurfaceVariant,
-            ),
-          ),
-          const SizedBox(height: 18),
-          GridView.builder(
-            shrinkWrap: true,
-            physics: const NeverScrollableScrollPhysics(),
-            itemCount: WorkType.values.length,
-            gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
-              crossAxisCount: 2,
-              crossAxisSpacing: 10,
-              mainAxisSpacing: 10,
-              childAspectRatio: 1.18,
-            ),
-            itemBuilder: (context, index) {
-              final type = WorkType.values[index];
-              return _DomainTypeChip(
-                type: type,
-                selected: _selectedTypes.contains(type.name),
-                onTap: () => _toggle(type),
-                font: font,
-              );
-            },
-          ),
-          const SizedBox(height: 20),
-          SizedBox(
-            width: double.infinity,
-            height: 52,
-            child: ElevatedButton.icon(
-              onPressed:
-                  canStart ? () => widget.onConfirm(_selectedTypes.toList()) : null,
-              icon: widget.busy
-                  ? const SizedBox.square(
-                      dimension: 18,
-                      child: CircularProgressIndicator(strokeWidth: 2),
-                    )
-                  : const Icon(Icons.workspace_premium_rounded, size: 19),
-              label: Text(
-                'Start My Workspace',
-                style: font(weight: FontWeight.w800),
-              ),
-              style: ElevatedButton.styleFrom(
-                elevation: 0,
-                backgroundColor: cs.primary,
-                foregroundColor: cs.onPrimary,
-                disabledBackgroundColor: cs.primary.withOpacity(0.38),
-                shape: RoundedRectangleBorder(
-                  borderRadius: BorderRadius.circular(14),
-                ),
-              ),
-            ),
-          ),
-        ],
-      ),
-    );
-  }
-}
-
-class _DomainTypeChip extends StatelessWidget {
-  const _DomainTypeChip({
-    required this.type,
-    required this.selected,
-    required this.onTap,
-    required this.font,
-  });
-
-  final WorkType type;
-  final bool selected;
-  final VoidCallback onTap;
-  final TextStyle Function({
-    double? size,
-    FontWeight? weight,
-    Color? color,
-    double? height,
-  }) font;
-
-  @override
-  Widget build(BuildContext context) {
-    final cs = Theme.of(context).colorScheme;
-
-    return TweenAnimationBuilder<double>(
-      tween: Tween(begin: 1, end: selected ? 1.02 : 1),
-      duration: const Duration(milliseconds: 220),
-      curve: Curves.easeOutCubic,
-      builder: (context, scale, child) {
-        return Transform.scale(scale: scale, child: child);
-      },
-      child: Material(
-        color: Colors.transparent,
-        child: InkWell(
-          borderRadius: BorderRadius.circular(16),
-          onTap: onTap,
-          child: AnimatedContainer(
-            duration: const Duration(milliseconds: 220),
-            curve: Curves.easeOutCubic,
-            padding: const EdgeInsets.all(9),
-            decoration: BoxDecoration(
-              color: selected
-                  ? type.accentColor.withOpacity(0.1)
-                  : cs.surfaceContainerLow,
-              borderRadius: BorderRadius.circular(16),
-              border: Border.all(
-                color: selected ? type.accentColor : cs.outlineVariant,
-                width: selected ? 1.8 : 1,
-              ),
-            ),
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Expanded(
-                  child: Stack(
-                    children: [
-                      ClipRRect(
-                        borderRadius: BorderRadius.circular(12),
-                        child: Image.asset(
-                          type.imagePath,
-                          width: double.infinity,
-                          height: double.infinity,
-                          fit: BoxFit.cover,
-                          filterQuality: FilterQuality.medium,
-                          errorBuilder: (_, __, ___) => Container(
-                            color: type.accentColor.withOpacity(0.14),
-                            child: Icon(
-                              Icons.business_center_rounded,
-                              color: type.accentColor,
-                            ),
-                          ),
-                        ),
-                      ),
-                      AnimatedPositioned(
-                        duration: const Duration(milliseconds: 180),
-                        right: selected ? 6 : -24,
-                        top: 6,
-                        child: AnimatedOpacity(
-                          duration: const Duration(milliseconds: 180),
-                          opacity: selected ? 1 : 0,
-                          child: Container(
-                            width: 26,
-                            height: 26,
-                            decoration: BoxDecoration(
-                              shape: BoxShape.circle,
-                              color: type.accentColor,
-                              boxShadow: [
-                                BoxShadow(
-                                  color: type.accentColor.withOpacity(0.3),
-                                  blurRadius: 10,
-                                  offset: const Offset(0, 3),
-                                ),
-                              ],
-                            ),
-                            child: const Icon(
-                              Icons.check_rounded,
-                              color: Colors.white,
-                              size: 17,
-                            ),
-                          ),
-                        ),
-                      ),
-                    ],
-                  ),
-                ),
-                const SizedBox(height: 8),
-                Text(
-                  type.displayName,
-                  maxLines: 1,
-                  overflow: TextOverflow.ellipsis,
-                  style: font(
-                    size: 12,
-                    weight: FontWeight.w800,
-                    color: selected ? type.accentColor : cs.onSurface,
-                    height: 1.1,
-                  ),
-                ),
-              ],
-            ),
-          ),
-        ),
-      ),
     );
   }
 }

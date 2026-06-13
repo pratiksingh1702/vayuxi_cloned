@@ -2,6 +2,7 @@ import 'package:dropdown_search/dropdown_search.dart';
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:showcaseview/showcaseview.dart';
 import 'package:untitled2/core/utlis/widgets/Button_wrapper.dart';
 import 'package:untitled2/core/utlis/widgets/custom_appBar.dart';
 import 'package:untitled2/features/modules/all_Modules/Manpower%20Details/screens/widgets/popup.dart';
@@ -14,6 +15,10 @@ import '../../../../../core/utlis/widgets/fields/searchableDropdown.dart';
 import '../../../../../core/utlis/widgets/sidebar.dart';
 import '../../../../../typeProvider/type_provider.dart';
 import '../../attendance/offline/repo/att_sync.dart';
+import '../../../../tour/core/tour_models.dart';
+import '../../../../tour/core/tour_package_adapter.dart';
+import '../../../../tour/definitions/manpower_team_module_tours.dart';
+import '../../../../tour/providers/tour_providers.dart';
 
 import '../../site_Details/repository/siteModel.dart';
 import '../model/manpower_model.dart';
@@ -61,6 +66,19 @@ class _EditManpowerScreenState extends ConsumerState<EditManpowerScreen> {
   String _generatedOtp = "";
   String? _selectedTotalHour;
   String _selectedManpowerCategory = "INDIRECT";
+  static const TourPackageAdapter _tourPackageAdapter = TourPackageAdapter();
+  String? _lastShowcasedTourStepId;
+  final GlobalKey _basicTourKey = GlobalKey(debugLabel: 'manpower_edit_basic');
+  final GlobalKey _designationTourKey =
+      GlobalKey(debugLabel: 'manpower_edit_designation');
+  final GlobalKey _siteTourKey = GlobalKey(debugLabel: 'manpower_edit_site');
+  final GlobalKey _loginTourKey = GlobalKey(debugLabel: 'manpower_edit_login');
+  final GlobalKey _identityTourKey =
+      GlobalKey(debugLabel: 'manpower_edit_identity');
+  final GlobalKey _datesTourKey = GlobalKey(debugLabel: 'manpower_edit_dates');
+  final GlobalKey _payrollTourKey =
+      GlobalKey(debugLabel: 'manpower_edit_payroll');
+  final GlobalKey _saveTourKey = GlobalKey(debugLabel: 'manpower_edit_save');
 
   // ✅ Pre-filled selected sites
   List<SiteModel> _selectedSites = [];
@@ -546,6 +564,130 @@ class _EditManpowerScreenState extends ConsumerState<EditManpowerScreen> {
     );
   }
 
+  void _syncManpowerEditTour(BuildContext showcaseContext) {
+    final definition = AppTourDefinition(
+      id: '${ManpowerTeamModuleTours.manpowerId}_form_edit',
+      title: 'Edit Manpower',
+      description: 'Learn how to update a worker.',
+      icon: Icons.badge_rounded,
+      steps: [
+        const AppTourStep(
+          id: 'manpower_edit_intro',
+          title: 'Edit Manpower',
+          body: 'Use this form to update saved worker details.',
+          progressLabel: 'Edit manpower',
+          useSpotlight: false,
+        ),
+        AppTourStep(
+          id: 'manpower_edit_basic',
+          title: 'Basic Details',
+          body: 'Update the worker name here.',
+          targetKey: _basicTourKey,
+          progressLabel: 'Basic',
+          autoScrollToTarget: true,
+        ),
+        AppTourStep(
+          id: 'manpower_edit_designation',
+          title: 'Designation',
+          body: 'Update the worker role and manpower category here.',
+          targetKey: _designationTourKey,
+          progressLabel: 'Role',
+          autoScrollToTarget: true,
+        ),
+        AppTourStep(
+          id: 'manpower_edit_site',
+          title: 'Phone and Sites',
+          body: 'Update the phone number and the sites assigned to this worker.',
+          targetKey: _siteTourKey,
+          progressLabel: 'Site',
+          autoScrollToTarget: true,
+        ),
+        AppTourStep(
+          id: 'manpower_edit_login',
+          title: 'Login Credentials',
+          body: 'Change login access only if this worker should use the app.',
+          targetKey: _loginTourKey,
+          progressLabel: 'Login',
+          autoScrollToTarget: true,
+        ),
+        AppTourStep(
+          id: 'manpower_edit_identity',
+          title: 'ID and Bank Details',
+          body: 'Update ID, bank, PF, UAN, and ESIC details if needed.',
+          targetKey: _identityTourKey,
+          progressLabel: 'ID',
+          autoScrollToTarget: true,
+        ),
+        AppTourStep(
+          id: 'manpower_edit_dates',
+          title: 'Important Dates',
+          body: 'Update date of birth and joining date here.',
+          targetKey: _datesTourKey,
+          progressLabel: 'Dates',
+          autoScrollToTarget: true,
+        ),
+        AppTourStep(
+          id: 'manpower_edit_payroll',
+          title: 'Payroll Details',
+          body: 'Update salary, shift hours, allowances, and remarks here.',
+          targetKey: _payrollTourKey,
+          progressLabel: 'Payroll',
+          autoScrollToTarget: true,
+        ),
+        AppTourStep(
+          id: 'manpower_edit_save',
+          title: 'Save and Submit',
+          body: 'Tap Save & Submit when the updated details are ready.',
+          targetKey: _saveTourKey,
+          progressLabel: 'Save',
+          tooltipBottomOffset: 96,
+          autoScrollToTarget: true,
+        ),
+      ],
+    );
+
+    WidgetsBinding.instance.addPostFrameCallback((_) async {
+      if (!mounted) return;
+      final route = ModalRoute.of(context);
+      if (route != null && !route.isCurrent) return;
+      final state = ref.read(appTourControllerProvider);
+      final controller = ref.read(appTourControllerProvider.notifier);
+      if (state.status != AppTourStatus.running) {
+        await controller.maybeStartRuntimeTour(
+          definition,
+          policyTourId: ManpowerTeamModuleTours.manpowerId,
+        );
+      }
+      final step = controller.currentStep;
+      final activeTour = controller.activeTour;
+      if (activeTour == null ||
+          !activeTour.id.startsWith(ManpowerTeamModuleTours.manpowerId)) {
+        if (_lastShowcasedTourStepId != null) {
+          _tourPackageAdapter.dismiss(showcaseContext);
+          _lastShowcasedTourStepId = null;
+        }
+        return;
+      }
+      final stepKey = step == null ? null : '${activeTour.id}:${step.id}';
+      if (step == null) return;
+      if (_lastShowcasedTourStepId == stepKey) return;
+      _lastShowcasedTourStepId = stepKey;
+      await _tourPackageAdapter.showStep(showcaseContext, step);
+    });
+  }
+
+  Widget _tourTarget(GlobalKey key, Widget child) {
+    return Showcase.withWidget(
+      key: key,
+      container: const SizedBox.shrink(),
+      overlayOpacity: 0.72,
+      targetPadding: const EdgeInsets.all(8),
+      targetBorderRadius: BorderRadius.circular(14),
+      disableDefaultTargetGestures: false,
+      child: child,
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
     // ✅ Watch siteProvider so chips update if sites load after initState
@@ -557,7 +699,11 @@ class _EditManpowerScreenState extends ConsumerState<EditManpowerScreen> {
       WidgetsBinding.instance.addPostFrameCallback((_) => _initSelectedSites());
     }
 
-    return Scaffold(
+    ref.watch(appTourControllerProvider);
+    return ShowCaseWidget(
+      builder: (showcaseContext) {
+        _syncManpowerEditTour(showcaseContext);
+        return Scaffold(
       drawer: const CustomDrawer(),
       backgroundColor: colorScheme.surfaceContainerLowest,
       body: NestedScrollView(
@@ -569,11 +715,14 @@ class _EditManpowerScreenState extends ConsumerState<EditManpowerScreen> {
         body: BottomButtonWrapper(
           customButtons: [
             CustomButton(
-              button: RoundedButton(
-                text: "Save & Submit",
-                color: colorScheme.primary,
-                textColor: colorScheme.onPrimary,
-                onPressed: _updateManpower,
+              button: _tourTarget(
+                _saveTourKey,
+                RoundedButton(
+                  text: "Save & Submit",
+                  color: colorScheme.primary,
+                  textColor: colorScheme.onPrimary,
+                  onPressed: _updateManpower,
+                ),
               ),
             )
           ],
@@ -585,23 +734,29 @@ class _EditManpowerScreenState extends ConsumerState<EditManpowerScreen> {
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
                   // ── Full Name ──
-                  CustomTextField(
-                    label: "Full Name",
-                    controller: _fullNameController,
-                    isRequired: true,
+                  _tourTarget(
+                    _basicTourKey,
+                    CustomTextField(
+                      label: "Full Name",
+                      controller: _fullNameController,
+                      isRequired: true,
+                    ),
                   ),
 
                   // ── Designation ──
-                  SearchableDropdown(
-                    data: _designationOptions,
-                    value: _designationController.text,
-                    onSelect: (value) {
-                      setState(() {
-                        _designationController.text = value;
-                        _selectedManpowerCategory =
-                            _inferManpowerCategory(value);
-                      });
-                    },
+                  _tourTarget(
+                    _designationTourKey,
+                    SearchableDropdown(
+                      data: _designationOptions,
+                      value: _designationController.text,
+                      onSelect: (value) {
+                        setState(() {
+                          _designationController.text = value;
+                          _selectedManpowerCategory =
+                              _inferManpowerCategory(value);
+                        });
+                      },
+                    ),
                   ),
                   const SizedBox(height: 14),
                   DropdownButtonFormField<String>(
@@ -639,15 +794,25 @@ class _EditManpowerScreenState extends ConsumerState<EditManpowerScreen> {
 
                   // ── Phone ──
                   const SizedBox(height: 16),
-                  PhoneInputField(controller: _phoneController),
+                  _tourTarget(
+                    _siteTourKey,
+                    Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        PhoneInputField(controller: _phoneController),
 
                   // ── ✅ Site Selector (pre-filled) ──
                   const SizedBox(height: 16),
-                  _buildSiteSelector(siteState.sites),
+                        _buildSiteSelector(siteState.sites),
+                      ],
+                    ),
+                  ),
 
                   // ── Login Credentials Toggle ──
                   const SizedBox(height: 16),
-                  Container(
+                  _tourTarget(
+                    _loginTourKey,
+                    Container(
                     padding: const EdgeInsets.all(12),
                     decoration: BoxDecoration(
                       color: colorScheme.surface,
@@ -739,13 +904,17 @@ class _EditManpowerScreenState extends ConsumerState<EditManpowerScreen> {
                         ],
                       ],
                     ),
+                    ),
                   ),
 
                   // ── Aadhar ──
-                  CustomTextField(
-                    label: "Aadhar Number",
-                    controller: _aadhaarController,
-                    keyboardType: TextInputType.number,
+                  _tourTarget(
+                    _identityTourKey,
+                    CustomTextField(
+                      label: "Aadhar Number",
+                      controller: _aadhaarController,
+                      keyboardType: TextInputType.number,
+                    ),
                   ),
 
                   // ── PAN ──
@@ -795,7 +964,9 @@ class _EditManpowerScreenState extends ConsumerState<EditManpowerScreen> {
                   ),
 
                   // ── Dates ──
-                  Row(
+                  _tourTarget(
+                    _datesTourKey,
+                    Row(
                     children: [
                       Expanded(
                           child: _buildDatePicker("Date of Birth", _dob, true)),
@@ -804,11 +975,14 @@ class _EditManpowerScreenState extends ConsumerState<EditManpowerScreen> {
                           child:
                               _buildDatePicker("Date of Joining", _doj, false)),
                     ],
+                    ),
                   ),
 
                   // ── PF + Pay Basics ──
                   const SizedBox(height: 10),
-                  Column(
+                  _tourTarget(
+                    _payrollTourKey,
+                    Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
                       const SizedBox(height: 16),
@@ -896,6 +1070,7 @@ class _EditManpowerScreenState extends ConsumerState<EditManpowerScreen> {
                         ),
                       ),
                     ],
+                    ),
                   ),
 
                   // ── Salary ──
@@ -977,6 +1152,8 @@ class _EditManpowerScreenState extends ConsumerState<EditManpowerScreen> {
           ),
         ),
       ),
+        );
+      },
     );
   }
 

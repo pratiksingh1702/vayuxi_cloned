@@ -1,6 +1,8 @@
 // screens/add_floor_page.dart
 import 'package:flutter/material.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
+import 'package:showcaseview/showcaseview.dart';
 import 'package:untitled2/core/utlis/widgets/Button_wrapper.dart';
 import 'package:untitled2/core/utlis/widgets/custom_appBar.dart';
 import 'package:untitled2/features/modules/all_Modules/dpr/dpr-setup/screens/view/view_select_page.dart';
@@ -11,17 +13,107 @@ import 'package:untitled2/features/modules/all_Modules/site_Details/screens/site
 import 'package:untitled2/features/modules/all_Modules/team/screens/teamsList.dart';
 
 import '../../../../../core/utlis/widgets/sidebar.dart';
+import '../../../../tour/core/tour_models.dart';
+import '../../../../tour/core/tour_package_adapter.dart';
+import '../../../../tour/definitions/manpower_team_module_tours.dart';
+import '../../../../tour/providers/tour_providers.dart';
 import '../../dpr/screens/widgets/select_card.dart';
 import 'addTeam.dart';
 
-class TeamSelectCardGrid extends StatelessWidget {
+class TeamSelectCardGrid extends ConsumerStatefulWidget {
   const TeamSelectCardGrid({super.key});
+
+  @override
+  ConsumerState<TeamSelectCardGrid> createState() => _TeamSelectCardGridState();
+}
+
+class _TeamSelectCardGridState extends ConsumerState<TeamSelectCardGrid> {
+  static const TourPackageAdapter _tourPackageAdapter = TourPackageAdapter();
+  String? _lastShowcasedTourStepId;
+  final GlobalKey _viewTourKey = GlobalKey(debugLabel: 'team_selector_view');
+  final GlobalKey _addTourKey = GlobalKey(debugLabel: 'team_selector_add');
+
+  void _syncSelectorTour(BuildContext showcaseContext) {
+    final definition = AppTourDefinition(
+      id: '${ManpowerTeamModuleTours.teamId}_selector',
+      title: 'Team Options',
+      description: 'Choose whether to view or add teams.',
+      icon: Icons.groups_rounded,
+      steps: [
+        const AppTourStep(
+          id: 'team_selector_intro',
+          title: 'Team Setup',
+          body: 'Use this module to view existing teams or create a new team.',
+          progressLabel: 'Team options',
+          useSpotlight: false,
+        ),
+        AppTourStep(
+          id: 'team_selector_view',
+          title: 'View Teams',
+          body: 'Open this to see created teams, edit them, or delete teams.',
+          targetKey: _viewTourKey,
+          progressLabel: 'View',
+        ),
+        AppTourStep(
+          id: 'team_selector_add',
+          title: 'Add Team',
+          body: 'Open this to create a team with a lead and members.',
+          targetKey: _addTourKey,
+          progressLabel: 'Add',
+        ),
+      ],
+    );
+    WidgetsBinding.instance.addPostFrameCallback((_) async {
+      if (!mounted) return;
+      final route = ModalRoute.of(context);
+      if (route != null && !route.isCurrent) return;
+      final state = ref.read(appTourControllerProvider);
+      final controller = ref.read(appTourControllerProvider.notifier);
+      if (state.status != AppTourStatus.running) {
+        await controller.maybeStartRuntimeTour(
+          definition,
+          policyTourId: ManpowerTeamModuleTours.teamId,
+        );
+      }
+      final step = controller.currentStep;
+      final activeTour = controller.activeTour;
+      if (activeTour == null ||
+          !activeTour.id.startsWith(ManpowerTeamModuleTours.teamId)) {
+        if (_lastShowcasedTourStepId != null) {
+          _tourPackageAdapter.dismiss(showcaseContext);
+          _lastShowcasedTourStepId = null;
+        }
+        return;
+      }
+      final stepKey = step == null ? null : '${activeTour.id}:${step.id}';
+      if (step == null) return;
+      if (_lastShowcasedTourStepId == stepKey) return;
+      _lastShowcasedTourStepId = stepKey;
+      await _tourPackageAdapter.showStep(showcaseContext, step);
+    });
+  }
+
+  Widget _tourTarget(GlobalKey key, Widget child) {
+    return Showcase.withWidget(
+      key: key,
+      container: const SizedBox.shrink(),
+      overlayOpacity: 0.72,
+      targetPadding: const EdgeInsets.all(8),
+      targetBorderRadius: BorderRadius.circular(14),
+      disableDefaultTargetGestures: false,
+      child: child,
+    );
+  }
 
   @override
   Widget build(BuildContext context) {
     final colorScheme = Theme.of(context).colorScheme;
     final isDark = Theme.of(context).brightness == Brightness.dark;
-    return Scaffold(
+    ref.watch(appTourControllerProvider);
+    return ShowCaseWidget(
+      builder: (showcaseContext) {
+        _syncSelectorTour(showcaseContext);
+        return Scaffold(
       drawer: const CustomDrawer(),
       backgroundColor: colorScheme.surfaceContainerLowest,
       appBar: CustomAppBar(title: "Select Team"),
@@ -42,7 +134,9 @@ class TeamSelectCardGrid extends StatelessWidget {
                 crossAxisSpacing: 10, // Reduced horizontal space between cards
                 childAspectRatio: 1,
                 children: [
-                  SelectCard(
+                  _tourTarget(
+                    _viewTourKey,
+                    SelectCard(
                     icon: const SelectCardIcon(
                       icon: Icons.visibility_rounded,
                       color: Colors.blue,
@@ -54,8 +148,11 @@ class TeamSelectCardGrid extends StatelessWidget {
                         MaterialPageRoute(builder: (context) => TeamListPage()),
                       );
                     },
+                    ),
                   ),
-                  SelectCard(
+                  _tourTarget(
+                    _addTourKey,
+                    SelectCard(
                     icon: const SelectCardIcon(
                       icon: Icons.add_circle_outline_rounded,
                       color: Colors.green,
@@ -68,6 +165,7 @@ class TeamSelectCardGrid extends StatelessWidget {
                             builder: (context) => AddTeamScreen()),
                       );
                     },
+                    ),
                   ),
                 ],
               ),
@@ -122,6 +220,8 @@ class TeamSelectCardGrid extends StatelessWidget {
           ],
         ),
       ),
+    );
+      },
     );
   }
 }

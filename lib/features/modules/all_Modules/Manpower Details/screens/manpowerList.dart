@@ -7,6 +7,7 @@ import 'package:go_router/go_router.dart';
 import 'package:open_file/open_file.dart';
 import 'package:path_provider/path_provider.dart';
 import 'package:share_plus/share_plus.dart';
+import 'package:showcaseview/showcaseview.dart';
 import 'package:untitled2/core/utlis/app_toasts.dart';
 import 'package:untitled2/core/utlis/widgets/buttons.dart';
 import 'package:untitled2/core/utlis/widgets/custom_appBar.dart';
@@ -22,6 +23,10 @@ import '../../../../../core/utlis/widgets/sidebar.dart';
 import '../../../../../core/utlis/widgets/custom_scrollbar.dart';
 import '../../../../../typeProvider/type_provider.dart';
 import '../../attendance/offline/repo/att_offline_provider.dart';
+import '../../../../tour/core/tour_models.dart';
+import '../../../../tour/core/tour_package_adapter.dart';
+import '../../../../tour/definitions/manpower_team_module_tours.dart';
+import '../../../../tour/providers/tour_providers.dart';
 import '../model/manpower_model.dart';
 import '../service/manPowerProvider.dart';
 import '../service/manpowerService.dart';
@@ -50,6 +55,18 @@ class _ManpowerListScreenState extends ConsumerState<ManpowerListScreen> {
   String _searchQuery = '';
   String _lastSortedOrderSignature = '';
   final ScrollController _scrollController = ScrollController();
+  static const TourPackageAdapter _tourPackageAdapter = TourPackageAdapter();
+  String? _lastShowcasedTourStepId;
+  final GlobalKey _sheetTourKey = GlobalKey(debugLabel: 'manpower_list_sheet');
+  final GlobalKey _searchTourKey =
+      GlobalKey(debugLabel: 'manpower_list_search');
+  final GlobalKey _deleteModeTourKey =
+      GlobalKey(debugLabel: 'manpower_list_delete_mode');
+  final GlobalKey _firstManpowerTourKey =
+      GlobalKey(debugLabel: 'manpower_list_first_record');
+  final GlobalKey _emptyTourKey = GlobalKey(debugLabel: 'manpower_list_empty');
+  final GlobalKey _noResultsTourKey =
+      GlobalKey(debugLabel: 'manpower_list_no_results');
 
   // Sorting and Filtering State
   ManpowerSortOption _currentSort = ManpowerSortOption.createdAtDesc;
@@ -571,6 +588,123 @@ class _ManpowerListScreenState extends ConsumerState<ManpowerListScreen> {
     }
   }
 
+  void _syncManpowerListTour(
+    BuildContext showcaseContext, {
+    required bool hasRecords,
+    required bool hasVisibleRecords,
+  }) {
+    final listState = !hasRecords
+        ? 'empty'
+        : hasVisibleRecords
+            ? 'records'
+            : 'no_results';
+    final definition = AppTourDefinition(
+      id: '${ManpowerTeamModuleTours.manpowerId}_list_$listState',
+      title: 'Manpower List',
+      description: 'Learn how to manage manpower records.',
+      icon: Icons.badge_rounded,
+      steps: [
+        const AppTourStep(
+          id: 'manpower_list_intro',
+          title: 'Manpower List',
+          body: 'This screen shows workers saved for the selected site.',
+          progressLabel: 'Manpower list',
+          useSpotlight: false,
+        ),
+        AppTourStep(
+          id: 'manpower_list_sheet',
+          title: 'View Sheet',
+          body: 'Use this button to view or download manpower records in a sheet format.',
+          targetKey: _sheetTourKey,
+          progressLabel: 'Sheet',
+          tooltipBottomOffset: 96,
+          autoScrollToTarget: true,
+        ),
+        if (hasRecords) ...[
+          AppTourStep(
+            id: 'manpower_list_search',
+            title: 'Search and Filter',
+            body: 'Search by worker name or code, and use the filter button to narrow the list.',
+            targetKey: _searchTourKey,
+            progressLabel: 'Search',
+          ),
+          AppTourStep(
+            id: 'manpower_list_delete_mode',
+            title: 'Bulk Delete',
+            body: 'Use this button when you need to select and delete multiple workers.',
+            targetKey: _deleteModeTourKey,
+            progressLabel: 'Delete',
+          ),
+          if (hasVisibleRecords)
+            AppTourStep(
+              id: 'manpower_list_first_record',
+              title: 'Manpower Row',
+              body: 'Each row is one worker. Use the actions to edit, mark left, or delete.',
+              targetKey: _firstManpowerTourKey,
+              progressLabel: 'Record',
+              autoScrollToTarget: true,
+            )
+          else
+            AppTourStep(
+              id: 'manpower_list_no_results',
+              title: 'No Results',
+              body: 'If filters hide all workers, this message tells you no matching record was found.',
+              targetKey: _noResultsTourKey,
+              progressLabel: 'No results',
+            ),
+        ] else
+          AppTourStep(
+            id: 'manpower_list_empty',
+            title: 'No Manpower Yet',
+            body: 'When no worker is saved, this area tells you to add manpower first.',
+            targetKey: _emptyTourKey,
+            progressLabel: 'Empty',
+          ),
+      ],
+    );
+
+    WidgetsBinding.instance.addPostFrameCallback((_) async {
+      if (!mounted) return;
+      final route = ModalRoute.of(context);
+      if (route != null && !route.isCurrent) return;
+      final state = ref.read(appTourControllerProvider);
+      final controller = ref.read(appTourControllerProvider.notifier);
+      if (state.status != AppTourStatus.running) {
+        await controller.maybeStartRuntimeTour(
+          definition,
+          policyTourId: ManpowerTeamModuleTours.manpowerId,
+        );
+      }
+      final step = controller.currentStep;
+      final activeTour = controller.activeTour;
+      if (activeTour == null ||
+          !activeTour.id.startsWith(ManpowerTeamModuleTours.manpowerId)) {
+        if (_lastShowcasedTourStepId != null) {
+          _tourPackageAdapter.dismiss(showcaseContext);
+          _lastShowcasedTourStepId = null;
+        }
+        return;
+      }
+      final stepKey = step == null ? null : '${activeTour.id}:${step.id}';
+      if (step == null) return;
+      if (_lastShowcasedTourStepId == stepKey) return;
+      _lastShowcasedTourStepId = stepKey;
+      await _tourPackageAdapter.showStep(showcaseContext, step);
+    });
+  }
+
+  Widget _tourTarget(GlobalKey key, Widget child) {
+    return Showcase.withWidget(
+      key: key,
+      container: const SizedBox.shrink(),
+      overlayOpacity: 0.72,
+      targetPadding: const EdgeInsets.all(8),
+      targetBorderRadius: BorderRadius.circular(14),
+      disableDefaultTargetGestures: false,
+      child: child,
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
     final type = ref.read(typeProvider)!;
@@ -583,7 +717,10 @@ class _ManpowerListScreenState extends ConsumerState<ManpowerListScreen> {
     );
     final syncState = ref.watch(manpowerSyncControllerProvider((type: type)));
 
-    return Scaffold(
+    ref.watch(appTourControllerProvider);
+    return ShowCaseWidget(
+      builder: (showcaseContext) {
+        return Scaffold(
       drawer: const CustomDrawer(),
       backgroundColor: colorScheme.surfaceContainerLowest,
       body: NestedScrollView(
@@ -599,12 +736,15 @@ class _ManpowerListScreenState extends ConsumerState<ManpowerListScreen> {
         body: BottomButtonWrapper(
           customButtons: [
             CustomButton(
-              button: RoundedButton(
+              button: _tourTarget(
+                _sheetTourKey,
+                RoundedButton(
                 text: "View Sheet",
                 color: colorScheme.primary,
                 textColor: colorScheme.onPrimary,
                 onPressed: () => _showFormatSelectionDialog(context), // ✅
               ),
+            ),
             ),
           ],
           child: manpowerAsync.when(
@@ -748,8 +888,16 @@ class _ManpowerListScreenState extends ConsumerState<ManpowerListScreen> {
                   );
                 }
 
-                return const Center(
-                  child: Column(
+                _syncManpowerListTour(
+                  showcaseContext,
+                  hasRecords: false,
+                  hasVisibleRecords: false,
+                );
+
+                return Center(
+                  child: _tourTarget(
+                    _emptyTourKey,
+                    const Column(
                     mainAxisAlignment: MainAxisAlignment.center,
                     children: [
                       Icon(Icons.people_outline, size: 64),
@@ -765,13 +913,22 @@ class _ManpowerListScreenState extends ConsumerState<ManpowerListScreen> {
                         textAlign: TextAlign.center,
                       ),
                     ],
-                  ),
+                    ),
+                    ),
                 );
               }
 
+              _syncManpowerListTour(
+                showcaseContext,
+                hasRecords: true,
+                hasVisibleRecords: filteredList.isNotEmpty,
+              );
+
               return Column(
                 children: [
-                  Padding(
+                  _tourTarget(
+                    _searchTourKey,
+                    Padding(
                     padding: const EdgeInsets.fromLTRB(16, 8, 16, 4),
                     child: Row(
                       children: [
@@ -808,6 +965,7 @@ class _ManpowerListScreenState extends ConsumerState<ManpowerListScreen> {
                         ),
                       ],
                     ),
+                    ),
                   ),
 
                   /// TOP BAR
@@ -836,12 +994,15 @@ class _ManpowerListScreenState extends ConsumerState<ManpowerListScreen> {
                           ),
                         ),
                       ] else ...[
-                        IconButton(
-                          icon: Icon(Icons.delete_sweep,
-                              color: colorScheme.error),
-                          onPressed: manpowerList.isEmpty
-                              ? null
-                              : _toggleSelectionMode,
+                        _tourTarget(
+                          _deleteModeTourKey,
+                          IconButton(
+                            icon: Icon(Icons.delete_sweep,
+                                color: colorScheme.error),
+                            onPressed: manpowerList.isEmpty
+                                ? null
+                                : _toggleSelectionMode,
+                          ),
                         ),
                       ],
                     ],
@@ -850,7 +1011,12 @@ class _ManpowerListScreenState extends ConsumerState<ManpowerListScreen> {
                   /// LIST
                   Expanded(
                     child: filteredList.isEmpty
-                        ? const Center(child: Text("No results found"))
+                        ? Center(
+                            child: _tourTarget(
+                              _noResultsTourKey,
+                              const Text("No results found"),
+                            ),
+                          )
                         : CustomScrollbar(
                             controller: _scrollController,
                             child: ListView.builder(
@@ -863,7 +1029,12 @@ class _ManpowerListScreenState extends ConsumerState<ManpowerListScreen> {
                                 final manpower = filteredList[index];
                                 final isSelected =
                                     _selectedManpowerIds.contains(manpower.id);
-                                return _buildManpowerTile(manpower, isSelected);
+                                return _buildManpowerTile(
+                                  manpower,
+                                  isSelected,
+                                  tileTourKey:
+                                      index == 0 ? _firstManpowerTourKey : null,
+                                );
                               },
                             ),
                           ),
@@ -874,6 +1045,8 @@ class _ManpowerListScreenState extends ConsumerState<ManpowerListScreen> {
           ),
         ),
       ),
+        );
+      },
     );
   }
 
@@ -943,9 +1116,13 @@ class _ManpowerListScreenState extends ConsumerState<ManpowerListScreen> {
     );
   }
 
-  Widget _buildManpowerTile(ManpowerModel manpower, bool isSelected) {
+  Widget _buildManpowerTile(
+    ManpowerModel manpower,
+    bool isSelected, {
+    GlobalKey? tileTourKey,
+  }) {
     final colorScheme = Theme.of(context).colorScheme;
-    return Stack(
+    final tile = Stack(
       children: [
         Opacity(
           opacity: _isSelectionMode && !isSelected ? 0.5 : 1.0,
@@ -1054,6 +1231,7 @@ class _ManpowerListScreenState extends ConsumerState<ManpowerListScreen> {
           ),
       ],
     );
+    return tileTourKey == null ? tile : _tourTarget(tileTourKey, tile);
   }
 
   Future<void> _confirmDelete(BuildContext context, String manpowerId) async {

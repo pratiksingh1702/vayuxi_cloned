@@ -11,6 +11,9 @@ class AppTourStep {
   final GlobalKey? targetKey;
   final String? progressLabel;
   final bool useSpotlight;
+  final double? tooltipBottomOffset;
+  final bool showTooltip;
+  final bool autoScrollToTarget;
 
   const AppTourStep({
     required this.id,
@@ -19,6 +22,9 @@ class AppTourStep {
     this.targetKey,
     this.progressLabel,
     this.useSpotlight = true,
+    this.tooltipBottomOffset,
+    this.showTooltip = true,
+    this.autoScrollToTarget = false,
   });
 }
 

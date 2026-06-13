@@ -11,21 +11,116 @@ import 'package:untitled2/features/tour/domain/tour_events.dart';
 import 'package:untitled2/features/tour/registry/site_registry.dart';
 import 'package:untitled2/features/tour/domain/tour_controller.dart';
 import 'package:untitled2/features/tour/domain/tour_presistent.dart';
+import 'package:untitled2/features/tour/core/tour_models.dart';
+import 'package:untitled2/features/tour/core/tour_package_adapter.dart';
+import 'package:untitled2/features/tour/definitions/site_rate_module_tours.dart';
+import 'package:untitled2/features/tour/providers/tour_providers.dart';
 import '../../../../../core/utlis/widgets/sidebar.dart';
 import '../../dpr/screens/widgets/select_card.dart';
 
 bool get _phase1DeepSiteTourEnabled => false;
 
-class SiteSelectCardGrid extends ConsumerWidget {
+class SiteSelectCardGrid extends ConsumerStatefulWidget {
   const SiteSelectCardGrid({super.key});
 
   @override
-  Widget build(BuildContext context, WidgetRef ref) {
+  ConsumerState<SiteSelectCardGrid> createState() => _SiteSelectCardGridState();
+}
+
+class _SiteSelectCardGridState extends ConsumerState<SiteSelectCardGrid> {
+  static const TourPackageAdapter _tourPackageAdapter = TourPackageAdapter();
+  String? _lastShowcasedTourStepId;
+  final GlobalKey _viewCardTourKey = GlobalKey(debugLabel: 'site_selector_view');
+  final GlobalKey _addCardTourKey = GlobalKey(debugLabel: 'site_selector_add');
+
+  void _syncSiteSelectorTour(BuildContext showcaseContext) {
+    final definition = AppTourDefinition(
+      id: '${SiteRateModuleTours.siteDetailsId}_selector',
+      title: 'Site Details',
+      description: 'Choose how to use Site Details.',
+      icon: Icons.location_city_rounded,
+      steps: [
+        const AppTourStep(
+          id: 'site_selector_intro',
+          title: 'Site Details',
+          body: 'Use this module to view existing sites or create a new site.',
+          progressLabel: 'Site Details',
+          useSpotlight: false,
+        ),
+        AppTourStep(
+          id: 'site_selector_view',
+          title: 'View Sites',
+          body: 'Open this to see your existing project sites and edit them.',
+          targetKey: _viewCardTourKey,
+          progressLabel: 'View',
+        ),
+        AppTourStep(
+          id: 'site_selector_add',
+          title: 'Add Site',
+          body: 'Open this to create a new site manually or by import.',
+          targetKey: _addCardTourKey,
+          progressLabel: 'Add',
+        ),
+      ],
+    );
+
+    WidgetsBinding.instance.addPostFrameCallback((_) async {
+      if (!mounted) return;
+      final route = ModalRoute.of(context);
+      if (route != null && !route.isCurrent) return;
+      final tourState = ref.read(appTourControllerProvider);
+      final tourController = ref.read(appTourControllerProvider.notifier);
+      if (tourState.status != AppTourStatus.running) {
+        await tourController.maybeStartRuntimeTour(
+          definition,
+          policyTourId: SiteRateModuleTours.siteDetailsId,
+        );
+      }
+      final step = tourController.currentStep;
+      final activeTour = tourController.activeTour;
+      if (activeTour == null ||
+          !activeTour.id.startsWith(SiteRateModuleTours.siteDetailsId)) {
+        if (_lastShowcasedTourStepId != null) {
+          _tourPackageAdapter.dismiss(showcaseContext);
+          _lastShowcasedTourStepId = null;
+        }
+        return;
+      }
+      final stepKey = step == null ? null : '${activeTour.id}:${step.id}';
+      if (step == null) {
+        if (_lastShowcasedTourStepId != null) {
+          _tourPackageAdapter.dismiss(showcaseContext);
+          _lastShowcasedTourStepId = null;
+        }
+        return;
+      }
+      if (_lastShowcasedTourStepId == stepKey) return;
+      _lastShowcasedTourStepId = stepKey;
+      _tourPackageAdapter.showStep(showcaseContext, step);
+    });
+  }
+
+  Widget _tourTarget(GlobalKey key, Widget child) {
+    return Showcase.withWidget(
+      key: key,
+      container: const SizedBox.shrink(),
+      overlayOpacity: 0.72,
+      targetPadding: const EdgeInsets.all(8),
+      targetBorderRadius: BorderRadius.circular(16),
+      disableDefaultTargetGestures: false,
+      child: child,
+    );
+  }
+
+  @override
+  Widget build(BuildContext context) {
     final cs = Theme.of(context).colorScheme;
     final isDark = Theme.of(context).brightness == Brightness.dark;
+    ref.watch(appTourControllerProvider);
 
     return ShowCaseWidget(
       builder: (showcaseContext) {
+        _syncSiteSelectorTour(showcaseContext);
         WidgetsBinding.instance.addPostFrameCallback((_) async {
           if (!_phase1DeepSiteTourEnabled) return;
           final ctrl = ref.read(tourControllerProvider.notifier);
@@ -134,24 +229,26 @@ class SiteSelectCardGrid extends ConsumerWidget {
                     childAspectRatio: 1,
                     children: [
                       // ---------------- VIEW ----------------
-                      SelectCard(
-                        icon: const SelectCardIcon(
-                          icon: Icons.visibility_rounded,
-                          color: Colors.blue,
+                      _tourTarget(
+                        _viewCardTourKey,
+                        SelectCard(
+                          icon: const SelectCardIcon(
+                            icon: Icons.visibility_rounded,
+                            color: Colors.blue,
+                          ),
+                          label: "View",
+                          onTap: () {
+                            ref.read(selectedSiteIdProvider.notifier).state =
+                                null;
+                            context.push("/site-list/site");
+                          },
                         ),
-                        label: "View",
-                        onTap: () {
-                          ref.read(selectedSiteIdProvider.notifier).state =
-                              null;
-                          context.push("/site-list/site");
-                        },
                       ),
 
                       // ---------------- ADD ----------------
-                      Showcase(
-                        key: SiteRegistry.addSiteCardKey,
-                        description: 'Tap Add to create your first Site.',
-                        child: SelectCard(
+                      _tourTarget(
+                        _addCardTourKey,
+                        SelectCard(
                           icon: const SelectCardIcon(
                             icon: Icons.add_circle_outline_rounded,
                             color: Colors.green,

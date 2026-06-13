@@ -1,12 +1,17 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
+import 'package:showcaseview/showcaseview.dart';
 import 'package:untitled2/core/utlis/common_functions.dart';
 import 'package:untitled2/core/utlis/widgets/custom_appBar.dart';
 import 'package:untitled2/features/language/service/providers.dart';
 import 'package:untitled2/features/modules/all_Modules/site_Details/providers/site_current_provider.dart';
 import 'package:untitled2/features/modules/all_Modules/site_Details/repository/siteModel.dart';
 import 'package:untitled2/features/modules/all_Modules/team/provider/teamProvider.dart';
+import 'package:untitled2/features/tour/core/tour_models.dart';
+import 'package:untitled2/features/tour/core/tour_package_adapter.dart';
+import 'package:untitled2/features/tour/definitions/attendance_module_tours.dart';
+import 'package:untitled2/features/tour/providers/tour_providers.dart';
 import '../../../../../core/router/routes.dart';
 import '../../../../../core/utlis/app_toasts.dart';
 import '../../../../../core/utlis/widgets/Button_wrapper.dart';
@@ -51,6 +56,26 @@ class _AttendanceScreenState extends ConsumerState<AttendanceScreen> {
   bool allPresent = false;
   bool allAbsent = false;
   final ScrollController _scrollController = ScrollController();
+  static const TourPackageAdapter _tourPackageAdapter = TourPackageAdapter();
+  String? _lastShowcasedTourStepId;
+  final GlobalKey _timelineTourKey =
+      GlobalKey(debugLabel: 'attendance_tour_timeline');
+  final GlobalKey _siteDateTourKey =
+      GlobalKey(debugLabel: 'attendance_tour_site_date');
+  final GlobalKey _searchFilterTourKey =
+      GlobalKey(debugLabel: 'attendance_tour_search_filter');
+  final GlobalKey _editTourKey = GlobalKey(debugLabel: 'attendance_tour_edit');
+  final GlobalKey _bulkActionsTourKey =
+      GlobalKey(debugLabel: 'attendance_tour_bulk_actions');
+  final GlobalKey _workerCardTourKey =
+      GlobalKey(debugLabel: 'attendance_tour_worker_card');
+  final GlobalKey _workerStatusTourKey =
+      GlobalKey(debugLabel: 'attendance_tour_worker_status');
+  final GlobalKey _workerHoursTourKey =
+      GlobalKey(debugLabel: 'attendance_tour_worker_hours');
+  final GlobalKey _workerOtTourKey =
+      GlobalKey(debugLabel: 'attendance_tour_worker_ot');
+  final GlobalKey _saveTourKey = GlobalKey(debugLabel: 'attendance_tour_save');
 
   // ✅ Track which date the draft was loaded for (replaces _draftInitialized bool)
   DateTime? _draftLoadedForDate;
@@ -1058,6 +1083,181 @@ class _AttendanceScreenState extends ConsumerState<AttendanceScreen> {
     });
   }
 
+  void _syncAttendanceTour(
+    BuildContext showcaseContext, {
+    required bool includeTimeline,
+    required bool includeWorkerControls,
+  }) {
+    final definition = _buildAttendanceTour(
+      includeTimeline: includeTimeline,
+      includeWorkerControls: includeWorkerControls,
+    );
+
+    WidgetsBinding.instance.addPostFrameCallback((_) async {
+      if (!mounted || isLoading) return;
+      final route = ModalRoute.of(context);
+      if (route != null && !route.isCurrent) return;
+
+      final tourState = ref.read(appTourControllerProvider);
+      final tourController = ref.read(appTourControllerProvider.notifier);
+
+      if (tourState.status != AppTourStatus.running) {
+        await tourController.maybeStartRuntimeTour(
+          definition,
+          policyTourId: AttendanceModuleTours.attendanceId,
+        );
+      }
+
+      final step = tourController.currentStep;
+      final activeTour = tourController.activeTour;
+      if (activeTour == null ||
+          !activeTour.id.startsWith(AttendanceModuleTours.attendanceId)) {
+        if (_lastShowcasedTourStepId != null) {
+          _tourPackageAdapter.dismiss(showcaseContext);
+          _lastShowcasedTourStepId = null;
+        }
+        return;
+      }
+      final stepKey = step == null ? null : '${activeTour.id}:${step.id}';
+
+      if (step == null) {
+        if (_lastShowcasedTourStepId != null) {
+          _tourPackageAdapter.dismiss(showcaseContext);
+          _lastShowcasedTourStepId = null;
+        }
+        return;
+      }
+
+      if (_lastShowcasedTourStepId == stepKey) return;
+      _lastShowcasedTourStepId = stepKey;
+      _tourPackageAdapter.showStep(showcaseContext, step);
+    });
+  }
+
+  AppTourDefinition _buildAttendanceTour({
+    required bool includeTimeline,
+    required bool includeWorkerControls,
+  }) {
+    final variant = [
+      if (includeTimeline) 'timeline',
+      if (includeWorkerControls) 'worker' else 'basic',
+    ].join('_');
+
+    return AppTourDefinition(
+      id: '${AttendanceModuleTours.attendanceId}_$variant',
+      title: 'Attendance',
+      description: 'Learn how to mark and save attendance.',
+      icon: Icons.how_to_reg_rounded,
+      steps: [
+        const AppTourStep(
+          id: 'attendance_intro',
+          title: 'Attendance',
+          body:
+              'Use this screen to mark who came to work and how many hours they worked.',
+          progressLabel: 'Attendance intro',
+          useSpotlight: false,
+        ),
+        if (includeTimeline)
+          AppTourStep(
+            id: 'attendance_timeline',
+            title: 'Pick a Date',
+            body:
+                'Use this timeline to move between dates when multiple entry mode is on.',
+            targetKey: _timelineTourKey,
+            progressLabel: 'Date timeline',
+          ),
+        AppTourStep(
+          id: 'attendance_site_date',
+          title: 'Site and Date',
+          body:
+              'Check the site name and date before marking attendance for workers.',
+          targetKey: _siteDateTourKey,
+          progressLabel: 'Site and date',
+        ),
+        AppTourStep(
+          id: 'attendance_search_filter',
+          title: 'Find Workers',
+          body:
+              'Search by employee name or code, and use filters to narrow the list.',
+          targetKey: _searchFilterTourKey,
+          progressLabel: 'Search and filter',
+        ),
+        AppTourStep(
+          id: 'attendance_edit',
+          title: 'Edit Mode',
+          body:
+              'Tap Edit when you need to change attendance, especially for older dates.',
+          targetKey: _editTourKey,
+          progressLabel: 'Edit mode',
+        ),
+        AppTourStep(
+          id: 'attendance_bulk_actions',
+          title: 'Mark Everyone Quickly',
+          body:
+              'Use All Absent or All Present to update the visible worker list in one tap.',
+          targetKey: _bulkActionsTourKey,
+          progressLabel: 'Bulk actions',
+        ),
+        if (includeWorkerControls) ...[
+          AppTourStep(
+            id: 'attendance_worker_card',
+            title: 'Worker Card',
+            body:
+                'Each card is one worker. You can mark attendance, hours, and overtime here.',
+            targetKey: _workerCardTourKey,
+            progressLabel: 'Worker card',
+          ),
+          AppTourStep(
+            id: 'attendance_worker_status',
+            title: 'Present or Absent',
+            body: 'Use P for present and A for absent for this worker.',
+            targetKey: _workerStatusTourKey,
+            progressLabel: 'P/A status',
+          ),
+          AppTourStep(
+            id: 'attendance_worker_hours',
+            title: 'Worked Hours',
+            body:
+                'Use this dropdown to set how many regular hours the worker completed.',
+            targetKey: _workerHoursTourKey,
+            progressLabel: 'Worked hours',
+          ),
+          AppTourStep(
+            id: 'attendance_worker_ot',
+            title: 'Overtime',
+            body: 'Use OT to add extra hours when the worker did overtime.',
+            targetKey: _workerOtTourKey,
+            progressLabel: 'Overtime',
+          ),
+        ],
+        AppTourStep(
+          id: 'attendance_save',
+          title: 'Save Attendance',
+          body: 'Tap Save when the attendance details are ready to submit.',
+          targetKey: _saveTourKey,
+          progressLabel: 'Save',
+          tooltipBottomOffset: 96,
+        ),
+      ],
+    );
+  }
+
+  Widget _buildAttendanceTourTarget({
+    required GlobalKey key,
+    required Widget child,
+    EdgeInsets targetPadding = const EdgeInsets.all(6),
+  }) {
+    return Showcase.withWidget(
+      key: key,
+      container: const SizedBox.shrink(),
+      overlayOpacity: 0.72,
+      targetPadding: targetPadding,
+      targetBorderRadius: BorderRadius.circular(14),
+      disableDefaultTargetGestures: false,
+      child: child,
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
     final type = ref.watch(typeProvider)!;
@@ -1074,28 +1274,36 @@ class _AttendanceScreenState extends ConsumerState<AttendanceScreen> {
     final site = ref.read(currentSiteProvider);
     final lang = ref.watch(dailyEntryTranslationHelperProvider);
     final colorScheme = Theme.of(context).colorScheme;
+    ref.watch(appTourControllerProvider);
 
     return Scaffold(
       backgroundColor: colorScheme.surfaceContainerLowest,
       drawer: CustomDrawer(),
       appBar: CustomAppBar(title: lang.recordAttendanceTitle),
-      body: BottomButtonWrapper(
-        customButtons: [
-          CustomButton(
-            button: RoundedButton(
-              text: "Save",
-              color: _isEditable
-                  ? colorScheme.primary
-                  : colorScheme.onSurfaceVariant,
-              textColor: colorScheme.onPrimary,
-              width: 200,
-              onPressed: _submitAttendance,
-            ),
-          ),
-        ],
-        child: isLoading
-            ? const Center(child: CircularProgressIndicator())
-            : attendanceState.when(
+      body: ShowCaseWidget(
+        builder: (showcaseContext) {
+          return BottomButtonWrapper(
+            customButtons: [
+              CustomButton(
+                button: _buildAttendanceTourTarget(
+                  key: _saveTourKey,
+                  targetPadding:
+                      const EdgeInsets.symmetric(horizontal: 10, vertical: 8),
+                  child: RoundedButton(
+                    text: "Save",
+                    color: _isEditable
+                        ? colorScheme.primary
+                        : colorScheme.onSurfaceVariant,
+                    textColor: colorScheme.onPrimary,
+                    width: 200,
+                    onPressed: _submitAttendance,
+                  ),
+                ),
+              ),
+            ],
+            child: isLoading
+                ? const Center(child: CircularProgressIndicator())
+                : attendanceState.when(
                 data: (attendanceList) {
                   // ✅ Only initialize draft when date changes, not on every stream emit
                   if (_draftLoadedForDate != _selectedDate &&
@@ -1185,24 +1393,37 @@ class _AttendanceScreenState extends ConsumerState<AttendanceScreen> {
                     }
                   });
 
+                  _syncAttendanceTour(
+                    showcaseContext,
+                    includeTimeline: _isMultipleEntry,
+                    includeWorkerControls: filteredList.isNotEmpty,
+                  );
+
                   return Padding(
                     padding: const EdgeInsets.all(5),
                     child: Column(
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
                         if (_isMultipleEntry) ...[
-                          TimelineDatePicker(
-                            selectedDate: _selectedDate,
-                            onDateSelected: _onTimelineDateSelected,
-                            completedDates: _completedDates,
+                          _buildAttendanceTourTarget(
+                            key: _timelineTourKey,
+                            targetPadding: const EdgeInsets.all(8),
+                            child: TimelineDatePicker(
+                              selectedDate: _selectedDate,
+                              onDateSelected: _onTimelineDateSelected,
+                              completedDates: _completedDates,
+                            ),
                           ),
                           const SizedBox(height: 8),
                         ],
 
                         // Site Name and Date Row
-                        Row(
-                          mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                          children: [
+                        _buildAttendanceTourTarget(
+                          key: _siteDateTourKey,
+                          targetPadding: const EdgeInsets.all(8),
+                          child: Row(
+                            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                            children: [
                             Container(
                               width: MediaQuery.of(context).size.width * 0.3,
                               child: Text(
@@ -1263,17 +1484,21 @@ class _AttendanceScreenState extends ConsumerState<AttendanceScreen> {
                                       ),
                                     ),
                             ),
-                          ],
+                            ],
+                          ),
                         ),
 
                         const SizedBox(height: 8),
 
 
                         // Search and Filter Row
-                        Padding(
-                          padding: const EdgeInsets.symmetric(vertical: 8),
-                          child: Row(
-                            children: [
+                        _buildAttendanceTourTarget(
+                          key: _searchFilterTourKey,
+                          targetPadding: const EdgeInsets.all(8),
+                          child: Padding(
+                            padding: const EdgeInsets.symmetric(vertical: 8),
+                            child: Row(
+                              children: [
                               Expanded(
                                 child: Container(
                                   height: 48,
@@ -1335,7 +1560,8 @@ class _AttendanceScreenState extends ConsumerState<AttendanceScreen> {
                                   ),
                                 ),
                               ),
-                            ],
+                              ],
+                            ),
                           ),
                         ),
 
@@ -1346,9 +1572,12 @@ class _AttendanceScreenState extends ConsumerState<AttendanceScreen> {
                           mainAxisAlignment: MainAxisAlignment.spaceBetween,
                           children: [
                             // Edit Button
-                            GestureDetector(
-                              onTap: _toggleEditMode,
-                              child: Container(
+                            _buildAttendanceTourTarget(
+                              key: _editTourKey,
+                              targetPadding: const EdgeInsets.all(6),
+                              child: GestureDetector(
+                                onTap: _toggleEditMode,
+                                child: Container(
                                 padding: const EdgeInsets.symmetric(
                                   horizontal: 16,
                                   vertical: 8,
@@ -1387,12 +1616,16 @@ class _AttendanceScreenState extends ConsumerState<AttendanceScreen> {
                                     ),
                                   ],
                                 ),
+                                ),
                               ),
                             ),
 
                             // All Present / All Absent
-                            Row(
-                              children: [
+                            _buildAttendanceTourTarget(
+                              key: _bulkActionsTourKey,
+                              targetPadding: const EdgeInsets.all(6),
+                              child: Row(
+                                children: [
                                 GestureDetector(
                                   onTap: () => _toggleAllAbsent(filteredList),
                                   child: Container(
@@ -1444,7 +1677,8 @@ class _AttendanceScreenState extends ConsumerState<AttendanceScreen> {
                                     ),
                                   ),
                                 ),
-                              ],
+                                ],
+                              ),
                             ),
                           ],
                         ),
@@ -1478,6 +1712,13 @@ class _AttendanceScreenState extends ConsumerState<AttendanceScreen> {
                                   absentOptions: absentOptions,
                                   otOptions: otOptions,
                                   isEditMode: _isEditable,
+                                  cardTourKey:
+                                      i == 0 ? _workerCardTourKey : null,
+                                  statusTourKey:
+                                      i == 0 ? _workerStatusTourKey : null,
+                                  hoursTourKey:
+                                      i == 0 ? _workerHoursTourKey : null,
+                                  otTourKey: i == 0 ? _workerOtTourKey : null,
                                   onAbsentChange: (v) {
                                     if (!_isEditable) {
                                       _showEditRequiredMessage();
@@ -1564,6 +1805,8 @@ class _AttendanceScreenState extends ConsumerState<AttendanceScreen> {
                   itemCount: 8,
                 ),
               ),
+          );
+        },
       ),
     );
   }
@@ -1580,6 +1823,10 @@ class AttendanceCard extends StatefulWidget {
   final Function(double) onOtChange;
   final bool isEditMode;
   final double maxAllowedHours;
+  final GlobalKey? cardTourKey;
+  final GlobalKey? statusTourKey;
+  final GlobalKey? hoursTourKey;
+  final GlobalKey? otTourKey;
 
   const AttendanceCard({
     super.key,
@@ -1593,6 +1840,10 @@ class AttendanceCard extends StatefulWidget {
     required this.onOtChange,
     required this.isEditMode,
     required this.maxAllowedHours,
+    this.cardTourKey,
+    this.statusTourKey,
+    this.hoursTourKey,
+    this.otTourKey,
   });
 
   @override
@@ -1693,7 +1944,7 @@ class _AttendanceCardState extends State<AttendanceCard> {
       colorScheme.surface,
     );
 
-    return InkWell(
+    final card = InkWell(
       onTap: widget.isEditMode ? toggleAttendance : null,
       borderRadius: BorderRadius.circular(10),
       splashColor: widget.isEditMode
@@ -1873,11 +2124,33 @@ class _AttendanceCardState extends State<AttendanceCard> {
         ),
       ),
     );
+
+    return _wrapTourTarget(
+      key: widget.cardTourKey,
+      child: card,
+    );
+  }
+
+  Widget _wrapTourTarget({
+    required GlobalKey? key,
+    required Widget child,
+    EdgeInsets targetPadding = const EdgeInsets.all(6),
+  }) {
+    if (key == null) return child;
+    return Showcase.withWidget(
+      key: key,
+      container: const SizedBox.shrink(),
+      overlayOpacity: 0.72,
+      targetPadding: targetPadding,
+      targetBorderRadius: BorderRadius.circular(12),
+      disableDefaultTargetGestures: false,
+      child: child,
+    );
   }
 
   Widget _buildPAButton() {
     final colorScheme = Theme.of(context).colorScheme;
-    return Container(
+    final button = Container(
       decoration: BoxDecoration(
         color: colorScheme.surface,
         borderRadius: BorderRadius.circular(6),
@@ -1888,6 +2161,11 @@ class _AttendanceCardState extends State<AttendanceCard> {
           _segment("A", false),
         ],
       ),
+    );
+    return _wrapTourTarget(
+      key: widget.statusTourKey,
+      targetPadding: const EdgeInsets.all(4),
+      child: button,
     );
   }
 
@@ -1945,7 +2223,7 @@ class _AttendanceCardState extends State<AttendanceCard> {
     }
     print("🔑 defaultValue: $defaultValue");
 
-    return MouseRegion(
+    final dropdown = MouseRegion(
       cursor: widget.isEditMode
           ? SystemMouseCursors.click
           : SystemMouseCursors.basic,
@@ -2004,6 +2282,11 @@ class _AttendanceCardState extends State<AttendanceCard> {
         ),
       ),
     );
+    return _wrapTourTarget(
+      key: widget.hoursTourKey,
+      targetPadding: const EdgeInsets.all(4),
+      child: dropdown,
+    );
   }
 
   List<Map<String, dynamic>> buildOTOptions({
@@ -2031,7 +2314,7 @@ class _AttendanceCardState extends State<AttendanceCard> {
             {"value": 0.0, "label": "0h"}
           ];
 
-    return MouseRegion(
+    final dropdown = MouseRegion(
       cursor: widget.isEditMode
           ? SystemMouseCursors.click
           : SystemMouseCursors.basic,
@@ -2084,6 +2367,11 @@ class _AttendanceCardState extends State<AttendanceCard> {
           ),
         ),
       ),
+    );
+    return _wrapTourTarget(
+      key: widget.otTourKey,
+      targetPadding: const EdgeInsets.all(4),
+      child: dropdown,
     );
   }
 }

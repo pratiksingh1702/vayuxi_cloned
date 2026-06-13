@@ -1,0 +1,69 @@
+
+══╡ EXCEPTION CAUGHT BY WIDGETS LIBRARY ╞═══════════════════════════════════════════════════════════
+The following assertion was thrown building
+RawTooltip-[LabeledGlobalKey<RawTooltipState>#ada0d]("Skip tour", hover delay: 0:00:00.000000, touch
+delay: 0:00:01.500000, dismiss delay: 0:00:00.100000, triggerMode: TooltipTriggerMode.longPress,
+enableFeedback: true, positionDelegate: Closure: (TooltipPositionContext) => Offset from Function
+'_getDefaultPositionDelegate@3178220820':., dirty, state: RawTooltipState#89955):
+No Overlay widget found.
+RawTooltip widgets require an Overlay widget ancestor within the closest LookupBoundary.
+An overlay lets widgets float on top of other widget children.
+To introduce an Overlay widget, you can either directly include one, or use a widget that contains
+an Overlay itself, such as a Navigator, WidgetApp, MaterialApp, or CupertinoApp.
+The specific widget that could not find a Overlay ancestor was:
+  RawTooltip-[LabeledGlobalKey<RawTooltipState>#ada0d]
+The ancestors of this widget were:
+  ...
+  Tooltip
+  DefaultTextStyle
+  AnimatedDefaultTextStyle
+  _InkFeatures-[GlobalKey#9b838 ink renderer]
+  NotificationListener<LayoutChangedNotification>
+  ...
+
+The relevant error-causing widget was:
+  IconButton
+  IconButton:file:///C:/Users/Dell/Downloads/untitled2/untitled2/lib/features/tour/widgets/tour_tooltip_card.dart:93:17
+
+When the exception was thrown, this was the stack:
+#0      debugCheckHasOverlay.<anonymous closure> (package:flutter/src/widgets/debug.dart:506:7)
+#1      debugCheckHasOverlay (package:flutter/src/widgets/debug.dart:528:4)
+#2      RawTooltipState.build (package:flutter/src/widgets/raw_tooltip.dart:845:12)
+#3      StatefulElement.build (package:flutter/src/widgets/framework.dart:5931:27)
+#4      ComponentElement.performRebuild (package:flutter/src/widgets/framework.dart:5817:15)
+#5      StatefulElement.performRebuild (package:flutter/src/widgets/framework.dart:5982:11)
+#6      Element.rebuild (package:flutter/src/widgets/framework.dart:5529:7)
+#7      ComponentElement._firstBuild (package:flutter/src/widgets/framework.dart:5799:5)
+#8      StatefulElement._firstBuild (package:flutter/src/widgets/framework.dart:5973:11)
+#9      ComponentElement.mount (package:flutter/src/widgets/framework.dart:5793:5)
+...     Normal element mounting (91 frames)
+#100    Element.inflateWidget (package:flutter/src/widgets/framework.dart:4587:20)
+#101    MultiChildRenderObjectElement.inflateWidget (package:flutter/src/widgets/framework.dart:7264:36)
+#102    MultiChildRenderObjectElement.mount (package:flutter/src/widgets/framework.dart:7279:32)
+#103    Element.inflateWidget (package:flutter/src/widgets/framework.dart:4587:20)
+#104    MultiChildRenderObjectElement.inflateWidget (package:flutter/src/widgets/framework.dart:7264:36)
+#105    MultiChildRenderObjectElement.mount (package:flutter/src/widgets/framework.dart:7279:32)
+...     Normal element mounting (70 frames)
+#175    Element.inflateWidget (package:flutter/src/widgets/framework.dart:4587:20)
+#176    MultiChildRenderObjectElement.inflateWidget (package:flutter/src/widgets/framework.dart:7264:36)
+#177    Element.updateChild (package:flutter/src/widgets/framework.dart:4059:18)
+#178    Element.updateChildren (package:flutter/src/widgets/framework.dart:4255:32)
+#179    MultiChildRenderObjectElement.update (package:flutter/src/widgets/framework.dart:7295:17)
+#180    Element.updateChild (package:flutter/src/widgets/framework.dart:4037:15)
+#181    ComponentElement.performRebuild (package:flutter/src/widgets/framework.dart:5841:16)
+#182    StatefulElement.performRebuild (package:flutter/src/widgets/framework.dart:5982:11)
+#183    Element.rebuild (package:flutter/src/widgets/framework.dart:5529:7)
+#184    BuildScope._tryRebuild (package:flutter/src/widgets/framework.dart:2750:15)
+#185    BuildScope._flushDirtyElements (package:flutter/src/widgets/framework.dart:2807:11)
+#186    BuildOwner.buildScope (package:flutter/src/widgets/framework.dart:3111:18)
+#187    WidgetsBinding.drawFrame (package:flutter/src/widgets/binding.dart:1302:21)
+#188    RendererBinding._handlePersistentFrameCallback (package:flutter/src/rendering/binding.dart:495:5)
+#189    SchedulerBinding._invokeFrameCallback (package:flutter/src/scheduler/binding.dart:1430:15)
+#190    SchedulerBinding.handleDrawFrame (package:flutter/src/scheduler/binding.dart:1345:9)
+#191    SchedulerBinding._handleDrawFrame (package:flutter/src/scheduler/binding.dart:1198:5)
+#195    _invoke (dart:ui/hooks.dart:358:10)
+#196    PlatformDispatcher._drawFrame (dart:ui/platform_dispatcher.dart:444:5)
+#197    _drawFrame (dart:ui/hooks.dart:328:31)
+(elided 3 frames from dart:async)
+
+═════════════════════════════════════

@@ -1,7 +1,7 @@
 // lib/features/modules/all_Modules/dpr/dpr_insu/model/base_material.dart
 
 import 'card_form_State.dart';
-import 'field_config.dart';
+import 'field_config.dart' hide FieldEntry;
 
 abstract class BaseMaterial {
   final String id;
