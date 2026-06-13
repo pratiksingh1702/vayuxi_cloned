@@ -38,15 +38,13 @@ class DPRStructureState {
   }) {
     return DPRStructureState(
       dprs: dprs ?? this.dprs,
-      selectedDPR:
-          clearSelected ? null : (selectedDPR ?? this.selectedDPR),
+      selectedDPR: clearSelected ? null : (selectedDPR ?? this.selectedDPR),
       isLoading: isLoading ?? this.isLoading,
       isSaving: isSaving ?? this.isSaving,
       error: clearError ? null : (error ?? this.error),
       filterStartDate:
           clearFilter ? null : (filterStartDate ?? this.filterStartDate),
-      filterEndDate:
-          clearFilter ? null : (filterEndDate ?? this.filterEndDate),
+      filterEndDate: clearFilter ? null : (filterEndDate ?? this.filterEndDate),
     );
   }
 }
@@ -63,6 +61,21 @@ class DPRStructureNotifier extends StateNotifier<DPRStructureState> {
         siteId,
         startDate: state.filterStartDate,
         endDate: state.filterEndDate,
+      );
+      state = state.copyWith(dprs: dprs, isLoading: false);
+    } catch (e) {
+      state = state.copyWith(isLoading: false, error: _extractError(e));
+    }
+  }
+
+  Future<void> fetchPebDPRList(String siteId, {String? type}) async {
+    state = state.copyWith(isLoading: true, clearError: true);
+    try {
+      final dprs = await _repo.getPebDPRList(
+        siteId,
+        startDate: state.filterStartDate,
+        endDate: state.filterEndDate,
+        type: type,
       );
       state = state.copyWith(dprs: dprs, isLoading: false);
     } catch (e) {
@@ -149,8 +162,9 @@ class DPRStructureNotifier extends StateNotifier<DPRStructureState> {
         size: size,
         unit: unit,
       );
-      final List<DPRStructure> updatedList =
-          state.dprs.map<DPRStructure>((d) => d.id == dprId ? updatedDpr : d).toList();
+      final List<DPRStructure> updatedList = state.dprs
+          .map<DPRStructure>((d) => d.id == dprId ? updatedDpr : d)
+          .toList();
       state = state.copyWith(
         dprs: updatedList,
         selectedDPR: updatedDpr,
@@ -176,7 +190,21 @@ class DPRStructureNotifier extends StateNotifier<DPRStructureState> {
     }
   }
 
-  Future<List<DPRStructure>> fetchDPRsForDate(String siteId, DateTime date) async {
+  Future<bool> deletePebDPR(String siteId, String dprId) async {
+    state = state.copyWith(isSaving: true, clearError: true);
+    try {
+      await _repo.deletePebDPR(siteId, dprId);
+      final updated = state.dprs.where((d) => d.id != dprId).toList();
+      state = state.copyWith(dprs: updated, isSaving: false);
+      return true;
+    } catch (e) {
+      state = state.copyWith(isSaving: false, error: _extractError(e));
+      return false;
+    }
+  }
+
+  Future<List<DPRStructure>> fetchDPRsForDate(
+      String siteId, DateTime date) async {
     state = state.copyWith(isLoading: true, clearError: true);
     try {
       final dprs = await _repo.getDPRList(

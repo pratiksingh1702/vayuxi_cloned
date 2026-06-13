@@ -836,7 +836,25 @@ class _SheetDownloadPageState extends ConsumerState<SheetDownloadPage> {
                             icon: const Icon(Icons.assignment_rounded),
                             label: "DPR List",
                             onTap: () {
-                              context.push('/structure-dpr-report/$siteId');
+                              if (_selectedStartDate == null ||
+                                  _selectedEndDate == null) {
+                                ScaffoldMessenger.of(context).showSnackBar(
+                                  const SnackBar(
+                                    content: Text(
+                                        "Please select both start and end dates first"),
+                                    backgroundColor: Colors.orange,
+                                  ),
+                                );
+                                return;
+                              }
+                              context.push(
+                                '/structure-dpr-report/$siteId',
+                                extra: {
+                                  'startDate': _selectedStartDate,
+                                  'endDate': _selectedEndDate,
+                                  'type': type,
+                                },
+                              );
                             },
                           ),
                         ],

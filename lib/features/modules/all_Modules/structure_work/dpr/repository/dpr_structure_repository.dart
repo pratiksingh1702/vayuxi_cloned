@@ -70,6 +70,123 @@ class DPRStructureRepository {
     return [];
   }
 
+  Future<List<DPRStructure>> getPebDPRList(
+    String siteId, {
+    DateTime? startDate,
+    DateTime? endDate,
+    String? type,
+  }) async {
+    final apiType = _convertStructureTypeForDprApi(type);
+    final params = <String, dynamic>{
+      'section': apiType == 'fabrication_work' ? 'fabrication' : 'erection',
+      'type': apiType,
+    };
+    if (startDate != null) {
+      params['startDate'] = startDate.toIso8601String();
+    }
+    if (endDate != null) {
+      params['endDate'] = endDate.toIso8601String();
+    }
+
+    final res = await DioClient.dio.get(
+      '/site/$siteId/dpr-peb',
+      queryParameters: params,
+    );
+    final data = res.data;
+    if (data is List) {
+      return data
+          .whereType<Map>()
+          .map((e) => _dprStructureFromPeb(e.cast<String, dynamic>()))
+          .toList();
+    }
+    return [];
+  }
+
+  Future<bool> deletePebDPR(String siteId, String dprId) async {
+    final res = await DioClient.dio.delete('/site/$siteId/dpr-peb/$dprId');
+    return res.statusCode == 200;
+  }
+
+  DPRStructure _dprStructureFromPeb(Map<String, dynamic> json) {
+    final rawItems = json['items'];
+    final items = rawItems is List
+        ? rawItems
+            .whereType<Map>()
+            .map((raw) => raw.cast<String, dynamic>())
+            .expand((item) {
+            final marks = item['assemblyMark']
+                .toString()
+                .split(',')
+                .map((mark) => mark.trim())
+                .where((mark) => mark.isNotEmpty)
+                .toList();
+            final effectiveMarks = marks.isEmpty
+                ? <String>[item['name']?.toString() ?? 'Level 1']
+                : marks;
+            final qty = (item['actualQty'] as num?)?.toDouble() ?? 0;
+            final perMarkQty = effectiveMarks.length > 1 ? 1.0 : qty;
+            return effectiveMarks.map(
+              (mark) => DPRStructureItem(
+                id: item['_id']?.toString() ?? '',
+                assemblyMark: mark,
+                qtyUsed: perMarkQty,
+                netWeightPerUnit:
+                    (item['netWeightPerUnit'] as num?)?.toDouble(),
+                totalNetWeight: (item['totalWeight'] as num?)?.toDouble(),
+              ),
+            );
+          }).toList()
+        : <DPRStructureItem>[];
+
+    final firstItem =
+        rawItems is List && rawItems.isNotEmpty && rawItems.first is Map
+            ? (rawItems.first as Map).cast<String, dynamic>()
+            : <String, dynamic>{};
+    final team = json['teamId'];
+    final createdBy = json['createdBy'];
+    final dprDate = DateTime.tryParse((json['date'] ?? '').toString());
+    final createdAt = DateTime.tryParse((json['createdAt'] ?? '').toString());
+    final updatedAt = DateTime.tryParse((json['updatedAt'] ?? '').toString());
+    final totalQty = items.fold<double>(0, (sum, item) => sum + item.qtyUsed);
+    final totalWeight = items.fold<double>(
+      0,
+      (sum, item) => sum + (item.totalNetWeight ?? 0),
+    );
+    final stageName = firstItem['name']?.toString() ??
+        firstItem['memberType']?.toString() ??
+        (json['section']?.toString() ?? 'Structure DPR');
+    final id = json['_id']?.toString() ?? '';
+    final fallbackDprNumber =
+        id.length >= 6 ? id.substring(0, 6).toUpperCase() : id.toUpperCase();
+
+    return DPRStructure(
+      id: id,
+      dprName: stageName,
+      dprNumber: json['dprNumber']?.toString() ?? fallbackDprNumber,
+      siteId: json['siteId'] is Map
+          ? json['siteId']['_id']?.toString()
+          : json['siteId']?.toString(),
+      siteName:
+          json['siteId'] is Map ? json['siteId']['siteName']?.toString() : null,
+      company: json['company'] is Map
+          ? json['company']['_id']?.toString()
+          : json['company']?.toString(),
+      type: json['type']?.toString(),
+      items: items,
+      totalQtyUsed: totalQty,
+      totalNetWeight: totalWeight,
+      date: dprDate,
+      status: json['status']?.toString() ?? 'submitted',
+      remarks: json['remarks']?.toString(),
+      createdByName:
+          createdBy is Map ? createdBy['fullName']?.toString() : null,
+      createdAt: createdAt,
+      teamId: team is Map ? team['_id']?.toString() : team?.toString(),
+      teamName: team is Map ? team['teamName']?.toString() : null,
+      updatedAt: updatedAt,
+    );
+  }
+
   // GET /api/v1/site/{siteId}/dpr-structure/{dprId}
   Future<DPRStructure> getDPRDetail(String siteId, String dprId) async {
     final res = await DioClient.dio.get('/site/$siteId/dpr-structure/$dprId');
@@ -167,6 +284,24 @@ class DPRStructureRepository {
         return 'structure_erection';
       default:
         return 'structure_erection';
+    }
+  }
+
+  String _convertStructureTypeForDprApi(String? type) {
+    switch (type) {
+      case 'fabrication_work':
+      case 'fabrication':
+      case 'structure_fabrication':
+        return 'fabrication_work';
+      case 'structure_work':
+      case 'erection_work':
+      case 'erection':
+      case 'structure_erection':
+      case null:
+      case '':
+        return 'erection_work';
+      default:
+        return 'erection_work';
     }
   }
 }

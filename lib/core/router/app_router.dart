@@ -964,7 +964,13 @@ final appRouterProvider = Provider<GoRouter>((ref) {
         path: '${Routes.structureDprReportList}/:siteId',
         builder: (context, state) {
           final siteId = state.pathParameters['siteId']!;
-          return StructureDprReportListScreen(siteId: siteId);
+          final extra = state.extra as Map<String, dynamic>?;
+          return StructureDprReportListScreen(
+            siteId: siteId,
+            startDate: extra?['startDate'] as DateTime?,
+            endDate: extra?['endDate'] as DateTime?,
+            type: extra?['type'] as String?,
+          );
         },
       ),
       GoRoute(
