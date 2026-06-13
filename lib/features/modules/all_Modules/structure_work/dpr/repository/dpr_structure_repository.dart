@@ -1,3 +1,4 @@
+import 'dart:convert';
 import 'dart:typed_data';
 import 'package:dio/dio.dart';
 import 'package:untitled2/core/api/dio.dart';
@@ -131,17 +132,41 @@ class DPRStructureRepository {
     required String format,
     String? type,
   }) async {
-    final res = await DioClient.dio.get(
-      '/site/$siteId/structure-work/sheets',
+    final apiSheetType = sheetType == 'invoice-v2' ? 'invoice' : sheetType;
+    final apiType = _convertStructureTypeForApi(type);
+    final res = await DioClient.dioV2.get(
+      '/site/$siteId/sheets/$apiSheetType',
       queryParameters: {
         'fromDate': fromDate,
         'toDate': toDate,
-        'sheetType': sheetType,
         'format': format,
-        if (type != null && type.isNotEmpty) 'type': type,
+        'type': apiType,
       },
-      options: Options(responseType: ResponseType.bytes),
+      options: Options(extra: {"withCredentials": true}),
     );
-    return Uint8List.fromList(res.data as List<int>);
+    if (res.data is Map && res.data['data'] is String) {
+      return base64Decode(res.data['data'] as String);
+    }
+    throw Exception('Invalid response format: expected {data: base64String}');
+  }
+
+  String _convertStructureTypeForApi(String? type) {
+    switch (type) {
+      case 'fabrication_work':
+      case 'fabrication':
+        return 'structure_fabrication';
+      case 'structure_fabrication':
+        return 'structure_fabrication';
+      case 'structure_erection':
+        return 'structure_erection';
+      case 'structure_work':
+      case 'erection_work':
+      case 'erection':
+      case null:
+      case '':
+        return 'structure_erection';
+      default:
+        return 'structure_erection';
+    }
   }
 }
