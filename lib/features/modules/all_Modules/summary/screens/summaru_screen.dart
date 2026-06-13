@@ -1,3 +1,5 @@
+import 'dart:math' as math;
+
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:shimmer/shimmer.dart';
@@ -131,6 +133,7 @@ class _FilterBar extends StatelessWidget {
   final Map<String, int> monthMap;
   final List<String> yearOptions;
   final String selectedMonthName;
+  final bool weeklyDateRange;
 
   const _FilterBar({
     required this.filter,
@@ -138,6 +141,7 @@ class _FilterBar extends StatelessWidget {
     required this.monthMap,
     required this.yearOptions,
     required this.selectedMonthName,
+    this.weeklyDateRange = false,
   });
 
   @override
@@ -207,6 +211,31 @@ class _FilterBar extends StatelessWidget {
               items: yearOptions,
               onChanged: (v) => notifier.setYear(v!),
             )
+          else if (filter.filterType == SummaryFilterType.weekly &&
+              weeklyDateRange)
+            Column(
+              children: [
+                Row(children: [
+                  Expanded(
+                    child: _datePickerBox(
+                      context: context,
+                      label: 'From',
+                      date: filter.rangeFromDate,
+                      onPicked: notifier.setRangeFromDate,
+                    ),
+                  ),
+                  const SizedBox(width: 12),
+                  Expanded(
+                    child: _datePickerBox(
+                      context: context,
+                      label: 'To',
+                      date: filter.rangeToDate,
+                      onPicked: notifier.setRangeToDate,
+                    ),
+                  ),
+                ]),
+              ],
+            )
           else ...[
             // daily or weekly — show date picker + year
             Row(children: [
@@ -221,32 +250,7 @@ class _FilterBar extends StatelessWidget {
                     );
                     if (picked != null) notifier.setDate(picked);
                   },
-                  child: Container(
-                    padding: const EdgeInsets.symmetric(
-                        horizontal: 12, vertical: 12),
-                    decoration: BoxDecoration(
-                      color: colorScheme.surfaceContainerLow,
-                      borderRadius: BorderRadius.circular(16),
-                      border: Border.all(color: colorScheme.outlineVariant),
-                    ),
-                    child: Row(
-                      children: [
-                        Icon(
-                          Icons.calendar_today,
-                          size: 16,
-                          color: colorScheme.onSurfaceVariant,
-                        ),
-                        const SizedBox(width: 8),
-                        Text(
-                          '${filter.date.day}/${filter.date.month}/${filter.date.year}',
-                          style: TextStyle(
-                            fontSize: 14,
-                            color: colorScheme.onSurface,
-                          ),
-                        ),
-                      ],
-                    ),
-                  ),
+                  child: _dateDisplayBox(context, null, filter.date),
                 ),
               ),
               const SizedBox(width: 12),
@@ -259,6 +263,60 @@ class _FilterBar extends StatelessWidget {
               )),
             ]),
           ],
+        ],
+      ),
+    );
+  }
+
+  Widget _datePickerBox({
+    required BuildContext context,
+    required String label,
+    required DateTime date,
+    required ValueChanged<DateTime> onPicked,
+  }) {
+    return GestureDetector(
+      onTap: () async {
+        final picked = await showDatePicker(
+          context: context,
+          initialDate: date,
+          firstDate: DateTime(2024),
+          lastDate: DateTime.now().add(const Duration(days: 365)),
+        );
+        if (picked != null) onPicked(picked);
+      },
+      child: _dateDisplayBox(context, label, date),
+    );
+  }
+
+  Widget _dateDisplayBox(BuildContext context, String? label, DateTime date) {
+    final colorScheme = Theme.of(context).colorScheme;
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 12),
+      decoration: BoxDecoration(
+        color: colorScheme.surfaceContainerLow,
+        borderRadius: BorderRadius.circular(16),
+        border: Border.all(color: colorScheme.outlineVariant),
+      ),
+      child: Row(
+        children: [
+          Icon(
+            Icons.calendar_today,
+            size: 16,
+            color: colorScheme.onSurfaceVariant,
+          ),
+          const SizedBox(width: 8),
+          Expanded(
+            child: Text(
+              '${label != null ? '$label ' : ''}${date.day}/${date.month}/${date.year}',
+              maxLines: 1,
+              overflow: TextOverflow.ellipsis,
+              style: TextStyle(
+                fontSize: 13,
+                color: colorScheme.onSurface,
+                fontWeight: FontWeight.w600,
+              ),
+            ),
+          ),
         ],
       ),
     );
@@ -627,6 +685,7 @@ class _PebWorkSummaryViewState extends ConsumerState<_PebWorkSummaryView> {
             monthMap: widget.monthMap,
             yearOptions: widget.yearOptions,
             selectedMonthName: selectedMonthName,
+            weeklyDateRange: true,
           ),
           Expanded(
             child: summaryAsync.when(
@@ -686,7 +745,7 @@ class _PebOverviewSection extends StatelessWidget {
         ),
         GridView.count(
           crossAxisCount: 2,
-          childAspectRatio: 1.55,
+          childAspectRatio: 1.32,
           shrinkWrap: true,
           physics: const NeverScrollableScrollPhysics(),
           mainAxisSpacing: 10,
@@ -796,6 +855,13 @@ class _PebStageSection extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final visibleStages = stages
+        .where((stage) =>
+            stage.assigned > 0 ||
+            stage.inProgress > 0 ||
+            stage.completed > 0 ||
+            stage.pending > 0)
+        .toList();
     return _SummaryCard(
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
@@ -805,10 +871,13 @@ class _PebStageSection extends StatelessWidget {
             subtitle: 'Assigned, in progress, complete and pending marks',
             compact: true,
           ),
-          if (stages.isEmpty)
-            const _EmptyMiniState(text: 'No work stages found')
-          else
-            ...stages.map((stage) => _StageProgressTile(stage: stage)),
+          if (visibleStages.isEmpty)
+            const _EmptyMiniState(text: 'No planned or actual stage data found')
+          else ...[
+            _StageDonutSummary(stages: visibleStages),
+            const SizedBox(height: 12),
+            ...visibleStages.map((stage) => _StageProgressTile(stage: stage)),
+          ],
         ],
       ),
     );
@@ -822,6 +891,13 @@ class _PebGanttSection extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final visibleRows = rows
+        .where((row) =>
+            row.plannedStartDate.isNotEmpty ||
+            row.plannedEndDate.isNotEmpty ||
+            row.actualStartDate.isNotEmpty ||
+            row.actualEndDate.isNotEmpty)
+        .toList();
     return _SummaryCard(
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
@@ -831,10 +907,10 @@ class _PebGanttSection extends StatelessWidget {
             subtitle: 'Planned timeline compared with actual execution',
             compact: true,
           ),
-          if (rows.isEmpty)
+          if (visibleRows.isEmpty)
             const _EmptyMiniState(text: 'No timeline available')
           else
-            ...rows.map((row) => _TimelineTile(row: row)),
+            _GanttChart(rows: visibleRows),
         ],
       ),
     );
@@ -917,7 +993,7 @@ class _MetricCard extends StatelessWidget {
   Widget build(BuildContext context) {
     final cs = Theme.of(context).colorScheme;
     return Container(
-      padding: const EdgeInsets.all(14),
+      padding: const EdgeInsets.all(12),
       decoration: BoxDecoration(
         color: cs.surface,
         borderRadius: BorderRadius.circular(16),
@@ -941,7 +1017,7 @@ class _MetricCard extends StatelessWidget {
                   color: color.withOpacity(0.12),
                   borderRadius: BorderRadius.circular(10),
                 ),
-                child: Icon(icon, color: color, size: 18),
+                child: Icon(icon, color: color, size: 16),
               ),
               const Spacer(),
               if (progress != null)
@@ -949,7 +1025,7 @@ class _MetricCard extends StatelessWidget {
                   '${((progress ?? 0) * 100).clamp(0, 100).toStringAsFixed(0)}%',
                   style: TextStyle(
                     color: color,
-                    fontSize: 12,
+                    fontSize: 11,
                     fontWeight: FontWeight.w800,
                   ),
                 ),
@@ -962,11 +1038,10 @@ class _MetricCard extends StatelessWidget {
             overflow: TextOverflow.ellipsis,
             style: TextStyle(
               color: cs.onSurface,
-              fontSize: 23,
+              fontSize: 20,
               fontWeight: FontWeight.w900,
             ),
           ),
-          const SizedBox(height: 2),
           Text(
             title,
             maxLines: 1,
@@ -974,7 +1049,7 @@ class _MetricCard extends StatelessWidget {
             style: TextStyle(
               color: cs.onSurfaceVariant,
               fontWeight: FontWeight.w700,
-              fontSize: 12,
+              fontSize: 11,
             ),
           ),
           if (subtitle != null)
@@ -982,7 +1057,7 @@ class _MetricCard extends StatelessWidget {
               subtitle!,
               maxLines: 1,
               overflow: TextOverflow.ellipsis,
-              style: TextStyle(color: cs.onSurfaceVariant, fontSize: 11),
+              style: TextStyle(color: cs.onSurfaceVariant, fontSize: 10),
             ),
         ],
       ),
@@ -1045,54 +1120,686 @@ class _StageProgressTile extends StatelessWidget {
   }
 }
 
-class _TimelineTile extends StatelessWidget {
-  final PebGanttRow row;
+class _StageDonutSummary extends StatelessWidget {
+  final List<PebStageSummary> stages;
 
-  const _TimelineTile({required this.row});
+  const _StageDonutSummary({required this.stages});
 
   @override
   Widget build(BuildContext context) {
     final cs = Theme.of(context).colorScheme;
+    final assigned = stages.fold<int>(0, (sum, stage) => sum + stage.assigned);
+    final completed =
+        stages.fold<int>(0, (sum, stage) => sum + stage.completed);
+    final inProgress =
+        stages.fold<int>(0, (sum, stage) => sum + stage.inProgress);
+    final pending = math.max(
+      0,
+      stages.fold<int>(0, (sum, stage) => sum + stage.pending),
+    );
+    final progress = assigned > 0 ? (completed / assigned) * 100 : 0.0;
+
     return Container(
-      margin: const EdgeInsets.only(top: 10),
       padding: const EdgeInsets.all(12),
       decoration: BoxDecoration(
         color: cs.surfaceContainerLowest,
-        borderRadius: BorderRadius.circular(12),
-        border: Border.all(color: cs.outlineVariant.withOpacity(0.7)),
+        borderRadius: BorderRadius.circular(14),
+        border: Border.all(color: cs.outlineVariant.withOpacity(0.65)),
       ),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
+      child: Row(
         children: [
-          Row(
-            children: [
-              Expanded(
-                child: Text(
-                  row.stageName,
-                  style: const TextStyle(fontWeight: FontWeight.w800),
+          SizedBox(
+            width: 116,
+            height: 116,
+            child: CustomPaint(
+              painter: _DonutPainter(
+                completed: completed.toDouble(),
+                inProgress: inProgress.toDouble(),
+                pending: pending.toDouble(),
+              ),
+              child: Center(
+                child: Column(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    Text(
+                      '${progress.toStringAsFixed(0)}%',
+                      style: TextStyle(
+                        color: cs.onSurface,
+                        fontWeight: FontWeight.w900,
+                        fontSize: 20,
+                      ),
+                    ),
+                    Text(
+                      'Done',
+                      style: TextStyle(
+                        color: cs.onSurfaceVariant,
+                        fontSize: 11,
+                        fontWeight: FontWeight.w700,
+                      ),
+                    ),
+                  ],
                 ),
               ),
-              Text(
-                '${row.progressPercentage.toStringAsFixed(0)}%',
-                style: TextStyle(
-                  color: _statusColor(row.status),
-                  fontWeight: FontWeight.w900,
+            ),
+          ),
+          const SizedBox(width: 16),
+          Expanded(
+            child: Column(
+              children: [
+                _DonutLegend(
+                  color: const Color(0xFF16A34A),
+                  label: 'Completed',
+                  value: completed,
                 ),
-              ),
-            ],
-          ),
-          const SizedBox(height: 8),
-          _DateLine(
-            label: 'Planned',
-            start: row.plannedStartDate,
-            end: row.plannedEndDate,
-          ),
-          _DateLine(
-            label: 'Actual',
-            start: row.actualStartDate,
-            end: row.actualEndDate,
+                const SizedBox(height: 8),
+                _DonutLegend(
+                  color: const Color(0xFFF59E0B),
+                  label: 'In Progress',
+                  value: inProgress,
+                ),
+                const SizedBox(height: 8),
+                _DonutLegend(
+                  color: const Color(0xFF64748B),
+                  label: 'Pending',
+                  value: pending,
+                ),
+              ],
+            ),
           ),
         ],
+      ),
+    );
+  }
+}
+
+class _DonutLegend extends StatelessWidget {
+  final Color color;
+  final String label;
+  final int value;
+
+  const _DonutLegend({
+    required this.color,
+    required this.label,
+    required this.value,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    final cs = Theme.of(context).colorScheme;
+    return Row(
+      children: [
+        Container(
+          width: 10,
+          height: 10,
+          decoration: BoxDecoration(color: color, shape: BoxShape.circle),
+        ),
+        const SizedBox(width: 8),
+        Expanded(
+          child: Text(
+            label,
+            style: TextStyle(
+              color: cs.onSurfaceVariant,
+              fontWeight: FontWeight.w700,
+              fontSize: 12,
+            ),
+          ),
+        ),
+        Text(
+          '$value',
+          style: TextStyle(
+            color: cs.onSurface,
+            fontWeight: FontWeight.w900,
+          ),
+        ),
+      ],
+    );
+  }
+}
+
+class _DonutPainter extends CustomPainter {
+  final double completed;
+  final double inProgress;
+  final double pending;
+
+  const _DonutPainter({
+    required this.completed,
+    required this.inProgress,
+    required this.pending,
+  });
+
+  @override
+  void paint(Canvas canvas, Size size) {
+    final total = completed + inProgress + pending;
+    final rect = Offset.zero & size;
+    final stroke = math.min(size.width, size.height) * 0.14;
+    final basePaint = Paint()
+      ..style = PaintingStyle.stroke
+      ..strokeWidth = stroke
+      ..strokeCap = StrokeCap.round
+      ..color = const Color(0xFFE5E7EB);
+
+    canvas.drawArc(
+      rect.deflate(stroke / 2),
+      -math.pi / 2,
+      math.pi * 2,
+      false,
+      basePaint,
+    );
+
+    if (total <= 0) return;
+
+    var start = -math.pi / 2;
+    void drawSegment(double value, Color color) {
+      if (value <= 0) return;
+      final sweep = (value / total) * math.pi * 2;
+      final paint = Paint()
+        ..style = PaintingStyle.stroke
+        ..strokeWidth = stroke
+        ..strokeCap = StrokeCap.round
+        ..color = color;
+      canvas.drawArc(rect.deflate(stroke / 2), start, sweep, false, paint);
+      start += sweep;
+    }
+
+    drawSegment(completed, const Color(0xFF16A34A));
+    drawSegment(inProgress, const Color(0xFFF59E0B));
+    drawSegment(pending, const Color(0xFF64748B));
+  }
+
+  @override
+  bool shouldRepaint(covariant _DonutPainter oldDelegate) {
+    return oldDelegate.completed != completed ||
+        oldDelegate.inProgress != inProgress ||
+        oldDelegate.pending != pending;
+  }
+}
+
+class _GanttChart extends StatelessWidget {
+  final List<PebGanttRow> rows;
+
+  const _GanttChart({required this.rows});
+
+  @override
+  Widget build(BuildContext context) {
+    final datedRows = rows
+        .map((row) => _GanttVisualRow.from(row))
+        .where((row) => row.hasAnyDate)
+        .toList();
+    if (datedRows.isEmpty) {
+      return const _EmptyMiniState(text: 'No timeline available');
+    }
+
+    final allDates = datedRows
+        .expand((row) => [
+              row.plannedStart,
+              row.plannedEnd,
+              row.actualStart,
+              row.actualEnd,
+            ])
+        .whereType<DateTime>()
+        .toList();
+    final minDate = allDates.reduce((a, b) => a.isBefore(b) ? a : b);
+    final maxDate = allDates.reduce((a, b) => a.isAfter(b) ? a : b);
+    final totalDays = math.max(1, maxDate.difference(minDate).inDays + 1);
+    final ticks = _buildGanttTicks(minDate, maxDate);
+
+    return LayoutBuilder(
+      builder: (context, constraints) {
+        final timelineWidth = math.max(430.0, constraints.maxWidth - 104);
+        final chartWidth = timelineWidth + 104;
+
+        return Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            const SizedBox(height: 8),
+            const _GanttLegend(),
+            const SizedBox(height: 12),
+            SingleChildScrollView(
+              scrollDirection: Axis.horizontal,
+              child: SizedBox(
+                width: chartWidth,
+                child: Column(
+                  children: [
+                    Row(
+                      crossAxisAlignment: CrossAxisAlignment.end,
+                      children: [
+                        const SizedBox(
+                          width: 104,
+                          height: 42,
+                          child: Align(
+                            alignment: Alignment.bottomLeft,
+                            child: Text(
+                              'Stage',
+                              style: TextStyle(
+                                fontSize: 11,
+                                fontWeight: FontWeight.w800,
+                                color: Color(0xFF64748B),
+                              ),
+                            ),
+                          ),
+                        ),
+                        _GanttAxis(
+                          width: timelineWidth,
+                          minDate: minDate,
+                          totalDays: totalDays,
+                          ticks: ticks,
+                        ),
+                      ],
+                    ),
+                    ...datedRows.map(
+                      (row) => _GanttChartRow(
+                        row: row,
+                        width: timelineWidth,
+                        minDate: minDate,
+                        totalDays: totalDays,
+                        ticks: ticks,
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+            ),
+          ],
+        );
+      },
+    );
+  }
+}
+
+class _GanttLegend extends StatelessWidget {
+  const _GanttLegend();
+
+  @override
+  Widget build(BuildContext context) {
+    return Wrap(
+      spacing: 12,
+      runSpacing: 8,
+      children: const [
+        _GanttLegendItem(label: 'Planned', color: Color(0xFF2563EB)),
+        _GanttLegendItem(label: 'Actual', color: Color(0xFF16A34A)),
+        _GanttLegendItem(label: 'Delayed', color: Color(0xFFDC2626)),
+      ],
+    );
+  }
+}
+
+class _GanttLegendItem extends StatelessWidget {
+  final String label;
+  final Color color;
+
+  const _GanttLegendItem({
+    required this.label,
+    required this.color,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    return Row(
+      mainAxisSize: MainAxisSize.min,
+      children: [
+        Container(
+          width: 22,
+          height: 8,
+          decoration: BoxDecoration(
+            color: color,
+            borderRadius: BorderRadius.circular(999),
+          ),
+        ),
+        const SizedBox(width: 6),
+        Text(
+          label,
+          style: const TextStyle(
+            fontSize: 11,
+            fontWeight: FontWeight.w700,
+            color: Color(0xFF475569),
+          ),
+        ),
+      ],
+    );
+  }
+}
+
+class _GanttVisualRow {
+  final PebGanttRow source;
+  final DateTime? plannedStart;
+  final DateTime? plannedEnd;
+  final DateTime? actualStart;
+  final DateTime? actualEnd;
+
+  const _GanttVisualRow({
+    required this.source,
+    required this.plannedStart,
+    required this.plannedEnd,
+    required this.actualStart,
+    required this.actualEnd,
+  });
+
+  bool get hasAnyDate =>
+      plannedStart != null ||
+      plannedEnd != null ||
+      actualStart != null ||
+      actualEnd != null;
+
+  factory _GanttVisualRow.from(PebGanttRow row) {
+    return _GanttVisualRow(
+      source: row,
+      plannedStart: _parseDate(row.plannedStartDate),
+      plannedEnd: _parseDate(row.plannedEndDate),
+      actualStart: _parseDate(row.actualStartDate),
+      actualEnd: _parseDate(row.actualEndDate),
+    );
+  }
+}
+
+class _GanttTick {
+  final DateTime date;
+  final double position;
+
+  const _GanttTick({
+    required this.date,
+    required this.position,
+  });
+}
+
+List<_GanttTick> _buildGanttTicks(DateTime minDate, DateTime maxDate) {
+  final totalDays = math.max(1, maxDate.difference(minDate).inDays);
+  const count = 5;
+
+  return List.generate(count, (index) {
+    final position = count == 1 ? 0.0 : index / (count - 1);
+    final dayOffset = (totalDays * position).round();
+    return _GanttTick(
+      date: minDate.add(Duration(days: dayOffset)),
+      position: position,
+    );
+  });
+}
+
+class _GanttAxis extends StatelessWidget {
+  final double width;
+  final DateTime minDate;
+  final int totalDays;
+  final List<_GanttTick> ticks;
+
+  const _GanttAxis({
+    required this.width,
+    required this.minDate,
+    required this.totalDays,
+    required this.ticks,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    return SizedBox(
+      width: width,
+      height: 42,
+      child: LayoutBuilder(
+        builder: (context, constraints) {
+          final maxWidth = constraints.maxWidth;
+          return Stack(
+            clipBehavior: Clip.none,
+            children: [
+              Positioned(
+                left: 0,
+                right: 0,
+                bottom: 11,
+                child: Container(height: 1, color: const Color(0xFFE2E8F0)),
+              ),
+              ...ticks.map((tick) {
+                final x = tick.position * maxWidth;
+                final safeLeft = math.max(0.0, math.min(maxWidth - 52, x - 26));
+                return Stack(
+                  children: [
+                    Positioned(
+                      left: x,
+                      bottom: 8,
+                      child: Container(
+                        width: 1,
+                        height: 8,
+                        color: const Color(0xFFCBD5E1),
+                      ),
+                    ),
+                    Positioned(
+                      left: safeLeft,
+                      bottom: 22,
+                      width: 52,
+                      child: Text(
+                        _shortDayMonth(tick.date),
+                        textAlign: TextAlign.center,
+                        style: const TextStyle(
+                          fontSize: 10,
+                          fontWeight: FontWeight.w800,
+                          color: Color(0xFF64748B),
+                        ),
+                      ),
+                    ),
+                  ],
+                );
+              }),
+            ],
+          );
+        },
+      ),
+    );
+  }
+}
+
+class _GanttChartRow extends StatelessWidget {
+  final _GanttVisualRow row;
+  final double width;
+  final DateTime minDate;
+  final int totalDays;
+  final List<_GanttTick> ticks;
+
+  const _GanttChartRow({
+    required this.row,
+    required this.width,
+    required this.minDate,
+    required this.totalDays,
+    required this.ticks,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    final actualColor = _statusColor(row.source.status);
+
+    return Padding(
+      padding: const EdgeInsets.only(bottom: 10),
+      child: Row(
+        crossAxisAlignment: CrossAxisAlignment.center,
+        children: [
+          SizedBox(
+            width: 104,
+            child: Padding(
+              padding: const EdgeInsets.only(right: 10),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(
+                    row.source.stageName,
+                    maxLines: 2,
+                    overflow: TextOverflow.ellipsis,
+                    style: const TextStyle(
+                      fontSize: 12,
+                      height: 1.15,
+                      fontWeight: FontWeight.w900,
+                    ),
+                  ),
+                  const SizedBox(height: 5),
+                  _StatusChip(
+                    label: _statusLabel(row.source.status),
+                    color: actualColor,
+                  ),
+                ],
+              ),
+            ),
+          ),
+          SizedBox(
+            width: width,
+            height: 58,
+            child: Stack(
+              children: [
+                Positioned.fill(
+                  child: CustomPaint(
+                    painter: _GanttGridPainter(
+                      ticks: ticks,
+                      color: const Color(0xFFE2E8F0),
+                    ),
+                  ),
+                ),
+                const Positioned(
+                  left: 0,
+                  top: 4,
+                  child: Text(
+                    'P',
+                    style: TextStyle(
+                      fontSize: 9,
+                      fontWeight: FontWeight.w900,
+                      color: Color(0xFF64748B),
+                    ),
+                  ),
+                ),
+                const Positioned(
+                  left: 0,
+                  top: 31,
+                  child: Text(
+                    'A',
+                    style: TextStyle(
+                      fontSize: 9,
+                      fontWeight: FontWeight.w900,
+                      color: Color(0xFF64748B),
+                    ),
+                  ),
+                ),
+                _GanttPositionedBar(
+                  top: 5,
+                  leftInset: 16,
+                  rightInset: 8,
+                  color: const Color(0xFF2563EB),
+                  minDate: minDate,
+                  totalDays: totalDays,
+                  start: row.plannedStart,
+                  end: row.plannedEnd,
+                ),
+                _GanttPositionedBar(
+                  top: 32,
+                  leftInset: 16,
+                  rightInset: 8,
+                  color: actualColor,
+                  minDate: minDate,
+                  totalDays: totalDays,
+                  start: row.actualStart,
+                  end: row.actualEnd,
+                ),
+              ],
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+class _GanttGridPainter extends CustomPainter {
+  final List<_GanttTick> ticks;
+  final Color color;
+
+  const _GanttGridPainter({
+    required this.ticks,
+    required this.color,
+  });
+
+  @override
+  void paint(Canvas canvas, Size size) {
+    final paint = Paint()
+      ..color = color
+      ..strokeWidth = 1;
+
+    canvas.drawLine(Offset(0, 18), Offset(size.width, 18), paint);
+    canvas.drawLine(Offset(0, 45), Offset(size.width, 45), paint);
+    for (final tick in ticks) {
+      final x = tick.position * size.width;
+      canvas.drawLine(Offset(x, 0), Offset(x, size.height), paint);
+    }
+  }
+
+  @override
+  bool shouldRepaint(covariant _GanttGridPainter oldDelegate) {
+    return oldDelegate.ticks != ticks || oldDelegate.color != color;
+  }
+}
+
+class _GanttPositionedBar extends StatelessWidget {
+  final double top;
+  final double leftInset;
+  final double rightInset;
+  final Color color;
+  final DateTime minDate;
+  final int totalDays;
+  final DateTime? start;
+  final DateTime? end;
+
+  const _GanttPositionedBar({
+    required this.top,
+    required this.leftInset,
+    required this.rightInset,
+    required this.color,
+    required this.minDate,
+    required this.totalDays,
+    required this.start,
+    required this.end,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    final hasDate = start != null || end != null;
+    final safeStart = start ?? end;
+    final safeEnd = end ?? start;
+    final offsetDays = safeStart == null
+        ? 0
+        : math.max(0, safeStart.difference(minDate).inDays);
+    final durationDays = safeStart == null || safeEnd == null
+        ? 1
+        : math.max(1, safeEnd.difference(safeStart).inDays + 1);
+    final leftRatio = (offsetDays / totalDays).clamp(0.0, 0.96).toDouble();
+    final rawWidth = (durationDays / totalDays).clamp(0.04, 1.0).toDouble();
+    final widthRatio = math.min(rawWidth, math.max(0.04, 1.0 - leftRatio));
+
+    if (!hasDate) return const SizedBox.shrink();
+
+    return Positioned(
+      left: leftInset,
+      right: rightInset,
+      top: top,
+      child: SizedBox(
+        height: 14,
+        child: LayoutBuilder(
+          builder: (context, constraints) {
+            return Stack(
+              children: [
+                Positioned(
+                  left: constraints.maxWidth * leftRatio,
+                  width: constraints.maxWidth * widthRatio,
+                  top: 0,
+                  bottom: 0,
+                  child: DecoratedBox(
+                    decoration: BoxDecoration(
+                      color: color,
+                      borderRadius: BorderRadius.circular(999),
+                      boxShadow: [
+                        BoxShadow(
+                          color: color.withOpacity(0.22),
+                          blurRadius: 8,
+                          offset: const Offset(0, 3),
+                        ),
+                      ],
+                    ),
+                  ),
+                ),
+              ],
+            );
+          },
+        ),
       ),
     );
   }
@@ -1405,47 +2112,6 @@ class _StatusChip extends StatelessWidget {
   }
 }
 
-class _DateLine extends StatelessWidget {
-  final String label;
-  final String start;
-  final String end;
-
-  const _DateLine({
-    required this.label,
-    required this.start,
-    required this.end,
-  });
-
-  @override
-  Widget build(BuildContext context) {
-    final cs = Theme.of(context).colorScheme;
-    return Padding(
-      padding: const EdgeInsets.only(top: 4),
-      child: Row(
-        children: [
-          SizedBox(
-            width: 58,
-            child: Text(
-              label,
-              style: TextStyle(color: cs.onSurfaceVariant, fontSize: 12),
-            ),
-          ),
-          Expanded(
-            child: Text(
-              '${_shortDate(start)} → ${_shortDate(end)}',
-              style: TextStyle(
-                color: cs.onSurface,
-                fontWeight: FontWeight.w600,
-                fontSize: 12,
-              ),
-            ),
-          ),
-        ],
-      ),
-    );
-  }
-}
-
 class _EmptyMiniState extends StatelessWidget {
   final String text;
 
@@ -1576,13 +2242,15 @@ String _fmt(double value) {
   return value.toStringAsFixed(2);
 }
 
-String _shortDate(String value) {
-  if (value.isEmpty || value == 'null') return '-';
+DateTime? _parseDate(String value) {
+  if (value.isEmpty || value == 'null') return null;
   final parsed = DateTime.tryParse(value);
-  if (parsed == null) return value.length > 10 ? value.substring(0, 10) : value;
-  return '${parsed.day.toString().padLeft(2, '0')}/'
-      '${parsed.month.toString().padLeft(2, '0')}/'
-      '${parsed.year}';
+  return parsed;
+}
+
+String _shortDayMonth(DateTime date) {
+  return '${date.day.toString().padLeft(2, '0')}/'
+      '${date.month.toString().padLeft(2, '0')}';
 }
 
 // ─── Supporting Widgets ───────────────────────────────────────────────────────
