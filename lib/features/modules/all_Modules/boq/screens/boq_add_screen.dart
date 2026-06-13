@@ -3,8 +3,13 @@ import 'package:file_picker/file_picker.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:intl/intl.dart';
+import 'package:showcaseview/showcaseview.dart';
 
 import '../../rate/data/rate_file_uplaod_model.dart' hide UploadStatus;
+import '../../../../tour/core/tour_models.dart';
+import '../../../../tour/core/tour_package_adapter.dart';
+import '../../../../tour/definitions/setup_module_tours.dart';
+import '../../../../tour/providers/tour_providers.dart';
 import '../models/boq_model.dart';
 import '../providers/boq_provider.dart';
 
@@ -22,62 +27,147 @@ class BoqAddScreen extends ConsumerStatefulWidget {
 }
 
 class _BoqAddScreenState extends ConsumerState<BoqAddScreen> {
+  static const TourPackageAdapter _tourPackageAdapter = TourPackageAdapter();
+  final GlobalKey _modeTourKey = GlobalKey(debugLabel: 'boq_mode_picker');
+  String? _lastShowcasedTourStepId;
   String _entryMode = 'excel';
+
+  void _syncBoqPickerTour(BuildContext showcaseContext) {
+    final definition = AppTourDefinition(
+      id: '${SetupModuleTours.boqUploadId}_${widget.siteId}_picker',
+      title: 'BOQ Upload',
+      description: 'Choose how BOQ data should be added.',
+      icon: Icons.table_rows_rounded,
+      steps: [
+        const AppTourStep(
+          id: 'boq_picker_intro',
+          title: 'BOQ Upload',
+          body:
+              'Use this screen to add BOQ data from Excel or by typing the details manually.',
+          progressLabel: 'Intro',
+          useSpotlight: false,
+        ),
+        AppTourStep(
+          id: 'boq_picker_mode',
+          title: 'Choose Add Method',
+          body:
+              'Select Upload Excel when you have a BOQ sheet. Select Manual Entry when you want to create BOQ totals or items directly.',
+          targetKey: _modeTourKey,
+          progressLabel: 'Method',
+        ),
+      ],
+    );
+
+    WidgetsBinding.instance.addPostFrameCallback((_) async {
+      if (!mounted) return;
+      final route = ModalRoute.of(context);
+      if (route != null && !route.isCurrent) return;
+      final tourState = ref.read(appTourControllerProvider);
+      final tourController = ref.read(appTourControllerProvider.notifier);
+      if (tourState.status != AppTourStatus.running) {
+        await tourController.maybeStartRuntimeTour(
+          definition,
+          policyTourId: SetupModuleTours.boqUploadId,
+        );
+      }
+      final step = tourController.currentStep;
+      final activeTour = tourController.activeTour;
+      if (activeTour == null || activeTour.id != definition.id) {
+        if (_lastShowcasedTourStepId != null) {
+          _tourPackageAdapter.dismiss(showcaseContext);
+          _lastShowcasedTourStepId = null;
+        }
+        return;
+      }
+      final stepKey = step == null ? null : '${activeTour.id}:${step.id}';
+      if (step == null) {
+        if (_lastShowcasedTourStepId != null) {
+          _tourPackageAdapter.dismiss(showcaseContext);
+          _lastShowcasedTourStepId = null;
+        }
+        return;
+      }
+      if (_lastShowcasedTourStepId == stepKey) return;
+      _lastShowcasedTourStepId = stepKey;
+      _tourPackageAdapter.showStep(showcaseContext, step);
+    });
+  }
+
+  Widget _tourTarget(GlobalKey key, Widget child) {
+    return Showcase.withWidget(
+      key: key,
+      container: const SizedBox.shrink(),
+      overlayOpacity: 0.72,
+      targetPadding: const EdgeInsets.all(8),
+      targetBorderRadius: BorderRadius.circular(14),
+      disableDefaultTargetGestures: false,
+      child: child,
+    );
+  }
 
   @override
   Widget build(BuildContext context) {
     final selectedType = ref.watch(typeProvider);
+    ref.watch(appTourControllerProvider);
 
-    return SingleChildScrollView(
-      padding: const EdgeInsets.all(16),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          const Text(
-            'How would you like to add BOQ?',
-            style: TextStyle(
-              fontSize: 15,
-              fontWeight: FontWeight.w600,
-              color: Color(0xFF111827),
-            ),
-          ),
-          const SizedBox(height: 12),
-          Row(
+    return ShowCaseWidget(
+      builder: (showcaseContext) {
+        _syncBoqPickerTour(showcaseContext);
+        return SingleChildScrollView(
+          padding: const EdgeInsets.all(16),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              Expanded(
-                child: _ModeCard(
-                  icon: Icons.upload_file_outlined,
-                  title: 'Upload Excel',
-                  subtitle: 'Import from .xlsx / .xls',
-                  selected: _entryMode == 'excel',
-                  onTap: () => setState(() => _entryMode = 'excel'),
+              const Text(
+                'How would you like to add BOQ?',
+                style: TextStyle(
+                  fontSize: 15,
+                  fontWeight: FontWeight.w600,
+                  color: Color(0xFF111827),
                 ),
               ),
-              const SizedBox(width: 12),
-              Expanded(
-                child: _ModeCard(
-                  icon: Icons.edit_note_outlined,
-                  title: 'Manual Entry',
-                  subtitle: 'Fill form manually',
-                  selected: _entryMode == 'manual',
-                  onTap: () => setState(() => _entryMode = 'manual'),
+              const SizedBox(height: 12),
+              _tourTarget(
+                _modeTourKey,
+                Row(
+                  children: [
+                    Expanded(
+                      child: _ModeCard(
+                        icon: Icons.upload_file_outlined,
+                        title: 'Upload Excel',
+                        subtitle: 'Import from .xlsx / .xls',
+                        selected: _entryMode == 'excel',
+                        onTap: () => setState(() => _entryMode = 'excel'),
+                      ),
+                    ),
+                    const SizedBox(width: 12),
+                    Expanded(
+                      child: _ModeCard(
+                        icon: Icons.edit_note_outlined,
+                        title: 'Manual Entry',
+                        subtitle: 'Fill form manually',
+                        selected: _entryMode == 'manual',
+                        onTap: () => setState(() => _entryMode = 'manual'),
+                      ),
+                    ),
+                  ],
                 ),
               ),
+              const SizedBox(height: 24),
+              if (_entryMode == 'excel')
+                _ExcelUploadSection(
+                  siteId: widget.siteId,
+                  preselectedType: selectedType,
+                )
+              else
+                _ManualEntrySection(
+                  siteId: widget.siteId,
+                  preselectedType: selectedType,
+                ),
             ],
           ),
-          const SizedBox(height: 24),
-          if (_entryMode == 'excel')
-            _ExcelUploadSection(
-              siteId: widget.siteId,
-              preselectedType: selectedType,
-            )
-          else
-            _ManualEntrySection(
-              siteId: widget.siteId,
-              preselectedType: selectedType,
-            ),
-        ],
-      ),
+        );
+      },
     );
   }
 }
@@ -840,6 +930,14 @@ class _ExcelUploadSection extends ConsumerStatefulWidget {
 }
 
 class _ExcelUploadSectionState extends ConsumerState<_ExcelUploadSection> {
+  static const TourPackageAdapter _tourPackageAdapter = TourPackageAdapter();
+  final GlobalKey _typeTourKey = GlobalKey(debugLabel: 'boq_excel_type');
+  final GlobalKey _nameTourKey = GlobalKey(debugLabel: 'boq_excel_name');
+  final GlobalKey _fileTourKey = GlobalKey(debugLabel: 'boq_excel_file');
+  final GlobalKey _timelineTourKey =
+      GlobalKey(debugLabel: 'boq_excel_timeline');
+  final GlobalKey _uploadTourKey = GlobalKey(debugLabel: 'boq_excel_upload');
+  String? _lastShowcasedTourStepId;
   PlatformFile? _pickedFile;
   String _type = 'mechanical_work';
   final _nameController = TextEditingController();
@@ -891,9 +989,121 @@ class _ExcelUploadSectionState extends ConsumerState<_ExcelUploadSection> {
   void _showSnack(String msg) => ScaffoldMessenger.of(context)
       .showSnackBar(SnackBar(content: Text(msg), behavior: SnackBarBehavior.floating));
 
+  void _syncExcelTour(BuildContext showcaseContext, UploadStatus status) {
+    final definition = AppTourDefinition(
+      id: '${SetupModuleTours.boqUploadId}_${widget.siteId}_excel',
+      title: 'Upload BOQ Excel',
+      description: 'Learn how to upload BOQ from Excel.',
+      icon: Icons.upload_file_rounded,
+      steps: [
+        const AppTourStep(
+          id: 'boq_excel_intro',
+          title: 'Upload BOQ Excel',
+          body:
+              'Use this option when your BOQ is already prepared in an Excel file.',
+          progressLabel: 'Intro',
+          useSpotlight: false,
+        ),
+        AppTourStep(
+          id: 'boq_excel_type',
+          title: 'BOQ Type',
+          body:
+              'Choose Mechanical or Insulation so the app reads the Excel columns in the correct format.',
+          targetKey: _typeTourKey,
+          progressLabel: 'Type',
+          autoScrollToTarget: true,
+        ),
+        AppTourStep(
+          id: 'boq_excel_name',
+          title: 'BOQ Name',
+          body:
+              'You can give this BOQ a clear name. If you leave it blank, the file name can be used.',
+          targetKey: _nameTourKey,
+          progressLabel: 'Name',
+          autoScrollToTarget: true,
+        ),
+        AppTourStep(
+          id: 'boq_excel_file',
+          title: 'Excel File',
+          body:
+              'Tap here to select the .xlsx or .xls BOQ file from your device.',
+          targetKey: _fileTourKey,
+          progressLabel: 'File',
+          autoScrollToTarget: true,
+        ),
+        AppTourStep(
+          id: 'boq_excel_timeline',
+          title: 'Timeline',
+          body:
+              'Turn this on if you want the BOQ quantity to be planned across dates for daily progress tracking.',
+          targetKey: _timelineTourKey,
+          progressLabel: 'Timeline',
+          autoScrollToTarget: true,
+        ),
+        AppTourStep(
+          id: 'boq_excel_upload',
+          title: 'Upload BOQ',
+          body:
+              'Tap this button after selecting the file. The app will upload and check the BOQ data.',
+          targetKey: _uploadTourKey,
+          progressLabel: 'Upload',
+          tooltipBottomOffset: 96,
+          autoScrollToTarget: true,
+        ),
+      ],
+    );
+
+    WidgetsBinding.instance.addPostFrameCallback((_) async {
+      if (!mounted || status == UploadStatus.uploading) return;
+      final route = ModalRoute.of(context);
+      if (route != null && !route.isCurrent) return;
+      final tourState = ref.read(appTourControllerProvider);
+      final tourController = ref.read(appTourControllerProvider.notifier);
+      if (tourState.status != AppTourStatus.running) {
+        await tourController.maybeStartRuntimeTour(
+          definition,
+          policyTourId: SetupModuleTours.boqUploadId,
+        );
+      }
+      final step = tourController.currentStep;
+      final activeTour = tourController.activeTour;
+      if (activeTour == null || activeTour.id != definition.id) {
+        if (_lastShowcasedTourStepId != null) {
+          _tourPackageAdapter.dismiss(showcaseContext);
+          _lastShowcasedTourStepId = null;
+        }
+        return;
+      }
+      final stepKey = step == null ? null : '${activeTour.id}:${step.id}';
+      if (step == null) {
+        if (_lastShowcasedTourStepId != null) {
+          _tourPackageAdapter.dismiss(showcaseContext);
+          _lastShowcasedTourStepId = null;
+        }
+        return;
+      }
+      if (_lastShowcasedTourStepId == stepKey) return;
+      _lastShowcasedTourStepId = stepKey;
+      _tourPackageAdapter.showStep(showcaseContext, step);
+    });
+  }
+
+  Widget _tourTarget(GlobalKey key, Widget child) {
+    return Showcase.withWidget(
+      key: key,
+      container: const SizedBox.shrink(),
+      overlayOpacity: 0.72,
+      targetPadding: const EdgeInsets.all(8),
+      targetBorderRadius: BorderRadius.circular(14),
+      disableDefaultTargetGestures: false,
+      child: child,
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
     final uploadState = ref.watch(uploadBoqProvider);
+    ref.watch(appTourControllerProvider);
 
     ref.listen(uploadBoqProvider, (prev, next) {
       if (next.status == UploadStatus.success) {
@@ -907,63 +1117,96 @@ class _ExcelUploadSectionState extends ConsumerState<_ExcelUploadSection> {
       }
     });
 
-    return Column(
+    return ShowCaseWidget(
+      builder: (showcaseContext) {
+        _syncExcelTour(showcaseContext, uploadState.status);
+        return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        _boqFieldLabel('BOQ Type'),
-        const SizedBox(height: 8),
-        _TypeToggle(
-            selected: _type,
-            onChanged: (t) => setState(() => _type = t)),
+        _tourTarget(
+          _typeTourKey,
+          Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              _boqFieldLabel('BOQ Type'),
+              const SizedBox(height: 8),
+              _TypeToggle(
+                  selected: _type,
+                  onChanged: (t) => setState(() => _type = t)),
+            ],
+          ),
+        ),
         const SizedBox(height: 16),
-        _boqFieldLabel('BOQ Name (optional)'),
-        const SizedBox(height: 8),
-        TextField(
-          controller: _nameController,
-          decoration:
-          _boqInputDecoration('Auto-generated from filename if left empty'),
+        _tourTarget(
+          _nameTourKey,
+          Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              _boqFieldLabel('BOQ Name (optional)'),
+              const SizedBox(height: 8),
+              TextField(
+                controller: _nameController,
+                decoration: _boqInputDecoration(
+                    'Auto-generated from filename if left empty'),
+              ),
+            ],
+          ),
         ),
         const SizedBox(height: 20),
-        _boqFieldLabel('Excel File'),
-        const SizedBox(height: 8),
-        _FilePicker(file: _pickedFile, onPick: _pickFile),
-        const SizedBox(height: 12),
-        _TemplateHint(type: _type),
+        _tourTarget(
+          _fileTourKey,
+          Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              _boqFieldLabel('Excel File'),
+              const SizedBox(height: 8),
+              _FilePicker(file: _pickedFile, onPick: _pickFile),
+              const SizedBox(height: 12),
+              _TemplateHint(type: _type),
+            ],
+          ),
+        ),
         const SizedBox(height: 20),
 
         // ── Timeline ──────────────────────────────────────────────────────
-        _TimelineSection(
-          state: _timeline,
-          onChanged: () => setState(() {}),
+        _tourTarget(
+          _timelineTourKey,
+          _TimelineSection(
+            state: _timeline,
+            onChanged: () => setState(() {}),
+          ),
         ),
 
         const SizedBox(height: 24),
 
-        SizedBox(
-          width: double.infinity,
-          child: ElevatedButton.icon(
-            onPressed:
-            uploadState.status == UploadStatus.uploading ? null : _upload,
-            style: ElevatedButton.styleFrom(
-              backgroundColor: const Color(0xFF2563EB),
-              foregroundColor: Colors.white,
-              padding: const EdgeInsets.symmetric(vertical: 14),
-              shape: RoundedRectangleBorder(
-                  borderRadius: BorderRadius.circular(12)),
-            ),
-            icon: uploadState.status == UploadStatus.uploading
-                ? const SizedBox(
-                width: 18,
-                height: 18,
-                child: CircularProgressIndicator(
-                    color: Colors.white, strokeWidth: 2))
-                : const Icon(Icons.cloud_upload_outlined),
-            label: Text(
-              uploadState.status == UploadStatus.uploading
-                  ? 'Uploading...'
-                  : 'Upload BOQ',
-              style:
-              const TextStyle(fontSize: 15, fontWeight: FontWeight.w600),
+        _tourTarget(
+          _uploadTourKey,
+          SizedBox(
+            width: double.infinity,
+            child: ElevatedButton.icon(
+              onPressed:
+              uploadState.status == UploadStatus.uploading ? null : _upload,
+              style: ElevatedButton.styleFrom(
+                backgroundColor: const Color(0xFF2563EB),
+                foregroundColor: Colors.white,
+                padding: const EdgeInsets.symmetric(vertical: 14),
+                shape: RoundedRectangleBorder(
+                    borderRadius: BorderRadius.circular(12)),
+              ),
+              icon: uploadState.status == UploadStatus.uploading
+                  ? const SizedBox(
+                  width: 18,
+                  height: 18,
+                  child: CircularProgressIndicator(
+                      color: Colors.white, strokeWidth: 2))
+                  : const Icon(Icons.cloud_upload_outlined),
+              label: Text(
+                uploadState.status == UploadStatus.uploading
+                    ? 'Uploading...'
+                    : 'Upload BOQ',
+                style:
+                const TextStyle(fontSize: 15, fontWeight: FontWeight.w600),
+              ),
             ),
           ),
         ),
@@ -971,6 +1214,8 @@ class _ExcelUploadSectionState extends ConsumerState<_ExcelUploadSection> {
             uploadState.summary != null)
           _UploadSummaryCard(summary: uploadState.summary!),
       ],
+        );
+      },
     );
   }
 }
@@ -1171,6 +1416,15 @@ class _ManualEntrySection extends ConsumerStatefulWidget {
 }
 
 class _ManualEntrySectionState extends ConsumerState<_ManualEntrySection> {
+  static const TourPackageAdapter _tourPackageAdapter = TourPackageAdapter();
+  final GlobalKey _typeTourKey = GlobalKey(debugLabel: 'boq_manual_type');
+  final GlobalKey _nameTourKey = GlobalKey(debugLabel: 'boq_manual_name');
+  final GlobalKey _modeTourKey = GlobalKey(debugLabel: 'boq_manual_mode');
+  final GlobalKey _detailsTourKey = GlobalKey(debugLabel: 'boq_manual_details');
+  final GlobalKey _timelineTourKey =
+      GlobalKey(debugLabel: 'boq_manual_timeline');
+  final GlobalKey _submitTourKey = GlobalKey(debugLabel: 'boq_manual_submit');
+  String? _lastShowcasedTourStepId;
   String _type = 'mechanical_work';
   final _nameController = TextEditingController();
   final _inchDiaController = TextEditingController();
@@ -1279,6 +1533,127 @@ class _ManualEntrySectionState extends ConsumerState<_ManualEntrySection> {
   void _showSnack(String msg) => ScaffoldMessenger.of(context)
       .showSnackBar(SnackBar(content: Text(msg), behavior: SnackBarBehavior.floating));
 
+  void _syncManualTour(BuildContext showcaseContext, UploadStatus status) {
+    final detailMode = _useDirectTotals ? 'quick' : 'items';
+    final definition = AppTourDefinition(
+      id: '${SetupModuleTours.boqUploadId}_${widget.siteId}_manual_${_type}_$detailMode',
+      title: 'Manual BOQ Entry',
+      description: 'Learn how to create BOQ manually.',
+      icon: Icons.edit_note_rounded,
+      steps: [
+        const AppTourStep(
+          id: 'boq_manual_intro',
+          title: 'Manual BOQ Entry',
+          body:
+              'Use this option when you want to create BOQ data by typing totals or item rows.',
+          progressLabel: 'Intro',
+          useSpotlight: false,
+        ),
+        AppTourStep(
+          id: 'boq_manual_type',
+          title: 'BOQ Type',
+          body:
+              'Choose Mechanical or Insulation so the form asks for the right quantities.',
+          targetKey: _typeTourKey,
+          progressLabel: 'Type',
+          autoScrollToTarget: true,
+        ),
+        AppTourStep(
+          id: 'boq_manual_name',
+          title: 'BOQ Name',
+          body: 'Give this BOQ a clear name so it is easy to find later.',
+          targetKey: _nameTourKey,
+          progressLabel: 'Name',
+          autoScrollToTarget: true,
+        ),
+        AppTourStep(
+          id: 'boq_manual_mode',
+          title: 'Entry Method',
+          body:
+              'Use Quick Totals for total quantity only. Use Item by Item when you want detailed BOQ rows.',
+          targetKey: _modeTourKey,
+          progressLabel: 'Method',
+          autoScrollToTarget: true,
+        ),
+        AppTourStep(
+          id: 'boq_manual_details',
+          title: _useDirectTotals ? 'Quantity Totals' : 'Item Rows',
+          body: _useDirectTotals
+              ? 'Enter the total quantity values for this BOQ. These totals become the planned BOQ quantity.'
+              : 'Add each BOQ item here with material, size, quantity, and calculated values.',
+          targetKey: _detailsTourKey,
+          progressLabel: 'Details',
+          autoScrollToTarget: true,
+        ),
+        AppTourStep(
+          id: 'boq_manual_timeline',
+          title: 'Timeline',
+          body:
+              'Turn this on if you want the BOQ quantity planned across dates for daily progress tracking.',
+          targetKey: _timelineTourKey,
+          progressLabel: 'Timeline',
+          autoScrollToTarget: true,
+        ),
+        AppTourStep(
+          id: 'boq_manual_submit',
+          title: 'Create BOQ',
+          body:
+              'Tap this button when the BOQ details are ready. The app will save this BOQ for the selected site.',
+          targetKey: _submitTourKey,
+          progressLabel: 'Create',
+          tooltipBottomOffset: 96,
+          autoScrollToTarget: true,
+        ),
+      ],
+    );
+
+    WidgetsBinding.instance.addPostFrameCallback((_) async {
+      if (!mounted || status == UploadStatus.uploading) return;
+      final route = ModalRoute.of(context);
+      if (route != null && !route.isCurrent) return;
+      final tourState = ref.read(appTourControllerProvider);
+      final tourController = ref.read(appTourControllerProvider.notifier);
+      if (tourState.status != AppTourStatus.running) {
+        await tourController.maybeStartRuntimeTour(
+          definition,
+          policyTourId: SetupModuleTours.boqUploadId,
+        );
+      }
+      final step = tourController.currentStep;
+      final activeTour = tourController.activeTour;
+      if (activeTour == null || activeTour.id != definition.id) {
+        if (_lastShowcasedTourStepId != null) {
+          _tourPackageAdapter.dismiss(showcaseContext);
+          _lastShowcasedTourStepId = null;
+        }
+        return;
+      }
+      final stepKey = step == null ? null : '${activeTour.id}:${step.id}';
+      if (step == null) {
+        if (_lastShowcasedTourStepId != null) {
+          _tourPackageAdapter.dismiss(showcaseContext);
+          _lastShowcasedTourStepId = null;
+        }
+        return;
+      }
+      if (_lastShowcasedTourStepId == stepKey) return;
+      _lastShowcasedTourStepId = stepKey;
+      _tourPackageAdapter.showStep(showcaseContext, step);
+    });
+  }
+
+  Widget _tourTarget(GlobalKey key, Widget child) {
+    return Showcase.withWidget(
+      key: key,
+      container: const SizedBox.shrink(),
+      overlayOpacity: 0.72,
+      targetPadding: const EdgeInsets.all(8),
+      targetBorderRadius: BorderRadius.circular(14),
+      disableDefaultTargetGestures: false,
+      child: child,
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
     final uploadState = ref.watch(uploadBoqProvider);
@@ -1295,43 +1670,70 @@ class _ManualEntrySectionState extends ConsumerState<_ManualEntrySection> {
       }
     });
 
-    return Column(
+    return ShowCaseWidget(
+      builder: (showcaseContext) {
+        _syncManualTour(showcaseContext, uploadState.status);
+        return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        _boqFieldLabel('BOQ Type'),
-        const SizedBox(height: 8),
-        _TypeToggle(
-            selected: _type,
-            onChanged: (t) => setState(() => _type = t)),
-        const SizedBox(height: 16),
-        _boqFieldLabel('BOQ Name *'),
-        const SizedBox(height: 8),
-        TextField(
-          controller: _nameController,
-          decoration:
-          _boqInputDecoration('e.g. Mechanical Piping Phase 1'),
+        _tourTarget(
+          _typeTourKey,
+          Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              _boqFieldLabel('BOQ Type'),
+              const SizedBox(height: 8),
+              _TypeToggle(
+                  selected: _type,
+                  onChanged: (t) => setState(() => _type = t)),
+            ],
+          ),
         ),
         const SizedBox(height: 16),
-        Row(children: [
-          Expanded(
-            child: _SegmentButton(
-              label: 'Quick (Totals)',
-              icon: Icons.flash_on_outlined,
-              selected: _useDirectTotals,
-              onTap: () => setState(() => _useDirectTotals = true),
-            ),
+        _tourTarget(
+          _nameTourKey,
+          Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              _boqFieldLabel('BOQ Name *'),
+              const SizedBox(height: 8),
+              TextField(
+                controller: _nameController,
+                decoration:
+                    _boqInputDecoration('e.g. Mechanical Piping Phase 1'),
+              ),
+            ],
           ),
-          const SizedBox(width: 10),
-          Expanded(
-            child: _SegmentButton(
-              label: 'Item by Item',
-              icon: Icons.list_outlined,
-              selected: !_useDirectTotals,
-              onTap: () => setState(() => _useDirectTotals = false),
-            ),
-          ),
-        ]),
+        ),
         const SizedBox(height: 16),
+        _tourTarget(
+          _modeTourKey,
+          Row(children: [
+            Expanded(
+              child: _SegmentButton(
+                label: 'Quick (Totals)',
+                icon: Icons.flash_on_outlined,
+                selected: _useDirectTotals,
+                onTap: () => setState(() => _useDirectTotals = true),
+              ),
+            ),
+            const SizedBox(width: 10),
+            Expanded(
+              child: _SegmentButton(
+                label: 'Item by Item',
+                icon: Icons.list_outlined,
+                selected: !_useDirectTotals,
+                onTap: () => setState(() => _useDirectTotals = false),
+              ),
+            ),
+          ]),
+        ),
+        const SizedBox(height: 16),
+        _tourTarget(
+          _detailsTourKey,
+          Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
         if (_useDirectTotals) ...[
           if (_type == 'mechanical_work') ...[
             _boqFieldLabel('Total Inch Dia'),
@@ -1380,46 +1782,57 @@ class _ManualEntrySectionState extends ConsumerState<_ManualEntrySection> {
               onRemove: (i) => setState(() => _insuItems.removeAt(i)),
             ),
         ],
+            ],
+          ),
+        ),
 
         const SizedBox(height: 20),
 
         // ── Timeline ──────────────────────────────────────────────────────
-        _TimelineSection(
-          state: _timeline,
-          onChanged: () => setState(() {}),
+        _tourTarget(
+          _timelineTourKey,
+          _TimelineSection(
+            state: _timeline,
+            onChanged: () => setState(() {}),
+          ),
         ),
 
         const SizedBox(height: 24),
 
-        SizedBox(
-          width: double.infinity,
-          child: ElevatedButton.icon(
-            onPressed:
-            uploadState.status == UploadStatus.uploading ? null : _submit,
-            style: ElevatedButton.styleFrom(
-              backgroundColor: const Color(0xFF059669),
-              foregroundColor: Colors.white,
-              padding: const EdgeInsets.symmetric(vertical: 14),
-              shape: RoundedRectangleBorder(
-                  borderRadius: BorderRadius.circular(12)),
-            ),
-            icon: uploadState.status == UploadStatus.uploading
-                ? const SizedBox(
-                width: 18,
-                height: 18,
-                child: CircularProgressIndicator(
-                    color: Colors.white, strokeWidth: 2))
-                : const Icon(Icons.save_outlined),
-            label: Text(
-              uploadState.status == UploadStatus.uploading
-                  ? 'Creating...'
-                  : 'Create BOQ',
-              style: const TextStyle(
-                  fontSize: 15, fontWeight: FontWeight.w600),
+        _tourTarget(
+          _submitTourKey,
+          SizedBox(
+            width: double.infinity,
+            child: ElevatedButton.icon(
+              onPressed:
+              uploadState.status == UploadStatus.uploading ? null : _submit,
+              style: ElevatedButton.styleFrom(
+                backgroundColor: const Color(0xFF059669),
+                foregroundColor: Colors.white,
+                padding: const EdgeInsets.symmetric(vertical: 14),
+                shape: RoundedRectangleBorder(
+                    borderRadius: BorderRadius.circular(12)),
+              ),
+              icon: uploadState.status == UploadStatus.uploading
+                  ? const SizedBox(
+                  width: 18,
+                  height: 18,
+                  child: CircularProgressIndicator(
+                      color: Colors.white, strokeWidth: 2))
+                  : const Icon(Icons.save_outlined),
+              label: Text(
+                uploadState.status == UploadStatus.uploading
+                    ? 'Creating...'
+                    : 'Create BOQ',
+                style: const TextStyle(
+                    fontSize: 15, fontWeight: FontWeight.w600),
+              ),
             ),
           ),
         ),
       ],
+        );
+      },
     );
   }
 }

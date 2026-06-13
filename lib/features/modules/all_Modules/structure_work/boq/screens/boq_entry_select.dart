@@ -1,12 +1,19 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:showcaseview/showcaseview.dart';
 import 'package:untitled2/core/utlis/widgets/Button_wrapper.dart';
 import 'package:untitled2/core/utlis/widgets/custom_appBar.dart';
 import 'package:untitled2/core/utlis/widgets/sidebar.dart';
 import 'package:untitled2/features/modules/all_Modules/dpr/screens/widgets/select_card.dart';
-import 'package:untitled2/features/modules/all_Modules/structure_work/boq/screens/boq_item_details.dart';
-import 'package:untitled2/features/modules/all_Modules/structure_work/boq/screens/boq_import_sheet.dart';
+import 'package:untitled2/features/tour/core/tour_models.dart';
+import 'package:untitled2/features/tour/core/tour_package_adapter.dart';
+import 'package:untitled2/features/tour/definitions/setup_module_tours.dart';
+import 'package:untitled2/features/tour/providers/tour_providers.dart';
 
-class BoqEntrySelectScreen extends StatelessWidget {
+import 'boq_import_sheet.dart';
+import 'boq_item_details.dart';
+
+class BoqEntrySelectScreen extends ConsumerStatefulWidget {
   final String siteId;
   final String siteName;
 
@@ -17,127 +24,142 @@ class BoqEntrySelectScreen extends StatelessWidget {
   });
 
   @override
-  Widget build(BuildContext context) {
-    final colorScheme = Theme.of(context).colorScheme;
-    final isDark = Theme.of(context).brightness == Brightness.dark;
+  ConsumerState<BoqEntrySelectScreen> createState() =>
+      _BoqEntrySelectScreenState();
+}
 
-    return Scaffold(
-      drawer: const CustomDrawer(),
-      backgroundColor: colorScheme.surfaceContainerLowest,
-      appBar: CustomAppBar(title: "Select Entry Method"),
-      body: BottomButtonWrapper(
-        onBackPressed: () {
-          Navigator.pop(context);
-        },
-        child: Column(
-          children: [
-            Container(
-              padding: const EdgeInsets.symmetric(horizontal: 16),
-              child: GridView.count(
-                physics: const NeverScrollableScrollPhysics(),
-                shrinkWrap: true,
-                crossAxisCount: 2,
-                mainAxisSpacing: 12,
-                crossAxisSpacing: 10,
-                childAspectRatio: 1,
-                children: [
+class _BoqEntrySelectScreenState extends ConsumerState<BoqEntrySelectScreen> {
+  static const _adapter = TourPackageAdapter();
+  final _manualKey = GlobalKey(debugLabel: 'boq_manual_entry');
+  final _importKey = GlobalKey(debugLabel: 'boq_import_sheet');
+  String? _lastStep;
+
+  void _syncTour(BuildContext showcaseContext) {
+    final definition = AppTourDefinition(
+      id: '${SetupModuleTours.boqUploadId}_${widget.siteId}_entry_method',
+      title: 'Add BOQ',
+      description: 'Choose how to add BOQ data.',
+      icon: Icons.playlist_add_rounded,
+      steps: [
+        AppTourStep(
+          id: 'boq_manual_entry',
+          title: 'Manual Entry',
+          body: 'Use this when you want to create BOQ marks one by one.',
+          targetKey: _manualKey,
+          progressLabel: 'Manual',
+        ),
+        AppTourStep(
+          id: 'boq_import_sheet',
+          title: 'Import Sheet',
+          body: 'Use this to upload many BOQ items from an Excel sheet.',
+          targetKey: _importKey,
+          progressLabel: 'Excel',
+        ),
+      ],
+    );
+    WidgetsBinding.instance.addPostFrameCallback((_) async {
+      if (!mounted || ModalRoute.of(context)?.isCurrent == false) return;
+      final controller = ref.read(appTourControllerProvider.notifier);
+      if (ref.read(appTourControllerProvider).status != AppTourStatus.running) {
+        await controller.maybeStartRuntimeTour(
+          definition,
+          policyTourId: SetupModuleTours.boqUploadId,
+        );
+      }
+      final tour = controller.activeTour;
+      final step = controller.currentStep;
+      if (tour == null || !tour.id.startsWith(SetupModuleTours.boqUploadId)) {
+        if (_lastStep != null) _adapter.dismiss(showcaseContext);
+        _lastStep = null;
+        return;
+      }
+      final key = step == null ? null : '${tour.id}:${step.id}';
+      if (step == null || key == _lastStep) return;
+      _lastStep = key;
+      _adapter.showStep(showcaseContext, step);
+    });
+  }
+
+  Widget _target(GlobalKey key, Widget child) => Showcase.withWidget(
+        key: key,
+        container: const SizedBox.shrink(),
+        overlayOpacity: 0.72,
+        targetPadding: const EdgeInsets.all(8),
+        targetBorderRadius: BorderRadius.circular(16),
+        child: child,
+      );
+
+  @override
+  Widget build(BuildContext context) {
+    final cs = Theme.of(context).colorScheme;
+    ref.watch(appTourControllerProvider);
+    return ShowCaseWidget(
+      builder: (showcaseContext) {
+        _syncTour(showcaseContext);
+        return Scaffold(
+          drawer: const CustomDrawer(),
+          backgroundColor: cs.surfaceContainerLowest,
+          appBar: CustomAppBar(title: 'Select Entry Method'),
+          body: BottomButtonWrapper(
+            onBackPressed: () => Navigator.pop(context),
+            child: GridView.count(
+              physics: const NeverScrollableScrollPhysics(),
+              shrinkWrap: true,
+              crossAxisCount: 2,
+              mainAxisSpacing: 12,
+              crossAxisSpacing: 10,
+              childAspectRatio: 1,
+              children: [
+                _target(
+                  _manualKey,
                   SelectCard(
                     icon: const SelectCardIcon(
                       icon: Icons.edit_note_rounded,
                       color: Colors.blue,
                     ),
-                    label: "Manual Entry",
+                    label: 'Manual Entry',
                     onTap: () async {
                       final saved = await Navigator.push<bool>(
                         context,
                         MaterialPageRoute(
-                          builder: (context) => BoqItemDetailsScreen(
-                            siteId: siteId,
-                            siteName: siteName,
-                            item: null, // Indicates a new entry
+                          builder: (_) => BoqItemDetailsScreen(
+                            siteId: widget.siteId,
+                            siteName: widget.siteName,
+                            item: null,
                           ),
                         ),
                       );
-                      if (saved == true && context.mounted) {
-                        Navigator.pop(context, true);
-                      }
+                      if (saved == true && mounted) Navigator.pop(context, true);
                     },
                   ),
+                ),
+                _target(
+                  _importKey,
                   SelectCard(
                     icon: const SelectCardIcon(
                       icon: Icons.upload_file_rounded,
                       color: Colors.deepOrange,
                     ),
-                    label: "Import Sheet",
+                    label: 'Import Sheet',
                     onTap: () async {
                       final saved = await Navigator.push<bool>(
                         context,
                         MaterialPageRoute(
-                          builder: (context) => BoqImportSheetScreen(
-                            siteId: siteId,
-                            siteName: siteName,
+                          builder: (_) => BoqImportSheetScreen(
+                            siteId: widget.siteId,
+                            siteName: widget.siteName,
                           ),
                         ),
                       );
-                      if (saved == true && context.mounted) {
-                        Navigator.pop(context, true);
-                      }
+                      if (saved == true && mounted) Navigator.pop(context, true);
                     },
                   ),
-                ],
-              ),
+                ),
+              ],
             ),
-
-            const SizedBox(height: 18),
-
-            // ---------------- INFO CARD UNDER GRID ----------------
-            Container(
-              width: double.infinity,
-              padding: const EdgeInsets.all(16),
-              decoration: BoxDecoration(
-                color: colorScheme.surface,
-                borderRadius: BorderRadius.circular(18),
-                border: Border.all(
-                    color: colorScheme.outlineVariant.withOpacity(0.45)),
-                boxShadow: [
-                  BoxShadow(
-                    color: isDark
-                        ? colorScheme.shadow.withOpacity(0.12)
-                        : colorScheme.shadow.withOpacity(0.06),
-                    blurRadius: 12,
-                    offset: const Offset(0, 6),
-                  ),
-                ],
-              ),
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Text(
-                    "Choose the entry method",
-                    style: TextStyle(
-                      fontSize: 16,
-                      fontWeight: FontWeight.w700,
-                      color: colorScheme.onSurface,
-                    ),
-                  ),
-                  const SizedBox(height: 8),
-                  Text(
-                    "• Manual Entry: Create a new BOQ item step-by-step manually.\n"
-                    "• Import Sheet: Upload an Excel sheet containing your BOQ items. The system will process and save them automatically.",
-                    style: TextStyle(
-                      fontSize: 13,
-                      height: 1.5,
-                      color: colorScheme.onSurfaceVariant,
-                    ),
-                  ),
-                ],
-              ),
-            ),
-
-            const SizedBox(height: 20),
-          ],
-        ),
-      ),
+          ),
+        );
+      },
     );
   }
 }

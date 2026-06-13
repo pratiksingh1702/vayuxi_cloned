@@ -4,6 +4,7 @@ import 'dart:io';
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:showcaseview/showcaseview.dart';
 import 'package:untitled2/core/utlis/colors/colors.dart';
 import 'package:untitled2/core/utlis/widgets/custom_appBar.dart';
 import 'package:untitled2/features/modules/all_Modules/site_Details/providers/site_current_provider.dart';
@@ -19,6 +20,10 @@ import '../../../providers/mocProvider.dart';
 import 'package:file_picker/file_picker.dart';
 
 import '../../../providers/rate_variant_provider.dart';
+import 'package:untitled2/features/tour/core/tour_models.dart';
+import 'package:untitled2/features/tour/core/tour_package_adapter.dart';
+import 'package:untitled2/features/tour/definitions/setup_module_tours.dart';
+import 'package:untitled2/features/tour/providers/tour_providers.dart';
 
 class AddMOCPage extends ConsumerStatefulWidget {
   final MOC? moc;
@@ -29,7 +34,12 @@ class AddMOCPage extends ConsumerStatefulWidget {
 }
 
 class _AddMOCPageState extends ConsumerState<AddMOCPage> {
+  static const _tourAdapter = TourPackageAdapter();
   final _formKey = GlobalKey<FormState>();
+  final _nameTourKey = GlobalKey(debugLabel: 'dpr_moc_name');
+  final _applyTourKey = GlobalKey(debugLabel: 'dpr_moc_apply_all');
+  final _imageTourKey = GlobalKey(debugLabel: 'dpr_moc_image');
+  final _saveTourKey = GlobalKey(debugLabel: 'dpr_moc_save');
   final _nameController = TextEditingController();
   String? _existingImageUrl; // backend image
   File? _selectedImage;      // newly picked image
@@ -38,6 +48,7 @@ class _AddMOCPageState extends ConsumerState<AddMOCPage> {
 
 
   bool _isSubmitting = false;
+  String? _lastTourStep;
   @override
   void initState() {
     super.initState();
@@ -168,10 +179,83 @@ class _AddMOCPageState extends ConsumerState<AddMOCPage> {
     }
   }
 
+  void _syncTour(BuildContext showcaseContext) {
+    final definition = AppTourDefinition(
+      id: '${SetupModuleTours.dprSetupId}_moc_form',
+      title: 'Add MOC',
+      description: 'Create a DPR material option.',
+      icon: Icons.account_tree_rounded,
+      steps: [
+        AppTourStep(
+          id: 'dpr_moc_name',
+          title: 'MOC Name',
+          body: 'Enter the material or construction type used in DPR entry.',
+          targetKey: _nameTourKey,
+          progressLabel: 'Name',
+        ),
+        AppTourStep(
+          id: 'dpr_moc_apply_all',
+          title: 'Available Sites',
+          body: 'Choose whether this MOC is only for this site or all company sites.',
+          targetKey: _applyTourKey,
+          progressLabel: 'Sites',
+        ),
+        AppTourStep(
+          id: 'dpr_moc_image',
+          title: 'MOC Image',
+          body: 'Upload a clear image so this MOC is easy to identify during entry.',
+          targetKey: _imageTourKey,
+          progressLabel: 'Image',
+        ),
+        AppTourStep(
+          id: 'dpr_moc_save',
+          title: 'Save MOC',
+          body: 'Save the completed MOC setup.',
+          targetKey: _saveTourKey,
+          progressLabel: 'Save',
+        ),
+      ],
+    );
+    WidgetsBinding.instance.addPostFrameCallback((_) async {
+      if (!mounted || ModalRoute.of(context)?.isCurrent == false) return;
+      final controller = ref.read(appTourControllerProvider.notifier);
+      if (ref.read(appTourControllerProvider).status != AppTourStatus.running) {
+        await controller.maybeStartRuntimeTour(
+          definition,
+          policyTourId: SetupModuleTours.dprSetupId,
+        );
+      }
+      final tour = controller.activeTour;
+      final step = controller.currentStep;
+      if (tour == null || !tour.id.startsWith(SetupModuleTours.dprSetupId)) {
+        if (_lastTourStep != null) _tourAdapter.dismiss(showcaseContext);
+        _lastTourStep = null;
+        return;
+      }
+      final key = step == null ? null : '${tour.id}:${step.id}';
+      if (step == null || key == _lastTourStep) return;
+      _lastTourStep = key;
+      _tourAdapter.showStep(showcaseContext, step);
+    });
+  }
+
+  Widget _tourTarget(GlobalKey key, Widget child) => Showcase.withWidget(
+        key: key,
+        container: const SizedBox.shrink(),
+        overlayOpacity: 0.72,
+        targetPadding: const EdgeInsets.all(8),
+        targetBorderRadius: BorderRadius.circular(14),
+        child: child,
+      );
+
 
   @override
   Widget build(BuildContext context) {
-    return Scaffold(
+    ref.watch(appTourControllerProvider);
+    return ShowCaseWidget(
+      builder: (showcaseContext) {
+        _syncTour(showcaseContext);
+        return Scaffold(
       resizeToAvoidBottomInset: false,
       drawer: const CustomDrawer(),
       appBar:CustomAppBar(title: "Add MOC"),
@@ -185,44 +269,51 @@ class _AddMOCPageState extends ConsumerState<AddMOCPage> {
               crossAxisAlignment: CrossAxisAlignment.stretch,
               children: [
                 // Name Field
-                CustomTextField(
-                  label: 'MOC Name',
-                  hint: 'Enter MOC name (e.g., Stainless Steel, HDPE)',
-                  isRequired: true,
-                  TextSize: 16,
-                  controller: _nameController,
-                  keyboardType: TextInputType.text,
+                _tourTarget(
+                  _nameTourKey,
+                  CustomTextField(
+                    label: 'MOC Name',
+                    hint: 'Enter MOC name (e.g., Stainless Steel, HDPE)',
+                    isRequired: true,
+                    TextSize: 16,
+                    controller: _nameController,
+                    keyboardType: TextInputType.text,
+                  ),
                 ),
-                _buildIsAppliedField(),
+                _tourTarget(_applyTourKey, _buildIsAppliedField()),
                 const SizedBox(height: 24),
         
                 // Image Upload Section
 
-                UploadBox(
-                  title: 'MOC Image',
-                  subtitle: 'Tap to change image',
-                  buttonText: 'Change Image',
-                  onPressed: _pickImage,
-                  previewWidget: (_selectedImage != null || _existingImageUrl != null)
-                      ? UploadBoxPreview(
-                    file: _selectedImage,
-                    source: _existingImageUrl,
-                    isImage: true,
-                    onRemove: () {
-                      setState(() {
-                        _selectedImage = null;
-                        _existingImageUrl = null;
-                      });
-                    },
-                    onEdit: _pickImage,
-                  )
-                      : null,
+                _tourTarget(
+                  _imageTourKey,
+                  UploadBox(
+                    title: 'MOC Image',
+                    subtitle: 'Tap to change image',
+                    buttonText: 'Change Image',
+                    onPressed: _pickImage,
+                    previewWidget:
+                        (_selectedImage != null || _existingImageUrl != null)
+                            ? UploadBoxPreview(
+                                file: _selectedImage,
+                                source: _existingImageUrl,
+                                isImage: true,
+                                onRemove: () {
+                                  setState(() {
+                                    _selectedImage = null;
+                                    _existingImageUrl = null;
+                                  });
+                                },
+                                onEdit: _pickImage,
+                              )
+                            : null,
+                  ),
                 ),
 
 
         
                 // Submit Button
-                ElevatedButton(
+                _tourTarget(_saveTourKey, ElevatedButton(
                   onPressed: _isSubmitting ? null : _submitForm,
                   style: ElevatedButton.styleFrom(
                     backgroundColor: Colors.blue,
@@ -252,7 +343,7 @@ class _AddMOCPageState extends ConsumerState<AddMOCPage> {
                     'Save MOC',
                     style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
                   ),
-                ),
+                )),
                 const SizedBox(height: 12),
         
                 // Cancel Button
@@ -271,6 +362,8 @@ class _AddMOCPageState extends ConsumerState<AddMOCPage> {
           ),
         ),
       ),
+        );
+      },
     );
   }
   Widget _buildIsAppliedField() {

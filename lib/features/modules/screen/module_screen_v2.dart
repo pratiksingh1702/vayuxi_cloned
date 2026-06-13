@@ -137,6 +137,7 @@ class _ModuleScreenV2State extends ConsumerState<ModuleScreenV2>
   VoidCallback? _pendingAction;
   String? _lastShowcasedTourStepId;
   static const TourPackageAdapter _tourPackageAdapter = TourPackageAdapter();
+  final Map<String, GlobalKey> _moduleTourKeys = {};
 
   // NEW — module card attach/detach
   bool _moduleCardAttached = false;
@@ -243,9 +244,11 @@ class _ModuleScreenV2State extends ConsumerState<ModuleScreenV2>
     }
   }
 
-  void _syncModuleTour(BuildContext showcaseContext) {
+  void _syncModuleTour(BuildContext showcaseContext, Translator t) {
+    final currentTabTour = _buildCurrentTabTour(t);
     WidgetsBinding.instance.addPostFrameCallback((_) async {
       if (!mounted || _overlayLoading || _overlayType != null) return;
+      if (currentTabTour.tabIndex != _currentIndex) return;
       final route = ModalRoute.of(context);
       if (route != null && !route.isCurrent) return;
 
@@ -256,7 +259,10 @@ class _ModuleScreenV2State extends ConsumerState<ModuleScreenV2>
         final startedWelcome = await tourController.maybeStartWelcome();
         if (!mounted) return;
         if (!startedWelcome) {
-          await tourController.maybeStartTabTour(_currentIndex);
+          await tourController.maybeStartRuntimeTour(
+            currentTabTour,
+            policyTourId: ModuleScreenTours.tabTourId(_currentIndex),
+          );
         }
       }
 
@@ -630,6 +636,196 @@ class _ModuleScreenV2State extends ConsumerState<ModuleScreenV2>
     }
   }
 
+  AppTourDefinition _buildCurrentTabTour(Translator t) {
+    final modules = _currentModules;
+    final policyId = ModuleScreenTours.tabTourId(_currentIndex);
+    final type = _safeTourPart(ref.watch(typeProvider) ?? 'default');
+    final signature = _moduleListSignature(modules);
+
+    return AppTourDefinition(
+      id: '${policyId}_${type}_$signature',
+      title: _tabTourTitle(_currentIndex),
+      description: 'Explains the visible modules in this tab.',
+      icon: _tabTourIcon(_currentIndex),
+      tabIndex: _currentIndex,
+      steps: [
+        for (var i = 0; i < modules.length; i++)
+          AppTourStep(
+            id: 'module_${i}_${_safeTourPart(modules[i].routeName)}',
+            title: _moduleTourTitle(modules[i], t),
+            body: _moduleTourDescription(
+              modules[i],
+              _moduleTourTitle(modules[i], t),
+            ),
+            targetKey: _moduleTourTargetKey(modules[i], i),
+            progressLabel: 'Module ${i + 1} of ${modules.length}',
+          ),
+      ],
+    );
+  }
+
+  String _tabTourTitle(int tabIndex) {
+    switch (tabIndex) {
+      case 0:
+        return 'Daily Entry';
+      case 1:
+        return 'Setup';
+      case 2:
+        return 'Reports';
+      case 3:
+        return 'More';
+      default:
+        return 'Modules';
+    }
+  }
+
+  IconData _tabTourIcon(int tabIndex) {
+    switch (tabIndex) {
+      case 0:
+        return Icons.edit_calendar_rounded;
+      case 1:
+        return Icons.tune_rounded;
+      case 2:
+        return Icons.bar_chart_rounded;
+      case 3:
+        return Icons.more_horiz_rounded;
+      default:
+        return Icons.apps_rounded;
+    }
+  }
+
+  GlobalKey _moduleTourTargetKey(ModuleItem item, int index) {
+    final key = _moduleTourKey(item, index);
+    return _moduleTourKeys.putIfAbsent(
+      key,
+      () => GlobalKey(debugLabel: 'tour_$key'),
+    );
+  }
+
+  String _moduleTourKey(ModuleItem item, int index) {
+    final type = ref.watch(typeProvider) ?? 'default';
+    return [
+      'tab$_currentIndex',
+      _safeTourPart(type),
+      index.toString(),
+      _safeTourPart(item.routeName),
+      _safeTourPart(item.labelKey),
+    ].join('_');
+  }
+
+  String _moduleListSignature(List<ModuleItem> modules) {
+    return modules
+        .asMap()
+        .entries
+        .map((entry) {
+          final item = entry.value;
+          return [
+            entry.key.toString(),
+            _safeTourPart(item.routeName),
+            _safeTourPart(item.labelKey),
+          ].join('_');
+        })
+        .join('__');
+  }
+
+  String _safeTourPart(String value) {
+    final sanitized = value
+        .toLowerCase()
+        .replaceAll(RegExp(r'[^a-z0-9]+'), '_')
+        .replaceAll(RegExp(r'^_+|_+$'), '');
+    return sanitized.isEmpty ? 'module' : sanitized;
+  }
+
+  String _moduleTourTitle(ModuleItem item, Translator t) {
+    final translated = t.t(item.labelKey).trim();
+    return translated.isEmpty ? item.labelKey : translated;
+  }
+
+  String _moduleTourDescription(ModuleItem item, String title) {
+    final byRoute = <String, String>{
+      '/site-list/attendance': 'Use this to mark who came to work today.',
+      '/site-list/dpr': "Use this to record today's work progress at the site.",
+      Routes.civilDpr: "Use this to record today's work progress at the site.",
+      Routes.roofingDpr:
+          "Use this to record today's work progress at the site.",
+      Routes.fabricationDpr:
+          "Use this to record today's work progress at the site.",
+      '/site-list/structure-pm-entry':
+          'Use this to enter plant and machinery work for today.',
+      '/site-list/add-exp': 'Use this to add money spent on site work.',
+      '/site-list/inv-entry':
+          'Use this to record material received, issued, or used.',
+      '/site': 'Use this to create and manage your project sites.',
+      '/site-list/rate':
+          'Use this to set work or item rates before entries and reports.',
+      '/manpower': 'Use this to add workers and manpower details.',
+      '/site-list/team': 'Use this to create teams for site work.',
+      '/site-list/inv-setup':
+          'Use this to set up materials before inventory entries.',
+      Routes.boqUpload:
+          'Use this to view BOQ items or upload new BOQ data from Excel.',
+      '/site-list/structure-history-upload':
+          'Use this to upload old structure work history.',
+      '/site-list/addMoc':
+          'Use this to set up DPR options before daily progress entries.',
+      Routes.erectionSetup:
+          'Use this to prepare structure erection stages, tracking, and images before DPR entry.',
+      Routes.civilSetup:
+          'Use this to set up DPR options before daily progress entries.',
+      Routes.roofingSetup:
+          'Use this to set up DPR options before daily progress entries.',
+      Routes.fabricationSetup:
+          'Use this to set up DPR options before daily progress entries.',
+      '/site-list/work-assignment': 'Use this to assign work items to teams.',
+      '/site-list/structure-pm-setup':
+          'Use this to choose P&M categories and add the works used in daily P&M entries.',
+      '/summary': 'Use this to see a quick summary of project progress.',
+      '/salary': 'Use this to check and download salary slips.',
+      '/site-list/dprReport': 'Use this to view or download DPR reports.',
+      '/site-list/structure-pm-report': 'Use this to check P&M report details.',
+      '/site-list/expense': 'Use this to view or download expense records.',
+      '/site-list/att-sheet':
+          'Use this to view or download attendance records.',
+      '/site-list/inv-Report': 'Use this to check inventory summaries.',
+      '/profile': 'Use this to view or update your profile.',
+      '/subscription': 'Use this to manage your plan and subscription.',
+      '/upcoming-update': 'Use this to see new and upcoming app updates.',
+      '/theme': 'Use this to change the app look.',
+      '/language': 'Use this to change the app language.',
+      '/help': 'Use this when you need support or guidance.',
+    };
+
+    final routeDescription = byRoute[item.routeName];
+    if (routeDescription != null) return routeDescription;
+
+    final lookup = '${item.labelKey} $title'.toLowerCase();
+    if (lookup.contains('attendance')) {
+      return 'Use this to mark who came to work today.';
+    }
+    if (lookup.contains('dpr') || lookup.contains('daily_progress')) {
+      return "Use this to record today's work progress at the site.";
+    }
+    if (lookup.contains('expense')) {
+      return 'Use this to add or check money spent on site work.';
+    }
+    if (lookup.contains('inventory')) {
+      return 'Use this to manage material details for site work.';
+    }
+    if (lookup.contains('site')) {
+      return 'Use this to create and manage your project sites.';
+    }
+    if (lookup.contains('rate')) {
+      return 'Use this to set rates before entries and reports.';
+    }
+    if (lookup.contains('team')) {
+      return 'Use this to create teams for site work.';
+    }
+    if (lookup.contains('report') || lookup.contains('sheet')) {
+      return 'Use this to check summaries and download work records.';
+    }
+    return 'Open this module to manage $title.';
+  }
+
   void _onSiteChanged(SiteModel? newSite) {
     if (newSite == null) {
       ref.read(siteDropdownValueProvider.notifier).state = null;
@@ -915,7 +1111,7 @@ class _ModuleScreenV2State extends ConsumerState<ModuleScreenV2>
           backgroundColor: _pageBackgroundColor(cs, isDark),
           body: ShowCaseWidget(
             builder: (showcaseContext) {
-              _syncModuleTour(showcaseContext);
+              _syncModuleTour(showcaseContext, t);
               return KeyedSubtree(
                 key: ModuleScreenTourTargets.screenKey,
                 child: GestureDetector(
@@ -1955,11 +2151,12 @@ class _ModuleScreenV2State extends ConsumerState<ModuleScreenV2>
     required GlobalKey key,
     required Widget child,
     EdgeInsets targetPadding = const EdgeInsets.all(6),
+    double overlayOpacity = 0.08,
   }) {
     return Showcase.withWidget(
       key: key,
       container: const SizedBox.shrink(),
-      overlayOpacity: 0.08,
+      overlayOpacity: overlayOpacity,
       targetPadding: targetPadding,
       targetBorderRadius: BorderRadius.circular(18),
       disableDefaultTargetGestures: false,
@@ -1970,22 +2167,21 @@ class _ModuleScreenV2State extends ConsumerState<ModuleScreenV2>
   Widget _buildIconGrid(Translator t) {
     return LayoutBuilder(builder: (context, constraints) {
       final itemWidth = constraints.maxWidth / 4;
-      return _buildTourTarget(
-        key: ModuleScreenTourTargets.moduleCardKey,
-        targetPadding: const EdgeInsets.all(10),
-        child: Wrap(
-          spacing: 0,
-          runSpacing: 24,
-          alignment: WrapAlignment.start,
-          children: _currentModules
-              .map((item) => _buildModuleIconItem(item, itemWidth, t))
-              .toList(),
-        ),
+      final modules = _currentModules;
+      return Wrap(
+        spacing: 0,
+        runSpacing: 24,
+        alignment: WrapAlignment.start,
+        children: [
+          for (var i = 0; i < modules.length; i++)
+            _buildModuleIconItem(modules[i], itemWidth, t, i),
+        ],
       );
     });
   }
 
-  Widget _buildModuleIconItem(ModuleItem item, double width, Translator t) {
+  Widget _buildModuleIconItem(
+      ModuleItem item, double width, Translator t, int index) {
     final cs = Theme.of(context).colorScheme;
     final isDark = Theme.of(context).brightness == Brightness.dark;
 
@@ -2039,7 +2235,12 @@ class _ModuleScreenV2State extends ConsumerState<ModuleScreenV2>
       ),
     );
 
-    return content;
+    return _buildTourTarget(
+      key: _moduleTourTargetKey(item, index),
+      targetPadding: const EdgeInsets.all(8),
+      overlayOpacity: 0.72,
+      child: content,
+    );
   }
 
   // ── Part 6: Floating NavBar ────────────────────────────────────────────────

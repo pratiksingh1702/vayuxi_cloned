@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:showcaseview/showcaseview.dart';
 import 'package:untitled2/core/utlis/app_toasts.dart';
 import 'package:untitled2/core/utlis/widgets/Button_wrapper.dart';
 import 'package:untitled2/core/utlis/widgets/buttons.dart';
@@ -8,6 +9,10 @@ import '../../../../../core/utlis/common_functions.dart';
 import '../../../../../core/utlis/widgets/custom_appBar.dart';
 import '../../../../../core/utlis/widgets/fields/searchableDropdown.dart';
 import '../../../../../core/utlis/widgets/sidebar.dart';
+import '../../../../tour/core/tour_models.dart';
+import '../../../../tour/core/tour_package_adapter.dart';
+import '../../../../tour/definitions/site_rate_module_tours.dart';
+import '../../../../tour/providers/tour_providers.dart';
 import '../../site_Details/repository/siteModel.dart';
 import '../data/rateApi.dart';
 import '../data/rate_provider.dart';
@@ -40,6 +45,15 @@ class _EditRateScreenState extends ConsumerState<EditRateScreen> {
 
   List<String> uomList = [];
   bool isLoadingUom = false;
+  static const TourPackageAdapter _tourPackageAdapter = TourPackageAdapter();
+  String? _lastShowcasedTourStepId;
+  final GlobalKey _productTourKey =
+      GlobalKey(debugLabel: 'rate_edit_product');
+  final GlobalKey _hsnTourKey = GlobalKey(debugLabel: 'rate_edit_hsn');
+  final GlobalKey _rateTourKey = GlobalKey(debugLabel: 'rate_edit_rate');
+  final GlobalKey _uomTourKey = GlobalKey(debugLabel: 'rate_edit_uom');
+  final GlobalKey _remarkTourKey = GlobalKey(debugLabel: 'rate_edit_remark');
+  final GlobalKey _saveTourKey = GlobalKey(debugLabel: 'rate_edit_save');
 
   @override
   void initState() {
@@ -167,42 +181,188 @@ class _EditRateScreenState extends ConsumerState<EditRateScreen> {
     }
   }
 
+  void _syncRateEditTour(BuildContext showcaseContext) {
+    final definition = AppTourDefinition(
+      id: '${SiteRateModuleTours.rateId}_form_edit',
+      title: 'Edit Rate',
+      description: 'Learn how to update an existing rate.',
+      icon: Icons.edit_rounded,
+      steps: [
+        const AppTourStep(
+          id: 'rate_edit_intro',
+          title: 'Edit Rate',
+          body: 'Use this form to correct or update a saved rate.',
+          progressLabel: 'Edit rate',
+          useSpotlight: false,
+        ),
+        AppTourStep(
+          id: 'rate_edit_product',
+          title: 'Product or Service',
+          body: 'Change the item, service, or work name here.',
+          targetKey: _productTourKey,
+          progressLabel: 'Product',
+          showTooltip: false,
+          autoScrollToTarget: true,
+        ),
+        AppTourStep(
+          id: 'rate_edit_hsn',
+          title: 'HSN/SAC Code',
+          body: 'Update the HSN or SAC code if it needs correction.',
+          targetKey: _hsnTourKey,
+          progressLabel: 'HSN/SAC',
+          showTooltip: false,
+          autoScrollToTarget: true,
+        ),
+        AppTourStep(
+          id: 'rate_edit_rate',
+          title: 'Rate Amount',
+          body: 'Change the saved amount for this item or work.',
+          targetKey: _rateTourKey,
+          progressLabel: 'Rate',
+          showTooltip: false,
+          autoScrollToTarget: true,
+        ),
+        AppTourStep(
+          id: 'rate_edit_uom',
+          title: 'Unit of Measurement',
+          body: 'Choose or type the unit used for this rate.',
+          targetKey: _uomTourKey,
+          progressLabel: 'UOM',
+          showTooltip: false,
+          autoScrollToTarget: true,
+        ),
+        AppTourStep(
+          id: 'rate_edit_remark',
+          title: 'Remarks',
+          body: 'Update any extra note for this rate.',
+          targetKey: _remarkTourKey,
+          progressLabel: 'Remarks',
+          showTooltip: false,
+          autoScrollToTarget: true,
+        ),
+        AppTourStep(
+          id: 'rate_edit_save',
+          title: 'Save Changes',
+          body: 'Tap Save when the updated rate details are ready.',
+          targetKey: _saveTourKey,
+          progressLabel: 'Save',
+          tooltipBottomOffset: 96,
+          autoScrollToTarget: true,
+        ),
+      ],
+    );
+
+    WidgetsBinding.instance.addPostFrameCallback((_) async {
+      if (!mounted) return;
+      final route = ModalRoute.of(context);
+      if (route != null && !route.isCurrent) return;
+      final tourState = ref.read(appTourControllerProvider);
+      final tourController = ref.read(appTourControllerProvider.notifier);
+      if (tourState.status != AppTourStatus.running) {
+        await tourController.maybeStartRuntimeTour(
+          definition,
+          policyTourId: SiteRateModuleTours.rateId,
+        );
+      }
+      final step = tourController.currentStep;
+      final activeTour = tourController.activeTour;
+      if (activeTour == null ||
+          !activeTour.id.startsWith(SiteRateModuleTours.rateId)) {
+        if (_lastShowcasedTourStepId != null) {
+          _tourPackageAdapter.dismiss(showcaseContext);
+          _lastShowcasedTourStepId = null;
+        }
+        return;
+      }
+      final stepKey = step == null ? null : '${activeTour.id}:${step.id}';
+      if (step == null) {
+        if (_lastShowcasedTourStepId != null) {
+          _tourPackageAdapter.dismiss(showcaseContext);
+          _lastShowcasedTourStepId = null;
+        }
+        return;
+      }
+      if (_lastShowcasedTourStepId == stepKey) return;
+      _lastShowcasedTourStepId = stepKey;
+      _tourPackageAdapter.showStep(showcaseContext, step);
+    });
+  }
+
+  Widget _tourTarget(
+    GlobalKey key,
+    Widget child, {
+    bool advanceOnTap = false,
+  }) {
+    return Showcase.withWidget(
+      key: key,
+      container: const SizedBox.shrink(),
+      overlayOpacity: 0.72,
+      targetPadding: const EdgeInsets.all(8),
+      targetBorderRadius: BorderRadius.circular(14),
+      disableDefaultTargetGestures: false,
+      disposeOnTap: advanceOnTap ? true : null,
+      onTargetClick: advanceOnTap
+          ? () => ref.read(appTourControllerProvider.notifier).next()
+          : null,
+      child: child,
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
     final colorScheme = Theme.of(context).colorScheme;
-    return Scaffold(
+    ref.watch(appTourControllerProvider);
+    return ShowCaseWidget(
+      builder: (showcaseContext) {
+        _syncRateEditTour(showcaseContext);
+        return Scaffold(
       drawer: const CustomDrawer(),
       backgroundColor: colorScheme.surfaceContainerLowest,
       appBar: CustomAppBar(title: "Edit Rate"),
       body: BottomButtonWrapper(
         customButtons: [
           CustomButton(
-              button: RoundedButton(
-            text: "Save",
-            color: colorScheme.primary,
-            textColor: colorScheme.onPrimary,
-            onPressed: _updateRate,
+              button: _tourTarget(
+            _saveTourKey,
+            RoundedButton(
+              text: "Save",
+              color: colorScheme.primary,
+              textColor: colorScheme.onPrimary,
+              onPressed: _updateRate,
+            ),
           ))
         ],
         child: SingleChildScrollView(
           padding: const EdgeInsets.all(16),
           child: Column(
             children: [
-              CustomTextField(
-                label: "Product",
-                controller: siteNameController,
-                isRequired: true,
+              _tourTarget(
+                _productTourKey,
+                CustomTextField(
+                  label: "Product",
+                  controller: siteNameController,
+                  isRequired: true,
+                ),
+                advanceOnTap: true,
               ),
-              CustomTextField(
-                label: "HSN/SAC Code",
-                controller: hsnCodeController,
-                isRequired: false,
+              _tourTarget(
+                _hsnTourKey,
+                CustomTextField(
+                  label: "HSN/SAC Code",
+                  controller: hsnCodeController,
+                  isRequired: false,
+                ),
+                advanceOnTap: true,
               ),
-              CustomTextField(
-                label: "Rate in Rs.",
-                controller: rateController,
-                keyboardType: TextInputType.number,
-                isRequired: true,
+              _tourTarget(
+                _rateTourKey,
+                CustomTextField(
+                  label: "Rate in Rs.",
+                  controller: rateController,
+                  keyboardType: TextInputType.number,
+                  isRequired: true,
+                ),
+                advanceOnTap: true,
               ),
 
               // UOM Section with Label
@@ -239,25 +399,31 @@ class _EditRateScreenState extends ConsumerState<EditRateScreen> {
                         color: colorScheme.primary,
                       ),
                     )
-                  : SearchableDropdown(
-                      data: uomList,
-                      value: uomController.text,
-                      placeholder: "Search or type Unit of Measurement",
-                      onSelect: (value) {
-                        setState(() {
-                          uomController.text = value;
-                        });
-                      },
-                      containerDecoration: BoxDecoration(
-                        color: colorScheme.surface,
-                        borderRadius: BorderRadius.circular(8),
-                        border: Border(
-                          left: BorderSide(color: colorScheme.outlineVariant),
-                          right: BorderSide(color: colorScheme.outlineVariant),
-                          top: BorderSide(color: colorScheme.outlineVariant),
-                          bottom: BorderSide(color: colorScheme.outlineVariant),
+                  : _tourTarget(
+                      _uomTourKey,
+                      SearchableDropdown(
+                        data: uomList,
+                        value: uomController.text,
+                        placeholder: "Search or type Unit of Measurement",
+                        onSelect: (value) {
+                          setState(() {
+                            uomController.text = value;
+                          });
+                        },
+                        containerDecoration: BoxDecoration(
+                          color: colorScheme.surface,
+                          borderRadius: BorderRadius.circular(8),
+                          border: Border(
+                            left: BorderSide(color: colorScheme.outlineVariant),
+                            right:
+                                BorderSide(color: colorScheme.outlineVariant),
+                            top: BorderSide(color: colorScheme.outlineVariant),
+                            bottom:
+                                BorderSide(color: colorScheme.outlineVariant),
+                          ),
                         ),
                       ),
+                      advanceOnTap: true,
                     ),
               const SizedBox(height: 4),
 
@@ -283,15 +449,21 @@ class _EditRateScreenState extends ConsumerState<EditRateScreen> {
                   ),
                 ),
 
-              CustomTextField(
-                label: "Remark (if any)",
-                controller: remarkController,
-                maxLines: 3,
+              _tourTarget(
+                _remarkTourKey,
+                CustomTextField(
+                  label: "Remark (if any)",
+                  controller: remarkController,
+                  maxLines: 3,
+                ),
+                advanceOnTap: true,
               ),
             ],
           ),
         ),
       ),
+    );
+      },
     );
   }
 }

@@ -22,6 +22,10 @@ import '../../../../tour/domain/tour_controller.dart';
 import '../../../../tour/domain/tour_presistent.dart';
 import '../../../../tour/domain/tour_registery.dart';
 import '../../../../tour/domain/tour_step_model.dart';
+import '../../../../tour/core/tour_models.dart';
+import '../../../../tour/core/tour_package_adapter.dart';
+import '../../../../tour/definitions/site_rate_module_tours.dart';
+import '../../../../tour/providers/tour_providers.dart';
 import '../providers/siteProvider.dart';
 import '../providers/site_current_provider.dart';
 import '../providers/site_service.dart';
@@ -47,6 +51,15 @@ class _SiteListScreenState extends ConsumerState<SiteListScreen>
   bool _isSelectionMode = false;
   Set<String> _selectedSiteIds = {};
   final ScrollController _gridScrollController = ScrollController();
+  static const TourPackageAdapter _tourPackageAdapter = TourPackageAdapter();
+  String? _lastShowcasedTourStepId;
+  final GlobalKey _addButtonTourKey =
+      GlobalKey(debugLabel: 'site_list_add_button');
+  final GlobalKey _deleteModeTourKey =
+      GlobalKey(debugLabel: 'site_list_delete_mode');
+  final GlobalKey _firstSiteTourKey =
+      GlobalKey(debugLabel: 'site_list_first_card');
+  final GlobalKey _emptyTourKey = GlobalKey(debugLabel: 'site_list_empty');
 
   @override
   void dispose() {
@@ -203,9 +216,16 @@ class _SiteListScreenState extends ConsumerState<SiteListScreen>
   Widget build(BuildContext context) {
     print("🏗️ Building SiteListScreen");
     final lang = ref.watch(dailyEntryTranslationHelperProvider);
+    ref.watch(appTourControllerProvider);
 
     return ShowCaseWidget(
       builder: (showcaseContext) {
+        final siteState = ref.read(siteProvider);
+        _syncSiteListTour(
+          showcaseContext,
+          sites: siteState.sites,
+          showActions: widget.show,
+        );
         WidgetsBinding.instance.addPostFrameCallback((_) {
           runTourForRoute("/site-list/site", showcaseContext);
         });
@@ -237,10 +257,9 @@ class _SiteListScreenState extends ConsumerState<SiteListScreen>
       customButtons: [
         if (widget.show)
           CustomButton(
-            button: Showcase(
-              key: TourRegistry.siteCreateKey,
-              description: "Tap here to create your first Site",
-              child: RoundedButton(
+            button: _tourTarget(
+              _addButtonTourKey,
+              RoundedButton(
                 text: "Add",
                 color: cs.primary,
                 textColor: cs.onPrimary,
@@ -286,11 +305,14 @@ class _SiteListScreenState extends ConsumerState<SiteListScreen>
                       ),
                     ] else ...[
                       if (widget.show)
-                        IconButton(
-                          icon: Icon(Icons.delete_sweep, color: cs.error),
-                          onPressed:
-                              sites.isEmpty ? null : _toggleSelectionMode,
-                          tooltip: 'Select Sites to Delete',
+                        _tourTarget(
+                          _deleteModeTourKey,
+                          IconButton(
+                            icon: Icon(Icons.delete_sweep, color: cs.error),
+                            onPressed:
+                                sites.isEmpty ? null : _toggleSelectionMode,
+                            tooltip: 'Select Sites to Delete',
+                          ),
                         ),
                     ],
                   ],
@@ -331,8 +353,10 @@ class _SiteListScreenState extends ConsumerState<SiteListScreen>
     // Show error only when there's an error and no data
     if (siteState.error != null && siteState.sites.isEmpty) {
       print("❌ Showing error: ${siteState.error}");
-      return Center(
-        child: Column(
+      return _tourTarget(
+        _emptyTourKey,
+        Center(
+          child: Column(
           mainAxisAlignment: MainAxisAlignment.center,
           children: [
             Icon(Icons.error_outline, size: 64, color: cs.error),
@@ -356,6 +380,7 @@ class _SiteListScreenState extends ConsumerState<SiteListScreen>
               child: const Text('Try Again'),
             ),
           ],
+          ),
         ),
       );
     }
@@ -413,7 +438,7 @@ class _SiteListScreenState extends ConsumerState<SiteListScreen>
               print(
                   "🏢 Building card for site: ${site.siteName} (index: $index)");
 
-              return Stack(
+              final card = Stack(
                 children: [
                   Opacity(
                     opacity: _isSelectionMode && !isSelected ? 0.5 : 1.0,
@@ -501,8 +526,114 @@ class _SiteListScreenState extends ConsumerState<SiteListScreen>
                     ),
                 ],
               );
+              return index == 0 ? _tourTarget(_firstSiteTourKey, card) : card;
             },
           ),
         ));
+  }
+
+  void _syncSiteListTour(
+    BuildContext showcaseContext, {
+    required List<SiteModel> sites,
+    required bool showActions,
+  }) {
+    final hasSites = sites.isNotEmpty;
+    final definition = AppTourDefinition(
+      id:
+          '${SiteRateModuleTours.siteDetailsId}_list_${hasSites ? 'with_sites' : 'empty'}_${showActions ? 'manage' : 'select'}',
+      title: 'Site List',
+      description: 'Learn how to use the site list.',
+      icon: Icons.location_city_rounded,
+      steps: [
+        const AppTourStep(
+          id: 'site_list_intro',
+          title: 'Site List',
+          body: 'This screen shows the project sites created in your account.',
+          progressLabel: 'Site list',
+          useSpotlight: false,
+        ),
+        if (showActions)
+          AppTourStep(
+            id: 'site_list_add',
+            title: 'Add Site',
+            body: 'Tap Add when you need to create another project site.',
+            targetKey: _addButtonTourKey,
+            progressLabel: 'Add',
+            tooltipBottomOffset: 96,
+          ),
+        if (hasSites && showActions)
+          AppTourStep(
+            id: 'site_list_delete_mode',
+            title: 'Delete Mode',
+            body: 'Use this when you need to select and delete site records.',
+            targetKey: _deleteModeTourKey,
+            progressLabel: 'Delete mode',
+          ),
+        if (hasSites)
+          AppTourStep(
+            id: 'site_list_first_card',
+            title: 'Site Card',
+            body: 'Tap a site card to open that site for the selected module.',
+            targetKey: _firstSiteTourKey,
+            progressLabel: 'Site card',
+          )
+        else
+          AppTourStep(
+            id: 'site_list_empty',
+            title: 'No Sites Yet',
+            body:
+                'Add a site first so entries, setup, and reports have a project to use.',
+            targetKey: _emptyTourKey,
+            progressLabel: 'Empty state',
+          ),
+      ],
+    );
+
+    WidgetsBinding.instance.addPostFrameCallback((_) async {
+      if (!mounted) return;
+      final route = ModalRoute.of(context);
+      if (route != null && !route.isCurrent) return;
+      final tourState = ref.read(appTourControllerProvider);
+      final tourController = ref.read(appTourControllerProvider.notifier);
+      if (tourState.status != AppTourStatus.running) {
+        await tourController.maybeStartRuntimeTour(
+          definition,
+          policyTourId: SiteRateModuleTours.siteDetailsId,
+        );
+      }
+      final step = tourController.currentStep;
+      final activeTour = tourController.activeTour;
+      if (activeTour == null ||
+          !activeTour.id.startsWith(SiteRateModuleTours.siteDetailsId)) {
+        if (_lastShowcasedTourStepId != null) {
+          _tourPackageAdapter.dismiss(showcaseContext);
+          _lastShowcasedTourStepId = null;
+        }
+        return;
+      }
+      final stepKey = step == null ? null : '${activeTour.id}:${step.id}';
+      if (step == null) {
+        if (_lastShowcasedTourStepId != null) {
+          _tourPackageAdapter.dismiss(showcaseContext);
+          _lastShowcasedTourStepId = null;
+        }
+        return;
+      }
+      if (_lastShowcasedTourStepId == stepKey) return;
+      _lastShowcasedTourStepId = stepKey;
+      _tourPackageAdapter.showStep(showcaseContext, step);
+    });
+  }
+
+  Widget _tourTarget(GlobalKey key, Widget child) {
+    return Showcase.withWidget(
+      key: key,
+      container: const SizedBox.shrink(),
+      overlayOpacity: 0.72,
+      targetPadding: const EdgeInsets.all(8),
+      targetBorderRadius: BorderRadius.circular(14),
+      disableDefaultTargetGestures: false,
+      child: child,
+    );
   }
 }

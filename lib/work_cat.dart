@@ -1,5 +1,3 @@
-import 'dart:ui';
-
 import 'package:firebase_crashlytics/firebase_crashlytics.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
@@ -50,7 +48,6 @@ class _WorkCategoryScreenState extends ConsumerState<WorkCategoryScreen> {
   bool _isNavigating = false;
   BuildContext? _showcaseContext;
   bool _requiresProfileCompletionFlag = false;
-  List<String> _workspaceTypes = const [];
 
   Future<void> _showPendingProfilePromptIfNeeded() async {
     final prefs = await SharedPreferences.getInstance();
@@ -82,35 +79,6 @@ class _WorkCategoryScreenState extends ConsumerState<WorkCategoryScreen> {
     setState(() {
       _requiresProfileCompletionFlag = requiresProfileCompletion;
     });
-  }
-
-  Future<void> _loadWorkspaceTypes() async {
-    try {
-      final prefs = await SharedPreferences.getInstance();
-      final savedTypes = prefs.getStringList('user_workspace_types') ?? const [];
-      final validTypeNames = WorkType.values.map((type) => type.name).toSet();
-      final filteredTypes =
-          savedTypes.where((name) => validTypeNames.contains(name)).toList();
-
-      if (!mounted) return;
-      setState(() {
-        _workspaceTypes = filteredTypes;
-      });
-    } catch (_) {
-      if (!mounted) return;
-      setState(() {
-        _workspaceTypes = const [];
-      });
-    }
-  }
-
-  Future<void> _persistWorkspaceTypes(List<String> selectedTypes) async {
-    try {
-      final prefs = await SharedPreferences.getInstance();
-      await prefs.setStringList('user_workspace_types', selectedTypes);
-    } catch (_) {
-      // Keep the UI responsive even if local persistence is unavailable.
-    }
   }
 
   Future<void> _ensureEnglishDefault() async {
@@ -156,7 +124,6 @@ class _WorkCategoryScreenState extends ConsumerState<WorkCategoryScreen> {
       await _loadProfileCompletionFlag();
 
       final alreadySeen = await LanguagePopupPrefs.hasSeen();
-      await _loadWorkspaceTypes();
 
       if (!mounted) return;
 
@@ -168,60 +135,6 @@ class _WorkCategoryScreenState extends ConsumerState<WorkCategoryScreen> {
 
       await _showPendingProfilePromptIfNeeded();
     });
-  }
-
-  Future<void> _addWorkTypeToWorkspace(WorkType type) async {
-    if (_workspaceTypes.contains(type.name)) return;
-    final updatedTypes = [..._workspaceTypes, type.name];
-    if (mounted) {
-      setState(() => _workspaceTypes = updatedTypes);
-    }
-    await _persistWorkspaceTypes(updatedTypes);
-    if (!mounted) return;
-    ScaffoldMessenger.of(context).showSnackBar(
-      SnackBar(
-        content: Text('Added ${type.displayName} to your workspace!'),
-        behavior: SnackBarBehavior.floating,
-        duration: const Duration(seconds: 2),
-      ),
-    );
-  }
-
-  Future<void> _handleWorkTypeSelected(WorkType type) async {
-    final hasWorkspace = _workspaceTypes.isNotEmpty;
-    final isInWorkspace = _workspaceTypes.contains(type.name);
-
-    if (hasWorkspace && !isInWorkspace) {
-      await _addWorkTypeToWorkspace(type);
-      return;
-    }
-
-    if (!hasWorkspace) {
-      await _addWorkTypeToWorkspace(type);
-      return;
-    }
-
-    await handlePress(
-      id: type.name,
-      title: type.displayName,
-      imagePath: type.imagePath,
-    );
-  }
-
-  Future<void> _openWorkspaceManager() async {
-    final selectedTypes = await showModalBottomSheet<List<String>>(
-      context: context,
-      isScrollControlled: true,
-      useSafeArea: true,
-      backgroundColor: Colors.transparent,
-      builder: (context) {
-        return _WorkspaceManagerSheet(initialSelectedTypes: _workspaceTypes);
-      },
-    );
-
-    if (selectedTypes == null || !mounted) return;
-    setState(() => _workspaceTypes = selectedTypes);
-    await _persistWorkspaceTypes(selectedTypes);
   }
 
   Future<void> handlePress({
@@ -478,26 +391,6 @@ class _WorkCategoryScreenState extends ConsumerState<WorkCategoryScreen> {
                         ),
                       ),
                       const SizedBox(height: 18),
-                      AnimatedSwitcher(
-                        duration: const Duration(milliseconds: 240),
-                        switchInCurve: Curves.easeOutCubic,
-                        switchOutCurve: Curves.easeInCubic,
-                        child: _workspaceTypes.isNotEmpty
-                            ? Padding(
-                                key: const ValueKey('manage-workspace-chip'),
-                                padding:
-                                    const EdgeInsets.fromLTRB(18, 0, 18, 10),
-                                child: Align(
-                                  alignment: Alignment.centerRight,
-                                  child: _ManageWorkspaceChip(
-                                    onTap: _openWorkspaceManager,
-                                  ),
-                                ),
-                              )
-                            : const SizedBox.shrink(
-                                key: ValueKey('manage-workspace-empty'),
-                              ),
-                      ),
                       Expanded(
                         child: Padding(
                           padding: const EdgeInsets.symmetric(horizontal: 18),
@@ -509,9 +402,11 @@ class _WorkCategoryScreenState extends ConsumerState<WorkCategoryScreen> {
                               lightOpacity: 0.06,
                               darkOpacity: 0.14,
                             ),
-                            workspaceTypes: _workspaceTypes,
-                            onSelect: _handleWorkTypeSelected,
-                            onAddToWorkspace: _addWorkTypeToWorkspace,
+                            onSelect: (type) => handlePress(
+                              id: type.name,
+                              title: type.displayName,
+                              imagePath: type.imagePath,
+                            ),
                           ),
                         ),
                       ),
@@ -567,10 +462,6 @@ class _WorkCategoryScreenState extends ConsumerState<WorkCategoryScreen> {
                     _showcaseStarted = false;
                     _languageFlowDone = true;
                   });
-                },
-                onWorkspaceConfirmed: (selectedTypes) {
-                  if (!mounted) return;
-                  setState(() => _workspaceTypes = selectedTypes);
                 },
               ),
 
@@ -1236,23 +1127,12 @@ class _CategorySpotlightCard extends StatelessWidget {
   const _CategorySpotlightCard({
     required this.selectedImage,
     required this.elevationColor,
-    required this.workspaceTypes,
     required this.onSelect,
-    required this.onAddToWorkspace,
   });
 
   final String? selectedImage;
   final Color elevationColor;
-  final List<String> workspaceTypes;
   final Function(WorkType) onSelect;
-  final Function(WorkType) onAddToWorkspace;
-
-  WorkType? _workTypeByName(String name) {
-    for (final type in WorkType.values) {
-      if (type.name == name) return type;
-    }
-    return null;
-  }
 
   @override
   Widget build(BuildContext context) {
@@ -1261,22 +1141,6 @@ class _CategorySpotlightCard extends StatelessWidget {
         final tileWidth = (constraints.maxWidth - 12) / 2;
         final targetHeight = (tileWidth / 0.88).clamp(190.0, 248.0);
         final aspectRatio = (tileWidth / targetHeight).clamp(0.72, 0.96);
-        final hasWorkspace = workspaceTypes.isNotEmpty;
-        final selectedTypes = hasWorkspace
-            ? workspaceTypes
-                .map(_workTypeByName)
-                .whereType<WorkType>()
-                .toList()
-            : <WorkType>[];
-        final selectedTypeNames = selectedTypes.map((type) => type.name).toSet();
-        final visibleTypes = hasWorkspace
-            ? [
-                ...selectedTypes,
-                ...WorkType.values.where(
-                  (type) => !selectedTypeNames.contains(type.name),
-                ),
-              ]
-            : WorkType.values;
 
         return GridView.builder(
           keyboardDismissBehavior: ScrollViewKeyboardDismissBehavior.onDrag,
@@ -1290,11 +1154,9 @@ class _CategorySpotlightCard extends StatelessWidget {
             mainAxisSpacing: 12,
             childAspectRatio: aspectRatio,
           ),
-          itemCount: visibleTypes.length,
+          itemCount: WorkType.values.length,
           itemBuilder: (context, index) {
-            final type = visibleTypes[index];
-            final isInWorkspace =
-                !hasWorkspace || workspaceTypes.contains(type.name);
+            final type = WorkType.values[index];
             final card = AnimatedSwitcher(
               duration: const Duration(milliseconds: 300),
               switchInCurve: Curves.easeOutCubic,
@@ -1313,31 +1175,22 @@ class _CategorySpotlightCard extends StatelessWidget {
                   ),
                 );
               },
-              child: isInWorkspace
-                  ? CompanyCard(
-                      key: ValueKey('workspace-full-${type.name}'),
-                      imagePath: type.imagePath,
-                      companyName: type.displayName,
-                      subtitle: type.subtitle,
-                      accentColor: type.accentColor,
-                      elevationColor: elevationColor,
-                      isSelected: selectedImage == type.name,
-                      onTap: () => onSelect(type),
-                    )
-                  : _CollapsedWorkspaceCard(
-                      key: ValueKey('workspace-collapsed-${type.name}'),
-                      type: type,
-                      elevationColor: elevationColor,
-                      onTap: () => onAddToWorkspace(type),
-                    ),
+              child: CompanyCard(
+                key: ValueKey(type.name),
+                imagePath: type.imagePath,
+                companyName: type.displayName,
+                subtitle: type.subtitle,
+                accentColor: type.accentColor,
+                elevationColor: elevationColor,
+                isSelected: selectedImage == type.name,
+                onTap: () => onSelect(type),
+              ),
             );
 
             if (index == 0) {
               return Showcase(
                 key: TourRegistry.workCategoryKey,
-                description: hasWorkspace
-                    ? 'These are your selected work domains'
-                    : 'Select any Work Type to continue 🚀',
+                description: 'Select any Work Type to continue',
                 child: card,
               );
             }
@@ -1345,443 +1198,6 @@ class _CategorySpotlightCard extends StatelessWidget {
           },
         );
       },
-    );
-  }
-}
-
-class _CollapsedWorkspaceCard extends StatelessWidget {
-  const _CollapsedWorkspaceCard({
-    super.key,
-    required this.type,
-    required this.elevationColor,
-    required this.onTap,
-  });
-
-  final WorkType type;
-  final Color elevationColor;
-  final VoidCallback onTap;
-
-  @override
-  Widget build(BuildContext context) {
-    final colorScheme = Theme.of(context).colorScheme;
-
-    return AnimatedScale(
-      scale: 0.98,
-      duration: const Duration(milliseconds: 240),
-      curve: Curves.easeOutCubic,
-      child: AnimatedOpacity(
-        opacity: 1,
-        duration: const Duration(milliseconds: 240),
-        child: Material(
-          color: Colors.transparent,
-          child: InkWell(
-            borderRadius: BorderRadius.circular(22),
-            onTap: onTap,
-            child: Ink(
-              decoration: BoxDecoration(
-                borderRadius: BorderRadius.circular(22),
-                color: colorScheme.surfaceContainerLow,
-                border: Border.all(
-                  color: colorScheme.outlineVariant.withOpacity(0.75),
-                  width: 1.1,
-                ),
-                boxShadow: [
-                  BoxShadow(
-                    color: elevationColor.withOpacity(0.08),
-                    blurRadius: 5,
-                    spreadRadius: -2,
-                    offset: const Offset(0, 3),
-                  ),
-                ],
-              ),
-              child: ClipRRect(
-                borderRadius: BorderRadius.circular(22),
-                child: Stack(
-                  fit: StackFit.expand,
-                  children: [
-                    Opacity(
-                      opacity: 0.38,
-                      child: ImageFiltered(
-                        imageFilter: ImageFilter.blur(sigmaX: 5, sigmaY: 5),
-                        child: Image.asset(
-                          type.imagePath,
-                          fit: BoxFit.cover,
-                          filterQuality: FilterQuality.medium,
-                          errorBuilder: (_, __, ___) => Container(
-                            color: type.accentColor.withOpacity(0.12),
-                          ),
-                        ),
-                      ),
-                    ),
-                    DecoratedBox(
-                      decoration: BoxDecoration(
-                        color: colorScheme.surface.withOpacity(0.62),
-                      ),
-                    ),
-                    Padding(
-                      padding: const EdgeInsets.all(12),
-                      child: Column(
-                        mainAxisAlignment: MainAxisAlignment.center,
-                        children: [
-                          Container(
-                            width: 42,
-                            height: 42,
-                            decoration: BoxDecoration(
-                              shape: BoxShape.circle,
-                              color: type.accentColor.withOpacity(0.14),
-                              border: Border.all(
-                                color: type.accentColor.withOpacity(0.3),
-                              ),
-                            ),
-                            child: Icon(
-                              Icons.add_rounded,
-                              color: type.accentColor,
-                              size: 25,
-                            ),
-                          ),
-                          const SizedBox(height: 10),
-                          Text(
-                            type.displayName,
-                            maxLines: 1,
-                            overflow: TextOverflow.ellipsis,
-                            textAlign: TextAlign.center,
-                            style: TextStyle(
-                              color: colorScheme.onSurface,
-                              fontSize: 13,
-                              fontWeight: FontWeight.w800,
-                              height: 1.1,
-                            ),
-                          ),
-                          const SizedBox(height: 5),
-                          Text(
-                            'Tap to add',
-                            maxLines: 2,
-                            overflow: TextOverflow.ellipsis,
-                            textAlign: TextAlign.center,
-                            style: TextStyle(
-                              color: colorScheme.onSurfaceVariant,
-                              fontSize: 11,
-                              fontWeight: FontWeight.w700,
-                              height: 1.2,
-                            ),
-                          ),
-                        ],
-                      ),
-                    ),
-                  ],
-                ),
-              ),
-            ),
-          ),
-        ),
-      ),
-    );
-  }
-}
-
-class _ManageWorkspaceChip extends StatelessWidget {
-  const _ManageWorkspaceChip({required this.onTap});
-
-  final VoidCallback onTap;
-
-  @override
-  Widget build(BuildContext context) {
-    final colorScheme = Theme.of(context).colorScheme;
-
-    return Material(
-      color: Colors.transparent,
-      child: InkWell(
-        borderRadius: BorderRadius.circular(999),
-        onTap: onTap,
-        child: Ink(
-          padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 9),
-          decoration: BoxDecoration(
-            color: colorScheme.primary.withOpacity(0.1),
-            borderRadius: BorderRadius.circular(999),
-            border: Border.all(color: colorScheme.primary.withOpacity(0.24)),
-          ),
-          child: Row(
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              Icon(
-                Icons.tune_rounded,
-                size: 16,
-                color: colorScheme.primary,
-              ),
-              const SizedBox(width: 7),
-              Text(
-                'Manage workspace',
-                style: TextStyle(
-                  color: colorScheme.primary,
-                  fontSize: 12,
-                  fontWeight: FontWeight.w800,
-                ),
-              ),
-            ],
-          ),
-        ),
-      ),
-    );
-  }
-}
-
-class _WorkspaceManagerSheet extends StatefulWidget {
-  const _WorkspaceManagerSheet({required this.initialSelectedTypes});
-
-  final List<String> initialSelectedTypes;
-
-  @override
-  State<_WorkspaceManagerSheet> createState() => _WorkspaceManagerSheetState();
-}
-
-class _WorkspaceManagerSheetState extends State<_WorkspaceManagerSheet> {
-  late final Set<String> _selectedTypes;
-
-  @override
-  void initState() {
-    super.initState();
-    _selectedTypes = widget.initialSelectedTypes.toSet();
-  }
-
-  void _toggle(WorkType type) {
-    setState(() {
-      if (!_selectedTypes.add(type.name)) {
-        _selectedTypes.remove(type.name);
-      }
-    });
-  }
-
-  @override
-  Widget build(BuildContext context) {
-    final colorScheme = Theme.of(context).colorScheme;
-    final maxHeight = MediaQuery.of(context).size.height * 0.86;
-
-    return Align(
-      alignment: Alignment.bottomCenter,
-      child: ConstrainedBox(
-        constraints: BoxConstraints(maxHeight: maxHeight),
-        child: Container(
-          width: double.infinity,
-          decoration: BoxDecoration(
-            color: colorScheme.surface,
-            borderRadius: const BorderRadius.vertical(top: Radius.circular(24)),
-            boxShadow: [
-              BoxShadow(
-                color: colorScheme.shadow.withOpacity(0.18),
-                blurRadius: 24,
-                offset: const Offset(0, -8),
-              ),
-            ],
-          ),
-          child: SafeArea(
-            top: false,
-            child: Padding(
-              padding: const EdgeInsets.fromLTRB(18, 14, 18, 18),
-              child: Column(
-                mainAxisSize: MainAxisSize.min,
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Center(
-                    child: Container(
-                      width: 42,
-                      height: 4,
-                      decoration: BoxDecoration(
-                        color: colorScheme.outlineVariant,
-                        borderRadius: BorderRadius.circular(99),
-                      ),
-                    ),
-                  ),
-                  const SizedBox(height: 16),
-                  Row(
-                    children: [
-                      Expanded(
-                        child: Column(
-                          crossAxisAlignment: CrossAxisAlignment.start,
-                          children: [
-                            Text(
-                              'Manage workspace',
-                              style: TextStyle(
-                                color: colorScheme.onSurface,
-                                fontSize: 20,
-                                fontWeight: FontWeight.w900,
-                              ),
-                            ),
-                            const SizedBox(height: 4),
-                            Text(
-                              'Choose the work domains you want to keep front and center.',
-                              style: TextStyle(
-                                color: colorScheme.onSurfaceVariant,
-                                fontSize: 12.5,
-                                fontWeight: FontWeight.w600,
-                                height: 1.3,
-                              ),
-                            ),
-                          ],
-                        ),
-                      ),
-                      IconButton.filledTonal(
-                        onPressed: () => Navigator.of(context).pop(),
-                        icon: const Icon(Icons.close_rounded, size: 18),
-                      ),
-                    ],
-                  ),
-                  const SizedBox(height: 16),
-                  Flexible(
-                    child: GridView.builder(
-                      shrinkWrap: true,
-                      physics: const BouncingScrollPhysics(),
-                      itemCount: WorkType.values.length,
-                      gridDelegate:
-                          const SliverGridDelegateWithFixedCrossAxisCount(
-                        crossAxisCount: 2,
-                        crossAxisSpacing: 10,
-                        mainAxisSpacing: 10,
-                        childAspectRatio: 1.18,
-                      ),
-                      itemBuilder: (context, index) {
-                        final type = WorkType.values[index];
-                        return _WorkspaceManagerTile(
-                          type: type,
-                          selected: _selectedTypes.contains(type.name),
-                          onTap: () => _toggle(type),
-                        );
-                      },
-                    ),
-                  ),
-                  const SizedBox(height: 16),
-                  SizedBox(
-                    width: double.infinity,
-                    height: 50,
-                    child: ElevatedButton.icon(
-                      onPressed: () =>
-                          Navigator.of(context).pop(_selectedTypes.toList()),
-                      icon: const Icon(Icons.check_rounded, size: 19),
-                      label: const Text('Save workspace'),
-                      style: ElevatedButton.styleFrom(
-                        elevation: 0,
-                        backgroundColor: colorScheme.primary,
-                        foregroundColor: colorScheme.onPrimary,
-                        textStyle: const TextStyle(
-                          fontWeight: FontWeight.w800,
-                        ),
-                        shape: RoundedRectangleBorder(
-                          borderRadius: BorderRadius.circular(14),
-                        ),
-                      ),
-                    ),
-                  ),
-                  const SizedBox(height: 8),
-                  Center(
-                    child: TextButton(
-                      onPressed: () => Navigator.of(context).pop(<String>[]),
-                      child: const Text('Show everything'),
-                    ),
-                  ),
-                ],
-              ),
-            ),
-          ),
-        ),
-      ),
-    );
-  }
-}
-
-class _WorkspaceManagerTile extends StatelessWidget {
-  const _WorkspaceManagerTile({
-    required this.type,
-    required this.selected,
-    required this.onTap,
-  });
-
-  final WorkType type;
-  final bool selected;
-  final VoidCallback onTap;
-
-  @override
-  Widget build(BuildContext context) {
-    final colorScheme = Theme.of(context).colorScheme;
-
-    return Material(
-      color: Colors.transparent,
-      child: InkWell(
-        borderRadius: BorderRadius.circular(16),
-        onTap: onTap,
-        child: AnimatedContainer(
-          duration: const Duration(milliseconds: 220),
-          curve: Curves.easeOutCubic,
-          padding: const EdgeInsets.all(9),
-          decoration: BoxDecoration(
-            color: selected
-                ? type.accentColor.withOpacity(0.1)
-                : colorScheme.surfaceContainerLow,
-            borderRadius: BorderRadius.circular(16),
-            border: Border.all(
-              color: selected ? type.accentColor : colorScheme.outlineVariant,
-              width: selected ? 1.8 : 1,
-            ),
-          ),
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              Expanded(
-                child: Stack(
-                  fit: StackFit.expand,
-                  children: [
-                    ClipRRect(
-                      borderRadius: BorderRadius.circular(12),
-                      child: Image.asset(
-                        type.imagePath,
-                        fit: BoxFit.cover,
-                        filterQuality: FilterQuality.medium,
-                        errorBuilder: (_, __, ___) => Container(
-                          color: type.accentColor.withOpacity(0.14),
-                          child: Icon(
-                            Icons.business_center_rounded,
-                            color: type.accentColor,
-                          ),
-                        ),
-                      ),
-                    ),
-                    Align(
-                      alignment: Alignment.topRight,
-                      child: AnimatedOpacity(
-                        duration: const Duration(milliseconds: 180),
-                        opacity: selected ? 1 : 0,
-                        child: Container(
-                          margin: const EdgeInsets.all(6),
-                          width: 26,
-                          height: 26,
-                          decoration: BoxDecoration(
-                            color: type.accentColor,
-                            shape: BoxShape.circle,
-                          ),
-                          child: const Icon(
-                            Icons.check_rounded,
-                            color: Colors.white,
-                            size: 17,
-                          ),
-                        ),
-                      ),
-                    ),
-                  ],
-                ),
-              ),
-              const SizedBox(height: 8),
-              Text(
-                type.displayName,
-                maxLines: 1,
-                overflow: TextOverflow.ellipsis,
-                style: TextStyle(
-                  color: selected ? type.accentColor : colorScheme.onSurface,
-                  fontSize: 12,
-                  fontWeight: FontWeight.w800,
-                ),
-              ),
-            ],
-          ),
-        ),
-      ),
     );
   }
 }

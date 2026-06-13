@@ -11,7 +11,7 @@ import '../../offline/data/local/local_material_dao.dart';
 import '../../utils/image_track/material_image_upload_service.dart';
 import '../model/piping_insu.dart';
 import '../model/material_setup.dart';
-import '../model/field_config.dart';
+import '../model/field_config.dart' hide FieldEntry;
 import '../model/card_form_State.dart';
 import '../service/material_service.dart';
 import 'config/piping_config.dart';

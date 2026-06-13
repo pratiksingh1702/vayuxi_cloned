@@ -5,7 +5,11 @@ import '../core/tour_analytics.dart';
 import '../core/tour_engine.dart';
 import '../core/tour_models.dart';
 import '../core/tour_storage.dart';
+import '../definitions/attendance_module_tours.dart';
+import '../definitions/manpower_team_module_tours.dart';
 import '../definitions/module_screen_tours.dart';
+import '../definitions/setup_module_tours.dart';
+import '../definitions/site_rate_module_tours.dart';
 
 final appTourStorageProvider = Provider<AppTourStorage>((ref) {
   return AppTourStorage();
@@ -16,7 +20,13 @@ final appTourAnalyticsProvider = Provider<AppTourAnalytics>((ref) {
 });
 
 final appTourDefinitionsProvider = Provider<List<AppTourDefinition>>((ref) {
-  return ModuleScreenTours.all;
+  return [
+    ...ModuleScreenTours.all,
+    ...AttendanceModuleTours.all,
+    ...SiteRateModuleTours.all,
+    ...ManpowerTeamModuleTours.all,
+    ...SetupModuleTours.all,
+  ];
 });
 
 final appTourRolePolicyProvider = Provider<Set<String>>((ref) {
@@ -25,9 +35,14 @@ final appTourRolePolicyProvider = Provider<Set<String>>((ref) {
     return const {
       ModuleScreenTours.welcomeId,
       ModuleScreenTours.dailyId,
+      AttendanceModuleTours.attendanceId,
+      SiteRateModuleTours.siteDetailsId,
+      SiteRateModuleTours.rateId,
+      ManpowerTeamModuleTours.manpowerId,
+      ManpowerTeamModuleTours.teamId,
     };
   }
-  return ModuleScreenTours.all.map((tour) => tour.id).toSet();
+  return ref.watch(appTourDefinitionsProvider).map((tour) => tour.id).toSet();
 });
 
 final appTourControllerProvider =

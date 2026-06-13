@@ -1,3 +1,5 @@
+import 'dart:ui' as ui;
+
 import 'package:dio/dio.dart';
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
@@ -481,8 +483,8 @@ class _PebDprEntryScreenState extends State<PebDprEntryScreen> {
           _dprHeaderActionButton(
             label: 'Select All',
             icon: Icons.done_all,
-            textColor: cs.primary,
-            bgColor: cs.primaryContainer,
+            textColor: Colors.white,
+            bgColor: Colors.green.shade700,
             onTap: () => _selectAllMarks(work),
           ),
           const SizedBox(width: 8),
@@ -505,34 +507,41 @@ class _PebDprEntryScreenState extends State<PebDprEntryScreen> {
     required IconData icon,
     required Color textColor,
     required Color bgColor,
+    bool flatStyle = false,
     VoidCallback? onTap,
   }) {
     final layout = _PebDprResponsive.of(context);
+    final iconSize = flatStyle ? (layout.compact ? 17.0 : 18.0) : 12.0;
+    final fontSize = flatStyle ? (layout.compact ? 12.0 : 12.5) : 10.0;
     return Material(
       color: Colors.transparent,
       child: InkWell(
         onTap: onTap,
-        borderRadius: BorderRadius.circular(999),
+        borderRadius: BorderRadius.circular(flatStyle ? 6 : 999),
         child: Container(
           padding: EdgeInsets.symmetric(
-            horizontal: layout.compact ? 7 : 8,
-            vertical: 5,
+            horizontal: flatStyle ? (layout.compact ? 4 : 5) : 8,
+            vertical: flatStyle ? 4 : 5,
           ),
           decoration: BoxDecoration(
-            color: onTap == null ? bgColor.withValues(alpha: 0.45) : bgColor,
-            borderRadius: BorderRadius.circular(999),
+            color: flatStyle
+                ? Colors.transparent
+                : onTap == null
+                    ? bgColor.withValues(alpha: 0.45)
+                    : bgColor,
+            borderRadius: BorderRadius.circular(flatStyle ? 6 : 999),
           ),
           child: Row(
             mainAxisSize: MainAxisSize.min,
             children: [
-              Icon(icon, size: 12, color: textColor),
-              SizedBox(width: layout.compact ? 3 : 4),
+              Icon(icon, size: iconSize, color: textColor),
+              SizedBox(width: flatStyle ? 5 : (layout.compact ? 3 : 4)),
               Text(
-                label,
+                flatStyle ? 'Select all' : label,
                 style: TextStyle(
                   color: textColor,
                   fontWeight: FontWeight.w700,
-                  fontSize: layout.compact ? 9.5 : 10,
+                  fontSize: fontSize,
                 ),
               ),
             ],
@@ -546,6 +555,7 @@ class _PebDprEntryScreenState extends State<PebDprEntryScreen> {
     required IconData icon,
     required String tooltip,
     required Color iconColor,
+    String? label,
     VoidCallback? onTap,
   }) {
     final cs = Theme.of(context).colorScheme;
@@ -558,14 +568,34 @@ class _PebDprEntryScreenState extends State<PebDprEntryScreen> {
           onTap: onTap,
           borderRadius: BorderRadius.circular(12),
           child: Container(
-            width: layout.compact ? 36 : 38,
+            width: label == null ? (layout.compact ? 36 : 38) : null,
             height: layout.compact ? 36 : 38,
+            padding: label == null
+                ? EdgeInsets.zero
+                : EdgeInsets.symmetric(horizontal: layout.compact ? 8 : 10),
             decoration: BoxDecoration(
               color: cs.surface,
               borderRadius: BorderRadius.circular(12),
               border: Border.all(color: iconColor.withValues(alpha: 0.25)),
             ),
-            child: Icon(icon, size: 19, color: iconColor),
+            child: Row(
+              mainAxisSize: MainAxisSize.min,
+              mainAxisAlignment: MainAxisAlignment.center,
+              children: [
+                Icon(icon, size: 19, color: iconColor),
+                if (label != null) ...[
+                  const SizedBox(width: 6),
+                  Text(
+                    label,
+                    style: TextStyle(
+                      color: iconColor,
+                      fontSize: layout.compact ? 11.5 : 12,
+                      fontWeight: FontWeight.w700,
+                    ),
+                  ),
+                ],
+              ],
+            ),
           ),
         ),
       ),
@@ -2080,7 +2110,8 @@ class _PebDprEntryScreenState extends State<PebDprEntryScreen> {
                         child: _containedWorkImage(
                           work.setupItem,
                           height: layout.workImageHeight,
-                          padding: layout.imageInset + 2,
+                          padding: 0,
+                          fit: BoxFit.contain,
                         ),
                       ),
                     ),
@@ -2109,7 +2140,10 @@ class _PebDprEntryScreenState extends State<PebDprEntryScreen> {
                               ),
                             ),
                             child: Column(
+                              crossAxisAlignment: CrossAxisAlignment.stretch,
                               children: [
+                                _minimalWorkUomBlock(work.setupItem.uom, cs),
+                                SizedBox(height: layout.compact ? 5 : 6),
                                 Row(
                                   children: [
                                     Expanded(
@@ -2226,6 +2260,51 @@ class _PebDprEntryScreenState extends State<PebDprEntryScreen> {
     );
   }
 
+  Widget _minimalWorkUomBlock(String uom, ColorScheme cs) {
+    final layout = _PebDprResponsive.of(context);
+    final displayUom = uom.trim().isEmpty ? '-' : uom.trim();
+    return Container(
+      padding: EdgeInsets.symmetric(
+        horizontal: layout.compact ? 6 : 7,
+        vertical: layout.compact ? 4 : 5,
+      ),
+      decoration: BoxDecoration(
+        color: cs.primary.withOpacity(0.08),
+        borderRadius: BorderRadius.circular(5),
+      ),
+      child: Row(
+        mainAxisAlignment: MainAxisAlignment.center,
+        children: [
+          Text(
+            'UOM',
+            maxLines: 1,
+            style: TextStyle(
+              fontSize: layout.miniLabelSize,
+              fontWeight: FontWeight.w700,
+              color: cs.onSurfaceVariant,
+            ),
+          ),
+          const SizedBox(width: 5),
+          Flexible(
+            child: FittedBox(
+              fit: BoxFit.scaleDown,
+              child: Text(
+                // displayUom,
+                "NOS",
+                maxLines: 1,
+                style: TextStyle(
+                  fontSize: layout.compact ? 12 : 13,
+                  fontWeight: FontWeight.w800,
+                  color: cs.primary,
+                ),
+              ),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
   Widget _workStatDivider(ColorScheme cs) {
     return Container(
       width: 1,
@@ -2286,26 +2365,35 @@ class _PebDprEntryScreenState extends State<PebDprEntryScreen> {
     PebSetupItem item, {
     required double height,
     required double padding,
+    BoxFit fit = BoxFit.contain,
   }) {
     final cs = Theme.of(context).colorScheme;
+    final borderRadius = BorderRadius.circular(8);
     return Container(
       height: height,
       width: double.infinity,
-      padding: EdgeInsets.all(padding),
       decoration: BoxDecoration(
         color: cs.surfaceContainerHighest.withValues(alpha: 0.42),
-        borderRadius: BorderRadius.circular(8),
+        borderRadius: borderRadius,
         border: Border.all(color: cs.outlineVariant.withValues(alpha: 0.4)),
       ),
-      child: Image(
-        image: pebWorkImageProvider(item, widget.executionType),
-        fit: BoxFit.contain,
-        alignment: Alignment.center,
-        filterQuality: FilterQuality.medium,
-        errorBuilder: (_, __, ___) => pebWorkImageFallback(
-          item,
-          widget.executionType,
-          fit: BoxFit.contain,
+      child: ClipRRect(
+        borderRadius: borderRadius,
+        child: Padding(
+          padding: EdgeInsets.all(padding),
+          child: SizedBox.expand(
+            child: Image(
+              image: pebWorkImageProvider(item, widget.executionType),
+              fit: fit,
+              alignment: Alignment.center,
+              filterQuality: FilterQuality.medium,
+              errorBuilder: (_, __, ___) => pebWorkImageFallback(
+                item,
+                widget.executionType,
+                fit: fit,
+              ),
+            ),
+          ),
         ),
       ),
     );
@@ -2635,8 +2723,8 @@ class _PebDprEntryScreenState extends State<PebDprEntryScreen> {
                               _dprHeaderActionButton(
                                 label: 'Select All',
                                 icon: Icons.done_all,
-                                textColor: cs.primary,
-                                bgColor: cs.primaryContainer,
+                                textColor: Colors.white,
+                                bgColor: Colors.green.shade700,
                                 onTap: () => _selectAllMarks(work),
                               ),
                               SizedBox(width: layout.compact ? 4 : 6),
@@ -2659,6 +2747,7 @@ class _PebDprEntryScreenState extends State<PebDprEntryScreen> {
                           icon: Icons.checklist_rounded,
                           tooltip: 'Select Items',
                           iconColor: cs.primary,
+                          label: 'Select all',
                           onTap: () =>
                               setState(() => _isDprSelectionMode = true),
                         ),
@@ -3117,6 +3206,21 @@ class _PebDprEntryScreenState extends State<PebDprEntryScreen> {
     );
   }
 
+  Widget _completedVisualTreatment({
+    required bool completed,
+    required double opacity,
+    required Widget child,
+  }) {
+    if (!completed) return child;
+    return Opacity(
+      opacity: opacity,
+      child: ImageFiltered(
+        imageFilter: ui.ImageFilter.blur(sigmaX: 0.35, sigmaY: 0.35),
+        child: child,
+      ),
+    );
+  }
+
   Widget _buildMarkEntryCardV2(
     _VisibleWork work,
     String markNumber, {
@@ -3134,8 +3238,9 @@ class _PebDprEntryScreenState extends State<PebDprEntryScreen> {
     final inProgress = _inProgressForWork(work).contains(markNumber);
     final selected = _selectedDetailMarks.contains(markNumber);
     final checkboxChecked = selected || completed;
-    final completedContentOpacity = completed ? 0.58 : 1.0;
-    final completedSecondaryOpacity = completed ? 0.68 : 1.0;
+    final completedContentOpacity = completed ? 0.42 : 1.0;
+    final completedSecondaryOpacity = completed ? 0.5 : 1.0;
+    final completedWeightOpacity = completed ? 0.64 : 1.0;
     final pendingPrerequisite = _nextPendingPrerequisite(work, markNumber);
     final selectable = _markActionMode != _DprMarkActionMode.none &&
         (enabled || completed) &&
@@ -3219,49 +3324,53 @@ class _PebDprEntryScreenState extends State<PebDprEntryScreen> {
                             : handleUnavailableSelection,
                         child: Padding(
                           padding: EdgeInsets.only(top: layout.compact ? 1 : 0),
-                          child: SizedBox(
-                            width: layout.compact ? 34 : 38,
-                            height: layout.compact ? 32 : 34,
-                            child: Center(
-                              child: AnimatedContainer(
-                                duration: const Duration(milliseconds: 140),
-                                curve: Curves.easeOut,
-                                width: layout.compact ? 23 : 25,
-                                height: layout.compact ? 23 : 25,
-                                decoration: BoxDecoration(
-                                  color: checkboxChecked
-                                      ? selectedIndicatorColor
-                                      : selectable
-                                          ? cs.surface
-                                          : cs.surfaceContainerHighest,
-                                  borderRadius: BorderRadius.circular(3),
-                                  border: Border.all(
+                          child: _completedVisualTreatment(
+                            completed: completed,
+                            opacity: 0.46,
+                            child: SizedBox(
+                              width: layout.compact ? 34 : 38,
+                              height: layout.compact ? 32 : 34,
+                              child: Center(
+                                child: AnimatedContainer(
+                                  duration: const Duration(milliseconds: 140),
+                                  curve: Curves.easeOut,
+                                  width: layout.compact ? 23 : 25,
+                                  height: layout.compact ? 23 : 25,
+                                  decoration: BoxDecoration(
                                     color: checkboxChecked
                                         ? selectedIndicatorColor
                                         : selectable
-                                            ? cs.primary
-                                            : cs.outlineVariant,
-                                    width: checkboxChecked ? 2.2 : 1.8,
+                                            ? cs.surface
+                                            : cs.surfaceContainerHighest,
+                                    borderRadius: BorderRadius.circular(3),
+                                    border: Border.all(
+                                      color: checkboxChecked
+                                          ? selectedIndicatorColor
+                                          : selectable
+                                              ? cs.primary
+                                              : cs.outlineVariant,
+                                      width: checkboxChecked ? 2.2 : 1.8,
+                                    ),
+                                    boxShadow: selected
+                                        ? [
+                                            BoxShadow(
+                                              color: selectedIndicatorColor
+                                                  .withValues(alpha: 0.22),
+                                              blurRadius: 5,
+                                              offset: const Offset(0, 2),
+                                            ),
+                                          ]
+                                        : null,
                                   ),
-                                  boxShadow: selected
-                                      ? [
-                                          BoxShadow(
-                                            color: selectedIndicatorColor
-                                                .withValues(alpha: 0.22),
-                                            blurRadius: 5,
-                                            offset: const Offset(0, 2),
-                                          ),
-                                        ]
+                                  child: checkboxChecked
+                                      ? const Icon(
+                                          Icons.check_rounded,
+                                          color: Colors.white,
+                                          size: 18,
+                                          weight: 700,
+                                        )
                                       : null,
                                 ),
-                                child: checkboxChecked
-                                    ? const Icon(
-                                        Icons.check_rounded,
-                                        color: Colors.white,
-                                        size: 18,
-                                        weight: 700,
-                                      )
-                                    : null,
                               ),
                             ),
                           ),
@@ -3269,7 +3378,8 @@ class _PebDprEntryScreenState extends State<PebDprEntryScreen> {
                       ),
                       SizedBox(width: layout.smallGap),
                       Expanded(
-                        child: Opacity(
+                        child: _completedVisualTreatment(
+                          completed: completed,
                           opacity: completedContentOpacity,
                           child: Text(
                             title,
@@ -3371,7 +3481,8 @@ class _PebDprEntryScreenState extends State<PebDprEntryScreen> {
                               }
                             : null,
                         borderRadius: BorderRadius.circular(4),
-                        child: Opacity(
+                        child: _completedVisualTreatment(
+                          completed: completed,
                           opacity: completedContentOpacity,
                           child: Container(
                             constraints: BoxConstraints(
@@ -3422,7 +3533,8 @@ class _PebDprEntryScreenState extends State<PebDprEntryScreen> {
                   Expanded(
                     child: Container(
                       padding: EdgeInsets.all(layout.cardPadding - 1),
-                      child: Opacity(
+                      child: _completedVisualTreatment(
+                        completed: completed,
                         opacity: completedContentOpacity,
                         child: Column(
                           crossAxisAlignment: CrossAxisAlignment.start,
@@ -3433,7 +3545,8 @@ class _PebDprEntryScreenState extends State<PebDprEntryScreen> {
                               child: _containedWorkImage(
                                 work.setupItem,
                                 height: layout.v2ImageHeight,
-                                padding: layout.imageInset + 2,
+                                padding: 0,
+                                fit: BoxFit.contain,
                               ),
                             ),
                           ],
@@ -3450,7 +3563,8 @@ class _PebDprEntryScreenState extends State<PebDprEntryScreen> {
                         crossAxisAlignment: CrossAxisAlignment.stretch,
                         mainAxisSize: MainAxisSize.max,
                         children: [
-                          Opacity(
+                          _completedVisualTreatment(
+                            completed: completed,
                             opacity: completedSecondaryOpacity,
                             child: Row(
                               children: [
@@ -3474,43 +3588,57 @@ class _PebDprEntryScreenState extends State<PebDprEntryScreen> {
                             ),
                           ),
                           const Spacer(),
-                          // Weight field
-                          Text(
-                            'Weight (Kg)',
-                            style: TextStyle(
-                              fontSize: layout.miniLabelSize,
-                              fontWeight: FontWeight.w600,
-                              color: cs.onSurface,
+                          _completedVisualTreatment(
+                            completed: completed,
+                            opacity: completedWeightOpacity,
+                            child: Column(
+                              crossAxisAlignment: CrossAxisAlignment.stretch,
+                              mainAxisSize: MainAxisSize.min,
+                              children: [
+                                Text(
+                                  'Weight (Kg)',
+                                  style: TextStyle(
+                                    fontSize: layout.miniLabelSize,
+                                    fontWeight: FontWeight.w600,
+                                    color: cs.onSurface,
+                                  ),
+                                ),
+                                const SizedBox(height: 4),
+                                TextFormField(
+                                  initialValue: _markQuantityInputs[key] ??
+                                      _prettyNumber(weightKg),
+                                  enabled: editable,
+                                  keyboardType:
+                                      const TextInputType.numberWithOptions(
+                                    decimal: true,
+                                  ),
+                                  textAlign: TextAlign.center,
+                                  style: TextStyle(
+                                    fontSize: layout.compact ? 15 : 16,
+                                    fontWeight: FontWeight.w800,
+                                  ),
+                                  decoration: InputDecoration(
+                                    filled: true,
+                                    fillColor: cs.surface,
+                                    isDense: true,
+                                    contentPadding: EdgeInsets.symmetric(
+                                      horizontal: layout.compact ? 8 : 10,
+                                      vertical: layout.compact ? 9 : 10,
+                                    ),
+                                    border: OutlineInputBorder(
+                                      borderRadius: BorderRadius.circular(8),
+                                      borderSide: BorderSide(
+                                        color: cs.outlineVariant
+                                            .withOpacity(0.5),
+                                      ),
+                                    ),
+                                  ),
+                                  onChanged: (value) => setState(
+                                    () => _markQuantityInputs[key] = value,
+                                  ),
+                                ),
+                              ],
                             ),
-                          ),
-                          const SizedBox(height: 4),
-                          TextFormField(
-                            initialValue: _markQuantityInputs[key] ??
-                                _prettyNumber(weightKg),
-                            enabled: editable,
-                            keyboardType: const TextInputType.numberWithOptions(
-                                decimal: true),
-                            textAlign: TextAlign.center,
-                            style: TextStyle(
-                              fontSize: layout.compact ? 15 : 16,
-                              fontWeight: FontWeight.w800,
-                            ),
-                            decoration: InputDecoration(
-                              filled: true,
-                              fillColor: cs.surface,
-                              isDense: true,
-                              contentPadding: EdgeInsets.symmetric(
-                                horizontal: layout.compact ? 8 : 10,
-                                vertical: layout.compact ? 9 : 10,
-                              ),
-                              border: OutlineInputBorder(
-                                borderRadius: BorderRadius.circular(8),
-                                borderSide: BorderSide(
-                                    color: cs.outlineVariant.withOpacity(0.5)),
-                              ),
-                            ),
-                            onChanged: (value) => setState(
-                                () => _markQuantityInputs[key] = value),
                           ),
                           const Spacer(),
                           SizedBox(height: layout.compact ? 24 : 32),

@@ -10,6 +10,7 @@ import 'package:file_picker/file_picker.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
+import 'package:showcaseview/showcaseview.dart';
 import 'package:untitled2/features/modules/all_Modules/Manpower%20Details/model/field_mapping_model.dart';
 import 'package:untitled2/features/modules/all_Modules/Manpower%20Details/service/field_mapping_provider.dart';
 
@@ -19,6 +20,10 @@ import '../../site_Details/providers/site_current_provider.dart';
 
 import '../../../../../../typeProvider/type_provider.dart';
 import '../../../../../../core/router/routes.dart';
+import '../../../../tour/core/tour_models.dart';
+import '../../../../tour/core/tour_package_adapter.dart';
+import '../../../../tour/definitions/manpower_team_module_tours.dart';
+import '../../../../tour/providers/tour_providers.dart';
 
 // ─────────────────────────────────────────────────────────────
 // ENTRY POINT
@@ -61,6 +66,16 @@ class _ManFieldMappingView extends ConsumerStatefulWidget {
 class _ManFieldMappingViewState extends ConsumerState<_ManFieldMappingView>
     with SingleTickerProviderStateMixin {
   late final AnimationController _stepAnim;
+  static const TourPackageAdapter _tourPackageAdapter = TourPackageAdapter();
+  String? _lastShowcasedTourStepId;
+  final GlobalKey _introTourKey =
+      GlobalKey(debugLabel: 'manpower_import_intro');
+  final GlobalKey _progressTourKey =
+      GlobalKey(debugLabel: 'manpower_import_progress');
+  final GlobalKey _contentTourKey =
+      GlobalKey(debugLabel: 'manpower_import_content');
+  final GlobalKey _bottomTourKey =
+      GlobalKey(debugLabel: 'manpower_import_bottom');
 
   @override
   void initState() {
@@ -540,59 +555,290 @@ class _ManFieldMappingViewState extends ConsumerState<_ManFieldMappingView>
   // BUILD
   // ─────────────────────────────────────────────────────────
 
+  String _importTourStage(FieldMappingState state) {
+    switch (state.currentStep) {
+      case FieldMappingStep.upload:
+        return state.preview == null ? 'upload' : 'preview';
+      case FieldMappingStep.mapping:
+        return 'mapping';
+      case FieldMappingStep.review:
+        return 'review';
+    }
+  }
+
+  AppTourDefinition _buildImportTourDefinition(FieldMappingState state) {
+    final stage = _importTourStage(state);
+    final baseId = '${ManpowerTeamModuleTours.manpowerId}_import_$stage';
+
+    List<AppTourStep> steps;
+    switch (stage) {
+      case 'preview':
+        steps = [
+          const AppTourStep(
+            id: 'manpower_import_preview_intro',
+            title: 'File Uploaded',
+            body:
+                'Your file is selected. Now check the preview before moving ahead.',
+            progressLabel: 'Preview',
+            useSpotlight: false,
+          ),
+          AppTourStep(
+            id: 'manpower_import_preview_content',
+            title: 'File Preview',
+            body:
+                'This preview shows detected columns, sample rows, and auto-mapped fields from your sheet.',
+            targetKey: _contentTourKey,
+            progressLabel: 'File preview',
+            autoScrollToTarget: true,
+          ),
+          AppTourStep(
+            id: 'manpower_import_preview_next',
+            title: 'Go to Map Columns',
+            body:
+                'Tap Next to match your sheet columns with manpower fields.',
+            targetKey: _bottomTourKey,
+            progressLabel: 'Next',
+            tooltipBottomOffset: 96,
+          ),
+        ];
+        break;
+      case 'mapping':
+        steps = [
+          const AppTourStep(
+            id: 'manpower_import_mapping_intro',
+            title: 'Map Columns',
+            body:
+                'Now match each column from your file to the correct manpower field.',
+            progressLabel: 'Mapping',
+            useSpotlight: false,
+          ),
+          AppTourStep(
+            id: 'manpower_import_mapping_progress',
+            title: 'Map Columns Step',
+            body: 'The progress bar shows that you are now in Map Columns.',
+            targetKey: _progressTourKey,
+            progressLabel: 'Progress',
+          ),
+          AppTourStep(
+            id: 'manpower_import_mapping_content',
+            title: 'Column Mapping',
+            body:
+                'Use each dropdown to choose which manpower field a sheet column should fill. Full Name must be mapped.',
+            targetKey: _contentTourKey,
+            progressLabel: 'Fields',
+            autoScrollToTarget: true,
+          ),
+          AppTourStep(
+            id: 'manpower_import_mapping_next',
+            title: 'Go to Validate',
+            body:
+                'After required fields are mapped, tap Next to review and validate before import.',
+            targetKey: _bottomTourKey,
+            progressLabel: 'Validate',
+            tooltipBottomOffset: 96,
+          ),
+        ];
+        break;
+      case 'review':
+        steps = [
+          const AppTourStep(
+            id: 'manpower_import_review_intro',
+            title: 'Validate Import',
+            body:
+                'This is the final check before importing manpower records.',
+            progressLabel: 'Validate',
+            useSpotlight: false,
+          ),
+          AppTourStep(
+            id: 'manpower_import_review_content',
+            title: 'Review Summary',
+            body:
+                'Check total rows, mapped fields, ignored columns, and sample values here.',
+            targetKey: _contentTourKey,
+            progressLabel: 'Review',
+            autoScrollToTarget: true,
+          ),
+          AppTourStep(
+            id: 'manpower_import_review_import',
+            title: 'Import Records',
+            body:
+                'Tap Import when the validation summary looks correct.',
+            targetKey: _bottomTourKey,
+            progressLabel: 'Import',
+            tooltipBottomOffset: 96,
+          ),
+        ];
+        break;
+      case 'upload':
+      default:
+        steps = [
+          const AppTourStep(
+            id: 'manpower_import_upload_intro',
+            title: 'Import Manpower',
+            body:
+                'Start by uploading an Excel or CSV file that contains manpower details.',
+            progressLabel: 'Upload',
+            useSpotlight: false,
+          ),
+          AppTourStep(
+            id: 'manpower_import_upload_guide',
+            title: 'Upload Guide',
+            body:
+                'This guide shows the flow: select file, map columns, then validate.',
+            targetKey: _introTourKey,
+            progressLabel: 'Guide',
+          ),
+          AppTourStep(
+            id: 'manpower_import_upload_content',
+            title: 'Choose File',
+            body:
+                'Tap this area to choose your manpower sheet from device storage.',
+            targetKey: _contentTourKey,
+            progressLabel: 'Choose',
+            autoScrollToTarget: true,
+          ),
+        ];
+        break;
+    }
+
+    return AppTourDefinition(
+      id: baseId,
+      title: 'Import Manpower',
+      description: 'Learn how to import manpower from a sheet.',
+      icon: Icons.upload_file_rounded,
+      steps: steps,
+    );
+  }
+
+  void _syncImportTour(BuildContext showcaseContext, FieldMappingState viewState) {
+    final definition = _buildImportTourDefinition(viewState);
+
+    WidgetsBinding.instance.addPostFrameCallback((_) async {
+      if (!mounted) return;
+      final route = ModalRoute.of(context);
+      if (route != null && !route.isCurrent) return;
+      final controller = ref.read(appTourControllerProvider.notifier);
+      final activeTour = controller.activeTour;
+      final isImportTour = activeTour?.id.startsWith(
+            '${ManpowerTeamModuleTours.manpowerId}_import_',
+          ) ??
+          false;
+      if (isImportTour && activeTour!.id != definition.id) {
+        _tourPackageAdapter.dismiss(showcaseContext);
+        _lastShowcasedTourStepId = null;
+        await controller.finish();
+      }
+      final tourState = ref.read(appTourControllerProvider);
+      if (tourState.status != AppTourStatus.running) {
+        await controller.maybeStartRuntimeTour(
+          definition,
+          policyTourId: ManpowerTeamModuleTours.manpowerId,
+        );
+      }
+      final step = controller.currentStep;
+      final latestActiveTour = controller.activeTour;
+      if (latestActiveTour == null ||
+          !latestActiveTour.id.startsWith(
+            '${ManpowerTeamModuleTours.manpowerId}_import_',
+          )) {
+        if (_lastShowcasedTourStepId != null) {
+          _tourPackageAdapter.dismiss(showcaseContext);
+          _lastShowcasedTourStepId = null;
+        }
+        return;
+      }
+      final stepKey =
+          step == null ? null : '${latestActiveTour.id}:${step.id}';
+      if (step == null) return;
+      if (_lastShowcasedTourStepId == stepKey) return;
+      _lastShowcasedTourStepId = stepKey;
+      await _tourPackageAdapter.showStep(showcaseContext, step);
+    });
+  }
+
+  Widget _tourTarget(GlobalKey key, Widget child) {
+    return Showcase.withWidget(
+      key: key,
+      container: const SizedBox.shrink(),
+      overlayOpacity: 0.72,
+      targetPadding: const EdgeInsets.all(8),
+      targetBorderRadius: BorderRadius.circular(14),
+      disableDefaultTargetGestures: false,
+      child: child,
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
     final state = ref.watch(fieldMappingProvider);
     final colorScheme = Theme.of(context).colorScheme;
     final isDark = Theme.of(context).brightness == Brightness.dark;
 
-    return PopScope(
-      canPop: state.currentStep == FieldMappingStep.upload,
-      onPopInvokedWithResult: (didPop, _) {
-        if (!didPop && state.currentStep != FieldMappingStep.upload) {
-          _prevStep();
-        }
-      },
-      child: Scaffold(
-        drawer: const CustomDrawer(),
-        backgroundColor: colorScheme.surfaceContainerLowest,
-        appBar: CustomAppBar(title: 'Import Manpower'),
-        body: Column(
-          children: [
-            const _UploadFlowIntro(
-              title: 'Guided Manpower Upload',
-              description:
-                  'Select the Excel file, review detected columns, map required fields, then validate before importing.',
-            ),
-            // ── Progress header ──────────────────────────────
-            _StepProgressBar(currentStep: state.currentStep),
-
-            // ── Step content (animated) ──────────────────────
-            Expanded(
-              child: FadeTransition(
-                opacity: _stepAnim,
-                child: SlideTransition(
-                  position: Tween<Offset>(
-                    begin: const Offset(0.04, 0),
-                    end: Offset.zero,
-                  ).animate(CurvedAnimation(
-                      parent: _stepAnim, curve: Curves.easeOutCubic)),
-                  child: _buildCurrentStep(state, isDark),
+    ref.watch(appTourControllerProvider);
+    return ShowCaseWidget(
+      builder: (showcaseContext) {
+        _syncImportTour(showcaseContext, state);
+        return PopScope(
+          canPop: state.currentStep == FieldMappingStep.upload,
+          onPopInvokedWithResult: (didPop, _) {
+            if (!didPop && state.currentStep != FieldMappingStep.upload) {
+              _prevStep();
+            }
+          },
+          child: Scaffold(
+            drawer: const CustomDrawer(),
+            backgroundColor: colorScheme.surfaceContainerLowest,
+            appBar: CustomAppBar(title: 'Import Manpower'),
+            body: Column(
+              children: [
+                _tourTarget(
+                  _introTourKey,
+                  const _UploadFlowIntro(
+                    title: 'Guided Manpower Upload',
+                    description:
+                        'Select the Excel file, review detected columns, map required fields, then validate before importing.',
+                  ),
                 ),
-              ),
-            ),
+                // ── Progress header ──────────────────────────────
+                _tourTarget(
+                  _progressTourKey,
+                  _StepProgressBar(currentStep: state.currentStep),
+                ),
 
-            // ── Bottom navigation bar ────────────────────────
-            _BottomBar(
-              state: state,
-              onBack: state.currentStep == FieldMappingStep.upload
-                  ? null
-                  : _prevStep,
-              onNext: _buildNextAction(state),
+                // ── Step content (animated) ──────────────────────
+                Expanded(
+                  child: _tourTarget(
+                    _contentTourKey,
+                    FadeTransition(
+                      opacity: _stepAnim,
+                      child: SlideTransition(
+                        position: Tween<Offset>(
+                          begin: const Offset(0.04, 0),
+                          end: Offset.zero,
+                        ).animate(CurvedAnimation(
+                            parent: _stepAnim, curve: Curves.easeOutCubic)),
+                        child: _buildCurrentStep(state, isDark),
+                      ),
+                    ),
+                  ),
+                ),
+
+                // ── Bottom navigation bar ────────────────────────
+                _tourTarget(
+                  _bottomTourKey,
+                  _BottomBar(
+                    state: state,
+                    onBack: state.currentStep == FieldMappingStep.upload
+                        ? null
+                        : _prevStep,
+                    onNext: _buildNextAction(state),
+                  ),
+                ),
+              ],
             ),
-          ],
-        ),
-      ),
+          ),
+        );
+      },
     );
   }
 

@@ -2,7 +2,7 @@
 
 import 'base_material.dart';
 import 'card_form_State.dart';
-import 'field_config.dart';
+import 'field_config.dart' hide FieldEntry;
 
 class PipingMaterial extends BaseMaterial {
   final String? size;

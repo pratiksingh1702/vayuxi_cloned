@@ -2,18 +2,24 @@ import 'dart:io';
 
 import 'package:file_picker/file_picker.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import 'package:image_cropper/image_cropper.dart';
+import 'package:showcaseview/showcaseview.dart';
 import 'package:untitled2/core/utlis/app_toasts.dart';
 import 'package:untitled2/core/utlis/widgets/custom.dart';
 import 'package:untitled2/core/utlis/widgets/custom_dropdown.dart';
 import 'package:untitled2/core/utlis/widgets/sidebar.dart';
+import 'package:untitled2/features/tour/core/tour_models.dart';
+import 'package:untitled2/features/tour/core/tour_package_adapter.dart';
+import 'package:untitled2/features/tour/definitions/setup_module_tours.dart';
+import 'package:untitled2/features/tour/providers/tour_providers.dart';
 
 import '../models/peb_execution_models.dart';
 import '../services/peb_execution_service.dart';
 import '../utils/peb_work_images.dart';
 
-class PebSetupScreen extends StatefulWidget {
+class PebSetupScreen extends ConsumerStatefulWidget {
   final String siteId;
   final String siteName;
   final PebExecutionType executionType;
@@ -26,22 +32,137 @@ class PebSetupScreen extends StatefulWidget {
   });
 
   @override
-  State<PebSetupScreen> createState() => _PebSetupScreenState();
+  ConsumerState<PebSetupScreen> createState() => _PebSetupScreenState();
 }
 
-class _PebSetupScreenState extends State<PebSetupScreen> {
+class _PebSetupScreenState extends ConsumerState<PebSetupScreen> {
+  static const TourPackageAdapter _tourPackageAdapter = TourPackageAdapter();
   final _service = PebExecutionService();
+  final GlobalKey _trackingLevelTourKey =
+      GlobalKey(debugLabel: 'erection_setup_tracking_level');
+  final GlobalKey _resetTourKey =
+      GlobalKey(debugLabel: 'erection_setup_reset_defaults');
+  final GlobalKey _itemsTourKey = GlobalKey(debugLabel: 'erection_setup_items');
+  final GlobalKey _addItemTourKey =
+      GlobalKey(debugLabel: 'erection_setup_add_item');
   PebSetup? _setup;
   bool _loading = true;
   bool _saving = false;
   bool _orderDirty = false;
   String _uploadingItemId = '';
   String _trackingLevel = 'advanced';
+  String? _lastShowcasedTourStepId;
 
   @override
   void initState() {
     super.initState();
     _load();
+  }
+
+  bool get _isErectionSetup =>
+      widget.executionType == PebExecutionType.erection;
+
+  void _syncErectionSetupTour(BuildContext showcaseContext) {
+    if (!_isErectionSetup || _loading) return;
+
+    final hasItems = (_setup?.items ?? const <PebSetupItem>[]).isNotEmpty;
+    final definition = AppTourDefinition(
+      id: '${SetupModuleTours.erectionSetupId}_${widget.siteId}',
+      title: 'Structure Erection Setup',
+      description: 'Prepare structure erection stages for DPR entry.',
+      icon: Icons.architecture_rounded,
+      steps: [
+        const AppTourStep(
+          id: 'erection_setup_intro',
+          title: 'Structure Erection Setup',
+          body:
+              'Prepare the erection stages once here, then use them during daily DPR entry.',
+          progressLabel: 'Intro',
+          useSpotlight: false,
+        ),
+        AppTourStep(
+          id: 'erection_tracking_level',
+          title: 'Tracking Level',
+          body:
+              'Choose how detailed the erection tracking should be before resetting defaults.',
+          targetKey: _trackingLevelTourKey,
+          progressLabel: 'Tracking',
+        ),
+        AppTourStep(
+          id: 'erection_reset_defaults',
+          title: 'Reset Default Setup',
+          body:
+              'Use this button to create or refresh the default erection stages for the selected tracking level.',
+          targetKey: _resetTourKey,
+          progressLabel: 'Defaults',
+        ),
+        AppTourStep(
+          id: 'erection_setup_items',
+          title: hasItems ? 'Setup Items' : 'No Items Yet',
+          body: hasItems
+              ? 'These cards are the erection stages. You can edit remarks, update images, or delete custom items.'
+              : 'If setup items are missing, reset defaults or add your own erection item.',
+          targetKey: _itemsTourKey,
+          progressLabel: 'Items',
+        ),
+        AppTourStep(
+          id: 'erection_add_item',
+          title: 'Add Item',
+          body:
+              'Use this button to add a custom erection setup item with its own image and remarks.',
+          targetKey: _addItemTourKey,
+          progressLabel: 'Add',
+        ),
+      ],
+    );
+
+    WidgetsBinding.instance.addPostFrameCallback((_) async {
+      if (!mounted) return;
+      final route = ModalRoute.of(context);
+      if (route != null && !route.isCurrent) return;
+      final tourState = ref.read(appTourControllerProvider);
+      final tourController = ref.read(appTourControllerProvider.notifier);
+      if (tourState.status != AppTourStatus.running) {
+        await tourController.maybeStartRuntimeTour(
+          definition,
+          policyTourId: SetupModuleTours.erectionSetupId,
+        );
+      }
+      final step = tourController.currentStep;
+      final activeTour = tourController.activeTour;
+      if (activeTour == null ||
+          !activeTour.id.startsWith(SetupModuleTours.erectionSetupId)) {
+        if (_lastShowcasedTourStepId != null) {
+          _tourPackageAdapter.dismiss(showcaseContext);
+          _lastShowcasedTourStepId = null;
+        }
+        return;
+      }
+      final stepKey = step == null ? null : '${activeTour.id}:${step.id}';
+      if (step == null) {
+        if (_lastShowcasedTourStepId != null) {
+          _tourPackageAdapter.dismiss(showcaseContext);
+          _lastShowcasedTourStepId = null;
+        }
+        return;
+      }
+      if (_lastShowcasedTourStepId == stepKey) return;
+      _lastShowcasedTourStepId = stepKey;
+      _tourPackageAdapter.showStep(showcaseContext, step);
+    });
+  }
+
+  Widget _tourTarget(GlobalKey key, Widget child) {
+    if (!_isErectionSetup) return child;
+    return Showcase.withWidget(
+      key: key,
+      container: const SizedBox.shrink(),
+      overlayOpacity: 0.72,
+      targetPadding: const EdgeInsets.all(8),
+      targetBorderRadius: BorderRadius.circular(16),
+      disableDefaultTargetGestures: false,
+      child: child,
+    );
   }
 
   Future<void> _load() async {
@@ -291,63 +412,88 @@ class _PebSetupScreenState extends State<PebSetupScreen> {
   @override
   Widget build(BuildContext context) {
     final cs = Theme.of(context).colorScheme;
-    return Scaffold(
-      drawer: const CustomDrawer(),
-      backgroundColor: cs.surfaceContainerLowest,
-      body: NestedScrollView(
-        headerSliverBuilder: (_, __) => [
-          CustomSliverAppBar(title: '${widget.executionType.title} DPR Setup'),
-        ],
-        body: _loading
-            ? const Center(child: CircularProgressIndicator())
-            : RefreshIndicator(
-                onRefresh: _load,
-                child: ListView(
-                  padding: const EdgeInsets.all(16),
-                  children: [
-                    Row(
-                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
+    ref.watch(appTourControllerProvider);
+
+    return ShowCaseWidget(
+      builder: (showcaseContext) {
+        _syncErectionSetupTour(showcaseContext);
+        return Scaffold(
+          drawer: const CustomDrawer(),
+          backgroundColor: cs.surfaceContainerLowest,
+          body: NestedScrollView(
+            headerSliverBuilder: (_, __) => [
+              CustomSliverAppBar(
+                  title: '${widget.executionType.title} DPR Setup'),
+            ],
+            body: _loading
+                ? const Center(child: CircularProgressIndicator())
+                : RefreshIndicator(
+                    onRefresh: _load,
+                    child: ListView(
+                      padding: const EdgeInsets.all(16),
                       children: [
-                        Expanded(
-                          child: Text(
-                            widget.siteName,
-                            style: TextStyle(
-                              color: cs.onSurfaceVariant,
-                              fontWeight: FontWeight.w700,
-                              fontSize: 16,
+                        Row(
+                          mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                          children: [
+                            Expanded(
+                              child: Text(
+                                widget.siteName,
+                                style: TextStyle(
+                                  color: cs.onSurfaceVariant,
+                                  fontWeight: FontWeight.w700,
+                                  fontSize: 16,
+                                ),
+                              ),
                             ),
+                            _tourTarget(
+                              _resetTourKey,
+                              IconButton(
+                                onPressed: _saving ? null : _reset,
+                                icon: const Icon(Icons.restore_rounded),
+                                tooltip: 'Reset Default Setup',
+                                color: cs.primary,
+                              ),
+                            ),
+                          ],
+                        ),
+                        const SizedBox(height: 12),
+                        if (widget.executionType == PebExecutionType.erection)
+                          _tourTarget(
+                            _trackingLevelTourKey,
+                            _trackingLevelCard(cs),
+                          ),
+                        const SizedBox(height: 16),
+                        _sequenceToolbar(cs),
+                        const SizedBox(height: 10),
+                        _tourTarget(
+                          _itemsTourKey,
+                          Column(
+                            children: [
+                              _itemsReorderList(cs),
+                              if ((_setup?.items ?? []).isEmpty)
+                                const Padding(
+                                  padding: EdgeInsets.only(top: 80),
+                                  child:
+                                      Center(child: Text('No setup items found')),
+                                ),
+                            ],
                           ),
                         ),
-                        IconButton(
-                          onPressed: _saving ? null : _reset,
-                          icon: const Icon(Icons.restore_rounded),
-                          tooltip: 'Reset Default Setup',
-                          color: cs.primary,
-                        ),
+                        const SizedBox(height: 96),
                       ],
                     ),
-                    const SizedBox(height: 12),
-                    if (widget.executionType == PebExecutionType.erection)
-                      _trackingLevelCard(cs),
-                    const SizedBox(height: 16),
-                    _sequenceToolbar(cs),
-                    const SizedBox(height: 10),
-                    _itemsReorderList(cs),
-                    if ((_setup?.items ?? []).isEmpty)
-                      const Padding(
-                        padding: EdgeInsets.only(top: 80),
-                        child: Center(child: Text('No setup items found')),
-                      ),
-                    const SizedBox(height: 96),
-                  ],
-                ),
-              ),
-      ),
-      floatingActionButton: FloatingActionButton.extended(
-        onPressed: _saving ? null : () => _openItemForm(),
-        icon: const Icon(Icons.add),
-        label: const Text('Add Item'),
-      ),
+                  ),
+          ),
+          floatingActionButton: _tourTarget(
+            _addItemTourKey,
+            FloatingActionButton.extended(
+              onPressed: _saving ? null : () => _openItemForm(),
+              icon: const Icon(Icons.add),
+              label: const Text('Add Item'),
+            ),
+          ),
+        );
+      },
     );
   }
 

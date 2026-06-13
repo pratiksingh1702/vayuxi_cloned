@@ -4,6 +4,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:file_picker/file_picker.dart';
 import 'package:go_router/go_router.dart';
+import 'package:showcaseview/showcaseview.dart';
 import 'package:untitled2/core/utlis/widgets/image_clipped.dart';
 import 'package:untitled2/features/modules/all_Modules/rate/data/rateApi.dart';
 import 'package:untitled2/features/modules/all_Modules/rate/screens/rate.dart';
@@ -21,6 +22,10 @@ import '../../../../../core/utlis/widgets/file_upload.dart';
 import '../../../../../core/utlis/widgets/sample_preview.dart';
 import '../../../../../core/utlis/widgets/sidebar.dart';
 import '../../../../tour/domain/tour_controller.dart';
+import '../../../../tour/core/tour_models.dart';
+import '../../../../tour/core/tour_package_adapter.dart';
+import '../../../../tour/definitions/site_rate_module_tours.dart';
+import '../../../../tour/providers/tour_providers.dart';
 import '../../site_Details/providers/site_current_provider.dart';
 import '../data/rate_upload_provider.dart';
 
@@ -38,6 +43,12 @@ class _ImportCsvScreenState extends ConsumerState<ImportCsvScreen> {
   String? _selectedFileName;
   PlatformFile? _selectedFile;
   String _uploadStatus = '';
+  static const TourPackageAdapter _tourPackageAdapter = TourPackageAdapter();
+  String? _lastShowcasedTourStepId;
+  final GlobalKey _downloadTourKey =
+      GlobalKey(debugLabel: 'rate_import_download');
+  final GlobalKey _fileTourKey = GlobalKey(debugLabel: 'rate_import_file');
+  final GlobalKey _uploadTourKey = GlobalKey(debugLabel: 'rate_import_upload');
 
   Future<void> _pickCsvFile() async {
     try {
@@ -148,11 +159,101 @@ class _ImportCsvScreenState extends ConsumerState<ImportCsvScreen> {
     });
   }
 
+  void _syncRateImportTour(BuildContext showcaseContext) {
+    final definition = AppTourDefinition(
+      id: '${SiteRateModuleTours.rateId}_import',
+      title: 'Import Rate File',
+      description: 'Learn how to import rates from a file.',
+      icon: Icons.upload_file_rounded,
+      steps: [
+        const AppTourStep(
+          id: 'rate_import_intro',
+          title: 'Import Rate File',
+          body: 'Use this screen to upload many rates from an Excel, CSV, or PDF file.',
+          progressLabel: 'Import intro',
+          useSpotlight: false,
+        ),
+        AppTourStep(
+          id: 'rate_import_download',
+          title: 'Download Template',
+          body: 'Download the sample template if you need the correct rate format.',
+          targetKey: _downloadTourKey,
+          progressLabel: 'Template',
+        ),
+        AppTourStep(
+          id: 'rate_import_file',
+          title: 'Choose Rate File',
+          body: 'Tap here to choose your filled rate file from your device.',
+          targetKey: _fileTourKey,
+          progressLabel: 'Choose file',
+        ),
+        AppTourStep(
+          id: 'rate_import_upload',
+          title: 'Upload Rate',
+          body: 'Tap Upload Rate to add this file to the upload queue.',
+          targetKey: _uploadTourKey,
+          progressLabel: 'Upload',
+          tooltipBottomOffset: 96,
+        ),
+      ],
+    );
+    WidgetsBinding.instance.addPostFrameCallback((_) async {
+      if (!mounted || _isLoading) return;
+      final route = ModalRoute.of(context);
+      if (route != null && !route.isCurrent) return;
+      final tourState = ref.read(appTourControllerProvider);
+      final tourController = ref.read(appTourControllerProvider.notifier);
+      if (tourState.status != AppTourStatus.running) {
+        await tourController.maybeStartRuntimeTour(
+          definition,
+          policyTourId: SiteRateModuleTours.rateId,
+        );
+      }
+      final step = tourController.currentStep;
+      final activeTour = tourController.activeTour;
+      if (activeTour == null ||
+          !activeTour.id.startsWith(SiteRateModuleTours.rateId)) {
+        if (_lastShowcasedTourStepId != null) {
+          _tourPackageAdapter.dismiss(showcaseContext);
+          _lastShowcasedTourStepId = null;
+        }
+        return;
+      }
+      final stepKey = step == null ? null : '${activeTour.id}:${step.id}';
+      if (step == null) {
+        if (_lastShowcasedTourStepId != null) {
+          _tourPackageAdapter.dismiss(showcaseContext);
+          _lastShowcasedTourStepId = null;
+        }
+        return;
+      }
+      if (_lastShowcasedTourStepId == stepKey) return;
+      _lastShowcasedTourStepId = stepKey;
+      _tourPackageAdapter.showStep(showcaseContext, step);
+    });
+  }
+
+  Widget _tourTarget(GlobalKey key, Widget child) {
+    return Showcase.withWidget(
+      key: key,
+      container: const SizedBox.shrink(),
+      overlayOpacity: 0.72,
+      targetPadding: const EdgeInsets.all(8),
+      targetBorderRadius: BorderRadius.circular(14),
+      disableDefaultTargetGestures: false,
+      child: child,
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
     final downloadState = ref.watch(templateDownloadControllerProvider);
     final colorScheme = Theme.of(context).colorScheme;
-    return Scaffold(
+    ref.watch(appTourControllerProvider);
+    return ShowCaseWidget(
+      builder: (showcaseContext) {
+        _syncRateImportTour(showcaseContext);
+        return Scaffold(
       drawer: const CustomDrawer(),
       backgroundColor: colorScheme.surfaceContainerLowest,
       appBar: CustomAppBar(
@@ -164,7 +265,9 @@ class _ImportCsvScreenState extends ConsumerState<ImportCsvScreen> {
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              RoundedButton(
+              _tourTarget(
+                _downloadTourKey,
+                RoundedButton(
                 width: double.infinity,
                 text: downloadState.isLoading
                     ? "Downloading..."
@@ -194,6 +297,7 @@ class _ImportCsvScreenState extends ConsumerState<ImportCsvScreen> {
                           ),
                         );
                       },
+                ),
               ),
 
               const SizedBox(height: 8),
@@ -210,19 +314,24 @@ class _ImportCsvScreenState extends ConsumerState<ImportCsvScreen> {
               const SizedBox(height: 24),
 
               // File Selection Section
-              UploadBox(
+              _tourTarget(
+                _fileTourKey,
+                UploadBox(
                 title: 'Upload your Rate file',
                 subtitle: _selectedFileName ?? 'No file selected',
                 buttonText: _selectedFileName == null
                     ? 'Choose Rate File'
                     : 'Change File',
                 onPressed: _pickCsvFile,
+                ),
               ),
 
               const SizedBox(height: 24),
 
               // Upload Button
-              SizedBox(
+              _tourTarget(
+                _uploadTourKey,
+                SizedBox(
                 width: double.infinity,
                 child: ElevatedButton(
                   onPressed: _isLoading ? null : _uploadCsv,
@@ -259,11 +368,14 @@ class _ImportCsvScreenState extends ConsumerState<ImportCsvScreen> {
                           ],
                         ),
                 ),
+                ),
               ),
             ],
           ),
         ),
       ),
+        );
+      },
     );
   }
 }

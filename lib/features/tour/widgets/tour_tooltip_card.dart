@@ -92,7 +92,6 @@ class TourTooltipCard extends StatelessWidget {
                 ),
                 IconButton(
                   visualDensity: VisualDensity.compact,
-                  tooltip: 'Skip tour',
                   onPressed: onSkip,
                   icon: Icon(
                     Icons.close_rounded,
