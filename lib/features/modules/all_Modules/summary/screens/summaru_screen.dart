@@ -6,10 +6,10 @@ import 'package:shimmer/shimmer.dart';
 import 'package:untitled2/core/utlis/widgets/custom_appBar.dart';
 import 'package:untitled2/core/utlis/widgets/sidebar.dart';
 import 'package:untitled2/core/utlis/widgets/custom_scrollbar.dart';
+import 'package:untitled2/core/utlis/widgets/card.dart';
 import 'package:untitled2/core/utlis/widgets/empty_module_state.dart';
 import 'package:untitled2/features/modules/all_Modules/site_Details/providers/siteProvider.dart';
 import 'package:untitled2/features/modules/all_Modules/site_Details/providers/site_current_provider.dart';
-import 'package:untitled2/features/modules/all_Modules/site_Details/repository/siteModel.dart';
 import 'package:untitled2/features/modules/all_Modules/summary/screens/profit_loss_fusion.dart';
 import 'package:untitled2/typeProvider/type_provider.dart';
 
@@ -521,118 +521,63 @@ class _PebSiteSelectionViewState extends ConsumerState<_PebSiteSelectionView> {
 
             return CustomScrollbar(
               controller: _controller,
-              child: ListView.builder(
+              child: CustomScrollView(
                 controller: _controller,
                 physics: const AlwaysScrollableScrollPhysics(),
-                padding: const EdgeInsets.fromLTRB(12, 12, 12, 24),
-                itemCount: siteState.sites.length + 1,
-                itemBuilder: (context, index) {
-                  if (index == 0) {
-                    return Padding(
+                slivers: [
+                  SliverToBoxAdapter(
+                    child: Padding(
                       padding: const EdgeInsets.fromLTRB(4, 0, 4, 12),
                       child: _SectionHeader(
                         title: 'Select Site',
                         subtitle:
                             'Choose a site to view planned vs actual progress',
                       ),
-                    );
-                  }
-                  final site = siteState.sites[index - 1];
-                  return _PebSiteTile(
-                    site: site,
-                    onTap: () {
-                      ref.read(selectedSiteProvider.notifier).select(site);
-                      Navigator.push(
-                        context,
-                        MaterialPageRoute(
-                          builder: (_) => _PebWorkSummaryView(
-                            monthMap: widget.monthMap,
-                            yearOptions: widget.yearOptions,
-                          ),
-                        ),
-                      );
-                    },
-                  );
-                },
+                    ),
+                  ),
+                  SliverPadding(
+                    padding: const EdgeInsets.fromLTRB(8, 0, 8, 24),
+                    sliver: SliverGrid(
+                      gridDelegate:
+                          const SliverGridDelegateWithFixedCrossAxisCount(
+                        crossAxisCount: 2,
+                        mainAxisSpacing: 16,
+                        crossAxisSpacing: 1,
+                        childAspectRatio: 1.1,
+                      ),
+                      delegate: SliverChildBuilderDelegate(
+                        (context, index) {
+                          final site = siteState.sites[index];
+                          return CompanyCard(
+                            imagePath: site.siteImage ?? '',
+                            fallbackIcon: Icons.location_city_rounded,
+                            companyName: site.siteName,
+                            show: false,
+                            onTap: () {
+                              ref
+                                  .read(selectedSiteProvider.notifier)
+                                  .select(site);
+                              Navigator.push(
+                                context,
+                                MaterialPageRoute(
+                                  builder: (_) => _PebWorkSummaryView(
+                                    monthMap: widget.monthMap,
+                                    yearOptions: widget.yearOptions,
+                                  ),
+                                ),
+                              );
+                            },
+                          );
+                        },
+                        childCount: siteState.sites.length,
+                      ),
+                    ),
+                  ),
+                ],
               ),
             );
           },
         ),
-      ),
-    );
-  }
-}
-
-class _PebSiteTile extends StatelessWidget {
-  final SiteModel site;
-  final VoidCallback onTap;
-
-  const _PebSiteTile({
-    required this.site,
-    required this.onTap,
-  });
-
-  @override
-  Widget build(BuildContext context) {
-    final cs = Theme.of(context).colorScheme;
-    return Container(
-      margin: const EdgeInsets.only(bottom: 10),
-      decoration: BoxDecoration(
-        color: cs.surface,
-        borderRadius: BorderRadius.circular(16),
-        border: Border.all(color: cs.outlineVariant.withOpacity(0.65)),
-        boxShadow: [
-          BoxShadow(
-            color: Colors.black.withOpacity(0.035),
-            blurRadius: 12,
-            offset: const Offset(0, 6),
-          ),
-        ],
-      ),
-      child: ListTile(
-        contentPadding: const EdgeInsets.symmetric(horizontal: 14, vertical: 8),
-        leading: Container(
-          width: 44,
-          height: 44,
-          decoration: BoxDecoration(
-            color: cs.primaryContainer,
-            borderRadius: BorderRadius.circular(12),
-          ),
-          child: Icon(
-            Icons.business_rounded,
-            color: cs.onPrimaryContainer,
-          ),
-        ),
-        title: Text(
-          site.siteName,
-          maxLines: 1,
-          overflow: TextOverflow.ellipsis,
-          style: TextStyle(
-            color: cs.onSurface,
-            fontWeight: FontWeight.w800,
-            fontSize: 15,
-          ),
-        ),
-        subtitle: Padding(
-          padding: const EdgeInsets.only(top: 4),
-          child: Text(
-            site.address.isNotEmpty
-                ? site.address
-                : 'Open operational summary and analysis',
-            maxLines: 2,
-            overflow: TextOverflow.ellipsis,
-            style: TextStyle(
-              color: cs.onSurfaceVariant,
-              fontSize: 12,
-              height: 1.25,
-            ),
-          ),
-        ),
-        trailing: Icon(
-          Icons.chevron_right_rounded,
-          color: cs.onSurfaceVariant,
-        ),
-        onTap: onTap,
       ),
     );
   }
