@@ -120,9 +120,16 @@ class _PebDprEntryScreenState extends State<PebDprEntryScreen> {
 
     _handledBulkTaskIds.add(completed.id);
     if (completed.status == DprBulkTaskStatus.completed) {
-      AppToast.success(
-        '${completed.stageName} ${completed.actionLabel.toLowerCase()} updated: ${completed.processed - completed.failed}/${completed.total}',
-      );
+      final done = completed.processed - completed.failed;
+      if (completed.failed > 0) {
+        AppToast.error(
+          '${completed.stageName} ${completed.actionLabel.toLowerCase()} updated: $done/${completed.total}. ${completed.error ?? ''}',
+        );
+      } else {
+        AppToast.success(
+          '${completed.stageName} ${completed.actionLabel.toLowerCase()} updated: $done/${completed.total}',
+        );
+      }
       _load(showLoader: false, autoScroll: false);
     } else if (completed.status == DprBulkTaskStatus.failed) {
       AppToast.error(completed.error ?? 'DPR bulk update failed');
@@ -3628,8 +3635,8 @@ class _PebDprEntryScreenState extends State<PebDprEntryScreen> {
                                     border: OutlineInputBorder(
                                       borderRadius: BorderRadius.circular(8),
                                       borderSide: BorderSide(
-                                        color: cs.outlineVariant
-                                            .withOpacity(0.5),
+                                        color:
+                                            cs.outlineVariant.withOpacity(0.5),
                                       ),
                                     ),
                                   ),

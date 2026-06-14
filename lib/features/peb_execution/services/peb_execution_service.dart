@@ -41,6 +41,19 @@ class PebExecutionService {
         .toList();
   }
 
+  Future<List<PebManpower>> getManpower(
+      String siteId, PebExecutionType type) async {
+    final response = await _dio.get(
+      '/site/$siteId/manpower',
+      queryParameters: {'type': type.apiType},
+    );
+    return _asList(response.data)
+        .whereType<Map>()
+        .map((item) => PebManpower.fromJson(Map<String, dynamic>.from(item)))
+        .where((manpower) => manpower.id.isNotEmpty)
+        .toList();
+  }
+
   Future<PebSetup?> getSetup(String siteId, PebExecutionType type) async {
     final params = {
       'type': type.apiType,
@@ -327,6 +340,132 @@ class PebExecutionService {
             PebWorkAssignment.fromJson(Map<String, dynamic>.from(item)))
         .where((assignment) => assignment.id.isNotEmpty)
         .toList();
+  }
+
+  Future<List<PebAssignmentPlan>> getAssignmentPlans(
+    String siteId,
+    PebExecutionType type, {
+    String status = 'all',
+  }) async {
+    final response = await _dio.get(
+      '/site/$siteId/work-assignment/plans',
+      queryParameters: {
+        'type': type.apiType,
+        'section': type.section,
+        if (status != 'all') 'status': status,
+      },
+    );
+    return _asList(response.data)
+        .whereType<Map>()
+        .map((item) =>
+            PebAssignmentPlan.fromJson(Map<String, dynamic>.from(item)))
+        .where((plan) => plan.id.isNotEmpty)
+        .toList();
+  }
+
+  Future<PebAssignmentPlan> getAssignmentPlanById(
+      String siteId, String planId) async {
+    final response =
+        await _dio.get('/site/$siteId/work-assignment/plans/$planId');
+    final data = response.data is Map ? response.data : <String, dynamic>{};
+    return PebAssignmentPlan.fromJson(Map<String, dynamic>.from(data as Map));
+  }
+
+  Future<List<PebAssignmentPlanDetail>> getAssignmentPlanDetails(
+    String siteId,
+    PebExecutionType type, {
+    String? fromDate,
+    String? toDate,
+    String? targetType,
+    String? teamId,
+    String? manpowerId,
+  }) async {
+    final response = await _dio.get(
+      '/site/$siteId/work-assignment/plan-details',
+      queryParameters: {
+        'type': type.apiType,
+        'section': type.section,
+        if (fromDate != null) 'fromDate': fromDate,
+        if (toDate != null) 'toDate': toDate,
+        if (targetType != null) 'targetType': targetType,
+        if (teamId != null && teamId.isNotEmpty) 'teamId': teamId,
+        if (manpowerId != null && manpowerId.isNotEmpty)
+          'manpowerId': manpowerId,
+      },
+    );
+    return _asList(response.data)
+        .whereType<Map>()
+        .map((item) =>
+            PebAssignmentPlanDetail.fromJson(Map<String, dynamic>.from(item)))
+        .where((detail) => detail.id.isNotEmpty)
+        .toList();
+  }
+
+  Future<void> saveAssignmentPlan(
+    String siteId,
+    PebExecutionType type, {
+    String? planId,
+    required String setupItemId,
+    required String stageName,
+    required String targetType,
+    String? teamId,
+    String? manpowerId,
+    required String planningType,
+    required DateTime startDate,
+    DateTime? tcd,
+    int? weekOffDay,
+    required double quantity,
+    required String uom,
+    String remarks = '',
+  }) async {
+    final payload = {
+      'type': type.apiType,
+      'section': type.section,
+      'setupItemId': setupItemId,
+      'stageName': stageName,
+      'targetType': targetType,
+      if (targetType == 'team' && teamId != null && teamId.trim().isNotEmpty)
+        'teamId': teamId,
+      if (targetType == 'manpower' &&
+          manpowerId != null &&
+          manpowerId.trim().isNotEmpty)
+        'manpowerId': manpowerId,
+      'planningType': planningType,
+      'startDate': startDate.toIso8601String().split('T').first,
+      if (tcd != null) 'tcd': tcd.toIso8601String().split('T').first,
+      if (weekOffDay != null) 'weekOffDay': weekOffDay,
+      'totalQuantity': quantity,
+      'uom': uom,
+      'remarks': remarks,
+    };
+
+    if (planId == null || planId.isEmpty) {
+      await _dio.post('/site/$siteId/work-assignment/plans', data: payload);
+    } else {
+      await _dio.put('/site/$siteId/work-assignment/plans/$planId',
+          data: payload);
+    }
+  }
+
+  Future<void> deleteAssignmentPlan(String siteId, String planId) async {
+    await _dio.delete('/site/$siteId/work-assignment/plans/$planId');
+  }
+
+  Future<void> updateAssignmentPlanDetail(
+    String siteId,
+    String detailId, {
+    double? actualQuantity,
+    String? status,
+    String? remarks,
+  }) async {
+    await _dio.put(
+      '/site/$siteId/work-assignment/plan-details/$detailId',
+      data: {
+        if (actualQuantity != null) 'actualQuantity': actualQuantity,
+        if (status != null) 'status': status,
+        if (remarks != null) 'remarks': remarks,
+      },
+    );
   }
 
   Future<void> saveAssignment(

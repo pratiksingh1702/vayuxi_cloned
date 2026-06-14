@@ -38,6 +38,8 @@ class _PebWorkAssignmentScreenState extends State<PebWorkAssignmentScreen> {
   final _remarksController = TextEditingController();
   final _manualMarksController = TextEditingController();
   final _qtyController = TextEditingController();
+  final _planQtyController = TextEditingController();
+  final _planRemarksController = TextEditingController();
   final _markSearchController = TextEditingController();
   Timer? _markSearchDebounce;
   bool _loading = true;
@@ -48,14 +50,23 @@ class _PebWorkAssignmentScreenState extends State<PebWorkAssignmentScreen> {
   String _teamId = '';
   String _setupItemId = '';
   String _sourceType = 'boq_upload';
+  String _planTargetType = 'team';
+  String _planManpowerId = '';
+  String _planPlanningType = 'daily';
   String _editingAssignmentId = '';
+  String _editingPlanId = '';
   int _assignmentStep = 0;
   DateTime _assignmentDate = DateTime.now();
   DateTime? _expectedDate;
+  DateTime _planStartDate = DateTime.now();
+  DateTime? _planTcd;
+  int _planWeekOffDay = 0;
   List<PebTeam> _teams = [];
+  List<PebManpower> _manpower = [];
   List<PebSetupItem> _setupItems = [];
   List<PebBoq> _boqs = [];
   List<PebWorkAssignment> _assignments = [];
+  List<PebAssignmentPlan> _assignmentPlans = [];
   Set<String> _selectedBoqIds = {};
   Set<String> _selectedMarks = {};
   Map<String, Set<String>> _completedBySetupItem = {};
@@ -76,6 +87,8 @@ class _PebWorkAssignmentScreenState extends State<PebWorkAssignmentScreen> {
     _remarksController.dispose();
     _manualMarksController.dispose();
     _qtyController.dispose();
+    _planQtyController.dispose();
+    _planRemarksController.dispose();
     _markSearchController.dispose();
     _markSearchDebounce?.cancel();
     super.dispose();
@@ -90,6 +103,8 @@ class _PebWorkAssignmentScreenState extends State<PebWorkAssignmentScreen> {
         _service.getBoqs(widget.siteId),
         _service.getAssignments(widget.siteId, widget.executionType),
         _service.getDprMarkStatus(widget.siteId, widget.executionType),
+        _service.getManpower(widget.siteId, widget.executionType),
+        _service.getAssignmentPlans(widget.siteId, widget.executionType),
       ]);
       final setup = results[1] as PebSetup?;
       setState(() {
@@ -102,6 +117,10 @@ class _PebWorkAssignmentScreenState extends State<PebWorkAssignmentScreen> {
             .where((assignment) => assignment.status != 'cancelled')
             .toList();
         _completedBySetupItem = (results[4] as PebMarkStatus).completedByKey;
+        _manpower = results[5] as List<PebManpower>;
+        _assignmentPlans = (results[6] as List<PebAssignmentPlan>)
+            .where((plan) => plan.status != 'cancelled')
+            .toList();
         _syncSelectedBoqs();
       });
     } catch (error) {
@@ -504,6 +523,144 @@ class _PebWorkAssignmentScreenState extends State<PebWorkAssignmentScreen> {
     });
   }
 
+  void _openNewQuantityPlan(PebSetupItem item) {
+    setState(() {
+      _mode = _WorkAssignmentMode.quantityAdd;
+      _showForm = true;
+      _editingPlanId = '';
+      _setupItemId = item.id;
+      _planTargetType = _teams.isNotEmpty ? 'team' : 'unassigned';
+      _teamId = _teams.isNotEmpty ? _teams.first.id : _defaultTeamId;
+      _planManpowerId = _manpower.isNotEmpty ? _manpower.first.id : '';
+      _planPlanningType = 'daily';
+      _planStartDate = DateTime.now();
+      _planTcd = null;
+      _planWeekOffDay = 0;
+      _planQtyController.clear();
+      _planRemarksController.clear();
+    });
+  }
+
+  void _openEditQuantityPlan(PebAssignmentPlan plan) {
+    setState(() {
+      _mode = _WorkAssignmentMode.quantityAdd;
+      _showForm = true;
+      _editingPlanId = plan.id;
+      _setupItemId = plan.setupItemId;
+      _planTargetType = plan.targetType;
+      _teamId = plan.team?.id ?? (_teams.isNotEmpty ? _teams.first.id : '');
+      _planManpowerId =
+          plan.manpower?.id ?? (_manpower.isNotEmpty ? _manpower.first.id : '');
+      _planPlanningType = plan.planningType;
+      _planStartDate = plan.startDate ?? DateTime.now();
+      _planTcd = plan.tcd;
+      _planWeekOffDay = plan.weekOffDay ?? 0;
+      _planQtyController.text = plan.totalQuantity.toStringAsFixed(
+          plan.totalQuantity.truncateToDouble() == plan.totalQuantity ? 0 : 2);
+      _planRemarksController.text = plan.remarks;
+    });
+  }
+
+  Future<void> _pickPlanDate({required bool tcd}) async {
+    final picked = await showDatePicker(
+      context: context,
+      firstDate: DateTime(2020),
+      lastDate: DateTime(2035),
+      initialDate: tcd ? (_planTcd ?? _planStartDate) : _planStartDate,
+    );
+    if (picked == null) return;
+    setState(() {
+      if (tcd) {
+        _planTcd = picked;
+      } else {
+        _planStartDate = picked;
+      }
+    });
+  }
+
+  Future<void> _saveQuantityPlan() async {
+    final setupItem = _findSetupItem(_setupItemId);
+    if (setupItem == null) {
+      AppToast.error('Select work stage');
+      return;
+    }
+
+    final quantity = double.tryParse(_planQtyController.text.trim()) ?? 0;
+    if (quantity <= 0) {
+      AppToast.error('Enter quantity');
+      return;
+    }
+    if (_planTargetType == 'team' &&
+        (_teamId.isEmpty || _teamId == _defaultTeamId)) {
+      AppToast.error('Select team');
+      return;
+    }
+    if (_planTargetType == 'manpower' && _planManpowerId.isEmpty) {
+      AppToast.error('Select manpower');
+      return;
+    }
+
+    setState(() => _saving = true);
+    try {
+      await _service.saveAssignmentPlan(
+        widget.siteId,
+        widget.executionType,
+        planId: _editingPlanId,
+        setupItemId: setupItem.id,
+        stageName: setupItem.name,
+        targetType: _planTargetType,
+        teamId: _planTargetType == 'team' ? _teamId : null,
+        manpowerId: _planTargetType == 'manpower' ? _planManpowerId : null,
+        planningType: _planPlanningType,
+        startDate: _planStartDate,
+        tcd: _planTcd,
+        weekOffDay:
+            _planPlanningType == 'daily' ? null : _planWeekOffDay,
+        quantity: quantity,
+        uom: setupItem.uom,
+        remarks: _planRemarksController.text.trim(),
+      );
+      AppToast.success(_editingPlanId.isEmpty
+          ? 'Quantity plan saved'
+          : 'Quantity plan updated');
+      setState(() {
+        _showForm = false;
+        _mode = _WorkAssignmentMode.quantityView;
+      });
+      await _load();
+    } on DioException catch (error) {
+      AppToast.error(extractBackendError(error));
+    } catch (error) {
+      AppToast.error(extractBackendError(error));
+    } finally {
+      if (mounted) setState(() => _saving = false);
+    }
+  }
+
+  Future<void> _deleteQuantityPlan(PebAssignmentPlan plan) async {
+    final confirmed = await showDialog<bool>(
+      context: context,
+      builder: (context) => AlertDialog(
+        title: const Text('Cancel quantity plan'),
+        content: Text('Cancel ${plan.stageName} quantity plan?'),
+        actions: [
+          TextButton(
+              onPressed: () => context.pop(false), child: const Text('No')),
+          FilledButton(
+              onPressed: () => context.pop(true), child: const Text('Cancel')),
+        ],
+      ),
+    );
+    if (confirmed != true) return;
+    try {
+      await _service.deleteAssignmentPlan(widget.siteId, plan.id);
+      AppToast.success('Quantity plan cancelled');
+      await _load();
+    } catch (error) {
+      AppToast.error(extractBackendError(error));
+    }
+  }
+
   void _openEdit(PebWorkAssignment assignment) {
     if (assignment.assignments.isEmpty) return;
     final item = assignment.assignments.first;
@@ -683,6 +840,10 @@ class _PebWorkAssignmentScreenState extends State<PebWorkAssignmentScreen> {
       _WorkAssignmentMode.add => _showForm
           ? (_findSetupItem(_setupItemId)?.name ?? 'Assignment Add')
           : 'Assignment Add',
+      _WorkAssignmentMode.quantityView => 'Quantity Plans',
+      _WorkAssignmentMode.quantityAdd => _showForm
+          ? (_findSetupItem(_setupItemId)?.name ?? 'Quantity Plan')
+          : 'Quantity Plan',
     };
     return Scaffold(
       drawer: const CustomDrawer(),
@@ -702,6 +863,10 @@ class _PebWorkAssignmentScreenState extends State<PebWorkAssignmentScreen> {
                           child: TextButton.icon(
                             onPressed: () => setState(() {
                               if (_mode == _WorkAssignmentMode.add &&
+                                  _showForm) {
+                                _showForm = false;
+                              } else if (_mode ==
+                                      _WorkAssignmentMode.quantityAdd &&
                                   _showForm) {
                                 _showForm = false;
                               } else {
@@ -820,6 +985,12 @@ class _PebWorkAssignmentScreenState extends State<PebWorkAssignmentScreen> {
         return [_buildAssignmentList(cs)];
       case _WorkAssignmentMode.add:
         return _showForm ? [_buildForm(cs)] : [_buildStageGrid(cs)];
+      case _WorkAssignmentMode.quantityView:
+        return [_buildQuantityPlanList(cs)];
+      case _WorkAssignmentMode.quantityAdd:
+        return _showForm
+            ? [_buildQuantityPlanForm(cs)]
+            : [_buildQuantityStageGrid(cs)];
     }
   }
 
@@ -844,7 +1015,18 @@ class _PebWorkAssignmentScreenState extends State<PebWorkAssignmentScreen> {
           cs,
           'Choose an option',
           '• View: You can view, edit and delete assigned work records.\n'
-              '• Add: You can assign stage work to teams.',
+              '• Add: You can assign mark numbers to teams.\n'
+              '• Quantity Plans: You can plan daily, weekly or monthly quantity targets.',
+        ),
+        const SizedBox(height: 12),
+        SizedBox(
+          width: double.infinity,
+          child: FilledButton.icon(
+            onPressed: () =>
+                setState(() => _mode = _WorkAssignmentMode.quantityView),
+            icon: const Icon(Icons.stacked_line_chart_rounded),
+            label: const Text('Quantity Assignment Plans'),
+          ),
         ),
       ],
     );
@@ -954,6 +1136,355 @@ class _PebWorkAssignmentScreenState extends State<PebWorkAssignmentScreen> {
           ),
         );
       },
+    );
+  }
+
+  Widget _buildQuantityPlanList(ColorScheme cs) {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Row(
+          children: [
+            const Expanded(
+              child: Text(
+                'Quantity Assignment Plans',
+                style: TextStyle(fontSize: 18, fontWeight: FontWeight.w800),
+              ),
+            ),
+            FilledButton.icon(
+              onPressed: () => setState(() {
+                _mode = _WorkAssignmentMode.quantityAdd;
+                _showForm = false;
+              }),
+              icon: const Icon(Icons.add_rounded),
+              label: const Text('Add'),
+            ),
+          ],
+        ),
+        const SizedBox(height: 8),
+        Text(
+          'Plan daily, weekly or monthly quantity targets without changing mark-number assignments.',
+          style: TextStyle(color: cs.onSurfaceVariant, height: 1.35),
+        ),
+        const SizedBox(height: 12),
+        if (_assignmentPlans.isEmpty)
+          const Card(
+            child: Padding(
+              padding: EdgeInsets.all(20),
+              child: Text('No quantity plans created yet.'),
+            ),
+          ),
+        ..._assignmentPlans.map((plan) {
+          final target = switch (plan.targetType) {
+            'team' => plan.team?.name ?? 'Team',
+            'manpower' => plan.manpower?.name ?? 'Manpower',
+            _ => 'Unassigned',
+          };
+          return Container(
+            margin: const EdgeInsets.only(bottom: 10),
+            decoration: BoxDecoration(
+              color: cs.surface,
+              borderRadius: BorderRadius.circular(14),
+              border: Border.all(color: cs.outlineVariant),
+            ),
+            child: ListTile(
+              leading: CircleAvatar(
+                backgroundColor: cs.primaryContainer,
+                child: Icon(Icons.stacked_line_chart_rounded,
+                    color: cs.primary),
+              ),
+              title: Text(
+                plan.stageName,
+                style: const TextStyle(fontWeight: FontWeight.w800),
+              ),
+              subtitle: Text(
+                '${plan.planningType.toUpperCase()} · $target\n'
+                '${_formatDate(plan.startDate)} to ${_formatDate(plan.tcd)} · ${_formatNumber(plan.totalQuantity)} ${plan.uom}',
+              ),
+              isThreeLine: true,
+              trailing: PopupMenuButton<String>(
+                onSelected: (value) {
+                  if (value == 'edit') _openEditQuantityPlan(plan);
+                  if (value == 'delete') _deleteQuantityPlan(plan);
+                },
+                itemBuilder: (context) => const [
+                  PopupMenuItem(value: 'edit', child: Text('Edit')),
+                  PopupMenuItem(value: 'delete', child: Text('Cancel')),
+                ],
+              ),
+            ),
+          );
+        }),
+      ],
+    );
+  }
+
+  Widget _buildQuantityStageGrid(ColorScheme cs) {
+    if (_setupItems.isEmpty) {
+      return const Card(
+        child: Padding(
+          padding: EdgeInsets.all(20),
+          child: Text('No DPR setup stages found. Create DPR setup first.'),
+        ),
+      );
+    }
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        const Text(
+          'Select Work Stage',
+          style: TextStyle(fontSize: 18, fontWeight: FontWeight.w800),
+        ),
+        const SizedBox(height: 8),
+        Text(
+          'Choose the stage for daily, weekly or monthly quantity planning.',
+          style: TextStyle(color: cs.onSurfaceVariant),
+        ),
+        const SizedBox(height: 12),
+        GridView.builder(
+          physics: const NeverScrollableScrollPhysics(),
+          shrinkWrap: true,
+          itemCount: _setupItems.length,
+          gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
+            crossAxisCount: 2,
+            mainAxisSpacing: 12,
+            crossAxisSpacing: 12,
+            childAspectRatio: 1.15,
+          ),
+          itemBuilder: (context, index) {
+            final item = _setupItems[index];
+            final count = _assignmentPlans
+                .where((plan) => plan.setupItemId == item.id)
+                .length;
+            return InkWell(
+              onTap: () => _openNewQuantityPlan(item),
+              borderRadius: BorderRadius.circular(14),
+              child: Container(
+                padding: const EdgeInsets.all(14),
+                decoration: BoxDecoration(
+                  color: cs.surface,
+                  borderRadius: BorderRadius.circular(14),
+                  border: Border.all(color: cs.outlineVariant),
+                ),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Icon(Icons.timeline_rounded, color: cs.primary),
+                    const Spacer(),
+                    Text(
+                      item.name,
+                      maxLines: 2,
+                      overflow: TextOverflow.ellipsis,
+                      style: const TextStyle(
+                        fontSize: 16,
+                        fontWeight: FontWeight.w800,
+                      ),
+                    ),
+                    const SizedBox(height: 6),
+                    Text(
+                      count == 0
+                          ? 'No quantity plan'
+                          : '$count quantity plan${count == 1 ? '' : 's'}',
+                      style:
+                          TextStyle(fontSize: 12, color: cs.onSurfaceVariant),
+                    ),
+                  ],
+                ),
+              ),
+            );
+          },
+        ),
+      ],
+    );
+  }
+
+  Widget _buildQuantityPlanForm(ColorScheme cs) {
+    final setupItem = _findSetupItem(_setupItemId);
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Row(
+          children: [
+            Expanded(
+              child: Text(
+                setupItem?.name ?? 'Quantity Plan',
+                style:
+                    const TextStyle(fontSize: 20, fontWeight: FontWeight.w800),
+              ),
+            ),
+            IconButton(
+              onPressed: () => setState(() => _showForm = false),
+              icon: const Icon(Icons.close),
+            ),
+          ],
+        ),
+        const SizedBox(height: 12),
+        Container(
+          width: double.infinity,
+          padding: const EdgeInsets.all(14),
+          decoration: BoxDecoration(
+            color: cs.surface,
+            borderRadius: BorderRadius.circular(14),
+            border: Border.all(color: cs.outlineVariant),
+          ),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              _buildDropdown(
+                label: 'Assignment Target',
+                value: _planTargetType,
+                items: const [
+                  DropdownMenuItem(value: 'team', child: Text('Team')),
+                  DropdownMenuItem(value: 'manpower', child: Text('Manpower')),
+                  DropdownMenuItem(
+                      value: 'unassigned', child: Text('Unassigned')),
+                ],
+                onChanged: (value) =>
+                    setState(() => _planTargetType = value ?? 'team'),
+              ),
+              const SizedBox(height: 12),
+              if (_planTargetType == 'team')
+                _teams.where((team) => team.id != _defaultTeamId).isEmpty
+                    ? _infoCard(cs, 'No team found',
+                        'Create a team first or use Unassigned planning.')
+                    : _buildDropdown(
+                        label: 'Team',
+                        value: _teams.any((team) =>
+                                team.id == _teamId &&
+                                team.id != _defaultTeamId)
+                            ? _teamId
+                            : '',
+                        items: _teams
+                            .where((team) => team.id != _defaultTeamId)
+                            .map((team) => DropdownMenuItem(
+                                  value: team.id,
+                                  child: Text(team.name),
+                                ))
+                            .toList(),
+                        onChanged: (value) =>
+                            setState(() => _teamId = value ?? ''),
+                      ),
+              if (_planTargetType == 'manpower')
+                _manpower.isEmpty
+                    ? _infoCard(cs, 'No manpower found',
+                        'Add manpower for this site first or use Unassigned planning.')
+                    : _buildDropdown(
+                        label: 'Manpower',
+                        value: _manpower
+                                .any((item) => item.id == _planManpowerId)
+                            ? _planManpowerId
+                            : '',
+                        items: _manpower
+                            .map((item) => DropdownMenuItem(
+                                  value: item.id,
+                                  child: Text(
+                                    item.designation.isEmpty
+                                        ? item.name
+                                        : '${item.name} · ${item.designation}',
+                                    overflow: TextOverflow.ellipsis,
+                                  ),
+                                ))
+                            .toList(),
+                        onChanged: (value) =>
+                            setState(() => _planManpowerId = value ?? ''),
+                      ),
+              if (_planTargetType == 'unassigned')
+                _infoCard(
+                  cs,
+                  'Planning only',
+                  'This target will not be linked to a team or manpower. It can be used for project-level planning.',
+                ),
+              const SizedBox(height: 12),
+              _buildDropdown(
+                label: 'Planning Type',
+                value: _planPlanningType,
+                items: const [
+                  DropdownMenuItem(value: 'daily', child: Text('Daily')),
+                  DropdownMenuItem(value: 'weekly', child: Text('Weekly')),
+                  DropdownMenuItem(value: 'monthly', child: Text('Monthly')),
+                ],
+                onChanged: (value) =>
+                    setState(() => _planPlanningType = value ?? 'daily'),
+              ),
+              const SizedBox(height: 12),
+              _buildDateTile(
+                _planPlanningType == 'monthly' ? 'Month' : 'Start Date',
+                _planStartDate,
+                () => _pickPlanDate(tcd: false),
+              ),
+              const SizedBox(height: 12),
+              _buildDateTile(
+                'TCD',
+                _planTcd,
+                () => _pickPlanDate(tcd: true),
+              ),
+              if (_planTcd != null) ...[
+                const SizedBox(height: 8),
+                TextButton.icon(
+                  onPressed: () => setState(() => _planTcd = null),
+                  icon: const Icon(Icons.close_rounded, size: 18),
+                  label: const Text('Clear TCD'),
+                ),
+              ],
+              if (_planPlanningType != 'daily') ...[
+                const SizedBox(height: 12),
+                _buildDropdown(
+                  label: 'Week Off Day',
+                  value: _planWeekOffDay.toString(),
+                  items: const [
+                    DropdownMenuItem(value: '0', child: Text('Sunday')),
+                    DropdownMenuItem(value: '1', child: Text('Monday')),
+                    DropdownMenuItem(value: '2', child: Text('Tuesday')),
+                    DropdownMenuItem(value: '3', child: Text('Wednesday')),
+                    DropdownMenuItem(value: '4', child: Text('Thursday')),
+                    DropdownMenuItem(value: '5', child: Text('Friday')),
+                    DropdownMenuItem(value: '6', child: Text('Saturday')),
+                  ],
+                  onChanged: (value) => setState(
+                      () => _planWeekOffDay = int.tryParse(value ?? '0') ?? 0),
+                ),
+              ],
+              const SizedBox(height: 12),
+              TextField(
+                controller: _planQtyController,
+                keyboardType:
+                    const TextInputType.numberWithOptions(decimal: true),
+                decoration: InputDecoration(
+                  labelText: 'Quantity (${setupItem?.uom ?? 'UOM'})',
+                  border: const OutlineInputBorder(),
+                ),
+              ),
+              const SizedBox(height: 12),
+              TextField(
+                controller: _planRemarksController,
+                minLines: 2,
+                maxLines: 4,
+                decoration: const InputDecoration(
+                  labelText: 'Remarks',
+                  border: OutlineInputBorder(),
+                ),
+              ),
+              const SizedBox(height: 16),
+              SizedBox(
+                width: double.infinity,
+                child: FilledButton.icon(
+                  onPressed: _saving ? null : _saveQuantityPlan,
+                  icon: _saving
+                      ? const SizedBox(
+                          width: 16,
+                          height: 16,
+                          child: CircularProgressIndicator(strokeWidth: 2),
+                        )
+                      : const Icon(Icons.save_rounded),
+                  label: Text(_editingPlanId.isEmpty
+                      ? 'Save Quantity Plan'
+                      : 'Update Quantity Plan'),
+                ),
+              ),
+            ],
+          ),
+        ),
+      ],
     );
   }
 
@@ -1871,6 +2402,9 @@ class _PebWorkAssignmentScreenState extends State<PebWorkAssignmentScreen> {
   String _formatDate(DateTime? date) =>
       date == null ? '-' : DateFormat('dd/MM/yyyy').format(date);
 
+  String _formatNumber(double value) =>
+      value.truncateToDouble() == value ? value.toStringAsFixed(0) : value.toStringAsFixed(2);
+
   void _showAssignmentDetails(PebWorkAssignment assignment) {
     final firstItem =
         assignment.assignments.isNotEmpty ? assignment.assignments.first : null;
@@ -2167,7 +2701,7 @@ class _AssignmentStepperBottomBar extends StatelessWidget {
   }
 }
 
-enum _WorkAssignmentMode { home, view, add }
+enum _WorkAssignmentMode { home, view, add, quantityView, quantityAdd }
 
 class _BulkWeightDialog extends StatefulWidget {
   const _BulkWeightDialog();

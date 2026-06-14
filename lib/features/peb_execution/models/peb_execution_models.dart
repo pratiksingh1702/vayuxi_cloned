@@ -72,6 +72,154 @@ class PebTeam {
   }
 }
 
+class PebManpower {
+  final String id;
+  final String name;
+  final String designation;
+  final String manpowerType;
+
+  const PebManpower({
+    required this.id,
+    required this.name,
+    this.designation = '',
+    this.manpowerType = '',
+  });
+
+  factory PebManpower.fromJson(Map<String, dynamic> json) {
+    return PebManpower(
+      id: json['_id']?.toString() ?? json['id']?.toString() ?? '',
+      name: json['fullName']?.toString() ??
+          json['name']?.toString() ??
+          'Manpower',
+      designation: json['designation']?.toString() ?? '',
+      manpowerType: json['manpowerType']?.toString() ?? '',
+    );
+  }
+}
+
+class PebAssignmentPlanDetail {
+  final String id;
+  final DateTime? plannedDate;
+  final double plannedQuantity;
+  final double actualQuantity;
+  final double balanceQuantity;
+  final String status;
+  final String uom;
+
+  const PebAssignmentPlanDetail({
+    required this.id,
+    required this.plannedDate,
+    required this.plannedQuantity,
+    required this.actualQuantity,
+    required this.balanceQuantity,
+    required this.status,
+    required this.uom,
+  });
+
+  factory PebAssignmentPlanDetail.fromJson(Map<String, dynamic> json) {
+    DateTime? parseDate(dynamic value) {
+      if (value == null) return null;
+      return DateTime.tryParse(value.toString());
+    }
+
+    double parseNum(dynamic value) => (value as num?)?.toDouble() ??
+        double.tryParse(value?.toString() ?? '') ??
+        0;
+
+    return PebAssignmentPlanDetail(
+      id: json['_id']?.toString() ?? json['id']?.toString() ?? '',
+      plannedDate: parseDate(json['plannedDate']),
+      plannedQuantity: parseNum(json['plannedQuantity']),
+      actualQuantity: parseNum(json['actualQuantity']),
+      balanceQuantity: parseNum(json['balanceQuantity']),
+      status: json['status']?.toString() ?? 'planned',
+      uom: json['uom']?.toString() ?? '',
+    );
+  }
+}
+
+class PebAssignmentPlan {
+  final String id;
+  final String type;
+  final String section;
+  final String setupItemId;
+  final String stageName;
+  final String targetType;
+  final PebTeam? team;
+  final PebManpower? manpower;
+  final String planningType;
+  final DateTime? startDate;
+  final DateTime? tcd;
+  final int? weekOffDay;
+  final double totalQuantity;
+  final String uom;
+  final String status;
+  final String remarks;
+  final List<PebAssignmentPlanDetail> details;
+
+  const PebAssignmentPlan({
+    required this.id,
+    required this.type,
+    required this.section,
+    required this.setupItemId,
+    required this.stageName,
+    required this.targetType,
+    required this.team,
+    required this.manpower,
+    required this.planningType,
+    required this.startDate,
+    required this.tcd,
+    required this.weekOffDay,
+    required this.totalQuantity,
+    required this.uom,
+    required this.status,
+    required this.remarks,
+    this.details = const [],
+  });
+
+  factory PebAssignmentPlan.fromJson(Map<String, dynamic> json) {
+    DateTime? parseDate(dynamic value) {
+      if (value == null) return null;
+      return DateTime.tryParse(value.toString());
+    }
+
+    double parseNum(dynamic value) => (value as num?)?.toDouble() ??
+        double.tryParse(value?.toString() ?? '') ??
+        0;
+
+    final rawTeam = json['teamId'];
+    final rawManpower = json['manpowerId'];
+
+    return PebAssignmentPlan(
+      id: json['_id']?.toString() ?? json['id']?.toString() ?? '',
+      type: json['type']?.toString() ?? '',
+      section: json['section']?.toString() ?? '',
+      setupItemId: json['setupItemId']?.toString() ?? '',
+      stageName: json['stageName']?.toString() ?? 'Work Stage',
+      targetType: json['targetType']?.toString() ?? 'unassigned',
+      team: rawTeam is Map
+          ? PebTeam.fromJson(Map<String, dynamic>.from(rawTeam))
+          : null,
+      manpower: rawManpower is Map
+          ? PebManpower.fromJson(Map<String, dynamic>.from(rawManpower))
+          : null,
+      planningType: json['planningType']?.toString() ?? 'daily',
+      startDate: parseDate(json['startDate']),
+      tcd: parseDate(json['tcd']),
+      weekOffDay: (json['weekOffDay'] as num?)?.toInt(),
+      totalQuantity: parseNum(json['totalQuantity']),
+      uom: json['uom']?.toString() ?? '',
+      status: json['status']?.toString() ?? 'active',
+      remarks: json['remarks']?.toString() ?? '',
+      details: (json['details'] as List? ?? [])
+          .whereType<Map>()
+          .map((item) => PebAssignmentPlanDetail.fromJson(
+              Map<String, dynamic>.from(item)))
+          .toList(),
+    );
+  }
+}
+
 class PebSetupItem {
   final String id;
   final String name;

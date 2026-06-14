@@ -1,7 +1,9 @@
 import 'dart:async';
 import 'dart:collection';
 
+import 'package:dio/dio.dart';
 import 'package:flutter/foundation.dart';
+import 'package:untitled2/core/utlis/common_functions.dart';
 
 import '../models/peb_execution_models.dart';
 import 'peb_execution_service.dart';
@@ -50,6 +52,7 @@ class DprBulkTask {
   final int processed;
   final int failed;
   final String? error;
+  final List<String> failedDetails;
 
   const DprBulkTask({
     required this.id,
@@ -69,6 +72,7 @@ class DprBulkTask {
     this.processed = 0,
     this.failed = 0,
     this.error,
+    this.failedDetails = const [],
   });
 
   int get total => items.length;
@@ -83,6 +87,7 @@ class DprBulkTask {
     int? processed,
     int? failed,
     String? error,
+    List<String>? failedDetails,
   }) {
     return DprBulkTask(
       id: id,
@@ -102,6 +107,7 @@ class DprBulkTask {
       processed: processed ?? this.processed,
       failed: failed ?? this.failed,
       error: error ?? this.error,
+      failedDetails: failedDetails ?? this.failedDetails,
     );
   }
 }
@@ -200,6 +206,7 @@ class DprBulkTaskManager extends ChangeNotifier {
   Future<void> _runTask(DprBulkTask task) async {
     var processed = task.processed;
     var failed = task.failed;
+    final failedDetails = List<String>.from(task.failedDetails);
     _tasks[task.id] = task.copyWith(status: DprBulkTaskStatus.running);
     notifyListeners();
 
@@ -230,8 +237,9 @@ class DprBulkTaskManager extends ChangeNotifier {
               manualWeightKg: item.manualWeightKg,
               totalWeightKg: item.totalWeightKg,
             );
-          } catch (_) {
+          } catch (error) {
             failed++;
+            failedDetails.add('${item.mark}: ${_friendlyError(error)}');
           } finally {
             processed++;
           }
@@ -239,6 +247,7 @@ class DprBulkTaskManager extends ChangeNotifier {
         _tasks[task.id] = _tasks[task.id]!.copyWith(
           processed: processed,
           failed: failed,
+          failedDetails: List.unmodifiable(failedDetails),
         );
         notifyListeners();
       }
@@ -250,7 +259,10 @@ class DprBulkTaskManager extends ChangeNotifier {
         status: nextStatus,
         processed: processed,
         failed: failed,
-        error: failed > 0 ? '$failed mark update(s) failed.' : null,
+        failedDetails: List.unmodifiable(failedDetails),
+        error: failed > 0
+            ? '$failed mark update(s) failed. ${failedDetails.take(3).join(' | ')}'
+            : null,
       );
       _lastCompletedTaskId = task.id;
       notifyListeners();
@@ -262,5 +274,14 @@ class DprBulkTaskManager extends ChangeNotifier {
       _lastCompletedTaskId = task.id;
       notifyListeners();
     }
+  }
+
+  String _friendlyError(Object error) {
+    if (error is DioException) return extractBackendError(error);
+    final message = error.toString().replaceFirst('Exception: ', '').trim();
+    if (message.isEmpty || message.length > 220) {
+      return 'Unable to update this mark';
+    }
+    return message;
   }
 }
