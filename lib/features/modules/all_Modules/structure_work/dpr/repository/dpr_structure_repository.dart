@@ -249,8 +249,30 @@ class DPRStructureRepository {
     required String format,
     String? type,
   }) async {
-    final apiSheetType = sheetType == 'invoice-v2' ? 'invoice' : sheetType;
     final apiType = _convertStructureTypeForApi(type);
+    if (sheetType == 'detailed-with-pm' ||
+        sheetType == 'detailed' ||
+        sheetType == 'date-mark-default') {
+      final res = await DioClient.dio.get<List<int>>(
+        '/site/$siteId/structure-work/sheets',
+        queryParameters: {
+          'fromDate': fromDate,
+          'toDate': toDate,
+          'sheetType': sheetType,
+          'format': format,
+          'type': apiType,
+        },
+        options: Options(
+          responseType: ResponseType.bytes,
+          extra: {"withCredentials": true},
+        ),
+      );
+      final data = res.data;
+      if (data != null) return Uint8List.fromList(data);
+      throw Exception('Invalid response format: expected binary sheet data');
+    }
+
+    final apiSheetType = sheetType == 'invoice-v2' ? 'invoice' : sheetType;
     final res = await DioClient.dioV2.get(
       '/site/$siteId/sheets/$apiSheetType',
       queryParameters: {
