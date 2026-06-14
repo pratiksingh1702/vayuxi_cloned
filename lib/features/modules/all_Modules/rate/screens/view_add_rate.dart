@@ -12,6 +12,7 @@ import 'package:untitled2/features/modules/all_Modules/site_Details/screens/site
 import 'package:untitled2/features/modules/all_Modules/site_Details/screens/siteList.dart';
 import 'package:untitled2/features/tour/core/tour_models.dart';
 import 'package:untitled2/features/tour/core/tour_package_adapter.dart';
+import 'package:untitled2/features/tour/core/screen_owned_tour_mixin.dart';
 import 'package:untitled2/features/tour/definitions/site_rate_module_tours.dart';
 import 'package:untitled2/features/tour/providers/tour_providers.dart';
 
@@ -25,7 +26,7 @@ class RateSelectCardGrid extends ConsumerStatefulWidget {
   ConsumerState<RateSelectCardGrid> createState() => _RateSelectCardGridState();
 }
 
-class _RateSelectCardGridState extends ConsumerState<RateSelectCardGrid> {
+class _RateSelectCardGridState extends ConsumerState<RateSelectCardGrid> with ScreenOwnedTourMixin<RateSelectCardGrid> {
   static const TourPackageAdapter _tourPackageAdapter = TourPackageAdapter();
   String? _lastShowcasedTourStepId;
   final GlobalKey _viewTourKey = GlobalKey(debugLabel: 'rate_selector_view');
@@ -61,6 +62,8 @@ class _RateSelectCardGridState extends ConsumerState<RateSelectCardGrid> {
         ),
       ],
     );
+    bindScreenOwnedTour(tourId: definition.id, showcaseContext: showcaseContext);
+
     WidgetsBinding.instance.addPostFrameCallback((_) async {
       if (!mounted) return;
       final route = ModalRoute.of(context);
@@ -75,8 +78,7 @@ class _RateSelectCardGridState extends ConsumerState<RateSelectCardGrid> {
       }
       final step = tourController.currentStep;
       final activeTour = tourController.activeTour;
-      if (activeTour == null ||
-          !activeTour.id.startsWith(SiteRateModuleTours.rateId)) {
+      if (activeTour == null || activeTour.id != definition.id) {
         if (_lastShowcasedTourStepId != null) {
           _tourPackageAdapter.dismiss(showcaseContext);
           _lastShowcasedTourStepId = null;

@@ -7,6 +7,7 @@ import 'package:untitled2/core/utlis/widgets/image_clipped.dart';
 import 'package:untitled2/core/utlis/widgets/sidebar.dart';
 import 'package:untitled2/features/tour/core/tour_models.dart';
 import 'package:untitled2/features/tour/core/tour_package_adapter.dart';
+import 'package:untitled2/features/tour/core/screen_owned_tour_mixin.dart';
 import 'package:untitled2/features/tour/definitions/setup_module_tours.dart';
 import 'package:untitled2/features/tour/providers/tour_providers.dart';
 
@@ -23,7 +24,7 @@ class AddSelectCardGrid extends ConsumerStatefulWidget {
   ConsumerState<AddSelectCardGrid> createState() => _AddSelectCardGridState();
 }
 
-class _AddSelectCardGridState extends ConsumerState<AddSelectCardGrid> {
+class _AddSelectCardGridState extends ConsumerState<AddSelectCardGrid> with ScreenOwnedTourMixin<AddSelectCardGrid> {
   static const _adapter = TourPackageAdapter();
   final _mocKey = GlobalKey(debugLabel: 'dpr_add_moc');
   final _floorKey = GlobalKey(debugLabel: 'dpr_add_floor');
@@ -60,6 +61,8 @@ class _AddSelectCardGridState extends ConsumerState<AddSelectCardGrid> {
         ),
       ],
     );
+    bindScreenOwnedTour(tourId: definition.id, showcaseContext: showcaseContext);
+
     WidgetsBinding.instance.addPostFrameCallback((_) async {
       if (!mounted || ModalRoute.of(context)?.isCurrent == false) return;
       final controller = ref.read(appTourControllerProvider.notifier);
@@ -71,7 +74,7 @@ class _AddSelectCardGridState extends ConsumerState<AddSelectCardGrid> {
       }
       final tour = controller.activeTour;
       final step = controller.currentStep;
-      if (tour == null || !tour.id.startsWith(SetupModuleTours.dprSetupId)) {
+      if (tour == null || tour.id != definition.id) {
         if (_lastStep != null) _adapter.dismiss(showcaseContext);
         _lastStep = null;
         return;

@@ -13,6 +13,7 @@ import 'package:untitled2/features/tour/domain/tour_controller.dart';
 import 'package:untitled2/features/tour/domain/tour_presistent.dart';
 import 'package:untitled2/features/tour/core/tour_models.dart';
 import 'package:untitled2/features/tour/core/tour_package_adapter.dart';
+import 'package:untitled2/features/tour/core/screen_owned_tour_mixin.dart';
 import 'package:untitled2/features/tour/definitions/site_rate_module_tours.dart';
 import 'package:untitled2/features/tour/providers/tour_providers.dart';
 import '../../../../../core/utlis/widgets/sidebar.dart';
@@ -27,7 +28,7 @@ class SiteSelectCardGrid extends ConsumerStatefulWidget {
   ConsumerState<SiteSelectCardGrid> createState() => _SiteSelectCardGridState();
 }
 
-class _SiteSelectCardGridState extends ConsumerState<SiteSelectCardGrid> {
+class _SiteSelectCardGridState extends ConsumerState<SiteSelectCardGrid> with ScreenOwnedTourMixin<SiteSelectCardGrid> {
   static const TourPackageAdapter _tourPackageAdapter = TourPackageAdapter();
   String? _lastShowcasedTourStepId;
   final GlobalKey _viewCardTourKey = GlobalKey(debugLabel: 'site_selector_view');
@@ -64,6 +65,9 @@ class _SiteSelectCardGridState extends ConsumerState<SiteSelectCardGrid> {
       ],
     );
 
+    bindScreenOwnedTour(tourId: definition.id, showcaseContext: showcaseContext);
+
+
     WidgetsBinding.instance.addPostFrameCallback((_) async {
       if (!mounted) return;
       final route = ModalRoute.of(context);
@@ -78,8 +82,7 @@ class _SiteSelectCardGridState extends ConsumerState<SiteSelectCardGrid> {
       }
       final step = tourController.currentStep;
       final activeTour = tourController.activeTour;
-      if (activeTour == null ||
-          !activeTour.id.startsWith(SiteRateModuleTours.siteDetailsId)) {
+      if (activeTour == null || activeTour.id != definition.id) {
         if (_lastShowcasedTourStepId != null) {
           _tourPackageAdapter.dismiss(showcaseContext);
           _lastShowcasedTourStepId = null;
@@ -121,6 +124,7 @@ class _SiteSelectCardGridState extends ConsumerState<SiteSelectCardGrid> {
     return ShowCaseWidget(
       builder: (showcaseContext) {
         _syncSiteSelectorTour(showcaseContext);
+
         WidgetsBinding.instance.addPostFrameCallback((_) async {
           if (!_phase1DeepSiteTourEnabled) return;
           final ctrl = ref.read(tourControllerProvider.notifier);

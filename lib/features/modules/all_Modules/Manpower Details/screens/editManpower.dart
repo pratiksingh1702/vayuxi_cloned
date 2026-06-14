@@ -17,6 +17,7 @@ import '../../../../../typeProvider/type_provider.dart';
 import '../../attendance/offline/repo/att_sync.dart';
 import '../../../../tour/core/tour_models.dart';
 import '../../../../tour/core/tour_package_adapter.dart';
+import 'package:untitled2/features/tour/core/screen_owned_tour_mixin.dart';
 import '../../../../tour/definitions/manpower_team_module_tours.dart';
 import '../../../../tour/providers/tour_providers.dart';
 
@@ -34,7 +35,7 @@ class EditManpowerScreen extends ConsumerStatefulWidget {
   ConsumerState<EditManpowerScreen> createState() => _EditManpowerScreenState();
 }
 
-class _EditManpowerScreenState extends ConsumerState<EditManpowerScreen> {
+class _EditManpowerScreenState extends ConsumerState<EditManpowerScreen> with ScreenOwnedTourMixin<EditManpowerScreen> {
   final _formKey = GlobalKey<FormState>();
 
   late TextEditingController _fullNameController;
@@ -646,6 +647,9 @@ class _EditManpowerScreenState extends ConsumerState<EditManpowerScreen> {
       ],
     );
 
+    bindScreenOwnedTour(tourId: definition.id, showcaseContext: showcaseContext);
+
+
     WidgetsBinding.instance.addPostFrameCallback((_) async {
       if (!mounted) return;
       final route = ModalRoute.of(context);
@@ -660,8 +664,7 @@ class _EditManpowerScreenState extends ConsumerState<EditManpowerScreen> {
       }
       final step = controller.currentStep;
       final activeTour = controller.activeTour;
-      if (activeTour == null ||
-          !activeTour.id.startsWith(ManpowerTeamModuleTours.manpowerId)) {
+      if (activeTour == null || activeTour.id != definition.id) {
         if (_lastShowcasedTourStepId != null) {
           _tourPackageAdapter.dismiss(showcaseContext);
           _lastShowcasedTourStepId = null;

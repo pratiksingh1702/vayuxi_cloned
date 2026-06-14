@@ -156,4 +156,17 @@ class AppTourController extends StateNotifier<AppTourState> {
     );
     state = AppTourState.idle;
   }
+
+  void cancelActiveTour({String? onlyTourId}) {
+    final tour = activeTour;
+    if (tour == null) {
+      state = AppTourState.idle;
+      return;
+    }
+    if (onlyTourId != null && tour.id != onlyTourId) return;
+    if (_runtimeTour?.id == tour.id) {
+      _runtimeTour = null;
+    }
+    state = AppTourState.idle;
+  }
 }

@@ -11,6 +11,7 @@ import 'package:untitled2/core/utlis/widgets/sidebar.dart';
 import 'package:untitled2/typeProvider/type_provider.dart';
 import 'package:untitled2/features/tour/core/tour_models.dart';
 import 'package:untitled2/features/tour/core/tour_package_adapter.dart';
+import 'package:untitled2/features/tour/core/screen_owned_tour_mixin.dart';
 import 'package:untitled2/features/tour/definitions/setup_module_tours.dart';
 import 'package:untitled2/features/tour/providers/tour_providers.dart';
 
@@ -29,7 +30,7 @@ class BoqImportSheetScreen extends ConsumerStatefulWidget {
       _BoqImportSheetScreenState();
 }
 
-class _BoqImportSheetScreenState extends ConsumerState<BoqImportSheetScreen> {
+class _BoqImportSheetScreenState extends ConsumerState<BoqImportSheetScreen> with ScreenOwnedTourMixin<BoqImportSheetScreen> {
   static const _adapter = TourPackageAdapter();
   final _fileKey = GlobalKey(debugLabel: 'boq_upload_file');
   final _uploadKey = GlobalKey(debugLabel: 'boq_upload_submit');
@@ -62,6 +63,8 @@ class _BoqImportSheetScreenState extends ConsumerState<BoqImportSheetScreen> {
         ),
       ],
     );
+    bindScreenOwnedTour(tourId: definition.id, showcaseContext: showcaseContext);
+
     WidgetsBinding.instance.addPostFrameCallback((_) async {
       if (!mounted || ModalRoute.of(context)?.isCurrent == false) return;
       final controller = ref.read(appTourControllerProvider.notifier);

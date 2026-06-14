@@ -10,6 +10,7 @@ import 'package:untitled2/features/modules/all_Modules/site_Details/repository/s
 import 'package:untitled2/features/modules/all_Modules/team/provider/teamProvider.dart';
 import 'package:untitled2/features/tour/core/tour_models.dart';
 import 'package:untitled2/features/tour/core/tour_package_adapter.dart';
+import 'package:untitled2/features/tour/core/screen_owned_tour_mixin.dart';
 import 'package:untitled2/features/tour/definitions/attendance_module_tours.dart';
 import 'package:untitled2/features/tour/providers/tour_providers.dart';
 import '../../../../../core/router/routes.dart';
@@ -52,7 +53,7 @@ class AttendanceScreen extends ConsumerStatefulWidget {
   ConsumerState<AttendanceScreen> createState() => _AttendanceScreenState();
 }
 
-class _AttendanceScreenState extends ConsumerState<AttendanceScreen> {
+class _AttendanceScreenState extends ConsumerState<AttendanceScreen> with ScreenOwnedTourMixin<AttendanceScreen> {
   bool allPresent = false;
   bool allAbsent = false;
   final ScrollController _scrollController = ScrollController();
@@ -123,6 +124,7 @@ class _AttendanceScreenState extends ConsumerState<AttendanceScreen> {
   @override
   void initState() {
     super.initState();
+
     WidgetsBinding.instance.addPostFrameCallback((_) async {
       final type = ref.read(typeProvider);
       final siteId = ref.read(selectedSiteIdProvider);
@@ -1093,6 +1095,9 @@ class _AttendanceScreenState extends ConsumerState<AttendanceScreen> {
       includeWorkerControls: includeWorkerControls,
     );
 
+    bindScreenOwnedTour(tourId: definition.id, showcaseContext: showcaseContext);
+
+
     WidgetsBinding.instance.addPostFrameCallback((_) async {
       if (!mounted || isLoading) return;
       final route = ModalRoute.of(context);
@@ -1110,8 +1115,7 @@ class _AttendanceScreenState extends ConsumerState<AttendanceScreen> {
 
       final step = tourController.currentStep;
       final activeTour = tourController.activeTour;
-      if (activeTour == null ||
-          !activeTour.id.startsWith(AttendanceModuleTours.attendanceId)) {
+      if (activeTour == null || activeTour.id != definition.id) {
         if (_lastShowcasedTourStepId != null) {
           _tourPackageAdapter.dismiss(showcaseContext);
           _lastShowcasedTourStepId = null;

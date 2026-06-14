@@ -28,6 +28,7 @@ import '../../../../tour/domain/tour_aware_mixin.dart';
 import '../../../../tour/registry/site_registry.dart';
 import '../../../../tour/core/tour_models.dart';
 import '../../../../tour/core/tour_package_adapter.dart';
+import 'package:untitled2/features/tour/core/screen_owned_tour_mixin.dart';
 import '../../../../tour/definitions/site_rate_module_tours.dart';
 import '../../../../tour/providers/tour_providers.dart';
 import '../../site_Details/providers/site_current_provider.dart';
@@ -46,7 +47,7 @@ class SiteImportCsvScreen extends ConsumerStatefulWidget {
 }
 
 class _SiteImportCsvScreenState extends ConsumerState<SiteImportCsvScreen>
-    with TourAwareMixin<SiteImportCsvScreen> {
+    with ScreenOwnedTourMixin<SiteImportCsvScreen>, TourAwareMixin<SiteImportCsvScreen> {
   bool _isLoading = false;
   String? _selectedFileName;
   PlatformFile? _selectedFile;
@@ -209,6 +210,9 @@ class _SiteImportCsvScreenState extends ConsumerState<SiteImportCsvScreen>
       ],
     );
 
+    bindScreenOwnedTour(tourId: definition.id, showcaseContext: showcaseContext);
+
+
     WidgetsBinding.instance.addPostFrameCallback((_) async {
       if (!mounted || _isLoading) return;
       final route = ModalRoute.of(context);
@@ -223,8 +227,7 @@ class _SiteImportCsvScreenState extends ConsumerState<SiteImportCsvScreen>
       }
       final step = tourController.currentStep;
       final activeTour = tourController.activeTour;
-      if (activeTour == null ||
-          !activeTour.id.startsWith(SiteRateModuleTours.siteDetailsId)) {
+      if (activeTour == null || activeTour.id != definition.id) {
         if (_lastShowcasedTourStepId != null) {
           _tourPackageAdapter.dismiss(showcaseContext);
           _lastShowcasedTourStepId = null;

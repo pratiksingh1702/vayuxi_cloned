@@ -11,6 +11,7 @@ import '../../../../../core/utlis/widgets/fields/searchableDropdown.dart';
 import '../../../../../core/utlis/widgets/sidebar.dart';
 import '../../../../tour/core/tour_models.dart';
 import '../../../../tour/core/tour_package_adapter.dart';
+import 'package:untitled2/features/tour/core/screen_owned_tour_mixin.dart';
 import '../../../../tour/definitions/site_rate_module_tours.dart';
 import '../../../../tour/providers/tour_providers.dart';
 import '../../site_Details/repository/siteModel.dart';
@@ -33,7 +34,7 @@ class EditRateScreen extends ConsumerStatefulWidget {
   ConsumerState<EditRateScreen> createState() => _EditRateScreenState();
 }
 
-class _EditRateScreenState extends ConsumerState<EditRateScreen> {
+class _EditRateScreenState extends ConsumerState<EditRateScreen> with ScreenOwnedTourMixin<EditRateScreen> {
   late TextEditingController siteNameController;
   late TextEditingController hsnCodeController;
   late TextEditingController rateController;
@@ -252,6 +253,9 @@ class _EditRateScreenState extends ConsumerState<EditRateScreen> {
       ],
     );
 
+    bindScreenOwnedTour(tourId: definition.id, showcaseContext: showcaseContext);
+
+
     WidgetsBinding.instance.addPostFrameCallback((_) async {
       if (!mounted) return;
       final route = ModalRoute.of(context);
@@ -266,8 +270,7 @@ class _EditRateScreenState extends ConsumerState<EditRateScreen> {
       }
       final step = tourController.currentStep;
       final activeTour = tourController.activeTour;
-      if (activeTour == null ||
-          !activeTour.id.startsWith(SiteRateModuleTours.rateId)) {
+      if (activeTour == null || activeTour.id != definition.id) {
         if (_lastShowcasedTourStepId != null) {
           _tourPackageAdapter.dismiss(showcaseContext);
           _lastShowcasedTourStepId = null;

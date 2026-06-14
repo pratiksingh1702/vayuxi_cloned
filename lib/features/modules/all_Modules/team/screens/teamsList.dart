@@ -15,6 +15,7 @@ import '../../../../../typeProvider/type_provider.dart';
 import '../../site_Details/providers/site_current_provider.dart';
 import '../../../../tour/core/tour_models.dart';
 import '../../../../tour/core/tour_package_adapter.dart';
+import 'package:untitled2/features/tour/core/screen_owned_tour_mixin.dart';
 import '../../../../tour/definitions/manpower_team_module_tours.dart';
 import '../../../../tour/providers/tour_providers.dart';
 import '../model/teamModel.dart';
@@ -31,7 +32,7 @@ class TeamListPage extends ConsumerStatefulWidget {
   ConsumerState<TeamListPage> createState() => _TeamListPageState();
 }
 
-class _TeamListPageState extends ConsumerState<TeamListPage> {
+class _TeamListPageState extends ConsumerState<TeamListPage> with ScreenOwnedTourMixin<TeamListPage> {
   // Selection mode state
   bool _isSelectionMode = false;
   Set<String> _selectedTeamIds = {};
@@ -224,6 +225,9 @@ class _TeamListPageState extends ConsumerState<TeamListPage> {
       ],
     );
 
+    bindScreenOwnedTour(tourId: definition.id, showcaseContext: showcaseContext);
+
+
     WidgetsBinding.instance.addPostFrameCallback((_) async {
       if (!mounted) return;
       final route = ModalRoute.of(context);
@@ -238,8 +242,7 @@ class _TeamListPageState extends ConsumerState<TeamListPage> {
       }
       final step = controller.currentStep;
       final activeTour = controller.activeTour;
-      if (activeTour == null ||
-          !activeTour.id.startsWith(ManpowerTeamModuleTours.teamId)) {
+      if (activeTour == null || activeTour.id != definition.id) {
         if (_lastShowcasedTourStepId != null) {
           _tourPackageAdapter.dismiss(showcaseContext);
           _lastShowcasedTourStepId = null;

@@ -22,6 +22,7 @@ import '../../../../../../typeProvider/type_provider.dart';
 import '../../../../../../core/router/routes.dart';
 import '../../../../tour/core/tour_models.dart';
 import '../../../../tour/core/tour_package_adapter.dart';
+import 'package:untitled2/features/tour/core/screen_owned_tour_mixin.dart';
 import '../../../../tour/definitions/manpower_team_module_tours.dart';
 import '../../../../tour/providers/tour_providers.dart';
 
@@ -64,7 +65,7 @@ class _ManFieldMappingView extends ConsumerStatefulWidget {
 }
 
 class _ManFieldMappingViewState extends ConsumerState<_ManFieldMappingView>
-    with SingleTickerProviderStateMixin {
+    with ScreenOwnedTourMixin<_ManFieldMappingView>, SingleTickerProviderStateMixin {
   late final AnimationController _stepAnim;
   static const TourPackageAdapter _tourPackageAdapter = TourPackageAdapter();
   String? _lastShowcasedTourStepId;
@@ -713,6 +714,9 @@ class _ManFieldMappingViewState extends ConsumerState<_ManFieldMappingView>
   void _syncImportTour(BuildContext showcaseContext, FieldMappingState viewState) {
     final definition = _buildImportTourDefinition(viewState);
 
+    bindScreenOwnedTour(tourId: definition.id, showcaseContext: showcaseContext);
+
+
     WidgetsBinding.instance.addPostFrameCallback((_) async {
       if (!mounted) return;
       final route = ModalRoute.of(context);
@@ -726,7 +730,7 @@ class _ManFieldMappingViewState extends ConsumerState<_ManFieldMappingView>
       if (isImportTour && activeTour!.id != definition.id) {
         _tourPackageAdapter.dismiss(showcaseContext);
         _lastShowcasedTourStepId = null;
-        await controller.finish();
+        controller.cancelActiveTour(onlyTourId: activeTour.id);
       }
       final tourState = ref.read(appTourControllerProvider);
       if (tourState.status != AppTourStatus.running) {
@@ -737,10 +741,7 @@ class _ManFieldMappingViewState extends ConsumerState<_ManFieldMappingView>
       }
       final step = controller.currentStep;
       final latestActiveTour = controller.activeTour;
-      if (latestActiveTour == null ||
-          !latestActiveTour.id.startsWith(
-            '${ManpowerTeamModuleTours.manpowerId}_import_',
-          )) {
+      if (latestActiveTour == null || latestActiveTour.id != definition.id) {
         if (_lastShowcasedTourStepId != null) {
           _tourPackageAdapter.dismiss(showcaseContext);
           _lastShowcasedTourStepId = null;

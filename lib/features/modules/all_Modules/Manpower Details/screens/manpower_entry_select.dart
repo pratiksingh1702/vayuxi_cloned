@@ -10,6 +10,7 @@ import 'package:untitled2/features/modules/all_Modules/Manpower%20Details/screen
 import '../../../../../core/utlis/widgets/sidebar.dart';
 import '../../../../tour/core/tour_models.dart';
 import '../../../../tour/core/tour_package_adapter.dart';
+import 'package:untitled2/features/tour/core/screen_owned_tour_mixin.dart';
 import '../../../../tour/definitions/manpower_team_module_tours.dart';
 import '../../../../tour/providers/tour_providers.dart';
 import '../../dpr/screens/widgets/select_card.dart';
@@ -24,7 +25,8 @@ class ManEntrySelectCardGrid extends ConsumerStatefulWidget {
 }
 
 class _ManEntrySelectCardGridState
-    extends ConsumerState<ManEntrySelectCardGrid> {
+    extends ConsumerState<ManEntrySelectCardGrid>
+    with ScreenOwnedTourMixin<ManEntrySelectCardGrid> {
   static const TourPackageAdapter _tourPackageAdapter = TourPackageAdapter();
   String? _lastShowcasedTourStepId;
   final GlobalKey _manualTourKey =
@@ -62,6 +64,8 @@ class _ManEntrySelectCardGridState
         ),
       ],
     );
+    bindScreenOwnedTour(tourId: definition.id, showcaseContext: showcaseContext);
+
     WidgetsBinding.instance.addPostFrameCallback((_) async {
       if (!mounted) return;
       final route = ModalRoute.of(context);
@@ -76,8 +80,7 @@ class _ManEntrySelectCardGridState
       }
       final step = controller.currentStep;
       final activeTour = controller.activeTour;
-      if (activeTour == null ||
-          !activeTour.id.startsWith(ManpowerTeamModuleTours.manpowerId)) {
+      if (activeTour == null || activeTour.id != definition.id) {
         if (_lastShowcasedTourStepId != null) {
           _tourPackageAdapter.dismiss(showcaseContext);
           _lastShowcasedTourStepId = null;

@@ -12,6 +12,7 @@ import 'package:untitled2/core/utlis/widgets/custom_dropdown.dart';
 import 'package:untitled2/core/utlis/widgets/sidebar.dart';
 import 'package:untitled2/features/tour/core/tour_models.dart';
 import 'package:untitled2/features/tour/core/tour_package_adapter.dart';
+import 'package:untitled2/features/tour/core/screen_owned_tour_mixin.dart';
 import 'package:untitled2/features/tour/definitions/setup_module_tours.dart';
 import 'package:untitled2/features/tour/providers/tour_providers.dart';
 
@@ -35,7 +36,7 @@ class PebSetupScreen extends ConsumerStatefulWidget {
   ConsumerState<PebSetupScreen> createState() => _PebSetupScreenState();
 }
 
-class _PebSetupScreenState extends ConsumerState<PebSetupScreen> {
+class _PebSetupScreenState extends ConsumerState<PebSetupScreen> with ScreenOwnedTourMixin<PebSetupScreen> {
   static const TourPackageAdapter _tourPackageAdapter = TourPackageAdapter();
   final _service = PebExecutionService();
   final GlobalKey _trackingLevelTourKey =
@@ -116,6 +117,9 @@ class _PebSetupScreenState extends ConsumerState<PebSetupScreen> {
       ],
     );
 
+    bindScreenOwnedTour(tourId: definition.id, showcaseContext: showcaseContext);
+
+
     WidgetsBinding.instance.addPostFrameCallback((_) async {
       if (!mounted) return;
       final route = ModalRoute.of(context);
@@ -130,8 +134,7 @@ class _PebSetupScreenState extends ConsumerState<PebSetupScreen> {
       }
       final step = tourController.currentStep;
       final activeTour = tourController.activeTour;
-      if (activeTour == null ||
-          !activeTour.id.startsWith(SetupModuleTours.erectionSetupId)) {
+      if (activeTour == null || activeTour.id != definition.id) {
         if (_lastShowcasedTourStepId != null) {
           _tourPackageAdapter.dismiss(showcaseContext);
           _lastShowcasedTourStepId = null;

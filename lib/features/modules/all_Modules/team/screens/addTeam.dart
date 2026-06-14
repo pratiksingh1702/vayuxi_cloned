@@ -15,6 +15,7 @@ import '../../../../../typeProvider/type_provider.dart';
 import '../../../../tour/domain/tour_controller.dart';
 import '../../../../tour/core/tour_models.dart';
 import '../../../../tour/core/tour_package_adapter.dart';
+import 'package:untitled2/features/tour/core/screen_owned_tour_mixin.dart';
 import '../../../../tour/definitions/manpower_team_module_tours.dart';
 import '../../../../tour/providers/tour_providers.dart';
 import '../../Manpower Details/model/manpower_model.dart';
@@ -34,7 +35,7 @@ class AddTeamScreen extends ConsumerStatefulWidget {
   ConsumerState<AddTeamScreen> createState() => _AddTeamScreenState();
 }
 
-class _AddTeamScreenState extends ConsumerState<AddTeamScreen> {
+class _AddTeamScreenState extends ConsumerState<AddTeamScreen> with ScreenOwnedTourMixin<AddTeamScreen> {
   final _formKey = GlobalKey<FormState>();
   final _teamNameController = TextEditingController();
 
@@ -541,6 +542,8 @@ class _AddTeamScreenState extends ConsumerState<AddTeamScreen> {
         ),
       ],
     );
+    bindScreenOwnedTour(tourId: definition.id, showcaseContext: showcaseContext);
+
     WidgetsBinding.instance.addPostFrameCallback((_) async {
       if (!mounted) return;
       final route = ModalRoute.of(context);
@@ -555,8 +558,7 @@ class _AddTeamScreenState extends ConsumerState<AddTeamScreen> {
       }
       final step = controller.currentStep;
       final activeTour = controller.activeTour;
-      if (activeTour == null ||
-          !activeTour.id.startsWith(ManpowerTeamModuleTours.teamId)) {
+      if (activeTour == null || activeTour.id != definition.id) {
         if (_lastShowcasedTourStepId != null) {
           _tourPackageAdapter.dismiss(showcaseContext);
           _lastShowcasedTourStepId = null;

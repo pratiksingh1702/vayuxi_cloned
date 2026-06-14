@@ -10,6 +10,7 @@ import 'package:untitled2/features/modules/all_Modules/structure_work/boq/screen
 import 'package:untitled2/features/modules/all_Modules/structure_work/boq/screens/boq_item_list.dart';
 import 'package:untitled2/features/tour/core/tour_models.dart';
 import 'package:untitled2/features/tour/core/tour_package_adapter.dart';
+import 'package:untitled2/features/tour/core/screen_owned_tour_mixin.dart';
 import 'package:untitled2/features/tour/definitions/setup_module_tours.dart';
 import 'package:untitled2/features/tour/providers/tour_providers.dart';
 
@@ -27,7 +28,7 @@ class ViewAddBoqScreen extends ConsumerStatefulWidget {
   ConsumerState<ViewAddBoqScreen> createState() => _ViewAddBoqScreenState();
 }
 
-class _ViewAddBoqScreenState extends ConsumerState<ViewAddBoqScreen> {
+class _ViewAddBoqScreenState extends ConsumerState<ViewAddBoqScreen> with ScreenOwnedTourMixin<ViewAddBoqScreen> {
   static const TourPackageAdapter _tourPackageAdapter = TourPackageAdapter();
   final GlobalKey _viewTourKey = GlobalKey(debugLabel: 'boq_upload_view');
   final GlobalKey _addTourKey = GlobalKey(debugLabel: 'boq_upload_add');
@@ -65,6 +66,9 @@ class _ViewAddBoqScreenState extends ConsumerState<ViewAddBoqScreen> {
         ),
       ],
     );
+
+    bindScreenOwnedTour(tourId: definition.id, showcaseContext: showcaseContext);
+
 
     WidgetsBinding.instance.addPostFrameCallback((_) async {
       if (!mounted) return;

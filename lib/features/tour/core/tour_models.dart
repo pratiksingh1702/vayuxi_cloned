@@ -14,6 +14,8 @@ class AppTourStep {
   final double? tooltipBottomOffset;
   final bool showTooltip;
   final bool autoScrollToTarget;
+  final String? voiceText;
+  final bool autoSpeak;
 
   const AppTourStep({
     required this.id,
@@ -25,6 +27,8 @@ class AppTourStep {
     this.tooltipBottomOffset,
     this.showTooltip = true,
     this.autoScrollToTarget = false,
+    this.voiceText,
+    this.autoSpeak = true,
   });
 }
 

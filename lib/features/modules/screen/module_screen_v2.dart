@@ -3,7 +3,6 @@ import 'dart:ui';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
-import 'package:showcaseview/showcaseview.dart';
 import 'package:untitled2/core/screens/theme_switcher.dart';
 import 'package:untitled2/features/noti_system/updates/presentation/navigation/updates_routes.dart';
 import 'package:untitled2/features/noti_system/updates/application/providers/notification_providers.dart';
@@ -26,7 +25,7 @@ import 'package:untitled2/typeProvider/type_provider.dart';
 // ignore: unused_import // reserved for placeholder routes
 import 'package:untitled2/core/router/placeholders.dart';
 import 'package:untitled2/features/tour/core/tour_models.dart';
-import 'package:untitled2/features/tour/core/tour_package_adapter.dart';
+import 'package:untitled2/features/tour/core/screen_owned_tour_mixin.dart';
 import 'package:untitled2/features/tour/definitions/module_screen_tours.dart';
 import 'package:untitled2/features/tour/providers/tour_providers.dart';
 import 'widgets/access_overlay.dart';
@@ -75,6 +74,35 @@ class ModuleItem {
   });
 }
 
+enum _ModuleScreenHighlightKind { module, dropdown, addEntry }
+
+class _ModuleScreenHighlightTarget {
+  final GlobalKey key;
+  final _ModuleScreenHighlightKind kind;
+  final ModuleItem? item;
+  final String? dropdownLabel;
+
+  const _ModuleScreenHighlightTarget.module({
+    required this.key,
+    required ModuleItem module,
+  })  : kind = _ModuleScreenHighlightKind.module,
+        item = module,
+        dropdownLabel = null;
+
+  const _ModuleScreenHighlightTarget.dropdown({
+    required this.key,
+    required String label,
+  })  : kind = _ModuleScreenHighlightKind.dropdown,
+        dropdownLabel = label,
+        item = null;
+
+  const _ModuleScreenHighlightTarget.addEntry({
+    required this.key,
+  })  : kind = _ModuleScreenHighlightKind.addEntry,
+        item = null,
+        dropdownLabel = null;
+}
+
 class ModuleScreenV2 extends ConsumerStatefulWidget {
   final int initialIndex;
   const ModuleScreenV2({super.key, this.initialIndex = 0});
@@ -84,7 +112,7 @@ class ModuleScreenV2 extends ConsumerStatefulWidget {
 }
 
 class _ModuleScreenV2State extends ConsumerState<ModuleScreenV2>
-    with SingleTickerProviderStateMixin {
+    with ScreenOwnedTourMixin<ModuleScreenV2>, SingleTickerProviderStateMixin {
   late int _currentIndex;
   late AnimationController _pulseController;
   late Animation<double> _pulseAnimation;
@@ -136,8 +164,11 @@ class _ModuleScreenV2State extends ConsumerState<ModuleScreenV2>
   bool _checkInProgress = false;
   VoidCallback? _pendingAction;
   String? _lastShowcasedTourStepId;
-  static const TourPackageAdapter _tourPackageAdapter = TourPackageAdapter();
   final Map<String, GlobalKey> _moduleTourKeys = {};
+  final GlobalKey _moduleTourStackKey =
+      GlobalKey(debugLabel: 'module_tour_stack');
+  GlobalKey? _moduleTourHighlightKey;
+  Rect? _moduleTourHighlightRect;
 
   // NEW — module card attach/detach
   bool _moduleCardAttached = false;
@@ -244,8 +275,13 @@ class _ModuleScreenV2State extends ConsumerState<ModuleScreenV2>
     }
   }
 
-  void _syncModuleTour(BuildContext showcaseContext, Translator t) {
+  void _syncModuleTour(BuildContext screenContext, Translator t) {
     final currentTabTour = _buildCurrentTabTour(t);
+    bindScreenOwnedTour(
+      tourId: currentTabTour.id,
+      showcaseContext: screenContext,
+    );
+
     WidgetsBinding.instance.addPostFrameCallback((_) async {
       if (!mounted || _overlayLoading || _overlayType != null) return;
       if (currentTabTour.tabIndex != _currentIndex) return;
@@ -273,16 +309,12 @@ class _ModuleScreenV2State extends ConsumerState<ModuleScreenV2>
           : '${activeTour.id}:${step.id}';
 
       if (step == null) {
-        if (_lastShowcasedTourStepId != null) {
-          _tourPackageAdapter.dismiss(showcaseContext);
-          _lastShowcasedTourStepId = null;
-        }
+        _lastShowcasedTourStepId = null;
         return;
       }
 
       if (_lastShowcasedTourStepId == stepKey) return;
       _lastShowcasedTourStepId = stepKey;
-      _tourPackageAdapter.showStep(showcaseContext, step);
     });
   }
 
@@ -643,12 +675,13 @@ class _ModuleScreenV2State extends ConsumerState<ModuleScreenV2>
     final signature = _moduleListSignature(modules);
 
     return AppTourDefinition(
-      id: '${policyId}_${type}_$signature',
+      id: '${policyId}_v2_${type}_$signature',
       title: _tabTourTitle(_currentIndex),
       description: 'Explains the visible modules in this tab.',
       icon: _tabTourIcon(_currentIndex),
       tabIndex: _currentIndex,
       steps: [
+        if (_currentIndex == 0) ..._dailyEntryIntroTourSteps(),
         for (var i = 0; i < modules.length; i++)
           AppTourStep(
             id: 'module_${i}_${_safeTourPart(modules[i].routeName)}',
@@ -657,11 +690,69 @@ class _ModuleScreenV2State extends ConsumerState<ModuleScreenV2>
               modules[i],
               _moduleTourTitle(modules[i], t),
             ),
+            voiceText: _moduleTourVoiceDescription(
+              modules[i],
+              _moduleTourTitle(modules[i], t),
+            ),
             targetKey: _moduleTourTargetKey(modules[i], i),
             progressLabel: 'Module ${i + 1} of ${modules.length}',
           ),
       ],
     );
+  }
+
+  List<AppTourStep> _dailyEntryIntroTourSteps() {
+    return [
+      AppTourStep(
+        id: 'daily_type_dropdown',
+        title: 'Type',
+        body:
+            'Tap here to choose the kind of site work. After this, the app shows the right cards for that work.',
+        voiceText:
+            'यहां टैप करके साइट का काम चुनिए। इसके बाद ऐप उसी हिसाब से सही बटन दिखाएगा।',
+        targetKey: ModuleScreenTourTargets.typeDropdownKey,
+        progressLabel: 'Choose work type',
+      ),
+      AppTourStep(
+        id: 'daily_mode_dropdown',
+        title: 'Mode',
+        body:
+            'Tap here to choose how you will add work. Single means one entry. Multi means many entries.',
+        voiceText:
+            'यहां टैप करके तरीका चुनिए। सिंगल मतलब एक एंट्री। मल्टी मतलब कई एंट्री।',
+        targetKey: ModuleScreenTourTargets.modeDropdownKey,
+        progressLabel: 'Choose entry mode',
+      ),
+      AppTourStep(
+        id: 'daily_site_dropdown',
+        title: 'Site',
+        body:
+            'Tap here to choose the site. Site means the place where work is happening.',
+        voiceText:
+            'यहां टैप करके साइट चुनिए। साइट मतलब वह जगह जहां काम चल रहा है।',
+        targetKey: ModuleScreenTourTargets.siteDropdownKey,
+        progressLabel: 'Choose site',
+      ),
+      AppTourStep(
+        id: 'daily_team_dropdown',
+        title: 'Team',
+        body:
+            'Tap here to choose the team. Team means the group of workers doing the work.',
+        voiceText: 'यहां टैप करके टीम चुनिए। टीम मतलब मजदूरों का ग्रुप।',
+        targetKey: ModuleScreenTourTargets.teamDropdownKey,
+        progressLabel: 'Choose team',
+      ),
+      AppTourStep(
+        id: 'daily_add_entry',
+        title: 'Add Entry',
+        body:
+            'Tap this button when you want to add today work quickly. It helps you fill daily work step by step.',
+        voiceText:
+            'आज की एंट्री जल्दी भरनी हो, तो इस बटन पर टैप कीजिए। ऐप आपको एक एक कदम से भरवाएगा।',
+        targetKey: ModuleScreenTourTargets.addEntryKey,
+        progressLabel: 'Add daily work',
+      ),
+    ];
   }
 
   String _tabTourTitle(int tabIndex) {
@@ -743,56 +834,61 @@ class _ModuleScreenV2State extends ConsumerState<ModuleScreenV2>
 
   String _moduleTourDescription(ModuleItem item, String title) {
     final byRoute = <String, String>{
-      '/site-list/attendance': 'Use this to mark who came to work today.',
-      '/site-list/dpr': "Use this to record today's work progress at the site.",
-      Routes.civilDpr: "Use this to record today's work progress at the site.",
+      '/site-list/attendance':
+          'Tap here to write who came today and who did not come.',
+      '/site-list/dpr':
+          'Tap here to write what work was done today at the site.',
+      Routes.civilDpr:
+          'Tap here to write what work was done today at the site.',
       Routes.roofingDpr:
-          "Use this to record today's work progress at the site.",
+          'Tap here to write what work was done today at the site.',
       Routes.fabricationDpr:
-          "Use this to record today's work progress at the site.",
+          'Tap here to write what work was done today at the site.',
       '/site-list/structure-pm-entry':
-          'Use this to enter plant and machinery work for today.',
-      '/site-list/add-exp': 'Use this to add money spent on site work.',
+          'Tap here to write which machine was used today and for what work.',
+      '/site-list/add-exp':
+          'Tap here to write money spent today, like diesel, food, tools, or travel.',
       '/site-list/inv-entry':
-          'Use this to record material received, issued, or used.',
-      '/site': 'Use this to create and manage your project sites.',
+          'Tap here to write material that came in or material that was used.',
+      '/site': 'Tap here to add the site name and site details.',
       '/site-list/rate':
-          'Use this to set work or item rates before entries and reports.',
-      '/manpower': 'Use this to add workers and manpower details.',
-      '/site-list/team': 'Use this to create teams for site work.',
+          'Tap here to add the money rate for work or material.',
+      '/manpower': 'Tap here to add worker names and worker details.',
+      '/site-list/team': 'Tap here to make worker groups or teams.',
       '/site-list/inv-setup':
-          'Use this to set up materials before inventory entries.',
-      Routes.boqUpload:
-          'Use this to view BOQ items or upload new BOQ data from Excel.',
+          'Tap here to add material names before using inventory.',
+      Routes.boqUpload: 'Tap here to add or upload the work item list.',
       '/site-list/structure-history-upload':
-          'Use this to upload old structure work history.',
+          'Tap here to put old work data in the app.',
       '/site-list/addMoc':
-          'Use this to set up DPR options before daily progress entries.',
+          'Tap here to add choices needed before filling daily work.',
       Routes.erectionSetup:
-          'Use this to prepare structure erection stages, tracking, and images before DPR entry.',
+          'Tap here to add structure work parts before daily work.',
       Routes.civilSetup:
-          'Use this to set up DPR options before daily progress entries.',
+          'Tap here to add choices needed before filling daily work.',
       Routes.roofingSetup:
-          'Use this to set up DPR options before daily progress entries.',
+          'Tap here to add choices needed before filling daily work.',
       Routes.fabricationSetup:
-          'Use this to set up DPR options before daily progress entries.',
-      '/site-list/work-assignment': 'Use this to assign work items to teams.',
+          'Tap here to add choices needed before filling daily work.',
+      '/site-list/work-assignment':
+          'Tap here to give work to a team or worker.',
       '/site-list/structure-pm-setup':
-          'Use this to choose P&M categories and add the works used in daily P&M entries.',
-      '/summary': 'Use this to see a quick summary of project progress.',
-      '/salary': 'Use this to check and download salary slips.',
-      '/site-list/dprReport': 'Use this to view or download DPR reports.',
-      '/site-list/structure-pm-report': 'Use this to check P&M report details.',
-      '/site-list/expense': 'Use this to view or download expense records.',
+          'Tap here to add machine names before using P&M.',
+      '/summary': 'Tap here to see a short count of site work.',
+      '/salary': 'Tap here to see and download salary slips.',
+      '/site-list/dprReport': 'Tap here to see or download daily work reports.',
+      '/site-list/structure-pm-report':
+          'Tap here to see machine work reports.',
+      '/site-list/expense': 'Tap here to see or download money spent records.',
       '/site-list/att-sheet':
-          'Use this to view or download attendance records.',
-      '/site-list/inv-Report': 'Use this to check inventory summaries.',
-      '/profile': 'Use this to view or update your profile.',
-      '/subscription': 'Use this to manage your plan and subscription.',
-      '/upcoming-update': 'Use this to see new and upcoming app updates.',
-      '/theme': 'Use this to change the app look.',
-      '/language': 'Use this to change the app language.',
-      '/help': 'Use this when you need support or guidance.',
+          'Tap here to see or download who came today.',
+      '/site-list/inv-Report': 'Tap here to see material records.',
+      '/profile': 'Tap here to see or change your name and photo.',
+      '/subscription': 'Tap here to see your app plan.',
+      '/upcoming-update': 'Tap here to see what is new in the app.',
+      '/theme': 'Tap here to change app color.',
+      '/language': 'Tap here to change app language.',
+      '/help': 'Tap here when you need help.',
     };
 
     final routeDescription = byRoute[item.routeName];
@@ -800,30 +896,223 @@ class _ModuleScreenV2State extends ConsumerState<ModuleScreenV2>
 
     final lookup = '${item.labelKey} $title'.toLowerCase();
     if (lookup.contains('attendance')) {
-      return 'Use this to mark who came to work today.';
+      return 'Tap here to write who came today and who did not come.';
     }
     if (lookup.contains('dpr') || lookup.contains('daily_progress')) {
-      return "Use this to record today's work progress at the site.";
+      return 'Tap here to write what work was done today at the site.';
     }
     if (lookup.contains('expense')) {
-      return 'Use this to add or check money spent on site work.';
+      return 'Tap here to write or see money spent at the site.';
     }
     if (lookup.contains('inventory')) {
-      return 'Use this to manage material details for site work.';
+      return 'Tap here to write or see material details.';
     }
     if (lookup.contains('site')) {
-      return 'Use this to create and manage your project sites.';
+      return 'Tap here to add or see site details.';
     }
     if (lookup.contains('rate')) {
-      return 'Use this to set rates before entries and reports.';
+      return 'Tap here to add money rates.';
     }
     if (lookup.contains('team')) {
-      return 'Use this to create teams for site work.';
+      return 'Tap here to make worker groups or teams.';
     }
     if (lookup.contains('report') || lookup.contains('sheet')) {
-      return 'Use this to check summaries and download work records.';
+      return 'Tap here to see or download saved records.';
     }
-    return 'Open this module to manage $title.';
+    return 'Tap here to open $title and do this work.';
+  }
+
+  String _moduleTourVoiceDescriptionAscii(ModuleItem item, String title) {
+    final byRoute = <String, String>{
+      '/site-list/attendance':
+          'Attendance ke liye yahan tap kijiye. Isme likhiye, aaj kaun aaya aur kaun nahi aaya.',
+      '/site-list/dpr':
+          'D P R ke liye yahan tap kijiye. Isme aaj site par kya kaam hua, vah likhiye.',
+      Routes.civilDpr:
+          'D P R ke liye yahan tap kijiye. Isme aaj site par kya kaam hua, vah likhiye.',
+      Routes.roofingDpr:
+          'D P R ke liye yahan tap kijiye. Isme aaj site par kya kaam hua, vah likhiye.',
+      Routes.fabricationDpr:
+          'D P R ke liye yahan tap kijiye. Isme aaj site par kya kaam hua, vah likhiye.',
+      '/site-list/structure-pm-entry':
+          'P and M entry ke liye yahan tap kijiye. Kaun si machine lagi, aur kya kaam kiya, vah likhiye.',
+      '/site-list/add-exp':
+          'Kharcha likhne ke liye yahan tap kijiye. Jaise diesel, khana, saman, ya aane jane ka kharcha.',
+      '/site-list/inv-entry':
+          'Material likhne ke liye yahan tap kijiye. Kaun sa saman aaya, ya kaun sa saman laga, vah likhiye.',
+      '/site': 'Site jodne ya dekhne ke liye yahan tap kijiye.',
+      '/site-list/rate':
+          'Rate jodne ke liye yahan tap kijiye. Kaam ya saman ka paisa yahan likhiye.',
+      '/manpower':
+          'Majdooron ki jankari jodne ke liye yahan tap kijiye. Naam aur baaki jankari yahan likhiye.',
+      '/site-list/team':
+          'Team banane ke liye yahan tap kijiye. Majdooron ka group yahan banaiye.',
+      '/site-list/inv-setup':
+          'Material ke naam pehle se jodne ke liye yahan tap kijiye.',
+      Routes.boqUpload:
+          'Kaam ki list jodne ya upload karne ke liye yahan tap kijiye.',
+      '/site-list/structure-history-upload':
+          'Purana data app mein dalne ke liye yahan tap kijiye.',
+      '/site-list/addMoc':
+          'Roj ki entry se pehle jaruri option jodne ke liye yahan tap kijiye.',
+      Routes.erectionSetup:
+          'Structure ke part jodne ke liye yahan tap kijiye.',
+      Routes.civilSetup:
+          'Roj ki entry se pehle jaruri option jodne ke liye yahan tap kijiye.',
+      Routes.roofingSetup:
+          'Roj ki entry se pehle jaruri option jodne ke liye yahan tap kijiye.',
+      Routes.fabricationSetup:
+          'Roj ki entry se pehle jaruri option jodne ke liye yahan tap kijiye.',
+      '/site-list/work-assignment':
+          'Team ya majdoor ko kaam dene ke liye yahan tap kijiye.',
+      '/site-list/structure-pm-setup':
+          'Machine ke naam pehle se jodne ke liye yahan tap kijiye.',
+      '/summary': 'Site ka chhota hisab dekhne ke liye yahan tap kijiye.',
+      '/salary': 'Salary slip dekhne ya download karne ke liye yahan tap kijiye.',
+      '/site-list/dprReport':
+          'D P R report dekhne ya download karne ke liye yahan tap kijiye.',
+      '/site-list/structure-pm-report':
+          'Machine ki report dekhne ke liye yahan tap kijiye.',
+      '/site-list/expense':
+          'Kharcha record dekhne ya download karne ke liye yahan tap kijiye.',
+      '/site-list/att-sheet':
+          'Kaun aaya tha, ye record dekhne ya download karne ke liye yahan tap kijiye.',
+      '/site-list/inv-Report':
+          'Material ka record dekhne ke liye yahan tap kijiye.',
+      '/profile': 'Apna naam aur photo dekhne ya badalne ke liye yahan tap kijiye.',
+      '/subscription': 'App ka plan dekhne ke liye yahan tap kijiye.',
+      '/upcoming-update':
+          'App mein naya kya hai, ye dekhne ke liye yahan tap kijiye.',
+      '/theme': 'App ka rang badalne ke liye yahan tap kijiye.',
+      '/language': 'App ki bhasha badalne ke liye yahan tap kijiye.',
+      '/help': 'Madad chahiye ho, to yahan tap kijiye.',
+    };
+
+    final routeVoice = byRoute[item.routeName];
+    if (routeVoice != null) return routeVoice;
+
+    final lookup = '${item.labelKey} $title'.toLowerCase();
+    if (lookup.contains('attendance')) {
+      return 'Attendance ke liye yahan tap kijiye. Isme likhiye, aaj kaun aaya aur kaun nahi aaya.';
+    }
+    if (lookup.contains('dpr') || lookup.contains('daily_progress')) {
+      return 'D P R ke liye yahan tap kijiye. Isme aaj site par kya kaam hua, vah likhiye.';
+    }
+    if (lookup.contains('expense')) {
+      return 'Kharcha likhne ya dekhne ke liye yahan tap kijiye.';
+    }
+    if (lookup.contains('inventory')) {
+      return 'Material ki jankari likhne ya dekhne ke liye yahan tap kijiye.';
+    }
+    if (lookup.contains('site')) {
+      return 'Site ki jankari jodne ya dekhne ke liye yahan tap kijiye.';
+    }
+    if (lookup.contains('rate')) {
+      return 'Rate jodne ke liye yahan tap kijiye.';
+    }
+    if (lookup.contains('team')) {
+      return 'Team banane ya dekhne ke liye yahan tap kijiye.';
+    }
+    if (lookup.contains('report') || lookup.contains('sheet')) {
+      return 'Record dekhne ya download karne ke liye yahan tap kijiye.';
+    }
+    return '$title kholne ke liye yahan tap kijiye.';
+  }
+
+  String _moduleTourVoiceDescription(ModuleItem item, String title) {
+    final byRoute = <String, String>{
+      '/site-list/attendance':
+          'हाजिरी के लिए यहां टैप कीजिए। इसमें लिखिए, आज कौन आया और कौन नहीं आया।',
+      '/site-list/dpr':
+          'डी पी आर के लिए यहां टैप कीजिए। इसमें आज साइट पर क्या काम हुआ, वह लिखिए।',
+      Routes.civilDpr:
+          'डी पी आर के लिए यहां टैप कीजिए। इसमें आज साइट पर क्या काम हुआ, वह लिखिए।',
+      Routes.roofingDpr:
+          'डी पी आर के लिए यहां टैप कीजिए। इसमें आज साइट पर क्या काम हुआ, वह लिखिए।',
+      Routes.fabricationDpr:
+          'डी पी आर के लिए यहां टैप कीजिए। इसमें आज साइट पर क्या काम हुआ, वह लिखिए।',
+      '/site-list/structure-pm-entry':
+          'पी एंड एम एंट्री के लिए यहां टैप कीजिए। कौन सी मशीन लगी, और क्या काम किया, वह लिखिए।',
+      '/site-list/add-exp':
+          'खर्चा लिखने के लिए यहां टैप कीजिए। जैसे डीजल, खाना, सामान, या आने जाने का खर्चा।',
+      '/site-list/inv-entry':
+          'मटेरियल लिखने के लिए यहां टैप कीजिए। कौन सा सामान आया, या कौन सा सामान लगा, वह लिखिए।',
+      '/site': 'साइट जोड़ने या देखने के लिए यहां टैप कीजिए।',
+      '/site-list/rate':
+          'रेट जोड़ने के लिए यहां टैप कीजिए। काम या सामान का पैसा यहां लिखिए।',
+      '/manpower':
+          'मजदूरों की जानकारी जोड़ने के लिए यहां टैप कीजिए। नाम और बाकी जानकारी यहां लिखिए।',
+      '/site-list/team':
+          'टीम बनाने के लिए यहां टैप कीजिए। मजदूरों का ग्रुप यहां बनाइए।',
+      '/site-list/inv-setup':
+          'मटेरियल के नाम पहले से जोड़ने के लिए यहां टैप कीजिए।',
+      Routes.boqUpload:
+          'काम की लिस्ट जोड़ने या अपलोड करने के लिए यहां टैप कीजिए।',
+      '/site-list/structure-history-upload':
+          'पुराना डेटा ऐप में डालने के लिए यहां टैप कीजिए।',
+      '/site-list/addMoc':
+          'रोज की एंट्री से पहले जरूरी विकल्प जोड़ने के लिए यहां टैप कीजिए।',
+      Routes.erectionSetup:
+          'स्ट्रक्चर के पार्ट जोड़ने के लिए यहां टैप कीजिए।',
+      Routes.civilSetup:
+          'रोज की एंट्री से पहले जरूरी विकल्प जोड़ने के लिए यहां टैप कीजिए।',
+      Routes.roofingSetup:
+          'रोज की एंट्री से पहले जरूरी विकल्प जोड़ने के लिए यहां टैप कीजिए।',
+      Routes.fabricationSetup:
+          'रोज की एंट्री से पहले जरूरी विकल्प जोड़ने के लिए यहां टैप कीजिए।',
+      '/site-list/work-assignment':
+          'टीम या मजदूर को काम देने के लिए यहां टैप कीजिए।',
+      '/site-list/structure-pm-setup':
+          'मशीनों के नाम पहले से जोड़ने के लिए यहां टैप कीजिए।',
+      '/summary': 'साइट का छोटा हिसाब देखने के लिए यहां टैप कीजिए।',
+      '/salary': 'सैलरी स्लिप देखने या डाउनलोड करने के लिए यहां टैप कीजिए।',
+      '/site-list/dprReport':
+          'डी पी आर रिपोर्ट देखने या डाउनलोड करने के लिए यहां टैप कीजिए।',
+      '/site-list/structure-pm-report':
+          'मशीन की रिपोर्ट देखने के लिए यहां टैप कीजिए।',
+      '/site-list/expense':
+          'खर्चे का रिकॉर्ड देखने या डाउनलोड करने के लिए यहां टैप कीजिए।',
+      '/site-list/att-sheet':
+          'कौन आया था, यह रिकॉर्ड देखने या डाउनलोड करने के लिए यहां टैप कीजिए।',
+      '/site-list/inv-Report':
+          'मटेरियल का रिकॉर्ड देखने के लिए यहां टैप कीजिए।',
+      '/profile': 'अपना नाम और फोटो देखने या बदलने के लिए यहां टैप कीजिए।',
+      '/subscription': 'ऐप का प्लान देखने के लिए यहां टैप कीजिए।',
+      '/upcoming-update': 'ऐप में नया क्या है, यह देखने के लिए यहां टैप कीजिए।',
+      '/theme': 'ऐप का रंग बदलने के लिए यहां टैप कीजिए।',
+      '/language': 'ऐप की भाषा बदलने के लिए यहां टैप कीजिए।',
+      '/help': 'मदद चाहिए हो, तो यहां टैप कीजिए।',
+    };
+
+    final routeVoice = byRoute[item.routeName];
+    if (routeVoice != null) return routeVoice;
+
+    final lookup = '${item.labelKey} $title'.toLowerCase();
+    if (lookup.contains('attendance')) {
+      return 'हाजिरी के लिए यहां टैप कीजिए। इसमें लिखिए, आज कौन आया और कौन नहीं आया।';
+    }
+    if (lookup.contains('dpr') || lookup.contains('daily_progress')) {
+      return 'डी पी आर के लिए यहां टैप कीजिए। इसमें आज साइट पर क्या काम हुआ, वह लिखिए।';
+    }
+    if (lookup.contains('expense')) {
+      return 'खर्चा लिखने या देखने के लिए यहां टैप कीजिए।';
+    }
+    if (lookup.contains('inventory')) {
+      return 'मटेरियल की जानकारी लिखने या देखने के लिए यहां टैप कीजिए।';
+    }
+    if (lookup.contains('site')) {
+      return 'साइट की जानकारी जोड़ने या देखने के लिए यहां टैप कीजिए।';
+    }
+    if (lookup.contains('rate')) {
+      return 'रेट जोड़ने के लिए यहां टैप कीजिए।';
+    }
+    if (lookup.contains('team')) {
+      return 'टीम बनाने या देखने के लिए यहां टैप कीजिए।';
+    }
+    if (lookup.contains('report') || lookup.contains('sheet')) {
+      return 'रिकॉर्ड देखने या डाउनलोड करने के लिए यहां टैप कीजिए।';
+    }
+    return '$title खोलने के लिए यहां टैप कीजिए।';
   }
 
   void _onSiteChanged(SiteModel? newSite) {
@@ -1058,16 +1347,30 @@ class _ModuleScreenV2State extends ConsumerState<ModuleScreenV2>
     return Positioned(
       bottom: 100 + MediaQuery.of(context).padding.bottom,
       right: 20,
-      child: FloatingActionButton.extended(
-        onPressed: _navigateToWorkflowGate,
-        backgroundColor: cs.primary,
-        foregroundColor: Colors.white,
-        elevation: 4,
-        icon: const Icon(Icons.add_rounded),
-        label: const Text(
-          "Add Entry",
-          style: TextStyle(fontWeight: FontWeight.w700),
+      child: _buildTourTarget(
+        key: ModuleScreenTourTargets.addEntryKey,
+        child: _buildAddEntryButton(
+          cs: cs,
+          onPressed: _navigateToWorkflowGate,
         ),
+      ),
+    );
+  }
+
+  Widget _buildAddEntryButton({
+    required ColorScheme cs,
+    required VoidCallback? onPressed,
+  }) {
+    return FloatingActionButton.extended(
+      heroTag: null,
+      onPressed: onPressed,
+      backgroundColor: cs.primary,
+      foregroundColor: Colors.white,
+      elevation: 4,
+      icon: const Icon(Icons.add_rounded),
+      label: const Text(
+        "Add Entry",
+        style: TextStyle(fontWeight: FontWeight.w700),
       ),
     );
   }
@@ -1109,49 +1412,41 @@ class _ModuleScreenV2State extends ConsumerState<ModuleScreenV2>
         return Scaffold(
           drawer: const CustomDrawer(),
           backgroundColor: _pageBackgroundColor(cs, isDark),
-          body: ShowCaseWidget(
-            builder: (showcaseContext) {
-              _syncModuleTour(showcaseContext, t);
+          body: Builder(
+            builder: (screenContext) {
+              _syncModuleTour(screenContext, t);
               return KeyedSubtree(
                 key: ModuleScreenTourTargets.screenKey,
                 child: GestureDetector(
                   onTap: () {
-                    if (_showQuickSettings)
+                    if (_showQuickSettings) {
                       setState(() => _showQuickSettings = false);
+                    }
                   },
                   child: Stack(
+                    key: _moduleTourStackKey,
                     fit: StackFit.expand,
                     children: [
-                      // Layer 1: Scrollable page content
                       SafeArea(
                         child: _buildScrollBody(t, cs, isDark),
                       ),
-
-                      // Layer 2: Floating dock (nav + optional attached card)
                       _buildFloatingDock(t, cs, isDark),
-
-                      // Layer 3: Quick settings panel
                       if (_showQuickSettings)
                         Positioned(
                           bottom: 84 + MediaQuery.of(context).padding.bottom,
                           left: 20,
                           child: _buildQuickSettingsMenu(t, cs, isDark),
                         ),
-
-                      // Layer 4: Toast notification
                       _buildToastOverlay(),
-
-                      // Layer 5: Access overlay loading spinner
                       if (_overlayLoading)
                         Positioned.fill(
                           child: Container(
                             color: Colors.black26,
-                            child:
-                                const Center(child: CircularProgressIndicator()),
+                            child: const Center(
+                              child: CircularProgressIndicator(),
+                            ),
                           ),
                         ),
-
-                      // Layer 6: Access overlay widget
                       if (!_overlayLoading &&
                           _overlayType != null &&
                           _overlayType != AccessState.noSubscription)
@@ -1162,9 +1457,8 @@ class _ModuleScreenV2State extends ConsumerState<ModuleScreenV2>
                             onDismiss: _hideOverlay,
                           ),
                         ),
-
-                      // Layer 7: Workflow FAB
                       if (_currentIndex == 0) _buildWorkflowFab(cs, isDark),
+                      _buildModuleTourOverlay(t),
                     ],
                   ),
                 ),
@@ -1302,13 +1596,33 @@ class _ModuleScreenV2State extends ConsumerState<ModuleScreenV2>
       padding: const EdgeInsets.symmetric(horizontal: 16),
       child: Row(
         children: [
-          Expanded(child: _buildCustomDropdown(label: "TYPE")),
+          Expanded(
+            child: _buildTourTarget(
+              key: ModuleScreenTourTargets.typeDropdownKey,
+              child: _buildCustomDropdown(label: "TYPE"),
+            ),
+          ),
           const SizedBox(width: 8),
-          Expanded(child: _buildCustomDropdown(label: "MODE")),
+          Expanded(
+            child: _buildTourTarget(
+              key: ModuleScreenTourTargets.modeDropdownKey,
+              child: _buildCustomDropdown(label: "MODE"),
+            ),
+          ),
           const SizedBox(width: 8),
-          Expanded(child: _buildCustomDropdown(label: "SITE")),
+          Expanded(
+            child: _buildTourTarget(
+              key: ModuleScreenTourTargets.siteDropdownKey,
+              child: _buildCustomDropdown(label: "SITE"),
+            ),
+          ),
           const SizedBox(width: 8),
-          Expanded(child: _buildCustomDropdown(label: "TEAM")),
+          Expanded(
+            child: _buildTourTarget(
+              key: ModuleScreenTourTargets.teamDropdownKey,
+              child: _buildCustomDropdown(label: "TEAM"),
+            ),
+          ),
         ],
       ),
     );
@@ -2153,15 +2467,155 @@ class _ModuleScreenV2State extends ConsumerState<ModuleScreenV2>
     EdgeInsets targetPadding = const EdgeInsets.all(6),
     double overlayOpacity = 0.08,
   }) {
-    return Showcase.withWidget(
+    return KeyedSubtree(
       key: key,
-      container: const SizedBox.shrink(),
-      overlayOpacity: overlayOpacity,
-      targetPadding: targetPadding,
-      targetBorderRadius: BorderRadius.circular(18),
-      disableDefaultTargetGestures: false,
       child: child,
     );
+  }
+
+  Widget _buildModuleTourOverlay(Translator t) {
+    final target = _activeModuleScreenTourTarget();
+    if (target == null) {
+      _clearModuleTourMeasurement();
+      return const SizedBox.shrink();
+    }
+
+    final rect = _moduleTourRectFor(target.key);
+    if (rect == null) return const SizedBox.shrink();
+
+    return Positioned.fill(
+      child: Stack(
+        clipBehavior: Clip.none,
+        children: [
+          ModalBarrier(
+            dismissible: false,
+            color: Colors.black.withOpacity(0.78),
+          ),
+          Positioned.fromRect(
+            rect: rect,
+            child: IgnorePointer(
+              child: _buildModuleScreenTourHighlight(
+                target: target,
+                width: rect.width,
+                translator: t,
+              ),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildModuleScreenTourHighlight({
+    required _ModuleScreenHighlightTarget target,
+    required double width,
+    required Translator translator,
+  }) {
+    switch (target.kind) {
+      case _ModuleScreenHighlightKind.module:
+        return _buildModuleItemVisual(
+          item: target.item!,
+          width: width,
+          translator: translator,
+          isPressed: false,
+          labelColor: Colors.white,
+        );
+      case _ModuleScreenHighlightKind.dropdown:
+        return _buildCustomDropdown(label: target.dropdownLabel!);
+      case _ModuleScreenHighlightKind.addEntry:
+        return _buildAddEntryButton(
+          cs: Theme.of(context).colorScheme,
+          onPressed: () {},
+        );
+    }
+  }
+
+  _ModuleScreenHighlightTarget? _activeModuleScreenTourTarget() {
+    final tourController = ref.read(appTourControllerProvider.notifier);
+    final step = tourController.currentStep;
+    final targetKey = step?.targetKey;
+    if (targetKey == null) return null;
+
+    final dropdownTargets = <GlobalKey, String>{
+      ModuleScreenTourTargets.typeDropdownKey: 'TYPE',
+      ModuleScreenTourTargets.modeDropdownKey: 'MODE',
+      ModuleScreenTourTargets.siteDropdownKey: 'SITE',
+      ModuleScreenTourTargets.teamDropdownKey: 'TEAM',
+    };
+
+    final dropdownLabel = dropdownTargets[targetKey];
+    if (dropdownLabel != null) {
+      return _ModuleScreenHighlightTarget.dropdown(
+        key: targetKey,
+        label: dropdownLabel,
+      );
+    }
+
+    if (identical(targetKey, ModuleScreenTourTargets.addEntryKey)) {
+      return _ModuleScreenHighlightTarget.addEntry(key: targetKey);
+    }
+
+    final modules = _currentModules;
+    for (var i = 0; i < modules.length; i++) {
+      final key = _moduleTourTargetKey(modules[i], i);
+      if (identical(key, targetKey)) {
+        return _ModuleScreenHighlightTarget.module(
+          key: key,
+          module: modules[i],
+        );
+      }
+    }
+    return null;
+  }
+
+  Rect? _moduleTourRectFor(GlobalKey targetKey) {
+    _scheduleModuleTourMeasurement(targetKey);
+    if (!identical(_moduleTourHighlightKey, targetKey)) return null;
+    return _moduleTourHighlightRect;
+  }
+
+  void _scheduleModuleTourMeasurement(GlobalKey targetKey) {
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (!mounted) return;
+
+      final targetContext = targetKey.currentContext;
+      final stackContext = _moduleTourStackKey.currentContext;
+      final targetObject = targetContext?.findRenderObject();
+      final stackObject = stackContext?.findRenderObject();
+
+      if (targetObject is! RenderBox ||
+          stackObject is! RenderBox ||
+          !targetObject.hasSize ||
+          !stackObject.hasSize) {
+        return;
+      }
+
+      final targetTopLeft = targetObject.localToGlobal(Offset.zero);
+      final stackTopLeft = stackObject.localToGlobal(Offset.zero);
+      final nextRect = (targetTopLeft - stackTopLeft) & targetObject.size;
+
+      if (!identical(_moduleTourHighlightKey, targetKey) ||
+          _moduleTourHighlightRect != nextRect) {
+        setState(() {
+          _moduleTourHighlightKey = targetKey;
+          _moduleTourHighlightRect = nextRect;
+        });
+      }
+    });
+  }
+
+  void _clearModuleTourMeasurement() {
+    if (_moduleTourHighlightKey == null && _moduleTourHighlightRect == null) {
+      return;
+    }
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (!mounted) return;
+      if (_activeModuleScreenTourTarget() != null) return;
+      setState(() {
+        _moduleTourHighlightKey = null;
+        _moduleTourHighlightRect = null;
+      });
+    });
   }
 
   Widget _buildIconGrid(Translator t) {
@@ -2182,64 +2636,91 @@ class _ModuleScreenV2State extends ConsumerState<ModuleScreenV2>
 
   Widget _buildModuleIconItem(
       ModuleItem item, double width, Translator t, int index) {
-    final cs = Theme.of(context).colorScheme;
-    final isDark = Theme.of(context).brightness == Brightness.dark;
+    final tourKey = _moduleTourTargetKey(item, index);
 
-    Widget content = SizedBox(
-      width: width,
-      child: GestureDetector(
-        onTapDown: (_) => setState(() => _pressedMap[item.routeName] = true),
-        onTapUp: (_) => setState(() => _pressedMap[item.routeName] = false),
-        onTapCancel: () => setState(() => _pressedMap[item.routeName] = false),
-        onTap: _overlayType != null ? null : () => _handleModuleTap(item),
-        child: Column(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            AnimatedScale(
-              scale: _pressedMap[item.routeName] == true ? 0.88 : 1.0,
-              duration: const Duration(milliseconds: 120),
-              curve: Curves.easeOut,
-              child: Container(
-                width: 52,
-                height: 52,
-                decoration: BoxDecoration(
-                  color: Color.lerp(
-                      item.iconColor.withOpacity(0.13),
-                      isDark ? cs.surfaceContainerHigh : cs.surfaceContainerLow,
-                      0.72),
-                  borderRadius: BorderRadius.circular(16),
-                  border: Border.all(
-                      color: item.iconColor.withOpacity(isDark ? 0.22 : 0.18),
-                      width: 0.8),
-                ),
-                child: Icon(item.icon,
-                    size: 24,
-                    color: Color.lerp(
-                        item.iconColor, cs.onSurface, isDark ? 0.08 : 0.15)),
-              ),
-            ),
-            const SizedBox(height: 6),
-            Text(
-              t.t(item.labelKey),
-              textAlign: TextAlign.center,
-              maxLines: 2,
-              overflow: TextOverflow.ellipsis,
-              style: TextStyle(
-                  fontSize: 10,
-                  fontWeight: FontWeight.w600,
-                  color: cs.onSurface.withOpacity(0.85),
-                  height: 1.3),
-            ),
-          ],
-        ),
+    final content = GestureDetector(
+      onTapDown: (_) => setState(() => _pressedMap[item.routeName] = true),
+      onTapUp: (_) => setState(() => _pressedMap[item.routeName] = false),
+      onTapCancel: () => setState(() => _pressedMap[item.routeName] = false),
+      onTap: _overlayType != null ? null : () => _handleModuleTap(item),
+      child: _buildModuleItemVisual(
+        item: item,
+        width: width,
+        translator: t,
+        isPressed: _pressedMap[item.routeName] == true,
       ),
     );
 
-    return _buildTourTarget(
-      key: _moduleTourTargetKey(item, index),
-      targetPadding: const EdgeInsets.all(8),
-      overlayOpacity: 0.72,
+    return KeyedSubtree(
+      key: tourKey,
       child: content,
+    );
+  }
+
+  Widget _buildModuleItemVisual({
+    required ModuleItem item,
+    required double width,
+    required Translator translator,
+    required bool isPressed,
+    double iconBoxSize = 52,
+    double iconSize = 24,
+    double labelFontSize = 10,
+    FontWeight labelWeight = FontWeight.w600,
+    Color? labelColor,
+  }) {
+    final cs = Theme.of(context).colorScheme;
+    final isDark = Theme.of(context).brightness == Brightness.dark;
+    final iconBackground = Color.lerp(
+      item.iconColor.withOpacity(0.13),
+      isDark ? cs.surfaceContainerHigh : cs.surfaceContainerLow,
+      0.72,
+    )!;
+    final iconColor =
+        Color.lerp(item.iconColor, cs.onSurface, isDark ? 0.08 : 0.15)!;
+    final resolvedLabelColor = labelColor ?? cs.onSurface.withOpacity(0.85);
+
+    return SizedBox(
+      width: width,
+      child: Column(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          AnimatedScale(
+            scale: isPressed ? 0.88 : 1.0,
+            duration: const Duration(milliseconds: 120),
+            curve: Curves.easeOut,
+            child: Container(
+              width: iconBoxSize,
+              height: iconBoxSize,
+              decoration: BoxDecoration(
+                color: iconBackground,
+                borderRadius: BorderRadius.circular(16),
+                border: Border.all(
+                  color: item.iconColor.withOpacity(isDark ? 0.22 : 0.18),
+                  width: 0.8,
+                ),
+              ),
+              child: Icon(
+                item.icon,
+                size: iconSize,
+                color: iconColor,
+              ),
+            ),
+          ),
+          const SizedBox(height: 6),
+          Text(
+            translator.t(item.labelKey),
+            textAlign: TextAlign.center,
+            maxLines: 2,
+            overflow: TextOverflow.ellipsis,
+            style: TextStyle(
+              fontSize: labelFontSize,
+              fontWeight: labelWeight,
+              color: resolvedLabelColor,
+              height: 1.3,
+            ),
+          ),
+        ],
+      ),
     );
   }
 
@@ -2419,22 +2900,6 @@ class _ModuleScreenV2State extends ConsumerState<ModuleScreenV2>
       ),
     );
 
-    /*
-    if (index == 1 && sc != null) {
-      pill = Showcase(
-        key: TourRegistry.setupBottomNavKey,
-        description: "Tap Setup to configure Site, Rate, Manpower, Team etc ⚙️",
-        disposeOnTap: true,
-        onTargetClick: () async {
-          await ref.read(tourPersistenceProvider).markSetupClicked();
-          await _handleBottomNavTap(1);
-          setState(() => _tourChecked = false);
-        },
-        child: pill,
-      );
-    }
-    return pill;
-    */
   }
 
   GlobalKey _tabTourKey(int index) {

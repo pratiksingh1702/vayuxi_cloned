@@ -7,6 +7,7 @@ import 'package:untitled2/core/utlis/widgets/sidebar.dart';
 import 'package:untitled2/features/modules/all_Modules/dpr/screens/widgets/select_card.dart';
 import 'package:untitled2/features/tour/core/tour_models.dart';
 import 'package:untitled2/features/tour/core/tour_package_adapter.dart';
+import 'package:untitled2/features/tour/core/screen_owned_tour_mixin.dart';
 import 'package:untitled2/features/tour/definitions/setup_module_tours.dart';
 import 'package:untitled2/features/tour/providers/tour_providers.dart';
 
@@ -28,7 +29,7 @@ class BoqEntrySelectScreen extends ConsumerStatefulWidget {
       _BoqEntrySelectScreenState();
 }
 
-class _BoqEntrySelectScreenState extends ConsumerState<BoqEntrySelectScreen> {
+class _BoqEntrySelectScreenState extends ConsumerState<BoqEntrySelectScreen> with ScreenOwnedTourMixin<BoqEntrySelectScreen> {
   static const _adapter = TourPackageAdapter();
   final _manualKey = GlobalKey(debugLabel: 'boq_manual_entry');
   final _importKey = GlobalKey(debugLabel: 'boq_import_sheet');
@@ -57,6 +58,8 @@ class _BoqEntrySelectScreenState extends ConsumerState<BoqEntrySelectScreen> {
         ),
       ],
     );
+    bindScreenOwnedTour(tourId: definition.id, showcaseContext: showcaseContext);
+
     WidgetsBinding.instance.addPostFrameCallback((_) async {
       if (!mounted || ModalRoute.of(context)?.isCurrent == false) return;
       final controller = ref.read(appTourControllerProvider.notifier);

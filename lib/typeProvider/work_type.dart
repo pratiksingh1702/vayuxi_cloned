@@ -66,13 +66,13 @@ enum WorkType {
       case WorkType.insulation:
         return 'assets/images/insulation_work_card.png';
       case WorkType.structure:
-        return 'assets/images/struc.png';
+        return 'assets/images/structural_erection_work_card.png';
       case WorkType.civil:
-        return 'assets/images/mech.webp';
+        return 'assets/images/civil_work_card.png';
       case WorkType.roofing:
-        return 'assets/images/mech.webp';
+        return 'assets/images/roofing_work_card.png';
       case WorkType.fabrication:
-        return 'assets/images/mech.webp';
+        return 'assets/images/fabrication_work_card.png';
     }
   }
 

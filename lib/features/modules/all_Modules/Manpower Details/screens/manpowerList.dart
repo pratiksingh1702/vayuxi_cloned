@@ -25,6 +25,7 @@ import '../../../../../typeProvider/type_provider.dart';
 import '../../attendance/offline/repo/att_offline_provider.dart';
 import '../../../../tour/core/tour_models.dart';
 import '../../../../tour/core/tour_package_adapter.dart';
+import 'package:untitled2/features/tour/core/screen_owned_tour_mixin.dart';
 import '../../../../tour/definitions/manpower_team_module_tours.dart';
 import '../../../../tour/providers/tour_providers.dart';
 import '../model/manpower_model.dart';
@@ -48,7 +49,7 @@ class ManpowerListScreen extends ConsumerStatefulWidget {
   ConsumerState<ManpowerListScreen> createState() => _ManpowerListScreenState();
 }
 
-class _ManpowerListScreenState extends ConsumerState<ManpowerListScreen> {
+class _ManpowerListScreenState extends ConsumerState<ManpowerListScreen> with ScreenOwnedTourMixin<ManpowerListScreen> {
   // Selection mode state
   bool _isSelectionMode = false;
   Set<String> _selectedManpowerIds = {};
@@ -663,6 +664,9 @@ class _ManpowerListScreenState extends ConsumerState<ManpowerListScreen> {
       ],
     );
 
+    bindScreenOwnedTour(tourId: definition.id, showcaseContext: showcaseContext);
+
+
     WidgetsBinding.instance.addPostFrameCallback((_) async {
       if (!mounted) return;
       final route = ModalRoute.of(context);
@@ -677,8 +681,7 @@ class _ManpowerListScreenState extends ConsumerState<ManpowerListScreen> {
       }
       final step = controller.currentStep;
       final activeTour = controller.activeTour;
-      if (activeTour == null ||
-          !activeTour.id.startsWith(ManpowerTeamModuleTours.manpowerId)) {
+      if (activeTour == null || activeTour.id != definition.id) {
         if (_lastShowcasedTourStepId != null) {
           _tourPackageAdapter.dismiss(showcaseContext);
           _lastShowcasedTourStepId = null;

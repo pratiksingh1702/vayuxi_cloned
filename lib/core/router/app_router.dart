@@ -21,6 +21,7 @@ import '../../features/modules/all_Modules/structure_work/dpr/models/dpr_structu
 import '../../features/modules/all_Modules/structure_work/dpr/screens/dpr_structure_create_screen.dart';
 import '../../features/modules/all_Modules/structure_work/history_upload/screens/satmax_history_upload_screen.dart';
 import '../../features/pm/screens/pm_screen.dart';
+import '../../features/tour/providers/tour_providers.dart';
 
 import '../../features/auth/onboarding/screens/onboarding_screen.dart';
 import '../../features/auth/onboarding/screens/pla_Select_Screen.dart';
@@ -180,10 +181,12 @@ class _RouteObserver extends NavigatorObserver {
     _updateRoute(newRoute);
   }
 
-  void _updateRoute(Route<dynamic>? route) {
-    final name = route?.settings.name ?? route?.settings.arguments?.toString();
+  void _updateRoute(Route<dynamic>? _) {
     // GoRouter often doesn't put the path in settings.name, so we might need a better way.
     // However, GoRouter state is usually enough.
+    Future.microtask(() {
+      ref.read(appTourControllerProvider.notifier).cancelActiveTour();
+    });
   }
 }
 
@@ -265,6 +268,7 @@ final appRouterProvider = Provider<GoRouter>((ref) {
     },
     observers: [
       BotToastNavigatorObserver(),
+      _RouteObserver(ref),
     ],
     routes: [
       GoRoute(

@@ -12,7 +12,7 @@ import 'package:untitled2/core/utlis/widgets/sidebar.dart';
 import 'package:untitled2/core/utlis/widgets/shimmer.dart';
 import 'package:untitled2/features/modules/all_Modules/dpr/screens/widgets/select_card.dart';
 import 'package:untitled2/features/tour/core/tour_models.dart';
-import 'package:untitled2/features/tour/core/tour_package_adapter.dart';
+import 'package:untitled2/features/tour/core/screen_owned_tour_mixin.dart';
 import 'package:untitled2/features/tour/definitions/setup_module_tours.dart';
 import 'package:untitled2/features/tour/providers/tour_providers.dart';
 
@@ -20,8 +20,6 @@ import '../models/pm_models.dart';
 import '../providers/pm_provider.dart';
 
 enum _PmSetupCategoryAction { view, add }
-
-enum _PmEntryChooserAction { add, view }
 
 String _pmCategoryIdentity(PmCategory category) => category.categoryName;
 
@@ -57,6 +55,212 @@ enum PmSection {
   }
 }
 
+class _PmTourTargetEntry {
+  final GlobalKey key;
+  final Widget child;
+
+  const _PmTourTargetEntry({
+    required this.key,
+    required this.child,
+  });
+}
+
+class _PmTourStack extends ConsumerStatefulWidget {
+  final Widget child;
+
+  const _PmTourStack({required this.child});
+
+  @override
+  ConsumerState<_PmTourStack> createState() => _PmTourStackState();
+}
+
+class _PmTourStackState extends ConsumerState<_PmTourStack> {
+  final Map<GlobalKey, _PmTourTargetEntry> _targets = {};
+  final GlobalKey _stackKey = GlobalKey(debugLabel: 'pm_tour_stack');
+  GlobalKey? _highlightKey;
+  Rect? _highlightRect;
+
+  void registerTarget(GlobalKey key, Widget child) {
+    _targets[key] = _PmTourTargetEntry(key: key, child: child);
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    _targets.clear();
+
+    return Stack(
+      key: _stackKey,
+      fit: StackFit.expand,
+      children: [
+        widget.child,
+        _buildOverlay(),
+      ],
+    );
+  }
+
+  Widget _buildOverlay() {
+    final controller = ref.read(appTourControllerProvider.notifier);
+    final step = controller.currentStep;
+    final key = step?.targetKey;
+    if (key == null) {
+      _clearMeasurement();
+      return const SizedBox.shrink();
+    }
+
+    final target = _targets[key];
+    if (target == null) {
+      _clearMeasurement();
+      return const SizedBox.shrink();
+    }
+
+    final rect = _rectFor(key);
+    if (rect == null) return const SizedBox.shrink();
+
+    return Positioned.fill(
+      child: AbsorbPointer(
+        absorbing: true,
+        child: CustomPaint(
+          painter: SpotlightCutoutPainter(
+            rect: rect,
+            borderRadius: 12.0,
+            overlayColor: Colors.black.withOpacity(0.78),
+            padding: 6.0,
+          ),
+        ),
+      ),
+    );
+  }
+
+  Rect? _rectFor(GlobalKey key) {
+    _scheduleMeasurement(key);
+    if (!identical(_highlightKey, key)) return null;
+    return _highlightRect;
+  }
+
+  void _scheduleMeasurement(GlobalKey key) {
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (!mounted) return;
+      final targetContext = key.currentContext;
+      final stackContext = _stackKey.currentContext;
+      final targetObject = targetContext?.findRenderObject();
+      final stackObject = stackContext?.findRenderObject();
+      if (targetObject is! RenderBox ||
+          stackObject is! RenderBox ||
+          !targetObject.hasSize ||
+          !stackObject.hasSize) {
+        return;
+      }
+      final targetTopLeft = targetObject.localToGlobal(Offset.zero);
+      final stackTopLeft = stackObject.localToGlobal(Offset.zero);
+      final nextRect = (targetTopLeft - stackTopLeft) & targetObject.size;
+      if (!identical(_highlightKey, key) || _highlightRect != nextRect) {
+        setState(() {
+          _highlightKey = key;
+          _highlightRect = nextRect;
+        });
+      }
+    });
+  }
+
+  void _clearMeasurement() {
+    if (_highlightKey == null && _highlightRect == null) return;
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (!mounted) return;
+      setState(() {
+        _highlightKey = null;
+        _highlightRect = null;
+      });
+    });
+  }
+}
+
+class SpotlightCutoutPainter extends CustomPainter {
+  final Rect? rect;
+  final double borderRadius;
+  final Color overlayColor;
+  final double padding;
+
+  SpotlightCutoutPainter({
+    required this.rect,
+    this.borderRadius = 12.0,
+    this.overlayColor = const Color(0xC7000000),
+    this.padding = 6.0,
+  });
+
+  @override
+  void paint(Canvas canvas, Size size) {
+    final paint = Paint()
+      ..color = overlayColor
+      ..style = PaintingStyle.fill;
+
+    if (rect == null) {
+      canvas.drawRect(Offset.zero & size, paint);
+      return;
+    }
+
+    final inflatedRect = rect!.inflate(padding);
+
+    final path = Path.combine(
+      PathOperation.difference,
+      Path()..addRect(Offset.zero & size),
+      Path()..addRRect(RRect.fromRectAndRadius(inflatedRect, Radius.circular(borderRadius))),
+    );
+
+    canvas.drawPath(path, paint);
+  }
+
+  @override
+  bool shouldRepaint(covariant SpotlightCutoutPainter oldDelegate) {
+    return oldDelegate.rect != rect ||
+        oldDelegate.borderRadius != borderRadius ||
+        oldDelegate.overlayColor != overlayColor ||
+        oldDelegate.padding != padding;
+  }
+}
+
+class _PmTourTarget extends ConsumerWidget {
+  final GlobalKey targetKey;
+  final Widget child;
+
+  const _PmTourTarget({
+    required this.targetKey,
+    required this.child,
+  });
+
+  @override
+  Widget build(BuildContext context, WidgetRef ref) {
+    final controller = ref.read(appTourControllerProvider.notifier);
+    final step = controller.currentStep;
+    if (identical(step?.targetKey, targetKey) &&
+        (step?.autoScrollToTarget ?? false)) {
+      WidgetsBinding.instance.addPostFrameCallback((_) {
+        final targetContext = targetKey.currentContext;
+        if (targetContext == null) return;
+        Scrollable.ensureVisible(
+          targetContext,
+          duration: const Duration(milliseconds: 280),
+          curve: Curves.easeOutCubic,
+          alignment: 0.28,
+        );
+      });
+    }
+
+    _PmTourStackState? owner;
+    context.visitAncestorElements((element) {
+      if (element is StatefulElement && element.state is _PmTourStackState) {
+        owner = element.state as _PmTourStackState;
+      }
+      return true;
+    });
+    owner?.registerTarget(targetKey, child);
+
+    return KeyedSubtree(
+      key: targetKey,
+      child: child,
+    );
+  }
+}
+
 class PmScreen extends ConsumerStatefulWidget {
   final String siteId;
   final String siteName;
@@ -75,7 +279,7 @@ class PmScreen extends ConsumerStatefulWidget {
   ConsumerState<PmScreen> createState() => _PmScreenState();
 }
 
-class _PmScreenState extends ConsumerState<PmScreen> {
+class _PmScreenState extends ConsumerState<PmScreen> with ScreenOwnedTourMixin<PmScreen> {
   @override
   void initState() {
     super.initState();
@@ -116,29 +320,31 @@ class _PmScreenState extends ConsumerState<PmScreen> {
     final cs = Theme.of(context).colorScheme;
     final isDark = Theme.of(context).brightness == Brightness.dark;
 
-    return Scaffold(
-      backgroundColor: isDark ? cs.surface : cs.surfaceContainerLowest,
-      drawer: const CustomDrawer(),
-      appBar: CustomAppBar(
-        title: widget.section.title,
-        actions: [
-          IconButton(
-            tooltip: 'Refresh',
-            icon: const Icon(Icons.refresh_rounded),
-            onPressed: () => ref
-                .read(pmProvider.notifier)
-                .load(widget.siteId, widget.workType),
-          ),
-        ],
-      ),
-      body: state.error != null && state.categories.isEmpty
-          ? _ErrorState(
-              message: state.error!,
-              onRetry: () => ref
+    return _PmTourStack(
+      child: Scaffold(
+        backgroundColor: isDark ? cs.surface : cs.surfaceContainerLowest,
+        drawer: const CustomDrawer(),
+        appBar: CustomAppBar(
+          title: widget.section.title,
+          actions: [
+            IconButton(
+              tooltip: 'Refresh',
+              icon: const Icon(Icons.refresh_rounded),
+              onPressed: () => ref
                   .read(pmProvider.notifier)
                   .load(widget.siteId, widget.workType),
-            )
-          : _buildSection(state),
+            ),
+          ],
+        ),
+        body: state.error != null && state.categories.isEmpty
+            ? _ErrorState(
+                message: state.error!,
+                onRetry: () => ref
+                    .read(pmProvider.notifier)
+                    .load(widget.siteId, widget.workType),
+              )
+            : _buildSection(state),
+      ),
     );
   }
 
@@ -198,8 +404,8 @@ class _SetupTab extends ConsumerStatefulWidget {
   ConsumerState<_SetupTab> createState() => _SetupTabState();
 }
 
-class _SetupTabState extends ConsumerState<_SetupTab> {
-  static const TourPackageAdapter _tourPackageAdapter = TourPackageAdapter();
+class _SetupTabState extends ConsumerState<_SetupTab>
+    with ScreenOwnedTourMixin<_SetupTab> {
   final GlobalKey _siteTourKey = GlobalKey(debugLabel: 'pm_setup_site');
   final GlobalKey _categoryTourKey =
       GlobalKey(debugLabel: 'pm_setup_category');
@@ -263,6 +469,9 @@ class _SetupTabState extends ConsumerState<_SetupTab> {
       ],
     );
 
+    bindScreenOwnedTour(tourId: definition.id, showcaseContext: showcaseContext);
+
+
     WidgetsBinding.instance.addPostFrameCallback((_) async {
       if (!mounted) return;
       final route = ModalRoute.of(context);
@@ -279,7 +488,6 @@ class _SetupTabState extends ConsumerState<_SetupTab> {
       final activeTour = tourController.activeTour;
       if (activeTour == null || activeTour.id != definition.id) {
         if (_lastShowcasedTourStepId != null) {
-          _tourPackageAdapter.dismiss(showcaseContext);
           _lastShowcasedTourStepId = null;
         }
         return;
@@ -287,27 +495,18 @@ class _SetupTabState extends ConsumerState<_SetupTab> {
       final stepKey = step == null ? null : '${activeTour.id}:${step.id}';
       if (step == null) {
         if (_lastShowcasedTourStepId != null) {
-          _tourPackageAdapter.dismiss(showcaseContext);
           _lastShowcasedTourStepId = null;
         }
         return;
       }
       if (_lastShowcasedTourStepId == stepKey) return;
       _lastShowcasedTourStepId = stepKey;
-      _tourPackageAdapter.showStep(showcaseContext, step);
+      // P&M uses the local no-cutout overlay; Showcase presentation is disabled.
     });
   }
 
   Widget _tourTarget(GlobalKey key, Widget child) {
-    return Showcase.withWidget(
-      key: key,
-      container: const SizedBox.shrink(),
-      overlayOpacity: 0.72,
-      targetPadding: const EdgeInsets.all(8),
-      targetBorderRadius: BorderRadius.circular(16),
-      disableDefaultTargetGestures: false,
-      child: child,
-    );
+    return _PmTourTarget(targetKey: key, child: child);
   }
 
   @override
@@ -325,16 +524,18 @@ class _SetupTabState extends ConsumerState<_SetupTab> {
             hasCategories: false,
             categorySelected: false,
           );
-          return ListView(
-            padding: const EdgeInsets.all(14),
-            children: [
-              _tourTarget(
-                _siteTourKey,
-                _PmSetupSiteCard(siteName: widget.siteName),
-              ),
-              const SizedBox(height: 12),
-              const _EmptyPanel(title: 'No P&M categories found'),
-            ],
+          return _PmTourStack(
+            child: ListView(
+              padding: const EdgeInsets.all(14),
+              children: [
+                _tourTarget(
+                  _siteTourKey,
+                  _PmSetupSiteCard(siteName: widget.siteName),
+                ),
+                const SizedBox(height: 12),
+                const _EmptyPanel(title: 'No P&M categories found'),
+              ],
+            ),
           );
         },
       );
@@ -354,9 +555,10 @@ class _SetupTabState extends ConsumerState<_SetupTab> {
           hasCategories: state.categories.isNotEmpty,
           categorySelected: selectedCategory != null,
         );
-        return ListView(
-          padding: const EdgeInsets.all(14),
-          children: [
+        return _PmTourStack(
+          child: ListView(
+            padding: const EdgeInsets.all(14),
+            children: [
             _tourTarget(
               _siteTourKey,
               _PmSetupSiteCard(siteName: widget.siteName),
@@ -406,7 +608,8 @@ class _SetupTabState extends ConsumerState<_SetupTab> {
                 ),
               ),
             ],
-          ],
+            ],
+          ),
         );
       },
     );
@@ -542,8 +745,8 @@ class _PmSetupCategoryActionScreen extends ConsumerStatefulWidget {
 }
 
 class _PmSetupCategoryActionScreenState
-    extends ConsumerState<_PmSetupCategoryActionScreen> {
-  static const TourPackageAdapter _tourPackageAdapter = TourPackageAdapter();
+    extends ConsumerState<_PmSetupCategoryActionScreen>
+    with ScreenOwnedTourMixin<_PmSetupCategoryActionScreen> {
   final GlobalKey _chooserTourKey =
       GlobalKey(debugLabel: 'pm_setup_action_chooser');
   String? _lastShowcasedTourStepId;
@@ -574,6 +777,8 @@ class _PmSetupCategoryActionScreenState
         ),
       ],
     );
+    bindScreenOwnedTour(tourId: definition.id, showcaseContext: showcaseContext);
+
     WidgetsBinding.instance.addPostFrameCallback((_) async {
       if (!mounted) return;
       final route = ModalRoute.of(context);
@@ -590,7 +795,6 @@ class _PmSetupCategoryActionScreenState
       final activeTour = tourController.activeTour;
       if (activeTour == null || activeTour.id != definition.id) {
         if (_lastShowcasedTourStepId != null) {
-          _tourPackageAdapter.dismiss(showcaseContext);
           _lastShowcasedTourStepId = null;
         }
         return;
@@ -598,27 +802,18 @@ class _PmSetupCategoryActionScreenState
       final stepKey = step == null ? null : '${activeTour.id}:${step.id}';
       if (step == null) {
         if (_lastShowcasedTourStepId != null) {
-          _tourPackageAdapter.dismiss(showcaseContext);
           _lastShowcasedTourStepId = null;
         }
         return;
       }
       if (_lastShowcasedTourStepId == stepKey) return;
       _lastShowcasedTourStepId = stepKey;
-      _tourPackageAdapter.showStep(showcaseContext, step);
+      // P&M uses the local no-cutout overlay; Showcase presentation is disabled.
     });
   }
 
   Widget _tourTarget(GlobalKey key, Widget child) {
-    return Showcase.withWidget(
-      key: key,
-      container: const SizedBox.shrink(),
-      overlayOpacity: 0.72,
-      targetPadding: const EdgeInsets.all(8),
-      targetBorderRadius: BorderRadius.circular(14),
-      disableDefaultTargetGestures: false,
-      child: child,
-    );
+    return _PmTourTarget(targetKey: key, child: child);
   }
 
   @override
@@ -630,21 +825,23 @@ class _PmSetupCategoryActionScreenState
     return ShowCaseWidget(
       builder: (showcaseContext) {
         _syncChooserTour(showcaseContext);
-        return Scaffold(
-          drawer: const CustomDrawer(),
-          backgroundColor: isDark ? cs.surface : cs.surfaceContainerLowest,
-          appBar: const CustomAppBar(title: 'Select Work Action'),
-          body: _tourTarget(
-            _chooserTourKey,
-            _SetupChooser(
-              viewLabel: 'View Works',
-              addLabel: 'Add Work',
-              onView: () =>
-                  Navigator.of(context).pop(_PmSetupCategoryAction.view),
-              onAdd: () =>
-                  Navigator.of(context).pop(_PmSetupCategoryAction.add),
-              emptyText:
-                  '${widget.category.categoryName}\nView existing works or add a new work under this category.',
+        return _PmTourStack(
+          child: Scaffold(
+            drawer: const CustomDrawer(),
+            backgroundColor: isDark ? cs.surface : cs.surfaceContainerLowest,
+            appBar: const CustomAppBar(title: 'Select Work Action'),
+            body: _tourTarget(
+              _chooserTourKey,
+              _SetupChooser(
+                viewLabel: 'View Works',
+                addLabel: 'Add Work',
+                onView: () =>
+                    Navigator.of(context).pop(_PmSetupCategoryAction.view),
+                onAdd: () =>
+                    Navigator.of(context).pop(_PmSetupCategoryAction.add),
+                emptyText:
+                    '${widget.category.categoryName}\nView existing works or add a new work under this category.',
+              ),
             ),
           ),
         );
@@ -1056,98 +1253,6 @@ class _PmEquipmentList extends StatelessWidget {
   }
 }
 
-class _PmEntryActionChooserScreen extends StatelessWidget {
-  final PmEquipment equipment;
-
-  const _PmEntryActionChooserScreen({required this.equipment});
-
-  @override
-  Widget build(BuildContext context) {
-    final cs = Theme.of(context).colorScheme;
-    final isDark = Theme.of(context).brightness == Brightness.dark;
-
-    return Scaffold(
-      drawer: const CustomDrawer(),
-      backgroundColor: isDark ? cs.surface : cs.surfaceContainerLowest,
-      appBar: const CustomAppBar(title: 'Select Add or View'),
-      body: ListView(
-        padding: const EdgeInsets.all(16),
-        children: [
-          GridView.count(
-            physics: const NeverScrollableScrollPhysics(),
-            shrinkWrap: true,
-            crossAxisCount: 2,
-            mainAxisSpacing: 20,
-            crossAxisSpacing: 20,
-            childAspectRatio: 1,
-            children: [
-              SelectCard(
-                icon: const SelectCardIcon(
-                  icon: Icons.add_circle_outline_rounded,
-                  color: Colors.green,
-                ),
-                label: 'Add',
-                onTap: () => Navigator.of(context)
-                    .pop(_PmEntryChooserAction.add),
-              ),
-              SelectCard(
-                icon: const SelectCardIcon(
-                  icon: Icons.visibility_rounded,
-                  color: Colors.blue,
-                ),
-                label: 'View',
-                onTap: () => Navigator.of(context)
-                    .pop(_PmEntryChooserAction.view),
-              ),
-            ],
-          ),
-          const SizedBox(height: 18),
-          Container(
-            width: double.infinity,
-            padding: const EdgeInsets.all(16),
-            decoration: BoxDecoration(
-              color: cs.surface,
-              borderRadius: BorderRadius.circular(18),
-              border: Border.all(color: cs.outlineVariant.withOpacity(0.45)),
-              boxShadow: [
-                BoxShadow(
-                  color: cs.shadow.withOpacity(isDark ? 0.12 : 0.06),
-                  blurRadius: 12,
-                  offset: const Offset(0, 6),
-                ),
-              ],
-            ),
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Text(
-                  equipment.equipmentName,
-                  maxLines: 2,
-                  overflow: TextOverflow.ellipsis,
-                  style: const TextStyle(
-                    fontSize: 16,
-                    fontWeight: FontWeight.w700,
-                  ),
-                ),
-                const SizedBox(height: 8),
-                Text(
-                  'Add: enter daily P&M details for this work.\n'
-                  'View: edit this P&M work details.',
-                  style: TextStyle(
-                    fontSize: 13,
-                    height: 1.5,
-                    color: cs.onSurfaceVariant,
-                  ),
-                ),
-              ],
-            ),
-          ),
-        ],
-      ),
-    );
-  }
-}
-
 class _PmEntryWorkTitle extends StatelessWidget {
   final PmEquipment equipment;
 
@@ -1434,8 +1539,8 @@ class _PmEquipmentAddScreen extends ConsumerStatefulWidget {
       _PmEquipmentAddScreenState();
 }
 
-class _PmEquipmentAddScreenState extends ConsumerState<_PmEquipmentAddScreen> {
-  static const TourPackageAdapter _tourPackageAdapter = TourPackageAdapter();
+class _PmEquipmentAddScreenState extends ConsumerState<_PmEquipmentAddScreen>
+    with ScreenOwnedTourMixin<_PmEquipmentAddScreen> {
   final GlobalKey _categoryTourKey = GlobalKey(debugLabel: 'pm_add_category');
   final GlobalKey _nameTourKey = GlobalKey(debugLabel: 'pm_add_name');
   final GlobalKey _capacityTourKey = GlobalKey(debugLabel: 'pm_add_capacity');
@@ -1573,6 +1678,8 @@ class _PmEquipmentAddScreenState extends ConsumerState<_PmEquipmentAddScreen> {
         ),
       ],
     );
+    bindScreenOwnedTour(tourId: definition.id, showcaseContext: showcaseContext);
+
     WidgetsBinding.instance.addPostFrameCallback((_) async {
       if (!mounted) return;
       final route = ModalRoute.of(context);
@@ -1589,7 +1696,6 @@ class _PmEquipmentAddScreenState extends ConsumerState<_PmEquipmentAddScreen> {
       final activeTour = tourController.activeTour;
       if (activeTour == null || activeTour.id != definition.id) {
         if (_lastShowcasedTourStepId != null) {
-          _tourPackageAdapter.dismiss(showcaseContext);
           _lastShowcasedTourStepId = null;
         }
         return;
@@ -1597,27 +1703,18 @@ class _PmEquipmentAddScreenState extends ConsumerState<_PmEquipmentAddScreen> {
       final stepKey = step == null ? null : '${activeTour.id}:${step.id}';
       if (step == null) {
         if (_lastShowcasedTourStepId != null) {
-          _tourPackageAdapter.dismiss(showcaseContext);
           _lastShowcasedTourStepId = null;
         }
         return;
       }
       if (_lastShowcasedTourStepId == stepKey) return;
       _lastShowcasedTourStepId = stepKey;
-      _tourPackageAdapter.showStep(showcaseContext, step);
+      // P&M uses the local no-cutout overlay; Showcase presentation is disabled.
     });
   }
 
   Widget _tourTarget(GlobalKey key, Widget child) {
-    return Showcase.withWidget(
-      key: key,
-      container: const SizedBox.shrink(),
-      overlayOpacity: 0.72,
-      targetPadding: const EdgeInsets.all(8),
-      targetBorderRadius: BorderRadius.circular(14),
-      disableDefaultTargetGestures: false,
-      child: child,
-    );
+    return _PmTourTarget(targetKey: key, child: child);
   }
 
   @override
@@ -1630,59 +1727,63 @@ class _PmEquipmentAddScreenState extends ConsumerState<_PmEquipmentAddScreen> {
     return ShowCaseWidget(
       builder: (showcaseContext) {
         _syncPmWorkFormTour(showcaseContext);
-        return Scaffold(
-          drawer: const CustomDrawer(),
-          backgroundColor: isDark ? cs.surface : cs.surfaceContainerLowest,
-          appBar: const CustomAppBar(title: 'Add P&M Work'),
-          body: ListView(
-            padding: const EdgeInsets.all(16),
-            children: [
-              _tourTarget(
-                _categoryTourKey,
-                _LockedCategoryField(categoryName: widget.category.categoryName),
-              ),
-              const SizedBox(height: 14),
-              _tourTarget(
-                _nameTourKey,
-                _TextField(controller: _name, label: 'Work Name'),
-              ),
-              _tourTarget(
-                _capacityTourKey,
-                Column(
-                  children: [
-                    _TextField(controller: _capacity, label: 'Capacity'),
-                    _TextField(controller: _unit, label: 'Unit'),
-                  ],
-                ),
-              ),
-              const SizedBox(height: 10),
-              _tourTarget(
-                _imageTourKey,
-                Column(
-                  children: [
-                    _ImagePreview(imageUrl: _image, height: 180),
-                    const SizedBox(height: 10),
-                    OutlinedButton.icon(
-                      onPressed: _pickImage,
-                      icon: const Icon(Icons.image_rounded),
-                      label: const Text('Upload / Replace Image'),
-                    ),
-                  ],
-                ),
-              ),
-              const SizedBox(height: 14),
-              _tourTarget(
-                _saveTourKey,
-                SizedBox(
-                  height: 52,
-                  child: FilledButton.icon(
-                    onPressed: state.isSaving ? null : _save,
-                    icon: const Icon(Icons.save_rounded),
-                    label: const Text('Save Work'),
+        return _PmTourStack(
+          child: Scaffold(
+            drawer: const CustomDrawer(),
+            backgroundColor: isDark ? cs.surface : cs.surfaceContainerLowest,
+            appBar: const CustomAppBar(title: 'Add P&M Work'),
+            body: ListView(
+              padding: const EdgeInsets.all(16),
+              children: [
+                _tourTarget(
+                  _categoryTourKey,
+                  _LockedCategoryField(
+                    categoryName: widget.category.categoryName,
                   ),
                 ),
-              ),
-            ],
+                const SizedBox(height: 14),
+                _tourTarget(
+                  _nameTourKey,
+                  _TextField(controller: _name, label: 'Work Name'),
+                ),
+                _tourTarget(
+                  _capacityTourKey,
+                  Column(
+                    children: [
+                      _TextField(controller: _capacity, label: 'Capacity'),
+                      _TextField(controller: _unit, label: 'Unit'),
+                    ],
+                  ),
+                ),
+                const SizedBox(height: 10),
+                _tourTarget(
+                  _imageTourKey,
+                  Column(
+                    children: [
+                      _ImagePreview(imageUrl: _image, height: 180),
+                      const SizedBox(height: 10),
+                      OutlinedButton.icon(
+                        onPressed: _pickImage,
+                        icon: const Icon(Icons.image_rounded),
+                        label: const Text('Upload / Replace Image'),
+                      ),
+                    ],
+                  ),
+                ),
+                const SizedBox(height: 14),
+                _tourTarget(
+                  _saveTourKey,
+                  SizedBox(
+                    height: 52,
+                    child: FilledButton.icon(
+                      onPressed: state.isSaving ? null : _save,
+                      icon: const Icon(Icons.save_rounded),
+                      label: const Text('Save Work'),
+                    ),
+                  ),
+                ),
+              ],
+            ),
           ),
         );
       },
@@ -1711,8 +1812,8 @@ class _PmEquipmentEditScreen extends ConsumerStatefulWidget {
 }
 
 class _PmEquipmentEditScreenState
-    extends ConsumerState<_PmEquipmentEditScreen> {
-  static const TourPackageAdapter _tourPackageAdapter = TourPackageAdapter();
+    extends ConsumerState<_PmEquipmentEditScreen>
+    with ScreenOwnedTourMixin<_PmEquipmentEditScreen> {
   final GlobalKey _headerTourKey = GlobalKey(debugLabel: 'pm_edit_header');
   final GlobalKey _nameTourKey = GlobalKey(debugLabel: 'pm_edit_name');
   final GlobalKey _capacityTourKey = GlobalKey(debugLabel: 'pm_edit_capacity');
@@ -1850,6 +1951,8 @@ class _PmEquipmentEditScreenState
         ),
       ],
     );
+    bindScreenOwnedTour(tourId: definition.id, showcaseContext: showcaseContext);
+
     WidgetsBinding.instance.addPostFrameCallback((_) async {
       if (!mounted) return;
       final route = ModalRoute.of(context);
@@ -1866,7 +1969,6 @@ class _PmEquipmentEditScreenState
       final activeTour = tourController.activeTour;
       if (activeTour == null || activeTour.id != definition.id) {
         if (_lastShowcasedTourStepId != null) {
-          _tourPackageAdapter.dismiss(showcaseContext);
           _lastShowcasedTourStepId = null;
         }
         return;
@@ -1874,27 +1976,18 @@ class _PmEquipmentEditScreenState
       final stepKey = step == null ? null : '${activeTour.id}:${step.id}';
       if (step == null) {
         if (_lastShowcasedTourStepId != null) {
-          _tourPackageAdapter.dismiss(showcaseContext);
           _lastShowcasedTourStepId = null;
         }
         return;
       }
       if (_lastShowcasedTourStepId == stepKey) return;
       _lastShowcasedTourStepId = stepKey;
-      _tourPackageAdapter.showStep(showcaseContext, step);
+      // P&M uses the local no-cutout overlay; Showcase presentation is disabled.
     });
   }
 
   Widget _tourTarget(GlobalKey key, Widget child) {
-    return Showcase.withWidget(
-      key: key,
-      container: const SizedBox.shrink(),
-      overlayOpacity: 0.72,
-      targetPadding: const EdgeInsets.all(8),
-      targetBorderRadius: BorderRadius.circular(14),
-      disableDefaultTargetGestures: false,
-      child: child,
-    );
+    return _PmTourTarget(targetKey: key, child: child);
   }
 
   @override
@@ -1907,59 +2000,61 @@ class _PmEquipmentEditScreenState
     return ShowCaseWidget(
       builder: (showcaseContext) {
         _syncPmWorkEditTour(showcaseContext);
-        return Scaffold(
-          drawer: const CustomDrawer(),
-          backgroundColor: isDark ? cs.surface : cs.surfaceContainerLowest,
-          appBar: const CustomAppBar(title: 'Edit P&M Work'),
-          body: ListView(
-            padding: const EdgeInsets.all(16),
-            children: [
-              _tourTarget(
-                _headerTourKey,
-                _PmEquipmentEditHeader(equipment: widget.equipment),
-              ),
-              const SizedBox(height: 14),
-              _tourTarget(
-                _nameTourKey,
-                _TextField(controller: _name, label: 'Work Name'),
-              ),
-              _tourTarget(
-                _capacityTourKey,
-                Column(
-                  children: [
-                    _TextField(controller: _capacity, label: 'Capacity'),
-                    _TextField(controller: _unit, label: 'Unit'),
-                  ],
+        return _PmTourStack(
+          child: Scaffold(
+            drawer: const CustomDrawer(),
+            backgroundColor: isDark ? cs.surface : cs.surfaceContainerLowest,
+            appBar: const CustomAppBar(title: 'Edit P&M Work'),
+            body: ListView(
+              padding: const EdgeInsets.all(16),
+              children: [
+                _tourTarget(
+                  _headerTourKey,
+                  _PmEquipmentEditHeader(equipment: widget.equipment),
                 ),
-              ),
-              const SizedBox(height: 10),
-              _tourTarget(
-                _imageTourKey,
-                Column(
-                  children: [
-                    _ImagePreview(imageUrl: _image, height: 180),
-                    const SizedBox(height: 10),
-                    OutlinedButton.icon(
-                      onPressed: _pickImage,
-                      icon: const Icon(Icons.image_rounded),
-                      label: const Text('Upload / Replace Image'),
-                    ),
-                  ],
+                const SizedBox(height: 14),
+                _tourTarget(
+                  _nameTourKey,
+                  _TextField(controller: _name, label: 'Work Name'),
                 ),
-              ),
-              const SizedBox(height: 14),
-              _tourTarget(
-                _saveTourKey,
-                SizedBox(
-                  height: 52,
-                  child: FilledButton.icon(
-                    onPressed: state.isSaving ? null : _save,
-                    icon: const Icon(Icons.save_rounded),
-                    label: const Text('Save Work'),
+                _tourTarget(
+                  _capacityTourKey,
+                  Column(
+                    children: [
+                      _TextField(controller: _capacity, label: 'Capacity'),
+                      _TextField(controller: _unit, label: 'Unit'),
+                    ],
                   ),
                 ),
-              ),
-            ],
+                const SizedBox(height: 10),
+                _tourTarget(
+                  _imageTourKey,
+                  Column(
+                    children: [
+                      _ImagePreview(imageUrl: _image, height: 180),
+                      const SizedBox(height: 10),
+                      OutlinedButton.icon(
+                        onPressed: _pickImage,
+                        icon: const Icon(Icons.image_rounded),
+                        label: const Text('Upload / Replace Image'),
+                      ),
+                    ],
+                  ),
+                ),
+                const SizedBox(height: 14),
+                _tourTarget(
+                  _saveTourKey,
+                  SizedBox(
+                    height: 52,
+                    child: FilledButton.icon(
+                      onPressed: state.isSaving ? null : _save,
+                      icon: const Icon(Icons.save_rounded),
+                      label: const Text('Save Work'),
+                    ),
+                  ),
+                ),
+              ],
+            ),
           ),
         );
       },
@@ -1990,8 +2085,8 @@ class _EntryTab extends ConsumerStatefulWidget {
   ConsumerState<_EntryTab> createState() => _EntryTabState();
 }
 
-class _EntryTabState extends ConsumerState<_EntryTab> {
-  static const TourPackageAdapter _tourPackageAdapter = TourPackageAdapter();
+class _EntryTabState extends ConsumerState<_EntryTab>
+    with ScreenOwnedTourMixin<_EntryTab> {
   final GlobalKey _selectionTourKey = GlobalKey(debugLabel: 'pm_entry_select');
   final GlobalKey _dateTourKey = GlobalKey(debugLabel: 'pm_entry_date');
   final GlobalKey _workTourKey = GlobalKey(debugLabel: 'pm_entry_work');
@@ -2003,6 +2098,7 @@ class _EntryTabState extends ConsumerState<_EntryTab> {
   final GlobalKey _statusTourKey = GlobalKey(debugLabel: 'pm_entry_status');
   final GlobalKey _saveTourKey = GlobalKey(debugLabel: 'pm_entry_save');
   String? _lastShowcasedTourStepId;
+  String? _pendingRuntimeTourId;
   PmEquipment? _equipment;
   final _equipmentNo = TextEditingController();
   final _capacity = TextEditingController();
@@ -2025,7 +2121,6 @@ class _EntryTabState extends ConsumerState<_EntryTab> {
   String _status = 'working';
   bool _maintenanceRequired = false;
   String _entrySyncKey = '';
-  bool _useBlankEntryFields = false;
 
   @override
   void dispose() {
@@ -2071,7 +2166,7 @@ class _EntryTabState extends ConsumerState<_EntryTab> {
           id: 'pm_entry_select_work',
           title: 'Select Work',
           body:
-              'Tap a work card, then choose Add to enter today’s P&M details or View to edit the work setup.',
+              'Tap a work card to add or edit the selected date entry.',
           targetKey: _selectionTourKey,
           progressLabel: 'Select',
           autoScrollToTarget: true,
@@ -2200,51 +2295,53 @@ class _EntryTabState extends ConsumerState<_EntryTab> {
     required AppTourDefinition definition,
     required String policyTourId,
   }) {
+    bindScreenOwnedTour(tourId: definition.id, showcaseContext: showcaseContext);
+    if (_pendingRuntimeTourId == definition.id) return;
+    _pendingRuntimeTourId = definition.id;
+
     WidgetsBinding.instance.addPostFrameCallback((_) async {
-      if (!mounted) return;
-      final route = ModalRoute.of(context);
-      if (route != null && !route.isCurrent) return;
-      final tourState = ref.read(appTourControllerProvider);
-      final tourController = ref.read(appTourControllerProvider.notifier);
-      if (tourState.status != AppTourStatus.running) {
-        await tourController.maybeStartRuntimeTour(
-          definition,
-          policyTourId: policyTourId,
-        );
-      }
-      final step = tourController.currentStep;
-      final activeTour = tourController.activeTour;
-      if (activeTour == null || activeTour.id != definition.id) {
-        if (_lastShowcasedTourStepId != null) {
-          _tourPackageAdapter.dismiss(showcaseContext);
-          _lastShowcasedTourStepId = null;
+      try {
+        if (!mounted) return;
+        final route = ModalRoute.of(context);
+        if (route != null && !route.isCurrent) return;
+        if (!showcaseContext.mounted) return;
+        final tourState = ref.read(appTourControllerProvider);
+        final tourController = ref.read(appTourControllerProvider.notifier);
+        if (tourState.status != AppTourStatus.running) {
+          await tourController.maybeStartRuntimeTour(
+            definition,
+            policyTourId: policyTourId,
+          );
         }
-        return;
-      }
-      final stepKey = step == null ? null : '${activeTour.id}:${step.id}';
-      if (step == null) {
-        if (_lastShowcasedTourStepId != null) {
-          _tourPackageAdapter.dismiss(showcaseContext);
-          _lastShowcasedTourStepId = null;
+        if (!mounted || !showcaseContext.mounted) return;
+        final step = tourController.currentStep;
+        final activeTour = tourController.activeTour;
+        if (activeTour == null || activeTour.id != definition.id) {
+          if (_lastShowcasedTourStepId != null) {
+            _lastShowcasedTourStepId = null;
+          }
+          return;
         }
-        return;
+        final stepKey = step == null ? null : '${activeTour.id}:${step.id}';
+        if (step == null) {
+          if (_lastShowcasedTourStepId != null) {
+            _lastShowcasedTourStepId = null;
+          }
+          return;
+        }
+        if (_lastShowcasedTourStepId == stepKey) return;
+        _lastShowcasedTourStepId = stepKey;
+        // P&M uses the local no-cutout overlay; Showcase presentation is disabled.
+      } finally {
+        if (_pendingRuntimeTourId == definition.id) {
+          _pendingRuntimeTourId = null;
+        }
       }
-      if (_lastShowcasedTourStepId == stepKey) return;
-      _lastShowcasedTourStepId = stepKey;
-      _tourPackageAdapter.showStep(showcaseContext, step);
     });
   }
 
   Widget _tourTarget(GlobalKey key, Widget child) {
-    return Showcase.withWidget(
-      key: key,
-      container: const SizedBox.shrink(),
-      overlayOpacity: 0.72,
-      targetPadding: const EdgeInsets.all(8),
-      targetBorderRadius: BorderRadius.circular(14),
-      disableDefaultTargetGestures: false,
-      child: child,
-    );
+    return _PmTourTarget(targetKey: key, child: child);
   }
 
   @override
@@ -2263,28 +2360,29 @@ class _EntryTabState extends ConsumerState<_EntryTab> {
       return ShowCaseWidget(
         builder: (showcaseContext) {
           _syncPmEntrySelectionTour(showcaseContext);
-          return _tourTarget(
-            _selectionTourKey,
-            _WorkSelectionPage(
-              categories: categories,
-              onSelect: _openEntryActionChooser,
+          return _PmTourStack(
+            child: _tourTarget(
+              _selectionTourKey,
+              _WorkSelectionPage(
+                categories: categories,
+                onSelect: _selectEquipment,
+              ),
             ),
           );
         },
       );
     }
     _equipment = selectedEquipment;
-    if (!_useBlankEntryFields) {
-      _syncSelectedEntry(selectedEquipment);
-    }
+    _syncSelectedEntry(selectedEquipment);
 
     ref.watch(appTourControllerProvider);
     return ShowCaseWidget(
       builder: (showcaseContext) {
         _syncPmEntryFormTour(showcaseContext, selectedEquipment);
-        return ListView(
-          padding: const EdgeInsets.all(14),
-          children: [
+        return _PmTourStack(
+          child: ListView(
+            padding: const EdgeInsets.all(14),
+            children: [
         _tourTarget(
           _dateTourKey,
           _PmEntryInfoBanner(
@@ -2447,7 +2545,8 @@ class _EntryTabState extends ConsumerState<_EntryTab> {
             ),
           ),
         ),
-      ],
+            ],
+          ),
         );
       },
     );
@@ -2504,33 +2603,11 @@ class _EntryTabState extends ConsumerState<_EntryTab> {
     return null;
   }
 
-  Future<void> _openEntryActionChooser(PmEquipment equipment) async {
-    final action = await Navigator.of(context).push<_PmEntryChooserAction>(
-      MaterialPageRoute(
-        builder: (_) => _PmEntryActionChooserScreen(equipment: equipment),
-      ),
-    );
-    if (!mounted || action == null) return;
-    switch (action) {
-      case _PmEntryChooserAction.add:
-        _selectEquipment(equipment, blank: true);
-        break;
-      case _PmEntryChooserAction.view:
-        await _openEquipmentScreen(equipment);
-        break;
-    }
-  }
-
-  void _selectEquipment(PmEquipment equipment, {bool blank = false}) {
+  void _selectEquipment(PmEquipment equipment) {
     setState(() {
       _equipment = equipment;
       _entrySyncKey = '';
-      _useBlankEntryFields = blank;
-      if (blank) {
-        _clearEntryFields(equipment);
-      } else {
-        _syncSelectedEntry(equipment);
-      }
+      _syncSelectedEntry(equipment);
     });
   }
 
@@ -2613,20 +2690,6 @@ class _EntryTabState extends ConsumerState<_EntryTab> {
     return value.toStringAsFixed(2);
   }
 
-  Future<void> _openEquipmentScreen(PmEquipment equipment) async {
-    await Navigator.of(context).push<void>(
-      MaterialPageRoute(
-        builder: (_) => _PmEquipmentEditScreen(
-          siteId: widget.siteId,
-          workType: widget.workType,
-          equipment: equipment,
-          onSaved: widget.onSaved,
-          onError: widget.onError,
-        ),
-      ),
-    );
-  }
-
   double _num(String value) => double.tryParse(value.trim()) ?? 0;
 }
 
@@ -2647,8 +2710,8 @@ class _ReportsTab extends ConsumerStatefulWidget {
   ConsumerState<_ReportsTab> createState() => _ReportsTabState();
 }
 
-class _ReportsTabState extends ConsumerState<_ReportsTab> {
-  static const TourPackageAdapter _tourPackageAdapter = TourPackageAdapter();
+class _ReportsTabState extends ConsumerState<_ReportsTab>
+    with ScreenOwnedTourMixin<_ReportsTab> {
   final GlobalKey _dateTourKey = GlobalKey(debugLabel: 'pm_reports_date');
   final GlobalKey _summaryTourKey = GlobalKey(debugLabel: 'pm_reports_summary');
   final GlobalKey _entriesTourKey = GlobalKey(debugLabel: 'pm_reports_entries');
@@ -2702,6 +2765,9 @@ class _ReportsTabState extends ConsumerState<_ReportsTab> {
       ],
     );
 
+    bindScreenOwnedTour(tourId: definition.id, showcaseContext: showcaseContext);
+
+
     WidgetsBinding.instance.addPostFrameCallback((_) async {
       if (!mounted) return;
       final route = ModalRoute.of(context);
@@ -2718,7 +2784,6 @@ class _ReportsTabState extends ConsumerState<_ReportsTab> {
       final activeTour = tourController.activeTour;
       if (activeTour == null || activeTour.id != definition.id) {
         if (_lastShowcasedTourStepId != null) {
-          _tourPackageAdapter.dismiss(showcaseContext);
           _lastShowcasedTourStepId = null;
         }
         return;
@@ -2726,27 +2791,18 @@ class _ReportsTabState extends ConsumerState<_ReportsTab> {
       final stepKey = step == null ? null : '${activeTour.id}:${step.id}';
       if (step == null) {
         if (_lastShowcasedTourStepId != null) {
-          _tourPackageAdapter.dismiss(showcaseContext);
           _lastShowcasedTourStepId = null;
         }
         return;
       }
       if (_lastShowcasedTourStepId == stepKey) return;
       _lastShowcasedTourStepId = stepKey;
-      _tourPackageAdapter.showStep(showcaseContext, step);
+      // P&M uses the local no-cutout overlay; Showcase presentation is disabled.
     });
   }
 
   Widget _tourTarget(GlobalKey key, Widget child) {
-    return Showcase.withWidget(
-      key: key,
-      container: const SizedBox.shrink(),
-      overlayOpacity: 0.72,
-      targetPadding: const EdgeInsets.all(8),
-      targetBorderRadius: BorderRadius.circular(14),
-      disableDefaultTargetGestures: false,
-      child: child,
-    );
+    return _PmTourTarget(targetKey: key, child: child);
   }
 
   @override
@@ -2760,53 +2816,56 @@ class _ReportsTabState extends ConsumerState<_ReportsTab> {
     return ShowCaseWidget(
       builder: (showcaseContext) {
         _syncPmReportsTour(showcaseContext);
-        return ListView(
-          padding: const EdgeInsets.all(14),
-          children: [
-            _tourTarget(
-              _dateTourKey,
-              _DateCard(
-                  title: 'P&M Report Date',
-                  date: state.selectedDate,
-                  onTap: widget.onDateTap),
-            ),
-            const SizedBox(height: 12),
-            _tourTarget(
-              _summaryTourKey,
-              GridView.count(
-                physics: const NeverScrollableScrollPhysics(),
-                shrinkWrap: true,
-                crossAxisCount: 2,
-                childAspectRatio: 1.55,
-                mainAxisSpacing: 10,
-                crossAxisSpacing: 10,
-                children: [
-                  _SummaryTile(
-                      label: 'Equipment',
-                      value: '${state.summary.totalEquipment}'),
-                  _SummaryTile(
-                      label: 'Entries', value: '${state.summary.totalEntries}'),
-                  _SummaryTile(
-                      label: 'Working Hrs',
-                      value: _fmt(state.summary.totalWorkingHours)),
-                  _SummaryTile(
-                      label: 'Fuel',
-                      value: _fmt(state.summary.totalFuelConsumption)),
-                ],
+        return _PmTourStack(
+          child: ListView(
+            padding: const EdgeInsets.all(14),
+            children: [
+              _tourTarget(
+                _dateTourKey,
+                _DateCard(
+                    title: 'P&M Report Date',
+                    date: state.selectedDate,
+                    onTap: widget.onDateTap),
               ),
-            ),
-            const SizedBox(height: 14),
-            _tourTarget(
-              _entriesTourKey,
-              state.entries.isEmpty
-                  ? const _EmptyState(title: 'No entries for selected date')
-                  : Column(
-                      children: state.entries
-                          .map((entry) => _EntryCard(entry: entry))
-                          .toList(),
-                    ),
-            ),
-          ],
+              const SizedBox(height: 12),
+              _tourTarget(
+                _summaryTourKey,
+                GridView.count(
+                  physics: const NeverScrollableScrollPhysics(),
+                  shrinkWrap: true,
+                  crossAxisCount: 2,
+                  childAspectRatio: 1.55,
+                  mainAxisSpacing: 10,
+                  crossAxisSpacing: 10,
+                  children: [
+                    _SummaryTile(
+                        label: 'Equipment',
+                        value: '${state.summary.totalEquipment}'),
+                    _SummaryTile(
+                        label: 'Entries',
+                        value: '${state.summary.totalEntries}'),
+                    _SummaryTile(
+                        label: 'Working Hrs',
+                        value: _fmt(state.summary.totalWorkingHours)),
+                    _SummaryTile(
+                        label: 'Fuel',
+                        value: _fmt(state.summary.totalFuelConsumption)),
+                  ],
+                ),
+              ),
+              const SizedBox(height: 14),
+              _tourTarget(
+                _entriesTourKey,
+                state.entries.isEmpty
+                    ? const _EmptyState(title: 'No entries for selected date')
+                    : Column(
+                        children: state.entries
+                            .map((entry) => _EntryCard(entry: entry))
+                            .toList(),
+                      ),
+              ),
+            ],
+          ),
         );
       },
     );

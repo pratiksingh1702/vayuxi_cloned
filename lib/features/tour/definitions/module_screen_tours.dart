@@ -11,6 +11,11 @@ class ModuleScreenTourTargets {
   static final setupTabKey = GlobalKey(debugLabel: 'tour_setup_tab');
   static final reportsTabKey = GlobalKey(debugLabel: 'tour_reports_tab');
   static final moreTabKey = GlobalKey(debugLabel: 'tour_more_tab');
+  static final typeDropdownKey = GlobalKey(debugLabel: 'tour_type_dropdown');
+  static final modeDropdownKey = GlobalKey(debugLabel: 'tour_mode_dropdown');
+  static final siteDropdownKey = GlobalKey(debugLabel: 'tour_site_dropdown');
+  static final teamDropdownKey = GlobalKey(debugLabel: 'tour_team_dropdown');
+  static final addEntryKey = GlobalKey(debugLabel: 'tour_add_entry');
 }
 
 class ModuleScreenTours {
@@ -33,6 +38,8 @@ class ModuleScreenTours {
         title: 'Welcome to ERP',
         body:
             'This demo can use a sample site. To create your own project data, go to Setup and open Site Details.',
+        voiceText:
+            'नमस्ते। यह ऐप साइट का काम लिखने और रिकॉर्ड देखने में मदद करेगा। अपनी साइट जोड़नी हो, तो सेटअप में साइट डीटेल खोलिए।',
         targetKey: ModuleScreenTourTargets.screenKey,
         progressLabel: 'Sample site note',
         useSpotlight: false,

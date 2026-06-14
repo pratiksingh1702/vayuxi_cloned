@@ -21,6 +21,7 @@ import '../../../../../core/utlis/widgets/sidebar.dart';
 import '../../../../tour/domain/tour_controller.dart';
 import '../../../../tour/core/tour_models.dart';
 import '../../../../tour/core/tour_package_adapter.dart';
+import 'package:untitled2/features/tour/core/screen_owned_tour_mixin.dart';
 import '../../../../tour/definitions/site_rate_module_tours.dart';
 import '../../../../tour/providers/tour_providers.dart';
 import '../providers/siteProvider.dart';
@@ -36,7 +37,7 @@ class SiteDetailScreen extends ConsumerStatefulWidget {
   ConsumerState<SiteDetailScreen> createState() => _SiteDetailScreenState();
 }
 
-class _SiteDetailScreenState extends ConsumerState<SiteDetailScreen> {
+class _SiteDetailScreenState extends ConsumerState<SiteDetailScreen> with ScreenOwnedTourMixin<SiteDetailScreen> {
   final _formKey = GlobalKey<FormState>();
   static const TourPackageAdapter _tourPackageAdapter = TourPackageAdapter();
   String? _lastShowcasedTourStepId;
@@ -468,6 +469,9 @@ class _SiteDetailScreenState extends ConsumerState<SiteDetailScreen> {
       ],
     );
 
+    bindScreenOwnedTour(tourId: definition.id, showcaseContext: showcaseContext);
+
+
     WidgetsBinding.instance.addPostFrameCallback((_) async {
       if (!mounted || isLoading) return;
       final route = ModalRoute.of(context);
@@ -482,8 +486,7 @@ class _SiteDetailScreenState extends ConsumerState<SiteDetailScreen> {
       }
       final step = tourController.currentStep;
       final activeTour = tourController.activeTour;
-      if (activeTour == null ||
-          !activeTour.id.startsWith(SiteRateModuleTours.siteDetailsId)) {
+      if (activeTour == null || activeTour.id != definition.id) {
         if (_lastShowcasedTourStepId != null) {
           _tourPackageAdapter.dismiss(showcaseContext);
           _lastShowcasedTourStepId = null;

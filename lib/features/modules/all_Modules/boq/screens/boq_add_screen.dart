@@ -8,6 +8,7 @@ import 'package:showcaseview/showcaseview.dart';
 import '../../rate/data/rate_file_uplaod_model.dart' hide UploadStatus;
 import '../../../../tour/core/tour_models.dart';
 import '../../../../tour/core/tour_package_adapter.dart';
+import 'package:untitled2/features/tour/core/screen_owned_tour_mixin.dart';
 import '../../../../tour/definitions/setup_module_tours.dart';
 import '../../../../tour/providers/tour_providers.dart';
 import '../models/boq_model.dart';
@@ -26,7 +27,7 @@ class BoqAddScreen extends ConsumerStatefulWidget {
   ConsumerState<BoqAddScreen> createState() => _BoqAddScreenState();
 }
 
-class _BoqAddScreenState extends ConsumerState<BoqAddScreen> {
+class _BoqAddScreenState extends ConsumerState<BoqAddScreen> with ScreenOwnedTourMixin<BoqAddScreen> {
   static const TourPackageAdapter _tourPackageAdapter = TourPackageAdapter();
   final GlobalKey _modeTourKey = GlobalKey(debugLabel: 'boq_mode_picker');
   String? _lastShowcasedTourStepId;
@@ -57,6 +58,9 @@ class _BoqAddScreenState extends ConsumerState<BoqAddScreen> {
         ),
       ],
     );
+
+    bindScreenOwnedTour(tourId: definition.id, showcaseContext: showcaseContext);
+
 
     WidgetsBinding.instance.addPostFrameCallback((_) async {
       if (!mounted) return;
@@ -929,7 +933,7 @@ class _ExcelUploadSection extends ConsumerStatefulWidget {
       _ExcelUploadSectionState();
 }
 
-class _ExcelUploadSectionState extends ConsumerState<_ExcelUploadSection> {
+class _ExcelUploadSectionState extends ConsumerState<_ExcelUploadSection> with ScreenOwnedTourMixin<_ExcelUploadSection> {
   static const TourPackageAdapter _tourPackageAdapter = TourPackageAdapter();
   final GlobalKey _typeTourKey = GlobalKey(debugLabel: 'boq_excel_type');
   final GlobalKey _nameTourKey = GlobalKey(debugLabel: 'boq_excel_name');
@@ -1052,6 +1056,9 @@ class _ExcelUploadSectionState extends ConsumerState<_ExcelUploadSection> {
         ),
       ],
     );
+
+    bindScreenOwnedTour(tourId: definition.id, showcaseContext: showcaseContext);
+
 
     WidgetsBinding.instance.addPostFrameCallback((_) async {
       if (!mounted || status == UploadStatus.uploading) return;
@@ -1415,7 +1422,7 @@ class _ManualEntrySection extends ConsumerStatefulWidget {
       _ManualEntrySectionState();
 }
 
-class _ManualEntrySectionState extends ConsumerState<_ManualEntrySection> {
+class _ManualEntrySectionState extends ConsumerState<_ManualEntrySection> with ScreenOwnedTourMixin<_ManualEntrySection> {
   static const TourPackageAdapter _tourPackageAdapter = TourPackageAdapter();
   final GlobalKey _typeTourKey = GlobalKey(debugLabel: 'boq_manual_type');
   final GlobalKey _nameTourKey = GlobalKey(debugLabel: 'boq_manual_name');
@@ -1606,6 +1613,9 @@ class _ManualEntrySectionState extends ConsumerState<_ManualEntrySection> {
         ),
       ],
     );
+
+    bindScreenOwnedTour(tourId: definition.id, showcaseContext: showcaseContext);
+
 
     WidgetsBinding.instance.addPostFrameCallback((_) async {
       if (!mounted || status == UploadStatus.uploading) return;

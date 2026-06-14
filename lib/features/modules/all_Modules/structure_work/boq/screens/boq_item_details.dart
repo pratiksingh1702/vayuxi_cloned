@@ -11,6 +11,7 @@ import 'package:untitled2/features/modules/all_Modules/structure_work/boq/provid
 import 'package:untitled2/core/utlis/widgets/sidebar.dart';
 import 'package:untitled2/features/tour/core/tour_models.dart';
 import 'package:untitled2/features/tour/core/tour_package_adapter.dart';
+import 'package:untitled2/features/tour/core/screen_owned_tour_mixin.dart';
 import 'package:untitled2/features/tour/definitions/setup_module_tours.dart';
 import 'package:untitled2/features/tour/providers/tour_providers.dart';
 
@@ -33,7 +34,7 @@ class BoqItemDetailsScreen extends ConsumerStatefulWidget {
       _BoqItemDetailsScreenState();
 }
 
-class _BoqItemDetailsScreenState extends ConsumerState<BoqItemDetailsScreen> {
+class _BoqItemDetailsScreenState extends ConsumerState<BoqItemDetailsScreen> with ScreenOwnedTourMixin<BoqItemDetailsScreen> {
   static const TourPackageAdapter _tourPackageAdapter = TourPackageAdapter();
   final GlobalKey _boqNameTourKey = GlobalKey(debugLabel: 'structure_boq_name');
   final GlobalKey _identityTourKey =
@@ -241,6 +242,9 @@ class _BoqItemDetailsScreenState extends ConsumerState<BoqItemDetailsScreen> {
         ),
       ],
     );
+
+    bindScreenOwnedTour(tourId: definition.id, showcaseContext: showcaseContext);
+
 
     WidgetsBinding.instance.addPostFrameCallback((_) async {
       if (!mounted) return;
