@@ -59,11 +59,13 @@ class _GlobalTourOverlayState extends ConsumerState<GlobalTourOverlay> {
   String? _voiceTextForStep(AppTourStep step) {
     final explicit = step.voiceText?.trim();
     if (explicit != null && explicit.isNotEmpty) return explicit;
-    if (!step.id.startsWith('pm_')) return null;
-    return _pmHindiVoiceText(step.id);
+    return _moduleHindiVoiceText(step.id);
   }
 
-  String? _pmHindiVoiceText(String stepId) {
+  String? _moduleHindiVoiceText(String stepId) {
+    if (!stepId.startsWith('pm_')) {
+      return _generalHindiVoiceText(stepId);
+    }
     switch (stepId) {
       case 'pm_setup_intro':
         return 'यह पी एंड एम सेटअप है। यहां पहले मशीन और पी एंड एम का नाम जोड़ते हैं। बाद में रोज की एंट्री आसान हो जाती है।';
@@ -138,6 +140,49 @@ class _GlobalTourOverlayState extends ConsumerState<GlobalTourOverlay> {
       default:
         return 'इस हिस्से को ध्यान से देखिए। यहां पी एंड एम की जानकारी भरनी या देखनी होती है।';
     }
+  }
+
+  String? _generalHindiVoiceText(String stepId) {
+    if (stepId.startsWith('attendance_')) {
+      if (stepId.contains('intro')) {
+        return 'यह हाजिरी की स्क्रीन है। यहां लिखते हैं कि आज कौन आया और कौन नहीं आया।';
+      }
+      if (stepId.contains('save')) {
+        return 'सबकी हाजिरी सही भरने के बाद सेव बटन दबाइए।';
+      }
+      return 'इस हिस्से में हाजिरी की जानकारी भरिए या जांचिए।';
+    }
+    if (stepId.startsWith('rate_')) {
+      if (stepId.contains('selector')) {
+        return 'रेट सेटअप में रेट देखने या नया रेट जोड़ने का रास्ता चुनिए।';
+      }
+      if (stepId.contains('save') || stepId.contains('submit')) {
+        return 'रेट की जानकारी सही हो जाए तो सेव बटन दबाइए।';
+      }
+      if (stepId.contains('import') || stepId.contains('upload')) {
+        return 'रेट की शीट अपलोड करने के लिए इस हिस्से का इस्तेमाल कीजिए।';
+      }
+      return 'यहां काम या सामान का रेट भरिए या देखिए।';
+    }
+    if (stepId.startsWith('team_')) {
+      if (stepId.contains('save') || stepId.contains('submit')) {
+        return 'टीम की जानकारी सही हो जाए तो सेव बटन दबाइए।';
+      }
+      return 'यहां मजदूरों की टीम बनाइए या टीम की जानकारी देखिए।';
+    }
+    if (stepId.startsWith('manpower_') || stepId.startsWith('man_')) {
+      if (stepId.contains('save') || stepId.contains('submit')) {
+        return 'मजदूर की जानकारी सही हो जाए तो सेव बटन दबाइए।';
+      }
+      if (stepId.contains('upload') || stepId.contains('mapping')) {
+        return 'मजदूरों की शीट अपलोड करके कॉलम मिलाइए और जांचिए।';
+      }
+      return 'यहां मजदूर का नाम और बाकी जानकारी भरिए या देखिए।';
+    }
+    if (stepId.startsWith('site_') || stepId.contains('_site')) {
+      return 'यहां साइट की जानकारी देखिए या सही साइट चुनिए।';
+    }
+    return null;
   }
 
   @override
@@ -266,8 +311,11 @@ class _GlobalTourOverlayState extends ConsumerState<GlobalTourOverlay> {
         tour != null &&
         step != null;
     final targetRect = showTour ? _targetRect(step) : null;
+    final tooltipReady = showTour &&
+        (step?.showTooltip ?? false) &&
+        (step?.targetKey == null || targetRect != null);
     _syncTourVoice(
-      showTour: showTour && (step?.showTooltip ?? false),
+      showTour: tooltipReady,
       tour: tour,
       step: step,
       stepIndex: tourState.stepIndex,

@@ -6,8 +6,16 @@ import 'tour_models.dart';
 class TourPackageAdapter {
   const TourPackageAdapter();
 
+  ShowCaseWidgetState? _maybeOf(BuildContext showcaseContext) {
+    try {
+      return ShowCaseWidget.of(showcaseContext);
+    } catch (_) {
+      return null;
+    }
+  }
+
   Future<void> showStep(BuildContext showcaseContext, AppTourStep step) async {
-    final showcase = ShowCaseWidget.of(showcaseContext);
+    final showcase = _maybeOf(showcaseContext);
     final targetKey = step.targetKey;
     if (!step.useSpotlight || targetKey == null) {
       showcase?.dismiss();
@@ -32,10 +40,10 @@ class TourPackageAdapter {
       }
     }
     if (!showcaseContext.mounted) return;
-    ShowCaseWidget.of(showcaseContext)?.startShowCase([targetKey]);
+    _maybeOf(showcaseContext)?.startShowCase([targetKey]);
   }
 
   void dismiss(BuildContext showcaseContext) {
-    ShowCaseWidget.of(showcaseContext)?.dismiss();
+    _maybeOf(showcaseContext)?.dismiss();
   }
 }

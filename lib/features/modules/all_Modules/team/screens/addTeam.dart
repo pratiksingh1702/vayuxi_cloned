@@ -18,6 +18,7 @@ import '../../../../tour/core/tour_package_adapter.dart';
 import 'package:untitled2/features/tour/core/screen_owned_tour_mixin.dart';
 import '../../../../tour/definitions/manpower_team_module_tours.dart';
 import '../../../../tour/providers/tour_providers.dart';
+import 'package:untitled2/features/tour/widgets/no_cutout_tour_target.dart';
 import '../../Manpower Details/model/manpower_model.dart';
 import '../../Manpower Details/service/manPowerProvider.dart';
 import '../../attendance/offline/repo/att_sync.dart';
@@ -569,20 +570,12 @@ class _AddTeamScreenState extends ConsumerState<AddTeamScreen> with ScreenOwnedT
       if (step == null) return;
       if (_lastShowcasedTourStepId == stepKey) return;
       _lastShowcasedTourStepId = stepKey;
-      await _tourPackageAdapter.showStep(showcaseContext, step);
+      // No-cutout tour overlay handles target presentation.
     });
   }
 
   Widget _tourTarget(GlobalKey key, Widget child) {
-    return Showcase.withWidget(
-      key: key,
-      container: const SizedBox.shrink(),
-      overlayOpacity: 0.72,
-      targetPadding: const EdgeInsets.all(8),
-      targetBorderRadius: BorderRadius.circular(14),
-      disableDefaultTargetGestures: false,
-      child: child,
-    );
+    return NoCutoutTourTarget(targetKey: key, child: child);
   }
 
   @override

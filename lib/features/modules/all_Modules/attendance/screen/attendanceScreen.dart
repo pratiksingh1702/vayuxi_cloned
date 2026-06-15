@@ -13,6 +13,7 @@ import 'package:untitled2/features/tour/core/tour_package_adapter.dart';
 import 'package:untitled2/features/tour/core/screen_owned_tour_mixin.dart';
 import 'package:untitled2/features/tour/definitions/attendance_module_tours.dart';
 import 'package:untitled2/features/tour/providers/tour_providers.dart';
+import 'package:untitled2/features/tour/widgets/no_cutout_tour_target.dart';
 import '../../../../../core/router/routes.dart';
 import '../../../../../core/utlis/app_toasts.dart';
 import '../../../../../core/utlis/widgets/Button_wrapper.dart';
@@ -1134,7 +1135,7 @@ class _AttendanceScreenState extends ConsumerState<AttendanceScreen> with Screen
 
       if (_lastShowcasedTourStepId == stepKey) return;
       _lastShowcasedTourStepId = stepKey;
-      _tourPackageAdapter.showStep(showcaseContext, step);
+      // No-cutout tour overlay handles target presentation.
     });
   }
 
@@ -1251,15 +1252,7 @@ class _AttendanceScreenState extends ConsumerState<AttendanceScreen> with Screen
     required Widget child,
     EdgeInsets targetPadding = const EdgeInsets.all(6),
   }) {
-    return Showcase.withWidget(
-      key: key,
-      container: const SizedBox.shrink(),
-      overlayOpacity: 0.72,
-      targetPadding: targetPadding,
-      targetBorderRadius: BorderRadius.circular(14),
-      disableDefaultTargetGestures: false,
-      child: child,
-    );
+    return NoCutoutTourTarget(targetKey: key, child: child);
   }
 
   @override
@@ -2141,15 +2134,7 @@ class _AttendanceCardState extends State<AttendanceCard> {
     EdgeInsets targetPadding = const EdgeInsets.all(6),
   }) {
     if (key == null) return child;
-    return Showcase.withWidget(
-      key: key,
-      container: const SizedBox.shrink(),
-      overlayOpacity: 0.72,
-      targetPadding: targetPadding,
-      targetBorderRadius: BorderRadius.circular(12),
-      disableDefaultTargetGestures: false,
-      child: child,
-    );
+    return NoCutoutTourTarget(targetKey: key, child: child);
   }
 
   Widget _buildPAButton() {

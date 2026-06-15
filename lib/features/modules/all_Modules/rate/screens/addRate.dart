@@ -18,6 +18,7 @@ import '../../../../tour/core/tour_package_adapter.dart';
 import 'package:untitled2/features/tour/core/screen_owned_tour_mixin.dart';
 import '../../../../tour/definitions/site_rate_module_tours.dart';
 import '../../../../tour/providers/tour_providers.dart';
+import 'package:untitled2/features/tour/widgets/no_cutout_tour_target.dart';
 import '../data/rateApi.dart';
 import '../data/rate_provider.dart';
 
@@ -289,7 +290,7 @@ class _AddRateScreenState extends ConsumerState<AddRateScreen> with ScreenOwnedT
       }
       if (_lastShowcasedTourStepId == stepKey) return;
       _lastShowcasedTourStepId = stepKey;
-      _tourPackageAdapter.showStep(showcaseContext, step);
+      // No-cutout tour overlay handles target presentation.
     });
   }
 
@@ -298,18 +299,12 @@ class _AddRateScreenState extends ConsumerState<AddRateScreen> with ScreenOwnedT
     Widget child, {
     bool advanceOnTap = false,
   }) {
-    return Showcase.withWidget(
-      key: key,
-      container: const SizedBox.shrink(),
-      overlayOpacity: 0.72,
-      targetPadding: const EdgeInsets.all(8),
-      targetBorderRadius: BorderRadius.circular(14),
-      disableDefaultTargetGestures: false,
-      disposeOnTap: advanceOnTap ? true : null,
-      onTargetClick: advanceOnTap
-          ? () => ref.read(appTourControllerProvider.notifier).next()
-          : null,
-      child: child,
+    final target = NoCutoutTourTarget(targetKey: key, child: child);
+    if (!advanceOnTap) return target;
+    return GestureDetector(
+      behavior: HitTestBehavior.translucent,
+      onTap: () => ref.read(appTourControllerProvider.notifier).next(),
+      child: target,
     );
   }
 

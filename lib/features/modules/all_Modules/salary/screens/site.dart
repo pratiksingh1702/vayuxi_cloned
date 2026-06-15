@@ -23,6 +23,11 @@ import 'package:untitled2/features/modules/all_Modules/salary/screens/salary_Det
 import 'package:untitled2/features/modules/all_Modules/salary/service-provider/salaryModel/salary_model.dart';
 
 import 'package:untitled2/features/modules/all_Modules/site_Details/repository/siteModel.dart';
+import 'package:untitled2/features/tour/core/screen_owned_tour_mixin.dart';
+import 'package:untitled2/features/tour/core/tour_models.dart';
+import 'package:untitled2/features/tour/definitions/site_rate_module_tours.dart';
+import 'package:untitled2/features/tour/providers/tour_providers.dart';
+import 'package:untitled2/features/tour/widgets/no_cutout_tour_target.dart';
 import 'package:untitled2/typeProvider/type_provider.dart';
 import '../../../../../core/utlis/widgets/buttons.dart';
 import '../../../../../core/utlis/widgets/sidebar.dart';
@@ -41,7 +46,8 @@ class SiteSalaryScreen extends ConsumerStatefulWidget {
   ConsumerState<SiteSalaryScreen> createState() => _SiteSalaryScreenState();
 }
 
-class _SiteSalaryScreenState extends ConsumerState<SiteSalaryScreen> {
+class _SiteSalaryScreenState extends ConsumerState<SiteSalaryScreen>
+    with ScreenOwnedTourMixin<SiteSalaryScreen> {
   // ── State ──────────────────────────────────────────────────────────────────
   int? selectedMonth;
   String? selectedYear;
@@ -59,6 +65,13 @@ class _SiteSalaryScreenState extends ConsumerState<SiteSalaryScreen> {
   final Set<String> _selectedEmployeeIds = <String>{};
 
   final ScrollController _scrollController = ScrollController();
+  final GlobalKey _filterTourKey = GlobalKey(debugLabel: 'site_salary_filter');
+  final GlobalKey _employeeListTourKey =
+      GlobalKey(debugLabel: 'site_salary_employee_list');
+  final GlobalKey _viewAllTourKey =
+      GlobalKey(debugLabel: 'site_salary_view_all');
+  final GlobalKey _saveAllTourKey =
+      GlobalKey(debugLabel: 'site_salary_save_all');
 
   static const Map<String, int> _monthMap = {
     "January": 1,
@@ -786,9 +799,94 @@ class _SiteSalaryScreenState extends ConsumerState<SiteSalaryScreen> {
     setState(() => _selectedEmployeeIds.clear());
   }
 
+  String get _salaryTourId => 'site_salary_${widget.siteModel.id}';
+
+  void _syncSalaryTour() {
+    final definition = AppTourDefinition(
+      id: _salaryTourId,
+      title: 'Site Salary',
+      description: 'Learn how to check and save site salary.',
+      icon: Icons.payments_rounded,
+      steps: [
+        const AppTourStep(
+          id: 'site_salary_intro',
+          title: 'Site Salary',
+          body:
+              'This screen shows salary records for people at this site. First choose month and year.',
+          progressLabel: 'Salary screen',
+          useSpotlight: false,
+          voiceText:
+              'यह साइट की सैलरी स्क्रीन है। यहां इस साइट के लोगों की सैलरी देख सकते हैं। पहले महीना और साल चुनिए।',
+        ),
+        AppTourStep(
+          id: 'site_salary_month_year',
+          title: 'Month and Year',
+          body:
+              'Choose the month and year. The list below will show salary for that time.',
+          targetKey: _filterTourKey,
+          progressLabel: 'Month and year',
+          autoScrollToTarget: true,
+          voiceText:
+              'यहां महीना और साल चुनिए। नीचे उसी महीने की सैलरी की लिस्ट दिखेगी।',
+        ),
+        AppTourStep(
+          id: 'site_salary_employee_list',
+          title: 'Salary List',
+          body:
+              'Here you can see each person. Tap the eye to see details. Tap the PDF button to save one slip.',
+          targetKey: _employeeListTourKey,
+          progressLabel: 'Salary list',
+          autoScrollToTarget: true,
+          voiceText:
+              'यहां हर आदमी की सैलरी दिखती है। आंख वाला बटन दबाकर पूरी जानकारी देखें। पी डी एफ बटन दबाकर एक स्लिप सेव करें।',
+        ),
+        AppTourStep(
+          id: 'site_salary_view_all',
+          title: 'View All',
+          body: 'Tap this to see all salary details together.',
+          targetKey: _viewAllTourKey,
+          progressLabel: 'View all',
+          tooltipBottomOffset: 96,
+          autoScrollToTarget: true,
+          voiceText:
+              'सभी लोगों की सैलरी एक साथ देखनी हो, तो यह बटन दबाइए।',
+        ),
+        AppTourStep(
+          id: 'site_salary_save_all',
+          title: 'Save All',
+          body: 'Tap this to save all salary slips at one time.',
+          targetKey: _saveAllTourKey,
+          progressLabel: 'Save all',
+          tooltipBottomOffset: 96,
+          autoScrollToTarget: true,
+          voiceText:
+              'सभी लोगों की सैलरी स्लिप एक साथ सेव करनी हो, तो यह बटन दबाइए।',
+        ),
+      ],
+    );
+    bindScreenOwnedTour(tourId: definition.id, showcaseContext: context);
+
+    WidgetsBinding.instance.addPostFrameCallback((_) async {
+      if (!mounted || isLoading) return;
+      final route = ModalRoute.of(context);
+      if (route != null && !route.isCurrent) return;
+      final state = ref.read(appTourControllerProvider);
+      if (state.status == AppTourStatus.running) return;
+      await ref.read(appTourControllerProvider.notifier).maybeStartRuntimeTour(
+            definition,
+            policyTourId: SiteRateModuleTours.siteDetailsId,
+          );
+    });
+  }
+
+  Widget _tourTarget(GlobalKey key, Widget child) {
+    return NoCutoutTourTarget(targetKey: key, child: child);
+  }
+
   // ── Build ──────────────────────────────────────────────────────────────────
   @override
   Widget build(BuildContext context) {
+    _syncSalaryTour();
     final colorScheme = Theme.of(context).colorScheme;
     return Scaffold(
       drawer: const CustomDrawer(),
@@ -799,47 +897,57 @@ class _SiteSalaryScreenState extends ConsumerState<SiteSalaryScreen> {
           if (!isLoading) ...[
             // View All Details button
             CustomButton(
-              button: RoundedButton(
-                text: 'View All Details',
-                color: workData.isNotEmpty
-                    ? colorScheme.primary
-                    : colorScheme.outline,
-                textColor: colorScheme.onPrimary,
-                onPressed: workData.isNotEmpty ? _handleViewAllDetails : () {},
-                isOutlined: false,
+              button: _tourTarget(
+                _viewAllTourKey,
+                RoundedButton(
+                  text: 'View All Details',
+                  color: workData.isNotEmpty
+                      ? colorScheme.primary
+                      : colorScheme.outline,
+                  textColor: colorScheme.onPrimary,
+                  onPressed:
+                      workData.isNotEmpty ? _handleViewAllDetails : () {},
+                  isOutlined: false,
+                ),
               ),
             ),
             // Save All button
             CustomButton(
-              button: RoundedButton(
-                text: isDownloading ? 'Saving...' : 'Save All',
-                color: workData.isNotEmpty && !isDownloading
-                    ? colorScheme.secondary
-                    : colorScheme.outline,
-                textColor: colorScheme.onSecondary,
-                onPressed: workData.isNotEmpty && !isDownloading
-                    ? _handleDownloadAllPDFs
-                    : () {},
-                isOutlined: false,
+              button: _tourTarget(
+                _saveAllTourKey,
+                RoundedButton(
+                  text: isDownloading ? 'Saving...' : 'Save All',
+                  color: workData.isNotEmpty && !isDownloading
+                      ? colorScheme.secondary
+                      : colorScheme.outline,
+                  textColor: colorScheme.onSecondary,
+                  onPressed: workData.isNotEmpty && !isDownloading
+                      ? _handleDownloadAllPDFs
+                      : () {},
+                  isOutlined: false,
+                ),
               ),
             ),
           ],
         ],
         child: Column(
           children: [
-            _MonthYearSelector(
-              selectedMonth: selectedMonth,
-              selectedYear: selectedYear,
-              yearOptions: yearOptions,
-              monthMap: _monthMap,
-              onMonthChanged: (val) {
-                setState(() => selectedMonth = _monthMap[val]!);
-                _fetchWorkData();
-              },
-              onYearChanged: (val) {
-                setState(() => selectedYear = val);
-                _fetchWorkData();
-              },
+            _tourTarget(
+              _filterTourKey,
+              _MonthYearSelector(
+                selectedMonth: selectedMonth,
+                selectedYear: selectedYear,
+                yearOptions: yearOptions,
+                monthMap: _monthMap,
+                onMonthChanged: (val) {
+                  setState(() => selectedMonth = _monthMap[val]!);
+                  _fetchWorkData();
+                },
+                onYearChanged: (val) {
+                  setState(() => selectedYear = val);
+                  _fetchWorkData();
+                },
+              ),
             ),
             Padding(
               padding: const EdgeInsets.symmetric(horizontal: 16),
@@ -889,7 +997,9 @@ class _SiteSalaryScreenState extends ConsumerState<SiteSalaryScreen> {
                 itemSpacing: 8,
               ),
             const SizedBox(height: 8),
-            Expanded(child: _buildEmployeeList()),
+            Expanded(
+              child: _tourTarget(_employeeListTourKey, _buildEmployeeList()),
+            ),
           ],
         ),
       ),

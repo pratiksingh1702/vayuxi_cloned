@@ -4,7 +4,6 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:intl/intl.dart';
-import 'package:showcaseview/showcaseview.dart';
 import 'package:untitled2/core/utlis/widgets/custom_appBar.dart';
 import 'package:untitled2/core/utlis/widgets/custom_dropdown.dart';
 import 'package:untitled2/core/utlis/widgets/fields/custom_textField.dart';
@@ -86,7 +85,7 @@ class _PmTourStackState extends ConsumerState<_PmTourStack> {
 
   @override
   Widget build(BuildContext context) {
-    _targets.clear();
+    ref.watch(appTourControllerProvider);
 
     return Stack(
       key: _stackKey,
@@ -117,16 +116,23 @@ class _PmTourStackState extends ConsumerState<_PmTourStack> {
     if (rect == null) return const SizedBox.shrink();
 
     return Positioned.fill(
-      child: AbsorbPointer(
-        absorbing: true,
-        child: CustomPaint(
-          painter: SpotlightCutoutPainter(
-            rect: rect,
-            borderRadius: 12.0,
-            overlayColor: Colors.black.withOpacity(0.78),
-            padding: 6.0,
+      child: Stack(
+        clipBehavior: Clip.none,
+        children: [
+          ModalBarrier(
+            dismissible: false,
+            color: Colors.black.withOpacity(0.78),
           ),
-        ),
+          Positioned.fromRect(
+            rect: rect,
+            child: IgnorePointer(
+              child: Material(
+                color: Theme.of(context).colorScheme.surface,
+                child: target.child,
+              ),
+            ),
+          ),
+        ],
       ),
     );
   }
@@ -171,50 +177,6 @@ class _PmTourStackState extends ConsumerState<_PmTourStack> {
         _highlightRect = null;
       });
     });
-  }
-}
-
-class SpotlightCutoutPainter extends CustomPainter {
-  final Rect? rect;
-  final double borderRadius;
-  final Color overlayColor;
-  final double padding;
-
-  SpotlightCutoutPainter({
-    required this.rect,
-    this.borderRadius = 12.0,
-    this.overlayColor = const Color(0xC7000000),
-    this.padding = 6.0,
-  });
-
-  @override
-  void paint(Canvas canvas, Size size) {
-    final paint = Paint()
-      ..color = overlayColor
-      ..style = PaintingStyle.fill;
-
-    if (rect == null) {
-      canvas.drawRect(Offset.zero & size, paint);
-      return;
-    }
-
-    final inflatedRect = rect!.inflate(padding);
-
-    final path = Path.combine(
-      PathOperation.difference,
-      Path()..addRect(Offset.zero & size),
-      Path()..addRRect(RRect.fromRectAndRadius(inflatedRect, Radius.circular(borderRadius))),
-    );
-
-    canvas.drawPath(path, paint);
-  }
-
-  @override
-  bool shouldRepaint(covariant SpotlightCutoutPainter oldDelegate) {
-    return oldDelegate.rect != rect ||
-        oldDelegate.borderRadius != borderRadius ||
-        oldDelegate.overlayColor != overlayColor ||
-        oldDelegate.padding != padding;
   }
 }
 
@@ -517,7 +479,7 @@ class _SetupTabState extends ConsumerState<_SetupTab>
       return const _PmCategorySelectionSkeleton();
     }
     if (state.categories.isEmpty) {
-      return ShowCaseWidget(
+      return Builder(
         builder: (showcaseContext) {
           _syncPmSetupTour(
             showcaseContext,
@@ -548,7 +510,7 @@ class _SetupTabState extends ConsumerState<_SetupTab>
             orElse: () => state.categories.first,
           );
 
-    return ShowCaseWidget(
+    return Builder(
       builder: (showcaseContext) {
         _syncPmSetupTour(
           showcaseContext,
@@ -647,15 +609,17 @@ class _SetupTabState extends ConsumerState<_SetupTab>
   }
 
   Future<void> _openEquipmentSheet(PmEquipment? equipment) async {
-    await showPmEquipmentSheet(
-      context: context,
-      ref: ref,
-      state: widget.state,
-      siteId: widget.siteId,
-      workType: widget.workType,
-      equipment: equipment,
-      onSaved: widget.onSaved,
-      onError: widget.onError,
+    if (equipment == null) return;
+    await Navigator.of(context).push<void>(
+      MaterialPageRoute(
+        builder: (_) => _PmEquipmentEditScreen(
+          siteId: widget.siteId,
+          workType: widget.workType,
+          equipment: equipment,
+          onSaved: widget.onSaved,
+          onError: widget.onError,
+        ),
+      ),
     );
   }
 
@@ -822,7 +786,7 @@ class _PmSetupCategoryActionScreenState
     final isDark = Theme.of(context).brightness == Brightness.dark;
     ref.watch(appTourControllerProvider);
 
-    return ShowCaseWidget(
+    return Builder(
       builder: (showcaseContext) {
         _syncChooserTour(showcaseContext);
         return _PmTourStack(
@@ -1724,7 +1688,7 @@ class _PmEquipmentAddScreenState extends ConsumerState<_PmEquipmentAddScreen>
     final state = ref.watch(pmProvider);
     ref.watch(appTourControllerProvider);
 
-    return ShowCaseWidget(
+    return Builder(
       builder: (showcaseContext) {
         _syncPmWorkFormTour(showcaseContext);
         return _PmTourStack(
@@ -1997,7 +1961,7 @@ class _PmEquipmentEditScreenState
     final state = ref.watch(pmProvider);
     ref.watch(appTourControllerProvider);
 
-    return ShowCaseWidget(
+    return Builder(
       builder: (showcaseContext) {
         _syncPmWorkEditTour(showcaseContext);
         return _PmTourStack(
@@ -2357,7 +2321,7 @@ class _EntryTabState extends ConsumerState<_EntryTab>
     final selectedEquipment = _findCurrentEquipment(categories);
     if (selectedEquipment == null) {
       ref.watch(appTourControllerProvider);
-      return ShowCaseWidget(
+      return Builder(
         builder: (showcaseContext) {
           _syncPmEntrySelectionTour(showcaseContext);
           return _PmTourStack(
@@ -2376,175 +2340,215 @@ class _EntryTabState extends ConsumerState<_EntryTab>
     _syncSelectedEntry(selectedEquipment);
 
     ref.watch(appTourControllerProvider);
-    return ShowCaseWidget(
+    return Builder(
       builder: (showcaseContext) {
         _syncPmEntryFormTour(showcaseContext, selectedEquipment);
         return _PmTourStack(
           child: ListView(
             padding: const EdgeInsets.all(14),
+            cacheExtent: 3000,
             children: [
-        _tourTarget(
-          _dateTourKey,
-          _PmEntryInfoBanner(
-          siteName: widget.siteName,
-          teamName: _formatPmContextLabel(widget.workType),
-          date: widget.state.selectedDate,
-          onTap: widget.onDateTap,
-          ),
-        ),
-        const SizedBox(height: 12),
-        _tourTarget(
-          _workTourKey,
-          _PmEntryWorkTitle(equipment: selectedEquipment),
-        ),
-        const SizedBox(height: 8),
-        _tourTarget(
-          _machineTourKey,
-          Column(
-            children: [
-              _TextField(controller: _equipmentNo, label: 'Equipment Number'),
-              _TextField(controller: _capacity, label: 'Equipment Capacity'),
-              _MenuField(
-                label: 'Owner Type',
-                value: _ownerType,
-                values: const ['', 'company', 'rental'],
-                onChanged: (value) => setState(() => _ownerType = value),
+              _tourTarget(
+                _dateTourKey,
+                _PmEntryInfoBanner(
+                  siteName: widget.siteName,
+                  teamName: _formatPmContextLabel(widget.workType),
+                  date: widget.state.selectedDate,
+                  onTap: widget.onDateTap,
+                ),
               ),
-              _TextField(controller: _vendor, label: 'Vendor Name'),
-            ],
-          ),
-        ),
-        _tourTarget(
-          _timeTourKey,
-          Row(
-          children: [
-            Expanded(
-              child: _TextField(
-                controller: _start,
-                label: 'Start Time',
-                keyboardType: TextInputType.datetime,
+              const SizedBox(height: 12),
+              _tourTarget(
+                _workTourKey,
+                _PmEntryWorkTitle(equipment: selectedEquipment),
               ),
-            ),
-            const SizedBox(width: 10),
-            Expanded(
-              child: _TextField(
-                controller: _end,
-                label: 'End Time',
-                keyboardType: TextInputType.datetime,
+              const SizedBox(height: 8),
+              _tourTarget(
+                _machineTourKey,
+                Column(
+                  children: [
+                    _TextField(
+                      controller: _equipmentNo,
+                      label: 'Equipment Number',
+                    ),
+                    _TextField(
+                      controller: _capacity,
+                      label: 'Equipment Capacity',
+                    ),
+                    _MenuField(
+                      label: 'Owner Type',
+                      value: _ownerType,
+                      values: const ['', 'company', 'rental'],
+                      onChanged: (value) => setState(() => _ownerType = value),
+                    ),
+                    _TextField(controller: _vendor, label: 'Vendor Name'),
+                  ],
+                ),
               ),
-            ),
-          ],
-          ),
-        ),
-        _tourTarget(
-          _hoursTourKey,
-          Column(
-            children: [
-        Row(
-          children: [
-            Expanded(
-              child: _TextField(
-                controller: _working,
-                label: 'Working Hours',
-                keyboardType:
-                    const TextInputType.numberWithOptions(decimal: true),
+              _tourTarget(
+                _timeTourKey,
+                Row(
+                  children: [
+                    Expanded(
+                      child: _TextField(
+                        controller: _start,
+                        label: 'Start Time',
+                        keyboardType: TextInputType.datetime,
+                      ),
+                    ),
+                    const SizedBox(width: 10),
+                    Expanded(
+                      child: _TextField(
+                        controller: _end,
+                        label: 'End Time',
+                        keyboardType: TextInputType.datetime,
+                      ),
+                    ),
+                  ],
+                ),
               ),
-            ),
-            const SizedBox(width: 10),
-            Expanded(
-              child: _TextField(
-                controller: _breakdown,
-                label: 'Breakdown Hours',
-                keyboardType:
-                    const TextInputType.numberWithOptions(decimal: true),
+              _tourTarget(
+                _hoursTourKey,
+                Column(
+                  children: [
+                    Row(
+                      children: [
+                        Expanded(
+                          child: _TextField(
+                            controller: _working,
+                            label: 'Working Hours',
+                            keyboardType:
+                                const TextInputType.numberWithOptions(
+                              decimal: true,
+                            ),
+                          ),
+                        ),
+                        const SizedBox(width: 10),
+                        Expanded(
+                          child: _TextField(
+                            controller: _breakdown,
+                            label: 'Breakdown Hours',
+                            keyboardType:
+                                const TextInputType.numberWithOptions(
+                              decimal: true,
+                            ),
+                          ),
+                        ),
+                      ],
+                    ),
+                    _TextField(
+                      controller: _idle,
+                      label: 'Idle Hours',
+                      keyboardType: const TextInputType.numberWithOptions(
+                        decimal: true,
+                      ),
+                    ),
+                  ],
+                ),
               ),
-            ),
-          ],
-        ),
-        _TextField(
-            controller: _idle,
-            label: 'Idle Hours',
-            keyboardType: const TextInputType.numberWithOptions(decimal: true)),
-            ],
-          ),
-        ),
-        _tourTarget(
-          _fuelTourKey,
-          Column(
-            children: [
-              _TextField(controller: _operator, label: 'Operator Name'),
-              _TextField(controller: _driver, label: 'Driver Name'),
-              _MenuField(
-                label: 'Fuel Type',
-                value: _fuelType,
-                values: const ['', 'diesel', 'petrol', 'electric', 'other'],
-                onChanged: (value) => setState(() => _fuelType = value),
+              _tourTarget(
+                _fuelTourKey,
+                Column(
+                  children: [
+                    _TextField(controller: _operator, label: 'Operator Name'),
+                    _TextField(controller: _driver, label: 'Driver Name'),
+                    _MenuField(
+                      label: 'Fuel Type',
+                      value: _fuelType,
+                      values: const [
+                        '',
+                        'diesel',
+                        'petrol',
+                        'electric',
+                        'other',
+                      ],
+                      onChanged: (value) => setState(() => _fuelType = value),
+                    ),
+                    _TextField(
+                      controller: _fuel,
+                      label: 'Fuel Consumed',
+                      keyboardType: const TextInputType.numberWithOptions(
+                        decimal: true,
+                      ),
+                    ),
+                  ],
+                ),
               ),
-              _TextField(
-                  controller: _fuel,
-                  label: 'Fuel Consumed',
-                  keyboardType:
-                      const TextInputType.numberWithOptions(decimal: true)),
-            ],
-          ),
-        ),
-        _tourTarget(
-          _progressTourKey,
-          Column(
-            children: [
-        Row(
-          children: [
-            Expanded(
-              child: _TextField(
-                controller: _quantity,
-                label: 'Quantity Executed',
-                keyboardType:
-                    const TextInputType.numberWithOptions(decimal: true),
+              _tourTarget(
+                _progressTourKey,
+                Column(
+                  children: [
+                    Row(
+                      children: [
+                        Expanded(
+                          child: _TextField(
+                            controller: _quantity,
+                            label: 'Quantity Executed',
+                            keyboardType:
+                                const TextInputType.numberWithOptions(
+                              decimal: true,
+                            ),
+                          ),
+                        ),
+                        const SizedBox(width: 10),
+                        Expanded(
+                          child: _TextField(
+                            controller: _unit,
+                            label: 'Unit',
+                          ),
+                        ),
+                      ],
+                    ),
+                    _TextField(controller: _location, label: 'Location'),
+                    _TextField(
+                      controller: _activity,
+                      label: 'Activity Performed',
+                    ),
+                    _TextField(
+                      controller: _description,
+                      label: 'Work Description',
+                      maxLines: 3,
+                    ),
+                  ],
+                ),
               ),
-            ),
-            const SizedBox(width: 10),
-            Expanded(child: _TextField(controller: _unit, label: 'Unit')),
-          ],
-        ),
-        _TextField(controller: _location, label: 'Location'),
-        _TextField(controller: _activity, label: 'Activity Performed'),
-        _TextField(
-            controller: _description, label: 'Work Description', maxLines: 3),
-            ],
-          ),
-        ),
-        _tourTarget(
-          _statusTourKey,
-          Column(
-            children: [
-              _MenuField(
-                label: 'Status',
-                value: _status,
-                values: const ['working', 'idle', 'breakdown', 'maintenance'],
-                onChanged: (value) => setState(() => _status = value),
+              _tourTarget(
+                _statusTourKey,
+                Column(
+                  children: [
+                    _MenuField(
+                      label: 'Status',
+                      value: _status,
+                      values: const [
+                        'working',
+                        'idle',
+                        'breakdown',
+                        'maintenance',
+                      ],
+                      onChanged: (value) => setState(() => _status = value),
+                    ),
+                    SwitchListTile(
+                      value: _maintenanceRequired,
+                      onChanged: (value) =>
+                          setState(() => _maintenanceRequired = value),
+                      title: const Text('Maintenance Required'),
+                      contentPadding: EdgeInsets.zero,
+                    ),
+                  ],
+                ),
               ),
-              SwitchListTile(
-                value: _maintenanceRequired,
-                onChanged: (value) =>
-                    setState(() => _maintenanceRequired = value),
-                title: const Text('Maintenance Required'),
-                contentPadding: EdgeInsets.zero,
+              const SizedBox(height: 14),
+              _tourTarget(
+                _saveTourKey,
+                SizedBox(
+                  height: 52,
+                  child: FilledButton.icon(
+                    onPressed: widget.state.isSaving ? null : _save,
+                    icon: const Icon(Icons.save_rounded),
+                    label: const Text('Save P&M Entry'),
+                  ),
+                ),
               ),
-            ],
-          ),
-        ),
-        const SizedBox(height: 14),
-        _tourTarget(
-          _saveTourKey,
-          SizedBox(
-            height: 52,
-            child: FilledButton.icon(
-              onPressed: widget.state.isSaving ? null : _save,
-              icon: const Icon(Icons.save_rounded),
-              label: const Text('Save P&M Entry'),
-            ),
-          ),
-        ),
             ],
           ),
         );
@@ -2813,7 +2817,7 @@ class _ReportsTabState extends ConsumerState<_ReportsTab>
       return const _PmReportSkeleton();
     }
 
-    return ShowCaseWidget(
+    return Builder(
       builder: (showcaseContext) {
         _syncPmReportsTour(showcaseContext);
         return _PmTourStack(

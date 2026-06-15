@@ -15,6 +15,7 @@ import 'package:untitled2/features/tour/core/tour_package_adapter.dart';
 import 'package:untitled2/features/tour/core/screen_owned_tour_mixin.dart';
 import 'package:untitled2/features/tour/definitions/site_rate_module_tours.dart';
 import 'package:untitled2/features/tour/providers/tour_providers.dart';
+import 'package:untitled2/features/tour/widgets/no_cutout_tour_target.dart';
 
 import '../../../../../core/utlis/widgets/sidebar.dart';
 import '../../dpr/screens/widgets/select_card.dart';
@@ -95,20 +96,12 @@ class _RateSelectCardGridState extends ConsumerState<RateSelectCardGrid> with Sc
       }
       if (_lastShowcasedTourStepId == stepKey) return;
       _lastShowcasedTourStepId = stepKey;
-      _tourPackageAdapter.showStep(showcaseContext, step);
+      // No-cutout tour overlay handles target presentation.
     });
   }
 
   Widget _tourTarget(GlobalKey key, Widget child) {
-    return Showcase.withWidget(
-      key: key,
-      container: const SizedBox.shrink(),
-      overlayOpacity: 0.72,
-      targetPadding: const EdgeInsets.all(8),
-      targetBorderRadius: BorderRadius.circular(16),
-      disableDefaultTargetGestures: false,
-      child: child,
-    );
+    return NoCutoutTourTarget(targetKey: key, child: child);
   }
 
   @override
