@@ -35,6 +35,7 @@ class _PebWorkAssignmentScreenState extends State<PebWorkAssignmentScreen> {
       PebTeam(id: _defaultTeamId, name: 'Default Team');
 
   final _service = PebExecutionService();
+  final _workDescriptionController = TextEditingController();
   final _remarksController = TextEditingController();
   final _manualMarksController = TextEditingController();
   final _qtyController = TextEditingController();
@@ -84,6 +85,7 @@ class _PebWorkAssignmentScreenState extends State<PebWorkAssignmentScreen> {
 
   @override
   void dispose() {
+    _workDescriptionController.dispose();
     _remarksController.dispose();
     _manualMarksController.dispose();
     _qtyController.dispose();
@@ -149,8 +151,7 @@ class _PebWorkAssignmentScreenState extends State<PebWorkAssignmentScreen> {
   void _syncSelectedBoqs() {
     final availableIds = _boqs.map((boq) => boq.id).toSet();
     _selectedBoqIds.removeWhere((id) => !availableIds.contains(id));
-    final availableMarks =
-        _allMarks.map((mark) => mark.assemblyMark).toSet();
+    final availableMarks = _allMarks.map((mark) => mark.assemblyMark).toSet();
     _selectedMarks.removeWhere((mark) => !availableMarks.contains(mark));
   }
 
@@ -217,6 +218,7 @@ class _PebWorkAssignmentScreenState extends State<PebWorkAssignmentScreen> {
         _selectedMarks.add(assemblyMark);
       }
     });
+    _fillWorkDescriptionFromSelectedMarks();
   }
 
   void _selectAllVisibleMarks(List<PebBoqMark> visibleMarks) {
@@ -229,11 +231,23 @@ class _PebWorkAssignmentScreenState extends State<PebWorkAssignmentScreen> {
         _selectedMarks.add(mark.assemblyMark);
       }
     });
+    _fillWorkDescriptionFromSelectedMarks();
   }
 
   void _deselectAllSelectedMarks() {
     if (_selectedMarks.isEmpty) return;
     setState(() => _selectedMarks.clear());
+  }
+
+  void _fillWorkDescriptionFromSelectedMarks({bool force = false}) {
+    if (!force && _workDescriptionController.text.trim().isNotEmpty) return;
+    for (final mark in _allMarks) {
+      if (_selectedMarks.contains(mark.assemblyMark) &&
+          mark.typeDescription.trim().isNotEmpty) {
+        _workDescriptionController.text = mark.typeDescription.trim();
+        return;
+      }
+    }
   }
 
   List<PebBoqMark> get _filteredMarkList {
@@ -345,8 +359,7 @@ class _PebWorkAssignmentScreenState extends State<PebWorkAssignmentScreen> {
         const SizedBox(width: 10),
         Expanded(
           child: OutlinedButton.icon(
-            onPressed:
-                !hasSelection ? null : () => _deselectAllSelectedMarks(),
+            onPressed: !hasSelection ? null : () => _deselectAllSelectedMarks(),
             icon: const Icon(Icons.remove_done_rounded, size: 18),
             label: const Text('Deselect All'),
             style: OutlinedButton.styleFrom(
@@ -517,6 +530,7 @@ class _PebWorkAssignmentScreenState extends State<PebWorkAssignmentScreen> {
       _markSearchController.clear();
       _assignmentDate = DateTime.now();
       _expectedDate = null;
+      _workDescriptionController.clear();
       _remarksController.clear();
       _manualMarksController.clear();
       _qtyController.clear();
@@ -614,8 +628,7 @@ class _PebWorkAssignmentScreenState extends State<PebWorkAssignmentScreen> {
         planningType: _planPlanningType,
         startDate: _planStartDate,
         tcd: _planTcd,
-        weekOffDay:
-            _planPlanningType == 'daily' ? null : _planWeekOffDay,
+        weekOffDay: _planPlanningType == 'daily' ? null : _planWeekOffDay,
         quantity: quantity,
         uom: setupItem.uom,
         remarks: _planRemarksController.text.trim(),
@@ -680,6 +693,7 @@ class _PebWorkAssignmentScreenState extends State<PebWorkAssignmentScreen> {
       _markSearchController.clear();
       _assignmentDate = assignment.assignmentDate ?? DateTime.now();
       _expectedDate = assignment.expectedCompletionDate;
+      _workDescriptionController.text = item.workDescription;
       _remarksController.text = item.remarks;
       _manualMarksController.text = item.assemblyMarks.join(', ');
       _qtyController.text = item.assignedQty.toStringAsFixed(
@@ -733,6 +747,7 @@ class _PebWorkAssignmentScreenState extends State<PebWorkAssignmentScreen> {
         item: PebAssignmentItem(
           setupItemId: setupItem.id,
           stageName: setupItem.name,
+          workDescription: _workDescriptionController.text.trim(),
           assemblyMarks: marks,
           assignedQty: assignedQty,
           uom: assignmentUom,
@@ -1190,8 +1205,8 @@ class _PebWorkAssignmentScreenState extends State<PebWorkAssignmentScreen> {
             child: ListTile(
               leading: CircleAvatar(
                 backgroundColor: cs.primaryContainer,
-                child: Icon(Icons.stacked_line_chart_rounded,
-                    color: cs.primary),
+                child:
+                    Icon(Icons.stacked_line_chart_rounded, color: cs.primary),
               ),
               title: Text(
                 plan.stageName,
@@ -1350,8 +1365,7 @@ class _PebWorkAssignmentScreenState extends State<PebWorkAssignmentScreen> {
                     : _buildDropdown(
                         label: 'Team',
                         value: _teams.any((team) =>
-                                team.id == _teamId &&
-                                team.id != _defaultTeamId)
+                                team.id == _teamId && team.id != _defaultTeamId)
                             ? _teamId
                             : '',
                         items: _teams
@@ -1370,10 +1384,10 @@ class _PebWorkAssignmentScreenState extends State<PebWorkAssignmentScreen> {
                         'Add manpower for this site first or use Unassigned planning.')
                     : _buildDropdown(
                         label: 'Manpower',
-                        value: _manpower
-                                .any((item) => item.id == _planManpowerId)
-                            ? _planManpowerId
-                            : '',
+                        value:
+                            _manpower.any((item) => item.id == _planManpowerId)
+                                ? _planManpowerId
+                                : '',
                         items: _manpower
                             .map((item) => DropdownMenuItem(
                                   value: item.id,
@@ -1894,6 +1908,17 @@ class _PebWorkAssignmentScreenState extends State<PebWorkAssignmentScreen> {
           ),
         const SizedBox(height: 12),
         TextField(
+          controller: _workDescriptionController,
+          minLines: 1,
+          maxLines: 3,
+          decoration: const InputDecoration(
+            labelText: 'Work Description',
+            hintText: 'Example: Twin member',
+            border: OutlineInputBorder(),
+          ),
+        ),
+        const SizedBox(height: 12),
+        TextField(
           controller: _remarksController,
           decoration: const InputDecoration(
               labelText: 'Remarks', border: OutlineInputBorder()),
@@ -2351,6 +2376,7 @@ class _PebWorkAssignmentScreenState extends State<PebWorkAssignmentScreen> {
           final item = assignment.assignments.isNotEmpty
               ? assignment.assignments.first
               : null;
+          final description = item?.workDescription.trim() ?? '';
           return Container(
             margin: const EdgeInsets.symmetric(vertical: 2),
             decoration: BoxDecoration(
@@ -2371,6 +2397,7 @@ class _PebWorkAssignmentScreenState extends State<PebWorkAssignmentScreen> {
               ),
               subtitle: Text(
                 '${assignment.team?.name ?? 'Team'} · ${item?.assignedQty ?? 0} ${item?.uom ?? ''}\n'
+                '${description.isEmpty ? '' : '$description\n'}'
                 'Start: ${_formatDate(assignment.assignmentDate)} · Expected: ${_formatDate(assignment.expectedCompletionDate)}',
                 style: TextStyle(color: cs.onSurfaceVariant),
               ),
@@ -2402,8 +2429,9 @@ class _PebWorkAssignmentScreenState extends State<PebWorkAssignmentScreen> {
   String _formatDate(DateTime? date) =>
       date == null ? '-' : DateFormat('dd/MM/yyyy').format(date);
 
-  String _formatNumber(double value) =>
-      value.truncateToDouble() == value ? value.toStringAsFixed(0) : value.toStringAsFixed(2);
+  String _formatNumber(double value) => value.truncateToDouble() == value
+      ? value.toStringAsFixed(0)
+      : value.toStringAsFixed(2);
 
   void _showAssignmentDetails(PebWorkAssignment assignment) {
     final firstItem =
@@ -2433,12 +2461,18 @@ class _PebWorkAssignmentScreenState extends State<PebWorkAssignmentScreen> {
               Text('Start: ${_formatDate(assignment.assignmentDate)}'),
               Text(
                   'Expected: ${_formatDate(assignment.expectedCompletionDate)}'),
+              if ((firstItem?.workDescription.trim() ?? '').isNotEmpty)
+                Text('Description: ${firstItem!.workDescription.trim()}'),
               const Divider(),
               ...assignment.assignments.map((item) => ListTile(
                     title: Text(item.stageName),
-                    subtitle: Text(item.assemblyMarks.isEmpty
-                        ? 'Quantity: ${item.assignedQty}'
-                        : item.assemblyMarks.join(', ')),
+                    subtitle: Text([
+                      if (item.workDescription.trim().isNotEmpty)
+                        item.workDescription.trim(),
+                      item.assemblyMarks.isEmpty
+                          ? 'Quantity: ${item.assignedQty}'
+                          : item.assemblyMarks.join(', '),
+                    ].join('\n')),
                   )),
             ],
           ),

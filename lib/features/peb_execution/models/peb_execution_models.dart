@@ -122,7 +122,8 @@ class PebAssignmentPlanDetail {
       return DateTime.tryParse(value.toString());
     }
 
-    double parseNum(dynamic value) => (value as num?)?.toDouble() ??
+    double parseNum(dynamic value) =>
+        (value as num?)?.toDouble() ??
         double.tryParse(value?.toString() ?? '') ??
         0;
 
@@ -183,7 +184,8 @@ class PebAssignmentPlan {
       return DateTime.tryParse(value.toString());
     }
 
-    double parseNum(dynamic value) => (value as num?)?.toDouble() ??
+    double parseNum(dynamic value) =>
+        (value as num?)?.toDouble() ??
         double.tryParse(value?.toString() ?? '') ??
         0;
 
@@ -213,8 +215,8 @@ class PebAssignmentPlan {
       remarks: json['remarks']?.toString() ?? '',
       details: (json['details'] as List? ?? [])
           .whereType<Map>()
-          .map((item) => PebAssignmentPlanDetail.fromJson(
-              Map<String, dynamic>.from(item)))
+          .map((item) =>
+              PebAssignmentPlanDetail.fromJson(Map<String, dynamic>.from(item)))
           .toList(),
     );
   }
@@ -396,6 +398,7 @@ class PebBoq {
 class PebAssignmentItem {
   final String setupItemId;
   final String stageName;
+  final String workDescription;
   final List<String> assemblyMarks;
   final double assignedQty;
   final String uom;
@@ -404,6 +407,7 @@ class PebAssignmentItem {
   const PebAssignmentItem({
     required this.setupItemId,
     required this.stageName,
+    this.workDescription = '',
     required this.assemblyMarks,
     required this.assignedQty,
     required this.uom,
@@ -416,6 +420,7 @@ class PebAssignmentItem {
           ? json['setupItemId']['_id']?.toString() ?? ''
           : json['setupItemId']?.toString() ?? '',
       stageName: json['stageName']?.toString() ?? '',
+      workDescription: json['workDescription']?.toString() ?? '',
       assemblyMarks: (json['assemblyMarks'] as List? ?? [])
           .map((mark) => mark.toString())
           .where((mark) => mark.trim().isNotEmpty)
@@ -429,6 +434,7 @@ class PebAssignmentItem {
   Map<String, dynamic> toJson() => {
         'setupItemId': setupItemId,
         'stageName': stageName,
+        'workDescription': workDescription,
         'assemblyMarks': assemblyMarks,
         'assignedQty': assignedQty,
         'uom': uom,
