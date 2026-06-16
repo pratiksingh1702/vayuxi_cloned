@@ -99,21 +99,35 @@ class PebManpower {
 
 class PebAssignmentPlanDetail {
   final String id;
+  final String assignmentPlanId;
+  final String setupItemId;
+  final String stageName;
+  final String targetType;
+  final PebTeam? team;
+  final PebManpower? manpower;
   final DateTime? plannedDate;
   final double plannedQuantity;
   final double actualQuantity;
   final double balanceQuantity;
   final String status;
   final String uom;
+  final String remarks;
 
   const PebAssignmentPlanDetail({
     required this.id,
+    required this.assignmentPlanId,
+    required this.setupItemId,
+    required this.stageName,
+    required this.targetType,
+    required this.team,
+    required this.manpower,
     required this.plannedDate,
     required this.plannedQuantity,
     required this.actualQuantity,
     required this.balanceQuantity,
     required this.status,
     required this.uom,
+    required this.remarks,
   });
 
   factory PebAssignmentPlanDetail.fromJson(Map<String, dynamic> json) {
@@ -127,14 +141,28 @@ class PebAssignmentPlanDetail {
         double.tryParse(value?.toString() ?? '') ??
         0;
 
+    final rawTeam = json['teamId'];
+    final rawManpower = json['manpowerId'];
+
     return PebAssignmentPlanDetail(
       id: json['_id']?.toString() ?? json['id']?.toString() ?? '',
+      assignmentPlanId: json['assignmentPlanId']?.toString() ?? '',
+      setupItemId: json['setupItemId']?.toString() ?? '',
+      stageName: json['stageName']?.toString() ?? 'Work Stage',
+      targetType: json['targetType']?.toString() ?? 'unassigned',
+      team: rawTeam is Map
+          ? PebTeam.fromJson(Map<String, dynamic>.from(rawTeam))
+          : null,
+      manpower: rawManpower is Map
+          ? PebManpower.fromJson(Map<String, dynamic>.from(rawManpower))
+          : null,
       plannedDate: parseDate(json['plannedDate']),
       plannedQuantity: parseNum(json['plannedQuantity']),
       actualQuantity: parseNum(json['actualQuantity']),
       balanceQuantity: parseNum(json['balanceQuantity']),
       status: json['status']?.toString() ?? 'planned',
       uom: json['uom']?.toString() ?? '',
+      remarks: json['remarks']?.toString() ?? '',
     );
   }
 }
