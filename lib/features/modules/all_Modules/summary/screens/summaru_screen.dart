@@ -1059,6 +1059,32 @@ class _StageProgressTile extends StatelessWidget {
               _MiniCount(label: 'Pending', value: stage.pending),
             ],
           ),
+          const SizedBox(height: 8),
+          Row(
+            children: [
+              Expanded(
+                child: _MiniQuantity(
+                  label: 'Planned',
+                  value: _fmt(stage.planned.qty),
+                  uom: stage.uom,
+                ),
+              ),
+              Expanded(
+                child: _MiniQuantity(
+                  label: 'Actual',
+                  value: _fmt(stage.actual.qty),
+                  uom: stage.uom,
+                ),
+              ),
+              Expanded(
+                child: _MiniQuantity(
+                  label: 'Variance',
+                  value: _fmt(stage.planned.qty - stage.actual.qty),
+                  uom: stage.uom,
+                ),
+              ),
+            ],
+          ),
         ],
       ),
     );
@@ -1961,6 +1987,44 @@ class _MiniCount extends StatelessWidget {
           ),
         ],
       ),
+    );
+  }
+}
+
+class _MiniQuantity extends StatelessWidget {
+  final String label;
+  final String value;
+  final String uom;
+
+  const _MiniQuantity({
+    required this.label,
+    required this.value,
+    required this.uom,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    final cs = Theme.of(context).colorScheme;
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Text(
+          uom.trim().isEmpty ? value : '$value $uom',
+          maxLines: 1,
+          overflow: TextOverflow.ellipsis,
+          style: TextStyle(
+            color: cs.onSurface,
+            fontWeight: FontWeight.w800,
+            fontSize: 13,
+          ),
+        ),
+        Text(
+          label,
+          maxLines: 1,
+          overflow: TextOverflow.ellipsis,
+          style: TextStyle(color: cs.onSurfaceVariant, fontSize: 10),
+        ),
+      ],
     );
   }
 }

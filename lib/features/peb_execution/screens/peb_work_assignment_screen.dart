@@ -1204,6 +1204,7 @@ class _PebWorkAssignmentScreenState extends State<PebWorkAssignmentScreen> {
               border: Border.all(color: cs.outlineVariant),
             ),
             child: ListTile(
+              onTap: () => _showQuantityPlanDetails(plan),
               leading: CircleAvatar(
                 backgroundColor: cs.primaryContainer,
                 child:
@@ -1220,10 +1221,12 @@ class _PebWorkAssignmentScreenState extends State<PebWorkAssignmentScreen> {
               isThreeLine: true,
               trailing: PopupMenuButton<String>(
                 onSelected: (value) {
+                  if (value == 'view') _showQuantityPlanDetails(plan);
                   if (value == 'edit') _openEditQuantityPlan(plan);
                   if (value == 'delete') _deleteQuantityPlan(plan);
                 },
                 itemBuilder: (context) => const [
+                  PopupMenuItem(value: 'view', child: Text('View Breakdown')),
                   PopupMenuItem(value: 'edit', child: Text('Edit')),
                   PopupMenuItem(value: 'delete', child: Text('Cancel')),
                 ],
@@ -1232,6 +1235,208 @@ class _PebWorkAssignmentScreenState extends State<PebWorkAssignmentScreen> {
           );
         }),
       ],
+    );
+  }
+
+  Future<void> _showQuantityPlanDetails(PebAssignmentPlan plan) async {
+    final cs = Theme.of(context).colorScheme;
+    await showModalBottomSheet<void>(
+      context: context,
+      isScrollControlled: true,
+      showDragHandle: true,
+      builder: (sheetContext) {
+        return DraggableScrollableSheet(
+          expand: false,
+          initialChildSize: 0.72,
+          minChildSize: 0.45,
+          maxChildSize: 0.92,
+          builder: (context, controller) {
+            return FutureBuilder<PebAssignmentPlan>(
+              future: _service.getAssignmentPlanById(widget.siteId, plan.id),
+              builder: (context, snapshot) {
+                final loadedPlan = snapshot.data ?? plan;
+                final details = loadedPlan.details;
+                final planned = details.fold<double>(
+                    0, (sum, detail) => sum + detail.plannedQuantity);
+                final actual = details.fold<double>(
+                    0, (sum, detail) => sum + detail.actualQuantity);
+                final balance = details.fold<double>(
+                    0, (sum, detail) => sum + detail.balanceQuantity);
+                final target = switch (loadedPlan.targetType) {
+                  'team' => loadedPlan.team?.name ?? 'Team',
+                  'manpower' => loadedPlan.manpower?.name ?? 'Manpower',
+                  _ => 'Unassigned',
+                };
+
+                return ListView(
+                  controller: controller,
+                  padding: const EdgeInsets.fromLTRB(18, 4, 18, 24),
+                  children: [
+                    Row(
+                      children: [
+                        Expanded(
+                          child: Text(
+                            loadedPlan.stageName,
+                            style: const TextStyle(
+                              fontSize: 20,
+                              fontWeight: FontWeight.w900,
+                            ),
+                          ),
+                        ),
+                        IconButton(
+                          onPressed: () => Navigator.of(sheetContext).pop(),
+                          icon: const Icon(Icons.close_rounded),
+                        ),
+                      ],
+                    ),
+                    const SizedBox(height: 4),
+                    Text(
+                      '${loadedPlan.planningType.toUpperCase()} · $target · ${_formatDate(loadedPlan.startDate)} to ${_formatDate(loadedPlan.tcd)}',
+                      style: TextStyle(color: cs.onSurfaceVariant),
+                    ),
+                    if (loadedPlan.targetType == 'unassigned') ...[
+                      const SizedBox(height: 10),
+                      _infoCard(
+                        cs,
+                        'Unassigned Planning',
+                        'This planning is not linked to any team/manpower.',
+                      ),
+                    ],
+                    const SizedBox(height: 14),
+                    Row(
+                      children: [
+                        Expanded(
+                          child: _planTotalTile(
+                            cs,
+                            'Planned',
+                            '${_formatNumber(planned)} ${loadedPlan.uom}',
+                            Icons.flag_rounded,
+                          ),
+                        ),
+                        const SizedBox(width: 8),
+                        Expanded(
+                          child: _planTotalTile(
+                            cs,
+                            'Actual',
+                            '${_formatNumber(actual)} ${loadedPlan.uom}',
+                            Icons.done_all_rounded,
+                          ),
+                        ),
+                        const SizedBox(width: 8),
+                        Expanded(
+                          child: _planTotalTile(
+                            cs,
+                            'Balance',
+                            '${_formatNumber(balance)} ${loadedPlan.uom}',
+                            Icons.balance_rounded,
+                          ),
+                        ),
+                      ],
+                    ),
+                    const SizedBox(height: 14),
+                    if (snapshot.connectionState == ConnectionState.waiting)
+                      const Center(
+                        child: Padding(
+                          padding: EdgeInsets.all(24),
+                          child: CircularProgressIndicator(),
+                        ),
+                      )
+                    else if (snapshot.hasError)
+                      _infoCard(
+                        cs,
+                        'Unable to load breakdown',
+                        snapshot.error.toString(),
+                      )
+                    else if (details.isEmpty)
+                      _infoCard(
+                        cs,
+                        'No daily breakdown',
+                        'Daily plan rows are not available for this plan.',
+                      )
+                    else
+                      ...details.map((detail) {
+                        return Container(
+                          margin: const EdgeInsets.only(bottom: 8),
+                          padding: const EdgeInsets.all(12),
+                          decoration: BoxDecoration(
+                            color: cs.surface,
+                            borderRadius: BorderRadius.circular(12),
+                            border: Border.all(color: cs.outlineVariant),
+                          ),
+                          child: Row(
+                            children: [
+                              Expanded(
+                                child: Column(
+                                  crossAxisAlignment: CrossAxisAlignment.start,
+                                  children: [
+                                    Text(
+                                      _formatDate(detail.plannedDate),
+                                      style: const TextStyle(
+                                        fontWeight: FontWeight.w800,
+                                      ),
+                                    ),
+                                    const SizedBox(height: 2),
+                                    Text(
+                                      detail.status.replaceAll('_', ' '),
+                                      style: TextStyle(
+                                        fontSize: 12,
+                                        color: cs.onSurfaceVariant,
+                                      ),
+                                    ),
+                                  ],
+                                ),
+                              ),
+                              Text(
+                                'P ${_formatNumber(detail.plannedQuantity)}  '
+                                'A ${_formatNumber(detail.actualQuantity)}  '
+                                'B ${_formatNumber(detail.balanceQuantity)} ${detail.uom}',
+                                textAlign: TextAlign.right,
+                                style: const TextStyle(
+                                    fontWeight: FontWeight.w700),
+                              ),
+                            ],
+                          ),
+                        );
+                      }),
+                  ],
+                );
+              },
+            );
+          },
+        );
+      },
+    );
+  }
+
+  Widget _planTotalTile(
+    ColorScheme cs,
+    String label,
+    String value,
+    IconData icon,
+  ) {
+    return Container(
+      padding: const EdgeInsets.all(12),
+      decoration: BoxDecoration(
+        color: cs.primaryContainer.withValues(alpha: 0.35),
+        borderRadius: BorderRadius.circular(12),
+        border: Border.all(color: cs.outlineVariant),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Icon(icon, size: 18, color: cs.primary),
+          const SizedBox(height: 8),
+          Text(
+            value,
+            maxLines: 1,
+            overflow: TextOverflow.ellipsis,
+            style: const TextStyle(fontWeight: FontWeight.w900),
+          ),
+          const SizedBox(height: 2),
+          Text(label,
+              style: TextStyle(fontSize: 12, color: cs.onSurfaceVariant)),
+        ],
+      ),
     );
   }
 

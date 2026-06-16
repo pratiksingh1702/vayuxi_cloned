@@ -51,6 +51,7 @@ class _PebDprEntryScreenState extends State<PebDprEntryScreen> {
   List<PebTeam> _teams = [];
   List<PebBoq> _boqs = [];
   List<PebWorkAssignment> _assignments = [];
+  List<PebAssignmentPlanDetail> _planDetails = [];
   final Map<String, String> _markQuantityInputs = {};
   final Map<String, String> _markRemarks = {};
   final Map<String, String> _variationReasons = {};
@@ -91,6 +92,7 @@ class _PebDprEntryScreenState extends State<PebDprEntryScreen> {
       _setup = null;
       _boqs = [];
       _assignments = [];
+      _planDetails = [];
       _activeWorkKey = null;
       _markActionMode = _DprMarkActionMode.none;
       _isDprSelectionMode = false;
@@ -169,6 +171,12 @@ class _PebDprEntryScreenState extends State<PebDprEntryScreen> {
           date: _dateText,
           teamId: _isDefaultTeamId(selectedTeamId) ? '' : selectedTeamId,
         ),
+        _service.getAssignmentPlanDetails(
+          widget.siteId,
+          widget.executionType,
+          fromDate: _dateText,
+          toDate: _dateText,
+        ),
       ]);
 
       if (!mounted) return;
@@ -182,6 +190,7 @@ class _PebDprEntryScreenState extends State<PebDprEntryScreen> {
             .toList();
         _status = results[3] as PebMarkStatus;
         _level1Entries = results[4] as Map<String, PebLevel1DprEntry>;
+        _planDetails = results[5] as List<PebAssignmentPlanDetail>;
         if (_activeWorkKey != null &&
             !_visibleWorks().any((work) => work.key == _activeWorkKey)) {
           _activeWorkKey = null;
@@ -879,6 +888,43 @@ class _PebDprEntryScreenState extends State<PebDprEntryScreen> {
     );
   }
 
+  List<PebAssignmentPlanDetail> _planDetailsForWork(_VisibleWork work) {
+    return _planDetails
+        .where((detail) => detail.setupItemId == work.setupItem.id)
+        .toList();
+  }
+
+  double _plannedForWork(_VisibleWork work) => _planDetailsForWork(work)
+      .fold(0, (sum, detail) => sum + detail.plannedQuantity);
+
+  double _actualForWork(_VisibleWork work) => _planDetailsForWork(work)
+      .fold(0, (sum, detail) => sum + detail.actualQuantity);
+
+  double _balanceForWork(_VisibleWork work) => _planDetailsForWork(work)
+      .fold(0, (sum, detail) => sum + detail.balanceQuantity);
+
+  double _plannedTotalForDate() =>
+      _planDetails.fold(0, (sum, detail) => sum + detail.plannedQuantity);
+
+  double _actualTotalForDate() =>
+      _planDetails.fold(0, (sum, detail) => sum + detail.actualQuantity);
+
+  double _unassignedPlanTotalForDate() => _planDetails
+      .where((detail) => detail.targetType == 'unassigned')
+      .fold(0, (sum, detail) => sum + detail.plannedQuantity);
+
+  double _manpowerPlanTotalForDate() => _planDetails
+      .where((detail) => detail.targetType == 'manpower')
+      .fold(0, (sum, detail) => sum + detail.plannedQuantity);
+
+  String _formatQty(double value) {
+    if (value == value.roundToDouble()) return value.toStringAsFixed(0);
+    return value
+        .toStringAsFixed(2)
+        .replaceFirst(RegExp(r'0+$'), '')
+        .replaceFirst(RegExp(r'\.$'), '');
+  }
+
   List<String> _displayMarksForWork(_VisibleWork work) {
     final seen = <String>{};
     final marks = <String>[];
@@ -1408,6 +1454,7 @@ class _PebDprEntryScreenState extends State<PebDprEntryScreen> {
                                         _buildBulkTaskBanner(),
                                         SizedBox(height: layout.sectionGap),
                                         _buildAssignedWorkHeader(assignedWorks),
+                                        _buildPlanningSummaryBanner(),
                                         SizedBox(height: layout.cardGap),
                                         if (assignedWorks.isEmpty)
                                           _boqs.isEmpty
@@ -1656,7 +1703,7 @@ class _PebDprEntryScreenState extends State<PebDprEntryScreen> {
               color: cs.primary, size: layout.compact ? 30 : 34),
           SizedBox(height: layout.cardGap),
           Text(
-            'No BOQ marks available',
+            'No BOQ found',
             style: TextStyle(
               fontSize: layout.compact ? 16 : 18,
               fontWeight: FontWeight.w900,
@@ -1664,7 +1711,7 @@ class _PebDprEntryScreenState extends State<PebDprEntryScreen> {
           ),
           SizedBox(height: layout.smallGap),
           Text(
-            'Add BOQ items manually or upload BOQ first, then return here for DPR entry.',
+            'No BOQ found. Enter stage-wise quantity manually.',
             style: TextStyle(color: cs.onSurfaceVariant, height: 1.35),
           ),
           SizedBox(height: layout.cardGap),
@@ -1976,6 +2023,169 @@ class _PebDprEntryScreenState extends State<PebDprEntryScreen> {
     );
   }
 
+  Widget _buildPlanningSummaryBanner() {
+    if (_planDetails.isEmpty) return const SizedBox.shrink();
+
+    final cs = Theme.of(context).colorScheme;
+    final layout = _PebDprResponsive.of(context);
+    final planned = _plannedTotalForDate();
+    final actual = _actualTotalForDate();
+    final variance = planned - actual;
+    final unassigned = _unassignedPlanTotalForDate();
+    final manpower = _manpowerPlanTotalForDate();
+
+    return Container(
+      margin: EdgeInsets.only(top: layout.cardGap),
+      padding: EdgeInsets.all(layout.compact ? 12 : 14),
+      decoration: BoxDecoration(
+        color: cs.primaryContainer.withValues(alpha: 0.32),
+        borderRadius: BorderRadius.circular(14),
+        border: Border.all(color: cs.primary.withValues(alpha: 0.18)),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
+            children: [
+              Icon(Icons.timeline_rounded, size: 18, color: cs.primary),
+              const SizedBox(width: 8),
+              Expanded(
+                child: Text(
+                  'Today\'s Quantity Plan',
+                  style: TextStyle(
+                    color: cs.onSurface,
+                    fontWeight: FontWeight.w800,
+                  ),
+                ),
+              ),
+            ],
+          ),
+          const SizedBox(height: 10),
+          Wrap(
+            spacing: 8,
+            runSpacing: 8,
+            children: [
+              _planChip(cs, 'Planned', _formatQty(planned)),
+              _planChip(cs, 'Actual', _formatQty(actual)),
+              _planChip(cs, 'Variance', _formatQty(variance)),
+              if (unassigned > 0)
+                _planChip(cs, 'Unassigned Planning', _formatQty(unassigned)),
+              if (manpower > 0)
+                _planChip(cs, 'Manpower Planning', _formatQty(manpower)),
+            ],
+          ),
+          if (unassigned > 0) ...[
+            const SizedBox(height: 8),
+            Text(
+              'This planning is not linked to any team/manpower.',
+              style: TextStyle(
+                color: cs.onSurfaceVariant,
+                fontSize: layout.compact ? 11 : 12,
+                fontWeight: FontWeight.w600,
+              ),
+            ),
+          ],
+        ],
+      ),
+    );
+  }
+
+  Widget _planChip(ColorScheme cs, String label, String value) {
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 7),
+      decoration: BoxDecoration(
+        color: cs.surface,
+        borderRadius: BorderRadius.circular(999),
+        border: Border.all(color: cs.outlineVariant),
+      ),
+      child: Text(
+        '$label: $value',
+        style: TextStyle(
+          color: cs.onSurface,
+          fontSize: 12,
+          fontWeight: FontWeight.w700,
+        ),
+      ),
+    );
+  }
+
+  Widget _buildWorkPlanRow(_VisibleWork work) {
+    final details = _planDetailsForWork(work);
+    if (details.isEmpty) return const SizedBox.shrink();
+
+    final cs = Theme.of(context).colorScheme;
+    final layout = _PebDprResponsive.of(context);
+    final uom =
+        details.first.uom.isEmpty ? work.setupItem.uom : details.first.uom;
+    return Container(
+      margin: EdgeInsets.only(top: layout.smallGap),
+      padding: EdgeInsets.symmetric(
+        horizontal: layout.compact ? 8 : 10,
+        vertical: layout.compact ? 7 : 8,
+      ),
+      decoration: BoxDecoration(
+        color: cs.surface.withValues(alpha: 0.8),
+        borderRadius: BorderRadius.circular(8),
+        border: Border.all(color: cs.outlineVariant.withValues(alpha: 0.45)),
+      ),
+      child: Row(
+        children: [
+          Expanded(
+            child: _planMiniStat(
+              'Planned',
+              '${_formatQty(_plannedForWork(work))} $uom',
+              cs,
+            ),
+          ),
+          Expanded(
+            child: _planMiniStat(
+              'Actual',
+              '${_formatQty(_actualForWork(work))} $uom',
+              cs,
+            ),
+          ),
+          Expanded(
+            child: _planMiniStat(
+              'Balance',
+              '${_formatQty(_balanceForWork(work))} $uom',
+              cs,
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _planMiniStat(String label, String value, ColorScheme cs) {
+    final layout = _PebDprResponsive.of(context);
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Text(
+          label,
+          maxLines: 1,
+          overflow: TextOverflow.ellipsis,
+          style: TextStyle(
+            color: cs.onSurfaceVariant,
+            fontSize: layout.compact ? 9 : 10,
+            fontWeight: FontWeight.w600,
+          ),
+        ),
+        const SizedBox(height: 2),
+        Text(
+          value,
+          maxLines: 1,
+          overflow: TextOverflow.ellipsis,
+          style: TextStyle(
+            color: cs.onSurface,
+            fontSize: layout.compact ? 10 : 11,
+            fontWeight: FontWeight.w800,
+          ),
+        ),
+      ],
+    );
+  }
+
   Widget _buildWorkCard(_VisibleWork work) {
     final cs = Theme.of(context).colorScheme;
     final layout = _PebDprResponsive.of(context);
@@ -2185,6 +2395,9 @@ class _PebDprEntryScreenState extends State<PebDprEntryScreen> {
                             ),
                           ),
                           SizedBox(height: layout.smallGap),
+                          _buildWorkPlanRow(work),
+                          if (_planDetailsForWork(work).isNotEmpty)
+                            SizedBox(height: layout.smallGap),
                           _completionBar(
                             value: completion,
                             color: Colors.green.shade700,
