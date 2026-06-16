@@ -24,12 +24,17 @@ class DPRStructureItem {
   });
 
   factory DPRStructureItem.fromJson(Map<String, dynamic> json) {
+    final actualQty = (json['actualQty'] as num?)?.toDouble();
+    final estimatedWeightPerUnitKg =
+        (json['estimatedWeightPerUnitKg'] as num?)?.toDouble();
+    final parsedTotalWeight = _readWeightKg(json);
     return DPRStructureItem(
       id: json['_id']?.toString() ?? '',
       assemblyMark: json['assemblyMark']?.toString() ?? '',
-      qtyUsed: (json['qtyUsed'] as num?)?.toDouble() ?? 0,
-      netWeightPerUnit: (json['netWeightPerUnit'] as num?)?.toDouble(),
-      totalNetWeight: (json['totalNetWeight'] as num?)?.toDouble(),
+      qtyUsed: (json['qtyUsed'] as num?)?.toDouble() ?? actualQty ?? 0,
+      netWeightPerUnit: (json['netWeightPerUnit'] as num?)?.toDouble() ??
+          estimatedWeightPerUnitKg,
+      totalNetWeight: parsedTotalWeight,
       length: (json['length'] as num?)?.toDouble(),
       width: (json['width'] as num?)?.toDouble(),
       height: (json['height'] as num?)?.toDouble(),
@@ -37,6 +42,31 @@ class DPRStructureItem {
       remainingQty: (json['remainingQty'] as num?)?.toDouble(),
     );
   }
+}
+
+double? _readWeightKg(Map<String, dynamic> json) {
+  for (final key in [
+    'totalNetWeight',
+    'totalWeightKg',
+    'manualWeightKg',
+    'totalWeight',
+    'weightKg',
+    'weight',
+  ]) {
+    final value = json[key];
+    if (value is num && value > 0) return value.toDouble();
+    final parsed = double.tryParse(value?.toString() ?? '');
+    if (parsed != null && parsed > 0) return parsed;
+  }
+
+  final qty = (json['actualQty'] as num?)?.toDouble() ??
+      (json['qtyUsed'] as num?)?.toDouble() ??
+      0;
+  final perUnit = (json['estimatedWeightPerUnitKg'] as num?)?.toDouble() ??
+      (json['netWeightPerUnit'] as num?)?.toDouble() ??
+      0;
+  final calculated = qty * perUnit;
+  return calculated > 0 ? calculated : null;
 }
 
 class DPRStructure {
@@ -99,17 +129,6 @@ class DPRStructure {
       sName = siteData['siteName']?.toString();
     } else {
       sId = siteData?.toString();
-    }
-
-    // BOQ Handling
-    final boqData = json['boqId'];
-    String? bId, bName, bNumber;
-    if (boqData is Map) {
-      bId = boqData['_id']?.toString();
-      bName = boqData['boqName']?.toString();
-      bNumber = boqData['boqNumber']?.toString();
-    } else {
-      bId = boqData?.toString();
     }
 
     // Team Handling

@@ -125,14 +125,19 @@ class DPRStructureRepository {
                 : marks;
             final qty = (item['actualQty'] as num?)?.toDouble() ?? 0;
             final perMarkQty = effectiveMarks.length > 1 ? 1.0 : qty;
+            final totalWeight = _readPebItemWeightKg(item, qty);
+            final perMarkWeight = effectiveMarks.length > 1
+                ? totalWeight / effectiveMarks.length
+                : totalWeight;
             return effectiveMarks.map(
               (mark) => DPRStructureItem(
                 id: item['_id']?.toString() ?? '',
                 assemblyMark: mark,
                 qtyUsed: perMarkQty,
                 netWeightPerUnit:
-                    (item['netWeightPerUnit'] as num?)?.toDouble(),
-                totalNetWeight: (item['totalWeight'] as num?)?.toDouble(),
+                    (item['netWeightPerUnit'] as num?)?.toDouble() ??
+                        (item['estimatedWeightPerUnitKg'] as num?)?.toDouble(),
+                totalNetWeight: perMarkWeight > 0 ? perMarkWeight : null,
               ),
             );
           }).toList()
@@ -185,6 +190,27 @@ class DPRStructureRepository {
       teamName: team is Map ? team['teamName']?.toString() : null,
       updatedAt: updatedAt,
     );
+  }
+
+  double _readPebItemWeightKg(Map<String, dynamic> item, double actualQty) {
+    for (final key in [
+      'totalWeightKg',
+      'manualWeightKg',
+      'totalWeight',
+      'totalNetWeight',
+      'weightKg',
+      'weight',
+    ]) {
+      final value = item[key];
+      if (value is num && value > 0) return value.toDouble();
+      final parsed = double.tryParse(value?.toString() ?? '');
+      if (parsed != null && parsed > 0) return parsed;
+    }
+
+    final perUnit = (item['estimatedWeightPerUnitKg'] as num?)?.toDouble() ??
+        (item['netWeightPerUnit'] as num?)?.toDouble() ??
+        0;
+    return actualQty * perUnit;
   }
 
   // GET /api/v1/site/{siteId}/dpr-structure/{dprId}

@@ -27,6 +27,7 @@ class _DprStructureListScreenState extends ConsumerState<DprStructureListScreen>
   late AnimationController _pulseCtrl;
   int _filterIndex = 0; // 0=All,1=Today,2=Week,3=Month
   final List<String> _filterLabels = ['All', 'Today', 'Week', 'Month'];
+  String? _selectedStage;
 
   @override
   void initState() {
@@ -46,7 +47,10 @@ class _DprStructureListScreenState extends ConsumerState<DprStructureListScreen>
   }
 
   void _applyFilter(int index) {
-    setState(() => _filterIndex = index);
+    setState(() {
+      _filterIndex = index;
+      _selectedStage = null;
+    });
     final notifier = ref.read(dprStructureProvider.notifier);
     DateTime? start, end;
     final now = DateTime.now();
@@ -75,12 +79,22 @@ class _DprStructureListScreenState extends ConsumerState<DprStructureListScreen>
     final state = ref.watch(dprStructureProvider);
     final cs = Theme.of(context).colorScheme;
     final isDark = Theme.of(context).brightness == Brightness.dark;
+    final stageGroups = _groupDprsByStage(state.dprs);
+    final selectedStageDprs = _selectedStage == null
+        ? <DPRStructure>[]
+        : stageGroups[_selectedStage] ?? <DPRStructure>[];
 
     return Scaffold(
       backgroundColor: isDark ? cs.surface : cs.surfaceContainerLowest,
       appBar: PremiumAppBar(
-        title: 'Structure DPR',
-        onDrawerPressed: () => context.pop(),
+        title: _selectedStage == null ? 'Structure DPR' : _selectedStage!,
+        onDrawerPressed: () {
+          if (_selectedStage != null) {
+            setState(() => _selectedStage = null);
+          } else {
+            context.pop();
+          }
+        },
         drawerIcon: Icons.arrow_back_ios_new_rounded,
       ),
       body: Column(
@@ -89,7 +103,9 @@ class _DprStructureListScreenState extends ConsumerState<DprStructureListScreen>
           _buildHeaderDashboard(state, cs, isDark),
 
           // Filter Row
-          _buildFilterBar(cs),
+          if (_selectedStage == null) _buildFilterBar(cs),
+          if (_selectedStage != null)
+            _buildStageDetailHeader(selectedStageDprs, cs, isDark),
 
           // List
           Expanded(
@@ -108,31 +124,51 @@ class _DprStructureListScreenState extends ConsumerState<DprStructureListScreen>
                             onRefresh: () => ref
                                 .read(dprStructureProvider.notifier)
                                 .fetchDPRList(widget.siteId),
-                            child: ListView.builder(
-                              padding:
-                                  const EdgeInsets.fromLTRB(16, 8, 16, 120),
-                              itemCount: state.dprs.length,
-                              itemBuilder: (ctx, i) {
-                                final dpr = state.dprs[i];
-                                return _DPRCard(
-                                  dpr: dpr,
-                                  onTap: () {
-                                    HapticFeedback.lightImpact();
-                                    Navigator.of(context).push(
-                                      MaterialPageRoute(
-                                        builder: (_) =>
-                                            DprStructureDetailScreen(
-                                          dprId: dpr.id,
-                                          siteId: widget.siteId,
-                                          dpr: dpr,
-                                        ),
-                                      ),
-                                    );
-                                  },
-                                  onDelete: () => _confirmDelete(ctx, dpr),
-                                );
-                              },
-                            ),
+                            child: _selectedStage == null
+                                ? ListView.builder(
+                                    padding: const EdgeInsets.fromLTRB(
+                                        16, 8, 16, 120),
+                                    itemCount: stageGroups.length,
+                                    itemBuilder: (ctx, i) {
+                                      final entry =
+                                          stageGroups.entries.elementAt(i);
+                                      return _DPRStageCard(
+                                        stageName: entry.key,
+                                        dprs: entry.value,
+                                        onTap: () {
+                                          HapticFeedback.lightImpact();
+                                          setState(
+                                              () => _selectedStage = entry.key);
+                                        },
+                                      );
+                                    },
+                                  )
+                                : ListView.builder(
+                                    padding: const EdgeInsets.fromLTRB(
+                                        16, 8, 16, 120),
+                                    itemCount: selectedStageDprs.length,
+                                    itemBuilder: (ctx, i) {
+                                      final dpr = selectedStageDprs[i];
+                                      return _DPRCard(
+                                        dpr: dpr,
+                                        onTap: () {
+                                          HapticFeedback.lightImpact();
+                                          Navigator.of(context).push(
+                                            MaterialPageRoute(
+                                              builder: (_) =>
+                                                  DprStructureDetailScreen(
+                                                dprId: dpr.id,
+                                                siteId: widget.siteId,
+                                                dpr: dpr,
+                                              ),
+                                            ),
+                                          );
+                                        },
+                                        onDelete: () =>
+                                            _confirmDelete(ctx, dpr),
+                                      );
+                                    },
+                                  ),
                           ),
           ),
         ],
@@ -287,6 +323,48 @@ class _DprStructureListScreenState extends ConsumerState<DprStructureListScreen>
     );
   }
 
+  Widget _buildStageDetailHeader(
+      List<DPRStructure> dprs, ColorScheme cs, bool isDark) {
+    final markCount = _uniqueMarkCount(dprs);
+    final weight =
+        dprs.fold<double>(0, (sum, dpr) => sum + _totalWeightKg(dpr));
+    return Container(
+      width: double.infinity,
+      margin: const EdgeInsets.fromLTRB(16, 8, 16, 6),
+      padding: const EdgeInsets.all(14),
+      decoration: BoxDecoration(
+        color: isDark ? cs.surfaceContainerHigh : Colors.white,
+        borderRadius: BorderRadius.circular(18),
+        border: Border.all(color: cs.outlineVariant.withValues(alpha: 0.45)),
+      ),
+      child: Row(
+        children: [
+          Expanded(
+            child: _StageHeaderMetric(
+              label: 'Members',
+              value: '${dprs.length}',
+              icon: Icons.groups_rounded,
+            ),
+          ),
+          Expanded(
+            child: _StageHeaderMetric(
+              label: 'Mark Nos',
+              value: '$markCount',
+              icon: Icons.tag_rounded,
+            ),
+          ),
+          Expanded(
+            child: _StageHeaderMetric(
+              label: 'Weight',
+              value: '${weight.toStringAsFixed(2)} kg',
+              icon: Icons.scale_rounded,
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
   Future<void> _confirmDelete(BuildContext ctx, DPRStructure dpr) async {
     final cs = Theme.of(ctx).colorScheme;
     final ok = await showModalBottomSheet<bool>(
@@ -368,8 +446,9 @@ class _DprStructureListScreenState extends ConsumerState<DprStructureListScreen>
           .read(dprStructureProvider.notifier)
           .deleteDPR(widget.siteId, dpr.id);
       if (mounted) {
+        final error = ref.read(dprStructureProvider).error;
         ScaffoldMessenger.of(context).showSnackBar(SnackBar(
-          content: Text(success ? 'DPR deleted' : 'Delete failed'),
+          content: Text(success ? 'DPR deleted' : (error ?? 'Delete failed')),
           backgroundColor: success ? Colors.green : Colors.red,
           behavior: SnackBarBehavior.floating,
           margin: const EdgeInsets.all(16),
@@ -409,6 +488,176 @@ class _DashboardStat extends StatelessWidget {
                 color: Colors.white,
                 fontSize: 15,
                 fontWeight: FontWeight.w800)),
+      ],
+    );
+  }
+}
+
+class _DPRStageCard extends StatelessWidget {
+  final String stageName;
+  final List<DPRStructure> dprs;
+  final VoidCallback onTap;
+
+  const _DPRStageCard({
+    required this.stageName,
+    required this.dprs,
+    required this.onTap,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    final cs = Theme.of(context).colorScheme;
+    final isDark = Theme.of(context).brightness == Brightness.dark;
+    final markCount = _uniqueMarkCount(dprs);
+    final totalQty = dprs.fold<double>(0, (sum, dpr) => sum + dpr.totalQtyUsed);
+    final totalWeight =
+        dprs.fold<double>(0, (sum, dpr) => sum + _totalWeightKg(dpr));
+
+    return Container(
+      margin: const EdgeInsets.only(bottom: 14),
+      decoration: BoxDecoration(
+        color: isDark ? cs.surfaceContainerHigh : Colors.white,
+        borderRadius: BorderRadius.circular(22),
+        border: Border.all(color: cs.outlineVariant.withValues(alpha: 0.45)),
+        boxShadow: [
+          BoxShadow(
+            color: cs.shadow.withValues(alpha: 0.04),
+            blurRadius: 18,
+            offset: const Offset(0, 8),
+          ),
+        ],
+      ),
+      child: ClipRRect(
+        borderRadius: BorderRadius.circular(22),
+        child: Material(
+          color: Colors.transparent,
+          child: InkWell(
+            onTap: onTap,
+            child: Padding(
+              padding: const EdgeInsets.all(16),
+              child: Row(
+                children: [
+                  Container(
+                    padding: const EdgeInsets.all(12),
+                    decoration: BoxDecoration(
+                      color: _kBrown.withValues(alpha: 0.1),
+                      borderRadius: BorderRadius.circular(16),
+                    ),
+                    child: const Icon(Icons.account_tree_rounded,
+                        color: _kBrown, size: 22),
+                  ),
+                  const SizedBox(width: 14),
+                  Expanded(
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Text(
+                          stageName,
+                          style: TextStyle(
+                            fontSize: 16,
+                            fontWeight: FontWeight.w900,
+                            color: cs.onSurface,
+                          ),
+                          maxLines: 1,
+                          overflow: TextOverflow.ellipsis,
+                        ),
+                        const SizedBox(height: 9),
+                        Wrap(
+                          spacing: 8,
+                          runSpacing: 6,
+                          children: [
+                            _StageChip(label: '${dprs.length} Members'),
+                            _StageChip(label: '$markCount Mark Nos'),
+                            _StageChip(
+                                label: '${totalQty.toStringAsFixed(0)} Qty'),
+                            _StageChip(
+                                label: '${totalWeight.toStringAsFixed(2)} kg'),
+                          ],
+                        ),
+                      ],
+                    ),
+                  ),
+                  Icon(Icons.chevron_right_rounded,
+                      color: cs.onSurfaceVariant, size: 28),
+                ],
+              ),
+            ),
+          ),
+        ),
+      ),
+    );
+  }
+}
+
+class _StageChip extends StatelessWidget {
+  final String label;
+
+  const _StageChip({required this.label});
+
+  @override
+  Widget build(BuildContext context) {
+    final cs = Theme.of(context).colorScheme;
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+      decoration: BoxDecoration(
+        color: cs.surfaceContainerHighest.withValues(alpha: 0.65),
+        borderRadius: BorderRadius.circular(999),
+      ),
+      child: Text(
+        label,
+        style: TextStyle(
+          fontSize: 10,
+          fontWeight: FontWeight.w800,
+          color: cs.onSurfaceVariant,
+        ),
+      ),
+    );
+  }
+}
+
+class _StageHeaderMetric extends StatelessWidget {
+  final String label;
+  final String value;
+  final IconData icon;
+
+  const _StageHeaderMetric({
+    required this.label,
+    required this.value,
+    required this.icon,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    final cs = Theme.of(context).colorScheme;
+    return Row(
+      children: [
+        Icon(icon, size: 16, color: _kBrown),
+        const SizedBox(width: 6),
+        Expanded(
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Text(
+                label,
+                style: TextStyle(
+                  fontSize: 10,
+                  color: cs.onSurfaceVariant,
+                  fontWeight: FontWeight.w700,
+                ),
+              ),
+              Text(
+                value,
+                style: TextStyle(
+                  fontSize: 12,
+                  color: cs.onSurface,
+                  fontWeight: FontWeight.w900,
+                ),
+                maxLines: 1,
+                overflow: TextOverflow.ellipsis,
+              ),
+            ],
+          ),
+        ),
       ],
     );
   }
@@ -575,6 +824,31 @@ String _markSummary(List<DPRStructureItem> items) {
   if (marks.isEmpty) return '-';
   if (marks.length == 1) return marks.first;
   return '${marks.first} +${marks.length - 1}';
+}
+
+Map<String, List<DPRStructure>> _groupDprsByStage(List<DPRStructure> dprs) {
+  final grouped = <String, List<DPRStructure>>{};
+  for (final dpr in dprs) {
+    final stage = _stageName(dpr);
+    grouped.putIfAbsent(stage, () => <DPRStructure>[]).add(dpr);
+  }
+  return grouped;
+}
+
+String _stageName(DPRStructure dpr) {
+  final name = dpr.dprName.trim();
+  return name.isEmpty ? 'Structure DPR' : name;
+}
+
+int _uniqueMarkCount(List<DPRStructure> dprs) {
+  final marks = <String>{};
+  for (final dpr in dprs) {
+    for (final item in dpr.items) {
+      final mark = item.assemblyMark.trim();
+      if (mark.isNotEmpty) marks.add(mark.toLowerCase());
+    }
+  }
+  return marks.length;
 }
 
 double _totalWeightKg(DPRStructure dpr) {

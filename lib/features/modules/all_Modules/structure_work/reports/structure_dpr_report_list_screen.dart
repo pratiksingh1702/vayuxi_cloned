@@ -31,6 +31,7 @@ class StructureDprReportListScreen extends ConsumerStatefulWidget {
 class _StructureDprReportListScreenState
     extends ConsumerState<StructureDprReportListScreen> {
   Set<String> _selectedTeamIds = {};
+  String? _selectedStage;
 
   @override
   void initState() {
@@ -104,8 +105,9 @@ class _StructureDprReportListScreenState
               backgroundColor: Colors.red),
         );
       } else if (mounted) {
+        final error = ref.read(dprStructureProvider).error;
         ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text('Failed to delete DPR')),
+          SnackBar(content: Text(error ?? 'Failed to delete DPR')),
         );
       }
     }
@@ -123,18 +125,31 @@ class _StructureDprReportListScreenState
           _selectedTeamIds.isEmpty || _selectedTeamIds.contains(dpr.teamId);
       return matchesTeam;
     }).toList();
+    final stageGroups = _groupDprsByStage(filteredDprs);
+    final selectedStageDprs = _selectedStage == null
+        ? <DPRStructure>[]
+        : stageGroups[_selectedStage] ?? <DPRStructure>[];
 
     return Scaffold(
       backgroundColor: isDark ? cs.surface : const Color(0xFFF8F9FA),
       appBar: PremiumAppBar(
-        title: 'Structure DPR Reports',
-        onDrawerPressed: () => context.pop(),
+        title:
+            _selectedStage == null ? 'Structure DPR Reports' : _selectedStage!,
+        onDrawerPressed: () {
+          if (_selectedStage != null) {
+            setState(() => _selectedStage = null);
+          } else {
+            context.pop();
+          }
+        },
         drawerIcon: Icons.arrow_back_ios_new_rounded,
       ),
       body: Column(
         children: [
           _buildPeriodBanner(cs, isDark),
-          _buildTeamFilter(teamState, cs),
+          if (_selectedStage == null) _buildTeamFilter(teamState, cs),
+          if (_selectedStage != null)
+            _buildStageDetailHeader(selectedStageDprs, cs, isDark),
           Expanded(
             child: state.isLoading
                 ? const Center(child: CircularProgressIndicator())
@@ -142,27 +157,43 @@ class _StructureDprReportListScreenState
                     ? _EmptyState(cs: cs)
                     : RefreshIndicator(
                         onRefresh: _fetchDPRs,
-                        child: ListView.builder(
-                          padding: const EdgeInsets.symmetric(
-                              horizontal: 12, vertical: 8),
-                          itemCount: filteredDprs.length,
-                          itemBuilder: (context, index) {
-                            final dpr = filteredDprs[index];
-                            return _DPRReportCard(
-                              dpr: dpr,
-                              onDelete: () => _deleteDpr(dpr),
-                              onTap: () {
-                                context.push(
-                                  '${Routes.structureDprCreate}/${widget.siteId}',
-                                  extra: {
-                                    'siteName': dpr.siteName ?? '',
-                                    'initialDpr': dpr,
-                                  },
-                                );
-                              },
-                            );
-                          },
-                        ),
+                        child: _selectedStage == null
+                            ? ListView.builder(
+                                padding: const EdgeInsets.symmetric(
+                                    horizontal: 12, vertical: 8),
+                                itemCount: stageGroups.length,
+                                itemBuilder: (context, index) {
+                                  final entry =
+                                      stageGroups.entries.elementAt(index);
+                                  return _DPRStageCard(
+                                    stageName: entry.key,
+                                    dprs: entry.value,
+                                    onTap: () => setState(
+                                        () => _selectedStage = entry.key),
+                                  );
+                                },
+                              )
+                            : ListView.builder(
+                                padding: const EdgeInsets.symmetric(
+                                    horizontal: 12, vertical: 8),
+                                itemCount: selectedStageDprs.length,
+                                itemBuilder: (context, index) {
+                                  final dpr = selectedStageDprs[index];
+                                  return _DPRReportCard(
+                                    dpr: dpr,
+                                    onDelete: () => _deleteDpr(dpr),
+                                    onTap: () {
+                                      context.push(
+                                        '${Routes.structureDprCreate}/${widget.siteId}',
+                                        extra: {
+                                          'siteName': dpr.siteName ?? '',
+                                          'initialDpr': dpr,
+                                        },
+                                      );
+                                    },
+                                  );
+                                },
+                              ),
                       ),
           ),
         ],
@@ -290,6 +321,215 @@ class _StructureDprReportListScreenState
           ),
         ),
         const SizedBox(height: 8),
+      ],
+    );
+  }
+
+  Widget _buildStageDetailHeader(
+      List<DPRStructure> dprs, ColorScheme cs, bool isDark) {
+    final markCount = _uniqueMarkCount(dprs);
+    final weight =
+        dprs.fold<double>(0, (sum, dpr) => sum + _totalWeightKg(dpr));
+    return Container(
+      width: double.infinity,
+      margin: const EdgeInsets.fromLTRB(12, 8, 12, 4),
+      padding: const EdgeInsets.all(12),
+      decoration: BoxDecoration(
+        color: isDark ? cs.surfaceContainerHigh : Colors.white,
+        borderRadius: BorderRadius.circular(14),
+        border: Border.all(color: cs.outlineVariant),
+      ),
+      child: Row(
+        children: [
+          Expanded(
+            child: _StageHeaderMetric(
+              label: 'Members',
+              value: '${dprs.length}',
+              icon: Icons.groups_rounded,
+            ),
+          ),
+          Expanded(
+            child: _StageHeaderMetric(
+              label: 'Mark Nos',
+              value: '$markCount',
+              icon: Icons.tag_rounded,
+            ),
+          ),
+          Expanded(
+            child: _StageHeaderMetric(
+              label: 'Weight',
+              value: '${weight.toStringAsFixed(2)} kg',
+              icon: Icons.scale_rounded,
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+class _DPRStageCard extends StatelessWidget {
+  final String stageName;
+  final List<DPRStructure> dprs;
+  final VoidCallback onTap;
+
+  const _DPRStageCard({
+    required this.stageName,
+    required this.dprs,
+    required this.onTap,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+    final cs = theme.colorScheme;
+    final isDark = theme.brightness == Brightness.dark;
+    const accentColor = Color(0xFF7B3F00);
+    final markCount = _uniqueMarkCount(dprs);
+    final totalQty = dprs.fold<double>(0, (sum, dpr) => sum + dpr.totalQtyUsed);
+    final totalWeight =
+        dprs.fold<double>(0, (sum, dpr) => sum + _totalWeightKg(dpr));
+
+    return Container(
+      margin: const EdgeInsets.only(bottom: 10),
+      decoration: BoxDecoration(
+        color: theme.cardColor,
+        borderRadius: BorderRadius.circular(14),
+        border: Border.all(color: cs.outlineVariant.withValues(alpha: 0.7)),
+        boxShadow: [
+          BoxShadow(
+            color: Colors.black.withValues(alpha: isDark ? 0.18 : 0.04),
+            blurRadius: 12,
+            offset: const Offset(0, 5),
+          ),
+        ],
+      ),
+      child: InkWell(
+        onTap: onTap,
+        borderRadius: BorderRadius.circular(14),
+        child: Padding(
+          padding: const EdgeInsets.all(14),
+          child: Row(
+            children: [
+              Container(
+                padding: const EdgeInsets.all(11),
+                decoration: BoxDecoration(
+                  color: accentColor.withValues(alpha: isDark ? 0.22 : 0.1),
+                  borderRadius: BorderRadius.circular(12),
+                ),
+                child: Icon(
+                  Icons.account_tree_rounded,
+                  color: isDark ? const Color(0xFFD2B48C) : accentColor,
+                ),
+              ),
+              const SizedBox(width: 12),
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      stageName,
+                      style: TextStyle(
+                        fontSize: 15,
+                        fontWeight: FontWeight.w900,
+                        color: cs.onSurface,
+                      ),
+                      maxLines: 1,
+                      overflow: TextOverflow.ellipsis,
+                    ),
+                    const SizedBox(height: 8),
+                    Wrap(
+                      spacing: 8,
+                      runSpacing: 6,
+                      children: [
+                        _StageChip(label: '${dprs.length} Members'),
+                        _StageChip(label: '$markCount Mark Nos'),
+                        _StageChip(label: '${totalQty.toStringAsFixed(0)} Qty'),
+                        _StageChip(
+                            label: '${totalWeight.toStringAsFixed(2)} kg'),
+                      ],
+                    ),
+                  ],
+                ),
+              ),
+              Icon(Icons.chevron_right_rounded, color: cs.onSurfaceVariant),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+}
+
+class _StageChip extends StatelessWidget {
+  final String label;
+
+  const _StageChip({required this.label});
+
+  @override
+  Widget build(BuildContext context) {
+    final cs = Theme.of(context).colorScheme;
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+      decoration: BoxDecoration(
+        color: cs.surfaceContainerHighest.withValues(alpha: 0.65),
+        borderRadius: BorderRadius.circular(999),
+      ),
+      child: Text(
+        label,
+        style: TextStyle(
+          fontSize: 10,
+          fontWeight: FontWeight.w800,
+          color: cs.onSurfaceVariant,
+        ),
+      ),
+    );
+  }
+}
+
+class _StageHeaderMetric extends StatelessWidget {
+  final String label;
+  final String value;
+  final IconData icon;
+
+  const _StageHeaderMetric({
+    required this.label,
+    required this.value,
+    required this.icon,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    final cs = Theme.of(context).colorScheme;
+    return Row(
+      children: [
+        Icon(icon, size: 16, color: const Color(0xFF7B3F00)),
+        const SizedBox(width: 6),
+        Expanded(
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Text(
+                label,
+                style: TextStyle(
+                  fontSize: 10,
+                  color: cs.onSurfaceVariant,
+                  fontWeight: FontWeight.w700,
+                ),
+              ),
+              Text(
+                value,
+                style: TextStyle(
+                  fontSize: 12,
+                  color: cs.onSurface,
+                  fontWeight: FontWeight.w900,
+                ),
+                maxLines: 1,
+                overflow: TextOverflow.ellipsis,
+              ),
+            ],
+          ),
+        ),
       ],
     );
   }
@@ -463,6 +703,31 @@ String _markSummary(List<DPRStructureItem> items) {
   if (marks.isEmpty) return '-';
   if (marks.length == 1) return marks.first;
   return '${marks.first} +${marks.length - 1}';
+}
+
+Map<String, List<DPRStructure>> _groupDprsByStage(List<DPRStructure> dprs) {
+  final grouped = <String, List<DPRStructure>>{};
+  for (final dpr in dprs) {
+    final stage = _stageName(dpr);
+    grouped.putIfAbsent(stage, () => <DPRStructure>[]).add(dpr);
+  }
+  return grouped;
+}
+
+String _stageName(DPRStructure dpr) {
+  final name = dpr.dprName.trim();
+  return name.isEmpty ? 'Structure DPR' : name;
+}
+
+int _uniqueMarkCount(List<DPRStructure> dprs) {
+  final marks = <String>{};
+  for (final dpr in dprs) {
+    for (final item in dpr.items) {
+      final mark = item.assemblyMark.trim();
+      if (mark.isNotEmpty) marks.add(mark.toLowerCase());
+    }
+  }
+  return marks.length;
 }
 
 double _totalWeightKg(DPRStructure dpr) {
