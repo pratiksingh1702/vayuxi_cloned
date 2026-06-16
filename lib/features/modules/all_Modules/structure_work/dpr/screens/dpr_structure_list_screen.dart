@@ -6,7 +6,6 @@ import 'package:intl/intl.dart';
 import '../../../../../../core/utlis/widgets/premium_app_bar.dart';
 import '../models/dpr_structure_model.dart';
 import '../providers/dpr_structure_provider.dart';
-import '../../boq/providers/boq_structure_provider.dart';
 import 'dpr_structure_create_screen.dart';
 import 'dpr_structure_detail_screen.dart';
 
@@ -178,7 +177,7 @@ class _DprStructureListScreenState extends ConsumerState<DprStructureListScreen>
         borderRadius: BorderRadius.circular(24),
         boxShadow: [
           BoxShadow(
-              color: _kBrown.withOpacity(0.3),
+              color: _kBrown.withValues(alpha: 0.3),
               blurRadius: 15,
               offset: const Offset(0, 8)),
         ],
@@ -212,7 +211,7 @@ class _DprStructureListScreenState extends ConsumerState<DprStructureListScreen>
               Container(
                 padding: const EdgeInsets.all(10),
                 decoration: BoxDecoration(
-                  color: Colors.white.withOpacity(0.15),
+                  color: Colors.white.withValues(alpha: 0.15),
                   shape: BoxShape.circle,
                 ),
                 child: const Icon(Icons.analytics_outlined,
@@ -268,7 +267,7 @@ class _DprStructureListScreenState extends ConsumerState<DprStructureListScreen>
                   border: Border.all(
                     color: isSelected
                         ? _kBrown
-                        : cs.outlineVariant.withOpacity(0.5),
+                        : cs.outlineVariant.withValues(alpha: 0.5),
                     width: 1,
                   ),
                 ),
@@ -313,7 +312,7 @@ class _DprStructureListScreenState extends ConsumerState<DprStructureListScreen>
             Container(
               padding: const EdgeInsets.all(16),
               decoration: BoxDecoration(
-                  color: cs.errorContainer.withOpacity(0.4),
+                  color: cs.errorContainer.withValues(alpha: 0.4),
                   shape: BoxShape.circle),
               child:
                   Icon(Icons.delete_sweep_rounded, color: cs.error, size: 32),
@@ -426,6 +425,8 @@ class _DPRCard extends StatelessWidget {
   Widget build(BuildContext context) {
     final cs = Theme.of(context).colorScheme;
     final isDark = Theme.of(context).brightness == Brightness.dark;
+    final markText = _markSummary(dpr.items);
+    final totalWeightKg = _totalWeightKg(dpr);
     final statusColor = dpr.status == 'approved'
         ? Colors.green
         : dpr.status == 'rejected'
@@ -437,10 +438,10 @@ class _DPRCard extends StatelessWidget {
       decoration: BoxDecoration(
         color: isDark ? cs.surfaceContainerHigh : Colors.white,
         borderRadius: BorderRadius.circular(24),
-        border: Border.all(color: cs.outlineVariant.withOpacity(0.4)),
+        border: Border.all(color: cs.outlineVariant.withValues(alpha: 0.4)),
         boxShadow: [
           BoxShadow(
-            color: cs.shadow.withOpacity(0.04),
+            color: cs.shadow.withValues(alpha: 0.04),
             blurRadius: 20,
             offset: const Offset(0, 8),
           ),
@@ -463,7 +464,7 @@ class _DPRCard extends StatelessWidget {
                       Container(
                         padding: const EdgeInsets.all(10),
                         decoration: BoxDecoration(
-                          color: _kBrown.withOpacity(0.1),
+                          color: _kBrown.withValues(alpha: 0.1),
                           borderRadius: BorderRadius.circular(14),
                         ),
                         child: const Icon(Icons.architecture_rounded,
@@ -479,28 +480,51 @@ class _DPRCard extends StatelessWidget {
                                     fontSize: 15, fontWeight: FontWeight.w800),
                                 maxLines: 1,
                                 overflow: TextOverflow.ellipsis),
-                            if (dpr.dprNumber.isNotEmpty)
-                              Text('DPR No: ${dpr.dprNumber}',
-                                  style: TextStyle(
-                                      fontSize: 11,
-                                      color: cs.onSurfaceVariant,
-                                      fontWeight: FontWeight.w600)),
+                            Text('Mark No: $markText',
+                                style: TextStyle(
+                                    fontSize: 11,
+                                    color: cs.onSurfaceVariant,
+                                    fontWeight: FontWeight.w600),
+                                maxLines: 1,
+                                overflow: TextOverflow.ellipsis),
                           ],
                         ),
                       ),
-                      Container(
-                        padding: const EdgeInsets.symmetric(
-                            horizontal: 10, vertical: 4),
-                        decoration: BoxDecoration(
-                          color: statusColor.withOpacity(0.12),
-                          borderRadius: BorderRadius.circular(10),
-                        ),
-                        child: Text(dpr.status.toUpperCase(),
-                            style: TextStyle(
-                                fontSize: 9,
+                      Column(
+                        crossAxisAlignment: CrossAxisAlignment.end,
+                        children: [
+                          Container(
+                            padding: const EdgeInsets.symmetric(
+                                horizontal: 10, vertical: 5),
+                            decoration: BoxDecoration(
+                              color: _kBrown.withValues(alpha: 0.1),
+                              borderRadius: BorderRadius.circular(10),
+                            ),
+                            child: Text(
+                              '${totalWeightKg.toStringAsFixed(2)} kg',
+                              style: const TextStyle(
+                                fontSize: 11,
                                 fontWeight: FontWeight.w900,
-                                color: statusColor,
-                                letterSpacing: 0.5)),
+                                color: _kBrown,
+                              ),
+                            ),
+                          ),
+                          const SizedBox(height: 6),
+                          Container(
+                            padding: const EdgeInsets.symmetric(
+                                horizontal: 10, vertical: 4),
+                            decoration: BoxDecoration(
+                              color: statusColor.withValues(alpha: 0.12),
+                              borderRadius: BorderRadius.circular(10),
+                            ),
+                            child: Text(dpr.status.toUpperCase(),
+                                style: TextStyle(
+                                    fontSize: 9,
+                                    fontWeight: FontWeight.w900,
+                                    color: statusColor,
+                                    letterSpacing: 0.5)),
+                          ),
+                        ],
                       ),
                     ],
                   ),
@@ -512,9 +536,8 @@ class _DPRCard extends StatelessWidget {
                     children: [
                       _DPRStatItem(
                         label: 'Weight',
-                        value:
-                            '${(dpr.totalNetWeight / 1000).toStringAsFixed(2)}',
-                        unit: 'MT',
+                        value: totalWeightKg.toStringAsFixed(2),
+                        unit: 'kg',
                         icon: Icons.scale_outlined,
                       ),
                       _DPRStatItem(
@@ -543,6 +566,25 @@ class _DPRCard extends StatelessWidget {
   }
 }
 
+String _markSummary(List<DPRStructureItem> items) {
+  final marks = items
+      .map((item) => item.assemblyMark.trim())
+      .where((mark) => mark.isNotEmpty)
+      .toSet()
+      .toList();
+  if (marks.isEmpty) return '-';
+  if (marks.length == 1) return marks.first;
+  return '${marks.first} +${marks.length - 1}';
+}
+
+double _totalWeightKg(DPRStructure dpr) {
+  if (dpr.totalNetWeight > 0) return dpr.totalNetWeight;
+  return dpr.items.fold<double>(
+    0,
+    (sum, item) => sum + (item.totalNetWeight ?? 0),
+  );
+}
+
 class _DPRStatItem extends StatelessWidget {
   final String label, value, unit;
   final IconData icon;
@@ -560,13 +602,14 @@ class _DPRStatItem extends StatelessWidget {
       children: [
         Row(
           children: [
-            Icon(icon, size: 12, color: cs.onSurfaceVariant.withOpacity(0.6)),
+            Icon(icon,
+                size: 12, color: cs.onSurfaceVariant.withValues(alpha: 0.6)),
             const SizedBox(width: 4),
             Text(label,
                 style: TextStyle(
                     fontSize: 10,
                     fontWeight: FontWeight.w600,
-                    color: cs.onSurfaceVariant.withOpacity(0.6))),
+                    color: cs.onSurfaceVariant.withValues(alpha: 0.6))),
           ],
         ),
         const SizedBox(height: 4),
@@ -626,7 +669,7 @@ class _EmptyDPRState extends StatelessWidget {
             width: 100,
             height: 100,
             decoration: BoxDecoration(
-              color: _kBrown.withOpacity(0.08),
+              color: _kBrown.withValues(alpha: 0.08),
               shape: BoxShape.circle,
             ),
             child:

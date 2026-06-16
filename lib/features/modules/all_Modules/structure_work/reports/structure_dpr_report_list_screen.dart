@@ -312,7 +312,13 @@ class _DPRReportCard extends StatelessWidget {
     final cs = theme.colorScheme;
     final isDark = theme.brightness == Brightness.dark;
     const accentColor = Color(0xFF7B3F00);
-    final visibleItems = dpr.items.take(4).toList();
+    final markText = _markSummary(dpr.items);
+    final teamName = dpr.teamName?.trim();
+    final dateText =
+        DateFormat('dd MMM yyyy').format(dpr.date ?? DateTime.now());
+    final subtitleText =
+        teamName?.isNotEmpty == true ? '$dateText • $teamName' : dateText;
+    final totalWeightKg = _totalWeightKg(dpr);
 
     return Container(
       margin: const EdgeInsets.only(bottom: 10),
@@ -366,7 +372,7 @@ class _DPRReportCard extends StatelessWidget {
                       ),
                       const SizedBox(height: 3),
                       Text(
-                        '${DateFormat('dd MMM yyyy').format(dpr.date ?? DateTime.now())} • ${dpr.teamName?.isNotEmpty == true ? dpr.teamName! : 'No Team'}',
+                        subtitleText,
                         style: TextStyle(
                           fontSize: 11,
                           color: cs.onSurfaceVariant,
@@ -374,6 +380,35 @@ class _DPRReportCard extends StatelessWidget {
                         ),
                         maxLines: 1,
                         overflow: TextOverflow.ellipsis,
+                      ),
+                    ],
+                  ),
+                ),
+                Container(
+                  padding:
+                      const EdgeInsets.symmetric(horizontal: 10, vertical: 7),
+                  decoration: BoxDecoration(
+                    color: accentColor.withValues(alpha: isDark ? 0.22 : 0.1),
+                    borderRadius: BorderRadius.circular(10),
+                  ),
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.end,
+                    children: [
+                      Text(
+                        'Weight',
+                        style: TextStyle(
+                          fontSize: 9,
+                          color: cs.onSurfaceVariant,
+                          fontWeight: FontWeight.w800,
+                        ),
+                      ),
+                      Text(
+                        '${totalWeightKg.toStringAsFixed(2)} kg',
+                        style: TextStyle(
+                          fontSize: 12,
+                          color: isDark ? const Color(0xFFD2B48C) : accentColor,
+                          fontWeight: FontWeight.w900,
+                        ),
                       ),
                     ],
                   ),
@@ -394,38 +429,15 @@ class _DPRReportCard extends StatelessWidget {
             const SizedBox(height: 12),
             Row(
               children: [
-                _MiniMetric(
-                    label: 'DPR No',
-                    value: dpr.dprNumber.isEmpty ? '-' : dpr.dprNumber),
+                _MiniMetric(label: 'Mark No', value: markText),
                 _MiniMetric(
                     label: 'Qty', value: dpr.totalQtyUsed.toStringAsFixed(0)),
                 _MiniMetric(
-                    label: 'Weight',
-                    value:
-                        '${(dpr.totalNetWeight / 1000).toStringAsFixed(2)} MT'),
+                    label: 'Date',
+                    value: DateFormat('dd MMM yyyy')
+                        .format(dpr.date ?? DateTime.now())),
               ],
             ),
-            if (visibleItems.isNotEmpty) ...[
-              const SizedBox(height: 12),
-              ...visibleItems.map(
-                (item) => _DprItemLine(
-                  item: item,
-                  stageName: dpr.dprName.isEmpty ? 'Work' : dpr.dprName,
-                ),
-              ),
-              if (dpr.items.length > visibleItems.length)
-                Padding(
-                  padding: const EdgeInsets.only(top: 6),
-                  child: Text(
-                    '+${dpr.items.length - visibleItems.length} more mark numbers',
-                    style: TextStyle(
-                      fontSize: 11,
-                      color: cs.primary,
-                      fontWeight: FontWeight.w800,
-                    ),
-                  ),
-                ),
-            ],
             if (dpr.remarks?.trim().isNotEmpty == true) ...[
               const SizedBox(height: 10),
               Text(
@@ -440,6 +452,25 @@ class _DPRReportCard extends StatelessWidget {
       ),
     );
   }
+}
+
+String _markSummary(List<DPRStructureItem> items) {
+  final marks = items
+      .map((item) => item.assemblyMark.trim())
+      .where((mark) => mark.isNotEmpty)
+      .toSet()
+      .toList();
+  if (marks.isEmpty) return '-';
+  if (marks.length == 1) return marks.first;
+  return '${marks.first} +${marks.length - 1}';
+}
+
+double _totalWeightKg(DPRStructure dpr) {
+  if (dpr.totalNetWeight > 0) return dpr.totalNetWeight;
+  return dpr.items.fold<double>(
+    0,
+    (sum, item) => sum + (item.totalNetWeight ?? 0),
+  );
 }
 
 class _MiniMetric extends StatelessWidget {
@@ -477,71 +508,6 @@ class _MiniMetric extends StatelessWidget {
                 overflow: TextOverflow.ellipsis),
           ],
         ),
-      ),
-    );
-  }
-}
-
-class _DprItemLine extends StatelessWidget {
-  final DPRStructureItem item;
-  final String stageName;
-
-  const _DprItemLine({
-    required this.item,
-    required this.stageName,
-  });
-
-  @override
-  Widget build(BuildContext context) {
-    final cs = Theme.of(context).colorScheme;
-    return Container(
-      margin: const EdgeInsets.only(bottom: 6),
-      padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 8),
-      decoration: BoxDecoration(
-        color: cs.surface,
-        borderRadius: BorderRadius.circular(10),
-        border: Border.all(color: cs.outlineVariant.withValues(alpha: 0.75)),
-      ),
-      child: Row(
-        children: [
-          Icon(Icons.tag_rounded, size: 16, color: cs.primary),
-          const SizedBox(width: 8),
-          Expanded(
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Text(
-                  stageName,
-                  style: TextStyle(
-                    fontSize: 11,
-                    color: cs.onSurfaceVariant,
-                    fontWeight: FontWeight.w700,
-                  ),
-                  maxLines: 1,
-                  overflow: TextOverflow.ellipsis,
-                ),
-                const SizedBox(height: 2),
-                Text(
-                  item.assemblyMark.isEmpty ? 'Mark number' : item.assemblyMark,
-                  style: TextStyle(
-                      fontSize: 12,
-                      color: cs.onSurface,
-                      fontWeight: FontWeight.w900),
-                  maxLines: 1,
-                  overflow: TextOverflow.ellipsis,
-                ),
-              ],
-            ),
-          ),
-          const SizedBox(width: 8),
-          Text(
-            'Qty ${item.qtyUsed.toStringAsFixed(0)}',
-            style: TextStyle(
-                fontSize: 11,
-                color: cs.onSurfaceVariant,
-                fontWeight: FontWeight.w800),
-          ),
-        ],
       ),
     );
   }

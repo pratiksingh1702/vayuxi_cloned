@@ -61,7 +61,7 @@ class _PebWorkAssignmentScreenState extends State<PebWorkAssignmentScreen> {
   DateTime? _expectedDate;
   DateTime _planStartDate = DateTime.now();
   DateTime? _planTcd;
-  int _planWeekOffDay = 0;
+  int? _planWeekOffDay;
   List<PebTeam> _teams = [];
   List<PebManpower> _manpower = [];
   List<PebSetupItem> _setupItems = [];
@@ -549,7 +549,7 @@ class _PebWorkAssignmentScreenState extends State<PebWorkAssignmentScreen> {
       _planPlanningType = 'daily';
       _planStartDate = DateTime.now();
       _planTcd = null;
-      _planWeekOffDay = 0;
+      _planWeekOffDay = null;
       _planQtyController.clear();
       _planRemarksController.clear();
     });
@@ -568,7 +568,7 @@ class _PebWorkAssignmentScreenState extends State<PebWorkAssignmentScreen> {
       _planPlanningType = plan.planningType;
       _planStartDate = plan.startDate ?? DateTime.now();
       _planTcd = plan.tcd;
-      _planWeekOffDay = plan.weekOffDay ?? 0;
+      _planWeekOffDay = plan.weekOffDay;
       _planQtyController.text = plan.totalQuantity.toStringAsFixed(
           plan.totalQuantity.truncateToDouble() == plan.totalQuantity ? 0 : 2);
       _planRemarksController.text = plan.remarks;
@@ -628,7 +628,8 @@ class _PebWorkAssignmentScreenState extends State<PebWorkAssignmentScreen> {
         planningType: _planPlanningType,
         startDate: _planStartDate,
         tcd: _planTcd,
-        weekOffDay: _planPlanningType == 'daily' ? null : _planWeekOffDay,
+        weekOffDay: _planPlanningType == 'weekly' ? _planWeekOffDay : null,
+        monthlyOffDay: _planPlanningType == 'monthly' ? _planWeekOffDay : null,
         quantity: quantity,
         uom: setupItem.uom,
         remarks: _planRemarksController.text.trim(),
@@ -1417,8 +1418,10 @@ class _PebWorkAssignmentScreenState extends State<PebWorkAssignmentScreen> {
                   DropdownMenuItem(value: 'weekly', child: Text('Weekly')),
                   DropdownMenuItem(value: 'monthly', child: Text('Monthly')),
                 ],
-                onChanged: (value) =>
-                    setState(() => _planPlanningType = value ?? 'daily'),
+                onChanged: (value) => setState(() {
+                  _planPlanningType = value ?? 'daily';
+                  if (_planPlanningType == 'daily') _planWeekOffDay = null;
+                }),
               ),
               const SizedBox(height: 12),
               _buildDateTile(
@@ -1443,9 +1446,12 @@ class _PebWorkAssignmentScreenState extends State<PebWorkAssignmentScreen> {
               if (_planPlanningType != 'daily') ...[
                 const SizedBox(height: 12),
                 _buildDropdown(
-                  label: 'Week Off Day',
-                  value: _planWeekOffDay.toString(),
+                  label: _planPlanningType == 'monthly'
+                      ? 'Monthly Off Day'
+                      : 'Week Off Day',
+                  value: _planWeekOffDay?.toString() ?? 'none',
                   items: const [
+                    DropdownMenuItem(value: 'none', child: Text('No Off Day')),
                     DropdownMenuItem(value: '0', child: Text('Sunday')),
                     DropdownMenuItem(value: '1', child: Text('Monday')),
                     DropdownMenuItem(value: '2', child: Text('Tuesday')),
@@ -1454,8 +1460,21 @@ class _PebWorkAssignmentScreenState extends State<PebWorkAssignmentScreen> {
                     DropdownMenuItem(value: '5', child: Text('Friday')),
                     DropdownMenuItem(value: '6', child: Text('Saturday')),
                   ],
-                  onChanged: (value) => setState(
-                      () => _planWeekOffDay = int.tryParse(value ?? '0') ?? 0),
+                  onChanged: (value) => setState(() {
+                    _planWeekOffDay =
+                        value == 'none' ? null : int.tryParse(value ?? '');
+                  }),
+                ),
+                const SizedBox(height: 6),
+                Text(
+                  _planWeekOffDay == null
+                      ? 'Quantity will be distributed across every day in the selected range.'
+                      : 'Selected off day will be skipped while distributing planned quantity.',
+                  style: TextStyle(
+                    color: cs.onSurfaceVariant,
+                    fontSize: 12,
+                    height: 1.35,
+                  ),
                 ),
               ],
               const SizedBox(height: 12),
