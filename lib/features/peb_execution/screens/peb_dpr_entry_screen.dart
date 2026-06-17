@@ -217,6 +217,12 @@ class _PebDprEntryScreenState extends State<PebDprEntryScreen> {
           date: _dateText,
           teamId: _isDefaultTeamId(selectedTeamId) ? '' : selectedTeamId,
         ),
+        _service.getAssignmentPlanDetails(
+          widget.siteId,
+          widget.executionType,
+          fromDate: _dateText,
+          toDate: _dateText,
+        ),
       ]);
 
       if (!mounted) return;
