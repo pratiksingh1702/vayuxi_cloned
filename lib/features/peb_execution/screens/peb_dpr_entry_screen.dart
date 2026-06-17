@@ -48,10 +48,14 @@ class _PebDprEntryScreenState extends State<PebDprEntryScreen> {
   DateTime _selectedDate = DateTime.now();
   String _teamId = '';
   PebSetup? _setup;
+  PebDprLevel? _dprLevel;
   List<PebTeam> _teams = [];
   List<PebBoq> _boqs = [];
   List<PebWorkAssignment> _assignments = [];
   List<PebAssignmentPlanDetail> _planDetails = [];
+  List<PebItemWiseDprItem> _itemWiseItems = [];
+  final Map<String, String> _level1WeightInputs = {};
+  final Map<String, String> _level1UomInputs = {};
   final Map<String, String> _markQuantityInputs = {};
   final Map<String, String> _markRemarks = {};
   final Map<String, String> _variationReasons = {};
@@ -73,6 +77,7 @@ class _PebDprEntryScreenState extends State<PebDprEntryScreen> {
   String _markSearchQuery = '';
   String? _markFilterStatus; // null = all, 'pending', 'inProgress', 'completed'
   final TextEditingController _markSearchCtrl = TextEditingController();
+  final TextEditingController _itemWiseSearchCtrl = TextEditingController();
 
   @override
   void initState() {
@@ -90,9 +95,11 @@ class _PebDprEntryScreenState extends State<PebDprEntryScreen> {
       _teamId = '';
       _teams = [];
       _setup = null;
+      _dprLevel = null;
       _boqs = [];
       _assignments = [];
       _planDetails = [];
+      _itemWiseItems = [];
       _activeWorkKey = null;
       _markActionMode = _DprMarkActionMode.none;
       _isDprSelectionMode = false;
@@ -107,6 +114,7 @@ class _PebDprEntryScreenState extends State<PebDprEntryScreen> {
     _bulkTaskManager.removeListener(_handleBulkTaskUpdate);
     _scrollController.dispose();
     _markSearchCtrl.dispose();
+    _itemWiseSearchCtrl.dispose();
     super.dispose();
   }
 
@@ -150,15 +158,53 @@ class _PebDprEntryScreenState extends State<PebDprEntryScreen> {
       final teams =
           await _service.getTeams(widget.siteId, widget.executionType);
       final displayTeams = teams.isEmpty ? const [_defaultTeam] : teams;
-      final selectedTeamId = displayTeams.any((team) => team.id == _teamId)
-          ? _teamId
-          : displayTeams.first.id;
       final results = await Future.wait([
         _service.getSetup(widget.siteId, widget.executionType),
         _service.getBoqs(widget.siteId),
         _service.getAssignments(widget.siteId, widget.executionType,
-            teamId: _isDefaultTeamId(selectedTeamId) ? null : selectedTeamId,
             status: 'all'),
+        _service.getAssignmentPlanDetails(
+          widget.siteId,
+          widget.executionType,
+          fromDate: _dateText,
+          toDate: _dateText,
+        ),
+      ]);
+      final setup = results[0] as PebSetup?;
+      final boqs = results[1] as List<PebBoq>;
+      final dprLevel = setup?.dprLevel;
+      final apiItemWiseItems = dprLevel == PebDprLevel.itemWiseProgress
+          ? await _service.getItemWiseDprItems(
+              widget.siteId,
+              widget.executionType,
+              search: _itemWiseSearchCtrl.text,
+            )
+          : <PebItemWiseDprItem>[];
+      final itemWiseItems = dprLevel == PebDprLevel.itemWiseProgress
+          ? _mergeItemWiseItems(
+              apiItemWiseItems,
+              _boqMarksAsItemWiseItems(boqs),
+            )
+          : <PebItemWiseDprItem>[];
+      final allAssignments = (results[2] as List<PebWorkAssignment>)
+          .where((assignment) => assignment.status != 'cancelled')
+          .toList();
+      final assignedTeamIds = allAssignments
+          .map((assignment) => assignment.teamId)
+          .where((teamId) => teamId.trim().isNotEmpty)
+          .toSet();
+      final hasCurrentTeam = displayTeams.any((team) => team.id == _teamId);
+      final currentTeamHasAssignment = assignedTeamIds.contains(_teamId);
+      final selectedTeamId = hasCurrentTeam &&
+              (currentTeamHasAssignment || assignedTeamIds.isEmpty)
+          ? _teamId
+          : displayTeams
+              .firstWhere(
+                (team) => assignedTeamIds.contains(team.id),
+                orElse: () => displayTeams.first,
+              )
+              .id;
+      final statusResults = await Future.wait([
         _service.getDprMarkStatus(
           widget.siteId,
           widget.executionType,
@@ -171,26 +217,20 @@ class _PebDprEntryScreenState extends State<PebDprEntryScreen> {
           date: _dateText,
           teamId: _isDefaultTeamId(selectedTeamId) ? '' : selectedTeamId,
         ),
-        _service.getAssignmentPlanDetails(
-          widget.siteId,
-          widget.executionType,
-          fromDate: _dateText,
-          toDate: _dateText,
-        ),
       ]);
 
       if (!mounted) return;
       setState(() {
         _teams = displayTeams;
         _teamId = selectedTeamId;
-        _setup = results[0] as PebSetup?;
-        _boqs = results[1] as List<PebBoq>;
-        _assignments = (results[2] as List<PebWorkAssignment>)
-            .where((assignment) => assignment.status != 'cancelled')
-            .toList();
-        _status = results[3] as PebMarkStatus;
-        _level1Entries = results[4] as Map<String, PebLevel1DprEntry>;
-        _planDetails = results[5] as List<PebAssignmentPlanDetail>;
+        _setup = setup;
+        _dprLevel = dprLevel;
+        _boqs = boqs;
+        _assignments = allAssignments;
+        _itemWiseItems = itemWiseItems;
+        _status = statusResults[0] as PebMarkStatus;
+        _level1Entries = statusResults[1] as Map<String, PebLevel1DprEntry>;
+        _planDetails = results[3] as List<PebAssignmentPlanDetail>;
         if (_activeWorkKey != null &&
             !_visibleWorks().any((work) => work.key == _activeWorkKey)) {
           _activeWorkKey = null;
@@ -200,6 +240,11 @@ class _PebDprEntryScreenState extends State<PebDprEntryScreen> {
         }
         _loadError = null;
       });
+      if (dprLevel == null) {
+        WidgetsBinding.instance.addPostFrameCallback((_) {
+          if (mounted) _ensureDprLevelConfigured();
+        });
+      }
       if (autoScroll && _activeWorkKey == null) _scrollToFirstActiveWork();
     } catch (error) {
       final message = extractBackendError(error);
@@ -212,9 +257,113 @@ class _PebDprEntryScreenState extends State<PebDprEntryScreen> {
 
   bool _isDefaultTeamId(String teamId) => teamId == _defaultTeamId;
 
+  Future<void> _ensureDprLevelConfigured() async {
+    if (_setup?.dprLevel != null || _loading || _submitting) return;
+    final selected = await showModalBottomSheet<PebDprLevel>(
+      context: context,
+      isScrollControlled: true,
+      showDragHandle: true,
+      builder: (context) => _DprLevelPickerSheet(
+        title: 'Select DPR Entry Level',
+        subtitle:
+            'This site does not have a DPR level configured yet. Select one to continue.',
+      ),
+    );
+    if (selected == null) return;
+    setState(() => _submitting = true);
+    try {
+      await _service.updateDprLevel(
+          widget.siteId, widget.executionType, selected);
+      AppToast.success('${selected.title} selected');
+      await _load(showLoader: true, autoScroll: true);
+    } catch (error) {
+      AppToast.error(extractBackendError(error));
+    } finally {
+      if (mounted) setState(() => _submitting = false);
+    }
+  }
+
   String get _dateText => _selectedDate.toIso8601String().split('T').first;
 
   List<PebBoqMark> get _allMarks => _boqs.expand((boq) => boq.items).toList();
+
+  List<PebItemWiseDprItem> _boqMarksAsItemWiseItems(List<PebBoq> boqs) {
+    final byMark = <String, PebItemWiseDprItem>{};
+    for (final boq in boqs) {
+      for (final mark in boq.items) {
+        final markNo = mark.assemblyMark.trim().isNotEmpty
+            ? mark.assemblyMark.trim()
+            : mark.detailedMark.trim();
+        if (markNo.isEmpty) continue;
+        final key = markNo.toUpperCase();
+        final existing = byMark[key];
+        final weight = mark.totalNetWeight > 0
+            ? mark.totalNetWeight
+            : mark.netWeightPerUnit > 0
+                ? mark.netWeightPerUnit * mark.quantity
+                : mark.quantity;
+        if (existing == null) {
+          byMark[key] = PebItemWiseDprItem(
+            source: 'boq',
+            boqId: boq.id,
+            boqItemId: mark.id,
+            markNo: markNo,
+            description: mark.typeDescription.trim().isNotEmpty
+                ? mark.typeDescription.trim()
+                : mark.detailedMark.trim(),
+            weight: weight,
+            uom: weight > 0 ? 'kg' : 'Nos',
+          );
+        } else {
+          byMark[key] = PebItemWiseDprItem(
+            source: existing.source,
+            boqId: existing.boqId,
+            boqItemId: existing.boqItemId,
+            markNo: existing.markNo,
+            description: existing.description,
+            weight: existing.weight + weight,
+            uom: existing.uom,
+          );
+        }
+      }
+    }
+    final rows = byMark.values.toList()
+      ..sort((a, b) => a.markNo.compareTo(b.markNo));
+    return rows;
+  }
+
+  List<PebItemWiseDprItem> _mergeItemWiseItems(
+    List<PebItemWiseDprItem> apiItems,
+    List<PebItemWiseDprItem> boqItems,
+  ) {
+    final rows = <String, PebItemWiseDprItem>{};
+    for (final item in boqItems) {
+      rows[item.markNo.toUpperCase()] = item;
+    }
+    for (final item in apiItems) {
+      final key = item.markNo.toUpperCase();
+      rows[key] = item.source == 'manual'
+          ? item
+          : rows[key] == null
+              ? item
+              : PebItemWiseDprItem(
+                  source: item.source,
+                  boqId: item.boqId.isNotEmpty ? item.boqId : rows[key]!.boqId,
+                  boqItemId: item.boqItemId.isNotEmpty
+                      ? item.boqItemId
+                      : rows[key]!.boqItemId,
+                  markNo: item.markNo,
+                  description: item.description.isNotEmpty
+                      ? item.description
+                      : rows[key]!.description,
+                  weight: item.weight > 0 ? item.weight : rows[key]!.weight,
+                  uom: item.uom.isNotEmpty ? item.uom : rows[key]!.uom,
+                );
+    }
+    final list = rows.values.toList()
+      ..sort((a, b) => a.markNo.compareTo(b.markNo));
+    return list;
+  }
 
   String _markInputKey(_VisibleWork work, String mark) => '${work.key}::$mark';
 
@@ -242,6 +391,10 @@ class _PebDprEntryScreenState extends State<PebDprEntryScreen> {
   Future<void> _openWorkDetail(_VisibleWork work) async {
     if (!work.isActive) {
       AppToast.info(work.inactiveReason ?? 'This work is not assigned');
+      return;
+    }
+    if (_dprLevel == PebDprLevel.basicProgress || work.isLevel1Manual) {
+      await _openQuantityAction(work, completedAction: false);
       return;
     }
     setState(() {
@@ -639,6 +792,29 @@ class _PebDprEntryScreenState extends State<PebDprEntryScreen> {
   List<_VisibleWork> _visibleWorks() {
     final setup = _setup;
     if (setup == null) return [];
+    if (_dprLevel == PebDprLevel.itemWiseProgress) return const [];
+    if (_dprLevel == PebDprLevel.basicProgress) {
+      return setup.items.map((setupItem) {
+        final existing = _level1Entries[setupItem.id];
+        final actualQty = existing?.actualQty ?? 0;
+        return _VisibleWork(
+          key: setupItem.id,
+          setupItem: setupItem,
+          assignmentId: '',
+          sourceType: 'level1_manual',
+          stageName: setupItem.name,
+          assignedMarks: const [],
+          assignedQty: actualQty > 0
+              ? actualQty
+              : (setupItem.targetQty > 0 ? setupItem.targetQty : 0),
+          assignmentDate: _selectedDate,
+          expectedCompletionDate: null,
+          isActive: true,
+          isFallback: true,
+          displayName: setupItem.name,
+        );
+      }).toList();
+    }
     final teamAssignments = _assignments
         .where((assignment) =>
             !_isDefaultTeamSelected &&
@@ -1160,9 +1336,7 @@ class _PebDprEntryScreenState extends State<PebDprEntryScreen> {
   }) async {
     final existingEntry = _level1EntryFor(work);
     final existingQty = existingEntry?.actualQty ?? 0;
-    final quantity = TextEditingController(
-      text: existingQty > 0 ? _prettyNumber(existingQty) : '',
-    );
+    final quantity = TextEditingController();
     final entered = await showDialog<double>(
       context: context,
       builder: (context) => AlertDialog(
@@ -1174,8 +1348,8 @@ class _PebDprEntryScreenState extends State<PebDprEntryScreen> {
             Text(
               work.isLevel1Manual
                   ? existingEntry == null
-                      ? 'Enter actual ${work.setupItem.uom} for ${DateFormat('dd MMM yyyy').format(_selectedDate)}.'
-                      : 'Edit actual ${work.setupItem.uom} for ${DateFormat('dd MMM yyyy').format(_selectedDate)}.'
+                      ? 'Enter today\'s progress for ${DateFormat('dd MMM yyyy').format(_selectedDate)}.'
+                      : 'Already saved: ${_prettyNumber(existingQty)} ${work.setupItem.uom}. New value will be added.'
                   : 'Approved quantity: ${work.assignedQty.toStringAsFixed(2)} ${work.setupItem.uom}',
             ),
             const SizedBox(height: 14),
@@ -1231,12 +1405,83 @@ class _PebDprEntryScreenState extends State<PebDprEntryScreen> {
               ? existingEntry!.targetQty
               : (work.assignedQty > 0 ? work.assignedQty : entered)
           : null,
-      dprId: existingEntry?.dprId,
+      dprId: work.isLevel1Manual ? null : existingEntry?.dprId,
       trackingLevel: work.isLevel1Manual ? 'basic' : 'semi_structured',
       weightMode: work.isLevel1Manual ? 'manual' : 'none',
       manualWeightKg: work.isLevel1Manual ? entered : 0,
       totalWeightKg: work.isLevel1Manual ? entered : 0,
     );
+  }
+
+  List<_VisibleWork> _level1EnteredWorks([List<_VisibleWork>? source]) {
+    final works = source ?? _visibleWorks();
+    return works.where((work) {
+      final value =
+          double.tryParse(_level1WeightInputs[work.setupItem.id]?.trim() ?? '');
+      final uom =
+          (_level1UomInputs[work.setupItem.id] ?? work.setupItem.uom).trim();
+      return value != null && value > 0 && uom.isNotEmpty;
+    }).toList();
+  }
+
+  Future<void> _submitLevel1BatchProgress(
+      List<_VisibleWork> sourceWorks) async {
+    final works = _level1EnteredWorks(sourceWorks);
+    if (works.isEmpty) {
+      AppToast.error('Enter weight for at least one stage');
+      return;
+    }
+
+    final items = <Map<String, dynamic>>[];
+    for (final work in works) {
+      final weight = double.tryParse(
+              _level1WeightInputs[work.setupItem.id]?.trim() ?? '') ??
+          0;
+      final uom =
+          (_level1UomInputs[work.setupItem.id] ?? work.setupItem.uom).trim();
+      if (weight <= 0 || uom.isEmpty) continue;
+      items.add({
+        'setupItemId': work.setupItem.id,
+        'sourceType': 'level1_manual',
+        'stageName': work.stageName,
+        'name': work.stageName,
+        'uom': uom,
+        'weight': weight,
+        'weightKg': weight,
+        'actualQty': weight,
+        'manualWeightKg': weight,
+        'totalWeightKg': weight,
+        'weightMode': 'manual',
+        'remarks': '',
+      });
+    }
+
+    if (items.isEmpty) {
+      AppToast.error('Enter weight for at least one stage');
+      return;
+    }
+
+    setState(() => _submitting = true);
+    try {
+      await _service.submitLevel1ProgressBatch(
+        widget.siteId,
+        widget.executionType,
+        date: _dateText,
+        teamId: _submitTeamId,
+        items: items,
+      );
+      for (final work in works) {
+        _level1WeightInputs.remove(work.setupItem.id);
+      }
+      AppToast.success('Level 1 DPR saved successfully');
+      await _load(showLoader: false, autoScroll: false);
+    } on DioException catch (error) {
+      AppToast.error(extractBackendError(error));
+    } catch (error) {
+      AppToast.error(extractBackendError(error));
+    } finally {
+      if (mounted) setState(() => _submitting = false);
+    }
   }
 
   Future<void> _submitProgress(
@@ -1254,6 +1499,7 @@ class _PebDprEntryScreenState extends State<PebDprEntryScreen> {
     double estimatedWeightPerUnitKg = 0,
     double manualWeightKg = 0,
     double totalWeightKg = 0,
+    String? uomOverride,
     bool reloadAfter = true,
     bool showToast = true,
   }) async {
@@ -1268,11 +1514,16 @@ class _PebDprEntryScreenState extends State<PebDprEntryScreen> {
       final actualQty = actualQtyOverride ?? targetQty * progress / 100;
       final progressUom = marks.isNotEmpty && work.sourceType != 'tonnage'
           ? 'Nos'
-          : work.setupItem.uom;
+          : (uomOverride?.trim().isNotEmpty == true
+              ? uomOverride!.trim()
+              : work.setupItem.uom);
       await _service.submitDprProgress(
         widget.siteId,
         widget.executionType,
         dprId: dprId,
+        dprLevel: work.isLevel1Manual
+            ? PebDprLevel.basicProgress
+            : PebDprLevel.assignedWorkProgress,
         date: _dateText,
         teamId: _submitTeamId,
         setupItemId: work.setupItem.id,
@@ -1319,6 +1570,258 @@ class _PebDprEntryScreenState extends State<PebDprEntryScreen> {
           );
         }
       }
+    } on DioException catch (error) {
+      AppToast.error(extractBackendError(error));
+    } catch (error) {
+      AppToast.error(extractBackendError(error));
+    } finally {
+      if (mounted) setState(() => _submitting = false);
+    }
+  }
+
+  Future<void> _reloadItemWiseItems() async {
+    try {
+      final apiItems = await _service.getItemWiseDprItems(
+        widget.siteId,
+        widget.executionType,
+        search: _itemWiseSearchCtrl.text,
+      );
+      final items = _mergeItemWiseItems(
+        apiItems,
+        _boqMarksAsItemWiseItems(_boqs),
+      );
+      if (mounted) setState(() => _itemWiseItems = items);
+    } catch (error) {
+      AppToast.error(extractBackendError(error));
+    }
+  }
+
+  List<PebItemWiseDprItem> _itemWiseFilteredItems() {
+    final query = _itemWiseSearchCtrl.text.trim().toLowerCase();
+    if (query.isEmpty) return _itemWiseItems;
+    return _itemWiseItems.where((item) {
+      final haystack =
+          '${item.markNo} ${item.description} ${item.source}'.toLowerCase();
+      return haystack.contains(query);
+    }).toList();
+  }
+
+  Future<void> _openItemWiseEntry(PebItemWiseDprItem item) async {
+    if (item.source == 'manual' && item.weight > 0) {
+      AppToast.info('Progress is already saved for this manual item.');
+      return;
+    }
+    final weight = TextEditingController();
+    final remarks = TextEditingController();
+    final entered = await showDialog<_ItemWiseProgressInput>(
+      context: context,
+      builder: (context) => AlertDialog(
+        title: Text(item.markNo),
+        content: Column(
+          mainAxisSize: MainAxisSize.min,
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Text(
+              item.description.isEmpty
+                  ? 'Item Wise Progress'
+                  : item.description,
+              style: const TextStyle(fontWeight: FontWeight.w700),
+            ),
+            const SizedBox(height: 8),
+            Text(
+              'Available reference: ${_prettyNumber(item.weight)} ${item.uom}',
+              style: TextStyle(
+                  color: Theme.of(context).colorScheme.onSurfaceVariant),
+            ),
+            const SizedBox(height: 14),
+            TextField(
+              controller: weight,
+              autofocus: true,
+              keyboardType:
+                  const TextInputType.numberWithOptions(decimal: true),
+              decoration: InputDecoration(
+                labelText: 'Progress Weight',
+                suffixText: item.uom,
+                border: const OutlineInputBorder(),
+              ),
+            ),
+            const SizedBox(height: 12),
+            TextField(
+              controller: remarks,
+              maxLines: 2,
+              decoration: const InputDecoration(
+                labelText: 'Remarks',
+                border: OutlineInputBorder(),
+              ),
+            ),
+          ],
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => context.pop(),
+            child: const Text('Cancel'),
+          ),
+          FilledButton(
+            onPressed: () {
+              final value = double.tryParse(weight.text.trim()) ?? 0;
+              if (value <= 0) {
+                AppToast.error('Enter a valid progress weight');
+                return;
+              }
+              context.pop(_ItemWiseProgressInput(
+                weight: value,
+                remarks: remarks.text.trim(),
+              ));
+            },
+            child: const Text('Save'),
+          ),
+        ],
+      ),
+    );
+    weight.dispose();
+    remarks.dispose();
+    if (entered == null) return;
+    await _submitItemWiseProgress(item, entered);
+  }
+
+  Future<void> _openManualItemWiseEntry() async {
+    final markNo = TextEditingController(text: _itemWiseSearchCtrl.text.trim());
+    final description = TextEditingController();
+    final weight = TextEditingController();
+    final remarks = TextEditingController();
+    final entered = await showDialog<_ManualItemWiseInput>(
+      context: context,
+      builder: (context) => AlertDialog(
+        title: const Text('Add Item Wise Progress'),
+        content: SingleChildScrollView(
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              TextField(
+                controller: markNo,
+                autofocus: true,
+                decoration: const InputDecoration(
+                  labelText: 'Mark Number',
+                  border: OutlineInputBorder(),
+                ),
+              ),
+              const SizedBox(height: 12),
+              TextField(
+                controller: description,
+                decoration: const InputDecoration(
+                  labelText: 'Description',
+                  border: OutlineInputBorder(),
+                ),
+              ),
+              const SizedBox(height: 12),
+              TextField(
+                controller: weight,
+                keyboardType:
+                    const TextInputType.numberWithOptions(decimal: true),
+                decoration: const InputDecoration(
+                  labelText: 'Progress Weight',
+                  suffixText: 'kg',
+                  border: OutlineInputBorder(),
+                ),
+              ),
+              const SizedBox(height: 12),
+              TextField(
+                controller: remarks,
+                maxLines: 2,
+                decoration: const InputDecoration(
+                  labelText: 'Remarks',
+                  border: OutlineInputBorder(),
+                ),
+              ),
+            ],
+          ),
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => context.pop(),
+            child: const Text('Cancel'),
+          ),
+          FilledButton(
+            onPressed: () {
+              final mark = markNo.text.trim();
+              final progress = double.tryParse(weight.text.trim()) ?? 0;
+              if (mark.isEmpty) {
+                AppToast.error('Mark Number is required');
+                return;
+              }
+              if (progress <= 0) {
+                AppToast.error('Enter a valid progress weight');
+                return;
+              }
+              context.pop(_ManualItemWiseInput(
+                markNo: mark,
+                description: description.text.trim(),
+                weight: progress,
+                remarks: remarks.text.trim(),
+              ));
+            },
+            child: const Text('Save'),
+          ),
+        ],
+      ),
+    );
+    markNo.dispose();
+    description.dispose();
+    weight.dispose();
+    remarks.dispose();
+    if (entered == null) return;
+    await _submitItemWiseProgress(
+      PebItemWiseDprItem(
+        source: 'manual',
+        boqId: '',
+        boqItemId: '',
+        markNo: entered.markNo,
+        description:
+            entered.description.isEmpty ? entered.markNo : entered.description,
+        weight: 0,
+        uom: 'kg',
+      ),
+      _ItemWiseProgressInput(
+        weight: entered.weight,
+        remarks: entered.remarks,
+      ),
+    );
+  }
+
+  Future<void> _submitItemWiseProgress(
+    PebItemWiseDprItem item,
+    _ItemWiseProgressInput input,
+  ) async {
+    setState(() => _submitting = true);
+    try {
+      await _service.submitDprProgress(
+        widget.siteId,
+        widget.executionType,
+        dprLevel: PebDprLevel.itemWiseProgress,
+        date: _dateText,
+        teamId: _submitTeamId,
+        setupItemId: '',
+        assignmentId: '',
+        sourceType: item.source == 'boq' ? 'level2_boq' : 'level2_manual',
+        stageName: item.description.isEmpty ? item.markNo : item.description,
+        uom: item.uom.isEmpty ? 'kg' : item.uom,
+        marks: const [],
+        markNo: item.markNo,
+        description: item.description,
+        boqItemId: item.boqItemId,
+        isManualItem: item.source != 'boq',
+        actualQty: input.weight,
+        targetQty: item.weight,
+        progressPercentage: 0,
+        trackingLevel: 'semi_structured',
+        remarks: input.remarks,
+        weightMode: 'manual',
+        manualWeightKg: input.weight,
+        totalWeightKg: input.weight,
+        variationRemarks: input.remarks,
+      );
+      AppToast.success('Item wise DPR saved');
+      await _reloadItemWiseItems();
     } on DioException catch (error) {
       AppToast.error(extractBackendError(error));
     } catch (error) {
@@ -1434,160 +1937,192 @@ class _PebDprEntryScreenState extends State<PebDprEntryScreen> {
                 ? _buildLoadErrorState()
                 : _teams.isEmpty
                     ? _buildNoTeamsState()
-                    : Stack(
-                        children: [
-                          CustomScrollbar(
-                            controller: _scrollController,
-                            child: RefreshIndicator(
-                              onRefresh: _load,
-                              child: ListView(
+                    : _dprLevel == PebDprLevel.itemWiseProgress
+                        ? _buildItemWiseProgressBody()
+                        : Stack(
+                            children: [
+                              CustomScrollbar(
                                 controller: _scrollController,
-                                padding: EdgeInsets.fromLTRB(
-                                  layout.pagePadding,
-                                  layout.pagePadding,
-                                  layout.pagePadding,
-                                  0,
-                                ),
-                                children: activeWork == null
-                                    ? [
-                                        _buildFilters(),
-                                        _buildBulkTaskBanner(),
-                                        SizedBox(height: layout.sectionGap),
-                                        _buildAssignedWorkHeader(assignedWorks),
-                                        _buildPlanningSummaryBanner(),
-                                        SizedBox(height: layout.cardGap),
-                                        if (assignedWorks.isEmpty)
-                                          _boqs.isEmpty
-                                              ? _buildNoBoqState()
-                                              : Container(
-                                                  decoration: BoxDecoration(
-                                                    color:
-                                                        cs.surfaceContainerLow,
-                                                    borderRadius:
-                                                        BorderRadius.circular(
-                                                            14),
-                                                    border: Border.all(
-                                                        color: cs.outlineVariant
-                                                            .withOpacity(0.5)),
-                                                  ),
-                                                  padding: EdgeInsets.all(
-                                                      layout.cardPadding),
-                                                  child: Text(
-                                                    'No assigned work found for this team.',
-                                                    style: TextStyle(
-                                                      color:
-                                                          cs.onSurfaceVariant,
-                                                      fontWeight:
-                                                          FontWeight.w600,
+                                child: RefreshIndicator(
+                                  onRefresh: _load,
+                                  child: ListView(
+                                    controller: _scrollController,
+                                    padding: EdgeInsets.fromLTRB(
+                                      layout.pagePadding,
+                                      layout.pagePadding,
+                                      layout.pagePadding,
+                                      0,
+                                    ),
+                                    children: activeWork == null
+                                        ? [
+                                            _buildFilters(),
+                                            _buildBulkTaskBanner(),
+                                            SizedBox(height: layout.sectionGap),
+                                            _buildAssignedWorkHeader(
+                                                assignedWorks),
+                                            _buildPlanningSummaryBanner(),
+                                            SizedBox(height: layout.cardGap),
+                                            if (assignedWorks.isEmpty)
+                                              _boqs.isEmpty
+                                                  ? _buildNoBoqState()
+                                                  : Container(
+                                                      decoration: BoxDecoration(
+                                                        color: cs
+                                                            .surfaceContainerLow,
+                                                        borderRadius:
+                                                            BorderRadius
+                                                                .circular(14),
+                                                        border: Border.all(
+                                                            color: cs
+                                                                .outlineVariant
+                                                                .withOpacity(
+                                                                    0.5)),
+                                                      ),
+                                                      padding: EdgeInsets.all(
+                                                          layout.cardPadding),
+                                                      child: Text(
+                                                        'No assigned work found for this team.',
+                                                        style: TextStyle(
+                                                          color: cs
+                                                              .onSurfaceVariant,
+                                                          fontWeight:
+                                                              FontWeight.w600,
+                                                        ),
+                                                      ),
+                                                    )
+                                            else
+                                              ...assignedWorks
+                                                  .asMap()
+                                                  .entries
+                                                  .map(
+                                                    (entry) => KeyedSubtree(
+                                                      key: _keyForWork(
+                                                          entry.value,
+                                                          entry.key),
+                                                      child: _buildWorkCard(
+                                                          entry.value),
                                                     ),
                                                   ),
-                                                )
-                                        else
-                                          ...assignedWorks.asMap().entries.map(
-                                                (entry) => KeyedSubtree(
-                                                  key: _keyForWork(
-                                                      entry.value, entry.key),
-                                                  child: _buildWorkCard(
-                                                      entry.value),
-                                                ),
-                                              ),
-                                        SizedBox(
-                                          height: 84 +
-                                              MediaQuery.paddingOf(context)
-                                                  .bottom,
-                                        ),
-                                      ]
-                                    : _markActionMode == _DprMarkActionMode.none
-                                        ? [
-                                            _buildWorkDetailHeader(activeWork),
-                                            _buildBulkTaskBanner(),
                                             SizedBox(
-                                              height: 84 +
+                                              height: (_dprLevel ==
+                                                          PebDprLevel
+                                                              .basicProgress
+                                                      ? 132
+                                                      : 84) +
                                                   MediaQuery.paddingOf(context)
                                                       .bottom,
                                             ),
                                           ]
-                                        : [
-                                            _buildWorkDetailHeader(activeWork),
-                                            _buildBulkTaskBanner(),
-                                            SizedBox(height: layout.cardGap),
-                                            _buildMarkSearchBar(activeWork),
-                                            SizedBox(height: layout.smallGap),
-                                            ..._filteredSortedMarks(activeWork)
-                                                .map(
-                                              (mark) => _buildMarkEntryCardV2(
-                                                activeWork,
-                                                mark,
-                                                enabled: _unlockedMarksForWork(
+                                        : _markActionMode ==
+                                                _DprMarkActionMode.none
+                                            ? [
+                                                _buildWorkDetailHeader(
+                                                    activeWork),
+                                                _buildBulkTaskBanner(),
+                                                SizedBox(
+                                                  height: 84 +
+                                                      MediaQuery.paddingOf(
+                                                              context)
+                                                          .bottom,
+                                                ),
+                                              ]
+                                            : [
+                                                _buildWorkDetailHeader(
+                                                    activeWork),
+                                                _buildBulkTaskBanner(),
+                                                SizedBox(
+                                                    height: layout.cardGap),
+                                                _buildMarkSearchBar(activeWork),
+                                                SizedBox(
+                                                    height: layout.smallGap),
+                                                ..._filteredSortedMarks(
                                                         activeWork)
-                                                    .contains(mark),
-                                              ),
-                                            ),
-                                            if (_filteredSortedMarks(activeWork)
-                                                    .isEmpty &&
-                                                activeMarks.isNotEmpty)
-                                              Padding(
-                                                padding: EdgeInsets.symmetric(
-                                                    vertical:
-                                                        layout.sectionGap * 2),
-                                                child: Center(
-                                                  child: Text(
-                                                    'No marks match "$_markSearchQuery"',
-                                                    style: TextStyle(
-                                                      color: Theme.of(context)
-                                                          .colorScheme
-                                                          .onSurfaceVariant,
-                                                      fontWeight:
-                                                          FontWeight.w600,
-                                                    ),
+                                                    .map(
+                                                  (mark) =>
+                                                      _buildMarkEntryCardV2(
+                                                    activeWork,
+                                                    mark,
+                                                    enabled:
+                                                        _unlockedMarksForWork(
+                                                                activeWork)
+                                                            .contains(mark),
                                                   ),
                                                 ),
-                                              ),
-                                            if (activeMarks.isEmpty)
-                                              _buildQuantityWorkEntryCard(
-                                                  activeWork),
-                                            SizedBox(
-                                              height: 150 +
-                                                  MediaQuery.paddingOf(context)
-                                                      .bottom,
-                                            ),
-                                          ],
+                                                if (_filteredSortedMarks(
+                                                            activeWork)
+                                                        .isEmpty &&
+                                                    activeMarks.isNotEmpty)
+                                                  Padding(
+                                                    padding:
+                                                        EdgeInsets.symmetric(
+                                                            vertical: layout
+                                                                    .sectionGap *
+                                                                2),
+                                                    child: Center(
+                                                      child: Text(
+                                                        'No marks match "$_markSearchQuery"',
+                                                        style: TextStyle(
+                                                          color: Theme.of(
+                                                                  context)
+                                                              .colorScheme
+                                                              .onSurfaceVariant,
+                                                          fontWeight:
+                                                              FontWeight.w600,
+                                                        ),
+                                                      ),
+                                                    ),
+                                                  ),
+                                                if (activeMarks.isEmpty)
+                                                  _buildQuantityWorkEntryCard(
+                                                      activeWork),
+                                                SizedBox(
+                                                  height: 150 +
+                                                      MediaQuery.paddingOf(
+                                                              context)
+                                                          .bottom,
+                                                ),
+                                              ],
+                                  ),
+                                ),
                               ),
-                            ),
-                          ),
-                          if (activeWork != null && activeMarks.isNotEmpty)
-                            _buildDetailBottomBar(activeWork),
-                          if (_submitting)
-                            Positioned.fill(
-                              child: AbsorbPointer(
-                                child: Container(
-                                  color: Colors.white.withValues(alpha: 0.62),
-                                  child: const Center(
-                                    child: Card(
-                                      child: Padding(
-                                        padding: EdgeInsets.symmetric(
-                                            horizontal: 20, vertical: 16),
-                                        child: Row(
-                                          mainAxisSize: MainAxisSize.min,
-                                          children: [
-                                            SizedBox(
-                                              width: 22,
-                                              height: 22,
-                                              child: CircularProgressIndicator(
-                                                  strokeWidth: 2),
+                              if (_dprLevel == PebDprLevel.basicProgress &&
+                                  activeWork == null)
+                                _buildLevel1BottomBar(assignedWorks),
+                              if (activeWork != null && activeMarks.isNotEmpty)
+                                _buildDetailBottomBar(activeWork),
+                              if (_submitting)
+                                Positioned.fill(
+                                  child: AbsorbPointer(
+                                    child: Container(
+                                      color:
+                                          Colors.white.withValues(alpha: 0.62),
+                                      child: const Center(
+                                        child: Card(
+                                          child: Padding(
+                                            padding: EdgeInsets.symmetric(
+                                                horizontal: 20, vertical: 16),
+                                            child: Row(
+                                              mainAxisSize: MainAxisSize.min,
+                                              children: [
+                                                SizedBox(
+                                                  width: 22,
+                                                  height: 22,
+                                                  child:
+                                                      CircularProgressIndicator(
+                                                          strokeWidth: 2),
+                                                ),
+                                                SizedBox(width: 14),
+                                                Text('Updating DPR...'),
+                                              ],
                                             ),
-                                            SizedBox(width: 14),
-                                            Text('Updating DPR...'),
-                                          ],
+                                          ),
                                         ),
                                       ),
                                     ),
                                   ),
                                 ),
-                              ),
-                            ),
-                        ],
-                      ),
+                            ],
+                          ),
       ),
     );
   }
@@ -1634,6 +2169,278 @@ class _PebDprEntryScreenState extends State<PebDprEntryScreen> {
               label: const Text('Back to Sites'),
             ),
           ],
+        ),
+      ),
+    );
+  }
+
+  Widget _buildItemWiseProgressBody() {
+    final layout = _PebDprResponsive.of(context);
+    final items = _itemWiseFilteredItems();
+    return Stack(
+      children: [
+        CustomScrollbar(
+          controller: _scrollController,
+          child: RefreshIndicator(
+            onRefresh: () async {
+              await _load(showLoader: false, autoScroll: false);
+            },
+            child: ListView(
+              controller: _scrollController,
+              padding: EdgeInsets.fromLTRB(
+                layout.pagePadding,
+                layout.pagePadding,
+                layout.pagePadding,
+                110 + MediaQuery.paddingOf(context).bottom,
+              ),
+              children: [
+                _buildFilters(),
+                SizedBox(height: layout.sectionGap),
+                _buildItemWiseHeader(items.length),
+                SizedBox(height: layout.cardGap),
+                _buildItemWiseSearchBar(),
+                SizedBox(height: layout.cardGap),
+                if (items.isEmpty)
+                  _buildItemWiseEmptyState()
+                else
+                  ...items.map(_buildItemWiseCard),
+              ],
+            ),
+          ),
+        ),
+        if (_submitting)
+          Positioned.fill(
+            child: AbsorbPointer(
+              child: Container(
+                color: Colors.white.withValues(alpha: 0.62),
+                child: const Center(child: CircularProgressIndicator()),
+              ),
+            ),
+          ),
+      ],
+    );
+  }
+
+  Widget _buildItemWiseHeader(int count) {
+    final cs = Theme.of(context).colorScheme;
+    return Row(
+      children: [
+        Expanded(
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Text(
+                'Item Wise Progress',
+                style: TextStyle(
+                  color: cs.onSurface,
+                  fontSize: 18,
+                  fontWeight: FontWeight.w900,
+                ),
+              ),
+              const SizedBox(height: 3),
+              Text(
+                'Search BOQ items or add a manual mark number.',
+                style: TextStyle(
+                  color: cs.onSurfaceVariant,
+                  fontSize: 12,
+                  fontWeight: FontWeight.w600,
+                ),
+              ),
+            ],
+          ),
+        ),
+        FilledButton.icon(
+          onPressed: _submitting ? null : _openManualItemWiseEntry,
+          icon: const Icon(Icons.add_rounded),
+          label: const Text('Add'),
+        ),
+      ],
+    );
+  }
+
+  Widget _buildItemWiseSearchBar() {
+    final cs = Theme.of(context).colorScheme;
+    return TextField(
+      controller: _itemWiseSearchCtrl,
+      onChanged: (_) {
+        setState(() {});
+        _reloadItemWiseItems();
+      },
+      decoration: InputDecoration(
+        prefixIcon: const Icon(Icons.search_rounded),
+        suffixIcon: _itemWiseSearchCtrl.text.trim().isEmpty
+            ? null
+            : IconButton(
+                onPressed: () {
+                  _itemWiseSearchCtrl.clear();
+                  setState(() {});
+                  _reloadItemWiseItems();
+                },
+                icon: const Icon(Icons.close_rounded),
+              ),
+        labelText: 'Search Mark Number, Member or BOQ Item',
+        filled: true,
+        fillColor: cs.surface,
+        border: OutlineInputBorder(borderRadius: BorderRadius.circular(14)),
+      ),
+    );
+  }
+
+  Widget _buildItemWiseEmptyState() {
+    final cs = Theme.of(context).colorScheme;
+    final layout = _PebDprResponsive.of(context);
+    return Container(
+      padding: EdgeInsets.all(layout.cardPadding),
+      decoration: BoxDecoration(
+        color: cs.surfaceContainerLow,
+        borderRadius: BorderRadius.circular(14),
+        border: Border.all(color: cs.outlineVariant),
+      ),
+      child: Column(
+        children: [
+          Icon(Icons.search_off_rounded, color: cs.primary, size: 36),
+          const SizedBox(height: 10),
+          Text(
+            'No item found',
+            style: TextStyle(
+              color: cs.onSurface,
+              fontWeight: FontWeight.w900,
+            ),
+          ),
+          const SizedBox(height: 4),
+          Text(
+            'No BOQ item matched this search. Add a manual mark number to continue DPR entry.',
+            textAlign: TextAlign.center,
+            style: TextStyle(color: cs.onSurfaceVariant, height: 1.35),
+          ),
+          const SizedBox(height: 14),
+          OutlinedButton.icon(
+            onPressed: _openManualItemWiseEntry,
+            icon: const Icon(Icons.add_rounded),
+            label: const Text('Add Manual Item'),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildItemWiseCard(PebItemWiseDprItem item) {
+    final cs = Theme.of(context).colorScheme;
+    final layout = _PebDprResponsive.of(context);
+    final isBoq = item.source == 'boq';
+    final manualSaved = !isBoq && item.weight > 0;
+    return Container(
+      margin: EdgeInsets.only(bottom: layout.cardGap),
+      decoration: BoxDecoration(
+        color: cs.surface,
+        borderRadius: BorderRadius.circular(14),
+        border: Border.all(color: cs.outlineVariant.withValues(alpha: 0.7)),
+        boxShadow: [
+          BoxShadow(
+            color: Colors.black.withValues(alpha: 0.04),
+            blurRadius: 14,
+            offset: const Offset(0, 4),
+          ),
+        ],
+      ),
+      child: InkWell(
+        onTap: manualSaved ? null : () => _openItemWiseEntry(item),
+        borderRadius: BorderRadius.circular(14),
+        child: Padding(
+          padding: EdgeInsets.all(layout.cardPadding),
+          child: Row(
+            children: [
+              Container(
+                width: 46,
+                height: 46,
+                decoration: BoxDecoration(
+                  color: isBoq
+                      ? cs.primaryContainer.withValues(alpha: 0.72)
+                      : cs.secondaryContainer.withValues(alpha: 0.72),
+                  borderRadius: BorderRadius.circular(12),
+                ),
+                child: Icon(
+                  isBoq ? Icons.inventory_2_rounded : Icons.edit_note_rounded,
+                  color: isBoq ? cs.primary : cs.secondary,
+                ),
+              ),
+              const SizedBox(width: 12),
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      item.markNo,
+                      maxLines: 1,
+                      overflow: TextOverflow.ellipsis,
+                      style: TextStyle(
+                        color: cs.onSurface,
+                        fontSize: 15,
+                        fontWeight: FontWeight.w900,
+                      ),
+                    ),
+                    const SizedBox(height: 3),
+                    Text(
+                      item.description.isEmpty
+                          ? (isBoq ? 'BOQ item' : 'Manual item')
+                          : item.description,
+                      maxLines: 2,
+                      overflow: TextOverflow.ellipsis,
+                      style: TextStyle(
+                        color: cs.onSurfaceVariant,
+                        fontSize: 12,
+                        fontWeight: FontWeight.w600,
+                      ),
+                    ),
+                    const SizedBox(height: 8),
+                    Wrap(
+                      spacing: 8,
+                      runSpacing: 6,
+                      children: [
+                        _itemWiseChip(
+                          manualSaved
+                              ? 'Saved'
+                              : isBoq
+                                  ? 'BOQ'
+                                  : 'Manual',
+                          isBoq ? cs.primary : cs.secondary,
+                        ),
+                        _itemWiseChip(
+                          '${_prettyNumber(item.weight)} ${item.uom}',
+                          cs.onSurfaceVariant,
+                        ),
+                      ],
+                    ),
+                  ],
+                ),
+              ),
+              const SizedBox(width: 10),
+              Icon(
+                manualSaved
+                    ? Icons.check_circle_rounded
+                    : Icons.chevron_right_rounded,
+                color: manualSaved ? Colors.green.shade700 : cs.primary,
+              ),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+
+  Widget _itemWiseChip(String label, Color color) {
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+      decoration: BoxDecoration(
+        color: color.withValues(alpha: 0.1),
+        borderRadius: BorderRadius.circular(999),
+      ),
+      child: Text(
+        label,
+        style: TextStyle(
+          color: color,
+          fontSize: 11,
+          fontWeight: FontWeight.w800,
         ),
       ),
     );
@@ -2187,6 +2994,10 @@ class _PebDprEntryScreenState extends State<PebDprEntryScreen> {
   }
 
   Widget _buildWorkCard(_VisibleWork work) {
+    if (_dprLevel == PebDprLevel.basicProgress || work.isLevel1Manual) {
+      return _buildLevel1WorkCard(work);
+    }
+
     final cs = Theme.of(context).colorScheme;
     final layout = _PebDprResponsive.of(context);
     final counts = _counts(work);
@@ -2476,6 +3287,210 @@ class _PebDprEntryScreenState extends State<PebDprEntryScreen> {
       child: Container(
         margin: EdgeInsets.only(bottom: layout.cardGap),
         child: card,
+      ),
+    );
+  }
+
+  Widget _buildLevel1WorkCard(_VisibleWork work) {
+    final cs = Theme.of(context).colorScheme;
+    final layout = _PebDprResponsive.of(context);
+    final existing = _level1EntryFor(work);
+    final existingQty = existing?.actualQty ?? 0;
+    final weightValue = _level1WeightInputs[work.setupItem.id] ?? '';
+    final uomValue = _level1UomInputs[work.setupItem.id] ??
+        (existing?.uom.trim().isNotEmpty == true
+            ? existing!.uom
+            : work.setupItem.uom);
+
+    return Container(
+      margin: EdgeInsets.only(bottom: layout.cardGap),
+      decoration: BoxDecoration(
+        color: cs.surface,
+        borderRadius: BorderRadius.circular(14),
+        border: Border.all(color: cs.outlineVariant.withValues(alpha: 0.65)),
+        boxShadow: [
+          BoxShadow(
+            color: Colors.black.withValues(alpha: 0.04),
+            blurRadius: 14,
+            offset: const Offset(0, 4),
+          ),
+        ],
+      ),
+      padding: EdgeInsets.all(layout.cardPadding),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
+            children: [
+              SizedBox(
+                width: 74,
+                height: 62,
+                child: _containedWorkImage(
+                  work.setupItem,
+                  height: 62,
+                  padding: 6,
+                  fit: BoxFit.contain,
+                ),
+              ),
+              const SizedBox(width: 12),
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      work.stageName,
+                      maxLines: 1,
+                      overflow: TextOverflow.ellipsis,
+                      style: TextStyle(
+                        color: cs.onSurface,
+                        fontSize: 15,
+                        fontWeight: FontWeight.w900,
+                      ),
+                    ),
+                    const SizedBox(height: 4),
+                    Text(
+                      existingQty > 0
+                          ? 'Saved today: ${_prettyNumber(existingQty)} $uomValue'
+                          : 'Enter daily progress directly',
+                      style: TextStyle(
+                        color: cs.onSurfaceVariant,
+                        fontSize: 12,
+                        fontWeight: FontWeight.w600,
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+            ],
+          ),
+          const SizedBox(height: 14),
+          Row(
+            children: [
+              Expanded(
+                flex: 3,
+                child: TextFormField(
+                  initialValue: weightValue,
+                  keyboardType:
+                      const TextInputType.numberWithOptions(decimal: true),
+                  onChanged: (value) => setState(
+                      () => _level1WeightInputs[work.setupItem.id] = value),
+                  decoration: const InputDecoration(
+                    labelText: 'Weight',
+                    border: OutlineInputBorder(),
+                  ),
+                ),
+              ),
+              const SizedBox(width: 10),
+              Expanded(
+                flex: 2,
+                child: TextFormField(
+                  initialValue: uomValue,
+                  onChanged: (value) => setState(
+                      () => _level1UomInputs[work.setupItem.id] = value),
+                  decoration: const InputDecoration(
+                    labelText: 'UOM',
+                    border: OutlineInputBorder(),
+                  ),
+                ),
+              ),
+            ],
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildLevel1BottomBar(List<_VisibleWork> works) {
+    final cs = Theme.of(context).colorScheme;
+    final layout = _PebDprResponsive.of(context);
+    final enteredWorks = _level1EnteredWorks(works);
+    final totalWeight = enteredWorks.fold<double>(0, (sum, work) {
+      return sum +
+          (double.tryParse(
+                  _level1WeightInputs[work.setupItem.id]?.trim() ?? '') ??
+              0);
+    });
+    final canSave = enteredWorks.isNotEmpty && !_submitting;
+
+    return Positioned(
+      left: 0,
+      right: 0,
+      bottom: 0,
+      child: SafeArea(
+        top: false,
+        child: Container(
+          margin: const EdgeInsets.fromLTRB(12, 0, 12, 8),
+          padding: EdgeInsets.fromLTRB(
+            layout.cardPadding,
+            layout.compact ? 10 : 12,
+            layout.cardPadding,
+            layout.compact ? 10 : 12,
+          ),
+          decoration: BoxDecoration(
+            color: cs.surface,
+            borderRadius: BorderRadius.circular(18),
+            border: Border.all(color: cs.outlineVariant),
+            boxShadow: [
+              BoxShadow(
+                color: Colors.black.withValues(alpha: 0.10),
+                blurRadius: 22,
+                offset: const Offset(0, 8),
+              ),
+            ],
+          ),
+          child: Row(
+            children: [
+              Expanded(
+                child: Column(
+                  mainAxisSize: MainAxisSize.min,
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      '${enteredWorks.length} stage${enteredWorks.length == 1 ? '' : 's'} ready',
+                      style: TextStyle(
+                        color: canSave ? cs.onSurface : cs.onSurfaceVariant,
+                        fontSize: layout.compact ? 13 : 14,
+                        fontWeight: FontWeight.w900,
+                      ),
+                    ),
+                    const SizedBox(height: 2),
+                    Text(
+                      canSave
+                          ? 'Total entered: ${_prettyNumber(totalWeight)}'
+                          : 'Enter weight in any stage to save.',
+                      maxLines: 1,
+                      overflow: TextOverflow.ellipsis,
+                      style: TextStyle(
+                        color: cs.onSurfaceVariant,
+                        fontSize: layout.compact ? 11 : 12,
+                        fontWeight: FontWeight.w600,
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+              const SizedBox(width: 12),
+              FilledButton.icon(
+                onPressed:
+                    canSave ? () => _submitLevel1BatchProgress(works) : null,
+                icon: _submitting
+                    ? const SizedBox(
+                        width: 16,
+                        height: 16,
+                        child: CircularProgressIndicator(strokeWidth: 2),
+                      )
+                    : const Icon(Icons.save_rounded),
+                label: const Text('Save'),
+                style: FilledButton.styleFrom(
+                  minimumSize: const Size(112, 46),
+                  shape: RoundedRectangleBorder(
+                    borderRadius: BorderRadius.circular(12),
+                  ),
+                ),
+              ),
+            ],
+          ),
+        ),
       ),
     );
   }
@@ -4434,6 +5449,138 @@ class _VariationResponse {
     required this.reason,
     required this.remarks,
   });
+}
+
+class _ItemWiseProgressInput {
+  final double weight;
+  final String remarks;
+
+  const _ItemWiseProgressInput({
+    required this.weight,
+    required this.remarks,
+  });
+}
+
+class _ManualItemWiseInput {
+  final String markNo;
+  final String description;
+  final double weight;
+  final String remarks;
+
+  const _ManualItemWiseInput({
+    required this.markNo,
+    required this.description,
+    required this.weight,
+    required this.remarks,
+  });
+}
+
+class _DprLevelPickerSheet extends StatelessWidget {
+  final String title;
+  final String subtitle;
+
+  const _DprLevelPickerSheet({
+    required this.title,
+    required this.subtitle,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    final cs = Theme.of(context).colorScheme;
+    return SafeArea(
+      child: Padding(
+        padding: const EdgeInsets.fromLTRB(18, 8, 18, 18),
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Text(
+              title,
+              style: TextStyle(
+                color: cs.onSurface,
+                fontSize: 18,
+                fontWeight: FontWeight.w900,
+              ),
+            ),
+            const SizedBox(height: 4),
+            Text(
+              subtitle,
+              style: TextStyle(
+                color: cs.onSurfaceVariant,
+                fontSize: 12,
+                height: 1.35,
+                fontWeight: FontWeight.w600,
+              ),
+            ),
+            const SizedBox(height: 14),
+            ...PebDprLevel.values.map(
+              (level) => Padding(
+                padding: const EdgeInsets.only(bottom: 10),
+                child: InkWell(
+                  onTap: () => context.pop(level),
+                  borderRadius: BorderRadius.circular(14),
+                  child: Container(
+                    padding: const EdgeInsets.all(13),
+                    decoration: BoxDecoration(
+                      color: cs.surfaceContainerLow,
+                      borderRadius: BorderRadius.circular(14),
+                      border: Border.all(color: cs.outlineVariant),
+                    ),
+                    child: Row(
+                      children: [
+                        Container(
+                          width: 36,
+                          height: 36,
+                          decoration: BoxDecoration(
+                            color: cs.primaryContainer,
+                            borderRadius: BorderRadius.circular(10),
+                          ),
+                          child: Icon(
+                            level == PebDprLevel.basicProgress
+                                ? Icons.edit_note_rounded
+                                : level == PebDprLevel.itemWiseProgress
+                                    ? Icons.manage_search_rounded
+                                    : Icons.assignment_turned_in_rounded,
+                            color: cs.primary,
+                          ),
+                        ),
+                        const SizedBox(width: 12),
+                        Expanded(
+                          child: Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              Text(
+                                level.title,
+                                style: TextStyle(
+                                  color: cs.onSurface,
+                                  fontWeight: FontWeight.w900,
+                                ),
+                              ),
+                              const SizedBox(height: 2),
+                              Text(
+                                level.description,
+                                style: TextStyle(
+                                  color: cs.onSurfaceVariant,
+                                  fontSize: 11,
+                                  height: 1.25,
+                                  fontWeight: FontWeight.w600,
+                                ),
+                              ),
+                            ],
+                          ),
+                        ),
+                        Icon(Icons.chevron_right_rounded, color: cs.primary),
+                      ],
+                    ),
+                  ),
+                ),
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
 }
 
 class _WorkCounts {

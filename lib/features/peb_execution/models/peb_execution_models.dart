@@ -58,6 +58,46 @@ enum PebExecutionType {
   }
 }
 
+enum PebDprLevel {
+  basicProgress('level_1'),
+  itemWiseProgress('level_2'),
+  assignedWorkProgress('level_3');
+
+  final String apiValue;
+
+  const PebDprLevel(this.apiValue);
+
+  static PebDprLevel? fromApi(dynamic value) {
+    final raw = value?.toString();
+    for (final level in PebDprLevel.values) {
+      if (level.apiValue == raw) return level;
+    }
+    return null;
+  }
+
+  String get title {
+    switch (this) {
+      case PebDprLevel.basicProgress:
+        return 'Basic Progress Entry';
+      case PebDprLevel.itemWiseProgress:
+        return 'Item Wise Progress Entry';
+      case PebDprLevel.assignedWorkProgress:
+        return 'Assigned Work Progress Entry';
+    }
+  }
+
+  String get description {
+    switch (this) {
+      case PebDprLevel.basicProgress:
+        return 'Enter daily progress directly.';
+      case PebDprLevel.itemWiseProgress:
+        return 'Track progress item by item. BOQ is recommended for better tracking.';
+      case PebDprLevel.assignedWorkProgress:
+        return 'Track progress against assigned work. BOQ and Work Assignment are recommended for better control.';
+    }
+  }
+}
+
 class PebTeam {
   final String id;
   final String name;
@@ -294,12 +334,16 @@ class PebSetup {
   final String id;
   final String section;
   final bool allowUnassignedDprFallback;
+  final PebDprLevel? dprLevel;
+  final String dprEntryMode;
   final List<PebSetupItem> items;
 
   const PebSetup({
     required this.id,
     required this.section,
     required this.allowUnassignedDprFallback,
+    this.dprLevel,
+    this.dprEntryMode = '',
     required this.items,
   });
 
@@ -323,7 +367,46 @@ class PebSetup {
       id: json['_id']?.toString() ?? '',
       section: json['section']?.toString() ?? '',
       allowUnassignedDprFallback: json['allowUnassignedDprFallback'] != false,
+      dprLevel: PebDprLevel.fromApi(json['dprLevel']),
+      dprEntryMode: json['dprEntryMode']?.toString() ?? '',
       items: indexedItems.map((entry) => entry.value).toList(),
+    );
+  }
+}
+
+class PebItemWiseDprItem {
+  final String source;
+  final String boqId;
+  final String boqItemId;
+  final String markNo;
+  final String description;
+  final double weight;
+  final String uom;
+
+  const PebItemWiseDprItem({
+    required this.source,
+    required this.boqId,
+    required this.boqItemId,
+    required this.markNo,
+    required this.description,
+    required this.weight,
+    required this.uom,
+  });
+
+  factory PebItemWiseDprItem.fromJson(Map<String, dynamic> json) {
+    double parseNum(dynamic value) =>
+        (value as num?)?.toDouble() ??
+        double.tryParse(value?.toString() ?? '') ??
+        0;
+
+    return PebItemWiseDprItem(
+      source: json['source']?.toString() ?? '',
+      boqId: json['boqId']?.toString() ?? '',
+      boqItemId: json['boqItemId']?.toString() ?? '',
+      markNo: json['markNo']?.toString() ?? '',
+      description: json['description']?.toString() ?? '',
+      weight: parseNum(json['weight']),
+      uom: json['uom']?.toString() ?? 'kg',
     );
   }
 }

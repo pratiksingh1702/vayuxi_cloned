@@ -179,6 +179,21 @@ class PebExecutionService {
     );
   }
 
+  Future<void> updateDprLevel(
+    String siteId,
+    PebExecutionType type,
+    PebDprLevel level,
+  ) async {
+    await _dio.put(
+      '/site/$siteId/peb-setup',
+      data: {
+        'type': type.apiType,
+        'section': type.section,
+        'dprLevel': level.apiValue,
+      },
+    );
+  }
+
   Future<PebSetup?> reorderSetupItems(
     String siteId,
     PebExecutionType type,
@@ -705,10 +720,35 @@ class PebExecutionService {
     return entries;
   }
 
+  Future<List<PebItemWiseDprItem>> getItemWiseDprItems(
+    String siteId,
+    PebExecutionType type, {
+    String search = '',
+  }) async {
+    final response = await _dio.get(
+      '/site/$siteId/dpr-peb/item-wise-items',
+      queryParameters: {
+        'type': type.apiType,
+        if (search.trim().isNotEmpty) 'search': search.trim(),
+      },
+    );
+    final data = response.data;
+    final items = data is Map && data['items'] is List
+        ? data['items'] as List
+        : _asList(data);
+    return items
+        .whereType<Map>()
+        .map((item) =>
+            PebItemWiseDprItem.fromJson(Map<String, dynamic>.from(item)))
+        .where((item) => item.markNo.trim().isNotEmpty)
+        .toList();
+  }
+
   Future<void> submitDprProgress(
     String siteId,
     PebExecutionType type, {
     String? dprId,
+    PebDprLevel dprLevel = PebDprLevel.assignedWorkProgress,
     required String date,
     required String teamId,
     required String setupItemId,
@@ -717,6 +757,10 @@ class PebExecutionService {
     required String stageName,
     required String uom,
     required List<String> marks,
+    String markNo = '',
+    String description = '',
+    String boqItemId = '',
+    bool isManualItem = false,
     required double actualQty,
     required double targetQty,
     required int progressPercentage,
@@ -734,6 +778,7 @@ class PebExecutionService {
         'date': date,
         'section': type.section,
         'type': type.apiType,
+        'dprLevel': dprLevel.apiValue,
         if (teamId.trim().isNotEmpty) 'teamId': teamId,
         'trackingLevel': trackingLevel,
         'assemblyMark':
@@ -746,6 +791,11 @@ class PebExecutionService {
             'setupItemId': setupItemId,
             'assignmentId': assignmentId,
             'sourceType': sourceType,
+            if (markNo.trim().isNotEmpty) 'markNo': markNo.trim(),
+            if (description.trim().isNotEmpty)
+              'description': description.trim(),
+            if (boqItemId.trim().isNotEmpty) 'boqItemId': boqItemId.trim(),
+            if (isManualItem) 'isManualItem': true,
             'name': stageName,
             'uom': uom,
             'actualQty': actualQty,
@@ -789,5 +839,25 @@ class PebExecutionService {
       }
       rethrow;
     }
+  }
+
+  Future<void> submitLevel1ProgressBatch(
+    String siteId,
+    PebExecutionType type, {
+    required String date,
+    required String teamId,
+    required List<Map<String, dynamic>> items,
+  }) async {
+    final payload = {
+      'date': date,
+      'section': type.section,
+      'type': type.apiType,
+      'dprLevel': PebDprLevel.basicProgress.apiValue,
+      if (teamId.trim().isNotEmpty) 'teamId': teamId,
+      'trackingLevel': 'basic',
+      'status': 'submitted',
+      'items': items,
+    };
+    await _dio.post('/site/$siteId/dpr-peb', data: payload);
   }
 }

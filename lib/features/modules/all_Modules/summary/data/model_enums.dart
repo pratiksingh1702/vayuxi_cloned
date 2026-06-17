@@ -231,6 +231,8 @@ class PebWorkSummaryModel {
   final String siteId;
   final String type;
   final String section;
+  final String trackingMode;
+  final PebDataAvailability dataAvailability;
   final PebOverview overview;
   final List<PebTrendPoint> plannedVsActual;
   final List<PebStageSummary> stages;
@@ -243,6 +245,8 @@ class PebWorkSummaryModel {
     required this.siteId,
     required this.type,
     required this.section,
+    required this.trackingMode,
+    required this.dataAvailability,
     required this.overview,
     required this.plannedVsActual,
     required this.stages,
@@ -257,6 +261,9 @@ class PebWorkSummaryModel {
       siteId: json['siteId']?.toString() ?? '',
       type: json['type']?.toString() ?? '',
       section: json['section']?.toString() ?? '',
+      trackingMode: json['trackingMode']?.toString() ?? '',
+      dataAvailability:
+          PebDataAvailability.fromJson(json['dataAvailability'] ?? {}),
       overview: PebOverview.fromJson(json['overview'] ?? {}),
       plannedVsActual: (json['plannedVsActual'] as List? ?? [])
           .map((e) => PebTrendPoint.fromJson(Map<String, dynamic>.from(e)))
@@ -276,6 +283,25 @@ class PebWorkSummaryModel {
       markSummary: PebMarkSummary.fromJson(json['markSummary'] ?? {}),
     );
   }
+}
+
+class PebDataAvailability {
+  final bool hasBoq;
+  final bool hasWorkAssignment;
+  final bool hasDpr;
+
+  const PebDataAvailability({
+    required this.hasBoq,
+    required this.hasWorkAssignment,
+    required this.hasDpr,
+  });
+
+  factory PebDataAvailability.fromJson(Map<String, dynamic> json) =>
+      PebDataAvailability(
+        hasBoq: json['hasBoq'] == true,
+        hasWorkAssignment: json['hasWorkAssignment'] == true,
+        hasDpr: json['hasDpr'] == true,
+      );
 }
 
 class PebOverview {
@@ -546,5 +572,176 @@ class PebMarkSummary {
         inProgressMarks: _asInt(json['inProgressMarks']),
         completedMarks: _asInt(json['completedMarks']),
         pendingMarks: _asInt(json['pendingMarks']),
+      );
+}
+
+class PebProfitLossModel {
+  final PebProfitLossSite site;
+  final String type;
+  final String fromDate;
+  final String toDate;
+  final String view;
+  final PebProfitLossTotals totals;
+  final List<PebProfitLossTrendPoint> trend;
+  final List<PebRevenueBreakdownItem> revenueBreakdown;
+  final List<PebExpenseBreakdownItem> expenseBreakdown;
+  final bool empty;
+
+  const PebProfitLossModel({
+    required this.site,
+    required this.type,
+    required this.fromDate,
+    required this.toDate,
+    required this.view,
+    required this.totals,
+    required this.trend,
+    required this.revenueBreakdown,
+    required this.expenseBreakdown,
+    required this.empty,
+  });
+
+  factory PebProfitLossModel.fromJson(Map<String, dynamic> json) =>
+      PebProfitLossModel(
+        site: PebProfitLossSite.fromJson(json['site'] ?? {}),
+        type: json['type']?.toString() ?? '',
+        fromDate: json['fromDate']?.toString() ?? '',
+        toDate: json['toDate']?.toString() ?? '',
+        view: json['view']?.toString() ?? '',
+        totals: PebProfitLossTotals.fromJson(json['totals'] ?? {}),
+        trend: (json['trend'] as List? ?? [])
+            .map((e) =>
+                PebProfitLossTrendPoint.fromJson(Map<String, dynamic>.from(e)))
+            .toList(),
+        revenueBreakdown: (json['revenueBreakdown'] as List? ?? [])
+            .map((e) =>
+                PebRevenueBreakdownItem.fromJson(Map<String, dynamic>.from(e)))
+            .toList(),
+        expenseBreakdown: (json['expenseBreakdown'] as List? ?? [])
+            .map((e) =>
+                PebExpenseBreakdownItem.fromJson(Map<String, dynamic>.from(e)))
+            .toList(),
+        empty: json['empty'] == true,
+      );
+}
+
+class PebProfitLossSite {
+  final String id;
+  final String name;
+
+  const PebProfitLossSite({required this.id, required this.name});
+
+  factory PebProfitLossSite.fromJson(Map<String, dynamic> json) =>
+      PebProfitLossSite(
+        id: json['id']?.toString() ?? '',
+        name: json['name']?.toString() ?? 'Selected Site',
+      );
+}
+
+class PebProfitLossTotals {
+  final double revenue;
+  final double expense;
+  final double profitLoss;
+  final double marginPercentage;
+  final bool isProfit;
+
+  const PebProfitLossTotals({
+    required this.revenue,
+    required this.expense,
+    required this.profitLoss,
+    required this.marginPercentage,
+    required this.isProfit,
+  });
+
+  factory PebProfitLossTotals.fromJson(Map<String, dynamic> json) =>
+      PebProfitLossTotals(
+        revenue: _asDouble(json['revenue']),
+        expense: _asDouble(json['expense']),
+        profitLoss: _asDouble(json['profitLoss']),
+        marginPercentage: _asDouble(json['marginPercentage']),
+        isProfit: json['isProfit'] != false,
+      );
+}
+
+class PebProfitLossTrendPoint {
+  final String label;
+  final String startDate;
+  final String endDate;
+  final double revenue;
+  final double expense;
+  final double loss;
+
+  const PebProfitLossTrendPoint({
+    required this.label,
+    required this.startDate,
+    required this.endDate,
+    required this.revenue,
+    required this.expense,
+    required this.loss,
+  });
+
+  factory PebProfitLossTrendPoint.fromJson(Map<String, dynamic> json) =>
+      PebProfitLossTrendPoint(
+        label: json['label']?.toString() ?? '',
+        startDate: json['startDate']?.toString() ?? '',
+        endDate: json['endDate']?.toString() ?? '',
+        revenue: _asDouble(json['revenue']),
+        expense: _asDouble(json['expense']),
+        loss: _asDouble(json['loss']),
+      );
+}
+
+class PebRevenueBreakdownItem {
+  final String activityName;
+  final double revenue;
+  final double contributionPercentage;
+  final double quantity;
+  final double rate;
+  final String unit;
+  final String source;
+
+  const PebRevenueBreakdownItem({
+    required this.activityName,
+    required this.revenue,
+    required this.contributionPercentage,
+    required this.quantity,
+    required this.rate,
+    required this.unit,
+    required this.source,
+  });
+
+  factory PebRevenueBreakdownItem.fromJson(Map<String, dynamic> json) =>
+      PebRevenueBreakdownItem(
+        activityName: json['activityName']?.toString() ?? 'Revenue Item',
+        revenue: _asDouble(json['revenue']),
+        contributionPercentage: _asDouble(json['contributionPercentage']),
+        quantity: _asDouble(json['quantity']),
+        rate: _asDouble(json['rate']),
+        unit: json['unit']?.toString() ?? '',
+        source: json['source']?.toString() ?? 'Summary Sheet',
+      );
+}
+
+class PebExpenseBreakdownItem {
+  final String category;
+  final double amount;
+  final double contributionPercentage;
+  final int count;
+  final String source;
+
+  const PebExpenseBreakdownItem({
+    required this.category,
+    required this.amount,
+    required this.contributionPercentage,
+    required this.count,
+    required this.source,
+  });
+
+  factory PebExpenseBreakdownItem.fromJson(Map<String, dynamic> json) =>
+      PebExpenseBreakdownItem(
+        category: json['category']?.toString() ?? 'Expense',
+        amount: _asDouble(json['amount']),
+        contributionPercentage: _asDouble(json['contributionPercentage']),
+        count: _asInt(json['count']),
+        source: json['source']?.toString() ?? 'Expense Module',
       );
 }

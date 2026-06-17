@@ -121,6 +121,27 @@ final pebWorkSummaryProvider =
   );
 });
 
+final pebProfitLossProvider =
+    FutureProvider.autoDispose<PebProfitLossModel>((ref) async {
+  final filter = ref.watch(summaryFilterProvider);
+  final type = ref.watch(typeProvider) ?? 'erection_work';
+  final siteId = ref.watch(selectedSiteIdProvider);
+
+  if (siteId == null || siteId.isEmpty) {
+    throw Exception('Please select a site first');
+  }
+
+  final range = _pebSummaryRange(filter);
+
+  return SummaryService.fetchPebProfitLoss(
+    siteId: siteId,
+    type: type,
+    fromDate: _formatDate(range.from),
+    toDate: _formatDate(range.to),
+    view: filter.filterType == SummaryFilterType.yearly ? 'yearly' : range.view,
+  );
+});
+
 ({DateTime from, DateTime to, String view}) _pebSummaryRange(
   SummaryFilter filter,
 ) {

@@ -274,8 +274,24 @@ class DPRStructureRepository {
     required String sheetType,
     required String format,
     String? type,
+    String? targetType,
+    String? teamId,
+    String? manpowerId,
+    String? planningType,
+    String? setupItemId,
+    String? stageName,
   }) async {
     final apiType = _convertStructureTypeForApi(type);
+    final planFilters = {
+      if (targetType != null && targetType.isNotEmpty) 'targetType': targetType,
+      if (teamId != null && teamId.isNotEmpty) 'teamId': teamId,
+      if (manpowerId != null && manpowerId.isNotEmpty) 'manpowerId': manpowerId,
+      if (planningType != null && planningType.isNotEmpty)
+        'planningType': planningType,
+      if (setupItemId != null && setupItemId.isNotEmpty)
+        'setupItemId': setupItemId,
+      if (stageName != null && stageName.isNotEmpty) 'stageName': stageName,
+    };
     if (sheetType == 'detailed-with-pm' ||
         sheetType == 'detailed' ||
         sheetType == 'date-mark-default') {
@@ -287,6 +303,7 @@ class DPRStructureRepository {
           'sheetType': sheetType,
           'format': format,
           'type': apiType,
+          ...planFilters,
         },
         options: Options(
           responseType: ResponseType.bytes,

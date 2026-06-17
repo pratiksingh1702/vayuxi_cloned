@@ -599,6 +599,7 @@ class _PebWorkSummaryView extends ConsumerStatefulWidget {
 
 class _PebWorkSummaryViewState extends ConsumerState<_PebWorkSummaryView> {
   final ScrollController _controller = ScrollController();
+  int _selectedTab = 0;
 
   @override
   void dispose() {
@@ -611,6 +612,7 @@ class _PebWorkSummaryViewState extends ConsumerState<_PebWorkSummaryView> {
     final filter = ref.watch(summaryFilterProvider);
     final notifier = ref.read(summaryFilterProvider.notifier);
     final summaryAsync = ref.watch(pebWorkSummaryProvider);
+    final profitLossAsync = ref.watch(pebProfitLossProvider);
     final monthNames = widget.monthMap.keys.toList();
     final selectedMonthName = monthNames[filter.month - 1];
     final type = ref.watch(typeProvider);
@@ -633,42 +635,129 @@ class _PebWorkSummaryViewState extends ConsumerState<_PebWorkSummaryView> {
             weeklyDateRange: true,
           ),
           Expanded(
-            child: summaryAsync.when(
-              loading: () => const _PebSummaryLoading(),
-              error: (e, _) => _PebSummaryError(
-                message: e.toString().replaceFirst('Exception: ', ''),
-                onRetry: () => ref.invalidate(pebWorkSummaryProvider),
-              ),
-              data: (summary) => RefreshIndicator(
-                onRefresh: () async =>
-                    ref.refresh(pebWorkSummaryProvider.future),
-                child: CustomScrollbar(
-                  controller: _controller,
-                  child: ListView(
-                    controller: _controller,
-                    physics: const AlwaysScrollableScrollPhysics(),
-                    padding: const EdgeInsets.fromLTRB(12, 0, 12, 24),
-                    children: [
-                      _PebOverviewSection(summary: summary),
-                      const SizedBox(height: 12),
-                      _PebTrendSection(points: summary.plannedVsActual),
-                      const SizedBox(height: 12),
-                      _PebStageSection(stages: summary.stages),
-                      const SizedBox(height: 12),
-                      _PebGanttSection(rows: summary.gantt),
-                      const SizedBox(height: 12),
-                      _PebDelaySection(rows: summary.delayAnalysis),
-                      const SizedBox(height: 12),
-                      _PebTeamSection(teams: summary.teams),
-                    ],
+            child: _selectedTab == 0
+                ? profitLossAsync.when(
+                    loading: () => _PebTabbedScroll(
+                      controller: _controller,
+                      selectedTab: _selectedTab,
+                      onTabChanged: (index) =>
+                          setState(() => _selectedTab = index),
+                      children: const [_PebSummaryLoading(compact: true)],
+                    ),
+                    error: (e, _) => _PebTabbedScroll(
+                      controller: _controller,
+                      selectedTab: _selectedTab,
+                      onTabChanged: (index) =>
+                          setState(() => _selectedTab = index),
+                      children: [
+                        _PebSummaryError(
+                          message: e.toString().replaceFirst('Exception: ', ''),
+                          onRetry: () => ref.invalidate(pebProfitLossProvider),
+                        ),
+                      ],
+                    ),
+                    data: (profitLoss) => RefreshIndicator(
+                      onRefresh: () async =>
+                          ref.refresh(pebProfitLossProvider.future),
+                      child: _PebTabbedScroll(
+                        controller: _controller,
+                        selectedTab: _selectedTab,
+                        onTabChanged: (index) =>
+                            setState(() => _selectedTab = index),
+                        children: [_PebProfitLossView(data: profitLoss)],
+                      ),
+                    ),
+                  )
+                : summaryAsync.when(
+                    loading: () => _PebTabbedScroll(
+                      controller: _controller,
+                      selectedTab: _selectedTab,
+                      onTabChanged: (index) =>
+                          setState(() => _selectedTab = index),
+                      children: const [_PebSummaryLoading(compact: true)],
+                    ),
+                    error: (e, _) => _PebTabbedScroll(
+                      controller: _controller,
+                      selectedTab: _selectedTab,
+                      onTabChanged: (index) =>
+                          setState(() => _selectedTab = index),
+                      children: [
+                        _PebSummaryError(
+                          message: e.toString().replaceFirst('Exception: ', ''),
+                          onRetry: () => ref.invalidate(pebWorkSummaryProvider),
+                        ),
+                      ],
+                    ),
+                    data: (summary) => RefreshIndicator(
+                      onRefresh: () async =>
+                          ref.refresh(pebWorkSummaryProvider.future),
+                      child: _PebTabbedScroll(
+                        controller: _controller,
+                        selectedTab: _selectedTab,
+                        onTabChanged: (index) =>
+                            setState(() => _selectedTab = index),
+                        children: _buildProjectTrackingSections(summary),
+                      ),
+                    ),
                   ),
-                ),
-              ),
-            ),
           ),
         ],
       ),
     );
+  }
+
+  List<Widget> _buildProjectTrackingSections(PebWorkSummaryModel summary) {
+    final mode = summary.trackingMode;
+    if (mode == 'dpr_only') {
+      return [
+        _PebTrackingModeBanner(summary: summary),
+        const SizedBox(height: 12),
+        _PebDprOnlyHero(summary: summary),
+        const SizedBox(height: 12),
+        _PebTrendSection(
+          points: summary.plannedVsActual,
+          title: 'Work Executed Trend',
+          subtitle: 'Date-wise executed quantity',
+          actualOnly: true,
+        ),
+        const SizedBox(height: 12),
+        _PebDprOnlyStageSection(stages: summary.stages),
+      ];
+    }
+
+    final hasAssignment = summary.dataAvailability.hasWorkAssignment;
+    final hasBoq = summary.dataAvailability.hasBoq;
+    return [
+      _PebTrackingModeBanner(summary: summary),
+      const SizedBox(height: 12),
+      _PebOverviewSection(summary: summary),
+      const SizedBox(height: 12),
+      _PebTrendSection(
+        points: summary.plannedVsActual,
+        title: hasAssignment ? 'Plan vs Actual Trend' : 'Daily Progress Trend',
+        subtitle: hasAssignment
+            ? 'Cumulative assigned quantity compared with completed quantity'
+            : 'Actual progress against BOQ scope',
+      ),
+      const SizedBox(height: 12),
+      _PebStageSection(
+        stages: summary.stages,
+        title: hasAssignment ? 'Stage Wise Performance' : 'Stage Progress',
+        subtitle: hasAssignment
+            ? 'Assigned, completed and difference by stage'
+            : hasBoq
+                ? 'Each stage compared against total BOQ scope'
+                : 'Assignment performance by stage',
+      ),
+      if (hasAssignment) ...[
+        const SizedBox(height: 12),
+        _PebGanttSection(rows: summary.gantt),
+        const SizedBox(height: 12),
+        _PebDelaySection(rows: summary.delayAnalysis),
+        const SizedBox(height: 12),
+        _PebTeamSection(teams: summary.teams),
+      ],
+    ];
   }
 }
 
@@ -732,10 +821,640 @@ class _PebOverviewSection extends StatelessWidget {
   }
 }
 
+class _PebTrackingModeBanner extends StatelessWidget {
+  final PebWorkSummaryModel summary;
+
+  const _PebTrackingModeBanner({required this.summary});
+
+  @override
+  Widget build(BuildContext context) {
+    final cs = Theme.of(context).colorScheme;
+    return Container(
+      padding: const EdgeInsets.all(12),
+      decoration: BoxDecoration(
+        color: cs.primaryContainer.withOpacity(0.45),
+        borderRadius: BorderRadius.circular(16),
+        border: Border.all(color: cs.primary.withOpacity(0.16)),
+      ),
+      child: Row(
+        children: [
+          Icon(Icons.auto_graph_rounded, color: cs.primary),
+          const SizedBox(width: 10),
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  _trackingModeLabel(summary.trackingMode),
+                  style: TextStyle(
+                    color: cs.onSurface,
+                    fontWeight: FontWeight.w900,
+                  ),
+                ),
+                const SizedBox(height: 2),
+                Text(
+                  _trackingModeDescription(summary.trackingMode),
+                  style: TextStyle(
+                    color: cs.onSurfaceVariant,
+                    fontSize: 12,
+                    fontWeight: FontWeight.w600,
+                  ),
+                ),
+              ],
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+class _PebDprOnlyHero extends StatelessWidget {
+  final PebWorkSummaryModel summary;
+
+  const _PebDprOnlyHero({required this.summary});
+
+  @override
+  Widget build(BuildContext context) {
+    final executedMt = summary.stages.fold<double>(
+      0,
+      (sum, stage) => sum + stage.actual.weightMt,
+    );
+    final executedQty = summary.stages.fold<double>(
+      0,
+      (sum, stage) => sum + stage.actual.qty,
+    );
+    return _SummaryCard(
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          const _SectionHeader(
+            title: 'Total Work Executed',
+            subtitle: 'DPR data only for selected period',
+            compact: true,
+          ),
+          const SizedBox(height: 12),
+          Row(
+            children: [
+              Expanded(
+                child: _MetricCard(
+                  title: 'Executed Weight',
+                  value: '${_fmt(executedMt)} MT',
+                  icon: Icons.scale_rounded,
+                  color: Color(0xFF0F766E),
+                ),
+              ),
+              const SizedBox(width: 10),
+              Expanded(
+                child: _MetricCard(
+                  title: 'Executed Qty',
+                  value: _fmt(executedQty),
+                  icon: Icons.done_all_rounded,
+                  color: Color(0xFF2563EB),
+                ),
+              ),
+            ],
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+class _PebDprOnlyStageSection extends StatelessWidget {
+  final List<PebStageSummary> stages;
+
+  const _PebDprOnlyStageSection({required this.stages});
+
+  @override
+  Widget build(BuildContext context) {
+    final visibleStages = stages
+        .where((stage) => stage.actual.qty > 0 || stage.actual.weightMt > 0)
+        .toList();
+    return _SummaryCard(
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          const _SectionHeader(
+            title: 'Stage Activity Summary',
+            subtitle: 'Actual quantity only',
+            compact: true,
+          ),
+          if (visibleStages.isEmpty)
+            const _EmptyMiniState(text: 'No DPR activity found')
+          else
+            ...visibleStages.map(
+              (stage) => Padding(
+                padding: const EdgeInsets.only(top: 12),
+                child: _ActualOnlyStageTile(stage: stage),
+              ),
+            ),
+        ],
+      ),
+    );
+  }
+}
+
+class _ActualOnlyStageTile extends StatelessWidget {
+  final PebStageSummary stage;
+
+  const _ActualOnlyStageTile({required this.stage});
+
+  @override
+  Widget build(BuildContext context) {
+    final cs = Theme.of(context).colorScheme;
+    return Container(
+      padding: const EdgeInsets.all(12),
+      decoration: BoxDecoration(
+        color: cs.surfaceContainerLowest,
+        borderRadius: BorderRadius.circular(14),
+        border: Border.all(color: cs.outlineVariant.withOpacity(0.6)),
+      ),
+      child: Row(
+        children: [
+          Expanded(
+            child: Text(
+              stage.stageName,
+              maxLines: 1,
+              overflow: TextOverflow.ellipsis,
+              style: TextStyle(
+                color: cs.onSurface,
+                fontWeight: FontWeight.w900,
+              ),
+            ),
+          ),
+          Text(
+            '${_fmt(stage.actual.weightMt)} MT',
+            style: TextStyle(
+              color: cs.primary,
+              fontWeight: FontWeight.w900,
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+class _PebTabbedScroll extends StatelessWidget {
+  final ScrollController controller;
+  final int selectedTab;
+  final ValueChanged<int> onTabChanged;
+  final List<Widget> children;
+
+  const _PebTabbedScroll({
+    required this.controller,
+    required this.selectedTab,
+    required this.onTabChanged,
+    required this.children,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    return CustomScrollbar(
+      controller: controller,
+      child: ListView(
+        controller: controller,
+        physics: const AlwaysScrollableScrollPhysics(),
+        padding: const EdgeInsets.fromLTRB(12, 0, 12, 24),
+        children: [
+          _PebSummaryTabSwitcher(
+            selectedIndex: selectedTab,
+            onChanged: onTabChanged,
+          ),
+          const SizedBox(height: 12),
+          ...children,
+        ],
+      ),
+    );
+  }
+}
+
+class _PebSummaryTabSwitcher extends StatelessWidget {
+  final int selectedIndex;
+  final ValueChanged<int> onChanged;
+
+  const _PebSummaryTabSwitcher({
+    required this.selectedIndex,
+    required this.onChanged,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    final cs = Theme.of(context).colorScheme;
+    return Container(
+      padding: const EdgeInsets.all(4),
+      decoration: BoxDecoration(
+        color: cs.surface,
+        borderRadius: BorderRadius.circular(14),
+        border: Border.all(color: cs.outlineVariant.withOpacity(0.65)),
+      ),
+      child: Row(
+        children: [
+          _TabButton(
+            label: 'P&L Analysis',
+            selected: selectedIndex == 0,
+            onTap: () => onChanged(0),
+          ),
+          _TabButton(
+            label: 'Project Tracking',
+            selected: selectedIndex == 1,
+            onTap: () => onChanged(1),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+class _TabButton extends StatelessWidget {
+  final String label;
+  final bool selected;
+  final VoidCallback onTap;
+
+  const _TabButton({
+    required this.label,
+    required this.selected,
+    required this.onTap,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    final cs = Theme.of(context).colorScheme;
+    return Expanded(
+      child: InkWell(
+        borderRadius: BorderRadius.circular(10),
+        onTap: onTap,
+        child: AnimatedContainer(
+          duration: const Duration(milliseconds: 180),
+          padding: const EdgeInsets.symmetric(vertical: 11),
+          decoration: BoxDecoration(
+            color: selected ? cs.primary : Colors.transparent,
+            borderRadius: BorderRadius.circular(10),
+          ),
+          alignment: Alignment.center,
+          child: Text(
+            label,
+            maxLines: 1,
+            overflow: TextOverflow.ellipsis,
+            style: TextStyle(
+              color: selected ? cs.onPrimary : cs.onSurfaceVariant,
+              fontWeight: FontWeight.w800,
+              fontSize: 13,
+            ),
+          ),
+        ),
+      ),
+    );
+  }
+}
+
+class _PebProfitLossView extends StatelessWidget {
+  final PebProfitLossModel data;
+
+  const _PebProfitLossView({required this.data});
+
+  @override
+  Widget build(BuildContext context) {
+    final cs = Theme.of(context).colorScheme;
+    final profitColor =
+        data.totals.isProfit ? const Color(0xFF15803D) : cs.error;
+
+    if (data.empty) {
+      return const EmptyModuleState(
+        title: 'No financial data available',
+        subtitle:
+            'No revenue or expense data was found for the selected period.',
+        icon: Icons.query_stats_rounded,
+      );
+    }
+
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        _SummaryCard(
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              _SectionHeader(
+                title: data.site.name,
+                subtitle:
+                    '${_dateLabel(data.fromDate)} - ${_dateLabel(data.toDate)}',
+                compact: true,
+              ),
+              const SizedBox(height: 10),
+              Row(
+                children: [
+                  Expanded(
+                    child: _FinancialTile(
+                      title: 'Revenue',
+                      value: _money(data.totals.revenue),
+                      icon: Icons.trending_up_rounded,
+                      color: const Color(0xFF0F766E),
+                      onTap: () => _showRevenueBreakdown(context, data),
+                    ),
+                  ),
+                  const SizedBox(width: 10),
+                  Expanded(
+                    child: _FinancialTile(
+                      title: 'Expense',
+                      value: _money(data.totals.expense),
+                      icon: Icons.receipt_long_rounded,
+                      color: cs.error,
+                      onTap: () => _showExpenseBreakdown(context, data),
+                    ),
+                  ),
+                ],
+              ),
+              const SizedBox(height: 10),
+              Container(
+                width: double.infinity,
+                padding: const EdgeInsets.all(12),
+                decoration: BoxDecoration(
+                  color: profitColor.withOpacity(0.08),
+                  borderRadius: BorderRadius.circular(14),
+                  border: Border.all(color: profitColor.withOpacity(0.24)),
+                ),
+                child: Row(
+                  children: [
+                    Icon(
+                      data.totals.isProfit
+                          ? Icons.check_circle_rounded
+                          : Icons.warning_amber_rounded,
+                      color: profitColor,
+                    ),
+                    const SizedBox(width: 10),
+                    Expanded(
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Text(
+                            data.totals.isProfit ? 'Profit' : 'Loss',
+                            style: TextStyle(
+                              color: cs.onSurfaceVariant,
+                              fontWeight: FontWeight.w700,
+                              fontSize: 12,
+                            ),
+                          ),
+                          Text(
+                            _money(data.totals.profitLoss.abs()),
+                            style: TextStyle(
+                              color: profitColor,
+                              fontWeight: FontWeight.w900,
+                              fontSize: 22,
+                            ),
+                          ),
+                        ],
+                      ),
+                    ),
+                    Text(
+                      '${data.totals.marginPercentage.toStringAsFixed(1)}%',
+                      style: TextStyle(
+                        color: profitColor,
+                        fontWeight: FontWeight.w900,
+                        fontSize: 18,
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+            ],
+          ),
+        ),
+        const SizedBox(height: 12),
+        _ProfitLossChart(points: data.trend),
+      ],
+    );
+  }
+}
+
+class _FinancialTile extends StatelessWidget {
+  final String title;
+  final String value;
+  final IconData icon;
+  final Color color;
+  final VoidCallback onTap;
+
+  const _FinancialTile({
+    required this.title,
+    required this.value,
+    required this.icon,
+    required this.color,
+    required this.onTap,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    final cs = Theme.of(context).colorScheme;
+    return InkWell(
+      onTap: onTap,
+      borderRadius: BorderRadius.circular(14),
+      child: Container(
+        padding: const EdgeInsets.all(12),
+        decoration: BoxDecoration(
+          color: cs.surfaceContainerLowest,
+          borderRadius: BorderRadius.circular(14),
+          border: Border.all(color: cs.outlineVariant.withOpacity(0.65)),
+        ),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Icon(icon, color: color, size: 20),
+            const SizedBox(height: 12),
+            Text(
+              title,
+              style: TextStyle(
+                color: cs.onSurfaceVariant,
+                fontWeight: FontWeight.w700,
+                fontSize: 12,
+              ),
+            ),
+            const SizedBox(height: 2),
+            Text(
+              value,
+              maxLines: 1,
+              overflow: TextOverflow.ellipsis,
+              style: TextStyle(
+                color: cs.onSurface,
+                fontWeight: FontWeight.w900,
+                fontSize: 18,
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+}
+
+class _ProfitLossChart extends StatelessWidget {
+  final List<PebProfitLossTrendPoint> points;
+
+  const _ProfitLossChart({required this.points});
+
+  @override
+  Widget build(BuildContext context) {
+    final visible = points.isEmpty
+        ? const <PebProfitLossTrendPoint>[]
+        : points.take(12).toList();
+    final maxAmount = visible.fold<double>(1, (max, point) {
+      return math.max(max, math.max(point.revenue, point.expense));
+    });
+    return _SummaryCard(
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          const _SectionHeader(
+            title: 'Revenue vs Expense',
+            subtitle: 'Server-calculated financial trend',
+            compact: true,
+          ),
+          if (visible.isEmpty)
+            const _EmptyMiniState(text: 'No financial trend found')
+          else ...[
+            const SizedBox(height: 12),
+            SizedBox(
+              height: 220,
+              child: Row(
+                crossAxisAlignment: CrossAxisAlignment.end,
+                children: visible
+                    .map(
+                      (point) => Expanded(
+                        child: Padding(
+                          padding: const EdgeInsets.symmetric(horizontal: 3),
+                          child: _GroupedBar(
+                            point: point,
+                            maxAmount: maxAmount,
+                          ),
+                        ),
+                      ),
+                    )
+                    .toList(),
+              ),
+            ),
+            const SizedBox(height: 12),
+            const Row(
+              children: [
+                _LegendDot(color: Color(0xFF0F766E), label: 'Revenue'),
+                SizedBox(width: 14),
+                _LegendDot(color: Color(0xFFDC2626), label: 'Expense'),
+              ],
+            ),
+          ],
+        ],
+      ),
+    );
+  }
+}
+
+class _GroupedBar extends StatelessWidget {
+  final PebProfitLossTrendPoint point;
+  final double maxAmount;
+
+  const _GroupedBar({required this.point, required this.maxAmount});
+
+  @override
+  Widget build(BuildContext context) {
+    final cs = Theme.of(context).colorScheme;
+    final revenueHeight = (point.revenue / maxAmount).clamp(0.03, 1.0);
+    final expenseHeight = (point.expense / maxAmount).clamp(0.03, 1.0);
+    return Column(
+      mainAxisAlignment: MainAxisAlignment.end,
+      children: [
+        Expanded(
+          child: Row(
+            crossAxisAlignment: CrossAxisAlignment.end,
+            mainAxisAlignment: MainAxisAlignment.center,
+            children: [
+              Flexible(
+                child: FractionallySizedBox(
+                  heightFactor: revenueHeight,
+                  alignment: Alignment.bottomCenter,
+                  child: Container(
+                    decoration: BoxDecoration(
+                      color: const Color(0xFF0F766E),
+                      borderRadius: BorderRadius.circular(6),
+                    ),
+                  ),
+                ),
+              ),
+              const SizedBox(width: 4),
+              Flexible(
+                child: FractionallySizedBox(
+                  heightFactor: expenseHeight,
+                  alignment: Alignment.bottomCenter,
+                  child: Container(
+                    foregroundDecoration: point.loss > 0
+                        ? BoxDecoration(
+                            borderRadius: BorderRadius.circular(6),
+                            border: Border.all(
+                              color: Colors.white.withOpacity(0.8),
+                              width: 1,
+                            ),
+                          )
+                        : null,
+                    decoration: BoxDecoration(
+                      color: const Color(0xFFDC2626),
+                      borderRadius: BorderRadius.circular(6),
+                    ),
+                  ),
+                ),
+              ),
+            ],
+          ),
+        ),
+        const SizedBox(height: 8),
+        Text(
+          point.label,
+          maxLines: 1,
+          overflow: TextOverflow.ellipsis,
+          textAlign: TextAlign.center,
+          style: TextStyle(
+            color: cs.onSurfaceVariant,
+            fontWeight: FontWeight.w700,
+            fontSize: 10,
+          ),
+        ),
+      ],
+    );
+  }
+}
+
+class _LegendDot extends StatelessWidget {
+  final Color color;
+  final String label;
+
+  const _LegendDot({required this.color, required this.label});
+
+  @override
+  Widget build(BuildContext context) {
+    return Row(
+      mainAxisSize: MainAxisSize.min,
+      children: [
+        Container(
+          width: 9,
+          height: 9,
+          decoration: BoxDecoration(color: color, shape: BoxShape.circle),
+        ),
+        const SizedBox(width: 6),
+        Text(label, style: const TextStyle(fontWeight: FontWeight.w700)),
+      ],
+    );
+  }
+}
+
 class _PebTrendSection extends StatelessWidget {
   final List<PebTrendPoint> points;
+  final String title;
+  final String subtitle;
+  final bool actualOnly;
 
-  const _PebTrendSection({required this.points});
+  const _PebTrendSection({
+    required this.points,
+    this.title = 'Progressive Analysis',
+    this.subtitle = 'Planned vs actual quantity trend',
+    this.actualOnly = false,
+  });
 
   @override
   Widget build(BuildContext context) {
@@ -743,9 +1462,9 @@ class _PebTrendSection extends StatelessWidget {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          const _SectionHeader(
-            title: 'Progressive Analysis',
-            subtitle: 'Planned vs actual quantity trend',
+          _SectionHeader(
+            title: title,
+            subtitle: subtitle,
             compact: true,
           ),
           if (points.isEmpty)
@@ -769,7 +1488,9 @@ class _PebTrendSection extends StatelessWidget {
                             style:
                                 const TextStyle(fontWeight: FontWeight.w700)),
                         Text(
-                          'A ${_fmt(point.actualQty)} / P ${_fmt(point.plannedQty)}',
+                          actualOnly
+                              ? 'Executed ${_fmt(point.actualQty)}'
+                              : 'A ${_fmt(point.actualQty)} / P ${_fmt(point.plannedQty)}',
                           style: TextStyle(
                             color:
                                 Theme.of(context).colorScheme.onSurfaceVariant,
@@ -779,10 +1500,26 @@ class _PebTrendSection extends StatelessWidget {
                       ],
                     ),
                     const SizedBox(height: 8),
-                    _DualProgressBar(
-                      planned: point.cumulativePlannedQty / maxQty,
-                      actual: point.cumulativeActualQty / maxQty,
-                    ),
+                    if (actualOnly)
+                      ClipRRect(
+                        borderRadius: BorderRadius.circular(999),
+                        child: LinearProgressIndicator(
+                          minHeight: 8,
+                          value:
+                              (point.cumulativeActualQty / maxQty).clamp(0, 1),
+                          backgroundColor: Theme.of(context)
+                              .colorScheme
+                              .surfaceContainerHighest,
+                          valueColor: const AlwaysStoppedAnimation(
+                            Color(0xFF0F766E),
+                          ),
+                        ),
+                      )
+                    else
+                      _DualProgressBar(
+                        planned: point.cumulativePlannedQty / maxQty,
+                        actual: point.cumulativeActualQty / maxQty,
+                      ),
                   ],
                 ),
               );
@@ -795,8 +1532,14 @@ class _PebTrendSection extends StatelessWidget {
 
 class _PebStageSection extends StatelessWidget {
   final List<PebStageSummary> stages;
+  final String title;
+  final String subtitle;
 
-  const _PebStageSection({required this.stages});
+  const _PebStageSection({
+    required this.stages,
+    this.title = 'Stage Wise Progress',
+    this.subtitle = 'Assigned, in progress, complete and pending marks',
+  });
 
   @override
   Widget build(BuildContext context) {
@@ -811,9 +1554,9 @@ class _PebStageSection extends StatelessWidget {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          const _SectionHeader(
-            title: 'Stage Wise Progress',
-            subtitle: 'Assigned, in progress, complete and pending marks',
+          _SectionHeader(
+            title: title,
+            subtitle: subtitle,
             compact: true,
           ),
           if (visibleStages.isEmpty)
@@ -2142,15 +2885,16 @@ class _EmptyMiniState extends StatelessWidget {
 }
 
 class _PebSummaryLoading extends StatelessWidget {
-  const _PebSummaryLoading();
+  final bool compact;
+
+  const _PebSummaryLoading({this.compact = false});
 
   @override
   Widget build(BuildContext context) {
     final cs = Theme.of(context).colorScheme;
-    return ListView.builder(
-      padding: const EdgeInsets.all(12),
-      itemCount: 5,
-      itemBuilder: (_, __) => Container(
+    final skeletons = List.generate(
+      compact ? 3 : 5,
+      (_) => Container(
         height: 130,
         margin: const EdgeInsets.only(bottom: 12),
         decoration: BoxDecoration(
@@ -2169,6 +2913,13 @@ class _PebSummaryLoading extends StatelessWidget {
           ),
         ),
       ),
+    );
+    if (compact) {
+      return Column(children: skeletons);
+    }
+    return ListView(
+      padding: const EdgeInsets.all(12),
+      children: skeletons,
     );
   }
 }
@@ -2249,6 +3000,469 @@ String _statusLabel(String status) {
 String _fmt(double value) {
   if (value == value.roundToDouble()) return value.toStringAsFixed(0);
   return value.toStringAsFixed(2);
+}
+
+String _trackingModeLabel(String mode) {
+  switch (mode) {
+    case 'boq_work_assignment':
+      return 'BOQ + Work Assignment';
+    case 'boq_only':
+      return 'BOQ Only Tracking';
+    case 'work_assignment_only':
+      return 'Work Assignment Tracking';
+    case 'dpr_only':
+      return 'DPR Only Tracking';
+    default:
+      return 'Project Tracking';
+  }
+}
+
+String _trackingModeDescription(String mode) {
+  switch (mode) {
+    case 'boq_work_assignment':
+      return 'Planned work is compared with actual DPR execution.';
+    case 'boq_only':
+      return 'Actual DPR progress is tracked against BOQ scope.';
+    case 'work_assignment_only':
+      return 'Assignment performance is tracked without BOQ scope.';
+    case 'dpr_only':
+      return 'Only executed DPR work is shown. Planning and delay are hidden.';
+    default:
+      return 'Tracking view changes automatically based on available data.';
+  }
+}
+
+String _money(double value) {
+  final abs = value.abs();
+  if (abs >= 10000000) return '₹${(value / 10000000).toStringAsFixed(2)}Cr';
+  if (abs >= 100000) return '₹${(value / 100000).toStringAsFixed(2)}L';
+  return '₹${_fmt(value)}';
+}
+
+String _dateLabel(String value) {
+  final parsed = DateTime.tryParse(value);
+  if (parsed == null) return value;
+  return '${parsed.day.toString().padLeft(2, '0')} '
+      '${_monthShort(parsed.month)} ${parsed.year}';
+}
+
+String _monthShort(int month) {
+  const months = [
+    'Jan',
+    'Feb',
+    'Mar',
+    'Apr',
+    'May',
+    'Jun',
+    'Jul',
+    'Aug',
+    'Sep',
+    'Oct',
+    'Nov',
+    'Dec'
+  ];
+  if (month < 1 || month > 12) return '';
+  return months[month - 1];
+}
+
+void _showRevenueBreakdown(BuildContext context, PebProfitLossModel data) {
+  _showBreakdownSheet(
+    context: context,
+    title: 'Revenue Breakdown',
+    subtitle: data.site.name,
+    totalLabel: 'Total Revenue',
+    total: data.totals.revenue,
+    rows: data.revenueBreakdown
+        .map((item) => _BreakdownRowData(
+              title: item.activityName,
+              amount: item.revenue,
+              percentage: item.contributionPercentage,
+              detail:
+                  '${_fmt(item.quantity)} ${item.unit} · Rate ${_money(item.rate)} · ${item.source}',
+            ))
+        .toList(),
+    showPie: false,
+  );
+}
+
+void _showExpenseBreakdown(BuildContext context, PebProfitLossModel data) {
+  _showBreakdownSheet(
+    context: context,
+    title: 'Expense Breakdown',
+    subtitle: data.site.name,
+    totalLabel: 'Total Expense',
+    total: data.totals.expense,
+    rows: data.expenseBreakdown
+        .map((item) => _BreakdownRowData(
+              title: item.category,
+              amount: item.amount,
+              percentage: item.contributionPercentage,
+              detail: item.source,
+            ))
+        .toList(),
+    showPie: true,
+  );
+}
+
+void _showBreakdownSheet({
+  required BuildContext context,
+  required String title,
+  required String subtitle,
+  required String totalLabel,
+  required double total,
+  required List<_BreakdownRowData> rows,
+  required bool showPie,
+}) {
+  showModalBottomSheet(
+    context: context,
+    isScrollControlled: true,
+    useSafeArea: true,
+    shape: const RoundedRectangleBorder(
+      borderRadius: BorderRadius.vertical(top: Radius.circular(24)),
+    ),
+    builder: (context) => _BreakdownSheet(
+      title: title,
+      subtitle: subtitle,
+      totalLabel: totalLabel,
+      total: total,
+      rows: rows,
+      showPie: showPie,
+    ),
+  );
+}
+
+class _BreakdownRowData {
+  final String title;
+  final double amount;
+  final double percentage;
+  final String detail;
+
+  const _BreakdownRowData({
+    required this.title,
+    required this.amount,
+    required this.percentage,
+    required this.detail,
+  });
+}
+
+class _BreakdownSheet extends StatelessWidget {
+  final String title;
+  final String subtitle;
+  final String totalLabel;
+  final double total;
+  final List<_BreakdownRowData> rows;
+  final bool showPie;
+
+  const _BreakdownSheet({
+    required this.title,
+    required this.subtitle,
+    required this.totalLabel,
+    required this.total,
+    required this.rows,
+    required this.showPie,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    final cs = Theme.of(context).colorScheme;
+    final maxAmount =
+        rows.fold<double>(1, (max, row) => math.max(max, row.amount));
+    return Padding(
+      padding: const EdgeInsets.fromLTRB(16, 12, 16, 24),
+      child: Column(
+        mainAxisSize: MainAxisSize.min,
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Center(
+            child: Container(
+              width: 42,
+              height: 4,
+              decoration: BoxDecoration(
+                color: cs.outlineVariant,
+                borderRadius: BorderRadius.circular(999),
+              ),
+            ),
+          ),
+          const SizedBox(height: 18),
+          Text(
+            title,
+            style: TextStyle(
+              color: cs.onSurface,
+              fontSize: 20,
+              fontWeight: FontWeight.w900,
+            ),
+          ),
+          Text(
+            subtitle,
+            style: TextStyle(
+              color: cs.onSurfaceVariant,
+              fontWeight: FontWeight.w600,
+            ),
+          ),
+          const SizedBox(height: 14),
+          Container(
+            width: double.infinity,
+            padding: const EdgeInsets.all(14),
+            decoration: BoxDecoration(
+              color: cs.primaryContainer.withOpacity(0.55),
+              borderRadius: BorderRadius.circular(16),
+            ),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(totalLabel,
+                    style: TextStyle(
+                        color: cs.onSurfaceVariant,
+                        fontWeight: FontWeight.w700)),
+                const SizedBox(height: 4),
+                Text(
+                  _money(total),
+                  style: TextStyle(
+                    color: cs.onSurface,
+                    fontSize: 24,
+                    fontWeight: FontWeight.w900,
+                  ),
+                ),
+              ],
+            ),
+          ),
+          const SizedBox(height: 14),
+          if (showPie && rows.isNotEmpty) ...[
+            SizedBox(
+              height: 180,
+              child: Row(
+                children: [
+                  SizedBox(
+                    width: 150,
+                    height: 150,
+                    child: CustomPaint(
+                      painter: _ExpensePiePainter(rows: rows),
+                    ),
+                  ),
+                  const SizedBox(width: 14),
+                  Expanded(
+                    child: Column(
+                      mainAxisAlignment: MainAxisAlignment.center,
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: rows.take(5).map((row) {
+                        final index = rows.indexOf(row);
+                        return Padding(
+                          padding: const EdgeInsets.only(bottom: 8),
+                          child: _PieLegendRow(
+                            color: _pieColor(index),
+                            label: row.title,
+                            value: '${row.percentage.toStringAsFixed(1)}%',
+                          ),
+                        );
+                      }).toList(),
+                    ),
+                  ),
+                ],
+              ),
+            ),
+            const SizedBox(height: 12),
+          ],
+          if (rows.isEmpty)
+            const Padding(
+              padding: EdgeInsets.symmetric(vertical: 24),
+              child: _EmptyMiniState(text: 'No breakdown data available'),
+            )
+          else
+            Flexible(
+              child: ListView.separated(
+                shrinkWrap: true,
+                itemCount: rows.length,
+                separatorBuilder: (_, __) => const SizedBox(height: 12),
+                itemBuilder: (context, index) {
+                  final row = rows[index];
+                  return _BreakdownBarRow(row: row, maxAmount: maxAmount);
+                },
+              ),
+            ),
+        ],
+      ),
+    );
+  }
+}
+
+class _BreakdownBarRow extends StatelessWidget {
+  final _BreakdownRowData row;
+  final double maxAmount;
+
+  const _BreakdownBarRow({required this.row, required this.maxAmount});
+
+  @override
+  Widget build(BuildContext context) {
+    final cs = Theme.of(context).colorScheme;
+    final progress = (row.amount / maxAmount).clamp(0.04, 1.0).toDouble();
+    return Container(
+      padding: const EdgeInsets.all(12),
+      decoration: BoxDecoration(
+        color: cs.surfaceContainerLowest,
+        borderRadius: BorderRadius.circular(14),
+        border: Border.all(color: cs.outlineVariant.withOpacity(0.55)),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
+            children: [
+              Expanded(
+                child: Text(
+                  row.title,
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
+                  style: TextStyle(
+                    color: cs.onSurface,
+                    fontWeight: FontWeight.w900,
+                  ),
+                ),
+              ),
+              Text(
+                '${row.percentage.toStringAsFixed(1)}%',
+                style: TextStyle(
+                  color: cs.primary,
+                  fontWeight: FontWeight.w900,
+                ),
+              ),
+            ],
+          ),
+          const SizedBox(height: 8),
+          ClipRRect(
+            borderRadius: BorderRadius.circular(999),
+            child: LinearProgressIndicator(
+              minHeight: 8,
+              value: progress,
+              backgroundColor: cs.surfaceContainerHighest,
+              valueColor: AlwaysStoppedAnimation(cs.primary),
+            ),
+          ),
+          const SizedBox(height: 8),
+          Row(
+            children: [
+              Expanded(
+                child: Text(
+                  row.detail,
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
+                  style: TextStyle(
+                    color: cs.onSurfaceVariant,
+                    fontWeight: FontWeight.w600,
+                    fontSize: 12,
+                  ),
+                ),
+              ),
+              const SizedBox(width: 8),
+              Text(
+                _money(row.amount),
+                style: TextStyle(
+                  color: cs.onSurface,
+                  fontWeight: FontWeight.w900,
+                ),
+              ),
+            ],
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+class _ExpensePiePainter extends CustomPainter {
+  final List<_BreakdownRowData> rows;
+
+  const _ExpensePiePainter({required this.rows});
+
+  @override
+  void paint(Canvas canvas, Size size) {
+    final total = rows.fold<double>(0, (sum, row) => sum + row.amount);
+    final rect = Offset.zero & size;
+    final paint = Paint()..style = PaintingStyle.fill;
+    var start = -math.pi / 2;
+
+    if (total <= 0) {
+      paint.color = const Color(0xFFE5E7EB);
+      canvas.drawArc(rect, 0, math.pi * 2, true, paint);
+    } else {
+      for (var i = 0; i < rows.length; i++) {
+        final sweep = (rows[i].amount / total) * math.pi * 2;
+        paint.color = _pieColor(i);
+        canvas.drawArc(rect, start, sweep, true, paint);
+        start += sweep;
+      }
+    }
+
+    final holePaint = Paint()..color = Colors.white;
+    canvas.drawCircle(
+      Offset(size.width / 2, size.height / 2),
+      size.width * 0.28,
+      holePaint,
+    );
+  }
+
+  @override
+  bool shouldRepaint(covariant _ExpensePiePainter oldDelegate) =>
+      oldDelegate.rows != rows;
+}
+
+class _PieLegendRow extends StatelessWidget {
+  final Color color;
+  final String label;
+  final String value;
+
+  const _PieLegendRow({
+    required this.color,
+    required this.label,
+    required this.value,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    final cs = Theme.of(context).colorScheme;
+    return Row(
+      children: [
+        Container(
+          width: 9,
+          height: 9,
+          decoration: BoxDecoration(color: color, shape: BoxShape.circle),
+        ),
+        const SizedBox(width: 7),
+        Expanded(
+          child: Text(
+            label,
+            maxLines: 1,
+            overflow: TextOverflow.ellipsis,
+            style: TextStyle(
+              color: cs.onSurfaceVariant,
+              fontSize: 12,
+              fontWeight: FontWeight.w700,
+            ),
+          ),
+        ),
+        Text(
+          value,
+          style: TextStyle(
+            color: cs.onSurface,
+            fontSize: 12,
+            fontWeight: FontWeight.w900,
+          ),
+        ),
+      ],
+    );
+  }
+}
+
+Color _pieColor(int index) {
+  const colors = [
+    Color(0xFF2563EB),
+    Color(0xFFDC2626),
+    Color(0xFFF59E0B),
+    Color(0xFF16A34A),
+    Color(0xFF7C3AED),
+    Color(0xFF0F766E),
+    Color(0xFFDB2777),
+  ];
+  return colors[index % colors.length];
 }
 
 DateTime? _parseDate(String value) {

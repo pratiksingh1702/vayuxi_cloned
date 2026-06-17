@@ -49,4 +49,26 @@ class SummaryService {
       Map<String, dynamic>.from(res.data as Map),
     );
   }
+
+  static Future<PebProfitLossModel> fetchPebProfitLoss({
+    required String siteId,
+    required String type,
+    required String fromDate,
+    required String toDate,
+    required String view,
+  }) async {
+    final res = await _dio.get(
+      '/site/$siteId/summary-analysis/profit-loss',
+      queryParameters: {
+        'type': type,
+        'fromDate': fromDate,
+        'toDate': toDate,
+        'view': view,
+      },
+    );
+
+    return PebProfitLossModel.fromJson(
+      Map<String, dynamic>.from(res.data as Map),
+    );
+  }
 }

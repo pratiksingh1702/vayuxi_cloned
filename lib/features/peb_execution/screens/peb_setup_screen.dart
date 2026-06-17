@@ -36,7 +36,8 @@ class PebSetupScreen extends ConsumerStatefulWidget {
   ConsumerState<PebSetupScreen> createState() => _PebSetupScreenState();
 }
 
-class _PebSetupScreenState extends ConsumerState<PebSetupScreen> with ScreenOwnedTourMixin<PebSetupScreen> {
+class _PebSetupScreenState extends ConsumerState<PebSetupScreen>
+    with ScreenOwnedTourMixin<PebSetupScreen> {
   static const TourPackageAdapter _tourPackageAdapter = TourPackageAdapter();
   final _service = PebExecutionService();
   final GlobalKey _trackingLevelTourKey =
@@ -117,8 +118,8 @@ class _PebSetupScreenState extends ConsumerState<PebSetupScreen> with ScreenOwne
       ],
     );
 
-    bindScreenOwnedTour(tourId: definition.id, showcaseContext: showcaseContext);
-
+    bindScreenOwnedTour(
+        tourId: definition.id, showcaseContext: showcaseContext);
 
     WidgetsBinding.instance.addPostFrameCallback((_) async {
       if (!mounted) return;
@@ -237,10 +238,29 @@ class _PebSetupScreenState extends ConsumerState<PebSetupScreen> with ScreenOwne
         id: setup.id,
         section: setup.section,
         allowUnassignedDprFallback: setup.allowUnassignedDprFallback,
+        dprLevel: setup.dprLevel,
+        dprEntryMode: setup.dprEntryMode,
         items: items,
       );
       _orderDirty = true;
     });
+  }
+
+  Future<void> _saveDprLevel(PebDprLevel level) async {
+    setState(() => _saving = true);
+    try {
+      await _service.updateDprLevel(
+        widget.siteId,
+        widget.executionType,
+        level,
+      );
+      await _load();
+      AppToast.success('${level.title} selected');
+    } catch (_) {
+      AppToast.error('Failed to save DPR level');
+    } finally {
+      if (mounted) setState(() => _saving = false);
+    }
   }
 
   Future<void> _saveOrder() async {
@@ -465,6 +485,7 @@ class _PebSetupScreenState extends ConsumerState<PebSetupScreen> with ScreenOwne
                             _trackingLevelTourKey,
                             _trackingLevelCard(cs),
                           ),
+                        _dprLevelCard(cs),
                         const SizedBox(height: 16),
                         _sequenceToolbar(cs),
                         const SizedBox(height: 10),
@@ -476,8 +497,8 @@ class _PebSetupScreenState extends ConsumerState<PebSetupScreen> with ScreenOwne
                               if ((_setup?.items ?? []).isEmpty)
                                 const Padding(
                                   padding: EdgeInsets.only(top: 80),
-                                  child:
-                                      Center(child: Text('No setup items found')),
+                                  child: Center(
+                                      child: Text('No setup items found')),
                                 ),
                             ],
                           ),
@@ -577,6 +598,97 @@ class _PebSetupScreenState extends ConsumerState<PebSetupScreen> with ScreenOwne
         ],
         onChanged: (value) =>
             setState(() => _trackingLevel = value ?? 'advanced'),
+      ),
+    );
+  }
+
+  Widget _dprLevelCard(ColorScheme cs) {
+    final selected = _setup?.dprLevel;
+    return Container(
+      margin: const EdgeInsets.only(bottom: 12),
+      padding: const EdgeInsets.all(14),
+      decoration: _boxDecoration(cs),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Text(
+            'DPR Entry Level',
+            style: TextStyle(
+              color: cs.onSurface,
+              fontSize: 15,
+              fontWeight: FontWeight.w900,
+            ),
+          ),
+          const SizedBox(height: 4),
+          Text(
+            'Choose how progress will be entered for this site.',
+            style: TextStyle(
+              color: cs.onSurfaceVariant,
+              fontSize: 12,
+              fontWeight: FontWeight.w600,
+            ),
+          ),
+          const SizedBox(height: 12),
+          ...PebDprLevel.values.map((level) {
+            final active = selected == level;
+            return Padding(
+              padding: const EdgeInsets.only(bottom: 8),
+              child: InkWell(
+                onTap: _saving ? null : () => _saveDprLevel(level),
+                borderRadius: BorderRadius.circular(12),
+                child: Container(
+                  padding:
+                      const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
+                  decoration: BoxDecoration(
+                    color: active
+                        ? cs.primaryContainer.withValues(alpha: 0.62)
+                        : cs.surfaceContainerLow,
+                    borderRadius: BorderRadius.circular(12),
+                    border: Border.all(
+                      color: active ? cs.primary : cs.outlineVariant,
+                      width: active ? 1.4 : 1,
+                    ),
+                  ),
+                  child: Row(
+                    children: [
+                      Icon(
+                        active
+                            ? Icons.radio_button_checked_rounded
+                            : Icons.radio_button_unchecked_rounded,
+                        color: active ? cs.primary : cs.onSurfaceVariant,
+                      ),
+                      const SizedBox(width: 10),
+                      Expanded(
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            Text(
+                              level.title,
+                              style: TextStyle(
+                                color: cs.onSurface,
+                                fontWeight: FontWeight.w800,
+                              ),
+                            ),
+                            const SizedBox(height: 2),
+                            Text(
+                              level.description,
+                              style: TextStyle(
+                                color: cs.onSurfaceVariant,
+                                fontSize: 11,
+                                height: 1.25,
+                                fontWeight: FontWeight.w600,
+                              ),
+                            ),
+                          ],
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+              ),
+            );
+          }),
+        ],
       ),
     );
   }
