@@ -232,6 +232,9 @@ class PebWorkSummaryModel {
   final String type;
   final String section;
   final String trackingMode;
+  final String dprLevel;
+  final PebModeRules modeRules;
+  final PebModeSummary modeSummary;
   final PebDataAvailability dataAvailability;
   final PebOverview overview;
   final List<PebTrendPoint> plannedVsActual;
@@ -246,6 +249,9 @@ class PebWorkSummaryModel {
     required this.type,
     required this.section,
     required this.trackingMode,
+    required this.dprLevel,
+    required this.modeRules,
+    required this.modeSummary,
     required this.dataAvailability,
     required this.overview,
     required this.plannedVsActual,
@@ -262,6 +268,9 @@ class PebWorkSummaryModel {
       type: json['type']?.toString() ?? '',
       section: json['section']?.toString() ?? '',
       trackingMode: json['trackingMode']?.toString() ?? '',
+      dprLevel: json['dprLevel']?.toString() ?? '',
+      modeRules: PebModeRules.fromJson(json['modeRules'] ?? {}),
+      modeSummary: PebModeSummary.fromJson(json['modeSummary'] ?? {}),
       dataAvailability:
           PebDataAvailability.fromJson(json['dataAvailability'] ?? {}),
       overview: PebOverview.fromJson(json['overview'] ?? {}),
@@ -283,6 +292,120 @@ class PebWorkSummaryModel {
       markSummary: PebMarkSummary.fromJson(json['markSummary'] ?? {}),
     );
   }
+}
+
+class PebModeRules {
+  final bool showPlanning;
+  final bool showBoqScope;
+  final bool showDelay;
+  final bool showGantt;
+  final bool showCompletionPercentage;
+  final bool showRemainingQuantity;
+  final bool showStagePercentages;
+  final bool showActualOnly;
+
+  const PebModeRules({
+    required this.showPlanning,
+    required this.showBoqScope,
+    required this.showDelay,
+    required this.showGantt,
+    required this.showCompletionPercentage,
+    required this.showRemainingQuantity,
+    required this.showStagePercentages,
+    required this.showActualOnly,
+  });
+
+  factory PebModeRules.fromJson(Map<String, dynamic> json) => PebModeRules(
+        showPlanning: json['showPlanning'] == true,
+        showBoqScope: json['showBoqScope'] == true,
+        showDelay: json['showDelay'] == true,
+        showGantt: json['showGantt'] == true,
+        showCompletionPercentage: json['showCompletionPercentage'] == true,
+        showRemainingQuantity: json['showRemainingQuantity'] == true,
+        showStagePercentages: json['showStagePercentages'] == true,
+        showActualOnly: json['showActualOnly'] == true,
+      );
+}
+
+class PebModeSummary {
+  final PebAssignmentModeSummary assignmentStatus;
+  final PebBoqScopeSummary boqScope;
+  final PebActualOnlySummary actualOnly;
+
+  const PebModeSummary({
+    required this.assignmentStatus,
+    required this.boqScope,
+    required this.actualOnly,
+  });
+
+  factory PebModeSummary.fromJson(Map<String, dynamic> json) => PebModeSummary(
+        assignmentStatus:
+            PebAssignmentModeSummary.fromJson(json['assignmentStatus'] ?? {}),
+        boqScope: PebBoqScopeSummary.fromJson(json['boqScope'] ?? {}),
+        actualOnly: PebActualOnlySummary.fromJson(json['actualOnly'] ?? {}),
+      );
+}
+
+class PebAssignmentModeSummary {
+  final PebQuantity assignedTillDate;
+  final PebQuantity completedTillDate;
+  final PebQuantity difference;
+  final double planProgressPercentage;
+  final double actualProgressPercentage;
+  final double differencePercentage;
+
+  const PebAssignmentModeSummary({
+    required this.assignedTillDate,
+    required this.completedTillDate,
+    required this.difference,
+    required this.planProgressPercentage,
+    required this.actualProgressPercentage,
+    required this.differencePercentage,
+  });
+
+  factory PebAssignmentModeSummary.fromJson(Map<String, dynamic> json) =>
+      PebAssignmentModeSummary(
+        assignedTillDate: PebQuantity.fromJson(json['assignedTillDate'] ?? {}),
+        completedTillDate:
+            PebQuantity.fromJson(json['completedTillDate'] ?? {}),
+        difference: PebQuantity.fromJson(json['difference'] ?? {}),
+        planProgressPercentage: _asDouble(json['planProgressPercentage']),
+        actualProgressPercentage: _asDouble(json['actualProgressPercentage']),
+        differencePercentage: _asDouble(json['differencePercentage']),
+      );
+}
+
+class PebBoqScopeSummary {
+  final PebQuantity totalScope;
+  final PebQuantity completed;
+  final PebQuantity remaining;
+  final double completionPercentage;
+
+  const PebBoqScopeSummary({
+    required this.totalScope,
+    required this.completed,
+    required this.remaining,
+    required this.completionPercentage,
+  });
+
+  factory PebBoqScopeSummary.fromJson(Map<String, dynamic> json) =>
+      PebBoqScopeSummary(
+        totalScope: PebQuantity.fromJson(json['totalScope'] ?? {}),
+        completed: PebQuantity.fromJson(json['completed'] ?? {}),
+        remaining: PebQuantity.fromJson(json['remaining'] ?? {}),
+        completionPercentage: _asDouble(json['completionPercentage']),
+      );
+}
+
+class PebActualOnlySummary {
+  final PebQuantity executed;
+
+  const PebActualOnlySummary({required this.executed});
+
+  factory PebActualOnlySummary.fromJson(Map<String, dynamic> json) =>
+      PebActualOnlySummary(
+        executed: PebQuantity.fromJson(json['executed'] ?? {}),
+      );
 }
 
 class PebDataAvailability {
@@ -314,6 +437,18 @@ class PebOverview {
   final int totalPending;
   final int delayedStages;
   final double overallProgressPercentage;
+  final double totalPlannedQty;
+  final double totalPlannedWeightKg;
+  final double totalPlannedWeightMt;
+  final double totalActualQty;
+  final double totalActualWeightKg;
+  final double totalActualWeightMt;
+  final double totalRemainingQty;
+  final double totalRemainingWeightKg;
+  final double totalRemainingWeightMt;
+  final double differenceQty;
+  final double differenceWeightKg;
+  final double differenceWeightMt;
 
   const PebOverview({
     required this.totalBoqMarks,
@@ -325,6 +460,18 @@ class PebOverview {
     required this.totalPending,
     required this.delayedStages,
     required this.overallProgressPercentage,
+    required this.totalPlannedQty,
+    required this.totalPlannedWeightKg,
+    required this.totalPlannedWeightMt,
+    required this.totalActualQty,
+    required this.totalActualWeightKg,
+    required this.totalActualWeightMt,
+    required this.totalRemainingQty,
+    required this.totalRemainingWeightKg,
+    required this.totalRemainingWeightMt,
+    required this.differenceQty,
+    required this.differenceWeightKg,
+    required this.differenceWeightMt,
   });
 
   factory PebOverview.fromJson(Map<String, dynamic> json) => PebOverview(
@@ -337,6 +484,18 @@ class PebOverview {
         totalPending: _asInt(json['totalPending']),
         delayedStages: _asInt(json['delayedStages']),
         overallProgressPercentage: _asDouble(json['overallProgressPercentage']),
+        totalPlannedQty: _asDouble(json['totalPlannedQty']),
+        totalPlannedWeightKg: _asDouble(json['totalPlannedWeightKg']),
+        totalPlannedWeightMt: _asDouble(json['totalPlannedWeightMt']),
+        totalActualQty: _asDouble(json['totalActualQty']),
+        totalActualWeightKg: _asDouble(json['totalActualWeightKg']),
+        totalActualWeightMt: _asDouble(json['totalActualWeightMt']),
+        totalRemainingQty: _asDouble(json['totalRemainingQty']),
+        totalRemainingWeightKg: _asDouble(json['totalRemainingWeightKg']),
+        totalRemainingWeightMt: _asDouble(json['totalRemainingWeightMt']),
+        differenceQty: _asDouble(json['differenceQty']),
+        differenceWeightKg: _asDouble(json['differenceWeightKg']),
+        differenceWeightMt: _asDouble(json['differenceWeightMt']),
       );
 }
 
@@ -387,6 +546,8 @@ class PebStageSummary {
   final double progressPercentage;
   final PebQuantity planned;
   final PebQuantity actual;
+  final PebQuantity scope;
+  final PebQuantity difference;
   final int delayDays;
   final String status;
 
@@ -401,6 +562,8 @@ class PebStageSummary {
     required this.progressPercentage,
     required this.planned,
     required this.actual,
+    required this.scope,
+    required this.difference,
     required this.delayDays,
     required this.status,
   });
@@ -417,6 +580,8 @@ class PebStageSummary {
         progressPercentage: _asDouble(json['progressPercentage']),
         planned: PebQuantity.fromJson(json['planned'] ?? {}),
         actual: PebQuantity.fromJson(json['actual'] ?? {}),
+        scope: PebQuantity.fromJson(json['scope'] ?? {}),
+        difference: PebQuantity.fromJson(json['difference'] ?? {}),
         delayDays: _asInt(json['delayDays']),
         status: json['status']?.toString() ?? '',
       );
@@ -426,17 +591,20 @@ class PebQuantity {
   final double qty;
   final double marks;
   final double weightMt;
+  final double weightKg;
 
   const PebQuantity({
     required this.qty,
     required this.marks,
     required this.weightMt,
+    required this.weightKg,
   });
 
   factory PebQuantity.fromJson(Map<String, dynamic> json) => PebQuantity(
         qty: _asDouble(json['qty']),
         marks: _asDouble(json['marks']),
         weightMt: _asDouble(json['weightMt']),
+        weightKg: _asDouble(json['weightKg']),
       );
 }
 

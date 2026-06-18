@@ -500,7 +500,8 @@ class PebBoq {
       items: (json['items'] as List? ?? [])
           .whereType<Map>()
           .map((item) => PebBoqMark.fromJson(Map<String, dynamic>.from(item)))
-          .where((item) => item.assemblyMark.isNotEmpty)
+          .where((item) =>
+              item.assemblyMark.isNotEmpty || item.detailedMark.isNotEmpty)
           .toList(),
     );
   }

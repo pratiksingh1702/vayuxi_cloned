@@ -1,3 +1,5 @@
+// ignore_for_file: deprecated_member_use, unused_element, unused_local_variable
+
 import 'dart:ui' as ui;
 
 import 'package:dio/dio.dart';
@@ -56,6 +58,7 @@ class _PebDprEntryScreenState extends State<PebDprEntryScreen> {
   List<PebItemWiseDprItem> _itemWiseItems = [];
   final Map<String, String> _level1WeightInputs = {};
   final Map<String, String> _level1UomInputs = {};
+  int _level1InputResetVersion = 0;
   final Map<String, String> _markQuantityInputs = {};
   final Map<String, String> _markRemarks = {};
   final Map<String, String> _variationReasons = {};
@@ -1476,8 +1479,13 @@ class _PebDprEntryScreenState extends State<PebDprEntryScreen> {
         teamId: _submitTeamId,
         items: items,
       );
-      for (final work in works) {
-        _level1WeightInputs.remove(work.setupItem.id);
+      if (mounted) {
+        setState(() {
+          for (final work in works) {
+            _level1WeightInputs.remove(work.setupItem.id);
+          }
+          _level1InputResetVersion++;
+        });
       }
       AppToast.success('Level 1 DPR saved successfully');
       await _load(showLoader: false, autoScroll: false);
@@ -3375,6 +3383,8 @@ class _PebDprEntryScreenState extends State<PebDprEntryScreen> {
               Expanded(
                 flex: 3,
                 child: TextFormField(
+                  key: ValueKey(
+                      'level1-weight-${work.setupItem.id}-$_level1InputResetVersion'),
                   initialValue: weightValue,
                   keyboardType:
                       const TextInputType.numberWithOptions(decimal: true),
@@ -4976,7 +4986,6 @@ class _PebDprEntryScreenState extends State<PebDprEntryScreen> {
     );
   }
 
-  // ignore: unused_element
   Widget _buildMarkEntryCard(
     _VisibleWork work,
     String markNumber, {
