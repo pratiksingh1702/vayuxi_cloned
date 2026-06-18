@@ -1,3 +1,5 @@
+// ignore_for_file: deprecated_member_use
+
 import 'dart:ui';
 
 import 'package:auto_size_text/auto_size_text.dart';
@@ -38,17 +40,19 @@ extension _RouteTrailEntryBreadcrumbIcon on RouteTrailEntry {
 class CustomAppBar extends ConsumerWidget implements PreferredSizeWidget {
   final String title;
   final bool showDrawer;
+  final bool showBreadcrumb;
   final List<Widget> actions;
 
   const CustomAppBar({
     super.key,
     required this.title,
     this.showDrawer = true,
+    this.showBreadcrumb = true,
     this.actions = const [],
   });
 
   @override
-  Size get preferredSize => const Size.fromHeight(126);
+  Size get preferredSize => Size.fromHeight(showBreadcrumb ? 126 : 76);
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
@@ -144,8 +148,8 @@ class CustomAppBar extends ConsumerWidget implements PreferredSizeWidget {
                     ],
                   ),
                 ),
-                const SizedBox(height: 8),
-                if (visibleTrail.isNotEmpty)
+                if (showBreadcrumb && visibleTrail.isNotEmpty) ...[
+                  const SizedBox(height: 8),
                   Transform.translate(
                     offset: const Offset(0, -6),
                     child: Builder(
@@ -174,8 +178,7 @@ class CustomAppBar extends ConsumerWidget implements PreferredSizeWidget {
                       },
                     ),
                   )
-                else
-                  const SizedBox(height: 1),
+                ],
               ],
             ),
           ),

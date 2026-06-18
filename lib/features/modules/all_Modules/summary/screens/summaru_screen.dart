@@ -577,7 +577,10 @@ class _PebWorkSummaryViewState extends ConsumerState<_PebWorkSummaryView> {
     return Scaffold(
       drawer: const CustomDrawer(),
       backgroundColor: Theme.of(context).colorScheme.surfaceContainerLowest,
-      appBar: CustomAppBar(title: title),
+      appBar: CustomAppBar(
+        title: title,
+        showBreadcrumb: false,
+      ),
       body: Column(
         children: [
           Expanded(
@@ -668,7 +671,12 @@ class _PebWorkSummaryViewState extends ConsumerState<_PebWorkSummaryView> {
   List<Widget> _buildProjectTrackingSections(PebWorkSummaryModel summary) {
     final mode = summary.trackingMode;
     if (mode == 'boq_work_assignment' || mode == 'work_assignment_only') {
-      return [_PebPlanningTrackingView(summary: summary)];
+      return [
+        _PebPlanningTrackingView(
+          summary: summary,
+          stages: _completeTrackingStages(summary, ref.read(typeProvider)),
+        ),
+      ];
     }
     if (mode == 'boq_only') {
       return [_PebBoqTrackingView(summary: summary)];
@@ -738,6 +746,7 @@ class _PebOverviewSection extends StatelessWidget {
   }
 }
 
+// ignore: unused_element
 class _PebTrackingModeBanner extends StatelessWidget {
   final PebWorkSummaryModel summary;
 
@@ -917,16 +926,17 @@ class _ActualOnlyStageTile extends StatelessWidget {
 
 class _PebPlanningTrackingView extends StatelessWidget {
   final PebWorkSummaryModel summary;
+  final List<PebStageSummary> stages;
 
-  const _PebPlanningTrackingView({required this.summary});
+  const _PebPlanningTrackingView({
+    required this.summary,
+    required this.stages,
+  });
 
   @override
   Widget build(BuildContext context) {
-    final stages = _visibleTrackingStages(summary);
     return Column(
       children: [
-        _PebTrackingModeBanner(summary: summary),
-        const SizedBox(height: 8),
         _PlanningProgressCard(summary: summary),
         const SizedBox(height: 8),
         _StageAssignmentPerformanceCard(stages: stages),
@@ -940,10 +950,6 @@ class _PebPlanningTrackingView extends StatelessWidget {
           title: 'Plan vs Actual Trend',
           subtitle: 'Date-wise planned quantity compared with actual DPR',
         ),
-        const SizedBox(height: 8),
-        _DelayedActivitiesCard(rows: summary.delayAnalysis),
-        const SizedBox(height: 8),
-        _AssignmentHealthCard(summary: summary),
         const SizedBox(height: 10),
         const _TrackingFooterActions(),
       ],
@@ -958,16 +964,9 @@ class _PebBoqTrackingView extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final stages = summary.stages;
     return Column(
       children: [
-        _PebTrackingModeBanner(summary: summary),
-        const SizedBox(height: 8),
         _BoqCompletionCard(summary: summary),
-        const SizedBox(height: 8),
-        _BoqStageProgressCard(stages: stages),
-        const SizedBox(height: 8),
-        _BoqStageFlowCard(stages: stages),
         const SizedBox(height: 8),
         _PebTrendSection(
           points: summary.plannedVsActual,
@@ -975,10 +974,6 @@ class _PebBoqTrackingView extends StatelessWidget {
           subtitle: 'Completed quantity from DPR entries',
           actualOnly: true,
         ),
-        const SizedBox(height: 8),
-        _ItemsRequiringAttentionCard(stages: stages),
-        const SizedBox(height: 8),
-        _BoqProjectSummaryCard(summary: summary),
         const SizedBox(height: 10),
         const _TrackingFooterActions(),
       ],
@@ -993,21 +988,12 @@ class _PebDprTrackingView extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final stages = _visibleTrackingStages(summary);
+    final stages = summary.stages;
     return Column(
       children: [
-        _PebTrackingModeBanner(summary: summary),
+        _DprLevel1SnapshotCard(summary: summary, stages: stages),
         const SizedBox(height: 8),
-        _DprExecutedHeroCard(summary: summary),
-        const SizedBox(height: 8),
-        _DprStageActivityCard(stages: stages),
-        const SizedBox(height: 8),
-        _PebTrendSection(
-          points: summary.plannedVsActual,
-          title: 'Work Executed Trend',
-          subtitle: 'Executed quantity from DPR entries only',
-          actualOnly: true,
-        ),
+        _DprCompactTrendCard(points: summary.plannedVsActual),
         const SizedBox(height: 10),
         const _TrackingFooterActions(),
       ],
@@ -1024,85 +1010,230 @@ class _PlanningProgressCard extends StatelessWidget {
   Widget build(BuildContext context) {
     final cs = Theme.of(context).colorScheme;
     final assignment = summary.modeSummary.assignmentStatus;
-    final planned = _firstPositive([
-      assignment.planProgressPercentage,
-      summary.overview.totalPlannedWeightMt > 0
-          ? 100
-          : summary.overview.overallProgressPercentage,
+    final boqMarks = summary.overview.totalBoqMarks;
+    final assignedMarks = summary.overview.totalAssigned;
+    final completedMarks = summary.overview.totalCompleted;
+    final remainingAssignedMarks =
+        math.max(assignedMarks - completedMarks, 0).toInt();
+    final unassignedBoqMarks = math.max(boqMarks - assignedMarks, 0).toInt();
+
+    final assignedWeight = _firstPositive([
+      assignment.assignedTillDate.weightMt,
+      summary.overview.totalPlannedWeightMt,
+      summary.overview.totalPlannedWeightKg / 1000,
     ]);
-    final actual = _firstPositive([
-      assignment.actualProgressPercentage,
-      summary.overview.overallProgressPercentage,
+    final completedWeight = _firstPositive([
+      assignment.completedTillDate.weightMt,
+      summary.overview.totalActualWeightMt,
+      summary.overview.totalActualWeightKg / 1000,
     ]);
-    final difference = actual - planned;
+    final remainingAssignedWeight = assignedWeight > 0
+        ? math.max<double>(assignedWeight - completedWeight, 0)
+        : 0.0;
+    final totalBoqWeight = _firstPositive([
+      summary.modeSummary.boqScope.totalScope.weightMt,
+      summary.overview.totalBoqWeightMt,
+    ]);
+    final unassignedBoqWeight = totalBoqWeight > 0
+        ? math.max<double>(totalBoqWeight - assignedWeight, 0)
+        : 0.0;
+
+    final assignmentProgress = assignedWeight > 0
+        ? (completedWeight / assignedWeight) * 100
+        : assignedMarks > 0
+            ? (completedMarks / assignedMarks) * 100
+            : 0.0;
+    final boqCoverage = boqMarks > 0
+        ? (assignedMarks / boqMarks) * 100
+        : totalBoqWeight > 0
+            ? (assignedWeight / totalBoqWeight) * 100
+            : 0.0;
+    final difference = completedWeight - assignedWeight;
     final behind = difference < 0;
+
+    final scopeItems = [
+      _ScopeMetricData(
+        title: 'Total BOQ Scope',
+        value: boqMarks > 0 ? '$boqMarks' : '${_fmt(totalBoqWeight)} MT',
+        subtitle: boqMarks > 0 ? '${_fmt(totalBoqWeight)} MT' : 'Uploaded BOQ',
+        icon: Icons.inventory_2_outlined,
+        color: cs.primary,
+      ),
+      _ScopeMetricData(
+        title: 'Assigned Scope',
+        value:
+            assignedMarks > 0 ? '$assignedMarks' : '${_fmt(assignedWeight)} MT',
+        subtitle: assignedMarks > 0 ? '${_fmt(assignedWeight)} MT' : 'Planned',
+        icon: Icons.assignment_outlined,
+        color: const Color(0xFF5B21B6),
+      ),
+      _ScopeMetricData(
+        title: 'Completed',
+        value: completedMarks > 0
+            ? '$completedMarks'
+            : '${_fmt(completedWeight)} MT',
+        subtitle: completedMarks > 0 ? '${_fmt(completedWeight)} MT' : 'Actual',
+        icon: Icons.check_circle_outline_rounded,
+        color: const Color(0xFF059669),
+      ),
+      _ScopeMetricData(
+        title: 'Not Assigned',
+        value: unassignedBoqMarks > 0
+            ? '$unassignedBoqMarks'
+            : '${_fmt(unassignedBoqWeight)} MT',
+        subtitle: unassignedBoqMarks > 0
+            ? '${_fmt(unassignedBoqWeight)} MT'
+            : 'BOQ balance',
+        icon: Icons.pending_actions_rounded,
+        color: const Color(0xFFF59E0B),
+      ),
+    ];
+
     return _SummaryCard(
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           const _SectionHeader(
-            title: 'Overall Progress',
-            subtitle: 'Plan progress compared with actual DPR progress',
+            title: 'Assigned Work Progress',
+            subtitle:
+                'Progress is calculated from assigned mark numbers. Total BOQ scope is shown separately.',
             compact: true,
           ),
           const SizedBox(height: 12),
           _LabelProgressLine(
-            label: 'Plan Progress',
-            value: planned,
+            label: 'Assigned Coverage',
+            value: boqCoverage,
             color: const Color(0xFF5B21B6),
           ),
           const SizedBox(height: 12),
           _LabelProgressLine(
-            label: 'Actual Progress',
-            value: actual,
+            label: 'Completed',
+            value: assignmentProgress,
             color: const Color(0xFF059669),
           ),
-          const SizedBox(height: 16),
-          Row(
-            children: [
-              Expanded(
-                child: _TrackingMiniPanel(
-                  title: 'Difference',
-                  value: '${difference.toStringAsFixed(0)}%',
-                  subtitle: behind ? 'Behind Plan' : 'Ahead / On Plan',
-                  color: behind
-                      ? const Color(0xFFDC2626)
-                      : const Color(0xFF059669),
-                  icon: behind
-                      ? Icons.trending_down_rounded
-                      : Icons.trending_up_rounded,
-                ),
-              ),
-              const SizedBox(width: 10),
-              Expanded(
-                child: _TrackingMiniPanel(
-                  title: 'Project Status',
-                  value: behind ? 'Needs Attention' : 'On Track',
-                  subtitle: behind
-                      ? 'Behind plan in ${summary.overview.delayedStages} stages'
-                      : 'Progress is aligned',
-                  color: behind
-                      ? const Color(0xFFF59E0B)
-                      : const Color(0xFF059669),
-                  icon: behind
-                      ? Icons.warning_amber_rounded
-                      : Icons.check_circle_outline_rounded,
-                ),
-              ),
-            ],
+          const SizedBox(height: 14),
+          LayoutBuilder(
+            builder: (context, constraints) {
+              final itemWidth = (constraints.maxWidth - 8) / 2;
+              return Wrap(
+                spacing: 8,
+                runSpacing: 8,
+                children: scopeItems
+                    .map(
+                      (item) => SizedBox(
+                        width: itemWidth,
+                        child: _ScopeMetricTile(data: item),
+                      ),
+                    )
+                    .toList(),
+              );
+            },
           ),
-          if (summary.overview.totalPlannedWeightMt > 0 ||
-              summary.overview.totalActualWeightMt > 0) ...[
-            const SizedBox(height: 14),
-            Text(
-              'Planned ${_fmt(summary.overview.totalPlannedWeightMt)} MT  •  Actual ${_fmt(summary.overview.totalActualWeightMt)} MT',
+          const SizedBox(height: 12),
+          Container(
+            width: double.infinity,
+            padding: const EdgeInsets.all(10),
+            decoration: BoxDecoration(
+              color: cs.primaryContainer.withOpacity(0.35),
+              borderRadius: BorderRadius.circular(12),
+              border: Border.all(color: cs.primary.withOpacity(0.12)),
+            ),
+            child: Text(
+              'Assigned remaining: ${remainingAssignedMarks > 0 ? '$remainingAssignedMarks mark nos' : '${_fmt(remainingAssignedWeight)} MT'}'
+              '  •  ${behind ? 'Actual is below assigned scope' : 'Actual is aligned with assigned scope'}',
               style: TextStyle(
                 color: cs.onSurfaceVariant,
                 fontWeight: FontWeight.w700,
-                fontSize: 12,
+                fontSize: 11,
               ),
             ),
-          ],
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+class _ScopeMetricData {
+  final String title;
+  final String value;
+  final String subtitle;
+  final IconData icon;
+  final Color color;
+
+  const _ScopeMetricData({
+    required this.title,
+    required this.value,
+    required this.subtitle,
+    required this.icon,
+    required this.color,
+  });
+}
+
+class _ScopeMetricTile extends StatelessWidget {
+  final _ScopeMetricData data;
+
+  const _ScopeMetricTile({required this.data});
+
+  @override
+  Widget build(BuildContext context) {
+    final cs = Theme.of(context).colorScheme;
+    return Container(
+      padding: const EdgeInsets.all(10),
+      decoration: BoxDecoration(
+        color: data.color.withOpacity(0.08),
+        borderRadius: BorderRadius.circular(14),
+        border: Border.all(color: data.color.withOpacity(0.14)),
+      ),
+      child: Row(
+        children: [
+          Container(
+            width: 30,
+            height: 30,
+            decoration: BoxDecoration(
+              color: data.color.withOpacity(0.12),
+              borderRadius: BorderRadius.circular(10),
+            ),
+            child: Icon(data.icon, color: data.color, size: 17),
+          ),
+          const SizedBox(width: 8),
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  data.title,
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
+                  style: TextStyle(
+                    color: cs.onSurfaceVariant,
+                    fontWeight: FontWeight.w700,
+                    fontSize: 10,
+                  ),
+                ),
+                Text(
+                  data.value,
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
+                  style: TextStyle(
+                    color: data.color,
+                    fontWeight: FontWeight.w900,
+                    fontSize: 15,
+                  ),
+                ),
+                Text(
+                  data.subtitle,
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
+                  style: TextStyle(
+                    color: cs.onSurfaceVariant,
+                    fontWeight: FontWeight.w600,
+                    fontSize: 9,
+                  ),
+                ),
+              ],
+            ),
+          ),
         ],
       ),
     );
@@ -1224,6 +1355,7 @@ class _PlanningInsightGrid extends StatelessWidget {
   }
 }
 
+// ignore: unused_element
 class _DelayedActivitiesCard extends StatelessWidget {
   final List<PebDelayRow> rows;
 
@@ -1259,6 +1391,7 @@ class _DelayedActivitiesCard extends StatelessWidget {
   }
 }
 
+// ignore: unused_element
 class _AssignmentHealthCard extends StatelessWidget {
   final PebWorkSummaryModel summary;
 
@@ -1404,6 +1537,7 @@ class _BoqCompletionCard extends StatelessWidget {
   }
 }
 
+// ignore: unused_element
 class _BoqStageProgressCard extends StatelessWidget {
   final List<PebStageSummary> stages;
 
@@ -1430,6 +1564,7 @@ class _BoqStageProgressCard extends StatelessWidget {
   }
 }
 
+// ignore: unused_element
 class _BoqStageFlowCard extends StatelessWidget {
   final List<PebStageSummary> stages;
 
@@ -1471,6 +1606,7 @@ class _BoqStageFlowCard extends StatelessWidget {
   }
 }
 
+// ignore: unused_element
 class _ItemsRequiringAttentionCard extends StatelessWidget {
   final List<PebStageSummary> stages;
 
@@ -1509,6 +1645,7 @@ class _ItemsRequiringAttentionCard extends StatelessWidget {
   }
 }
 
+// ignore: unused_element
 class _BoqProjectSummaryCard extends StatelessWidget {
   final PebWorkSummaryModel summary;
 
@@ -1572,6 +1709,7 @@ class _BoqProjectSummaryCard extends StatelessWidget {
   }
 }
 
+// ignore: unused_element
 class _DprExecutedHeroCard extends StatelessWidget {
   final PebWorkSummaryModel summary;
 
@@ -1640,6 +1778,237 @@ class _DprExecutedHeroCard extends StatelessWidget {
   }
 }
 
+class _DprLevel1SnapshotCard extends StatelessWidget {
+  final PebWorkSummaryModel summary;
+  final List<PebStageSummary> stages;
+
+  const _DprLevel1SnapshotCard({
+    required this.summary,
+    required this.stages,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    final executed = _firstPositive([
+      summary.modeSummary.actualOnly.executed.weightMt,
+      summary.overview.totalActualWeightMt,
+      stages.fold<double>(0, (sum, stage) => sum + _stageActualWeight(stage)),
+    ]);
+    final cs = Theme.of(context).colorScheme;
+    return _SummaryCard(
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
+            children: [
+              Container(
+                width: 40,
+                height: 40,
+                decoration: BoxDecoration(
+                  color: cs.primaryContainer.withOpacity(0.55),
+                  borderRadius: BorderRadius.circular(15),
+                ),
+                child: Icon(
+                  Icons.precision_manufacturing_rounded,
+                  color: cs.primary,
+                  size: 21,
+                ),
+              ),
+              const SizedBox(width: 10),
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Row(
+                      children: [
+                        Expanded(
+                          child: Text(
+                            'Total Work Executed',
+                            maxLines: 1,
+                            overflow: TextOverflow.ellipsis,
+                            style: TextStyle(
+                              color: cs.onSurface,
+                              fontWeight: FontWeight.w900,
+                              fontSize: 12,
+                            ),
+                          ),
+                        ),
+                        Icon(Icons.info_outline_rounded,
+                            color: cs.onSurfaceVariant, size: 13),
+                      ],
+                    ),
+                    Text(
+                      '${_fmt(executed)} MT',
+                      style: TextStyle(
+                        color: cs.primary,
+                        fontWeight: FontWeight.w900,
+                        fontSize: 20,
+                        height: 1,
+                      ),
+                    ),
+                    Text(
+                      'During selected period',
+                      maxLines: 1,
+                      overflow: TextOverflow.ellipsis,
+                      style: TextStyle(
+                        color: cs.onSurfaceVariant,
+                        fontWeight: FontWeight.w600,
+                        fontSize: 10,
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+            ],
+          ),
+          const SizedBox(height: 12),
+          Divider(color: cs.outlineVariant.withOpacity(0.65), height: 1),
+          const SizedBox(height: 12),
+          Row(
+            children: [
+              Text(
+                'Stage Activity Summary',
+                style: TextStyle(
+                  color: cs.onSurface,
+                  fontWeight: FontWeight.w900,
+                  fontSize: 12,
+                ),
+              ),
+              const SizedBox(width: 6),
+              Icon(Icons.info_outline_rounded,
+                  color: cs.onSurfaceVariant, size: 14),
+            ],
+          ),
+          Text(
+            'Quantities are based on DPR entries only. No scope or percentages are calculated.',
+            maxLines: 1,
+            overflow: TextOverflow.ellipsis,
+            style: TextStyle(
+              color: cs.onSurfaceVariant,
+              fontSize: 10,
+              fontWeight: FontWeight.w600,
+            ),
+          ),
+          const SizedBox(height: 7),
+          if (stages.isEmpty)
+            const _EmptyMiniState(text: 'No DPR activity found')
+          else
+            Column(
+              children: List.generate(
+                stages.length,
+                (index) => Padding(
+                  padding: EdgeInsets.only(
+                    bottom: index == stages.length - 1 ? 0 : 6,
+                  ),
+                  child: _DprStageMiniTile(
+                    stage: stages[index],
+                    index: index + 1,
+                  ),
+                ),
+              ),
+            ),
+        ],
+      ),
+    );
+  }
+}
+
+class _DprStageMiniTile extends StatelessWidget {
+  final PebStageSummary stage;
+  final int index;
+
+  const _DprStageMiniTile({
+    required this.stage,
+    required this.index,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    final cs = Theme.of(context).colorScheme;
+    final value = _stageActualWeight(stage);
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 7),
+      decoration: BoxDecoration(
+        color: cs.surfaceContainerLowest,
+        borderRadius: BorderRadius.circular(12),
+        border: Border.all(color: cs.outlineVariant.withOpacity(0.6)),
+      ),
+      child: Row(
+        children: [
+          CircleAvatar(
+            radius: 10,
+            backgroundColor: cs.primaryContainer,
+            child: Text(
+              '$index',
+              style: TextStyle(
+                color: cs.primary,
+                fontSize: 9,
+                fontWeight: FontWeight.w900,
+              ),
+            ),
+          ),
+          const SizedBox(width: 8),
+          Icon(_stageIcon(stage.stageName), color: cs.primary, size: 16),
+          const SizedBox(width: 8),
+          Expanded(
+            child: Text(
+              stage.stageName,
+              maxLines: 1,
+              overflow: TextOverflow.ellipsis,
+              style: TextStyle(
+                color: cs.onSurface,
+                fontWeight: FontWeight.w800,
+                fontSize: 12,
+              ),
+            ),
+          ),
+          const SizedBox(width: 8),
+          Text(
+            '${_fmt(value)} MT',
+            style: TextStyle(
+              color: value > 0 ? cs.primary : cs.onSurfaceVariant,
+              fontWeight: FontWeight.w900,
+              fontSize: 11.5,
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+class _DprCompactTrendCard extends StatelessWidget {
+  final List<PebTrendPoint> points;
+
+  const _DprCompactTrendCard({required this.points});
+
+  @override
+  Widget build(BuildContext context) {
+    return _SummaryCard(
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          const _SectionHeader(
+            title: 'Work Executed Trend',
+            subtitle: 'Executed quantity from DPR entries',
+            compact: true,
+          ),
+          if (points.isEmpty)
+            const _EmptyMiniState(text: 'No DPR trend found')
+          else
+            _PebTrendChart(
+              points: points.take(8).toList(),
+              actualOnly: true,
+              height: 138,
+              showCumulativeText: false,
+            ),
+        ],
+      ),
+    );
+  }
+}
+
+// ignore: unused_element
 class _DprStageActivityCard extends StatelessWidget {
   final List<PebStageSummary> stages;
 
@@ -1727,6 +2096,7 @@ class _LabelProgressLine extends StatelessWidget {
   }
 }
 
+// ignore: unused_element
 class _TrackingMiniPanel extends StatelessWidget {
   final String title;
   final String value;
@@ -2393,12 +2763,12 @@ class _PebTabbedScroll extends StatelessWidget {
             siteName: siteName,
             rangeLabel: rangeLabel,
           ),
-          const SizedBox(height: 18),
+          const SizedBox(height: 12),
           _PebSummaryTabSwitcher(
             selectedIndex: selectedTab,
             onChanged: onTabChanged,
           ),
-          const SizedBox(height: 12),
+          const SizedBox(height: 8),
           ...children,
         ],
       ),
@@ -2497,68 +2867,77 @@ class _PebContextHeader extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final cs = Theme.of(context).colorScheme;
-    return Row(
-      children: [
-        Container(
-          width: 52,
-          height: 52,
-          decoration: const BoxDecoration(
-            color: Color(0xFFF0E9FF),
-            shape: BoxShape.circle,
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 9),
+      decoration: BoxDecoration(
+        color: cs.surface,
+        borderRadius: BorderRadius.circular(16),
+        border: Border.all(color: cs.outlineVariant.withOpacity(0.6)),
+      ),
+      child: Row(
+        children: [
+          Container(
+            width: 42,
+            height: 42,
+            decoration: const BoxDecoration(
+              color: Color(0xFFF0E9FF),
+              shape: BoxShape.circle,
+            ),
+            child: const Icon(
+              Icons.apartment_rounded,
+              color: Color(0xFF5B2BBE),
+              size: 23,
+            ),
           ),
-          child: const Icon(
-            Icons.apartment_rounded,
-            color: Color(0xFF5B2BBE),
-            size: 28,
-          ),
-        ),
-        const SizedBox(width: 14),
-        Expanded(
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              Row(
-                children: [
-                  Expanded(
-                    child: Text(
-                      siteName,
-                      maxLines: 1,
-                      overflow: TextOverflow.ellipsis,
-                      style: TextStyle(
-                        color: cs.onSurface,
-                        fontWeight: FontWeight.w900,
-                        fontSize: 17,
+          const SizedBox(width: 10),
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Row(
+                  children: [
+                    Expanded(
+                      child: Text(
+                        siteName,
+                        maxLines: 1,
+                        overflow: TextOverflow.ellipsis,
+                        style: TextStyle(
+                          color: cs.onSurface,
+                          fontWeight: FontWeight.w900,
+                          fontSize: 14,
+                        ),
                       ),
                     ),
-                  ),
-                ],
-              ),
-              const SizedBox(height: 5),
-              Row(
-                children: [
-                  Icon(
-                    Icons.calendar_month_rounded,
-                    size: 16,
-                    color: cs.onSurfaceVariant,
-                  ),
-                  const SizedBox(width: 6),
-                  Expanded(
-                    child: Text(
-                      rangeLabel,
-                      maxLines: 1,
-                      overflow: TextOverflow.ellipsis,
-                      style: TextStyle(
-                        color: cs.onSurfaceVariant,
-                        fontWeight: FontWeight.w700,
+                  ],
+                ),
+                const SizedBox(height: 3),
+                Row(
+                  children: [
+                    Icon(
+                      Icons.calendar_month_rounded,
+                      size: 14,
+                      color: cs.onSurfaceVariant,
+                    ),
+                    const SizedBox(width: 5),
+                    Expanded(
+                      child: Text(
+                        rangeLabel,
+                        maxLines: 1,
+                        overflow: TextOverflow.ellipsis,
+                        style: TextStyle(
+                          color: cs.onSurfaceVariant,
+                          fontWeight: FontWeight.w700,
+                          fontSize: 11,
+                        ),
                       ),
                     ),
-                  ),
-                ],
-              ),
-            ],
+                  ],
+                ),
+              ],
+            ),
           ),
-        ),
-      ],
+        ],
+      ),
     );
   }
 }
@@ -2598,7 +2977,7 @@ class _PebProfitLossView extends StatelessWidget {
                 ),
               ),
             ),
-            const SizedBox(width: 12),
+            const SizedBox(width: 8),
             Expanded(
               child: _FinancialTile(
                 title: 'Expense',
@@ -2617,10 +2996,10 @@ class _PebProfitLossView extends StatelessWidget {
             ),
           ],
         ),
-        const SizedBox(height: 14),
+        const SizedBox(height: 8),
         Container(
           width: double.infinity,
-          padding: const EdgeInsets.symmetric(horizontal: 18, vertical: 16),
+          padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
           decoration: BoxDecoration(
             color: resultColor.withOpacity(0.09),
             borderRadius: BorderRadius.circular(14),
@@ -2628,8 +3007,8 @@ class _PebProfitLossView extends StatelessWidget {
           child: Row(
             children: [
               Container(
-                width: 46,
-                height: 46,
+                width: 34,
+                height: 34,
                 decoration: BoxDecoration(
                   color: resultColor.withOpacity(0.12),
                   shape: BoxShape.circle,
@@ -2641,7 +3020,7 @@ class _PebProfitLossView extends StatelessWidget {
                   color: resultColor,
                 ),
               ),
-              const SizedBox(width: 14),
+              const SizedBox(width: 10),
               Expanded(
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
@@ -2659,18 +3038,18 @@ class _PebProfitLossView extends StatelessWidget {
                       style: TextStyle(
                         color: resultColor,
                         fontWeight: FontWeight.w900,
-                        fontSize: 22,
+                        fontSize: 18,
                       ),
                     ),
                   ],
                 ),
               ),
               Container(
-                height: 52,
+                height: 38,
                 width: 1,
                 color: cs.outlineVariant.withOpacity(0.7),
               ),
-              const SizedBox(width: 20),
+              const SizedBox(width: 12),
               Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
@@ -2681,13 +3060,13 @@ class _PebProfitLossView extends StatelessWidget {
                       fontWeight: FontWeight.w700,
                     ),
                   ),
-                  const SizedBox(height: 6),
+                  const SizedBox(height: 2),
                   Text(
                     '${data.totals.marginPercentage.toStringAsFixed(1)}%',
                     style: TextStyle(
                       color: resultColor,
                       fontWeight: FontWeight.w900,
-                      fontSize: 18,
+                      fontSize: 15,
                     ),
                   ),
                 ],
@@ -2695,7 +3074,7 @@ class _PebProfitLossView extends StatelessWidget {
             ],
           ),
         ),
-        const SizedBox(height: 12),
+        const SizedBox(height: 8),
         _ProfitLossChart(
           data: data,
           onRevenueTap: () => Navigator.push(
@@ -2708,7 +3087,7 @@ class _PebProfitLossView extends StatelessWidget {
             MaterialPageRoute(builder: (_) => _ExpenseOverviewPage(data: data)),
           ),
         ),
-        const SizedBox(height: 12),
+        const SizedBox(height: 8),
         _ProfitLossInsight(data: data),
         const SizedBox(height: 18),
         Row(
@@ -2839,8 +3218,8 @@ class _FinancialTile extends StatelessWidget {
       onTap: onTap,
       borderRadius: BorderRadius.circular(14),
       child: Container(
-        constraints: const BoxConstraints(minHeight: 172),
-        padding: const EdgeInsets.all(16),
+        constraints: const BoxConstraints(minHeight: 118),
+        padding: const EdgeInsets.all(12),
         decoration: BoxDecoration(
           color: cs.surface,
           borderRadius: BorderRadius.circular(14),
@@ -2857,12 +3236,12 @@ class _FinancialTile extends StatelessWidget {
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
             Container(
-              width: 54,
-              height: 54,
+              width: 38,
+              height: 38,
               decoration: BoxDecoration(color: tint, shape: BoxShape.circle),
-              child: Icon(icon, color: color, size: 30),
+              child: Icon(icon, color: color, size: 22),
             ),
-            const SizedBox(height: 12),
+            const SizedBox(height: 8),
             Text(
               title,
               style: TextStyle(
@@ -2871,7 +3250,7 @@ class _FinancialTile extends StatelessWidget {
                 fontSize: 12,
               ),
             ),
-            const SizedBox(height: 6),
+            const SizedBox(height: 3),
             Text(
               value,
               maxLines: 1,
@@ -2879,10 +3258,10 @@ class _FinancialTile extends StatelessWidget {
               style: TextStyle(
                 color: cs.onSurface,
                 fontWeight: FontWeight.w900,
-                fontSize: 21,
+                fontSize: 17,
               ),
             ),
-            const SizedBox(height: 18),
+            const SizedBox(height: 10),
             Row(
               children: [
                 Expanded(
@@ -2948,14 +3327,15 @@ class _ProfitLossChart extends ConsumerWidget {
           Row(
             children: [
               Container(
-                padding: const EdgeInsets.symmetric(horizontal: 12),
+                padding: const EdgeInsets.symmetric(horizontal: 10),
                 decoration: BoxDecoration(
-                  borderRadius: BorderRadius.circular(10),
+                  borderRadius: BorderRadius.circular(9),
                   border: Border.all(color: cs.outlineVariant),
                 ),
                 child: DropdownButtonHideUnderline(
                   child: DropdownButton<SummaryFilterType>(
                     value: filter.filterType,
+                    isDense: true,
                     borderRadius: BorderRadius.circular(12),
                     icon: Icon(
                       Icons.keyboard_arrow_down_rounded,
@@ -2970,6 +3350,7 @@ class _ProfitLossChart extends ConsumerWidget {
                               style: TextStyle(
                                 color: cs.onSurface,
                                 fontWeight: FontWeight.w800,
+                                fontSize: 12,
                               ),
                             ),
                           ),
@@ -2981,39 +3362,23 @@ class _ProfitLossChart extends ConsumerWidget {
                   ),
                 ),
               ),
-              const SizedBox(width: 10),
-              Container(
-                padding:
-                    const EdgeInsets.symmetric(horizontal: 10, vertical: 8),
-                decoration: BoxDecoration(
-                  color: cs.surfaceContainerLowest,
-                  borderRadius: BorderRadius.circular(10),
-                  border: Border.all(color: cs.outlineVariant),
-                ),
-                child: Text(
-                  _chartViewLabel(data.view),
-                  style: TextStyle(
-                    color: cs.onSurfaceVariant,
-                    fontSize: 12,
-                    fontWeight: FontWeight.w700,
-                  ),
-                ),
-              ),
               const Spacer(),
-              Icon(Icons.info_outline_rounded, color: cs.onSurfaceVariant),
+              Icon(Icons.info_outline_rounded,
+                  color: cs.onSurfaceVariant, size: 18),
             ],
           ),
-          const SizedBox(height: 24),
+          const SizedBox(height: 14),
           Text(
             'Amount (₹)',
             style: TextStyle(
               color: cs.onSurfaceVariant,
               fontWeight: FontWeight.w700,
+              fontSize: 12,
             ),
           ),
-          const SizedBox(height: 10),
+          const SizedBox(height: 6),
           SizedBox(
-            height: isSinglePeriod ? 300 : 260,
+            height: isSinglePeriod ? 250 : 220,
             child: _ProfitLossBarPlot(
               points: visible,
               maxAmount: yMax,
@@ -3022,10 +3387,10 @@ class _ProfitLossChart extends ConsumerWidget {
               onExpenseTap: onExpenseTap,
             ),
           ),
-          const SizedBox(height: 18),
+          const SizedBox(height: 12),
           Wrap(
-            spacing: 18,
-            runSpacing: 10,
+            spacing: 12,
+            runSpacing: 8,
             children: [
               _LegendDot(
                 color: const Color(0xFF5B2BBE),
@@ -3388,7 +3753,7 @@ class _ProfitLossInsight extends StatelessWidget {
     final color = isProfit ? const Color(0xFF15803D) : const Color(0xFF5B2BBE);
     return Container(
       width: double.infinity,
-      padding: const EdgeInsets.all(16),
+      padding: const EdgeInsets.all(12),
       decoration: BoxDecoration(
         color: const Color(0xFFF3EEFF),
         borderRadius: BorderRadius.circular(14),
@@ -3396,8 +3761,8 @@ class _ProfitLossInsight extends StatelessWidget {
       child: Row(
         children: [
           Container(
-            width: 50,
-            height: 50,
+            width: 38,
+            height: 38,
             decoration: BoxDecoration(
               color: Colors.white.withOpacity(0.75),
               borderRadius: BorderRadius.circular(12),
@@ -3407,7 +3772,7 @@ class _ProfitLossInsight extends StatelessWidget {
               color: color,
             ),
           ),
-          const SizedBox(width: 14),
+          const SizedBox(width: 10),
           Expanded(
             child: Text(
               isProfit
@@ -3416,7 +3781,8 @@ class _ProfitLossInsight extends StatelessWidget {
               style: const TextStyle(
                 color: Color(0xFF171827),
                 fontWeight: FontWeight.w700,
-                height: 1.35,
+                height: 1.25,
+                fontSize: 12,
               ),
             ),
           ),
@@ -4257,10 +4623,14 @@ class _PebTrendSection extends StatelessWidget {
 class _PebTrendChart extends StatelessWidget {
   final List<PebTrendPoint> points;
   final bool actualOnly;
+  final double height;
+  final bool showCumulativeText;
 
   const _PebTrendChart({
     required this.points,
     required this.actualOnly,
+    this.height = 172,
+    this.showCumulativeText = true,
   });
 
   @override
@@ -4275,7 +4645,7 @@ class _PebTrendChart extends StatelessWidget {
       children: [
         const SizedBox(height: 8),
         SizedBox(
-          height: 172,
+          height: height,
           width: double.infinity,
           child: CustomPaint(
             painter: _PebTrendChartPainter(
@@ -4297,7 +4667,7 @@ class _PebTrendChart extends StatelessWidget {
             const _LegendDot(color: Color(0xFF059669), label: 'Actual'),
           ],
         ),
-        if (!actualOnly) ...[
+        if (!actualOnly && showCumulativeText) ...[
           const SizedBox(height: 6),
           Center(
             child: Text(
@@ -5939,6 +6309,7 @@ Color _statusColor(String status) {
   }
 }
 
+// ignore: unused_element
 List<PebStageSummary> _visibleTrackingStages(PebWorkSummaryModel summary) {
   final stages = summary.stages.where((stage) {
     return stage.assigned > 0 ||
@@ -5954,6 +6325,81 @@ List<PebStageSummary> _visibleTrackingStages(PebWorkSummaryModel summary) {
   }).toList();
   return stages.isEmpty ? summary.stages : stages;
 }
+
+List<PebStageSummary> _completeTrackingStages(
+  PebWorkSummaryModel summary,
+  String? workType,
+) {
+  final defaultNames = _defaultTrackingStageNames(workType);
+  if (defaultNames.isEmpty) return summary.stages;
+
+  final byName = <String, PebStageSummary>{
+    for (final stage in summary.stages) _stageKey(stage.stageName): stage,
+  };
+
+  final merged = <PebStageSummary>[
+    for (final name in defaultNames)
+      byName[_stageKey(name)] ?? _emptyTrackingStage(name),
+  ];
+
+  final defaultKeys = defaultNames.map(_stageKey).toSet();
+  for (final stage in summary.stages) {
+    if (!defaultKeys.contains(_stageKey(stage.stageName))) {
+      merged.add(stage);
+    }
+  }
+  return merged;
+}
+
+List<String> _defaultTrackingStageNames(String? workType) {
+  final normalized = workType?.toLowerCase() ?? '';
+  if (normalized.contains('fabrication')) {
+    return const [
+      'Unloading',
+      'Shifting',
+      'Cutting',
+      'Chamfering',
+      'Fitup',
+      'Saw',
+      'Grinding',
+      'Weld Visual',
+      'Loading',
+      'Dispatch',
+    ];
+  }
+  return const [
+    'Unloading',
+    'Shifting',
+    'Erection',
+    'Alignment',
+    'Bolt Tightening',
+    'Patch-up & Finishing',
+    'QC Clearance',
+  ];
+}
+
+PebStageSummary _emptyTrackingStage(String stageName) {
+  const zero = PebQuantity(qty: 0, marks: 0, weightMt: 0, weightKg: 0);
+  return PebStageSummary(
+    stageId: _stageKey(stageName),
+    stageName: stageName,
+    uom: 'MT',
+    assigned: 0,
+    pending: 0,
+    inProgress: 0,
+    completed: 0,
+    progressPercentage: 0,
+    planned: zero,
+    actual: zero,
+    scope: zero,
+    difference: zero,
+    delayDays: 0,
+    status: 'not_planned',
+  );
+}
+
+String _stageKey(String value) =>
+    value.toLowerCase().replaceAll(RegExp(r'[^a-z0-9]+'), '');
 
 double _stagePlannedWeight(PebStageSummary stage) {
   return _firstPositive([
