@@ -3864,7 +3864,7 @@ class _ExpenseOverviewPageState extends State<_ExpenseOverviewPage> {
 
   @override
   Widget build(BuildContext context) {
-    final rows = _expenseRowsWithSalarySection(widget.data.expenseBreakdown)
+    final rows = [...widget.data.expenseBreakdown]
       ..sort((a, b) => b.amount.compareTo(a.amount));
     final selected = _selected ?? (rows.isNotEmpty ? rows.first : null);
     return _BreakdownScaffold(
@@ -6597,27 +6597,6 @@ IconData _expenseIcon(String category) {
   }
   if (text.contains('food')) return Icons.restaurant_rounded;
   return Icons.more_horiz_rounded;
-}
-
-List<PebExpenseBreakdownItem> _expenseRowsWithSalarySection(
-  List<PebExpenseBreakdownItem> rows,
-) {
-  final normalized = [...rows];
-  final hasSalary = normalized.any(
-    (item) => item.category.toLowerCase().contains('salary'),
-  );
-  if (!hasSalary) {
-    normalized.add(
-      const PebExpenseBreakdownItem(
-        category: 'Salary',
-        amount: 0,
-        contributionPercentage: 0,
-        count: 0,
-        source: 'Salary Module',
-      ),
-    );
-  }
-  return normalized;
 }
 
 Color _softRankColor(int index) {

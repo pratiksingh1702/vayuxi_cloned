@@ -9,8 +9,9 @@ import 'package:path_provider/path_provider.dart';
 import 'package:share_plus/share_plus.dart';
 import 'package:showcaseview/showcaseview.dart';
 import 'package:untitled2/core/utlis/app_toasts.dart';
+import 'package:untitled2/core/upload/manager/upload_manager.dart';
+import 'package:untitled2/core/upload/models/upload_status.dart';
 import 'package:untitled2/core/utlis/widgets/buttons.dart';
-import 'package:untitled2/core/utlis/widgets/custom_appBar.dart';
 import 'package:untitled2/features/modules/all_Modules/attendance/offline/repo/att_sync.dart';
 import 'package:untitled2/features/modules/all_Modules/site_Details/providers/site_current_provider.dart';
 
@@ -18,7 +19,6 @@ import 'package:untitled2/core/utlis/widgets/shimmer.dart';
 
 import '../../../../../core/utlis/widgets/Button_wrapper.dart';
 import '../../../../../core/utlis/widgets/custom.dart';
-import '../../../../../core/utlis/widgets/image_clipped.dart';
 import '../../../../../core/utlis/widgets/sidebar.dart';
 import '../../../../../core/utlis/widgets/custom_scrollbar.dart';
 import '../../../../../typeProvider/type_provider.dart';
@@ -32,7 +32,6 @@ import 'package:untitled2/features/tour/widgets/no_cutout_tour_target.dart';
 import '../model/manpower_model.dart';
 import '../service/manPowerProvider.dart';
 import '../service/manpowerService.dart';
-import '../util/ViewExcel.dart';
 
 enum ManpowerSortOption {
   nameAsc,
@@ -50,7 +49,8 @@ class ManpowerListScreen extends ConsumerStatefulWidget {
   ConsumerState<ManpowerListScreen> createState() => _ManpowerListScreenState();
 }
 
-class _ManpowerListScreenState extends ConsumerState<ManpowerListScreen> with ScreenOwnedTourMixin<ManpowerListScreen> {
+class _ManpowerListScreenState extends ConsumerState<ManpowerListScreen>
+    with ScreenOwnedTourMixin<ManpowerListScreen> {
   // Selection mode state
   bool _isSelectionMode = false;
   Set<String> _selectedManpowerIds = {};
@@ -69,6 +69,7 @@ class _ManpowerListScreenState extends ConsumerState<ManpowerListScreen> with Sc
   final GlobalKey _emptyTourKey = GlobalKey(debugLabel: 'manpower_list_empty');
   final GlobalKey _noResultsTourKey =
       GlobalKey(debugLabel: 'manpower_list_no_results');
+  final Set<String> _handledUploadSuccessJobs = {};
 
   // Sorting and Filtering State
   ManpowerSortOption _currentSort = ManpowerSortOption.createdAtDesc;
@@ -88,7 +89,7 @@ class _ManpowerListScreenState extends ConsumerState<ManpowerListScreen> with Sc
     Future.microtask(() {
       final type = ref.read(typeProvider);
       if (type != null && type.isNotEmpty) {
-        ref.invalidate(manpowerSyncControllerProvider((type: type!)));
+        ref.invalidate(manpowerSyncControllerProvider((type: type)));
         // ref.read(manpowerProvider.notifier).fetchManpower(type);
       } else {
         debugPrint("❌ Type not set in typeProvider");
@@ -173,9 +174,6 @@ class _ManpowerListScreenState extends ConsumerState<ManpowerListScreen> with Sc
       );
 
       if (result['success'] == true) {
-        // Refresh manpower list
-        final type = ref.read(typeProvider);
-
         if (mounted) {
           AppToast.success(
               'Successfully deleted ${_selectedManpowerIds.length} manpower records');
@@ -616,7 +614,8 @@ class _ManpowerListScreenState extends ConsumerState<ManpowerListScreen> with Sc
         AppTourStep(
           id: 'manpower_list_sheet',
           title: 'View Sheet',
-          body: 'Use this button to view or download manpower records in a sheet format.',
+          body:
+              'Use this button to view or download manpower records in a sheet format.',
           targetKey: _sheetTourKey,
           progressLabel: 'Sheet',
           tooltipBottomOffset: 96,
@@ -626,14 +625,16 @@ class _ManpowerListScreenState extends ConsumerState<ManpowerListScreen> with Sc
           AppTourStep(
             id: 'manpower_list_search',
             title: 'Search and Filter',
-            body: 'Search by worker name or code, and use the filter button to narrow the list.',
+            body:
+                'Search by worker name or code, and use the filter button to narrow the list.',
             targetKey: _searchTourKey,
             progressLabel: 'Search',
           ),
           AppTourStep(
             id: 'manpower_list_delete_mode',
             title: 'Bulk Delete',
-            body: 'Use this button when you need to select and delete multiple workers.',
+            body:
+                'Use this button when you need to select and delete multiple workers.',
             targetKey: _deleteModeTourKey,
             progressLabel: 'Delete',
           ),
@@ -641,7 +642,8 @@ class _ManpowerListScreenState extends ConsumerState<ManpowerListScreen> with Sc
             AppTourStep(
               id: 'manpower_list_first_record',
               title: 'Manpower Row',
-              body: 'Each row is one worker. Use the actions to edit, mark left, or delete.',
+              body:
+                  'Each row is one worker. Use the actions to edit, mark left, or delete.',
               targetKey: _firstManpowerTourKey,
               progressLabel: 'Record',
               autoScrollToTarget: true,
@@ -650,7 +652,8 @@ class _ManpowerListScreenState extends ConsumerState<ManpowerListScreen> with Sc
             AppTourStep(
               id: 'manpower_list_no_results',
               title: 'No Results',
-              body: 'If filters hide all workers, this message tells you no matching record was found.',
+              body:
+                  'If filters hide all workers, this message tells you no matching record was found.',
               targetKey: _noResultsTourKey,
               progressLabel: 'No results',
             ),
@@ -658,15 +661,16 @@ class _ManpowerListScreenState extends ConsumerState<ManpowerListScreen> with Sc
           AppTourStep(
             id: 'manpower_list_empty',
             title: 'No Manpower Yet',
-            body: 'When no worker is saved, this area tells you to add manpower first.',
+            body:
+                'When no worker is saved, this area tells you to add manpower first.',
             targetKey: _emptyTourKey,
             progressLabel: 'Empty',
           ),
       ],
     );
 
-    bindScreenOwnedTour(tourId: definition.id, showcaseContext: showcaseContext);
-
+    bindScreenOwnedTour(
+        tourId: definition.id, showcaseContext: showcaseContext);
 
     WidgetsBinding.instance.addPostFrameCallback((_) async {
       if (!mounted) return;
@@ -712,335 +716,359 @@ class _ManpowerListScreenState extends ConsumerState<ManpowerListScreen> with Sc
       manpowerOfflineProvider((type: type)),
     );
     final syncState = ref.watch(manpowerSyncControllerProvider((type: type)));
+    final uploadJobs = ref.watch(uploadManagerProvider);
+    for (final job in uploadJobs) {
+      if (job.moduleId != 'manpower' ||
+          job.status != UploadStatus.success ||
+          _handledUploadSuccessJobs.contains(job.jobId)) {
+        continue;
+      }
+      _handledUploadSuccessJobs.add(job.jobId);
+      Future.microtask(() {
+        if (!mounted) return;
+        ref.invalidate(manpowerSyncControllerProvider((type: type)));
+        ref.invalidate(manpowerOfflineProvider((type: type)));
+        final siteId = ref.read(selectedSiteIdProvider);
+        if (siteId != null && siteId.isNotEmpty) {
+          ref
+              .read(manpowerProvider.notifier)
+              .fetchManpowerBySite(siteId: siteId, type: type);
+        }
+      });
+    }
 
     ref.watch(appTourControllerProvider);
     return ShowCaseWidget(
       builder: (showcaseContext) {
         return Scaffold(
-      drawer: const CustomDrawer(),
-      backgroundColor: colorScheme.surfaceContainerLowest,
-      body: NestedScrollView(
-        headerSliverBuilder: (context, innerBoxIsScrolled) {
-          return [
-            CustomSliverAppBar(
-              title: _isSelectionMode
-                  ? '${_selectedManpowerIds.length} Selected'
-                  : "View Manpower Details",
-            ),
-          ];
-        },
-        body: BottomButtonWrapper(
-          customButtons: [
-            CustomButton(
-              button: _tourTarget(
-                _sheetTourKey,
-                RoundedButton(
-                text: "View Sheet",
-                color: colorScheme.primary,
-                textColor: colorScheme.onPrimary,
-                onPressed: () => _showFormatSelectionDialog(context), // ✅
-              ),
-            ),
-            ),
-          ],
-          child: manpowerAsync.when(
-            loading: () {
-              return const ShimmerList(
-                type: ShimmerListType.tile,
-                itemCount: 8,
-              );
+          drawer: const CustomDrawer(),
+          backgroundColor: colorScheme.surfaceContainerLowest,
+          body: NestedScrollView(
+            headerSliverBuilder: (context, innerBoxIsScrolled) {
+              return [
+                CustomSliverAppBar(
+                  title: _isSelectionMode
+                      ? '${_selectedManpowerIds.length} Selected'
+                      : "View Manpower Details",
+                ),
+              ];
             },
-            error: (e, s) => Center(
-              child: Column(
-                mainAxisAlignment: MainAxisAlignment.center,
-                children: [
-                  Icon(
-                    Icons.error_outline,
-                    size: 56,
-                    color: colorScheme.error,
-                  ),
-                  const SizedBox(height: 12),
-                  Text(
-                    "Manpower data is empty",
-                    style: TextStyle(
-                      fontSize: 18,
-                      fontWeight: FontWeight.w600,
-                      color: colorScheme.onSurface,
+            body: BottomButtonWrapper(
+              customButtons: [
+                CustomButton(
+                  button: _tourTarget(
+                    _sheetTourKey,
+                    RoundedButton(
+                      text: "View Sheet",
+                      color: colorScheme.primary,
+                      textColor: colorScheme.onPrimary,
+                      onPressed: () => _showFormatSelectionDialog(context), // ✅
                     ),
                   ),
-                  const SizedBox(height: 6),
-                  Padding(
-                    padding: const EdgeInsets.symmetric(horizontal: 20),
-                    child: Text(
-                      "Could not load manpower records right now. Please try again.",
-                      textAlign: TextAlign.center,
-                      style: TextStyle(color: colorScheme.onSurfaceVariant),
-                    ),
-                  ),
-                ],
-              ),
-            ),
-            data: (manpowerList) {
-              if (selectedSiteId == null || selectedSiteId.isEmpty) {
-                return Center(
-                  child: Padding(
-                    padding: const EdgeInsets.symmetric(horizontal: 20),
-                    child: Text(
-                      "Please select a site first to view manpower.",
-                      textAlign: TextAlign.center,
-                      style: TextStyle(color: colorScheme.onSurfaceVariant),
-                    ),
-                  ),
-                );
-              }
-
-              // 1. APPLY FILTERS
-              var filteredList = manpowerList.where((m) {
-                // Fixed site filter (cannot be changed from this screen)
-                if (!m.sites.contains(selectedSiteId)) {
-                  return false;
-                }
-
-                // Search query filter
-                if (_searchQuery.isNotEmpty) {
-                  final name = (m.fullName ?? '').toLowerCase();
-                  final code = (m.employeeCode ?? '').toLowerCase();
-                  final query = _searchQuery.toLowerCase();
-                  if (!name.contains(query) && !code.contains(query)) {
-                    return false;
-                  }
-                }
-
-                // Designation filter
-                if (_selectedDesignation != null &&
-                    m.designation != _selectedDesignation) {
-                  return false;
-                }
-
-                // Salary range filter
-                if (_minSalary != null && (m.salary ?? 0) < _minSalary!) {
-                  return false;
-                }
-                if (_maxSalary != null && (m.salary ?? 0) > _maxSalary!) {
-                  return false;
-                }
-
-                return true;
-              }).toList();
-
-              // 2. APPLY SORTING
-              filteredList.sort((a, b) {
-                switch (_currentSort) {
-                  case ManpowerSortOption.nameAsc:
-                    return (a.fullName ?? '')
-                        .trim()
-                        .toLowerCase()
-                        .compareTo((b.fullName ?? '').trim().toLowerCase());
-                  case ManpowerSortOption.nameDesc:
-                    return (b.fullName ?? '')
-                        .trim()
-                        .toLowerCase()
-                        .compareTo((a.fullName ?? '').trim().toLowerCase());
-                  case ManpowerSortOption.createdAtDesc:
-                    final aTime = DateTime.tryParse(a.updatedAt ?? "") ??
-                        DateTime.fromMillisecondsSinceEpoch(0);
-                    final bTime = DateTime.tryParse(b.updatedAt ?? "") ??
-                        DateTime.fromMillisecondsSinceEpoch(0);
-                    return bTime.compareTo(aTime);
-                  case ManpowerSortOption.createdAtAsc:
-                    final aTime = DateTime.tryParse(a.updatedAt ?? "") ??
-                        DateTime.fromMillisecondsSinceEpoch(0);
-                    final bTime = DateTime.tryParse(b.updatedAt ?? "") ??
-                        DateTime.fromMillisecondsSinceEpoch(0);
-                    return aTime.compareTo(bTime);
-                  case ManpowerSortOption.salaryHighToLow:
-                    return (b.salary ?? 0).compareTo(a.salary ?? 0);
-                  case ManpowerSortOption.salaryLowToHigh:
-                    return (a.salary ?? 0).compareTo(b.salary ?? 0);
-                }
-              });
-
-              final sortedSignature = filteredList
-                  .map((m) =>
-                      '${m.id ?? ''}:${(m.fullName ?? '').trim().toLowerCase()}')
-                  .join('|');
-
-              if (_lastSortedOrderSignature != sortedSignature) {
-                _lastSortedOrderSignature = sortedSignature;
-                debugPrint('📋 Sorted manpower order (asc by name):');
-                for (int i = 0; i < filteredList.length; i++) {
-                  final m = filteredList[i];
-                  debugPrint(
-                    '  [$i] name="${m.fullName ?? ''}" code="${m.employeeCode ?? ''}" id="${m.id ?? ''}"',
-                  );
-                }
-              }
-
-              if (manpowerList.isEmpty) {
-                if (syncState.isLoading) {
+                ),
+              ],
+              child: manpowerAsync.when(
+                loading: () {
                   return const ShimmerList(
                     type: ShimmerListType.tile,
                     itemCount: 8,
                   );
-                }
-
-                _syncManpowerListTour(
-                  showcaseContext,
-                  hasRecords: false,
-                  hasVisibleRecords: false,
-                );
-
-                return Center(
-                  child: _tourTarget(
-                    _emptyTourKey,
-                    const Column(
+                },
+                error: (e, s) => Center(
+                  child: Column(
                     mainAxisAlignment: MainAxisAlignment.center,
                     children: [
-                      Icon(Icons.people_outline, size: 64),
-                      SizedBox(height: 16),
+                      Icon(
+                        Icons.error_outline,
+                        size: 56,
+                        color: colorScheme.error,
+                      ),
+                      const SizedBox(height: 12),
                       Text(
                         "Manpower data is empty",
                         style: TextStyle(
-                            fontSize: 18, fontWeight: FontWeight.w600),
+                          fontSize: 18,
+                          fontWeight: FontWeight.w600,
+                          color: colorScheme.onSurface,
+                        ),
                       ),
-                      SizedBox(height: 6),
-                      Text(
-                        "No manpower records found. Please add manpower.",
-                        textAlign: TextAlign.center,
+                      const SizedBox(height: 6),
+                      Padding(
+                        padding: const EdgeInsets.symmetric(horizontal: 20),
+                        child: Text(
+                          "Could not load manpower records right now. Please try again.",
+                          textAlign: TextAlign.center,
+                          style: TextStyle(color: colorScheme.onSurfaceVariant),
+                        ),
                       ),
                     ],
-                    ),
-                    ),
-                );
-              }
+                  ),
+                ),
+                data: (manpowerList) {
+                  if (selectedSiteId == null || selectedSiteId.isEmpty) {
+                    return Center(
+                      child: Padding(
+                        padding: const EdgeInsets.symmetric(horizontal: 20),
+                        child: Text(
+                          "Please select a site first to view manpower.",
+                          textAlign: TextAlign.center,
+                          style: TextStyle(color: colorScheme.onSurfaceVariant),
+                        ),
+                      ),
+                    );
+                  }
 
-              _syncManpowerListTour(
-                showcaseContext,
-                hasRecords: true,
-                hasVisibleRecords: filteredList.isNotEmpty,
-              );
+                  // 1. APPLY FILTERS
+                  var filteredList = manpowerList.where((m) {
+                    // Fixed site filter (cannot be changed from this screen)
+                    if (!m.sites.contains(selectedSiteId)) {
+                      return false;
+                    }
 
-              return Column(
-                children: [
-                  _tourTarget(
-                    _searchTourKey,
-                    Padding(
-                    padding: const EdgeInsets.fromLTRB(16, 8, 16, 4),
-                    child: Row(
-                      children: [
-                        Expanded(
-                          child: TextField(
-                            onChanged: (val) =>
-                                setState(() => _searchQuery = val),
-                            decoration: InputDecoration(
-                              hintText: 'Search by name or code...',
-                              prefixIcon: const Icon(Icons.search, size: 20),
-                              suffixIcon: _searchQuery.isNotEmpty
-                                  ? IconButton(
-                                      icon: const Icon(Icons.close, size: 18),
-                                      onPressed: () =>
-                                          setState(() => _searchQuery = ''),
-                                    )
-                                  : null,
-                              isDense: true,
-                              filled: true,
-                              fillColor: colorScheme.surface,
-                              contentPadding: const EdgeInsets.symmetric(
-                                  horizontal: 12, vertical: 10),
-                              border: OutlineInputBorder(
-                                borderRadius: BorderRadius.circular(10),
-                                borderSide: BorderSide.none,
+                    // Search query filter
+                    if (_searchQuery.isNotEmpty) {
+                      final name = (m.fullName ?? '').toLowerCase();
+                      final code = (m.employeeCode ?? '').toLowerCase();
+                      final query = _searchQuery.toLowerCase();
+                      if (!name.contains(query) && !code.contains(query)) {
+                        return false;
+                      }
+                    }
+
+                    // Designation filter
+                    if (_selectedDesignation != null &&
+                        m.designation != _selectedDesignation) {
+                      return false;
+                    }
+
+                    // Salary range filter
+                    if (_minSalary != null && (m.salary ?? 0) < _minSalary!) {
+                      return false;
+                    }
+                    if (_maxSalary != null && (m.salary ?? 0) > _maxSalary!) {
+                      return false;
+                    }
+
+                    return true;
+                  }).toList();
+
+                  // 2. APPLY SORTING
+                  filteredList.sort((a, b) {
+                    switch (_currentSort) {
+                      case ManpowerSortOption.nameAsc:
+                        return (a.fullName ?? '')
+                            .trim()
+                            .toLowerCase()
+                            .compareTo((b.fullName ?? '').trim().toLowerCase());
+                      case ManpowerSortOption.nameDesc:
+                        return (b.fullName ?? '')
+                            .trim()
+                            .toLowerCase()
+                            .compareTo((a.fullName ?? '').trim().toLowerCase());
+                      case ManpowerSortOption.createdAtDesc:
+                        final aTime = DateTime.tryParse(a.updatedAt ?? "") ??
+                            DateTime.fromMillisecondsSinceEpoch(0);
+                        final bTime = DateTime.tryParse(b.updatedAt ?? "") ??
+                            DateTime.fromMillisecondsSinceEpoch(0);
+                        return bTime.compareTo(aTime);
+                      case ManpowerSortOption.createdAtAsc:
+                        final aTime = DateTime.tryParse(a.updatedAt ?? "") ??
+                            DateTime.fromMillisecondsSinceEpoch(0);
+                        final bTime = DateTime.tryParse(b.updatedAt ?? "") ??
+                            DateTime.fromMillisecondsSinceEpoch(0);
+                        return aTime.compareTo(bTime);
+                      case ManpowerSortOption.salaryHighToLow:
+                        return (b.salary ?? 0).compareTo(a.salary ?? 0);
+                      case ManpowerSortOption.salaryLowToHigh:
+                        return (a.salary ?? 0).compareTo(b.salary ?? 0);
+                    }
+                  });
+
+                  final sortedSignature = filteredList
+                      .map((m) =>
+                          '${m.id ?? ''}:${(m.fullName ?? '').trim().toLowerCase()}')
+                      .join('|');
+
+                  if (_lastSortedOrderSignature != sortedSignature) {
+                    _lastSortedOrderSignature = sortedSignature;
+                    debugPrint('📋 Sorted manpower order (asc by name):');
+                    for (int i = 0; i < filteredList.length; i++) {
+                      final m = filteredList[i];
+                      debugPrint(
+                        '  [$i] name="${m.fullName ?? ''}" code="${m.employeeCode ?? ''}" id="${m.id ?? ''}"',
+                      );
+                    }
+                  }
+
+                  if (manpowerList.isEmpty) {
+                    if (syncState.isLoading) {
+                      return const ShimmerList(
+                        type: ShimmerListType.tile,
+                        itemCount: 8,
+                      );
+                    }
+
+                    _syncManpowerListTour(
+                      showcaseContext,
+                      hasRecords: false,
+                      hasVisibleRecords: false,
+                    );
+
+                    return Center(
+                      child: _tourTarget(
+                        _emptyTourKey,
+                        const Column(
+                          mainAxisAlignment: MainAxisAlignment.center,
+                          children: [
+                            Icon(Icons.people_outline, size: 64),
+                            SizedBox(height: 16),
+                            Text(
+                              "Manpower data is empty",
+                              style: TextStyle(
+                                  fontSize: 18, fontWeight: FontWeight.w600),
+                            ),
+                            SizedBox(height: 6),
+                            Text(
+                              "No manpower records found. Please add manpower.",
+                              textAlign: TextAlign.center,
+                            ),
+                          ],
+                        ),
+                      ),
+                    );
+                  }
+
+                  _syncManpowerListTour(
+                    showcaseContext,
+                    hasRecords: true,
+                    hasVisibleRecords: filteredList.isNotEmpty,
+                  );
+
+                  return Column(
+                    children: [
+                      _tourTarget(
+                        _searchTourKey,
+                        Padding(
+                          padding: const EdgeInsets.fromLTRB(16, 8, 16, 4),
+                          child: Row(
+                            children: [
+                              Expanded(
+                                child: TextField(
+                                  onChanged: (val) =>
+                                      setState(() => _searchQuery = val),
+                                  decoration: InputDecoration(
+                                    hintText: 'Search by name or code...',
+                                    prefixIcon:
+                                        const Icon(Icons.search, size: 20),
+                                    suffixIcon: _searchQuery.isNotEmpty
+                                        ? IconButton(
+                                            icon: const Icon(Icons.close,
+                                                size: 18),
+                                            onPressed: () => setState(
+                                                () => _searchQuery = ''),
+                                          )
+                                        : null,
+                                    isDense: true,
+                                    filled: true,
+                                    fillColor: colorScheme.surface,
+                                    contentPadding: const EdgeInsets.symmetric(
+                                        horizontal: 12, vertical: 10),
+                                    border: OutlineInputBorder(
+                                      borderRadius: BorderRadius.circular(10),
+                                      borderSide: BorderSide.none,
+                                    ),
+                                  ),
+                                ),
+                              ),
+                              const SizedBox(width: 8),
+                              _buildFilterButton(
+                                manpowerList,
+                                selectedSiteName: selectedSite?.siteName,
+                              ),
+                            ],
+                          ),
+                        ),
+                      ),
+
+                      /// TOP BAR
+                      Row(
+                        mainAxisAlignment: MainAxisAlignment.end,
+                        children: [
+                          if (_isSelectionMode) ...[
+                            IconButton(
+                              icon: const Icon(Icons.close),
+                              onPressed: _toggleSelectionMode,
+                            ),
+                            TextButton(
+                              onPressed: () => _selectAllManpower(manpowerList),
+                              child: const Text('Select All'),
+                            ),
+                            const SizedBox(width: 8),
+                            ElevatedButton.icon(
+                              icon: const Icon(Icons.delete_sweep, size: 18),
+                              label: const Text('Delete'),
+                              onPressed: _selectedManpowerIds.isEmpty
+                                  ? null
+                                  : _deleteSelectedManpower,
+                              style: ElevatedButton.styleFrom(
+                                backgroundColor: colorScheme.error,
+                                foregroundColor: colorScheme.onError,
                               ),
                             ),
-                          ),
-                        ),
-                        const SizedBox(width: 8),
-                        _buildFilterButton(
-                          manpowerList,
-                          selectedSiteName: selectedSite?.siteName,
-                        ),
-                      ],
-                    ),
-                    ),
-                  ),
+                          ] else ...[
+                            _tourTarget(
+                              _deleteModeTourKey,
+                              IconButton(
+                                icon: Icon(Icons.delete_sweep,
+                                    color: colorScheme.error),
+                                onPressed: manpowerList.isEmpty
+                                    ? null
+                                    : _toggleSelectionMode,
+                              ),
+                            ),
+                          ],
+                        ],
+                      ),
 
-                  /// TOP BAR
-                  Row(
-                    mainAxisAlignment: MainAxisAlignment.end,
-                    children: [
-                      if (_isSelectionMode) ...[
-                        IconButton(
-                          icon: const Icon(Icons.close),
-                          onPressed: _toggleSelectionMode,
-                        ),
-                        TextButton(
-                          onPressed: () => _selectAllManpower(manpowerList),
-                          child: const Text('Select All'),
-                        ),
-                        const SizedBox(width: 8),
-                        ElevatedButton.icon(
-                          icon: const Icon(Icons.delete_sweep, size: 18),
-                          label: const Text('Delete'),
-                          onPressed: _selectedManpowerIds.isEmpty
-                              ? null
-                              : _deleteSelectedManpower,
-                          style: ElevatedButton.styleFrom(
-                            backgroundColor: colorScheme.error,
-                            foregroundColor: colorScheme.onError,
-                          ),
-                        ),
-                      ] else ...[
-                        _tourTarget(
-                          _deleteModeTourKey,
-                          IconButton(
-                            icon: Icon(Icons.delete_sweep,
-                                color: colorScheme.error),
-                            onPressed: manpowerList.isEmpty
-                                ? null
-                                : _toggleSelectionMode,
-                          ),
-                        ),
-                      ],
+                      /// LIST
+                      Expanded(
+                        child: filteredList.isEmpty
+                            ? Center(
+                                child: _tourTarget(
+                                  _noResultsTourKey,
+                                  const Text("No results found"),
+                                ),
+                              )
+                            : CustomScrollbar(
+                                controller: _scrollController,
+                                child: ListView.builder(
+                                  controller: _scrollController,
+                                  physics:
+                                      const AlwaysScrollableScrollPhysics(),
+                                  padding: const EdgeInsets.symmetric(
+                                      horizontal: 16),
+                                  itemCount: filteredList.length,
+                                  itemBuilder: (context, index) {
+                                    final manpower = filteredList[index];
+                                    final isSelected = _selectedManpowerIds
+                                        .contains(manpower.id);
+                                    return _buildManpowerTile(
+                                      manpower,
+                                      isSelected,
+                                      tileTourKey: index == 0
+                                          ? _firstManpowerTourKey
+                                          : null,
+                                    );
+                                  },
+                                ),
+                              ),
+                      ),
                     ],
-                  ),
-
-                  /// LIST
-                  Expanded(
-                    child: filteredList.isEmpty
-                        ? Center(
-                            child: _tourTarget(
-                              _noResultsTourKey,
-                              const Text("No results found"),
-                            ),
-                          )
-                        : CustomScrollbar(
-                            controller: _scrollController,
-                            child: ListView.builder(
-                              controller: _scrollController,
-                              physics: const AlwaysScrollableScrollPhysics(),
-                              padding:
-                                  const EdgeInsets.symmetric(horizontal: 16),
-                              itemCount: filteredList.length,
-                              itemBuilder: (context, index) {
-                                final manpower = filteredList[index];
-                                final isSelected =
-                                    _selectedManpowerIds.contains(manpower.id);
-                                return _buildManpowerTile(
-                                  manpower,
-                                  isSelected,
-                                  tileTourKey:
-                                      index == 0 ? _firstManpowerTourKey : null,
-                                );
-                              },
-                            ),
-                          ),
-                  ),
-                ],
-              );
-            },
+                  );
+                },
+              ),
+            ),
           ),
-        ),
-      ),
         );
       },
     );

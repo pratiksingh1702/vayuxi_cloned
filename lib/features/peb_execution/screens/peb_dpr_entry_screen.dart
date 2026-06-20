@@ -294,6 +294,18 @@ class _PebDprEntryScreenState extends State<PebDprEntryScreen> {
 
   String get _dateText => _selectedDate.toIso8601String().split('T').first;
 
+  double _quantityToKg(double value, String uom) {
+    final unit = uom.trim().toLowerCase();
+    if (unit == 'mt' ||
+        unit == 'ton' ||
+        unit == 'tons' ||
+        unit == 'tonne' ||
+        unit == 'tonnes') {
+      return value * 1000;
+    }
+    return value;
+  }
+
   List<PebBoqMark> get _allMarks => _boqs.expand((boq) => boq.items).toList();
 
   List<PebItemWiseDprItem> _boqMarksAsItemWiseItems(List<PebBoq> boqs) {
@@ -1449,17 +1461,18 @@ class _PebDprEntryScreenState extends State<PebDprEntryScreen> {
       final uom =
           (_level1UomInputs[work.setupItem.id] ?? work.setupItem.uom).trim();
       if (weight <= 0 || uom.isEmpty) continue;
+      final weightKg = _quantityToKg(weight, uom);
       items.add({
         'setupItemId': work.setupItem.id,
         'sourceType': 'level1_manual',
         'stageName': work.stageName,
         'name': work.stageName,
         'uom': uom,
-        'weight': weight,
-        'weightKg': weight,
-        'actualQty': weight,
-        'manualWeightKg': weight,
-        'totalWeightKg': weight,
+        'weight': weightKg,
+        'weightKg': weightKg,
+        'actualQty': weightKg,
+        'manualWeightKg': weightKg,
+        'totalWeightKg': weightKg,
         'weightMode': 'manual',
         'remarks': '',
       });
